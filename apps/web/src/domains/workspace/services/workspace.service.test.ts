@@ -15,6 +15,7 @@ import {
   AlreadyConnectedError,
   AuthorizationError,
   ConflictError,
+  ExternalServiceError,
   NotFoundError,
   ValidationError,
 } from "@/lib/utils/errors";
@@ -2532,6 +2533,119 @@ describe("WorkspaceService.inviteMember", () => {
   });
 });
 
+describe("WorkspaceService.sendMemberInvitationEmail (T-007.7)", () => {
+  const OWNER_USER = asUserId("owner-user");
+  const CREATOR_USER = asUserId("creator-user");
+  const inviteLink = "http://localhost:3000/invite/abc";
+
+  function ownerRepo() {
+    return createFakeRepository({
+      ...seedMembers([
+        member(OWNER_USER, asMemberId("member-owner"), MemberRole.Owner),
+      ]),
+      findById: async () => ({
+        id: WORKSPACE_ID,
+        name: "Kopi Selasar",
+        slug: "kopi-selasar",
+      }),
+      findUsersByIds: async () => [
+        {
+          id: OWNER_USER,
+          name: "Raka",
+          email: "raka@example.com",
+        },
+      ],
+    });
+  }
+
+  it("sends the existing invite link without creating another invitation", async () => {
+    const { sender, invitations } = fakeInviteEmailSender();
+    const service = new WorkspaceService(
+      ownerRepo(),
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      sender,
+    );
+
+    await service.sendMemberInvitationEmail({
+      workspaceId: WORKSPACE_ID,
+      actorUserId: OWNER_USER,
+      email: "Maya@Example.com",
+      role: MemberRole.Admin,
+      inviteLink,
+    });
+
+    expect(invitations).toEqual([
+      {
+        email: "maya@example.com",
+        inviteLink,
+        workspaceName: "Kopi Selasar",
+        roleLabel: "Admin",
+        invitedByName: "Raka",
+      },
+    ]);
+  });
+
+  it("rejects Creator", async () => {
+    const { sender, invitations } = fakeInviteEmailSender();
+    const service = new WorkspaceService(
+      createFakeRepository(
+        seedMembers([
+          member(
+            CREATOR_USER,
+            asMemberId("member-creator"),
+            MemberRole.Creator,
+          ),
+        ]),
+      ),
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      sender,
+    );
+
+    await expect(
+      service.sendMemberInvitationEmail({
+        workspaceId: WORKSPACE_ID,
+        actorUserId: CREATOR_USER,
+        email: "maya@example.com",
+        role: MemberRole.Creator,
+        inviteLink,
+      }),
+    ).rejects.toThrow(AuthorizationError);
+    expect(invitations).toHaveLength(0);
+  });
+
+  it("wraps a sender failure as ExternalServiceError", async () => {
+    const service = new WorkspaceService(
+      ownerRepo(),
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      {
+        sendInviteVerificationCode: async () => undefined,
+        sendMemberInvitation: async () => {
+          throw new Error("resend down");
+        },
+      },
+    );
+
+    await expect(
+      service.sendMemberInvitationEmail({
+        workspaceId: WORKSPACE_ID,
+        actorUserId: OWNER_USER,
+        email: "maya@example.com",
+        role: MemberRole.Creator,
+        inviteLink,
+      }),
+    ).rejects.toThrow(ExternalServiceError);
+  });
+});
+
 /** Invitation seed helper untuk describe blocks T-093 di bawah. */
 function pendingInvitation(
   overrides: Partial<WorkspaceInvitationRecord> = {},
@@ -2841,6 +2955,13 @@ describe("WorkspaceService.acceptInvite (T-093.2/.3)", () => {
 /** Double lokal untuk `InviteEmailSenderPort` (T-110, AGENTS.md rule 19 — bukan singleton produksi). */
 function fakeInviteEmailSender() {
   const sent: { email: string; code: string; workspaceName: string }[] = [];
+  const invitations: {
+    email: string;
+    inviteLink: string;
+    workspaceName: string;
+    roleLabel: string;
+    invitedByName: string;
+  }[] = [];
   return {
     sender: {
       async sendInviteVerificationCode(input: {
@@ -2850,8 +2971,18 @@ function fakeInviteEmailSender() {
       }) {
         sent.push(input);
       },
+      async sendMemberInvitation(input: {
+        email: string;
+        inviteLink: string;
+        workspaceName: string;
+        roleLabel: string;
+        invitedByName: string;
+      }) {
+        invitations.push(input);
+      },
     },
     sent,
+    invitations,
   };
 }
 

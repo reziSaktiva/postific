@@ -22,6 +22,7 @@ import {
   AlreadyConnectedError,
   AuthorizationError,
   ConflictError,
+  ExternalServiceError,
   NotFoundError,
   ValidationError,
 } from "@/lib/utils/errors";
@@ -57,6 +58,17 @@ const MAX_SLUG_ATTEMPTS = 6;
 const DOUBLE_SUBMIT_RECOVERY_WINDOW_MS = 15_000;
 /** ADR-072 & ADR-080 — copy "Undangan berlaku 7 hari" di dialog Claude Design. */
 const INVITATION_EXPIRY_DAYS = 7;
+
+function memberRoleLabel(role: MemberRole): string {
+  switch (role) {
+    case MemberRole.Owner:
+      return "Owner";
+    case MemberRole.Admin:
+      return "Admin";
+    case MemberRole.Creator:
+      return "Creator";
+  }
+}
 /**
  * T-110 (KI-053) — verifikasi kepemilikan email accept-invite, HANYA jalur
  * `isExistingUser: false`. Kode 6 digit, TTL 10 menit (desain Claude Design
@@ -185,6 +197,13 @@ interface InviteEmailSenderPort {
     email: string;
     code: string;
     workspaceName: string;
+  }): Promise<void>;
+  sendMemberInvitation(input: {
+    email: string;
+    inviteLink: string;
+    workspaceName: string;
+    roleLabel: string;
+    invitedByName: string;
   }): Promise<void>;
 }
 
@@ -798,7 +817,7 @@ export class WorkspaceService {
    * Admin only, reuse `assertActorCanManageMembers`); role `Owner` ditolak
    * sama seperti `updateMemberRole` (Transfer Ownership adalah alur
    * terpisah). Pengiriman email untuk metode "Kirim via Email" adalah
-   * langkah opsional TERPISAH (T-007.7, blocked T-005) yang dipanggil
+   * langkah terpisah (`sendMemberInvitationEmail`, T-007.7) yang dipanggil
    * composition root setelah invitation ini dibuat — tidak ada percabangan
    * logic RBAC/token/expiry di sini (ADR-080 poin 3).
    */
@@ -840,6 +859,54 @@ export class WorkspaceService {
       token,
       expiresAt,
     });
+  }
+
+  /**
+   * Jalur **Kirim via Email** (T-007.7, ADR-080 poin 3) — kirim link undangan
+   * yang SUDAH dibuat `inviteMember`. Tidak membuat invitation baru dan tidak
+   * mengubah token/expiry/RBAC pembuatan undangan. RBAC dicek ulang supaya
+   * method ini tidak bisa dipakai mengirim email tanpa hak kelola anggota.
+   */
+  async sendMemberInvitationEmail(input: {
+    workspaceId: WorkspaceId;
+    actorUserId: UserId;
+    email: string;
+    role: MemberRole;
+    inviteLink: string;
+  }): Promise<void> {
+    if (!input.inviteLink.trim()) {
+      throw new ValidationError("Link undangan wajib diisi.");
+    }
+
+    await this.assertActorCanManageMembers(
+      input.workspaceId,
+      input.actorUserId,
+      "Hanya Owner atau Admin yang bisa mengundang anggota.",
+    );
+
+    const workspace = await this.repository.findById(input.workspaceId);
+    if (!workspace) {
+      throw new NotFoundError("Workspace tidak ditemukan.");
+    }
+
+    const [inviter] = await this.repository.findUsersByIds([input.actorUserId]);
+
+    try {
+      await this.requireInviteEmailSender().sendMemberInvitation({
+        email: input.email.trim().toLowerCase(),
+        inviteLink: input.inviteLink,
+        workspaceName: workspace.name,
+        roleLabel: memberRoleLabel(input.role),
+        invitedByName: inviter?.name ?? "Anggota tim",
+      });
+    } catch (error) {
+      if (error instanceof ExternalServiceError) {
+        throw error;
+      }
+      throw new ExternalServiceError(
+        "Undangan sudah dibuat, tetapi email gagal dikirim.",
+      );
+    }
   }
 
   /**

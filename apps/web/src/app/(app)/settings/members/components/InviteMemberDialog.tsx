@@ -5,7 +5,6 @@ import { useState } from "react";
 import { EMAIL_PATTERN, MemberRole } from "@postific/shared";
 
 import { Alert, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -64,13 +63,9 @@ interface Props {
 
 /**
  * Dialog "Undang Anggota Baru" (T-007.6, ADR-080, migrasi shadcn/ui
- * T-099.2). Dua metode: Copy Link (aktif, default) dan Kirim via Email
- * (disabled, badge "Segera", menunggu T-005). Pola pilihan kartu
- * (label+description+radio dot per baris, satu baris bisa diklik penuh)
- * ikut contoh resmi shadcn `field-choice-card` (MCP
- * `get_item_examples_from_registries`) — `FieldLabel` membungkus `Field
- * orientation="horizontal"` supaya seluruh baris jadi target klik, bukan
- * cuma radio dot-nya.
+ * T-099.2). Dua metode: Copy Link (default) dan Kirim via Email (T-007.7).
+ * Pola pilihan kartu (label+description+radio dot per baris, satu baris
+ * bisa diklik penuh) ikut contoh resmi shadcn `field-choice-card`.
  */
 export function InviteMemberDialog({ isOpen, onOpenChange }: Props) {
   const [email, setEmail] = useState("");
@@ -80,6 +75,7 @@ export function InviteMemberDialog({ isOpen, onOpenChange }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [emailed, setEmailed] = useState(false);
   const [invitedEmail, setInvitedEmail] = useState<string | null>(null);
   const [copyLabel, setCopyLabel] = useState("Salin");
 
@@ -91,6 +87,7 @@ export function InviteMemberDialog({ isOpen, onOpenChange }: Props) {
     setMethod("copy-link");
     setError(null);
     setInviteLink(null);
+    setEmailed(false);
     setInvitedEmail(null);
     setCopyLabel("Salin");
   }
@@ -100,13 +97,19 @@ export function InviteMemberDialog({ isOpen, onOpenChange }: Props) {
     setIsSubmitting(true);
     setError(null);
     try {
-      const result = await inviteMemberAction(email.trim(), role as MemberRole);
+      const result = await inviteMemberAction(
+        email.trim(),
+        role as MemberRole,
+        method,
+      );
+      if (result.inviteLink) {
+        setInviteLink(result.inviteLink);
+        setInvitedEmail(email.trim());
+      }
+      setEmailed(Boolean(result.emailed));
       if (result.error) {
         setError(result.error);
-        return;
       }
-      setInviteLink(result.inviteLink ?? null);
-      setInvitedEmail(email.trim());
     } finally {
       setIsSubmitting(false);
     }
@@ -205,25 +208,12 @@ export function InviteMemberDialog({ isOpen, onOpenChange }: Props) {
               <FieldLabel htmlFor="invite-method-email">
                 <Field orientation="horizontal">
                   <FieldContent>
-                    {/* eslint-disable-next-line no-restricted-syntax -- T-099.2: file ini
-                        sudah dimigrasi ke komposisi Tailwind shadcn (ADR-097), bukan lagi
-                        HStack Astryx. */}
-                    <div className="flex items-center gap-2">
-                      <FieldTitle className="text-muted-foreground">
-                        Kirim via Email
-                      </FieldTitle>
-                      <Badge variant="outline">Segera</Badge>
-                    </div>
+                    <FieldTitle>Kirim via Email</FieldTitle>
                     <FieldDescription>
                       Undangan terkirim otomatis ke email calon anggota.
-                      Menunggu provider email disiapkan (T-005).
                     </FieldDescription>
                   </FieldContent>
-                  <RadioGroupItem
-                    value="email"
-                    id="invite-method-email"
-                    disabled
-                  />
+                  <RadioGroupItem value="email" id="invite-method-email" />
                 </Field>
               </FieldLabel>
             </RadioGroup>
@@ -245,7 +235,9 @@ export function InviteMemberDialog({ isOpen, onOpenChange }: Props) {
                 </InputGroupAddon>
               </InputGroup>
               <FieldDescription>
-                Link untuk {invitedEmail} dibuat.
+                {emailed
+                  ? `Email undangan sudah dikirim ke ${invitedEmail}. Link ini juga bisa disalin kalau perlu.`
+                  : `Link untuk ${invitedEmail} dibuat.`}
               </FieldDescription>
             </Field>
           ) : null}
@@ -267,7 +259,7 @@ export function InviteMemberDialog({ isOpen, onOpenChange }: Props) {
               onClick={handleSubmit}
             >
               {isSubmitting ? <Spinner /> : null}
-              Buat Link Undangan
+              {method === "email" ? "Kirim Undangan" : "Buat Link Undangan"}
             </Button>
           )}
         </DialogFooter>

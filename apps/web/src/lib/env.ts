@@ -58,13 +58,14 @@ export type ServerEnv = {
    * Wajib untuk setiap jalur yang memanggil `getInviteEmailSender()` (T-110,
    * KI-053) — kosong/whitespace membuat factory throw, pola sama
    * `OUTSTAND_API_KEY` (ADR-119, tidak ada fallback Fake di produksi).
-   * Sengaja tidak masuk `REQUIRED_SERVER_VARS`: scope Resend saat ini HANYA
-   * verifikasi email accept-invite (`isExistingUser: false`), bukan
-   * `requireEmailVerification` Better Auth secara global — halaman yang
-   * tidak menyentuh alur itu tetap boleh boot tanpa env var ini.
+   * Sengaja tidak masuk `REQUIRED_SERVER_VARS`: scope Resend saat ini adalah
+   * verifikasi email accept-invite (T-110) dan kirim undangan anggota
+   * (T-007.7), bukan `requireEmailVerification` Better Auth secara global
+   * (T-005) — halaman yang tidak menyentuh alur itu tetap boleh boot tanpa
+   * env var ini.
    */
   RESEND_API_KEY?: string;
-  /** Wajib bersamaan dengan RESEND_API_KEY — alamat pengirim email verifikasi accept-invite. */
+  /** Wajib bersamaan dengan RESEND_API_KEY — alamat pengirim email Resend. */
   RESEND_FROM_EMAIL?: string;
   NEXT_PUBLIC_SUPABASE_URL?: string;
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?: string;

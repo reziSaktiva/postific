@@ -8,6 +8,12 @@ Seluruh perubahan penting pada dokumentasi maupun implementasi project dicatat p
 
 ---
 
+## 2026-10-12 — T-007.7 Kirim undangan anggota via email (Resend)
+
+Jalur **Kirim via Email** di dialog Undang Anggota diaktifkan. Invitation tetap dibuat seperti Copy Link, lalu link yang sama dikirim lewat Resend (`RESEND_API_KEY` / `RESEND_FROM_EMAIL` yang sudah dipakai T-110). Kalau email gagal, undangan tetap tersimpan dan link bisa disalin manual. T-005 (verifikasi email global dan reset password) tidak ditutup.
+
+---
+
 ## 2026-10-09 — Nama Produk Final "Postific" — Rename Package Scope `@social/*` → `@postific/*` (ADR-124)
 
 King Rezi memutuskan nama produk final: **Postific** (sudah punya nama di kepala sebelum sesi, bukan hasil brainstorm AI; sesi awalnya menawarkan bantuan brainstorm, dibatalkan). Scope diputuskan via `AskUserQuestion`: cakupan penuh (dokumentasi + identifier teknis), status final (hapus label "Working Title").
