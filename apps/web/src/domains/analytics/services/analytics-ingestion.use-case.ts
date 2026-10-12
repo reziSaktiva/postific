@@ -4,6 +4,7 @@ import type {
   OutstandMetricsPeriod,
   PostId,
   SocialPlatform,
+  UserId,
   WorkspaceId,
 } from "@postific/shared";
 import type {
@@ -70,8 +71,9 @@ export interface SyncWorkspaceSnapshotAccountInput {
  * tidak berubah secepat komentar, dan Outstand sendiri hanya
  * mengagregasikan data platform secara periodik, jadi polling lebih sering
  * dari harian tidak menambah nilai — hanya menambah beban API Outstand.
- * Penjadwalan cron sungguhan (Railway Cron) di luar scope T-041 — Use Case
- * ini disiapkan untuk dipanggil manual/dari test dulu.
+ * Penjadwalan cron (Railway Cron harian, JOB-04) di-wire terpisah oleh
+ * `AnalyticsSyncJobHandler` (T-048) — Use Case ini tetap tidak tahu soal
+ * antrian job.
  */
 export class AnalyticsIngestionUseCase {
   constructor(
@@ -87,6 +89,7 @@ export class AnalyticsIngestionUseCase {
    */
   async syncPostMetrics(
     targets: SyncPostMetricsTargetInput[],
+    actingUserId: UserId,
   ): Promise<PostMetricsRecord[]> {
     const results: PostMetricsRecord[] = [];
 
@@ -110,19 +113,22 @@ export class AnalyticsIngestionUseCase {
         metricsByOutstandPostId.set(target.outstandPostId, metrics);
       }
 
-      const record = await this.repository.upsertPostMetrics({
-        postId: target.postId,
-        connectedAccountId: target.connectedAccountId,
-        platform: target.platform,
-        impressions: metrics.impressions,
-        reach: metrics.reach,
-        likes: metrics.likes,
-        comments: metrics.comments,
-        shares: metrics.shares,
-        clicks: metrics.clicks,
-        engagementRate: metrics.engagementRate,
-        fetchedAt: new Date(),
-      });
+      const record = await this.repository.upsertPostMetrics(
+        {
+          postId: target.postId,
+          connectedAccountId: target.connectedAccountId,
+          platform: target.platform,
+          impressions: metrics.impressions,
+          reach: metrics.reach,
+          likes: metrics.likes,
+          comments: metrics.comments,
+          shares: metrics.shares,
+          clicks: metrics.clicks,
+          engagementRate: metrics.engagementRate,
+          fetchedAt: new Date(),
+        },
+        actingUserId,
+      );
 
       results.push(record);
     }
@@ -147,14 +153,17 @@ export class AnalyticsIngestionUseCase {
    * query lintas `AnalyticsPostMetric` yang bisa jadi task terpisah);
    * caller boleh mengoper nilai yang sudah diketahui, default `null`.
    */
-  async syncWorkspaceSnapshot(input: {
-    workspaceId: WorkspaceId;
-    period: SnapshotPeriod;
-    periodStart: Date;
-    periodEnd: Date;
-    accounts: SyncWorkspaceSnapshotAccountInput[];
-    topPostId?: PostId | null;
-  }): Promise<WorkspaceSnapshotRecord> {
+  async syncWorkspaceSnapshot(
+    input: {
+      workspaceId: WorkspaceId;
+      period: SnapshotPeriod;
+      periodStart: Date;
+      periodEnd: Date;
+      accounts: SyncWorkspaceSnapshotAccountInput[];
+      topPostId?: PostId | null;
+    },
+    actingUserId: UserId,
+  ): Promise<WorkspaceSnapshotRecord> {
     const outstandPeriod = OUTSTAND_PERIOD_BY_SNAPSHOT_PERIOD[input.period];
 
     let totalPosts = 0;
@@ -175,16 +184,19 @@ export class AnalyticsIngestionUseCase {
     const avgEngagementRate =
       totalReach > 0 ? Number((totalEngagements / totalReach).toFixed(4)) : 0;
 
-    return this.repository.upsertWorkspaceSnapshot({
-      workspaceId: input.workspaceId,
-      period: input.period,
-      periodStart: input.periodStart,
-      periodEnd: input.periodEnd,
-      totalPosts,
-      totalReach,
-      totalEngagements,
-      avgEngagementRate,
-      topPostId: input.topPostId ?? null,
-    });
+    return this.repository.upsertWorkspaceSnapshot(
+      {
+        workspaceId: input.workspaceId,
+        period: input.period,
+        periodStart: input.periodStart,
+        periodEnd: input.periodEnd,
+        totalPosts,
+        totalReach,
+        totalEngagements,
+        avgEngagementRate,
+        topPostId: input.topPostId ?? null,
+      },
+      actingUserId,
+    );
   }
 }

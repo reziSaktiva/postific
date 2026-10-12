@@ -35,6 +35,7 @@ import { sortCalendarItemsByEffectiveDate } from "./sort-calendar-items";
 interface PostMetricsPort {
   getPostMetricsByPosts(
     postIds: PostId[],
+    actingUserId: UserId,
   ): Promise<Map<PostId, PostMetricsRecord[]>>;
 }
 
@@ -555,7 +556,7 @@ export class PublishingService {
 
     const metricsByPost =
       this.postMetrics && publishedPostIds.length > 0
-        ? await this.postMetrics.getPostMetricsByPosts(publishedPostIds)
+        ? await this.postMetrics.getPostMetricsByPosts(publishedPostIds, userId)
         : new Map<PostId, PostMetricsRecord[]>();
 
     return sorted.map((item) => ({
@@ -613,9 +614,9 @@ export class PublishingService {
 
     const metrics =
       item.status === ContentStatus.Published && this.postMetrics
-        ? ((await this.postMetrics.getPostMetricsByPosts([item.id])).get(
-            item.id,
-          ) ?? [])
+        ? ((
+            await this.postMetrics.getPostMetricsByPosts([item.id], userId)
+          ).get(item.id) ?? [])
         : item.status === ContentStatus.Published
           ? []
           : null;
@@ -704,9 +705,9 @@ export class PublishingService {
 
     const metrics =
       post.status === ContentStatus.Published && this.postMetrics
-        ? ((await this.postMetrics.getPostMetricsByPosts([post.id])).get(
-            post.id,
-          ) ?? [])
+        ? ((
+            await this.postMetrics.getPostMetricsByPosts([post.id], userId)
+          ).get(post.id) ?? [])
         : post.status === ContentStatus.Published
           ? []
           : null;
@@ -810,6 +811,7 @@ export class PublishingService {
 
     const metricsByPost = await this.postMetrics.getPostMetricsByPosts(
       postsInRange.map((post) => post.id),
+      userId,
     );
 
     const rows: PostPerformanceRow[] = [];

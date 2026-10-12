@@ -1,3 +1,7 @@
+import {
+  ANALYTICS_SYNC_JOB_TYPE,
+  EnqueueAnalyticsSyncUseCase,
+} from "@/domains/analytics";
 import { ENGAGEMENT_SYNC_JOB_TYPE } from "@/domains/engagement";
 import {
   ImportPostsProcessUseCase,
@@ -60,6 +64,18 @@ export function createImportPostsTriggerUseCase(): ImportPostsTriggerUseCase {
  */
 export function createWorkspaceServiceWithOutstandAdapter(): WorkspaceService {
   const importPostsTriggerUseCase = createImportPostsTriggerUseCase();
+  const enqueueAnalyticsSync = new EnqueueAnalyticsSyncUseCase(
+    workspaceRepository,
+    {
+      hasActiveJob: (connectedAccountId) =>
+        backgroundJobStore.hasActiveJobForPayloadKey({
+          type: ANALYTICS_SYNC_JOB_TYPE,
+          key: "connectedAccountId",
+          value: connectedAccountId,
+        }),
+      scheduleJob: (input) => backgroundJobScheduler.scheduleJob(input),
+    },
+  );
 
   return new WorkspaceService(
     workspaceRepository,
@@ -91,6 +107,14 @@ export function createWorkspaceServiceWithOutstandAdapter(): WorkspaceService {
           },
           scheduledAt: new Date(),
         });
+
+        await enqueueAnalyticsSync.enqueueForAccounts([
+          {
+            workspaceId: input.workspaceId,
+            connectedAccountId: input.connectedAccountId,
+            outstandAccountId: input.outstandAccountId,
+          },
+        ]);
       },
     },
     undefined,

@@ -44,12 +44,16 @@ export class AnalyticsService {
    */
   async getPostMetricsByPosts(
     postIds: PostId[],
+    actingUserId?: UserId,
   ): Promise<Map<PostId, PostMetricsRecord[]>> {
     if (postIds.length === 0) {
       return new Map();
     }
 
-    const rows = await this.repository.findMetricsByPosts(postIds);
+    const rows = await this.repository.findMetricsByPosts(
+      postIds,
+      actingUserId,
+    );
     const grouped = new Map<PostId, PostMetricsRecord[]>();
     for (const row of rows) {
       const existing = grouped.get(row.postId);
@@ -90,6 +94,7 @@ export class AnalyticsService {
     const snapshot = await this.repository.findLatestWorkspaceSnapshot(
       workspaceId,
       period,
+      userId,
     );
     if (!snapshot) {
       return null;

@@ -7,11 +7,16 @@ vi.mock("@/lib/adapters/outstand", () => ({
   getOutstandAdapter: vi.fn(() => ({})),
 }));
 vi.mock("@/lib/repositories/publishing", () => ({ publishingRepository: {} }));
-vi.mock("@/lib/repositories/workspace", () => ({ workspaceRepository: {} }));
+vi.mock("@/lib/repositories/workspace", () => ({
+  workspaceRepository: {
+    listActiveConnectedAccountsForSync: async () => [],
+  },
+}));
 vi.mock("@/lib/repositories/notification", () => ({
   notificationRepository: {},
 }));
 vi.mock("@/lib/repositories/engagement", () => ({ engagementRepository: {} }));
+vi.mock("@/lib/repositories/analytics", () => ({ analyticsRepository: {} }));
 vi.mock("@/lib/jobs/job-scheduler", () => ({ backgroundJobScheduler: {} }));
 
 vi.mock("@/domains/publishing", () => ({
@@ -41,12 +46,15 @@ vi.mock("@/lib/jobs/background-job-store", () => ({
 
 const SECRET = "test-job-secret";
 
-function buildRequest(headerValue: string | null): Request {
+function buildRequest(
+  headerValue: string | null,
+  url = "http://localhost/api/jobs/run",
+): Request {
   const headers = new Headers();
   if (headerValue !== null) {
     headers.set("x-job-secret", headerValue);
   }
-  return new Request("http://localhost/api/jobs/run", {
+  return new Request(url, {
     method: "POST",
     headers,
   });
@@ -116,5 +124,16 @@ describe("POST /api/jobs/run (T-027.1/.2)", () => {
         },
       ],
     });
+  });
+
+  it("accepts the daily analytics trigger on the same secret-protected endpoint", async () => {
+    const { POST } = await import("./route");
+
+    const response = await POST(
+      buildRequest(SECRET, "http://localhost/api/jobs/run?type=analytics"),
+    );
+
+    expect(response.status).toBe(200);
+    expect(runPendingJobs).toHaveBeenCalledTimes(1);
   });
 });

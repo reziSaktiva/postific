@@ -516,6 +516,21 @@ export interface IWorkspaceRepository {
   } | null>;
 
   /**
+   * Fan-out JOB-04 (T-048) — seluruh ConnectedAccount `active` yang tidak
+   * `reconnectRequired`, lintas workspace. Tidak butuh acting user: query
+   * lewat SECURITY DEFINER `analytics_list_active_connected_accounts`
+   * karena cron tidak punya sesi. Dipakai `EnqueueAnalyticsSyncUseCase`,
+   * bukan UI.
+   */
+  listActiveConnectedAccountsForSync(): Promise<
+    {
+      workspaceId: WorkspaceId;
+      connectedAccountId: ConnectedAccountId;
+      outstandAccountId: string;
+    }[]
+  >;
+
+  /**
    * Disconnect akun (T-014.2, ADR-048/ADR-049) — set
    * `WorkspaceConnectedAccount.status` jadi `"disconnected"` DAN
    * `reconnectRequired` jadi `false` (state "perlu reconnect" tidak relevan

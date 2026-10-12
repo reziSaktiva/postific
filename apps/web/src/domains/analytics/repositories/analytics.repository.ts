@@ -3,6 +3,7 @@ import type {
   PostId,
   PostMetricsId,
   SocialPlatform,
+  UserId,
   WorkspaceId,
   WorkspaceSnapshotId,
 } from "@postific/shared";
@@ -88,7 +89,10 @@ export interface IAnalyticsRepository {
    * item Calendar. Returns flat array (bukan grouped) — pengelompokan per
    * `postId` jadi tanggung jawab `AnalyticsService.getPostMetricsByPosts`.
    */
-  findMetricsByPosts(postIds: PostId[]): Promise<PostMetricsRecord[]>;
+  findMetricsByPosts(
+    postIds: PostId[],
+    actingUserId?: UserId,
+  ): Promise<PostMetricsRecord[]>;
 
   /**
    * Snapshot workspace terbaru untuk `period` tertentu (`periodStart`
@@ -99,6 +103,7 @@ export interface IAnalyticsRepository {
   findLatestWorkspaceSnapshot(
     workspaceId: WorkspaceId,
     period: SnapshotPeriod,
+    actingUserId?: UserId,
   ): Promise<WorkspaceSnapshotRecord | null>;
 
   /**
@@ -107,8 +112,15 @@ export interface IAnalyticsRepository {
    * di-fetch dari `IOutstandAdapter.fetchPostMetrics`. Idempoten: panggilan
    * berulang dengan input yang sama menghasilkan baris yang identik (bukan
    * baris baru).
+   *
+   * `actingUserId` (RLS) — job JOB-04 tidak punya sesi Better Auth.
+   * Caller (handler) me-resolve Owner workspace lalu meneruskannya supaya
+   * tulis melewati `withCurrentUser`.
    */
-  upsertPostMetrics(input: UpsertPostMetricInput): Promise<PostMetricsRecord>;
+  upsertPostMetrics(
+    input: UpsertPostMetricInput,
+    actingUserId: UserId,
+  ): Promise<PostMetricsRecord>;
 
   /**
    * Upsert satu snapshot agregat workspace per (workspaceId, period,
@@ -118,5 +130,6 @@ export interface IAnalyticsRepository {
    */
   upsertWorkspaceSnapshot(
     input: UpsertWorkspaceSnapshotInput,
+    actingUserId: UserId,
   ): Promise<WorkspaceSnapshotRecord>;
 }
