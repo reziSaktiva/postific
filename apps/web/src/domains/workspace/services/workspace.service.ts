@@ -846,6 +846,25 @@ export class WorkspaceService {
       "Hanya Owner atau Admin yang bisa mengundang anggota.",
     );
 
+    // Najwa QA Engineer T-007.7 — tanpa guard ini, email yang sudah jadi
+    // member aktif workspace tetap menghasilkan invitation baru yang valid.
+    // Baris pending-nya disembunyikan oleh de-dup di
+    // `listMembersAndPendingInvitations` (dimaksudkan untuk race condition
+    // accept-invite, bukan untuk validasi ini), jadi token "yatim" itu tetap
+    // ada di database tanpa cara untuk dibatalkan lewat UI manapun.
+    const existingUser = await this.repository.findUserByEmail(email);
+    if (existingUser) {
+      const existingMember = await this.repository.getMember(
+        workspaceId,
+        existingUser.id,
+      );
+      if (existingMember?.status === MemberStatus.Active) {
+        throw new ConflictError(
+          "Email ini sudah menjadi anggota aktif workspace ini.",
+        );
+      }
+    }
+
     const token = randomBytes(32).toString("hex");
     const expiresAt = new Date(
       Date.now() + INVITATION_EXPIRY_DAYS * 24 * 60 * 60 * 1000,

@@ -2512,6 +2512,72 @@ describe("WorkspaceService.inviteMember", () => {
     ).rejects.toThrow(ValidationError);
   });
 
+  it("rejects inviting an email that already belongs to an active member", async () => {
+    let createInvitationCalls = 0;
+    const service = new WorkspaceService(
+      createFakeRepository({
+        ...seedMembers(baseSeed()),
+        findUserByEmail: async (email) =>
+          email === "admin@example.com"
+            ? { id: ADMIN_USER, createdAt: new Date() }
+            : null,
+        createInvitation: async (input) => {
+          createInvitationCalls += 1;
+          return {
+            id: asInvitationId("invitation-should-not-exist"),
+            workspaceId: input.workspaceId,
+            email: input.email,
+            role: input.role,
+            token: input.token,
+            status: InvitationStatus.Pending,
+            invitedByUserId: input.invitedByUserId,
+            expiresAt: input.expiresAt,
+            verificationCodeHash: null,
+            verificationCodeExpiresAt: null,
+            verificationAttempts: 0,
+            emailVerifiedAt: null,
+          };
+        },
+      }),
+    );
+
+    await expect(
+      service.inviteMember(WORKSPACE_ID, OWNER_USER, {
+        email: "Admin@Example.com",
+        role: MemberRole.Creator,
+      }),
+    ).rejects.toThrow(ConflictError);
+    expect(createInvitationCalls).toBe(0);
+  });
+
+  it("allows inviting an email whose only membership is Removed (not active)", async () => {
+    const removedUser = asUserId("former-member-user");
+    const service = new WorkspaceService(
+      createFakeRepository({
+        ...seedMembers([
+          ...baseSeed(),
+          member(
+            removedUser,
+            asMemberId("member-former"),
+            MemberRole.Admin,
+            MemberStatus.Removed,
+          ),
+        ]),
+        findUserByEmail: async (email) =>
+          email === "former@example.com"
+            ? { id: removedUser, createdAt: new Date() }
+            : null,
+      }),
+    );
+
+    await expect(
+      service.inviteMember(WORKSPACE_ID, OWNER_USER, {
+        email: "former@example.com",
+        role: MemberRole.Creator,
+      }),
+    ).resolves.toMatchObject({ email: "former@example.com" });
+  });
+
   it("propagates ConflictError when an invitation for the email already exists", async () => {
     const service = new WorkspaceService(
       createFakeRepository({
