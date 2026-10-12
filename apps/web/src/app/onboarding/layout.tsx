@@ -20,10 +20,10 @@ export default function OnboardingLayout({
         {/* eslint-disable-next-line no-restricted-syntax -- T-097.5, sama seperti di atas */}
         <div className="flex items-center justify-center gap-2">
           <span className="flex size-8 items-center justify-center rounded-md bg-accent text-sm font-semibold text-accent-foreground">
-            SM
+            P
           </span>
           <Text variant="small" className="font-semibold">
-            Social Media Management
+            Postific
           </Text>
         </div>
         {children}

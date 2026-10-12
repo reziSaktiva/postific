@@ -66,7 +66,7 @@ Menjawab: *siapa yang memakai sistem, dan sistem apa saja yang berbatasan dengan
                                ▼
 ┌──────────────────────────────────────────────────────────────┐
 │                                                              │
-│                   Postific Platform                           │
+│                      Postific Platform                       │
 │                                                              │
 │  Platform web untuk draft, schedule, publish, engagement,    │
 │  analytics, AI caption, dan Start Page — satu workspace.     │
