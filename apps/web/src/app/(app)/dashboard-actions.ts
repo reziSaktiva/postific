@@ -1,6 +1,6 @@
 "use server";
 
-import { asUserId } from "@social/shared";
+import { asUserId } from "@postific/shared";
 import { redirect } from "next/navigation";
 
 import type { DashboardSummary, SnapshotPeriod } from "@/domains/analytics";

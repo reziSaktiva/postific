@@ -1,4 +1,4 @@
-import { ContentFormat, SocialPlatform } from "@social/shared";
+import { ContentFormat, SocialPlatform } from "@postific/shared";
 import { describe, expect, it, vi } from "vitest";
 import { createRealOutstandAdapter } from "./real-outstand-adapter";
 import type { FetchLike } from "./outstand-http-client";

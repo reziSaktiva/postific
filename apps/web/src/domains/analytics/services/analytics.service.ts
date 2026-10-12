@@ -1,4 +1,4 @@
-import type { PostId, UserId, WorkspaceId } from "@social/shared";
+import type { PostId, UserId, WorkspaceId } from "@postific/shared";
 import type {
   IAnalyticsRepository,
   PostMetricsRecord,

@@ -1,6 +1,6 @@
 # User Goals
 
-Dokumen ini mendefinisikan tujuan, motivasi, dan hasil yang ingin dicapai pengguna produk **Social Media Management**.
+Dokumen ini mendefinisikan tujuan, motivasi, dan hasil yang ingin dicapai pengguna produk **Postific**.
 
 Goals menjelaskan *apa yang ingin dicapai*, bukan *bagaimana produk menyelesaikannya*.
 

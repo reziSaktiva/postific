@@ -1,4 +1,4 @@
-import type { SocialPlatform } from "@social/shared";
+import type { SocialPlatform } from "@postific/shared";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PLATFORM_ICON } from "@/app/(app)/components/platform-icons";

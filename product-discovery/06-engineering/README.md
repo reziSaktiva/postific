@@ -1,6 +1,6 @@
 # 06 — Engineering Planning
 
-Dokumentasi pada folder ini berfokus pada **Engineering Planning** untuk produk **Social Media Management**, mencakup seluruh keputusan teknis yang harus ditetapkan sebelum implementasi kode dimulai.
+Dokumentasi pada folder ini berfokus pada **Engineering Planning** untuk produk **Postific**, mencakup seluruh keputusan teknis yang harus ditetapkan sebelum implementasi kode dimulai.
 
 Seluruh dokumentasi pada folder ini harus mengacu pada **Business Baseline v1.0**, **Product Baseline v1.0**, **User Discovery Baseline v1.0**, **UX Planning Baseline v1.0**, dan **System Architecture Baseline v1.0** yang telah disepakati. Folder ini sendiri ditetapkan sebagai **Engineering Planning Baseline v1.0** (ADR-036) dan menjadi acuan wajib untuk Repository & Bootstrap (M7).
 
@@ -60,7 +60,7 @@ Topik berikut **tidak dibahas** pada folder ini:
 * `environment-management.md` — katalog env vars, secret native (Railway + `.env.local`), Supabase Cloud staging / prod, local menumpang project staging yang sama (ADR-033, amandemen ADR-081).
 * `dx-tooling.md` — ESLint + Prettier, Lefthook + lint-staged, Vitest, script workspace (ADR-034).
 * `dependency-strategy.md` — caret ranges, `bun.lockb` root, penempatan dep,
-  aturan `@social/shared`, update manual (ADR-035); pengecualian exact pin
+  aturan `@postific/shared`, update manual (ADR-035); pengecualian exact pin
   Astryx Beta superseded oleh migrasi shadcn/ui (ADR-097).
 * `design-tokens.md` — SoT visual tokens (font,
   brand/neutral/status/feedback colors, spacing); token Stone theme (ADR-087)

@@ -5,7 +5,7 @@ import {
   asWorkspaceId,
   asWorkspaceSnapshotId,
   type SocialPlatform,
-} from "@social/shared";
+} from "@postific/shared";
 import type {
   IAnalyticsRepository,
   PostMetricsRecord,

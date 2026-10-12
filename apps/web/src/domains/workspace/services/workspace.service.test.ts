@@ -8,8 +8,8 @@ import {
   MemberRole,
   MemberStatus,
   SocialPlatform,
-} from "@social/shared";
-import type { IOutstandAdapter, MemberId, UserId } from "@social/shared";
+} from "@postific/shared";
+import type { IOutstandAdapter, MemberId, UserId } from "@postific/shared";
 import { describe, expect, it, vi } from "vitest";
 import {
   AlreadyConnectedError,

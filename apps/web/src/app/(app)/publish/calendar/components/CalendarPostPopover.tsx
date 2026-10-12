@@ -2,7 +2,7 @@
 
 import { type ReactNode, useState } from "react";
 
-import { ContentStatus } from "@social/shared";
+import { ContentStatus } from "@postific/shared";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";

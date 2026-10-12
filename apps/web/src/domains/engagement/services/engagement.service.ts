@@ -6,7 +6,7 @@ import type {
   ConnectedAccountId,
   UserId,
   WorkspaceId,
-} from "@social/shared";
+} from "@postific/shared";
 import {
   ConflictError,
   NotFoundError,

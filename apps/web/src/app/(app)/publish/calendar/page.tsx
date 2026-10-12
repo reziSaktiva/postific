@@ -1,4 +1,4 @@
-import { asUserId } from "@social/shared";
+import { asUserId } from "@postific/shared";
 import { redirect } from "next/navigation";
 
 import { AnalyticsService } from "@/domains/analytics";

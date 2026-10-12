@@ -1,6 +1,6 @@
 "use server";
 
-import { asConnectedAccountId, asUserId } from "@social/shared";
+import { asConnectedAccountId, asUserId } from "@postific/shared";
 import { redirect } from "next/navigation";
 import { WorkspaceService } from "@/domains/workspace";
 import { getCachedSession } from "@/lib/better-auth/session";

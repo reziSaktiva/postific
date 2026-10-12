@@ -1,6 +1,6 @@
 # Environment Management
 
-Dokumen ini mendefinisikan **katalog environment variables, strategi secret management, dan konfigurasi per tier** (local, staging, production) untuk produk Social Media Management.
+Dokumen ini mendefinisikan **katalog environment variables, strategi secret management, dan konfigurasi per tier** (local, staging, production) untuk produk Postific.
 
 Dokumen ini menkonkretkan konsekuensi isolasi kredensial dari `deployment-infrastructure.md` (DI-D03, ADR-029) dan kebijakan secret CI dari `cicd-pipeline.md` (CI-D06). Hosting database MVP tetap **Supabase Cloud**; jalur migrasi ke self-host dicatat sebagai rencana pasca-stabilisasi skema, bukan bagian bootstrap M7.
 

@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 
-import { ContentStatus } from "@social/shared";
+import { ContentStatus } from "@postific/shared";
 import {
   groupHistoryItemsByDate,
   HISTORY_TERMINAL_STATUSES,

@@ -17,7 +17,7 @@ import { Spinner } from "@/components/ui/spinner";
 
 import { toast } from "sonner";
 
-import { ContentStatus, type PostId } from "@social/shared";
+import { ContentStatus, type PostId } from "@postific/shared";
 import {
   groupQueueItemsByDate,
   type CalendarPostItem,

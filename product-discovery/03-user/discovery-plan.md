@@ -1,6 +1,6 @@
 # Discovery Plan
 
-Dokumen ini menetapkan tujuan, pertanyaan, sumber referensi, metode, aturan validasi, dan batasan **User Discovery** untuk produk **Social Media Management**.
+Dokumen ini menetapkan tujuan, pertanyaan, sumber referensi, metode, aturan validasi, dan batasan **User Discovery** untuk produk **Postific**.
 
 Dokumen ini menjadi titik masuk sebelum segmentasi, persona, goals, pain points, Jobs To Be Done (JTBD), scenarios, journey, dan insights disusun.
 

@@ -1,8 +1,8 @@
 # Dependency Strategy
 
-Dokumen ini mendefinisikan **strategi package & dependency** untuk produk Social Media Management: versioning eksternal, lockfile, penempatan dependency di monorepo, aturan shared package, dan cara update dependency.
+Dokumen ini mendefinisikan **strategi package & dependency** untuk produk Postific: versioning eksternal, lockfile, penempatan dependency di monorepo, aturan shared package, dan cara update dependency.
 
-Dokumen ini melengkapi `monorepo-setup.md` (workspace layout, `@social/shared`, import rules) dan selaras dengan install CI di `cicd-pipeline.md` (`bun install --frozen-lockfile`) serta dependency tooling di `dx-tooling.md`.
+Dokumen ini melengkapi `monorepo-setup.md` (workspace layout, `@postific/shared`, import rules) dan selaras dengan install CI di `cicd-pipeline.md` (`bun install --frozen-lockfile`) serta dependency tooling di `dx-tooling.md`.
 
 ---
 
@@ -11,7 +11,7 @@ Dokumen ini melengkapi `monorepo-setup.md` (workspace layout, `@social/shared`, 
 * Menetapkan cara menuliskan versi dependency eksternal sebelum Repository & Bootstrap (M7).
 * Mengunci peran lockfile di root monorepo (reproducible install lokal, CI, Railway).
 * Mendefinisikan di mana dependency boleh di-install (root vs `apps/web` vs `packages/*`).
-* Mempertegas aturan `@social/shared` dan kapan package baru di `packages/` boleh ditambahkan.
+* Mempertegas aturan `@postific/shared` dan kapan package baru di `packages/` boleh ditambahkan.
 * Menetapkan alur update dependency yang sederhana untuk solo developer.
 
 ---
@@ -22,11 +22,11 @@ Dokumen ini melengkapi `monorepo-setup.md` (workspace layout, `@social/shared`, 
 |-------|-----------|--------|
 | Runtime / package manager | Bun | ADR-002 |
 | Monorepo | Hybrid — `apps/*`, `packages/*` | ADR-001, ADR-026 |
-| Internal package link | `"@social/shared": "workspace:*"` | `monorepo-setup.md` |
+| Internal package link | `"@postific/shared": "workspace:*"` | `monorepo-setup.md` |
 | Lockfile lokasi | Satu lockfile di root (`bun.lockb`) | `monorepo-setup.md`, DI deploy notes |
 | CI install | `bun install --frozen-lockfile` | CI-D02, ADR-032 |
 | Tooling di root | ESLint, Prettier, Lefthook, Vitest, TypeScript (monorepo-level) | DX-D01–D03, `monorepo-setup.md` |
-| Isi `@social/shared` | Branded IDs, enums, value objects dipakai 2+ domain | MS-D04 |
+| Isi `@postific/shared` | Branded IDs, enums, value objects dipakai 2+ domain | MS-D04 |
 
 ---
 
@@ -38,7 +38,7 @@ Dokumen ini melengkapi `monorepo-setup.md` (workspace layout, `@social/shared`, 
 | DS-D02 | Update dependency | **Manual** — bump / `bun update` saat ada kebutuhan; tanpa Renovate/Dependabot di MVP |
 | DS-D03 | Lockfile | **Satu `bun.lockb` di root**, wajib di-commit; CI & deploy memakai frozen install |
 | DS-D04 | Penempatan dependency | Root = tooling monorepo; `apps/web` = runtime app; `packages/shared` = tanpa runtime deps (tipe murni) |
-| DS-D05 | Shared packages | Tetap satu `@social/shared` di MVP; package baru di `packages/` hanya dengan alasan kuat (lihat aturan) |
+| DS-D05 | Shared packages | Tetap satu `@postific/shared` di MVP; package baru di `packages/` hanya dengan alasan kuat (lihat aturan) |
 | DS-D06 | Sinkronisasi versi lintas workspace | **Tanpa Bun Catalog** di MVP; cukup caret + satu lockfile |
 | DS-D07 | Pengecualian Astryx Beta | **Superseded oleh ADR-097** (migrasi ke shadcn/ui) — Astryx tidak lagi jadi fondasi permanen; aturan exact pin di bawah ini historis, berlaku hanya untuk sisa kode Astryx yang belum termigrasi |
 
@@ -51,7 +51,7 @@ Dokumen ini melengkapi `monorepo-setup.md` (workspace layout, `@social/shared`, 
 | Jenis | Cara menulis | Contoh |
 |-------|--------------|--------|
 | Dependency npm publik | Caret range | `"next": "^15.0.0"`, `"prisma": "^6.0.0"` |
-| Workspace internal | Protocol workspace | `"@social/shared": "workspace:*"` |
+| Workspace internal | Protocol workspace | `"@postific/shared": "workspace:*"` |
 | Exact pin | Hanya jika ada alasan kuat (bug kritis, vendor minta pin) | `"some-lib": "1.2.3"` — dicatat di PR/ADR bila jangka panjang |
 | Astryx Beta | Exact stable version | `"@astryxdesign/core": "0.1.8"`, `"@astryxdesign/theme-stone": "0.4.3"` (ADR-087) |
 
@@ -86,7 +86,7 @@ Beta:
 ## Yang tidak dipakai di MVP
 
 - **Exact pin semua dependency** — terlalu banyak noise update untuk solo MVP; lockfile sudah menjamin reproduksibilitas.
-- **Bun Catalog** — berguna saat banyak workspace berbagi versi tooling yang sama; dengan hanya `apps/web` + `@social/shared`, overhead belum sebanding (DS-D06). Boleh dievaluasi ulang jika jumlah package bertambah.
+- **Bun Catalog** — berguna saat banyak workspace berbagi versi tooling yang sama; dengan hanya `apps/web` + `@postific/shared`, overhead belum sebanding (DS-D06). Boleh dievaluasi ulang jika jumlah package bertambah.
 
 ---
 
@@ -137,18 +137,18 @@ social-media-management/
 
 Melengkapi MS-D04 dan IR-05 di `monorepo-setup.md`.
 
-## `@social/shared` — yang boleh / tidak
+## `@postific/shared` — yang boleh / tidak
 
 | Boleh | Tidak boleh |
 |-------|-------------|
 | Branded ID types (`WorkspaceId`, `PostId`, …) | Business logic / Application Service |
-| Enums lintas domain (`ContentStatus`, `MemberRole`, `Platform`, …) | Import dari `@social/web` atau `src/domains/*` |
+| Enums lintas domain (`ContentStatus`, `MemberRole`, `Platform`, …) | Import dari `@postific/web` atau `src/domains/*` |
 | Value objects murni tanpa I/O (`Email`, `URL`, …) | Client infrastruktur (Prisma, Supabase, Better Auth) |
 | Type yang dipakai **≥ 2 domain** (atau app + package lain di masa depan) | Duplikasi type yang hanya dipakai satu domain |
 
 ## Menambah package baru di `packages/`
 
-MVP **hanya** `packages/shared`. Package baru (mis. `@social/ui`, `@social/config`) **tidak** ditambahkan kecuali memenuhi **salah satu**:
+MVP **hanya** `packages/shared`. Package baru (mis. `@postific/ui`, `@postific/config`) **tidak** ditambahkan kecuali memenuhi **salah satu**:
 
 1. Ada **aplikasi deployable kedua** di `apps/` yang membutuhkan kode bersama yang bukan domain module; atau
 2. Ada library yang jelas terpisah, tanpa domain logic, dan ekstraksi mengurangi kompleksitas nyata (bukan spekulasi "nanti berguna").
@@ -210,7 +210,7 @@ production build di branch terpisah, lalu uji di staging sebelum promosi.
 
 * Root `package.json` + `apps/web/package.json` + `packages/shared/package.json` mengikuti penempatan DS-D04.
 * `bun.lockb` ter-commit sejak bootstrap pertama yang menginstal dependency.
-* Tidak ada dependency runtime di `@social/shared`.
+* Tidak ada dependency runtime di `@postific/shared`.
 * CI memakai `--frozen-lockfile` (sudah di `cicd-pipeline.md`).
 * Tidak ada config Renovate/Dependabot di MVP kecuali diputuskan belakangan.
 
@@ -224,7 +224,7 @@ production build di branch terpisah, lalu uji di staging sebelum promosi.
 | DS-D02 | Update manual | Paling sederhana untuk solo developer; kontrol penuh kapan breaking change masuk | Dependabot; Renovate |
 | DS-D03 | Satu `bun.lockb` root, commit + frozen di CI | Reproducible builds lokal/CI/Railway; selaras monorepo Bun | Lockfile per package; tidak commit lockfile |
 | DS-D04 | Root = tooling; web = runtime; shared = tanpa runtime deps | Boundary jelas; mencegah "god root package.json" | Semua dependency di root |
-| DS-D05 | Hanya `@social/shared` di MVP; package baru butuh alasan kuat | Hindari premature package explosion; selaras ADR-026 | Banyak packages sejak awal |
+| DS-D05 | Hanya `@postific/shared` di MVP; package baru butuh alasan kuat | Hindari premature package explosion; selaras ADR-026 | Banyak packages sejak awal |
 | DS-D06 | Tanpa Bun Catalog di MVP | Hanya dua workspace relevan; catalog belum memberi nilai | Catalog sejak hari pertama |
 | DS-D07 | Exact stable version untuk Astryx Beta | Mengurangi risiko breaking change; core/theme harus tetap kompatibel dan diuji sebagai satu unit | Caret; canary; update otomatis |
 
@@ -233,7 +233,7 @@ production build di branch terpisah, lalu uji di staging sebelum promosi.
 # Related Documents
 
 * `README.md` — scope dan workflow Engineering Planning
-* `monorepo-setup.md` — workspace layout, `@social/shared`, import rules (MS-D04, IR-05)
+* `monorepo-setup.md` — workspace layout, `@postific/shared`, import rules (MS-D04, IR-05)
 * `cicd-pipeline.md` — `bun install --frozen-lockfile` (CI-D02)
 * `dx-tooling.md` — dependency tooling monorepo di root
 * `deployment-infrastructure.md` — install dari root saat build Railway

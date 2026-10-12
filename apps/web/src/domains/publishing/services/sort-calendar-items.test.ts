@@ -1,4 +1,4 @@
-import { asPostId, ContentStatus } from "@social/shared";
+import { asPostId, ContentStatus } from "@postific/shared";
 import { describe, expect, it } from "vitest";
 import type { CalendarItemRecord } from "../repositories/publishing.repository";
 import { sortCalendarItemsByEffectiveDate } from "./sort-calendar-items";

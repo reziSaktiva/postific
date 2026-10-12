@@ -13,7 +13,7 @@
 
 # Purpose
 
-Dokumen ini adalah **ringkasan arsitektur tingkat tinggi** untuk produk Social Media Management. Tujuannya:
+Dokumen ini adalah **ringkasan arsitektur tingkat tinggi** untuk produk Postific. Tujuannya:
 
 * Menjadi **blueprint visual** yang mudah digambar ulang di Figma (multi-frame).
 * Memberi gambaran satu layar tentang **siapa berinteraksi dengan apa** (context) dan **bagaimana sistem disusun di dalam** (layers + domains).
@@ -66,7 +66,7 @@ Menjawab: *siapa yang memakai sistem, dan sistem apa saja yang berbatasan dengan
                                ▼
 ┌──────────────────────────────────────────────────────────────┐
 │                                                              │
-│           Social Media Management Platform                   │
+│                      Postific Platform                       │
 │                                                              │
 │  Platform web untuk draft, schedule, publish, engagement,    │
 │  analytics, AI caption, dan Start Page — satu workspace.     │

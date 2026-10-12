@@ -5,7 +5,7 @@ import {
   asConnectedAccountId,
   asInboxItemId,
   asUserId,
-} from "@social/shared";
+} from "@postific/shared";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 

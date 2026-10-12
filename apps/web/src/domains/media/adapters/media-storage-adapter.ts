@@ -1,4 +1,4 @@
-import type { WorkspaceId } from "@social/shared";
+import type { WorkspaceId } from "@postific/shared";
 
 export interface UploadMediaInput {
   workspaceId: WorkspaceId;

@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { asPostId } from "@social/shared";
-import type { PostId } from "@social/shared";
+import { asPostId } from "@postific/shared";
+import type { PostId } from "@postific/shared";
 
 /**
  * Raw row shape delivered by Supabase Realtime's `postgres_changes` payload

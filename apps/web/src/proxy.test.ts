@@ -4,7 +4,7 @@ import {
   asMemberId,
   asUserId,
   asWorkspaceId,
-} from "@social/shared";
+} from "@postific/shared";
 import { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 

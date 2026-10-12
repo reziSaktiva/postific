@@ -7,17 +7,17 @@ Bukan tempat pola folder domain atau aturan gaya kode (itu `ctx-implementation` 
 
 ## Baca dulu
 
-| Dokumen                                                                                            | Topik                                                                                                                               |
-| -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| [`../product-discovery/06-engineering/README.md`](../product-discovery/06-engineering/README.md)   | Indeks Engineering Baseline v1.0 (ADR-036)                                                                                          |
-| [`monorepo-setup.md`](../product-discovery/06-engineering/monorepo-setup.md)                       | Layout Hybrid Monorepo, Bun workspaces                                                                                              |
-| [`database-orm.md`](../product-discovery/06-engineering/database-orm.md)                           | Prisma 7, migrate, pooling, batas Supabase client (ADR-031)                                                                         |
-| [`auth-strategy.md`](../product-discovery/06-engineering/auth-strategy.md)                         | Better Auth, Google OAuth, JWT Realtime (ADR-030)                                                                                   |
-| [`environment-management.md`](../product-discovery/06-engineering/environment-management.md)       | Env vars, secrets, local menumpang project staging (ADR-033, amandemen ADR-081)                                                     |
-| [`deployment-infrastructure.md`](../product-discovery/06-engineering/deployment-infrastructure.md) | Railway + Supabase SEA (ADR-028, ADR-029)                                                                                           |
-| [`cicd-pipeline.md`](../product-discovery/06-engineering/cicd-pipeline.md)                         | GitHub Actions gates, Railway CD (ADR-032)                                                                                          |
-| [`dependency-strategy.md`](../product-discovery/06-engineering/dependency-strategy.md)             | Caret default, lockfile, `@social/shared` (ADR-035); pengecualian exact pin Astryx Beta superseded oleh migrasi shadcn/ui (ADR-097) |
-| [`design-tokens.md`](../product-discovery/06-engineering/design-tokens.md)                         | SoT visual tokens — co-equal dengan Claude Design, dikunci iteratif tanpa menunggu designer eksternal (ADR-038, ADR-056, ADR-057)   |
+| Dokumen                                                                                            | Topik                                                                                                                                 |
+| -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| [`../product-discovery/06-engineering/README.md`](../product-discovery/06-engineering/README.md)   | Indeks Engineering Baseline v1.0 (ADR-036)                                                                                            |
+| [`monorepo-setup.md`](../product-discovery/06-engineering/monorepo-setup.md)                       | Layout Hybrid Monorepo, Bun workspaces                                                                                                |
+| [`database-orm.md`](../product-discovery/06-engineering/database-orm.md)                           | Prisma 7, migrate, pooling, batas Supabase client (ADR-031)                                                                           |
+| [`auth-strategy.md`](../product-discovery/06-engineering/auth-strategy.md)                         | Better Auth, Google OAuth, JWT Realtime (ADR-030)                                                                                     |
+| [`environment-management.md`](../product-discovery/06-engineering/environment-management.md)       | Env vars, secrets, local menumpang project staging (ADR-033, amandemen ADR-081)                                                       |
+| [`deployment-infrastructure.md`](../product-discovery/06-engineering/deployment-infrastructure.md) | Railway + Supabase SEA (ADR-028, ADR-029)                                                                                             |
+| [`cicd-pipeline.md`](../product-discovery/06-engineering/cicd-pipeline.md)                         | GitHub Actions gates, Railway CD (ADR-032)                                                                                            |
+| [`dependency-strategy.md`](../product-discovery/06-engineering/dependency-strategy.md)             | Caret default, lockfile, `@postific/shared` (ADR-035); pengecualian exact pin Astryx Beta superseded oleh migrasi shadcn/ui (ADR-097) |
+| [`design-tokens.md`](../product-discovery/06-engineering/design-tokens.md)                         | SoT visual tokens — co-equal dengan Claude Design, dikunci iteratif tanpa menunggu designer eksternal (ADR-038, ADR-056, ADR-057)     |
 
 Implementasi di repo:
 

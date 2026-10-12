@@ -1,6 +1,6 @@
 import type { VariantProps } from "class-variance-authority";
 
-import { ContentStatus } from "@social/shared";
+import { ContentStatus } from "@postific/shared";
 import type { PublishingPostTargetStatus } from "@/domains/publishing";
 import type { badgeVariants } from "@/components/ui/badge";
 

@@ -1,4 +1,4 @@
-import { MediaType } from "@social/shared";
+import { MediaType } from "@postific/shared";
 
 export { MAX_MEDIA_FILE_SIZE_BYTES } from "./constants";
 

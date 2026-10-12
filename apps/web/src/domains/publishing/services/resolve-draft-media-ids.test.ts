@@ -1,4 +1,4 @@
-import { asMediaId } from "@social/shared";
+import { asMediaId } from "@postific/shared";
 import { describe, expect, it } from "vitest";
 import { ValidationError } from "@/lib/utils/errors";
 import { resolveDraftMediaIds } from "./resolve-draft-media-ids";

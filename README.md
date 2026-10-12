@@ -1,12 +1,12 @@
-# Social Media Management
+# Postific
 
-Hybrid monorepo untuk platform Social Media Management (working title).
+Hybrid monorepo untuk platform Postific.
 
 ## Structure
 
 ```
-apps/web          → Next.js app (@social/web)
-packages/shared   → Shared types (@social/shared)
+apps/web          → Next.js app (@postific/web)
+packages/shared   → Shared types (@postific/shared)
 product-discovery → Product / architecture / engineering baselines
 project-manager   → Project OS (state, decisions, rules)
 design            → Design ops docs

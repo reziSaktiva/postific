@@ -1,4 +1,4 @@
-import { ContentStatus, asPostId } from "@social/shared";
+import { ContentStatus, asPostId } from "@postific/shared";
 import { describe, expect, it } from "vitest";
 import type { HistoryItemRecord } from "../repositories/publishing.repository";
 import { groupHistoryItemsByDate } from "./group-history-items";

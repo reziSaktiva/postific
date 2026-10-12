@@ -1,6 +1,6 @@
 # Problem Statement
 
-Dokumen ini mendefinisikan masalah utama yang ingin diselesaikan oleh produk **Social Media Management**. Seluruh keputusan mengenai fitur, UX, dan arsitektur harus berangkat dari pemahaman terhadap masalah yang dijelaskan pada dokumen ini.
+Dokumen ini mendefinisikan masalah utama yang ingin diselesaikan oleh produk **Postific**. Seluruh keputusan mengenai fitur, UX, dan arsitektur harus berangkat dari pemahaman terhadap masalah yang dijelaskan pada dokumen ini.
 
 ---
 

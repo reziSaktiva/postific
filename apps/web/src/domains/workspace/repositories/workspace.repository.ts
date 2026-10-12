@@ -8,7 +8,7 @@ import type {
   SocialPlatform,
   UserId,
   WorkspaceId,
-} from "@social/shared";
+} from "@postific/shared";
 
 export interface WorkspaceRecord {
   id: WorkspaceId;

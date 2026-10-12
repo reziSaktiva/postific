@@ -7,8 +7,8 @@ import type {
   SocialPlatform,
   UserId,
   WorkspaceId,
-} from "@social/shared";
-import type { ContentStatus } from "@social/shared";
+} from "@postific/shared";
+import type { ContentStatus } from "@postific/shared";
 
 export interface PublishingPostRecord {
   id: PostId;

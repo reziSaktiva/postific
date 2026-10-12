@@ -1,6 +1,6 @@
 "use server";
 
-import { asUserId, asWorkspaceId } from "@social/shared";
+import { asUserId, asWorkspaceId } from "@postific/shared";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { WorkspaceService } from "@/domains/workspace";

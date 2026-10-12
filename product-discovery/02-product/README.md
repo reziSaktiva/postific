@@ -1,6 +1,6 @@
 # 02 — Product
 
-Dokumentasi pada folder ini berfokus pada perencanaan produk **Social Media Management**, mulai dari ruang lingkup produk, definisi MVP, modul utama, prioritas pengembangan, hingga roadmap rilis.
+Dokumentasi pada folder ini berfokus pada perencanaan produk **Postific**, mulai dari ruang lingkup produk, definisi MVP, modul utama, prioritas pengembangan, hingga roadmap rilis.
 
 Seluruh keputusan pada folder ini harus mengacu pada hasil Business Discovery yang telah disepakati sebelumnya.
 

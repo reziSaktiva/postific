@@ -1,4 +1,4 @@
-import { asPostId } from "@social/shared";
+import { asPostId } from "@postific/shared";
 import { describe, expect, it } from "vitest";
 import type { QueueItemRecord } from "../repositories/publishing.repository";
 import { groupQueueItemsByDate } from "./group-queue-items";

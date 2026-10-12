@@ -9,7 +9,7 @@ import {
   ContentFormat,
   ContentStatus,
   type SocialPlatform,
-} from "@social/shared";
+} from "@postific/shared";
 import {
   HISTORY_TERMINAL_STATUSES,
   type CalendarItemRecord,

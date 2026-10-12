@@ -4,7 +4,7 @@ import type {
   PostTargetId,
   UserId,
   WorkspaceId,
-} from "@social/shared";
+} from "@postific/shared";
 import { ConflictError } from "@/lib/utils/errors";
 import type { IOutstandAdapter } from "../adapters/outstand-adapter";
 import type { IJobScheduler } from "../adapters/job-scheduler";

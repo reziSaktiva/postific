@@ -6,7 +6,7 @@ import {
   asWorkspaceId,
   ContentStatus,
   NotificationType,
-} from "@social/shared";
+} from "@postific/shared";
 import { describe, expect, it, vi } from "vitest";
 import type {
   IOutstandAdapter,

@@ -6,7 +6,7 @@ import type {
   SocialPlatform,
   UserId,
   WorkspaceId,
-} from "@social/shared";
+} from "@postific/shared";
 import { ConflictError } from "@/lib/utils/errors";
 import { assertActorCanTriggerManualImportSync } from "../rbac";
 import type {

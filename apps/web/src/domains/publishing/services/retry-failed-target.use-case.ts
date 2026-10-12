@@ -3,8 +3,8 @@ import type {
   PostId,
   PostTargetId,
   WorkspaceId,
-} from "@social/shared";
-import type { UserId } from "@social/shared";
+} from "@postific/shared";
+import type { UserId } from "@postific/shared";
 import { ConflictError, NotFoundError } from "@/lib/utils/errors";
 import type { IOutstandAdapter } from "../adapters/outstand-adapter";
 import { assertPinterestBoardConstraints } from "../pinterest-board-constraints";

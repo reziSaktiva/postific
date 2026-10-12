@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { ContentStatus } from "@social/shared";
+import { ContentStatus } from "@postific/shared";
 import type { PostMetricsRecord } from "@/domains/analytics";
 import type {
   HistoryDetailItem,

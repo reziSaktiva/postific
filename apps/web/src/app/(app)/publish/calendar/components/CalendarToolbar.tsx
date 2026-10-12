@@ -4,8 +4,8 @@ import { useMemo } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowLeft01Icon, ArrowRight01Icon } from "@hugeicons/core-free-icons";
 
-import { ContentStatus } from "@social/shared";
-import type { ConnectedAccountId } from "@social/shared";
+import { ContentStatus } from "@postific/shared";
+import type { ConnectedAccountId } from "@postific/shared";
 import type { ConnectedAccountRecord } from "@/domains/workspace";
 import { getWeekRange } from "@/domains/publishing";
 import type { CalendarViewMode } from "@/domains/publishing";

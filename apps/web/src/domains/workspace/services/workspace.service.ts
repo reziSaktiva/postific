@@ -7,7 +7,7 @@ import {
   NotificationType,
   OWNER_OR_ADMIN_ROLES,
   SocialPlatform,
-} from "@social/shared";
+} from "@postific/shared";
 import type {
   ConnectedAccountId,
   FacebookPendingPage,
@@ -17,7 +17,7 @@ import type {
   PinterestBoard,
   UserId,
   WorkspaceId,
-} from "@social/shared";
+} from "@postific/shared";
 import {
   AlreadyConnectedError,
   AuthorizationError,
@@ -232,7 +232,7 @@ export class WorkspaceService {
     private readonly notifications?: NotificationPort,
     /**
      * Connect/Reconnect Account (T-013.1/T-013.2, T-015.3, ADR-105) —
-     * `IOutstandAdapter` sudah jadi kontrak publik `@social/shared` (T-041),
+     * `IOutstandAdapter` sudah jadi kontrak publik `@postific/shared` (T-041),
      * jadi diimpor langsung sebagai TIPE di sini (bukan pelanggaran
      * AGENTS.md #6 — itu larangan mengimpor implementasi/HTTP client
      * konkret, bukan interface ACL-nya sendiri; pola sama seperti

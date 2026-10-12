@@ -17,7 +17,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-import type { SocialPlatform } from "@social/shared";
+import type { SocialPlatform } from "@postific/shared";
 
 import {
   getConnectionStatusLabel,

@@ -44,7 +44,7 @@ Aturan di bawah melengkapi hard rules di [`../AGENTS.md`](../AGENTS.md). Detail 
 ### Umum
 
 1. Format & lint dipercayakan ke **Prettier + ESLint** — jangan reformatting massal di luar scope task.
-2. TypeScript ketat: hindari `any`; prefer tipe dari `@social/shared` untuk ID/enum lintas BC.
+2. TypeScript ketat: hindari `any`; prefer tipe dari `@postific/shared` untuk ID/enum lintas BC.
 3. Jangan commit secret; jangan menambah dependency tanpa alasan jelas (ikuti
    `dependency-strategy.md`). shadcn/ui adalah kode sumber yang di-copy ke
    repo, bukan dependency package — tidak ada isu exact pin/Beta seperti

@@ -1,6 +1,6 @@
 # Key Screen Patterns
 
-Dokumen ini mendefinisikan **pola fungsi kritis pada layar utama** produk **Social Media Management**.
+Dokumen ini mendefinisikan **pola fungsi kritis pada layar utama** produk **Postific**.
 
 Key Screen Patterns dibangun di atas Information Architecture, User Flows, dan Navigation Patterns yang sudah ditetapkan. Dokumen ini tidak mendefinisikan layout visual, wireframe, atau kode — melainkan menjelaskan **fungsi apa yang wajib ada**, **bagaimana zona fungsional disusun**, **state apa yang harus ditangani**, dan **pola perilaku apa yang berlaku** pada setiap layar kritis.
 

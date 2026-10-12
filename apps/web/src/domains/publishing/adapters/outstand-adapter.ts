@@ -27,4 +27,4 @@ export type {
   PublishNowOutstandPostResult,
   ScheduleOutstandPostInput,
   ScheduleOutstandPostResult,
-} from "@social/shared";
+} from "@postific/shared";

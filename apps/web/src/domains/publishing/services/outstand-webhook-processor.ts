@@ -1,5 +1,5 @@
-import { NotificationType } from "@social/shared";
-import type { ConnectedAccountId, UserId, WorkspaceId } from "@social/shared";
+import { NotificationType } from "@postific/shared";
+import type { ConnectedAccountId, UserId, WorkspaceId } from "@postific/shared";
 import type { IOutstandAdapter } from "../adapters/outstand-adapter";
 import { summarizeFailureReasons } from "../failure-reason";
 import type { IPublishingRepository } from "../repositories/publishing.repository";

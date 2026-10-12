@@ -4,7 +4,7 @@ import type {
   SocialPlatform,
   UserId,
   WorkspaceId,
-} from "@social/shared";
+} from "@postific/shared";
 import type {
   ImportedPostTargetInput,
   IPublishingRepository,

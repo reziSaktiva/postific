@@ -7,7 +7,7 @@ import {
   ContentFormat,
   ContentStatus,
   SocialPlatform,
-} from "@social/shared";
+} from "@postific/shared";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { ConflictError } from "@/lib/utils/errors";
 import type { IOutstandAdapter } from "../adapters/outstand-adapter";

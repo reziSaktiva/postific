@@ -1,4 +1,4 @@
-import type { ConnectedAccountId, WorkspaceId } from "@social/shared";
+import type { ConnectedAccountId, WorkspaceId } from "@postific/shared";
 
 /**
  * Import Posts dari Social Account (T-090, ADR-093 poin 7-9) — repository

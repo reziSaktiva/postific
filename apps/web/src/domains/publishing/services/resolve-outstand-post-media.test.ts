@@ -1,4 +1,4 @@
-import { asMediaId, asUserId, asWorkspaceId } from "@social/shared";
+import { asMediaId, asUserId, asWorkspaceId } from "@postific/shared";
 import { describe, expect, it, vi } from "vitest";
 import { ValidationError } from "@/lib/utils/errors";
 

@@ -1,4 +1,4 @@
-import { asUserId } from "@social/shared";
+import { asUserId } from "@postific/shared";
 import { describe, expect, it, vi } from "vitest";
 import type { ScheduleJobInput } from "../adapters/job-scheduler";
 import {

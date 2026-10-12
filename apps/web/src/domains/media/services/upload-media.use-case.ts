@@ -1,4 +1,4 @@
-import type { UserId, WorkspaceId } from "@social/shared";
+import type { UserId, WorkspaceId } from "@postific/shared";
 import { ValidationError } from "@/lib/utils/errors";
 import type { IMediaStorageAdapter } from "../adapters/media-storage-adapter";
 import type { IMediaRepository } from "../repositories/media.repository";

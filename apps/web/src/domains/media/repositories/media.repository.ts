@@ -1,4 +1,4 @@
-import type { MediaId, MediaType, UserId, WorkspaceId } from "@social/shared";
+import type { MediaId, MediaType, UserId, WorkspaceId } from "@postific/shared";
 import type { MediaItemRecord } from "../types";
 
 /**

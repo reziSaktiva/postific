@@ -21,7 +21,7 @@ import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { Text } from "@/components/ui/text";
 import { ConfirmActionDialog } from "@/components/shared/ConfirmActionDialog";
 
-import { SocialPlatform } from "@social/shared";
+import { SocialPlatform } from "@postific/shared";
 
 import {
   getConnectionStatusLabel,

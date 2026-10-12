@@ -1,6 +1,6 @@
 "use server";
 
-import { asNotificationId, asUserId } from "@social/shared";
+import { asNotificationId, asUserId } from "@postific/shared";
 import { redirect } from "next/navigation";
 import { NotificationService } from "@/domains/notification";
 import { getCachedSession } from "@/lib/better-auth/session";

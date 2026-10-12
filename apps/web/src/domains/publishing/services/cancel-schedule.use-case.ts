@@ -1,4 +1,4 @@
-import type { MemberRole, PostId, UserId, WorkspaceId } from "@social/shared";
+import type { MemberRole, PostId, UserId, WorkspaceId } from "@postific/shared";
 import { ConflictError } from "@/lib/utils/errors";
 import type { IOutstandAdapter } from "../adapters/outstand-adapter";
 import { assertActorCanCancelSchedule } from "../rbac";

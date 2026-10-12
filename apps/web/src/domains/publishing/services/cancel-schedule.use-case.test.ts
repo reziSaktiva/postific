@@ -4,7 +4,7 @@ import {
   asWorkspaceId,
   ContentStatus,
   MemberRole,
-} from "@social/shared";
+} from "@postific/shared";
 import { describe, expect, it } from "vitest";
 import { AuthorizationError, ConflictError } from "@/lib/utils/errors";
 import type { IOutstandAdapter } from "../adapters/outstand-adapter";

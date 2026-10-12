@@ -1,6 +1,6 @@
 # 03 — User
 
-Dokumentasi pada folder ini berfokus pada **User Discovery** untuk produk **Social Media Management**, mulai dari memahami siapa pengguna, bagaimana mereka bekerja, masalah yang mereka hadapi, hingga menghasilkan insight yang dapat digunakan sebagai dasar pengambilan keputusan produk.
+Dokumentasi pada folder ini berfokus pada **User Discovery** untuk produk **Postific**, mulai dari memahami siapa pengguna, bagaimana mereka bekerja, masalah yang mereka hadapi, hingga menghasilkan insight yang dapat digunakan sebagai dasar pengambilan keputusan produk.
 
 Seluruh dokumentasi pada folder ini harus mengacu pada **Business Baseline** dan **Product Baseline** yang telah disepakati. Insight digunakan untuk mengevaluasi asumsi dan mendukung pengambilan keputusan produk, bukan mengubah baseline tanpa proses keputusan yang terdokumentasi.
 

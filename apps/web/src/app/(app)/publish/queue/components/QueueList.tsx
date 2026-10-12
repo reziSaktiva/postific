@@ -9,7 +9,7 @@ import {
   SentIcon,
 } from "@hugeicons/core-free-icons";
 
-import type { ConnectedAccountId, PostId } from "@social/shared";
+import type { ConnectedAccountId, PostId } from "@postific/shared";
 import type { QueueGroup } from "@/domains/publishing";
 import { formatRelativeTime } from "@/lib/utils/format-relative-time";
 import { formatUtcDateKeyHeading } from "@/lib/utils";

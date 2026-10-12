@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { SocialPlatform, type FacebookPendingPage } from "@social/shared";
+import { SocialPlatform, type FacebookPendingPage } from "@postific/shared";
 
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";

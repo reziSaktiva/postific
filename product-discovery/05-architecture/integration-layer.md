@@ -1,6 +1,6 @@
 # Integration Layer
 
-Dokumen ini mendefinisikan **Integration Layer** untuk produk **Social Media Management** — arsitektur integrasi dengan Outstand API sebagai social media integration provider, meliputi Anti-Corruption Layer, ConnectedAccount management, publishing flow, webhook handling, engagement sync, analytics sync, dan strategi error handling.
+Dokumen ini mendefinisikan **Integration Layer** untuk produk **Postific** — arsitektur integrasi dengan Outstand API sebagai social media integration provider, meliputi Anti-Corruption Layer, ConnectedAccount management, publishing flow, webhook handling, engagement sync, analytics sync, dan strategi error handling.
 
 Dokumen ini menjadi acuan desain integrasi eksternal dan tidak mencakup implementasi kode. Detail implementasi (HTTP client, retry library, folder structure) didokumentasikan di Engineering Planning (M6).
 

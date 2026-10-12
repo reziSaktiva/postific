@@ -2,7 +2,7 @@ import {
   asConnectedAccountId,
   asWorkspaceId,
   type UserId,
-} from "@social/shared";
+} from "@postific/shared";
 import type { IJobScheduler } from "../adapters/job-scheduler";
 import type { SyncCommentsUseCase } from "./sync-comments.use-case";
 

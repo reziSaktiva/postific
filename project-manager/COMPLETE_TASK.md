@@ -8,6 +8,20 @@ Seluruh perubahan penting pada dokumentasi maupun implementasi project dicatat p
 
 ---
 
+## 2026-10-09 — Nama Produk Final "Postific" — Rename Package Scope `@social/*` → `@postific/*` (ADR-124)
+
+King Rezi memutuskan nama produk final: **Postific** (sudah punya nama di kepala sebelum sesi, bukan hasil brainstorm AI; sesi awalnya menawarkan bantuan brainstorm, dibatalkan). Scope diputuskan via `AskUserQuestion`: cakupan penuh (dokumentasi + identifier teknis), status final (hapus label "Working Title").
+
+**Kode:** `package.json` root (`social-media-management` → `postific`), `apps/web/package.json` (`@social/web` → `@postific/web`, dependency `@social/shared` → `@postific/shared`), `packages/shared/package.json` (`@social/shared` → `@postific/shared`), alias `apps/web/tsconfig.json` + `vitest.config.ts`, string test di `eslint-rules/local-rules.test.ts`, string literal `apps/web/src/app/api/health/route.ts`. Seluruh import `@social/shared` di `apps/web/src/**/*.ts(x)` (±150 file) di-replace via `sed` ke `@postific/shared`. `bun.lock` di-regenerate via `bun install` (bukan edit manual). Diverifikasi: `bun run typecheck` PASS (0 error), `bun run test` PASS (649 passed / 6 skipped, 0 failed).
+
+**Dokumentasi:** `README.md`, `AGENTS.md` (judul saja), `project-manager/PROJECT_OVERVIEW.md` (field Project Name, hapus `*(Working Title)*`), `project-manager/ARCHITECTURE_OVERVIEW.md`, seluruh `product-discovery/01-business/` s.d. `06-engineering/` — diganti "Postific" **hanya** untuk pemakaian proper-noun (nama produk kita). Frasa kategori/industri generik ("platform Social Media Management yang sudah ada", "tool Social Media Management", "kategori Social Media Management" di `competitor-analysis.md`/`discovery-plan.md`/sebagian `product-vision.md`/`product-scope.md`) **sengaja dibiarkan** karena merujuk ke kategori produk di market, bukan brand kita — rename di situ akan merusak makna kalimat.
+
+**Sengaja TIDAK diubah:** badan teks ADR lama (`project-manager/decisions/ADR-*.md`) dan isi `COMPLETE_TASK.md` sebelumnya (historical, append-only — bukan ditulis ulang); seluruh referensi project **Claude Design** (`DesignSync`, projectId `84aded99-bb23-49b1-be9f-dd8f21c6873e`) yang masih **literal** bernama "Social Media Management" di sistem eksternal itu (`AGENTS.md` rule 17, `context/ctx-design.md`, `PROJECT_STATE.md`, `tasks/v01-foundation.md`/`v02-publishing-mvp.md`/`v07-astryx-shadcn-migration.md`, `design-tokens.md`) — mengubah teksnya tanpa rename project aslinya di Claude Design akan membuat dokumentasi tidak sinkron dengan kenyataan; serta nama repo GitHub (`social-media-management`, seluruh link PR historis tetap valid), project Railway, dan folder clone lokal — resource eksternal yang rename-nya butuh aksi terpisah (akses GitHub/Railway/filesystem), bukan text-edit, dan belum diminta King Rezi.
+
+Keputusan dicatat di **ADR-124**. Lihat `DECISIONS.md` untuk ringkasan.
+
+---
+
 ## 2026-10-09 — Hardening code-review PR #149 (T-112, branch `feature/t-112`) — 4 temuan diperbaiki, status T-112 tetap ✅ Done
 
 King Rezi menjalankan `/code-review` manual atas PR [#149](https://github.com/reziSaktiva/social-media-management/pull/149) (T-112) sebelum merge ke `staging`, lalu minta semua temuan diperbaiki. Review menemukan 4 temuan nyata (di luar 1 nit stale docstring yang sudah dicatat Ridwan di sesi T-112 sebelumnya):

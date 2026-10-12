@@ -1,6 +1,6 @@
 # Real-time Strategy
 
-Dokumen ini mendefinisikan **Real-time Strategy** untuk produk **Social Media Management** — pendekatan notifikasi in-app, sinkronisasi status konten, dan pola update data tanpa full page reload.
+Dokumen ini mendefinisikan **Real-time Strategy** untuk produk **Postific** — pendekatan notifikasi in-app, sinkronisasi status konten, dan pola update data tanpa full page reload.
 
 Dokumen ini menjadi acuan desain real-time dan tidak mencakup implementasi kode. Detail implementasi (Supabase Realtime client setup, subscription lifecycle) didokumentasikan di Engineering Planning (M6).
 

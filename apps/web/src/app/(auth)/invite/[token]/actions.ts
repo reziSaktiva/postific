@@ -1,6 +1,6 @@
 "use server";
 
-import { asUserId, MemberRole } from "@social/shared";
+import { asUserId, MemberRole } from "@postific/shared";
 import { cookies } from "next/headers";
 import { WorkspaceService } from "@/domains/workspace";
 import { getCachedSession } from "@/lib/better-auth/session";

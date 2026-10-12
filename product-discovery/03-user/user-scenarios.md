@@ -1,6 +1,6 @@
 # User Scenarios
 
-Dokumen ini menggambarkan konteks penggunaan nyata bagi pengguna produk **Social Media Management**.
+Dokumen ini menggambarkan konteks penggunaan nyata bagi pengguna produk **Postific**.
 
 Scenario menjelaskan *situasi* di mana jobs muncul, tanpa menawarkan solusi UX atau desain antarmuka.
 

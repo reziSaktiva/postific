@@ -8,7 +8,7 @@ import {
   ContentStatus,
   MemberRole,
   SocialPlatform,
-} from "@social/shared";
+} from "@postific/shared";
 import { describe, expect, it } from "vitest";
 import {
   AuthorizationError,

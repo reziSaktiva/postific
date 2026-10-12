@@ -1,6 +1,6 @@
 "use server";
 
-import { asUserId } from "@social/shared";
+import { asUserId } from "@postific/shared";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 

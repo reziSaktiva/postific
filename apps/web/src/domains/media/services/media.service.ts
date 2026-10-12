@@ -1,4 +1,4 @@
-import type { MediaId, MediaType, UserId, WorkspaceId } from "@social/shared";
+import type { MediaId, MediaType, UserId, WorkspaceId } from "@postific/shared";
 import { NotFoundError } from "@/lib/utils/errors";
 import type { IMediaStorageAdapter } from "../adapters/media-storage-adapter";
 import type { IMediaRepository } from "../repositories/media.repository";

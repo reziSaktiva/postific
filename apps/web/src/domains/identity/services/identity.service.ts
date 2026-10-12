@@ -1,4 +1,4 @@
-import type { UserId } from "@social/shared";
+import type { UserId } from "@postific/shared";
 import { ValidationError } from "@/lib/utils/errors";
 
 import type { IAvatarStorageAdapter } from "../adapters/avatar-storage-adapter";

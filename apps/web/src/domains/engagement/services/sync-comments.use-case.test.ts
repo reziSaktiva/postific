@@ -5,8 +5,8 @@ import {
   asWorkspaceId,
   SocialPlatform,
   type PostId,
-} from "@social/shared";
-import type { IOutstandAdapter, InboxCommentData } from "@social/shared";
+} from "@postific/shared";
+import type { IOutstandAdapter, InboxCommentData } from "@postific/shared";
 import { describe, expect, it, vi } from "vitest";
 import type { IEngagementRepository } from "../repositories/engagement.repository";
 import type { EngagementInboxItemRecord } from "../types";

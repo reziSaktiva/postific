@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { cookies } from "next/headers";
-import { asConnectedAccountId, asUserId } from "@social/shared";
+import { asConnectedAccountId, asUserId } from "@postific/shared";
 import { decodeConnectAccountState } from "@/lib/adapters/outstand/connect-state";
 import { getCachedSession } from "@/lib/better-auth/session";
 import { getServerEnv } from "@/lib/env";

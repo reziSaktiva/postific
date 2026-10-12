@@ -1,6 +1,6 @@
 # DX Tooling
 
-Dokumen ini mendefinisikan **tooling Developer Experience** untuk produk Social Media Management: linting, formatting, pre-commit hooks, test runner, script workspace, dan alur local development.
+Dokumen ini mendefinisikan **tooling Developer Experience** untuk produk Postific: linting, formatting, pre-commit hooks, test runner, script workspace, dan alur local development.
 
 Dokumen ini menkonkretkan perintah yang disebut di `cicd-pipeline.md` (`bun run lint`, `bun run test`, `bun run typecheck`) dan melengkapi script root di `monorepo-setup.md`. Env lokal mengikuti `environment-management.md`.
 
@@ -134,7 +134,7 @@ Solo developer tetap diuntungkan: mencegah commit format/lint yang akan gagal di
 * Tes domain tidak mengimpor implementasi repository konkret jika bisa di-mock lewat interface (selaras DDD).
 * Suite boleh minimal di awal M8 — yang penting perintah `bun run test` ada dan hijau di CI.
 
-Konfigurasi: `vitest.config.ts` di **root** monorepo (M7) — alias `@social/shared` dan `@/` di-resolve dari satu tempat; suite mencakup `apps/web` dan `packages/shared`.
+Konfigurasi: `vitest.config.ts` di **root** monorepo (M7) — alias `@postific/shared` dan `@/` di-resolve dari satu tempat; suite mencakup `apps/web` dan `packages/shared`.
 
 ---
 
@@ -225,7 +225,7 @@ Jangan arahkan `.env.local` ke project staging/prod (EM-D02, EM-D06).
 | DX-D03 | Vitest | API familiar, mock/coverage matang, monorepo-friendly | Bun test (lebih native, ekosistem assertion/mock lebih tipis) |
 | DX-D04 | Script root seragam untuk CI & lokal | Satu kontrak perintah (`lint`/`test`/`typecheck`) | Script hanya di `apps/web` tanpa alias root |
 | DX-D05 | Editor format-on-save disarankan, bukan digate ketat di awal | DX lokal tanpa memblokir bootstrap | Wajib `format:check` di setiap PR sejak hari pertama |
-| DX-D06 | `vitest.config.ts` di root | Alias monorepo (`@social/shared`, `@/`) satu sumber; CI memanggil `bun run test` dari root | Config hanya di `apps/web` |
+| DX-D06 | `vitest.config.ts` di root | Alias monorepo (`@postific/shared`, `@/`) satu sumber; CI memanggil `bun run test` dari root | Config hanya di `apps/web` |
 | DX-D07 | Lefthook via `prepare` di root | Hook terpasang otomatis setelah `bun install` | Hanya dokumentasikan `bunx lefthook install` manual |
 
 ---

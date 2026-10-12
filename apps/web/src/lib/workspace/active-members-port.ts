@@ -1,4 +1,4 @@
-import { MemberStatus, type UserId, type WorkspaceId } from "@social/shared";
+import { MemberStatus, type UserId, type WorkspaceId } from "@postific/shared";
 import { workspaceRepository } from "@/lib/repositories/workspace";
 
 /**

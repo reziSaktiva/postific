@@ -1,4 +1,4 @@
-import { ContentStatus } from "@social/shared";
+import { ContentStatus } from "@postific/shared";
 import type {
   ConnectedAccountId,
   MediaId,
@@ -7,7 +7,7 @@ import type {
   SocialPlatform,
   UserId,
   WorkspaceId,
-} from "@social/shared";
+} from "@postific/shared";
 import type { PostMetricsRecord, SnapshotPeriod } from "@/domains/analytics";
 import { resolveConnectionDisplayStatus } from "@/domains/workspace";
 import { ConflictError, NotFoundError } from "@/lib/utils/errors";

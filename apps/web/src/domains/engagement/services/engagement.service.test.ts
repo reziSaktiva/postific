@@ -10,7 +10,7 @@ import {
   type IOutstandAdapter,
   type MediaId,
   type ReplyToCommentResult,
-} from "@social/shared";
+} from "@postific/shared";
 import { describe, expect, it, vi } from "vitest";
 import {
   ConflictError,

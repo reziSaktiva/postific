@@ -1,4 +1,4 @@
-import { asUserId } from "@social/shared";
+import { asUserId } from "@postific/shared";
 import type { IIdentityRepository } from "@/domains/identity";
 import { prisma } from "@/lib/prisma/client";
 

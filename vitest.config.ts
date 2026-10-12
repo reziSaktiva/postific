@@ -12,7 +12,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@social/shared": path.resolve(__dirname, "packages/shared/index.ts"),
+      "@postific/shared": path.resolve(__dirname, "packages/shared/index.ts"),
       "@": path.resolve(__dirname, "apps/web/src"),
     },
   },

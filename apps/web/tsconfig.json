@@ -17,7 +17,7 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@social/shared": ["../../packages/shared/index.ts"]
+      "@postific/shared": ["../../packages/shared/index.ts"]
     }
   },
   "include": [

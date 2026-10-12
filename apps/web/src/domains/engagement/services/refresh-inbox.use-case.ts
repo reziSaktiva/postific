@@ -1,4 +1,4 @@
-import type { ConnectedAccountId, UserId, WorkspaceId } from "@social/shared";
+import type { ConnectedAccountId, UserId, WorkspaceId } from "@postific/shared";
 import type { SyncCommentsUseCase } from "./sync-comments.use-case";
 
 /**

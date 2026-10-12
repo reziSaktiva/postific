@@ -1,6 +1,6 @@
 # Background Jobs & Scheduler
 
-Dokumen ini mendefinisikan **Background Jobs & Scheduler Architecture** untuk produk **Social Media Management** — strategi eksekusi pekerjaan asinkron yang mencakup scheduling konten, retry mekanisme, sinkronisasi engagement, sinkronisasi analytics, dan penanganan job yang gagal.
+Dokumen ini mendefinisikan **Background Jobs & Scheduler Architecture** untuk produk **Postific** — strategi eksekusi pekerjaan asinkron yang mencakup scheduling konten, retry mekanisme, sinkronisasi engagement, sinkronisasi analytics, dan penanganan job yang gagal.
 
 Dokumen ini menjadi acuan desain background job dan tidak mencakup implementasi kode. Detail implementasi (library, konfigurasi cron expression) didokumentasikan di Engineering Planning (M6).
 

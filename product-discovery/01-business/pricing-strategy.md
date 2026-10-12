@@ -1,6 +1,6 @@
 # Pricing Strategy
 
-Dokumen ini menjelaskan strategi harga dan monetisasi untuk produk **Social Media Management**.
+Dokumen ini menjelaskan strategi harga dan monetisasi untuk produk **Postific**.
 
 Pada fase saat ini, fokus utama produk adalah memperoleh validasi pasar (Product-Market Fit), sehingga strategi monetisasi belum menjadi prioritas utama.
 

@@ -5,8 +5,8 @@ import {
   asInvitationId,
   asMemberId,
   asUserId,
-} from "@social/shared";
-import type { UserId, WorkspaceId } from "@social/shared";
+} from "@postific/shared";
+import type { UserId, WorkspaceId } from "@postific/shared";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { WorkspaceService } from "@/domains/workspace";

@@ -1,5 +1,5 @@
-import { ContentStatus, asConnectedAccountId } from "@social/shared";
-import type { ConnectedAccountId } from "@social/shared";
+import { ContentStatus, asConnectedAccountId } from "@postific/shared";
+import type { ConnectedAccountId } from "@postific/shared";
 
 /**
  * State periode + filter Calendar (T-033.2, T-033.6, KSP-02-F05) — dibawa

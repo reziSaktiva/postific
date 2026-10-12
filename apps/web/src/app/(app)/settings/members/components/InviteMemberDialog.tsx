@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { EMAIL_PATTERN, MemberRole } from "@social/shared";
+import { EMAIL_PATTERN, MemberRole } from "@postific/shared";
 
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -42,7 +42,7 @@ import { Spinner } from "@/components/ui/spinner";
 
 import { inviteMemberAction } from "../actions";
 
-// EMAIL_PATTERN (dari @social/shared) dipakai di sini hanya untuk gating
+// EMAIL_PATTERN (dari @postific/shared) dipakai di sini hanya untuk gating
 // tombol submit (disabled-until-valid, pola sama seperti
 // WorkspaceGeneralSettings). Validasi otoritatif tetap di
 // WorkspaceService.inviteMember (backend) — sumber pattern sama supaya

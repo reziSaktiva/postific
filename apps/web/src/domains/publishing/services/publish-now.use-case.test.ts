@@ -8,7 +8,7 @@ import {
   ContentStatus,
   MemberRole,
   SocialPlatform,
-} from "@social/shared";
+} from "@postific/shared";
 import { describe, expect, it, vi } from "vitest";
 import { AuthorizationError, ConflictError } from "@/lib/utils/errors";
 import type {

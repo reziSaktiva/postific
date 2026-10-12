@@ -3,7 +3,7 @@ import {
   asWorkspaceId,
   ContentFormat,
   SocialPlatform,
-} from "@social/shared";
+} from "@postific/shared";
 import { describe, expect, it } from "vitest";
 import type { ConnectedAccountRecord } from "@/domains/workspace";
 import { ValidationError } from "@/lib/utils/errors";

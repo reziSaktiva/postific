@@ -6,7 +6,7 @@ import {
   asUserId,
   asWorkspaceId,
   type SocialPlatform,
-} from "@social/shared";
+} from "@postific/shared";
 import type {
   IEngagementRepository,
   EngagementInboxItemRecord,

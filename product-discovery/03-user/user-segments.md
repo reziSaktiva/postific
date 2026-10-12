@@ -1,6 +1,6 @@
 # User Segments
 
-Dokumen ini mendefinisikan kelompok pengguna produk **Social Media Management**, membedakan buyer dan daily user, serta menetapkan prioritas segmen untuk MVP.
+Dokumen ini mendefinisikan kelompok pengguna produk **Postific**, membedakan buyer dan daily user, serta menetapkan prioritas segmen untuk MVP.
 
 Segmentasi ini harus konsisten dengan Business Baseline v1.0 dan menjadi dasar bagi Persona, User Goals, Pain Points, JTBD, UX Discovery, dan Architecture Discovery.
 

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import type { IOutstandAdapter } from "@social/shared";
+import type { IOutstandAdapter } from "@postific/shared";
 import type { ParsedOutstandWebhookEvent } from "@/domains/publishing";
 import { OutstandWebhookProcessor } from "@/domains/publishing";
 import { NotificationService } from "@/domains/notification";

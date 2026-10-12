@@ -1,6 +1,6 @@
 # Monorepo Setup
 
-Dokumen ini mendefinisikan **struktur Hybrid Monorepo**, konfigurasi Bun Workspaces, layout folder aplikasi, dan aturan import yang berlaku untuk project Social Media Management.
+Dokumen ini mendefinisikan **struktur Hybrid Monorepo**, konfigurasi Bun Workspaces, layout folder aplikasi, dan aturan import yang berlaku untuk project Postific.
 
 Dokumen ini adalah implementasi konkret dari ADR-001 (Hybrid Monorepo), ADR-002 (Bun), ADR-003 (Next.js), dan ADR-004 (Modular Monolith + DDD). Domain module structure selaras dengan domain-model.md; App Router routing structure selaras dengan information-architecture.md.
 
@@ -24,7 +24,7 @@ social-media-management/          ← monorepo root
 ├── apps/
 │   └── web/                      ← aplikasi Next.js utama
 ├── packages/
-│   └── shared/                   ← @social/shared — shared types lintas domain
+│   └── shared/                   ← @postific/shared — shared types lintas domain
 ├── product-discovery/            ← dokumentasi produk (bukan kode)
 ├── project-manager/              ← project OS (bukan kode)
 ├── package.json                  ← Bun Workspaces root config
@@ -67,7 +67,7 @@ File `package.json` di root mendaftarkan semua workspace yang dikelola Bun:
 
 **Aturan workspace:**
 - Setiap workspace memiliki `package.json` sendiri dengan `name` yang unik.
-- Package dalam workspace saling mereferensi via workspace protocol: `"@social/shared": "workspace:*"`.
+- Package dalam workspace saling mereferensi via workspace protocol: `"@postific/shared": "workspace:*"`.
 - Lockfile (`bun.lockb`) ada di root — satu lockfile untuk seluruh monorepo.
 - Jangan install dependency langsung di root kecuali untuk tooling monorepo-level (misal: TypeScript, ESLint config).
 
@@ -81,11 +81,11 @@ Satu-satunya aplikasi yang ada pada fase MVP.
 
 ```json
 {
-  "name": "@social/web",
+  "name": "@postific/web",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@social/shared": "workspace:*"
+    "@postific/shared": "workspace:*"
   }
 }
 ```
@@ -376,7 +376,7 @@ Prisma schema & migrasi berada di `apps/web/prisma/` (lihat `database-orm.md`).
 
 ---
 
-# packages/shared — @social/shared
+# packages/shared — @postific/shared
 
 Package untuk shared types yang dikonsumsi lintas domain atau lintas aplikasi.
 
@@ -387,7 +387,7 @@ packages/shared/
 │   ├── enums.ts                  ← Shared enums (ContentStatus, MemberRole, Platform, dll.)
 │   └── value-objects.ts          ← Shared value objects (Email, URL, dll.)
 ├── index.ts                      ← Barrel export
-├── package.json                  ← { "name": "@social/shared" }
+├── package.json                  ← { "name": "@postific/shared" }
 └── tsconfig.json
 ```
 
@@ -395,7 +395,7 @@ packages/shared/
 
 ```json
 {
-  "name": "@social/shared",
+  "name": "@postific/shared",
   "version": "0.1.0",
   "main": "./index.ts",
   "exports": {
@@ -405,7 +405,7 @@ packages/shared/
 ```
 
 **Aturan:**
-- `@social/shared` tidak boleh mengimport dari `@social/web` atau domain apapun — hanya types, enums, dan value objects murni.
+- `@postific/shared` tidak boleh mengimport dari `@postific/web` atau domain apapun — hanya types, enums, dan value objects murni.
 - Tambahkan ke shared hanya jika type benar-benar digunakan oleh lebih dari satu domain.
 - Jangan pindahkan business logic ke shared — shared bukan "domain umum", hanya type contracts.
 
@@ -437,7 +437,7 @@ Extends root config dan menambahkan path aliases:
   "compilerOptions": {
     "paths": {
       "@/*": ["./src/*"],
-      "@social/shared": ["../../packages/shared/index.ts"]
+      "@postific/shared": ["../../packages/shared/index.ts"]
     }
   }
 }
@@ -445,7 +445,7 @@ Extends root config dan menambahkan path aliases:
 
 **Path aliases yang digunakan:**
 - `@/*` → `src/*` — import apapun dalam apps/web tanpa relative path panjang.
-- `@social/shared` → dikonfigurasi via Bun Workspaces, tidak perlu manual alias di produksi.
+- `@postific/shared` → dikonfigurasi via Bun Workspaces, tidak perlu manual alias di produksi.
 
 ---
 
@@ -498,7 +498,7 @@ import { postRepository } from '@/lib/repositories/publishing/post-repository';
 await postRepository.save(post);
 ```
 
-**IR-05 — @social/shared Tidak Boleh Import Apapun dari Monorepo**
+**IR-05 — @postific/shared Tidak Boleh Import Apapun dari Monorepo**
 
 ```typescript
 // ✅ BENAR — shared hanya berisi types, enums, value objects murni

@@ -1,12 +1,12 @@
 # Product Vision
 
-Dokumen ini mendefinisikan visi jangka panjang dari produk **Social Media Management** dan menjadi acuan utama dalam seluruh proses pengambilan keputusan selama pengembangan produk.
+Dokumen ini mendefinisikan visi jangka panjang dari produk **Postific** dan menjadi acuan utama dalam seluruh proses pengambilan keputusan selama pengembangan produk.
 
 ---
 
 # Overview
 
-Social Media Management adalah platform yang membantu tim marketing, startup, dan digital agency mengelola aktivitas media sosial dari satu tempat.
+Postific adalah platform yang membantu tim marketing, startup, dan digital agency mengelola aktivitas media sosial dari satu tempat.
 
 Produk ini berfokus pada pengalaman penggunaan yang sederhana, efisien, dan modern, sehingga pengguna dapat merencanakan, mempublikasikan, menganalisis, dan mengelola interaksi media sosial tanpa harus berpindah antar platform.
 

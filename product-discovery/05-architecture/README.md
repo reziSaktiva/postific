@@ -1,6 +1,6 @@
 # 05 — Architecture
 
-Dokumentasi pada folder ini berfokus pada **System Architecture** untuk produk **Social Media Management**, mencakup domain model, strategi database, application layer, integrasi eksternal, background jobs, dan keamanan sistem.
+Dokumentasi pada folder ini berfokus pada **System Architecture** untuk produk **Postific**, mencakup domain model, strategi database, application layer, integrasi eksternal, background jobs, dan keamanan sistem.
 
 Seluruh dokumentasi pada folder ini harus mengacu pada **Business Baseline v1.0**, **Product Baseline v1.0**, **User Discovery Baseline v1.0**, dan **UX Planning Baseline v1.0** yang telah disepakati. System Architecture berfungsi menerjemahkan keputusan produk dan UX menjadi keputusan teknis yang dapat dijadikan acuan implementasi.
 

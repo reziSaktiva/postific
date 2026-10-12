@@ -1,6 +1,6 @@
 # User Flows
 
-Dokumen ini mendefinisikan **alur solusi (solution flows)** untuk pekerjaan inti pengguna pada produk **Social Media Management**.
+Dokumen ini mendefinisikan **alur solusi (solution flows)** untuk pekerjaan inti pengguna pada produk **Postific**.
 
 User flows di sini adalah future-state — menggambarkan bagaimana produk menyelesaikan pekerjaan pengguna, bukan kondisi kerja saat ini.
 

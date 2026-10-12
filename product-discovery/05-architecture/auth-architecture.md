@@ -1,6 +1,6 @@
 # Auth Architecture
 
-Dokumen ini mendefinisikan **Security & Auth Architecture** untuk produk **Social Media Management** — arsitektur autentikasi, manajemen sesi, workspace context resolution, dan otorisasi berbasis role (RBAC).
+Dokumen ini mendefinisikan **Security & Auth Architecture** untuk produk **Postific** — arsitektur autentikasi, manajemen sesi, workspace context resolution, dan otorisasi berbasis role (RBAC).
 
 Dokumen ini menjadi acuan desain keamanan sistem dan tidak mencakup implementasi kode. Detail implementasi (Better Auth configuration, middleware code) didokumentasikan di Engineering Planning (M6).
 

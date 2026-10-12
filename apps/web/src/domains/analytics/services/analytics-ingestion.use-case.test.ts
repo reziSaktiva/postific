@@ -6,7 +6,7 @@ import {
   asWorkspaceSnapshotId,
   type IOutstandAdapter,
   SocialPlatform,
-} from "@social/shared";
+} from "@postific/shared";
 import { describe, expect, it } from "vitest";
 import type {
   IAnalyticsRepository,

@@ -1,4 +1,4 @@
-import type { MediaId } from "@social/shared";
+import type { MediaId } from "@postific/shared";
 import { ValidationError } from "@/lib/utils/errors";
 
 /** Bentuk minimal yang dibutuhkan dari `MediaItemRecord` (domain `media`) untuk validasi ini. */

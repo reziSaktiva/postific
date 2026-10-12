@@ -3,7 +3,7 @@ import type {
   OutstandPostMediaInput,
   UserId,
   WorkspaceId,
-} from "@social/shared";
+} from "@postific/shared";
 import type { IOutstandAdapter } from "../adapters/outstand-adapter";
 import { ValidationError } from "@/lib/utils/errors";
 

@@ -9,8 +9,8 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { Cancel01Icon, Delete02Icon } from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
 
-import type { PinterestBoard } from "@social/shared";
-import { ContentFormat, ContentStatus, SocialPlatform } from "@social/shared";
+import type { PinterestBoard } from "@postific/shared";
+import { ContentFormat, ContentStatus, SocialPlatform } from "@postific/shared";
 import { pinterestBoardConstraintMessage } from "@/domains/publishing/pinterest-board-constraints";
 import { scheduleTimeConstraintMessage } from "@/domains/publishing/schedule-time-constraints";
 

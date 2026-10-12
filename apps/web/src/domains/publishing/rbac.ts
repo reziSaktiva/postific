@@ -1,4 +1,4 @@
-import { MemberRole, OWNER_OR_ADMIN_ROLES } from "@social/shared";
+import { MemberRole, OWNER_OR_ADMIN_ROLES } from "@postific/shared";
 import { AuthorizationError } from "@/lib/utils/errors";
 
 /**

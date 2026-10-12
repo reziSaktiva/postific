@@ -1,7 +1,7 @@
 /** Domain-specific types for notification (BC-09, domain-model.md). */
 
-import type { NotificationId, UserId, WorkspaceId } from "@social/shared";
-import { NotificationType } from "@social/shared";
+import type { NotificationId, UserId, WorkspaceId } from "@postific/shared";
+import { NotificationType } from "@postific/shared";
 
 export interface NotificationRecord {
   id: NotificationId;

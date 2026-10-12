@@ -7,7 +7,7 @@ import type {
   SocialPlatform,
   UserId,
   WorkspaceId,
-} from "@social/shared";
+} from "@postific/shared";
 
 /**
  * Status `EngagementInboxItem` (schema.prisma § BC-05 — Engagement, kolom

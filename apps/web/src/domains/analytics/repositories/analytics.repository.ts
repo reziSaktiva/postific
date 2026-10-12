@@ -5,7 +5,7 @@ import type {
   SocialPlatform,
   WorkspaceId,
   WorkspaceSnapshotId,
-} from "@social/shared";
+} from "@postific/shared";
 import type { SnapshotPeriod } from "../types";
 
 export interface PostMetricsRecord {

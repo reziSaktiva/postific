@@ -1,4 +1,4 @@
-import { asUserId } from "@social/shared";
+import { asUserId } from "@postific/shared";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 

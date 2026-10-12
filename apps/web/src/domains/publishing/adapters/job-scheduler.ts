@@ -5,11 +5,11 @@
  * boleh mengimpor Prisma/`background_jobs` langsung (AGENTS.md #6) —
  * implementasi konkret (`apps/web/src/lib/jobs/job-scheduler.ts`, Prisma
  * `BackgroundJob`) di-supply composition root (Server Action), pola yang
- * sama dengan `IOutstandAdapter` sebelum promosinya ke `@social/shared`
+ * sama dengan `IOutstandAdapter` sebelum promosinya ke `@postific/shared`
  * (ADR-079) dan `WorkspaceReconnectPort`/`NotificationPort` di
  * `OutstandWebhookProcessor`.
  *
- * Ini TIDAK dipromosikan ke `@social/shared` seperti `IOutstandAdapter` —
+ * Ini TIDAK dipromosikan ke `@postific/shared` seperti `IOutstandAdapter` —
  * belum ada domain lain yang butuh (YAGNI, sama alasan ADR-059/ADR-079
  * sebelum promosi). Kalau nanti JOB-01/JOB-02/dst. benar-benar dipindah
  * dari inline sync ke enqueue+async (lihat catatan gap di

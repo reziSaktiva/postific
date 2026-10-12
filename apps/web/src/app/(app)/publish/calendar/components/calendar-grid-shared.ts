@@ -6,8 +6,8 @@ import type {
   ConnectedAccountId,
   PostId,
   SocialPlatform,
-} from "@social/shared";
-import { ContentFormat, ContentStatus } from "@social/shared";
+} from "@postific/shared";
+import { ContentFormat, ContentStatus } from "@postific/shared";
 
 import type { PostMetricsRecord } from "@/domains/analytics";
 import {

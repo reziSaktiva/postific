@@ -11,9 +11,9 @@
  * Diisolasi dari `validation.ts` (bukan sekadar dipindah) karena
  * `next.config.ts` mengimpor nilai ini (KI-075) — `next-config-ts`
  * mentranspile & me-require config lewat Node `require()` biasa, yang tidak
- * bisa resolve package workspace `@social/shared` (source `.ts`, ADR-097
+ * bisa resolve package workspace `@postific/shared` (source `.ts`, ADR-097
  * bukan penyebabnya — ini murni keterbatasan resolver next-config-ts).
- * `validation.ts` mengimpor `MediaType` dari `@social/shared`, jadi kalau
+ * `validation.ts` mengimpor `MediaType` dari `@postific/shared`, jadi kalau
  * konstanta ini masih satu file dengannya, import itu ikut ter-require saat
  * build next.config.ts dan build gagal (`Cannot find module
  * '../../packages/shared'`). Jangan gabungkan lagi ke `validation.ts`.

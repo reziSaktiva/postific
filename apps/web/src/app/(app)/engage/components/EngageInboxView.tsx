@@ -9,7 +9,7 @@ import {
   Refresh01Icon,
 } from "@hugeicons/core-free-icons";
 
-import { SocialPlatform } from "@social/shared";
+import { SocialPlatform } from "@postific/shared";
 import type { ConnectedAccountRecord } from "@/domains/workspace";
 import type {
   EngagementInboxItemRecord,

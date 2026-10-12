@@ -3,7 +3,7 @@ import type {
   NotificationType,
   UserId,
   WorkspaceId,
-} from "@social/shared";
+} from "@postific/shared";
 import type { INotificationRepository } from "../repositories/notification.repository";
 import type { NotificationRecord } from "../types";
 

@@ -1,12 +1,12 @@
 /** Domain-specific types for workspace. */
 
-import { MemberRole } from "@social/shared";
+import { MemberRole } from "@postific/shared";
 import type {
   MemberId,
   MemberStatus,
   SocialPlatform,
   UserId,
-} from "@social/shared";
+} from "@postific/shared";
 import type { WorkspaceInvitationRecord } from "./repositories/workspace.repository";
 
 /**

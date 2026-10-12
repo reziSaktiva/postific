@@ -11,7 +11,7 @@ import {
   type SocialPlatform,
   type UserId,
   type WorkspaceId,
-} from "@social/shared";
+} from "@postific/shared";
 import type {
   ConnectedAccountRecord,
   IWorkspaceRepository,

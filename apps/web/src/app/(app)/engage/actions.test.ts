@@ -4,7 +4,7 @@ import {
   asWorkspaceId,
   MemberRole,
   SocialPlatform,
-} from "@social/shared";
+} from "@postific/shared";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ExternalServiceError } from "@/lib/utils/errors";
 

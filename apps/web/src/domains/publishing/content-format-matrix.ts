@@ -1,4 +1,4 @@
-import { ContentFormat, SocialPlatform } from "@social/shared";
+import { ContentFormat, SocialPlatform } from "@postific/shared";
 import { PublishingDomainError } from "./errors";
 
 /**

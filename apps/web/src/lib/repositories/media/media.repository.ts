@@ -3,7 +3,7 @@ import {
   asUserId,
   asWorkspaceId,
   type MediaType,
-} from "@social/shared";
+} from "@postific/shared";
 import type { IMediaRepository, MediaItemRecord } from "@/domains/media";
 import type { MediaItem } from "@/generated/prisma/client";
 import { withCurrentUser } from "@/lib/prisma/with-current-user";

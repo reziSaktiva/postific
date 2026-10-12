@@ -4,8 +4,8 @@ import {
   asWorkspaceId,
   MemberRole,
   SocialPlatform,
-} from "@social/shared";
-import type { IOutstandAdapter, ImportJobOutcome } from "@social/shared";
+} from "@postific/shared";
+import type { IOutstandAdapter, ImportJobOutcome } from "@postific/shared";
 import { describe, expect, it, vi } from "vitest";
 import type {
   IImportJobRepository,

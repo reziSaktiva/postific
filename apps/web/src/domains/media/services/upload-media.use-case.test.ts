@@ -1,4 +1,9 @@
-import { asMediaId, asUserId, asWorkspaceId, MediaType } from "@social/shared";
+import {
+  asMediaId,
+  asUserId,
+  asWorkspaceId,
+  MediaType,
+} from "@postific/shared";
 import { describe, expect, it, vi } from "vitest";
 import { ValidationError } from "@/lib/utils/errors";
 import type { IMediaStorageAdapter } from "../adapters/media-storage-adapter";

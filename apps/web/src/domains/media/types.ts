@@ -1,7 +1,7 @@
 /** Domain-specific types for media (BC-08, domain-model.md § BC-08 — Media). */
 
-import type { MediaId, UserId, WorkspaceId } from "@social/shared";
-import type { MediaType } from "@social/shared";
+import type { MediaId, UserId, WorkspaceId } from "@postific/shared";
+import type { MediaType } from "@postific/shared";
 
 /**
  * Proyeksi domain `MediaItem` (Aggregate Root, BC-08) — bentuk yang

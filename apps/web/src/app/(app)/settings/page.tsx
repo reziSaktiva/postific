@@ -1,4 +1,4 @@
-import { asUserId, MemberRole, MemberStatus } from "@social/shared";
+import { asUserId, MemberRole, MemberStatus } from "@postific/shared";
 import { redirect } from "next/navigation";
 
 import { WorkspaceService } from "@/domains/workspace";

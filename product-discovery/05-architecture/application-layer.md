@@ -1,6 +1,6 @@
 # Application Layer
 
-Dokumen ini mendefinisikan **Application Layer** untuk produk **Social Media Management** — bagaimana Next.js App Router berinteraksi dengan domain logic, service layer, dan repository layer dalam arsitektur Modular Monolith + DDD.
+Dokumen ini mendefinisikan **Application Layer** untuk produk **Postific** — bagaimana Next.js App Router berinteraksi dengan domain logic, service layer, dan repository layer dalam arsitektur Modular Monolith + DDD.
 
 Dokumen ini menjadi acuan struktur layer sistem dan aturan interaksi antar layer. Implementasi detail (kode, ORM, folder structure eksak) didokumentasikan di Engineering Planning (M6).
 

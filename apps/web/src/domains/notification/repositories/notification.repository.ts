@@ -3,7 +3,7 @@ import type {
   NotificationType,
   UserId,
   WorkspaceId,
-} from "@social/shared";
+} from "@postific/shared";
 import type { NotificationRecord } from "../types";
 
 /** Repository interface — implementation (Prisma) lives in src/lib/repositories/notification. */

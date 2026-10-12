@@ -3,7 +3,7 @@ import {
   asUserId,
   asWorkspaceId,
   MemberRole,
-} from "@social/shared";
+} from "@postific/shared";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthorizationError } from "@/lib/utils/errors";
 

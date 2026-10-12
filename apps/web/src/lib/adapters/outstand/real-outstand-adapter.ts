@@ -32,7 +32,7 @@ import {
   type ScheduleOutstandPostResult,
   type UploadMediaWorkingCopyInput,
   type UploadMediaWorkingCopyResult,
-} from "@social/shared";
+} from "@postific/shared";
 import {
   OutstandHttpClient,
   type OutstandHttpClientOptions,

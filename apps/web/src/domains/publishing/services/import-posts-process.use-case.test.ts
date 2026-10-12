@@ -3,8 +3,8 @@ import {
   asUserId,
   asWorkspaceId,
   SocialPlatform,
-} from "@social/shared";
-import type { ImportedPostData } from "@social/shared";
+} from "@postific/shared";
+import type { ImportedPostData } from "@postific/shared";
 import { describe, expect, it, vi } from "vitest";
 import type {
   ImportedPostTargetInput,

@@ -2,7 +2,7 @@
 
 import { useCallback, useRef } from "react";
 
-import type { ConnectedAccountId, ContentStatus } from "@social/shared";
+import type { ConnectedAccountId, ContentStatus } from "@postific/shared";
 import {
   effectiveCalendarDate,
   getMonthRange,

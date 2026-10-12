@@ -1,4 +1,4 @@
-import type { UserId } from "@social/shared";
+import type { UserId } from "@postific/shared";
 
 import type { UserProfileRecord } from "../types";
 

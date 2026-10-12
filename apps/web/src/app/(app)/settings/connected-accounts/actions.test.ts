@@ -1,4 +1,4 @@
-import { SocialPlatform } from "@social/shared";
+import { SocialPlatform } from "@postific/shared";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ValidationError } from "@/lib/utils/errors";
 

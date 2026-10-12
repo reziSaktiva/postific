@@ -1,4 +1,4 @@
-# AGENTS.md — Social Media Management
+# AGENTS.md — Postific
 
 Pintu masuk untuk AI coding agent. Baca file ini dulu di setiap sesi kerja pada repo ini.
 

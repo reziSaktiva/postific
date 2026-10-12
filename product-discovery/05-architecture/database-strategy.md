@@ -1,6 +1,6 @@
 # Database Strategy
 
-Dokumen ini mendefinisikan strategi database untuk produk **Social Media Management** — mencakup platform, multi-tenancy, organisasi schema, naming convention, skema tabel per bounded context, Row-Level Security, dan storage.
+Dokumen ini mendefinisikan strategi database untuk produk **Postific** — mencakup platform, multi-tenancy, organisasi schema, naming convention, skema tabel per bounded context, Row-Level Security, dan storage.
 
 Seluruh keputusan pada dokumen ini mengacu pada **Domain Model & Bounded Context** (`domain-model.md`) sebagai fondasi entitas dan relasi, serta **System Architecture README** (`README.md`) sebagai acuan keputusan pra-architecture.
 

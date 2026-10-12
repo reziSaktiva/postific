@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { PlusSignIcon } from "@hugeicons/core-free-icons";
 
-import { SocialPlatform } from "@social/shared";
+import { SocialPlatform } from "@postific/shared";
 
 import { Button } from "@/components/ui/button";
 import {

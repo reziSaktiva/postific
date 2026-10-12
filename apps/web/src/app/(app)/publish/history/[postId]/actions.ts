@@ -1,6 +1,6 @@
 "use server";
 
-import { asPostId, asPostTargetId, asUserId } from "@social/shared";
+import { asPostId, asPostTargetId, asUserId } from "@postific/shared";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 

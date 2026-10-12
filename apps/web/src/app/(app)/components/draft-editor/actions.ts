@@ -7,13 +7,13 @@ import type {
   SocialPlatform,
   UserId,
   WorkspaceId,
-} from "@social/shared";
+} from "@postific/shared";
 import {
   asConnectedAccountId,
   asMediaId,
   asPostId,
   asUserId,
-} from "@social/shared";
+} from "@postific/shared";
 import { redirect } from "next/navigation";
 import type { ScheduleTargetRequest } from "@/domains/publishing";
 import {

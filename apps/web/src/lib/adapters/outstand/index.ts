@@ -1,11 +1,11 @@
-import type { IOutstandAdapter } from "@social/shared";
+import type { IOutstandAdapter } from "@postific/shared";
 import { getServerEnv } from "@/lib/env";
 import { ExternalServiceError } from "@/lib/utils/errors";
 import { createRealOutstandAdapter } from "./real-outstand-adapter";
 
 /**
  * Factory `OutstandAdapter` (ADR-040, real adapter T-025, ADR-119).
- * `IOutstandAdapter` sejak T-041 didefinisikan di `@social/shared`
+ * `IOutstandAdapter` sejak T-041 didefinisikan di `@postific/shared`
  * (promosi cross-domain) — satu factory ini dipakai domain `publishing`,
  * `analytics`, `engagement`, dan `workspace`.
  *

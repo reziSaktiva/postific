@@ -1,6 +1,6 @@
 # Release Roadmap
 
-Dokumen ini mendefinisikan rencana rilis produk **Social Media Management** berdasarkan milestone pengembangan.
+Dokumen ini mendefinisikan rencana rilis produk **Postific** berdasarkan milestone pengembangan.
 
 Roadmap berfungsi sebagai panduan implementasi secara bertahap, mulai dari fondasi sistem hingga peluncuran versi pertama kepada pengguna.
 

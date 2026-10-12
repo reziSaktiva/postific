@@ -4,7 +4,7 @@
 
 | Field        | Value                                     |
 | ------------ | ----------------------------------------- |
-| Project Name | Social Media Management *(Working Title)* |
+| Project Name | Postific                                  |
 | Version      | 0.1.0                                     |
 | Status       | Active                                    |
 | Owner        | Rezi                                      |
@@ -14,7 +14,7 @@
 
 # Project Summary
 
-Social Media Management adalah platform berbasis web yang membantu pengguna mengelola seluruh aktivitas media sosial dari satu dashboard.
+Postific adalah platform berbasis web yang membantu pengguna mengelola seluruh aktivitas media sosial dari satu dashboard.
 
 Project ini dikembangkan sebagai alternatif modern dari Buffer (buffer.com) dengan fokus pada pengalaman pengguna yang sederhana, cepat, dan mudah digunakan.
 

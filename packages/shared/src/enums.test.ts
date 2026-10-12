@@ -6,7 +6,7 @@ import {
   MemberStatus,
 } from "./enums";
 
-describe("@social/shared enums", () => {
+describe("@postific/shared enums", () => {
   it("exposes canonical content statuses", () => {
     expect(ContentStatus.Draft).toBe("draft");
     expect(ContentStatus.Published).toBe("published");
