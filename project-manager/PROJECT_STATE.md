@@ -370,23 +370,6 @@ Perlu keputusan King Rezi ke depan apakah field ini memang wajib
 ditampilkan (kalau ya, jadi task/gap terpisah, mirip pola KI-049 —
 kemungkinan butuh field baru di schema/domain). Tidak memblokir M8.
 
-### KI-052 · Hydration warning `formatRelativeTime` di `HistoryList.tsx`
-
-| Field | Value |
-|-------|-------|
-| Status | Open |
-| Kategori | Tech-Debt / UI |
-| Terkait | T-034 |
-
-Ditemukan Najwa QA Engineer saat verifikasi browser T-034.4 (2026-09-09,
-retry manual publishing): muncul hydration warning React terkait
-`formatRelativeTime` di `apps/web/src/app/(app)/publish/history/components/HistoryList.tsx`
-— kemungkinan mismatch hasil format waktu relatif antara render SSR dan
-client (nilai waktu relatif bisa berbeda tipis tergantung kapan masing-masing
-sisi dieksekusi). Non-blocking, di luar scope T-034.4 (fitur retry sendiri
-berfungsi penuh, PASS semua skenario) — dicatat sebagai follow-up teknis,
-belum ada task formal. Tidak memblokir M8.
-
 ### KI-058 · `ConnectedAccountsList.tsx` tidak menyembunyikan aksi Connect/Disconnect/Reconnect untuk role Creator
 
 | Field | Value |

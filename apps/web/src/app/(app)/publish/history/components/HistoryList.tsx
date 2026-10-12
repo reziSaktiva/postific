@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 
 import { ContentStatus } from "@postific/shared";
@@ -80,6 +80,33 @@ function getPrimaryErrorMessage(item: HistoryItemRecord): string {
 const ALL_STATUS_FILTER_VALUE = "all";
 const ALL_ACCOUNTS_FILTER_VALUE = "all";
 
+/**
+ * Jam browser per `renderedAt` (KI-052). `useSyncExternalStore` memakai
+ * stempel server saat hydration, lalu nilai ini setelahnya — tanpa
+ * `useEffect` + `setState`. Entri baru dibuat saat halaman dimuat ulang
+ * (ISO `renderedAt` baru) atau saat patch Realtime memanggil
+ * `bumpClientNowMs`.
+ */
+const clientNowMsByRenderedAt = new Map<string, number>();
+
+function subscribeRelativeNow() {
+  return () => {};
+}
+
+function readClientNowMs(renderedAt: string): number {
+  const cached = clientNowMsByRenderedAt.get(renderedAt);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const now = Date.now();
+  clientNowMsByRenderedAt.set(renderedAt, now);
+  return now;
+}
+
+function bumpClientNowMs(renderedAt: string): void {
+  clientNowMsByRenderedAt.set(renderedAt, Date.now());
+}
+
 const STATUS_OPTIONS = [
   { value: ALL_STATUS_FILTER_VALUE, label: "Semua Status" },
   { value: ContentStatus.Published, label: "Published" },
@@ -109,6 +136,12 @@ export interface HistoryListProps {
   accounts: ConnectedAccountRecord[];
   /** Workspace aktif — dipakai `usePublishingPostsRealtime` (T-092.6) untuk subscribe channel `publishing_posts:{workspaceId}`, bukan dipakai untuk fetch data apa pun langsung di komponen ini (AGENTS.md #5). */
   workspaceId: string;
+  /**
+   * Stempel waktu render server (ISO), acuan `formatRelativeTime` (KI-052).
+   * Server dan hydration memakai nilai yang sama supaya teks relatif tidak
+   * bergeser di antara dua sisi.
+   */
+  renderedAt: string;
 }
 
 /**
@@ -144,7 +177,14 @@ export function HistoryList({
   items,
   accounts,
   workspaceId,
+  renderedAt,
 }: HistoryListProps) {
+  const relativeNowMs = useSyncExternalStore(
+    subscribeRelativeNow,
+    () => readClientNowMs(renderedAt),
+    () => new Date(renderedAt).getTime(),
+  );
+  const relativeNow = new Date(relativeNowMs);
   const [statusFilter, setStatusFilter] = useState<string>(
     ALL_STATUS_FILTER_VALUE,
   );
@@ -173,6 +213,7 @@ export function HistoryList({
         const historyItem =
           fetched && HISTORY_VIEW_STATUSES.has(fetched.status) ? fetched : null;
 
+        bumpClientNowMs(renderedAt);
         setLocalItems((prev) => {
           const withoutStale = prev.filter((item) => item.id !== event.postId);
 
@@ -186,7 +227,7 @@ export function HistoryList({
         });
       })();
     },
-    [setLocalItems],
+    [renderedAt, setLocalItems],
   );
 
   usePublishingPostsRealtime(workspaceId, {
@@ -336,6 +377,7 @@ export function HistoryList({
                           <Text
                             variant="muted"
                             as="span"
+                            suppressHydrationWarning
                             className={
                               isPublished
                                 ? "truncate text-xs"
@@ -343,7 +385,7 @@ export function HistoryList({
                             }
                           >
                             {isPublished
-                              ? `Dipublikasikan ${formatRelativeTime(effectiveDate)}`
+                              ? `Dipublikasikan ${formatRelativeTime(effectiveDate, relativeNow)}`
                               : getPrimaryErrorMessage(item)}
                           </Text>
                         </ItemContent>

@@ -8,6 +8,12 @@ Seluruh perubahan penting pada dokumentasi maupun implementasi project dicatat p
 
 ---
 
+## 2026-10-12 — KI-052 Resolved: waktu relatif di daftar riwayat tidak lagi bentrok saat halaman dimuat
+
+### Fixed
+- Daftar riwayat memakai satu stempel waktu dari server untuk teks "berapa lama yang lalu", supaya teks di HTML awal dan di browser sama.
+- Peringatan hydration React pada baris "Dipublikasikan …" di `HistoryList` ditutup. KI-052 dihapus dari daftar Known Issues.
+
 ## 2026-10-12 — KI-060 dan KI-032 Resolved: akun tujuan ikut tersimpan di draft (ADR-125)
 
 ### Added
