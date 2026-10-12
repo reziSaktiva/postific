@@ -17,6 +17,7 @@ import type {
   HistoryItemRecord,
   IPublishingRepository,
   PublishingPostRecord,
+  SchedulePostTargetInput,
 } from "../repositories/publishing.repository";
 import { groupQueueItemsByDate, type QueueGroup } from "./group-queue-items";
 import { resolvePostPerformancePeriodRange } from "./post-performance-period-range";
@@ -334,12 +335,15 @@ export class PublishingService {
     caption: string;
     /** T-024.4 — sudah divalidasi ownership+batas format oleh caller (`resolveDraftMediaIds`/`assertMediaCountWithinLimit`, dipanggil dari Server Action). */
     mediaIds?: MediaId[];
+    /** KI-060 — akun tujuan. `undefined` = tidak diubah di repository. */
+    targets?: SchedulePostTargetInput[];
   }): Promise<PublishingPostRecord> {
     return this.repository.createDraft({
       workspaceId: input.workspaceId,
       authorId: input.authorId,
       caption: input.caption.trim(),
       ...(input.mediaIds !== undefined ? { mediaIds: input.mediaIds } : {}),
+      ...(input.targets !== undefined ? { targets: input.targets } : {}),
     });
   }
 
@@ -388,6 +392,8 @@ export class PublishingService {
        * `IPublishingRepository.updateDraftCaption`).
        */
       mediaIds?: MediaId[];
+      /** KI-060 — akun tujuan. `undefined` = tidak diubah di repository. */
+      targets?: SchedulePostTargetInput[];
     },
     userId: UserId,
   ): Promise<PublishingPostRecord> {
@@ -397,6 +403,7 @@ export class PublishingService {
         postId: input.postId,
         caption: input.caption.trim(),
         ...(input.mediaIds !== undefined ? { mediaIds: input.mediaIds } : {}),
+        ...(input.targets !== undefined ? { targets: input.targets } : {}),
       },
       userId,
     );

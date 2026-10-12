@@ -205,16 +205,6 @@ EM-D02; lihat catatan di `COMPLETE_TASK.md` 2026-08-14). Baseline
 jalur production masih rencana, belum ada realisasi. Tidak memblokir M8,
 tapi wajib dituntaskan sebelum rilis production.
 
-### KI-032 · Publish Now dari Queue belum auto-advance ke Confirmation Summary
-
-| Field | Value |
-|-------|-------|
-| Status | Open |
-| Kategori | Tech-Debt |
-| Terkait | T-032 (§ T-032.4, `tasks/v02-publishing-mvp.md`) |
-
-Ditemukan 2026-08-20 saat wiring tombol "Publish Now" di Queue (T-032.4): tombol ini reuse modal Draft Editor via `openEditDraft` dengan `initialPendingAction: "publish-now"` supaya modal auto-advance ke step Confirmation Summary begitu draft ready — tapi `getDraftAction` **belum preload target akun** yang sudah dijadwalkan, sehingga `isReadyToPublishNow` sering `false` saat dibuka dari Queue. Efeknya: modal jatuh ke form biasa (bukan langsung ke Confirmation Summary) — bukan bug fungsional (Publish Now tetap bisa dilakukan lewat form), murni gap UX auto-advance. Sengaja dibiarkan (di luar scope T-032.4) — perlu subtask terpisah nanti (preload target akun untuk Edit Draft) kalau UX ini mau disempurnakan. Tidak memblokir M8.
-
 ### KI-033 · 2 workspace test tersisa dari QA T-089 belum dibersihkan
 
 | Field | Value |
@@ -254,27 +244,6 @@ Ditemukan saat penulisan `rendering-strategy.md` (ADR-095, 2026-08-28): `app/(ap
 | Terkait | ADR-095, ADR-056 |
 
 Section Spacing di `design-tokens.md` baru dikunci (base 1 unit = 4px, skala 0/0.5/1/1.5/2/3/4/5/6/8 = 0–32px, menggantikan `TBD` sejak ADR-038) lewat ADR-095. Mengikuti pola reminder ADR-056 (dokumen ini co-equal dengan Claude Design, perubahan salah satu wajib disinkronkan ke yang lain), sinkronisasi ke Claude Design belum dilakukan di sesi ADR-095 — perlu langkah lanjutan terpisah. Tidak memblokir M8.
-
-### KI-043 · `clearUnsavedNewPost()` tidak dipanggil di jalur Schedule/Publish Now
-
-| Field | Value |
-|-------|-------|
-| Status | Open |
-| Kategori | Bug |
-| Terkait | T-100 |
-
-Ditemukan QA Najwa QA Engineer saat verifikasi T-100.2 (2026-09-03,
-`apps/web/src/app/(app)/components/draft-editor/Modal.tsx`) — bukan
-regresi T-100.2, sudah ada sejak versi lama file (diverifikasi via
-`git log -p`), dan bukan blocker penutupan T-100.2.
-
-`clearUnsavedNewPost()` hanya dipanggil di `handleSaveDraft`, tidak
-dipanggil di `handleConfirmSchedule`/`handleConfirmPublishNow`. Akibatnya
-localStorage "unsaved draft" tidak terhapus setelah Schedule/Publish Now
-sukses (kalau user sempat trigger `persistUnsavedNewPost` sebelumnya) —
-`ResumeDialog` bisa muncul lagi dengan caption basi di sesi New Post
-berikutnya. Perlu ditindaklanjuti terpisah, di luar scope T-100 (dijadwal
-kapan pun oleh King Rezi, tidak memblokir T-100.3/T-100.4).
 
 ### KI-044 · Tidak ada validasi mencegah Schedule ke waktu yang sudah lewat pada tanggal hari ini
 
@@ -401,23 +370,6 @@ Perlu keputusan King Rezi ke depan apakah field ini memang wajib
 ditampilkan (kalau ya, jadi task/gap terpisah, mirip pola KI-049 —
 kemungkinan butuh field baru di schema/domain). Tidak memblokir M8.
 
-### KI-052 · Hydration warning `formatRelativeTime` di `HistoryList.tsx`
-
-| Field | Value |
-|-------|-------|
-| Status | Open |
-| Kategori | Tech-Debt / UI |
-| Terkait | T-034 |
-
-Ditemukan Najwa QA Engineer saat verifikasi browser T-034.4 (2026-09-09,
-retry manual publishing): muncul hydration warning React terkait
-`formatRelativeTime` di `apps/web/src/app/(app)/publish/history/components/HistoryList.tsx`
-— kemungkinan mismatch hasil format waktu relatif antara render SSR dan
-client (nilai waktu relatif bisa berbeda tipis tergantung kapan masing-masing
-sisi dieksekusi). Non-blocking, di luar scope T-034.4 (fitur retry sendiri
-berfungsi penuh, PASS semua skenario) — dicatat sebagai follow-up teknis,
-belum ada task formal. Tidak memblokir M8.
-
 ### KI-058 · `ConnectedAccountsList.tsx` tidak menyembunyikan aksi Connect/Disconnect/Reconnect untuk role Creator
 
 | Field | Value |
@@ -459,29 +411,6 @@ user yang klik "Sync Now"). Didokumentasikan sebagai gap di docstring kode,
 belum jadi keputusan produk final, menunggu King Rezi. Tidak memblokir
 T-090.1–T-090.4 (sudah selesai); jalur periodik butuh keputusan ini sebelum
 dipakai di environment nyata.
-
-### KI-060 · Account Selector tidak ter-restore saat reopen edit draft
-
-| Field | Value |
-|-------|-------|
-| Status | Open |
-| Kategori | Bug — Draft Editor |
-| Terkait | Draft Editor (`Modal.tsx`), ditemukan saat verifikasi manual browser T-024 (media upload) |
-
-Ditemukan saat verifikasi manual end-to-end T-024 (2026-09-15, murni sesi
-verifikasi, bukan implementasi — riwayat lengkap verifikasi ini dulu
-tercatat sebagai KI-059, sudah Resolved dan diarsipkan di
-`COMPLETE_TASK.md`): saat draft dibuka ulang untuk diedit,
-**seluruh checkbox Account Selector kembali unchecked** meski draft
-tersebut punya target akun tersimpan — caption dan media ter-restore
-dengan benar, akun tidak. Root cause: efek `getDraftAction` di `Modal.tsx`
-(baris ~296-314) hanya men-set `caption`/`status`/`mediaItems` dari draft
-yang dimuat, tidak pernah men-set `selectedAccountIds`/`formatByAccount`.
-
-Gap ini **bukan regresi T-024** — T-024 hanya menyentuh state `mediaItems`,
-tidak menyentuh logic restore Account Selector, dan gap ini kemungkinan
-sudah ada sejak awal implementasi Draft Editor. Dicatat sebagai Known Issue
-baru, belum diperbaiki (di luar scope permintaan verifikasi T-024 di atas).
 
 ### KI-061 · Tidak ada warning UI saat media over-limit setelah ganti target akun/format
 
@@ -751,11 +680,11 @@ seluruh daftar Known Issues.
 
 ## Completed (Ringkasan)
 
+* **KI-060 + KI-032 ✅ Resolved (2026-10-12, ADR-125)** — akun tujuan ikut tersimpan saat Save Draft, dan Account Selector terisi lagi saat draft atau post terjadwal dibuka. Publish Now dari Queue bisa langsung ke konfirmasi kalau caption, akun, dan media sudah lengkap. Tanggal/jam jadwal tetap belum tersimpan. Detail: `COMPLETE_TASK.md`.
+* **KI-043 ✅ Resolved (2026-10-12)** — caption sementara di browser (localStorage) ikut dihapus setelah Schedule dan Publish Now berhasil pada New Post, sama seperti Save Draft. Edit Draft tidak menghapus caption New Post yang belum disimpan. Detail: `COMPLETE_TASK.md`.
 * **Nama Produk Final "Postific" ✅ Done, ADR-124 (2026-10-09)** — King Rezi menetapkan nama produk final "Postific" (bukan lagi "Social Media Management (Working Title)"). Scope penuh: kode (package scope `@social/*` → `@postific/*` di `package.json` × 3 + ±150 import di `apps/web/src` + alias tsconfig/vitest/eslint, `bun.lock` regenerate, `typecheck`+`test` 649 pass) dan dokumentasi baseline (`README.md`, `AGENTS.md` judul, `PROJECT_OVERVIEW.md`, `ARCHITECTURE_OVERVIEW.md`, seluruh `product-discovery/**`) — hanya untuk pemakaian proper-noun, frasa kategori generik dibiarkan. Sengaja TIDAK diubah: badan ADR lama/`COMPLETE_TASK.md` (historical), referensi project Claude Design (masih literal "Social Media Management" di sistem eksternal), nama repo GitHub/Railway/folder lokal (resource eksternal, butuh aksi terpisah). Detail: `COMPLETE_TASK.md`.
 * **T-112 ✅ TUNTAS 5/5 subtask — Wiring `importPosts`/`fetchImportJobStatus` Outstand sungguhan, ADR-123 (2026-10-09)** — T-112.1–T-112.4 (verifikasi wire-format OpenAPI + implementasi `RealOutstandAdapter`) sudah selesai sesi sebelumnya. T-112.5 (verifikasi end-to-end) sempat tertunda 3 sesi karena cooldown manual 24 jam + keterbatasan sandbox, lalu King Rezi menemukan bug baru saat akhirnya mencoba: "Sync Now" selalu gagal status `pending` karena `ImportPostsTriggerUseCase.runImportSync` hanya cek status sekali padahal job Outstand async. Elon Backend Engineer menambahkan `pollImportJobStatus` (polling 2 detik, timeout 25 detik, param `sleep` injeksi test) — review Ridwan bersih, 648 passed/6 skipped/0 failed. Verifikasi E2E akhirnya berhasil: akun Facebook "Cook It Real Good" menarik 16+ post asli berstatus `Imported` (caption+badge benar). Observasi non-blocking: thumbnail media di popover Imported belum render (`mediaUrls` sudah benar di backend) — terkait rancangan Claude Design yang masih `blocked`, bukan bug T-112. Detail lengkap: `tasks/v02-publishing-mvp.md` § T-112.
 * **T-090 ✅ TUNTAS 5/5 subtask — Import Posts dari Social Account, ADR-093 (2026-10-08)** — Elon Backend Engineer (T-090.1–.4: enum `ContentStatus.Imported` + migration, kontrak ACL `IOutstandAdapter.importPosts`, `JOB-05`/`JOB-06` trigger+webhook) dan Mark UI Engineer (T-090.5: badge `Imported` variant `outline`, `CalendarPostPopover` read-only — link "Lihat di [Platform] →" menggantikan "Buka Draft Editor", `SyncNowButton` baru di Connected Accounts dengan RBAC hide-total untuk Creator; filter exclude `Imported` di Calendar dihapus). QA Najwa menemukan bug crash: `getOutstandAdapter()` tanpa `OUTSTAND_API_KEY` melempar `Error` polos (tidak tertangkap `toActionError`) — diperbaiki Elon jadi `ExternalServiceError` (dampak lintas-fitur, memperbaiki semua Server Action lain yang memanggil adapter ini). Review Ridwan: bersih. `typecheck`/`lint`/`test` PASS (638 passed/6 skipped/0 failed). **Gap diketahui:** verifikasi visual end-to-end tombol "Sync Now" di browser belum dituntaskan (butuh akses DB untuk fixture akun terhubung, ADR-119 menghapus jalur Fake connect) — bukan bug diketahui, hanya verifikasi tertunda, lihat `tasks/v02-publishing-mvp.md` § T-090. Detail lengkap: `decisions/DECISIONS.md` (ADR-093).
-* **KI-062 + KI-064 ✅ Resolved (2026-10-08)** — koreksi 2 gap dokumentasi baseline arsitektur, non-blocking M8: **KI-062** baris formula backoff self-contradictory di `background-jobs.md` (menghasilkan 5/10/20 menit, tidak match tabel 5/15/60 yang sudah konsisten dengan kode `backoff.ts`) diganti penjelasan lookup table eksplisit; **KI-064** panah dependency `BC-03 Publishing → BC-06 Analytics` (via `PostMetricsPort`) yang hilang ditambahkan ke diagram § Peta Dependency Antar Domain `application-layer.md`. Kode tidak diubah di kedua gap — murni koreksi dokumentasi.
-* **KI-084 ✅ Resolved (2026-10-08)** — implementasi fix icon sidebar mobile ke kode asli `apps/web` (lanjutan desain Claude Design 2026-10-07): `MobileTopBar.tsx` icon trigger diganti `Menu01Icon` → `SidebarLeftIcon`. Percobaan pertama (close button `absolute` baru di `sidebar.tsx`) ternyata menabrak tombol "New Post" — King Rezi laporkan dari screenshot — diperbaiki dengan reuse elemen header row yang sudah ada: `WorkspaceSideNav.tsx` menampilkan `SidebarTrigger`-nya (dulu desktop-only) di mobile juga sebagai close button; `SettingsSideNav.tsx` (tanpa `SidebarTrigger` by design) dapat tombol close baru `md:hidden` di header row. Lebar drawer (`SIDEBAR_WIDTH_MOBILE`) sudah `18rem`, konsisten dengan desktop di kode — **belum direkonsiliasi** dengan angka `260px` di bullet sebelah (lihat catatan follow-up di section KI-084 di atas). Diverifikasi via browser preview mobile (375px) di Workspace drawer & Settings drawer, termasuk cek regresi desktop.
 Berikut ~5 item terakhir yang diselesaikan. Riwayat lengkap (sejak M0): lihat `COMPLETE_TASK.md` — ⚠️ jangan dibaca AI kecuali diperintah eksplisit King Rezi.
 
 ---
@@ -764,11 +693,11 @@ Berikut ~5 item terakhir yang diselesaikan. Riwayat lengkap (sejak M0): lihat `C
 
 5 ADR terakhir. Daftar lengkap (indeks + link ke tiap ADR): lihat `DECISIONS.md`.
 
+* **ADR-125** — Save Draft menyimpan akun tujuan (akun, format, opsi Pinterest) dan Draft Editor mengisi Account Selector dari data itu saat dibuka lagi. Menutup KI-060 dan KI-032. Tanggal/jam jadwal tidak ikut. Detail: `decisions/ADR-125-simpan-akun-tujuan-draft-ki060.md`.
+* **ADR-124** — Nama produk final "Postific"; package scope `@social/*` menjadi `@postific/*`. Detail: `decisions/ADR-124-nama-produk-postific-rename-package-scope-social-ke-postific.md`.
 * **ADR-123** — Wiring `RealOutstandAdapter.importPosts`/`fetchImportJobStatus` sungguhan (T-112): signature `fetchImportJobStatus` berubah jadi `(outstandAccountId, importJobId)` (endpoint sungguhan mensyaratkan account id di path, diverifikasi OpenAPI spec resmi); data post diambil tambahan lewat `GET /v1/posts?social_account_id=...` karena endpoint status tidak membawanya; status real API `partial` dipetakan ke `"completed"` (post berhasil tetap diambil, `error` diisi ringkasan gagal) — keputusan produk King Rezi. Detail: `decisions/ADR-123-wiring-import-posts-fetchimportjobstatus-outstandaccountid-partial-status-ki112.md`.
 * **ADR-122** — Reconnect untuk akun `disconnected` + disambiguasi `AlreadyConnectedError` vs double-submit (menutup KI-078/KI-079): `ConnectedAccountAction` digabung ke `ReconnectButton` untuk status `disconnected` (bukan hanya `reconnect-required`); `WorkspaceService.createOrRecoverConnectedAccount` membedakan double-submit genuine (jendela 15 detik pada `connectedAt`) dari percobaan connect ke akun yang sudah terhubung dari flow terpisah (`AlreadyConnectedError` baru). Detail: `decisions/ADR-122-reconnect-disconnected-accounts-plus-already-connected-conflict-ki078-079.md`.
 * **ADR-121** — Batas Minimum Jumlah Media per `ContentFormat` (Amandemen ADR-107/ADR-039, menutup KI-074): `MIN_MEDIA_COUNT_BY_FORMAT` baru (`Post` 0, `Reel`/`Story`/`Pin` masing-masing 1); batas efektif untuk beberapa target format = MAKSIMUM dari batas minimum semua format dipilih (kebalikan ADR-107 poin 2); ditegakkan hanya di `scheduleDraftAction`/`publishNowAction`, bukan draft. Detail: `decisions/ADR-121-batas-minimum-jumlah-media-per-content-format-ki074.md`.
-* **ADR-120** — `avatarUrl` di `ConnectedAccountData`/`ConnectedAccountRecord`/`SidebarChannelAccount` + network call tambahan `resolveConnectCallback` (amandemen ADR-112, menutup backend KI-076): kontrak ACL `avatarUrl?` opsional; `resolveConnectCallback` sekarang panggil `GET /v1/social-accounts/{id}` best-effort untuk foto profil; Facebook Pages join balik `pictureUrl` dari `listPendingFacebookPages`; kolom Prisma baru `avatar_url`; `SidebarChannelAccount.avatarUrl` wajib sebagai kontrak akhir ke UI. Detail: `decisions/ADR-120-connectedaccountdata-avatarurl-sidebar-channels-ki076.md`.
-* **ADR-119** — Hapus `FakeOutstandAdapter` dari jalur produksi — `OUTSTAND_API_KEY` wajib (amandemen ADR-059): `getOutstandAdapter()` hanya Real; key kosong throw jelas; kelas Fake produksi dihapus; double lokal di tes tetap; Rule 19 `AGENTS.md` diganti. Menutup T-106. Detail: `decisions/ADR-119-hapus-fake-outstand-adapter-wajib-api-key.md`.
 
 ---
 

@@ -503,7 +503,7 @@ Confirmation Summary ini adalah pola konfirmasi **paling lengkap** yang didokume
 | Draft baru (kosong) | Caption Editor terfokus; Account Selector belum dipilih; Content Format belum relevan sampai akun dipilih; Schedule Picker kosong |
 | Draft ada konten | Caption terisi, media terlampir (jika ada), akun + format per akun, dan waktu terisi |
 | Unsaved New Post ditemukan di localStorage saat modal dibuka | Sebelum form dirender, tampilkan dialog "Resume unfinished post?" (KSP-05-F13) — Resume mengisi form dari state tersimpan, Mulai Baru menghapus state dan membuka form kosong. Khusus New Post, tidak berlaku untuk Edit Draft (ADR-052) |
-| Edit Draft dibuka | Form terisi dari data server (`caption`/`status`/`createdAt`) tanpa cek localStorage. **Batasan saat ini:** karena `saveDraft` baru menulis `caption` ke DB, Account Selector & Schedule Picker tampil kosong/default sampai persistensi field tersebut diperluas (di luar scope ADR-052) |
+| Edit Draft dibuka | Form terisi dari data server tanpa cek localStorage. Account Selector (akun, format, dan opsi Pinterest yang tersimpan) ikut terisi (KI-060, ADR-125). Schedule Picker tetap kosong — tanggal/jam belum dipersist saat Save Draft |
 | Format tidak valid untuk platform | Selector menolak opsi; Schedule diblok sampai format/media/`platformOptions` valid (ADR-039) |
 | Status Scheduled | Status Indicator menampilkan "Scheduled"; aksi berubah: Edit Schedule / Unschedule |
 | Status Published | Status Indicator menampilkan "Published"; layar read-only dengan opsi lihat di platform |

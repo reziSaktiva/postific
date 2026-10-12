@@ -79,6 +79,8 @@ import {
   isAlreadyAtDestination,
   resolveTerminalDestination,
 } from "./terminal-destination";
+import { decideDraftSaveTargets } from "./draft-save-targets";
+import { restoreDraftTargetSelection } from "./restore-draft-targets";
 
 /** Akun terhubung dari `WorkspaceConnectedAccount` (ADR-059) — bukan lagi mock. */
 type ConnectedAccount = ConnectedAccountDto;
@@ -340,6 +342,12 @@ function DraftEditorForm({
         setCaption(draft.caption);
         setStatus(draft.status as ContentStatus);
         setMediaItems(draft.media);
+        const restored = restoreDraftTargetSelection(draft.targets);
+        setSelectedAccountIds(restored.selectedAccountIds);
+        setFormatByAccount(restored.formatByAccount);
+        setBoardIdByAccount(restored.boardIdByAccount);
+        setPinTitle(restored.pinTitle);
+        setPinLink(restored.pinLink);
       })
       .catch(() => {
         if (!cancelled) close();
@@ -398,6 +406,29 @@ function DraftEditorForm({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- fetch-once-per-mount by design (component remounts via `key` per session)
   }, []);
+
+  // Board Pinterest untuk akun yang ter-restore (KI-060). Centang manual
+  // sudah memanggil fetch yang sama lewat `toggleAccount`.
+  useEffect(() => {
+    if (!isEdit || isLoadingAccounts) {
+      return;
+    }
+    for (const account of accounts) {
+      if (!selectedAccountIds.includes(account.id)) {
+        continue;
+      }
+      if (account.platform !== SocialPlatform.Pinterest) {
+        continue;
+      }
+      if (isAccountDisconnected(account)) {
+        continue;
+      }
+      if (pinterestBoardRequestSeq.current[account.id]) {
+        continue;
+      }
+      fetchPinterestBoards(account.id);
+    }
+  }, [accounts, isEdit, isLoadingAccounts, selectedAccountIds]);
 
   // Report the live snapshot on every render so the parent's Dialog
   // onOpenChange (Escape/backdrop/close-button) can decide what to persist
@@ -497,12 +528,9 @@ function DraftEditorForm({
   // dievaluasi sekali per sesi (component ini remount penuh per sesi lewat
   // `key={sessionKey}` di `DraftEditorModal`), jadi tidak memaksa balik ke
   // step konfirmasi kalau user sengaja kembali ke form setelah itu. Kalau
-  // belum ready (mis. akun target belum valid — Edit Draft saat ini tidak
-  // preload akun yang sebelumnya dijadwalkan, KI-032), pengecekan ini
-  // sengaja TIDAK memaksa — dibiarkan fallback ke form biasa. Supaya
-  // fallback ini tidak terasa seperti klik "Publish Now" tidak berefek sama
-  // sekali, tampilkan notice info yang menjelaskan kenapa (bukan gagal diam
-  // tanpa sinyal apapun) sambil user memilih ulang akun secara manual.
+  // belum ready (caption, media, atau akun yang sudah tidak terhubung),
+  // pengecekan ini sengaja TIDAK memaksa — dibiarkan fallback ke form
+  // biasa, dengan notice yang menjelaskan kenapa.
   const [hasCheckedAutoAdvance, setHasCheckedAutoAdvance] = useState(false);
   if (
     !hasCheckedAutoAdvance &&
@@ -518,7 +546,7 @@ function DraftEditorForm({
       setNotice({
         status: "info",
         title:
-          "Publish Now belum bisa langsung dikonfirmasi — pilih ulang akun tujuan untuk melanjutkan (akun yang sebelumnya dijadwalkan belum otomatis dimuat).",
+          "Publish Now belum bisa langsung dikonfirmasi — lengkapi bagian yang masih kurang, lalu lanjutkan dari form.",
       });
     }
   }
@@ -684,23 +712,45 @@ function DraftEditorForm({
   );
 
   async function handleSaveDraft() {
+    const decision = decideDraftSaveTargets({
+      accountsLoaded: !isLoadingAccounts,
+      selectedAccountIds,
+      builtTargets: buildTargetsPayload().map((target) => ({
+        connectedAccountId: target.connectedAccountId,
+        contentFormat: target.contentFormat,
+        platformOptions: target.platformOptions,
+      })),
+    });
+    if (decision.action === "wait") {
+      return;
+    }
+    const targets =
+      decision.action === "replace" ? decision.targets : undefined;
+
     setIsSavingDraft(true);
     try {
       const activeFormats = getActiveFormats();
+      let nextPostId = savedPostId;
       if (savedPostId) {
         await updateDraftAction(savedPostId, {
           caption,
           mediaIds,
           activeFormats,
+          ...(targets !== undefined ? { targets } : {}),
         });
       } else {
         const result = await saveDraftAction({
           caption,
           mediaIds,
           activeFormats,
+          ...(targets !== undefined ? { targets } : {}),
         });
+        nextPostId = result.postId;
         setSavedPostId(result.postId);
       }
+      // Snapshot ikut diperbarui sekarang (lihat KI-043 di Schedule /
+      // Publish Now) supaya tutup dialog tidak menyimpan ulang caption.
+      onLatestChange({ mode, caption, savedPostId: nextPostId });
       if (mode === "create") {
         clearUnsavedNewPost();
       }
@@ -763,6 +813,15 @@ function DraftEditorForm({
       setSavedPostId(result.postId);
       setStatus(ContentStatus.Scheduled);
       setPendingAction(null);
+      // KI-043: sama seperti Save Draft — hapus caption sementara di
+      // localStorage supaya Resume Dialog tidak menampilkan caption basi.
+      // Snapshot ikut diperbarui sekarang karena `setSavedPostId` baru
+      // terbaca parent di render berikutnya; tanpa ini, tutup dialog bisa
+      // menyimpan ulang caption yang baru saja dihapus.
+      onLatestChange({ mode, caption, savedPostId: result.postId });
+      if (mode === "create") {
+        clearUnsavedNewPost();
+      }
       // Schedule → Publish > Queue (ADR-054). Queue sendiri masih placeholder
       // sampai T-032; tujuannya tetap dipakai karena ADR-054 sudah menetapkan
       // destinasi ini, dan mendarat di Queue lebih masuk akal daripada
@@ -799,6 +858,15 @@ function DraftEditorForm({
       setSavedPostId(result.postId);
       setStatus(ContentStatus.Published);
       setPendingAction(null);
+      // KI-043: sama seperti Save Draft — hapus caption sementara di
+      // localStorage supaya Resume Dialog tidak menampilkan caption basi.
+      // Snapshot ikut diperbarui sekarang karena `setSavedPostId` baru
+      // terbaca parent di render berikutnya; tanpa ini, tutup dialog bisa
+      // menyimpan ulang caption yang baru saja dihapus.
+      onLatestChange({ mode, caption, savedPostId: result.postId });
+      if (mode === "create") {
+        clearUnsavedNewPost();
+      }
       // Publish Now → Publish > Calendar (T-029, ADR-054) — History belum
       // jadi layar terdokumentasi, Calendar dipakai sementara sampai T-034.
       finishTerminalAction("publish-now");
@@ -1406,7 +1474,7 @@ function DraftEditorForm({
           <Button
             variant="secondary"
             onClick={handleSaveDraft}
-            disabled={isSavingDraft}
+            disabled={isSavingDraft || isLoadingAccounts}
           >
             {isSavingDraft ? <Spinner /> : null}
             Save as Draft

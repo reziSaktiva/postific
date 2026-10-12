@@ -775,7 +775,7 @@ Data kalender **tidak** realtime — pakai manual refresh (ADR-023 membatasi Rea
 | **Domain**    | publishing                                                   |
 | **ADR**       | ADR-046, ADR-092, ADR-103                                    |
 | **Depends**   | T-026 ✅ (status akhir datang dari webhook — sudah Done 2026-09-07, tidak lagi memblokir) |
-| **Terkait**   | KI-048 (Resolved 2026-09-08 — App Prototype diwire + desain dikonfirmasi King Rezi), KI-049 (gap `failedAt`/`failureReason`), KI-050 (gap meta author di halaman detail post), KI-051 (Badge shadcn belum ada varian success), KI-052 (hydration warning `formatRelativeTime` di `HistoryList.tsx`) |
+| **Terkait**   | KI-048 (Resolved 2026-09-08 — App Prototype diwire + desain dikonfirmasi King Rezi), KI-049 (gap `failedAt`/`failureReason`), KI-050 (gap meta author di halaman detail post), KI-051 (Badge shadcn belum ada varian success), KI-052 (Resolved 2026-10-12 — hydration warning `formatRelativeTime` di `HistoryList.tsx`) |
 | **Baca dulu** | `04-ux/key-screen-patterns.md`                                |
 
 Route `/publish/history` dan `/publish/history/[postId]` sudah ada sebagai placeholder.

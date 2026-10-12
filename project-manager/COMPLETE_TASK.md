@@ -8,6 +8,28 @@ Seluruh perubahan penting pada dokumentasi maupun implementasi project dicatat p
 
 ---
 
+## 2026-10-12 — KI-052 Resolved: waktu relatif di daftar riwayat tidak lagi bentrok saat halaman dimuat
+
+### Fixed
+- Daftar riwayat memakai satu stempel waktu dari server untuk teks "berapa lama yang lalu", supaya teks di HTML awal dan di browser sama.
+- Peringatan hydration React pada baris "Dipublikasikan …" di `HistoryList` ditutup. KI-052 dihapus dari daftar Known Issues.
+
+## 2026-10-12 — KI-060 dan KI-032 Resolved: akun tujuan ikut tersimpan di draft (ADR-125)
+
+### Added
+- Save Draft dan Update Draft menulis akun tujuan (akun, format konten, opsi Pinterest) ke tabel target post.
+- Saat draft atau post terjadwal dibuka lagi, checkbox Account Selector, format, judul pin, link, dan board terisi dari data itu.
+
+### Changed
+- Publish Now dari Queue bisa langsung ke langkah konfirmasi kalau syaratnya sudah lengkap, karena akun yang dijadwalkan ikut dimuat.
+- Catatan di pola layar Draft Editor: Account Selector terisi saat edit; tanggal dan jam jadwal tetap belum disimpan.
+
+## 2026-10-12 — KI-043 Resolved: caption sementara ikut terhapus setelah Schedule dan Publish Now
+
+### Fixed
+- `clearUnsavedNewPost()` sekarang dipanggil juga di jalur sukses Schedule dan Publish Now (New Post), sama seperti Save Draft. Edit Draft tidak menghapus caption New Post yang belum disimpan.
+- Sebelum dialog ditutup, snapshot form diperbarui dengan id post yang baru tersimpan, supaya tutup dialog tidak menulis ulang caption yang baru dihapus.
+
 ## 2026-10-12 — T-048 code review: job analytics tidak saling timpa dan ikut cron yang sudah hidup
 
 Perbaikan review PR job harian analytics. Metrik post tetap satu job per akun, dengan panggilan Outstand dibatasi paralel supaya tidak melewati batas 30 detik lalu diklaim ulang. Snapshot workspace jadi satu job per workspace, jadi beberapa akun tidak menulis baris yang sama bersamaan. Reconnect tetap mengantre analytics walaupun job komentar masih berjalan. Fan-out harian menumpang cron menit yang sudah hidup (sekali per hari UTC); kegagalannya tidak menahan job lain. `?type=analytics` tetap ada untuk trigger manual. Verifikasi angka di staging (T-048.4) belum dikerjakan.
