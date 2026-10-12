@@ -165,6 +165,41 @@ function toNumber(value: unknown, fallback = 0): number {
 }
 
 /**
+ * Kolom `AnalyticsPostMetric.engagementRate` adalah `Decimal(5,4)` — baseline
+ * (`database-strategy.md` baris 421) mendefinisikannya sebagai **dihitung**
+ * `(likes + comments + shares) / reach`, bukan dibaca mentah dari field API
+ * eksternal mana pun. `aggregated_metrics.average_engagement_rate` Outstand
+ * sengaja TIDAK dipakai langsung di sini: skalanya tidak terkonfirmasi
+ * (dugaan kuat persen 0–100 untuk sebagian post/platform, bukan pecahan
+ * 0–1) dan tidak konsisten — lihat bug QA (akun Instagram nyata
+ * `eH82r`, PR #152): nilai mentah ≥10 menyebabkan
+ * `PrismaClientKnownRequestError: numeric field overflow` di
+ * `analyticsPostMetric.upsert()`. Menghitung sendiri dari total mentah
+ * (sama seperti `AnalyticsWorkspaceSnapshot.avgEngagementRate`, yang tidak
+ * pernah overflow) membuat field API itu tidak relevan lagi untuk path ini.
+ * `clamp` di bawah tetap dipasang sebagai defense-in-depth kalau rasio hasil
+ * perhitungan sendiri tetap anomali (mis. reach yang dilaporkan API jauh
+ * lebih kecil dari total engagement).
+ */
+function computeEngagementRate(
+  likes: number,
+  comments: number,
+  shares: number,
+  reach: number,
+): number {
+  if (reach <= 0) return 0;
+  const raw = (likes + comments + shares) / reach;
+  return clampEngagementRate(raw);
+}
+
+/** Clamp ke batas aman kolom `Decimal(5,4)` (maks `9.9999`), dibulatkan 4 desimal. */
+function clampEngagementRate(value: number): number {
+  if (!Number.isFinite(value) || value < 0) return 0;
+  const MAX_ENGAGEMENT_RATE = 9.9999;
+  return Number(Math.min(value, MAX_ENGAGEMENT_RATE).toFixed(4));
+}
+
+/**
  * Konversi `OutstandMetricsPeriod` (vocabulary domain internal) ke rentang
  * Unix timestamp (`since`/`until`, detik) yang dibutuhkan
  * `GET /v1/social-accounts/{id}/metrics` (diverifikasi terhadap OpenAPI spec
@@ -1146,12 +1181,16 @@ export function createRealOutstandAdapter(
       const likes = toNumber(aggregated.total_likes);
       const comments = toNumber(aggregated.total_comments);
       const shares = toNumber(aggregated.total_shares);
-      const engagementRate =
-        typeof aggregated.average_engagement_rate === "number"
-          ? aggregated.average_engagement_rate
-          : reach > 0
-            ? Number(((likes + comments + shares) / reach).toFixed(4))
-            : 0;
+      // Lihat JSDoc computeEngagementRate: dihitung sendiri (bukan dibaca
+      // mentah dari `aggregated.average_engagement_rate`) supaya konsisten
+      // dengan skala Decimal(5,4) di `database-strategy.md` dan tidak
+      // overflow saat API mengembalikan skala persen (bug QA, akun `eH82r`).
+      const engagementRate = computeEngagementRate(
+        likes,
+        comments,
+        shares,
+        reach,
+      );
 
       return {
         impressions: toNumber(aggregated.total_impressions),
