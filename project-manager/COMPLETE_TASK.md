@@ -8,6 +8,12 @@ Seluruh perubahan penting pada dokumentasi maupun implementasi project dicatat p
 
 ---
 
+## 2026-10-12 — KI-043 Resolved: caption sementara ikut terhapus setelah Schedule dan Publish Now
+
+### Fixed
+- `clearUnsavedNewPost()` sekarang dipanggil juga di jalur sukses Schedule dan Publish Now (New Post), sama seperti Save Draft. Edit Draft tidak menghapus caption New Post yang belum disimpan.
+- Sebelum dialog ditutup, snapshot form diperbarui dengan id post yang baru tersimpan, supaya tutup dialog tidak menulis ulang caption yang baru dihapus.
+
 ## 2026-10-12 — T-048 code review: job analytics tidak saling timpa dan ikut cron yang sudah hidup
 
 Perbaikan review PR job harian analytics. Metrik post tetap satu job per akun, dengan panggilan Outstand dibatasi paralel supaya tidak melewati batas 30 detik lalu diklaim ulang. Snapshot workspace jadi satu job per workspace, jadi beberapa akun tidak menulis baris yang sama bersamaan. Reconnect tetap mengantre analytics walaupun job komentar masih berjalan. Fan-out harian menumpang cron menit yang sudah hidup (sekali per hari UTC); kegagalannya tidak menahan job lain. `?type=analytics` tetap ada untuk trigger manual. Verifikasi angka di staging (T-048.4) belum dikerjakan.

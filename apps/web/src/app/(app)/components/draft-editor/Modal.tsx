@@ -687,6 +687,7 @@ function DraftEditorForm({
     setIsSavingDraft(true);
     try {
       const activeFormats = getActiveFormats();
+      let nextPostId = savedPostId;
       if (savedPostId) {
         await updateDraftAction(savedPostId, {
           caption,
@@ -699,8 +700,12 @@ function DraftEditorForm({
           mediaIds,
           activeFormats,
         });
+        nextPostId = result.postId;
         setSavedPostId(result.postId);
       }
+      // Snapshot ikut diperbarui sekarang (lihat KI-043 di Schedule /
+      // Publish Now) supaya tutup dialog tidak menyimpan ulang caption.
+      onLatestChange({ mode, caption, savedPostId: nextPostId });
       if (mode === "create") {
         clearUnsavedNewPost();
       }
@@ -763,6 +768,15 @@ function DraftEditorForm({
       setSavedPostId(result.postId);
       setStatus(ContentStatus.Scheduled);
       setPendingAction(null);
+      // KI-043: sama seperti Save Draft — hapus caption sementara di
+      // localStorage supaya Resume Dialog tidak menampilkan caption basi.
+      // Snapshot ikut diperbarui sekarang karena `setSavedPostId` baru
+      // terbaca parent di render berikutnya; tanpa ini, tutup dialog bisa
+      // menyimpan ulang caption yang baru saja dihapus.
+      onLatestChange({ mode, caption, savedPostId: result.postId });
+      if (mode === "create") {
+        clearUnsavedNewPost();
+      }
       // Schedule → Publish > Queue (ADR-054). Queue sendiri masih placeholder
       // sampai T-032; tujuannya tetap dipakai karena ADR-054 sudah menetapkan
       // destinasi ini, dan mendarat di Queue lebih masuk akal daripada
@@ -799,6 +813,15 @@ function DraftEditorForm({
       setSavedPostId(result.postId);
       setStatus(ContentStatus.Published);
       setPendingAction(null);
+      // KI-043: sama seperti Save Draft — hapus caption sementara di
+      // localStorage supaya Resume Dialog tidak menampilkan caption basi.
+      // Snapshot ikut diperbarui sekarang karena `setSavedPostId` baru
+      // terbaca parent di render berikutnya; tanpa ini, tutup dialog bisa
+      // menyimpan ulang caption yang baru saja dihapus.
+      onLatestChange({ mode, caption, savedPostId: result.postId });
+      if (mode === "create") {
+        clearUnsavedNewPost();
+      }
       // Publish Now → Publish > Calendar (T-029, ADR-054) — History belum
       // jadi layar terdokumentasi, Calendar dipakai sementara sampai T-034.
       finishTerminalAction("publish-now");

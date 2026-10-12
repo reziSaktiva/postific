@@ -255,27 +255,6 @@ Ditemukan saat penulisan `rendering-strategy.md` (ADR-095, 2026-08-28): `app/(ap
 
 Section Spacing di `design-tokens.md` baru dikunci (base 1 unit = 4px, skala 0/0.5/1/1.5/2/3/4/5/6/8 = 0–32px, menggantikan `TBD` sejak ADR-038) lewat ADR-095. Mengikuti pola reminder ADR-056 (dokumen ini co-equal dengan Claude Design, perubahan salah satu wajib disinkronkan ke yang lain), sinkronisasi ke Claude Design belum dilakukan di sesi ADR-095 — perlu langkah lanjutan terpisah. Tidak memblokir M8.
 
-### KI-043 · `clearUnsavedNewPost()` tidak dipanggil di jalur Schedule/Publish Now
-
-| Field | Value |
-|-------|-------|
-| Status | Open |
-| Kategori | Bug |
-| Terkait | T-100 |
-
-Ditemukan QA Najwa QA Engineer saat verifikasi T-100.2 (2026-09-03,
-`apps/web/src/app/(app)/components/draft-editor/Modal.tsx`) — bukan
-regresi T-100.2, sudah ada sejak versi lama file (diverifikasi via
-`git log -p`), dan bukan blocker penutupan T-100.2.
-
-`clearUnsavedNewPost()` hanya dipanggil di `handleSaveDraft`, tidak
-dipanggil di `handleConfirmSchedule`/`handleConfirmPublishNow`. Akibatnya
-localStorage "unsaved draft" tidak terhapus setelah Schedule/Publish Now
-sukses (kalau user sempat trigger `persistUnsavedNewPost` sebelumnya) —
-`ResumeDialog` bisa muncul lagi dengan caption basi di sesi New Post
-berikutnya. Perlu ditindaklanjuti terpisah, di luar scope T-100 (dijadwal
-kapan pun oleh King Rezi, tidak memblokir T-100.3/T-100.4).
-
 ### KI-044 · Tidak ada validasi mencegah Schedule ke waktu yang sudah lewat pada tanggal hari ini
 
 | Field | Value |
@@ -751,11 +730,11 @@ seluruh daftar Known Issues.
 
 ## Completed (Ringkasan)
 
+* **KI-043 ✅ Resolved (2026-10-12)** — caption sementara di browser (localStorage) ikut dihapus setelah Schedule dan Publish Now berhasil pada New Post, sama seperti Save Draft. Edit Draft tidak menghapus caption New Post yang belum disimpan. Detail: `COMPLETE_TASK.md`.
 * **Nama Produk Final "Postific" ✅ Done, ADR-124 (2026-10-09)** — King Rezi menetapkan nama produk final "Postific" (bukan lagi "Social Media Management (Working Title)"). Scope penuh: kode (package scope `@social/*` → `@postific/*` di `package.json` × 3 + ±150 import di `apps/web/src` + alias tsconfig/vitest/eslint, `bun.lock` regenerate, `typecheck`+`test` 649 pass) dan dokumentasi baseline (`README.md`, `AGENTS.md` judul, `PROJECT_OVERVIEW.md`, `ARCHITECTURE_OVERVIEW.md`, seluruh `product-discovery/**`) — hanya untuk pemakaian proper-noun, frasa kategori generik dibiarkan. Sengaja TIDAK diubah: badan ADR lama/`COMPLETE_TASK.md` (historical), referensi project Claude Design (masih literal "Social Media Management" di sistem eksternal), nama repo GitHub/Railway/folder lokal (resource eksternal, butuh aksi terpisah). Detail: `COMPLETE_TASK.md`.
 * **T-112 ✅ TUNTAS 5/5 subtask — Wiring `importPosts`/`fetchImportJobStatus` Outstand sungguhan, ADR-123 (2026-10-09)** — T-112.1–T-112.4 (verifikasi wire-format OpenAPI + implementasi `RealOutstandAdapter`) sudah selesai sesi sebelumnya. T-112.5 (verifikasi end-to-end) sempat tertunda 3 sesi karena cooldown manual 24 jam + keterbatasan sandbox, lalu King Rezi menemukan bug baru saat akhirnya mencoba: "Sync Now" selalu gagal status `pending` karena `ImportPostsTriggerUseCase.runImportSync` hanya cek status sekali padahal job Outstand async. Elon Backend Engineer menambahkan `pollImportJobStatus` (polling 2 detik, timeout 25 detik, param `sleep` injeksi test) — review Ridwan bersih, 648 passed/6 skipped/0 failed. Verifikasi E2E akhirnya berhasil: akun Facebook "Cook It Real Good" menarik 16+ post asli berstatus `Imported` (caption+badge benar). Observasi non-blocking: thumbnail media di popover Imported belum render (`mediaUrls` sudah benar di backend) — terkait rancangan Claude Design yang masih `blocked`, bukan bug T-112. Detail lengkap: `tasks/v02-publishing-mvp.md` § T-112.
 * **T-090 ✅ TUNTAS 5/5 subtask — Import Posts dari Social Account, ADR-093 (2026-10-08)** — Elon Backend Engineer (T-090.1–.4: enum `ContentStatus.Imported` + migration, kontrak ACL `IOutstandAdapter.importPosts`, `JOB-05`/`JOB-06` trigger+webhook) dan Mark UI Engineer (T-090.5: badge `Imported` variant `outline`, `CalendarPostPopover` read-only — link "Lihat di [Platform] →" menggantikan "Buka Draft Editor", `SyncNowButton` baru di Connected Accounts dengan RBAC hide-total untuk Creator; filter exclude `Imported` di Calendar dihapus). QA Najwa menemukan bug crash: `getOutstandAdapter()` tanpa `OUTSTAND_API_KEY` melempar `Error` polos (tidak tertangkap `toActionError`) — diperbaiki Elon jadi `ExternalServiceError` (dampak lintas-fitur, memperbaiki semua Server Action lain yang memanggil adapter ini). Review Ridwan: bersih. `typecheck`/`lint`/`test` PASS (638 passed/6 skipped/0 failed). **Gap diketahui:** verifikasi visual end-to-end tombol "Sync Now" di browser belum dituntaskan (butuh akses DB untuk fixture akun terhubung, ADR-119 menghapus jalur Fake connect) — bukan bug diketahui, hanya verifikasi tertunda, lihat `tasks/v02-publishing-mvp.md` § T-090. Detail lengkap: `decisions/DECISIONS.md` (ADR-093).
 * **KI-062 + KI-064 ✅ Resolved (2026-10-08)** — koreksi 2 gap dokumentasi baseline arsitektur, non-blocking M8: **KI-062** baris formula backoff self-contradictory di `background-jobs.md` (menghasilkan 5/10/20 menit, tidak match tabel 5/15/60 yang sudah konsisten dengan kode `backoff.ts`) diganti penjelasan lookup table eksplisit; **KI-064** panah dependency `BC-03 Publishing → BC-06 Analytics` (via `PostMetricsPort`) yang hilang ditambahkan ke diagram § Peta Dependency Antar Domain `application-layer.md`. Kode tidak diubah di kedua gap — murni koreksi dokumentasi.
-* **KI-084 ✅ Resolved (2026-10-08)** — implementasi fix icon sidebar mobile ke kode asli `apps/web` (lanjutan desain Claude Design 2026-10-07): `MobileTopBar.tsx` icon trigger diganti `Menu01Icon` → `SidebarLeftIcon`. Percobaan pertama (close button `absolute` baru di `sidebar.tsx`) ternyata menabrak tombol "New Post" — King Rezi laporkan dari screenshot — diperbaiki dengan reuse elemen header row yang sudah ada: `WorkspaceSideNav.tsx` menampilkan `SidebarTrigger`-nya (dulu desktop-only) di mobile juga sebagai close button; `SettingsSideNav.tsx` (tanpa `SidebarTrigger` by design) dapat tombol close baru `md:hidden` di header row. Lebar drawer (`SIDEBAR_WIDTH_MOBILE`) sudah `18rem`, konsisten dengan desktop di kode — **belum direkonsiliasi** dengan angka `260px` di bullet sebelah (lihat catatan follow-up di section KI-084 di atas). Diverifikasi via browser preview mobile (375px) di Workspace drawer & Settings drawer, termasuk cek regresi desktop.
 Berikut ~5 item terakhir yang diselesaikan. Riwayat lengkap (sejak M0): lihat `COMPLETE_TASK.md` — ⚠️ jangan dibaca AI kecuali diperintah eksplisit King Rezi.
 
 ---
