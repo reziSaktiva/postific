@@ -79,6 +79,7 @@ import {
   isAlreadyAtDestination,
   resolveTerminalDestination,
 } from "./terminal-destination";
+import { decideDraftSaveTargets } from "./draft-save-targets";
 import { restoreDraftTargetSelection } from "./restore-draft-targets";
 
 /** Akun terhubung dari `WorkspaceConnectedAccount` (ADR-059) — bukan lagi mock. */
@@ -711,28 +712,38 @@ function DraftEditorForm({
   );
 
   async function handleSaveDraft() {
-    setIsSavingDraft(true);
-    try {
-      const activeFormats = getActiveFormats();
-      const targets = buildTargetsPayload().map((target) => ({
+    const decision = decideDraftSaveTargets({
+      accountsLoaded: !isLoadingAccounts,
+      selectedAccountIds,
+      builtTargets: buildTargetsPayload().map((target) => ({
         connectedAccountId: target.connectedAccountId,
         contentFormat: target.contentFormat,
         platformOptions: target.platformOptions,
-      }));
+      })),
+    });
+    if (decision.action === "wait") {
+      return;
+    }
+    const targets =
+      decision.action === "replace" ? decision.targets : undefined;
+
+    setIsSavingDraft(true);
+    try {
+      const activeFormats = getActiveFormats();
       let nextPostId = savedPostId;
       if (savedPostId) {
         await updateDraftAction(savedPostId, {
           caption,
           mediaIds,
           activeFormats,
-          targets,
+          ...(targets !== undefined ? { targets } : {}),
         });
       } else {
         const result = await saveDraftAction({
           caption,
           mediaIds,
           activeFormats,
-          targets,
+          ...(targets !== undefined ? { targets } : {}),
         });
         nextPostId = result.postId;
         setSavedPostId(result.postId);
@@ -1463,7 +1474,7 @@ function DraftEditorForm({
           <Button
             variant="secondary"
             onClick={handleSaveDraft}
-            disabled={isSavingDraft}
+            disabled={isSavingDraft || isLoadingAccounts}
           >
             {isSavingDraft ? <Spinner /> : null}
             Save as Draft

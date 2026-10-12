@@ -24,7 +24,6 @@ import {
   type PublishingScheduleRecord,
   type QueueItemRecord,
   type RetryTargetRecord,
-  type SchedulePostTargetInput,
   type WebhookPostLookupRecord,
 } from "@/domains/publishing";
 import {
@@ -35,11 +34,10 @@ import {
 } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma/client";
 import {
-  type PrismaTransactionClient,
   setCurrentUserId,
   withCurrentUser,
 } from "@/lib/prisma/with-current-user";
-import { ValidationError } from "@/lib/utils/errors";
+import { replaceDraftTargets } from "@/lib/repositories/publishing/replace-draft-targets";
 
 /**
  * Sentinel internal — dilempar di dalam `$transaction` supaya semua
@@ -109,47 +107,6 @@ function mapDraftTargets(targets: PublishingPostTarget[]): DraftTargetRecord[] {
     contentFormat: target.contentFormat as ContentFormat,
     platformOptions: readPlatformOptions(target.platformOptions),
   }));
-}
-
-async function replaceDraftTargets(
-  tx: PrismaTransactionClient,
-  workspaceId: string,
-  postId: string,
-  targets: SchedulePostTargetInput[],
-) {
-  const uniqueConnectedAccountIds = Array.from(
-    new Set(targets.map((target) => target.connectedAccountId)),
-  );
-  if (uniqueConnectedAccountIds.length > 0) {
-    const ownedAccountCount = await tx.workspaceConnectedAccount.count({
-      where: {
-        id: { in: uniqueConnectedAccountIds },
-        workspaceId,
-      },
-    });
-    if (ownedAccountCount !== uniqueConnectedAccountIds.length) {
-      throw new ValidationError(
-        "Salah satu akun yang dipilih tidak ditemukan di workspace ini.",
-      );
-    }
-  }
-
-  await tx.publishingPostTarget.deleteMany({ where: { postId } });
-  if (targets.length === 0) {
-    return;
-  }
-
-  await tx.publishingPostTarget.createMany({
-    data: targets.map((target) => ({
-      postId,
-      connectedAccountId: target.connectedAccountId,
-      platform: target.platform,
-      contentFormat: target.contentFormat,
-      platformOptions: (target.platformOptions ?? undefined) as
-        Prisma.InputJsonValue | undefined,
-      status: "pending",
-    })),
-  });
 }
 
 function mapPost(

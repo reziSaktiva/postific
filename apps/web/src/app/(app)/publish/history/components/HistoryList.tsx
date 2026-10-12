@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useRef, useState, useSyncExternalStore } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import Link from "next/link";
 
 import { ContentStatus } from "@postific/shared";
@@ -17,6 +24,12 @@ import { usePublishingPostsRealtime } from "@/lib/hooks/use-publishing-posts-rea
 import { useSyncedState } from "@/lib/hooks/use-synced-state";
 
 import { getHistoryPostAction } from "../actions";
+import {
+  bumpClientNowMs,
+  readClientNowMs,
+  serverRelativeNowMs,
+  subscribeRelativeNow,
+} from "./relative-now";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -79,33 +92,7 @@ function getPrimaryErrorMessage(item: HistoryItemRecord): string {
 
 const ALL_STATUS_FILTER_VALUE = "all";
 const ALL_ACCOUNTS_FILTER_VALUE = "all";
-
-/**
- * Jam browser per `renderedAt` (KI-052). `useSyncExternalStore` memakai
- * stempel server saat hydration, lalu nilai ini setelahnya — tanpa
- * `useEffect` + `setState`. Entri baru dibuat saat halaman dimuat ulang
- * (ISO `renderedAt` baru) atau saat patch Realtime memanggil
- * `bumpClientNowMs`.
- */
-const clientNowMsByRenderedAt = new Map<string, number>();
-
-function subscribeRelativeNow() {
-  return () => {};
-}
-
-function readClientNowMs(renderedAt: string): number {
-  const cached = clientNowMsByRenderedAt.get(renderedAt);
-  if (cached !== undefined) {
-    return cached;
-  }
-  const now = Date.now();
-  clientNowMsByRenderedAt.set(renderedAt, now);
-  return now;
-}
-
-function bumpClientNowMs(renderedAt: string): void {
-  clientNowMsByRenderedAt.set(renderedAt, Date.now());
-}
+const RELATIVE_NOW_TICK_MS = 30_000;
 
 const STATUS_OPTIONS = [
   { value: ALL_STATUS_FILTER_VALUE, label: "Semua Status" },
@@ -182,9 +169,16 @@ export function HistoryList({
   const relativeNowMs = useSyncExternalStore(
     subscribeRelativeNow,
     () => readClientNowMs(renderedAt),
-    () => new Date(renderedAt).getTime(),
+    () => serverRelativeNowMs(renderedAt),
   );
   const relativeNow = new Date(relativeNowMs);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      bumpClientNowMs(renderedAt);
+    }, RELATIVE_NOW_TICK_MS);
+    return () => window.clearInterval(timer);
+  }, [renderedAt]);
   const [statusFilter, setStatusFilter] = useState<string>(
     ALL_STATUS_FILTER_VALUE,
   );
@@ -275,7 +269,13 @@ export function HistoryList({
     <div className="flex flex-col gap-4">
       {/* eslint-disable-next-line no-restricted-syntax -- layout-only */}
       <div className="flex flex-wrap justify-end gap-2">
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <Select
+          value={statusFilter}
+          onValueChange={(value) => {
+            bumpClientNowMs(renderedAt);
+            setStatusFilter(value);
+          }}
+        >
           <SelectTrigger size="sm" aria-label="Filter status" className="w-44">
             <SelectValue />
           </SelectTrigger>
@@ -287,7 +287,13 @@ export function HistoryList({
             ))}
           </SelectContent>
         </Select>
-        <Select value={accountFilter} onValueChange={setAccountFilter}>
+        <Select
+          value={accountFilter}
+          onValueChange={(value) => {
+            bumpClientNowMs(renderedAt);
+            setAccountFilter(value);
+          }}
+        >
           <SelectTrigger size="sm" aria-label="Filter akun" className="w-44">
             <SelectValue />
           </SelectTrigger>
