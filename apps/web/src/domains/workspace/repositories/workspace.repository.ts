@@ -219,6 +219,33 @@ export interface IWorkspaceRepository {
   }): Promise<WorkspaceInvitationRecord>;
 
   /**
+   * Baris undangan untuk pasangan workspace + email (unik di database),
+   * status apa pun. `actingUserId` untuk RLS. `null` kalau belum pernah
+   * ada undangan untuk email itu.
+   */
+  findInvitationByWorkspaceEmail(
+    workspaceId: WorkspaceId,
+    email: string,
+    actingUserId: UserId,
+  ): Promise<WorkspaceInvitationRecord | null>;
+
+  /**
+   * Ganti undangan yang sudah tidak pending aktif (accepted, revoked,
+   * expired, atau pending yang sudah lewat `expiresAt`) dengan token,
+   * role, dan masa berlaku baru. Unik `(workspaceId, email)` tetap satu
+   * baris. Compare-and-swap: pending yang masih berlaku tidak ditimpa.
+   */
+  reissueInvitation(input: {
+    workspaceId: WorkspaceId;
+    invitationId: InvitationId;
+    actingUserId: UserId;
+    email: string;
+    role: MemberRole;
+    token: string;
+    expiresAt: Date;
+  }): Promise<WorkspaceInvitationRecord>;
+
+  /**
    * Belum dipakai service manapun — disiapkan untuk acceptInvite (task lain).
    * SENGAJA TIDAK dibungkus `withCurrentUser` (KI-026 follow-up, code review
    * PR #71) — invitee yang lookup token ini belum jadi member workspace

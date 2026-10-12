@@ -5,18 +5,39 @@ import {
   MemberRole,
 } from "@postific/shared";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { AuthorizationError } from "@/lib/utils/errors";
+import { AuthorizationError, ConflictError } from "@/lib/utils/errors";
 
-const { getSessionMock, redirectMock, revalidatePathMock } = vi.hoisted(() => ({
+const {
+  getSessionMock,
+  redirectMock,
+  revalidatePathMock,
+  getServerEnvMock,
+  sendMemberInvitationEmailMock,
+} = vi.hoisted(() => ({
   getSessionMock: vi.fn(),
   redirectMock: vi.fn((path: string) => {
     throw new Error(`REDIRECT:${path}`);
   }),
   revalidatePathMock: vi.fn(),
+  getServerEnvMock: vi.fn(() => ({ BETTER_AUTH_URL: "https://app.test" })),
+  sendMemberInvitationEmailMock: vi.fn(),
 }));
 
 vi.mock("@/lib/better-auth/auth", () => ({
   auth: { api: { getSession: getSessionMock } },
+}));
+
+vi.mock("@/lib/env", () => ({ getServerEnv: getServerEnvMock }));
+
+// `createWorkspaceServiceWithInviteEmailSender()` menyuplai `WorkspaceService`
+// dengan adapter Resend sungguhan (ADR-119, wajib RESEND_API_KEY) — di luar
+// scope test ini (sudah ditest di `workspace.service.test.ts`). Di sini
+// hanya memverifikasi wiring `inviteMemberAction` → factory ini, jadi
+// factory di-stub supaya tidak perlu env Resend sungguhan.
+vi.mock("@/lib/workspace/invite-email-workspace-service", () => ({
+  createWorkspaceServiceWithInviteEmailSender: () => ({
+    sendMemberInvitationEmail: sendMemberInvitationEmailMock,
+  }),
 }));
 
 // getWorkspaceContext() (ADR-076) membaca workspaceId/role dari header yang
@@ -55,7 +76,11 @@ vi.mock("@/lib/repositories/workspace", () => ({
 }));
 
 import { WorkspaceService } from "@/domains/workspace";
-import { removeMemberAction, updateMemberRoleAction } from "./actions";
+import {
+  inviteMemberAction,
+  removeMemberAction,
+  updateMemberRoleAction,
+} from "./actions";
 
 const WORKSPACE = {
   id: asWorkspaceId("workspace-1"),
@@ -70,6 +95,8 @@ describe("members server actions", () => {
     getSessionMock.mockReset();
     redirectMock.mockClear();
     revalidatePathMock.mockClear();
+    getServerEnvMock.mockReturnValue({ BETTER_AUTH_URL: "https://app.test" });
+    sendMemberInvitationEmailMock.mockReset();
   });
 
   describe("removeMemberAction", () => {
@@ -119,6 +146,153 @@ describe("members server actions", () => {
         asMemberId(TARGET_MEMBER_ID),
       );
       expect(revalidatePathMock).toHaveBeenCalledWith("/settings/members");
+    });
+  });
+
+  describe("inviteMemberAction", () => {
+    it("returns an error without calling the service for an invalid role", async () => {
+      const inviteMemberSpy = vi.spyOn(
+        WorkspaceService.prototype,
+        "inviteMember",
+      );
+
+      const result = await inviteMemberAction(
+        "member@acme.com",
+        "not-a-role" as MemberRole,
+      );
+
+      expect(result).toEqual({ error: "Role tidak valid." });
+      expect(inviteMemberSpy).not.toHaveBeenCalled();
+      expect(getSessionMock).not.toHaveBeenCalled();
+    });
+
+    it("returns an error without calling the service for an invalid delivery", async () => {
+      const inviteMemberSpy = vi.spyOn(
+        WorkspaceService.prototype,
+        "inviteMember",
+      );
+
+      const result = await inviteMemberAction(
+        "member@acme.com",
+        MemberRole.Admin,
+        "carrier-pigeon" as "copy-link" | "email",
+      );
+
+      expect(result).toEqual({ error: "Metode undangan tidak valid." });
+      expect(inviteMemberSpy).not.toHaveBeenCalled();
+    });
+
+    it("translates a domain error from inviteMember into { error } instead of sending email", async () => {
+      getSessionMock.mockResolvedValue({ user: { id: "user-1" } });
+      vi.spyOn(WorkspaceService.prototype, "inviteMember").mockRejectedValue(
+        new ConflictError(
+          "Email ini sudah menjadi anggota aktif workspace ini.",
+        ),
+      );
+
+      const result = await inviteMemberAction(
+        "member@acme.com",
+        MemberRole.Admin,
+        "email",
+      );
+
+      expect(result).toEqual({
+        error: "Email ini sudah menjadi anggota aktif workspace ini.",
+      });
+      expect(sendMemberInvitationEmailMock).not.toHaveBeenCalled();
+      expect(revalidatePathMock).not.toHaveBeenCalled();
+    });
+
+    it("delivers delivery: copy-link by returning the link without sending email", async () => {
+      getSessionMock.mockResolvedValue({ user: { id: "user-1" } });
+      vi.spyOn(WorkspaceService.prototype, "inviteMember").mockResolvedValue({
+        token: "tok-123",
+      } as Awaited<ReturnType<WorkspaceService["inviteMember"]>>);
+
+      const result = await inviteMemberAction(
+        "member@acme.com",
+        MemberRole.Admin,
+        "copy-link",
+      );
+
+      expect(result).toEqual({
+        token: "tok-123",
+        inviteLink: "https://app.test/invite/tok-123",
+      });
+      expect(sendMemberInvitationEmailMock).not.toHaveBeenCalled();
+      expect(revalidatePathMock).toHaveBeenCalledWith("/settings/members");
+    });
+
+    it("sends the invitation email for delivery: email and reports emailed: true on success", async () => {
+      getSessionMock.mockResolvedValue({ user: { id: "user-1" } });
+      vi.spyOn(WorkspaceService.prototype, "inviteMember").mockResolvedValue({
+        token: "tok-123",
+      } as Awaited<ReturnType<WorkspaceService["inviteMember"]>>);
+      sendMemberInvitationEmailMock.mockResolvedValue(undefined);
+
+      const result = await inviteMemberAction(
+        "member@acme.com",
+        MemberRole.Admin,
+        "email",
+      );
+
+      expect(sendMemberInvitationEmailMock).toHaveBeenCalledWith({
+        workspaceId: WORKSPACE.id,
+        actorUserId: asUserId("user-1"),
+        email: "member@acme.com",
+        role: MemberRole.Admin,
+      });
+      expect(result).toEqual({
+        token: "tok-123",
+        inviteLink: "https://app.test/invite/tok-123",
+        emailed: true,
+      });
+    });
+
+    it("falls back to the invite link with a clear error when the email send fails unexpectedly", async () => {
+      getSessionMock.mockResolvedValue({ user: { id: "user-1" } });
+      vi.spyOn(WorkspaceService.prototype, "inviteMember").mockResolvedValue({
+        token: "tok-123",
+      } as Awaited<ReturnType<WorkspaceService["inviteMember"]>>);
+      sendMemberInvitationEmailMock.mockRejectedValue(
+        new Error("network down"),
+      );
+
+      const result = await inviteMemberAction(
+        "member@acme.com",
+        MemberRole.Admin,
+        "email",
+      );
+
+      expect(result).toEqual({
+        error: "Undangan sudah dibuat, tetapi email gagal dikirim.",
+        token: "tok-123",
+        inviteLink: "https://app.test/invite/tok-123",
+      });
+    });
+
+    it("surfaces an ApplicationError from the email send while still returning the invite link", async () => {
+      getSessionMock.mockResolvedValue({ user: { id: "user-1" } });
+      vi.spyOn(WorkspaceService.prototype, "inviteMember").mockResolvedValue({
+        token: "tok-123",
+      } as Awaited<ReturnType<WorkspaceService["inviteMember"]>>);
+      sendMemberInvitationEmailMock.mockRejectedValue(
+        new AuthorizationError(
+          "Hanya Owner atau Admin yang bisa mengundang anggota.",
+        ),
+      );
+
+      const result = await inviteMemberAction(
+        "member@acme.com",
+        MemberRole.Admin,
+        "email",
+      );
+
+      expect(result).toEqual({
+        error: "Hanya Owner atau Admin yang bisa mengundang anggota.",
+        token: "tok-123",
+        inviteLink: "https://app.test/invite/tok-123",
+      });
     });
   });
 
