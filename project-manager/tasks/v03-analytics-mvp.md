@@ -227,7 +227,7 @@ Hasil: Overview tab = konten existing `analyze-dashboard.html`, TIDAK diubah sam
 
 - [x] **T-048.1** Job type constant + handler baru (`AnalyticsSyncJobHandler`, pola sama `EngagementSyncJobHandler`) yang memanggil `AnalyticsIngestionUseCase` — daftarkan ke `handlers` registry di `/api/jobs/run/route.ts`
 - [x] **T-048.2** Enqueue job per `ConnectedAccount` aktif (`syncPostMetrics` untuk post yang belum ada snapshot + `syncWorkspaceSnapshot` agregat workspace) — ikuti alur `background-jobs.md` § JOB-04 langkah 1–3
-- [x] **T-048.3** Jadwal Railway Cron **harian** terpisah dari interval JOB-03 (30 menit) — sesuai keputusan frekuensi T-041.3, update `railway.cron.json`/config Railway Cron yang relevan
+- [x] **T-048.3** Jadwal Railway Cron **harian** terpisah dari interval JOB-03 (30 menit) — sesuai keputusan frekuensi T-041.3, update `railway.cron.json`/config Railway Cron yang relevan. **Update 2026-10-12 (code review):** file `railway.cron.analytics.json` tidak membuat service sendiri. Fan-out harian menumpang cron menit yang sudah hidup, paling banyak sekali per hari UTC. `?type=analytics` hanya untuk trigger manual. Snapshot workspace adalah job terpisah per workspace, bukan bagian dari tiap job akun.
 - [ ] **T-048.4** Verifikasi end-to-end: setelah job jalan sekali di environment nyata (staging), Home (T-042) dan `/analyze` (T-043/T-046/T-047) menampilkan angka asli — bukan empty state
 
 ---

@@ -24,6 +24,7 @@ import { runPendingJobs, type JobHandler } from "@/lib/jobs/job-runner";
 import { backgroundJobScheduler } from "@/lib/jobs/job-scheduler";
 import { notificationRepository } from "@/lib/repositories/notification";
 import { analyticsRepository } from "@/lib/repositories/analytics";
+import { createAnalyticsSyncJobsPort } from "@/lib/jobs/analytics-sync-enqueue-port";
 import { publishingRepository } from "@/lib/repositories/publishing";
 import { timingSafeEqualString } from "@/lib/utils/timing-safe-equal-string";
 import { createActiveWorkspaceMembersPort } from "@/lib/workspace/active-members-port";
@@ -46,11 +47,11 @@ import { workspaceRepository } from "@/lib/repositories/workspace";
  * JOB-01 (webhook processing) SENGAJA TETAP inline sync di
  * `/api/webhooks/outstand/route.ts`.
  *
- * `?type=analytics` (Railway Cron harian, `railway.cron.analytics.json`)
- * men-enqueue satu job per akun aktif SEBELUM `runPendingJobs`. Cron
- * menit (`railway.cron.json`) tidak mengirim query itu — ia hanya
- * mengeksekusi job yang sudah due, termasuk analytics yang baru
- * di-enqueue.
+ * Fan-out JOB-04 menumpang cron menit yang sudah hidup
+ * (`railway.cron.json`): paling banyak sekali per hari UTC, lalu
+ * `runPendingJobs` mengeksekusi job yang due. `?type=analytics`
+ * (`scripts/trigger-analytics-sync.ts`) memaksa antrian baru untuk
+ * verifikasi manual. Kegagalan fan-out tidak boleh menahan JOB-03/JOB-07.
  */
 export async function POST(request: Request): Promise<Response> {
   const { JOB_SECRET } = getServerEnv();
@@ -106,19 +107,20 @@ export async function POST(request: Request): Promise<Response> {
   );
   const enqueueAnalyticsSync = new EnqueueAnalyticsSyncUseCase(
     workspaceRepository,
-    {
-      hasActiveJob: (connectedAccountId) =>
-        backgroundJobStore.hasActiveJobForPayloadKey({
-          type: ANALYTICS_SYNC_JOB_TYPE,
-          key: "connectedAccountId",
-          value: connectedAccountId,
-        }),
-      scheduleJob: (input) => backgroundJobScheduler.scheduleJob(input),
-    },
+    createAnalyticsSyncJobsPort(),
   );
 
-  if (new URL(request.url).searchParams.get("type") === "analytics") {
-    await enqueueAnalyticsSync.execute();
+  try {
+    if (new URL(request.url).searchParams.get("type") === "analytics") {
+      await enqueueAnalyticsSync.execute();
+    } else {
+      await enqueueAnalyticsSync.executeIfDue();
+    }
+  } catch (error) {
+    console.error(
+      "[jobs/run] fan-out analytics gagal, job lain tetap dijalankan:",
+      error,
+    );
   }
 
   const handlers: Record<string, JobHandler> = {

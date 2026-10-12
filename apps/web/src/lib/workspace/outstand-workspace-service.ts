@@ -1,7 +1,4 @@
-import {
-  ANALYTICS_SYNC_JOB_TYPE,
-  EnqueueAnalyticsSyncUseCase,
-} from "@/domains/analytics";
+import { EnqueueAnalyticsSyncUseCase } from "@/domains/analytics";
 import { ENGAGEMENT_SYNC_JOB_TYPE } from "@/domains/engagement";
 import {
   ImportPostsProcessUseCase,
@@ -9,6 +6,7 @@ import {
 } from "@/domains/publishing";
 import { WorkspaceService } from "@/domains/workspace";
 import { getOutstandAdapter } from "@/lib/adapters/outstand";
+import { createAnalyticsSyncJobsPort } from "@/lib/jobs/analytics-sync-enqueue-port";
 import { backgroundJobStore } from "@/lib/jobs/background-job-store";
 import { backgroundJobScheduler } from "@/lib/jobs/job-scheduler";
 import {
@@ -16,6 +14,7 @@ import {
   publishingRepository,
 } from "@/lib/repositories/publishing";
 import { workspaceRepository } from "@/lib/repositories/workspace";
+import { seedSyncJobsOnAccountConnected } from "@/lib/workspace/seed-sync-jobs-on-account-connected";
 
 /**
  * Import Posts dari Social Account (T-090.3, ADR-093 poin 7) — satu-satunya
@@ -66,15 +65,7 @@ export function createWorkspaceServiceWithOutstandAdapter(): WorkspaceService {
   const importPostsTriggerUseCase = createImportPostsTriggerUseCase();
   const enqueueAnalyticsSync = new EnqueueAnalyticsSyncUseCase(
     workspaceRepository,
-    {
-      hasActiveJob: (connectedAccountId) =>
-        backgroundJobStore.hasActiveJobForPayloadKey({
-          type: ANALYTICS_SYNC_JOB_TYPE,
-          key: "connectedAccountId",
-          value: connectedAccountId,
-        }),
-      scheduleJob: (input) => backgroundJobScheduler.scheduleJob(input),
-    },
+    createAnalyticsSyncJobsPort(),
   );
 
   return new WorkspaceService(
@@ -83,39 +74,28 @@ export function createWorkspaceServiceWithOutstandAdapter(): WorkspaceService {
     undefined,
     getOutstandAdapter(),
     {
-      async onAccountConnected(input) {
-        // Cegah dua chain `engagement.sync` paralel kalau akun yang sama
-        // di-disconnect lalu di-reconnect cepat sebelum chain lama sempat
-        // berhenti (disconnect tidak membatalkan job yang sudah di-enqueue).
-        const alreadyScheduled =
-          await backgroundJobStore.hasActiveJobForPayloadKey({
-            type: ENGAGEMENT_SYNC_JOB_TYPE,
-            key: "connectedAccountId",
-            value: input.connectedAccountId,
-          });
-
-        if (alreadyScheduled) {
-          return;
-        }
-
-        await backgroundJobScheduler.scheduleJob({
-          type: ENGAGEMENT_SYNC_JOB_TYPE,
-          payload: {
-            workspaceId: input.workspaceId,
-            connectedAccountId: input.connectedAccountId,
-            outstandAccountId: input.outstandAccountId,
+      onAccountConnected: (input) =>
+        seedSyncJobsOnAccountConnected(input, {
+          hasActiveEngagementJob: (connectedAccountId) =>
+            backgroundJobStore.hasActiveJobForPayloadKey({
+              type: ENGAGEMENT_SYNC_JOB_TYPE,
+              key: "connectedAccountId",
+              value: connectedAccountId,
+            }),
+          scheduleEngagementJob: async (account) => {
+            await backgroundJobScheduler.scheduleJob({
+              type: ENGAGEMENT_SYNC_JOB_TYPE,
+              payload: {
+                workspaceId: account.workspaceId,
+                connectedAccountId: account.connectedAccountId,
+                outstandAccountId: account.outstandAccountId,
+              },
+              scheduledAt: new Date(),
+            });
           },
-          scheduledAt: new Date(),
-        });
-
-        await enqueueAnalyticsSync.enqueueForAccounts([
-          {
-            workspaceId: input.workspaceId,
-            connectedAccountId: input.connectedAccountId,
-            outstandAccountId: input.outstandAccountId,
-          },
-        ]);
-      },
+          enqueueAnalytics: (accounts) =>
+            enqueueAnalyticsSync.enqueueForAccounts(accounts),
+        }),
     },
     undefined,
     {

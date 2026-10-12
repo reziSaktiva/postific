@@ -2,6 +2,7 @@ import { asPostId, asUserId, SocialPlatform } from "@postific/shared";
 import { describe, expect, it, vi } from "vitest";
 import {
   ANALYTICS_SYNC_JOB_TYPE,
+  ANALYTICS_SYNC_SCOPE_WORKSPACE,
   AnalyticsSyncJobHandler,
   resolveAnalyticsSnapshotWindow,
   type AnalyticsSyncAccountsPort,
@@ -111,13 +112,31 @@ describe("AnalyticsSyncJobHandler.handle", () => {
     expect(syncPostMetrics).not.toHaveBeenCalled();
   });
 
-  it("syncs published posts for the account and workspace snapshots for weekly and monthly", async () => {
+  it("throws when the lookup owner does not match the payload", async () => {
+    const syncPostMetrics = vi.fn();
+    const handler = new AnalyticsSyncJobHandler(
+      { syncPostMetrics } as unknown as AnalyticsIngestionUseCase,
+      createOwnerLookup({
+        findAccountOwnerByOutstandAccountId: async () => ({
+          workspaceId: "other-workspace",
+          connectedAccountId: "other-account",
+          ownerUserId: asUserId("owner-1"),
+        }),
+      }),
+      createPosts(),
+      createAccounts(),
+    );
+
+    await expect(handler.handle(PAYLOAD)).rejects.toThrow("tidak cocok");
+    expect(syncPostMetrics).not.toHaveBeenCalled();
+  });
+
+  it("syncs published posts for the account without writing the workspace snapshot", async () => {
     const syncPostMetrics = vi.fn<AnalyticsIngestionUseCase["syncPostMetrics"]>(
       async () => [],
     );
-    const syncWorkspaceSnapshot = vi.fn<
-      AnalyticsIngestionUseCase["syncWorkspaceSnapshot"]
-    >(async () => ({}) as never);
+    const syncWorkspaceSnapshot = vi.fn();
+    const listActiveConnectedAccountsForSync = vi.fn();
     const handler = new AnalyticsSyncJobHandler(
       {
         syncPostMetrics,
@@ -125,7 +144,9 @@ describe("AnalyticsSyncJobHandler.handle", () => {
       } as unknown as AnalyticsIngestionUseCase,
       createOwnerLookup(),
       createPosts(),
-      createAccounts(),
+      {
+        listActiveConnectedAccountsForSync,
+      },
       () => NOW,
     );
 
@@ -143,31 +164,13 @@ describe("AnalyticsSyncJobHandler.handle", () => {
       ],
       "owner-1",
     );
-
-    expect(syncWorkspaceSnapshot).toHaveBeenCalledTimes(2);
-    const periods = syncWorkspaceSnapshot.mock.calls.map((call) => {
-      const [input] = call;
-      return input.period;
-    });
-    expect(periods).toEqual(["weekly", "monthly"]);
-    for (const [input, actingUserId] of syncWorkspaceSnapshot.mock.calls) {
-      expect(input.accounts).toEqual([
-        {
-          connectedAccountId: PAYLOAD.connectedAccountId,
-          outstandAccountId: PAYLOAD.outstandAccountId,
-        },
-        {
-          connectedAccountId: "account-2",
-          outstandAccountId: "outstand-account-2",
-        },
-      ]);
-      expect(actingUserId).toBe("owner-1");
-    }
+    expect(syncWorkspaceSnapshot).not.toHaveBeenCalled();
+    expect(listActiveConnectedAccountsForSync).not.toHaveBeenCalled();
   });
 
-  it("still writes workspace snapshots when the account has no published posts", async () => {
+  it("does nothing else when the account has no published posts", async () => {
     const syncPostMetrics = vi.fn();
-    const syncWorkspaceSnapshot = vi.fn(async () => ({}));
+    const syncWorkspaceSnapshot = vi.fn();
     const handler = new AnalyticsSyncJobHandler(
       {
         syncPostMetrics,
@@ -184,6 +187,49 @@ describe("AnalyticsSyncJobHandler.handle", () => {
     await handler.handle(PAYLOAD);
 
     expect(syncPostMetrics).not.toHaveBeenCalled();
+    expect(syncWorkspaceSnapshot).not.toHaveBeenCalled();
+  });
+
+  it("writes weekly and monthly snapshots once for every active account in the workspace", async () => {
+    const syncPostMetrics = vi.fn();
+    const syncWorkspaceSnapshot = vi.fn<
+      AnalyticsIngestionUseCase["syncWorkspaceSnapshot"]
+    >(async () => ({}) as never);
+    const handler = new AnalyticsSyncJobHandler(
+      {
+        syncPostMetrics,
+        syncWorkspaceSnapshot,
+      } as unknown as AnalyticsIngestionUseCase,
+      createOwnerLookup(),
+      createPosts(),
+      createAccounts(),
+      () => NOW,
+    );
+
+    await handler.handle({
+      scope: ANALYTICS_SYNC_SCOPE_WORKSPACE,
+      workspaceId: PAYLOAD.workspaceId,
+      workspaceSnapshotId: PAYLOAD.workspaceId,
+    });
+
+    expect(syncPostMetrics).not.toHaveBeenCalled();
     expect(syncWorkspaceSnapshot).toHaveBeenCalledTimes(2);
+    const periods = syncWorkspaceSnapshot.mock.calls.map(
+      (call) => call[0].period,
+    );
+    expect(periods).toEqual(["weekly", "monthly"]);
+    for (const [input, actingUserId] of syncWorkspaceSnapshot.mock.calls) {
+      expect(input.accounts).toEqual([
+        {
+          connectedAccountId: PAYLOAD.connectedAccountId,
+          outstandAccountId: PAYLOAD.outstandAccountId,
+        },
+        {
+          connectedAccountId: "account-2",
+          outstandAccountId: "outstand-account-2",
+        },
+      ]);
+      expect(actingUserId).toBe("owner-1");
+    }
   });
 });

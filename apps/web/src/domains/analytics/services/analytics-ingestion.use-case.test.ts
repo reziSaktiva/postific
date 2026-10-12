@@ -191,6 +191,42 @@ describe("AnalyticsIngestionUseCase.syncPostMetrics", () => {
       }),
     );
   });
+
+  it("fetches distinct posts concurrently so a long account stays inside the job timeout", async () => {
+    let inFlight = 0;
+    let maxInFlight = 0;
+    const adapter = createFakeOutstandAdapter({
+      fetchPostMetrics: async () => {
+        inFlight += 1;
+        maxInFlight = Math.max(maxInFlight, inFlight);
+        await new Promise((resolve) => setTimeout(resolve, 15));
+        inFlight -= 1;
+        return {
+          impressions: 1,
+          reach: 1,
+          likes: 1,
+          comments: 1,
+          shares: 1,
+          clicks: null,
+          engagementRate: 0,
+        };
+      },
+    });
+    const useCase = new AnalyticsIngestionUseCase(
+      createFakeRepository(),
+      adapter,
+    );
+    const targets = Array.from({ length: 10 }, (_, index) => ({
+      postId: asPostId(`post-${index}`),
+      connectedAccountId: CONNECTED_ACCOUNT_1,
+      platform: SocialPlatform.Instagram,
+      outstandPostId: `outstand-post-${index}`,
+    }));
+
+    await useCase.syncPostMetrics(targets, ACTING_USER_ID);
+
+    expect(maxInFlight).toBeGreaterThan(1);
+  });
 });
 
 describe("AnalyticsIngestionUseCase.syncWorkspaceSnapshot", () => {

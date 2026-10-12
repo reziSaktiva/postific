@@ -1,14 +1,14 @@
 /**
  * T-048.3 — Railway Cron harian untuk JOB-04 Analytics Sync.
  *
- * Service cron yang SUDAH ada (`railway.cron.json`, `* * * * *`,
- * `scripts/trigger-job-run.ts`) hanya mengeksekusi job yang sudah due.
- * Mengubah jadwal itu jadi harian akan menahan JOB-03 (30 menit) dan
- * JOB-07. Fan-out analytics punya service cron TERPISAH
- * (`railway.cron.analytics.json`, `0 0 * * *`) yang memanggil endpoint
- * yang sama dengan `?type=analytics` — Route Handler men-enqueue satu
- * `analytics.sync` per akun aktif, lalu `runPendingJobs` yang sama
- * mengeksekusinya.
+ * Fan-out harian yang benar-benar jalan di staging adalah cron menit yang
+ * sudah hidup (`railway.cron.json` → `scripts/trigger-job-run.ts`). Route
+ * handler men-enqueue analytics paling banyak sekali per hari UTC pada
+ * setiap panggilan itu, lalu menjalankan job yang due. File
+ * `railway.cron.analytics.json` tidak membuat service Railway sendiri.
+ *
+ * Script ini memaksa antrian baru lewat `?type=analytics` (verifikasi
+ * manual / T-048.4). Job yang masih pending atau running tidak digandakan.
  *
  * Env vars sama dengan `scripts/trigger-job-run.ts`: `JOB_RUNNER_URL`
  * (tanpa query string) dan `JOB_SECRET`.
