@@ -66,6 +66,7 @@ function createFakeRepository(
     acceptOwnershipTransfer: async () => undefined,
     markAccountReconnectRequired: async () => null,
     findAccountOwnerByOutstandAccountId: async () => null,
+    listActiveConnectedAccountsForSync: async () => [],
     disconnectAccount: async () => undefined,
     findConnectedAccountById: async () => null,
     findConnectedAccountByOutstandId: async () => null,

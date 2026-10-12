@@ -625,7 +625,7 @@ describe("RealOutstandAdapter.cancelScheduledPost / deletePost (T-030/T-034.4)",
 });
 
 describe("RealOutstandAdapter analytics (fetchPostMetrics/fetchWorkspaceMetrics, T-041 via T-025)", () => {
-  it("fetchPostMetrics reads aggregated_metrics.total_* (real field names) and computes engagementRate when absent", async () => {
+  it("fetchPostMetrics reads aggregated_metrics.total_* (real field names) and always computes engagementRate from totals", async () => {
     const fetchImpl = vi.fn().mockResolvedValue(
       jsonResponse(200, {
         success: true,
@@ -661,6 +661,104 @@ describe("RealOutstandAdapter analytics (fetchPostMetrics/fetchWorkspaceMetrics,
 
     const [url] = fetchImpl.mock.calls[0];
     expect(url).toBe("https://api.outstand.so/v1/posts/post-123/analytics");
+  });
+
+  it("fetchPostMetrics ignores aggregated_metrics.average_engagement_rate raw value and computes its own ratio (bug fix: QA overflow, akun eH82r)", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        success: true,
+        post: {
+          id: "post-123",
+          publishedAt: "2026-09-20T00:00:00.000Z",
+          createdAt: "2026-09-19T00:00:00.000Z",
+        },
+        metrics_by_account: [],
+        aggregated_metrics: {
+          total_impressions: 1000,
+          total_reach: 500,
+          total_likes: 40,
+          total_comments: 5,
+          total_shares: 5,
+          total_views: 100,
+          // Nilai mentah API (mis. skala persen 0-100) sengaja diabaikan —
+          // kalau dipakai langsung ke Decimal(5,4), nilai ini valid (10 <
+          // 9.9999? tidak — ini contoh nilai sedang, lihat test overflow
+          // di bawah untuk kasus >= 10/100 yang benar-benar overflow).
+          average_engagement_rate: 1.5,
+        },
+      }),
+    );
+    const adapter = buildAdapter(fetchImpl);
+
+    const result = await adapter.fetchPostMetrics("post-123");
+
+    // (40 + 5 + 5) / 500 = 0.1 — BUKAN 1.5 dari field API.
+    expect(result.engagementRate).toBe(0.1);
+  });
+
+  it.each([
+    ["ratusan (skala persen ekstrem, >=100)", 150],
+    ["puluhan (skala persen, >=10)", 15],
+  ])(
+    "fetchPostMetrics never overflows Decimal(5,4) even when the ratio itself is anomalous (%s)",
+    async (_label, totalLikesAnomali) => {
+      const fetchImpl = vi.fn().mockResolvedValue(
+        jsonResponse(200, {
+          success: true,
+          post: {
+            id: "post-999",
+            publishedAt: "2026-09-20T00:00:00.000Z",
+            createdAt: "2026-09-19T00:00:00.000Z",
+          },
+          metrics_by_account: [],
+          aggregated_metrics: {
+            total_impressions: 1000,
+            // reach kecil + likes besar (data API anomali) -> rasio mentah
+            // (likes+comments+shares)/reach bisa > 9.9999 tanpa clamp.
+            total_reach: 1,
+            total_likes: totalLikesAnomali,
+            total_comments: 0,
+            total_shares: 0,
+            total_views: 100,
+            average_engagement_rate: totalLikesAnomali, // skala persen, diabaikan
+          },
+        }),
+      );
+      const adapter = buildAdapter(fetchImpl);
+
+      const result = await adapter.fetchPostMetrics("post-999");
+
+      expect(result.engagementRate).toBeLessThanOrEqual(9.9999);
+      expect(result.engagementRate).toBeGreaterThanOrEqual(0);
+    },
+  );
+
+  it("fetchPostMetrics returns engagementRate 0 when reach is 0 (avoids division by zero)", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        success: true,
+        post: {
+          id: "post-000",
+          publishedAt: "2026-09-20T00:00:00.000Z",
+          createdAt: "2026-09-19T00:00:00.000Z",
+        },
+        metrics_by_account: [],
+        aggregated_metrics: {
+          total_impressions: 0,
+          total_reach: 0,
+          total_likes: 0,
+          total_comments: 0,
+          total_shares: 0,
+          total_views: 0,
+          average_engagement_rate: 42, // nilai mentah API, harus tetap diabaikan
+        },
+      }),
+    );
+    const adapter = buildAdapter(fetchImpl);
+
+    const result = await adapter.fetchPostMetrics("post-000");
+
+    expect(result.engagementRate).toBe(0);
   });
 
   it("fetchWorkspaceMetrics passes since/until as Unix timestamps to /v1/social-accounts/{id}/metrics and maps the best-effort shape", async () => {

@@ -4,6 +4,7 @@ import type {
   OutstandMetricsPeriod,
   PostId,
   SocialPlatform,
+  UserId,
   WorkspaceId,
 } from "@postific/shared";
 import type {
@@ -26,6 +27,42 @@ const OUTSTAND_PERIOD_BY_SNAPSHOT_PERIOD: Record<
   weekly: "last_7_days",
   monthly: "last_30_days",
 };
+
+/**
+ * Panggilan Outstand di job analytics jalan paralel terbatas. Job runner
+ * menganggap job `running` lebih dari 30 detik macet lalu mengklaimnya
+ * ulang — fetch berurutan untuk puluhan post melewati batas itu.
+ */
+const OUTSTAND_FETCH_CONCURRENCY = 8;
+
+async function mapWithConcurrency<T, R>(
+  items: readonly T[],
+  concurrency: number,
+  map: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let cursor = 0;
+
+  async function worker(): Promise<void> {
+    while (cursor < items.length) {
+      const index = cursor;
+      cursor += 1;
+      const item = items[index];
+      if (item === undefined) {
+        return;
+      }
+      results[index] = await map(item);
+    }
+  }
+
+  const workerCount = Math.min(Math.max(concurrency, 1), items.length);
+  if (workerCount === 0) {
+    return results;
+  }
+
+  await Promise.all(Array.from({ length: workerCount }, () => worker()));
+  return results;
+}
 
 export interface SyncPostMetricsTargetInput {
   postId: PostId;
@@ -70,8 +107,9 @@ export interface SyncWorkspaceSnapshotAccountInput {
  * tidak berubah secepat komentar, dan Outstand sendiri hanya
  * mengagregasikan data platform secara periodik, jadi polling lebih sering
  * dari harian tidak menambah nilai — hanya menambah beban API Outstand.
- * Penjadwalan cron sungguhan (Railway Cron) di luar scope T-041 — Use Case
- * ini disiapkan untuk dipanggil manual/dari test dulu.
+ * Penjadwalan cron (Railway Cron harian, JOB-04) di-wire terpisah oleh
+ * `AnalyticsSyncJobHandler` (T-048) — Use Case ini tetap tidak tahu soal
+ * antrian job.
  */
 export class AnalyticsIngestionUseCase {
   constructor(
@@ -87,42 +125,52 @@ export class AnalyticsIngestionUseCase {
    */
   async syncPostMetrics(
     targets: SyncPostMetricsTargetInput[],
+    actingUserId: UserId,
   ): Promise<PostMetricsRecord[]> {
-    const results: PostMetricsRecord[] = [];
-
     // Semua target satu post berbagi `outstandPostId` yang sama (lihat catatan
     // di `SyncPostMetricsTargetInput.outstandPostId`), jadi `fetchPostMetrics`
     // di-fetch SEKALI per `outstandPostId` unik — bukan sekali per target —
     // supaya post multi-akun tidak memanggil Outstand berkali-kali untuk hasil
     // yang identik. Nilai per target tetap identik (gap diketahui, T-041)
     // karena `FetchPostMetricsResult` belum dipecah per akun.
-    const metricsByOutstandPostId = new Map<
-      string,
-      Awaited<ReturnType<typeof this.outstandAdapter.fetchPostMetrics>>
-    >();
+    const uniqueOutstandPostIds = [
+      ...new Set(targets.map((target) => target.outstandPostId)),
+    ];
+    const fetched = await mapWithConcurrency(
+      uniqueOutstandPostIds,
+      OUTSTAND_FETCH_CONCURRENCY,
+      (outstandPostId) => this.outstandAdapter.fetchPostMetrics(outstandPostId),
+    );
+    const metricsByOutstandPostId = new Map(
+      uniqueOutstandPostIds.map((outstandPostId, index) => [
+        outstandPostId,
+        fetched[index],
+      ]),
+    );
 
+    const results: PostMetricsRecord[] = [];
     for (const target of targets) {
-      let metrics = metricsByOutstandPostId.get(target.outstandPostId);
+      const metrics = metricsByOutstandPostId.get(target.outstandPostId);
       if (!metrics) {
-        metrics = await this.outstandAdapter.fetchPostMetrics(
-          target.outstandPostId,
-        );
-        metricsByOutstandPostId.set(target.outstandPostId, metrics);
+        continue;
       }
 
-      const record = await this.repository.upsertPostMetrics({
-        postId: target.postId,
-        connectedAccountId: target.connectedAccountId,
-        platform: target.platform,
-        impressions: metrics.impressions,
-        reach: metrics.reach,
-        likes: metrics.likes,
-        comments: metrics.comments,
-        shares: metrics.shares,
-        clicks: metrics.clicks,
-        engagementRate: metrics.engagementRate,
-        fetchedAt: new Date(),
-      });
+      const record = await this.repository.upsertPostMetrics(
+        {
+          postId: target.postId,
+          connectedAccountId: target.connectedAccountId,
+          platform: target.platform,
+          impressions: metrics.impressions,
+          reach: metrics.reach,
+          likes: metrics.likes,
+          comments: metrics.comments,
+          shares: metrics.shares,
+          clicks: metrics.clicks,
+          engagementRate: metrics.engagementRate,
+          fetchedAt: new Date(),
+        },
+        actingUserId,
+      );
 
       results.push(record);
     }
@@ -147,26 +195,33 @@ export class AnalyticsIngestionUseCase {
    * query lintas `AnalyticsPostMetric` yang bisa jadi task terpisah);
    * caller boleh mengoper nilai yang sudah diketahui, default `null`.
    */
-  async syncWorkspaceSnapshot(input: {
-    workspaceId: WorkspaceId;
-    period: SnapshotPeriod;
-    periodStart: Date;
-    periodEnd: Date;
-    accounts: SyncWorkspaceSnapshotAccountInput[];
-    topPostId?: PostId | null;
-  }): Promise<WorkspaceSnapshotRecord> {
+  async syncWorkspaceSnapshot(
+    input: {
+      workspaceId: WorkspaceId;
+      period: SnapshotPeriod;
+      periodStart: Date;
+      periodEnd: Date;
+      accounts: SyncWorkspaceSnapshotAccountInput[];
+      topPostId?: PostId | null;
+    },
+    actingUserId: UserId,
+  ): Promise<WorkspaceSnapshotRecord> {
     const outstandPeriod = OUTSTAND_PERIOD_BY_SNAPSHOT_PERIOD[input.period];
+    const metricsByAccount = await mapWithConcurrency(
+      input.accounts,
+      OUTSTAND_FETCH_CONCURRENCY,
+      (account) =>
+        this.outstandAdapter.fetchWorkspaceMetrics(
+          account.outstandAccountId,
+          outstandPeriod,
+        ),
+    );
 
     let totalPosts = 0;
     let totalReach = 0;
     let totalEngagements = 0;
 
-    for (const account of input.accounts) {
-      const metrics = await this.outstandAdapter.fetchWorkspaceMetrics(
-        account.outstandAccountId,
-        outstandPeriod,
-      );
-
+    for (const metrics of metricsByAccount) {
       totalPosts += metrics.totalPosts;
       totalReach += metrics.totalReach;
       totalEngagements += metrics.totalEngagements;
@@ -175,16 +230,19 @@ export class AnalyticsIngestionUseCase {
     const avgEngagementRate =
       totalReach > 0 ? Number((totalEngagements / totalReach).toFixed(4)) : 0;
 
-    return this.repository.upsertWorkspaceSnapshot({
-      workspaceId: input.workspaceId,
-      period: input.period,
-      periodStart: input.periodStart,
-      periodEnd: input.periodEnd,
-      totalPosts,
-      totalReach,
-      totalEngagements,
-      avgEngagementRate,
-      topPostId: input.topPostId ?? null,
-    });
+    return this.repository.upsertWorkspaceSnapshot(
+      {
+        workspaceId: input.workspaceId,
+        period: input.period,
+        periodStart: input.periodStart,
+        periodEnd: input.periodEnd,
+        totalPosts,
+        totalReach,
+        totalEngagements,
+        avgEngagementRate,
+        topPostId: input.topPostId ?? null,
+      },
+      actingUserId,
+    );
   }
 }

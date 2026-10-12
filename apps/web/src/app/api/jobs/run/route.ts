@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server";
 import {
+  ANALYTICS_SYNC_JOB_TYPE,
+  AnalyticsIngestionUseCase,
+  AnalyticsSyncJobHandler,
+  EnqueueAnalyticsSyncUseCase,
+} from "@/domains/analytics";
+import {
   ENGAGEMENT_SYNC_JOB_TYPE,
   EngagementSyncJobHandler,
   SyncCommentsUseCase,
@@ -17,6 +23,8 @@ import { engagementRepository } from "@/lib/repositories/engagement";
 import { runPendingJobs, type JobHandler } from "@/lib/jobs/job-runner";
 import { backgroundJobScheduler } from "@/lib/jobs/job-scheduler";
 import { notificationRepository } from "@/lib/repositories/notification";
+import { analyticsRepository } from "@/lib/repositories/analytics";
+import { createAnalyticsSyncJobsPort } from "@/lib/jobs/analytics-sync-enqueue-port";
 import { publishingRepository } from "@/lib/repositories/publishing";
 import { timingSafeEqualString } from "@/lib/utils/timing-safe-equal-string";
 import { createActiveWorkspaceMembersPort } from "@/lib/workspace/active-members-port";
@@ -34,13 +42,16 @@ import { workspaceRepository } from "@/lib/repositories/workspace";
  * (3) delegasi eksekusi ke `runPendingJobs` (`@/lib/jobs/job-runner`, murni
  * orkestrasi generik claim/retry/dead-letter).
  *
- * Registry HANYA berisi SATU job type untuk saat ini —
- * `RESOLVE_SCHEDULED_POST_OUTCOME_JOB_TYPE` (T-027.5). JOB-01 (webhook
- * processing) SENGAJA TETAP inline sync di
- * `/api/webhooks/outstand/route.ts` (lihat catatan gap di
- * `OutstandWebhookProcessor`) — memindahkannya ke enqueue+async lewat
- * registry ini adalah perluasan scope T-027 yang signifikan dan belum
- * dikonfirmasi King Rezi, JANGAN ditambahkan diam-diam di sini.
+ * Registry: JOB-07 (`RESOLVE_SCHEDULED_POST_OUTCOME_JOB_TYPE`), JOB-03
+ * (`ENGAGEMENT_SYNC_JOB_TYPE`), JOB-04 (`ANALYTICS_SYNC_JOB_TYPE`, T-048).
+ * JOB-01 (webhook processing) SENGAJA TETAP inline sync di
+ * `/api/webhooks/outstand/route.ts`.
+ *
+ * Fan-out JOB-04 menumpang cron menit yang sudah hidup
+ * (`railway.cron.json`): paling banyak sekali per hari UTC, lalu
+ * `runPendingJobs` mengeksekusi job yang due. `?type=analytics`
+ * (`scripts/trigger-analytics-sync.ts`) memaksa antrian baru untuk
+ * verifikasi manual. Kegagalan fan-out tidak boleh menahan JOB-03/JOB-07.
  */
 export async function POST(request: Request): Promise<Response> {
   const { JOB_SECRET } = getServerEnv();
@@ -84,11 +95,41 @@ export async function POST(request: Request): Promise<Response> {
     workspaceRepository,
   );
 
+  const analyticsIngestion = new AnalyticsIngestionUseCase(
+    analyticsRepository,
+    getOutstandAdapter(),
+  );
+  const analyticsSyncHandler = new AnalyticsSyncJobHandler(
+    analyticsIngestion,
+    workspaceRepository,
+    publishingRepository,
+    workspaceRepository,
+  );
+  const enqueueAnalyticsSync = new EnqueueAnalyticsSyncUseCase(
+    workspaceRepository,
+    createAnalyticsSyncJobsPort(),
+  );
+
+  try {
+    if (new URL(request.url).searchParams.get("type") === "analytics") {
+      await enqueueAnalyticsSync.execute();
+    } else {
+      await enqueueAnalyticsSync.executeIfDue();
+    }
+  } catch (error) {
+    console.error(
+      "[jobs/run] fan-out analytics gagal, job lain tetap dijalankan:",
+      error,
+    );
+  }
+
   const handlers: Record<string, JobHandler> = {
     [RESOLVE_SCHEDULED_POST_OUTCOME_JOB_TYPE]: (payload) =>
       resolveScheduledPostOutcomeHandler.handle(payload),
     [ENGAGEMENT_SYNC_JOB_TYPE]: (payload) =>
       engagementSyncHandler.handle(payload),
+    [ANALYTICS_SYNC_JOB_TYPE]: (payload) =>
+      analyticsSyncHandler.handle(payload),
   };
 
   const summary = await runPendingJobs(backgroundJobStore, handlers);

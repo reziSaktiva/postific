@@ -1,18 +1,47 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { getServerEnv } = vi.hoisted(() => ({ getServerEnv: vi.fn() }));
+const {
+  getServerEnv,
+  runPendingJobs,
+  listActiveConnectedAccountsForSync,
+  hasJobMatchingPayloadKey,
+  scheduleJob,
+} = vi.hoisted(() => ({
+  getServerEnv: vi.fn(),
+  runPendingJobs: vi.fn(),
+  listActiveConnectedAccountsForSync: vi.fn(
+    async () =>
+      [] as Array<{
+        workspaceId: string;
+        connectedAccountId: string;
+        outstandAccountId: string;
+      }>,
+  ),
+  hasJobMatchingPayloadKey: vi.fn<(input: unknown) => Promise<boolean>>(),
+  scheduleJob: vi.fn<(input: unknown) => Promise<void>>(),
+}));
 vi.mock("@/lib/env", () => ({ getServerEnv }));
 
 vi.mock("@/lib/adapters/outstand", () => ({
   getOutstandAdapter: vi.fn(() => ({})),
 }));
 vi.mock("@/lib/repositories/publishing", () => ({ publishingRepository: {} }));
-vi.mock("@/lib/repositories/workspace", () => ({ workspaceRepository: {} }));
+vi.mock("@/lib/repositories/workspace", () => ({
+  workspaceRepository: {
+    listActiveConnectedAccountsForSync: () =>
+      listActiveConnectedAccountsForSync(),
+  },
+}));
 vi.mock("@/lib/repositories/notification", () => ({
   notificationRepository: {},
 }));
 vi.mock("@/lib/repositories/engagement", () => ({ engagementRepository: {} }));
-vi.mock("@/lib/jobs/job-scheduler", () => ({ backgroundJobScheduler: {} }));
+vi.mock("@/lib/repositories/analytics", () => ({ analyticsRepository: {} }));
+vi.mock("@/lib/jobs/job-scheduler", () => ({
+  backgroundJobScheduler: {
+    scheduleJob: (input: unknown) => scheduleJob(input),
+  },
+}));
 
 vi.mock("@/domains/publishing", () => ({
   OutstandWebhookProcessor: class {},
@@ -33,20 +62,25 @@ vi.mock("@/domains/engagement", () => ({
   SyncCommentsUseCase: class {},
 }));
 
-const { runPendingJobs } = vi.hoisted(() => ({ runPendingJobs: vi.fn() }));
 vi.mock("@/lib/jobs/job-runner", () => ({ runPendingJobs }));
 vi.mock("@/lib/jobs/background-job-store", () => ({
-  backgroundJobStore: {},
+  backgroundJobStore: {
+    hasJobMatchingPayloadKey: (input: unknown) =>
+      hasJobMatchingPayloadKey(input),
+  },
 }));
 
 const SECRET = "test-job-secret";
 
-function buildRequest(headerValue: string | null): Request {
+function buildRequest(
+  headerValue: string | null,
+  url = "http://localhost/api/jobs/run",
+): Request {
   const headers = new Headers();
   if (headerValue !== null) {
     headers.set("x-job-secret", headerValue);
   }
-  return new Request("http://localhost/api/jobs/run", {
+  return new Request(url, {
     method: "POST",
     headers,
   });
@@ -57,6 +91,9 @@ describe("POST /api/jobs/run (T-027.1/.2)", () => {
     vi.clearAllMocks();
     getServerEnv.mockReturnValue({ JOB_SECRET: SECRET });
     runPendingJobs.mockResolvedValue({ claimed: 0, results: [] });
+    listActiveConnectedAccountsForSync.mockResolvedValue([]);
+    hasJobMatchingPayloadKey.mockResolvedValue(true);
+    scheduleJob.mockResolvedValue(undefined);
   });
 
   it("rejects with 401 when JOB_SECRET is not configured server-side", async () => {
@@ -116,5 +153,101 @@ describe("POST /api/jobs/run (T-027.1/.2)", () => {
         },
       ],
     });
+  });
+
+  it("enqueues analytics from the minute cron when nothing was created today", async () => {
+    listActiveConnectedAccountsForSync.mockResolvedValue([
+      {
+        workspaceId: "workspace-1",
+        connectedAccountId: "account-1",
+        outstandAccountId: "outstand-1",
+      },
+    ]);
+    hasJobMatchingPayloadKey.mockResolvedValue(false);
+    const { POST } = await import("./route");
+
+    const response = await POST(buildRequest(SECRET));
+
+    expect(response.status).toBe(200);
+    expect(scheduleJob).toHaveBeenCalledTimes(2);
+    expect(scheduleJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        payload: expect.objectContaining({ connectedAccountId: "account-1" }),
+      }),
+    );
+    expect(scheduleJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          scope: "workspace",
+          workspaceSnapshotId: "workspace-1",
+        }),
+      }),
+    );
+    expect(runPendingJobs).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not enqueue analytics again the same UTC day", async () => {
+    listActiveConnectedAccountsForSync.mockResolvedValue([
+      {
+        workspaceId: "workspace-1",
+        connectedAccountId: "account-1",
+        outstandAccountId: "outstand-1",
+      },
+    ]);
+    hasJobMatchingPayloadKey.mockImplementation(async (input: unknown) => {
+      return (
+        typeof input === "object" &&
+        input !== null &&
+        "createdSince" in input &&
+        input.createdSince instanceof Date
+      );
+    });
+    const { POST } = await import("./route");
+
+    const response = await POST(buildRequest(SECRET));
+
+    expect(response.status).toBe(200);
+    expect(scheduleJob).not.toHaveBeenCalled();
+    expect(runPendingJobs).toHaveBeenCalledTimes(1);
+  });
+
+  it("forces a new analytics enqueue for the manual trigger even after today's fan-out", async () => {
+    listActiveConnectedAccountsForSync.mockResolvedValue([
+      {
+        workspaceId: "workspace-1",
+        connectedAccountId: "account-1",
+        outstandAccountId: "outstand-1",
+      },
+    ]);
+    hasJobMatchingPayloadKey.mockImplementation(async (input: unknown) => {
+      return (
+        typeof input === "object" &&
+        input !== null &&
+        "createdSince" in input &&
+        input.createdSince instanceof Date
+      );
+    });
+    const { POST } = await import("./route");
+
+    const response = await POST(
+      buildRequest(SECRET, "http://localhost/api/jobs/run?type=analytics"),
+    );
+
+    expect(response.status).toBe(200);
+    expect(scheduleJob).toHaveBeenCalledTimes(2);
+    expect(runPendingJobs).toHaveBeenCalledTimes(1);
+  });
+
+  it("still runs pending jobs when the analytics fan-out fails", async () => {
+    listActiveConnectedAccountsForSync.mockRejectedValue(
+      new Error("fungsi postgres belum ada"),
+    );
+    const { POST } = await import("./route");
+
+    const response = await POST(buildRequest(SECRET));
+
+    expect(response.status).toBe(200);
+    expect(runPendingJobs).toHaveBeenCalledTimes(1);
+    expect(scheduleJob).not.toHaveBeenCalled();
   });
 });

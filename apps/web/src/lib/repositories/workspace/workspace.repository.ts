@@ -887,6 +887,22 @@ export const workspaceRepository: IWorkspaceRepository = {
     };
   },
 
+  async listActiveConnectedAccountsForSync() {
+    const rows = await prisma.$queryRaw<
+      {
+        workspace_id: string;
+        connected_account_id: string;
+        outstand_account_id: string;
+      }[]
+    >`SELECT * FROM "public"."analytics_list_active_connected_accounts"()`;
+
+    return rows.map((row) => ({
+      workspaceId: asWorkspaceId(row.workspace_id),
+      connectedAccountId: asConnectedAccountId(row.connected_account_id),
+      outstandAccountId: row.outstand_account_id,
+    }));
+  },
+
   async disconnectAccount(workspaceId, connectedAccountId, actingUserId) {
     await withCurrentUser(actingUserId, async (tx) => {
       const result = await tx.workspaceConnectedAccount.updateMany({

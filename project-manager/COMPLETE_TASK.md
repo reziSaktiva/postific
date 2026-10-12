@@ -8,6 +8,14 @@ Seluruh perubahan penting pada dokumentasi maupun implementasi project dicatat p
 
 ---
 
+## 2026-10-12 — T-048 code review: job analytics tidak saling timpa dan ikut cron yang sudah hidup
+
+Perbaikan review PR job harian analytics. Metrik post tetap satu job per akun, dengan panggilan Outstand dibatasi paralel supaya tidak melewati batas 30 detik lalu diklaim ulang. Snapshot workspace jadi satu job per workspace, jadi beberapa akun tidak menulis baris yang sama bersamaan. Reconnect tetap mengantre analytics walaupun job komentar masih berjalan. Fan-out harian menumpang cron menit yang sudah hidup (sekali per hari UTC); kegagalannya tidak menahan job lain. `?type=analytics` tetap ada untuk trigger manual. Verifikasi angka di staging (T-048.4) belum dikerjakan.
+
+## 2026-10-12 — T-048 Wire JOB-04 Analytics Sync (backend, belum verifikasi staging)
+
+Backend JOB-04 disambungkan ke job runner. Handler `analytics.sync` mengisi metrik post dan snapshot workspace (mingguan + bulanan) lewat `AnalyticsIngestionUseCase`. Cron harian terpisah (`railway.cron.analytics.json`, tengah malam UTC) men-enqueue satu job per akun aktif lewat `POST /api/jobs/run?type=analytics`. Cron menit yang sudah ada tidak diubah. Tulis analytics memakai sesi Owner workspace supaya lolos RLS. T-048.4 (angka asli di Home dan `/analyze` setelah job jalan di staging) belum dikerjakan — butuh migrasi `analytics_list_active_connected_accounts` dan service cron harian di Railway.
+
 ## 2026-10-12 — T-007.7 Kirim undangan anggota via email (Resend)
 
 Jalur **Kirim via Email** di dialog Undang Anggota diaktifkan. Invitation tetap dibuat seperti Copy Link, lalu link yang sama dikirim lewat Resend (`RESEND_API_KEY` / `RESEND_FROM_EMAIL` yang sudah dipakai T-110). Kalau email gagal, undangan tetap tersimpan dan link bisa disalin manual. T-005 (verifikasi email global dan reset password) tidak ditutup.

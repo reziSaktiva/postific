@@ -4,7 +4,7 @@
 
 * **Phase / Milestone:** Phase 6 — Implementation · M8 — Development (Sprint 5) · Overall: M7 100%, M8 in progress
 * **Active Mode:** Ready for Development — implementasi fitur produk sesuai Architecture & Engineering Baseline
-* **Top Next Tasks:** **T-112 ✅ Done (5/5 subtask, 2026-10-09)** — wiring `IOutstandAdapter.importPosts`/`fetchImportJobStatus` ke endpoint Outstand sungguhan (ADR-123), termasuk fix bug polling status async yang ditemukan saat verifikasi end-to-end — lihat `tasks/v02-publishing-mvp.md` § T-112. **T-090 ✅ Done (5/5 subtask, 2026-10-08)** — Import Posts dari Social Account (status `Imported`, read-only), ADR-093, tuntas penuh termasuk UI (T-090.5) + bug fix `getOutstandAdapter`/`toActionError`. **T-111 ✅ Done (8/8 subtask, 2026-10-07)** — restrukturisasi layout preview media post asli di History Detail & Post asal Engage, menutup KI-082/KI-083 sepenuhnya. **KI-084 ✅ Resolved (2026-10-08)** dan **KI-085 ✅ Resolved (2026-10-07)** — lihat **Completed (Ringkasan)** di bawah. Fokus aktif selanjutnya: **T-037 Perkaya aturan coding** (kontinu by design, 🟡 In Progress) — salinan ID dari **Fokus sekarang** di [`TASKS.md`](TASKS.md), satu-satunya daftar fokus. Rilis terakhir tuntas: **v0.4 Engagement MVP 6/7 task** (2026-10-06, sisa T-055 Could Have tidak blocking) dan **v0.3 Analytics MVP 8/8 task** (2026-09-21). Riwayat detail per task: lihat **Completed (Ringkasan)** di bawah / `COMPLETE_TASK.md`.
+* **Top Next Tasks:** **T-048 🟡 In Progress** — wire JOB-04 Analytics Sync (T-048.1–T-048.3 di kode, T-048.4 verifikasi staging belum) — lihat `tasks/v03-analytics-mvp.md` § T-048. **T-037 Perkaya aturan coding** tetap kontinu (🟡 In Progress). **T-112 ✅ Done (5/5 subtask, 2026-10-09)** — wiring `IOutstandAdapter.importPosts`/`fetchImportJobStatus` ke endpoint Outstand sungguhan (ADR-123). Salinan ID dari **Fokus sekarang** di [`TASKS.md`](TASKS.md). Rilis terakhir tuntas: **v0.4 Engagement MVP 6/7 task** (2026-10-06, sisa T-055 Could Have tidak blocking) dan **v0.3 Analytics MVP 8/8 task** (2026-09-21) dengan sisa T-048. Riwayat detail per task: lihat **Completed (Ringkasan)** di bawah / `COMPLETE_TASK.md`.
 * **Blocker:** 1 blocker aktif (env var Google OAuth belum diisi, KI-015) — lihat section **Blockers** di bawah. Blocker Outstand (KI-003, `OUTSTAND_API_KEY` + Real OutstandAdapter) sudah **Resolved (2026-09-24)**. Railway staging sudah live & terverifikasi (2026-08-14); JOB_SECRET juga sudah diisi di Railway staging. Tidak memblokir M8.
 * **Backlog task lengkap:** [`TASKS.md`](TASKS.md) — 91 task per release (v0.1 → v1.0, + v0.7 migrasi Astryx→shadcn/ui, ADR-097), detail di `tasks/`. Jangan cari detail task di file ini.
 * **KI-073–080 Resolved (2026-09-26)** — 4 bug publish Instagram (caption wajib untuk Story, Story publish tanpa media, upload media >1MB gagal, avatar akun tidak tampil di sidebar) diperbaiki + diverifikasi live ke akun Instagram/Facebook real (ADR-120). 2 bug turunan ditemukan saat verifikasi (akun `disconnected` tidak bisa reconnect; callback OAuth silent-success untuk conflict genuine) diperbaiki via **ADR-122**. Plus **KI-080** (baru+langsung Resolved) — Railway staging build gagal (`next.config.ts` tidak bisa resolve import workspace `@social/shared`) diperbaiki di branch terpisah sebelum masuk ke fix KI-078/079.
@@ -18,7 +18,7 @@
 | ------------ | ---------- |
 | Version      | 1.1.1      |
 | Status       | Active     |
-| Last Updated | 2026-10-09 |
+| Last Updated | 2026-10-12 |
 
 ---
 
