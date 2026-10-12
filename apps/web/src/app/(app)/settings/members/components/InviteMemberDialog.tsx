@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { EMAIL_PATTERN, MemberRole } from "@postific/shared";
 
@@ -78,6 +78,7 @@ export function InviteMemberDialog({ isOpen, onOpenChange }: Props) {
   const [emailed, setEmailed] = useState(false);
   const [invitedEmail, setInvitedEmail] = useState<string | null>(null);
   const [copyLabel, setCopyLabel] = useState("Salin");
+  const submitRequestRef = useRef(0);
 
   const isEmailValid = EMAIL_PATTERN.test(email.trim());
 
@@ -94,6 +95,7 @@ export function InviteMemberDialog({ isOpen, onOpenChange }: Props) {
 
   async function handleSubmit() {
     if (!isEmailValid) return;
+    const requestId = submitRequestRef.current;
     setIsSubmitting(true);
     setError(null);
     try {
@@ -102,6 +104,7 @@ export function InviteMemberDialog({ isOpen, onOpenChange }: Props) {
         role as MemberRole,
         method,
       );
+      if (requestId !== submitRequestRef.current) return;
       if (result.inviteLink) {
         setInviteLink(result.inviteLink);
         setInvitedEmail(email.trim());
@@ -111,7 +114,9 @@ export function InviteMemberDialog({ isOpen, onOpenChange }: Props) {
         setError(result.error);
       }
     } finally {
-      setIsSubmitting(false);
+      if (requestId === submitRequestRef.current) {
+        setIsSubmitting(false);
+      }
     }
   }
 
@@ -128,6 +133,8 @@ export function InviteMemberDialog({ isOpen, onOpenChange }: Props) {
   }
 
   function handleClose() {
+    submitRequestRef.current += 1;
+    setIsSubmitting(false);
     onOpenChange(false);
     resetState();
   }

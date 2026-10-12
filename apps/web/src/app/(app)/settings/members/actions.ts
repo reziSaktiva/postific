@@ -132,7 +132,6 @@ export async function inviteMemberAction(
         actorUserId,
         email,
         role,
-        inviteLink,
       },
     );
   } catch (error) {

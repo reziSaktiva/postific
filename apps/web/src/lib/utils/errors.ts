@@ -62,9 +62,12 @@ export class AlreadyConnectedError extends ConflictError {
 }
 
 export class ExternalServiceError extends ApplicationError {
-  constructor(message: string) {
+  constructor(message: string, options?: { cause?: unknown }) {
     super(message, "EXTERNAL_SERVICE_ERROR");
     this.name = "ExternalServiceError";
+    if (options && "cause" in options) {
+      this.cause = options.cause;
+    }
   }
 }
 

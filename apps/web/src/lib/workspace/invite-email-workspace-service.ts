@@ -1,5 +1,6 @@
 import { WorkspaceService } from "@/domains/workspace";
 import { getInviteEmailSender } from "@/lib/adapters/email";
+import { getServerEnv } from "@/lib/env";
 import { workspaceRepository } from "@/lib/repositories/workspace";
 
 /**
@@ -17,5 +18,7 @@ export function createWorkspaceServiceWithInviteEmailSender(): WorkspaceService 
     undefined,
     undefined,
     getInviteEmailSender(),
+    undefined,
+    getServerEnv().BETTER_AUTH_URL,
   );
 }

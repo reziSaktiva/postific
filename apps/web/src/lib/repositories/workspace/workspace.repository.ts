@@ -391,6 +391,65 @@ export const workspaceRepository: IWorkspaceRepository = {
     return toInvitationRecord(invitation);
   },
 
+  async findInvitationByWorkspaceEmail(workspaceId, email, actingUserId) {
+    const invitation = await withCurrentUser(actingUserId, (tx) =>
+      tx.workspaceInvitation.findUnique({
+        where: { workspaceId_email: { workspaceId, email } },
+      }),
+    );
+
+    return invitation ? toInvitationRecord(invitation) : null;
+  },
+
+  async reissueInvitation({
+    workspaceId,
+    invitationId,
+    actingUserId,
+    email,
+    role,
+    token,
+    expiresAt,
+  }) {
+    const invitation = await withCurrentUser(actingUserId, async (tx) => {
+      const reissued = await tx.workspaceInvitation.updateMany({
+        where: {
+          id: invitationId,
+          workspaceId,
+          OR: [
+            { status: { not: InvitationStatus.Pending } },
+            { expiresAt: { lte: new Date() } },
+          ],
+        },
+        data: {
+          role,
+          token,
+          status: InvitationStatus.Pending,
+          invitedByUserId: actingUserId,
+          expiresAt,
+          acceptedAt: null,
+          verificationCodeHash: null,
+          verificationCodeExpiresAt: null,
+          verificationAttempts: 0,
+          emailVerifiedAt: null,
+        },
+      });
+
+      if (reissued.count !== 1) {
+        return null;
+      }
+
+      return tx.workspaceInvitation.findUnique({ where: { token } });
+    });
+
+    if (!invitation) {
+      throw new ConflictError(
+        `Undangan untuk "${email}" di workspace ini sudah ada.`,
+      );
+    }
+
+    return toInvitationRecord(invitation);
+  },
+
   /**
    * Public token-based lookup (T-093.1) — wrapped in its own transaction to
    * `SET LOCAL app.invite_lookup_token` (code review follow-up migration

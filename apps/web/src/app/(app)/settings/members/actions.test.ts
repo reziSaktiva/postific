@@ -241,7 +241,6 @@ describe("members server actions", () => {
         actorUserId: asUserId("user-1"),
         email: "member@acme.com",
         role: MemberRole.Admin,
-        inviteLink: "https://app.test/invite/tok-123",
       });
       expect(result).toEqual({
         token: "tok-123",

@@ -69,6 +69,16 @@ function memberRoleLabel(role: MemberRole): string {
       return "Creator";
   }
 }
+
+function isActivePendingInvitation(
+  invitation: WorkspaceInvitationRecord,
+  now = Date.now(),
+): boolean {
+  return (
+    invitation.status === InvitationStatus.Pending &&
+    invitation.expiresAt.getTime() > now
+  );
+}
 /**
  * T-110 (KI-053) — verifikasi kepemilikan email accept-invite, HANYA jalur
  * `isExistingUser: false`. Kode 6 digit, TTL 10 menit (desain Claude Design
@@ -288,6 +298,12 @@ export class WorkspaceService {
      * menyuplainya supaya auto-trigger on-connect benar-benar berjalan.
      */
     private readonly importPostsTrigger?: ImportPostsAutoTriggerPort,
+    /**
+     * Origin link undangan (`BETTER_AUTH_URL`). Disuplai composition root,
+     * bukan argumen method, supaya `sendMemberInvitationEmail` tidak bisa
+     * mengirim href ke host lain.
+     */
+    private readonly inviteLinkBaseUrl?: string,
   ) {}
 
   async createWorkspace(input: {
@@ -865,19 +881,61 @@ export class WorkspaceService {
       }
     }
 
+    const existingInvitation =
+      await this.repository.findInvitationByWorkspaceEmail(
+        workspaceId,
+        email,
+        actorUserId,
+      );
+    if (existingInvitation && isActivePendingInvitation(existingInvitation)) {
+      throw new ConflictError(
+        `Undangan untuk "${email}" di workspace ini sudah ada.`,
+      );
+    }
+
     const token = randomBytes(32).toString("hex");
     const expiresAt = new Date(
       Date.now() + INVITATION_EXPIRY_DAYS * 24 * 60 * 60 * 1000,
     );
-
-    return this.repository.createInvitation({
+    const invitationInput = {
       workspaceId,
       email,
       role: input.role,
-      invitedByUserId: actorUserId,
       token,
       expiresAt,
-    });
+    };
+
+    if (existingInvitation) {
+      return this.repository.reissueInvitation({
+        ...invitationInput,
+        invitationId: existingInvitation.id,
+        actingUserId: actorUserId,
+      });
+    }
+
+    try {
+      return await this.repository.createInvitation({
+        ...invitationInput,
+        invitedByUserId: actorUserId,
+      });
+    } catch (error) {
+      if (!(error instanceof ConflictError)) {
+        throw error;
+      }
+      const raced = await this.repository.findInvitationByWorkspaceEmail(
+        workspaceId,
+        email,
+        actorUserId,
+      );
+      if (!raced || isActivePendingInvitation(raced)) {
+        throw error;
+      }
+      return this.repository.reissueInvitation({
+        ...invitationInput,
+        invitationId: raced.id,
+        actingUserId: actorUserId,
+      });
+    }
   }
 
   /**
@@ -885,45 +943,67 @@ export class WorkspaceService {
    * yang SUDAH dibuat `inviteMember`. Tidak membuat invitation baru dan tidak
    * mengubah token/expiry/RBAC pembuatan undangan. RBAC dicek ulang supaya
    * method ini tidak bisa dipakai mengirim email tanpa hak kelola anggota.
+   * Href disusun dari token undangan pending + `inviteLinkBaseUrl` composition
+   * root, bukan dari URL yang dikirim pemanggil.
    */
   async sendMemberInvitationEmail(input: {
     workspaceId: WorkspaceId;
     actorUserId: UserId;
     email: string;
     role: MemberRole;
-    inviteLink: string;
   }): Promise<void> {
-    if (!input.inviteLink.trim()) {
-      throw new ValidationError("Link undangan wajib diisi.");
-    }
-
     await this.assertActorCanManageMembers(
       input.workspaceId,
       input.actorUserId,
       "Hanya Owner atau Admin yang bisa mengundang anggota.",
     );
 
+    const email = input.email.trim().toLowerCase();
+    if (!EMAIL_PATTERN.test(email)) {
+      throw new ValidationError("Format email tidak valid.");
+    }
+
     const workspace = await this.repository.findById(input.workspaceId);
     if (!workspace) {
       throw new NotFoundError("Workspace tidak ditemukan.");
     }
 
+    const pending = await this.repository.listPendingInvitations(
+      input.workspaceId,
+      input.actorUserId,
+    );
+    const invitation = pending.find((item) => item.email === email);
+    if (!invitation) {
+      throw new NotFoundError(
+        "Undangan untuk email ini tidak ditemukan atau sudah tidak berlaku.",
+      );
+    }
+    if (invitation.role !== input.role) {
+      throw new ValidationError("Role undangan tidak sesuai.");
+    }
+
     const [inviter] = await this.repository.findUsersByIds([input.actorUserId]);
 
     try {
+      const inviteLink = `${this.requireInviteLinkBaseUrl()}/invite/${invitation.token}`;
       await this.requireInviteEmailSender().sendMemberInvitation({
-        email: input.email.trim().toLowerCase(),
-        inviteLink: input.inviteLink,
+        email,
+        inviteLink,
         workspaceName: workspace.name,
-        roleLabel: memberRoleLabel(input.role),
+        roleLabel: memberRoleLabel(invitation.role),
         invitedByName: inviter?.name ?? "Anggota tim",
       });
     } catch (error) {
       if (error instanceof ExternalServiceError) {
         throw error;
       }
+      console.error(
+        "[WorkspaceService.sendMemberInvitationEmail] gagal mengirim email undangan",
+        error,
+      );
       throw new ExternalServiceError(
         "Undangan sudah dibuat, tetapi email gagal dikirim.",
+        { cause: error },
       );
     }
   }
@@ -1509,6 +1589,18 @@ export class WorkspaceService {
       );
     }
     return this.inviteEmailSender;
+  }
+
+  private requireInviteLinkBaseUrl(): string {
+    const baseUrl = this.inviteLinkBaseUrl?.trim();
+    if (!baseUrl) {
+      throw new Error(
+        "WorkspaceService: inviteLinkBaseUrl tidak disuplai ke constructor — " +
+          "wajib untuk sendMemberInvitationEmail (composition root harus " +
+          "memanggil createWorkspaceServiceWithInviteEmailSender()).",
+      );
+    }
+    return baseUrl;
   }
 
   /**

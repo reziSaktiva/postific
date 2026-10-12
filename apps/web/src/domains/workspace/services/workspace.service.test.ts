@@ -36,9 +36,13 @@ const WORKSPACE_ID = asWorkspaceId("workspace-1");
 
 function createFakeRepository(
   overrides: Partial<IWorkspaceRepository> = {},
+  options?: { invitations?: WorkspaceInvitationRecord[] },
 ): IWorkspaceRepository {
   const members = new Map<string, WorkspaceMemberRecord>();
   const invitations = new Map<string, WorkspaceInvitationRecord>();
+  for (const invitation of options?.invitations ?? []) {
+    invitations.set(invitation.token, invitation);
+  }
   const holder: { repo?: IWorkspaceRepository } = {};
 
   const repo: IWorkspaceRepository = {
@@ -190,6 +194,55 @@ function createFakeRepository(
           invitation.status === InvitationStatus.Pending &&
           invitation.expiresAt.getTime() > Date.now(),
       ),
+    findInvitationByWorkspaceEmail: async (workspaceId, email) => {
+      for (const invitation of invitations.values()) {
+        if (
+          invitation.workspaceId === workspaceId &&
+          invitation.email === email
+        ) {
+          return invitation;
+        }
+      }
+      return null;
+    },
+    reissueInvitation: async ({
+      workspaceId,
+      invitationId,
+      actingUserId,
+      email,
+      role,
+      token,
+      expiresAt,
+    }) => {
+      const existing = [...invitations.values()].find(
+        (invitation) =>
+          invitation.id === invitationId &&
+          invitation.workspaceId === workspaceId,
+      );
+      const activePending =
+        existing?.status === InvitationStatus.Pending &&
+        existing.expiresAt.getTime() > Date.now();
+      if (!existing || activePending) {
+        throw new ConflictError(
+          `Undangan untuk "${email}" di workspace ini sudah ada.`,
+        );
+      }
+      invitations.delete(existing.token);
+      const reissued: WorkspaceInvitationRecord = {
+        ...existing,
+        role,
+        token,
+        status: InvitationStatus.Pending,
+        invitedByUserId: actingUserId,
+        expiresAt,
+        verificationCodeHash: null,
+        verificationCodeExpiresAt: null,
+        verificationAttempts: 0,
+        emailVerifiedAt: null,
+      };
+      invitations.set(token, reissued);
+      return reissued;
+    },
     revokeInvitation: async (_workspaceId, invitationId) => {
       const entry = [...invitations.entries()].find(
         ([, invitation]) => invitation.id === invitationId,
@@ -2550,44 +2603,65 @@ describe("WorkspaceService.inviteMember", () => {
     expect(createInvitationCalls).toBe(0);
   });
 
-  it("allows inviting an email whose only membership is Removed (not active)", async () => {
+  it("reissues an accepted invitation when the only membership is Removed", async () => {
     const removedUser = asUserId("former-member-user");
     const service = new WorkspaceService(
-      createFakeRepository({
-        ...seedMembers([
-          ...baseSeed(),
-          member(
-            removedUser,
-            asMemberId("member-former"),
-            MemberRole.Admin,
-            MemberStatus.Removed,
-          ),
-        ]),
-        findUserByEmail: async (email) =>
-          email === "former@example.com"
-            ? { id: removedUser, createdAt: new Date() }
-            : null,
-      }),
+      createFakeRepository(
+        {
+          ...seedMembers([
+            ...baseSeed(),
+            member(
+              removedUser,
+              asMemberId("member-former"),
+              MemberRole.Admin,
+              MemberStatus.Removed,
+            ),
+          ]),
+          findUserByEmail: async (email) =>
+            email === "former@example.com"
+              ? { id: removedUser, createdAt: new Date() }
+              : null,
+        },
+        {
+          invitations: [
+            pendingInvitation({
+              id: asInvitationId("invitation-former"),
+              email: "former@example.com",
+              status: InvitationStatus.Accepted,
+              token: "old-token",
+              role: MemberRole.Admin,
+            }),
+          ],
+        },
+      ),
     );
 
-    await expect(
-      service.inviteMember(WORKSPACE_ID, OWNER_USER, {
-        email: "former@example.com",
-        role: MemberRole.Creator,
-      }),
-    ).resolves.toMatchObject({ email: "former@example.com" });
+    const invitation = await service.inviteMember(WORKSPACE_ID, OWNER_USER, {
+      email: "former@example.com",
+      role: MemberRole.Creator,
+    });
+
+    expect(invitation).toMatchObject({
+      email: "former@example.com",
+      role: MemberRole.Creator,
+      status: InvitationStatus.Pending,
+    });
+    expect(invitation.token).not.toBe("old-token");
   });
 
-  it("propagates ConflictError when an invitation for the email already exists", async () => {
+  it("rejects a pending invitation that is still active", async () => {
     const service = new WorkspaceService(
-      createFakeRepository({
-        ...seedMembers(baseSeed()),
-        createInvitation: async () => {
-          throw new ConflictError(
-            'Undangan untuk "dup@example.com" di workspace ini sudah ada.',
-          );
+      createFakeRepository(
+        { ...seedMembers(baseSeed()) },
+        {
+          invitations: [
+            pendingInvitation({
+              email: "dup@example.com",
+              expiresAt: new Date(Date.now() + 60_000),
+            }),
+          ],
         },
-      }),
+      ),
     );
 
     await expect(
@@ -2597,61 +2671,153 @@ describe("WorkspaceService.inviteMember", () => {
       }),
     ).rejects.toThrow(ConflictError);
   });
+
+  it("reissues a pending invitation whose expiry has passed", async () => {
+    const service = new WorkspaceService(
+      createFakeRepository(
+        { ...seedMembers(baseSeed()) },
+        {
+          invitations: [
+            pendingInvitation({
+              email: "expired@example.com",
+              token: "expired-token",
+              expiresAt: new Date(Date.now() - 60_000),
+            }),
+          ],
+        },
+      ),
+    );
+
+    const invitation = await service.inviteMember(WORKSPACE_ID, OWNER_USER, {
+      email: "expired@example.com",
+      role: MemberRole.Admin,
+    });
+
+    expect(invitation.status).toBe(InvitationStatus.Pending);
+    expect(invitation.token).not.toBe("expired-token");
+    expect(invitation.expiresAt.getTime()).toBeGreaterThan(Date.now());
+  });
 });
 
 describe("WorkspaceService.sendMemberInvitationEmail (T-007.7)", () => {
   const OWNER_USER = asUserId("owner-user");
   const CREATOR_USER = asUserId("creator-user");
-  const inviteLink = "http://localhost:3000/invite/abc";
+  const INVITE_BASE_URL = "http://localhost:3000";
 
-  function ownerRepo() {
-    return createFakeRepository({
-      ...seedMembers([
-        member(OWNER_USER, asMemberId("member-owner"), MemberRole.Owner),
-      ]),
-      findById: async () => ({
-        id: WORKSPACE_ID,
-        name: "Kopi Selasar",
-        slug: "kopi-selasar",
-      }),
-      findUsersByIds: async () => [
-        {
-          id: OWNER_USER,
-          name: "Raka",
-          email: "raka@example.com",
-        },
-      ],
-    });
+  function ownerRepo(invitation?: WorkspaceInvitationRecord | null) {
+    const seeded =
+      invitation === null
+        ? []
+        : [
+            invitation ??
+              pendingInvitation({
+                email: "maya@example.com",
+                role: MemberRole.Admin,
+                token: "abc",
+              }),
+          ];
+    return createFakeRepository(
+      {
+        ...seedMembers([
+          member(OWNER_USER, asMemberId("member-owner"), MemberRole.Owner),
+        ]),
+        findById: async () => ({
+          id: WORKSPACE_ID,
+          name: "Kopi Selasar",
+          slug: "kopi-selasar",
+        }),
+        findUsersByIds: async () => [
+          {
+            id: OWNER_USER,
+            name: "Raka",
+            email: "raka@example.com",
+          },
+        ],
+      },
+      { invitations: seeded },
+    );
   }
 
-  it("sends the existing invite link without creating another invitation", async () => {
-    const { sender, invitations } = fakeInviteEmailSender();
-    const service = new WorkspaceService(
-      ownerRepo(),
+  function serviceWithInviteEmail(
+    repo: IWorkspaceRepository,
+    sender: {
+      sendInviteVerificationCode: (input: {
+        email: string;
+        code: string;
+        workspaceName: string;
+      }) => Promise<void>;
+      sendMemberInvitation: (input: {
+        email: string;
+        inviteLink: string;
+        workspaceName: string;
+        roleLabel: string;
+        invitedByName: string;
+      }) => Promise<void>;
+    },
+    baseUrl: string | undefined = INVITE_BASE_URL,
+  ) {
+    return new WorkspaceService(
+      repo,
       undefined,
       undefined,
       undefined,
       undefined,
       sender,
+      undefined,
+      baseUrl,
     );
+  }
+
+  it("sends the stored invite token on the configured origin", async () => {
+    const { sender, invitations } = fakeInviteEmailSender();
+    const service = serviceWithInviteEmail(ownerRepo(), sender);
 
     await service.sendMemberInvitationEmail({
       workspaceId: WORKSPACE_ID,
       actorUserId: OWNER_USER,
       email: "Maya@Example.com",
       role: MemberRole.Admin,
-      inviteLink,
     });
 
     expect(invitations).toEqual([
       {
         email: "maya@example.com",
-        inviteLink,
+        inviteLink: `${INVITE_BASE_URL}/invite/abc`,
         workspaceName: "Kopi Selasar",
         roleLabel: "Admin",
         invitedByName: "Raka",
       },
     ]);
+  });
+
+  it("rejects a role that does not match the pending invitation", async () => {
+    const { sender, invitations } = fakeInviteEmailSender();
+    const service = serviceWithInviteEmail(ownerRepo(), sender);
+
+    await expect(
+      service.sendMemberInvitationEmail({
+        workspaceId: WORKSPACE_ID,
+        actorUserId: OWNER_USER,
+        email: "maya@example.com",
+        role: MemberRole.Creator,
+      }),
+    ).rejects.toThrow(ValidationError);
+    expect(invitations).toHaveLength(0);
+  });
+
+  it("rejects when there is no pending invitation for the email", async () => {
+    const { sender, invitations } = fakeInviteEmailSender();
+    const service = serviceWithInviteEmail(ownerRepo(null), sender);
+
+    await expect(
+      service.sendMemberInvitationEmail({
+        workspaceId: WORKSPACE_ID,
+        actorUserId: OWNER_USER,
+        email: "maya@example.com",
+        role: MemberRole.Admin,
+      }),
+    ).rejects.toThrow(NotFoundError);
+    expect(invitations).toHaveLength(0);
   });
 
   it("rejects Creator", async () => {
@@ -2679,36 +2845,35 @@ describe("WorkspaceService.sendMemberInvitationEmail (T-007.7)", () => {
         actorUserId: CREATOR_USER,
         email: "maya@example.com",
         role: MemberRole.Creator,
-        inviteLink,
       }),
     ).rejects.toThrow(AuthorizationError);
     expect(invitations).toHaveLength(0);
   });
 
-  it("wraps a sender failure as ExternalServiceError", async () => {
-    const service = new WorkspaceService(
-      ownerRepo(),
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      {
-        sendInviteVerificationCode: async () => undefined,
-        sendMemberInvitation: async () => {
-          throw new Error("resend down");
-        },
+  it("wraps a sender failure as ExternalServiceError and keeps the cause", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const service = serviceWithInviteEmail(ownerRepo(), {
+      sendInviteVerificationCode: async () => undefined,
+      sendMemberInvitation: async () => {
+        throw new Error("resend down");
       },
-    );
+    });
 
     await expect(
       service.sendMemberInvitationEmail({
         workspaceId: WORKSPACE_ID,
         actorUserId: OWNER_USER,
         email: "maya@example.com",
-        role: MemberRole.Creator,
-        inviteLink,
+        role: MemberRole.Admin,
       }),
-    ).rejects.toThrow(ExternalServiceError);
+    ).rejects.toSatisfy(
+      (error: unknown) =>
+        error instanceof ExternalServiceError &&
+        error.cause instanceof Error &&
+        error.cause.message === "resend down",
+    );
+    expect(errorSpy).toHaveBeenCalled();
+    errorSpy.mockRestore();
   });
 });
 
