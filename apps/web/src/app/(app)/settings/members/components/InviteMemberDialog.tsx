@@ -127,12 +127,20 @@ export function InviteMemberDialog({ isOpen, onOpenChange }: Props) {
     }
   }
 
+  function handleClose() {
+    onOpenChange(false);
+    resetState();
+  }
+
   return (
     <Dialog
       open={isOpen}
       onOpenChange={(open) => {
-        onOpenChange(open);
-        if (!open) resetState();
+        if (open) {
+          onOpenChange(open);
+        } else {
+          handleClose();
+        }
       }}
     >
       <DialogContent>
@@ -245,11 +253,7 @@ export function InviteMemberDialog({ isOpen, onOpenChange }: Props) {
 
         <DialogFooter>
           {inviteLink ? (
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => onOpenChange(false)}
-            >
+            <Button type="button" variant="secondary" onClick={handleClose}>
               Tutup
             </Button>
           ) : (
