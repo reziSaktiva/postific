@@ -115,6 +115,48 @@ describe("PublishingService.saveDraft", () => {
     });
   });
 
+  it("forwards selected accounts when saving a draft (KI-060)", async () => {
+    let received: Parameters<IPublishingRepository["createDraft"]>[0] | null =
+      null;
+    const service = new PublishingService(
+      createFakeRepository({
+        createDraft: async (input) => {
+          received = input;
+          return {
+            id: asPostId("post-1"),
+            workspaceId: input.workspaceId,
+            authorId: input.authorId,
+            caption: input.caption,
+            status: ContentStatus.Draft,
+            createdAt: new Date(0),
+            updatedAt: new Date(0),
+          };
+        },
+      }),
+    );
+    const targets = [
+      {
+        connectedAccountId: asConnectedAccountId("acc-1"),
+        platform: SocialPlatform.Instagram,
+        contentFormat: ContentFormat.Reel,
+      },
+    ];
+
+    await service.saveDraft({
+      workspaceId: WORKSPACE_ID,
+      authorId: AUTHOR_ID,
+      caption: "Hello",
+      targets,
+    });
+
+    expect(received).toEqual(
+      expect.objectContaining({
+        caption: "Hello",
+        targets,
+      }),
+    );
+  });
+
   it("allows an empty caption", async () => {
     const service = new PublishingService(createFakeRepository());
 
@@ -216,6 +258,51 @@ describe("PublishingService.updateDraft", () => {
       postId: asPostId("post-1"),
       caption: "Hello world",
     });
+  });
+
+  it("forwards selected accounts when updating a draft (KI-060)", async () => {
+    let received:
+      Parameters<IPublishingRepository["updateDraftCaption"]>[0] | null = null;
+    const service = new PublishingService(
+      createFakeRepository({
+        updateDraftCaption: async (input) => {
+          received = input;
+          return {
+            id: input.postId,
+            workspaceId: input.workspaceId,
+            authorId: AUTHOR_ID,
+            caption: input.caption,
+            status: ContentStatus.Draft,
+            createdAt: new Date(0),
+            updatedAt: new Date(0),
+          };
+        },
+      }),
+    );
+    const targets = [
+      {
+        connectedAccountId: asConnectedAccountId("acc-1"),
+        platform: SocialPlatform.Instagram,
+        contentFormat: ContentFormat.Post,
+      },
+    ];
+
+    await service.updateDraft(
+      {
+        workspaceId: WORKSPACE_ID,
+        postId: asPostId("post-1"),
+        caption: "Hello",
+        targets,
+      },
+      AUTHOR_ID,
+    );
+
+    expect(received).toEqual(
+      expect.objectContaining({
+        caption: "Hello",
+        targets,
+      }),
+    );
   });
 
   it("throws NotFoundError when the repository returns null", async () => {

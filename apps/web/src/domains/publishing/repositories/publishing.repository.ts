@@ -26,8 +26,23 @@ export interface PublishingPostRecord {
    * `resolveDraftMediaIds`, dst.).
    */
   mediaIds?: MediaId[];
+  /**
+   * KI-060 — akun tujuan yang tersimpan di `PublishingPostTarget`.
+   * Diisi oleh `findDraftById`. `undefined` kalau query tidak men-join
+   * target (mis. `listDrafts`). Nama bukan `targets` supaya tidak
+   * bentrok dengan `PublishingScheduleRecord.targets`.
+   */
+  draftTargets?: DraftTargetRecord[];
   createdAt: Date;
   updatedAt: Date;
+}
+
+/** Akun tujuan sebuah draft/post, cukup untuk mengisi ulang Account Selector. */
+export interface DraftTargetRecord {
+  connectedAccountId: ConnectedAccountId;
+  platform: SocialPlatform;
+  contentFormat: ContentFormat;
+  platformOptions?: Record<string, unknown>;
 }
 
 /** Input satu target saat menjadwalkan post — dipetakan ke `PublishingPostTarget`. */
@@ -292,6 +307,11 @@ export interface IPublishingRepository {
     caption: string;
     /** T-024.4 — `undefined` sama dengan tidak melampirkan media sama sekali (kolom DB default `[]`). */
     mediaIds?: MediaId[];
+    /**
+     * KI-060 — `undefined` = jangan sentuh target yang sudah ada.
+     * Array (termasuk kosong) = ganti seluruh target draft ini.
+     */
+    targets?: SchedulePostTargetInput[];
   }): Promise<PublishingPostRecord>;
 
   /**
@@ -347,6 +367,11 @@ export interface IPublishingRepository {
        * media post ini.
        */
       mediaIds?: MediaId[];
+      /**
+       * KI-060 — sama seperti `createDraft`: `undefined` tidak mengubah
+       * target; array (termasuk kosong) mengganti seluruh target draft.
+       */
+      targets?: SchedulePostTargetInput[];
     },
     userId: UserId,
   ): Promise<PublishingPostRecord | null>;

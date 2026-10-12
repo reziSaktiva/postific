@@ -79,6 +79,7 @@ import {
   isAlreadyAtDestination,
   resolveTerminalDestination,
 } from "./terminal-destination";
+import { restoreDraftTargetSelection } from "./restore-draft-targets";
 
 /** Akun terhubung dari `WorkspaceConnectedAccount` (ADR-059) — bukan lagi mock. */
 type ConnectedAccount = ConnectedAccountDto;
@@ -340,6 +341,12 @@ function DraftEditorForm({
         setCaption(draft.caption);
         setStatus(draft.status as ContentStatus);
         setMediaItems(draft.media);
+        const restored = restoreDraftTargetSelection(draft.targets);
+        setSelectedAccountIds(restored.selectedAccountIds);
+        setFormatByAccount(restored.formatByAccount);
+        setBoardIdByAccount(restored.boardIdByAccount);
+        setPinTitle(restored.pinTitle);
+        setPinLink(restored.pinLink);
       })
       .catch(() => {
         if (!cancelled) close();
@@ -398,6 +405,29 @@ function DraftEditorForm({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- fetch-once-per-mount by design (component remounts via `key` per session)
   }, []);
+
+  // Board Pinterest untuk akun yang ter-restore (KI-060). Centang manual
+  // sudah memanggil fetch yang sama lewat `toggleAccount`.
+  useEffect(() => {
+    if (!isEdit || isLoadingAccounts) {
+      return;
+    }
+    for (const account of accounts) {
+      if (!selectedAccountIds.includes(account.id)) {
+        continue;
+      }
+      if (account.platform !== SocialPlatform.Pinterest) {
+        continue;
+      }
+      if (isAccountDisconnected(account)) {
+        continue;
+      }
+      if (pinterestBoardRequestSeq.current[account.id]) {
+        continue;
+      }
+      fetchPinterestBoards(account.id);
+    }
+  }, [accounts, isEdit, isLoadingAccounts, selectedAccountIds]);
 
   // Report the live snapshot on every render so the parent's Dialog
   // onOpenChange (Escape/backdrop/close-button) can decide what to persist
@@ -497,12 +527,9 @@ function DraftEditorForm({
   // dievaluasi sekali per sesi (component ini remount penuh per sesi lewat
   // `key={sessionKey}` di `DraftEditorModal`), jadi tidak memaksa balik ke
   // step konfirmasi kalau user sengaja kembali ke form setelah itu. Kalau
-  // belum ready (mis. akun target belum valid — Edit Draft saat ini tidak
-  // preload akun yang sebelumnya dijadwalkan, KI-032), pengecekan ini
-  // sengaja TIDAK memaksa — dibiarkan fallback ke form biasa. Supaya
-  // fallback ini tidak terasa seperti klik "Publish Now" tidak berefek sama
-  // sekali, tampilkan notice info yang menjelaskan kenapa (bukan gagal diam
-  // tanpa sinyal apapun) sambil user memilih ulang akun secara manual.
+  // belum ready (caption, media, atau akun yang sudah tidak terhubung),
+  // pengecekan ini sengaja TIDAK memaksa — dibiarkan fallback ke form
+  // biasa, dengan notice yang menjelaskan kenapa.
   const [hasCheckedAutoAdvance, setHasCheckedAutoAdvance] = useState(false);
   if (
     !hasCheckedAutoAdvance &&
@@ -518,7 +545,7 @@ function DraftEditorForm({
       setNotice({
         status: "info",
         title:
-          "Publish Now belum bisa langsung dikonfirmasi — pilih ulang akun tujuan untuk melanjutkan (akun yang sebelumnya dijadwalkan belum otomatis dimuat).",
+          "Publish Now belum bisa langsung dikonfirmasi — lengkapi bagian yang masih kurang, lalu lanjutkan dari form.",
       });
     }
   }
@@ -687,17 +714,24 @@ function DraftEditorForm({
     setIsSavingDraft(true);
     try {
       const activeFormats = getActiveFormats();
+      const targets = buildTargetsPayload().map((target) => ({
+        connectedAccountId: target.connectedAccountId,
+        contentFormat: target.contentFormat,
+        platformOptions: target.platformOptions,
+      }));
       if (savedPostId) {
         await updateDraftAction(savedPostId, {
           caption,
           mediaIds,
           activeFormats,
+          targets,
         });
       } else {
         const result = await saveDraftAction({
           caption,
           mediaIds,
           activeFormats,
+          targets,
         });
         setSavedPostId(result.postId);
       }

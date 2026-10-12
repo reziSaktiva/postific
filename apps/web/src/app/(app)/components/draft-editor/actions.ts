@@ -146,6 +146,29 @@ export interface SaveDraftInput {
   mediaIds?: string[];
   /** T-024.4 — format yang sedang dipilih per akun target, untuk batas ADR-107 (`assertMediaCountWithinLimit`). */
   activeFormats?: ContentFormat[];
+  /** KI-060 — akun tujuan. Array kosong menghapus target yang tersimpan. */
+  targets?: ScheduleTargetRequest[];
+}
+
+async function resolveOptionalDraftTargets(
+  workspaceId: WorkspaceId,
+  actingUserId: UserId,
+  targets: ScheduleTargetRequest[] | undefined,
+) {
+  if (targets === undefined) {
+    return undefined;
+  }
+  const workspaceService = new WorkspaceService(workspaceRepository);
+  const accounts = await workspaceService.listConnectedAccounts(
+    workspaceId,
+    actingUserId,
+  );
+  return resolveScheduleTargets(accounts, targets).map((target) => ({
+    connectedAccountId: target.connectedAccountId,
+    platform: target.platform,
+    contentFormat: target.contentFormat,
+    platformOptions: target.platformOptions,
+  }));
 }
 
 export async function saveDraftAction(
@@ -158,12 +181,15 @@ export async function saveDraftAction(
   }
   const actingUserId = asUserId(session.user.id);
 
-  const mediaIds = await resolveAndValidateMediaIds(
-    workspaceId,
-    input.mediaIds,
-    input.activeFormats ?? [],
-    actingUserId,
-  );
+  const [mediaIds, draftTargets] = await Promise.all([
+    resolveAndValidateMediaIds(
+      workspaceId,
+      input.mediaIds,
+      input.activeFormats ?? [],
+      actingUserId,
+    ),
+    resolveOptionalDraftTargets(workspaceId, actingUserId, input.targets),
+  ]);
 
   const publishingService = new PublishingService(publishingRepository);
   const post = await publishingService.saveDraft({
@@ -171,6 +197,7 @@ export async function saveDraftAction(
     authorId: actingUserId,
     caption: input.caption,
     mediaIds,
+    ...(draftTargets !== undefined ? { targets: draftTargets } : {}),
   });
 
   return { postId: post.id };
@@ -180,6 +207,8 @@ export interface UpdateDraftInput {
   caption: string;
   mediaIds?: string[];
   activeFormats?: ContentFormat[];
+  /** KI-060 — akun tujuan. Array kosong menghapus target yang tersimpan. */
+  targets?: ScheduleTargetRequest[];
 }
 
 export async function updateDraftAction(
@@ -193,12 +222,15 @@ export async function updateDraftAction(
   }
   const actingUserId = asUserId(session.user.id);
 
-  const mediaIds = await resolveAndValidateMediaIds(
-    workspaceId,
-    input.mediaIds,
-    input.activeFormats ?? [],
-    actingUserId,
-  );
+  const [mediaIds, draftTargets] = await Promise.all([
+    resolveAndValidateMediaIds(
+      workspaceId,
+      input.mediaIds,
+      input.activeFormats ?? [],
+      actingUserId,
+    ),
+    resolveOptionalDraftTargets(workspaceId, actingUserId, input.targets),
+  ]);
 
   const publishingService = new PublishingService(publishingRepository);
   const post = await publishingService.updateDraft(
@@ -207,6 +239,7 @@ export async function updateDraftAction(
       postId: asPostId(postId),
       caption: input.caption,
       mediaIds,
+      ...(draftTargets !== undefined ? { targets: draftTargets } : {}),
     },
     actingUserId,
   );
@@ -221,11 +254,18 @@ export interface DraftMediaDto {
   filename: string;
 }
 
+export interface DraftTargetDto {
+  connectedAccountId: string;
+  contentFormat: ContentFormat;
+  platformOptions?: Record<string, unknown>;
+}
+
 export async function getDraftAction(postId: string): Promise<{
   postId: string;
   caption: string;
   status: string;
   media: DraftMediaDto[];
+  targets: DraftTargetDto[];
 }> {
   const { workspaceId } = await getWorkspaceContext();
   const session = await getCachedSession();
@@ -266,6 +306,11 @@ export async function getDraftAction(postId: string): Promise<{
       url: item.url,
       type: item.type,
       filename: item.filename,
+    })),
+    targets: (post.draftTargets ?? []).map((target) => ({
+      connectedAccountId: target.connectedAccountId,
+      contentFormat: target.contentFormat,
+      platformOptions: target.platformOptions,
     })),
   };
 }

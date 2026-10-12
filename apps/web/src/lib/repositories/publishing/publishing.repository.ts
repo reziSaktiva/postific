@@ -16,6 +16,7 @@ import {
   type CalendarItemTargetRecord,
   type HistoryItemRecord,
   type HistoryItemTargetRecord,
+  type DraftTargetRecord,
   type IPublishingRepository,
   type PublishingCancelScheduleRecord,
   type PublishingPostRecord,
@@ -23,6 +24,7 @@ import {
   type PublishingScheduleRecord,
   type QueueItemRecord,
   type RetryTargetRecord,
+  type SchedulePostTargetInput,
   type WebhookPostLookupRecord,
 } from "@/domains/publishing";
 import {
@@ -33,9 +35,11 @@ import {
 } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma/client";
 import {
+  type PrismaTransactionClient,
   setCurrentUserId,
   withCurrentUser,
 } from "@/lib/prisma/with-current-user";
+import { ValidationError } from "@/lib/utils/errors";
 
 /**
  * Sentinel internal — dilempar di dalam `$transaction` supaya semua
@@ -89,7 +93,68 @@ function requireAuthorId(authorId: string | null, context: string) {
   return asUserId(authorId);
 }
 
-function mapPost(post: PublishingPost): PublishingPostRecord {
+function readPlatformOptions(
+  value: Prisma.JsonValue | null,
+): Record<string, unknown> | undefined {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+  return value as Record<string, unknown>;
+}
+
+function mapDraftTargets(targets: PublishingPostTarget[]): DraftTargetRecord[] {
+  return targets.map((target) => ({
+    connectedAccountId: asConnectedAccountId(target.connectedAccountId),
+    platform: target.platform as SocialPlatform,
+    contentFormat: target.contentFormat as ContentFormat,
+    platformOptions: readPlatformOptions(target.platformOptions),
+  }));
+}
+
+async function replaceDraftTargets(
+  tx: PrismaTransactionClient,
+  workspaceId: string,
+  postId: string,
+  targets: SchedulePostTargetInput[],
+) {
+  const uniqueConnectedAccountIds = Array.from(
+    new Set(targets.map((target) => target.connectedAccountId)),
+  );
+  if (uniqueConnectedAccountIds.length > 0) {
+    const ownedAccountCount = await tx.workspaceConnectedAccount.count({
+      where: {
+        id: { in: uniqueConnectedAccountIds },
+        workspaceId,
+      },
+    });
+    if (ownedAccountCount !== uniqueConnectedAccountIds.length) {
+      throw new ValidationError(
+        "Salah satu akun yang dipilih tidak ditemukan di workspace ini.",
+      );
+    }
+  }
+
+  await tx.publishingPostTarget.deleteMany({ where: { postId } });
+  if (targets.length === 0) {
+    return;
+  }
+
+  await tx.publishingPostTarget.createMany({
+    data: targets.map((target) => ({
+      postId,
+      connectedAccountId: target.connectedAccountId,
+      platform: target.platform,
+      contentFormat: target.contentFormat,
+      platformOptions: (target.platformOptions ?? undefined) as
+        Prisma.InputJsonValue | undefined,
+      status: "pending",
+    })),
+  });
+}
+
+function mapPost(
+  post: PublishingPost & { targets?: PublishingPostTarget[] },
+): PublishingPostRecord {
   return {
     id: asPostId(post.id),
     workspaceId: asWorkspaceId(post.workspaceId),
@@ -97,6 +162,7 @@ function mapPost(post: PublishingPost): PublishingPostRecord {
     caption: post.caption,
     status: post.status as ContentStatus,
     mediaIds: post.mediaIds.map((id) => asMediaId(id)),
+    ...(post.targets ? { draftTargets: mapDraftTargets(post.targets) } : {}),
     createdAt: post.createdAt,
     updatedAt: post.updatedAt,
   };
@@ -170,17 +236,21 @@ function mapHistoryItem(post: QueuePostWithTargets): HistoryItemRecord {
 }
 
 export const publishingRepository: IPublishingRepository = {
-  async createDraft({ workspaceId, authorId, caption, mediaIds }) {
-    const post = await withCurrentUser(authorId, (tx) =>
-      tx.publishingPost.create({
+  async createDraft({ workspaceId, authorId, caption, mediaIds, targets }) {
+    const post = await withCurrentUser(authorId, async (tx) => {
+      const created = await tx.publishingPost.create({
         data: {
           workspaceId,
           authorId,
           caption,
           ...(mediaIds !== undefined ? { mediaIds } : {}),
         },
-      }),
-    );
+      });
+      if (targets !== undefined) {
+        await replaceDraftTargets(tx, workspaceId, created.id, targets);
+      }
+      return created;
+    });
 
     return mapPost(post);
   },
@@ -224,13 +294,17 @@ export const publishingRepository: IPublishingRepository = {
           workspaceId,
           deletedAt: null,
         },
+        include: { targets: true },
       }),
     );
 
     return post ? mapPost(post) : null;
   },
 
-  async updateDraftCaption({ workspaceId, postId, caption, mediaIds }, userId) {
+  async updateDraftCaption(
+    { workspaceId, postId, caption, mediaIds, targets },
+    userId,
+  ) {
     const post = await withCurrentUser(userId, async (tx) => {
       const { count } = await tx.publishingPost.updateMany({
         where: {
@@ -251,6 +325,10 @@ export const publishingRepository: IPublishingRepository = {
 
       if (count === 0) {
         return null;
+      }
+
+      if (targets !== undefined) {
+        await replaceDraftTargets(tx, workspaceId, postId, targets);
       }
 
       return tx.publishingPost.findUniqueOrThrow({
