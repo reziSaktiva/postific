@@ -216,7 +216,7 @@ Hasil: Overview tab = konten existing `analyze-dashboard.html`, TIDAK diubah sam
 
 | Field         | Value                                                        |
 | ------------- | ------------------------------------------------------------ |
-| **Status**    | 🟡 In Progress                                                |
+| **Status**    | ✅ Done — kriteria utama lolos verifikasi staging (2026-10-13); 1 gap infra terpisah tercatat di **KI-087** (tidak memblokir rilis) |
 | **Domain**    | analytics · integration                                      |
 | **ADR**       | —                                                             |
 | **Depends**   | T-041 ✅ (Use Case ingestion sudah ada), T-027 ✅ (job runner `/api/jobs/run` sudah ada) |
@@ -228,7 +228,9 @@ Hasil: Overview tab = konten existing `analyze-dashboard.html`, TIDAK diubah sam
 - [x] **T-048.1** Job type constant + handler baru (`AnalyticsSyncJobHandler`, pola sama `EngagementSyncJobHandler`) yang memanggil `AnalyticsIngestionUseCase` — daftarkan ke `handlers` registry di `/api/jobs/run/route.ts`
 - [x] **T-048.2** Enqueue job per `ConnectedAccount` aktif (`syncPostMetrics` untuk post yang belum ada snapshot + `syncWorkspaceSnapshot` agregat workspace) — ikuti alur `background-jobs.md` § JOB-04 langkah 1–3
 - [x] **T-048.3** Jadwal Railway Cron **harian** terpisah dari interval JOB-03 (30 menit) — sesuai keputusan frekuensi T-041.3, update `railway.cron.json`/config Railway Cron yang relevan. **Update 2026-10-12 (code review):** file `railway.cron.analytics.json` tidak membuat service sendiri. Fan-out harian menumpang cron menit yang sudah hidup, paling banyak sekali per hari UTC. `?type=analytics` hanya untuk trigger manual. Snapshot workspace adalah job terpisah per workspace, bukan bagian dari tiap job akun.
-- [ ] **T-048.4** Verifikasi end-to-end: setelah job jalan sekali di environment nyata (staging), Home (T-042) dan `/analyze` (T-043/T-046/T-047) menampilkan angka asli — bukan empty state
+- [x] **T-048.4** Verifikasi end-to-end: setelah job jalan sekali di environment nyata (staging), Home (T-042) dan `/analyze` (T-043/T-046/T-047) menampilkan angka asli — bukan empty state. **Hasil (2026-10-13):** King Rezi memverifikasi langsung di staging — Home dan `/analyze` sudah menampilkan angka asli, diisi oleh fan-out harian yang menumpang cron menit (`railway.cron.json`, sesuai desain T-048.3). Kriteria acceptance T-048.4 **lolos** lewat jalur ini.
+
+**Temuan terpisah saat verifikasi — service `cron-analytics` (jadwal tengah malam, trigger manual `?type=analytics`) membalas 401, lihat KI-087:** service ini bukan satu-satunya jalur pengisi data (lihat catatan T-048.3 di atas), jadi tidak memblokir acceptance T-048.4 di atas, tapi tetap bug infra nyata yang perlu diperbaiki. Investigasi awal (Jokowi, via Railway MCP) menduga akar masalah shell-expansion `$JOB_SECRET` di `startCommand` (beda dari service `cron` yang sudah membungkusnya dengan `sh -c '...'`) — fix itu sudah diterapkan ke service `cron-analytics` di Railway staging, tapi **retest 1x trigger manual (2026-10-13T03:31 UTC) masih 401**, jadi dugaan awal itu terbukti salah/tidak cukup. Kemungkinan akar masalah sebenarnya: nilai variabel `JOB_SECRET` khusus service `cron-analytics` tidak benar-benar cocok dengan punya service `web` (meski sempat dilaporkan sama) — AI tidak membaca/menulis nilai secret ini (dibatasi kebijakan credential handling), jadi verifikasi nilai aktualnya butuh King Rezi langsung di Railway dashboard. Detail lengkap: KI-087.
 
 ---
 
