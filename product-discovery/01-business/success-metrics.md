@@ -1,6 +1,6 @@
 # Success Metrics
 
-Dokumen ini mendefinisikan metrik utama untuk mengukur keberhasilan produk **Social Media Management** dari sisi bisnis.
+Dokumen ini mendefinisikan metrik utama untuk mengukur keberhasilan produk **Postific** dari sisi bisnis.
 
 Metrik ini digunakan sebagai acuan dalam mengevaluasi pertumbuhan produk, validasi pasar, serta efektivitas keputusan bisnis.
 

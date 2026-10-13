@@ -1138,8 +1138,8 @@ dimigrasikan, memastikan tidak ada sisa Astryx di codebase.
 
 ### T-103 · Kunci Pola Implementasi shadcn per Komponen di Claude Design (cegah drift KI-054/KI-055)
 
-`⏳ Not Started` (2026-09-10) · **Domain** Design System / Governance — lintas Claude Design + `AGENTS.md`/agent docs, bukan domain kode produk biasa (lihat catatan Domain di bawah) · **ADR** — · **Depends** —
-**Baca dulu:** `PROJECT_STATE.md` § KI-054, KI-055 · `readme.md` (Claude Design project "Social Media Management") § Components · `AGENTS.md` rule 15–17 · `.claude/agents/README.md`
+`✅ Done` (2026-09-10) · **Domain** Design System / Governance — lintas Claude Design + `AGENTS.md`/agent docs, bukan domain kode produk biasa (lihat catatan Domain di bawah) · **ADR** — · **Depends** —
+**Baca dulu:** paragraf "Latar belakang" di bawah (ringkasan KI-054/KI-055 — detail lengkap keduanya sudah Resolved, diarsipkan di `COMPLETE_TASK.md`, tidak lagi ada entrinya di `PROJECT_STATE.md`) · `readme.md` (Claude Design project "Social Media Management") § Components · `AGENTS.md` rule 15–17 · `.claude/agents/README.md`
 
 **Prioritas: dikerjakan LEBIH DULU dari task lain di backlog** (permintaan
 eksplisit King Rezi, 2026-09-10) — sampai T-103 selesai, task implementasi
@@ -1293,3 +1293,209 @@ King Rezi karena ini perubahan aturan kerja, bukan kode), T-103.3 kerjanya
 di dua definisi subagent (read-only, hard rule `PROJECT_RULES.md`, wajib
 izin eksplisit sebelum diedit). Tidak dipetakan ke satu Domain → Subagent
 tunggal di `.claude/agents/README.md` — evaluasi manual per subtask.
+
+---
+
+### T-105 · Migrasi Sidebar Workspace/Settings ke primitive `Sidebar` shadcn/ui
+
+`✅ Done` (2026-09-23, 4/4 subtask) · **Domain** UI · **ADR** ADR-097 · **Depends** T-098
+**Baca dulu:** `ADR-097` · `PROJECT_STATE.md` § KI-066 · `components/navigation.html` + `readme.md` § Components (Claude Design)
+**Terkait:** KI-066, T-102
+
+ID dipinjam dari rentang global berikutnya (footnote ¹ `TASKS.md`) karena
+rentang nomor kosong v0.7 (T-095–T-103) sudah habis. Ditempatkan di file
+ini karena ini kelanjutan langsung migrasi Astryx → shadcn/ui (ADR-097) —
+T-102 ditutup `✅ Done` tanpa mengaudit struktur *luar* sidebar, hanya
+elemen di dalamnya.
+
+**Kronologi (2026-09-22):** King Rezi meminta dibuatkan branch+PR untuk
+KI-066. Sebelum kode ditulis, dicek dulu ke Claude Design (rule 17
+AGENTS.md) — ternyata mockup saat itu (`components/navigation.html`)
+justru secara eksplisit mendokumentasikan sidebar sebagai **hand-built,
+sengaja tanpa primitive `Sidebar` registry** (dicatat sejak KI-047 Phase
+2b). Premis KI-066 ("belum migrasi") bertentangan dengan dokumentasi
+desain yang ada. King Rezi diberi 3 opsi lewat `AskUserQuestion`
+(batalkan KI-066 / update Claude Design dulu / branch+PR investigasi
+tanpa desain final) — memilih **"Update Claude Design dulu"**, artinya
+migrasi struktural ke primitive `Sidebar` shadcn memang dikehendaki, dan
+Claude Design harus jadi acuan yang benar dulu sebelum kode (rule 17).
+
+Percobaan pertama mendelegasikan update Claude Design ke Neymar Product
+Designer (subagent) **gagal** — tool `DesignSync` tidak ter-load di sesi
+subagent (keterbatasan yang sama seperti sudah tercatat di
+`.claude/agents/README.md` sejak T-098.4). Dikerjakan langsung di sesi
+utama sebagai gantinya.
+
+- [x] **T-105.0** `✅ Done` (2026-09-22) Update Claude Design
+      (`components/navigation.html` + `readme.md` § Components, baris
+      `.app-shell`/`.sidebar`/... dan `.settings-sidebar`/...) — mockup
+      sidebar sekarang didokumentasikan sebagai komposisi primitive
+      `Sidebar` shadcn resmi (`SidebarProvider`/`Sidebar`/`SidebarHeader`/
+      `SidebarContent`/`SidebarGroup`/`SidebarMenu`/`SidebarMenuItem`/
+      `SidebarMenuButton`/`SidebarFooter`/`SidebarRail`, dicek lewat MCP
+      shadcn — `sidebar-01`/`sidebar-demo`), menggantikan pernyataan lama
+      "no registry Sidebar component installed". **Scope ketat dijaga**
+      (skill `claude-design-scope-discipline`): hanya prosa + HTML
+      comment struktural yang berubah, seluruh CSS class/visual/behavior
+      di demo markup **byte-identik** dengan sebelumnya (diverifikasi
+      `diff` sebelum push) — lebar 260px, workspace switcher, "＋ New
+      Post" CTA, 5 nav item, Channels quick-glance (drag handle,
+      avatar+badge platform), sidebar footer (bell+badge, theme toggle,
+      avatar menu) semua tidak tersentuh. Remote diverifikasi 2x sebelum
+      push (rule 6 skill) — tidak ada perubahan King Rezi yang tertimpa.
+      Pola **belum** ditandai "SYNCED"/"LOCKED PATTERN" — itu keputusan
+      King Rezi setelah review.
+      **Keputusan terbuka yang sengaja TIDAK diputuskan di step ini**
+      (dicatat eksplisit di kedua file, minta konfirmasi King Rezi):
+      primitive `Sidebar` shadcn punya mobile behavior bawaan (auto-swap
+      ke `Sheet` di bawah breakpoint `md` lewat `SidebarProvider`) — apa
+      ini **menggantikan** `MobileTopBar.tsx`/`Sheet` custom (T-098.4)
+      atau `Sidebar` cuma dipakai untuk struktur desktop dan mobile tetap
+      pola T-098.4 apa adanya?
+      **Susulan sesi yang sama (2026-09-22):** King Rezi eksplisit minta
+      sidebar bisa **collapse/expand** seperti `Sidebar` shadcn asli
+      (bukan cuma mapping struktural pasif). Dicek dulu API sungguhan
+      lewat MCP shadcn (`sidebar-07` — "A sidebar that collapses to
+      icons") sebelum implementasi mockup, sesuai instruksi eksplisit
+      King Rezi ("gunakan MCP shadcn agar akurat"). 4 fork keputusan
+      dijawab King Rezi via `AskUserQuestion`: **(1)** mode collapse =
+      icon-only rail (`collapsible="icon"`, bukan offcanvas/sembunyi
+      total); **(2)** trigger (`SidebarTrigger` replica) ditaruh di
+      header sidebar dekat workspace switcher, bukan bikin header baru
+      di main content (deviasi dari pola resmi shadcn `SidebarInset >
+      header`, disengaja); **(3)** section Channels disembunyikan total
+      saat collapsed (pola sama `NavProjects`
+      `group-data-[collapsible=icon]:hidden` di contoh resmi shadcn),
+      bukan varian compact; **(4)** hanya sidebar workspace utama yang
+      collapsible — `.settings-sidebar` (T-039.1-4) **sengaja
+      dikecualikan**, tetap fixed-width, tidak dapat trigger.
+      Diimplementasikan di `components/navigation.html` (ikon SVG
+      ditambah ke 5 nav item — sebelumnya nav item cuma teks tanpa ikon
+      sama sekali, jadi ini gap baru yang ditemukan saat butuh mode
+      icon-only; ikon adalah placeholder hand-built sederhana, **bukan**
+      path `hugeicons` asli — perlu diverifikasi/diganti ke `hugeicons`
+      asli saat implementasi kode, sama seperti pola token warna TBD
+      DT-D02) + CSS baru di `styles.css` (`.sidebar[data-collapsed="true"]`,
+      lebar collapsed 48px/3rem menyamai default `--sidebar-width-icon`
+      shadcn) + script toggle interaktif di demo. **Diverifikasi visual
+      nyata** via browser lokal (bukan cuma ditulis lalu diasumsikan
+      benar) — kedua state (expanded/collapsed) di-screenshot dan
+      toggle-nya diklik bolak-balik sebelum push. Remote diverifikasi
+      ulang tidak berubah sebelum push (rule 6 skill).
+      **Susulan kedua (2026-09-22, permintaan eksplisit King Rezi):
+      rollout fitur ke App Prototype + seluruh screen template**, bukan
+      cuma component spec. Pola ikon+trigger+CSS yang sama diterapkan ke
+      8 file `templates/*.html` yang punya sidebar workspace (`home`,
+      `publish-calendar`, `publish-queue`, `publish-drafts`,
+      `publish-history`, `publish-history-detail`, `engage-inbox`,
+      `analyze-dashboard` — 7 file settings-*.html sengaja dilewati,
+      pakai `.settings-sidebar` yang tidak collapsible per keputusan
+      sebelumnya). Setiap file diverifikasi dengan pemeriksaan
+      konsistensi internal (fingerprint SVG path ikon platform Channels
+      dibanding versi terpercaya) sebelum push — proses ini **menemukan
+      dan memperbaiki 2 typo transkripsi nyata** di
+      `analyze-dashboard.html` (path SVG drag-handle korup di 2 dari 5
+      baris Channel) sebelum sempat ter-push, bukti kenapa verifikasi
+      ini bukan formalitas. `templates/app-prototype/AppPrototype.dc.html`
+      (runner interaktif) juga diupdate — method baru
+      `toggleSidebarCollapse(doc, el)` + case baru di `route()` untuk
+      `data-proto="sidebar-collapse-toggle"`, mengikuti pola persis
+      `toggleTheme` yang sudah ada, supaya tombol toggle berfungsi saat
+      diklik di dalam runner (bukan cuma di screen berdiri sendiri).
+      **Keterbatasan:** App Prototype pakai format `<x-dc>` (dc-runtime)
+      yang cuma bisa dijalankan sungguhan di dalam Claude Design sendiri
+      — tidak bisa di-preview via server statis lokal seperti 8 screen
+      biasa, jadi wiring route()-nya diverifikasi lewat diff + kesamaan
+      pola dengan `toggleTheme` yang terbukti jalan, bukan lewat
+      klik-nyata di browser. King Rezi perlu cek langsung di Claude
+      Design untuk konfirmasi akhir.
+- [x] **T-105.1** `✅ Done` (2026-09-23) King Rezi review hasil update
+      Claude Design — **dikonfirmasi OK** (pola primitive `Sidebar` +
+      fitur collapse/expand, tidak ada revisi). **Keputusan mobile
+      behavior dijawab:** pakai `Sheet` bawaan `Sidebar` shadcn (auto-swap
+      di bawah breakpoint `md` via `SidebarProvider`) — **menggantikan**
+      `MobileTopBar.tsx`/`Sheet` custom (T-098.4), opsi (a) dari dua opsi
+      yang diajukan. `components/navigation.html` + `readme.md` § Components
+      diupdate ke **SYNCED (T-105.1, 2026-09-23)** mencatat kedua keputusan
+      ini — diverifikasi diff + remote check 2x sebelum push (skill
+      `claude-design-scope-discipline` rule 6), hanya baris/paragraf terkait
+      yang berubah, sisanya byte-identik. Gate rule 17 terpenuhi — T-105.2
+      boleh lanjut.
+- [x] **T-105.2** `✅ Done` (2026-09-23) Audit gap kode (Mark UI Engineer):
+      dipetakan behavior existing wajib-dipertahankan di `AppSideNav.tsx`/
+      `WorkspaceSideNav.tsx`/`SettingsSideNav.tsx`/`MobileTopBar.tsx` (nav
+      aktif per-route, logout Tier-2, avatar/dropdown, unread badge, drag
+      Channels, mobile Sheet T-098.4). Primitive `Sidebar` shadcn dicek via
+      MCP (`sidebar-07`) + baca source `components/ui/sidebar.tsx` asli —
+      ditemukan `collapsible="none"` melewati total logic mobile-Sheet,
+      jadi `SettingsSideNav` tetap pakai `collapsible="icon"` (bukan
+      "none") supaya keputusan #5 (mobile Sheet) tetap berfungsi di
+      `/settings`, paksaan "selalu expanded" dipindah ke wrapper terpisah
+      (lihat T-105.3). `hugeicons` (`@hugeicons/react`) dikonfirmasi sudah
+      jadi dependency — 5 nav item sebelumnya TANPA ikon sama sekali
+      (bukan cuma placeholder).
+- [x] **T-105.3** `✅ Done` (2026-09-23) Implementasi (Mark UI Engineer):
+      `WorkspaceSideNav.tsx`/`SettingsSideNav.tsx` dikomposisi ulang dari
+      primitive `Sidebar` shadcn asli; wrapper baru `AppShell.tsx`
+      (`apps/web/src/app/(app)/components/AppShell.tsx`) mengontrol prop
+      `open` `SidebarProvider` eksplisit supaya `/settings` selalu
+      expanded (keputusan #4). Seluruh 5 keputusan T-105.1 diimplementasi:
+      icon-rail collapse, trigger di header dekat workspace switcher,
+      Channels `group-data-[collapsible=icon]:hidden`, Settings
+      dikecualikan, mobile `Sheet` bawaan `SidebarProvider` menggantikan
+      `MobileTopBar.tsx` custom (`MobileTopBar.tsx` disederhanakan jadi
+      cuma trigger, `AppSideNav.tsx` dirender sekali bukan dua instance).
+      Icon 5 nav item diisi `hugeicons` (`Home01Icon`/`Calendar03Icon`/
+      `Message01Icon`/`Analytics01Icon`/`LinkSquare01Icon`, dipilih Mark
+      berdasar makna section — bukan dari Claude Design yang masih
+      placeholder, dikonfirmasi masuk akal oleh Najwa QA). 3 bug
+      ditemukan+diperbaiki saat implementasi: import `cn` salah dari
+      package npm asing hasil install registry (harusnya `@/lib/utils`,
+      `bun remove cn` dijalankan), lint error pola `setState`-in-effect di
+      `use-mobile.ts` bawaan registry (diganti `useSyncExternalStore`),
+      overlap visual avatar+trigger saat collapsed (diperbaiki jadi susun
+      vertikal `group-data-[collapsible=icon]:flex-col`). `SidebarRail`
+      sengaja TIDAK dipasang — konsisten dengan mockup Claude Design yang
+      juga tidak merepresentasikannya, supaya tidak ada affordance toggle
+      kedua di luar trigger header. **Susulan (review Ridwan, sama hari):**
+      gap non-blocking ditemukan — cookie `sidebar_state` ditulis
+      `SidebarProvider` bawaan tapi tidak pernah dibaca ulang, state
+      collapse/expand reset ke expanded tiap full reload. King Rezi minta
+      diperbaiki sebelum lanjut QA: `(app)/layout.tsx` (Server Component)
+      sekarang baca cookie via `cookies()` dari `next/headers`, diteruskan
+      sebagai prop `defaultOpen` ke `AppShell.tsx` (`useState(true)`
+      hardcoded → `useState(defaultOpen)`) — diverifikasi tab browser baru
+      (bukan tab lama yang sempat menunjukkan false-positive flip-flop
+      akibat Next.js router cache dari puluhan reload/HMR sepanjang sesi):
+      collapse→reload tetap collapsed, expand→reload tetap expanded,
+      collapse→`/settings`→expanded paksa→kembali ke workspace→balik
+      collapsed (preferensi tersimpan, bukan reset).
+- [x] **T-105.4** `✅ Done` (2026-09-23) Verifikasi:
+      **Ridwan Architecture Reviewer** — 0 pelanggaran hard rule (entry
+      point bersih, domain tidak disentuh, cross-domain lewat public API
+      `@/domains/notification`/`@/domains/workspace`, package hygiene
+      bersih); 1 temuan non-blocking (gap persistence cookie, lihat
+      T-105.3) — sudah diperbaiki sebelum QA. **Najwa QA Engineer** — PASS
+      penuh: golden path (toggle collapse/expand, persistence lintas
+      reload, paksaan `/settings`, Channels hidden saat collapsed),
+      regresi (nav aktif, logout dialog, dropdown workspace, unread badge,
+      Channels hover drag/count↔+, New Post CTA) semua PASS, mobile
+      breakpoint 768px (Sheet workspace + settings, auto-close setelah
+      klik nav) PASS, light/dark mode PASS. `typecheck`/`lint` bersih,
+      `vitest` **453 pass/6 skip**. **Gate T-103.3 (`DesignSync` banding
+      struktur kode vs Claude Design)** — tidak bisa dijalankan Najwa
+      (`DesignSync` tidak ter-load di sesi subagent, limitasi sama yang
+      tercatat `.claude/agents/README.md` sejak T-098.4) — dijalankan
+      manual di sesi utama sebagai gantinya: `WorkspaceSideNav.tsx`/
+      `SettingsSideNav.tsx`/`AppShell.tsx` dibaca dan dibandingkan langsung
+      terhadap `components/navigation.html`/`readme.md` § Components yang
+      sudah SYNCED (T-105.1) — komposisi primitive match persis
+      (`SidebarProvider`/`Sidebar`/`SidebarHeader`/`SidebarContent`/
+      `SidebarGroup`/`SidebarMenu`/`SidebarMenuItem`/`SidebarMenuButton`/
+      `SidebarFooter`, `SidebarRail` sengaja tidak ada di keduanya) — gate
+      **PASS**. **KI-066 Resolved** — lihat `PROJECT_STATE.md`.
+
+**Catatan:** tidak ada bug fungsional saat ini (KI-066 adalah gap
+konsistensi/tech-debt sesuai keputusan King Rezi untuk tetap dikerjakan,
+bukan bug) — tidak mendesak/blocking M8, tapi juga tidak boleh mandek
+tanpa batas.

@@ -6,7 +6,7 @@ Workspace Context via Cookie (Hapus Dynamic Segment `[slug]`) + Konsolidasi Sett
 
 ### Status
 
-Accepted — Poin 4 Diamandemen oleh ADR-088 (2026-08-24)
+Accepted — Amended by ADR-077 (2026-08-11, mekanisme render Settings); Poin 4 Diamandemen oleh ADR-088 (2026-08-24)
 
 ### Date
 

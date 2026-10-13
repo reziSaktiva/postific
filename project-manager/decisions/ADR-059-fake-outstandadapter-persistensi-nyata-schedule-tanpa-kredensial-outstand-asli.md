@@ -6,7 +6,7 @@ Fake OutstandAdapter — persistensi nyata "Schedule" tanpa kredensial Outstand 
 
 ### Status
 
-Accepted — Amended by ADR-079 (2026-08-13). ADR-079 menggantikan Decision item 1 dan 4 untuk scope Analytics dan lokasi contract `IOutstandAdapter`.
+Accepted — Amended by ADR-079 (2026-08-13). ADR-079 menggantikan Decision item 1 dan 4 untuk scope Analytics dan lokasi contract `IOutstandAdapter`. Amended by ADR-119 (2026-09-25): mekanisme switch poin 3 (fallback Fake saat `OUTSTAND_API_KEY` kosong) diganti — factory hanya mengembalikan Real adapter; tanpa key throw; kelas produksi `FakeOutstandAdapter` dihapus. Poin 5 dan 6 tidak dicabut.
 
 ### Date
 

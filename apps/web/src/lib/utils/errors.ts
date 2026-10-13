@@ -45,10 +45,29 @@ export class ConflictError extends ApplicationError {
   }
 }
 
-export class ExternalServiceError extends ApplicationError {
+/**
+ * Subclass `ConflictError` (KI-079) — percobaan Connect ke akun yang
+ * SUDAH terhubung di workspace ini dari alur/waktu yang berbeda (BUKAN
+ * double-submit genuine dari request susulan Next.js untuk akun yang
+ * baru saja dibuat). Dibedakan supaya Route Handler callback
+ * (`/api/integrations/outstand/callback`) bisa memberi tahu user secara
+ * eksplisit alih-alih redirect "success" diam-diam — lihat
+ * `WorkspaceService.createOrRecoverConnectedAccount`.
+ */
+export class AlreadyConnectedError extends ConflictError {
   constructor(message: string) {
+    super(message);
+    this.name = "AlreadyConnectedError";
+  }
+}
+
+export class ExternalServiceError extends ApplicationError {
+  constructor(message: string, options?: { cause?: unknown }) {
     super(message, "EXTERNAL_SERVICE_ERROR");
     this.name = "ExternalServiceError";
+    if (options && "cause" in options) {
+      this.cause = options.cause;
+    }
   }
 }
 

@@ -36,17 +36,16 @@ Modul kode: `apps/web/src/domains/<nama-domain>/` (lihat `ctx-implementation.md`
 
 ## Aturan operasional (domain)
 
-1. Shared types (ID branded, enum, VO) **hanya** di `packages/shared` — tanpa business logic.
-2. Cross-domain: lewat **public API** module domain lain (`index.ts`) — jangan import implementasi lintas folder.
-3. Hanya pass **ID** antar domain bila memungkinkan; jangan share aggregate penuh lintas BC.
-4. Domain logic **tidak** mengimpor Prisma, Supabase client, atau HTTP client Outstand.
-5. Penamaan entity/tabel mengikuti `domain-model.md` + amandemen ADR (mis. ADR-027 untuk pengecualian naming tabel).
-6. Jangan menambah BC baru atau mengubah boundary tanpa ADR.
-7. Publishing format: enum `ContentFormat` di `packages/shared`; nilai hidup di `PostTarget` (+ `platformOptions` JSON). Matriks platform & default bisnis → `domain-model.md` / **ADR-039**. Override Outstand hanya di ACL.
-8. Engagement MVP (**ADR-040**) hanya komentar dan reply. Direct Message,
+1. Hard rules shared types / cross-domain / domain-tanpa-Prisma — lihat
+   **`../AGENTS.md` rules 6, 7, 8**, tidak diulang di sini.
+2. Hanya pass **ID** antar domain bila memungkinkan; jangan share aggregate penuh lintas BC.
+3. Penamaan entity/tabel mengikuti `domain-model.md` + amandemen ADR (mis. ADR-027 untuk pengecualian naming tabel).
+4. Jangan menambah BC baru atau mengubah boundary tanpa ADR.
+5. Publishing format: enum `ContentFormat` di `packages/shared`; nilai hidup di `PostTarget` (+ `platformOptions` JSON). Matriks platform & default bisnis → `domain-model.md` / **ADR-039**. Override Outstand hanya di ACL.
+6. Engagement MVP (**ADR-040**) hanya komentar dan reply. Direct Message,
    mention, serta webhook engagement bukan kontrak domain MVP; data baru berasal
    dari sync internal 30 menit atau manual refresh.
-9. Nama event Outstand bukan enum/status domain. ACL memetakan
+7. Nama event Outstand bukan enum/status domain. ACL memetakan
    `post.published`, `post.error`, dan `account.token_expired` ke bahasa domain.
 
 Boundary rules lengkap (BR-01 dst.) → `domain-model.md`.

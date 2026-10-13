@@ -1,6 +1,6 @@
 # Application Layer
 
-Dokumen ini mendefinisikan **Application Layer** untuk produk **Social Media Management** — bagaimana Next.js App Router berinteraksi dengan domain logic, service layer, dan repository layer dalam arsitektur Modular Monolith + DDD.
+Dokumen ini mendefinisikan **Application Layer** untuk produk **Postific** — bagaimana Next.js App Router berinteraksi dengan domain logic, service layer, dan repository layer dalam arsitektur Modular Monolith + DDD.
 
 Dokumen ini menjadi acuan struktur layer sistem dan aturan interaksi antar layer. Implementasi detail (kode, ORM, folder structure eksak) didokumentasikan di Engineering Planning (M6).
 
@@ -315,6 +315,7 @@ BC-02 Workspace
 
 BC-03 Publishing ──→ BC-02 Workspace (verifikasi ConnectedAccount)
                 ──→ BC-08 Media (attach MediaItem ke post)
+                ──→ BC-06 Analytics (metrik post per target akun, via PostMetricsPort — KI-064)
 
 BC-04 AI Assistant ──→ BC-02 Workspace (brand settings sebagai context)
                    (postId dari BC-03 hanya sebagai optional context data — bukan service call)

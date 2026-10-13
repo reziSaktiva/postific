@@ -151,6 +151,20 @@ model WorkspaceInvitation {
   invitedByUserId String    @map("invited_by_user_id")
   expiresAt       DateTime  @map("expires_at") @db.Timestamptz(6)
   acceptedAt      DateTime? @map("accepted_at") @db.Timestamptz(6)
+  /**
+   * T-110 (KI-053) — verifikasi kepemilikan email accept-invite, HANYA
+   * jalur `isExistingUser: false`. Kode OTP 6 digit di-hash (sha256, lihat
+   * `workspace.service.ts`), TIDAK PERNAH disimpan plaintext.
+   * `verificationCodeHash`/`verificationCodeExpiresAt` di-clear (null)
+   * begitu kode benar dikonfirmasi (single-use) — lihat
+   * `markInvitationEmailVerified`.
+   */
+  verificationCodeHash      String?   @map("verification_code_hash")
+  verificationCodeExpiresAt DateTime? @map("verification_code_expires_at") @db.Timestamptz(6)
+  /** Reset ke 0 tiap kode baru diminta (`setInvitationVerificationCode`); increment tiap kode salah (anti brute-force, maks 5 percobaan). */
+  verificationAttempts      Int       @default(0) @map("verification_attempts")
+  /** Diisi sekali (single-use) saat kode OTP dikonfirmasi benar — dipakai `WorkspaceService.acceptInvite` sebagai guard server-side (bukan klaim dari client). */
+  emailVerifiedAt           DateTime? @map("email_verified_at") @db.Timestamptz(6)
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -168,8 +182,27 @@ model WorkspaceConnectedAccount {
   outstandAccountId String   @map("outstand_account_id")
   handle            String
   status            String   @default("active")
+  /**
+   * Foto profil akun terhubung (menutup KI-076, ADR-120) — nullable karena
+   * Outstand tidak selalu punya/mengembalikan foto (mis. Instagram
+   * single-page tanpa profile picture di sisi platform aslinya). Diisi
+   * `WorkspaceService` dari `ConnectedAccountData.avatarUrl` (single-page,
+   * `resolveConnectCallback`) atau hasil join `listPendingFacebookPages`
+   * (Facebook Pages, `confirmFacebookPagesConnection`) — lihat
+   * `packages/shared/src/contracts/outstand-adapter.ts`.
+   */
+  avatarUrl         String?  @map("avatar_url")
   reconnectRequired Boolean  @default(false) @map("reconnect_required")
   connectedAt       DateTime @default(now()) @map("connected_at") @db.Timestamptz(6)
+  // Import Posts dari Social Account (T-090, ADR-093 poin 6) — watermark +
+  // cooldown untuk JOB-05 (Import Posts Trigger). `lastImportedUntil`
+  // di-update saat JOB-06 (processing) sukses menyelesaikan sebuah import;
+  // dipakai sebagai `since` untuk trigger periodik & manual berikutnya
+  // (bukan mengulang 90 hari tiap kali). `lastImportRequestedAt` di-update
+  // SETIAP KALI import direquest (dari jalur manapun: auto/periodik/manual);
+  // dipakai untuk cooldown 24 jam per akun jalur manual (ADR-093 poin 9).
+  lastImportedUntil     DateTime? @map("last_imported_until") @db.Timestamptz(6)
+  lastImportRequestedAt DateTime? @map("last_import_requested_at") @db.Timestamptz(6)
   createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -213,10 +246,21 @@ model WorkspaceChannelOrder {
 // ─────────────────────────────────────────────
 
 model PublishingPost {
-  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  workspaceId    String    @map("workspace_id") @db.Uuid
-  authorId       String    @map("author_id")
-  status         String    @default("draft")
+  id          String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspaceId String @map("workspace_id") @db.Uuid
+  // Import Posts dari Social Account (T-090, ADR-093 poin 3) — nullable
+  // sejak ADR-093 (sebelumnya wajib). INVARIANT: `null` HANYA kalau
+  // `status = 'imported'` (post ditarik langsung dari platform sosial,
+  // tidak punya "penulis" internal) — semua status lain tetap wajib punya
+  // `authorId`. Tidak ada DB CHECK constraint untuk invariant ini (tidak
+  // ada presedan CHECK lintas kolom seperti ini di schema — satu-satunya
+  // CHECK existing, `engagement_inbox_items_type_check`, murni single-value
+  // enum check, bukan conditional cross-column) — ditegakkan di level
+  // Application Service (`ImportPostsProcessUseCase` mengisi `null`,
+  // use-case lain yang membuat/mengubah post SELALU mewajibkan `authorId`)
+  // sebagai defense-in-depth sesuai ADR-059 poin 6, bukan DB constraint.
+  authorId String? @map("author_id")
+  status   String  @default("draft")
   caption        String    @default("")
   mediaIds       String[]  @default([]) @map("media_ids") @db.Uuid
   scheduledAt    DateTime? @map("scheduled_at") @db.Timestamptz(6)
@@ -250,6 +294,11 @@ model PublishingPost {
 
   @@index([workspaceId])
   @@index([workspaceId, status])
+  // `listHistory`'s `publishedAtRange` filter (T-045/T-046/T-047, /analyze)
+  // butuh `publishedAt` ikut ter-index bareng `workspaceId`+`status` supaya
+  // Postgres tidak scan seluruh riwayat per-status sebelum menyaring rentang
+  // tanggal — review finding 2026-09-22.
+  @@index([workspaceId, status, publishedAt])
   @@index([scheduledAt])
   @@index([deletedAt])
   @@map("publishing_posts")
@@ -537,7 +586,12 @@ model BackgroundJob {
   startedAt   DateTime? @map("started_at") @db.Timestamptz(6)
   completedAt DateTime? @map("completed_at") @db.Timestamptz(6)
   attempts    Int       @default(0)
-  maxAttempts Int       @default(3) @map("max_attempts")
+  // BG-D04 (`background-jobs.md`) mendokumentasikan 3 tier backoff (5/15/60
+  // menit) sebelum dead-letter — butuh 4 percobaan total (percobaan 1-3
+  // masing-masing retry, percobaan ke-4 dead-letter), bukan 3. Default 3
+  // sebelumnya membuat tier 60 menit tidak pernah tercapai (lihat
+  // `retryDelayMs` di `src/lib/jobs/backoff.ts`).
+  maxAttempts Int       @default(4) @map("max_attempts")
   lastError   String?   @map("last_error")
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
 

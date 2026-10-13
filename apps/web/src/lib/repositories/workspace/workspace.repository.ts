@@ -7,8 +7,11 @@ import {
   InvitationStatus,
   MemberRole,
   MemberStatus,
+  type ConnectedAccountId,
   type SocialPlatform,
-} from "@social/shared";
+  type UserId,
+  type WorkspaceId,
+} from "@postific/shared";
 import type {
   ConnectedAccountRecord,
   IWorkspaceRepository,
@@ -82,6 +85,16 @@ function toConnectedAccountRecord(
     status: account.status,
     reconnectRequired: account.reconnectRequired,
     connectedAt: account.connectedAt,
+    // KI-076/ADR-120 — lihat docstring `ConnectedAccountRecord.avatarUrl`.
+    // KNOWN ISSUE (KI-078): avatar hanya di-backfill saat connect/reconnect
+    // BARU — akun yang sudah terhubung SEBELUM ADR-120 diterapkan akan
+    // selalu `null` di sini selamanya kecuali di-reconnect, dan (KI-078)
+    // saat ini tidak ada jalur UI untuk reconnect akun yang statusnya
+    // `disconnected`. Kalau field ini `null` untuk akun yang "seharusnya"
+    // punya foto, ini gap yang sudah diketahui, bukan bug baru.
+    avatarUrl: account.avatarUrl,
+    lastImportedUntil: account.lastImportedUntil,
+    lastImportRequestedAt: account.lastImportRequestedAt,
   };
 }
 
@@ -107,6 +120,11 @@ function toInvitationRecord(
     status: invitation.status as InvitationStatus,
     invitedByUserId: asUserId(invitation.invitedByUserId),
     expiresAt: invitation.expiresAt,
+    // T-110/KI-053 — lihat docstring WorkspaceInvitationRecord.
+    verificationCodeHash: invitation.verificationCodeHash,
+    verificationCodeExpiresAt: invitation.verificationCodeExpiresAt,
+    verificationAttempts: invitation.verificationAttempts,
+    emailVerifiedAt: invitation.emailVerifiedAt,
   };
 }
 
@@ -373,6 +391,65 @@ export const workspaceRepository: IWorkspaceRepository = {
     return toInvitationRecord(invitation);
   },
 
+  async findInvitationByWorkspaceEmail(workspaceId, email, actingUserId) {
+    const invitation = await withCurrentUser(actingUserId, (tx) =>
+      tx.workspaceInvitation.findUnique({
+        where: { workspaceId_email: { workspaceId, email } },
+      }),
+    );
+
+    return invitation ? toInvitationRecord(invitation) : null;
+  },
+
+  async reissueInvitation({
+    workspaceId,
+    invitationId,
+    actingUserId,
+    email,
+    role,
+    token,
+    expiresAt,
+  }) {
+    const invitation = await withCurrentUser(actingUserId, async (tx) => {
+      const reissued = await tx.workspaceInvitation.updateMany({
+        where: {
+          id: invitationId,
+          workspaceId,
+          OR: [
+            { status: { not: InvitationStatus.Pending } },
+            { expiresAt: { lte: new Date() } },
+          ],
+        },
+        data: {
+          role,
+          token,
+          status: InvitationStatus.Pending,
+          invitedByUserId: actingUserId,
+          expiresAt,
+          acceptedAt: null,
+          verificationCodeHash: null,
+          verificationCodeExpiresAt: null,
+          verificationAttempts: 0,
+          emailVerifiedAt: null,
+        },
+      });
+
+      if (reissued.count !== 1) {
+        return null;
+      }
+
+      return tx.workspaceInvitation.findUnique({ where: { token } });
+    });
+
+    if (!invitation) {
+      throw new ConflictError(
+        `Undangan untuk "${email}" di workspace ini sudah ada.`,
+      );
+    }
+
+    return toInvitationRecord(invitation);
+  },
+
   /**
    * Public token-based lookup (T-093.1) — wrapped in its own transaction to
    * `SET LOCAL app.invite_lookup_token` (code review follow-up migration
@@ -397,10 +474,106 @@ export const workspaceRepository: IWorkspaceRepository = {
   async findUserByEmail(email) {
     const user = await prisma.user.findUnique({
       where: { email },
-      select: { id: true },
+      select: { id: true, createdAt: true },
     });
 
-    return user ? { id: asUserId(user.id) } : null;
+    return user ? { id: asUserId(user.id), createdAt: user.createdAt } : null;
+  },
+
+  /**
+   * T-110.2 — sama pola transaksi + GUC seperti `findInvitationByToken`
+   * (invitee anonim, tidak ada `app.current_user_id`). `updateMany` +
+   * guard `status: pending` (compare-and-swap, pola sama
+   * `revokeInvitation`/`acceptInvitation`) — kalau tidak match (race:
+   * invitation sudah di-revoke/accept/expired persis di antara service-layer
+   * check dan panggilan ini), lempar `ConflictError` generik.
+   */
+  async setInvitationVerificationCode(token, { codeHash, expiresAt }) {
+    await prisma.$transaction(async (tx) => {
+      await setInviteLookupToken(tx, token);
+      const updated = await tx.workspaceInvitation.updateMany({
+        where: { token, status: InvitationStatus.Pending },
+        data: {
+          verificationCodeHash: codeHash,
+          verificationCodeExpiresAt: expiresAt,
+          verificationAttempts: 0,
+        },
+      });
+      if (updated.count === 0) {
+        throw new ConflictError(
+          "Undangan ini sudah tidak berlaku — tidak bisa mengirim kode verifikasi.",
+        );
+      }
+    });
+  },
+
+  /** T-110.3 — single-use: clear hash+expiry sekaligus set `emailVerifiedAt`. Pola compare-and-swap sama `setInvitationVerificationCode`. */
+  async markInvitationEmailVerified(token) {
+    await prisma.$transaction(async (tx) => {
+      await setInviteLookupToken(tx, token);
+      const updated = await tx.workspaceInvitation.updateMany({
+        where: { token, status: InvitationStatus.Pending },
+        data: {
+          emailVerifiedAt: new Date(),
+          verificationCodeHash: null,
+          verificationCodeExpiresAt: null,
+        },
+      });
+      if (updated.count === 0) {
+        throw new ConflictError(
+          "Undangan ini sudah tidak berlaku — tidak bisa mengonfirmasi verifikasi.",
+        );
+      }
+    });
+  },
+
+  /**
+   * Code-review PR #142 finding — `updateMany` (bukan `update`, alasan
+   * sama seperti sebelumnya: P2025 avoidance) sekarang JUGA menyertakan
+   * `verificationAttempts: { lt: maxAttempts }` di `WHERE` supaya cap
+   * ditegakkan ATOMIC oleh Postgres (UPDATE pada baris yang sama
+   * di-serialize — request konkuren yang mencoba increment setelah slot
+   * terakhir terisi akan gagal match `WHERE` begitu melihat versi baris
+   * ter-commit terbaru), bukan dicek terpisah dari increment seperti
+   * sebelumnya (celah race: N request konkuren bisa sama-sama baca
+   * attempts lama sebelum salah satu commit). `updated.count === 0` bisa
+   * berarti DUA hal berbeda — disambiguasi lewat read-back status: kalau
+   * invitation sudah tidak `pending` sama sekali → `ConflictError` (pola
+   * lama tetap berlaku); kalau masih `pending` tapi `count === 0` berarti
+   * cap sudah tercapai (termasuk race ini) → return sentinel
+   * `maxAttempts + 1` (lihat docstring `IWorkspaceRepository`).
+   */
+  async incrementInvitationVerificationAttempts(token, maxAttempts) {
+    return prisma.$transaction(async (tx) => {
+      await setInviteLookupToken(tx, token);
+      const updated = await tx.workspaceInvitation.updateMany({
+        where: {
+          token,
+          status: InvitationStatus.Pending,
+          verificationAttempts: { lt: maxAttempts },
+        },
+        data: { verificationAttempts: { increment: 1 } },
+      });
+
+      if (updated.count === 0) {
+        const invitation = await tx.workspaceInvitation.findUnique({
+          where: { token },
+          select: { status: true },
+        });
+        if (!invitation || invitation.status !== InvitationStatus.Pending) {
+          throw new ConflictError(
+            "Undangan ini sudah tidak berlaku — tidak bisa mencatat percobaan verifikasi.",
+          );
+        }
+        return maxAttempts + 1;
+      }
+
+      const invitation = await tx.workspaceInvitation.findUnique({
+        where: { token },
+        select: { verificationAttempts: true },
+      });
+      return invitation?.verificationAttempts ?? maxAttempts;
+    });
   },
 
   async acceptInvitation({ workspaceId, invitationId, userId, role }) {
@@ -646,37 +819,12 @@ export const workspaceRepository: IWorkspaceRepository = {
   },
 
   async markAccountReconnectRequired(outstandAccountId) {
-    // System-context read (T-026.5, webhook Outstand) — bypasses RLS via a
-    // narrow SECURITY DEFINER SQL function (migration
-    // `20260907120000_t026_outstand_webhook_system_lookups`), NOT
-    // `withCurrentUser` — sama alasan seperti
-    // `publishingRepository.findPostTargetsByOutstandPostId`, lihat catatan
-    // lengkap di interface method ini.
-    const rows = await prisma.$queryRaw<AccountOwnerLookupRow[]>`
-      SELECT * FROM "public"."webhook_find_account_owner_by_outstand_account_id"(${outstandAccountId})
-    `;
-
-    if (rows.length === 0) {
+    const lookup =
+      await lookupAccountOwnerByOutstandAccountId(outstandAccountId);
+    if (!lookup) {
       return null;
     }
-
-    // `outstand_account_id` cuma unique PER WORKSPACE — kalau akun yang
-    // sama kebetulan ter-connect di lebih dari satu workspace (skenario
-    // agency), fungsi SQL di atas mengembalikan SEMUA baris (tidak lagi
-    // `LIMIT 1`). Jangan tebak salah satu secara diam-diam — refuse dan
-    // biarkan route.ts menandai receipt `failed` (defense-in-depth yang
-    // sama dengan guard di `publishingRepository.findPostTargetsByOutstandPostId`).
-    const distinctWorkspaceIds = new Set(rows.map((row) => row.workspace_id));
-    if (distinctWorkspaceIds.size > 1) {
-      throw new Error(
-        `markAccountReconnectRequired: outstandAccountId=${outstandAccountId} cocok dengan ${distinctWorkspaceIds.size} workspace berbeda — menolak menebak salah satu.`,
-      );
-    }
-
-    const [row] = rows;
-    const workspaceId = asWorkspaceId(row.workspace_id);
-    const connectedAccountId = asConnectedAccountId(row.connected_account_id);
-    const ownerUserId = asUserId(row.owner_user_id);
+    const { workspaceId, connectedAccountId, ownerUserId } = lookup;
 
     // Write path tetap RLS-safe seperti method lain di file ini —
     // `ownerUserId` (Owner workspace ini, dibaca lewat bypass di atas)
@@ -697,6 +845,62 @@ export const workspaceRepository: IWorkspaceRepository = {
     );
 
     return { workspaceId, connectedAccountId, ownerUserId };
+  },
+
+  async findAccountOwnerByOutstandAccountId(outstandAccountId) {
+    // Read-only (T-051, JOB-03) — lihat catatan lengkap di interface
+    // method ini untuk kenapa `engagement` butuh lookup ini. Reuse HELPER
+    // yang sama dengan `markAccountReconnectRequired`, TANPA langkah tulis
+    // `reconnectRequired` (beda tujuan pemanggilan sepenuhnya).
+    //
+    // Eskalasi review Ridwan (T-051, disconnect→reconnect job leak) —
+    // `disconnectAccount` tidak pernah membatalkan chain self-reschedule
+    // `engagement.sync` yang sedang berjalan untuk akun itu (tidak ada
+    // mekanisme cancel/deleteByCriteria di `IJobScheduler`/
+    // `background-job-store.ts`). Fix-nya di sini, bukan menambah cancel
+    // job baru: akun berstatus BUKAN `active` (mis. `disconnected`)
+    // diperlakukan SAMA seperti "akun tidak ditemukan" — return `null`
+    // supaya `EngagementSyncJobHandler.handle` throw SEBELUM memanggil
+    // `SyncCommentsUseCase.sync` dan SEBELUM self-reschedule (jalur
+    // dead-letter yang SUDAH ada & sudah ditest, lihat docstring class
+    // `EngagementSyncJobHandler`) — chain job untuk akun yang di-disconnect
+    // mati sendiri begitu invocation berikutnya berjalan, tanpa pernah
+    // menyentuh Outstand lagi atau memicu notifikasi `engagement_new`.
+    // `markAccountReconnectRequired` (webhook path, T-026.5) TIDAK
+    // dipengaruhi — ia memakai helper yang sama tapi tidak memeriksa field
+    // `status` ini sama sekali, jadi behaviornya persis seperti sebelumnya.
+    // `reconnectRequired` bisa true sementara `status` masih `active`
+    // (token expired lewat webhook, `markAccountReconnectRequired` tidak
+    // mengubah `status`) — diperlakukan sama seperti "tidak ditemukan"
+    // supaya JOB-03 berhenti sync akun yang butuh reconnect, bukan terus
+    // memanggil Outstand dengan token yang sudah ditolak.
+    const lookup =
+      await lookupAccountOwnerByOutstandAccountId(outstandAccountId);
+    if (!lookup || lookup.status !== "active" || lookup.reconnectRequired) {
+      return null;
+    }
+    return {
+      workspaceId: lookup.workspaceId,
+      connectedAccountId: lookup.connectedAccountId,
+      ownerUserId: lookup.ownerUserId,
+      handle: lookup.handle,
+    };
+  },
+
+  async listActiveConnectedAccountsForSync() {
+    const rows = await prisma.$queryRaw<
+      {
+        workspace_id: string;
+        connected_account_id: string;
+        outstand_account_id: string;
+      }[]
+    >`SELECT * FROM "public"."analytics_list_active_connected_accounts"()`;
+
+    return rows.map((row) => ({
+      workspaceId: asWorkspaceId(row.workspace_id),
+      connectedAccountId: asConnectedAccountId(row.connected_account_id),
+      outstandAccountId: row.outstand_account_id,
+    }));
   },
 
   async disconnectAccount(workspaceId, connectedAccountId, actingUserId) {
@@ -734,11 +938,49 @@ export const workspaceRepository: IWorkspaceRepository = {
     return account ? toConnectedAccountRecord(account) : null;
   },
 
+  async findConnectedAccountByOutstandId(
+    workspaceId,
+    outstandAccountId,
+    actingUserId,
+  ) {
+    const account = await withCurrentUser(actingUserId, (tx) =>
+      tx.workspaceConnectedAccount.findUnique({
+        where: {
+          workspaceId_outstandAccountId: { workspaceId, outstandAccountId },
+        },
+      }),
+    );
+    return account ? toConnectedAccountRecord(account) : null;
+  },
+
+  async isConnectedAccountWithinWindow(
+    connectedAccountId,
+    windowMs,
+    actingUserId,
+  ) {
+    // Perbandingan waktu di sisi Postgres (`now() - connected_at`), BUKAN
+    // `Date.now()` di Node (code review PR #139) — menghindari drift jam
+    // app-server (Railway) vs database (Supabase). `make_interval(secs =>
+    // ...)` menerima pecahan detik jadi `windowMs` bisa langsung dibagi
+    // 1000 tanpa pembulatan.
+    const rows = await withCurrentUser(
+      actingUserId,
+      (tx) =>
+        tx.$queryRaw<{ within_window: boolean }[]>`
+        SELECT (now() - connected_at) <= make_interval(secs => ${windowMs / 1000}::float8) AS within_window
+        FROM "workspace_connected_accounts"
+        WHERE id = ${connectedAccountId}::uuid
+      `,
+    );
+    return rows[0]?.within_window ?? false;
+  },
+
   async createConnectedAccount({
     workspaceId,
     platform,
     outstandAccountId,
     handle,
+    avatarUrl,
     actingUserId,
   }) {
     try {
@@ -749,6 +991,7 @@ export const workspaceRepository: IWorkspaceRepository = {
             platform,
             outstandAccountId,
             handle,
+            avatarUrl: avatarUrl ?? null,
             status: "active",
           },
         }),
@@ -762,11 +1005,46 @@ export const workspaceRepository: IWorkspaceRepository = {
     }
   },
 
+  async createConnectedAccounts({ workspaceId, actingUserId, accounts }) {
+    return withCurrentUser(actingUserId, async (tx) => {
+      const existing = await tx.workspaceConnectedAccount.findMany({
+        where: {
+          workspaceId,
+          outstandAccountId: {
+            in: accounts.map((account) => account.outstandAccountId),
+          },
+        },
+        select: { outstandAccountId: true },
+      });
+      const existingIds = new Set(
+        existing.map((account) => account.outstandAccountId),
+      );
+
+      const created = [];
+      for (const account of accounts) {
+        if (existingIds.has(account.outstandAccountId)) continue;
+        const row = await tx.workspaceConnectedAccount.create({
+          data: {
+            workspaceId,
+            platform: account.platform,
+            outstandAccountId: account.outstandAccountId,
+            handle: account.handle,
+            avatarUrl: account.avatarUrl ?? null,
+            status: "active",
+          },
+        });
+        created.push(toConnectedAccountRecord(row));
+      }
+      return created;
+    });
+  },
+
   async reconnectAccount({
     workspaceId,
     connectedAccountId,
     outstandAccountId,
     handle,
+    avatarUrl,
     actingUserId,
   }) {
     return withCurrentUser(actingUserId, async (tx) => {
@@ -776,15 +1054,41 @@ export const workspaceRepository: IWorkspaceRepository = {
       // `connectedAccountId` yang bukan milik `workspaceId` ini, walau
       // `WorkspaceService` sudah memvalidasi lewat `findConnectedAccountById`
       // sebelum memanggil method ini).
-      const result = await tx.workspaceConnectedAccount.updateMany({
-        where: { id: connectedAccountId, workspaceId },
-        data: {
-          outstandAccountId,
-          handle,
-          status: "active",
-          reconnectRequired: false,
-        },
-      });
+      let result;
+      try {
+        result = await tx.workspaceConnectedAccount.updateMany({
+          where: { id: connectedAccountId, workspaceId },
+          data: {
+            outstandAccountId,
+            handle,
+            // `avatarUrl` HANYA ditulis kalau fetch-nya berhasil dapat nilai
+            // (bukan `null`/`undefined`) — `fetchSocialAccountAvatarUrl`
+            // best-effort mengembalikan `null` untuk DUA kasus yang beda
+            // (akun genuinely tidak punya foto, ATAU fetch gagal transient),
+            // jadi tulis-selalu di sini bisa menghapus avatar yang sudah
+            // benar tersimpan hanya karena satu request avatar gagal saat
+            // reconnect. Konsekuensi: avatar lama tetap tampil kalau user
+            // BENAR-BENAR menghapus foto profilnya di platform asli — trade-off
+            // yang lebih aman daripada silent data loss pada kegagalan network.
+            ...(avatarUrl ? { avatarUrl } : {}),
+            status: "active",
+            reconnectRequired: false,
+          },
+        });
+      } catch (error) {
+        // KI-078 follow-up (code review PR #139) — `case "disconnected"`
+        // sekarang juga merender `ReconnectButton`, jadi path ini bisa
+        // menabrak `[workspaceId, outstandAccountId]` kalau OAuth-nya
+        // diarahkan ke akun outstand lain yang SUDAH terhubung di
+        // workspace ini (bukan cuma akun `redirectAccountId` itu sendiri).
+        // Map ke `ConflictError` yang sama seperti `createConnectedAccount`,
+        // bukan biarkan P2002 mentah lolos ke Route Handler (yang cuma
+        // menangani `AlreadyConnectedError`/`ApplicationError`).
+        if (isConnectedAccountConflict(error)) {
+          throw new ConflictError("Akun ini sudah terhubung di workspace ini.");
+        }
+        throw error;
+      }
 
       if (result.count === 0) {
         throw new NotFoundError("Akun terhubung tidak ditemukan.");
@@ -808,6 +1112,42 @@ export const workspaceRepository: IWorkspaceRepository = {
       return toConnectedAccountRecord(updated);
     });
   },
+
+  async updateImportWatermark({
+    connectedAccountId,
+    lastImportedUntil,
+    lastImportRequestedAt,
+    actingUserId,
+  }) {
+    // Bug fix 2026-10-08 (ditemukan testing end-to-end DB nyata, bukan cuma
+    // unit test fake repository) — versi sebelumnya pakai `prisma` plain
+    // (bukan `withCurrentUser`) dengan klaim "write murni field watermark
+    // tidak membocorkan data lintas tenant, jadi aman tanpa RLS". Klaim itu
+    // salah: `workspace_connected_accounts` dijaga RLS policy `FOR ALL`
+    // (migration `20260813045625_t017_add_rls_policies`), dan `FOR ALL`
+    // tanpa `WITH CHECK` terpisah berarti `USING` berlaku juga untuk
+    // `UPDATE` — tanpa `app.current_user_id` di-set, `current_setting`
+    // mengembalikan NULL, subquery `workspace_id IN (...)` tidak pernah
+    // match, dan `updateMany` match 0 baris SELALU, secara senyap (watermark
+    // tidak pernah persisten walau `background_jobs` tercatat `done`).
+    // `withCurrentUser` (pola sama `reconnectAccount` di atas) memperbaiki
+    // ini. `updateMany` (bukan `update`) tetap dipertahankan supaya
+    // `connectedAccountId` yang tidak ditemukan ATAU acting user yang bukan
+    // member aktif workspace tersebut adalah no-op senyap (best effort,
+    // kegagalan update watermark tidak boleh menggagalkan import yang sudah
+    // berhasil diproses).
+    await withCurrentUser(actingUserId, (tx) =>
+      tx.workspaceConnectedAccount.updateMany({
+        where: { id: connectedAccountId },
+        data: {
+          ...(lastImportedUntil !== undefined ? { lastImportedUntil } : {}),
+          ...(lastImportRequestedAt !== undefined
+            ? { lastImportRequestedAt }
+            : {}),
+        },
+      }),
+    );
+  },
 };
 
 /** Row shape returned by the raw SQL call above — snake_case, mirrors the SQL function's RETURNS TABLE. */
@@ -815,4 +1155,81 @@ interface AccountOwnerLookupRow {
   workspace_id: string;
   connected_account_id: string;
   owner_user_id: string;
+  /**
+   * `WorkspaceConnectedAccount.status` (T-051 fix, migration
+   * `20260922110000_t051_filter_active_status_engagement_sync_lookup`) —
+   * ditambahkan sebagai kolom output SQL function, TIDAK mengubah SELECT-nya
+   * (masih mengembalikan akun status apa pun). Konsumen yang butuh guard
+   * status (`findAccountOwnerByOutstandAccountId`) memeriksa field ini
+   * sendiri; `markAccountReconnectRequired` mengabaikannya (behavior tidak
+   * berubah).
+   */
+  status: string;
+  /**
+   * `WorkspaceConnectedAccount.reconnectRequired` — flag terpisah dari
+   * `status` (token expired bisa terjadi sambil `status` masih `active`,
+   * lihat `markAccountReconnectRequired`). `findAccountOwnerByOutstandAccountId`
+   * ikut memeriksa ini supaya JOB-03 tidak terus sync akun yang butuh
+   * reconnect.
+   */
+  reconnect_required: boolean;
+  /**
+   * Redesain KI-068/ADR-113 — kolom baru (migration
+   * `20260924090000_ki068_add_handle_to_account_owner_lookup`), dipakai
+   * `findAccountOwnerByOutstandAccountId` untuk menyuplai `accountUsername`
+   * ke `SyncCommentsUseCase`. `markAccountReconnectRequired` mengabaikannya
+   * (behavior tidak berubah).
+   */
+  handle: string;
+}
+
+/**
+ * Helper bersama `markAccountReconnectRequired` (T-026.5) DAN
+ * `findAccountOwnerByOutstandAccountId` (T-051, JOB-03) — keduanya butuh
+ * lookup identik (SECURITY DEFINER SQL function
+ * `webhook_find_account_owner_by_outstand_account_id`), beda hanya di
+ * langkah SETELAHNYA (satu menulis `reconnectRequired`, satu lagi murni
+ * baca). Diekstrak supaya guard "outstand_account_id cocok >1 workspace"
+ * tidak diduplikasi.
+ */
+async function lookupAccountOwnerByOutstandAccountId(
+  outstandAccountId: string,
+): Promise<{
+  workspaceId: WorkspaceId;
+  connectedAccountId: ConnectedAccountId;
+  ownerUserId: UserId;
+  status: string;
+  reconnectRequired: boolean;
+  handle: string;
+} | null> {
+  const rows = await prisma.$queryRaw<AccountOwnerLookupRow[]>`
+    SELECT * FROM "public"."webhook_find_account_owner_by_outstand_account_id"(${outstandAccountId})
+  `;
+
+  if (rows.length === 0) {
+    return null;
+  }
+
+  // `outstand_account_id` cuma unique PER WORKSPACE — kalau akun yang sama
+  // kebetulan ter-connect di lebih dari satu workspace (skenario agency),
+  // fungsi SQL di atas mengembalikan SEMUA baris (tidak lagi `LIMIT 1`).
+  // Jangan tebak salah satu secara diam-diam — refuse dan biarkan caller
+  // menandai kegagalan (defense-in-depth yang sama dengan guard di
+  // `publishingRepository.findPostTargetsByOutstandPostId`).
+  const distinctWorkspaceIds = new Set(rows.map((row) => row.workspace_id));
+  if (distinctWorkspaceIds.size > 1) {
+    throw new Error(
+      `lookupAccountOwnerByOutstandAccountId: outstandAccountId=${outstandAccountId} cocok dengan ${distinctWorkspaceIds.size} workspace berbeda — menolak menebak salah satu.`,
+    );
+  }
+
+  const [row] = rows;
+  return {
+    workspaceId: asWorkspaceId(row.workspace_id),
+    connectedAccountId: asConnectedAccountId(row.connected_account_id),
+    ownerUserId: asUserId(row.owner_user_id),
+    status: row.status,
+    reconnectRequired: row.reconnect_required,
+    handle: row.handle,
+  };
 }

@@ -1,6 +1,6 @@
 "use server";
 
-import { asPostId, asUserId } from "@social/shared";
+import { asPostId, asUserId } from "@postific/shared";
 
 import {
   PublishingService,

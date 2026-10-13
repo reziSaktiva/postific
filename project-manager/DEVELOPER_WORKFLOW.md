@@ -33,7 +33,7 @@ flowchart TD
   F -->|Ya| G{Perlu referensi visual?}
   G -->|Ya| H[Buka project Claude Design<br/>foundations/ · components/ · templates/]
   G -->|Sudah jelas dari KSP docs| I
-  H --> I[Wajib: baca apps/web/.claude/CLAUDE.md<br/>agent docs resmi Astryx, lalu jalankan CLI]
+  H --> I[Wajib: baca apps/web/.claude/CLAUDE.md<br/>agent docs resmi shadcn/ui, lalu jalankan CLI/MCP]
   I --> K
 
   K --> L[Kode di apps/web/src/domains/*<br/>DDD + Modular Monolith]

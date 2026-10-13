@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 
-import type { ConnectedAccountId } from "@social/shared";
+import type { ConnectedAccountId } from "@postific/shared";
 import type { CalendarPostItem } from "@/domains/publishing";
 
 import { Badge } from "@/components/ui/badge";

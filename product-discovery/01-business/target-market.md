@@ -1,6 +1,6 @@
 # Target Market
 
-Dokumen ini mendefinisikan target pasar utama untuk produk **Social Media Management**. Seluruh keputusan mengenai Product, UX, Marketing, dan Business harus mempertimbangkan karakteristik target pasar yang dijelaskan pada dokumen ini.
+Dokumen ini mendefinisikan target pasar utama untuk produk **Postific**. Seluruh keputusan mengenai Product, UX, Marketing, dan Business harus mempertimbangkan karakteristik target pasar yang dijelaskan pada dokumen ini.
 
 ---
 

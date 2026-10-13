@@ -1,6 +1,6 @@
 # 04 — UX
 
-Dokumentasi pada folder ini berfokus pada **UX Planning** untuk produk **Social Media Management**, mencakup prinsip desain, arsitektur informasi, user flows (solution-state), pola navigasi, dan pola layar utama.
+Dokumentasi pada folder ini berfokus pada **UX Planning** untuk produk **Postific**, mencakup prinsip desain, arsitektur informasi, user flows (solution-state), pola navigasi, dan pola layar utama.
 
 Seluruh dokumentasi pada folder ini harus mengacu pada **Business Baseline v1.0**, **Product Baseline v1.0**, dan **User Discovery Baseline v1.0** yang telah disepakati. UX Planning berfungsi menerjemahkan insight pengguna menjadi keputusan desain yang dapat dijadikan acuan implementasi, tanpa masuk ke detail visual atau kode.
 

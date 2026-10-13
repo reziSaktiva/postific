@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { getSessionCookie } from "better-auth/cookies";
-import { asUserId, asWorkspaceId, MemberStatus } from "@social/shared";
+import { asUserId, asWorkspaceId, MemberStatus } from "@postific/shared";
 
 import { auth } from "@/lib/better-auth/auth";
 import { WorkspaceService } from "@/domains/workspace";

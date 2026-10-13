@@ -1,6 +1,6 @@
 # UX Principles
 
-Dokumen ini menetapkan prinsip UX yang mengatur seluruh keputusan desain pada produk **Social Media Management**.
+Dokumen ini menetapkan prinsip UX yang mengatur seluruh keputusan desain pada produk **Postific**.
 
 Setiap prinsip diturunkan dari insight pengguna (I-01 hingga I-08) dan harus dapat ditelusuri ke User Discovery Baseline v1.0. Prinsip ini bukan aturan visual — melainkan panduan pengambilan keputusan UX yang berlaku dari Information Architecture hingga Key Screen Patterns.
 

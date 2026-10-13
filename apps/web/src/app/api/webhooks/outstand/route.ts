@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { IOutstandAdapter } from "@postific/shared";
 import type { ParsedOutstandWebhookEvent } from "@/domains/publishing";
 import { OutstandWebhookProcessor } from "@/domains/publishing";
 import { NotificationService } from "@/domains/notification";
@@ -13,6 +14,30 @@ import { notificationRepository } from "@/lib/repositories/notification";
 import { publishingRepository } from "@/lib/repositories/publishing";
 import { workspaceRepository } from "@/lib/repositories/workspace";
 import { outstandWebhookReceiptStore } from "@/lib/webhooks/outstand-webhook-receipt-store";
+
+async function insertWebhookReceipt(input: {
+  outstandEventId: string;
+  eventType: string;
+  rawBody: string;
+}): Promise<
+  | { ok: true; receipt: { id: string; isNew: boolean } }
+  | { ok: false; response: Response }
+> {
+  try {
+    const receipt = await outstandWebhookReceiptStore.insertIfNew(input);
+    return { ok: true, receipt };
+  } catch {
+    // Kegagalan PERSISTENSI (mis. DB down) — non-2xx supaya Outstand retry
+    // delivery (integration-layer.md § "Alur Pemrosesan Webhook").
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { error: "Gagal menyimpan receipt webhook." },
+        { status: 503 },
+      ),
+    };
+  }
+}
 
 /**
  * Webhook handler Outstand (T-026, ADR-020/ADR-040). Route Handler — TIDAK
@@ -29,11 +54,14 @@ import { outstandWebhookReceiptStore } from "@/lib/webhooks/outstand-webhook-rec
  *    `401` kalau `OUTSTAND_WEBHOOK_SECRET` kosong (bukan silent-skip — HMAC
  *    adalah crypto asli, beda dari Fake adapter ADR-059 yang auto-switch
  *    untuk network call) ATAU signature tidak valid.
- * 3. Idempotent insert ke `OutstandWebhookEvent` (T-026.6) — duplicate
+ * 3. Untuk event yang valid, siapkan `getOutstandAdapter()` SEBELUM
+ *    receipt disimpan (ADR-119). Key kosong → `503` tanpa baris receipt,
+ *    supaya Outstand masih retry setelah key dipasang.
+ * 4. Idempotent insert ke `OutstandWebhookEvent` (T-026.6) — duplicate
  *    valid langsung `200` tanpa proses ulang.
- * 4. Proses event via `OutstandWebhookProcessor.process()` — SINKRON
+ * 5. Proses event via `OutstandWebhookProcessor.process()` — SINKRON
  *    inline (T-027 job runner belum ada, lihat catatan di processor).
- * 5. Update status receipt (`processed`/`failed`), tapi tetap ACK `2xx`
+ * 6. Update status receipt (`processed`/`failed`), tapi tetap ACK `2xx`
  *    selama receipt di langkah 3 sudah persist (kegagalan PEMROSESAN,
  *    bukan PERSISTENSI, tidak meminta Outstand mengirim ulang —
  *    `integration-layer.md`:332).
@@ -80,21 +108,35 @@ export async function POST(request: Request): Promise<Response> {
     outstandEventId = fingerprintRawBody(rawBody);
   }
 
-  let receipt: { id: string; isNew: boolean };
-  try {
-    receipt = await outstandWebhookReceiptStore.insertIfNew({
-      outstandEventId,
-      eventType,
-      rawBody,
-    });
-  } catch {
-    // Kegagalan PERSISTENSI (mis. DB down) — non-2xx supaya Outstand retry
-    // delivery (integration-layer.md § "Alur Pemrosesan Webhook").
-    return NextResponse.json(
-      { error: "Gagal menyimpan receipt webhook." },
-      { status: 503 },
-    );
+  // Adapter wajib siap SEBELUM receipt disimpan (ADR-119). Kalau
+  // `getOutstandAdapter()` throw (key kosong), request ini harus non-2xx
+  // tanpa baris receipt — kalau tidak, retry Outstand ketemu receipt yang
+  // sudah ada dan di-ACK sebagai duplikat tanpa pernah diproses.
+  let outstandAdapter: IOutstandAdapter | undefined;
+  if (parsedEvent) {
+    try {
+      outstandAdapter = getOutstandAdapter();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(
+        `[outstand-webhook] adapter tidak siap, delivery tidak di-ACK supaya Outstand retry: ${message}`,
+      );
+      return NextResponse.json(
+        { error: "Integrasi Outstand belum dikonfigurasi." },
+        { status: 503 },
+      );
+    }
   }
+
+  const persisted = await insertWebhookReceipt({
+    outstandEventId,
+    eventType,
+    rawBody,
+  });
+  if (!persisted.ok) {
+    return persisted.response;
+  }
+  const receipt = persisted.receipt;
 
   if (!receipt.isNew) {
     // Duplicate event (T-026.6) — sudah pernah diterima & (pernah) diproses
@@ -102,19 +144,21 @@ export async function POST(request: Request): Promise<Response> {
     return NextResponse.json({ ok: true, duplicate: true }, { status: 200 });
   }
 
-  if (!parsedEvent) {
+  if (!parsedEvent || !outstandAdapter) {
     await outstandWebhookReceiptStore.markFailed(
       receipt.id,
       'Payload webhook tidak valid (bukan JSON / tidak punya field "event").',
     );
     // Receipt SUDAH persist (langkah 3) — ACK 2xx walau pemrosesan gagal,
     // konsisten dengan prinsip retry-boundary di integration-layer.md:332.
+    // Cabang `!outstandAdapter` di sini hanya payload yang memang tidak
+    // diproses: event valid sudah return 503 di atas, sebelum insert.
     return NextResponse.json({ ok: true, processed: false }, { status: 200 });
   }
 
   const processor = new OutstandWebhookProcessor(
     publishingRepository,
-    getOutstandAdapter(),
+    outstandAdapter,
     workspaceRepository,
     new NotificationService(notificationRepository),
   );

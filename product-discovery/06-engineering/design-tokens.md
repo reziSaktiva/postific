@@ -233,18 +233,16 @@ daftar tertutup klasik.
 | Padding Container/page-level wrapper besar | `padding` | 8 (32px) | Breathing room level page, dipakai sengaja lebih jarang |
 | Reset/no-space (Stack yang dibungkus komponen lain) | `gap`/`padding` | 0 | Sengaja tanpa spacing tambahan |
 
-## Larangan (era Astryx — cek ulang saat migrasi shadcn per route-segment, ADR-097)
+## Larangan
 
-* **Tailwind spacing utility mentah** (`gap-`, `p-`, `m-`, `space-x/y-`)
-  langsung di komponen — gunakan prop `gap={n}`/`padding={n}` pada
-  `VStack`/`HStack`/`Stack`/`Grid`. Aturan ini berlaku untuk kode Astryx yang
-  belum termigrasi; komponen shadcn memakai Tailwind utility langsung
-  (ADR-097 poin 4), sehingga larangan literal ini tidak berlaku di segmen
-  yang sudah dimigrasi — tetap pakai unit dari skala 4px di atas.
+Migrasi Astryx sudah tuntas (ADR-097, v0.7, T-102). Kode aktif memakai
+Tailwind utility langsung pada skala 4px di atas. Larangan prop `VStack` /
+`HStack` era Astryx tidak berlaku lagi.
+
 * **Arbitrary value** (`gap-[13px]`, `p-[10px]`) — selalu pakai unit dari
   skala di atas.
 * **`margin`** pada child untuk spacing antar sibling — spacing datang dari
-  `gap` milik parent Stack/Grid, bukan `margin` self.
+  utility `gap` pada parent flex/grid, bukan `margin` pada child.
 
 Dua exception historis ditemukan (`p-0`, `my-1` di `ChannelsSection.tsx`) —
 dicatat sebagai technical debt kecil untuk dirapikan, **bukan** preseden
@@ -399,7 +397,7 @@ perlu di-approve eksplisit (bukan bagian "migrasi tanpa ubah visual").
 
 * `README.md` (folder Engineering)
 * `../../project-manager/DECISIONS.md` — ADR-038, ADR-041, ADR-056, ADR-057, ADR-095 (kunci skala Spacing), ADR-097 (migrasi ke shadcn/ui, membalik ADR-041)
-* `../../project-manager/PROJECT_OVERVIEW.md` — Astryx + Tailwind layout-only
+* `../../project-manager/PROJECT_OVERVIEW.md` — shadcn/ui + Tailwind langsung (ADR-097)
 * `../04-ux/` — UX Baseline (alur & layar)
 * `../02-product/roles-permissions.md` — status konten kanonikal
 * `../../context/ctx-design.md` — pointer Claude Design (folder `design/` dihapus, ADR-045)

@@ -1,6 +1,6 @@
 # Project Manager
 
-Folder ini merupakan **Project Operating System (Project OS)** untuk project **Social Media Management**.
+Folder ini merupakan **Project Operating System (Project OS)** untuk project **Postific**.
 
 Folder ini didedikasikan untuk mendokumentasikan **cara kerja**: proses kolaborasi antara Developer dan AI Assistant, aturan project, status dan progress, keputusan penting, riwayat perubahan, serta log diskusi dan brainstorming.
 

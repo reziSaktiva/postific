@@ -1,0 +1,11 @@
+-- Code review fix (T-027, PR #125) — `background_jobs.max_attempts` default
+-- was 3, but BG-D04 (`background-jobs.md`) documents 3 retry tiers (5, 15,
+-- 60 menit) before dead-lettering, which requires 4 total attempts
+-- (attempt 1-3 each retry, attempt 4 dead-letters). With the old default of
+-- 3, `job-runner.ts`'s dead-letter check (`attempts >= maxAttempts`) fired
+-- on the 3rd failure — before the 60-minute tier was ever used — cutting
+-- the documented ~80 minute retry window down to ~20 minutes.
+--
+-- Only the column default changes; existing rows keep whatever
+-- `max_attempts` they already have.
+ALTER TABLE "background_jobs" ALTER COLUMN "max_attempts" SET DEFAULT 4;

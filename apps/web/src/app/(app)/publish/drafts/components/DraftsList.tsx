@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Delete02Icon } from "@hugeicons/core-free-icons";
 
-import { ContentStatus } from "@social/shared";
+import { ContentStatus } from "@postific/shared";
 import type {
   CalendarPostItem,
   PublishingPostRecord,

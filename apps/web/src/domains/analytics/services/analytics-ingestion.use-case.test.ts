@@ -2,11 +2,12 @@ import {
   asConnectedAccountId,
   asPostId,
   asPostMetricsId,
+  asUserId,
   asWorkspaceId,
   asWorkspaceSnapshotId,
   type IOutstandAdapter,
   SocialPlatform,
-} from "@social/shared";
+} from "@postific/shared";
 import { describe, expect, it } from "vitest";
 import type {
   IAnalyticsRepository,
@@ -21,6 +22,7 @@ const WORKSPACE_ID = asWorkspaceId("workspace-1");
 const POST_ID = asPostId("post-1");
 const CONNECTED_ACCOUNT_1 = asConnectedAccountId("conn-1");
 const CONNECTED_ACCOUNT_2 = asConnectedAccountId("conn-2");
+const ACTING_USER_ID = asUserId("user-1");
 
 function createFakeRepository(
   overrides: Partial<IAnalyticsRepository> = {},
@@ -54,7 +56,15 @@ function createFakeOutstandAdapter(
 ): IOutstandAdapter {
   return {
     connectAccount: async () => ({ redirectUrl: "/unused" }),
-    exchangeConnectCode: async () => ({
+    listPendingFacebookPages: async () => ({ pages: [] }),
+    confirmFacebookPagesConnection: async () => ({ accounts: [] }),
+    listPinterestBoards: async () => [],
+    uploadMediaWorkingCopy: async () => ({
+      outstandMediaId: "unused",
+      outstandMediaUrl: "https://fake.outstand.local/media/unused",
+      expiresAt: new Date(),
+    }),
+    resolveConnectCallback: async () => ({
       outstandAccountId: "unused",
       platform: "instagram" as never,
       handle: "unused",
@@ -80,6 +90,14 @@ function createFakeOutstandAdapter(
       totalEngagements: 200,
       avgEngagementRate: 0.1,
     }),
+    fetchComments: async () => ({ comments: [], nextCursor: null }),
+    replyToComment: async () => ({ outstandReplyId: "fake-reply" }),
+    importPosts: async () => ({ importJobId: "fake-import-job" }),
+    fetchImportJobStatus: async () => ({
+      status: "completed" as const,
+      posts: [],
+      error: null,
+    }),
     ...overrides,
   };
 }
@@ -99,14 +117,17 @@ describe("AnalyticsIngestionUseCase.syncPostMetrics", () => {
     const adapter = createFakeOutstandAdapter();
     const useCase = new AnalyticsIngestionUseCase(repository, adapter);
 
-    const results = await useCase.syncPostMetrics([
-      {
-        postId: POST_ID,
-        connectedAccountId: CONNECTED_ACCOUNT_1,
-        platform: SocialPlatform.Instagram,
-        outstandPostId: "outstand-post-1",
-      },
-    ]);
+    const results = await useCase.syncPostMetrics(
+      [
+        {
+          postId: POST_ID,
+          connectedAccountId: CONNECTED_ACCOUNT_1,
+          platform: SocialPlatform.Instagram,
+          outstandPostId: "outstand-post-1",
+        },
+      ],
+      ACTING_USER_ID,
+    );
 
     expect(results).toHaveLength(1);
     expect(upsertCalls).toEqual([
@@ -154,8 +175,8 @@ describe("AnalyticsIngestionUseCase.syncPostMetrics", () => {
       outstandPostId: "outstand-post-1",
     };
 
-    await useCase.syncPostMetrics([target]);
-    await useCase.syncPostMetrics([target]);
+    await useCase.syncPostMetrics([target], ACTING_USER_ID);
+    await useCase.syncPostMetrics([target], ACTING_USER_ID);
 
     const rows = await repository.findMetricsByPost(POST_ID);
     expect(rows).toHaveLength(1);
@@ -169,6 +190,42 @@ describe("AnalyticsIngestionUseCase.syncPostMetrics", () => {
         engagementRate: 0.0929,
       }),
     );
+  });
+
+  it("fetches distinct posts concurrently so a long account stays inside the job timeout", async () => {
+    let inFlight = 0;
+    let maxInFlight = 0;
+    const adapter = createFakeOutstandAdapter({
+      fetchPostMetrics: async () => {
+        inFlight += 1;
+        maxInFlight = Math.max(maxInFlight, inFlight);
+        await new Promise((resolve) => setTimeout(resolve, 15));
+        inFlight -= 1;
+        return {
+          impressions: 1,
+          reach: 1,
+          likes: 1,
+          comments: 1,
+          shares: 1,
+          clicks: null,
+          engagementRate: 0,
+        };
+      },
+    });
+    const useCase = new AnalyticsIngestionUseCase(
+      createFakeRepository(),
+      adapter,
+    );
+    const targets = Array.from({ length: 10 }, (_, index) => ({
+      postId: asPostId(`post-${index}`),
+      connectedAccountId: CONNECTED_ACCOUNT_1,
+      platform: SocialPlatform.Instagram,
+      outstandPostId: `outstand-post-${index}`,
+    }));
+
+    await useCase.syncPostMetrics(targets, ACTING_USER_ID);
+
+    expect(maxInFlight).toBeGreaterThan(1);
   });
 });
 
@@ -205,22 +262,25 @@ describe("AnalyticsIngestionUseCase.syncWorkspaceSnapshot", () => {
     });
     const useCase = new AnalyticsIngestionUseCase(repository, adapter);
 
-    await useCase.syncWorkspaceSnapshot({
-      workspaceId: WORKSPACE_ID,
-      period: "weekly",
-      periodStart: new Date("2026-08-01T00:00:00Z"),
-      periodEnd: new Date("2026-08-07T00:00:00Z"),
-      accounts: [
-        {
-          connectedAccountId: CONNECTED_ACCOUNT_1,
-          outstandAccountId: "outstand-acc-1",
-        },
-        {
-          connectedAccountId: CONNECTED_ACCOUNT_2,
-          outstandAccountId: "outstand-acc-2",
-        },
-      ],
-    });
+    await useCase.syncWorkspaceSnapshot(
+      {
+        workspaceId: WORKSPACE_ID,
+        period: "weekly",
+        periodStart: new Date("2026-08-01T00:00:00Z"),
+        periodEnd: new Date("2026-08-07T00:00:00Z"),
+        accounts: [
+          {
+            connectedAccountId: CONNECTED_ACCOUNT_1,
+            outstandAccountId: "outstand-acc-1",
+          },
+          {
+            connectedAccountId: CONNECTED_ACCOUNT_2,
+            outstandAccountId: "outstand-acc-2",
+          },
+        ],
+      },
+      ACTING_USER_ID,
+    );
 
     expect(capturedInput).toEqual(
       expect.objectContaining({
@@ -252,18 +312,21 @@ describe("AnalyticsIngestionUseCase.syncWorkspaceSnapshot", () => {
     const repository = createFakeRepository();
     const useCase = new AnalyticsIngestionUseCase(repository, adapter);
 
-    await useCase.syncWorkspaceSnapshot({
-      workspaceId: WORKSPACE_ID,
-      period: "monthly",
-      periodStart: new Date("2026-08-01T00:00:00Z"),
-      periodEnd: new Date("2026-08-31T00:00:00Z"),
-      accounts: [
-        {
-          connectedAccountId: CONNECTED_ACCOUNT_1,
-          outstandAccountId: "outstand-acc-1",
-        },
-      ],
-    });
+    await useCase.syncWorkspaceSnapshot(
+      {
+        workspaceId: WORKSPACE_ID,
+        period: "monthly",
+        periodStart: new Date("2026-08-01T00:00:00Z"),
+        periodEnd: new Date("2026-08-31T00:00:00Z"),
+        accounts: [
+          {
+            connectedAccountId: CONNECTED_ACCOUNT_1,
+            outstandAccountId: "outstand-acc-1",
+          },
+        ],
+      },
+      ACTING_USER_ID,
+    );
 
     expect(receivedPeriods).toEqual(["last_30_days"]);
   });
@@ -302,8 +365,8 @@ describe("AnalyticsIngestionUseCase.syncWorkspaceSnapshot", () => {
       ],
     };
 
-    await useCase.syncWorkspaceSnapshot(input);
-    await useCase.syncWorkspaceSnapshot(input);
+    await useCase.syncWorkspaceSnapshot(input, ACTING_USER_ID);
+    await useCase.syncWorkspaceSnapshot(input, ACTING_USER_ID);
 
     const snapshots = Array.from(store.values());
     expect(snapshots).toHaveLength(1);

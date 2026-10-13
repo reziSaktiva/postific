@@ -1,7 +1,7 @@
-import { asUserId } from "@social/shared";
+import { asUserId } from "@postific/shared";
 import { redirect } from "next/navigation";
 
-import { WorkspaceService } from "@/domains/workspace";
+import { asConnectResult, WorkspaceService } from "@/domains/workspace";
 import { getCachedSession } from "@/lib/better-auth/session";
 import { workspaceRepository } from "@/lib/repositories/workspace";
 import { getWorkspaceContext } from "@/lib/workspace/workspace-context";
@@ -24,7 +24,14 @@ import { ConnectedAccountsList } from "./components/ConnectedAccountsList";
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ connect?: string }>;
+  searchParams: Promise<{
+    connect?: string;
+    // Facebook Pages flow (T-025.4, KI-070, ADR-115 §7/§10; review fix) —
+    // Route Handler menyimpan session token di cookie httpOnly; query
+    // hanya membawa flag buka-dialog + `state` CSRF (bukan bearer).
+    connectFacebook?: string;
+    connectFacebookState?: string;
+  }>;
 }) {
   const { workspaceId } = await getWorkspaceContext();
   const session = await getCachedSession();
@@ -32,19 +39,29 @@ export default async function Page({
     redirect("/login");
   }
 
-  const { connect } = await searchParams;
+  const { connect, connectFacebook, connectFacebookState } = await searchParams;
 
   const workspaceService = new WorkspaceService(workspaceRepository);
-  const accounts = await workspaceService.listConnectedAccounts(
-    workspaceId,
-    asUserId(session.user.id),
-  );
+  const actorUserId = asUserId(session.user.id);
+  const [accounts, canManage] = await Promise.all([
+    workspaceService.listConnectedAccounts(workspaceId, actorUserId),
+    // T-109 (KI-058): halaman ini TETAP diakses Creator (read-only, beda
+    // dari Members/Organization Settings yang redirect seluruh halaman) —
+    // boolean ini cuma dipakai `ConnectedAccountsList` untuk
+    // menyembunyikan tombol Connect/Disconnect/Reconnect, bukan gate akses
+    // halaman.
+    workspaceService.canManageConnectedAccounts(workspaceId, actorUserId),
+  ]);
 
   return (
     <ConnectedAccountsList
       accounts={accounts}
-      connectResult={
-        connect === "success" || connect === "error" ? connect : null
+      canManageConnections={canManage}
+      connectResult={asConnectResult(connect)}
+      facebookPagesPicker={
+        connectFacebook === "1" && connectFacebookState
+          ? { state: connectFacebookState }
+          : null
       }
     />
   );

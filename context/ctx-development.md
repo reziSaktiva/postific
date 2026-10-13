@@ -44,7 +44,7 @@ Aturan di bawah melengkapi hard rules di [`../AGENTS.md`](../AGENTS.md). Detail 
 ### Umum
 
 1. Format & lint dipercayakan ke **Prettier + ESLint** — jangan reformatting massal di luar scope task.
-2. TypeScript ketat: hindari `any`; prefer tipe dari `@social/shared` untuk ID/enum lintas BC.
+2. TypeScript ketat: hindari `any`; prefer tipe dari `@postific/shared` untuk ID/enum lintas BC.
 3. Jangan commit secret; jangan menambah dependency tanpa alasan jelas (ikuti
    `dependency-strategy.md`). shadcn/ui adalah kode sumber yang di-copy ke
    repo, bukan dependency package — tidak ada isu exact pin/Beta seperti
@@ -55,8 +55,8 @@ Aturan di bawah melengkapi hard rules di [`../AGENTS.md`](../AGENTS.md). Detail 
 ### UI / styling
 
 6. shadcn/ui adalah fondasi komponen permanen (ADR-097, membalik ADR-041).
-   Migrasi dari Astryx sudah tuntas 100% (rilis v0.7, T-102 `✅ Done`) — lihat
-   `tasks/v07-astryx-shadcn-migration.md`.
+   Migrasi dari Astryx ke shadcn/ui selesai (ADR-097); detail status lihat
+   `PROJECT_STATE.md` / `../project-manager/tasks/v07-astryx-shadcn-migration.md`.
 7. Tailwind dipakai langsung sebagai styling komponen shadcn (bukan lagi
    layout-only seperti era Astryx).
 8. Wrapper selektif tetap dipakai untuk komponen kritis/dipakai luas.
@@ -78,47 +78,77 @@ Aturan di bawah melengkapi hard rules di [`../AGENTS.md`](../AGENTS.md). Detail 
 
 ### Struktur repository & use-case
 
-14. Repository per domain selalu dipisah jadi dua lapis: interface
-    (`IXxxRepository`) di `apps/web/src/domains/<domain>/repositories/`,
-    implementasi Prisma nyata di `apps/web/src/lib/repositories/<domain>/`.
-    Domain layer hanya bergantung ke interface (hard rule 6 `AGENTS.md` —
-    domain tidak boleh impor Prisma langsung); Server Action/Application
-    Service yang meng-_inject_ implementasi Prisma dari `lib/repositories`.
-    Preseden: `domains/publishing/repositories/publishing.repository.ts` ↔
-    `lib/repositories/publishing/`.
-15. Kalau sebuah alur butuh dependency tambahan yang wajib ada di
-    constructor (mis. `IOutstandAdapter`) dan urutan operasinya kritis
-    (persist dulu → panggil adapter → persist outcome), taruh sebagai
-    **use-case class terpisah** (`xxx.use-case.ts`) — bukan method baru di
-    service umum domain tersebut. Tujuannya supaya lupa pass dependency
-    ketahuan TypeScript di call site (compile error), bukan baru meledak
-    saat runtime. Preseden: `SchedulePostsUseCase`, `PublishNowUseCase`,
-    `CancelScheduleUseCase` (`domains/publishing/services/*.use-case.ts`),
-    `AnalyticsIngestionUseCase` (`domains/analytics/services/`).
+14. Pola **Repository** (split interface domain ↔ implementasi Prisma) dan
+    pola **use-case class terpisah** untuk alur dengan dependency kritis
+    (mis. `IOutstandAdapter`) — didetailkan di `ctx-implementation.md`
+    (bukan di sini, sesuai batas file pada `context/README.md`).
 
 ### Testing
 
-16. Unit/domain test: **Vitest** (`bun run test`).
-17. Test yang ditambah harus relevan dengan behavior yang diubah; jangan stub berlebihan tanpa nilai.
-18. Service/use-case diuji dengan **fake repository** — bukan mock Prisma
+15. Unit/domain test: **Vitest** (`bun run test`).
+16. Test yang ditambah harus relevan dengan behavior yang diubah; jangan stub berlebihan tanpa nilai.
+17. Service/use-case diuji dengan **fake repository** — bukan mock Prisma
     dan bukan DB nyata. Pola: factory function `createFakeRepository()`
     yang mengembalikan objek literal `implements IXxxRepository` dengan
     default no-op per method, lalu `overrides: Partial<IXxxRepository>`
     di-spread untuk test case tertentu. Preseden:
-    `domains/publishing/services/publishing.service.test.ts`. Ini analog
-    dengan pola `FakeOutstandAdapter` (ADR-059) tapi untuk repository,
-    bukan adapter eksternal.
+    `domains/publishing/services/publishing.service.test.ts`. Pola yang sama
+    dipakai untuk double lokal `IOutstandAdapter` di use-case test (bukan
+    singleton produksi — Fake produksi sudah dihapus, ADR-119). Tes ini
+    tidak membuktikan konteks RLS di implementasi Prisma — lihat aturan 19.
+
+### Dari praktik yang sudah terbukti di kode
+
+18. Error yang harus tampil sebagai pesan `{ error }` ke user (bukan
+    crash): lempar subclass `ApplicationError` di
+    `apps/web/src/lib/utils/errors.ts` — `AuthorizationError`,
+    `NotFoundError`, `ValidationError`, `ConflictError`,
+    `ExternalServiceError`, atau subclass-nya
+    (mis. `AlreadyConnectedError`). `XxxDomainError` di tiap domain
+    extends `Error`, bukan `ApplicationError` — jangan dipakai untuk pesan
+    yang harus sampai ke UI. Server Action yang **mengembalikan** `{ error }`
+    menangkap lewat `try/catch` + `toActionError()`; fungsi itu hanya
+    memetakan `instanceof ApplicationError`, selain itu di-throw lagi.
+    `throw new Error(...)` di jalur ini jadi overlay error Next.js, bukan
+    toast. Preseden: `getOutstandAdapter()` saat `OUTSTAND_API_KEY` kosong
+    (T-090.5) — sekarang `ExternalServiceError`. Isi `message` harus aman
+    ditampilkan. Jangan membungkus ulang action yang kontraknya bukan
+    `{ error }`: `markNotificationReadAction` mengembalikan `void` dan
+    membiarkan error naik (sesi kosong → `redirect("/login")`);
+    `getCalendarPostAction` memetakan sesi kosong ke `null`. Mengganti
+    keduanya ke `toActionError()` mengubah kontrak pemanggil. Detail:
+    `code-conventions.md` (CC-D01, CC-D02).
+19. Query Prisma, baca maupun tulis, pada tabel yang punya RLS: bungkus
+    dengan `withCurrentUser(userId, (tx) => ...)` di
+    `apps/web/src/lib/prisma/with-current-user.ts`. Di dalam callback pakai
+    client `tx`, bukan singleton `prisma` — `SET LOCAL` hanya hidup di
+    transaksi itu. Kalau sudah berada di dalam transaksi luar, panggil
+    `setCurrentUserId(tx, userId)` sebagai pernyataan pertama; jangan
+    menumpuk `withCurrentUser` (itu membuka transaksi kedua dan memecah
+    atomisitas, preseden `createWithOwner`). Tanpa `app.current_user_id`,
+    policy `USING` tidak cocok dan tidak melempar error: `findMany`
+    mengembalikan `[]`, `updateMany`/`deleteMany` melaporkan 0 baris.
+    Preseden tulis: `updateImportWatermark` (T-090). Preseden baca:
+    `getMember`, `listMembers`, `getChannelOrder`.
+20. Port dan interface baru: PascalCase tanpa awalan `I` (contoh
+    `PostMediaLookupPort`, `EnqueueAnalyticsSyncAccountsPort`). Awalan `I`
+    pada `IXxxRepository` serta adapter yang sudah lama (`IOutstandAdapter`,
+    `IMediaStorageAdapter`, `IJobScheduler`) adalah nama yang sudah
+    terpakai — jangan ditiru untuk port baru. Detail: `code-conventions.md`
+    (CC-D04).
 
 ### Git / PR (saat diminta user)
 
-19. Commit hanya jika user meminta — Conventional Commits, imperative, fokus “why”.
-20. Jangan `--no-verify` / force push ke main kecuali diminta eksplisit.
+21. Commit hanya jika user meminta — Conventional Commits, imperative, fokus “why”.
+22. Jangan `--no-verify` / force push ke main kecuali diminta eksplisit.
 
 ---
 
 ## Checklist sebelum selesai task kode
 
 - [ ] Tidak melanggar hard rules `AGENTS.md` (entry point, domain imports, Prisma/Supabase batas)
+- [ ] Pesan `{ error }` ke user adalah subclass `ApplicationError`, dan hanya Server Action yang mengembalikan `{ error }` memakai `toActionError` (action `void` / `redirect` / `null` tidak diubah kontraknya)
+- [ ] Query baca dan tulis pada tabel ber-RLS memakai `withCurrentUser` atau `setCurrentUserId`, dan query di dalamnya memakai client `tx`
 - [ ] `bun run typecheck` hijau
 - [ ] `bun run lint` hijau
 - [ ] Test relevan hijau (jika ada)

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
 
 export function GET() {
-  return NextResponse.json({ ok: true, service: "@social/web" });
+  return NextResponse.json({ ok: true, service: "@postific/web" });
 }

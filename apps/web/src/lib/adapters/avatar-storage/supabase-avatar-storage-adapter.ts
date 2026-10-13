@@ -24,7 +24,9 @@ export const supabaseAvatarStorageAdapter: IAvatarStorageAdapter = {
       .upload(path, fileBuffer, { contentType, upsert: true });
 
     if (error) {
-      throw new ExternalServiceError(`Gagal upload avatar: ${error.message}`);
+      // Jangan sisipkan `error.message` provider ke pesan yang bisa sampai
+      // ke client. Detailnya ada di `cause` untuk log server.
+      throw new ExternalServiceError("Gagal upload avatar.", { cause: error });
     }
 
     const { data } = supabase.storage.from(AVATARS_BUCKET).getPublicUrl(path);

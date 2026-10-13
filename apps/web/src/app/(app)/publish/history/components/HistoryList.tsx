@@ -1,9 +1,16 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import Link from "next/link";
 
-import { ContentStatus } from "@social/shared";
+import { ContentStatus } from "@postific/shared";
 import {
   groupHistoryItemsByDate,
   HISTORY_TERMINAL_STATUSES,
@@ -17,6 +24,12 @@ import { usePublishingPostsRealtime } from "@/lib/hooks/use-publishing-posts-rea
 import { useSyncedState } from "@/lib/hooks/use-synced-state";
 
 import { getHistoryPostAction } from "../actions";
+import {
+  bumpClientNowMs,
+  readClientNowMs,
+  serverRelativeNowMs,
+  subscribeRelativeNow,
+} from "./relative-now";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -79,6 +92,7 @@ function getPrimaryErrorMessage(item: HistoryItemRecord): string {
 
 const ALL_STATUS_FILTER_VALUE = "all";
 const ALL_ACCOUNTS_FILTER_VALUE = "all";
+const RELATIVE_NOW_TICK_MS = 30_000;
 
 const STATUS_OPTIONS = [
   { value: ALL_STATUS_FILTER_VALUE, label: "Semua Status" },
@@ -109,6 +123,12 @@ export interface HistoryListProps {
   accounts: ConnectedAccountRecord[];
   /** Workspace aktif — dipakai `usePublishingPostsRealtime` (T-092.6) untuk subscribe channel `publishing_posts:{workspaceId}`, bukan dipakai untuk fetch data apa pun langsung di komponen ini (AGENTS.md #5). */
   workspaceId: string;
+  /**
+   * Stempel waktu render server (ISO), acuan `formatRelativeTime` (KI-052).
+   * Server dan hydration memakai nilai yang sama supaya teks relatif tidak
+   * bergeser di antara dua sisi.
+   */
+  renderedAt: string;
 }
 
 /**
@@ -144,7 +164,21 @@ export function HistoryList({
   items,
   accounts,
   workspaceId,
+  renderedAt,
 }: HistoryListProps) {
+  const relativeNowMs = useSyncExternalStore(
+    subscribeRelativeNow,
+    () => readClientNowMs(renderedAt),
+    () => serverRelativeNowMs(renderedAt),
+  );
+  const relativeNow = new Date(relativeNowMs);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      bumpClientNowMs(renderedAt);
+    }, RELATIVE_NOW_TICK_MS);
+    return () => window.clearInterval(timer);
+  }, [renderedAt]);
   const [statusFilter, setStatusFilter] = useState<string>(
     ALL_STATUS_FILTER_VALUE,
   );
@@ -173,6 +207,7 @@ export function HistoryList({
         const historyItem =
           fetched && HISTORY_VIEW_STATUSES.has(fetched.status) ? fetched : null;
 
+        bumpClientNowMs(renderedAt);
         setLocalItems((prev) => {
           const withoutStale = prev.filter((item) => item.id !== event.postId);
 
@@ -186,7 +221,7 @@ export function HistoryList({
         });
       })();
     },
-    [setLocalItems],
+    [renderedAt, setLocalItems],
   );
 
   usePublishingPostsRealtime(workspaceId, {
@@ -234,7 +269,13 @@ export function HistoryList({
     <div className="flex flex-col gap-4">
       {/* eslint-disable-next-line no-restricted-syntax -- layout-only */}
       <div className="flex flex-wrap justify-end gap-2">
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <Select
+          value={statusFilter}
+          onValueChange={(value) => {
+            bumpClientNowMs(renderedAt);
+            setStatusFilter(value);
+          }}
+        >
           <SelectTrigger size="sm" aria-label="Filter status" className="w-44">
             <SelectValue />
           </SelectTrigger>
@@ -246,7 +287,13 @@ export function HistoryList({
             ))}
           </SelectContent>
         </Select>
-        <Select value={accountFilter} onValueChange={setAccountFilter}>
+        <Select
+          value={accountFilter}
+          onValueChange={(value) => {
+            bumpClientNowMs(renderedAt);
+            setAccountFilter(value);
+          }}
+        >
           <SelectTrigger size="sm" aria-label="Filter akun" className="w-44">
             <SelectValue />
           </SelectTrigger>
@@ -295,7 +342,7 @@ export function HistoryList({
                       asChild
                       variant="outline"
                       size="sm"
-                      className="cursor-pointer flex-nowrap items-center gap-4 rounded-2xl bg-card p-4 transition-colors hover:border-foreground/40 hover:bg-card!"
+                      className="cursor-pointer flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl bg-card p-4 transition-colors hover:border-foreground/40 hover:bg-card! sm:flex-nowrap"
                     >
                       <Link href={`/publish/history/${item.id}`}>
                         <Text
@@ -329,13 +376,14 @@ export function HistoryList({
                           })}
                         </div>
 
-                        <ItemContent className="min-w-0 flex-1">
-                          <ItemTitle className="truncate font-normal">
+                        <ItemContent className="order-last min-w-0 basis-full sm:order-none sm:flex-1 sm:basis-auto">
+                          <ItemTitle className="line-clamp-none block w-full min-w-0 font-normal whitespace-normal sm:truncate sm:whitespace-nowrap">
                             {item.caption || "(Tanpa caption)"}
                           </ItemTitle>
                           <Text
                             variant="muted"
                             as="span"
+                            suppressHydrationWarning
                             className={
                               isPublished
                                 ? "truncate text-xs"
@@ -343,7 +391,7 @@ export function HistoryList({
                             }
                           >
                             {isPublished
-                              ? `Dipublikasikan ${formatRelativeTime(effectiveDate)}`
+                              ? `Dipublikasikan ${formatRelativeTime(effectiveDate, relativeNow)}`
                               : getPrimaryErrorMessage(item)}
                           </Text>
                         </ItemContent>

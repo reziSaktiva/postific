@@ -1,4 +1,4 @@
-import { asUserId } from "@social/shared";
+import { asUserId } from "@postific/shared";
 import { redirect } from "next/navigation";
 
 import { PublishingService } from "@/domains/publishing";
@@ -53,7 +53,19 @@ export default async function Page() {
   // ADR-094 poin 5, 6, 7) — `workspaceId` dipakai untuk subscribe channel
   // `publishing_posts:{workspaceId}`, bukan untuk fetch data apa pun
   // langsung di komponen itu (AGENTS.md #5).
+  //
+  // `renderedAt` (KI-052): satu stempel waktu untuk `formatRelativeTime`.
+  // Tanpa ini server dan browser masing-masing memakai `new Date()` saat
+  // render, lalu teks "N menit lalu" bisa beda satu ember waktu dan React
+  // melaporkan hydration warning.
+  const renderedAt = new Date().toISOString();
+
   return (
-    <HistoryList items={items} accounts={accounts} workspaceId={workspaceId} />
+    <HistoryList
+      items={items}
+      accounts={accounts}
+      workspaceId={workspaceId}
+      renderedAt={renderedAt}
+    />
   );
 }

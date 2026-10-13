@@ -1,6 +1,6 @@
 # Database & ORM
 
-Dokumen ini mendefinisikan **strategi akses data, ORM, migrasi skema, dan connection pooling** untuk produk Social Media Management.
+Dokumen ini mendefinisikan **strategi akses data, ORM, migrasi skema, dan connection pooling** untuk produk Postific.
 
 Dokumen ini adalah implementasi konkret dari **Database Strategy** (`../05-architecture/database-strategy.md`, ADR-015), **Repository Pattern** (ADR-017 sebagaimana diamandemen ADR-031), dan kebutuhan koneksi Better Auth (`auth-strategy.md`, ADR-030). Skema tabel dan kebijakan RLS tetap mengacu pada Architecture Baseline — dokumen ini fokus pada tooling dan pola operasional.
 

@@ -7,7 +7,7 @@ import type { DragEvent } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { DragDropVerticalIcon, PlusSignIcon } from "@hugeicons/core-free-icons";
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
@@ -17,7 +17,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-import type { SocialPlatform } from "@social/shared";
+import type { SocialPlatform } from "@postific/shared";
 
 import {
   getConnectionStatusLabel,
@@ -137,6 +137,10 @@ function ChannelRow({
       {/* eslint-disable-next-line no-restricted-syntax -- T-098.1, sama seperti di atas */}
       <div className="relative shrink-0">
         <Avatar size="sm">
+          <AvatarImage
+            src={account.avatarUrl ?? undefined}
+            alt={account.handle}
+          />
           <AvatarFallback>{getInitials(account.handle)}</AvatarFallback>
         </Avatar>
         <PlatformBadge platform={account.platform} />
@@ -154,7 +158,7 @@ function ChannelRow({
             </Badge>
           </Link>
         ) : (
-          <Badge variant="secondary">{getConnectionStatusLabel(account)}</Badge>
+          <Badge variant="success">{getConnectionStatusLabel(account)}</Badge>
         )}
       </div>
 

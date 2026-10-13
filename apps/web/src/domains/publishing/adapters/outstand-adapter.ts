@@ -13,6 +13,11 @@
 export type {
   FetchPostMetricsResult,
   FetchWorkspaceMetricsResult,
+  ImportedPostData,
+  ImportJobHandle,
+  ImportJobOutcome,
+  ImportJobStatus,
+  ImportPostsInput,
   IOutstandAdapter,
   OutstandMetricsPeriod,
   OutstandPostTargetInput,
@@ -22,4 +27,4 @@ export type {
   PublishNowOutstandPostResult,
   ScheduleOutstandPostInput,
   ScheduleOutstandPostResult,
-} from "@social/shared";
+} from "@postific/shared";

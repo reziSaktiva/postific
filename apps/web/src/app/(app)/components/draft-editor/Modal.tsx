@@ -6,14 +6,23 @@ import { usePathname, useRouter } from "next/navigation";
 import NextLink from "next/link";
 
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Cancel01Icon } from "@hugeicons/core-free-icons";
+import {
+  AlertCircleIcon,
+  Cancel01Icon,
+  Delete02Icon,
+} from "@hugeicons/core-free-icons";
+import { toast } from "sonner";
 
-import { ContentFormat, ContentStatus, SocialPlatform } from "@social/shared";
+import type { PinterestBoard } from "@postific/shared";
+import { ContentFormat, ContentStatus, SocialPlatform } from "@postific/shared";
+import { pinterestBoardConstraintMessage } from "@/domains/publishing/pinterest-board-constraints";
+import { scheduleTimeConstraintMessage } from "@/domains/publishing/schedule-time-constraints";
 
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ConfirmActionDialog } from "@/components/shared/ConfirmActionDialog";
 import {
   Dialog,
   DialogContent,
@@ -26,21 +35,42 @@ import { FieldDescription } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { formatRelativeTime } from "@/lib/utils/format-relative-time";
-
-import type { ConnectedAccountDto } from "./actions";
+import { useConfirmAction } from "@/lib/hooks/use-confirm-action";
+import { MediaThumbnail } from "../media-thumbnail";
 import {
+  maxMediaCountForFormats,
+  minMediaCountConstraintMessage,
+} from "@/domains/publishing";
+
+import type { ConnectedAccountDto, DraftMediaDto } from "./actions";
+import {
+  deleteMediaAction,
   getConnectedAccountsAction,
   getDraftAction,
+  listPinterestBoardsAction,
   publishNowAction,
   saveDraftAction,
   scheduleDraftAction,
   updateDraftAction,
+  uploadMediaAction,
 } from "./actions";
 import type { UnsavedNewPost } from "./Context";
 import { useDraftEditor } from "./Context";
@@ -53,6 +83,8 @@ import {
   isAlreadyAtDestination,
   resolveTerminalDestination,
 } from "./terminal-destination";
+import { decideDraftSaveTargets } from "./draft-save-targets";
+import { restoreDraftTargetSelection } from "./restore-draft-targets";
 
 /** Akun terhubung dari `WorkspaceConnectedAccount` (ADR-059) — bukan lagi mock. */
 type ConnectedAccount = ConnectedAccountDto;
@@ -239,8 +271,45 @@ function DraftEditorForm({
   const [formatByAccount, setFormatByAccount] = useState<
     Record<string, ContentFormat>
   >({});
+  // Media (T-024.4) — setiap file diupload segera saat dipilih/didrop
+  // (`uploadMediaAction`, bukan disimpan sebagai `File` mentah di state),
+  // supaya preview + validasi mime/ukuran terjadi langsung, bukan ditunda
+  // sampai Save/Schedule. `mediaItems` adalah SATU set untuk seluruh post
+  // (bukan per-akun/per-target, ADR-107) — "hapus" di grid preview (T-024.5)
+  // menghapus PERMANEN (file Storage + record `MediaItem` DB, lewat dialog
+  // konfirmasi Tier 2/ADR-049), bukan sekadar unlink dari state lokal.
+  const [mediaItems, setMediaItems] = useState<DraftMediaDto[]>([]);
+  const [uploadingMediaCount, setUploadingMediaCount] = useState(0);
+  const [mediaError, setMediaError] = useState<string | null>(null);
+  const mediaFileInputRef = useRef<HTMLInputElement>(null);
+  const [isDraggingMedia, setIsDraggingMedia] = useState(false);
   const [pinTitle, setPinTitle] = useState("");
   const [pinLink, setPinLink] = useState("");
+  // Board Pinterest (KI-072) dipilih PER POST tapi PER AKUN (bug fix QA
+  // 2026-09-25) — keyed by `connectedAccountId`, sama pola dengan
+  // `formatByAccount`/`pinterestBoardsByAccount`, supaya board yang dipilih
+  // di satu akun Pinterest tidak ikut menimpa akun Pinterest lain yang
+  // dicentang bersamaan dalam post yang sama. Opsional: `undefined` = belum
+  // dipilih, backend (`computePlatformOverride`) sudah aman menangani ini
+  // (tidak mengirim override sama sekali).
+  const [boardIdByAccount, setBoardIdByAccount] = useState<
+    Record<string, string | undefined>
+  >({});
+  // Daftar board ASLI per akun Pinterest (bukan mock) — di-fetch saat akun
+  // Pinterest dicentang di form akun tujuan (lihat `toggleAccount`), keyed by
+  // `connectedAccountId` supaya beberapa akun Pinterest yang dicentang
+  // bersamaan tidak saling menimpa status loading/error satu sama lain.
+  const [pinterestBoardsByAccount, setPinterestBoardsByAccount] = useState<
+    Record<
+      string,
+      | { status: "loading" }
+      | { status: "success"; boards: PinterestBoard[] }
+      | { status: "error"; message: string }
+    >
+  >({});
+  // Respons fetch yang lebih lama tidak boleh menimpa hasil request yang
+  // lebih baru (retry sukses, lalu error request sebelumnya datang belakangan).
+  const pinterestBoardRequestSeq = useRef<Record<string, number>>({});
   const [scheduleDate, setScheduleDate] = useState<string | undefined>();
   const [scheduleTime, setScheduleTime] = useState<string | undefined>();
   // A step *within* this same Dialog (regardless of variant) — NOT a
@@ -276,6 +345,13 @@ function DraftEditorForm({
         if (cancelled) return;
         setCaption(draft.caption);
         setStatus(draft.status as ContentStatus);
+        setMediaItems(draft.media);
+        const restored = restoreDraftTargetSelection(draft.targets);
+        setSelectedAccountIds(restored.selectedAccountIds);
+        setFormatByAccount(restored.formatByAccount);
+        setBoardIdByAccount(restored.boardIdByAccount);
+        setPinTitle(restored.pinTitle);
+        setPinLink(restored.pinLink);
       })
       .catch(() => {
         if (!cancelled) close();
@@ -335,6 +411,29 @@ function DraftEditorForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- fetch-once-per-mount by design (component remounts via `key` per session)
   }, []);
 
+  // Board Pinterest untuk akun yang ter-restore (KI-060). Centang manual
+  // sudah memanggil fetch yang sama lewat `toggleAccount`.
+  useEffect(() => {
+    if (!isEdit || isLoadingAccounts) {
+      return;
+    }
+    for (const account of accounts) {
+      if (!selectedAccountIds.includes(account.id)) {
+        continue;
+      }
+      if (account.platform !== SocialPlatform.Pinterest) {
+        continue;
+      }
+      if (isAccountDisconnected(account)) {
+        continue;
+      }
+      if (pinterestBoardRequestSeq.current[account.id]) {
+        continue;
+      }
+      fetchPinterestBoards(account.id);
+    }
+  }, [accounts, isEdit, isLoadingAccounts, selectedAccountIds]);
+
   // Report the live snapshot on every render so the parent's Dialog
   // onOpenChange (Escape/backdrop/close-button) can decide what to persist
   // without needing this state lifted up.
@@ -345,16 +444,82 @@ function DraftEditorForm({
     [accounts, selectedAccountIds],
   );
 
+  const pinterestConstraintMessage = pinterestBoardConstraintMessage(
+    selectedAccounts.map((account) => ({
+      platform: account.platform,
+      platformOptions:
+        account.platform === SocialPlatform.Pinterest
+          ? { boardId: boardIdByAccount[account.id] }
+          : undefined,
+    })),
+  );
+
+  // KI-073: caption HANYA wajib kalau TIDAK ADA target Story sama sekali —
+  // Story justru MENOLAK caption di Outstand (`buildPostRequestBody`,
+  // `real-outstand-adapter.ts`: `contentForBody = hasStoryTarget ? "" :
+  // input.caption`). Kombinasi Story + non-Story ber-caption ditolak
+  // adapter secara TERPISAH (throw `client_error`) — ditangani di bawah
+  // sebagai constraint sendiri (`mixedStoryCaptionMessage`), BUKAN dilipat
+  // ke gate caption-required (versi sebelumnya salah: mewajibkan caption
+  // untuk kombinasi campuran justru menjamin submit gagal di adapter,
+  // padahal versi caption-kosong itu yang sebenarnya diterima).
+  const activeFormatsForGate = getActiveFormats();
+  const hasStoryTarget = activeFormatsForGate.some(
+    (format) => format === ContentFormat.Story,
+  );
+  const hasNonStoryTarget = activeFormatsForGate.some(
+    (format) => format !== ContentFormat.Story,
+  );
+  const isCaptionRequired = !hasStoryTarget;
+  const mixedStoryCaptionMessage =
+    hasStoryTarget && hasNonStoryTarget && caption.trim().length > 0
+      ? "Story tidak bisa digabung dengan target lain selama caption terisi — kosongkan caption atau publish Story secara terpisah dari target lainnya."
+      : null;
+
+  // KI-074: Story/Reel/Pin secara native selalu berbasis media — tanpa
+  // guard ini, target Story/Reel/Pin bisa "berhasil" terpublish tapi
+  // tayang kosong (caption-nya sendiri juga sudah dikosongkan untuk
+  // Story, KI-073 di atas). Mirror server: `assertMediaCountMeetsMinimum`
+  // (`content-format-matrix.ts`).
+  const mediaMinimumMessage = minMediaCountConstraintMessage(
+    mediaItems.length,
+    activeFormatsForGate,
+  );
+
+  // T-108 (KI-044): tidak ada validasi yang mencegah user men-Schedule post
+  // ke waktu yang sudah lewat (mis. jadwalkan jam 08:00 padahal sekarang
+  // sudah jam 11:48, atau tanggal yang sudah lewat sama sekali — date input
+  // di bawah tidak punya batas `min`). Dievaluasi HANYA kalau tanggal DAN
+  // jam sudah dipilih keduanya (draft yang belum lengkap sudah tertahan
+  // lewat `Boolean(scheduleDate) && Boolean(scheduleTime)` di bawah, jangan
+  // tampilkan pesan ini sebelum itu). Dihitung ulang setiap render (sama
+  // seperti `pinterestConstraintMessage`/`mediaMinimumMessage` di atas) jadi
+  // otomatis re-evaluate begitu waktu berjalan lewat titik yang dipilih user.
+  const scheduleTimeMessage =
+    scheduleDate && scheduleTime
+      ? scheduleTimeConstraintMessage(
+          new Date(`${scheduleDate}T${scheduleTime}`),
+        )
+      : null;
+
   const isReadyToSchedule =
-    caption.trim().length > 0 &&
+    (!isCaptionRequired || caption.trim().length > 0) &&
     selectedAccounts.length > 0 &&
     Boolean(scheduleDate) &&
-    Boolean(scheduleTime);
+    Boolean(scheduleTime) &&
+    pinterestConstraintMessage === null &&
+    mediaMinimumMessage === null &&
+    mixedStoryCaptionMessage === null &&
+    scheduleTimeMessage === null;
 
   // Publish Now (KSP-05-F12) skips the Schedule Picker entirely — tanggal/
   // waktu tidak relevan sama sekali, beda dari `isReadyToSchedule`.
   const isReadyToPublishNow =
-    caption.trim().length > 0 && selectedAccounts.length > 0;
+    (!isCaptionRequired || caption.trim().length > 0) &&
+    selectedAccounts.length > 0 &&
+    pinterestConstraintMessage === null &&
+    mediaMinimumMessage === null &&
+    mixedStoryCaptionMessage === null;
 
   // Publish Now dari Queue (T-032.4) — lompat otomatis ke step konfirmasi
   // begitu draft (caption/status) DAN daftar akun terhubung selesai dimuat,
@@ -367,12 +532,9 @@ function DraftEditorForm({
   // dievaluasi sekali per sesi (component ini remount penuh per sesi lewat
   // `key={sessionKey}` di `DraftEditorModal`), jadi tidak memaksa balik ke
   // step konfirmasi kalau user sengaja kembali ke form setelah itu. Kalau
-  // belum ready (mis. akun target belum valid — Edit Draft saat ini tidak
-  // preload akun yang sebelumnya dijadwalkan, KI-032), pengecekan ini
-  // sengaja TIDAK memaksa — dibiarkan fallback ke form biasa. Supaya
-  // fallback ini tidak terasa seperti klik "Publish Now" tidak berefek sama
-  // sekali, tampilkan notice info yang menjelaskan kenapa (bukan gagal diam
-  // tanpa sinyal apapun) sambil user memilih ulang akun secara manual.
+  // belum ready (caption, media, atau akun yang sudah tidak terhubung),
+  // pengecekan ini sengaja TIDAK memaksa — dibiarkan fallback ke form
+  // biasa, dengan notice yang menjelaskan kenapa.
   const [hasCheckedAutoAdvance, setHasCheckedAutoAdvance] = useState(false);
   if (
     !hasCheckedAutoAdvance &&
@@ -388,7 +550,7 @@ function DraftEditorForm({
       setNotice({
         status: "info",
         title:
-          "Publish Now belum bisa langsung dikonfirmasi — pilih ulang akun tujuan untuk melanjutkan (akun yang sebelumnya dijadwalkan belum otomatis dimuat).",
+          "Publish Now belum bisa langsung dikonfirmasi — lengkapi bagian yang masih kurang, lalu lanjutkan dari form.",
       });
     }
   }
@@ -403,6 +565,55 @@ function DraftEditorForm({
       }
       return prev;
     });
+    if (
+      checked &&
+      account.platform === SocialPlatform.Pinterest &&
+      !isAccountDisconnected(account)
+    ) {
+      fetchPinterestBoards(account.id);
+    }
+  }
+
+  /** Fetch daftar board Pinterest asli (KI-072) — dipanggil saat akun
+   * Pinterest dicentang di `toggleAccount`, dan sebagai retry manual dari
+   * tombol "Coba lagi" pada state error. */
+  function fetchPinterestBoards(connectedAccountId: string) {
+    const requestSeq =
+      (pinterestBoardRequestSeq.current[connectedAccountId] ?? 0) + 1;
+    pinterestBoardRequestSeq.current[connectedAccountId] = requestSeq;
+    setPinterestBoardsByAccount((prev) => ({
+      ...prev,
+      [connectedAccountId]: { status: "loading" },
+    }));
+    listPinterestBoardsAction(connectedAccountId)
+      .then((boards) => {
+        if (
+          pinterestBoardRequestSeq.current[connectedAccountId] !== requestSeq
+        ) {
+          return;
+        }
+        setPinterestBoardsByAccount((prev) => ({
+          ...prev,
+          [connectedAccountId]: { status: "success", boards },
+        }));
+      })
+      .catch((error) => {
+        if (
+          pinterestBoardRequestSeq.current[connectedAccountId] !== requestSeq
+        ) {
+          return;
+        }
+        setPinterestBoardsByAccount((prev) => ({
+          ...prev,
+          [connectedAccountId]: {
+            status: "error",
+            message:
+              error instanceof Error
+                ? error.message
+                : "Gagal memuat daftar board.",
+          },
+        }));
+      });
   }
 
   /**
@@ -421,15 +632,154 @@ function DraftEditorForm({
     }
   }
 
+  /**
+   * Format yang sedang aktif dipilih di antara akun target yang dicentang
+   * — dipakai untuk menghitung batas media efektif (ADR-107,
+   * `maxMediaCountFor`) DAN dikirim ke Server Action (`activeFormats`)
+   * supaya server bisa menegakkan batas yang sama (defense-in-depth, sama
+   * pola guard lain di repo ini).
+   */
+  function getActiveFormats(): ContentFormat[] {
+    return selectedAccounts.map(
+      (account) =>
+        formatByAccount[account.id] ?? getDefaultFormat(account.platform),
+    );
+  }
+
+  const mediaIds = mediaItems.map((item) => item.id);
+  const effectiveMaxMedia = maxMediaCountForFormats(getActiveFormats());
+  const isMediaLimitReached =
+    mediaItems.length + uploadingMediaCount >= effectiveMaxMedia;
+  /**
+   * KI-061 (ADR-107): kalau user upload media dulu lalu menambah akun
+   * target dengan format lebih ketat, `effectiveMaxMedia` bisa turun di
+   * bawah `mediaItems.length` yang sudah ada — tanpa indikator ini user
+   * baru tahu ada masalah setelah klik Save/Schedule/Publish dan kena
+   * error server (`assertMediaCountWithinLimit`). Server menolak berdasarkan
+   * TOTAL count, bukan per-item (lihat `content-format-matrix.ts`).
+   * Urutan grid = urutan `mediaIds` yang tersimpan (upload di-append,
+   * dan `getDraftAction` mengembalikan urutan itu lagi meski
+   * `listByIds` datang sebagai `createdAt desc`). Item index >=
+   * `effectiveMaxMedia` adalah ekor array — media paling baru — yang
+   * perlu dihapus dulu sampai total kembali di bawah batas.
+   */
+  const overLimitMediaCount = Math.max(
+    0,
+    mediaItems.length - effectiveMaxMedia,
+  );
+
+  async function handleFilesSelected(fileList: FileList | null) {
+    if (!fileList || fileList.length === 0) {
+      return;
+    }
+    const files = Array.from(fileList);
+    const max = maxMediaCountForFormats(getActiveFormats());
+    const availableSlots = Math.max(
+      0,
+      max - mediaItems.length - uploadingMediaCount,
+    );
+
+    if (availableSlots === 0) {
+      setMediaError(
+        `Batas maksimum ${max} media untuk format yang sedang dipilih sudah tercapai.`,
+      );
+      return;
+    }
+
+    const toUpload = files.slice(0, availableSlots);
+    if (files.length > toUpload.length) {
+      setMediaError(
+        `Hanya ${toUpload.length} dari ${files.length} file diunggah — batas maksimum media untuk format ini adalah ${max}.`,
+      );
+    } else {
+      setMediaError(null);
+    }
+
+    setUploadingMediaCount((count) => count + toUpload.length);
+    await Promise.all(
+      toUpload.map(async (file) => {
+        try {
+          const formData = new FormData();
+          formData.append("file", file);
+          const result = await uploadMediaAction(formData);
+          if ("error" in result) {
+            setMediaError(result.error);
+          } else {
+            setMediaItems((prev) => [...prev, result.media]);
+          }
+        } catch {
+          setMediaError("Gagal mengunggah salah satu file. Coba lagi.");
+        } finally {
+          setUploadingMediaCount((count) => count - 1);
+        }
+      }),
+    );
+  }
+
+  // T-024.5 (ADR-049 Tier 2): hapus media dari grid preview sekarang berarti
+  // hapus PERMANEN (file Storage + record `MediaItem` DB), bukan lagi
+  // unlink diam-diam — pola sama `deleteConfirm` di `DraftsList.tsx`
+  // (`useConfirmAction` + `ConfirmActionDialog`). Karena `ConfirmActionDialog`
+  // adalah `AlertDialog` modal (memblokir interaksi lain di belakangnya
+  // selagi terbuka), tombol hapus item lain di grid otomatis tidak bisa
+  // diklik selama satu proses berjalan — tidak perlu state disable
+  // tambahan per-tile, konsisten pola `DraftsList`.
+  const deleteMediaConfirm = useConfirmAction<DraftMediaDto>(
+    (item) => deleteMediaAction(item.id),
+    (item) => {
+      setMediaItems((prev) => prev.filter((m) => m.id !== item.id));
+      toast("Media berhasil dihapus");
+    },
+  );
+
   async function handleSaveDraft() {
+    const decision = decideDraftSaveTargets({
+      accountsLoaded: !isLoadingAccounts,
+      selectedAccountIds,
+      builtTargets: buildTargetsPayload().map((target) => ({
+        connectedAccountId: target.connectedAccountId,
+        contentFormat: target.contentFormat,
+        platformOptions: target.platformOptions,
+      })),
+    });
+    if (decision.action === "wait") {
+      return;
+    }
+    const targets =
+      decision.action === "replace" ? decision.targets : undefined;
+
     setIsSavingDraft(true);
     try {
+      const activeFormats = getActiveFormats();
+      let nextPostId = savedPostId;
       if (savedPostId) {
-        await updateDraftAction(savedPostId, caption);
+        const result = await updateDraftAction(savedPostId, {
+          caption,
+          mediaIds,
+          activeFormats,
+          ...(targets !== undefined ? { targets } : {}),
+        });
+        if ("error" in result) {
+          setNotice({ status: "error", title: result.error });
+          return;
+        }
       } else {
-        const result = await saveDraftAction(caption);
+        const result = await saveDraftAction({
+          caption,
+          mediaIds,
+          activeFormats,
+          ...(targets !== undefined ? { targets } : {}),
+        });
+        if ("error" in result) {
+          setNotice({ status: "error", title: result.error });
+          return;
+        }
+        nextPostId = result.postId;
         setSavedPostId(result.postId);
       }
+      // Snapshot ikut diperbarui sekarang (lihat KI-043 di Schedule /
+      // Publish Now) supaya tutup dialog tidak menyimpan ulang caption.
+      onLatestChange({ mode, caption, savedPostId: nextPostId });
       if (mode === "create") {
         clearUnsavedNewPost();
       }
@@ -438,6 +788,14 @@ function DraftEditorForm({
       // di daftar itulah umpan baliknya, menggantikan banner sukses yang tidak
       // akan sempat terbaca karena editor ditutup.
       finishTerminalAction("save-draft");
+    } catch (error) {
+      setNotice({
+        status: "error",
+        title:
+          error instanceof Error
+            ? error.message
+            : "Gagal menyimpan draft. Coba lagi.",
+      });
     } finally {
       setIsSavingDraft(false);
     }
@@ -456,7 +814,7 @@ function DraftEditorForm({
         formatByAccount[account.id] ?? getDefaultFormat(account.platform),
       platformOptions:
         account.platform === SocialPlatform.Pinterest
-          ? { pinTitle, pinLink }
+          ? { pinTitle, pinLink, boardId: boardIdByAccount[account.id] }
           : undefined,
     }));
   }
@@ -473,11 +831,26 @@ function DraftEditorForm({
         caption,
         scheduledAt,
         targets: buildTargetsPayload(),
+        mediaIds,
       });
+
+      if ("error" in result) {
+        setNotice({ status: "error", title: result.error });
+        return;
+      }
 
       setSavedPostId(result.postId);
       setStatus(ContentStatus.Scheduled);
       setPendingAction(null);
+      // KI-043: sama seperti Save Draft — hapus caption sementara di
+      // localStorage supaya Resume Dialog tidak menampilkan caption basi.
+      // Snapshot ikut diperbarui sekarang karena `setSavedPostId` baru
+      // terbaca parent di render berikutnya; tanpa ini, tutup dialog bisa
+      // menyimpan ulang caption yang baru saja dihapus.
+      onLatestChange({ mode, caption, savedPostId: result.postId });
+      if (mode === "create") {
+        clearUnsavedNewPost();
+      }
       // Schedule → Publish > Queue (ADR-054). Queue sendiri masih placeholder
       // sampai T-032; tujuannya tetap dipakai karena ADR-054 sudah menetapkan
       // destinasi ini, dan mendarat di Queue lebih masuk akal daripada
@@ -503,11 +876,26 @@ function DraftEditorForm({
         postId: savedPostId,
         caption,
         targets: buildTargetsPayload(),
+        mediaIds,
       });
+
+      if ("error" in result) {
+        setNotice({ status: "error", title: result.error });
+        return;
+      }
 
       setSavedPostId(result.postId);
       setStatus(ContentStatus.Published);
       setPendingAction(null);
+      // KI-043: sama seperti Save Draft — hapus caption sementara di
+      // localStorage supaya Resume Dialog tidak menampilkan caption basi.
+      // Snapshot ikut diperbarui sekarang karena `setSavedPostId` baru
+      // terbaca parent di render berikutnya; tanpa ini, tutup dialog bisa
+      // menyimpan ulang caption yang baru saja dihapus.
+      onLatestChange({ mode, caption, savedPostId: result.postId });
+      if (mode === "create") {
+        clearUnsavedNewPost();
+      }
       // Publish Now → Publish > Calendar (T-029, ADR-054) — History belum
       // jadi layar terdokumentasi, Calendar dipakai sementara sampai T-034.
       finishTerminalAction("publish-now");
@@ -609,6 +997,26 @@ function DraftEditorForm({
         ) : (
           // eslint-disable-next-line no-restricted-syntax -- T-102: padanan Astryx VStack, murni Tailwind flex.
           <div className="flex flex-col gap-4">
+            {pinterestConstraintMessage ? (
+              <Alert variant="destructive">
+                <AlertTitle>{pinterestConstraintMessage}</AlertTitle>
+              </Alert>
+            ) : null}
+            {mediaMinimumMessage ? (
+              <Alert variant="destructive">
+                <AlertTitle>{mediaMinimumMessage}</AlertTitle>
+              </Alert>
+            ) : null}
+            {mixedStoryCaptionMessage ? (
+              <Alert variant="destructive">
+                <AlertTitle>{mixedStoryCaptionMessage}</AlertTitle>
+              </Alert>
+            ) : null}
+            {scheduleTimeMessage ? (
+              <Alert variant="destructive">
+                <AlertTitle>{scheduleTimeMessage}</AlertTitle>
+              </Alert>
+            ) : null}
             {notice ? (
               <Alert
                 variant={notice.status === "error" ? "destructive" : "default"}
@@ -641,6 +1049,14 @@ function DraftEditorForm({
                     <FieldDescription>
                       AI Caption Assist belum termasuk revisi ini.
                     </FieldDescription>
+                    {hasStoryTarget &&
+                    !hasNonStoryTarget &&
+                    caption.trim().length > 0 ? (
+                      <FieldDescription>
+                        Story menolak caption — teks di atas TIDAK akan ikut
+                        terpublish ke Instagram/Facebook.
+                      </FieldDescription>
+                    ) : null}
                   </div>
 
                   {/* eslint-disable-next-line no-restricted-syntax -- T-102: padanan Astryx VStack, murni Tailwind flex. */}
@@ -651,11 +1067,172 @@ function DraftEditorForm({
                     <Label htmlFor="draft-media" className="sr-only">
                       Media
                     </Label>
-                    <Input id="draft-media" type="file" disabled />
-                    <FieldDescription>
-                      Lampiran media akan tersedia setelah OutstandAdapter Media
-                      API siap.
-                    </FieldDescription>
+                    <input
+                      ref={mediaFileInputRef}
+                      id="draft-media"
+                      type="file"
+                      multiple
+                      accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/quicktime"
+                      className="hidden"
+                      disabled={isMediaLimitReached}
+                      onChange={(event) => {
+                        void handleFilesSelected(event.target.files);
+                        event.target.value = "";
+                      }}
+                    />
+                    {/* eslint-disable-next-line no-restricted-syntax -- T-024.4: custom drag-drop zone (dikonfirmasi King Rezi via AskUserQuestion, bukan native file input polos) — tidak ada primitive shadcn setara, murni Tailwind. */}
+                    <div
+                      role="button"
+                      tabIndex={isMediaLimitReached ? -1 : 0}
+                      aria-disabled={isMediaLimitReached}
+                      onClick={() => {
+                        if (!isMediaLimitReached) {
+                          mediaFileInputRef.current?.click();
+                        }
+                      }}
+                      onKeyDown={(event) => {
+                        if (
+                          !isMediaLimitReached &&
+                          (event.key === "Enter" || event.key === " ")
+                        ) {
+                          event.preventDefault();
+                          mediaFileInputRef.current?.click();
+                        }
+                      }}
+                      onDragOver={(event) => {
+                        event.preventDefault();
+                        if (!isMediaLimitReached) setIsDraggingMedia(true);
+                      }}
+                      onDragLeave={() => setIsDraggingMedia(false)}
+                      onDrop={(event) => {
+                        event.preventDefault();
+                        setIsDraggingMedia(false);
+                        if (!isMediaLimitReached) {
+                          void handleFilesSelected(event.dataTransfer.files);
+                        }
+                      }}
+                      className={cn(
+                        "flex flex-col items-center justify-center gap-1 rounded-md border border-dashed border-input p-6 text-center transition-colors",
+                        isMediaLimitReached
+                          ? "cursor-not-allowed opacity-50"
+                          : "cursor-pointer hover:border-primary",
+                        isDraggingMedia && "border-primary bg-accent",
+                      )}
+                    >
+                      <Text>Tarik file ke sini atau klik untuk memilih</Text>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span
+                            aria-disabled="true"
+                            className="cursor-not-allowed text-sm text-muted-foreground underline underline-offset-4"
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            atau pilih dari Media Library
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>Coming soon</TooltipContent>
+                      </Tooltip>
+                    </div>
+
+                    {mediaError ? (
+                      <Text variant="muted" className="text-destructive">
+                        {mediaError}
+                      </Text>
+                    ) : (
+                      // eslint-disable-next-line no-restricted-syntax -- T-102: padanan Astryx HStack, murni Tailwind flex.
+                      <div className="flex flex-wrap items-center gap-2">
+                        <FieldDescription>
+                          Maks. {effectiveMaxMedia} media untuk format yang
+                          sedang dipilih (ADR-107) — 50MB per file.
+                        </FieldDescription>
+                        {/* KI-061: indikator over-limit setelah ganti target akun/format menurunkan effectiveMaxMedia di bawah media yang sudah diupload. */}
+                        {overLimitMediaCount > 0 ? (
+                          <Badge variant="warning" className="gap-1">
+                            <HugeiconsIcon
+                              icon={AlertCircleIcon}
+                              strokeWidth={2}
+                            />
+                            {overLimitMediaCount} media melebihi batas, hapus
+                            untuk lanjut
+                          </Badge>
+                        ) : null}
+                      </div>
+                    )}
+
+                    {mediaItems.length > 0 || uploadingMediaCount > 0 ? (
+                      // eslint-disable-next-line no-restricted-syntax -- T-024.4: grid preview thumbnail media (multi-media/carousel) — tidak ada primitive shadcn setara, murni Tailwind grid.
+                      <div className="grid grid-cols-3 gap-2">
+                        {mediaItems.map((item, index) => {
+                          // KI-061 (ADR-107): server menolak berdasarkan TOTAL count.
+                          // Ekor array = media paling baru karena urutan grid
+                          // mengikuti `mediaIds` (append, dan di-restore oleh
+                          // `getDraftAction`), jadi index >= effectiveMaxMedia
+                          // adalah kelebihan yang perlu dihapus dulu.
+                          const isOverLimit = index >= effectiveMaxMedia;
+                          return (
+                            // eslint-disable-next-line no-restricted-syntax -- T-024.4: tile thumbnail grid preview media (multi-media/carousel) — tidak ada primitive shadcn setara, murni Tailwind.
+                            <div
+                              key={item.id}
+                              className={cn(
+                                "group relative aspect-square overflow-hidden rounded-md border border-border bg-muted",
+                                isOverLimit && "border-warning bg-warning/10",
+                              )}
+                            >
+                              <MediaThumbnail
+                                url={item.url}
+                                type={item.type}
+                                alt={item.filename}
+                              />
+                              {isOverLimit ? (
+                                <Badge
+                                  variant="warning"
+                                  className="absolute top-1 left-1 px-1"
+                                  aria-label="Media ini melebihi batas maksimum untuk format yang sedang dipilih"
+                                >
+                                  <HugeiconsIcon
+                                    icon={AlertCircleIcon}
+                                    strokeWidth={2}
+                                  />
+                                </Badge>
+                              ) : null}
+                              <button
+                                type="button"
+                                aria-label={`Hapus ${item.filename} secara permanen`}
+                                onClick={() => deleteMediaConfirm.open(item)}
+                                disabled={deleteMediaConfirm.isLoading}
+                                className={cn(
+                                  "absolute top-1 right-1 rounded-full bg-background/80 p-1 transition-opacity disabled:cursor-not-allowed disabled:opacity-50",
+                                  // Tile dalam batas tetap hover-only. Tile
+                                  // kelebihan batas harus selalu terlihat —
+                                  // layar sentuh tidak punya hover, padahal
+                                  // badge KI-061 menyuruh user menghapus.
+                                  isOverLimit
+                                    ? "opacity-100"
+                                    : "opacity-0 group-hover:opacity-100",
+                                )}
+                              >
+                                <HugeiconsIcon
+                                  icon={Delete02Icon}
+                                  strokeWidth={2}
+                                  size={16}
+                                />
+                              </button>
+                            </div>
+                          );
+                        })}
+                        {Array.from({ length: uploadingMediaCount }).map(
+                          (_, index) => (
+                            // eslint-disable-next-line no-restricted-syntax -- T-024.4: placeholder loading tile tanpa identitas stabil (belum ada id sampai upload selesai); murni Tailwind, tidak ada primitive shadcn setara.
+                            <div
+                              key={`uploading-${index}`}
+                              className="flex aspect-square items-center justify-center rounded-md border border-dashed border-input bg-muted"
+                            >
+                              <Spinner />
+                            </div>
+                          ),
+                        )}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
 
@@ -787,6 +1364,103 @@ function DraftEditorForm({
                                     setPinLink(event.target.value)
                                   }
                                 />
+                                <Label htmlFor={`${checkboxId}-board`}>
+                                  Board
+                                </Label>
+                                <FieldDescription>
+                                  Wajib. Pin tidak terkirim tanpa board.
+                                </FieldDescription>
+                                {(() => {
+                                  const boardState =
+                                    pinterestBoardsByAccount[account.id];
+                                  if (!boardState) {
+                                    return (
+                                      <Select disabled value="">
+                                        <SelectTrigger
+                                          id={`${checkboxId}-board`}
+                                          className="w-full"
+                                        >
+                                          <SelectValue placeholder="Pilih board…" />
+                                        </SelectTrigger>
+                                        <SelectContent />
+                                      </Select>
+                                    );
+                                  }
+                                  if (boardState.status === "loading") {
+                                    return (
+                                      <Select disabled value="">
+                                        <SelectTrigger
+                                          id={`${checkboxId}-board`}
+                                          className="w-full"
+                                        >
+                                          <SelectValue placeholder="Memuat board..." />
+                                        </SelectTrigger>
+                                        <SelectContent />
+                                      </Select>
+                                    );
+                                  }
+                                  if (boardState.status === "error") {
+                                    return (
+                                      // eslint-disable-next-line no-restricted-syntax -- T-102: padanan Astryx HStack, murni Tailwind flex.
+                                      <div className="flex items-center gap-2">
+                                        <Text
+                                          variant="muted"
+                                          className="text-destructive"
+                                        >
+                                          {boardState.message}
+                                        </Text>
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() =>
+                                            fetchPinterestBoards(account.id)
+                                          }
+                                        >
+                                          Coba lagi
+                                        </Button>
+                                      </div>
+                                    );
+                                  }
+                                  return (
+                                    <>
+                                      {boardState.boards.length === 0 ? (
+                                        <FieldDescription>
+                                          Akun ini belum punya board, jadi pin
+                                          belum bisa dijadwalkan.
+                                        </FieldDescription>
+                                      ) : null}
+                                      <Select
+                                        value={
+                                          boardIdByAccount[account.id] ?? ""
+                                        }
+                                        onValueChange={(value) =>
+                                          setBoardIdByAccount((prev) => ({
+                                            ...prev,
+                                            [account.id]: value || undefined,
+                                          }))
+                                        }
+                                      >
+                                        <SelectTrigger
+                                          id={`${checkboxId}-board`}
+                                          className="w-full"
+                                        >
+                                          <SelectValue placeholder="Pilih board…" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {boardState.boards.map((board) => (
+                                            <SelectItem
+                                              key={board.id}
+                                              value={board.id}
+                                            >
+                                              {board.name}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </>
+                                  );
+                                })()}
                               </div>
                             ) : null}
 
@@ -875,7 +1549,7 @@ function DraftEditorForm({
           <Button
             variant="secondary"
             onClick={handleSaveDraft}
-            disabled={isSavingDraft}
+            disabled={isSavingDraft || isLoadingAccounts}
           >
             {isSavingDraft ? <Spinner /> : null}
             Save as Draft
@@ -895,6 +1569,18 @@ function DraftEditorForm({
           </Button>
         </DialogFooter>
       )}
+
+      <ConfirmActionDialog
+        isOpen={deleteMediaConfirm.isOpen}
+        onClose={deleteMediaConfirm.close}
+        title="Hapus media ini secara permanen?"
+        description="Tindakan ini tidak bisa dibatalkan — file akan hilang permanen dari Storage dan tidak lagi bisa dipakai di post manapun."
+        confirmLabel="Hapus Media"
+        isLoading={deleteMediaConfirm.isLoading}
+        error={deleteMediaConfirm.error}
+        onConfirm={() => void deleteMediaConfirm.confirm()}
+        variant="destructive"
+      />
     </div>
   );
 }

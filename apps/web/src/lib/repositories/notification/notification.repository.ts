@@ -1,5 +1,5 @@
-import { asNotificationId, asUserId, asWorkspaceId } from "@social/shared";
-import type { NotificationType } from "@social/shared";
+import { asNotificationId, asUserId, asWorkspaceId } from "@postific/shared";
+import type { NotificationType } from "@postific/shared";
 import type {
   INotificationRepository,
   NotificationRecord,

@@ -8,7 +8,7 @@ import {
   ContentStatus,
   MemberRole,
   SocialPlatform,
-} from "@social/shared";
+} from "@postific/shared";
 import { describe, expect, it } from "vitest";
 import {
   AuthorizationError,
@@ -65,12 +65,20 @@ function createFakeRepository(
     getHistoryPostById: async () => null,
     cancelSchedule: async () => null,
     markPostFailed: async () => undefined,
+    markPostPublished: async () => undefined,
     getRetryTarget: async () => null,
     resetTargetForRetry: async () => undefined,
     setRetryOutstandPostId: async () => undefined,
     reconcilePostStatusAfterRetry: async () => undefined,
     findPostTargetsByOutstandPostId: async () => null,
     softDeletePost: async () => null,
+    listSyncablePostsByConnectedAccount: async () => [],
+    findPostOutstandId: async () => null,
+    findPostSnapshotForEngagement: async () => null,
+    upsertImportedPosts: async () => ({
+      insertedCount: 0,
+      skippedDuplicateCount: 0,
+    }),
     ...overrides,
   };
 }
@@ -80,7 +88,15 @@ function createFakeOutstandAdapter(
 ): IOutstandAdapter {
   return {
     connectAccount: async () => ({ redirectUrl: "/unused" }),
-    exchangeConnectCode: async () => ({
+    listPendingFacebookPages: async () => ({ pages: [] }),
+    confirmFacebookPagesConnection: async () => ({ accounts: [] }),
+    listPinterestBoards: async () => [],
+    uploadMediaWorkingCopy: async () => ({
+      outstandMediaId: "unused",
+      outstandMediaUrl: "https://fake.outstand.local/media/unused",
+      expiresAt: new Date(),
+    }),
+    resolveConnectCallback: async () => ({
       outstandAccountId: "unused",
       platform: "instagram" as never,
       handle: "unused",
@@ -106,6 +122,14 @@ function createFakeOutstandAdapter(
       totalEngagements: 0,
       avgEngagementRate: 0,
     }),
+    fetchComments: async () => ({ comments: [], nextCursor: null }),
+    replyToComment: async () => ({ outstandReplyId: "fake-reply" }),
+    importPosts: async () => ({ importJobId: "fake-import-job" }),
+    fetchImportJobStatus: async () => ({
+      status: "completed" as const,
+      posts: [],
+      error: null,
+    }),
     ...overrides,
   };
 }
@@ -118,6 +142,7 @@ function baseRetryTarget(
     workspaceId: WORKSPACE_ID,
     postOutstandPostId: "fake-post-original",
     caption: "Hello world",
+    mediaIds: [],
     targetId: TARGET_ID,
     targetStatus: "failed",
     connectedAccountId: CONNECTED_ACCOUNT_ID,
@@ -125,6 +150,7 @@ function baseRetryTarget(
     platform: SocialPlatform.Instagram,
     contentFormat: ContentFormat.Post,
     platformOptions: null,
+    hasSiblingLiveTargets: false,
     ...overrides,
   };
 }
@@ -195,8 +221,11 @@ describe("RetryFailedTargetUseCase.execute", () => {
         expect(caption).toBe("Hello world");
         return { outstandPostId: "fake-post-retry" };
       },
-      fetchPostOutcome: async (outstandPostId) => {
+      fetchPostOutcome: async (outstandPostId, expectedOutstandAccountIds) => {
         expect(outstandPostId).toBe("fake-post-retry");
+        // T-027 bug fix (root-cause) — akun yang di-retry, BUKAN dari
+        // memori adapter.
+        expect(expectedOutstandAccountIds).toEqual(["outstand-acc-1"]);
         return [publishedOutcome("outstand-acc-1")];
       },
     });
@@ -211,8 +240,9 @@ describe("RetryFailedTargetUseCase.execute", () => {
       actingUserId: AUTHOR_ID,
     });
 
+    // Sole target (hasSiblingLiveTargets=false) → full delete tanpa accountIds.
     expect(deletePostCalls).toEqual([
-      { outstandPostId: "fake-post-original", accountIds: ["outstand-acc-1"] },
+      { outstandPostId: "fake-post-original", accountIds: undefined },
     ]);
     expect(resetCalls).toBe(1);
     expect(setRetryOutstandPostIdCalls).toEqual([
@@ -236,6 +266,33 @@ describe("RetryFailedTargetUseCase.execute", () => {
       error: null,
       platformPostUrl: "https://fake.outstand.local/posts/outstand-acc-1",
     });
+  });
+
+  it("skips deletePost when sibling targets are still live (published/scheduled/pending)", async () => {
+    const retryTarget = baseRetryTarget({ hasSiblingLiveTargets: true });
+    const deletePostCalls: unknown[] = [];
+
+    const repository = createFakeRepository({
+      getRetryTarget: async () => retryTarget,
+    });
+    const adapter = createFakeOutstandAdapter({
+      deletePost: async (...args) => {
+        deletePostCalls.push(args);
+      },
+      publishNow: async () => ({ outstandPostId: "fake-post-retry" }),
+      fetchPostOutcome: async () => [publishedOutcome("outstand-acc-1")],
+    });
+
+    const useCase = new RetryFailedTargetUseCase(repository, adapter);
+    await useCase.execute({
+      workspaceId: WORKSPACE_ID,
+      postId: POST_ID,
+      targetId: TARGET_ID,
+      actorRole: MemberRole.Creator,
+      actingUserId: AUTHOR_ID,
+    });
+
+    expect(deletePostCalls).toEqual([]);
   });
 
   it("keeps target/post Failed when the retry publish fails again", async () => {

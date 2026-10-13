@@ -1,26 +1,32 @@
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes, randomInt } from "node:crypto";
 import {
   EMAIL_PATTERN,
   InvitationStatus,
   MemberRole,
   MemberStatus,
   NotificationType,
-} from "@social/shared";
+  OWNER_OR_ADMIN_ROLES,
+  SocialPlatform,
+} from "@postific/shared";
 import type {
   ConnectedAccountId,
+  FacebookPendingPage,
   IOutstandAdapter,
   InvitationId,
   MemberId,
-  SocialPlatform,
+  PinterestBoard,
   UserId,
   WorkspaceId,
-} from "@social/shared";
+} from "@postific/shared";
 import {
+  AlreadyConnectedError,
   AuthorizationError,
   ConflictError,
+  ExternalServiceError,
   NotFoundError,
   ValidationError,
 } from "@/lib/utils/errors";
+import { timingSafeEqualString } from "@/lib/utils/timing-safe-equal-string";
 import { slugify } from "../value-objects/slugify";
 import type {
   ConnectedAccountRecord,
@@ -39,8 +45,50 @@ import type {
 
 const MAX_NAME_LENGTH = 100;
 const MAX_SLUG_ATTEMPTS = 6;
+/**
+ * KI-079 — jendela toleransi untuk membedakan double-submit genuine (request
+ * susulan Next.js untuk akun yang BARU SAJA dibuat, lihat docstring Route
+ * Handler callback `/api/integrations/outstand/callback`) dari percobaan
+ * Connect ke akun yang sudah terhubung dari alur/waktu yang berbeda. Request
+ * susulan yang didokumentasikan terjadi nyaris seketika (prefetch/revalidasi
+ * bawaan Next.js) — 15 detik memberi headroom besar untuk itu tanpa
+ * menyamarkan percobaan connect genuinely terpisah (menit/jam/hari
+ * kemudian) sebagai "aman diabaikan".
+ */
+const DOUBLE_SUBMIT_RECOVERY_WINDOW_MS = 15_000;
 /** ADR-072 & ADR-080 — copy "Undangan berlaku 7 hari" di dialog Claude Design. */
 const INVITATION_EXPIRY_DAYS = 7;
+
+function memberRoleLabel(role: MemberRole): string {
+  switch (role) {
+    case MemberRole.Owner:
+      return "Owner";
+    case MemberRole.Admin:
+      return "Admin";
+    case MemberRole.Creator:
+      return "Creator";
+  }
+}
+
+function isActivePendingInvitation(
+  invitation: WorkspaceInvitationRecord,
+  now = Date.now(),
+): boolean {
+  return (
+    invitation.status === InvitationStatus.Pending &&
+    invitation.expiresAt.getTime() > now
+  );
+}
+/**
+ * T-110 (KI-053) — verifikasi kepemilikan email accept-invite, HANYA jalur
+ * `isExistingUser: false`. Kode 6 digit, TTL 10 menit (desain Claude Design
+ * dikunci, lihat task doc), maks 5 percobaan salah (ruang 1 juta kombinasi
+ * / window 10 menit — cukup ketat untuk anti brute-force tanpa terlalu
+ * ketat untuk salah ketik wajar).
+ */
+const INVITE_VERIFICATION_CODE_LENGTH = 6;
+const INVITE_VERIFICATION_CODE_TTL_MINUTES = 10;
+const INVITE_VERIFICATION_MAX_ATTEMPTS = 5;
 /**
  * Port lokal untuk cross-domain `publishing` → `workspace` (T-012.2,
  * AGENTS.md #7) — implementation detail `WorkspaceService`, bukan kontrak
@@ -86,6 +134,126 @@ interface NotificationPort {
   }): Promise<unknown>;
 }
 
+/**
+ * Port lokal untuk cross-domain `workspace` → `publishing` (T-090.3,
+ * ADR-093 poin 7, AGENTS.md #7) — pola sama `ScheduledCountsPort` di atas.
+ * `ImportPostsTriggerUseCase` (domain `publishing`) TIDAK boleh diimport
+ * konkret ke file ini; composition root
+ * (`createWorkspaceServiceWithOutstandAdapter`) menyuplai instance lewat
+ * constructor. Opsional (bisa `undefined`, mis. caller lama/test yang
+ * tidak butuh auto-trigger import) — dipanggil BEST-EFFORT
+ * (`completeAccountConnection` tidak boleh gagal hanya karena trigger
+ * import gagal/Outstand down) dari `completeAccountConnection`, HANYA pada
+ * jalur CREATE akun baru (bukan reconnect — `lastImportedUntil` akun baru
+ * dijamin kosong, ADR-093 poin 7 "since = 90 hari (lastImportedUntil masih
+ * kosong)"; akun reconnect existing mungkin sudah pernah di-import
+ * sebelumnya, tidak diasumsikan perlu re-trigger otomatis di sini).
+ */
+interface ImportPostsAutoTriggerPort {
+  triggerAuto(input: {
+    workspaceId: WorkspaceId;
+    connectedAccountId: ConnectedAccountId;
+    outstandAccountId: string;
+    platform: SocialPlatform;
+    actingUserId: UserId;
+  }): Promise<unknown>;
+}
+
+/**
+ * Port lokal untuk cross-domain `workspace` → `engagement` (Temuan #1
+ * review Ridwan Architecture Reviewer, T-051, `background-jobs.md` §
+ * "Workspace BC → Background Job": "ConnectedAccount created/activated →
+ * JobScheduler.scheduleEngagementSync(connectedAccount)"). Sebelum
+ * perbaikan ini, JOB-03 pertama untuk sebuah `ConnectedAccount` TIDAK
+ * PERNAH dibuat — `EngagementSyncJobHandler` hanya self-reschedule
+ * SETELAH sebuah job sudah ada, tidak ada apa pun yang men-seed job
+ * pertama, sehingga siklus sync 30 menit tidak pernah mulai berjalan
+ * sendiri.
+ *
+ * `workspace` TIDAK BOLEH mengimpor apa pun dari domain `engagement`
+ * (dependency terdokumentasi HANYA satu arah: `engagement` → `workspace`,
+ * `application-layer.md` § "Peta Dependency Antar Domain") — pola sama
+ * `ScheduledCountsPort`/`NotificationPort` di atas: `WorkspaceService`
+ * hanya tahu "akun ini baru terhubung/reconnect, panggil hook ini",
+ * TIDAK tahu apa pun soal tipe job/`ENGAGEMENT_SYNC_JOB_TYPE`. Composition
+ * root (`createWorkspaceServiceWithOutstandAdapter`) menyuplai
+ * implementasi konkret yang mengimpor `ENGAGEMENT_SYNC_JOB_TYPE` dari
+ * `@/domains/engagement` dan meng-enqueue lewat `IJobScheduler`. Opsional
+ * (`undefined` di test/caller lama) — kalau tidak disuplai, seeding
+ * di-skip diam-diam (pola sama `NotificationPort`), bukan throw.
+ */
+interface EngagementSyncSeederPort {
+  onAccountConnected(input: {
+    workspaceId: WorkspaceId;
+    connectedAccountId: ConnectedAccountId;
+    outstandAccountId: string;
+  }): Promise<void>;
+}
+
+/**
+ * Port lokal untuk cross-domain/infra `workspace` → email transactional
+ * (T-110, KI-053, AGENTS.md #6) — `WorkspaceService` TIDAK BOLEH mengimpor
+ * Resend SDK/HTTP client langsung. Implementasi konkret ada di
+ * `apps/web/src/lib/adapters/email/` (pola factory sama
+ * `getOutstandAdapter()`, ADR-119 — wajib env var, tidak ada fallback Fake
+ * di produksi), disuplai composition root
+ * (`createWorkspaceServiceWithInviteEmailSender`,
+ * `lib/workspace/invite-email-workspace-service.ts`) lewat constructor.
+ * Opsional (`undefined` di caller lama/test yang tidak menyentuh
+ * `requestInviteEmailVerification`) — lihat `requireInviteEmailSender()`.
+ */
+interface InviteEmailSenderPort {
+  sendInviteVerificationCode(input: {
+    email: string;
+    code: string;
+    workspaceName: string;
+  }): Promise<void>;
+  sendMemberInvitation(input: {
+    email: string;
+    inviteLink: string;
+    workspaceName: string;
+    roleLabel: string;
+    invitedByName: string;
+  }): Promise<void>;
+}
+
+/** T-110 — kode OTP 6 digit, `crypto.randomInt` (uniform, tidak predictable/sequential). */
+function generateInviteVerificationCode(): string {
+  return randomInt(0, 10 ** INVITE_VERIFICATION_CODE_LENGTH)
+    .toString()
+    .padStart(INVITE_VERIFICATION_CODE_LENGTH, "0");
+}
+
+/**
+ * T-110 — kode disimpan HANYA sebagai hash (sha256), tidak pernah
+ * plaintext. Tanpa salt: ruang kombinasi 6 digit (1 juta) sudah cukup
+ * kecil sehingga salt per-baris tidak menambah biaya brute-force yang
+ * berarti (kalau DB bocor, attacker brute-force sha256 tanpa salt untuk 1
+ * juta kombinasi dalam hitungan detik terlepas ada/tidaknya salt) —
+ * pertahanan sesungguhnya ada di TTL 10 menit + maks 5 percobaan
+ * (`WorkspaceService.confirmInviteEmailVerification`), bukan di hash-nya.
+ * Precedent hash sha256 sudah dipakai `parse-webhook-payload.ts` untuk
+ * kasus serupa (bukan pola baru di codebase ini). Diekspor (pola sama
+ * `fingerprintRawBody` di `parse-webhook-payload.ts`) supaya
+ * `workspace.service.test.ts` bisa menyusun hash "kode benar" tanpa
+ * duplikasi algoritma di file test.
+ */
+export function hashInviteVerificationCode(code: string): string {
+  return createHash("sha256").update(code).digest("hex");
+}
+
+/**
+ * Timing-safe compare (hindari timing attack pada perbandingan hash) —
+ * code-review PR #142 finding: reuse `timingSafeEqualString` yang sudah
+ * ada (dipakai juga `/api/jobs/run/route.ts`) alih-alih menulis ulang
+ * decode-hex + `timingSafeEqual` sendiri. Kedua hex digest sha256 sama
+ * panjang (64 char), jadi membandingkannya sebagai string tetap
+ * constant-time — tidak perlu decode ke `Buffer` byte mentah lebih dulu.
+ */
+function matchesInviteVerificationCode(code: string, hash: string): boolean {
+  return timingSafeEqualString(hashInviteVerificationCode(code), hash);
+}
+
 export class WorkspaceService {
   constructor(
     private readonly repository: IWorkspaceRepository,
@@ -93,7 +261,7 @@ export class WorkspaceService {
     private readonly notifications?: NotificationPort,
     /**
      * Connect/Reconnect Account (T-013.1/T-013.2, T-015.3, ADR-105) —
-     * `IOutstandAdapter` sudah jadi kontrak publik `@social/shared` (T-041),
+     * `IOutstandAdapter` sudah jadi kontrak publik `@postific/shared` (T-041),
      * jadi diimpor langsung sebagai TIPE di sini (bukan pelanggaran
      * AGENTS.md #6 — itu larangan mengimpor implementasi/HTTP client
      * konkret, bukan interface ACL-nya sendiri; pola sama seperti
@@ -105,6 +273,37 @@ export class WorkspaceService {
      * `requireOutstandAdapter()`.
      */
     private readonly outstandAdapter?: IOutstandAdapter,
+    /**
+     * Seed JOB-03 pertama saat `ConnectedAccount` created/activated
+     * (Temuan #1 review Ridwan, T-051) — lihat docstring
+     * `EngagementSyncSeederPort`. Opsional, sama pola `scheduledCounts`/
+     * `notifications` — caller lama (Server Action yang tidak menyentuh
+     * `completeAccountConnection`, mis. `disconnectAccount`) tidak perlu
+     * berubah.
+     */
+    private readonly engagementSyncSeeder?: EngagementSyncSeederPort,
+    /**
+     * Kirim kode verifikasi accept-invite (T-110, KI-053) — lihat
+     * docstring `InviteEmailSenderPort`. Opsional (`undefined` di
+     * caller/test yang tidak menyentuh `requestInviteEmailVerification`) —
+     * composition root produksi WAJIB menyuplai
+     * `createWorkspaceServiceWithInviteEmailSender()` untuk Server Action
+     * `requestAcceptInviteVerificationAction`, lihat `requireInviteEmailSender()`.
+     */
+    private readonly inviteEmailSender?: InviteEmailSenderPort,
+    /**
+     * Import Posts dari Social Account (T-090.3, ADR-093 poin 7) — lihat
+     * docstring `ImportPostsAutoTriggerPort`. Opsional, composition root
+     * produksi (`createWorkspaceServiceWithOutstandAdapter`) WAJIB
+     * menyuplainya supaya auto-trigger on-connect benar-benar berjalan.
+     */
+    private readonly importPostsTrigger?: ImportPostsAutoTriggerPort,
+    /**
+     * Origin link undangan (`BETTER_AUTH_URL`). Disuplai composition root,
+     * bukan argumen method, supaya `sendMemberInvitationEmail` tidak bisa
+     * mengirim href ke host lain.
+     */
+    private readonly inviteLinkBaseUrl?: string,
   ) {}
 
   async createWorkspace(input: {
@@ -214,6 +413,26 @@ export class WorkspaceService {
   }
 
   /**
+   * Lookup satu akun terhubung by id (dipakai `syncNowAction`, T-090.3,
+   * code review Ridwan) — method tipis, reuse langsung
+   * `findConnectedAccountById` tanpa logic tambahan, pola sama seperti
+   * `getWorkspaceById`/`getMembership`. Entry point (Server Action) TIDAK
+   * boleh mengimpor repository langsung (AGENTS.md #5) — ini satu-satunya
+   * jalur yang boleh dipakai untuk kebutuhan itu.
+   */
+  async getConnectedAccountById(
+    workspaceId: WorkspaceId,
+    connectedAccountId: ConnectedAccountId,
+    actorId: UserId,
+  ): Promise<ConnectedAccountRecord | null> {
+    return this.repository.findConnectedAccountById(
+      workspaceId,
+      connectedAccountId,
+      actorId,
+    );
+  }
+
+  /**
    * Jumlah akun terhubung berstatus "active" (T-042.2, dikonsumsi
    * `AnalyticsService.getDashboardSummary` via `ActiveAccountsPort` —
    * `WorkspaceService` cocok secara struktural, tidak perlu wrapper
@@ -282,6 +501,11 @@ export class WorkspaceService {
       status: account.status,
       reconnectRequired: account.reconnectRequired,
       scheduledCount: counts.get(account.id) ?? 0,
+      // KI-076/ADR-120 — `ConnectedAccountRecord.avatarUrl` opsional (lihat
+      // docstring-nya), `SidebarChannelAccount.avatarUrl` WAJIB (UI butuh
+      // field yang selalu ada) — `?? null` menormalkan `undefined` (mock
+      // lama di domain lain yang belum mengisinya) jadi `null`.
+      avatarUrl: account.avatarUrl ?? null,
     }));
   }
 
@@ -431,32 +655,51 @@ export class WorkspaceService {
     return this.canActorManageMembers(workspaceId, actorUserId);
   }
 
+  /**
+   * Code-review PR #140 finding #5 — satu-satunya sumber kebenaran untuk
+   * kondisi "Owner/Admin aktif", dipakai oleh SEMUA gate boolean (`can*`)
+   * maupun throwing (`assert*Role`) di bawah. Sebelumnya kondisi yang sama
+   * persis (`!!actor && actor.status === Active && (Owner || Admin)`)
+   * diduplikasi independen di `canActorManageMembers`,
+   * `canManageWorkspaceSettings`, dan `canManageConnectedAccounts` — risiko
+   * salah satu lupa diupdate kalau matrix role berubah (mis. role elevated
+   * baru ditambah). Pure function, operasi di atas membership yang SUDAH
+   * di-fetch caller — tidak melakukan query sendiri.
+   *
+   * Himpunan role ini (`OWNER_OR_ADMIN_ROLES`, `packages/shared`) adalah
+   * satu sumber kebenaran bersama dengan
+   * `publishing/rbac.ts#assertActorCanTriggerManualImportSync` (code review
+   * PR #148) — sebelumnya dua `Set`/kondisi literal terpisah yang hanya
+   * dijaga identik lewat komentar.
+   */
+  private isOwnerOrAdminActive(actor: WorkspaceMemberRecord | null): boolean {
+    return (
+      !!actor &&
+      actor.status === MemberStatus.Active &&
+      OWNER_OR_ADMIN_ROLES.has(actor.role)
+    );
+  }
+
   /** Core boolean check — Owner/Admin aktif. Dipakai `canManageMembers` (public, tanpa pesan error) dan `assertActorCanManageMembers` (throwing wrapper, dengan pesan error spesifik per kasus). */
   private async canActorManageMembers(
     workspaceId: WorkspaceId,
     actorUserId: UserId,
   ): Promise<boolean> {
     const actor = await this.getMembership(workspaceId, actorUserId);
-    return (
-      !!actor &&
-      actor.status === MemberStatus.Active &&
-      (actor.role === MemberRole.Owner || actor.role === MemberRole.Admin)
-    );
+    return this.isOwnerOrAdminActive(actor);
   }
 
-  /** Owner/Admin only; dipakai removeMember & updateMemberRole. */
+  /** Owner/Admin only; dipakai removeMember & updateMemberRole. Reuse `assertActorHasOwnerOrAdminRole` (dedup, bukan gate RBAC baru — code-review PR #140 finding #5). */
   private async assertActorCanManageMembers(
     workspaceId: WorkspaceId,
     actorUserId: UserId,
     actionErrorMessage: string,
   ): Promise<void> {
-    const actor = await this.getMembership(workspaceId, actorUserId);
-    if (!actor || actor.status !== MemberStatus.Active) {
-      throw new AuthorizationError("Anda bukan anggota aktif workspace ini.");
-    }
-    if (actor.role !== MemberRole.Owner && actor.role !== MemberRole.Admin) {
-      throw new AuthorizationError(actionErrorMessage);
-    }
+    await this.assertActorHasOwnerOrAdminRole(
+      workspaceId,
+      actorUserId,
+      actionErrorMessage,
+    );
   }
 
   /**
@@ -470,11 +713,7 @@ export class WorkspaceService {
     actorUserId: UserId,
   ): Promise<boolean> {
     const actor = await this.getMembership(workspaceId, actorUserId);
-    return (
-      !!actor &&
-      actor.status === MemberStatus.Active &&
-      (actor.role === MemberRole.Owner || actor.role === MemberRole.Admin)
-    );
+    return this.isOwnerOrAdminActive(actor);
   }
 
   /**
@@ -482,7 +721,9 @@ export class WorkspaceService {
    * (renameWorkspace, Settings General, KI-045) dan
    * `assertActorCanManageConnectedAccounts` (disconnectAccount, T-014.2).
    * Kondisi role-nya identik di kedua area fitur; pesan error tetap
-   * spesifik per caller lewat `actionErrorMessage`.
+   * spesifik per caller lewat `actionErrorMessage`. Reuse `isOwnerOrAdminActive`
+   * supaya kondisi role sama dengan varian boolean (`can*`) — satu sumber
+   * kebenaran (code-review PR #140 finding #5).
    */
   private async assertActorHasOwnerOrAdminRole(
     workspaceId: WorkspaceId,
@@ -490,7 +731,7 @@ export class WorkspaceService {
     actionErrorMessage: string,
   ): Promise<void> {
     const actor = await this.assertActiveMembership(workspaceId, actorUserId);
-    if (actor.role !== MemberRole.Owner && actor.role !== MemberRole.Admin) {
+    if (!this.isOwnerOrAdminActive(actor)) {
       throw new AuthorizationError(actionErrorMessage);
     }
   }
@@ -592,7 +833,7 @@ export class WorkspaceService {
    * Admin only, reuse `assertActorCanManageMembers`); role `Owner` ditolak
    * sama seperti `updateMemberRole` (Transfer Ownership adalah alur
    * terpisah). Pengiriman email untuk metode "Kirim via Email" adalah
-   * langkah opsional TERPISAH (T-007.7, blocked T-005) yang dipanggil
+   * langkah terpisah (`sendMemberInvitationEmail`, T-007.7) yang dipanggil
    * composition root setelah invitation ini dibuat — tidak ada percabangan
    * logic RBAC/token/expiry di sini (ADR-080 poin 3).
    */
@@ -621,19 +862,150 @@ export class WorkspaceService {
       "Hanya Owner atau Admin yang bisa mengundang anggota.",
     );
 
+    // Najwa QA Engineer T-007.7 — tanpa guard ini, email yang sudah jadi
+    // member aktif workspace tetap menghasilkan invitation baru yang valid.
+    // Baris pending-nya disembunyikan oleh de-dup di
+    // `listMembersAndPendingInvitations` (dimaksudkan untuk race condition
+    // accept-invite, bukan untuk validasi ini), jadi token "yatim" itu tetap
+    // ada di database tanpa cara untuk dibatalkan lewat UI manapun.
+    const existingUser = await this.repository.findUserByEmail(email);
+    if (existingUser) {
+      const existingMember = await this.repository.getMember(
+        workspaceId,
+        existingUser.id,
+      );
+      if (existingMember?.status === MemberStatus.Active) {
+        throw new ConflictError(
+          "Email ini sudah menjadi anggota aktif workspace ini.",
+        );
+      }
+    }
+
+    const existingInvitation =
+      await this.repository.findInvitationByWorkspaceEmail(
+        workspaceId,
+        email,
+        actorUserId,
+      );
+    if (existingInvitation && isActivePendingInvitation(existingInvitation)) {
+      throw new ConflictError(
+        `Undangan untuk "${email}" di workspace ini sudah ada.`,
+      );
+    }
+
     const token = randomBytes(32).toString("hex");
     const expiresAt = new Date(
       Date.now() + INVITATION_EXPIRY_DAYS * 24 * 60 * 60 * 1000,
     );
-
-    return this.repository.createInvitation({
+    const invitationInput = {
       workspaceId,
       email,
       role: input.role,
-      invitedByUserId: actorUserId,
       token,
       expiresAt,
-    });
+    };
+
+    if (existingInvitation) {
+      return this.repository.reissueInvitation({
+        ...invitationInput,
+        invitationId: existingInvitation.id,
+        actingUserId: actorUserId,
+      });
+    }
+
+    try {
+      return await this.repository.createInvitation({
+        ...invitationInput,
+        invitedByUserId: actorUserId,
+      });
+    } catch (error) {
+      if (!(error instanceof ConflictError)) {
+        throw error;
+      }
+      const raced = await this.repository.findInvitationByWorkspaceEmail(
+        workspaceId,
+        email,
+        actorUserId,
+      );
+      if (!raced || isActivePendingInvitation(raced)) {
+        throw error;
+      }
+      return this.repository.reissueInvitation({
+        ...invitationInput,
+        invitationId: raced.id,
+        actingUserId: actorUserId,
+      });
+    }
+  }
+
+  /**
+   * Jalur **Kirim via Email** (T-007.7, ADR-080 poin 3) — kirim link undangan
+   * yang SUDAH dibuat `inviteMember`. Tidak membuat invitation baru dan tidak
+   * mengubah token/expiry/RBAC pembuatan undangan. RBAC dicek ulang supaya
+   * method ini tidak bisa dipakai mengirim email tanpa hak kelola anggota.
+   * Href disusun dari token undangan pending + `inviteLinkBaseUrl` composition
+   * root, bukan dari URL yang dikirim pemanggil.
+   */
+  async sendMemberInvitationEmail(input: {
+    workspaceId: WorkspaceId;
+    actorUserId: UserId;
+    email: string;
+    role: MemberRole;
+  }): Promise<void> {
+    await this.assertActorCanManageMembers(
+      input.workspaceId,
+      input.actorUserId,
+      "Hanya Owner atau Admin yang bisa mengundang anggota.",
+    );
+
+    const email = input.email.trim().toLowerCase();
+    if (!EMAIL_PATTERN.test(email)) {
+      throw new ValidationError("Format email tidak valid.");
+    }
+
+    const workspace = await this.repository.findById(input.workspaceId);
+    if (!workspace) {
+      throw new NotFoundError("Workspace tidak ditemukan.");
+    }
+
+    const pending = await this.repository.listPendingInvitations(
+      input.workspaceId,
+      input.actorUserId,
+    );
+    const invitation = pending.find((item) => item.email === email);
+    if (!invitation) {
+      throw new NotFoundError(
+        "Undangan untuk email ini tidak ditemukan atau sudah tidak berlaku.",
+      );
+    }
+    if (invitation.role !== input.role) {
+      throw new ValidationError("Role undangan tidak sesuai.");
+    }
+
+    const [inviter] = await this.repository.findUsersByIds([input.actorUserId]);
+
+    try {
+      const inviteLink = `${this.requireInviteLinkBaseUrl()}/invite/${invitation.token}`;
+      await this.requireInviteEmailSender().sendMemberInvitation({
+        email,
+        inviteLink,
+        workspaceName: workspace.name,
+        roleLabel: memberRoleLabel(invitation.role),
+        invitedByName: inviter?.name ?? "Anggota tim",
+      });
+    } catch (error) {
+      if (error instanceof ExternalServiceError) {
+        throw error;
+      }
+      console.error(
+        "[WorkspaceService.sendMemberInvitationEmail] gagal mengirim email undangan",
+        error,
+      );
+      throw new ExternalServiceError(
+        "Undangan sudah dibuat, tetapi email gagal dikirim.",
+        { cause: error },
+      );
+    }
   }
 
   /**
@@ -687,6 +1059,139 @@ export class WorkspaceService {
   }
 
   /**
+   * Request kode verifikasi OTP untuk accept-invite (T-110.2, KI-053) —
+   * HANYA jalur `isExistingUser: false`. Dipanggil `AcceptInviteForm`
+   * SEBELUM `authClient.signUp.email` (akun BELUM dibuat di titik ini —
+   * beda dari `acceptInvite`, yang selalu dipanggil SETELAH sign-up/in
+   * sukses). Re-validasi invitation dari awal (pola sama `acceptInvite`) —
+   * token bisa sudah expired/dipakai/dibatalkan di antara render halaman
+   * dan submit form Nama+Password.
+   *
+   * Race condition (dijaga eksplisit sesuai desain task) — kalau email
+   * invitation SUDAH punya akun di titik ini (mis. dua tab: satu accept
+   * lewat jalur lain, atau orang lain mendaftar duluan dengan email yang
+   * sama di antara `getInviteToAccept` dan submit form ini), kode OTP
+   * TIDAK dikirim — `isExistingUser` seharusnya sudah `true` dan UI
+   * seharusnya menampilkan form Masuk, bukan form ini; kalau tetap
+   * sampai di sini berarti state UI stale, ditolak eksplisit dengan pesan
+   * jelas daripada diam-diam mengirim kode yang tidak relevan.
+   */
+  async requestInviteEmailVerification(token: string): Promise<void> {
+    const invitation = await this.repository.findInvitationByToken(token);
+    if (!invitation || invitation.status !== InvitationStatus.Pending) {
+      throw new NotFoundError(
+        "Undangan tidak ditemukan atau sudah tidak berlaku.",
+      );
+    }
+    if (invitation.expiresAt.getTime() < Date.now()) {
+      throw new ValidationError("Undangan ini sudah kedaluwarsa.");
+    }
+
+    const existingUser = await this.repository.findUserByEmail(
+      invitation.email,
+    );
+    if (existingUser) {
+      throw new ConflictError(
+        "Email ini sudah punya akun. Muat ulang halaman dan gunakan alur Masuk.",
+      );
+    }
+
+    const workspace = await this.repository.findById(invitation.workspaceId);
+
+    const code = generateInviteVerificationCode();
+    const expiresAt = new Date(
+      Date.now() + INVITE_VERIFICATION_CODE_TTL_MINUTES * 60 * 1000,
+    );
+
+    await this.repository.setInvitationVerificationCode(token, {
+      codeHash: hashInviteVerificationCode(code),
+      expiresAt,
+    });
+
+    await this.requireInviteEmailSender().sendInviteVerificationCode({
+      email: invitation.email,
+      code,
+      workspaceName: workspace?.name ?? "workspace ini",
+    });
+  }
+
+  /**
+   * Konfirmasi kode verifikasi OTP untuk accept-invite (T-110.3, KI-053).
+   * Guard urutan sebelum mencocokkan kode: invitation masih pending &
+   * belum expired (pola sama method lain), lalu ADA kode aktif
+   * (`verificationCodeHash`/`verificationCodeExpiresAt` terisi — kalau
+   * tidak, invitee belum pernah/tidak sedang meminta kode), belum melebihi
+   * batas percobaan, dan kodenya sendiri belum expired. Percobaan SALAH
+   * meng-increment `verificationAttempts` (anti brute-force) — percobaan
+   * yang sudah diblokir batas TIDAK ikut increment lagi (sudah mentok).
+   */
+  async confirmInviteEmailVerification(
+    token: string,
+    code: string,
+  ): Promise<void> {
+    const invitation = await this.repository.findInvitationByToken(token);
+    if (!invitation || invitation.status !== InvitationStatus.Pending) {
+      throw new NotFoundError(
+        "Undangan tidak ditemukan atau sudah tidak berlaku.",
+      );
+    }
+    if (invitation.expiresAt.getTime() < Date.now()) {
+      throw new ValidationError("Undangan ini sudah kedaluwarsa.");
+    }
+    if (
+      !invitation.verificationCodeHash ||
+      !invitation.verificationCodeExpiresAt
+    ) {
+      throw new ValidationError(
+        'Belum ada kode verifikasi aktif. Klik "Kirim ulang" untuk meminta kode baru.',
+      );
+    }
+    if (invitation.verificationAttempts >= INVITE_VERIFICATION_MAX_ATTEMPTS) {
+      throw new ValidationError(
+        'Batas percobaan verifikasi tercapai. Klik "Kirim ulang" untuk kode baru.',
+      );
+    }
+    if (invitation.verificationCodeExpiresAt.getTime() < Date.now()) {
+      throw new ValidationError(
+        'Kode verifikasi sudah kedaluwarsa. Klik "Kirim ulang" untuk kode baru.',
+      );
+    }
+
+    // Code-review PR #142 finding — reservasi slot percobaan atomic DULU,
+    // SEBELUM membandingkan kode (bukan increment belakangan cuma kalau
+    // salah seperti sebelumnya). Pengecekan `verificationAttempts` di atas
+    // tetap fast-path (hindari round-trip kalau sudah jelas mentok dari
+    // baca awal), tapi penegakan SESUNGGUHNYA ada di repository
+    // (`UPDATE ... WHERE verification_attempts < max`, atomic) — supaya N
+    // request konkuren tidak bisa sama-sama lolos cap dari baca yang sudah
+    // basi (race condition yang diperbaiki di sini).
+    const attempts =
+      await this.repository.incrementInvitationVerificationAttempts(
+        token,
+        INVITE_VERIFICATION_MAX_ATTEMPTS,
+      );
+    if (attempts > INVITE_VERIFICATION_MAX_ATTEMPTS) {
+      throw new ValidationError(
+        'Batas percobaan verifikasi tercapai. Klik "Kirim ulang" untuk kode baru.',
+      );
+    }
+
+    if (!matchesInviteVerificationCode(code, invitation.verificationCodeHash)) {
+      const remaining = Math.max(
+        INVITE_VERIFICATION_MAX_ATTEMPTS - attempts,
+        0,
+      );
+      throw new ValidationError(
+        remaining > 0
+          ? `Kode salah. Sisa ${remaining} percobaan.`
+          : 'Kode salah. Batas percobaan tercapai — klik "Kirim ulang" untuk kode baru.',
+      );
+    }
+
+    await this.repository.markInvitationEmailVerified(token);
+  }
+
+  /**
    * Finalisasi accept-invite (T-093.2/.3, ADR-080 poin 6) — dipanggil
    * SETELAH sign-up/sign-in Better Auth berhasil di client (composition
    * root: Server Action `acceptInviteAction`). Re-validasi token dari awal
@@ -717,6 +1222,61 @@ export class WorkspaceService {
     if (input.actorEmail.trim().toLowerCase() !== invitation.email) {
       throw new AuthorizationError(
         "Email akun Anda tidak cocok dengan email undangan ini.",
+      );
+    }
+
+    // T-110.3/KI-053 — guard server-side yang TIDAK percaya klaim apa pun
+    // dari client (mis. boolean "sudah verifikasi" di body request bisa
+    // dipalsukan kalau Server Action dipanggil langsung, bypass UI).
+    // `invitation.emailVerifiedAt` murni dari state tersimpan di DB (diisi
+    // `confirmInviteEmailVerification` setelah kode OTP benar).
+    //
+    // Kalau BELUM ada `emailVerifiedAt`, TIDAK otomatis berarti ditolak —
+    // jalur existing-user (sign-in, `isExistingUser: true` di
+    // `getInviteToAccept`) TIDAK PERNAH melalui OTP sama sekali (KI-053
+    // "Scope aman": B tetap butuh password A, gap ini hanya berlaku untuk
+    // akun yang belum pernah ada) dan perilakunya SENGAJA tidak diperketat
+    // di sini.
+    //
+    // Sinyal pembeda dipilih SCOPED KE INVITATION INI, BUKAN umur akun
+    // (revisi 2026-09-28 — versi awal pakai window umur akun 30 menit,
+    // ternyata salah blokir sign-in SAH: user yang baru saja daftar lewat
+    // `/register` normal, lalu accept invite LAIN yang tidak terkait dalam
+    // 30 menit pertama, ikut tertolak padahal sudah membuktikan
+    // kepemilikan lewat password — ditemukan Najwa QA Engineer, T-110 QA).
+    //
+    // `verificationCodeHash`/`verificationAttempts` pada invitation ini
+    // hanya pernah terisi kalau `requestInviteEmailVerification` PERNAH
+    // dipanggil untuk token ini secara spesifik — dan UI SELALU memanggil
+    // itu sebelum `authClient.signUp.email()` untuk jalur `isExistingUser:
+    // false` (lihat `AcceptInviteForm.tsx`). Jadi: kalau invitation ini
+    // TIDAK PERNAH tersentuh alur OTP sama sekali, berarti acceptor
+    // memakai jalur sign-in yang sah untuk TOKEN INI — diizinkan, apa pun
+    // umur akunnya. Kalau alur OTP PERNAH dimulai untuk token ini
+    // (hash/attempts pernah terisi) tapi belum pernah dikonfirmasi
+    // (`emailVerifiedAt` masih kosong), ini pola serangan KI-053 (coba
+    // buat akun baru untuk email undangan, sengaja skip/gagal verifikasi)
+    // — ditolak.
+    //
+    // Residual risk yang SADAR diterima (dikonfirmasi King Rezi): kalau
+    // penyerang memanggil Better Auth `signUp` API langsung (bypass total
+    // UI ini, TIDAK PERNAH menyentuh `requestInviteEmailVerification` sama
+    // sekali untuk token ini), guard ini tidak punya sinyal untuk
+    // mendeteksinya. Ini butuh Better Auth hook (`databaseHooks.user
+    // .create.before`) untuk ditutup 100% — di luar scope T-110 (kandidat
+    // ADR terpisah kalau pola ini mau dipakai ulang). Diterima sebagai
+    // trade-off: menutup jalur realistis (siapa pun yang benar-benar
+    // memakai UI ini) tanpa false-positive ke user sah, dengan konsekuensi
+    // celah sempit untuk penyerang yang secara sengaja meng-craft request
+    // API mentah.
+    if (
+      !invitation.emailVerifiedAt &&
+      (invitation.verificationCodeHash !== null ||
+        invitation.verificationAttempts > 0)
+    ) {
+      throw new AuthorizationError(
+        "Verifikasi email diperlukan sebelum bergabung ke workspace ini. " +
+          "Selesaikan verifikasi kode terlebih dahulu.",
       );
     }
 
@@ -970,6 +1530,30 @@ export class WorkspaceService {
     );
   }
 
+  /**
+   * Gate UI aksi mutasi Connect/Disconnect/Reconnect di halaman Connected
+   * Accounts (T-109, KI-058) — true untuk Owner/Admin aktif, false untuk
+   * Creator. Kondisi role sama dengan `canManageWorkspaceSettings`/
+   * `canManageMembers` — ketiganya reuse `isOwnerOrAdminActive` (code-review
+   * PR #140 finding #5, sebelumnya diduplikasi independen di tiga tempat),
+   * tapi method ini SENGAJA tidak dipakai untuk redirect seluruh halaman
+   * seperti dua method itu — matrix
+   * `roles-permissions.md` § Connected Accounts memberi Creator "Baca saja"
+   * (read-only), bukan "Tidak ada akses" sama sekali. Dipakai Server
+   * Component (`connected-accounts/page.tsx`) untuk menentukan apakah
+   * tombol Connect/Disconnect/Reconnect dirender di `ConnectedAccountsList`
+   * (Client Component) — bukan gate baru, murni mengekspos kondisi yang
+   * sudah ditegakkan `assertActorCanManageConnectedAccounts` di bawah
+   * sebagai boolean non-throwing supaya bisa dipakai untuk kontrol render.
+   */
+  async canManageConnectedAccounts(
+    workspaceId: WorkspaceId,
+    actorUserId: UserId,
+  ): Promise<boolean> {
+    const actor = await this.getMembership(workspaceId, actorUserId);
+    return this.isOwnerOrAdminActive(actor);
+  }
+
   /** Owner/Admin only; dipakai disconnectAccount. Reuse `assertActorHasOwnerOrAdminRole` (dedup, bukan gate RBAC baru). */
   private async assertActorCanManageConnectedAccounts(
     workspaceId: WorkspaceId,
@@ -993,6 +1577,30 @@ export class WorkspaceService {
       );
     }
     return this.outstandAdapter;
+  }
+
+  /** Dipakai `requestInviteEmailVerification` — throw jelas kalau composition root lupa menyuplai `InviteEmailSenderPort` (pola sama `requireOutstandAdapter()`). */
+  private requireInviteEmailSender(): InviteEmailSenderPort {
+    if (!this.inviteEmailSender) {
+      throw new Error(
+        "WorkspaceService: InviteEmailSenderPort tidak disuplai ke constructor — " +
+          "wajib untuk requestInviteEmailVerification (composition root harus " +
+          "memanggil createWorkspaceServiceWithInviteEmailSender()).",
+      );
+    }
+    return this.inviteEmailSender;
+  }
+
+  private requireInviteLinkBaseUrl(): string {
+    const baseUrl = this.inviteLinkBaseUrl?.trim();
+    if (!baseUrl) {
+      throw new Error(
+        "WorkspaceService: inviteLinkBaseUrl tidak disuplai ke constructor — " +
+          "wajib untuk sendMemberInvitationEmail (composition root harus " +
+          "memanggil createWorkspaceServiceWithInviteEmailSender()).",
+      );
+    }
+    return baseUrl;
   }
 
   /**
@@ -1047,12 +1655,15 @@ export class WorkspaceService {
 
   /**
    * Connect Account (T-013.1/T-013.2) / Reconnect (T-015.3) — langkah 2
-   * (ADR-105), dipanggil Route Handler `/api/integrations/outstand/callback`
-   * setelah user diarahkan balik dengan `code`+`state`.
+   * (ADR-105, redesain ADR-112), dipanggil Route Handler
+   * `/api/integrations/outstand/callback` setelah user diarahkan balik
+   * dengan `accountId`/`username`/`state` (ADR-112 — Outstand tidak
+   * mengirim `code` untuk single-page account, lihat KI-070 untuk
+   * Facebook Pages di luar scope).
    *
    * **Keputusan desain CREATE vs UPDATE (Prabowo, T-015.3/T-013.1/2):**
-   * `ConnectedAccountData` hasil `exchangeConnectCode` (kontrak ADR-105
-   * final, TIDAK diubah) tidak membawa `redirectAccountId` — Route Handler
+   * `ConnectedAccountData` hasil `resolveConnectCallback` (kontrak
+   * ADR-105/ADR-112, TIDAK membawa `redirectAccountId`) — Route Handler
    * yang men-decode `state` (`lib/adapters/outstand/connect-state.ts`,
    * detail wire-format adapter) dan meneruskan `redirectAccountId` di sini
    * sebagai parameter EKSPLISIT, supaya method ini sendiri tetap tidak
@@ -1060,11 +1671,12 @@ export class WorkspaceService {
    * docstring lengkap di `connect-state.ts`).
    *
    * RBAC Owner/Admin ditegakkan LAGI di sini (bukan cuma di
-   * `initiateConnectAccount`) — `code`/`state`/`redirectAccountId`
-   * round-trip lewat browser (query param publik, bisa ditamper) sebelum
-   * callback ini dipanggil, jadi tidak cukup dipercaya dari validasi
-   * inisiasi saja. `redirectAccountId` diverifikasi ulang kepemilikannya ke
-   * `workspaceId` ini (defense-in-depth yang sama, IDOR).
+   * `initiateConnectAccount`) — `accountId`/`username`/`state`/
+   * `redirectAccountId` round-trip lewat browser (query param publik,
+   * bisa ditamper) sebelum callback ini dipanggil, jadi tidak cukup
+   * dipercaya dari validasi inisiasi saja. `redirectAccountId`
+   * diverifikasi ulang kepemilikannya ke `workspaceId` ini
+   * (defense-in-depth yang sama, IDOR).
    *
    * CREATE `WorkspaceConnectedAccount` baru kalau `redirectAccountId`
    * kosong (connect baru, T-013). UPDATE akun existing kalau diisi
@@ -1075,7 +1687,9 @@ export class WorkspaceService {
   async completeAccountConnection(input: {
     workspaceId: WorkspaceId;
     actorId: UserId;
-    code: string;
+    accountId: string;
+    username: string;
+    networkUniqueId?: string;
     state: string;
     redirectAccountId?: ConnectedAccountId;
   }): Promise<ConnectedAccountRecord> {
@@ -1097,10 +1711,13 @@ export class WorkspaceService {
       }
     }
 
-    const exchanged = await this.requireOutstandAdapter().exchangeConnectCode({
-      code: input.code,
-      state: input.state,
-    });
+    const exchanged =
+      await this.requireOutstandAdapter().resolveConnectCallback({
+        state: input.state,
+        outstandAccountId: input.accountId,
+        username: input.username,
+        networkUniqueId: input.networkUniqueId,
+      });
 
     if (
       existingRedirectAccount &&
@@ -1111,23 +1728,356 @@ export class WorkspaceService {
       );
     }
 
+    let record: ConnectedAccountRecord;
+    let skipSeeding = false;
     if (input.redirectAccountId) {
-      return this.repository.reconnectAccount({
+      record = await this.repository.reconnectAccount({
         workspaceId: input.workspaceId,
         connectedAccountId: input.redirectAccountId,
         outstandAccountId: exchanged.outstandAccountId,
         handle: exchanged.handle,
+        avatarUrl: exchanged.avatarUrl,
         actingUserId: input.actorId,
+      });
+    } else {
+      const result = await this.createOrRecoverConnectedAccount({
+        workspaceId: input.workspaceId,
+        platform: exchanged.platform,
+        outstandAccountId: exchanged.outstandAccountId,
+        handle: exchanged.handle,
+        avatarUrl: exchanged.avatarUrl,
+        actingUserId: input.actorId,
+      });
+      record = result.record;
+      skipSeeding = result.recovered;
+    }
+
+    // Temuan #1 (Ridwan) — seed JOB-03 di titik "created/activated" persis
+    // sesuai `background-jobs.md` § "Workspace BC → Background Job", untuk
+    // KEDUA cabang (create maupun reconnect): dokumen itu menyebut
+    // "created/activated", dan reconnect adalah bentuk "activated" untuk
+    // akun yang sebelumnya `reconnect-required`/`disconnected`. Gagal
+    // seeding TIDAK boleh menggagalkan connect account itu sendiri (akun
+    // sudah berhasil dibuat/di-update di atas) — tapi juga tidak boleh
+    // gagal diam-diam tanpa jejak, jadi kegagalan tetap dilempar ke atas
+    // (caller/`ApplicationError` handling di Route Handler callback tetap
+    // konsisten dengan error path lain di sana).
+    // `skipSeeding` (code review PR #139) — cabang double-submit recovery
+    // TIDAK membuat/mengaktifkan apa pun baru (baris sudah di-seed oleh
+    // request asli yang menang create), jadi seed di sini akan jadi job
+    // chain kedua yang paralel untuk akun yang sama.
+    if (!skipSeeding) {
+      await this.engagementSyncSeeder?.onAccountConnected({
+        workspaceId: record.workspaceId,
+        connectedAccountId: record.id,
+        outstandAccountId: record.outstandAccountId,
       });
     }
 
-    return this.repository.createConnectedAccount({
-      workspaceId: input.workspaceId,
-      platform: exchanged.platform,
-      outstandAccountId: exchanged.outstandAccountId,
-      handle: exchanged.handle,
-      actingUserId: input.actorId,
+    // Import Posts dari Social Account (T-090.3, ADR-093 poin 7) —
+    // otomatis on-connect, HANYA untuk akun BARU (bukan reconnect/recovery,
+    // lihat docstring `ImportPostsAutoTriggerPort`). Best-effort: kegagalan
+    // trigger import (mis. Outstand down) TIDAK BOLEH menggagalkan connect
+    // account yang sudah berhasil — endpoint ini murni nilai tambah,
+    // kegagalannya cukup diam-diam diabaikan di sini (konsisten pola
+    // "best-effort" `cancelScheduledPost`/`deletePost` di ACL, tidak ada
+    // infra logging terpusat di codebase ini untuk dilaporkan). `skipSeeding`
+    // sama alasannya dengan JOB-03 di atas — cabang double-submit recovery
+    // tidak menciptakan apa pun baru, jadi tidak perlu trigger import lagi.
+    // `!input.redirectAccountId` — code review PR #148: `skipSeeding` sendiri
+    // TIDAK cukup, karena tetap `false` di sepanjang cabang reconnect (hanya
+    // dipakai utk recovery di cabang create) — tanpa guard ini, triggerAuto
+    // (selalu window 90 hari, abaikan watermark) ikut jalan setiap reconnect.
+    if (!skipSeeding && !input.redirectAccountId) {
+      try {
+        await this.importPostsTrigger?.triggerAuto({
+          workspaceId: record.workspaceId,
+          connectedAccountId: record.id,
+          outstandAccountId: record.outstandAccountId,
+          platform: record.platform,
+          actingUserId: input.actorId,
+        });
+      } catch {
+        // Best-effort — lihat komentar di atas.
+      }
+    }
+
+    return record;
+  }
+
+  /**
+   * Wrapper `createConnectedAccount` (KI-079) — membedakan double-submit
+   * genuine dari percobaan Connect ke akun yang sudah terhubung dari
+   * alur/waktu yang berbeda, setelah `createConnectedAccount` melempar
+   * `ConflictError` (unique constraint `[workspaceId, outstandAccountId]`).
+   *
+   * Sinyalnya `connectedAt` baris yang bentrok, yang TIDAK PERNAH berubah
+   * setelah dibuat (`reconnectAccount` sengaja mempertahankannya, lihat
+   * docstring method itu) — jadi selalu mencerminkan momen `create`
+   * ASLINYA, bukan aktivitas connect/reconnect terakhir. Perbandingan
+   * "baru berapa lama" dilakukan `IWorkspaceRepository.
+   * isConnectedAccountWithinWindow` di sisi Postgres (`now() -
+   * connected_at`), BUKAN `Date.now()` di sini (code review PR #139) —
+   * domain ini tidak boleh mengimpor Prisma (rule 6 `AGENTS.md`), dan
+   * perbandingan lintas jam app-server vs database rawan drift kalau
+   * dihitung di Node:
+   * - Baru dibuat dalam `DOUBLE_SUBMIT_RECOVERY_WINDOW_MS` terakhir DAN
+   *   masih `status === "active"` (bukan `reconnectRequired`) →
+   *   nyaris pasti request susulan dari percobaan connect YANG SAMA
+   *   (idempotent) — kembalikan baris yang sudah ada sebagai sukses,
+   *   JANGAN lempar error (mencegah toast error palsu di atas toast
+   *   sukses dari request asli, pola sama komentar di Route Handler).
+   *   Guard status (code review PR #139) — tanpa ini, baris yang
+   *   di-disconnect/reconnect-required lagi dalam window yang sama tetap
+   *   dilaporkan "sukses" walau datanya sudah tidak aktif (regresi KI-079).
+   * - Lebih lama dari itu, atau statusnya bukan `active` → genuinely percobaan connect ke akun yang
+   *   sudah pernah terhubung (aktif ATAU disconnected — keduanya sama-sama
+   *   menabrak constraint yang sama) dari flow terpisah — lempar
+   *   `AlreadyConnectedError` supaya Route Handler bisa memberi tahu user
+   *   secara eksplisit, bukan diam-diam "success".
+   */
+  private async createOrRecoverConnectedAccount(input: {
+    workspaceId: WorkspaceId;
+    platform: SocialPlatform;
+    outstandAccountId: string;
+    handle: string;
+    avatarUrl?: string | null;
+    actingUserId: UserId;
+  }): Promise<{ record: ConnectedAccountRecord; recovered: boolean }> {
+    try {
+      return {
+        record: await this.repository.createConnectedAccount(input),
+        recovered: false,
+      };
+    } catch (error) {
+      if (!(error instanceof ConflictError)) {
+        throw error;
+      }
+
+      const existing = await this.repository.findConnectedAccountByOutstandId(
+        input.workspaceId,
+        input.outstandAccountId,
+        input.actingUserId,
+      );
+      const isRecent =
+        existing &&
+        (await this.repository.isConnectedAccountWithinWindow(
+          existing.id,
+          DOUBLE_SUBMIT_RECOVERY_WINDOW_MS,
+          input.actingUserId,
+        ));
+      if (
+        existing &&
+        existing.status === "active" &&
+        !existing.reconnectRequired &&
+        isRecent
+      ) {
+        // `recovered: true` — akun ini sudah di-seed JOB-03 oleh request
+        // asli (yang menang create); caller TIDAK boleh seed lagi di sini
+        // (code review PR #139 — sebelumnya request kalah ini ikut memanggil
+        // `engagementSyncSeeder.onAccountConnected` juga, race dengan
+        // request asli menghasilkan 2 job chain paralel untuk 1 akun).
+        return { record: existing, recovered: true };
+      }
+
+      // Copy generik (code review PR #139) — TIDAK menyebut tombol
+      // "Reconnect" di sini. Route Handler callback (`route.ts`) membuang
+      // `error.message` ini sepenuhnya dan hanya meneruskan status
+      // `?connect=already-connected` — copy yang benar-benar tampil ke user
+      // ada di `ConnectedAccountsList.tsx`, bukan string ini. Lihat catatan
+      // di sana soal kenapa copy itu juga tidak lagi menyebut Reconnect.
+      throw new AlreadyConnectedError(
+        "Akun ini sudah terhubung di workspace ini.",
+      );
+    }
+  }
+
+  /**
+   * Facebook Pages — list pending Pages (T-025.4, ADR-115, wire-format
+   * dikoreksi ADR-116) — dipanggil `listFacebookPendingPagesAction` setelah
+   * Route Handler callback redirect ke Connected Accounts dengan
+   * `sessionToken` (dialog Page-selection mount, state Loading → Default).
+   * RBAC Owner/Admin sama dengan `initiateConnectAccount`/
+   * `completeAccountConnection` (gate yang sama, bukan RBAC baru). Tidak
+   * ada IDOR check tambahan di sini — belum ada `ConnectedAccount` yang
+   * disentuh, murni membaca daftar Page dari Outstand lewat adapter.
+   */
+  async listFacebookPendingPages(input: {
+    workspaceId: WorkspaceId;
+    actorId: UserId;
+    sessionToken: string;
+  }): Promise<FacebookPendingPage[]> {
+    await this.assertActorCanManageConnectedAccounts(
+      input.workspaceId,
+      input.actorId,
+      "Hanya Owner atau Admin yang bisa menghubungkan akun.",
+    );
+
+    const result = await this.requireOutstandAdapter().listPendingFacebookPages(
+      { sessionToken: input.sessionToken },
+    );
+    return result.pages;
+  }
+
+  /**
+   * Facebook Pages — confirm selected Pages (T-025.4, ADR-115, wire-format
+   * dikoreksi ADR-116) — dipanggil `confirmFacebookPagesConnectionAction`
+   * saat user submit dialog Page-selection. RBAC Owner/Admin (gate sama).
+   * Validasi `selectedPageIds.length >= 1` diulang di sini (defense-in-depth
+   * — UI sudah disable tombol di 0 dipilih, tapi Server Action/adapter
+   * tidak boleh dipercaya sendirian).
+   *
+   * SATU panggilan `IOutstandAdapter.confirmFacebookPagesConnection` untuk
+   * SEMUA Page yang dipilih (bukan N panggilan — bentuk endpoint Outstand
+   * sendiri, ADR-115 poin 8). Hasilnya disimpan lewat
+   * `createConnectedAccounts` dalam SATU transaksi — Page yang sudah
+   * terhubung (`outstandAccountId` sama) di-skip, kegagalan di tengah
+   * membatalkan seluruh batch. Return value HANYA berisi Page yang
+   * BENAR-BENAR baru dibuat.
+   *
+   * JOB-03 engagement sync seeding (`engagementSyncSeeder?.onAccountConnected`,
+   * Temuan #1 Ridwan, pola sama `completeAccountConnection`) dipanggil
+   * SEKALI PER Page yang berhasil dibuat.
+   *
+   * **Reconnect Facebook Page tunggal — DI LUAR SCOPE** (ADR-115 poin 8):
+   * method ini SELALU CREATE, tidak menerima `redirectAccountId`.
+   *
+   * **`avatarUrl` join balik (menutup KI-076, ADR-120)** —
+   * `IOutstandAdapter.confirmFacebookPagesConnection` (endpoint
+   * `.../finalize`) TIDAK PERNAH membawa foto profil (lihat docstring
+   * `ConfirmFacebookPagesResult`). Method ini karena itu memanggil
+   * `listPendingFacebookPages` LAGI dengan `sessionToken` yang sama SETELAH
+   * finalize (bukan sebelum — finalize adalah langkah kritis, GET avatar
+   * ini murni best-effort dan tidak boleh berisiko menunda/mengganggu
+   * finalize kalau `sessionToken` ternyata sensitif terhadap urutan/waktu,
+   * sesuatu yang belum terverifikasi ke OpenAPI spec resmi Outstand) untuk
+   * mendapatkan `FacebookPendingPage.pictureUrl` PER `pageId`, lalu
+   * men-join-kan ke `ConnectedAccountData.outstandAccountId` hasil
+   * finalize. Kalau sesi sudah tidak valid lagi di titik ini, re-fetch
+   * gagal dan avatar cukup kosong (`null`) — sudah ditangani `catch` di
+   * bawah, konsisten dengan degradasi best-effort yang sama. Asumsi
+   * `pageId === outstandAccountId` (list vs confirm) ini SAMA PERSIS dengan
+   * yang sudah dipakai `selectConfirmedFacebookAccounts` di real adapter
+   * (irisan pertama, fallback ke tidak ketemu → `avatarUrl: null` — tidak
+   * pernah menggagalkan connect).
+   */
+  async confirmFacebookPagesConnection(input: {
+    workspaceId: WorkspaceId;
+    actorId: UserId;
+    sessionToken: string;
+    selectedPageIds: string[];
+  }): Promise<ConnectedAccountRecord[]> {
+    await this.assertActorCanManageConnectedAccounts(
+      input.workspaceId,
+      input.actorId,
+      "Hanya Owner atau Admin yang bisa menghubungkan akun.",
+    );
+
+    if (input.selectedPageIds.length === 0) {
+      throw new ValidationError(
+        "Pilih minimal satu Page Facebook untuk dihubungkan.",
+      );
+    }
+
+    const adapter = this.requireOutstandAdapter();
+
+    // Finalize (kritis) dijalankan DULU, sebelum re-fetch avatar best-effort
+    // di bawah — supaya request read-only tambahan untuk avatar tidak
+    // pernah bisa menunda/mengganggu langkah finalize yang sebenarnya kalau
+    // ternyata `sessionToken` Outstand sensitif terhadap urutan/waktu
+    // (belum terverifikasi ke OpenAPI spec resmi, lihat catatan di atas).
+    const { accounts } = await adapter.confirmFacebookPagesConnection({
+      sessionToken: input.sessionToken,
+      selectedPageIds: input.selectedPageIds,
     });
+
+    // KI-076/ADR-120 — best-effort, DIJALANKAN SETELAH finalize: kalau
+    // re-fetch daftar pending Page gagal (mis. sesi sudah kedaluwarsa
+    // setelah finalize mengonsumsinya), avatar cukup kosong (`null`) untuk
+    // semua Page — TIDAK boleh menggagalkan proses connect Page yang
+    // sebenarnya (finalize di atas sudah selesai lebih dulu).
+    let pictureUrlByPageId = new Map<string, string>();
+    try {
+      const pending = await adapter.listPendingFacebookPages({
+        sessionToken: input.sessionToken,
+      });
+      pictureUrlByPageId = new Map(
+        pending.pages
+          .filter((page) => typeof page.pictureUrl === "string")
+          .map((page) => [page.pageId, page.pictureUrl as string]),
+      );
+    } catch {
+      pictureUrlByPageId = new Map();
+    }
+
+    const created = await this.repository.createConnectedAccounts({
+      workspaceId: input.workspaceId,
+      actingUserId: input.actorId,
+      accounts: accounts.map((account) => ({
+        platform: account.platform,
+        outstandAccountId: account.outstandAccountId,
+        handle: account.handle,
+        avatarUrl: pictureUrlByPageId.get(account.outstandAccountId) ?? null,
+      })),
+    });
+
+    for (const record of created) {
+      await this.engagementSyncSeeder?.onAccountConnected({
+        workspaceId: record.workspaceId,
+        connectedAccountId: record.id,
+        outstandAccountId: record.outstandAccountId,
+      });
+    }
+
+    return created;
+  }
+
+  /**
+   * Pinterest boards (menutup KI-072, sisa scope ADR-114) — daftar board
+   * ASLI dari SATU akun Pinterest terhubung, dipakai UI Draft Editor untuk
+   * dropdown board per post (bukan text input bebas). Board dipilih PER
+   * POST (state Draft Editor, lewat `platformOptions.boardId`), BUKAN
+   * dipersist ke `ConnectedAccount` — method ini murni membaca daftar
+   * pilihan, tidak menulis apa pun.
+   *
+   * Anti-IDOR: `connectedAccountId` divalidasi terhadap
+   * `listConnectedAccounts` (harus benar-benar milik `workspaceId` ini)
+   * SEBELUM `outstandAccountId`-nya diteruskan ke adapter — id yang
+   * ditebak/ditamper dari client (mis. milik workspace lain) ditolak
+   * `ConflictError`, bukan diam-diam diteruskan. Akun yang bukan Pinterest
+   * juga ditolak eksplisit (`ValidationError`) — adapter tidak boleh
+   * dipanggil dengan asumsi platform yang salah.
+   *
+   * Tidak ada RBAC tambahan di luar keanggotaan workspace (pola sama
+   * `listConnectedAccounts`/`getConnectedAccountsAction`) — SEMUA member
+   * aktif boleh melihat daftar board saat menyusun post, bukan hanya
+   * Owner/Admin (beda dari `initiateConnectAccount`/
+   * `confirmFacebookPagesConnection` yang mengubah `ConnectedAccount`).
+   */
+  async listPinterestBoards(input: {
+    workspaceId: WorkspaceId;
+    actorId: UserId;
+    connectedAccountId: ConnectedAccountId;
+  }): Promise<PinterestBoard[]> {
+    const accounts = await this.repository.listConnectedAccounts(
+      input.workspaceId,
+      input.actorId,
+    );
+    const account = accounts.find((acc) => acc.id === input.connectedAccountId);
+    if (!account) {
+      throw new ConflictError(
+        "Akun terhubung tidak ditemukan atau bukan milik workspace ini.",
+      );
+    }
+    if (account.platform !== SocialPlatform.Pinterest) {
+      throw new ValidationError(
+        "Daftar board Pinterest hanya berlaku untuk akun Pinterest.",
+      );
+    }
+
+    return this.requireOutstandAdapter().listPinterestBoards(
+      account.outstandAccountId,
+    );
   }
 
   /**

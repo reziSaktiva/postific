@@ -1,6 +1,6 @@
 # Roles & Permissions
 
-Dokumen ini mendefinisikan sistem peran dan hak akses pada produk **Social Media Management**.
+Dokumen ini mendefinisikan sistem peran dan hak akses pada produk **Postific**.
 
 Setiap role merepresentasikan tanggung jawab nyata dalam sebuah tim, bukan abstraksi teknis semata. Dokumen ini menjadi acuan wajib untuk UX Planning, System Architecture, dan Engineering Planning — terutama saat mendefinisikan alur kolaborasi, visibilitas konten, dan kendali akses fitur.
 

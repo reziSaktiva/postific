@@ -7,7 +7,7 @@ shadcn/ui · style `radix-maia` (Radix base + Maia preset) · icon library `huge
 CLI: run every command as `bunx shadcn@latest <cmd>` (shown below as `shadcn ...`).
 MCP: an `shadcn` MCP server is registered (`.mcp.json` + `.cursor/mcp.json`, ADR-064) exposing the same lookups as tools — prefer it for exploration inside this session; fall back to CLI when MCP is unavailable.
 
-shadcn/ui ships as source you copy into the repo (`apps/web/src/components/ui/`), not a closed dependency like Astryx — there is no version/Beta drift to track, but it also means **nothing exists until you add it**. Migration from Astryx is incremental per route-segment (ADR-097); Astryx and shadcn coexist in the tree until the migration finishes — do not assume every screen is already on shadcn.
+shadcn/ui ships as source you copy into the repo (`apps/web/src/components/ui/`), not a closed dependency like Astryx — there is no version/Beta drift to track, but it also means **nothing exists until you add it**. Migration from Astryx to shadcn/ui (ADR-097) is **complete** (v0.7 release, T-102, 2026-09-04) — 0 active `@astryxdesign/*` imports remain in `apps/web/src`. Don't assume an unmigrated Astryx screen still exists; if you find one, treat it as drift and flag it rather than silently working around it.
 
 WORKFLOW — discover, don't guess. Never invent a component name, prop, or class; every one of these steps has a cheap way to check first.
 

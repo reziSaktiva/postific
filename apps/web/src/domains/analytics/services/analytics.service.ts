@@ -1,4 +1,4 @@
-import type { PostId, UserId, WorkspaceId } from "@social/shared";
+import type { PostId, UserId, WorkspaceId } from "@postific/shared";
 import type {
   IAnalyticsRepository,
   PostMetricsRecord,
@@ -44,12 +44,16 @@ export class AnalyticsService {
    */
   async getPostMetricsByPosts(
     postIds: PostId[],
+    actingUserId?: UserId,
   ): Promise<Map<PostId, PostMetricsRecord[]>> {
     if (postIds.length === 0) {
       return new Map();
     }
 
-    const rows = await this.repository.findMetricsByPosts(postIds);
+    const rows = await this.repository.findMetricsByPosts(
+      postIds,
+      actingUserId,
+    );
     const grouped = new Map<PostId, PostMetricsRecord[]>();
     for (const row of rows) {
       const existing = grouped.get(row.postId);
@@ -90,6 +94,7 @@ export class AnalyticsService {
     const snapshot = await this.repository.findLatestWorkspaceSnapshot(
       workspaceId,
       period,
+      userId,
     );
     if (!snapshot) {
       return null;
@@ -114,4 +119,18 @@ export class AnalyticsService {
       activeAccounts,
     };
   }
+
+  /**
+   * `getPostPerformance` (T-043.1) DIPINDAHKAN ke `PublishingService`
+   * (2026-09-18, Ridwan Architecture Reviewer — temuan kritis circular
+   * dependency `analytics` <-> `publishing`). Domain `publishing` SUDAH
+   * lebih dulu memanggil `analytics` lewat `PostMetricsPort` (T-033.1,
+   * `listCalendarPosts`/`getHistoryById`) — port lokal `PublishingHistoryPort`
+   * yang tadinya ada di sini membuat dependency dua arah, melanggar
+   * `application-layer.md` ("tidak ada circular dependency antar Bounded
+   * Context"). Lihat `PublishingService.getPostPerformance` untuk logic
+   * (join metrik + caption/akun) yang sekarang hidup di domain `publishing`,
+   * satu arah `publishing -> analytics` lewat `PostMetricsPort` yang sudah
+   * ada (reuse `getPostMetricsByPosts`, method di bawah).
+   */
 }

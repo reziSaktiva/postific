@@ -1,6 +1,6 @@
 # Information Architecture
 
-Dokumen ini mendefinisikan **struktur navigasi, hierarki layar, dan pengelompokan fitur** pada produk **Social Media Management**.
+Dokumen ini mendefinisikan **struktur navigasi, hierarki layar, dan pengelompokan fitur** pada produk **Postific**.
 
 IA dirancang berdasarkan UX Principles yang telah ditetapkan — khususnya UXP-01 (satu siklus kerja), UXP-02 (dua mode kerja), dan UXP-03 (simplisitas sebagai quality bar). Setiap keputusan struktural di sini harus dapat ditelusuri ke prinsip tersebut.
 

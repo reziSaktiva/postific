@@ -1,6 +1,6 @@
 # Product Scope
 
-Dokumen ini mendefinisikan ruang lingkup produk **Social Media Management** pada tingkat domain.
+Dokumen ini mendefinisikan ruang lingkup produk **Postific** pada tingkat domain.
 
 Tujuan utama dokumen ini adalah memastikan seluruh pengembangan produk memiliki batasan yang jelas sebelum memasuki tahap perancangan fitur, UX, dan arsitektur.
 

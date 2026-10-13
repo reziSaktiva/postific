@@ -23,6 +23,18 @@ langsung dengan user. Perubahan struktural wajib dicatat di
 | `najwa-qa-engineer.md`            | Najwa QA Engineer            | Vitest + verifikasi browser end-to-end                                                  | Ya — `Read, Bash, Grep, Glob, mcp__Claude_Browser, DesignSync` |
 | `gibran-project-manager.md`       | Gibran Project Manager       | Update `PROJECT_STATE.md` / `TASKS.md` / `tasks/` / `DECISIONS.md` / `COMPLETE_TASK.md` | Ya — `Read, Edit, Write, Bash, Grep, Glob`         |
 
+**Override model/effort per subagent:** frontmatter tiap file peran boleh
+menambah `effort: <low|medium|high|xhigh|max>` (dipakai `ridwan-architecture-reviewer.md`
+dan `najwa-qa-engineer.md` sebagai quality gate — butuh ketelitian ekstra,
+bukan cuma golden path) dan/atau `model: <sonnet|opus|haiku|fable>` (belum
+dipakai subagent manapun saat ini) untuk menimpa default sesi utama.
+Perubahan ini termasuk "perubahan struktural" (README ini § "Mengubah
+subagent ini") — chmod dance + entri `COMPLETE_TASK.md` tetap wajib.
+Pertimbangkan risiko sebelum menurunkan `model` pada subagent yang tugasnya
+butuh ketelitian arithmetic/cross-file (mis. Gibran menghitung ulang jumlah
+subtask) — model lebih lemah yang salah hitung berarti sesi tambahan untuk
+memperbaikinya, kadang lebih mahal daripada penghematannya.
+
 ---
 
 ## Cara AI memerintahkan subagent
@@ -42,15 +54,31 @@ bukan keputusan delegasi (siapa yang membangun).
 
 ## Keterbatasan teknis: `DesignSync` di sesi subagent
 
-Tool `DesignSync` (akses Claude Design) tercatat gagal dimuat lima kali di
+Tool `DesignSync` (akses Claude Design) tercatat gagal dimuat enam kali di
 sesi `neymar-product-designer` (Channels sidebar ADR-058, dan fix
 TikTok/Pinterest + Content Format Selector — keduanya 2026-07-31; lalu swap
 warna AppShell ADR-084, 2026-08-20; lalu task T-039.4 Onboarding — Workspace
 Picker, 2026-08-24 — dicek via `ToolSearch` dengan beberapa query termasuk
 `select:DesignSync`, tidak ditemukan sama sekali di sesi ini; lalu 2026-09-04,
 task token warna KI-041/ADR-098 **dan** task desain mobile Calendar
-KI-035 poin 3 — keduanya gagal di sesi Neymar yang sama), padahal tool
-yang sama berhasil di sesi utama pada waktu yang berdekatan setiap kali.
+KI-035 poin 3 — keduanya gagal di sesi Neymar yang sama; lalu 2026-09-22,
+task migrasi sidebar ke primitive `Sidebar` shadcn KI-066/T-105 — sama
+persis: `ToolSearch` beberapa query termasuk `select:DesignSync` tidak
+menemukan apa pun di sesi Neymar; lalu 2026-09-24, task drafting UI
+page-selection Facebook Pages KI-070 — kejadian ketujuh, pola sama persis),
+padahal tool yang sama berhasil di sesi utama pada waktu yang berdekatan
+setiap kali. **2026-09-28:** kejadian yang sama juga terjadi di sesi
+**Najwa QA Engineer** (gate T-103.3 saat QA task T-109, RBAC UI Creator
+Connected Accounts) — kejadian **pertama** untuk Najwa (sebelumnya
+limitasi ini hanya tercatat di sesi Neymar Product Designer, 7 kali).
+Ditangani dengan pola yang sama: gate dijalankan ulang di sesi utama,
+`DesignSync` termuat normal di sana, hasil PASS. **Hari yang sama**,
+kejadian kedelapan untuk **Neymar Product Designer** sendiri (task design-prep
+T-110, state baru "menunggu verifikasi email" di `accept-invite.html`,
+KI-053) — `ToolSearch` beberapa query termasuk `select:DesignSync` lagi-lagi
+tidak menemukan apa pun di sesi Neymar. Ditangani sama: King Rezi memberi
+izin eksplisit, dikerjakan di sesi utama, `DesignSync` termuat normal di
+sana.
 
 **Ini pengecualian sementara terhadap mandat WAJIB di
 `neymar-product-designer.md`, bukan pembatalannya.** Selama keterbatasan ini

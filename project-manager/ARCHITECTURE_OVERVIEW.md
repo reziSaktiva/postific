@@ -13,7 +13,7 @@
 
 # Purpose
 
-Dokumen ini adalah **ringkasan arsitektur tingkat tinggi** untuk produk Social Media Management. Tujuannya:
+Dokumen ini adalah **ringkasan arsitektur tingkat tinggi** untuk produk Postific. Tujuannya:
 
 * Menjadi **blueprint visual** yang mudah digambar ulang di Figma (multi-frame).
 * Memberi gambaran satu layar tentang **siapa berinteraksi dengan apa** (context) dan **bagaimana sistem disusun di dalam** (layers + domains).
@@ -66,7 +66,7 @@ Menjawab: *siapa yang memakai sistem, dan sistem apa saja yang berbatasan dengan
                                ▼
 ┌──────────────────────────────────────────────────────────────┐
 │                                                              │
-│           Social Media Management Platform                   │
+│                      Postific Platform                       │
 │                                                              │
 │  Platform web untuk draft, schedule, publish, engagement,    │
 │  analytics, AI caption, dan Start Page — satu workspace.     │
@@ -222,11 +222,12 @@ Menjawab: *request masuk lewat mana, dan layer mana yang boleh menyentuh apa?*
 
 ### Aturan layer (untuk label di Figma)
 
-1. Entry Points **tidak** mengandung business logic.
-2. Entry Points hanya memanggil **Application Service**.
-3. Domain Logic **tidak** mengimpor Prisma, Supabase client, atau HTTP client Outstand.
-4. Cross-domain: service-to-service via public API module — **bukan** import implementasi lintas folder domain.
-5. Shared types hanya lewat `packages/shared` (ID, enum, value object) — tanpa business logic.
+Teks lengkap 5 aturan layer (Entry Points tanpa business logic, Domain Logic
+tanpa impor Prisma/Supabase/Outstand, cross-domain lewat public API, shared
+types hanya di `packages/shared`) ada di **`../AGENTS.md` rules 5-9** — tidak
+disalin ulang di sini. Untuk label diagram Figma, cukup pakai nama layer dari
+diagram Frame 2.1 di atas (Entry Points / Application Service / Domain Logic /
+Repository / Infrastructure).
 
 ---
 

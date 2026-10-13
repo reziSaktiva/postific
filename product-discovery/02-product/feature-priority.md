@@ -1,6 +1,6 @@
 # Feature Priority
 
-Dokumen ini mendefinisikan prioritas pengembangan seluruh fitur pada produk **Social Media Management**.
+Dokumen ini mendefinisikan prioritas pengembangan seluruh fitur pada produk **Postific**.
 
 Prioritas ditentukan berdasarkan nilai bisnis, kebutuhan pengguna, kompleksitas implementasi, dan kontribusi terhadap Product-Market Fit.
 

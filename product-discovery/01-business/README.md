@@ -1,6 +1,6 @@
 # Overview
 
-Dokumentasi pada folder ini berfokus pada fondasi bisnis untuk produk Social Media Management.
+Dokumentasi pada folder ini berfokus pada fondasi bisnis untuk produk Postific.
 
 ---
 

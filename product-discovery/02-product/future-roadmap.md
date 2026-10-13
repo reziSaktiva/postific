@@ -1,6 +1,6 @@
 # Future Roadmap
 
-Dokumen ini mendefinisikan arah pengembangan jangka panjang untuk produk **Social Media Management** setelah fase MVP dan Public Launch.
+Dokumen ini mendefinisikan arah pengembangan jangka panjang untuk produk **Postific** setelah fase MVP dan Public Launch.
 
 Tujuan utama dokumen ini adalah mendokumentasikan peluang pengembangan produk tanpa memengaruhi prioritas roadmap saat ini.
 
@@ -18,7 +18,7 @@ Roadmap ini bukan merupakan daftar pekerjaan yang harus segera dikerjakan, melai
 
 # Long-Term Product Vision
 
-Produk diharapkan berkembang dari platform **Social Media Management** menjadi **Marketing Operations Platform** yang membantu tim mengelola seluruh workflow pemasaran digital secara terintegrasi.
+Produk diharapkan berkembang dari platform **Postific** menjadi **Marketing Operations Platform** yang membantu tim mengelola seluruh workflow pemasaran digital secara terintegrasi.
 
 Perkembangan tersebut dilakukan secara bertahap berdasarkan kebutuhan pengguna dan validasi bisnis.
 

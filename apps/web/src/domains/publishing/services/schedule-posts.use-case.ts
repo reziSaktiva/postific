@@ -5,14 +5,22 @@ import type {
   SocialPlatform,
   UserId,
   WorkspaceId,
-} from "@social/shared";
+} from "@postific/shared";
 import { ConflictError } from "@/lib/utils/errors";
 import type { IOutstandAdapter } from "../adapters/outstand-adapter";
+import type { IJobScheduler } from "../adapters/job-scheduler";
 import { assertContentFormatAllowed } from "../content-format-matrix";
+import { assertPinterestBoardConstraints } from "../pinterest-board-constraints";
+import { assertScheduledAtNotInPast } from "../schedule-time-constraints";
+import { enqueueResolveOutcomeFallback } from "./enqueue-resolve-outcome-fallback";
 import type {
   IPublishingRepository,
   PublishingPostRecord,
 } from "../repositories/publishing.repository";
+import {
+  resolveOutstandPostMedia,
+  type PostMediaLookupPort,
+} from "./resolve-outstand-post-media";
 
 export interface SchedulePostsTargetInput {
   connectedAccountId: ConnectedAccountId;
@@ -54,11 +62,42 @@ export interface SchedulePostsTargetInput {
  * outcome sungguhan diketahui belakangan lewat polling (T-027) atau
  * webhook `post.published`/`post.error` (T-026) — konsisten dengan model
  * async Outstand di `integration-layer.md`, bukan diagnosa instan Fake.
+ *
+ * **T-027.5 — enqueue job polling outcome:** SETELAH `outstandPostId`
+ * persist dan seluruh target ditandai `scheduled` (jalur sukses SAJA — lihat
+ * `catch` di bawah, tidak ada yang perlu di-poll kalau adapter call-nya
+ * sendiri gagal, sudah `markPostFailed`), use-case ini meng-enqueue SATU
+ * `BackgroundJob` (`RESOLVE_SCHEDULED_POST_OUTCOME_JOB_TYPE`) via
+ * `jobScheduler` (port, constructor param ketiga — pola sama
+ * `IOutstandAdapter`, wajib di-pass supaya lupa wiring ketahuan TypeScript,
+ * bukan cuma runtime). `scheduledAt` job = `scheduledAt` post — job baru
+ * boleh dieksekusi job runner (Railway Cron) setelah waktu jadwal post itu
+ * sendiri tiba, sama waktunya dengan saat Outstand baru mengeksekusi publish
+ * di sisi mereka. Payload `{ outstandPostId }` (bukan `postId` domain) —
+ * lihat catatan lengkap desain ini di
+ * `ResolveScheduledPostOutcomeJobHandler`.
+ *
+ * **Bug fix (review Ridwan Architecture Reviewer, T-027):** `jobScheduler.
+ * scheduleJob()` dipanggil di LUAR `try`/`catch` yang menangani kegagalan
+ * `outstandAdapter.schedulePost()` (lihat `scheduleResult` di bawah) — kalau
+ * TIDAK dipisah, exception dari `scheduleJob()` (mis. DB down saat insert
+ * `BackgroundJob`) akan tertangkap oleh `catch` yang sama dan SALAH menandai
+ * post/seluruh target sebagai `failed`, padahal Outstand SUDAH benar-benar
+ * menjadwalkan post itu (`outstandPostId` valid, sudah persist, target sudah
+ * `scheduled`). Kegagalan enqueue job adalah bug data/observability
+ * terpisah — bukan kegagalan publish/schedule — jadi hanya di-log
+ * (`console.error`), TIDAK mengubah status post/target sama sekali. Outcome
+ * post ini tetap bisa terselesaikan belakangan lewat webhook `post.published`/
+ * `post.error` (T-026, independen dari job polling T-027) kalau job resolve
+ * outcome-nya gagal ter-enqueue.
  */
 export class SchedulePostsUseCase {
   constructor(
     private readonly repository: IPublishingRepository,
     private readonly outstandAdapter: IOutstandAdapter,
+    private readonly jobScheduler: IJobScheduler,
+    /** Opsional — resolve mediaIds → URL Outstand sebelum create-post. */
+    private readonly mediaLookup?: PostMediaLookupPort,
   ) {}
 
   async execute(input: {
@@ -72,6 +111,12 @@ export class SchedulePostsUseCase {
     for (const target of input.targets) {
       assertContentFormatAllowed(target.platform, target.contentFormat);
     }
+    assertPinterestBoardConstraints(input.targets);
+    // T-108.2 (KI-044) — defense-in-depth: validasi client di `Modal.tsx`
+    // bisa dilewati (request langsung ke Server Action, jam sistem client
+    // berbeda dari server, dll). Reject di sini juga, sebelum apa pun
+    // dipersist.
+    assertScheduledAtNotInPast(input.scheduledAt);
 
     const record = await this.repository.schedulePost(
       {
@@ -94,15 +139,31 @@ export class SchedulePostsUseCase {
       );
     }
 
+    // Non-null HANYA kalau `outstandAdapter.schedulePost()` + persist DB
+    // setelahnya (`setOutstandPostId`/`updateTargetOutcome`) semuanya
+    // sukses — dipakai di luar blok `try`/`catch` di bawah untuk memutuskan
+    // apakah job polling outcome (T-027.5) perlu di-enqueue sama sekali.
+    let scheduleResult: { outstandPostId: string } | null = null;
+
     try {
+      const media = await resolveOutstandPostMedia({
+        workspaceId: input.workspaceId,
+        mediaIds: record.mediaIds,
+        actingUserId: input.actingUserId,
+        outstandAdapter: this.outstandAdapter,
+        mediaLookup: this.mediaLookup,
+      });
+
       const result = await this.outstandAdapter.schedulePost({
         caption: record.caption,
         scheduledAt: input.scheduledAt,
         targets: input.targets.map((target) => ({
           outstandAccountId: target.outstandAccountId,
+          platform: target.platform,
           contentFormat: target.contentFormat,
           platformOptions: target.platformOptions,
         })),
+        ...(media ? { media } : {}),
       });
 
       await this.repository.setOutstandPostId(
@@ -122,6 +183,8 @@ export class SchedulePostsUseCase {
           ),
         ),
       );
+
+      scheduleResult = result;
     } catch (error) {
       // Satu call mencakup semua target (redesain 2026-08-26) — gagal
       // berarti SEMUA target gagal bersamaan (all-or-nothing), beda dari
@@ -142,9 +205,37 @@ export class SchedulePostsUseCase {
         ),
       );
       await this.repository.markPostFailed(
-        { workspaceId: input.workspaceId, postId: input.postId },
+        {
+          workspaceId: input.workspaceId,
+          postId: input.postId,
+          reason: message,
+        },
         input.actingUserId,
       );
+    }
+
+    // T-027.5 — SENGAJA di LUAR try/catch di atas (bug fix review Ridwan,
+    // lihat catatan panjang di atas class ini): enqueue job hanya dicoba
+    // kalau schedule ke Outstand sungguhan sukses (`scheduleResult` tidak
+    // null), dan kegagalannya sendiri TIDAK BOLEH menandai post/target
+    // sebagai `failed` — post itu sudah benar-benar terjadwal di Outstand,
+    // ini murni gagal mencatat job internal untuk polling belakangan.
+    if (scheduleResult) {
+      // Log-only kalau gagal enqueue (pola sama dengan kegagalan pemrosesan
+      // non-fatal lain di codebase ini, mis. `OutstandWebhookProcessor` di
+      // `/api/webhooks/outstand/route.ts`) — post TETAP `Scheduled`, TIDAK
+      // di-`markPostFailed`. Outcome post ini masih bisa terselesaikan lewat
+      // webhook `post.published`/`post.error` (T-026, independen dari job
+      // polling T-027); kegagalan enqueue perlu diinvestigasi manual (MVP
+      // monitoring, BG-D06) kalau webhook juga tidak kunjung datang.
+      await enqueueResolveOutcomeFallback({
+        jobScheduler: this.jobScheduler,
+        outstandPostId: scheduleResult.outstandPostId,
+        scheduledAt: input.scheduledAt,
+        callerLabel: "SchedulePostsUseCase",
+        postId: input.postId,
+        onFailureNote: "post TETAP berstatus Scheduled, BUKAN ditandai gagal.",
+      });
     }
 
     return record;

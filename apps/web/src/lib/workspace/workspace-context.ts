@@ -1,5 +1,5 @@
-import type { MemberRole, WorkspaceId } from "@social/shared";
-import { asWorkspaceId } from "@social/shared";
+import type { MemberRole, WorkspaceId } from "@postific/shared";
+import { asWorkspaceId } from "@postific/shared";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {

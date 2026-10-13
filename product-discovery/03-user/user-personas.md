@@ -1,6 +1,6 @@
 # User Personas
 
-Dokumen ini menyusun persona awal untuk produk **Social Media Management** berdasarkan asumsi, observasi desktop research, dan insight yang relevan.
+Dokumen ini menyusun persona awal untuk produk **Postific** berdasarkan asumsi, observasi desktop research, dan insight yang relevan.
 
 Persona digunakan untuk menjaga empati dan fokus keputusan produk. Persona bukan hasil riset akademis, dan bukan kontrak fitur.
 

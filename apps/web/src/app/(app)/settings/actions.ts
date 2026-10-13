@@ -5,7 +5,7 @@ import {
   asUserId,
   type UserId,
   type WorkspaceId,
-} from "@social/shared";
+} from "@postific/shared";
 import { redirect } from "next/navigation";
 import { NotificationService } from "@/domains/notification";
 import { WorkspaceService } from "@/domains/workspace";

@@ -1,6 +1,6 @@
 # Integration Layer
 
-Dokumen ini mendefinisikan **Integration Layer** untuk produk **Social Media Management** — arsitektur integrasi dengan Outstand API sebagai social media integration provider, meliputi Anti-Corruption Layer, ConnectedAccount management, publishing flow, webhook handling, engagement sync, analytics sync, dan strategi error handling.
+Dokumen ini mendefinisikan **Integration Layer** untuk produk **Postific** — arsitektur integrasi dengan Outstand API sebagai social media integration provider, meliputi Anti-Corruption Layer, ConnectedAccount management, publishing flow, webhook handling, engagement sync, analytics sync, dan strategi error handling.
 
 Dokumen ini menjadi acuan desain integrasi eksternal dan tidak mencakup implementasi kode. Detail implementasi (HTTP client, retry library, folder structure) didokumentasikan di Engineering Planning (M6).
 
@@ -113,9 +113,13 @@ OutstandAdapter (Anti-Corruption Layer)
   │     // params mencakup: caption, outstandMediaUrls, scheduledAt,
   │     // contentFormat, platformOptions? — dipetakan ke override Outstand di ACL
   ├── publishNow(targets[], params) → { outstandPostId }
-  ├── fetchPostOutcome(outstandPostId) → PostTargetOutcome[]
+  ├── fetchPostOutcome(outstandPostId, expectedOutstandAccountIds[]) → PostTargetOutcome[]
   │     // wajib dipanggil untuk resolve status per akun (pending|published|failed);
   │     // tidak diasumsikan sinkron dari schedulePost/publishNow
+  │     // (amandemen ADR-108) daftar akun target dikirim ulang eksplisit oleh
+  │     // caller — adapter tidak boleh bergantung pada state hasil panggilan
+  │     // schedulePost/publishNow sebelumnya (rusak lintas proses/module chunk
+  │     // Server Action ↔ Route Handler yang terpisah, ditemukan T-027.5)
   ├── cancelScheduledPost(outstandPostId) → void
   ├── fetchComments(outstandAccountId, cursor?) → CommentPage
   ├── replyToComment(outstandCommentId, text) → ReplyResult
@@ -215,8 +219,9 @@ Publishing ke social media dilakukan melalui Outstand API — sistem internal ti
 `PostTarget` pada post yang sama, mengembalikan SATU `outstandPostId` di
 level `Post`. Outcome per akun (`platformPostId`, `platformPostUrl`,
 `status`) TIDAK dikembalikan sinkron oleh call ini — harus diresolve
-belakangan lewat `OutstandAdapter.fetchPostOutcome(outstandPostId)` (polling
-sekarang, webhook di T-026 nanti).
+belakangan lewat `OutstandAdapter.fetchPostOutcome(outstandPostId, expectedOutstandAccountIds)`
+(amandemen ADR-108; webhook T-026 dan job T-027/JOB-07 sama-sama memakai
+jalur ini sekarang).
 
 ```
 ┌──────────────────┐    ┌──────────────────────┐    ┌─────────────────┐
@@ -253,7 +258,7 @@ sekarang, webhook di T-026 nanti).
    - `contentFormat` + `platformOptions` per target — diterjemahkan ACL ke override Outstand (Story/Reel/Pin, dll.).
 5. Outstand mengembalikan SATU `post.id` untuk seluruh target (bukan job per akun).
 6. `PublishingService` menyimpan `outstandPostId` pada `Post` (bukan `PostTarget`) dan mengubah `Post.status` ke `Scheduled`. `PostTarget.status` tetap `pending` sampai outcome per akun diresolve.
-7. `PublishingService` memanggil `OutstandAdapter.fetchPostOutcome(outstandPostId)` (segera untuk Publish Now, atau lewat polling/webhook T-026 untuk Schedule) untuk mengisi `platformPostId`/`platformPostUrl`/`status` per `PostTarget`.
+7. `PublishingService` memanggil `OutstandAdapter.fetchPostOutcome(outstandPostId, expectedOutstandAccountIds)` (amandemen ADR-108; segera untuk Publish Now, atau lewat webhook T-026/job T-027 JOB-07 untuk Schedule) untuk mengisi `platformPostId`/`platformPostUrl`/`status` per `PostTarget`.
 
 **Catatan:**
 - Media original tetap menjadi milik aplikasi di bucket private Supabase Storage. Signed URL Supabase hanya boleh dipakai untuk akses internal/UI, **bukan** sebagai URL publishing ke Outstand.

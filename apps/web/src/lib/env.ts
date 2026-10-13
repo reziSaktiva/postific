@@ -11,7 +11,6 @@ const REQUIRED_SERVER_VARS = [
   "SUPABASE_JWT_SECRET",
   "BETTER_AUTH_SECRET",
   "BETTER_AUTH_URL",
-  "JOB_SECRET",
 ] as const;
 
 export type ServerEnv = {
@@ -27,10 +26,47 @@ export type ServerEnv = {
   BETTER_AUTH_API_KEY?: string;
   BETTER_AUTH_API_URL?: string;
   BETTER_AUTH_KV_URL?: string;
-  /** Optional (ADR-059) — kosong → Fake OutstandAdapter aktif otomatis. */
+  /**
+   * Wajib untuk setiap jalur yang memanggil `getOutstandAdapter()` (ADR-119).
+   * Kosong atau whitespace membuat factory throw — tidak ada fallback Fake.
+   * Sengaja tidak masuk `REQUIRED_SERVER_VARS`: halaman yang tidak menyentuh
+   * Outstand tetap boleh boot; kegagalan baru muncul di jalur Outstand.
+   */
   OUTSTAND_API_KEY?: string;
   OUTSTAND_WEBHOOK_SECRET?: string;
-  JOB_SECRET: string;
+  /**
+   * Optional (T-025.1) — base URL Outstand API. Kosong → default
+   * `https://api.outstand.so` (diverifikasi terhadap OpenAPI spec resmi
+   * Outstand, `https://api.outstand.so/v1/*openapi.json`, diambil
+   * 2026-09-23 — TANPA suffix `/v1`, setiap path di adapter sudah
+   * menyertakan `/v1/...` sendiri). Override ini tetap disediakan untuk
+   * fleksibilitas (mis. staging/sandbox Outstand kalau ada).
+   */
+  OUTSTAND_API_BASE_URL?: string;
+  /**
+   * Optional — Outstand Organization ID, dibutuhkan `connectAccount()`
+   * untuk membentuk redirect URL OAuth resmi
+   * (`https://www.outstand.so/app/api/socials/{network}/{orgId}`). Sejak
+   * ADR-112, mengisi ini SUDAH cukup untuk alur connect account
+   * single-page selesai (`resolveConnectCallback` tidak butuh env
+   * tambahan) — tidak berlaku untuk Facebook Pages multi-halaman (KI-070).
+   */
+  OUTSTAND_ORG_ID?: string;
+  /** Optional (mengikuti pola OUTSTAND_WEBHOOK_SECRET) — reachable 401 check di route.ts butuh ini TIDAK throw duluan lewat assertServerEnv kalau belum di-set. */
+  JOB_SECRET?: string;
+  /**
+   * Wajib untuk setiap jalur yang memanggil `getInviteEmailSender()` (T-110,
+   * KI-053) — kosong/whitespace membuat factory throw, pola sama
+   * `OUTSTAND_API_KEY` (ADR-119, tidak ada fallback Fake di produksi).
+   * Sengaja tidak masuk `REQUIRED_SERVER_VARS`: scope Resend saat ini adalah
+   * verifikasi email accept-invite (T-110) dan kirim undangan anggota
+   * (T-007.7), bukan `requireEmailVerification` Better Auth secara global
+   * (T-005) — halaman yang tidak menyentuh alur itu tetap boleh boot tanpa
+   * env var ini.
+   */
+  RESEND_API_KEY?: string;
+  /** Wajib bersamaan dengan RESEND_API_KEY — alamat pengirim email Resend. */
+  RESEND_FROM_EMAIL?: string;
   NEXT_PUBLIC_SUPABASE_URL?: string;
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?: string;
 };
@@ -75,7 +111,11 @@ export function getServerEnv(): ServerEnv {
     BETTER_AUTH_KV_URL: process.env.BETTER_AUTH_KV_URL,
     OUTSTAND_API_KEY: process.env.OUTSTAND_API_KEY,
     OUTSTAND_WEBHOOK_SECRET: process.env.OUTSTAND_WEBHOOK_SECRET,
-    JOB_SECRET: process.env.JOB_SECRET ?? "",
+    OUTSTAND_API_BASE_URL: process.env.OUTSTAND_API_BASE_URL,
+    OUTSTAND_ORG_ID: process.env.OUTSTAND_ORG_ID,
+    JOB_SECRET: process.env.JOB_SECRET,
+    RESEND_API_KEY: process.env.RESEND_API_KEY,
+    RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL,
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
       process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,

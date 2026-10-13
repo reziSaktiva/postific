@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { PlusSignIcon } from "@hugeicons/core-free-icons";
 
-import { SocialPlatform } from "@social/shared";
+import { SocialPlatform } from "@postific/shared";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -59,6 +59,16 @@ export function ConnectPlatformMenu() {
         const result = await initiateConnectAccountAction(platform);
         if (result?.error) {
           toast.error(result.error);
+          return;
+        }
+        // Facebook (Bug #2, T-025.4/KI-070): Server Action SENGAJA tidak
+        // redirect() sendiri untuk platform ini — lihat docstring
+        // `initiateConnectAccountAction` (`../actions.ts`) untuk alasan
+        // lengkap. `window.location.href` = hard navigation penuh (bukan
+        // client-side App Router transition), memutus rantai yang
+        // menyebabkan dialog Facebook Pages Picker macet Loading selamanya.
+        if (result?.redirectUrl) {
+          window.location.href = result.redirectUrl;
         }
       } finally {
         setPendingPlatform(null);

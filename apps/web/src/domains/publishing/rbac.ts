@@ -1,4 +1,4 @@
-import { MemberRole } from "@social/shared";
+import { MemberRole, OWNER_OR_ADMIN_ROLES } from "@postific/shared";
 import { AuthorizationError } from "@/lib/utils/errors";
 
 /**
@@ -58,6 +58,31 @@ export function assertActorCanDeletePost(actorRole: MemberRole): void {
   if (!ROLES_ALLOWED_FOR_CONTENT_ACTIONS.has(actorRole)) {
     throw new AuthorizationError(
       "Anda tidak memiliki izin untuk menghapus post ini (Delete Post).",
+    );
+  }
+}
+
+/**
+ * RBAC untuk trigger manual "Sync Now" Import Posts (T-090.3, ADR-093 poin
+ * 9) — SENGAJA bukan `ROLES_ALLOWED_FOR_CONTENT_ACTIONS` (yang mengikutkan
+ * Creator): endpoint ini BERBAYAR dan ADR-093 eksplisit membatasinya ke
+ * hak "kelola Connected Accounts" — Owner & Admin saja, sama persis dengan
+ * `assertActorCanManageConnectedAccounts` di
+ * `WorkspaceService`/`roles-permissions.md`. Dideklarasikan ulang di sini
+ * (bukan reuse method private `WorkspaceService`) karena
+ * `ImportPostsTriggerUseCase` hidup di domain `publishing`, tidak boleh
+ * mengimpor `workspace` (AGENTS.md #7) — nilai himpunan role HARUS tetap
+ * identik dengan gate itu — code review PR #148: nilai himpunan role
+ * sekarang satu sumber kebenaran bersama, `OWNER_OR_ADMIN_ROLES` di
+ * `packages/shared` (lihat docstring konstanta itu), bukan `Set` literal
+ * terpisah di sini.
+ */
+export function assertActorCanTriggerManualImportSync(
+  actorRole: MemberRole,
+): void {
+  if (!OWNER_OR_ADMIN_ROLES.has(actorRole)) {
+    throw new AuthorizationError(
+      "Hanya Owner atau Admin yang bisa menjalankan sinkronisasi impor manual (Sync Now).",
     );
   }
 }

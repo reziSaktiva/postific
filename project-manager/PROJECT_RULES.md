@@ -121,7 +121,7 @@ Termasuk:
 
 Supaya `PROJECT_STATE.md` tidak kembali membengkak, dicek sebagai bagian **Definition of Done** setiap milestone selesai:
 
-* `PROJECT_STATE.md` section "Completed (Ringkasan)" dan "Recent Decisions (Ringkasan)" masing-masing dijaga ≤ ~10 item (rolling window item terbaru). Item yang tergeser keluar tetap utuh di `COMPLETE_TASK.md`/`DECISIONS.md` — tidak hilang, hanya tidak lagi tampil inline.
+* `PROJECT_STATE.md` section "Completed (Ringkasan)" dijaga **≤ 5 item** (rolling window item terbaru — aturan mengikat, lihat `AGENTS.md` § "Setelah mengubah sesuatu"); "Recent Decisions (Ringkasan)" dijaga ≤ ~10 item. Item yang tergeser keluar tetap utuh di `COMPLETE_TASK.md`/`DECISIONS.md` — tidak hilang, hanya tidak lagi tampil inline.
 * `COMPLETE_TASK.md` sengaja **tidak** dirotasi/diarsipkan (satu file historis penuh, by design — lihat ADR-061) karena AI memang dilarang membacanya kecuali diperintah; ukurannya boleh terus tumbuh tanpa jadi beban token.
 * `TASKS.md` dijaga tetap ringkas (indeks saja, target ≤ ~150 baris). Detail task **wajib** tinggal di `tasks/vXX-*.md`, dan AI hanya membuka file release yang sedang dikerjakan — bukan seluruh folder `tasks/` (ADR-062).
 * Task berstatus `✅ Done` di `tasks/*.md` diringkas jadi satu paragraf jejak tanpa checklist subtask, supaya file release tidak tumbuh oleh pekerjaan yang sudah selesai. Riwayat lengkap per sesi tetap di `COMPLETE_TASK.md`.
@@ -150,11 +150,13 @@ Supaya `PROJECT_STATE.md` tidak kembali membengkak, dicek sebagai bagian **Defin
 
 # AI Collaboration Rules
 
-* AI harus membaca dokumentasi sebelum melakukan implementasi.
-* AI tidak boleh mengubah arsitektur tanpa keputusan baru yang terdokumentasi.
-* AI tidak boleh mengubah business rules tanpa persetujuan dan pembaruan dokumentasi.
-* AI harus menjaga konsistensi struktur project.
-* AI harus mematuhi klasifikasi dokumen pada bagian **Documentation Governance** saat membuat perubahan.
+Teks lengkap aturan kolaborasi dengan AI ada di **`../AGENTS.md`**: baca
+dokumentasi dulu → section "Wajib di awal sesi"; tidak boleh ubah
+arsitektur/business rules tanpa ADR → rule 4; jaga konsistensi struktur →
+seluruh section "Aturan keras". Tidak disalin ulang di sini supaya tidak
+drift saat salah satu diupdate. Aturan "patuh klasifikasi dokumen" tidak
+perlu pointer keluar — itu section **Document Type Classification** di
+bawah, di dokumen ini sendiri.
 
 ---
 

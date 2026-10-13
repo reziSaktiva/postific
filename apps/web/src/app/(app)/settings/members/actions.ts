@@ -5,16 +5,17 @@ import {
   asInvitationId,
   asMemberId,
   asUserId,
-} from "@social/shared";
-import type { UserId, WorkspaceId } from "@social/shared";
+} from "@postific/shared";
+import type { UserId, WorkspaceId } from "@postific/shared";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { WorkspaceService } from "@/domains/workspace";
 import { getCachedSession } from "@/lib/better-auth/session";
 import { getServerEnv } from "@/lib/env";
 import { workspaceRepository } from "@/lib/repositories/workspace";
+import { ApplicationError, toActionError } from "@/lib/utils/errors";
 import { getWorkspaceContext } from "@/lib/workspace/workspace-context";
-import { toActionError } from "@/lib/utils/errors";
+import { createWorkspaceServiceWithInviteEmailSender } from "@/lib/workspace/invite-email-workspace-service";
 
 // ADR-076 (T-039.1-3): `resolveWorkspaceAndSession(slug)` lokal dihapus —
 // workspaceId sekarang dari getWorkspaceContext() (header proxy.ts),
@@ -29,6 +30,12 @@ import { toActionError } from "@/lib/utils/errors";
 // PR #73).
 function isValidMemberRole(value: unknown): value is MemberRole {
   return Object.values(MemberRole).includes(value as MemberRole);
+}
+
+type InviteDelivery = "copy-link" | "email";
+
+function isInviteDelivery(value: unknown): value is InviteDelivery {
+  return value === "copy-link" || value === "email";
 }
 
 /**
@@ -75,18 +82,25 @@ export async function removeMemberAction(
 }
 
 /**
- * Jalur **Copy Link** (T-007.1, ADR-080) — buat invitation + susun link
- * lengkap `{baseUrl}/invite/{token}`. `baseUrl` dari `BETTER_AUTH_URL`
- * (env yang sama dipakai Better Auth `baseURL`, bukan env baru). Halaman
- * `/invite/[token]` (accept-invite flow) di luar scope T-007.1 — lihat
- * ADR-072 "future work".
+ * Buat invitation + susun link `{baseUrl}/invite/{token}` (T-007.1, ADR-080).
+ * `delivery: "email"` (T-007.7) mengirim link yang sama lewat Resend setelah
+ * invitation dibuat. `baseUrl` dari `BETTER_AUTH_URL`.
  */
 export async function inviteMemberAction(
   email: string,
   role: MemberRole,
-): Promise<{ error?: string; token?: string; inviteLink?: string }> {
+  delivery: InviteDelivery = "copy-link",
+): Promise<{
+  error?: string;
+  token?: string;
+  inviteLink?: string;
+  emailed?: boolean;
+}> {
   if (!isValidMemberRole(role)) {
     return { error: "Role tidak valid." };
+  }
+  if (!isInviteDelivery(delivery)) {
+    return { error: "Metode undangan tidak valid." };
   }
 
   const { workspaceId, actorUserId, workspaceService } =
@@ -105,10 +119,33 @@ export async function inviteMemberAction(
   revalidatePath("/settings/members");
 
   const baseUrl = getServerEnv().BETTER_AUTH_URL;
-  return {
-    token: invitation.token,
-    inviteLink: `${baseUrl}/invite/${invitation.token}`,
-  };
+  const inviteLink = `${baseUrl}/invite/${invitation.token}`;
+
+  if (delivery === "copy-link") {
+    return { token: invitation.token, inviteLink };
+  }
+
+  try {
+    await createWorkspaceServiceWithInviteEmailSender().sendMemberInvitationEmail(
+      {
+        workspaceId,
+        actorUserId,
+        email,
+        role,
+      },
+    );
+  } catch (error) {
+    if (error instanceof ApplicationError) {
+      return { ...toActionError(error), token: invitation.token, inviteLink };
+    }
+    return {
+      error: "Undangan sudah dibuat, tetapi email gagal dikirim.",
+      token: invitation.token,
+      inviteLink,
+    };
+  }
+
+  return { token: invitation.token, inviteLink, emailed: true };
 }
 
 /**

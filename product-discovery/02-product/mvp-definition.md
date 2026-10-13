@@ -1,6 +1,6 @@
 # MVP Definition
 
-Dokumen ini mendefinisikan ruang lingkup **Minimum Viable Product (MVP)** untuk produk **Social Media Management**.
+Dokumen ini mendefinisikan ruang lingkup **Minimum Viable Product (MVP)** untuk produk **Postific**.
 
 MVP merupakan versi pertama produk yang memiliki nilai nyata bagi pengguna serta mampu memvalidasi asumsi bisnis dan produk.
 

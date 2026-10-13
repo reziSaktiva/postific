@@ -1,15 +1,65 @@
 "use server";
 
-import { asUserId, MemberRole } from "@social/shared";
+import { asUserId, MemberRole } from "@postific/shared";
 import { cookies } from "next/headers";
 import { WorkspaceService } from "@/domains/workspace";
 import { getCachedSession } from "@/lib/better-auth/session";
 import { workspaceRepository } from "@/lib/repositories/workspace";
 import { toActionError } from "@/lib/utils/errors";
+import { createWorkspaceServiceWithInviteEmailSender } from "@/lib/workspace/invite-email-workspace-service";
 import {
   ACTIVE_WORKSPACE_ID_COOKIE,
   activeWorkspaceCookieOptions,
 } from "@/lib/workspace/active-workspace-cookie";
+
+/**
+ * Request kode verifikasi OTP (T-110.2, KI-053) — dipanggil
+ * `AcceptInviteForm` SETELAH submit form Nama+Password, SEBELUM
+ * `authClient.signUp.email` (jalur `isExistingUser: false` saja; akun
+ * BELUM dibuat di titik ini, TIDAK ada sesi Better Auth untuk dibaca —
+ * beda dari `acceptInviteAction` di bawah). Entry point ini HANYA
+ * memanggil `WorkspaceService.requestInviteEmailVerification` (AGENTS.md
+ * #5) — validasi/race-guard/generate-kode/kirim-email semuanya di
+ * service+repository+adapter layer. Dipakai juga untuk tombol "Kirim
+ * ulang" (composition root sama, tidak ada rate-limit tambahan di luar
+ * `verificationAttempts` yang sudah ada untuk percobaan KODE — cooldown
+ * "Kirim ulang" murni UX di client, lihat `AcceptInviteForm.tsx`).
+ */
+export async function requestAcceptInviteVerificationAction(
+  token: string,
+): Promise<{ error?: string }> {
+  const workspaceService = createWorkspaceServiceWithInviteEmailSender();
+
+  try {
+    await workspaceService.requestInviteEmailVerification(token);
+  } catch (error) {
+    return toActionError(error);
+  }
+
+  return {};
+}
+
+/**
+ * Konfirmasi kode verifikasi OTP (T-110.3, KI-053) — dipanggil
+ * `AcceptInviteForm` setelah user submit kode 6 digit. TIDAK butuh
+ * `InviteEmailSenderPort` (tidak mengirim email) — `WorkspaceService`
+ * default (tanpa composition root khusus) sudah cukup, pola sama
+ * `acceptInviteAction` di bawah.
+ */
+export async function confirmAcceptInviteVerificationAction(
+  token: string,
+  code: string,
+): Promise<{ error?: string }> {
+  const workspaceService = new WorkspaceService(workspaceRepository);
+
+  try {
+    await workspaceService.confirmInviteEmailVerification(token, code);
+  } catch (error) {
+    return toActionError(error);
+  }
+
+  return {};
+}
 
 /**
  * Finalisasi accept-invite (T-093.2/.3, ADR-080) — dipanggil dari

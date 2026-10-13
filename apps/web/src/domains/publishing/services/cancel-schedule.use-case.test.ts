@@ -4,7 +4,7 @@ import {
   asWorkspaceId,
   ContentStatus,
   MemberRole,
-} from "@social/shared";
+} from "@postific/shared";
 import { describe, expect, it } from "vitest";
 import { AuthorizationError, ConflictError } from "@/lib/utils/errors";
 import type { IOutstandAdapter } from "../adapters/outstand-adapter";
@@ -52,12 +52,20 @@ function createFakeRepository(
     getHistoryPostById: async () => null,
     cancelSchedule: async () => null,
     markPostFailed: async () => undefined,
+    markPostPublished: async () => undefined,
     getRetryTarget: async () => null,
     resetTargetForRetry: async () => undefined,
     setRetryOutstandPostId: async () => undefined,
     reconcilePostStatusAfterRetry: async () => undefined,
     findPostTargetsByOutstandPostId: async () => null,
     softDeletePost: async () => null,
+    listSyncablePostsByConnectedAccount: async () => [],
+    findPostOutstandId: async () => null,
+    findPostSnapshotForEngagement: async () => null,
+    upsertImportedPosts: async () => ({
+      insertedCount: 0,
+      skippedDuplicateCount: 0,
+    }),
     ...overrides,
   };
 }
@@ -67,7 +75,15 @@ function createFakeOutstandAdapter(
 ): IOutstandAdapter {
   return {
     connectAccount: async () => ({ redirectUrl: "/unused" }),
-    exchangeConnectCode: async () => ({
+    listPendingFacebookPages: async () => ({ pages: [] }),
+    confirmFacebookPagesConnection: async () => ({ accounts: [] }),
+    listPinterestBoards: async () => [],
+    uploadMediaWorkingCopy: async () => ({
+      outstandMediaId: "unused",
+      outstandMediaUrl: "https://fake.outstand.local/media/unused",
+      expiresAt: new Date(),
+    }),
+    resolveConnectCallback: async () => ({
       outstandAccountId: "unused",
       platform: "instagram" as never,
       handle: "unused",
@@ -92,6 +108,14 @@ function createFakeOutstandAdapter(
       totalReach: 0,
       totalEngagements: 0,
       avgEngagementRate: 0,
+    }),
+    fetchComments: async () => ({ comments: [], nextCursor: null }),
+    replyToComment: async () => ({ outstandReplyId: "fake-reply" }),
+    importPosts: async () => ({ importJobId: "fake-import-job" }),
+    fetchImportJobStatus: async () => ({
+      status: "completed" as const,
+      posts: [],
+      error: null,
     }),
     ...overrides,
   };

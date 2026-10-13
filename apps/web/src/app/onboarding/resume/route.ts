@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { asUserId } from "@social/shared";
+import { asUserId } from "@postific/shared";
 import { auth } from "@/lib/better-auth/auth";
 import { getServerEnv } from "@/lib/env";
 import { workspaceRepository } from "@/lib/repositories/workspace";

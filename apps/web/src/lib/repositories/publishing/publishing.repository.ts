@@ -1,20 +1,22 @@
 import {
   asConnectedAccountId,
+  asMediaId,
   asPostId,
   asPostTargetId,
   asUserId,
   asWorkspaceId,
   type ConnectedAccountId,
-  type ContentFormat,
+  ContentFormat,
   ContentStatus,
   type SocialPlatform,
-} from "@social/shared";
+} from "@postific/shared";
 import {
   HISTORY_TERMINAL_STATUSES,
   type CalendarItemRecord,
   type CalendarItemTargetRecord,
   type HistoryItemRecord,
   type HistoryItemTargetRecord,
+  type DraftTargetRecord,
   type IPublishingRepository,
   type PublishingCancelScheduleRecord,
   type PublishingPostRecord,
@@ -35,6 +37,7 @@ import {
   setCurrentUserId,
   withCurrentUser,
 } from "@/lib/prisma/with-current-user";
+import { replaceDraftTargets } from "@/lib/repositories/publishing/replace-draft-targets";
 
 /**
  * Sentinel internal — dilempar di dalam `$transaction` supaya semua
@@ -67,13 +70,56 @@ function isInvalidIdFormat(error: unknown): boolean {
   );
 }
 
-function mapPost(post: PublishingPost): PublishingPostRecord {
+/**
+ * `PublishingPost.authorId` jadi nullable sejak ADR-093 (T-090.1) —
+ * `null` HANYA valid untuk status `Imported`. `mapPost` di bawah ini
+ * HANYA pernah dipanggil dengan baris dari query yang TIDAK PERNAH
+ * mengembalikan status `Imported` (`createDraft`, `schedulePost`,
+ * `publishNow`, `cancelSchedule`, `softDeletePost`, dan query draft
+ * lain yang dideklarasikan `IPublishingRepository` — semuanya mengubah
+ * atau membaca post pada jalur Draft→Schedule/Publish, tidak pernah
+ * Imported). Throw loud (pola ADR-059 poin 6) kalau asumsi itu ternyata
+ * salah, bukan diam-diam meloloskan `UserId` kosong ke pemanggil.
+ */
+function requireAuthorId(authorId: string | null, context: string) {
+  if (!authorId) {
+    throw new Error(
+      `${context}: authorId null — tidak didukung di jalur ini (hanya post ` +
+        `berstatus Imported yang boleh authorId null, ADR-093).`,
+    );
+  }
+  return asUserId(authorId);
+}
+
+function readPlatformOptions(
+  value: Prisma.JsonValue | null,
+): Record<string, unknown> | undefined {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+  return value as Record<string, unknown>;
+}
+
+function mapDraftTargets(targets: PublishingPostTarget[]): DraftTargetRecord[] {
+  return targets.map((target) => ({
+    connectedAccountId: asConnectedAccountId(target.connectedAccountId),
+    platform: target.platform as SocialPlatform,
+    contentFormat: target.contentFormat as ContentFormat,
+    platformOptions: readPlatformOptions(target.platformOptions),
+  }));
+}
+
+function mapPost(
+  post: PublishingPost & { targets?: PublishingPostTarget[] },
+): PublishingPostRecord {
   return {
     id: asPostId(post.id),
     workspaceId: asWorkspaceId(post.workspaceId),
-    authorId: asUserId(post.authorId),
+    authorId: requireAuthorId(post.authorId, "mapPost"),
     caption: post.caption,
     status: post.status as ContentStatus,
+    mediaIds: post.mediaIds.map((id) => asMediaId(id)),
+    ...(post.targets ? { draftTargets: mapDraftTargets(post.targets) } : {}),
     createdAt: post.createdAt,
     updatedAt: post.updatedAt,
   };
@@ -132,6 +178,7 @@ function mapHistoryItem(post: QueuePostWithTargets): HistoryItemRecord {
     publishedAt: post.publishedAt,
     createdAt: post.createdAt,
     updatedAt: post.updatedAt,
+    mediaIds: post.mediaIds.map((id) => asMediaId(id)),
     targets: post.targets.map((target): HistoryItemTargetRecord => ({
       id: asPostTargetId(target.id),
       connectedAccountId: asConnectedAccountId(target.connectedAccountId),
@@ -146,16 +193,21 @@ function mapHistoryItem(post: QueuePostWithTargets): HistoryItemRecord {
 }
 
 export const publishingRepository: IPublishingRepository = {
-  async createDraft({ workspaceId, authorId, caption }) {
-    const post = await withCurrentUser(authorId, (tx) =>
-      tx.publishingPost.create({
+  async createDraft({ workspaceId, authorId, caption, mediaIds, targets }) {
+    const post = await withCurrentUser(authorId, async (tx) => {
+      const created = await tx.publishingPost.create({
         data: {
           workspaceId,
           authorId,
           caption,
+          ...(mediaIds !== undefined ? { mediaIds } : {}),
         },
-      }),
-    );
+      });
+      if (targets !== undefined) {
+        await replaceDraftTargets(tx, workspaceId, created.id, targets);
+      }
+      return created;
+    });
 
     return mapPost(post);
   },
@@ -199,13 +251,17 @@ export const publishingRepository: IPublishingRepository = {
           workspaceId,
           deletedAt: null,
         },
+        include: { targets: true },
       }),
     );
 
     return post ? mapPost(post) : null;
   },
 
-  async updateDraftCaption({ workspaceId, postId, caption }, userId) {
+  async updateDraftCaption(
+    { workspaceId, postId, caption, mediaIds, targets },
+    userId,
+  ) {
     const post = await withCurrentUser(userId, async (tx) => {
       const { count } = await tx.publishingPost.updateMany({
         where: {
@@ -214,11 +270,22 @@ export const publishingRepository: IPublishingRepository = {
           status: ContentStatus.Draft,
           deletedAt: null,
         },
-        data: { caption },
+        data: {
+          caption,
+          // `undefined` (bukan dipass sama sekali) = kolom `mediaIds` TIDAK
+          // disentuh (mempertahankan nilai lama) — beda dari `[]` yang
+          // secara eksplisit mengosongkan lampiran media post ini. Lihat
+          // catatan di `IPublishingRepository.updateDraftCaption`.
+          ...(mediaIds !== undefined ? { mediaIds } : {}),
+        },
       });
 
       if (count === 0) {
         return null;
+      }
+
+      if (targets !== undefined) {
+        await replaceDraftTargets(tx, workspaceId, postId, targets);
       }
 
       return tx.publishingPost.findUniqueOrThrow({
@@ -530,8 +597,30 @@ export const publishingRepository: IPublishingRepository = {
     return record;
   },
 
-  async markPostFailed({ workspaceId, postId }, userId) {
-    const { count } = await withCurrentUser(userId, (tx) =>
+  async markPostFailed({ workspaceId, postId, reason }, userId) {
+    // T-027 bug fix — SENGAJA TIDAK throw kalau 0 baris ter-update, sama
+    // seperti `markPostPublished` di bawah: `resolvePostOutcome` bisa sah
+    // dipanggil lebih dari sekali untuk `outstandPostId` yang sama (job
+    // polling T-027 dan webhook T-026 bisa sama-sama menyimpulkan "semua
+    // target gagal" untuk post yang sama), dan panggilan kedua yang
+    // menemukan post SUDAH `Failed` harus diam-diam no-op, bukan throw.
+    //
+    // T-107 (koreksi KI-049/KI-063) — `failedAt`/`failureReason` sekarang
+    // benar-benar ditulis (sebelumnya hanya `status`). Lihat catatan
+    // panjang di `IPublishingRepository.markPostFailed` untuk kontrak
+    // `reason` per caller.
+    //
+    // KI-081 (code-review PR #140, finding #2) — `publishedAt: null`
+    // ditambahkan di sini supaya status `Failed` tidak pernah menyisakan
+    // timestamp publish yang keliru. Sumber inkonsistensi: `PublishNowUseCase`
+    // menandai `publishedAt` DI MUKA lewat `publishNow` (di bawah) sebelum
+    // outcome per-target diketahui — kalau SEMUA target ternyata gagal,
+    // method ini mengoreksi `status` ke `Failed`, tapi `publishedAt` yang
+    // sudah kadung terisi tidak pernah di-null-kan. Aman di-null-kan tanpa
+    // syarat untuk SEMUA caller (termasuk `SchedulePostsUseCase`, yang
+    // tidak pernah mengisi `publishedAt` sejak awal — kolomnya sudah `null`,
+    // jadi `updateMany` ini no-op untuk jalur itu).
+    await withCurrentUser(userId, (tx) =>
       tx.publishingPost.updateMany({
         where: {
           id: postId,
@@ -542,19 +631,39 @@ export const publishingRepository: IPublishingRepository = {
           status: { in: [ContentStatus.Published, ContentStatus.Scheduled] },
           deletedAt: null,
         },
-        data: { status: ContentStatus.Failed },
+        data: {
+          status: ContentStatus.Failed,
+          failedAt: new Date(),
+          failureReason: reason,
+          publishedAt: null,
+        },
       }),
     );
+  },
 
-    if (count === 0) {
-      // `updateMany` tidak throw kalau 0 baris ter-update (mis. RLS
-      // default-deny karena actingUserId sudah bukan active member) —
-      // beda dari `update()` di atas yang throw P2025. Tanpa guard ini,
-      // webhook route akan ACK sukses padahal status post tidak berubah.
-      throw new Error(
-        `markPostFailed: tidak ada baris ter-update untuk postId=${postId}, workspaceId=${workspaceId}`,
-      );
-    }
+  async markPostPublished({ workspaceId, postId }, userId) {
+    // T-027 bug fix — SENGAJA TIDAK throw kalau count === 0 (beda dari
+    // `markPostFailed` di atas): lihat catatan panjang di
+    // `IPublishingRepository.markPostPublished` — `resolvePostOutcome`
+    // yang memanggil ini bisa sah dipanggil lebih dari sekali untuk
+    // `outstandPostId` yang sama (dua webhook event Outstand berbeda,
+    // bukan duplikat receipt), dan panggilan kedua yang menemukan post
+    // SUDAH `Published` harus diam-diam no-op.
+    //
+    // T-107 (koreksi KI-049) — `publishedAt` sekarang benar-benar ditulis
+    // (sebelumnya hanya `status`), konsisten dengan `publishNow` di bawah
+    // yang sudah mengisi field ini sejak awal.
+    await withCurrentUser(userId, (tx) =>
+      tx.publishingPost.updateMany({
+        where: {
+          id: postId,
+          workspaceId,
+          status: ContentStatus.Scheduled,
+          deletedAt: null,
+        },
+        data: { status: ContentStatus.Published, publishedAt: new Date() },
+      }),
+    );
   },
 
   async listQueue({ workspaceId }, userId) {
@@ -644,7 +753,10 @@ export const publishingRepository: IPublishingRepository = {
     return post ? mapCalendarItem(post) : null;
   },
 
-  async listHistory({ workspaceId, statuses, connectedAccountIds }, userId) {
+  async listHistory(
+    { workspaceId, statuses, connectedAccountIds, publishedAtRange },
+    userId,
+  ) {
     // `statuses` sudah di-clamp ke HISTORY_TERMINAL_STATUSES oleh
     // `PublishingService.listHistory` — repository ini murni proyeksi,
     // tidak menegakkan invariant sendiri (konsisten `listCalendarPosts`).
@@ -660,6 +772,19 @@ export const publishingRepository: IPublishingRepository = {
             ? {
                 targets: {
                   some: { connectedAccountId: { in: connectedAccountIds } },
+                },
+              }
+            : {}),
+          // Half-open `[from, to)` — konsisten dengan filter JS di
+          // `PublishingService.getPostPerformance` (review finding
+          // 2026-09-22): `lt`, BUKAN `lte`, supaya dua rentang bersebelahan
+          // (current/previous di `getComparativeReport`) tidak overlap di
+          // titik sambungnya.
+          ...(publishedAtRange
+            ? {
+                publishedAt: {
+                  gte: publishedAtRange.from,
+                  lt: publishedAtRange.to,
                 },
               }
             : {}),
@@ -740,33 +865,53 @@ export const publishingRepository: IPublishingRepository = {
   },
 
   async getRetryTarget({ workspaceId, postId, targetId }, userId) {
-    const target = await withCurrentUser(userId, (tx) =>
-      tx.publishingPostTarget.findFirst({
+    const target = await withCurrentUser(userId, async (tx) => {
+      const found = await tx.publishingPostTarget.findFirst({
         where: {
           id: targetId,
           postId,
           post: { workspaceId, deletedAt: null },
         },
         include: { post: true, connectedAccount: true },
-      }),
-    );
+      });
+      if (!found) {
+        return null;
+      }
+
+      // Sibling live = published/scheduled/pending selain target ini —
+      // dipakai RetryFailedTargetUseCase untuk SKIP deletePost (API
+      // Outstand /remote tidak scoped per akun).
+      const siblingLiveCount = await tx.publishingPostTarget.count({
+        where: {
+          postId,
+          id: { not: targetId },
+          status: { in: ["published", "scheduled", "pending"] },
+        },
+      });
+
+      return { found, hasSiblingLiveTargets: siblingLiveCount > 0 };
+    });
 
     if (!target) {
       return null;
     }
 
+    const { found, hasSiblingLiveTargets } = target;
+
     const record: RetryTargetRecord = {
-      postId: asPostId(target.post.id),
-      workspaceId: asWorkspaceId(target.post.workspaceId),
-      postOutstandPostId: target.post.outstandPostId,
-      caption: target.post.caption,
-      targetId: asPostTargetId(target.id),
-      targetStatus: target.status as PublishingPostTargetStatus,
-      connectedAccountId: asConnectedAccountId(target.connectedAccountId),
-      outstandAccountId: target.connectedAccount.outstandAccountId,
-      platform: target.platform as SocialPlatform,
-      contentFormat: target.contentFormat as ContentFormat,
-      platformOptions: target.platformOptions as Record<string, unknown> | null,
+      postId: asPostId(found.post.id),
+      workspaceId: asWorkspaceId(found.post.workspaceId),
+      postOutstandPostId: found.post.outstandPostId,
+      caption: found.post.caption,
+      mediaIds: found.post.mediaIds.map((id) => asMediaId(id)),
+      targetId: asPostTargetId(found.id),
+      targetStatus: found.status as PublishingPostTargetStatus,
+      connectedAccountId: asConnectedAccountId(found.connectedAccountId),
+      outstandAccountId: found.connectedAccount.outstandAccountId,
+      platform: found.platform as SocialPlatform,
+      contentFormat: found.contentFormat as ContentFormat,
+      platformOptions: found.platformOptions as Record<string, unknown> | null,
+      hasSiblingLiveTargets,
     };
 
     return record;
@@ -872,7 +1017,15 @@ export const publishingRepository: IPublishingRepository = {
     const record: WebhookPostLookupRecord = {
       postId: asPostId(first.post_id),
       workspaceId: asWorkspaceId(first.workspace_id),
-      authorId: asUserId(first.author_id),
+      // Code review PR #148 — `author_id` nullable sejak ADR-093 (T-090.1,
+      // status `Imported`); reuse guard `requireAuthorId` (bukan `asUserId`
+      // telanjang) supaya lookup ini throw loud kalau pernah menerima baris
+      // Imported, bukan diam-diam meloloskan `UserId` palsu ke webhook
+      // processor.
+      authorId: requireAuthorId(
+        first.author_id,
+        "findPostTargetsByOutstandPostId",
+      ),
       targets: rows.map((row) => ({
         postTargetId: asPostTargetId(row.post_target_id),
         connectedAccountId: asConnectedAccountId(row.connected_account_id),
@@ -909,6 +1062,224 @@ export const publishingRepository: IPublishingRepository = {
     });
 
     return post ? mapPost(post) : null;
+  },
+
+  /**
+   * Engagement Sync (JOB-03, T-051, redesain KI-068/ADR-113) — query lewat
+   * `publishingPostTarget` (bukan `publishingPost`) karena filter utamanya
+   * (`connectedAccountId`) ada di level target, bukan post. `outstandPostId`
+   * (post-level) dan `deletedAt` (soft-delete) difilter lewat relasi
+   * `post`. Lihat `IPublishingRepository.listSyncablePostsByConnectedAccount`.
+   */
+  async listSyncablePostsByConnectedAccount(
+    { workspaceId, connectedAccountId },
+    userId,
+  ) {
+    // Engagement sync: hanya target yang sudah published (komentar hanya
+    // relevan setelah tayang). Bound 50 terbaru supaya JOB-03 tidak
+    // men-pull seluruh history akun.
+    const SYNCABLE_POST_LIMIT = 50;
+
+    const targets = await withCurrentUser(userId, (tx) =>
+      tx.publishingPostTarget.findMany({
+        where: {
+          connectedAccountId,
+          status: "published",
+          post: {
+            workspaceId,
+            deletedAt: null,
+            outstandPostId: { not: null },
+          },
+        },
+        select: {
+          postId: true,
+          platform: true,
+          retryOutstandPostId: true,
+          post: {
+            select: {
+              outstandPostId: true,
+              publishedAt: true,
+              createdAt: true,
+            },
+          },
+        },
+        orderBy: [
+          { post: { publishedAt: "desc" } },
+          { post: { createdAt: "desc" } },
+        ],
+        take: SYNCABLE_POST_LIMIT,
+      }),
+    );
+
+    return targets.flatMap((target) => {
+      const outstandPostId =
+        target.retryOutstandPostId ?? target.post.outstandPostId;
+      if (!outstandPostId) return [];
+      return [
+        {
+          postId: asPostId(target.postId),
+          outstandPostId,
+          platform: target.platform as SocialPlatform,
+        },
+      ];
+    });
+  },
+
+  /**
+   * Reply Engagement (T-054, redesain KI-068/ADR-113) — lihat
+   * `IPublishingRepository.findPostOutstandId`.
+   */
+  async findPostOutstandId(
+    { workspaceId, postId, connectedAccountId },
+    userId,
+  ) {
+    return withCurrentUser(userId, async (tx) => {
+      if (connectedAccountId) {
+        const target = await tx.publishingPostTarget.findFirst({
+          where: {
+            postId,
+            connectedAccountId,
+            post: { workspaceId, deletedAt: null },
+          },
+          select: {
+            retryOutstandPostId: true,
+            post: { select: { outstandPostId: true } },
+          },
+        });
+        if (!target) return null;
+        return target.retryOutstandPostId ?? target.post.outstandPostId;
+      }
+
+      const post = await tx.publishingPost.findFirst({
+        where: { id: postId, workspaceId, deletedAt: null },
+        select: { outstandPostId: true },
+      });
+
+      return post?.outstandPostId ?? null;
+    });
+  },
+
+  /**
+   * Preview post asli (T-056, KI-065) — lihat
+   * `IPublishingRepository.findPostSnapshotForEngagement`.
+   */
+  async findPostSnapshotForEngagement(
+    { workspaceId, postId, connectedAccountId },
+    userId,
+  ) {
+    const target = await withCurrentUser(userId, (tx) =>
+      tx.publishingPostTarget.findFirst({
+        where: {
+          postId,
+          connectedAccountId,
+          post: { workspaceId, deletedAt: null },
+        },
+        select: {
+          platformPostUrl: true,
+          post: { select: { caption: true, mediaIds: true } },
+        },
+      }),
+    );
+    if (!target) return null;
+
+    return {
+      postId,
+      caption: target.post.caption,
+      mediaIds: target.post.mediaIds.map((id) => asMediaId(id)),
+      platformPostUrl: target.platformPostUrl,
+    };
+  },
+
+  /**
+   * Import Posts dari Social Account (T-090.4, ADR-093 poin 3-4, 7) — lihat
+   * docstring lengkap di `IPublishingRepository.upsertImportedPosts`.
+   */
+  async upsertImportedPosts({ workspaceId, posts }, actingUserId) {
+    if (posts.length === 0) {
+      return { insertedCount: 0, skippedDuplicateCount: 0 };
+    }
+
+    return withCurrentUser(actingUserId, async (tx) => {
+      // Dedup (ADR-093 poin 4) — satu query batch untuk SELURUH
+      // `platformPostId` di input, bukan satu query per post (N+1).
+      // `connectedAccountId` ikut disaring karena `platformPostId` hanya
+      // unik PER AKUN (dua akun berbeda bisa kebetulan punya
+      // `platformPostId` yang sama secara string, walau jarang — defensif,
+      // sama semangat dedup existing di ADR-092).
+      const connectedAccountIds = [
+        ...new Set(posts.map((post) => post.connectedAccountId)),
+      ];
+      const platformPostIds = [
+        ...new Set(posts.map((post) => post.platformPostId)),
+      ];
+
+      const existing = await tx.publishingPostTarget.findMany({
+        where: {
+          connectedAccountId: { in: connectedAccountIds },
+          platformPostId: { in: platformPostIds },
+        },
+        select: { connectedAccountId: true, platformPostId: true },
+      });
+      const existingKeys = new Set(
+        existing.map(
+          (row) => `${row.connectedAccountId}:${row.platformPostId}`,
+        ),
+      );
+
+      let insertedCount = 0;
+      let skippedDuplicateCount = 0;
+
+      for (const post of posts) {
+        const key = `${post.connectedAccountId}:${post.platformPostId}`;
+        if (existingKeys.has(key)) {
+          skippedDuplicateCount++;
+          continue;
+        }
+
+        await tx.publishingPost.create({
+          data: {
+            workspaceId,
+            // ADR-093 poin 3 — authorId null HANYA untuk status Imported.
+            authorId: null,
+            status: ContentStatus.Imported,
+            caption: post.caption,
+            publishedAt: post.publishedAt,
+            targets: {
+              create: [
+                {
+                  connectedAccountId: post.connectedAccountId,
+                  platform: post.platform,
+                  contentFormat: ContentFormat.Post,
+                  platformPostId: post.platformPostId,
+                  platformPostUrl: post.platformPostUrl,
+                  // Target hasil import sudah live di platform sejak
+                  // sebelum tool ini tahu soal post ini — "published" (bukan
+                  // "pending") adalah outcome yang benar, bukan hasil
+                  // percobaan publish kita sendiri.
+                  status: "published",
+                  // Media eksternal (`ImportedPostData.mediaUrls`) belum
+                  // punya kolom DB khusus (T-090 scope) — disimpan di sini
+                  // supaya tidak hilang untuk UI Imported nanti (T-090.5).
+                  platformOptions:
+                    post.mediaUrls.length > 0
+                      ? { mediaUrls: post.mediaUrls }
+                      : undefined,
+                },
+              ],
+            },
+          },
+        });
+
+        // Supaya post lain dalam BATCH YANG SAMA dengan `platformPostId`
+        // kebetulan identik (seharusnya tidak terjadi — Outstand tidak
+        // pernah mengembalikan duplikat dalam satu `fetchImportJobStatus`
+        // — tapi defensif) tidak ikut ter-insert dobel.
+        existingKeys.add(key);
+        insertedCount++;
+      }
+
+      return { insertedCount, skippedDuplicateCount };
+    });
   },
 };
 

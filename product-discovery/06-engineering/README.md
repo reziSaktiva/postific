@@ -1,6 +1,6 @@
 # 06 — Engineering Planning
 
-Dokumentasi pada folder ini berfokus pada **Engineering Planning** untuk produk **Social Media Management**, mencakup seluruh keputusan teknis yang harus ditetapkan sebelum implementasi kode dimulai.
+Dokumentasi pada folder ini berfokus pada **Engineering Planning** untuk produk **Postific**, mencakup seluruh keputusan teknis yang harus ditetapkan sebelum implementasi kode dimulai.
 
 Seluruh dokumentasi pada folder ini harus mengacu pada **Business Baseline v1.0**, **Product Baseline v1.0**, **User Discovery Baseline v1.0**, **UX Planning Baseline v1.0**, dan **System Architecture Baseline v1.0** yang telah disepakati. Folder ini sendiri ditetapkan sebagai **Engineering Planning Baseline v1.0** (ADR-036) dan menjadi acuan wajib untuk Repository & Bootstrap (M7).
 
@@ -32,7 +32,7 @@ Topik yang termasuk dalam scope:
 * **Developer Experience (DX) Tooling** — linting, formatting, pre-commit hooks, local dev setup.
 * **UI Component System** — shadcn/ui sebagai fondasi permanen (ADR-097,
   membalik ADR-041), Tailwind sebagai styling langsung, dan wrapper selektif;
-  migrasi dari Astryx berjalan incremental per route-segment.
+  migrasi dari Astryx sudah tuntas (rilis v0.7, T-102).
 * **Design Tokens** — Source of Truth font, warna semantic, neutral, status,
   spacing untuk implementasi UI (ADR-038, ADR-041); nilai final berkembang
   iteratif co-equal dengan Claude Design, tidak menunggu designer eksternal
@@ -59,8 +59,8 @@ Topik berikut **tidak dibahas** pada folder ini:
 * `cicd-pipeline.md` — GitHub Actions quality gates, promosi staging→main, Railway CD, migrate on release (ADR-032).
 * `environment-management.md` — katalog env vars, secret native (Railway + `.env.local`), Supabase Cloud staging / prod, local menumpang project staging yang sama (ADR-033, amandemen ADR-081).
 * `dx-tooling.md` — ESLint + Prettier, Lefthook + lint-staged, Vitest, script workspace (ADR-034).
-* `dependency-strategy.md` — caret ranges, `bun.lockb` root, penempatan dep,
-  aturan `@social/shared`, update manual (ADR-035); pengecualian exact pin
+* `dependency-strategy.md` — caret ranges, `bun.lock` root, penempatan dep,
+  aturan `@postific/shared`, update manual (ADR-035); pengecualian exact pin
   Astryx Beta superseded oleh migrasi shadcn/ui (ADR-097).
 * `design-tokens.md` — SoT visual tokens (font,
   brand/neutral/status/feedback colors, spacing); token Stone theme (ADR-087)

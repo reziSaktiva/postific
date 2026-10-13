@@ -3,15 +3,20 @@ import type {
   PostId,
   PostTargetId,
   WorkspaceId,
-} from "@social/shared";
-import type { UserId } from "@social/shared";
+} from "@postific/shared";
+import type { UserId } from "@postific/shared";
 import { ConflictError, NotFoundError } from "@/lib/utils/errors";
 import type { IOutstandAdapter } from "../adapters/outstand-adapter";
+import { assertPinterestBoardConstraints } from "../pinterest-board-constraints";
 import { assertActorCanPublishNow } from "../rbac";
 import type {
   IPublishingRepository,
   PublishingPostTargetStatus,
 } from "../repositories/publishing.repository";
+import {
+  resolveOutstandPostMedia,
+  type PostMediaLookupPort,
+} from "./resolve-outstand-post-media";
 
 /** Hasil `RetryFailedTargetUseCase.execute` — dipakai Server Action untuk merefresh UI tanpa perlu full reload. */
 export interface RetryFailedTargetResult {
@@ -53,6 +58,8 @@ export class RetryFailedTargetUseCase {
   constructor(
     private readonly repository: IPublishingRepository,
     private readonly outstandAdapter: IOutstandAdapter,
+    /** Opsional — resolve mediaIds → URL Outstand sebelum recreate. */
+    private readonly mediaLookup?: PostMediaLookupPort,
   ) {}
 
   async execute(input: {
@@ -85,28 +92,33 @@ export class RetryFailedTargetUseCase {
       );
     }
 
-    // Delete best-effort (ADR-092) — `target.postOutstandPostId` adalah id
-    // post-level dari create ORIGINAL (mencakup semua target awal,
-    // termasuk target gagal ini, karena Outstand `create-a-post` menerima
-    // SEMUA akun dalam satu call). Kalau `null` (mis. call
-    // schedulePost/publishNow original gagal total SEBELUM sempat
-    // mengembalikan id — lihat `markPostFailed`), tidak ada apa pun yang
-    // pernah terdaftar di sisi Outstand untuk akun ini — skip panggilan
-    // delete sepenuhnya alih-alih memanggilnya dengan id yang tidak ada
-    // gunanya. Kalau ada, hapus HANYA akun target ini (`accountIds`)
-    // supaya target lain yang sudah `published` di post yang sama tidak
-    // ikut terhapus (keputusan scope single-target).
-    if (target.postOutstandPostId) {
+    assertPinterestBoardConstraints([
+      {
+        platform: target.platform,
+        platformOptions: target.platformOptions,
+      },
+    ]);
+
+    // Delete best-effort (ADR-092) — HANYA bila target ini satu-satunya
+    // di post (tidak ada sibling published/scheduled/pending). Real
+    // Outstand `DELETE .../remote` TIDAK scoped per akun: memanggilnya
+    // dengan accountIds akan throw (lihat RealOutstandAdapter.deletePost)
+    // ATAU (versi lama) wipe sibling yang sudah tayang. Skip aman lebih
+    // baik daripada opaque 400 / wipe silent.
+    if (target.postOutstandPostId && !target.hasSiblingLiveTargets) {
       try {
-        await this.outstandAdapter.deletePost(target.postOutstandPostId, [
-          target.outstandAccountId,
-        ]);
+        // Tanpa accountIds = full remote delete (aman: sole target).
+        await this.outstandAdapter.deletePost(target.postOutstandPostId);
       } catch (error) {
         console.error(
           `[RetryFailedTargetUseCase] postId=${input.postId} targetId=${input.targetId} outstandPostId=${target.postOutstandPostId} — deletePost gagal (best-effort, retry tetap dilanjutkan):`,
           error,
         );
       }
+    } else if (target.postOutstandPostId && target.hasSiblingLiveTargets) {
+      console.warn(
+        `[RetryFailedTargetUseCase] postId=${input.postId} targetId=${input.targetId} — skip deletePost karena ada sibling target live (published/scheduled/pending); API Outstand tidak mendukung scoped delete.`,
+      );
     }
 
     // Persist dulu (reset ke pending) sebelum network call recreate —
@@ -124,15 +136,25 @@ export class RetryFailedTargetUseCase {
     let outstandPostId: string | null = null;
 
     try {
+      const media = await resolveOutstandPostMedia({
+        workspaceId: input.workspaceId,
+        mediaIds: target.mediaIds,
+        actingUserId: input.actingUserId,
+        outstandAdapter: this.outstandAdapter,
+        mediaLookup: this.mediaLookup,
+      });
+
       const result = await this.outstandAdapter.publishNow({
         caption: target.caption,
         targets: [
           {
             outstandAccountId: target.outstandAccountId,
+            platform: target.platform,
             contentFormat: target.contentFormat,
             platformOptions: target.platformOptions ?? undefined,
           },
         ],
+        ...(media ? { media } : {}),
       });
       outstandPostId = result.outstandPostId;
 
@@ -158,9 +180,12 @@ export class RetryFailedTargetUseCase {
         // Retry dari halaman History selalu berarti aksi langsung — sama
         // seperti PublishNowUseCase, panggil fetchPostOutcome SEGERA supaya
         // UI mendapat outcome final tanpa menunggu polling/webhook (T-026)
-        // belakangan.
-        const outcomes =
-          await this.outstandAdapter.fetchPostOutcome(outstandPostId);
+        // belakangan. `expectedOutstandAccountIds` (T-027 bug fix,
+        // root-cause) — retry ini SATU target, jadi cukup akun itu sendiri.
+        const outcomes = await this.outstandAdapter.fetchPostOutcome(
+          outstandPostId,
+          [target.outstandAccountId],
+        );
         const outcome = outcomes.find(
           (candidate) =>
             candidate.outstandAccountId === target.outstandAccountId,

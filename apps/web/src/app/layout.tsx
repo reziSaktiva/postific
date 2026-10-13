@@ -33,8 +33,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Social Media Management",
-  description: "Social media management platform (MVP scaffold)",
+  title: "Postific",
+  description: "Postific — social media management platform (MVP scaffold)",
 };
 
 export default async function RootLayout({

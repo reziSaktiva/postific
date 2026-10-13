@@ -15,6 +15,14 @@ import { WorkspaceSideNav } from "./WorkspaceSideNav";
 // Client Component, sementara data workspace/session/channels tetap difetch
 // sekali di Server Component (app)/layout.tsx dan diteruskan sebagai props
 // ke sini — supaya layout.tsx tidak perlu tahu route aktif sama sekali.
+//
+// T-105.3 (KI-066): kedua sidebar sekarang dikomposisi dari primitive
+// `Sidebar` shadcn (`SidebarProvider` dipasang satu kali di `AppShell.tsx`,
+// membungkus komponen ini). Prop `onNavigate` yang dulu diteruskan dari
+// `MobileTopBar` (T-098.4, Sheet custom yang merender ulang komponen ini)
+// dihapus — drawer mobile sekarang ditangani `SidebarProvider` sendiri, dan
+// "tutup drawer setelah klik nav" dipanggil langsung di dalam
+// `WorkspaceSideNav`/`SettingsSideNav` lewat `useSidebar()`.
 export function AppSideNav({
   workspaceName,
   userName,
@@ -23,10 +31,6 @@ export function AppSideNav({
   initialNotifications,
   initialUnreadCount,
   userId,
-  // T-098.4 (KI-042) — diteruskan ke WorkspaceSideNav/SettingsSideNav, lihat
-  // komentar di masing-masing file. Undefined saat dirender di sidebar
-  // desktop (bukan di dalam Sheet mobile).
-  onNavigate,
 }: {
   workspaceName: string;
   userName: string;
@@ -35,13 +39,12 @@ export function AppSideNav({
   initialNotifications: NotificationRecord[];
   initialUnreadCount: number;
   userId: string;
-  onNavigate?: () => void;
 }) {
   const pathname = usePathname();
   const isSettings = pathname.startsWith("/settings");
 
   if (isSettings) {
-    return <SettingsSideNav onNavigate={onNavigate} />;
+    return <SettingsSideNav />;
   }
 
   return (
@@ -53,7 +56,6 @@ export function AppSideNav({
       initialNotifications={initialNotifications}
       initialUnreadCount={initialUnreadCount}
       userId={userId}
-      onNavigate={onNavigate}
     />
   );
 }

@@ -5,7 +5,8 @@ import {
   asWorkspaceId,
   asWorkspaceSnapshotId,
   type SocialPlatform,
-} from "@social/shared";
+  type UserId,
+} from "@postific/shared";
 import type {
   IAnalyticsRepository,
   PostMetricsRecord,
@@ -16,6 +17,10 @@ import type {
   AnalyticsWorkspaceSnapshot,
 } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma/client";
+import {
+  type PrismaTransactionClient,
+  withCurrentUser,
+} from "@/lib/prisma/with-current-user";
 
 function mapPostMetric(row: AnalyticsPostMetric): PostMetricsRecord {
   return {
@@ -65,101 +70,113 @@ export const analyticsRepository: IAnalyticsRepository = {
     return rows.map(mapPostMetric);
   },
 
-  async findMetricsByPosts(postIds) {
+  async findMetricsByPosts(postIds, actingUserId) {
     if (postIds.length === 0) {
       return [];
     }
 
-    const rows = await prisma.analyticsPostMetric.findMany({
-      where: { postId: { in: postIds } },
-      orderBy: { fetchedAt: "desc" },
-    });
+    const load = (tx: PrismaTransactionClient) =>
+      tx.analyticsPostMetric.findMany({
+        where: { postId: { in: postIds } },
+        orderBy: { fetchedAt: "desc" },
+      });
+    const rows = actingUserId
+      ? await withCurrentUser(actingUserId, load)
+      : await load(prisma);
 
     return rows.map(mapPostMetric);
   },
 
-  async findLatestWorkspaceSnapshot(workspaceId, period) {
-    const row = await prisma.analyticsWorkspaceSnapshot.findFirst({
-      where: { workspaceId, period },
-      orderBy: { periodStart: "desc" },
-    });
+  async findLatestWorkspaceSnapshot(workspaceId, period, actingUserId) {
+    const load = (tx: PrismaTransactionClient) =>
+      tx.analyticsWorkspaceSnapshot.findFirst({
+        where: { workspaceId, period },
+        orderBy: { periodStart: "desc" },
+      });
+    const row = actingUserId
+      ? await withCurrentUser(actingUserId, load)
+      : await load(prisma);
 
     return row ? mapWorkspaceSnapshot(row) : null;
   },
 
-  async upsertPostMetrics(input) {
+  async upsertPostMetrics(input, actingUserId: UserId) {
     // Upsert lewat unique constraint `[postId, connectedAccountId]`
     // (migration 20260813023329, T-041) — ingestion ulang untuk post +
     // akun yang sama MENIMPA baris yang ada, bukan menyisipkan baris baru
     // (idempotensi, T-041.5).
-    const row = await prisma.analyticsPostMetric.upsert({
-      where: {
-        postId_connectedAccountId: {
+    const row = await withCurrentUser(actingUserId, (tx) =>
+      tx.analyticsPostMetric.upsert({
+        where: {
+          postId_connectedAccountId: {
+            postId: input.postId,
+            connectedAccountId: input.connectedAccountId,
+          },
+        },
+        create: {
           postId: input.postId,
           connectedAccountId: input.connectedAccountId,
+          platform: input.platform,
+          impressions: input.impressions,
+          reach: input.reach,
+          likes: input.likes,
+          comments: input.comments,
+          shares: input.shares,
+          clicks: input.clicks,
+          engagementRate: input.engagementRate,
+          fetchedAt: input.fetchedAt,
         },
-      },
-      create: {
-        postId: input.postId,
-        connectedAccountId: input.connectedAccountId,
-        platform: input.platform,
-        impressions: input.impressions,
-        reach: input.reach,
-        likes: input.likes,
-        comments: input.comments,
-        shares: input.shares,
-        clicks: input.clicks,
-        engagementRate: input.engagementRate,
-        fetchedAt: input.fetchedAt,
-      },
-      update: {
-        platform: input.platform,
-        impressions: input.impressions,
-        reach: input.reach,
-        likes: input.likes,
-        comments: input.comments,
-        shares: input.shares,
-        clicks: input.clicks,
-        engagementRate: input.engagementRate,
-        fetchedAt: input.fetchedAt,
-      },
-    });
+        update: {
+          platform: input.platform,
+          impressions: input.impressions,
+          reach: input.reach,
+          likes: input.likes,
+          comments: input.comments,
+          shares: input.shares,
+          clicks: input.clicks,
+          engagementRate: input.engagementRate,
+          fetchedAt: input.fetchedAt,
+        },
+      }),
+    );
 
     return mapPostMetric(row);
   },
 
-  async upsertWorkspaceSnapshot(input) {
+  async upsertWorkspaceSnapshot(input, actingUserId: UserId) {
     // Upsert lewat unique constraint `[workspaceId, period, periodStart]`
     // (sudah ada sejak T-040) — ingestion ulang periode yang sama MENIMPA
     // snapshot yang ada, bukan menambah baris baru (idempotensi, T-041.5).
-    const row = await prisma.analyticsWorkspaceSnapshot.upsert({
-      where: {
-        workspaceId_period_periodStart: {
+    const row = await withCurrentUser(actingUserId, (tx) =>
+      tx.analyticsWorkspaceSnapshot.upsert({
+        where: {
+          workspaceId_period_periodStart: {
+            workspaceId: input.workspaceId,
+            period: input.period,
+            periodStart: input.periodStart,
+          },
+        },
+        create: {
           workspaceId: input.workspaceId,
           period: input.period,
           periodStart: input.periodStart,
+          periodEnd: input.periodEnd,
+          totalPosts: input.totalPosts,
+          totalReach: input.totalReach,
+          totalEngagements: input.totalEngagements,
+          avgEngagementRate: input.avgEngagementRate,
+          topPostId: input.topPostId,
         },
-      },
-      create: {
-        workspaceId: input.workspaceId,
-        period: input.period,
-        periodStart: input.periodStart,
-        periodEnd: input.periodEnd,
-        totalPosts: input.totalPosts,
-        totalReach: input.totalReach,
-        totalEngagements: input.totalEngagements,
-        avgEngagementRate: input.avgEngagementRate,
-        topPostId: input.topPostId,
-      },
-      update: {
-        periodEnd: input.periodEnd,
-        totalPosts: input.totalPosts,
-        totalReach: input.totalReach,
-        totalEngagements: input.totalEngagements,
-        avgEngagementRate: input.avgEngagementRate,
-        topPostId: input.topPostId,
-      },
-    });
+        update: {
+          periodEnd: input.periodEnd,
+          totalPosts: input.totalPosts,
+          totalReach: input.totalReach,
+          totalEngagements: input.totalEngagements,
+          avgEngagementRate: input.avgEngagementRate,
+          topPostId: input.topPostId,
+        },
+      }),
+    );
 
     return mapWorkspaceSnapshot(row);
   },

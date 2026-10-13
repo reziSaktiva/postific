@@ -3,7 +3,7 @@ import {
   asWorkspaceId,
   ContentFormat,
   SocialPlatform,
-} from "@social/shared";
+} from "@postific/shared";
 import { describe, expect, it } from "vitest";
 import type { ConnectedAccountRecord } from "@/domains/workspace";
 import { ValidationError } from "@/lib/utils/errors";
@@ -23,6 +23,8 @@ function createConnectedAccount(
     status: "connected",
     reconnectRequired: false,
     connectedAt: new Date("2026-01-01T00:00:00Z"),
+    lastImportedUntil: null,
+    lastImportRequestedAt: null,
     ...overrides,
   };
 }

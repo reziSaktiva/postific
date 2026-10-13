@@ -1,6 +1,7 @@
-import { NotificationType } from "@social/shared";
-import type { ConnectedAccountId, UserId, WorkspaceId } from "@social/shared";
+import { NotificationType } from "@postific/shared";
+import type { ConnectedAccountId, UserId, WorkspaceId } from "@postific/shared";
 import type { IOutstandAdapter } from "../adapters/outstand-adapter";
+import { summarizeFailureReasons } from "../failure-reason";
 import type { IPublishingRepository } from "../repositories/publishing.repository";
 
 /**
@@ -71,6 +72,20 @@ export type OutstandWebhookProcessOutcome =
 export interface OutstandWebhookProcessResult {
   outcome: OutstandWebhookProcessOutcome;
   detail?: string;
+  /**
+   * T-027.5 (job polling `ResolveScheduledPostOutcomeJobHandler`) — total
+   * target milik post ini vs berapa yang outcome-nya SUDAH diketahui
+   * (bukan "pending") pada panggilan ini. Hanya diisi saat
+   * `outcome === "processed"`. Job polling memakai ini untuk memutuskan
+   * apakah masih perlu retry (`targetsResolved < targetsTotal`, berarti
+   * ada target yang masih "pending" di sisi Outstand) atau sudah selesai
+   * total. Webhook path (`process()`) tidak memakai field ini sama sekali
+   * — satu event webhook boleh saja hanya melaporkan sebagian akun tanpa
+   * itu jadi kondisi "belum selesai" yang perlu retry (tidak ada retry di
+   * jalur webhook, event berikutnya yang akan melengkapi).
+   */
+  targetsTotal?: number;
+  targetsResolved?: number;
 }
 
 export class OutstandWebhookProcessor {
@@ -108,22 +123,64 @@ export class OutstandWebhookProcessor {
       );
     }
 
-    // Lookup DB (post/target) dan fetch outcome ke Outstand sama-sama hanya
-    // bergantung pada `event.outstandPostId` — independen satu sama lain,
-    // jadi dijalankan paralel (bukan sekuensial) supaya latency di hot path
-    // webhook-ke-ACK tidak menumpuk round-trip DB + HTTP eksternal.
-    const [post, outcomes] = await Promise.all([
-      this.repository.findPostTargetsByOutstandPostId(event.outstandPostId),
-      this.outstandAdapter.fetchPostOutcome(event.outstandPostId),
-    ]);
+    // Notifikasi kegagalan HANYA untuk event literal `post.error` (kontrak
+    // resmi: "Semua target gagal setelah retry Outstand") — lihat catatan
+    // panjang `notifyOnFailure` di `resolvePostOutcome` untuk kenapa job
+    // polling T-027.5 (tidak punya event literal) selalu `true`.
+    return this.resolvePostOutcome(event.outstandPostId, {
+      notifyOnFailure: event.eventType === "post.error",
+    });
+  }
+
+  /**
+   * Resolve outcome untuk SATU `outstandPostId` — inti logika yang dulu
+   * hidup di `handlePostOutcome` (T-026), sekarang diekstrak jadi method
+   * publik supaya bisa dipakai ULANG oleh
+   * `ResolveScheduledPostOutcomeJobHandler` (T-027.5, job polling scheduled
+   * post yang sudah due) TANPA duplikasi ~130 baris logika mapping
+   * outcome/notifikasi. Job polling tidak punya "event type" literal dari
+   * vendor (beda dari webhook yang tahu persis `post.published` vs
+   * `post.error`) — ia hanya tahu HASIL `fetchPostOutcome`, jadi caller
+   * yang menentukan `notifyOnFailure` secara eksplisit alih-alih menebak
+   * dari event type yang tidak ada.
+   *
+   * `notifyOnFailure` — kirim `NotificationType.PostPublishFailed` kalau
+   * SEMUA target yang sudah diketahui outcome-nya gagal. Webhook
+   * (`handlePostOutcome`) menyalakan ini hanya untuk event literal
+   * `post.error`; job polling SELALU `true` karena "semua target gagal"
+   * itu sendiri sudah merupakan sinyal kegagalan yang layak dinotifikasi,
+   * terlepas dari BAGAIMANA kita mengetahuinya (webhook vs polling) — tidak
+   * ada alasan user kehilangan notifikasi kegagalan hanya karena outcome-nya
+   * kebetulan diketahui lewat polling T-027 duluan, bukan webhook T-026.
+   */
+  async resolvePostOutcome(
+    outstandPostId: string,
+    options: { notifyOnFailure: boolean },
+  ): Promise<OutstandWebhookProcessResult> {
+    // T-027 bug fix (root-cause) — lookup DB dan fetch outcome DULU
+    // sekuensial (BUKAN lagi `Promise.all` paralel seperti sebelumnya):
+    // `fetchPostOutcome` sekarang WAJIB menerima `expectedOutstandAccountIds`
+    // eksplisit (lihat catatan panjang di `IOutstandAdapter.fetchPostOutcome`),
+    // dan daftar itu HANYA tersedia setelah lookup DB (`post.targets`)
+    // selesai — dua panggilan ini sekarang genuinely dependent, bukan
+    // independen. Efek samping yang menguntungkan: kalau post tidak
+    // ditemukan, adapter tidak lagi ikut dipanggil sama sekali (sebelumnya
+    // tetap dipanggil sia-sia lewat `Promise.all`).
+    const post =
+      await this.repository.findPostTargetsByOutstandPostId(outstandPostId);
     if (!post) {
       // Post tidak ditemukan (mis. sudah soft-delete, atau id tidak
       // dikenal) — bukan error internal, event ini tidak lagi actionable.
       return {
         outcome: "skipped_no_match",
-        detail: `outstandPostId=${event.outstandPostId} tidak ditemukan`,
+        detail: `outstandPostId=${outstandPostId} tidak ditemukan`,
       };
     }
+
+    const outcomes = await this.outstandAdapter.fetchPostOutcome(
+      outstandPostId,
+      post.targets.map((target) => target.outstandAccountId),
+    );
 
     const outcomeByOutstandAccountId = new Map(
       outcomes.map((outcome) => [outcome.outstandAccountId, outcome]),
@@ -205,18 +262,29 @@ export class OutstandWebhookProcessor {
       );
 
     if (allKnownFailed) {
+      // T-107 (koreksi KI-049/KI-063) — `reason` diringkas dari
+      // `PostTargetOutcome.error` unik seluruh target yang diketahui
+      // gagal (`targetsToUpdate` sudah difilter non-"pending" di atas)
+      // lewat `summarizeFailureReasons` (dedup + join `"; "` + fallback
+      // generik kalau Outstand tidak melaporkan pesan error spesifik apa
+      // pun) — shared helper dengan `PublishNowUseCase` (code-review PR
+      // #140, finding #6).
+      const reason = summarizeFailureReasons(
+        targetsToUpdate
+          .filter(({ outcome }) => outcome.status === "failed" && outcome.error)
+          .map(({ outcome }) => outcome.error as string),
+      );
+
       await this.repository.markPostFailed(
-        { workspaceId: post.workspaceId, postId: post.postId },
+        { workspaceId: post.workspaceId, postId: post.postId, reason },
         post.authorId,
       );
 
-      // Notifikasi (T-026.4, menutup T-036.5) — hanya untuk `post.error`
-      // (kontrak resmi: "Semua target gagal setelah retry Outstand"),
-      // bukan `post.published` yang kebetulan datang dengan semua target
-      // gagal (skenario itu seharusnya memang dikirim Outstand sebagai
-      // `post.error`, tapi guard ini tetap defensif kalau kontrak nyata
-      // berbeda).
-      if (event.eventType === "post.error") {
+      // Notifikasi (T-026.4, menutup T-036.5) — hanya kalau caller memang
+      // memintanya (lihat catatan panjang `notifyOnFailure` di atas method
+      // ini): webhook hanya menyalakan untuk event literal `post.error`;
+      // job polling T-027.5 selalu menyalakan.
+      if (options.notifyOnFailure) {
         await this.notifications?.notify({
           workspaceId: post.workspaceId,
           userId: post.authorId,
@@ -227,9 +295,34 @@ export class OutstandWebhookProcessor {
           relatedEntityId: post.postId,
         });
       }
+    } else if (
+      post.targets.length > 0 &&
+      targetsToUpdate.length === post.targets.length
+    ) {
+      // T-027 bug fix (koreksi gap, dikonfirmasi King Rezi sebagai scoped
+      // bug-fix) — titik yang SAMA PERSIS dengan keputusan "semua target
+      // sudah resolved, tidak ada yang pending lagi" (`targetsToUpdate`
+      // hanya berisi target yang outcome-nya BUKAN "pending", jadi sama
+      // panjang dengan `post.targets` berarti tidak ada satu pun yang
+      // masih pending — persis kondisi yang membuat job T-027.5 memutuskan
+      // `outcome: "done"`, bukan retry). TIDAK semua gagal (`allKnownFailed`
+      // di atas sudah false) berarti minimal satu sukses/partial success —
+      // integration-layer.md:269-270,305: "post tetap Published kalau
+      // minimal satu target sukses/partial success". `post.targets.length >
+      // 0` guard sama seperti `allKnownFailed` di atas — mencegah post
+      // tanpa target (0 === 0) ikut ditandai Published.
+      await this.repository.markPostPublished(
+        { workspaceId: post.workspaceId, postId: post.postId },
+        post.authorId,
+      );
     }
 
-    return { outcome: "processed", detail: `${updatedCount} target diupdate` };
+    return {
+      outcome: "processed",
+      detail: `${updatedCount} target diupdate`,
+      targetsTotal: post.targets.length,
+      targetsResolved: targetsToUpdate.length,
+    };
   }
 
   private async handleAccountTokenExpired(

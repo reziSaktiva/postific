@@ -64,12 +64,10 @@ ACK; pemrosesan domain berjalan sesudah ACK melalui job internal.
 ## UI Components (ADR-097, membalik ADR-041)
 
 - **shadcn/ui adalah fondasi component system permanen** (ADR-097, membalik
-  ADR-041). Migrasi dari Astryx **sudah tuntas 100%** (rilis v0.7, T-102
-  `✅ Done`) — 0 import `@astryxdesign/*` aktif tersisa di `apps/web/src`,
-  dependency `@astryxdesign/*` sudah dihapus dari `apps/web/package.json`
-  (T-102.1, T-102.2, T-102.6) — lihat ADR-097 dan
-  `tasks/v07-astryx-shadcn-migration.md` § T-102; feature tidak menunggu
-  design tokens final. Light/Dark Mode Toggle (ADR-055, diamandemen ADR-097) tetap
+  ADR-041). Migrasi dari Astryx ke shadcn/ui selesai (ADR-097); detail status
+  lihat `PROJECT_STATE.md` / `../project-manager/tasks/v07-astryx-shadcn-migration.md`
+  § T-102; feature tidak menunggu design tokens final. Light/Dark Mode Toggle
+  (ADR-055, diamandemen ADR-097) tetap
   fitur resmi — mekanismenya lewat Tailwind `dark:` + shadcn theme provider,
   `ThemeModeContext`/`useThemeMode` (`apps/web/src/components/Providers.tsx`)
   tidak berubah.
@@ -94,23 +92,39 @@ Structure` (ADR-069, resolusi KI-010).
 
 ## Aturan operasional
 
-1. **Entry points** (`app/`, Middleware, Route Handlers, Server Actions): wiring + auth guard tipis + panggil service. **Tanpa** business rules. (Server Actions khusus mutation — lihat `rendering-strategy.md`.)
+1. Hard rules entry point / domain logic / cross-domain / shared types —
+   lihat **`../AGENTS.md` rules 5-8**, tidak diulang di sini. (Server Actions
+   khusus mutation — lihat `rendering-strategy.md`.)
 2. **Satu Application Service per BC** — orchestrasi, otorisasi (RBAC), koordinasi repo.
-3. **Domain logic** murni: tidak import Prisma, Supabase client, atau HTTP Outstand.
-4. **Repository**: interface di sisi domain; implementasi pakai Prisma di lapisan infrastructure domain tersebut.
-5. **Cross-domain**: import hanya dari public API (`domains/<other>/index.ts`) — bukan file internal domain lain.
-6. **Outstand**: hanya lewat adapter/ACL — lihat `integration-layer.md`.
-7. **Shared**: tipe bersama di `@social/shared`; jangan taruh use-case di shared package.
-8. **Billing (BC-10)**: jangan diimplementasi sebagai fitur MVP kecuali keputusan berubah + ADR.
-9. Schema DB: selaraskan dengan `database-strategy.md` + `schema.prisma`; migrasi lewat Prisma Migrate.
-10. **Kontrak Outstand ADR-040:** jangan membuat handler webhook komentar/DM,
-    jangan mengirim signed URL Supabase sebagai media publish, dan jangan
-    meminta secret X dari user aplikasi. Gunakan tiga event webhook resmi,
-    Outstand Media API working copy, comment sync 30 menit/manual refresh, serta
-    X BYOK manual di dashboard Outstand.
-11. Keberadaan kontrak dokumentasi atau schema **bukan** bukti runtime sudah
-    diimplementasikan. Saat mulai M8, verifikasi service, adapter, handler, job,
-    dan test yang benar-benar ada sebelum mengandalkannya.
+3. **Repository**: dua lapis — interface (`IXxxRepository`) di
+   `apps/web/src/domains/<domain>/repositories/`, implementasi Prisma nyata
+   di `apps/web/src/lib/repositories/<domain>/`. Domain layer hanya
+   bergantung ke interface (hard rule 6 `AGENTS.md` — domain tidak boleh
+   impor Prisma langsung); Server Action/Application Service yang
+   meng-_inject_ implementasi Prisma dari `lib/repositories`. Preseden:
+   `domains/publishing/repositories/publishing.repository.ts` ↔
+   `lib/repositories/publishing/`.
+4. **Use-case class terpisah**: kalau sebuah alur butuh dependency tambahan
+   yang wajib ada di constructor (mis. `IOutstandAdapter`) dan urutan
+   operasinya kritis (persist dulu → panggil adapter → persist outcome),
+   taruh sebagai use-case class terpisah (`xxx.use-case.ts`) — bukan method
+   baru di service umum domain tersebut. Tujuannya supaya lupa pass
+   dependency ketahuan TypeScript di call site (compile error), bukan baru
+   meledak saat runtime. Preseden: `SchedulePostsUseCase`,
+   `PublishNowUseCase`, `CancelScheduleUseCase`
+   (`domains/publishing/services/*.use-case.ts`),
+   `AnalyticsIngestionUseCase` (`domains/analytics/services/`).
+5. **Outstand**: hanya lewat adapter/ACL — lihat `integration-layer.md`.
+6. **Billing (BC-10)**: jangan diimplementasi sebagai fitur MVP kecuali keputusan berubah + ADR.
+7. Schema DB: selaraskan dengan `database-strategy.md` + `schema.prisma`; migrasi lewat Prisma Migrate.
+8. **Kontrak Outstand ADR-040:** jangan membuat handler webhook komentar/DM,
+   jangan mengirim signed URL Supabase sebagai media publish, dan jangan
+   meminta secret X dari user aplikasi. Gunakan tiga event webhook resmi,
+   Outstand Media API working copy, comment sync 30 menit/manual refresh, serta
+   X BYOK manual di dashboard Outstand.
+9. Keberadaan kontrak dokumentasi atau schema **bukan** bukti runtime sudah
+   diimplementasikan. Saat mulai M8, verifikasi service, adapter, handler, job,
+   dan test yang benar-benar ada sebelum mengandalkannya.
 
 ---
 

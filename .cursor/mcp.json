@@ -6,7 +6,7 @@
     },
     "supabase": {
       "type": "http",
-      "url": "https://mcp.supabase.com/mcp?project_ref=ndcrkzqgqukqfmekgoze&read_only=true"
+      "url": "https://mcp.supabase.com/mcp?project_ref=ndcrkzqgqukqfmekgoze"
     },
     "railway": {
       "type": "http",
@@ -15,6 +15,10 @@
     "shadcn": {
       "command": "npx",
       "args": ["shadcn@latest", "mcp"]
+    },
+    "outstand": {
+      "type": "http",
+      "url": "https://mcp.outstand.so/mcp"
     }
   }
 }

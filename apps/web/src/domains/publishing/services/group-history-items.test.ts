@@ -1,4 +1,4 @@
-import { ContentStatus, asPostId } from "@social/shared";
+import { ContentStatus, asPostId } from "@postific/shared";
 import { describe, expect, it } from "vitest";
 import type { HistoryItemRecord } from "../repositories/publishing.repository";
 import { groupHistoryItemsByDate } from "./group-history-items";
@@ -14,6 +14,7 @@ function createHistoryItem(
     publishedAt: new Date("2026-07-14T10:00:00Z"),
     createdAt: new Date("2026-07-13T00:00:00Z"),
     updatedAt: new Date("2026-07-14T10:00:00Z"),
+    mediaIds: [],
     targets: [],
     ...overrides,
   };

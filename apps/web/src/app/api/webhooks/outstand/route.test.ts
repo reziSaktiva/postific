@@ -19,8 +19,11 @@ vi.mock("@/lib/webhooks/outstand-webhook-receipt-store", () => ({
   outstandWebhookReceiptStore: { insertIfNew, markProcessed, markFailed },
 }));
 
-vi.mock("@/lib/adapters/outstand", () => ({
+const { getOutstandAdapter } = vi.hoisted(() => ({
   getOutstandAdapter: vi.fn(() => ({})),
+}));
+vi.mock("@/lib/adapters/outstand", () => ({
+  getOutstandAdapter,
 }));
 vi.mock("@/lib/repositories/publishing", () => ({ publishingRepository: {} }));
 vi.mock("@/lib/repositories/workspace", () => ({ workspaceRepository: {} }));
@@ -62,6 +65,8 @@ describe("POST /api/webhooks/outstand", () => {
     verifyOutstandWebhookSignature.mockReturnValue(true);
     insertIfNew.mockResolvedValue({ id: "receipt-1", isNew: true });
     processMock.mockResolvedValue({ outcome: "processed" });
+    getOutstandAdapter.mockReset();
+    getOutstandAdapter.mockReturnValue({});
   });
 
   it("rejects with 401 when OUTSTAND_WEBHOOK_SECRET is not configured (T-026.1) — never a silent skip", async () => {
@@ -140,6 +145,25 @@ describe("POST /api/webhooks/outstand", () => {
       "outstand adapter down",
     );
     expect(markProcessed).not.toHaveBeenCalled();
+  });
+
+  it("returns 503 without persisting when the Outstand adapter cannot be created (ADR-119)", async () => {
+    getOutstandAdapter.mockImplementation(() => {
+      throw new Error("OUTSTAND_API_KEY wajib diisi.");
+    });
+    const { POST } = await import("./route");
+
+    const response = await POST(
+      buildRequest(
+        JSON.stringify({ event: "post.published", data: { id: "post-1" } }),
+      ),
+    );
+
+    expect(response.status).toBe(503);
+    expect(insertIfNew).not.toHaveBeenCalled();
+    expect(markProcessed).not.toHaveBeenCalled();
+    expect(markFailed).not.toHaveBeenCalled();
+    expect(processMock).not.toHaveBeenCalled();
   });
 
   it("persists a malformed payload with a fingerprint id and marks it failed WITHOUT calling the processor", async () => {

@@ -10,8 +10,8 @@ import {
   Notification03Icon,
 } from "@hugeicons/core-free-icons";
 
-import { NotificationType } from "@social/shared";
-import type { NotificationId } from "@social/shared";
+import { NotificationType } from "@postific/shared";
+import type { NotificationId } from "@postific/shared";
 import type { NotificationRecord } from "@/domains/notification";
 
 import { Badge } from "@/components/ui/badge";

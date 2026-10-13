@@ -1,6 +1,6 @@
 # Domain Model & Bounded Context
 
-Dokumen ini mendefinisikan **Domain Model** dan **Bounded Context** untuk produk **Social Media Management**.
+Dokumen ini mendefinisikan **Domain Model** dan **Bounded Context** untuk produk **Postific**.
 
 Domain Model adalah representasi konseptual sistem — mendefinisikan apa yang ada dalam sistem, bagaimana domain-domain itu dibagi, dan bagaimana mereka saling berinteraksi tanpa saling bergantung pada implementasi.
 
@@ -767,7 +767,7 @@ Sebuah bounded context dilarang mengimport file implementasi dari bounded contex
 import { Post } from '../publishing/entities/post';
 
 // ✅ BENAR — hanya ID reference via shared types
-import { PostId } from '@social/shared';
+import { PostId } from '@postific/shared';
 ```
 
 **BR-02 — Referensi Lintas Domain Hanya Melalui ID**
@@ -784,10 +784,10 @@ Setiap domain mengekspos public API-nya hanya melalui file `index.ts` (barrel ex
 
 ```
 // ✅ BENAR — import dari barrel
-import { createPost } from '@social/publishing';
+import { createPost } from '@postific/publishing';
 
 // ❌ DILARANG — import dari file internal
-import { createPost } from '@social/publishing/src/services/post-service';
+import { createPost } from '@postific/publishing/src/services/post-service';
 ```
 
 **BR-05 — Tidak Ada Shared Database Table Lintas Domain**

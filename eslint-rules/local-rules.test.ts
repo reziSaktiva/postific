@@ -15,7 +15,7 @@ describe("local/no-dynamic-restricted-import", () => {
       {
         valid: [
           'const x = await import("react");',
-          'const x = await import("@social/shared");',
+          'const x = await import("@postific/shared");',
         ],
         invalid: [
           {

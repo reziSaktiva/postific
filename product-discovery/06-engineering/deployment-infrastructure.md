@@ -1,6 +1,6 @@
 # Deployment & Infrastructure
 
-Dokumen ini mendefinisikan **platform deployment, region, topologi environment, dan strategi infrastruktur** untuk produk Social Media Management.
+Dokumen ini mendefinisikan **platform deployment, region, topologi environment, dan strategi infrastruktur** untuk produk Postific.
 
 Dokumen ini adalah implementasi konkret dari keputusan pra-architecture (Railway sebagai deployment platform, Supabase sebagai database/storage/realtime) dan menetapkan detail operasional yang belum diputuskan: region hosting, jumlah tier environment, dan strategi Supabase project per environment.
 
@@ -192,7 +192,7 @@ git push origin main       ──►  Railway (production env) ──►  build 
 
 ## Build Notes untuk Monorepo Bun
 
-- `bun install` dijalankan di **root** monorepo karena lockfile (`bun.lockb`) dan workspace protocol (`@social/shared`) berada di root.
+- `bun install` dijalankan di **root** monorepo karena lockfile (`bun.lock`) dan workspace protocol (`@postific/shared`) berada di root.
 - Build hanya menghasilkan artefak untuk `apps/web` — `packages/shared` di-resolve sebagai source workspace (tidak perlu build terpisah pada MVP).
 - Next.js output mode dan konfigurasi build detail ditetapkan saat Repository & Bootstrap (M7); dokumen ini menetapkan command dan runtime-nya.
 

@@ -18,6 +18,119 @@ Dokumen ini berisi log percakapan penting antar sesi yang memiliki dampak terhad
 
 ---
 
+## 2026-10-08 — Pola berulang: gap kontrak Outstand baru ketemu pas verifikasi OpenAPI spec sungguhan (T-112, ADR-123)
+
+**Phase:** Phase 6 / M8 Development
+
+**Summary:** T-112 (wiring `importPosts`/`fetchImportJobStatus` sungguhan)
+menemukan DUA gap kontrak sekaligus yang baru ketahuan setelah diverifikasi
+langsung ke OpenAPI spec resmi Outstand — signature `fetchImportJobStatus`
+butuh `outstandAccountId` di path (bukan cuma `importJobId`), dan endpoint
+status job ternyata tidak membawa data post sama sekali (perlu panggilan
+`GET /v1/posts` tambahan). Ini kejadian ke sekian kalinya pola yang sama
+terjadi di integrasi Outstand — lihat ADR-113 (komentar/reply), ADR-115/
+ADR-116 (Facebook), ADR-118 (Pinterest `board_id`) untuk presedan
+sebelumnya.
+
+**Key Insight / Decision:** Dokumentasi/asumsi awal Outstand (termasuk ADR
+desain awal seperti ADR-093) cenderung tidak cocok 100% dengan shape API
+sungguhan begitu benar-benar diverifikasi via OpenAPI spec resmi — pola ini
+sudah cukup sering terjadi sehingga sebaiknya jadi default expectation,
+bukan kejutan, untuk SETIAP endpoint Outstand baru yang belum pernah
+diverifikasi langsung. Implikasi praktis: task yang scope-nya "wiring
+endpoint Outstand baru" sebaiknya selalu dianggap berpotensi mengubah
+kontrak publik (`IOutstandAdapter`) yang sudah ditulis sebelumnya, bukan
+cuma mengisi stub yang sudah ada — rencanakan breaking change sebagai
+kemungkinan nyata, bukan edge case.
+
+**Impact:** Tidak ada perubahan proses formal yang diminta King Rezi di
+sesi ini (murni insight), jadi tidak menulis ADR baru untuk pola ini
+sendiri. Dicatat di sini supaya sesi berikutnya yang mengerjakan endpoint
+Outstand baru (atau alumni mirip) mengecek riwayat ini sebelum berasumsi
+kontrak existing sudah cukup.
+
+---
+
+## 2026-10-09 — Pola baru: endpoint Outstand yang ASYNC butuh polling status, bukan cek sekali
+
+**Phase:** Phase 6 / M8 Development
+
+**Summary:** Tuntasnya T-112.5 (verifikasi end-to-end) menemukan bug
+terpisah dari gap kontrak OpenAPI yang sudah dicatat sesi 2026-10-08 di
+atas — `ImportPostsTriggerUseCase.runImportSync` memanggil
+`fetchImportJobStatus` cuma sekali langsung setelah `importPosts()`, padahal
+job import Outstand betulan diproses async di sisi mereka. Status pertama
+yang didapat hampir selalu `pending`/`queued`/`running`, bukan hasil final
+— jadi selalu ditandai gagal walau job sebenarnya akan sukses beberapa
+detik kemudian. Fix: method `pollImportJobStatus` baru, polling tiap 2
+detik sampai status resolve atau timeout 25 detik (margin dari budget 30
+detik BG-D05 job runner).
+
+**Key Insight / Decision:** Beda dari insight 2026-10-08 (soal shape
+request/response tidak cocok dokumentasi), ini soal **timing** — endpoint
+Outstand yang mengembalikan "job id" untuk dicek statusnya lagi (pola
+`POST .../imports` → `GET .../imports/{id}`) kemungkinan besar genuinely
+async di sisi Outstand, bukan sinkron-tapi-dibungkus-job-id. Default
+expectation untuk integrasi Outstand berikutnya yang punya pola serupa
+(submit lalu cek status terpisah): rencanakan polling dengan timeout sejak
+awal, jangan asumsikan satu kali cek status sudah cukup — gejalanya mirip
+bug ("selalu gagal/pending") padahal sebenarnya desain yang kurang
+mengakomodasi job async.
+
+**Impact:** Tidak ada ADR baru (tidak mengubah kontrak publik
+`IOutstandAdapter`, murni perilaku internal use-case). Dicatat di sini
+sebagai referensi kalau ada integrasi Outstand async lain di masa depan
+(mis. publish job lain yang pakai pola submit+poll serupa).
+
+---
+
+## 2026-09-26 — Supabase MCP `read_only=true` dihapus sementara untuk keperluan fix data live (KI-073–076)
+
+**Phase:** Phase 6 / M8 Development
+
+**Summary:** Saat verifikasi live KI-073–076, akun test Instagram
+`turanilkerl` tanpa sengaja ter-*Disconnect* (lihat **KI-078** baru) dan
+tidak ada jalur UI untuk reconnect (unique constraint `outstandAccountId`
+menahan). King Rezi memutuskan memperbaikinya langsung lewat SQL manual
+(`UPDATE workspace_connected_accounts SET status='active'`) supaya
+verifikasi bisa lanjut, sehingga parameter `&read_only=true` di URL MCP
+Supabase (yang tadinya mencegah write lewat MCP) dihapus atas permintaan
+eksplisit King Rezi.
+
+**Key Insight / Decision:** Perubahan dilakukan di **kedua** file kembar
+sekaligus (`.mcp.json` dan `.cursor/mcp.json`, konsisten aturan
+kompatibilitas tool ADR-064) — bukan cuma satu, supaya Claude Code dan
+Cursor tidak divergen soal proteksi write MCP. Ini pengecualian sesaat
+untuk kebutuhan operasional (fix data), bukan keputusan permanen menghapus
+proteksi read-only — perlu dipertimbangkan ulang apakah `read_only=true`
+mau dikembalikan di sesi berikutnya sekarang datanya sudah beres.
+
+**Impact:** `.mcp.json`, `.cursor/mcp.json` (URL Supabase MCP kehilangan
+`&read_only=true`). Tidak ada perubahan skema/dokumen governance lain dari
+keputusan ini sendiri.
+
+---
+
+## 2026-09-25 — Sisa channel dan post Fake di luar filter T-106.4
+
+**Phase:** Phase 6 / M8 Development
+
+**Summary:** Setelah T-106.1–.4, browser masih menampilkan channel dan post palsu. Filter cleanup hanya `outstand_post_id` `fake-post-%` dan URL `fake.outstand.local`. Akun di `workspace_connected_accounts` (`fake-%` / `mock-%`) dan post tanpa id Outstand tidak terhapus.
+
+**Key Insight / Decision:** King Rezi meminta subtask baru, bukan task terpisah. T-106.5 mencakup seluruh sisa data Fake/mock di DB bersama dev/staging. T-106 kembali 🟡 In Progress.
+
+**Impact:** `tasks/v02-publishing-mvp.md` § T-106, indeks `TASKS.md`, Snapshot `PROJECT_STATE.md`.
+
+## 2026-09-25 — Hapus FakeOutstandAdapter dilacak sebagai task, bukan Known Issue
+
+**Phase:** Phase 6 / M8 Development
+
+**Summary:** Setelah T-025, post ber-id `fake-post-…` masih tampil karena sisa QA di database, sementara `FakeOutstandAdapter` tetap jalur produksi kalau `OUTSTAND_API_KEY` kosong (ADR-059). King Rezi meminta agar adapter itu dihilangkan dari project.
+
+**Key Insight / Decision:** Ini pekerjaan terencana, bukan bug. Dicatat sebagai T-106 (⏳), bukan KI. Kode baru dilarang sebelum ADR yang mengamendemen ADR-059 berstatus Accepted. Menghapus kelas adapter tidak otomatis menghapus 22 baris post palsu; pembersihan data ada di T-106.4.
+
+**Impact:** `tasks/v02-publishing-mvp.md`, indeks `TASKS.md`, hitungan backlog di Snapshot `PROJECT_STATE.md`, entri `COMPLETE_TASK.md`.
+
 ## 2026-09-02 — Gap token warna semantik `--success`/`--warning` belum ada di Stone theme shadcn
 
 **Phase:** M8 Development (v0.7 migrasi Astryx → shadcn/ui, ADR-097)

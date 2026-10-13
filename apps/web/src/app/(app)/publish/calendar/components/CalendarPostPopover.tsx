@@ -2,7 +2,7 @@
 
 import { type ReactNode, useState } from "react";
 
-import { ContentStatus } from "@social/shared";
+import { ContentStatus } from "@postific/shared";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +21,11 @@ import {
   CONTENT_STATUS_LABEL,
 } from "../../../components/draft-editor/status-badge";
 import { useDraftEditor } from "../../../components/draft-editor/Context";
+import {
+  formatEngagementRate,
+  formatMetricCount,
+  MetricTile,
+} from "../../../components/post-metric-tile";
 import { PLATFORM_ICON } from "../../../components/platform-icons";
 import {
   type CalendarCardEntry,
@@ -28,28 +33,6 @@ import {
 } from "./calendar-grid-shared";
 
 const POPOVER_WIDTH = 296;
-
-function formatMetricCount(value: number): string {
-  return value.toLocaleString("id-ID");
-}
-
-function formatEngagementRate(value: number): string {
-  return `${(value * 100).toFixed(1)}%`;
-}
-
-function MetricTile({ label, value }: { label: string; value: string }) {
-  return (
-    // eslint-disable-next-line no-restricted-syntax -- T-101.1: layout-only, file sudah dimigrasi shadcn
-    <div className="flex w-16 flex-col gap-0">
-      <Text variant="small" as="span" className="font-bold">
-        {value}
-      </Text>
-      <Text variant="muted" as="span" className="text-xs">
-        {label}
-      </Text>
-    </div>
-  );
-}
 
 export interface CalendarPostPopoverProps {
   /** Kartu per-target hasil `flattenCalendarItemsToEntries` — satu Popover per kartu. */
@@ -79,6 +62,16 @@ export interface CalendarPostPopoverProps {
  * terbuka — lihat `status-badge.ts`), melengkapi komponen lain (`Popover`,
  * `Avatar`, `Divider`->`Separator`, `Button`, `Text`, layout) yang sudah
  * shadcn sejak T-101.1.
+ *
+ * T-090.5 (ADR-093) — varian `Imported` (read-only): LOCKED PATTERN
+ * (`components/popover.html`, Claude Design, 2026-10-08, King Rezi
+ * confirmed). Berbeda dari varian lain: (1) "Buka Draft Editor" DIHILANGKAN
+ * total (bukan disabled) — post ini tidak berasal dari tool ini, jadi tidak
+ * ada draft untuk diedit; (2) CTA satu-satunya adalah link "Lihat di
+ * [Platform] →" ke `entry.platformPostUrl`; (3) baris catatan read-only
+ * ditambahkan sebelum footer; (4) metrics block sengaja TIDAK ditampilkan
+ * (post Imported belum tentu sudah disinkronkan Analytics, JOB-04 — beda
+ * dari `Published` yang selalu lewat publish flow tool ini sendiri).
  */
 export function CalendarPostPopover({
   entry,
@@ -88,6 +81,7 @@ export function CalendarPostPopover({
   const { openEditDraft } = useDraftEditor();
   const platformLabel = PLATFORM_ICON[entry.platform].label;
   const isPublished = entry.status === ContentStatus.Published;
+  const isImported = entry.status === ContentStatus.Imported;
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -195,16 +189,41 @@ export function CalendarPostPopover({
             </div>
           )}
 
-          <Button
-            variant="default"
-            className="w-full"
-            onClick={() => {
-              setIsOpen(false);
-              openEditDraft(entry.postId);
-            }}
-          >
-            Buka Draft Editor
-          </Button>
+          {isImported ? (
+            // eslint-disable-next-line no-restricted-syntax -- T-090.5: layout-only
+            <div className="flex flex-col gap-1">
+              <Text variant="muted" as="span" className="text-xs">
+                Post ini diimpor dari {platformLabel}, tidak bisa diedit di
+                sini.
+              </Text>
+              {entry.platformPostUrl ? (
+                <Button variant="secondary" className="w-full" asChild>
+                  <a
+                    href={entry.platformPostUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Lihat di {platformLabel} →
+                  </a>
+                </Button>
+              ) : (
+                <Button variant="secondary" className="w-full" disabled>
+                  Lihat di {platformLabel} →
+                </Button>
+              )}
+            </div>
+          ) : (
+            <Button
+              variant="default"
+              className="w-full"
+              onClick={() => {
+                setIsOpen(false);
+                openEditDraft(entry.postId);
+              }}
+            >
+              Buka Draft Editor
+            </Button>
+          )}
         </div>
       </PopoverContent>
     </Popover>

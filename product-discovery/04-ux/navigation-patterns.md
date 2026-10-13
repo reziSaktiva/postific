@@ -1,6 +1,6 @@
 # Navigation Patterns
 
-Dokumen ini mendefinisikan **model navigasi dan pola perpindahan layar** pada produk **Social Media Management**.
+Dokumen ini mendefinisikan **model navigasi dan pola perpindahan layar** pada produk **Postific**.
 
 Navigation Patterns dibangun di atas Information Architecture yang sudah ditetapkan. Dokumen ini tidak mendefinisikan layout visual atau komponen UI — melainkan menjelaskan logika bagaimana pengguna bergerak antar bagian, bagaimana konteks dipertahankan, dan kapan perpindahan layar terjadi.
 

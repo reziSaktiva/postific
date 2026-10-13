@@ -30,6 +30,10 @@ Di akhir sesi kerja, setelah semua agent implementasi/review/QA selesai — rang
 2. `TASKS.md` — perbarui hitungan di **Indeks release**, **Total**, dan **Fokus sekarang**. Wajib bersamaan dengan poin 1, kalau tidak angka indeksnya jadi salah.
 3. `PROJECT_STATE.md` — hanya bila phase / milestone / Known Issues / fokus terdekat berubah (Completed / In Progress / Known Issues). Section `In Progress` **dan** `Next Tasks` di sini adalah **pointer** ke `TASKS.md`/`tasks/vXX-*.md`, bukan tempat detail task — kalau ada dorongan menulis nama subtask/dependency/catatan teknis di salah satu section ini, itu tandanya harus pindah ke `tasks/vXX-*.md` saja.
 4. `COMPLETE_TASK.md` — entri baru di bagian atas.
+5. **Guardrail ukuran, dicek setiap sesi ini (bukan cuma di akhir milestone):**
+   - Known Issue berstatus `Resolved` yang sudah tercatat di `COMPLETE_TASK.md` → hapus dari `PROJECT_STATE.md` § Known Issues **saat itu juga**, jangan ditunda ke audit berikutnya.
+   - `TASKS.md` § "Fokus sekarang" hanya boleh berisi baris berstatus belum `✅ Done` — begitu sebuah task di baris itu naik status jadi Done, pindahkan ke satu baris ringkas "Selesai baru-baru ini" (ID + judul + tanggal saja, tanpa paragraf), jangan biarkan baris `✅ Done` menumpuk di tabel.
+   - `PROJECT_STATE.md` § "Completed (Ringkasan)" tetap dibatasi 5 item terakhir (`grep -c "^\* \*\*"` pada section itu setelah edit harus = 5).
 
 ## Skill yang relevan
 

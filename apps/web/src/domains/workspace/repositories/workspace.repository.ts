@@ -8,7 +8,7 @@ import type {
   SocialPlatform,
   UserId,
   WorkspaceId,
-} from "@social/shared";
+} from "@postific/shared";
 
 export interface WorkspaceRecord {
   id: WorkspaceId;
@@ -33,6 +33,28 @@ export interface ConnectedAccountRecord {
   status: string;
   reconnectRequired: boolean;
   connectedAt: Date;
+  /**
+   * Foto profil akun (menutup KI-076, ADR-120) — kolom `avatar_url`
+   * (`WorkspaceConnectedAccount`, migrasi
+   * `20260926090000_ki076_add_avatar_url_to_workspace_connected_accounts`).
+   * `null` berarti Outstand tidak punya/tidak mengembalikan foto untuk akun
+   * ini. **Opsional di level TypeScript** (bukan `avatarUrl: string | null`)
+   * supaya penambahan field ini tidak memaksa update mekanis di seluruh
+   * fixture test lintas domain (publishing/engagement/analytics) yang
+   * membangun `ConnectedAccountRecord` tapi tidak peduli avatar sama
+   * sekali — implementasi Prisma nyata (`workspace.repository.ts` di
+   * `lib/repositories/workspace/`) TETAP SELALU mengisinya (kolom DB selalu
+   * ada, `null` atau string), opsional di sini murni kompatibilitas mock.
+   */
+  avatarUrl?: string | null;
+  /**
+   * Import Posts dari Social Account (T-090, ADR-093 poin 6) — watermark
+   * (`since` untuk trigger periodik/manual berikutnya) dan cooldown
+   * (`now() - lastImportRequestedAt < 24 jam` untuk manual). `null` berarti
+   * belum pernah ada import yang sukses/direquest sama sekali.
+   */
+  lastImportedUntil: Date | null;
+  lastImportRequestedAt: Date | null;
 }
 
 export interface WorkspaceMemberRecord {
@@ -65,6 +87,21 @@ export interface WorkspaceInvitationRecord {
   status: InvitationStatus;
   invitedByUserId: UserId;
   expiresAt: Date;
+  /**
+   * Verifikasi kepemilikan email accept-invite (T-110, KI-053) — HANYA
+   * relevan untuk jalur `isExistingUser: false`. `verificationCodeHash`/
+   * `verificationCodeExpiresAt` selalu sepasang (`null` kalau tidak ada
+   * kode aktif — belum pernah diminta, ATAU sudah dikonfirmasi/single-use).
+   * `verificationAttempts` reset ke 0 tiap kode baru (`setInvitationVerificationCode`),
+   * increment tiap kode salah (`incrementInvitationVerificationAttempts`).
+   * `emailVerifiedAt` diisi SEKALI saat kode dikonfirmasi benar — dipakai
+   * `WorkspaceService.acceptInvite` sebagai guard server-side yang tidak
+   * percaya klaim dari client.
+   */
+  verificationCodeHash: string | null;
+  verificationCodeExpiresAt: Date | null;
+  verificationAttempts: number;
+  emailVerifiedAt: Date | null;
 }
 
 /** Repository interface — implementation (Prisma) lives in src/lib/repositories/workspace. */
@@ -182,6 +219,33 @@ export interface IWorkspaceRepository {
   }): Promise<WorkspaceInvitationRecord>;
 
   /**
+   * Baris undangan untuk pasangan workspace + email (unik di database),
+   * status apa pun. `actingUserId` untuk RLS. `null` kalau belum pernah
+   * ada undangan untuk email itu.
+   */
+  findInvitationByWorkspaceEmail(
+    workspaceId: WorkspaceId,
+    email: string,
+    actingUserId: UserId,
+  ): Promise<WorkspaceInvitationRecord | null>;
+
+  /**
+   * Ganti undangan yang sudah tidak pending aktif (accepted, revoked,
+   * expired, atau pending yang sudah lewat `expiresAt`) dengan token,
+   * role, dan masa berlaku baru. Unik `(workspaceId, email)` tetap satu
+   * baris. Compare-and-swap: pending yang masih berlaku tidak ditimpa.
+   */
+  reissueInvitation(input: {
+    workspaceId: WorkspaceId;
+    invitationId: InvitationId;
+    actingUserId: UserId;
+    email: string;
+    role: MemberRole;
+    token: string;
+    expiresAt: Date;
+  }): Promise<WorkspaceInvitationRecord>;
+
+  /**
    * Belum dipakai service manapun — disiapkan untuk acceptInvite (task lain).
    * SENGAJA TIDAK dibungkus `withCurrentUser` (KI-026 follow-up, code review
    * PR #71) — invitee yang lookup token ini belum jadi member workspace
@@ -206,8 +270,14 @@ export interface IWorkspaceRepository {
    * TIDAK dibungkus `withCurrentUser` — pemanggil (invitee) belum jadi
    * member workspace mana pun, sama seperti alasan `findInvitationByToken`
    * di atas tidak memakai RLS context.
+   *
+   * `createdAt` (T-110, KI-053) — dipakai `WorkspaceService.acceptInvite`
+   * untuk guard "akun baru dibuat tanpa verifikasi email" (bandingkan
+   * terhadap window waktu wajar sebelum request `acceptInvite` ini).
    */
-  findUserByEmail(email: string): Promise<{ id: UserId } | null>;
+  findUserByEmail(
+    email: string,
+  ): Promise<{ id: UserId; createdAt: Date } | null>;
 
   /**
    * Terima invitation (T-093.3) — SATU transaksi atomik: (1) flip
@@ -228,6 +298,49 @@ export interface IWorkspaceRepository {
     userId: UserId;
     role: MemberRole;
   }): Promise<WorkspaceMemberRecord>;
+
+  /**
+   * Persist kode verifikasi baru (T-110.2, KI-053) — dipanggil
+   * `WorkspaceService.requestInviteEmailVerification`. Reset
+   * `verificationAttempts` ke 0 (kode baru = jatah percobaan baru). Compare-
+   * and-swap: hanya berhasil kalau invitation masih `pending` (guard race
+   * yang sama seperti `acceptInvitation`/`revokeInvitation`) — melempar
+   * `ConflictError` bila tidak. Implementasi anonim (token-based, pola sama
+   * `findInvitationByToken` — invitee belum punya akun sama sekali di jalur
+   * `isExistingUser: false`, jadi TIDAK ADA `app.current_user_id`).
+   */
+  setInvitationVerificationCode(
+    token: string,
+    input: { codeHash: string; expiresAt: Date },
+  ): Promise<void>;
+
+  /**
+   * Tandai email invitation terverifikasi (T-110.3, KI-053) — single-use:
+   * set `emailVerifiedAt` DAN clear `verificationCodeHash`/
+   * `verificationCodeExpiresAt` sekaligus supaya kode yang sama tidak bisa
+   * dipakai ulang. Dipanggil `WorkspaceService.confirmInviteEmailVerification`
+   * SETELAH kode dicocokkan benar. Compare-and-swap sama seperti
+   * `setInvitationVerificationCode`.
+   */
+  markInvitationEmailVerified(token: string): Promise<void>;
+
+  /**
+   * Reservasi SATU slot percobaan verifikasi kode secara atomic, capped di
+   * `maxAttempts` (T-110.3, anti brute-force — code-review PR #142 finding:
+   * pengecekan+increment yang dulu terpisah dua round-trip punya celah race
+   * condition, N request konkuren bisa lolos cap yang sama). `UPDATE ...
+   * WHERE verification_attempts < maxAttempts` membuat Postgres
+   * men-serialize baris ini — hanya `maxAttempts` reservasi yang bisa
+   * pernah berhasil berapa pun banyaknya request konkuren. Return jumlah
+   * percobaan SETELAH increment, ATAU `maxAttempts + 1` sebagai sentinel
+   * kalau reservasi gagal karena cap sudah tercapai (termasuk race dengan
+   * request lain yang baru saja mengisi slot terakhir) — caller
+   * membedakan via `attempts > maxAttempts`.
+   */
+  incrementInvitationVerificationAttempts(
+    token: string,
+    maxAttempts: number,
+  ): Promise<number>;
 
   /**
    * Undangan `pending` yang belum melewati `expiresAt` (T-007.8, ADR-101) —
@@ -371,6 +484,53 @@ export interface IWorkspaceRepository {
   } | null>;
 
   /**
+   * Read-only variant of `markAccountReconnectRequired`'s lookup (T-051,
+   * JOB-03 Engagement Sync) — reuses the SAME SECURITY DEFINER SQL function
+   * (`webhook_find_account_owner_by_outstand_account_id`, migration
+   * `20260907120000_t026_outstand_webhook_system_lookups`), no write.
+   *
+   * **Why `engagement` needs this:** JOB-03's periodic sync job has no
+   * Better Auth session (same chicken-and-egg as T-026's webhook route),
+   * so it has no legitimate `userId` to pass into `withCurrentUser` for
+   * `EngagementInboxItem` writes until it resolves ONE. The job payload
+   * already carries `outstandAccountId` (`background-jobs.md` § JOB-03),
+   * so resolving the workspace Owner here — guaranteed an active member of
+   * their own workspace — gives `EngagementSyncJobHandler` a safe acting
+   * user, exactly the same pattern `markAccountReconnectRequired` already
+   * established for T-026.5. Returns `null` kalau tidak ada akun dengan
+   * `outstandAccountId` itu (job handler menganggap ini anomali — retry
+   * lewat job runner, TIDAK self-reschedule).
+   *
+   * **`handle` (redesain KI-068/ADR-113)** — ditambahkan supaya
+   * `EngagementSyncJobHandler` bisa menyuplai `accountUsername` ke
+   * `SyncCommentsUseCase.sync` tanpa lookup terpisah (API resmi Outstand
+   * butuh username untuk `fetchComments`/disambiguasi multi-akun — lihat
+   * `outstand-adapter.ts`). Diimplementasikan lewat kolom baru pada fungsi
+   * SQL yang sama, migration `20260924090000_ki068_add_handle_to_account_owner_lookup`.
+   */
+  findAccountOwnerByOutstandAccountId(outstandAccountId: string): Promise<{
+    workspaceId: WorkspaceId;
+    connectedAccountId: ConnectedAccountId;
+    ownerUserId: UserId;
+    handle: string;
+  } | null>;
+
+  /**
+   * Fan-out JOB-04 (T-048) — seluruh ConnectedAccount `active` yang tidak
+   * `reconnectRequired`, lintas workspace. Tidak butuh acting user: query
+   * lewat SECURITY DEFINER `analytics_list_active_connected_accounts`
+   * karena cron tidak punya sesi. Dipakai `EnqueueAnalyticsSyncUseCase`,
+   * bukan UI.
+   */
+  listActiveConnectedAccountsForSync(): Promise<
+    {
+      workspaceId: WorkspaceId;
+      connectedAccountId: ConnectedAccountId;
+      outstandAccountId: string;
+    }[]
+  >;
+
+  /**
    * Disconnect akun (T-014.2, ADR-048/ADR-049) — set
    * `WorkspaceConnectedAccount.status` jadi `"disconnected"` DAN
    * `reconnectRequired` jadi `false` (state "perlu reconnect" tidak relevan
@@ -415,6 +575,42 @@ export interface IWorkspaceRepository {
   ): Promise<ConnectedAccountRecord | null>;
 
   /**
+   * Lookup satu akun by `outstandAccountId` di dalam `workspaceId` ini
+   * (KI-079) — dipakai `WorkspaceService.completeAccountConnection` untuk
+   * membedakan double-submit genuine (request susulan Next.js untuk akun
+   * yang BARU SAJA dibuat, lihat docstring Route Handler callback) dari
+   * percobaan Connect ke akun yang SUDAH terhubung dari alur/waktu yang
+   * berbeda, setelah `createConnectedAccount` melempar `ConflictError`
+   * (unique constraint `[workspaceId, outstandAccountId]`). Returns
+   * `null` kalau tidak ditemukan di workspace ini.
+   */
+  findConnectedAccountByOutstandId(
+    workspaceId: WorkspaceId,
+    outstandAccountId: string,
+    actingUserId: UserId,
+  ): Promise<ConnectedAccountRecord | null>;
+
+  /**
+   * Cek apakah `connectedAt` baris ini masih di dalam `windowMs` terakhir
+   * — dipakai `WorkspaceService.createOrRecoverConnectedAccount` (KI-079)
+   * untuk keputusan double-submit-recovery yang SAMA seperti
+   * `findConnectedAccountByOutstandId` di atas, tapi perbandingan waktu
+   * dilakukan di sisi Postgres (`now() - connected_at`), BUKAN
+   * `Date.now()` di Node (code review PR #139) — kalau jam app-server
+   * (Railway) drift dari jam database (Supabase), perbandingan lintas-jam
+   * bisa salah klasifikasi genuine double-submit sebagai percobaan
+   * terpisah, atau sebaliknya. Domain (`WorkspaceService`) tidak boleh
+   * mengimpor Prisma (rule 6 `AGENTS.md`), jadi perbandingan waktu ini
+   * WAJIB di lapisan repository, bukan dihitung dari `connectedAt` yang
+   * sudah di-fetch ke Node. Returns `false` kalau baris tidak ditemukan.
+   */
+  isConnectedAccountWithinWindow(
+    connectedAccountId: ConnectedAccountId,
+    windowMs: number,
+    actingUserId: UserId,
+  ): Promise<boolean>;
+
+  /**
    * CREATE `WorkspaceConnectedAccount` baru (T-013.1/T-013.2, Connect
    * Account, ADR-105) — dipanggil `WorkspaceService.completeAccountConnection`
    * saat `redirectAccountId` kosong (bukan reconnect). `connectedAt`
@@ -429,12 +625,33 @@ export interface IWorkspaceRepository {
     platform: SocialPlatform;
     outstandAccountId: string;
     handle: string;
+    /** KI-076/ADR-120 — lihat docstring `ConnectedAccountRecord.avatarUrl`. */
+    avatarUrl?: string | null;
     actingUserId: UserId;
   }): Promise<ConnectedAccountRecord>;
 
   /**
-   * UPDATE akun existing (T-015.3, Reconnect, ADR-105) — refresh
-   * `outstandAccountId`/`handle` dari hasil `exchangeConnectCode` terbaru,
+   * CREATE beberapa `WorkspaceConnectedAccount` dalam SATU transaksi.
+   * Akun yang `outstandAccountId`-nya sudah ada di workspace ini di-skip
+   * (idempoten). Kegagalan di tengah membatalkan seluruh batch, bukan
+   * menyisakan sebagian Page.
+   */
+  createConnectedAccounts(input: {
+    workspaceId: WorkspaceId;
+    actingUserId: UserId;
+    accounts: {
+      platform: SocialPlatform;
+      outstandAccountId: string;
+      handle: string;
+      /** KI-076/ADR-120 — lihat docstring `ConnectedAccountRecord.avatarUrl`. */
+      avatarUrl?: string | null;
+    }[];
+  }): Promise<ConnectedAccountRecord[]>;
+
+  /**
+   * UPDATE akun existing (T-015.3, Reconnect, ADR-105, redesain ADR-112)
+   * — refresh `outstandAccountId`/`handle` dari hasil
+   * `resolveConnectCallback` terbaru,
    * set `status: "active"` dan `reconnectRequired: false`. `connectedAt`
    * TIDAK direset — reconnect bukan re-create, riwayat
    * `PublishingPostTarget`/`EngagementInboxItem` yang merujuk row
@@ -450,6 +667,51 @@ export interface IWorkspaceRepository {
     connectedAccountId: ConnectedAccountId;
     outstandAccountId: string;
     handle: string;
+    /**
+     * KI-076/ADR-120 — refresh foto profil sekalian saat reconnect (foto
+     * lama bisa sudah berubah/berbeda dari akun yang di-reconnect-kan).
+     * Lihat docstring `ConnectedAccountRecord.avatarUrl`.
+     */
+    avatarUrl?: string | null;
     actingUserId: UserId;
   }): Promise<ConnectedAccountRecord>;
+
+  /**
+   * Import Posts dari Social Account (T-090.3, ADR-093 poin 6) — update
+   * salah satu/kedua watermark import. Dipanggil lewat
+   * `ConnectedAccountWatermarkPort` (`ImportPostsTriggerUseCase`, domain
+   * `publishing`) — composition root yang menyambungkan port itu ke method
+   * ini, domain `publishing` sendiri TIDAK mengimpor `IWorkspaceRepository`
+   * (AGENTS.md #7). Hanya field yang diisi (non-`undefined`) yang
+   * di-update — caller mengisi SALAH SATU (`lastImportRequestedAt` saja
+   * saat request dimulai, `lastImportedUntil` saja saat sukses selesai)
+   * atau keduanya, tidak pernah mengirim dua-duanya `undefined`.
+   *
+   * **`actingUserId` WAJIB ada (koreksi 2026-10-08, bug ditemukan testing
+   * end-to-end DB nyata T-090.3)** — docstring versi sebelumnya mengklaim
+   * method ini aman tanpa `actingUserId`/RLS karena "write murni field
+   * watermark tidak membocorkan data lintas tenant". Klaim itu SALAH:
+   * `workspace_connected_accounts` dijaga RLS policy `FOR ALL` (migration
+   * `20260813045625_t017_add_rls_policies`), dan `FOR ALL` tanpa
+   * `WITH CHECK` terpisah berarti `USING` berlaku juga untuk `UPDATE` — tanpa
+   * `app.current_user_id` di-set, `updateMany` match 0 baris SELALU, secara
+   * senyap (watermark tidak pernah persisten, cooldown manual ADR-093 poin 9
+   * jadi non-fungsional). Implementasi Prisma WAJIB `withCurrentUser`, sama
+   * pola `reconnectAccount` di atas. Semua caller (`triggerAuto`/
+   * `triggerPeriodicForAccounts`/`triggerManual`) sudah punya `actingUserId`
+   * di input masing-masing — termasuk jalur periodik (cron), yang caller-nya
+   * (belum diwiring, di luar scope T-090) wajib me-resolve acting user
+   * (kandidat: Account Owner workspace) sebelum memanggil.
+   *
+   * Silent no-op kalau `connectedAccountId` tidak ditemukan ATAU acting user
+   * bukan member aktif workspace tersebut (best effort, sama pola
+   * `cancelScheduledPost` — kegagalan update watermark tidak boleh
+   * menggagalkan import yang sudah berhasil diproses).
+   */
+  updateImportWatermark(input: {
+    connectedAccountId: ConnectedAccountId;
+    lastImportedUntil?: Date;
+    lastImportRequestedAt?: Date;
+    actingUserId: UserId;
+  }): Promise<void>;
 }

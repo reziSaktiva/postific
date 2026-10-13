@@ -24,3 +24,10 @@ export interface DashboardSummary {
   avgEngagementRate: number;
   activeAccounts: number;
 }
+
+// `PostPerformanceRow` (T-043.1) DIPINDAHKAN ke
+// `apps/web/src/domains/publishing/services/publishing.service.ts`
+// (2026-09-18, temuan kritis Ridwan Architecture Reviewer — circular
+// dependency `analytics` <-> `publishing`). Ikuti pola `CalendarPostItem`:
+// tipe cross-domain didefinisikan langsung di service layer domain
+// `publishing` yang memanggilnya, bukan di file `types.ts` terpisah.

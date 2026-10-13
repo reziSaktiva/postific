@@ -1,6 +1,6 @@
 # Jobs To Be Done
 
-Dokumen ini mendefinisikan **Jobs To Be Done (JTBD)** pengguna produk **Social Media Management**.
+Dokumen ini mendefinisikan **Jobs To Be Done (JTBD)** pengguna produk **Postific**.
 
 JTBD menjelaskan pekerjaan yang ingin diselesaikan pengguna dalam konteks tertentu, termasuk dimensi fungsional, emosional, dan sosial.
 

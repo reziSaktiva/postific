@@ -1,12 +1,12 @@
 /** Domain-specific types for workspace. */
 
-import { MemberRole } from "@social/shared";
+import { MemberRole } from "@postific/shared";
 import type {
   MemberId,
   MemberStatus,
   SocialPlatform,
   UserId,
-} from "@social/shared";
+} from "@postific/shared";
 import type { WorkspaceInvitationRecord } from "./repositories/workspace.repository";
 
 /**
@@ -19,6 +19,13 @@ import type { WorkspaceInvitationRecord } from "./repositories/workspace.reposit
  * `scheduledCount` is a real cross-domain count from `publishing` (T-012.2),
  * supplied via `WorkspaceService`'s `ScheduledCountsPort` — defaults to 0
  * when the port isn't provided to the constructor (back-compat call-sites).
+ *
+ * `avatarUrl` (menutup KI-076, ADR-120) — foto profil akun, `null` kalau
+ * Outstand tidak punya/tidak mengembalikan foto untuk akun ini. Diisi
+ * `WorkspaceService.listSidebarChannels` langsung dari
+ * `ConnectedAccountRecord.avatarUrl` (kolom Prisma `avatar_url`) — lihat
+ * `packages/shared/src/contracts/outstand-adapter.ts` untuk asal datanya
+ * per platform (single-page vs Facebook Pages).
  */
 export interface SidebarChannelAccount {
   id: string;
@@ -27,6 +34,7 @@ export interface SidebarChannelAccount {
   status: string;
   reconnectRequired: boolean;
   scheduledCount: number;
+  avatarUrl: string | null;
 }
 
 /**

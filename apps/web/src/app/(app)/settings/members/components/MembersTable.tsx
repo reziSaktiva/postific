@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 
-import { MemberRole, MemberStatus } from "@social/shared";
+import { MemberRole, MemberStatus } from "@postific/shared";
 
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";

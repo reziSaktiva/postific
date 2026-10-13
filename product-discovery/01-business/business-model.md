@@ -1,6 +1,6 @@
 # Business Model
 
-Dokumen ini menjelaskan bagaimana produk **Social Media Management** menciptakan nilai bagi pelanggan serta bagaimana bisnis menghasilkan pendapatan secara berkelanjutan.
+Dokumen ini menjelaskan bagaimana produk **Postific** menciptakan nilai bagi pelanggan serta bagaimana bisnis menghasilkan pendapatan secara berkelanjutan.
 
 Business Model menjadi dasar dalam pengambilan keputusan terkait strategi produk, monetisasi, dan pertumbuhan bisnis.
 

@@ -1,6 +1,6 @@
 # Background Jobs & Scheduler
 
-Dokumen ini mendefinisikan **Background Jobs & Scheduler Architecture** untuk produk **Social Media Management** — strategi eksekusi pekerjaan asinkron yang mencakup scheduling konten, retry mekanisme, sinkronisasi engagement, sinkronisasi analytics, dan penanganan job yang gagal.
+Dokumen ini mendefinisikan **Background Jobs & Scheduler Architecture** untuk produk **Postific** — strategi eksekusi pekerjaan asinkron yang mencakup scheduling konten, retry mekanisme, sinkronisasi engagement, sinkronisasi analytics, dan penanganan job yang gagal.
 
 Dokumen ini menjadi acuan desain background job dan tidak mencakup implementasi kode. Detail implementasi (library, konfigurasi cron expression) didokumentasikan di Engineering Planning (M6).
 
@@ -215,6 +215,37 @@ pending → running → done
 
 ---
 
+## JOB-07 — Resolve Scheduled Post Outcome
+
+**Trigger:** `SchedulePostsUseCase` meng-enqueue job ini saat sebuah post
+terjadwal (`Scheduled`) sudah melewati `scheduledAt` (due) — bukan dibuat
+langsung oleh Railway Cron, melainkan oleh domain publishing sendiri;
+Railway Cron memicu `/api/jobs/run` yang mengklaim & mengeksekusi job
+generik apa pun yang sudah due, termasuk tipe ini (T-027, nomor JOB-07
+dipakai karena JOB-05/JOB-06 sudah direservasi ADR-093 untuk Import Posts,
+belum diimplementasikan saat entry ini ditulis).
+
+**Tipe:** `publishing.scheduled_post.resolve_outcome`
+
+**Payload:**
+```
+{
+  "outstandPostId": "string"
+}
+```
+
+**Handler:** `ResolveScheduledPostOutcomeJobHandler` memanggil
+`OutstandAdapter.fetchPostOutcome(outstandPostId, expectedOutstandAccountIds)`
+(ADR-108) lalu reuse `OutstandWebhookProcessor.resolvePostOutcome` — method
+yang sama dipakai JOB-01/webhook T-026 — untuk resolve status per target
+(`PublishingPostTarget`) dan mengagregasi status level-post
+(`PublishingPost.status` → `Published`/`Failed`, ADR-109).
+
+**Retry:** Mengikuti retry generik job runner (lihat § Retry Strategy di
+bawah — 5m/15m/60m), bukan retry khusus terpisah.
+
+---
+
 # Retry Strategy
 
 ## Exponential Backoff
@@ -227,7 +258,10 @@ Retry delay dihitung berdasarkan jumlah `attempts`:
 | 2 | 15 menit |
 | 3 | 60 menit |
 
-Formula: `delay = base_delay * 2^(attempts - 1)` dengan `base_delay = 5 menit`.
+Delay dari tabel eksplisit (lookup, bukan formula) — tidak mengikuti rasio
+pangkat dua yang konsisten (5→15 adalah ×3, 15→60 adalah ×4). Diimplementasikan
+sebagai array `RETRY_DELAY_MINUTES = [5, 15, 60]` di
+`apps/web/src/lib/jobs/backoff.ts` (T-027.3, KI-062).
 
 ## Dead Letter
 

@@ -6,8 +6,8 @@ import type {
   ConnectedAccountId,
   PostId,
   SocialPlatform,
-} from "@social/shared";
-import { ContentFormat, ContentStatus } from "@social/shared";
+} from "@postific/shared";
+import { ContentFormat, ContentStatus } from "@postific/shared";
 
 import type { PostMetricsRecord } from "@/domains/analytics";
 import {
@@ -103,6 +103,12 @@ export const CONTENT_STATUS_DOT_CLASSNAME: Record<ContentStatus, string> = {
   [ContentStatus.Scheduled]: "bg-foreground",
   [ContentStatus.Published]: "bg-primary",
   [ContentStatus.Failed]: "bg-destructive",
+  // LOCKED PATTERN (T-090.5, ADR-093, 2026-10-08, King Rezi confirmed) — neutral,
+  // reuse treatment Draft (lihat `CONTENT_STATUS_BADGE_VARIANT` di
+  // `components/draft-editor/status-badge.ts`). `listCalendarPosts` TIDAK LAGI
+  // meng-exclude `Imported` dari query default Calendar (filter dilonggarkan
+  // setelah rancangan dikunci) — dot ini memang tampil by design sekarang.
+  [ContentStatus.Imported]: "bg-muted-foreground",
 };
 
 /** Senin di index 0 — minggu mulai Senin (sama seperti `getWeekRange`). */

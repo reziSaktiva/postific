@@ -1,12 +1,19 @@
 import type { VariantProps } from "class-variance-authority";
 
-import { ContentStatus } from "@social/shared";
+import { ContentStatus } from "@postific/shared";
 
 import type { badgeVariants } from "@/components/ui/badge";
 
 type BadgeVariant = NonNullable<VariantProps<typeof badgeVariants>["variant"]>;
 
-/** Status → label mapping (components/status-chips.html, Claude Design). */
+/**
+ * Status → label mapping (components/status-chips.html, Claude Design).
+ *
+ * `[ContentStatus.Imported]` (T-090.5, ADR-093) — LOCKED PATTERN dikunci di
+ * Claude Design 2026-10-08 (King Rezi confirmed): label "Imported", badge
+ * neutral/gray — reuse token yang sama dengan `Draft`, BUKAN hue baru (lihat
+ * `CONTENT_STATUS_BADGE_VARIANT` di bawah).
+ */
 export const CONTENT_STATUS_LABEL: Record<ContentStatus, string> = {
   [ContentStatus.Draft]: "Draft",
   [ContentStatus.InReview]: "In Review",
@@ -14,6 +21,7 @@ export const CONTENT_STATUS_LABEL: Record<ContentStatus, string> = {
   [ContentStatus.Scheduled]: "Scheduled",
   [ContentStatus.Published]: "Published",
   [ContentStatus.Failed]: "Failed",
+  [ContentStatus.Imported]: "Imported",
 };
 
 /**
@@ -33,4 +41,13 @@ export const CONTENT_STATUS_BADGE_VARIANT: Record<ContentStatus, BadgeVariant> =
     [ContentStatus.Scheduled]: "warning",
     [ContentStatus.Published]: "success",
     [ContentStatus.Failed]: "destructive",
+    // T-090.5, ADR-093 — LOCKED PATTERN: `Imported` reuse variant `outline`
+    // yang sama dengan `Draft` (neutral/gray token), bukan hue baru. Catatan
+    // Claude Design (`components/status-chips.html`) menyebut "secondary"
+    // sebagai padanan kode, tapi `Draft` di baseline ini sudah `outline`
+    // (bukan `secondary`) — `outline` dipilih di sini supaya benar-benar
+    // "share token dengan Draft" sesuai intent desain, bukan `secondary`
+    // literal. Dilaporkan ke King Rezi sebagai penyesuaian kecil, bukan
+    // deviasi pola yang perlu dikunci ulang.
+    [ContentStatus.Imported]: "outline",
   };

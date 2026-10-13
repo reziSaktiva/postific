@@ -10,7 +10,7 @@ import {
 } from "react-icons/fa6";
 import type { IconType } from "react-icons";
 
-import { SocialPlatform } from "@social/shared";
+import { SocialPlatform } from "@postific/shared";
 
 /**
  * Mapping platform -> ikon brand (react-icons/fa6) + warna brand asli.

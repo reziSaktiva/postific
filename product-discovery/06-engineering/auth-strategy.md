@@ -1,6 +1,6 @@
 # Authentication Strategy
 
-Dokumen ini mendefinisikan **konfigurasi implementasi autentikasi** untuk produk Social Media Management: setup Better Auth, provider, struktur sesi, konfigurasi cookie, integrasi Supabase JWT untuk Realtime, dan konfigurasi per environment.
+Dokumen ini mendefinisikan **konfigurasi implementasi autentikasi** untuk produk Postific: setup Better Auth, provider, struktur sesi, konfigurasi cookie, integrasi Supabase JWT untuk Realtime, dan konfigurasi per environment.
 
 Dokumen ini adalah implementasi konkret dari **Auth Architecture** (`../05-architecture/auth-architecture.md`, ADR-024). Keputusan desain keamanan (RBAC di Application Service, Middleware workspace resolution, RLS defense-in-depth) sudah ditetapkan di sana dan **tidak diputuskan ulang** di sini — dokumen ini fokus pada detail konfigurasi teknis.
 

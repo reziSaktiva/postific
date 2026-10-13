@@ -6,7 +6,7 @@ Tambah Token `--success`/`--warning` ke Stone Theme shadcn (Amandemen T-095.5)
 
 ### Status
 
-Accepted
+Accepted — Amended by ADR-111 (2026-09-23)
 
 ### Date
 

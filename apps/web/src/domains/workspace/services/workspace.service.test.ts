@@ -8,12 +8,14 @@ import {
   MemberRole,
   MemberStatus,
   SocialPlatform,
-} from "@social/shared";
-import type { IOutstandAdapter, MemberId, UserId } from "@social/shared";
+} from "@postific/shared";
+import type { IOutstandAdapter, MemberId, UserId } from "@postific/shared";
 import { describe, expect, it, vi } from "vitest";
 import {
+  AlreadyConnectedError,
   AuthorizationError,
   ConflictError,
+  ExternalServiceError,
   NotFoundError,
   ValidationError,
 } from "@/lib/utils/errors";
@@ -24,18 +26,26 @@ import type {
   WorkspaceMemberRecord,
   WorkspaceRecord,
 } from "../repositories/workspace.repository";
-import { WorkspaceService } from "./workspace.service";
+import {
+  hashInviteVerificationCode,
+  WorkspaceService,
+} from "./workspace.service";
 
 const USER_ID = asUserId("user-1");
 const WORKSPACE_ID = asWorkspaceId("workspace-1");
 
 function createFakeRepository(
   overrides: Partial<IWorkspaceRepository> = {},
+  options?: { invitations?: WorkspaceInvitationRecord[] },
 ): IWorkspaceRepository {
   const members = new Map<string, WorkspaceMemberRecord>();
   const invitations = new Map<string, WorkspaceInvitationRecord>();
+  for (const invitation of options?.invitations ?? []) {
+    invitations.set(invitation.token, invitation);
+  }
+  const holder: { repo?: IWorkspaceRepository } = {};
 
-  return {
+  const repo: IWorkspaceRepository = {
     createWithOwner: async ({ name, slug }): Promise<WorkspaceRecord> => ({
       id: asWorkspaceId("workspace-1"),
       name,
@@ -55,13 +65,18 @@ function createFakeRepository(
     clearPendingOwnerTransfer: async () => undefined,
     acceptOwnershipTransfer: async () => undefined,
     markAccountReconnectRequired: async () => null,
+    findAccountOwnerByOutstandAccountId: async () => null,
+    listActiveConnectedAccountsForSync: async () => [],
     disconnectAccount: async () => undefined,
     findConnectedAccountById: async () => null,
+    findConnectedAccountByOutstandId: async () => null,
+    isConnectedAccountWithinWindow: async () => false,
     createConnectedAccount: async ({
       workspaceId,
       platform,
       outstandAccountId,
       handle,
+      avatarUrl,
     }): Promise<ConnectedAccountRecord> => ({
       id: asConnectedAccountId(`conn-created-${outstandAccountId}`),
       workspaceId,
@@ -71,12 +86,19 @@ function createFakeRepository(
       status: "active",
       reconnectRequired: false,
       connectedAt: new Date(),
+      // KI-076/ADR-120 — thread through so `createConnectedAccounts`'
+      // default wrapper below (which delegates to this method) doesn't
+      // silently drop avatarUrl for tests that don't override either.
+      avatarUrl: avatarUrl ?? null,
+      lastImportedUntil: null,
+      lastImportRequestedAt: null,
     }),
     reconnectAccount: async ({
       workspaceId,
       connectedAccountId,
       outstandAccountId,
       handle,
+      avatarUrl,
     }): Promise<ConnectedAccountRecord> => ({
       id: connectedAccountId,
       workspaceId,
@@ -86,6 +108,9 @@ function createFakeRepository(
       status: "active",
       reconnectRequired: false,
       connectedAt: new Date(),
+      avatarUrl: avatarUrl ?? null,
+      lastImportedUntil: null,
+      lastImportRequestedAt: null,
     }),
     renameWorkspace: async (workspaceId, name) => ({
       id: workspaceId,
@@ -121,11 +146,48 @@ function createFakeRepository(
         status: InvitationStatus.Pending,
         invitedByUserId: input.invitedByUserId,
         expiresAt: input.expiresAt,
+        verificationCodeHash: null,
+        verificationCodeExpiresAt: null,
+        verificationAttempts: 0,
+        emailVerifiedAt: null,
       };
       invitations.set(invitation.token, invitation);
       return invitation;
     },
     findInvitationByToken: async (token) => invitations.get(token) ?? null,
+    setInvitationVerificationCode: async (token, { codeHash, expiresAt }) => {
+      const invitation = invitations.get(token);
+      if (!invitation || invitation.status !== InvitationStatus.Pending) {
+        throw new ConflictError("Undangan ini sudah tidak berlaku.");
+      }
+      invitations.set(token, {
+        ...invitation,
+        verificationCodeHash: codeHash,
+        verificationCodeExpiresAt: expiresAt,
+        verificationAttempts: 0,
+      });
+    },
+    markInvitationEmailVerified: async (token) => {
+      const invitation = invitations.get(token);
+      if (!invitation || invitation.status !== InvitationStatus.Pending) {
+        throw new ConflictError("Undangan ini sudah tidak berlaku.");
+      }
+      invitations.set(token, {
+        ...invitation,
+        emailVerifiedAt: new Date(),
+        verificationCodeHash: null,
+        verificationCodeExpiresAt: null,
+      });
+    },
+    incrementInvitationVerificationAttempts: async (token) => {
+      const invitation = invitations.get(token);
+      if (!invitation || invitation.status !== InvitationStatus.Pending) {
+        throw new ConflictError("Undangan ini sudah tidak berlaku.");
+      }
+      const verificationAttempts = invitation.verificationAttempts + 1;
+      invitations.set(token, { ...invitation, verificationAttempts });
+      return verificationAttempts;
+    },
     listPendingInvitations: async (workspaceId) =>
       [...invitations.values()].filter(
         (invitation) =>
@@ -133,6 +195,55 @@ function createFakeRepository(
           invitation.status === InvitationStatus.Pending &&
           invitation.expiresAt.getTime() > Date.now(),
       ),
+    findInvitationByWorkspaceEmail: async (workspaceId, email) => {
+      for (const invitation of invitations.values()) {
+        if (
+          invitation.workspaceId === workspaceId &&
+          invitation.email === email
+        ) {
+          return invitation;
+        }
+      }
+      return null;
+    },
+    reissueInvitation: async ({
+      workspaceId,
+      invitationId,
+      actingUserId,
+      email,
+      role,
+      token,
+      expiresAt,
+    }) => {
+      const existing = [...invitations.values()].find(
+        (invitation) =>
+          invitation.id === invitationId &&
+          invitation.workspaceId === workspaceId,
+      );
+      const activePending =
+        existing?.status === InvitationStatus.Pending &&
+        existing.expiresAt.getTime() > Date.now();
+      if (!existing || activePending) {
+        throw new ConflictError(
+          `Undangan untuk "${email}" di workspace ini sudah ada.`,
+        );
+      }
+      invitations.delete(existing.token);
+      const reissued: WorkspaceInvitationRecord = {
+        ...existing,
+        role,
+        token,
+        status: InvitationStatus.Pending,
+        invitedByUserId: actingUserId,
+        expiresAt,
+        verificationCodeHash: null,
+        verificationCodeExpiresAt: null,
+        verificationAttempts: 0,
+        emailVerifiedAt: null,
+      };
+      invitations.set(token, reissued);
+      return reissued;
+    },
     revokeInvitation: async (_workspaceId, invitationId) => {
       const entry = [...invitations.entries()].find(
         ([, invitation]) => invitation.id === invitationId,
@@ -183,8 +294,37 @@ function createFakeRepository(
       members.set(newMember.id, newMember);
       return newMember;
     },
+    updateImportWatermark: async () => undefined,
     ...overrides,
+    createConnectedAccounts: async (input) => {
+      const current = holder.repo;
+      if (!current) {
+        throw new Error("Fake repository belum siap.");
+      }
+      const created: ConnectedAccountRecord[] = [];
+      for (const account of input.accounts) {
+        try {
+          created.push(
+            await current.createConnectedAccount({
+              workspaceId: input.workspaceId,
+              actingUserId: input.actingUserId,
+              platform: account.platform,
+              outstandAccountId: account.outstandAccountId,
+              handle: account.handle,
+              avatarUrl: account.avatarUrl,
+            }),
+          );
+        } catch (error) {
+          if (error instanceof ConflictError) continue;
+          throw error;
+        }
+      }
+      return created;
+    },
   };
+
+  holder.repo = repo;
+  return repo;
 }
 
 /** Helper — daftarkan member fake langsung ke Map internal via seed override. */
@@ -379,6 +519,8 @@ describe("WorkspaceService.listConnectedAccounts", () => {
         status: "active",
         reconnectRequired: false,
         connectedAt: new Date("2026-01-01T00:00:00Z"),
+        lastImportedUntil: null,
+        lastImportRequestedAt: null,
       },
     ];
     const service = new WorkspaceService(
@@ -390,6 +532,46 @@ describe("WorkspaceService.listConnectedAccounts", () => {
     await expect(
       service.listConnectedAccounts(asWorkspaceId("workspace-1"), USER_ID),
     ).resolves.toBe(accounts);
+  });
+});
+
+describe("WorkspaceService.getConnectedAccountById", () => {
+  it("delegates to the repository (code review Ridwan, T-090 — dipakai syncNowAction supaya entry point tidak akses repository langsung)", async () => {
+    const account: ConnectedAccountRecord = {
+      id: asConnectedAccountId("conn-1"),
+      workspaceId: WORKSPACE_ID,
+      platform: SocialPlatform.Instagram,
+      outstandAccountId: "mock-ig-001",
+      handle: "@insvire.demo",
+      status: "active",
+      reconnectRequired: false,
+      connectedAt: new Date("2026-01-01T00:00:00Z"),
+      lastImportedUntil: null,
+      lastImportRequestedAt: null,
+    };
+    const service = new WorkspaceService(
+      createFakeRepository({
+        findConnectedAccountById: async () => account,
+      }),
+    );
+
+    await expect(
+      service.getConnectedAccountById(WORKSPACE_ID, account.id, USER_ID),
+    ).resolves.toBe(account);
+  });
+
+  it("returns null when the repository finds no matching account", async () => {
+    const service = new WorkspaceService(
+      createFakeRepository({ findConnectedAccountById: async () => null }),
+    );
+
+    await expect(
+      service.getConnectedAccountById(
+        WORKSPACE_ID,
+        asConnectedAccountId("conn-missing"),
+        USER_ID,
+      ),
+    ).resolves.toBeNull();
   });
 });
 
@@ -718,19 +900,44 @@ describe("WorkspaceService.disconnectAccount", () => {
   });
 });
 
-/** Fake `IOutstandAdapter` minimal — hanya `connectAccount`/`exchangeConnectCode` dipakai `initiateConnectAccount`/`completeAccountConnection`, method lain sengaja tidak dipanggil di test ini (mock, bukan dipakai). */
+/** Fake `IOutstandAdapter` minimal — hanya `connectAccount`/`resolveConnectCallback`/`listPendingFacebookPages`/`confirmFacebookPagesConnection`/`listPinterestBoards` dipakai test-test terkait Connect Account/Facebook Pages/Pinterest boards di file ini, method lain sengaja tidak dipanggil (mock, bukan dipakai). */
 function fakeOutstandAdapter(
   overrides: Partial<IOutstandAdapter> = {},
 ): IOutstandAdapter {
   return {
     connectAccount: async () => ({
-      redirectUrl: "/api/integrations/outstand/callback?code=fake&state=fake",
+      redirectUrl:
+        "/api/integrations/outstand/callback?account_id=fake&username=fake&state=fake",
     }),
-    exchangeConnectCode: async () => ({
+    resolveConnectCallback: async () => ({
       outstandAccountId: "outstand-account-1",
       platform: SocialPlatform.Twitter,
       handle: "@fake",
       status: "active",
+    }),
+    listPendingFacebookPages: async () => ({
+      pages: [
+        { pageId: "fb-page-1", name: "Fake Page 1" },
+        { pageId: "fb-page-2", name: "Fake Page 2" },
+      ],
+    }),
+    confirmFacebookPagesConnection: async () => ({
+      accounts: [
+        {
+          outstandAccountId: "fb-page-1",
+          platform: SocialPlatform.Facebook,
+          handle: "Fake Page 1",
+          status: "active",
+        },
+      ],
+    }),
+    listPinterestBoards: async () => [
+      { id: "fake-board-1", name: "Fake Board 1" },
+    ],
+    uploadMediaWorkingCopy: async () => ({
+      outstandMediaId: "unused",
+      outstandMediaUrl: "https://fake.outstand.local/media/unused",
+      expiresAt: new Date(),
     }),
     schedulePost: async () => ({ outstandPostId: "unused" }),
     publishNow: async () => ({ outstandPostId: "unused" }),
@@ -751,6 +958,14 @@ function fakeOutstandAdapter(
       totalReach: 0,
       totalEngagements: 0,
       avgEngagementRate: 0,
+    }),
+    fetchComments: async () => ({ comments: [], nextCursor: null }),
+    replyToComment: async () => ({ outstandReplyId: "fake-reply" }),
+    importPosts: async () => ({ importJobId: "fake-import-job" }),
+    fetchImportJobStatus: async () => ({
+      status: "completed" as const,
+      posts: [],
+      error: null,
     }),
     ...overrides,
   };
@@ -787,6 +1002,8 @@ describe("WorkspaceService.initiateConnectAccount", () => {
       status: "active",
       reconnectRequired: true,
       connectedAt: new Date("2026-01-01T00:00:00.000Z"),
+      lastImportedUntil: null,
+      lastImportRequestedAt: null,
       ...overrides,
     };
   }
@@ -960,6 +1177,8 @@ describe("WorkspaceService.completeAccountConnection", () => {
       status: "active",
       reconnectRequired: true,
       connectedAt: new Date("2026-01-01T00:00:00.000Z"),
+      lastImportedUntil: null,
+      lastImportRequestedAt: null,
     };
   }
 
@@ -980,6 +1199,8 @@ describe("WorkspaceService.completeAccountConnection", () => {
         status: "active",
         reconnectRequired: false,
         connectedAt: new Date(),
+        lastImportedUntil: null,
+        lastImportRequestedAt: null,
       }),
     );
     const reconnectAccount = vi.fn();
@@ -997,7 +1218,8 @@ describe("WorkspaceService.completeAccountConnection", () => {
     const result = await service.completeAccountConnection({
       workspaceId: WORKSPACE_ID,
       actorId: OWNER_USER,
-      code: "fake-code",
+      accountId: "fake-account-id",
+      username: "fake-username",
       state: "fake-state",
     });
 
@@ -1010,6 +1232,134 @@ describe("WorkspaceService.completeAccountConnection", () => {
       actingUserId: OWNER_USER,
     });
     expect(reconnectAccount).not.toHaveBeenCalled();
+  });
+
+  it("KI-079: recovers (returns existing row) when the conflicting account was just created — genuine double-submit", async () => {
+    const conflictingRow: ConnectedAccountRecord = {
+      ...existingAccount(),
+      id: asConnectedAccountId("cac-conn-recent"),
+      outstandAccountId: "outstand-account-1",
+      handle: "@fake",
+      status: "active",
+      reconnectRequired: false,
+      connectedAt: new Date(Date.now() - 2_000),
+    };
+    const createConnectedAccount = vi.fn(async () => {
+      throw new ConflictError("Akun ini sudah terhubung di workspace ini.");
+    });
+    const findConnectedAccountByOutstandId = vi.fn(async () => conflictingRow);
+    // Code review PR #139 (Opsi B) — window check dihitung di sisi
+    // repository (Postgres `now()`), bukan lagi dari `connectedAt` yang
+    // dibandingkan `Date.now()` di service. Fake ini mensimulasikan baris
+    // yang MASIH di dalam window (`true`), simulasi request susulan yang
+    // aman dari double-submit genuine.
+    const isConnectedAccountWithinWindow = vi.fn(async () => true);
+    const service = new WorkspaceService(
+      createFakeRepository({
+        ...seedMembers(baseSeed()),
+        createConnectedAccount,
+        findConnectedAccountByOutstandId,
+        isConnectedAccountWithinWindow,
+      }),
+      undefined,
+      undefined,
+      fakeOutstandAdapter(),
+    );
+
+    const result = await service.completeAccountConnection({
+      workspaceId: WORKSPACE_ID,
+      actorId: OWNER_USER,
+      accountId: "fake-account-id",
+      username: "fake-username",
+      state: "fake-state",
+    });
+
+    expect(result).toEqual(conflictingRow);
+    expect(findConnectedAccountByOutstandId).toHaveBeenCalledWith(
+      WORKSPACE_ID,
+      "outstand-account-1",
+      OWNER_USER,
+    );
+    expect(isConnectedAccountWithinWindow).toHaveBeenCalledWith(
+      conflictingRow.id,
+      expect.any(Number),
+      OWNER_USER,
+    );
+  });
+
+  it("KI-079: throws AlreadyConnectedError when the conflicting account is not recent — separate connect attempt", async () => {
+    const conflictingRow: ConnectedAccountRecord = {
+      ...existingAccount(),
+      id: asConnectedAccountId("cac-conn-old"),
+      outstandAccountId: "outstand-account-1",
+      handle: "@fake",
+      status: "active",
+      reconnectRequired: false,
+      connectedAt: new Date("2026-01-01T00:00:00.000Z"),
+    };
+    const createConnectedAccount = vi.fn(async () => {
+      throw new ConflictError("Akun ini sudah terhubung di workspace ini.");
+    });
+    const service = new WorkspaceService(
+      createFakeRepository({
+        ...seedMembers(baseSeed()),
+        createConnectedAccount,
+        findConnectedAccountByOutstandId: async () => conflictingRow,
+        // Baris di luar window (code review PR #139 — Opsi B: keputusan ini
+        // sekarang datang dari repository, bukan dihitung dari `connectedAt`
+        // di sini).
+        isConnectedAccountWithinWindow: async () => false,
+      }),
+      undefined,
+      undefined,
+      fakeOutstandAdapter(),
+    );
+
+    await expect(
+      service.completeAccountConnection({
+        workspaceId: WORKSPACE_ID,
+        actorId: OWNER_USER,
+        accountId: "fake-account-id",
+        username: "fake-username",
+        state: "fake-state",
+      }),
+    ).rejects.toBeInstanceOf(AlreadyConnectedError);
+  });
+
+  it("KI-079 (code review PR #139): throws AlreadyConnectedError when the conflicting row is within window but no longer active (disconnected/reconnect-required)", async () => {
+    const conflictingRow: ConnectedAccountRecord = {
+      ...existingAccount(),
+      id: asConnectedAccountId("cac-conn-disconnected"),
+      outstandAccountId: "outstand-account-1",
+      handle: "@fake",
+      status: "disconnected",
+      reconnectRequired: false,
+      connectedAt: new Date(Date.now() - 2_000),
+    };
+    const createConnectedAccount = vi.fn(async () => {
+      throw new ConflictError("Akun ini sudah terhubung di workspace ini.");
+    });
+    const service = new WorkspaceService(
+      createFakeRepository({
+        ...seedMembers(baseSeed()),
+        createConnectedAccount,
+        findConnectedAccountByOutstandId: async () => conflictingRow,
+        isConnectedAccountWithinWindow: async () => true,
+      }),
+      undefined,
+      undefined,
+      fakeOutstandAdapter(),
+    );
+
+    await expect(
+      service.completeAccountConnection({
+        workspaceId: WORKSPACE_ID,
+        actorId: OWNER_USER,
+        accountId: "fake-account-id",
+        username: "fake-username",
+        state: "fake-state",
+      }),
+    ).rejects.toBeInstanceOf(AlreadyConnectedError);
   });
 
   it("updates the existing ConnectedAccount (preserving connectedAt) when redirectAccountId is present", async () => {
@@ -1036,7 +1386,8 @@ describe("WorkspaceService.completeAccountConnection", () => {
     const result = await service.completeAccountConnection({
       workspaceId: WORKSPACE_ID,
       actorId: OWNER_USER,
-      code: "fake-code",
+      accountId: "fake-account-id",
+      username: "fake-username",
       state: "fake-state",
       redirectAccountId: CONNECTED_ACCOUNT_ID,
     });
@@ -1070,7 +1421,8 @@ describe("WorkspaceService.completeAccountConnection", () => {
       service.completeAccountConnection({
         workspaceId: WORKSPACE_ID,
         actorId: OWNER_USER,
-        code: "fake-code",
+        accountId: "fake-account-id",
+        username: "fake-username",
         state: "fake-state",
         redirectAccountId: CONNECTED_ACCOUNT_ID,
       }),
@@ -1095,7 +1447,7 @@ describe("WorkspaceService.completeAccountConnection", () => {
       undefined,
       undefined,
       fakeOutstandAdapter({
-        exchangeConnectCode: async () => ({
+        resolveConnectCallback: async () => ({
           outstandAccountId: "outstand-account-1",
           platform: SocialPlatform.Instagram,
           handle: "@fake",
@@ -1108,7 +1460,8 @@ describe("WorkspaceService.completeAccountConnection", () => {
       service.completeAccountConnection({
         workspaceId: WORKSPACE_ID,
         actorId: OWNER_USER,
-        code: "fake-code",
+        accountId: "fake-account-id",
+        username: "fake-username",
         state: "fake-state",
         redirectAccountId: CONNECTED_ACCOUNT_ID,
       }),
@@ -1128,8 +1481,657 @@ describe("WorkspaceService.completeAccountConnection", () => {
       service.completeAccountConnection({
         workspaceId: WORKSPACE_ID,
         actorId: CREATOR_USER,
-        code: "fake-code",
+        accountId: "fake-account-id",
+        username: "fake-username",
         state: "fake-state",
+      }),
+    ).rejects.toThrow(AuthorizationError);
+  });
+
+  // KI-076/ADR-120 — `resolveConnectCallback().avatarUrl` harus mengalir
+  // sampai `IWorkspaceRepository.createConnectedAccount`/`reconnectAccount`,
+  // bukan cuma ditambahkan ke tipe tanpa pernah benar-benar diisi.
+  it("forwards avatarUrl from resolveConnectCallback to createConnectedAccount (KI-076)", async () => {
+    const createConnectedAccount = vi.fn(
+      async (input: {
+        workspaceId: typeof WORKSPACE_ID;
+        platform: (typeof SocialPlatform)["Twitter"];
+        outstandAccountId: string;
+        handle: string;
+        avatarUrl?: string | null;
+        actingUserId: typeof OWNER_USER;
+      }): Promise<ConnectedAccountRecord> => ({
+        id: asConnectedAccountId("cac-conn-new"),
+        workspaceId: input.workspaceId,
+        platform: input.platform,
+        outstandAccountId: input.outstandAccountId,
+        handle: input.handle,
+        status: "active",
+        reconnectRequired: false,
+        connectedAt: new Date(),
+        avatarUrl: input.avatarUrl ?? null,
+        lastImportedUntil: null,
+        lastImportRequestedAt: null,
+      }),
+    );
+    const service = new WorkspaceService(
+      createFakeRepository({
+        ...seedMembers(baseSeed()),
+        createConnectedAccount,
+      }),
+      undefined,
+      undefined,
+      fakeOutstandAdapter({
+        resolveConnectCallback: async () => ({
+          outstandAccountId: "outstand-account-1",
+          platform: SocialPlatform.Twitter,
+          handle: "@fake",
+          status: "active",
+          avatarUrl: "https://cdn.example.com/ig-avatar.jpg",
+        }),
+      }),
+    );
+
+    await service.completeAccountConnection({
+      workspaceId: WORKSPACE_ID,
+      actorId: OWNER_USER,
+      accountId: "fake-account-id",
+      username: "fake-username",
+      state: "fake-state",
+    });
+
+    expect(createConnectedAccount).toHaveBeenCalledWith(
+      expect.objectContaining({
+        avatarUrl: "https://cdn.example.com/ig-avatar.jpg",
+      }),
+    );
+  });
+
+  it("forwards avatarUrl from resolveConnectCallback to reconnectAccount (KI-076)", async () => {
+    const reconnectAccount = vi.fn(async () => ({
+      ...existingAccount(),
+      outstandAccountId: "outstand-account-1",
+      handle: "@fake",
+      status: "active",
+      reconnectRequired: false,
+      avatarUrl: "https://cdn.example.com/ig-avatar.jpg",
+    }));
+    const service = new WorkspaceService(
+      createFakeRepository({
+        ...seedMembers(baseSeed()),
+        findConnectedAccountById: async () => existingAccount(),
+        reconnectAccount,
+      }),
+      undefined,
+      undefined,
+      fakeOutstandAdapter({
+        resolveConnectCallback: async () => ({
+          outstandAccountId: "outstand-account-1",
+          platform: SocialPlatform.Twitter,
+          handle: "@fake",
+          status: "active",
+          avatarUrl: "https://cdn.example.com/ig-avatar.jpg",
+        }),
+      }),
+    );
+
+    await service.completeAccountConnection({
+      workspaceId: WORKSPACE_ID,
+      actorId: OWNER_USER,
+      accountId: "fake-account-id",
+      username: "fake-username",
+      state: "fake-state",
+      redirectAccountId: CONNECTED_ACCOUNT_ID,
+    });
+
+    expect(reconnectAccount).toHaveBeenCalledWith(
+      expect.objectContaining({
+        avatarUrl: "https://cdn.example.com/ig-avatar.jpg",
+      }),
+    );
+  });
+
+  // Temuan #1 (review Ridwan Architecture Reviewer, T-051) — seeding JOB-03
+  // pertama lewat `EngagementSyncSeederPort` (parameter ke-5).
+  it("calls engagementSyncSeeder.onAccountConnected after creating a new ConnectedAccount", async () => {
+    const onAccountConnected = vi.fn(async () => undefined);
+    const service = new WorkspaceService(
+      createFakeRepository({
+        ...seedMembers(baseSeed()),
+        createConnectedAccount: async (input) => ({
+          id: asConnectedAccountId("cac-conn-new"),
+          workspaceId: input.workspaceId,
+          platform: input.platform,
+          outstandAccountId: input.outstandAccountId,
+          handle: input.handle,
+          status: "active",
+          reconnectRequired: false,
+          connectedAt: new Date(),
+          lastImportedUntil: null,
+          lastImportRequestedAt: null,
+        }),
+      }),
+      undefined,
+      undefined,
+      fakeOutstandAdapter(),
+      { onAccountConnected },
+    );
+
+    await service.completeAccountConnection({
+      workspaceId: WORKSPACE_ID,
+      actorId: OWNER_USER,
+      accountId: "fake-account-id",
+      username: "fake-username",
+      state: "fake-state",
+    });
+
+    expect(onAccountConnected).toHaveBeenCalledWith({
+      workspaceId: WORKSPACE_ID,
+      connectedAccountId: asConnectedAccountId("cac-conn-new"),
+      outstandAccountId: "outstand-account-1",
+    });
+  });
+
+  it("calls engagementSyncSeeder.onAccountConnected after reconnecting an existing ConnectedAccount", async () => {
+    const onAccountConnected = vi.fn(async () => undefined);
+    const service = new WorkspaceService(
+      createFakeRepository({
+        ...seedMembers(baseSeed()),
+        findConnectedAccountById: async () => existingAccount(),
+        reconnectAccount: async () => ({
+          ...existingAccount(),
+          outstandAccountId: "outstand-account-1",
+          handle: "@fake",
+          status: "active",
+          reconnectRequired: false,
+        }),
+      }),
+      undefined,
+      undefined,
+      fakeOutstandAdapter(),
+      { onAccountConnected },
+    );
+
+    await service.completeAccountConnection({
+      workspaceId: WORKSPACE_ID,
+      actorId: OWNER_USER,
+      accountId: "fake-account-id",
+      username: "fake-username",
+      state: "fake-state",
+      redirectAccountId: CONNECTED_ACCOUNT_ID,
+    });
+
+    expect(onAccountConnected).toHaveBeenCalledWith({
+      workspaceId: WORKSPACE_ID,
+      connectedAccountId: CONNECTED_ACCOUNT_ID,
+      outstandAccountId: "outstand-account-1",
+    });
+  });
+
+  it("does not throw when engagementSyncSeeder is not supplied (optional port)", async () => {
+    const service = new WorkspaceService(
+      createFakeRepository({
+        ...seedMembers(baseSeed()),
+        createConnectedAccount: async (input) => ({
+          id: asConnectedAccountId("cac-conn-new"),
+          workspaceId: input.workspaceId,
+          platform: input.platform,
+          outstandAccountId: input.outstandAccountId,
+          handle: input.handle,
+          status: "active",
+          reconnectRequired: false,
+          connectedAt: new Date(),
+          lastImportedUntil: null,
+          lastImportRequestedAt: null,
+        }),
+      }),
+      undefined,
+      undefined,
+      fakeOutstandAdapter(),
+    );
+
+    await expect(
+      service.completeAccountConnection({
+        workspaceId: WORKSPACE_ID,
+        actorId: OWNER_USER,
+        accountId: "fake-account-id",
+        username: "fake-username",
+        state: "fake-state",
+      }),
+    ).resolves.toBeDefined();
+  });
+});
+
+describe("WorkspaceService.listFacebookPendingPages (T-025.4, ADR-115)", () => {
+  const OWNER_USER = asUserId("lfp-owner-user");
+  const CREATOR_USER = asUserId("lfp-creator-user");
+
+  const OWNER_MEMBER_ID = asMemberId("lfp-member-owner");
+  const CREATOR_MEMBER_ID = asMemberId("lfp-member-creator");
+
+  function baseSeed(): WorkspaceMemberRecord[] {
+    return [
+      member(OWNER_USER, OWNER_MEMBER_ID, MemberRole.Owner),
+      member(CREATOR_USER, CREATOR_MEMBER_ID, MemberRole.Creator),
+    ];
+  }
+
+  it("delegates to IOutstandAdapter.listPendingFacebookPages and returns its pages", async () => {
+    const listPendingFacebookPages = vi.fn(async () => ({
+      pages: [{ pageId: "fb-page-1", name: "Kopi Selasar" }],
+    }));
+    const service = new WorkspaceService(
+      createFakeRepository(seedMembers(baseSeed())),
+      undefined,
+      undefined,
+      fakeOutstandAdapter({ listPendingFacebookPages }),
+    );
+
+    const pages = await service.listFacebookPendingPages({
+      workspaceId: WORKSPACE_ID,
+      actorId: OWNER_USER,
+      sessionToken: "session-token-1",
+    });
+
+    expect(listPendingFacebookPages).toHaveBeenCalledWith({
+      sessionToken: "session-token-1",
+    });
+    expect(pages).toEqual([{ pageId: "fb-page-1", name: "Kopi Selasar" }]);
+  });
+
+  it("rejects Creator as actor", async () => {
+    const service = new WorkspaceService(
+      createFakeRepository(seedMembers(baseSeed())),
+      undefined,
+      undefined,
+      fakeOutstandAdapter(),
+    );
+
+    await expect(
+      service.listFacebookPendingPages({
+        workspaceId: WORKSPACE_ID,
+        actorId: CREATOR_USER,
+        sessionToken: "session-token-1",
+      }),
+    ).rejects.toThrow(AuthorizationError);
+  });
+});
+
+describe("WorkspaceService.listPinterestBoards (menutup KI-072, sisa scope ADR-114)", () => {
+  const OWNER_USER = asUserId("lpb-owner-user");
+  const OTHER_USER = asUserId("lpb-other-user");
+  const OWNER_MEMBER_ID = asMemberId("lpb-member-owner");
+  const PINTEREST_CONNECTED_ACCOUNT_ID = asConnectedAccountId("lpb-conn-pin-1");
+  const TWITTER_CONNECTED_ACCOUNT_ID = asConnectedAccountId("lpb-conn-tw-1");
+
+  function baseSeed(): WorkspaceMemberRecord[] {
+    return [member(OWNER_USER, OWNER_MEMBER_ID, MemberRole.Owner)];
+  }
+
+  function pinterestAccount(): ConnectedAccountRecord {
+    return {
+      id: PINTEREST_CONNECTED_ACCOUNT_ID,
+      workspaceId: WORKSPACE_ID,
+      platform: SocialPlatform.Pinterest,
+      outstandAccountId: "outstand-account-pinterest-1",
+      handle: "@dapurselasar",
+      status: "active",
+      reconnectRequired: false,
+      connectedAt: new Date("2026-01-01T00:00:00.000Z"),
+      lastImportedUntil: null,
+      lastImportRequestedAt: null,
+    };
+  }
+
+  function twitterAccount(): ConnectedAccountRecord {
+    return {
+      id: TWITTER_CONNECTED_ACCOUNT_ID,
+      workspaceId: WORKSPACE_ID,
+      platform: SocialPlatform.Twitter,
+      outstandAccountId: "outstand-account-twitter-1",
+      handle: "@selasar",
+      status: "active",
+      reconnectRequired: false,
+      connectedAt: new Date("2026-01-01T00:00:00.000Z"),
+      lastImportedUntil: null,
+      lastImportRequestedAt: null,
+    };
+  }
+
+  it("delegates to IOutstandAdapter.listPinterestBoards using the resolved outstandAccountId", async () => {
+    const listPinterestBoards = vi.fn(async () => [
+      { id: "board-1", name: "Resep & Minuman" },
+    ]);
+    const service = new WorkspaceService(
+      createFakeRepository({
+        ...seedMembers(baseSeed()),
+        listConnectedAccounts: async () => [
+          pinterestAccount(),
+          twitterAccount(),
+        ],
+      }),
+      undefined,
+      undefined,
+      fakeOutstandAdapter({ listPinterestBoards }),
+    );
+
+    const boards = await service.listPinterestBoards({
+      workspaceId: WORKSPACE_ID,
+      actorId: OWNER_USER,
+      connectedAccountId: PINTEREST_CONNECTED_ACCOUNT_ID,
+    });
+
+    expect(listPinterestBoards).toHaveBeenCalledWith(
+      "outstand-account-pinterest-1",
+    );
+    expect(boards).toEqual([{ id: "board-1", name: "Resep & Minuman" }]);
+  });
+
+  it("throws ConflictError when connectedAccountId does not belong to this workspace/user (anti-IDOR)", async () => {
+    const service = new WorkspaceService(
+      createFakeRepository({
+        ...seedMembers(baseSeed()),
+        listConnectedAccounts: async () => [pinterestAccount()],
+      }),
+      undefined,
+      undefined,
+      fakeOutstandAdapter(),
+    );
+
+    await expect(
+      service.listPinterestBoards({
+        workspaceId: WORKSPACE_ID,
+        actorId: OWNER_USER,
+        connectedAccountId: asConnectedAccountId("not-owned-account"),
+      }),
+    ).rejects.toThrow(ConflictError);
+  });
+
+  it("throws ValidationError when connectedAccountId is not a Pinterest account", async () => {
+    const service = new WorkspaceService(
+      createFakeRepository({
+        ...seedMembers(baseSeed()),
+        listConnectedAccounts: async () => [twitterAccount()],
+      }),
+      undefined,
+      undefined,
+      fakeOutstandAdapter(),
+    );
+
+    await expect(
+      service.listPinterestBoards({
+        workspaceId: WORKSPACE_ID,
+        actorId: OWNER_USER,
+        connectedAccountId: TWITTER_CONNECTED_ACCOUNT_ID,
+      }),
+    ).rejects.toThrow(ValidationError);
+  });
+
+  it("does not require Owner/Admin — any active member can list boards while composing a post", async () => {
+    const service = new WorkspaceService(
+      createFakeRepository({
+        ...seedMembers([
+          ...baseSeed(),
+          member(
+            OTHER_USER,
+            asMemberId("lpb-member-other"),
+            MemberRole.Creator,
+          ),
+        ]),
+        listConnectedAccounts: async () => [pinterestAccount()],
+      }),
+      undefined,
+      undefined,
+      fakeOutstandAdapter({
+        listPinterestBoards: async () => [{ id: "board-1", name: "Board" }],
+      }),
+    );
+
+    await expect(
+      service.listPinterestBoards({
+        workspaceId: WORKSPACE_ID,
+        actorId: OTHER_USER,
+        connectedAccountId: PINTEREST_CONNECTED_ACCOUNT_ID,
+      }),
+    ).resolves.toEqual([{ id: "board-1", name: "Board" }]);
+  });
+});
+
+describe("WorkspaceService.confirmFacebookPagesConnection (T-025.4, ADR-115)", () => {
+  const OWNER_USER = asUserId("cfp-owner-user");
+  const CREATOR_USER = asUserId("cfp-creator-user");
+
+  const OWNER_MEMBER_ID = asMemberId("cfp-member-owner");
+  const CREATOR_MEMBER_ID = asMemberId("cfp-member-creator");
+
+  function baseSeed(): WorkspaceMemberRecord[] {
+    return [
+      member(OWNER_USER, OWNER_MEMBER_ID, MemberRole.Owner),
+      member(CREATOR_USER, CREATOR_MEMBER_ID, MemberRole.Creator),
+    ];
+  }
+
+  function fakePage(outstandAccountId: string, handle: string) {
+    return {
+      outstandAccountId,
+      platform: SocialPlatform.Facebook,
+      handle,
+      status: "active" as const,
+    };
+  }
+
+  it("creates a ConnectedAccount per confirmed Page and seeds JOB-03 once per new Page", async () => {
+    const createConnectedAccount = vi.fn(async (input) => ({
+      id: asConnectedAccountId(`conn-${input.outstandAccountId}`),
+      workspaceId: input.workspaceId,
+      platform: input.platform,
+      outstandAccountId: input.outstandAccountId,
+      handle: input.handle,
+      status: "active" as const,
+      reconnectRequired: false,
+      connectedAt: new Date(),
+      lastImportedUntil: null,
+      lastImportRequestedAt: null,
+    }));
+    const onAccountConnected = vi.fn(async () => undefined);
+    const service = new WorkspaceService(
+      createFakeRepository({
+        ...seedMembers(baseSeed()),
+        createConnectedAccount,
+      }),
+      undefined,
+      undefined,
+      fakeOutstandAdapter({
+        confirmFacebookPagesConnection: async () => ({
+          accounts: [
+            fakePage("fb-page-1", "Kopi Selasar"),
+            fakePage("fb-page-2", "Roti Selasar"),
+          ],
+        }),
+      }),
+      { onAccountConnected },
+    );
+
+    const result = await service.confirmFacebookPagesConnection({
+      workspaceId: WORKSPACE_ID,
+      actorId: OWNER_USER,
+      sessionToken: "session-token-1",
+      selectedPageIds: ["fb-page-1", "fb-page-2"],
+    });
+
+    expect(result).toHaveLength(2);
+    expect(createConnectedAccount).toHaveBeenCalledTimes(2);
+    expect(onAccountConnected).toHaveBeenCalledTimes(2);
+    expect(onAccountConnected).toHaveBeenCalledWith({
+      workspaceId: WORKSPACE_ID,
+      connectedAccountId: asConnectedAccountId("conn-fb-page-1"),
+      outstandAccountId: "fb-page-1",
+    });
+  });
+
+  it("skips (not fails) a Page that is already connected (ConflictError, idempotent-guard ADR-109) and still creates the rest", async () => {
+    const createConnectedAccount = vi.fn(async (input) => {
+      if (input.outstandAccountId === "fb-page-1") {
+        throw new ConflictError("Akun ini sudah terhubung.");
+      }
+      return {
+        id: asConnectedAccountId(`conn-${input.outstandAccountId}`),
+        workspaceId: input.workspaceId,
+        platform: input.platform,
+        outstandAccountId: input.outstandAccountId,
+        handle: input.handle,
+        status: "active" as const,
+        reconnectRequired: false,
+        connectedAt: new Date(),
+        lastImportedUntil: null,
+        lastImportRequestedAt: null,
+      };
+    });
+    const onAccountConnected = vi.fn(async () => undefined);
+    const service = new WorkspaceService(
+      createFakeRepository({
+        ...seedMembers(baseSeed()),
+        createConnectedAccount,
+      }),
+      undefined,
+      undefined,
+      fakeOutstandAdapter({
+        confirmFacebookPagesConnection: async () => ({
+          accounts: [
+            fakePage("fb-page-1", "Kopi Selasar"),
+            fakePage("fb-page-2", "Roti Selasar"),
+          ],
+        }),
+      }),
+      { onAccountConnected },
+    );
+
+    const result = await service.confirmFacebookPagesConnection({
+      workspaceId: WORKSPACE_ID,
+      actorId: OWNER_USER,
+      sessionToken: "session-token-1",
+      selectedPageIds: ["fb-page-1", "fb-page-2"],
+    });
+
+    expect(result).toHaveLength(1);
+    expect(result[0]?.outstandAccountId).toBe("fb-page-2");
+    expect(onAccountConnected).toHaveBeenCalledTimes(1);
+  });
+
+  // KI-076/ADR-120 — `confirmFacebookPagesConnection` (finalize) TIDAK
+  // PERNAH membawa foto profil; `WorkspaceService` harus re-fetch
+  // `listPendingFacebookPages` dan join balik `pictureUrl` per pageId
+  // SEBELUM menyimpan lewat `createConnectedAccounts`.
+  it("joins pictureUrl from listPendingFacebookPages into avatarUrl, matched by pageId/outstandAccountId (KI-076)", async () => {
+    const listPendingFacebookPages = vi.fn(async () => ({
+      pages: [
+        {
+          pageId: "fb-page-1",
+          name: "Kopi Selasar",
+          pictureUrl: "https://cdn.example.com/kopi-selasar.jpg",
+        },
+        { pageId: "fb-page-2", name: "Roti Selasar" },
+      ],
+    }));
+    const service = new WorkspaceService(
+      createFakeRepository({
+        ...seedMembers(baseSeed()),
+      }),
+      undefined,
+      undefined,
+      fakeOutstandAdapter({
+        listPendingFacebookPages,
+        confirmFacebookPagesConnection: async () => ({
+          accounts: [
+            fakePage("fb-page-1", "Kopi Selasar"),
+            fakePage("fb-page-2", "Roti Selasar"),
+          ],
+        }),
+      }),
+    );
+
+    const result = await service.confirmFacebookPagesConnection({
+      workspaceId: WORKSPACE_ID,
+      actorId: OWNER_USER,
+      sessionToken: "session-token-1",
+      selectedPageIds: ["fb-page-1", "fb-page-2"],
+    });
+
+    // list re-fetch harus terjadi SEBELUM finalize (avatar didapat sebelum
+    // Page benar-benar dikonfirmasi/disimpan).
+    expect(listPendingFacebookPages).toHaveBeenCalledWith({
+      sessionToken: "session-token-1",
+    });
+    expect(
+      result.find((account) => account.outstandAccountId === "fb-page-1")
+        ?.avatarUrl,
+    ).toBe("https://cdn.example.com/kopi-selasar.jpg");
+    expect(
+      result.find((account) => account.outstandAccountId === "fb-page-2")
+        ?.avatarUrl,
+    ).toBeNull();
+  });
+
+  it("falls back to avatarUrl: null for all Pages (best-effort) when the listPendingFacebookPages re-fetch fails, WITHOUT failing the connect (KI-076)", async () => {
+    const service = new WorkspaceService(
+      createFakeRepository({
+        ...seedMembers(baseSeed()),
+      }),
+      undefined,
+      undefined,
+      fakeOutstandAdapter({
+        listPendingFacebookPages: async () => {
+          throw new Error("session expired");
+        },
+        confirmFacebookPagesConnection: async () => ({
+          accounts: [fakePage("fb-page-1", "Kopi Selasar")],
+        }),
+      }),
+    );
+
+    const result = await service.confirmFacebookPagesConnection({
+      workspaceId: WORKSPACE_ID,
+      actorId: OWNER_USER,
+      sessionToken: "session-token-1",
+      selectedPageIds: ["fb-page-1"],
+    });
+
+    expect(result).toHaveLength(1);
+    expect(result[0]?.avatarUrl).toBeNull();
+  });
+
+  it("throws ValidationError for an empty selectedPageIds (defense-in-depth, does not trust the client)", async () => {
+    const service = new WorkspaceService(
+      createFakeRepository(seedMembers(baseSeed())),
+      undefined,
+      undefined,
+      fakeOutstandAdapter(),
+    );
+
+    await expect(
+      service.confirmFacebookPagesConnection({
+        workspaceId: WORKSPACE_ID,
+        actorId: OWNER_USER,
+        sessionToken: "session-token-1",
+        selectedPageIds: [],
+      }),
+    ).rejects.toThrow(ValidationError);
+  });
+
+  it("rejects Creator as actor", async () => {
+    const service = new WorkspaceService(
+      createFakeRepository(seedMembers(baseSeed())),
+      undefined,
+      undefined,
+      fakeOutstandAdapter(),
+    );
+
+    await expect(
+      service.confirmFacebookPagesConnection({
+        workspaceId: WORKSPACE_ID,
+        actorId: CREATOR_USER,
+        sessionToken: "session-token-1",
+        selectedPageIds: ["fb-page-1"],
       }),
     ).rejects.toThrow(AuthorizationError);
   });
@@ -1213,6 +2215,94 @@ describe("WorkspaceService.canManageMembers", () => {
 
     await expect(
       service.canManageMembers(WORKSPACE_ID, asUserId("cmm-pending-user")),
+    ).resolves.toBe(false);
+  });
+});
+
+describe("WorkspaceService.canManageConnectedAccounts", () => {
+  const OWNER_USER = asUserId("cmca-owner-user");
+  const ADMIN_USER = asUserId("cmca-admin-user");
+  const CREATOR_USER = asUserId("cmca-creator-user");
+
+  const OWNER_MEMBER_ID = asMemberId("cmca-member-owner");
+  const ADMIN_MEMBER_ID = asMemberId("cmca-member-admin");
+  const CREATOR_MEMBER_ID = asMemberId("cmca-member-creator");
+
+  function baseSeed(): WorkspaceMemberRecord[] {
+    return [
+      member(OWNER_USER, OWNER_MEMBER_ID, MemberRole.Owner),
+      member(ADMIN_USER, ADMIN_MEMBER_ID, MemberRole.Admin),
+      member(CREATOR_USER, CREATOR_MEMBER_ID, MemberRole.Creator),
+    ];
+  }
+
+  // T-109 (KI-058): gate UI aksi Connect/Disconnect/Reconnect di halaman
+  // Connected Accounts — beda dari canManageMembers, Creator TETAP `false`
+  // di sini tapi halaman itu sendiri tidak di-redirect (read-only per
+  // roles-permissions.md § Connected Accounts) — page.tsx tidak memanggil
+  // ini untuk gating akses halaman, hanya untuk kontrol render tombol.
+  it("returns true for Owner", async () => {
+    const service = new WorkspaceService(
+      createFakeRepository(seedMembers(baseSeed())),
+    );
+
+    await expect(
+      service.canManageConnectedAccounts(WORKSPACE_ID, OWNER_USER),
+    ).resolves.toBe(true);
+  });
+
+  it("returns true for Admin", async () => {
+    const service = new WorkspaceService(
+      createFakeRepository(seedMembers(baseSeed())),
+    );
+
+    await expect(
+      service.canManageConnectedAccounts(WORKSPACE_ID, ADMIN_USER),
+    ).resolves.toBe(true);
+  });
+
+  it("returns false for Creator", async () => {
+    const service = new WorkspaceService(
+      createFakeRepository(seedMembers(baseSeed())),
+    );
+
+    await expect(
+      service.canManageConnectedAccounts(WORKSPACE_ID, CREATOR_USER),
+    ).resolves.toBe(false);
+  });
+
+  it("returns false for a non-member / stranger", async () => {
+    const service = new WorkspaceService(
+      createFakeRepository(seedMembers(baseSeed())),
+    );
+
+    await expect(
+      service.canManageConnectedAccounts(
+        WORKSPACE_ID,
+        asUserId("cmca-stranger"),
+      ),
+    ).resolves.toBe(false);
+  });
+
+  it("returns false when the actor's membership is not Active", async () => {
+    const seed = baseSeed();
+    seed.push(
+      member(
+        asUserId("cmca-pending-user"),
+        asMemberId("cmca-member-pending"),
+        MemberRole.Admin,
+        MemberStatus.Pending,
+      ),
+    );
+    const service = new WorkspaceService(
+      createFakeRepository(seedMembers(seed)),
+    );
+
+    await expect(
+      service.canManageConnectedAccounts(
+        WORKSPACE_ID,
+        asUserId("cmca-pending-user"),
+      ),
     ).resolves.toBe(false);
   });
 });
@@ -1476,16 +2566,103 @@ describe("WorkspaceService.inviteMember", () => {
     ).rejects.toThrow(ValidationError);
   });
 
-  it("propagates ConflictError when an invitation for the email already exists", async () => {
+  it("rejects inviting an email that already belongs to an active member", async () => {
+    let createInvitationCalls = 0;
     const service = new WorkspaceService(
       createFakeRepository({
         ...seedMembers(baseSeed()),
-        createInvitation: async () => {
-          throw new ConflictError(
-            'Undangan untuk "dup@example.com" di workspace ini sudah ada.',
-          );
+        findUserByEmail: async (email) =>
+          email === "admin@example.com"
+            ? { id: ADMIN_USER, createdAt: new Date() }
+            : null,
+        createInvitation: async (input) => {
+          createInvitationCalls += 1;
+          return {
+            id: asInvitationId("invitation-should-not-exist"),
+            workspaceId: input.workspaceId,
+            email: input.email,
+            role: input.role,
+            token: input.token,
+            status: InvitationStatus.Pending,
+            invitedByUserId: input.invitedByUserId,
+            expiresAt: input.expiresAt,
+            verificationCodeHash: null,
+            verificationCodeExpiresAt: null,
+            verificationAttempts: 0,
+            emailVerifiedAt: null,
+          };
         },
       }),
+    );
+
+    await expect(
+      service.inviteMember(WORKSPACE_ID, OWNER_USER, {
+        email: "Admin@Example.com",
+        role: MemberRole.Creator,
+      }),
+    ).rejects.toThrow(ConflictError);
+    expect(createInvitationCalls).toBe(0);
+  });
+
+  it("reissues an accepted invitation when the only membership is Removed", async () => {
+    const removedUser = asUserId("former-member-user");
+    const service = new WorkspaceService(
+      createFakeRepository(
+        {
+          ...seedMembers([
+            ...baseSeed(),
+            member(
+              removedUser,
+              asMemberId("member-former"),
+              MemberRole.Admin,
+              MemberStatus.Removed,
+            ),
+          ]),
+          findUserByEmail: async (email) =>
+            email === "former@example.com"
+              ? { id: removedUser, createdAt: new Date() }
+              : null,
+        },
+        {
+          invitations: [
+            pendingInvitation({
+              id: asInvitationId("invitation-former"),
+              email: "former@example.com",
+              status: InvitationStatus.Accepted,
+              token: "old-token",
+              role: MemberRole.Admin,
+            }),
+          ],
+        },
+      ),
+    );
+
+    const invitation = await service.inviteMember(WORKSPACE_ID, OWNER_USER, {
+      email: "former@example.com",
+      role: MemberRole.Creator,
+    });
+
+    expect(invitation).toMatchObject({
+      email: "former@example.com",
+      role: MemberRole.Creator,
+      status: InvitationStatus.Pending,
+    });
+    expect(invitation.token).not.toBe("old-token");
+  });
+
+  it("rejects a pending invitation that is still active", async () => {
+    const service = new WorkspaceService(
+      createFakeRepository(
+        { ...seedMembers(baseSeed()) },
+        {
+          invitations: [
+            pendingInvitation({
+              email: "dup@example.com",
+              expiresAt: new Date(Date.now() + 60_000),
+            }),
+          ],
+        },
+      ),
     );
 
     await expect(
@@ -1494,6 +2671,210 @@ describe("WorkspaceService.inviteMember", () => {
         role: MemberRole.Creator,
       }),
     ).rejects.toThrow(ConflictError);
+  });
+
+  it("reissues a pending invitation whose expiry has passed", async () => {
+    const service = new WorkspaceService(
+      createFakeRepository(
+        { ...seedMembers(baseSeed()) },
+        {
+          invitations: [
+            pendingInvitation({
+              email: "expired@example.com",
+              token: "expired-token",
+              expiresAt: new Date(Date.now() - 60_000),
+            }),
+          ],
+        },
+      ),
+    );
+
+    const invitation = await service.inviteMember(WORKSPACE_ID, OWNER_USER, {
+      email: "expired@example.com",
+      role: MemberRole.Admin,
+    });
+
+    expect(invitation.status).toBe(InvitationStatus.Pending);
+    expect(invitation.token).not.toBe("expired-token");
+    expect(invitation.expiresAt.getTime()).toBeGreaterThan(Date.now());
+  });
+});
+
+describe("WorkspaceService.sendMemberInvitationEmail (T-007.7)", () => {
+  const OWNER_USER = asUserId("owner-user");
+  const CREATOR_USER = asUserId("creator-user");
+  const INVITE_BASE_URL = "http://localhost:3000";
+
+  function ownerRepo(invitation?: WorkspaceInvitationRecord | null) {
+    const seeded =
+      invitation === null
+        ? []
+        : [
+            invitation ??
+              pendingInvitation({
+                email: "maya@example.com",
+                role: MemberRole.Admin,
+                token: "abc",
+              }),
+          ];
+    return createFakeRepository(
+      {
+        ...seedMembers([
+          member(OWNER_USER, asMemberId("member-owner"), MemberRole.Owner),
+        ]),
+        findById: async () => ({
+          id: WORKSPACE_ID,
+          name: "Kopi Selasar",
+          slug: "kopi-selasar",
+        }),
+        findUsersByIds: async () => [
+          {
+            id: OWNER_USER,
+            name: "Raka",
+            email: "raka@example.com",
+          },
+        ],
+      },
+      { invitations: seeded },
+    );
+  }
+
+  function serviceWithInviteEmail(
+    repo: IWorkspaceRepository,
+    sender: {
+      sendInviteVerificationCode: (input: {
+        email: string;
+        code: string;
+        workspaceName: string;
+      }) => Promise<void>;
+      sendMemberInvitation: (input: {
+        email: string;
+        inviteLink: string;
+        workspaceName: string;
+        roleLabel: string;
+        invitedByName: string;
+      }) => Promise<void>;
+    },
+    baseUrl: string | undefined = INVITE_BASE_URL,
+  ) {
+    return new WorkspaceService(
+      repo,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      sender,
+      undefined,
+      baseUrl,
+    );
+  }
+
+  it("sends the stored invite token on the configured origin", async () => {
+    const { sender, invitations } = fakeInviteEmailSender();
+    const service = serviceWithInviteEmail(ownerRepo(), sender);
+
+    await service.sendMemberInvitationEmail({
+      workspaceId: WORKSPACE_ID,
+      actorUserId: OWNER_USER,
+      email: "Maya@Example.com",
+      role: MemberRole.Admin,
+    });
+
+    expect(invitations).toEqual([
+      {
+        email: "maya@example.com",
+        inviteLink: `${INVITE_BASE_URL}/invite/abc`,
+        workspaceName: "Kopi Selasar",
+        roleLabel: "Admin",
+        invitedByName: "Raka",
+      },
+    ]);
+  });
+
+  it("rejects a role that does not match the pending invitation", async () => {
+    const { sender, invitations } = fakeInviteEmailSender();
+    const service = serviceWithInviteEmail(ownerRepo(), sender);
+
+    await expect(
+      service.sendMemberInvitationEmail({
+        workspaceId: WORKSPACE_ID,
+        actorUserId: OWNER_USER,
+        email: "maya@example.com",
+        role: MemberRole.Creator,
+      }),
+    ).rejects.toThrow(ValidationError);
+    expect(invitations).toHaveLength(0);
+  });
+
+  it("rejects when there is no pending invitation for the email", async () => {
+    const { sender, invitations } = fakeInviteEmailSender();
+    const service = serviceWithInviteEmail(ownerRepo(null), sender);
+
+    await expect(
+      service.sendMemberInvitationEmail({
+        workspaceId: WORKSPACE_ID,
+        actorUserId: OWNER_USER,
+        email: "maya@example.com",
+        role: MemberRole.Admin,
+      }),
+    ).rejects.toThrow(NotFoundError);
+    expect(invitations).toHaveLength(0);
+  });
+
+  it("rejects Creator", async () => {
+    const { sender, invitations } = fakeInviteEmailSender();
+    const service = new WorkspaceService(
+      createFakeRepository(
+        seedMembers([
+          member(
+            CREATOR_USER,
+            asMemberId("member-creator"),
+            MemberRole.Creator,
+          ),
+        ]),
+      ),
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      sender,
+    );
+
+    await expect(
+      service.sendMemberInvitationEmail({
+        workspaceId: WORKSPACE_ID,
+        actorUserId: CREATOR_USER,
+        email: "maya@example.com",
+        role: MemberRole.Creator,
+      }),
+    ).rejects.toThrow(AuthorizationError);
+    expect(invitations).toHaveLength(0);
+  });
+
+  it("wraps a sender failure as ExternalServiceError and keeps the cause", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const service = serviceWithInviteEmail(ownerRepo(), {
+      sendInviteVerificationCode: async () => undefined,
+      sendMemberInvitation: async () => {
+        throw new Error("resend down");
+      },
+    });
+
+    await expect(
+      service.sendMemberInvitationEmail({
+        workspaceId: WORKSPACE_ID,
+        actorUserId: OWNER_USER,
+        email: "maya@example.com",
+        role: MemberRole.Admin,
+      }),
+    ).rejects.toSatisfy(
+      (error: unknown) =>
+        error instanceof ExternalServiceError &&
+        error.cause instanceof Error &&
+        error.cause.message === "resend down",
+    );
+    expect(errorSpy).toHaveBeenCalled();
+    errorSpy.mockRestore();
   });
 });
 
@@ -1510,6 +2891,10 @@ function pendingInvitation(
     status: InvitationStatus.Pending,
     invitedByUserId: asUserId("owner-user"),
     expiresAt: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000),
+    verificationCodeHash: null,
+    verificationCodeExpiresAt: null,
+    verificationAttempts: 0,
+    emailVerifiedAt: null,
     ...overrides,
   };
 }
@@ -1606,7 +2991,10 @@ describe("WorkspaceService.getInviteToAccept (T-093.1)", () => {
         findUsersByIds: async () => [
           { id: asUserId("owner-user"), name: "Raka", email: "raka@acme.com" },
         ],
-        findUserByEmail: async () => ({ id: asUserId("existing-user") }),
+        findUserByEmail: async () => ({
+          id: asUserId("existing-user"),
+          createdAt: new Date(),
+        }),
       }),
     );
 
@@ -1683,14 +3071,17 @@ describe("WorkspaceService.acceptInvite (T-093.2/.3)", () => {
     ).rejects.toThrow(AuthorizationError);
   });
 
-  it("accepts a new-account signup, assigns the role from the invitation (not a default), and returns the workspace id", async () => {
+  it("accepts a new-account signup that HAS completed OTP verification (T-110), assigns the role from the invitation (not a default), and returns the workspace id", async () => {
     const captured: {
       input?: Parameters<IWorkspaceRepository["acceptInvitation"]>[0];
     } = {};
     const service = new WorkspaceService(
       createFakeRepository({
         findInvitationByToken: async () =>
-          pendingInvitation({ role: MemberRole.Admin }),
+          pendingInvitation({
+            role: MemberRole.Admin,
+            emailVerifiedAt: new Date(),
+          }),
         acceptInvitation: async (input) => {
           captured.input = input;
           return {
@@ -1725,9 +3116,18 @@ describe("WorkspaceService.acceptInvite (T-093.2/.3)", () => {
     });
   });
 
-  it("accepts an existing-account sign-in the same way as a new signup", async () => {
+  it("accepts an existing-user sign-in whose invitation never went through the OTP flow at all (T-110: no OTP required, isExistingUser: true path)", async () => {
     const service = new WorkspaceService(
       createFakeRepository({
+        // `verificationCodeHash`/`verificationAttempts` default null/0
+        // (lihat `pendingInvitation()`) — invitation ini TIDAK PERNAH
+        // tersentuh `requestInviteEmailVerification` sama sekali, persis
+        // jalur existing-user (isExistingUser: true) yang langsung sign-in
+        // tanpa pernah melalui OTP (KI-053 "Scope aman"). Guard T-110.3
+        // HARUS meloloskan ini apa pun umur akunnya — akun sengaja TIDAK
+        // dibuat "baru" di sini untuk membuktikan guard tidak lagi
+        // bergantung pada umur akun (revisi 2026-09-28, temuan Najwa QA
+        // Engineer: window umur akun salah blokir sign-in sah).
         findInvitationByToken: async () =>
           pendingInvitation({ role: MemberRole.Creator }),
         acceptInvitation: async (input) => ({
@@ -1747,6 +3147,321 @@ describe("WorkspaceService.acceptInvite (T-093.2/.3)", () => {
         actorEmail: "invitee@example.com",
       }),
     ).resolves.toEqual({ workspaceId: WORKSPACE_ID, role: MemberRole.Creator });
+  });
+
+  it("rejects an accept attempt when THIS invitation's OTP flow was started but never confirmed (T-110.3, KI-053 attack path)", async () => {
+    const service = new WorkspaceService(
+      createFakeRepository({
+        // `verificationCodeHash` terisi (kode pernah di-generate lewat
+        // `requestInviteEmailVerification` untuk TOKEN INI) tapi
+        // `emailVerifiedAt` masih null — persis pola serangan KI-053: coba
+        // buat akun baru untuk email undangan ini, tapi verifikasi kode
+        // tidak pernah (atau belum) benar-benar dikonfirmasi. Harus
+        // ditolak, TIDAK boleh sampai memanggil repository.acceptInvitation
+        // sama sekali — TERLEPAS dari umur akunnya (guard ini scoped ke
+        // invitation, bukan umur akun, sejak revisi 2026-09-28).
+        findInvitationByToken: async () =>
+          pendingInvitation({
+            verificationCodeHash: hashInviteVerificationCode("111111"),
+            verificationCodeExpiresAt: new Date(Date.now() + 60_000),
+            verificationAttempts: 1,
+          }),
+        acceptInvitation: async () => {
+          throw new Error(
+            "acceptInvitation tidak boleh dipanggil — guard T-110.3 harus menolak lebih dulu.",
+          );
+        },
+      }),
+    );
+
+    await expect(
+      service.acceptInvite({
+        token: "token",
+        actorUserId: asUserId("new-user"),
+        actorEmail: "invitee@example.com",
+      }),
+    ).rejects.toThrow(AuthorizationError);
+  });
+});
+
+/** Double lokal untuk `InviteEmailSenderPort` (T-110, AGENTS.md rule 19 — bukan singleton produksi). */
+function fakeInviteEmailSender() {
+  const sent: { email: string; code: string; workspaceName: string }[] = [];
+  const invitations: {
+    email: string;
+    inviteLink: string;
+    workspaceName: string;
+    roleLabel: string;
+    invitedByName: string;
+  }[] = [];
+  return {
+    sender: {
+      async sendInviteVerificationCode(input: {
+        email: string;
+        code: string;
+        workspaceName: string;
+      }) {
+        sent.push(input);
+      },
+      async sendMemberInvitation(input: {
+        email: string;
+        inviteLink: string;
+        workspaceName: string;
+        roleLabel: string;
+        invitedByName: string;
+      }) {
+        invitations.push(input);
+      },
+    },
+    sent,
+    invitations,
+  };
+}
+
+describe("WorkspaceService.requestInviteEmailVerification (T-110.2, KI-053)", () => {
+  it("throws NotFoundError when the token does not exist", async () => {
+    const service = new WorkspaceService(
+      createFakeRepository({ findInvitationByToken: async () => null }),
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      fakeInviteEmailSender().sender,
+    );
+
+    await expect(
+      service.requestInviteEmailVerification("missing"),
+    ).rejects.toThrow(NotFoundError);
+  });
+
+  it("throws ValidationError when the invitation has expired", async () => {
+    const service = new WorkspaceService(
+      createFakeRepository({
+        findInvitationByToken: async () =>
+          pendingInvitation({ expiresAt: new Date(Date.now() - 1000) }),
+      }),
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      fakeInviteEmailSender().sender,
+    );
+
+    await expect(
+      service.requestInviteEmailVerification("token"),
+    ).rejects.toThrow(ValidationError);
+  });
+
+  it("throws ConflictError (race condition) when the email already has an account by the time the code is requested", async () => {
+    const service = new WorkspaceService(
+      createFakeRepository({
+        findInvitationByToken: async () => pendingInvitation(),
+        findUserByEmail: async () => ({
+          id: asUserId("someone"),
+          createdAt: new Date(),
+        }),
+      }),
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      fakeInviteEmailSender().sender,
+    );
+
+    await expect(
+      service.requestInviteEmailVerification("token"),
+    ).rejects.toThrow(ConflictError);
+  });
+
+  it("generates a 6-digit code, persists only its hash, and sends the plaintext code via the email port", async () => {
+    let persisted: { codeHash: string; expiresAt: Date } | undefined;
+    const { sender, sent } = fakeInviteEmailSender();
+    const service = new WorkspaceService(
+      createFakeRepository({
+        findInvitationByToken: async () => pendingInvitation(),
+        findById: async () => ({
+          id: WORKSPACE_ID,
+          name: "Acme",
+          slug: "acme",
+        }),
+        setInvitationVerificationCode: async (_token, input) => {
+          persisted = input;
+        },
+      }),
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      sender,
+    );
+
+    await service.requestInviteEmailVerification("token");
+
+    expect(sent).toHaveLength(1);
+    expect(sent[0]).toMatchObject({
+      email: "invitee@example.com",
+      workspaceName: "Acme",
+    });
+    expect(sent[0].code).toMatch(/^\d{6}$/);
+    expect(persisted?.codeHash).toBe(hashInviteVerificationCode(sent[0].code));
+    expect(persisted?.expiresAt.getTime()).toBeGreaterThan(Date.now());
+  });
+
+  it("throws when InviteEmailSenderPort was not supplied to the constructor (composition root forgot to wire it)", async () => {
+    const service = new WorkspaceService(
+      createFakeRepository({
+        findInvitationByToken: async () => pendingInvitation(),
+      }),
+    );
+
+    await expect(
+      service.requestInviteEmailVerification("token"),
+    ).rejects.toThrow();
+  });
+});
+
+describe("WorkspaceService.confirmInviteEmailVerification (T-110.3, KI-053)", () => {
+  it("throws NotFoundError when the token does not exist", async () => {
+    const service = new WorkspaceService(
+      createFakeRepository({ findInvitationByToken: async () => null }),
+    );
+
+    await expect(
+      service.confirmInviteEmailVerification("missing", "123456"),
+    ).rejects.toThrow(NotFoundError);
+  });
+
+  it("throws ValidationError when there is no active verification code", async () => {
+    const service = new WorkspaceService(
+      createFakeRepository({
+        findInvitationByToken: async () => pendingInvitation(),
+      }),
+    );
+
+    await expect(
+      service.confirmInviteEmailVerification("token", "123456"),
+    ).rejects.toThrow(ValidationError);
+  });
+
+  it("throws ValidationError and increments verificationAttempts when the code is wrong", async () => {
+    let incrementCalls = 0;
+    const service = new WorkspaceService(
+      createFakeRepository({
+        findInvitationByToken: async () =>
+          pendingInvitation({
+            verificationCodeHash: hashInviteVerificationCode("111111"),
+            verificationCodeExpiresAt: new Date(Date.now() + 60_000),
+            verificationAttempts: 0,
+          }),
+        incrementInvitationVerificationAttempts: async () => {
+          incrementCalls += 1;
+          return incrementCalls;
+        },
+      }),
+    );
+
+    await expect(
+      service.confirmInviteEmailVerification("token", "000000"),
+    ).rejects.toThrow(ValidationError);
+    expect(incrementCalls).toBe(1);
+  });
+
+  it("throws ValidationError WITHOUT incrementing further once the attempt limit is already reached", async () => {
+    const service = new WorkspaceService(
+      createFakeRepository({
+        findInvitationByToken: async () =>
+          pendingInvitation({
+            verificationCodeHash: hashInviteVerificationCode("111111"),
+            verificationCodeExpiresAt: new Date(Date.now() + 60_000),
+            verificationAttempts: 5,
+          }),
+        incrementInvitationVerificationAttempts: async () => {
+          throw new Error(
+            "tidak boleh dipanggil — batas percobaan sudah tercapai.",
+          );
+        },
+      }),
+    );
+
+    await expect(
+      service.confirmInviteEmailVerification("token", "111111"),
+    ).rejects.toThrow(ValidationError);
+  });
+
+  it("throws ValidationError when the code itself has expired", async () => {
+    const service = new WorkspaceService(
+      createFakeRepository({
+        findInvitationByToken: async () =>
+          pendingInvitation({
+            verificationCodeHash: hashInviteVerificationCode("111111"),
+            verificationCodeExpiresAt: new Date(Date.now() - 1000),
+            verificationAttempts: 0,
+          }),
+      }),
+    );
+
+    await expect(
+      service.confirmInviteEmailVerification("token", "111111"),
+    ).rejects.toThrow(ValidationError);
+  });
+
+  it("marks the email as verified (single-use) when the correct code is confirmed", async () => {
+    let markedVerified = false;
+    const service = new WorkspaceService(
+      createFakeRepository({
+        findInvitationByToken: async () =>
+          pendingInvitation({
+            verificationCodeHash: hashInviteVerificationCode("111111"),
+            verificationCodeExpiresAt: new Date(Date.now() + 60_000),
+            verificationAttempts: 2,
+          }),
+        // Code-review PR #142 fix — reservasi atomic sekarang SELALU
+        // dipanggil sebelum membandingkan kode (lihat
+        // confirmInviteEmailVerification), termasuk saat kodenya benar.
+        // Double lokal: naikkan attempts persis seperti repository
+        // Prisma sungguhan untuk kasus "masih di bawah cap" (3 <= 5).
+        incrementInvitationVerificationAttempts: async () => 3,
+        markInvitationEmailVerified: async () => {
+          markedVerified = true;
+        },
+      }),
+    );
+
+    await service.confirmInviteEmailVerification("token", "111111");
+    expect(markedVerified).toBe(true);
+  });
+
+  it("code-review PR #142: rejects WITHOUT verifying when the atomic reservation reports the cap already reached (race-condition fix)", async () => {
+    // Simulasi race: baca awal (findInvitationByToken) masih melihat
+    // attempts=4 (di bawah cap), TAPI repository (Prisma sungguhan, lewat
+    // `UPDATE ... WHERE verification_attempts < max` atomic) melaporkan
+    // reservasi GAGAL karena request konkuren lain baru saja mengisi slot
+    // terakhir — sentinel `maxAttempts + 1` (lihat
+    // `incrementInvitationVerificationAttempts` di
+    // `lib/repositories/workspace/workspace.repository.ts`). Kode yang
+    // dikirim BENAR, tapi harus tetap ditolak TANPA pernah dibandingkan —
+    // membuktikan reservasi-dulu-baru-bandingkan menutup race, bukan
+    // sekadar percaya baca awal yang sudah basi.
+    let markedVerified = false;
+    const service = new WorkspaceService(
+      createFakeRepository({
+        findInvitationByToken: async () =>
+          pendingInvitation({
+            verificationCodeHash: hashInviteVerificationCode("111111"),
+            verificationCodeExpiresAt: new Date(Date.now() + 60_000),
+            verificationAttempts: 4,
+          }),
+        incrementInvitationVerificationAttempts: async () => 6, // sentinel: maxAttempts(5) + 1
+        markInvitationEmailVerified: async () => {
+          markedVerified = true;
+        },
+      }),
+    );
+
+    await expect(
+      service.confirmInviteEmailVerification("token", "111111"),
+    ).rejects.toThrow(ValidationError);
+    expect(markedVerified).toBe(false);
   });
 });
 
@@ -1926,6 +3641,8 @@ describe("WorkspaceService.saveChannelOrder", () => {
       status: "active",
       reconnectRequired: false,
       connectedAt: new Date("2026-01-01T00:00:00Z"),
+      lastImportedUntil: null,
+      lastImportRequestedAt: null,
     };
     let received:
       Parameters<IWorkspaceRepository["saveChannelOrder"]>[0] | null = null;
@@ -2336,7 +4053,11 @@ describe("WorkspaceService.switchWorkspace", () => {
 });
 
 describe("WorkspaceService.listSidebarChannels", () => {
-  function account(id: string, connectedAt: string): ConnectedAccountRecord {
+  function account(
+    id: string,
+    connectedAt: string,
+    avatarUrl: string | null = null,
+  ): ConnectedAccountRecord {
     return {
       id: asConnectedAccountId(id),
       workspaceId: WORKSPACE_ID,
@@ -2346,6 +4067,9 @@ describe("WorkspaceService.listSidebarChannels", () => {
       status: "active",
       reconnectRequired: false,
       connectedAt: new Date(connectedAt),
+      avatarUrl,
+      lastImportedUntil: null,
+      lastImportRequestedAt: null,
     };
   }
 
@@ -2383,8 +4107,33 @@ describe("WorkspaceService.listSidebarChannels", () => {
         status: acc.status,
         reconnectRequired: acc.reconnectRequired,
         scheduledCount: 0,
+        avatarUrl: null,
       },
     ]);
+  });
+
+  // KI-076/ADR-120 — avatar/foto profil tidak pernah tampil di sidebar
+  // Channels karena field ini tidak pernah mengalir dari repository ke
+  // shape yang dikonsumsi UI. Regression test langsung untuk mapping ini.
+  it("maps ConnectedAccountRecord.avatarUrl through to SidebarChannelAccount.avatarUrl (KI-076)", async () => {
+    const withPhoto = account(
+      "conn-a",
+      "2026-01-01T00:00:00Z",
+      "https://cdn.example.com/avatar.jpg",
+    );
+    const withoutPhoto = account("conn-b", "2026-01-02T00:00:00Z", null);
+    const service = new WorkspaceService(
+      createFakeRepository({
+        listConnectedAccounts: async () => [withPhoto, withoutPhoto],
+      }),
+    );
+
+    const result = await service.listSidebarChannels(WORKSPACE_ID, USER_ID);
+
+    expect(result.find((c) => c.id === withPhoto.id)?.avatarUrl).toBe(
+      "https://cdn.example.com/avatar.jpg",
+    );
+    expect(result.find((c) => c.id === withoutPhoto.id)?.avatarUrl).toBeNull();
   });
 
   it("fills scheduledCount from the provided ScheduledCountsPort", async () => {

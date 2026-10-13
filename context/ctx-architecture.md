@@ -35,13 +35,14 @@ Entry Points (RSC / Server Actions / Route Handlers / Middleware)
 
 ## Aturan operasional
 
-1. Entry points **tidak** berisi business logic — hanya memanggil Application Service.
+1. Hard rules entry point (tanpa business logic) & Supabase JS (hanya
+   Realtime+Storage, CRUD lewat Prisma) — lihat **`../AGENTS.md` rules 5, 9**,
+   tidak diulang di sini. Detail engineering Supabase: `ctx-technical-context.md`.
 2. Integrasi sosial **hanya** lewat Anti-Corruption Layer (OutstandAdapter) — bukan SDK network langsung.
-3. Supabase JS client di arsitektur: **Realtime + Storage** saja; CRUD lewat Prisma (detail engineering di `ctx-technical-context.md`).
-4. RBAC dievaluasi di Application Service; RLS = defense-in-depth.
-5. Cross-domain lewat public API — lihat `application-layer.md` + `ctx-domain.md`.
-6. Jangan ubah Architecture Baseline tanpa ADR baru.
-7. Kontrak Outstand MVP mengikuti **ADR-040**:
+3. RBAC dievaluasi di Application Service; RLS = defense-in-depth.
+4. Cross-domain lewat public API — lihat `application-layer.md` + `ctx-domain.md`.
+5. Jangan ubah Architecture Baseline tanpa ADR baru.
+6. Kontrak Outstand MVP mengikuti **ADR-040**:
    - webhook hanya `post.published`, `post.error`, dan `account.token_expired`;
    - verifikasi HMAC raw body → receipt idempoten durable di
      `outstand_webhook_events` → ACK `2xx` → pemrosesan/retry internal;
@@ -51,7 +52,7 @@ Entry Points (RSC / Server Actions / Route Handlers / Middleware)
      upload + confirm melalui Outstand Media API;
    - X BYOK dikonfigurasi manual oleh Project Owner di dashboard Outstand;
      aplikasi tidak menerima/menyimpan Client ID atau Client Secret X.
-8. Jangan memakai nama event vendor sebagai tipe domain. `OutstandAdapter`
+7. Jangan memakai nama event vendor sebagai tipe domain. `OutstandAdapter`
    menerjemahkan `post.error` → status `failed` dan
    `account.token_expired` → status akun `error` + reconnect.
 

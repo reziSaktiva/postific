@@ -1,15 +1,32 @@
 "use server";
 
-import { asPostId, asPostTargetId, asUserId } from "@social/shared";
+import { asPostId, asPostTargetId, asUserId } from "@postific/shared";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { RetryFailedTargetUseCase } from "@/domains/publishing";
+import { MediaService } from "@/domains/media";
+import {
+  RetryFailedTargetUseCase,
+  type PostMediaLookupPort,
+} from "@/domains/publishing";
 import { toActionError } from "@/lib/utils/errors";
 import { getCachedSession } from "@/lib/better-auth/session";
 import { getWorkspaceContext } from "@/lib/workspace/workspace-context";
 import { getOutstandAdapter } from "@/lib/adapters/outstand";
+import { supabaseMediaStorageAdapter } from "@/lib/adapters/media-storage/supabase-media-storage-adapter";
 import { publishingRepository } from "@/lib/repositories/publishing";
+import { mediaRepository } from "@/lib/repositories/media";
+
+function createPostMediaLookup(): PostMediaLookupPort {
+  const mediaService = new MediaService(mediaRepository);
+  return {
+    listByIds: (input, userId) => mediaService.listByIds(input, userId),
+    downloadBytes: (storagePath) =>
+      supabaseMediaStorageAdapter.downloadMedia(storagePath),
+    saveOutstandWorkingCopy: (input, userId) =>
+      mediaService.saveOutstandWorkingCopy(input, userId),
+  };
+}
 
 /**
  * Retry manual (T-034.4, ADR-092) — dipanggil dari tombol "Coba Lagi" di
@@ -36,6 +53,7 @@ export async function retryFailedTargetAction(
     result = await new RetryFailedTargetUseCase(
       publishingRepository,
       getOutstandAdapter(),
+      createPostMediaLookup(),
     ).execute({
       workspaceId,
       postId: asPostId(postId),

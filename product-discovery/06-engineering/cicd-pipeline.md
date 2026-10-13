@@ -1,6 +1,6 @@
 # CI/CD Pipeline
 
-Dokumen ini mendefinisikan **pipeline Continuous Integration dan Continuous Deployment** untuk produk Social Media Management: tooling CI, trigger, quality gates, alur promosi kode, dan kapan migrasi database dijalankan.
+Dokumen ini mendefinisikan **pipeline Continuous Integration dan Continuous Deployment** untuk produk Postific: tooling CI, trigger, quality gates, alur promosi kode, dan kapan migrasi database dijalankan.
 
 Dokumen ini menkonkretkan trigger deploy dari `deployment-infrastructure.md` (DI-D05) dan alur migrasi dari `database-orm.md` (DO-D03). Detail perintah lint/format/test ditetapkan di `dx-tooling.md` (ESLint + Prettier + Vitest, ADR-034); dokumen ini menetapkan **apa yang wajib lulus di CI**, bukan konfigurasi tool-nya.
 

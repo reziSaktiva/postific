@@ -1,4 +1,4 @@
-import { asConnectedAccountId, ContentFormat } from "@social/shared";
+import { asConnectedAccountId, ContentFormat } from "@postific/shared";
 import type { ConnectedAccountRecord } from "@/domains/workspace";
 import { ValidationError } from "@/lib/utils/errors";
 import { assertContentFormatAllowed } from "../content-format-matrix";

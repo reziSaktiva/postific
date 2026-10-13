@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
 
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Refresh01Icon } from "@hugeicons/core-free-icons";
+
 import { Alert, AlertTitle } from "@/components/ui/alert";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,11 +21,14 @@ import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { Text } from "@/components/ui/text";
 import { ConfirmActionDialog } from "@/components/shared/ConfirmActionDialog";
 
+import { SocialPlatform } from "@postific/shared";
+
 import {
   getConnectionStatusLabel,
   resolveConnectionDisplayStatus,
   type ConnectedAccountRecord,
   type ConnectionDisplayStatus,
+  type ConnectResult,
 } from "@/domains/workspace";
 import { useConfirmAction } from "@/lib/hooks/use-confirm-action";
 import { formatConnectedDate } from "@/lib/utils/format-date";
@@ -36,8 +42,10 @@ import {
 import {
   disconnectAccountAction,
   initiateReconnectAccountAction,
+  syncNowAction,
 } from "../actions";
 import { ConnectPlatformMenu } from "./ConnectPlatformMenu";
+import { FacebookPagesPickerDialog } from "./FacebookPagesPickerDialog";
 
 // KI-041 (Stone theme shadcn belum punya token --success/--warning, dicatat
 // saat T-097.3): `Badge` shadcn cuma varian default/secondary/destructive/
@@ -108,6 +116,13 @@ function ReconnectButton({ account }: { account: ConnectedAccountRecord }) {
       );
       if (result?.error) {
         toast.error(result.error);
+        return;
+      }
+      // Facebook (Bug #2, T-025.4/KI-070) — lihat docstring
+      // `initiateReconnectAccountAction` (`../actions.ts`). Hard navigation
+      // penuh, bukan client-side App Router transition.
+      if (result?.redirectUrl) {
+        window.location.href = result.redirectUrl;
       }
     });
   }
@@ -126,28 +141,120 @@ function ReconnectButton({ account }: { account: ConnectedAccountRecord }) {
 }
 
 /**
+ * Tombol "Sync Now" (T-090.5, ADR-093 poin 9) — memicu `syncNowAction`
+ * (Server Action → `ImportPostsTriggerUseCase.triggerManual`). LOCKED
+ * PATTERN (`templates/settings-connected-accounts.html`, Claude Design,
+ * 2026-10-08, King Rezi confirmed):
+ * 1. Posisi: SEBELUM Badge status, grup kanan yang sama dengan
+ *    Disconnect/Reconnect (lihat `ConnectedAccountRow`).
+ * 2. Hanya untuk akun `active` — tidak ada yang bisa disinkron kalau belum
+ *    terkoneksi (`reconnect-required`/`disconnected` pakai "Reconnect").
+ * 3. Variant: bobot visual rendah/rutin, BUKAN destructive/primary — dipilih
+ *    `secondary` (sama seperti `ReconnectButton` di file ini), bukan
+ *    `destructive` literal seperti tombol Disconnect di kode — mockup
+ *    menyamakan "bobot visual dengan Disconnect" memakai `.btn` polos
+ *    (netral) di markup prototipe-nya sendiri, sedangkan `Disconnect` di
+ *    kode nyata sudah lebih dulu memakai `variant="destructive"` (keputusan
+ *    established, bukan bagian task ini) — `secondary` paling dekat dengan
+ *    intent "rendah urgensi, bukan primary" tanpa menabrak semantik warna
+ *    destructive yang sudah dipakai Disconnect.
+ * 4. Tiga state: Default, Loading (ikon refresh `animate-spin` + label
+ *    "Syncing…", disabled — pola sama persis `EngageInboxView.tsx` tombol
+ *    "Refresh"), dan Ditolak (cooldown/cap/RBAC) — pesan via `toast.error`
+ *    (mekanisme toast yang sudah ada, BUKAN komponen inline baru); tombol
+ *    kembali ke Default setelah toast (tidak tetap disabled).
+ * 5. RBAC: disembunyikan total untuk role tanpa akses kelola (Creator) —
+ *    sudah ditangani di level `ConnectedAccountAction` (`canManage` early
+ *    return), jadi komponen ini sendiri tidak perlu cek ulang.
+ */
+function SyncNowButton({ account }: { account: ConnectedAccountRecord }) {
+  const [isPending, startTransition] = useTransition();
+
+  function handleSyncNow() {
+    startTransition(async () => {
+      const result = await syncNowAction(account.id);
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      const importedCount = result.importedCount ?? 0;
+      toast(
+        importedCount > 0
+          ? `${importedCount} post baru diimpor.`
+          : "Sinkron selesai — tidak ada post baru.",
+      );
+    });
+  }
+
+  return (
+    <Button
+      type="button"
+      variant="secondary"
+      size="sm"
+      disabled={isPending}
+      onClick={handleSyncNow}
+      aria-label={`Sync Now — tarik ulang post dari ${PLATFORM_ICON[account.platform]?.label ?? account.platform}`}
+    >
+      <HugeiconsIcon
+        icon={Refresh01Icon}
+        strokeWidth={2}
+        className={cn(isPending && "animate-spin")}
+      />
+      {isPending ? "Syncing…" : "Sync Now"}
+    </Button>
+  );
+}
+
+/**
  * Tombol aksi per baris ditentukan dari `displayStatus` penuh (3 state),
- * bukan cuma boolean `reconnectRequired` — akun yang sudah `disconnected`
- * (bukan `reconnect-required`) tidak punya aksi yang relevan untuk
- * ditampilkan di sini (bukan "Disconnect" lagi, karena sudah disconnected).
+ * bukan cuma boolean `reconnectRequired`.
  *
  * T-014.3: "Disconnect" (state `active`) — membuka dialog konfirmasi Tier 2
  * (ADR-049) lewat `onRequestDisconnect`, pola persis `QueueScreen.tsx`
  * (Cancel Schedule) / `MembersTable.tsx` (Remove member).
- * T-015.3: "Reconnect" (state `reconnect-required`) sekarang aktif —
- * lihat `ReconnectButton` di atas.
+ * T-015.3: "Reconnect" (state `reconnect-required`) — lihat `ReconnectButton`
+ * di atas.
+ * **KI-078 (2026-09-26):** `disconnected` (disconnect eksplisit oleh user,
+ * beda dari `reconnect-required`/token kadaluarsa) SEBELUMNYA sengaja
+ * dirender tanpa aksi apa pun — membuat disconnect jadi FINAL/permanen,
+ * tidak sesuai ekspektasi umum (Claude Design `templates/settings-connected-
+ * accounts.html`, baris "X (Twitter)": chip disconnected berpasangan dengan
+ * tombol "Reconnect", pola yang sama persis dipakai di sini). Digabung ke
+ * cabang yang sama dengan `reconnect-required` — `ReconnectButton` sudah
+ * memanggil `initiateReconnectAccountAction` dengan `redirectAccountId`
+ * terisi apa pun status akunnya, yang di `WorkspaceService.
+ * completeAccountConnection` diarahkan ke `IWorkspaceRepository.
+ * reconnectAccount` (UPDATE baris existing) — BUKAN `createConnectedAccount`
+ * (INSERT), sehingga tidak lagi menabrak unique constraint
+ * `[workspaceId, outstandAccountId]` dari baris `disconnected` yang lama.
  */
 function ConnectedAccountAction({
   account,
   displayStatus,
+  canManage,
   onRequestDisconnect,
 }: {
   account: ConnectedAccountRecord;
   displayStatus: ConnectionDisplayStatus;
+  canManage: boolean;
   onRequestDisconnect: () => void;
 }) {
+  // T-109 (KI-058): Creator "Baca saja" (roles-permissions.md § Connected
+  // Accounts) — tombol disembunyikan total, sama seperti pola Danger Zone
+  // di `WorkspaceGeneralSettings.tsx` (`{isOwner ? <Card>...</Card> : null}`),
+  // bukan cuma disabled. RBAC server (`assertActorCanManageConnectedAccounts`)
+  // tidak berubah — ini murni kontrol render UI.
+  if (!canManage) {
+    return null;
+  }
   switch (displayStatus) {
     case "reconnect-required":
+    case "disconnected":
+      // Facebook Pages reconnect multi-page belum punya UPDATE path —
+      // sembunyikan tombol supaya tidak silent 0-page "sukses" toast.
+      if (account.platform === SocialPlatform.Facebook) {
+        return null;
+      }
       return <ReconnectButton account={account} />;
     case "active":
       return (
@@ -160,8 +267,6 @@ function ConnectedAccountAction({
           Disconnect
         </Button>
       );
-    case "disconnected":
-      return null;
   }
 }
 
@@ -175,9 +280,11 @@ function ConnectedAccountAction({
  */
 function ConnectedAccountRow({
   account,
+  canManage,
   onRequestDisconnect,
 }: {
   account: ConnectedAccountRecord;
+  canManage: boolean;
   onRequestDisconnect: (account: ConnectedAccountRecord) => void;
 }) {
   const displayStatus = resolveConnectionDisplayStatus(account);
@@ -190,6 +297,10 @@ function ConnectedAccountRow({
         {/* eslint-disable-next-line no-restricted-syntax -- T-099.3: file ini sudah dimigrasi ke komposisi Tailwind shadcn (ADR-097) */}
         <div className="flex items-center gap-3">
           <Avatar>
+            <AvatarImage
+              src={account.avatarUrl ?? undefined}
+              alt={account.handle}
+            />
             <AvatarFallback>{getInitials(account.handle)}</AvatarFallback>
             <PlatformStatusDot platform={account.platform} />
           </Avatar>
@@ -206,12 +317,16 @@ function ConnectedAccountRow({
       <TableCell className="text-right">
         {/* eslint-disable-next-line no-restricted-syntax -- T-099.3, sama seperti di atas */}
         <div className="flex items-center justify-end gap-2">
+          {canManage && displayStatus === "active" ? (
+            <SyncNowButton account={account} />
+          ) : null}
           <Badge variant={STATUS_BADGE_VARIANT[displayStatus]}>
             {getConnectionStatusLabel(account)}
           </Badge>
           <ConnectedAccountAction
             account={account}
             displayStatus={displayStatus}
+            canManage={canManage}
             onRequestDisconnect={() => onRequestDisconnect(account)}
           />
         </div>
@@ -227,9 +342,22 @@ function ConnectedAccountRow({
  */
 export function ConnectedAccountsList({
   accounts,
+  canManageConnections,
   connectResult = null,
+  facebookPagesPicker = null,
 }: {
   accounts: ConnectedAccountRecord[];
+  /**
+   * T-109 (KI-058) — dihitung `page.tsx` lewat `WorkspaceService.
+   * canManageConnectedAccounts` (Owner/Admin aktif → true, Creator →
+   * false). Halaman ini sendiri TETAP diakses Creator (read-only, matrix
+   * `roles-permissions.md` § Connected Accounts) — beda dari Members/
+   * Organization Settings yang redirect seluruh halaman untuk role yang
+   * tidak berhak. Dipakai untuk menyembunyikan tombol "Connect Account"
+   * (header) dan "Disconnect"/"Reconnect" (tiap baris) untuk Creator, pola
+   * sama dengan `isOwner` di `WorkspaceGeneralSettings.tsx`.
+   */
+  canManageConnections: boolean;
   /**
    * Hasil Connect/Reconnect Account (T-013.1/T-013.2, T-015.3, ADR-105) —
    * diteruskan dari `page.tsx` (dibaca dari `?connect=` yang diset Route
@@ -238,7 +366,16 @@ export function ConnectedAccountsList({
    * history) supaya refresh halaman tidak menampilkan toast yang sama
    * berulang.
    */
-  connectResult?: "success" | "error" | null;
+  connectResult?: ConnectResult | null;
+  /**
+   * Facebook Pages flow (T-025.4, KI-070, ADR-115 §7/§10; review fix) —
+   * diteruskan dari `page.tsx` (`?connectFacebook=1` +
+   * `?connectFacebookState=`). Session token ada di cookie httpOnly
+   * (dibaca Server Action), bukan di props. Kalau ada saat mount, dialog
+   * otomatis terbuka — state dibekukan lokal supaya query flag bisa
+   * di-strip dari address bar tanpa menutup dialog.
+   */
+  facebookPagesPicker?: { state: string } | null;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -247,12 +384,44 @@ export function ConnectedAccountsList({
     if (!connectResult) return;
     if (connectResult === "success") {
       toast("Akun berhasil terhubung");
+    } else if (connectResult === "already-connected") {
+      // KI-079 — dibedakan dari "error" generik: ini BUKAN kegagalan
+      // transient yang bisa diperbaiki dengan retry, jadi tidak memakai
+      // copy "Coba lagi" yang menyesatkan.
+      //
+      // Copy TIDAK menyebut tombol "Reconnect" (code review PR #139) — kasus
+      // paling umum untuk toast ini adalah Connect ke akun yang statusnya
+      // sudah `active`, dan baris `active` cuma punya tombol "Disconnect"
+      // (lihat `ConnectedAccountAction`), jadi menunjuk ke "Reconnect" di
+      // situ menunjuk ke kontrol yang tidak ada di baris itu.
+      toast.error("Akun ini sudah terhubung di workspace ini.");
     } else {
       toast.error("Gagal menghubungkan akun. Coba lagi.");
     }
     router.replace(pathname);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- hanya perlu re-run saat `connectResult` (query param) berubah, bukan tiap render `router`/`pathname` (referensi baru tiap render Next.js).
   }, [connectResult]);
+
+  // Code-review PR #140 finding #4 (T-109/KI-058) — sebelumnya state ini
+  // diisi dari `facebookPagesPicker` tanpa syarat, jadi Creator yang
+  // mendarat di halaman ini dengan query param `?connectFacebook=...` masih
+  // melihat dialog Facebook Pages Picker terbuka walau tombol Connect sudah
+  // disembunyikan untuknya. Mutasi sebenarnya tetap ditolak server
+  // (`assertActorCanManageConnectedAccounts`, tidak berubah), jadi ini
+  // murni gap konsistensi UI — ditutup di sini supaya dialog juga tidak
+  // pernah muncul sama sekali untuk role yang tidak berhak.
+  const [facebookSession, setFacebookSession] = useState(
+    canManageConnections ? facebookPagesPicker : null,
+  );
+
+  useEffect(() => {
+    if (!facebookPagesPicker) return;
+    // Strip `connectFacebook`/`connectFacebookState` dari address bar
+    // SEGERA setelah dibaca ke state lokal — flag bukan bearer, tapi
+    // tetap jangan biarkan query mengotori URL setelah dialog terbuka.
+    router.replace(pathname);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- hanya perlu jalan sekali saat mount dengan query param Facebook awal, bukan tiap render router/pathname.
+  }, []);
 
   const disconnectConfirm = useConfirmAction<ConnectedAccountRecord>(
     (account) => disconnectAccountAction(account.id),
@@ -272,7 +441,7 @@ export function ConnectedAccountsList({
       <SettingsPageHead
         pageName="Connected Accounts"
         breadcrumb={`${SETTINGS_BREADCRUMB_GROUP.organization} / Connected Accounts`}
-        action={<ConnectPlatformMenu />}
+        action={canManageConnections ? <ConnectPlatformMenu /> : null}
       />
 
       {disconnectConfirm.error ? (
@@ -305,6 +474,7 @@ export function ConnectedAccountsList({
                 <ConnectedAccountRow
                   key={account.id}
                   account={account}
+                  canManage={canManageConnections}
                   onRequestDisconnect={(requested) =>
                     disconnectConfirm.open(requested)
                   }
@@ -325,6 +495,16 @@ export function ConnectedAccountsList({
         onConfirm={() => void disconnectConfirm.confirm()}
         variant="destructive"
       />
+
+      {facebookSession ? (
+        <FacebookPagesPickerDialog
+          open
+          state={facebookSession.state}
+          onOpenChange={(next) => {
+            if (!next) setFacebookSession(null);
+          }}
+        />
+      ) : null}
     </div>
   );
 }

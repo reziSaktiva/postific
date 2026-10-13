@@ -24,10 +24,38 @@ export function outstandConnectNonceCookieName(nonce: string): string {
   return `${OUTSTAND_CONNECT_NONCE_COOKIE_PREFIX}${nonce}`;
 }
 
-/** 10 menit — cukup untuk satu round-trip OAuth (Fake instan; real adapter T-025 nanti tetap dalam orde detik/menit), sengaja pendek karena cookie ini murni untuk SATU percobaan connect/reconnect. */
+/**
+ * Ambil `state` CSRF dari URL redirect Outstand.
+ *
+ * Fake loopback menaruh `state` sebagai query param tingkat atas. Real
+ * adapter (ADR-112) menaruhnya di dalam `redirect_uri`
+ * (`…/callback?state=…`), lalu URL Outstand hanya punya `redirect_uri`.
+ * Kalau yang kedua diabaikan, cookie nonce tidak pernah diset dan callback
+ * yang sah ditolak sebagai CSRF.
+ */
+export function readConnectStateFromRedirectUrl(
+  redirectUrl: string,
+): string | null {
+  const url = new URL(redirectUrl, "http://outstand-connect.invalid");
+  const topLevel = url.searchParams.get("state");
+  if (topLevel) return topLevel;
+
+  const redirectUri = url.searchParams.get("redirect_uri");
+  if (!redirectUri) return null;
+
+  try {
+    return new URL(redirectUri).searchParams.get("state");
+  } catch {
+    return null;
+  }
+}
+
+/** 10 menit — cukup untuk satu round-trip OAuth single-page. */
 const OUTSTAND_CONNECT_NONCE_COOKIE_MAX_AGE = 60 * 10;
 
-export function outstandConnectNonceCookieOptions(): {
+export function outstandConnectNonceCookieOptions(
+  maxAge = OUTSTAND_CONNECT_NONCE_COOKIE_MAX_AGE,
+): {
   httpOnly: true;
   sameSite: "lax";
   secure: boolean;
@@ -39,6 +67,6 @@ export function outstandConnectNonceCookieOptions(): {
     sameSite: "lax",
     secure: secureCookiesEnabled(),
     path: "/",
-    maxAge: OUTSTAND_CONNECT_NONCE_COOKIE_MAX_AGE,
+    maxAge,
   };
 }

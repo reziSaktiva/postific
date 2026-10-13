@@ -6,7 +6,7 @@ Fake `connectAccount`/`exchangeConnectCode` — split 2-method OAuth + redirect 
 
 ### Status
 
-Accepted
+Accepted — Amended by ADR-112 (2026-09-23)
 
 ### Date
 
