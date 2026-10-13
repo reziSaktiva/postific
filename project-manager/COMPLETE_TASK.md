@@ -18,7 +18,11 @@ Seluruh perubahan penting pada dokumentasi maupun implementasi project dicatat p
   `${{web.JOB_SECRET}}`) — dugaan mismatch secret tidak terbukti.
 - Image dikembalikan ke `alpine:3.20` dan start command disamakan dengan
   service `cron` yang sudah jalan (`sh -c` + `apk add curl`), plus
-  `?type=analytics`. Diterapkan hanya di environment staging.
+  `?type=analytics`. Diterapkan hanya di environment staging. **Catatan
+  rekonsiliasi:** percobaan `sh -c` saja di atas image `curlimages/curl`
+  lama (lihat investigasi di bawah, retest 03:31 UTC) sudah terbukti
+  tidak cukup — penggantian base image ke `alpine:3.20` yang jadi faktor
+  penentu, bukan shell-wrapping semata.
 - Trigger manual 2026-10-13T03:59 UTC membalas **200**. Jadwal tetap
   `0 0 * * *`.
 - Entri KI-087 dihapus dari Known Issues (`PROJECT_STATE.md`) setelah
