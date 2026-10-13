@@ -8,6 +8,13 @@ Seluruh perubahan penting pada dokumentasi maupun implementasi project dicatat p
 
 ---
 
+## 2026-10-13 — T-037 koreksi review: batas `toActionError` dan cakupan RLS
+
+### Fixed
+- Aturan #18 di `context/ctx-development.md` hanya mewajibkan `toActionError()` pada Server Action yang mengembalikan `{ error }`. Action `void`/`redirect` (`markNotificationReadAction`) dan action yang memetakan sesi kosong ke `null` (`getCalendarPostAction`) tidak diubah kontraknya.
+- Aturan #19 mencakup query baca dan tulis pada tabel ber-RLS. Callback `withCurrentUser` wajib memakai client `tx`, bukan singleton `prisma`. Tanpa GUC, `findMany` mengembalikan `[]` dan `updateMany`/`deleteMany` melaporkan 0 baris, tanpa throw.
+- Catatan snapshot 2026-09-08 di `tasks/v02-publishing-mvp.md` tidak lagi menyebut nomor #18 sebagai butir Testing. Nomor #18 sejak snapshot kedua adalah aturan error.
+
 ## 2026-10-13 — T-037 snapshot kedua: aturan error, RLS, dan penamaan port
 
 ### Added
