@@ -8,6 +8,29 @@ Seluruh perubahan penting pada dokumentasi maupun implementasi project dicatat p
 
 ---
 
+## 2026-10-13 — T-030 tuntas: entry point Cancel Schedule di Calendar (⚠️ belum di-commit)
+
+### Konteks
+Sesi kerja di branch `feature/t-030-3-calendar-cancel-schedule` (commit `afabafb`). T-030.1/.2 sudah selesai sejak T-032.4 (bagian Queue) — sesi ini menutup satu-satunya bagian tersisa, T-030.3 untuk Calendar.
+
+### Added
+- Tombol "Batalkan Jadwal" (variant destructive) di popover Calendar (`CalendarPostPopover.tsx`), khusus post berstatus Scheduled, di bawah tombol "Buka Draft Editor" yang sudah ada. 100% reuse `CancelScheduleUseCase`/RBAC yang sama dengan Queue (T-032.4) — tidak ada business logic baru.
+- Server Action baru `cancelScheduleAction` di `apps/web/src/app/(app)/publish/calendar/actions.ts`.
+- File lain yang diubah: `components/CalendarScreen.tsx` (state dialog `useConfirmAction` + `AlertDialog`, pola identik `QueueScreen.tsx`), `components/CalendarWeekGrid.tsx`, `components/CalendarMonthGrid.tsx`, `components/CalendarAgendaList.tsx` (thread prop `onCancelSchedule`).
+
+### Changed
+- `tasks/v02-publishing-mvp.md` § T-030: checkbox T-030.3 dicentang, Status task naik dari `🟡 In Progress` menjadi `✅ Done` (ketiga subtask selesai). `TASKS.md`: indeks v0.2 `25 ✅ · 2 🟡 · 1 ⏳` → `26 ✅ · 1 🟡 · 1 ⏳`, Total `69 selesai` → `70 selesai`, entri baru ditambahkan di "Selesai baru-baru ini". `PROJECT_STATE.md` § Completed (Ringkasan): entri T-030 ditambahkan di atas, entri terlama (KI-060 + KI-032, 2026-10-12) digeser keluar untuk menjaga batas 5 item — isinya tetap aman di riwayat `COMPLETE_TASK.md`.
+
+### Proses & verifikasi
+- Dikerjakan Mark UI Engineer (implementasi), direview Ridwan Architecture Reviewer (0 temuan), di-QA Najwa QA Engineer: golden path Week/Month/Mobile Agenda PASS, negative case status lain tidak berubah PASS, dialog konfirmasi + loading state PASS, dark/light mode PASS, 726 test lulus/0 failed, `tsc --noEmit`/`eslint` bersih.
+- Desain tombol kedua ini dikonfirmasi langsung oleh King Rezi di chat, bukan via Claude Design terlebih dulu — gap terhadap rule 17 `AGENTS.md` ditemukan saat QA, lalu ditutup belakangan secara paralel oleh Neymar Product Designer yang menyinkronkan `components/popover.html` sebagai LOCKED PATTERN (bukan bagian task ini).
+
+### Known (housekeeping kecil, belum dibereskan)
+- 1 post test "Test Cancel Schedule T-030.3" masih nyangkut sebagai Draft di DB dev (dibuat Mark, direuse Najwa) — belum dihapus karena delete permanen di luar wewenang eksekusi otonom AI. Mirip pola KI-033; tidak dibuatkan KI baru karena dampaknya kecil dan lokal ke DB dev.
+
+### Catatan
+- Perubahan dokumentasi sesi ini **belum di-commit** — dibiarkan di working tree sesuai instruksi King Rezi untuk direview/commit terpisah.
+
 ## 2026-10-13 — Penghalang staging ditutup: migrasi T-051 dan sisa KI-025
 
 ### Fixed
