@@ -1138,7 +1138,7 @@ dimigrasikan, memastikan tidak ada sisa Astryx di codebase.
 
 ### T-103 · Kunci Pola Implementasi shadcn per Komponen di Claude Design (cegah drift KI-054/KI-055)
 
-`⏳ Not Started` (2026-09-10) · **Domain** Design System / Governance — lintas Claude Design + `AGENTS.md`/agent docs, bukan domain kode produk biasa (lihat catatan Domain di bawah) · **ADR** — · **Depends** —
+`✅ Done` (2026-09-10) · **Domain** Design System / Governance — lintas Claude Design + `AGENTS.md`/agent docs, bukan domain kode produk biasa (lihat catatan Domain di bawah) · **ADR** — · **Depends** —
 **Baca dulu:** paragraf "Latar belakang" di bawah (ringkasan KI-054/KI-055 — detail lengkap keduanya sudah Resolved, diarsipkan di `COMPLETE_TASK.md`, tidak lagi ada entrinya di `PROJECT_STATE.md`) · `readme.md` (Claude Design project "Social Media Management") § Components · `AGENTS.md` rule 15–17 · `.claude/agents/README.md`
 
 **Prioritas: dikerjakan LEBIH DULU dari task lain di backlog** (permintaan

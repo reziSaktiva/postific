@@ -6,7 +6,7 @@
 * **Active Mode:** Ready for Development — implementasi fitur produk sesuai Architecture & Engineering Baseline
 * **Top Next Tasks:** **T-048 🟡 In Progress** — wire JOB-04 Analytics Sync (T-048.1–T-048.3 di kode, T-048.4 verifikasi staging belum) — lihat `tasks/v03-analytics-mvp.md` § T-048. **T-037 Perkaya aturan coding** tetap kontinu (🟡 In Progress). **T-112 ✅ Done (5/5 subtask, 2026-10-09)** — wiring `IOutstandAdapter.importPosts`/`fetchImportJobStatus` ke endpoint Outstand sungguhan (ADR-123). Salinan ID dari **Fokus sekarang** di [`TASKS.md`](TASKS.md). Rilis terakhir tuntas: **v0.4 Engagement MVP 6/7 task** (2026-10-06, sisa T-055 Could Have tidak blocking) dan **v0.3 Analytics MVP 8/8 task** (2026-09-21) dengan sisa T-048. Riwayat detail per task: lihat **Completed (Ringkasan)** di bawah / `COMPLETE_TASK.md`.
 * **Blocker:** 1 blocker aktif (env var Google OAuth belum diisi, KI-015) — lihat section **Blockers** di bawah. Blocker Outstand (KI-003, `OUTSTAND_API_KEY` + Real OutstandAdapter) sudah **Resolved (2026-09-24)**. Railway staging sudah live & terverifikasi (2026-08-14); JOB_SECRET juga sudah diisi di Railway staging. Tidak memblokir M8.
-* **Backlog task lengkap:** [`TASKS.md`](TASKS.md) — 91 task per release (v0.1 → v1.0, + v0.7 migrasi Astryx→shadcn/ui, ADR-097), detail di `tasks/`. Jangan cari detail task di file ini.
+* **Backlog task lengkap:** [`TASKS.md`](TASKS.md) — 99 task per release (v0.1 → v1.0, + v0.7 migrasi Astryx→shadcn/ui, ADR-097), detail di `tasks/`. Jangan cari detail task di file ini.
 * **KI-073–080 Resolved (2026-09-26)** — 4 bug publish Instagram (caption wajib untuk Story, Story publish tanpa media, upload media >1MB gagal, avatar akun tidak tampil di sidebar) diperbaiki + diverifikasi live ke akun Instagram/Facebook real (ADR-120). 2 bug turunan ditemukan saat verifikasi (akun `disconnected` tidak bisa reconnect; callback OAuth silent-success untuk conflict genuine) diperbaiki via **ADR-122**. Plus **KI-080** (baru+langsung Resolved) — Railway staging build gagal (`next.config.ts` tidak bisa resolve import workspace `@social/shared`) diperbaiki di branch terpisah sebelum masuk ke fix KI-078/079.
 * Detail phase/mode/issue ada di section di bawah. Riwayat completed/ADR lengkap: lihat `COMPLETE_TASK.md` (⚠️ jangan dibaca AI kecuali diperintah)/`DECISIONS.md`.
 
@@ -111,7 +111,7 @@ amandemen ADR-038 & ADR-041).
 
 ## Next Tasks
 
-Daftar lengkap 72 task (v0.1 → v1.0) beserta subtask, dependency, rantai
+Daftar lengkap 99 task (v0.1 → v1.0) beserta subtask, dependency, rantai
 blocker, catatan urutan rilis, dan keputusan terbuka yang menunggu King
 Rezi — semuanya **hanya** di **[`TASKS.md`](TASKS.md)** (section **Fokus
 sekarang** + **Keputusan terbuka**). Snapshot di atas sudah menyalin ID +
@@ -281,20 +281,25 @@ code secara fungsional — tidak bisa dicapai lewat alur user manapun saat
 ini, hanya dipakai di unit test.
 
 **Resolved (2026-09-07, ADR-100):** King Rezi memutuskan status ini bukan
-dead code — direservasi untuk metode invite **"Kirim via Email"** (T-007.7,
-masih blocked T-005). Desain alurnya sudah dikunci di ADR-100: baris
+dead code — direservasi untuk metode invite **"Kirim via Email"** (T-007.7).
+Desain alurnya sudah dikunci di ADR-100: baris
 `workspace_members` dibuat langsung `Pending` saat invite dikirim via
-email, lalu diupdate jadi `Active` saat user accept. Implementasi konkret
-menunggu T-005 selesai — dipindah jadi bagian scope resmi **T-007.7**,
-bukan lagi Known Issue berdiri sendiri.
+email, lalu diupdate jadi `Active` saat user accept. Dipindah jadi bagian
+scope resmi **T-007.7**, bukan lagi Known Issue berdiri sendiri.
+
+**Update (2026-10-12):** **T-007.7 sudah ✅ Done** (lihat
+`tasks/v01-foundation.md` § T-007) — diimplementasikan via Resend (adapter
+yang sama dikunci T-110), **tanpa menunggu T-005** seperti dugaan awal di
+atas. T-005 (provider email transactional untuk seluruh app) sendiri tetap
+**Open**, tidak ikut tertutup oleh penyelesaian T-007.7 ini.
 
 ### KI-053 · Invite via Copy Link — email tidak diverifikasi kepemilikan inbox, rawan identity takeover
 
 | Field | Value |
 |-------|-------|
-| Status | Promoted to T-110 (2026-09-28) |
+| Status | Promoted to T-110 (2026-09-28) — **T-110 ✅ Done (2026-10-06, commit `bad28cb`)**, implementasi selesai & ter-commit di `staging`; drift dokumentasi (checklist/status belum diupdate) ditemukan & ditutup 2026-10-12, lihat `tasks/v01-foundation.md` § T-110. Satu gap terbuka: verifikasi E2E browser (email A vs email B beda orang) belum tercatat buktinya |
 | Kategori | Security / Bug |
-| Terkait | T-007.1, T-093, KI-001, ADR-080, ADR-096 |
+| Terkait | T-007.1, T-093, T-110, KI-001, ADR-080, ADR-096 |
 
 Ditemukan King Rezi saat diskusi (2026-09-07): kalau invite lewat **Copy
 Link** ditujukan ke email A tapi link-nya (sengaja atau tidak) terbuka oleh
@@ -680,11 +685,11 @@ seluruh daftar Known Issues.
 
 ## Completed (Ringkasan)
 
+* **T-110 ✅ TUNTAS 5/5 subtask — Verifikasi kepemilikan email di accept-invite, KI-053 (2026-10-12, implementasi asli commit `bad28cb` 2026-10-06)** — audit dokumentasi menemukan seluruh T-110 (Resend adapter, alur OTP, guard server, UI `pending-verification`, unit test) sudah diimplementasikan & ter-commit ke `staging` sejak 2026-10-06, tapi checklist/status di `TASKS.md`/`tasks/v01-foundation.md`/`PROJECT_STATE.md` belum diupdate — murni drift dokumentasi, tidak ada kode baru. **Gap terbuka:** verifikasi end-to-end browser nyata (email A vs email B dibuka beda orang) belum tercatat buktinya di `COMPLETE_TASK.md`. Detail: `tasks/v01-foundation.md` § T-110, `COMPLETE_TASK.md`.
 * **KI-060 + KI-032 ✅ Resolved (2026-10-12, ADR-125)** — akun tujuan ikut tersimpan saat Save Draft, dan Account Selector terisi lagi saat draft atau post terjadwal dibuka. Publish Now dari Queue bisa langsung ke konfirmasi kalau caption, akun, dan media sudah lengkap. Tanggal/jam jadwal tetap belum tersimpan. Detail: `COMPLETE_TASK.md`.
 * **KI-043 ✅ Resolved (2026-10-12)** — caption sementara di browser (localStorage) ikut dihapus setelah Schedule dan Publish Now berhasil pada New Post, sama seperti Save Draft. Edit Draft tidak menghapus caption New Post yang belum disimpan. Detail: `COMPLETE_TASK.md`.
 * **Nama Produk Final "Postific" ✅ Done, ADR-124 (2026-10-09)** — King Rezi menetapkan nama produk final "Postific" (bukan lagi "Social Media Management (Working Title)"). Scope penuh: kode (package scope `@social/*` → `@postific/*` di `package.json` × 3 + ±150 import di `apps/web/src` + alias tsconfig/vitest/eslint, `bun.lock` regenerate, `typecheck`+`test` 649 pass) dan dokumentasi baseline (`README.md`, `AGENTS.md` judul, `PROJECT_OVERVIEW.md`, `ARCHITECTURE_OVERVIEW.md`, seluruh `product-discovery/**`) — hanya untuk pemakaian proper-noun, frasa kategori generik dibiarkan. Sengaja TIDAK diubah: badan ADR lama/`COMPLETE_TASK.md` (historical), referensi project Claude Design (masih literal "Social Media Management" di sistem eksternal), nama repo GitHub/Railway/folder lokal (resource eksternal, butuh aksi terpisah). Detail: `COMPLETE_TASK.md`.
 * **T-112 ✅ TUNTAS 5/5 subtask — Wiring `importPosts`/`fetchImportJobStatus` Outstand sungguhan, ADR-123 (2026-10-09)** — T-112.1–T-112.4 (verifikasi wire-format OpenAPI + implementasi `RealOutstandAdapter`) sudah selesai sesi sebelumnya. T-112.5 (verifikasi end-to-end) sempat tertunda 3 sesi karena cooldown manual 24 jam + keterbatasan sandbox, lalu King Rezi menemukan bug baru saat akhirnya mencoba: "Sync Now" selalu gagal status `pending` karena `ImportPostsTriggerUseCase.runImportSync` hanya cek status sekali padahal job Outstand async. Elon Backend Engineer menambahkan `pollImportJobStatus` (polling 2 detik, timeout 25 detik, param `sleep` injeksi test) — review Ridwan bersih, 648 passed/6 skipped/0 failed. Verifikasi E2E akhirnya berhasil: akun Facebook "Cook It Real Good" menarik 16+ post asli berstatus `Imported` (caption+badge benar). Observasi non-blocking: thumbnail media di popover Imported belum render (`mediaUrls` sudah benar di backend) — terkait rancangan Claude Design yang masih `blocked`, bukan bug T-112. Detail lengkap: `tasks/v02-publishing-mvp.md` § T-112.
-* **T-090 ✅ TUNTAS 5/5 subtask — Import Posts dari Social Account, ADR-093 (2026-10-08)** — Elon Backend Engineer (T-090.1–.4: enum `ContentStatus.Imported` + migration, kontrak ACL `IOutstandAdapter.importPosts`, `JOB-05`/`JOB-06` trigger+webhook) dan Mark UI Engineer (T-090.5: badge `Imported` variant `outline`, `CalendarPostPopover` read-only — link "Lihat di [Platform] →" menggantikan "Buka Draft Editor", `SyncNowButton` baru di Connected Accounts dengan RBAC hide-total untuk Creator; filter exclude `Imported` di Calendar dihapus). QA Najwa menemukan bug crash: `getOutstandAdapter()` tanpa `OUTSTAND_API_KEY` melempar `Error` polos (tidak tertangkap `toActionError`) — diperbaiki Elon jadi `ExternalServiceError` (dampak lintas-fitur, memperbaiki semua Server Action lain yang memanggil adapter ini). Review Ridwan: bersih. `typecheck`/`lint`/`test` PASS (638 passed/6 skipped/0 failed). **Gap diketahui:** verifikasi visual end-to-end tombol "Sync Now" di browser belum dituntaskan (butuh akses DB untuk fixture akun terhubung, ADR-119 menghapus jalur Fake connect) — bukan bug diketahui, hanya verifikasi tertunda, lihat `tasks/v02-publishing-mvp.md` § T-090. Detail lengkap: `decisions/DECISIONS.md` (ADR-093).
 Berikut ~5 item terakhir yang diselesaikan. Riwayat lengkap (sejak M0): lihat `COMPLETE_TASK.md` — ⚠️ jangan dibaca AI kecuali diperintah eksplisit King Rezi.
 
 ---
