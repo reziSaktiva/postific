@@ -4,7 +4,7 @@
 
 * **Phase / Milestone:** Phase 6 — Implementation · M8 — Development (Sprint 5) · Overall: M7 100%, M8 in progress
 * **Active Mode:** Ready for Development — implementasi fitur produk sesuai Architecture & Engineering Baseline
-* **Top Next Tasks:** **T-048 🟡 In Progress** — wire JOB-04 Analytics Sync (T-048.1–T-048.3 di kode, T-048.4 verifikasi staging belum) — lihat `tasks/v03-analytics-mvp.md` § T-048. **T-037 Perkaya aturan coding** tetap kontinu (🟡 In Progress). **T-112 ✅ Done (5/5 subtask, 2026-10-09)** — wiring `IOutstandAdapter.importPosts`/`fetchImportJobStatus` ke endpoint Outstand sungguhan (ADR-123). Salinan ID dari **Fokus sekarang** di [`TASKS.md`](TASKS.md). Rilis terakhir tuntas: **v0.4 Engagement MVP 6/7 task** (2026-10-06, sisa T-055 Could Have tidak blocking) dan **v0.3 Analytics MVP 8/8 task** (2026-09-21) dengan sisa T-048. Riwayat detail per task: lihat **Completed (Ringkasan)** di bawah / `COMPLETE_TASK.md`.
+* **Top Next Tasks:** **T-037 Perkaya aturan coding** tetap kontinu (🟡 In Progress). **T-048 ✅ Done (4/4 subtask, 2026-10-13)** — wire JOB-04 Analytics Sync, verifikasi staging T-048.4 lolos; 1 gap infra terpisah (service `cron-analytics` 401) dicatat **KI-087**, tidak memblokir rilis. Salinan ID dari **Fokus sekarang** di [`TASKS.md`](TASKS.md). Rilis terakhir tuntas: **v0.4 Engagement MVP 6/7 task** (2026-10-06, sisa T-055 Could Have tidak blocking) dan **v0.3 Analytics MVP 9/9 task** (2026-10-13). Riwayat detail per task: lihat **Completed (Ringkasan)** di bawah / `COMPLETE_TASK.md`.
 * **Blocker:** 1 blocker aktif (env var Google OAuth belum diisi, KI-015) — lihat section **Blockers** di bawah. Blocker Outstand (KI-003, `OUTSTAND_API_KEY` + Real OutstandAdapter) sudah **Resolved (2026-09-24)**. Railway staging sudah live & terverifikasi (2026-08-14); JOB_SECRET juga sudah diisi di Railway staging. Tidak memblokir M8.
 * **Backlog task lengkap:** [`TASKS.md`](TASKS.md) — 99 task per release (v0.1 → v1.0, + v0.7 migrasi Astryx→shadcn/ui, ADR-097), detail di `tasks/`. Jangan cari detail task di file ini.
 * **KI-073–080 Resolved (2026-09-26)** — 4 bug publish Instagram (caption wajib untuk Story, Story publish tanpa media, upload media >1MB gagal, avatar akun tidak tampil di sidebar) diperbaiki + diverifikasi live ke akun Instagram/Facebook real (ADR-120). 2 bug turunan ditemukan saat verifikasi (akun `disconnected` tidak bisa reconnect; callback OAuth silent-success untuk conflict genuine) diperbaiki via **ADR-122**. Plus **KI-080** (baru+langsung Resolved) — Railway staging build gagal (`next.config.ts` tidak bisa resolve import workspace `@social/shared`) diperbaiki di branch terpisah sebelum masuk ke fix KI-078/079.
@@ -18,7 +18,7 @@
 | ------------ | ---------- |
 | Version      | 1.1.1      |
 | Status       | Active     |
-| Last Updated | 2026-10-12 |
+| Last Updated | 2026-10-13 |
 
 ---
 
@@ -464,6 +464,26 @@ tapi data historis `publishedAt` di DB tetap kosong untuk seluruh post yang
 sudah tayang. Non-blocking, gap serupa pola **KI-049**
 (`failedAt`/`failureReason` juga tidak pernah ditulis). Tidak memblokir M8.
 
+### KI-087 · Service Railway `cron-analytics` (trigger harian JOB-04) membalas 401 — fix shell-expansion tidak cukup, diduga mismatch `JOB_SECRET`
+
+| Field | Value |
+|-------|-------|
+| Status | Open — butuh King Rezi verifikasi langsung nilai `JOB_SECRET` di Railway dashboard |
+| Kategori | Bug — Infra / Railway Cron |
+| Terkait | T-048 (✅ Done, tidak diblokir temuan ini — lihat `tasks/v03-analytics-mvp.md` § T-048.4) |
+
+Ditemukan King Rezi (2026-10-13) saat verifikasi end-to-end T-048.4: service Railway `cron-analytics` (`project 53617b57-0389-4849-8986-bea11a493737`, environment staging, jadwal `0 0 * * *`, trigger manual lewat `?type=analytics`) selalu membalas **401 Unauthorized** dari `/api/jobs/run` (`apps/web/src/app/api/jobs/run/route.ts`) — bukan bug di handler/use-case JOB-04 sendiri, murni gagal di pengecekan `X-Job-Secret` paling awal (baris 60-66 route tersebut). **Tidak memblokir rilis** karena `cron-analytics` bukan satu-satunya jalur pengisi data — fan-out harian yang benar-benar dipakai produksi menumpang cron menit (`railway.cron.json`, service `cron`) sesuai desain T-048.3, dan jalur itu sudah terverifikasi jalan (Home/`/analyze` menampilkan data asli).
+
+**Investigasi (Jokowi, via Railway MCP):**
+1. Dibandingkan config `startCommand` service `cron-analytics` vs `cron` (yang sudah terbukti jalan benar): `cron-analytics` memanggil curl langsung tanpa dibungkus `sh -c '...'` (beda dari `cron` yang membungkusnya) — dugaan awal: `$JOB_SECRET` tidak ter-expand shell, terkirim literal.
+2. Fix diterapkan: `startCommand` `cron-analytics` diubah ke pola `sh -c '...'` yang sama dengan `cron` (diterapkan langsung ke service Railway staging, bukan lewat PR — `railway.cron.analytics.json` di repo memang sudah tidak merepresentasikan config asli service ini, lihat catatan T-048.3).
+3. **Retest 1x trigger manual (2026-10-13T03:31 UTC, via cronSchedule sementara)** — masih membalas 401. Dugaan #1 terbukti salah/tidak cukup: kemungkinan Railway sudah menjalankan `startCommand` custom-image lewat shell oleh default (terbukti dari format output `-w` yang konsisten tampil di kedua versi command, before/after fix), jadi masalah bukan di situ.
+4. Kemungkinan akar masalah sebenarnya: nilai variabel `JOB_SECRET` yang di-set khusus untuk service `cron-analytics` **tidak benar-benar cocok** dengan nilai `JOB_SECRET` service `web` (meski pernah dilaporkan "sama di ketiga service" — laporan itu kemungkinan tidak terverifikasi langsung). **AI tidak membaca atau menuliskan nilai secret ini** — dibatasi kebijakan penanganan kredensial (`mcp__railway__list-variables` ditolak otomatis oleh classifier saat dicoba) — jadi verifikasi/perbaikan nilai aktual perlu dilakukan King Rezi langsung di Railway dashboard (bandingkan/sinkronkan `JOB_SECRET` ketiga service: `web`, `cron`, `cron-analytics`).
+
+**Rencana follow-up:** setelah King Rezi memverifikasi/menyamakan nilai `JOB_SECRET`, retest 1x trigger manual (jadwal boleh digeser sementara untuk uji cepat, lalu dikembalikan ke `0 0 * * *` — pola yang sama dipakai investigasi di atas) untuk konfirmasi 200, baru tutup KI ini.
+
+---
+
 ### KI-086 · Reconnect akun Facebook `disconnected`/`reconnect-required` adalah dead flow — tidak ada jalur apa pun yang mengaktifkannya kembali
 
 | Field | Value |
@@ -685,11 +705,11 @@ seluruh daftar Known Issues.
 
 ## Completed (Ringkasan)
 
+* **T-048 ✅ TUNTAS 4/4 subtask — Wire JOB-04 Analytics Sync ke job runner + Railway Cron harian (2026-10-13)** — verifikasi end-to-end T-048.4 lolos: Home (T-042) dan `/analyze` (T-043/T-046/T-047) menampilkan data metrik asli di staging, diisi fan-out harian yang menumpang cron menit (`railway.cron.json`, desain T-048.3). Gap infra terpisah ditemukan saat verifikasi (service `cron-analytics` jadwal tengah malam membalas 401) **tidak memblokir** closure T-048 karena bukan satu-satunya jalur pengisi data — dicatat sebagai **KI-087**, masih Open, butuh King Rezi verifikasi nilai `JOB_SECRET` langsung di Railway dashboard. Detail: `tasks/v03-analytics-mvp.md` § T-048, `COMPLETE_TASK.md`.
 * **T-110 ✅ TUNTAS 5/5 subtask — Verifikasi kepemilikan email di accept-invite, KI-053 (2026-10-12, implementasi asli commit `bad28cb` 2026-10-06)** — audit dokumentasi menemukan seluruh T-110 (Resend adapter, alur OTP, guard server, UI `pending-verification`, unit test) sudah diimplementasikan & ter-commit ke `staging` sejak 2026-10-06, tapi checklist/status di `TASKS.md`/`tasks/v01-foundation.md`/`PROJECT_STATE.md` belum diupdate — murni drift dokumentasi, tidak ada kode baru. **Gap terbuka:** verifikasi end-to-end browser nyata (email A vs email B dibuka beda orang) belum tercatat buktinya di `COMPLETE_TASK.md`. Detail: `tasks/v01-foundation.md` § T-110, `COMPLETE_TASK.md`.
 * **KI-060 + KI-032 ✅ Resolved (2026-10-12, ADR-125)** — akun tujuan ikut tersimpan saat Save Draft, dan Account Selector terisi lagi saat draft atau post terjadwal dibuka. Publish Now dari Queue bisa langsung ke konfirmasi kalau caption, akun, dan media sudah lengkap. Tanggal/jam jadwal tetap belum tersimpan. Detail: `COMPLETE_TASK.md`.
 * **KI-043 ✅ Resolved (2026-10-12)** — caption sementara di browser (localStorage) ikut dihapus setelah Schedule dan Publish Now berhasil pada New Post, sama seperti Save Draft. Edit Draft tidak menghapus caption New Post yang belum disimpan. Detail: `COMPLETE_TASK.md`.
 * **Nama Produk Final "Postific" ✅ Done, ADR-124 (2026-10-09)** — King Rezi menetapkan nama produk final "Postific" (bukan lagi "Social Media Management (Working Title)"). Scope penuh: kode (package scope `@social/*` → `@postific/*` di `package.json` × 3 + ±150 import di `apps/web/src` + alias tsconfig/vitest/eslint, `bun.lock` regenerate, `typecheck`+`test` 649 pass) dan dokumentasi baseline (`README.md`, `AGENTS.md` judul, `PROJECT_OVERVIEW.md`, `ARCHITECTURE_OVERVIEW.md`, seluruh `product-discovery/**`) — hanya untuk pemakaian proper-noun, frasa kategori generik dibiarkan. Sengaja TIDAK diubah: badan ADR lama/`COMPLETE_TASK.md` (historical), referensi project Claude Design (masih literal "Social Media Management" di sistem eksternal), nama repo GitHub/Railway/folder lokal (resource eksternal, butuh aksi terpisah). Detail: `COMPLETE_TASK.md`.
-* **T-112 ✅ TUNTAS 5/5 subtask — Wiring `importPosts`/`fetchImportJobStatus` Outstand sungguhan, ADR-123 (2026-10-09)** — T-112.1–T-112.4 (verifikasi wire-format OpenAPI + implementasi `RealOutstandAdapter`) sudah selesai sesi sebelumnya. T-112.5 (verifikasi end-to-end) sempat tertunda 3 sesi karena cooldown manual 24 jam + keterbatasan sandbox, lalu King Rezi menemukan bug baru saat akhirnya mencoba: "Sync Now" selalu gagal status `pending` karena `ImportPostsTriggerUseCase.runImportSync` hanya cek status sekali padahal job Outstand async. Elon Backend Engineer menambahkan `pollImportJobStatus` (polling 2 detik, timeout 25 detik, param `sleep` injeksi test) — review Ridwan bersih, 648 passed/6 skipped/0 failed. Verifikasi E2E akhirnya berhasil: akun Facebook "Cook It Real Good" menarik 16+ post asli berstatus `Imported` (caption+badge benar). Observasi non-blocking: thumbnail media di popover Imported belum render (`mediaUrls` sudah benar di backend) — terkait rancangan Claude Design yang masih `blocked`, bukan bug T-112. Detail lengkap: `tasks/v02-publishing-mvp.md` § T-112.
 Berikut ~5 item terakhir yang diselesaikan. Riwayat lengkap (sejak M0): lihat `COMPLETE_TASK.md` — ⚠️ jangan dibaca AI kecuali diperintah eksplisit King Rezi.
 
 ---

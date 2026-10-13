@@ -8,6 +8,62 @@ Seluruh perubahan penting pada dokumentasi maupun implementasi project dicatat p
 
 ---
 
+## 2026-10-13 — T-048.4 verifikasi staging lolos, T-048 ditutup ✅; investigasi infra `cron-analytics` 401 (KI-087 baru, Open)
+
+### Konteks
+King Rezi memverifikasi langsung di staging bahwa Home (T-042) dan
+`/analyze` (T-043/T-046/T-047) sudah menampilkan data metrik asli — diisi
+oleh fan-out harian JOB-04 yang menumpang cron menit (`railway.cron.json`,
+desain T-048.3). Kriteria acceptance T-048.4 lolos lewat jalur itu. Saat
+verifikasi, King Rezi juga melaporkan temuan terpisah: service Railway
+`cron-analytics` (jadwal tengah malam, trigger manual `?type=analytics`)
+membalas 401 — gap infra, bukan bug di handler/use-case JOB-04 sendiri.
+
+### T-048 ditutup ✅ Done (4/4 subtask)
+- `tasks/v03-analytics-mvp.md` — T-048.4 ditandai selesai, Status T-048
+  diubah ke ✅ Done dengan catatan KI-087 (gap tidak memblokir closure
+  karena `cron-analytics` bukan satu-satunya jalur pengisi data).
+- `TASKS.md` — indeks v0.3 "8✅·1🟡" → "9✅"; Total "68 selesai" →
+  "69 selesai"; "Fokus aktif" dan "Selesai baru-baru ini" diupdate
+  (T-048 pindah ke daftar selesai).
+- `PROJECT_STATE.md` — Snapshot Top Next Tasks diupdate (T-048 ✅, sisa
+  fokus T-037); Completed (Ringkasan) ditambah entri T-048, entri T-112
+  (2026-10-09, item terlama) dihapus supaya tetap 5 item.
+
+### Investigasi KI-087 (Jokowi, via Railway MCP, atas izin eksplisit King Rezi)
+1. Dibandingkan `startCommand` service `cron-analytics` vs `cron` (sudah
+   jalan benar): `cron-analytics` memanggil curl langsung tanpa dibungkus
+   `sh -c '...'` — dugaan awal: `$JOB_SECRET` tidak ter-expand shell.
+2. Fix diterapkan langsung ke service Railway staging (`update-service`,
+   `startCommand` dibungkus `sh -c '...'` pola sama `cron`) — bukan lewat
+   PR, karena `railway.cron.analytics.json` di repo memang sudah tidak
+   merepresentasikan config asli service ini (dicatat di T-048.3 sejak
+   2026-10-12).
+3. Retest 1x trigger manual (geser `cronSchedule` sementara ke beberapa
+   menit ke depan, lalu dikembalikan ke `0 0 * * *` setelah test) —
+   **2026-10-13T03:31 UTC masih 401**. Dugaan #1 terbukti salah/tidak
+   cukup — bukti: format output `-w` curl konsisten tampil di log
+   before/after fix, menandakan Railway sudah menjalankan `startCommand`
+   custom-image ini lewat shell secara default.
+4. Dugaan akar masalah berikutnya: nilai `JOB_SECRET` khusus
+   `cron-analytics` tidak benar-benar cocok dengan punya service `web`
+   (meski pernah dilaporkan "sama di ketiga service"). **AI tidak
+   membaca/menulis nilai secret ini** — `mcp__railway__list-variables`
+   ditolak otomatis oleh classifier (Credential Materialization) saat
+   dicoba — verifikasi nilai aktual perlu King Rezi langsung di Railway
+   dashboard.
+5. Dicatat sebagai **KI-087** (`PROJECT_STATE.md`), Status Open, dengan
+   rencana follow-up: King Rezi verifikasi/sinkronkan `JOB_SECRET` ketiga
+   service, lalu retest 1x trigger manual untuk konfirmasi 200.
+
+### Catatan
+Tidak ada perubahan kode aplikasi di sesi ini — seluruh perubahan adalah
+(a) dokumentasi status task/KI dan (b) konfigurasi infra Railway
+(`startCommand` service `cron-analytics`, staging), diterapkan langsung
+lewat Railway MCP, bukan lewat commit/PR repo.
+
+---
+
 ## 2026-10-13 — `/docs-consistency-audit` scope "all" (project-manager + 125 ADR + context/ + product-discovery/) — 17 fix mekanis diterapkan, 1 temuan ambigu menunggu keputusan King Rezi
 
 ### Konteks
