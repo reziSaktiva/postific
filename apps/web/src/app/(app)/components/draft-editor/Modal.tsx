@@ -656,10 +656,12 @@ function DraftEditorForm({
    * bawah `mediaItems.length` yang sudah ada — tanpa indikator ini user
    * baru tahu ada masalah setelah klik Save/Schedule/Publish dan kena
    * error server (`assertMediaCountWithinLimit`). Server menolak berdasarkan
-   * TOTAL count, bukan per-item (lihat `content-format-matrix.ts`), jadi
-   * konvensi "kelebihan" di sini murni urutan upload: item index >=
-   * `effectiveMaxMedia` yang di-highlight, konsisten dengan artinya
-   * "hapus media PALING BARU sampai total kembali di bawah batas".
+   * TOTAL count, bukan per-item (lihat `content-format-matrix.ts`).
+   * Urutan grid = urutan `mediaIds` yang tersimpan (upload di-append,
+   * dan `getDraftAction` mengembalikan urutan itu lagi meski
+   * `listByIds` datang sebagai `createdAt desc`). Item index >=
+   * `effectiveMaxMedia` adalah ekor array — media paling baru — yang
+   * perlu dihapus dulu sampai total kembali di bawah batas.
    */
   const overLimitMediaCount = Math.max(
     0,
@@ -1161,10 +1163,11 @@ function DraftEditorForm({
                       // eslint-disable-next-line no-restricted-syntax -- T-024.4: grid preview thumbnail media (multi-media/carousel) — tidak ada primitive shadcn setara, murni Tailwind grid.
                       <div className="grid grid-cols-3 gap-2">
                         {mediaItems.map((item, index) => {
-                          // KI-061 (ADR-107): server menolak berdasarkan TOTAL count
-                          // (`assertMediaCountWithinLimit`), bukan per-item — konvensi
-                          // UI di sini: item index >= effectiveMaxMedia dianggap
-                          // "kelebihan" (upload paling baru yang perlu dihapus dulu).
+                          // KI-061 (ADR-107): server menolak berdasarkan TOTAL count.
+                          // Ekor array = media paling baru karena urutan grid
+                          // mengikuti `mediaIds` (append, dan di-restore oleh
+                          // `getDraftAction`), jadi index >= effectiveMaxMedia
+                          // adalah kelebihan yang perlu dihapus dulu.
                           const isOverLimit = index >= effectiveMaxMedia;
                           return (
                             // eslint-disable-next-line no-restricted-syntax -- T-024.4: tile thumbnail grid preview media (multi-media/carousel) — tidak ada primitive shadcn setara, murni Tailwind.

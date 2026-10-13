@@ -80,6 +80,7 @@ import {
 } from "@/domains/publishing";
 import { WorkspaceService } from "@/domains/workspace";
 import {
+  getDraftAction,
   publishNowAction,
   saveDraftAction,
   scheduleDraftAction,
@@ -147,6 +148,27 @@ describe("draft-editor actions — mediaIds undefined vs [] (T-024.4 fix)", () =
       const callArg = saveDraftSpy.mock.calls[0][0];
       expect(callArg.mediaIds).toEqual([mediaId]);
     });
+
+    it("(d) jumlah media melebihi batas format → { error } dari PublishingDomainError, saveDraft tidak dipanggil", async () => {
+      const older = asMediaId("media-older");
+      const newer = asMediaId("media-newer");
+      vi.spyOn(MediaService.prototype, "listByIds").mockResolvedValue([
+        { id: older } as never,
+        { id: newer } as never,
+      ]);
+      const saveDraftSpy = vi.spyOn(PublishingService.prototype, "saveDraft");
+
+      const result = await saveDraftAction({
+        caption: "hello",
+        mediaIds: [older, newer],
+        activeFormats: [ContentFormat.Story],
+      });
+
+      expect(result).toMatchObject({
+        error: expect.stringMatching(/melebihi batas maksimum 1/),
+      });
+      expect(saveDraftSpy).not.toHaveBeenCalled();
+    });
   });
 
   describe("updateDraftAction", () => {
@@ -188,6 +210,60 @@ describe("draft-editor actions — mediaIds undefined vs [] (T-024.4 fix)", () =
 
       const callArg = updateDraftSpy.mock.calls[0][0];
       expect(callArg.mediaIds).toEqual([mediaId]);
+    });
+
+    it("(d) jumlah media melebihi batas format → { error } dari PublishingDomainError, updateDraft tidak dipanggil", async () => {
+      const older = asMediaId("media-older");
+      const newer = asMediaId("media-newer");
+      vi.spyOn(MediaService.prototype, "listByIds").mockResolvedValue([
+        { id: older } as never,
+        { id: newer } as never,
+      ]);
+      const updateDraftSpy = vi.spyOn(
+        PublishingService.prototype,
+        "updateDraft",
+      );
+
+      const result = await updateDraftAction("post-1", {
+        caption: "hello",
+        mediaIds: [older, newer],
+        activeFormats: [ContentFormat.Story],
+      });
+
+      expect(result).toMatchObject({
+        error: expect.stringMatching(/melebihi batas maksimum 1/),
+      });
+      expect(updateDraftSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("getDraftAction", () => {
+    it("mengembalikan media sesuai urutan post.mediaIds, bukan createdAt desc dari listByIds", async () => {
+      const older = asMediaId("media-older");
+      const newer = asMediaId("media-newer");
+      vi.spyOn(PublishingService.prototype, "getDraftById").mockResolvedValue({
+        ...fakePost(),
+        mediaIds: [older, newer],
+        draftTargets: [],
+      } as never);
+      vi.spyOn(MediaService.prototype, "listByIds").mockResolvedValue([
+        {
+          id: newer,
+          url: "https://cdn.example/newer.jpg",
+          type: "image",
+          filename: "newer.jpg",
+        },
+        {
+          id: older,
+          url: "https://cdn.example/older.jpg",
+          type: "image",
+          filename: "older.jpg",
+        },
+      ] as never);
+
+      const result = await getDraftAction("post-1");
+
+      expect(result.media.map((item) => item.id)).toEqual([older, newer]);
     });
   });
 

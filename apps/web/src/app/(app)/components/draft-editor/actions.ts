@@ -313,13 +313,23 @@ export async function getDraftAction(postId: string): Promise<{
     mediaRepository,
     supabaseMediaStorageAdapter,
   );
-  const mediaItems =
+  const loadedMedia =
     post.mediaIds && post.mediaIds.length > 0
       ? await mediaService.listByIds(
           { workspaceId, mediaIds: post.mediaIds },
           actingUserId,
         )
       : [];
+  // `findByIds` mengurutkan `createdAt desc` (paling baru di index 0).
+  // Grid editor menganggap ekor array = upload paling baru (KI-061:
+  // `index >= effectiveMaxMedia`). Kembalikan urutan `post.mediaIds`
+  // — urutan yang tersimpan saat save, sama dengan append di Modal —
+  // pola sama `resolveOutstandPostMedia` / `resolveThumbnails`.
+  const mediaById = new Map(loadedMedia.map((item) => [item.id, item]));
+  const mediaItems = (post.mediaIds ?? []).flatMap((mediaId) => {
+    const item = mediaById.get(mediaId);
+    return item ? [item] : [];
+  });
 
   return {
     postId: post.id,

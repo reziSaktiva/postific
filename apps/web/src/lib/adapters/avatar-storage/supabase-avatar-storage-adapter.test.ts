@@ -56,17 +56,24 @@ describe("supabaseAvatarStorageAdapter", () => {
       );
     });
 
-    it("throws ExternalServiceError when Supabase Storage returns an upload error", async () => {
+    it("throws ExternalServiceError when Supabase Storage returns an upload error, without the provider message", async () => {
       upload.mockResolvedValue({ error: { message: "bucket not found" } });
 
-      await expect(
-        supabaseAvatarStorageAdapter.uploadAvatar({
+      let caught: unknown;
+      try {
+        await supabaseAvatarStorageAdapter.uploadAvatar({
           userId: "user-1" as never,
           fileBuffer: Buffer.from("fake-bytes"),
           contentType: "image/png",
           extension: "png",
-        }),
-      ).rejects.toThrow(ExternalServiceError);
+        });
+      } catch (error) {
+        caught = error;
+      }
+
+      expect(caught).toBeInstanceOf(ExternalServiceError);
+      expect((caught as Error).message).toBe("Gagal upload avatar.");
+      expect((caught as Error).message).not.toContain("bucket not found");
       expect(getPublicUrl).not.toHaveBeenCalled();
     });
   });
