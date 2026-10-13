@@ -6,7 +6,7 @@ Publish Now — Fitur Resmi Publish Langsung Tanpa Jadwal
 
 ### Status
 
-Accepted
+Accepted — Amended by ADR-074 (2026-08-07, role Manager dihapus, struktur jadi 3 role Owner/Admin/Creator)
 
 ### Date
 

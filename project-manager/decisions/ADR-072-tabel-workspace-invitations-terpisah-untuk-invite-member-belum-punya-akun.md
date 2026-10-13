@@ -6,7 +6,7 @@ Tabel `workspace_invitations` Terpisah — Invite Member Harus Menyasar Orang ya
 
 ### Status
 
-Accepted — Amended by ADR-080 (2026-08-13)
+Accepted — Amended by ADR-080 (2026-08-14)
 
 ### Date
 
