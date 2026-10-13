@@ -2,7 +2,7 @@
 
 import { type ReactNode, useState } from "react";
 
-import { ContentStatus } from "@postific/shared";
+import { ContentStatus, type PostId } from "@postific/shared";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +39,11 @@ export interface CalendarPostPopoverProps {
   entry: CalendarCardEntry;
   /** Trigger — dibungkus `PopoverTrigger asChild`, jadi cukup elemen tunggal yang punya `onClick`/focus bawaan (mis. tombol/`role="button"`). */
   children: ReactNode;
+  /** T-030.3 — handler buka dialog konfirmasi Cancel Schedule (state dilift
+   * ke `CalendarScreen`, pola sama `QueueScreen`/`useConfirmAction`). Opsional
+   * karena hanya dirender saat `entry.status === ContentStatus.Scheduled`;
+   * tidak mengubah apa pun di varian `isImported`. */
+  onCancelSchedule?: (postId: PostId) => void;
 }
 
 /**
@@ -76,12 +81,14 @@ export interface CalendarPostPopoverProps {
 export function CalendarPostPopover({
   entry,
   children,
+  onCancelSchedule,
 }: CalendarPostPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { openEditDraft } = useDraftEditor();
   const platformLabel = PLATFORM_ICON[entry.platform].label;
   const isPublished = entry.status === ContentStatus.Published;
   const isImported = entry.status === ContentStatus.Imported;
+  const isScheduled = entry.status === ContentStatus.Scheduled;
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -213,16 +220,31 @@ export function CalendarPostPopover({
               )}
             </div>
           ) : (
-            <Button
-              variant="default"
-              className="w-full"
-              onClick={() => {
-                setIsOpen(false);
-                openEditDraft(entry.postId);
-              }}
-            >
-              Buka Draft Editor
-            </Button>
+            // eslint-disable-next-line no-restricted-syntax -- T-030.3: layout-only, stack 2 tombol full-width (pola sama branch isImported)
+            <div className="flex flex-col gap-2">
+              <Button
+                variant="default"
+                className="w-full"
+                onClick={() => {
+                  setIsOpen(false);
+                  openEditDraft(entry.postId);
+                }}
+              >
+                Buka Draft Editor
+              </Button>
+              {isScheduled && onCancelSchedule ? (
+                <Button
+                  variant="destructive"
+                  className="w-full"
+                  onClick={() => {
+                    setIsOpen(false);
+                    onCancelSchedule(entry.postId);
+                  }}
+                >
+                  Batalkan Jadwal
+                </Button>
+              ) : null}
+            </div>
           )}
         </div>
       </PopoverContent>
