@@ -68,7 +68,7 @@ File `package.json` di root mendaftarkan semua workspace yang dikelola Bun:
 **Aturan workspace:**
 - Setiap workspace memiliki `package.json` sendiri dengan `name` yang unik.
 - Package dalam workspace saling mereferensi via workspace protocol: `"@postific/shared": "workspace:*"`.
-- Lockfile (`bun.lockb`) ada di root — satu lockfile untuk seluruh monorepo.
+- Lockfile (`bun.lock`) ada di root — satu lockfile untuk seluruh monorepo.
 - Jangan install dependency langsung di root kecuali untuk tooling monorepo-level (misal: TypeScript, ESLint config).
 
 ---
@@ -319,8 +319,8 @@ src/components/
 
 **Aturan:**
 - **shadcn/ui adalah fondasi component system permanen** (ADR-097, membalik
-  ADR-041). Migrasi dari Astryx berjalan incremental per route-segment —
-  lihat `tasks/v07-astryx-shadcn-migration.md`.
+  ADR-041). Migrasi dari Astryx sudah tuntas (rilis v0.7, T-102); riwayatnya
+  di `tasks/v07-astryx-shadcn-migration.md`.
 - `ui/` menampung komponen shadcn hasil copy CLI/MCP; wrapper tambahan dibuat
   hanya untuk komponen kritis, komponen yang dipakai luas, default aplikasi
   yang konsisten, atau adaptasi behavior produk.

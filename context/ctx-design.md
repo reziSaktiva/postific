@@ -29,7 +29,7 @@ Claude Design yang sebelumnya ada di `design/README.md` dipindah ke bagian
 
 | Field       | Value                                                                                                                                                                  |
 | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Project     | `Postific`                                                                                                                                                             |
+| Project     | `Social Media Management`                                                                                                                                              |
 | Project ID  | `84aded99-bb23-49b1-be9f-dd8f21c6873e`                                                                                                                                 |
 | Akses       | claude.ai/design (login akun yang sama dengan Claude Code)                                                                                                             |
 | Sync        | Tool `DesignSync` bawaan Claude Code (native, bukan MCP) — manual/on-request, bukan otomatis (ADR-042)                                                                 |

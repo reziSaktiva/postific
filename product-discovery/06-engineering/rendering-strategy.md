@@ -95,9 +95,11 @@ saja, bukan di ancestor-nya.
 **Scope: mutation saja.** Server Action **tidak** dipakai untuk fetch data
 yang ditampilkan di initial render sebuah page — lihat RS-D02.
 
-**Error handling:** setiap Server Action wajib `try/catch` dan return lewat
-`toActionError()` (detail kontrak di `code-conventions.md` CC-D02) — jangan
-tulis ulang logic mapping error manual per file.
+**Error handling:** Server Action yang mengembalikan `{ error }` wajib
+`try/catch` dan return lewat `toActionError()` (detail kontrak di
+`code-conventions.md` CC-D02) — jangan tulis ulang logic mapping error
+manual per file. Action yang kontraknya `void`, `redirect`, atau `null`
+tidak diubah supaya pemanggilnya tetap sama.
 
 **Revalidation:** panggil `revalidatePath("<path>")` setelah mutation
 sukses jika path itu menampilkan data yang berubah (contoh existing:
