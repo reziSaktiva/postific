@@ -27,7 +27,7 @@ Bun + Next.js 16 + Astryx, workspace `apps/web` + `packages/shared`, ESLint/Pret
 
 | Field         | Value                                                        |
 | ------------- | ------------------------------------------------------------ |
-| **Status**    | ✅ Done — baseline dokumentasi (`rendering-strategy.md`, `code-conventions.md`), penguncian Spacing scale di `design-tokens.md`, dan 3 rule ESLint enforcement sudah selesai & terverifikasi (lint/typecheck/test hijau: 0 error, 209 test passed/3 skipped). 1 subtask (cleanup dashboard) sengaja dibiarkan terbuka, tidak memblokir penutupan — di luar scope ADR-095, lihat **KI-036** |
+| **Status**    | ✅ Done — baseline dokumentasi (`rendering-strategy.md`, `code-conventions.md`), penguncian Spacing scale di `design-tokens.md`, dan 3 rule ESLint enforcement sudah selesai & terverifikasi (lint/typecheck/test hijau: 0 error, 209 test passed/3 skipped). T-094.4 (cleanup dashboard) sempat dibiarkan terbuka di luar scope ADR-095 — sudah diselesaikan 2026-10-13, lihat **KI-036** |
 | **Domain**    | platform/tooling (bukan salah satu domain produk)             |
 | **ADR**       | ADR-095                                                      |
 | **Depends**   | —                                                             |
@@ -38,7 +38,7 @@ Menuliskan konvensi rendering, error handling, dan spacing yang sudah konsisten 
 - [x] **T-094.1** Baseline baru `rendering-strategy.md` dan `code-conventions.md` di `product-discovery/06-engineering/`
 - [x] **T-094.2** Kunci section Spacing di `design-tokens.md` (base 1 unit = 4px, skala 0/0.5/1/1.5/2/3/4/5/6/8 = 0–32px, `TBD` sejak ADR-038 dihapus)
 - [x] **T-094.3** 3 rule ESLint enforcement di `eslint.config.mjs` (domain import boundary via `no-restricted-imports`, larangan `<div>` mentah via `no-restricted-syntax`, `tailwindcss/no-arbitrary-value: "error"`) — 6 lokasi arbitrary-value token-backed existing (`ChannelsSection.tsx`, `ConnectedAccountsList.tsx`) diberi `eslint-disable-next-line` + komentar alasan
-- [ ] **T-094.4** Cleanup `app/(app)/page.tsx` (dashboard) agar fetch data lewat Application Service langsung dari Server Component (RS-D02), bukan `getDashboardSummaryAction` — lihat **KI-036**
+- [x] **T-094.4** Cleanup `app/(app)/page.tsx` (dashboard) agar fetch data lewat Application Service langsung dari Server Component (RS-D02), bukan `getDashboardSummaryAction` — lihat **KI-036**. **Selesai 2026-10-13** (branch `fix/close-ki-batch-014-024-036`, belum di-commit): `page.tsx` sekarang panggil `AnalyticsService.getDashboardSummary` langsung, pola sama `publish/calendar/page.tsx`. Review Ridwan bersih, QA Najwa PASS (dashboard render benar). Sesi yang sama juga menutup 2 exception terkait (RS-D03, CC-D02) yang ditemukan Ridwan 2026-08-28 — detail di KI-036 (`PROJECT_STATE.md`), tidak masuk subtask formal terpisah karena di luar scope T-094 literal.
 
 ---
 
@@ -358,7 +358,9 @@ Semua route `/account/*` dan `/settings/*` sebelumnya masih placeholder "Scaffol
 - [ ] **T-016.4** `/account/notifications` — preferensi notifikasi (butuh **T-036**, v0.2 ⏳) — tetap di luar scope, tidak dikerjakan.
 - [x] **T-016.5** Dialog konfirmasi Logout (ADR-049 Tier 2) — Memperbaiki pelanggaran aktif ADR-049/NP-D10 yang ditemukan saat eksplorasi: `handleLogout` di `apps/web/src/app/[slug]/components/WorkspaceSideNav.tsx` sebelumnya dipanggil langsung dari dropdown "Logout" tanpa konfirmasi apapun. Fix: tambah `AlertDialog` (komponen Astryx, konsumen pertama di `apps/web`) — title "Logout dari akun ini?", description mengacu ADR-049/NP-D10, `cancelLabel="Batal"`, `actionLabel="Logout"`. Logic `handleLogout` (signOut + redirect + refresh) tidak berubah, hanya digating di belakang dialog. Verifikasi: Cancel membatalkan tanpa efek, Escape berperilaku sama seperti Cancel, Confirm benar-benar sign-out + redirect `/login`, dites di light & dark mode.
 
-> **Catatan (belum jadi Known Issue formal, lihat `PROJECT_STATE.md` KI-014):** belum ada unit test Vitest baru untuk `IdentityService`/`IIdentityRepository`/`SupabaseAvatarStorageAdapter` (domain `identity` yang baru diisi). Review arsitektur Ridwan sudah cek boundary (bersih), tapi coverage test-nya nihil. Bukan blocker penutupan T-016.1/.2/.3/.5 — semua sudah lolos QA browser end-to-end.
+> **Catatan (lihat `PROJECT_STATE.md` § KI-014):** belum ada unit test Vitest baru untuk `IdentityService`/`IIdentityRepository`/`SupabaseAvatarStorageAdapter` (domain `identity` yang baru diisi). Review arsitektur Ridwan sudah cek boundary (bersih), tapi coverage test-nya nihil. Bukan blocker penutupan T-016.1/.2/.3/.5 — semua sudah lolos QA browser end-to-end.
+>
+> **Update (2026-10-13) — KI-014 Resolved (implementasi selesai, branch `fix/close-ki-batch-014-024-036`, belum di-commit):** 3 file unit test baru ditambahkan — `identity.service.test.ts`, `identity.repository.test.ts`, `supabase-avatar-storage-adapter.test.ts` — memakai double/fake lokal, bukan hit Prisma/Supabase asli. Review Ridwan: bersih, tidak ada pelanggaran boundary domain. QA Najwa: 20/20 test PASS, full suite 720 passed/6 skipped, 0 regresi. Detail: `COMPLETE_TASK.md`.
 
 ---
 
@@ -371,7 +373,7 @@ Semua route `/account/*` dan `/settings/*` sebelumnya masih placeholder "Scaffol
 | **Status**    | ✅ Done — seluruh subtask T-039.1–.5 selesai (2026-09-08): T-039.4 (onboarding picker workspace) sudah diimplementasikan, lolos review arsitektur Ridwan (tidak ada temuan) dan QA Najwa end-to-end browser (6/6 skenario PASS) — kode sudah di-commit & push, dibuka sebagai PR [#109](https://github.com/reziSaktiva/social-media-management/pull/109) dari branch `feature/t-039-4-onboarding-workspace-picker` (checkout dari `staging`) ke `staging`, **belum di-merge**, menunggu King Rezi |
 | **Domain**    | workspace · platform                                                    |
 | **ADR**       | ADR-076                                                                  |
-| **Terkait**   | KI-023, KI-024 (`PROJECT_STATE.md`) — KI-024 ditemukan saat T-039.5, belum ada task formal |
+| **Terkait**   | KI-023, KI-024 (`PROJECT_STATE.md`) — KI-024 ditemukan saat T-039.5; **Resolved 2026-10-13** (branch `fix/close-ki-batch-014-024-036`, belum di-commit), tidak ada task formal terpisah |
 | **Depends**   | T-009 ✅ (App Shell), T-006 ✅ (Onboarding lama), T-016 🟡 (Account settings) |
 | **Baca dulu** | `decisions/ADR-076-workspace-context-via-cookie-hapus-slug-konsolidasi-settings-organization-account.md` · `05-architecture/auth-architecture.md` (Workspace Context Resolution, Middleware Strategy, Onboarding Flow) · `06-engineering/monorepo-setup.md` (App Router Structure, MS-D03) · `04-ux/information-architecture.md` (section Settings) |
 
@@ -476,6 +478,16 @@ T-039.5 menutup sisa gap render sidebar Settings di KI-023 (bersama ADR-077).
 **Update (2026-09-08):** T-039.4 (onboarding picker workspace) juga sudah
 selesai diimplementasikan (lihat catatan eksekusi T-039.4 di atas) — seluruh
 scope KI-023/T-039 sekarang tuntas, tidak ada sisa subtask terbuka.
+
+**Update (2026-10-13) — KI-024 Resolved:** `SettingsSideNav.tsx` diubah —
+back-button (28px, `Button asChild size="icon-xs"`) dan judul "Settings"
+(`<span>` statis) dipisah jadi 2 elemen sesuai spec
+`.settings-sidebar-header`/`.settings-back-btn`/`.settings-sidebar-title`
+di Claude Design. Lint bersih, review Ridwan bersih, QA Najwa PASS (browser
+verification light+dark mode, back-button navigasi berfungsi). Gate
+DesignSync (T-103.3) dijalankan ulang di sesi utama — dikonfirmasi 1:1
+cocok spec Claude Design. Branch `fix/close-ki-batch-014-024-036`, belum
+di-commit. Detail: `COMPLETE_TASK.md`.
 
 **Catatan spin-off (2026-08-24):** Setelah T-039.4 didesain, King Rezi
 menemukan gap terpisah — tidak ada cara *sengaja* pindah workspace setelah

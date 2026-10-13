@@ -8,6 +8,112 @@ Seluruh perubahan penting pada dokumentasi maupun implementasi project dicatat p
 
 ---
 
+## 2026-10-13 — KI-014, KI-024, KI-036, KI-037, KI-061 ditutup dalam satu sesi (⚠️ belum di-commit)
+
+### Konteks
+Sesi kerja di branch `fix/close-ki-batch-014-024-036` (dibuat dari
+`docs/close-ki087-cron-analytics-401`). **Seluruh perubahan kode di bawah
+ini masih di working tree — belum ada commit sama sekali**, menunggu izin
+eksplisit King Rezi (rule 13 AGENTS.md). Lima Known Issue berikut
+diimplementasikan, direview Ridwan Architecture Reviewer, dan di-QA Najwa
+QA Engineer dalam sesi yang sama.
+
+### KI-014 — Domain `identity` belum punya unit test
+Prabowo Feature Engineer menambah 3 file unit test baru:
+`apps/web/src/domains/identity/services/identity.service.test.ts`,
+`apps/web/src/lib/repositories/identity/identity.repository.test.ts`,
+`apps/web/src/lib/adapters/avatar-storage/supabase-avatar-storage-adapter.test.ts`
+— memakai double/fake lokal, tidak hit Prisma/Supabase asli. Review Ridwan:
+bersih, tidak ada pelanggaran boundary domain. QA Najwa: 20/20 test PASS,
+full suite 720 passed/6 skipped, 0 regresi.
+
+### KI-024 — Header sidebar Settings belum sesuai spec Design System
+Mark UI Engineer mengubah
+`apps/web/src/app/(app)/settings/components/SettingsSideNav.tsx` — memisah
+back-button (28px, `Button asChild size="icon-xs"`) dari judul "Settings"
+(`<span>` statis) sesuai spec `.settings-sidebar-header`/
+`.settings-back-btn`/`.settings-sidebar-title` di Claude Design. Lint
+bersih. Review Ridwan: bersih. QA Najwa: PASS browser verification
+light+dark mode, back-button navigasi berfungsi. Gate DesignSync (T-103.3)
+dijalankan ulang di sesi utama — dikonfirmasi 1:1 cocok spec Claude Design,
+tidak ada drift sejak 2026-08-11.
+
+### KI-036 — 3 exception arsitektur (RS-D02, RS-D03, CC-D02)
+Prabowo Feature Engineer memperbaiki ketiganya:
+- **RS-D02**: `apps/web/src/app/(app)/page.tsx` sekarang panggil
+  `AnalyticsService.getDashboardSummary` langsung dari Server Component,
+  pola sama `publish/calendar/page.tsx`, menutup **T-094.4**.
+- **RS-D03**: `"use client"` dihapus dari top-level
+  `apps/web/src/app/(app)/settings/account/preferences/page.tsx`,
+  interactivity dipindah ke leaf baru
+  `apps/web/src/app/(app)/settings/account/preferences/ThemeModeToggle.tsx`.
+- **CC-D02**: `try/catch` + `toActionError()`/`isKnownActionError`
+  ditambahkan di `apps/web/src/app/(app)/components/draft-editor/actions.ts`
+  (return type berubah ke union `{postId}|{error}`, seluruh caller
+  diverifikasi ikut update, typecheck 0 error),
+  `apps/web/src/app/(app)/settings/account/actions.ts`, dan
+  `apps/web/src/app/onboarding/components/actions.ts`.
+
+Review Ridwan: bersih, breaking change return type `draft-editor/actions.ts`
+sudah diverifikasi semua caller lain. QA Najwa: PASS (dashboard render
+benar, toggle tema berfungsi, save/update/delete draft golden path
+berfungsi).
+
+### KI-037 — `design-tokens.md` § Spacing belum disinkronkan ke Claude Design
+Dikerjakan di sesi utama (bukan subagent — limitasi teknis DesignSync di
+sesi subagent, lihat `.claude/agents/README.md`): `foundations/layout.html`
+di Claude Design ditambah 3 unit spacing yang sebelumnya hilang (0px, 2px,
+6px), sekarang skala lengkap 10 unit (0/2/4/6/8/12/16/20/24/32px) sesuai
+`design-tokens.md` § Spacing (ADR-095). Perubahan murni additive, 7 nilai
+existing tidak berubah. Tidak menyentuh kode `apps/web`.
+
+### KI-061 — Tidak ada warning UI media over-limit
+Dikerjakan 2 tahap:
+- Rancangan dibuat di Claude Design (`templates/draft-editor.html` +
+  `styles.css`, additive — class baru `.media-thumb.is-over-limit`,
+  `.media-thumb-badge`, demo state baru, tidak mengubah default toggle
+  Fullscreen/Standard atau state lain) di sesi utama (limitasi teknis
+  DesignSync di sesi subagent sama seperti KI-037).
+- Implementasi kode oleh Mark UI Engineer di
+  `apps/web/src/app/(app)/components/draft-editor/Modal.tsx`:
+  `overLimitMediaCount`, badge warning dekat teks "Maks. X media",
+  border+background warning (`border-warning bg-warning/10`) +
+  `Badge variant="warning"` di pojok kiri-atas tiap thumbnail over-limit
+  (index >= `effectiveMaxMedia`, konsisten dengan cara server
+  `assertMediaCountWithinLimit` menolak berdasarkan TOTAL count).
+  Diverifikasi end-to-end oleh Mark sendiri: typecheck+lint 0 error,
+  browser testing real upload+delete di light & dark mode, tanpa regresi
+  di alur delete media existing.
+
+### Update dokumentasi
+- `PROJECT_STATE.md` — Status kelima KI diubah dari `Open` ke
+  `Resolved (implementasi selesai & terverifikasi 2026-10-13, branch
+  fix/close-ki-batch-014-024-036, belum di-commit)` — **entry TIDAK
+  dihapus dari daftar Known Issues** (berbeda dari pola biasa) karena
+  belum benar-benar merge; akan dihapus di sesi berikutnya setelah
+  King Rezi memberi izin commit + merge.
+- `tasks/v01-foundation.md` — T-016 (catatan KI-014 diupdate), T-094.4
+  checklist ditandai selesai + catatan, T-039/T-039.5 (catatan KI-024
+  Resolved ditambahkan, field Terkait diupdate).
+- `tasks/v02-publishing-mvp.md` — T-024 field Terkait diupdate (KI-060
+  dan KI-061 ditandai Resolved), catatan penutup KI-061 ditambahkan.
+- `TASKS.md` — tidak ada perubahan hitungan (tidak ada task level 🟡→✅
+  baru maupun subtask baru; T-016 tetap 🟡 In Progress karena T-016.4
+  masih 🚫 Blocked oleh T-036, tidak terkait KI-014).
+
+### Catatan
+Siapa mengerjakan apa: **Prabowo Feature Engineer** — KI-014 (unit test)
+dan KI-036 (3 exception arsitektur); **Mark UI Engineer** — KI-024 (header
+sidebar) dan KI-061 (implementasi badge warning); **sesi utama (Jokowi)** —
+KI-037 (sync Claude Design) dan rancangan Claude Design untuk KI-061
+(limitasi teknis DesignSync di sesi subagent); **Ridwan Architecture
+Reviewer** — review arsitektur kelima KI; **Najwa QA Engineer** — QA
+kelima KI. **Seluruh perubahan di atas masih uncommitted** di branch
+`fix/close-ki-batch-014-024-036` — tidak ada commit/push yang dilakukan,
+sesuai rule 13 AGENTS.md.
+
+---
+
 ## 2026-10-13 — KI-087 Resolved: `cron-analytics` kembali membalas 200
 
 ### Fixed

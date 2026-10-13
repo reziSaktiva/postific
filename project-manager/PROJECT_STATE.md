@@ -138,11 +138,13 @@ Password reset & email verification (Better Auth) membutuhkan email provider yan
 
 | Field | Value |
 |-------|-------|
-| Status | Open |
+| Status | Resolved (implementasi selesai & terverifikasi 2026-10-13, branch `fix/close-ki-batch-014-024-036`, belum di-commit) |
 | Kategori | Tech-Debt |
 | Terkait | T-016 |
 
 `IdentityService`, `IIdentityRepository`, dan `SupabaseAvatarStorageAdapter` (domain `identity`, diisi pertama kali lewat T-016.2) belum punya unit test Vitest. Review arsitektur Ridwan sudah memverifikasi boundary domain bersih (tidak ada pelanggaran), tetapi coverage test-nya nihil. Tidak memblokir penutupan T-016.1/.2/.3/.5 — keempatnya sudah lolos QA browser end-to-end.
+
+**Update (2026-10-13):** 3 file unit test baru ditambahkan (`identity.service.test.ts`, `identity.repository.test.ts`, `supabase-avatar-storage-adapter.test.ts`) memakai double/fake lokal, tidak hit Prisma/Supabase asli. Review Ridwan: bersih, tidak ada pelanggaran boundary. QA Najwa: 20/20 test PASS, full suite 720 passed/6 skipped, 0 regresi. Detail: `COMPLETE_TASK.md`.
 
 ### KI-015 · Env var `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` belum diisi
 
@@ -161,7 +163,7 @@ Sama seperti `OUTSTAND_API_KEY` (KI-003, Resolved 2026-09-24 — lihat `COMPLETE
 
 | Field | Value |
 |-------|-------|
-| Status | Open |
+| Status | Resolved (implementasi selesai & terverifikasi 2026-10-13, branch `fix/close-ki-batch-014-024-036`, belum di-commit) |
 | Kategori | Tech-Debt |
 | Terkait | T-039.5, ADR-077 |
 
@@ -174,6 +176,15 @@ memisahkan back-button (kotak ikon 28px, klik-able sendiri) dari judul
 "Settings" (teks statis, font `--text-body-size`, lebih kecil dari default
 `SideNavHeading` yang pakai `--text-large-size`). Belum diperbaiki — dicatat
 sebagai temuan untuk follow-up King Rezi, belum dibuatkan task formal.
+
+**Update (2026-10-13):** `SettingsSideNav.tsx` diubah — back-button (28px,
+`Button asChild size="icon-xs"`) dan judul "Settings" (`<span>` statis)
+dipisah jadi 2 elemen sesuai spec `.settings-sidebar-header`/
+`.settings-back-btn`/`.settings-sidebar-title`. Lint bersih. Review Ridwan:
+bersih. QA Najwa: PASS browser verification light+dark mode, back-button
+navigasi berfungsi. Gate DesignSync (T-103.3) dijalankan ulang di sesi
+utama — dikonfirmasi 1:1 cocok spec Claude Design, tidak ada drift sejak
+2026-08-11. Detail: `COMPLETE_TASK.md`.
 
 ### KI-027 · Selector target Admin di dialog Transfer Ownership (T-008) belum dikonfirmasi ke desain
 
@@ -225,9 +236,9 @@ Settings → General → Danger Zone kalau perlu. Tidak memblokir M8.
 
 | Field | Value |
 |-------|-------|
-| Status | Open |
+| Status | Resolved (implementasi selesai & terverifikasi 2026-10-13, branch `fix/close-ki-batch-014-024-036`, belum di-commit) |
 | Kategori | Tech-Debt |
-| Terkait | ADR-095, T-094 |
+| Terkait | ADR-095, T-094 (T-094.4) |
 
 Ditemukan saat penulisan `rendering-strategy.md` (ADR-095, 2026-08-28): `app/(app)/page.tsx` (dashboard) mengambil data lewat Server Action (`getDashboardSummaryAction`) untuk pure read — seharusnya memanggil Application Service langsung dari Server Component (composition root), seperti pola yang sudah benar di `app/(app)/publish/calendar/page.tsx` (sesuai AGENTS.md rule 5 dan RS-D02 di `rendering-strategy.md`). ADR-095 secara eksplisit **tidak** memperbaiki ini sebagai bagian ADR — dicatat sebagai exception pra-existing, cleanup terpisah di **T-094.4** (`tasks/v01-foundation.md`). Tidak urgent, tidak memblokir M8.
 
@@ -235,15 +246,24 @@ Ditemukan saat penulisan `rendering-strategy.md` (ADR-095, 2026-08-28): `app/(ap
 1. **RS-D03** — `app/(app)/settings/account/preferences/page.tsx` punya `"use client"` di baris pertama, membuat seluruh page jadi Client Component (seharusnya Server Component dengan `"use client"` hanya di leaf yang butuh interactivity).
 2. **CC-D02** — `draft-editor/actions.ts` (6 fungsi) tidak punya `try/catch`/`toActionError()` sama sekali; `settings/account/actions.ts` dan `onboarding/components/actions.ts` masih pakai pola `instanceof` manual sendiri, bukan `toActionError()`.
 
+**Update (2026-10-13) — ketiga exception diperbaiki:**
+- **RS-D02:** `app/(app)/page.tsx` sekarang panggil `AnalyticsService.getDashboardSummary` langsung dari Server Component, pola sama `publish/calendar/page.tsx`. Menutup **T-094.4**.
+- **RS-D03:** `"use client"` dihapus dari top-level `settings/account/preferences/page.tsx`, interactivity dipindah ke leaf baru `ThemeModeToggle.tsx`. Page sekarang Server Component murni.
+- **CC-D02:** `try/catch` + `toActionError()`/`isKnownActionError` ditambahkan di `draft-editor/actions.ts` (return type berubah ke union `{postId}|{error}`, seluruh caller sudah diverifikasi ikut update, typecheck 0 error), `settings/account/actions.ts`, dan `onboarding/components/actions.ts`.
+
+Review Ridwan: bersih, breaking change return type `draft-editor/actions.ts` sudah diverifikasi semua caller. QA Najwa: PASS (dashboard render benar, toggle tema berfungsi, save/update/delete draft golden path berfungsi). Detail: `COMPLETE_TASK.md`.
+
 ### KI-037 · `design-tokens.md` section Spacing (ADR-095) belum disinkronkan ke Claude Design
 
 | Field | Value |
 |-------|-------|
-| Status | Open |
+| Status | Resolved (implementasi selesai & terverifikasi 2026-10-13, branch `fix/close-ki-batch-014-024-036`, belum di-commit — perubahan ini murni di Claude Design, tidak menyentuh kode `apps/web`) |
 | Kategori | Process |
 | Terkait | ADR-095, ADR-056 |
 
 Section Spacing di `design-tokens.md` baru dikunci (base 1 unit = 4px, skala 0/0.5/1/1.5/2/3/4/5/6/8 = 0–32px, menggantikan `TBD` sejak ADR-038) lewat ADR-095. Mengikuti pola reminder ADR-056 (dokumen ini co-equal dengan Claude Design, perubahan salah satu wajib disinkronkan ke yang lain), sinkronisasi ke Claude Design belum dilakukan di sesi ADR-095 — perlu langkah lanjutan terpisah. Tidak memblokir M8.
+
+**Update (2026-10-13):** `foundations/layout.html` di Claude Design ditambah 3 unit spacing yang sebelumnya hilang (0px, 2px, 6px) — sekarang skala lengkap 10 unit (0/2/4/6/8/12/16/20/24/32px) sesuai `design-tokens.md` § Spacing. Dikerjakan langsung di sesi utama (bukan subagent, limitasi teknis DesignSync di sesi subagent), perubahan murni additive. Detail: `COMPLETE_TASK.md`.
 
 ### KI-044 · Tidak ada validasi mencegah Schedule ke waktu yang sudah lewat pada tanggal hari ini
 
@@ -421,9 +441,9 @@ dipakai di environment nyata.
 
 | Field | Value |
 |-------|-------|
-| Status | Open |
+| Status | Resolved (implementasi selesai & terverifikasi 2026-10-13, branch `fix/close-ki-batch-014-024-036`, belum di-commit) |
 | Kategori | UX Gap — Draft Editor (ADR-107) |
-| Terkait | Draft Editor (`Modal.tsx`), batas media per `ContentFormat` (ADR-107) |
+| Terkait | Draft Editor (`Modal.tsx`), batas media per `ContentFormat` (ADR-107), T-024 (`tasks/v02-publishing-mvp.md`) |
 
 Ditemukan lewat diskusi King Rezi (2026-09-15, murni analisis kode, bukan
 implementasi): kalau user upload media dulu (mis. 5 gambar untuk format
@@ -446,6 +466,20 @@ Root cause: tidak ada efek/watcher di `Modal.tsx` yang membandingkan
 dan di server saat submit. Dicatat sebagai Known Issue baru, belum
 diperbaiki (perlu cek Claude Design dulu sebelum implementasi UI apa pun,
 rule 17 AGENTS.md).
+
+**Update (2026-10-13) — selesai 2 tahap:** Rancangan dibuat di Claude Design
+(`templates/draft-editor.html` + `styles.css`, additive — class baru
+`.media-thumb.is-over-limit`, `.media-thumb-badge`, demo state baru, tidak
+mengubah default toggle/state lain) di sesi utama (limitasi teknis
+DesignSync di sesi subagent). Implementasi kode oleh Mark UI Engineer di
+`Modal.tsx`: variabel `overLimitMediaCount`, badge warning dekat teks
+"Maks. X media", border+background warning
+(`border-warning bg-warning/10`) + `Badge variant="warning"` di pojok
+kiri-atas tiap thumbnail over-limit (konvensi: index >= effectiveMaxMedia,
+konsisten dengan cara server `assertMediaCountWithinLimit` menolak
+berdasarkan TOTAL count). Diverifikasi end-to-end: typecheck+lint 0 error,
+browser testing real upload+delete di light & dark mode, tidak ada regresi
+di alur delete media existing. Detail: `COMPLETE_TASK.md`.
 
 ### KI-063 · `PublishingPost.publishedAt` tidak pernah diisi oleh `markPostPublished`/`markPostFailed`
 

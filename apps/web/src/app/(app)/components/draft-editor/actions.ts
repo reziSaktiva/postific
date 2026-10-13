@@ -41,7 +41,7 @@ import { backgroundJobScheduler } from "@/lib/jobs/job-scheduler";
 import { publishingRepository } from "@/lib/repositories/publishing";
 import { mediaRepository } from "@/lib/repositories/media";
 import { workspaceRepository } from "@/lib/repositories/workspace";
-import { ApplicationError } from "@/lib/utils/errors";
+import { ApplicationError, toActionError } from "@/lib/utils/errors";
 import { PublishingDomainError } from "@/domains/publishing";
 
 /**
@@ -171,9 +171,18 @@ async function resolveOptionalDraftTargets(
   }));
 }
 
+/**
+ * CC-D02 (KI-036): dibungkus try/catch — `resolveAndValidateMediaIds`
+ * (ADR-107, `assertMediaCountWithinLimit`) dan `resolveOptionalDraftTargets`
+ * (`resolveScheduleTargets`) bisa melempar `PublishingDomainError`, bukan
+ * cuma `ApplicationError`, jadi pakai `isKnownActionError` yang sama dengan
+ * `scheduleDraftAction`/`publishNowAction` di bawah — tanpa ini, exception
+ * lolos sampai boundary Server Action Next.js dan pesannya di-mask jadi
+ * generik di production build (gap yang sama dengan catatan T-108 di atas).
+ */
 export async function saveDraftAction(
   input: SaveDraftInput,
-): Promise<{ postId: string }> {
+): Promise<{ postId: string } | { error: string }> {
   const { workspaceId } = await getWorkspaceContext();
   const session = await getCachedSession();
   if (!session) {
@@ -181,26 +190,33 @@ export async function saveDraftAction(
   }
   const actingUserId = asUserId(session.user.id);
 
-  const [mediaIds, draftTargets] = await Promise.all([
-    resolveAndValidateMediaIds(
+  try {
+    const [mediaIds, draftTargets] = await Promise.all([
+      resolveAndValidateMediaIds(
+        workspaceId,
+        input.mediaIds,
+        input.activeFormats ?? [],
+        actingUserId,
+      ),
+      resolveOptionalDraftTargets(workspaceId, actingUserId, input.targets),
+    ]);
+
+    const publishingService = new PublishingService(publishingRepository);
+    const post = await publishingService.saveDraft({
       workspaceId,
-      input.mediaIds,
-      input.activeFormats ?? [],
-      actingUserId,
-    ),
-    resolveOptionalDraftTargets(workspaceId, actingUserId, input.targets),
-  ]);
+      authorId: actingUserId,
+      caption: input.caption,
+      mediaIds,
+      ...(draftTargets !== undefined ? { targets: draftTargets } : {}),
+    });
 
-  const publishingService = new PublishingService(publishingRepository);
-  const post = await publishingService.saveDraft({
-    workspaceId,
-    authorId: actingUserId,
-    caption: input.caption,
-    mediaIds,
-    ...(draftTargets !== undefined ? { targets: draftTargets } : {}),
-  });
-
-  return { postId: post.id };
+    return { postId: post.id };
+  } catch (error) {
+    if (isKnownActionError(error)) {
+      return { error: error.message };
+    }
+    throw error;
+  }
 }
 
 export interface UpdateDraftInput {
@@ -211,10 +227,11 @@ export interface UpdateDraftInput {
   targets?: ScheduleTargetRequest[];
 }
 
+/** CC-D02 (KI-036) — lihat catatan `saveDraftAction` di atas, gap yang sama berlaku di sini. */
 export async function updateDraftAction(
   postId: string,
   input: UpdateDraftInput,
-): Promise<{ postId: string }> {
+): Promise<{ postId: string } | { error: string }> {
   const { workspaceId } = await getWorkspaceContext();
   const session = await getCachedSession();
   if (!session) {
@@ -222,29 +239,36 @@ export async function updateDraftAction(
   }
   const actingUserId = asUserId(session.user.id);
 
-  const [mediaIds, draftTargets] = await Promise.all([
-    resolveAndValidateMediaIds(
-      workspaceId,
-      input.mediaIds,
-      input.activeFormats ?? [],
+  try {
+    const [mediaIds, draftTargets] = await Promise.all([
+      resolveAndValidateMediaIds(
+        workspaceId,
+        input.mediaIds,
+        input.activeFormats ?? [],
+        actingUserId,
+      ),
+      resolveOptionalDraftTargets(workspaceId, actingUserId, input.targets),
+    ]);
+
+    const publishingService = new PublishingService(publishingRepository);
+    const post = await publishingService.updateDraft(
+      {
+        workspaceId,
+        postId: asPostId(postId),
+        caption: input.caption,
+        mediaIds,
+        ...(draftTargets !== undefined ? { targets: draftTargets } : {}),
+      },
       actingUserId,
-    ),
-    resolveOptionalDraftTargets(workspaceId, actingUserId, input.targets),
-  ]);
+    );
 
-  const publishingService = new PublishingService(publishingRepository);
-  const post = await publishingService.updateDraft(
-    {
-      workspaceId,
-      postId: asPostId(postId),
-      caption: input.caption,
-      mediaIds,
-      ...(draftTargets !== undefined ? { targets: draftTargets } : {}),
-    },
-    actingUserId,
-  );
-
-  return { postId: post.id };
+    return { postId: post.id };
+  } catch (error) {
+    if (isKnownActionError(error)) {
+      return { error: error.message };
+    }
+    throw error;
+  }
 }
 
 export interface DraftMediaDto {
@@ -289,13 +313,23 @@ export async function getDraftAction(postId: string): Promise<{
     mediaRepository,
     supabaseMediaStorageAdapter,
   );
-  const mediaItems =
+  const loadedMedia =
     post.mediaIds && post.mediaIds.length > 0
       ? await mediaService.listByIds(
           { workspaceId, mediaIds: post.mediaIds },
           actingUserId,
         )
       : [];
+  // `findByIds` mengurutkan `createdAt desc` (paling baru di index 0).
+  // Grid editor menganggap ekor array = upload paling baru (KI-061:
+  // `index >= effectiveMaxMedia`). Kembalikan urutan `post.mediaIds`
+  // — urutan yang tersimpan saat save, sama dengan append di Modal —
+  // pola sama `resolveOutstandPostMedia` / `resolveThumbnails`.
+  const mediaById = new Map(loadedMedia.map((item) => [item.id, item]));
+  const mediaItems = (post.mediaIds ?? []).flatMap((mediaId) => {
+    const item = mediaById.get(mediaId);
+    return item ? [item] : [];
+  });
 
   return {
     postId: post.id,
@@ -369,10 +403,7 @@ export async function uploadMediaAction(
       },
     };
   } catch (error) {
-    if (error instanceof ApplicationError) {
-      return { error: error.message };
-    }
-    throw error;
+    return toActionError(error);
   }
 }
 
@@ -407,10 +438,7 @@ export async function deleteMediaAction(
       actingUserId,
     );
   } catch (error) {
-    if (error instanceof ApplicationError) {
-      return { error: error.message };
-    }
-    throw error;
+    return toActionError(error);
   }
 
   return {};

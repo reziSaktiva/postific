@@ -6,7 +6,11 @@ import { usePathname, useRouter } from "next/navigation";
 import NextLink from "next/link";
 
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Cancel01Icon, Delete02Icon } from "@hugeicons/core-free-icons";
+import {
+  AlertCircleIcon,
+  Cancel01Icon,
+  Delete02Icon,
+} from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
 
 import type { PinterestBoard } from "@postific/shared";
@@ -646,6 +650,23 @@ function DraftEditorForm({
   const effectiveMaxMedia = maxMediaCountForFormats(getActiveFormats());
   const isMediaLimitReached =
     mediaItems.length + uploadingMediaCount >= effectiveMaxMedia;
+  /**
+   * KI-061 (ADR-107): kalau user upload media dulu lalu menambah akun
+   * target dengan format lebih ketat, `effectiveMaxMedia` bisa turun di
+   * bawah `mediaItems.length` yang sudah ada — tanpa indikator ini user
+   * baru tahu ada masalah setelah klik Save/Schedule/Publish dan kena
+   * error server (`assertMediaCountWithinLimit`). Server menolak berdasarkan
+   * TOTAL count, bukan per-item (lihat `content-format-matrix.ts`).
+   * Urutan grid = urutan `mediaIds` yang tersimpan (upload di-append,
+   * dan `getDraftAction` mengembalikan urutan itu lagi meski
+   * `listByIds` datang sebagai `createdAt desc`). Item index >=
+   * `effectiveMaxMedia` adalah ekor array — media paling baru — yang
+   * perlu dihapus dulu sampai total kembali di bawah batas.
+   */
+  const overLimitMediaCount = Math.max(
+    0,
+    mediaItems.length - effectiveMaxMedia,
+  );
 
   async function handleFilesSelected(fileList: FileList | null) {
     if (!fileList || fileList.length === 0) {
@@ -732,12 +753,16 @@ function DraftEditorForm({
       const activeFormats = getActiveFormats();
       let nextPostId = savedPostId;
       if (savedPostId) {
-        await updateDraftAction(savedPostId, {
+        const result = await updateDraftAction(savedPostId, {
           caption,
           mediaIds,
           activeFormats,
           ...(targets !== undefined ? { targets } : {}),
         });
+        if ("error" in result) {
+          setNotice({ status: "error", title: result.error });
+          return;
+        }
       } else {
         const result = await saveDraftAction({
           caption,
@@ -745,6 +770,10 @@ function DraftEditorForm({
           activeFormats,
           ...(targets !== undefined ? { targets } : {}),
         });
+        if ("error" in result) {
+          setNotice({ status: "error", title: result.error });
+          return;
+        }
         nextPostId = result.postId;
         setSavedPostId(result.postId);
       }
@@ -1110,41 +1139,87 @@ function DraftEditorForm({
                         {mediaError}
                       </Text>
                     ) : (
-                      <FieldDescription>
-                        Maks. {effectiveMaxMedia} media untuk format yang sedang
-                        dipilih (ADR-107) — 50MB per file.
-                      </FieldDescription>
+                      // eslint-disable-next-line no-restricted-syntax -- T-102: padanan Astryx HStack, murni Tailwind flex.
+                      <div className="flex flex-wrap items-center gap-2">
+                        <FieldDescription>
+                          Maks. {effectiveMaxMedia} media untuk format yang
+                          sedang dipilih (ADR-107) — 50MB per file.
+                        </FieldDescription>
+                        {/* KI-061: indikator over-limit setelah ganti target akun/format menurunkan effectiveMaxMedia di bawah media yang sudah diupload. */}
+                        {overLimitMediaCount > 0 ? (
+                          <Badge variant="warning" className="gap-1">
+                            <HugeiconsIcon
+                              icon={AlertCircleIcon}
+                              strokeWidth={2}
+                            />
+                            {overLimitMediaCount} media melebihi batas, hapus
+                            untuk lanjut
+                          </Badge>
+                        ) : null}
+                      </div>
                     )}
 
                     {mediaItems.length > 0 || uploadingMediaCount > 0 ? (
                       // eslint-disable-next-line no-restricted-syntax -- T-024.4: grid preview thumbnail media (multi-media/carousel) — tidak ada primitive shadcn setara, murni Tailwind grid.
                       <div className="grid grid-cols-3 gap-2">
-                        {mediaItems.map((item) => (
-                          // eslint-disable-next-line no-restricted-syntax -- T-024.4: tile thumbnail grid preview media (multi-media/carousel) — tidak ada primitive shadcn setara, murni Tailwind.
-                          <div
-                            key={item.id}
-                            className="group relative aspect-square overflow-hidden rounded-md border border-border bg-muted"
-                          >
-                            <MediaThumbnail
-                              url={item.url}
-                              type={item.type}
-                              alt={item.filename}
-                            />
-                            <button
-                              type="button"
-                              aria-label={`Hapus ${item.filename} secara permanen`}
-                              onClick={() => deleteMediaConfirm.open(item)}
-                              disabled={deleteMediaConfirm.isLoading}
-                              className="absolute top-1 right-1 rounded-full bg-background/80 p-1 opacity-0 transition-opacity group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        {mediaItems.map((item, index) => {
+                          // KI-061 (ADR-107): server menolak berdasarkan TOTAL count.
+                          // Ekor array = media paling baru karena urutan grid
+                          // mengikuti `mediaIds` (append, dan di-restore oleh
+                          // `getDraftAction`), jadi index >= effectiveMaxMedia
+                          // adalah kelebihan yang perlu dihapus dulu.
+                          const isOverLimit = index >= effectiveMaxMedia;
+                          return (
+                            // eslint-disable-next-line no-restricted-syntax -- T-024.4: tile thumbnail grid preview media (multi-media/carousel) — tidak ada primitive shadcn setara, murni Tailwind.
+                            <div
+                              key={item.id}
+                              className={cn(
+                                "group relative aspect-square overflow-hidden rounded-md border border-border bg-muted",
+                                isOverLimit && "border-warning bg-warning/10",
+                              )}
                             >
-                              <HugeiconsIcon
-                                icon={Delete02Icon}
-                                strokeWidth={2}
-                                size={16}
+                              <MediaThumbnail
+                                url={item.url}
+                                type={item.type}
+                                alt={item.filename}
                               />
-                            </button>
-                          </div>
-                        ))}
+                              {isOverLimit ? (
+                                <Badge
+                                  variant="warning"
+                                  className="absolute top-1 left-1 px-1"
+                                  aria-label="Media ini melebihi batas maksimum untuk format yang sedang dipilih"
+                                >
+                                  <HugeiconsIcon
+                                    icon={AlertCircleIcon}
+                                    strokeWidth={2}
+                                  />
+                                </Badge>
+                              ) : null}
+                              <button
+                                type="button"
+                                aria-label={`Hapus ${item.filename} secara permanen`}
+                                onClick={() => deleteMediaConfirm.open(item)}
+                                disabled={deleteMediaConfirm.isLoading}
+                                className={cn(
+                                  "absolute top-1 right-1 rounded-full bg-background/80 p-1 transition-opacity disabled:cursor-not-allowed disabled:opacity-50",
+                                  // Tile dalam batas tetap hover-only. Tile
+                                  // kelebihan batas harus selalu terlihat —
+                                  // layar sentuh tidak punya hover, padahal
+                                  // badge KI-061 menyuruh user menghapus.
+                                  isOverLimit
+                                    ? "opacity-100"
+                                    : "opacity-0 group-hover:opacity-100",
+                                )}
+                              >
+                                <HugeiconsIcon
+                                  icon={Delete02Icon}
+                                  strokeWidth={2}
+                                  size={16}
+                                />
+                              </button>
+                            </div>
+                          );
+                        })}
                         {Array.from({ length: uploadingMediaCount }).map(
                           (_, index) => (
                             // eslint-disable-next-line no-restricted-syntax -- T-024.4: placeholder loading tile tanpa identitas stabil (belum ada id sampai upload selesai); murni Tailwind, tidak ada primitive shadcn setara.
