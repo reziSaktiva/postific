@@ -8,6 +8,29 @@ Seluruh perubahan penting pada dokumentasi maupun implementasi project dicatat p
 
 ---
 
+## 2026-10-13 — KI-087 Resolved: `cron-analytics` kembali membalas 200
+
+### Fixed
+- Service Railway staging `cron-analytics` membalas 401 karena image
+  `curlimages/curl` menjalankan perintah tanpa shell, jadi header
+  `X-Job-Secret` berisi teks literal `$JOB_SECRET`. Nilai secret di
+  `web`, `cron`, dan `cron-analytics` sudah sama (referensi
+  `${{web.JOB_SECRET}}`) — dugaan mismatch secret tidak terbukti.
+- Image dikembalikan ke `alpine:3.20` dan start command disamakan dengan
+  service `cron` yang sudah jalan (`sh -c` + `apk add curl`), plus
+  `?type=analytics`. Diterapkan hanya di environment staging.
+- Trigger manual 2026-10-13T03:59 UTC membalas **200**. Jadwal tetap
+  `0 0 * * *`.
+- Entri KI-087 dihapus dari Known Issues (`PROJECT_STATE.md`) setelah
+  dicatat di sini. Catatan T-048 di `tasks/v03-analytics-mvp.md` dan
+  `TASKS.md` diupdate.
+
+### Catatan
+Tidak ada perubahan kode aplikasi. Perubahan infra ada di Railway
+staging, bukan di commit repo.
+
+---
+
 ## 2026-10-13 — T-048.4 verifikasi staging lolos, T-048 ditutup ✅; investigasi infra `cron-analytics` 401 (KI-087 baru, Open)
 
 ### Konteks
