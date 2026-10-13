@@ -32,7 +32,7 @@ Topik yang termasuk dalam scope:
 * **Developer Experience (DX) Tooling** — linting, formatting, pre-commit hooks, local dev setup.
 * **UI Component System** — shadcn/ui sebagai fondasi permanen (ADR-097,
   membalik ADR-041), Tailwind sebagai styling langsung, dan wrapper selektif;
-  migrasi dari Astryx berjalan incremental per route-segment.
+  migrasi dari Astryx sudah tuntas (rilis v0.7, T-102).
 * **Design Tokens** — Source of Truth font, warna semantic, neutral, status,
   spacing untuk implementasi UI (ADR-038, ADR-041); nilai final berkembang
   iteratif co-equal dengan Claude Design, tidak menunggu designer eksternal
@@ -59,7 +59,7 @@ Topik berikut **tidak dibahas** pada folder ini:
 * `cicd-pipeline.md` — GitHub Actions quality gates, promosi staging→main, Railway CD, migrate on release (ADR-032).
 * `environment-management.md` — katalog env vars, secret native (Railway + `.env.local`), Supabase Cloud staging / prod, local menumpang project staging yang sama (ADR-033, amandemen ADR-081).
 * `dx-tooling.md` — ESLint + Prettier, Lefthook + lint-staged, Vitest, script workspace (ADR-034).
-* `dependency-strategy.md` — caret ranges, `bun.lockb` root, penempatan dep,
+* `dependency-strategy.md` — caret ranges, `bun.lock` root, penempatan dep,
   aturan `@postific/shared`, update manual (ADR-035); pengecualian exact pin
   Astryx Beta superseded oleh migrasi shadcn/ui (ADR-097).
 * `design-tokens.md` — SoT visual tokens (font,

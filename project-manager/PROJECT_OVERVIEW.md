@@ -115,9 +115,9 @@ Source of Truth enum: `SocialPlatform` di `packages/shared`.
 | Pre-commit          | Lefthook + lint-staged     |
 | Test Runner         | Vitest                     |
 | Env / Secrets       | Railway Variables + `.env.local` (native) |
-| Dependencies        | Bun workspaces; `^` ranges (sisa kode Astryx yang belum termigrasi tetap exact pin); root `bun.lockb`; update manual |
+| Dependencies        | Bun workspaces; `^` ranges; root `bun.lock`; update manual. Astryx sudah tidak dipakai (ADR-097) |
 | Styling             | Tailwind CSS *(styling langsung komponen shadcn/ui)* |
-| UI Components       | shadcn/ui *(ADR-097, membalik ADR-041 — migrasi dari Astryx incremental per route-segment)* |
+| UI Components       | shadcn/ui *(ADR-097, membalik ADR-041 — migrasi dari Astryx sudah tuntas, rilis v0.7, T-102)* |
 | External Provider   | Outstand API               |
 
 ---

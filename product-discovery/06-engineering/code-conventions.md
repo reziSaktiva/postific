@@ -38,7 +38,7 @@ secara otomatis — lihat `eslint.config.mjs`).
 | ID | Topik | Keputusan |
 |----|-------|-----------|
 | CC-D01 | Error hierarchy | `AppError` → `ApplicationError` → 5 subclass tetap; `XxxDomainError` per domain terpisah |
-| CC-D02 | Server Action error boundary | Setiap Server Action wajib `try/catch` + `toActionError()` |
+| CC-D02 | Server Action error boundary | Server Action yang mengembalikan `{ error }` wajib `try/catch` + `toActionError()`. Action `void` / `redirect` / `null` tidak diubah kontraknya |
 | CC-D03 | Naming — variables/functions | camelCase, verb-first untuk fungsi, boolean prefix `is`/`has`/`should` |
 | CC-D04 | Naming — types/interfaces | PascalCase, tanpa prefix `I` untuk types/interfaces domain baru |
 | CC-D05 | Naming — files/folders | Pointer ke ADR-069/`monorepo-setup.md` — tidak diduplikasi di sini |
@@ -102,11 +102,12 @@ identik** di beberapa file `actions.ts` (`settings`, `settings/members`,
 ulang logic mapping error manual per file baru** — selalu import
 `toActionError` dari `apps/web/src/lib/utils/errors.ts`.
 
-Ini kontrak yang **wajib** diikuti untuk Server Action baru. Status
-kepatuhan kode saat ini (file mana yang masih belum mengikuti pola ini)
-dicatat sebagai technical debt di `PROJECT_STATE.md` § KI-036 (CC-D02) —
-lihat di sana untuk daftar terkini, jangan jadikan gap yang tercatat di
-situ sebagai pengecualian yang boleh ditiru.
+Kontrak ini **wajib** untuk Server Action yang mengembalikan `{ error }`
+ke pemanggil. Jangan membungkus ulang action yang kontraknya bukan itu:
+`markNotificationReadAction` mengembalikan `void` dan membiarkan error naik
+(sesi kosong → `redirect("/login")`); `getCalendarPostAction` memetakan sesi
+kosong ke `null`. Mengganti keduanya ke `toActionError()` mengubah kontrak
+pemanggil.
 
 Karena `toActionError` meneruskan `error.message` apa adanya ke client:
 **pesan error yang di-throw dari Application Service harus aman untuk
@@ -178,7 +179,7 @@ database/network ditulis sebagai pure function terpisah dari service class
 | ID | Keputusan | Alasan | Alternatif |
 |----|-----------|--------|-----------|
 | CC-D01 | Hierarki error 2 lapis (`AppError`/`ApplicationError` + `XxxDomainError` per domain) | Sudah terbukti konsisten dipakai di 9 domain, tidak perlu didesain ulang | Satu hierarki error tunggal lintas domain (ditolak — domain invariant errors punya kebutuhan beda dari boundary errors) |
-| CC-D02 | `toActionError()` wajib di setiap Server Action | Mencegah duplikasi logic mapping error yang pernah terjadi di 4+ file | Mapping error manual per file (ditolak — sudah terbukti gagal sinkron) |
+| CC-D02 | `toActionError()` wajib pada Server Action yang mengembalikan `{ error }` | Mencegah duplikasi logic mapping error. Action `void` / `redirect` / `null` tidak dipaksa mengikuti helper ini | Mapping error manual per file; membungkus setiap action tanpa melihat kontrak return |
 | CC-D04 | Tanpa prefix `I` untuk interface baru | Konsisten dengan mayoritas kode existing (`PostMetricsPort`, dst.) | Prefix `I` konsisten mengikuti `IOutstandAdapter` (ditolak — exception itu sendiri historis, bukan pola yang disengaja) |
 
 ---

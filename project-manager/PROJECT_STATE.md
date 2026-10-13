@@ -4,8 +4,8 @@
 
 * **Phase / Milestone:** Phase 6 — Implementation · M8 — Development (Sprint 5) · Overall: M7 100%, M8 in progress
 * **Active Mode:** Ready for Development — implementasi fitur produk sesuai Architecture & Engineering Baseline
-* **Top Next Tasks:** **T-037 Perkaya aturan coding** tetap kontinu (🟡 In Progress; snapshot kedua 2026-10-13). **T-048 ✅ Done (4/4 subtask, 2026-10-13)** — wire JOB-04 Analytics Sync, verifikasi staging T-048.4 lolos. **KI-087 Resolved (2026-10-13)** — service `cron-analytics` kembali membalas 200. Salinan ID dari **Fokus sekarang** di [`TASKS.md`](TASKS.md). Rilis terakhir tuntas: **v0.4 Engagement MVP 6/7 task** (2026-10-06, sisa T-055 Could Have tidak blocking) dan **v0.3 Analytics MVP 9/9 task** (2026-10-13). Riwayat detail per task: lihat **Completed (Ringkasan)** di bawah / `COMPLETE_TASK.md`.
-* **Blocker:** 1 blocker aktif (env var Google OAuth belum diisi, KI-015) — lihat section **Blockers** di bawah. Blocker Outstand (KI-003, `OUTSTAND_API_KEY` + Real OutstandAdapter) sudah **Resolved (2026-09-24)**. Railway staging sudah live & terverifikasi (2026-08-14); JOB_SECRET juga sudah diisi di Railway staging. Tidak memblokir M8.
+* **Top Next Tasks:** **T-037 Perkaya aturan coding** (🟡 In Progress; snapshot kedua 2026-10-13). Salinan ID dari **Fokus sekarang** di [`TASKS.md`](TASKS.md).
+* **Blocker:** 3 penghalang aktif — KI-015 (Google OAuth), migrasi `20260922110000_t051_filter_active_status_engagement_sync_lookup` yang belum di-deploy, dan sisa follow-up KI-025 (health-check cron + backfill). Detail di section **Blockers**.
 * **Backlog task lengkap:** [`TASKS.md`](TASKS.md) — 99 task per release (v0.1 → v1.0, + v0.7 migrasi Astryx→shadcn/ui, ADR-097), detail di `tasks/`. Jangan cari detail task di file ini.
 * **KI-073–080 Resolved (2026-09-26)** — 4 bug publish Instagram (caption wajib untuk Story, Story publish tanpa media, upload media >1MB gagal, avatar akun tidak tampil di sidebar) diperbaiki + diverifikasi live ke akun Instagram/Facebook real (ADR-120). 2 bug turunan ditemukan saat verifikasi (akun `disconnected` tidak bisa reconnect; callback OAuth silent-success untuk conflict genuine) diperbaiki via **ADR-122**. Plus **KI-080** (baru+langsung Resolved) — Railway staging build gagal (`next.config.ts` tidak bisa resolve import workspace `@social/shared`) diperbaiki di branch terpisah sebelum masuk ke fix KI-078/079.
 * Detail phase/mode/issue ada di section di bawah. Riwayat completed/ADR lengkap: lihat `COMPLETE_TASK.md` (⚠️ jangan dibaca AI kecuali diperintah)/`DECISIONS.md`.
@@ -134,18 +134,6 @@ judul singkatnya. **Jangan menulis ulang daftar/detail task di sini**
 
 Password reset & email verification (Better Auth) membutuhkan email provider yang belum ditetapkan (kandidat: Resend, Postmark, AWS SES, SMTP Supabase). Dicatat di `auth-strategy.md` (AS-D04). `requireEmailVerification` dinonaktifkan sementara di skeleton. Tidak memblokir M8 awal.
 
-### KI-014 · Domain `identity` belum punya unit test
-
-| Field | Value |
-|-------|-------|
-| Status | Resolved (implementasi selesai & terverifikasi 2026-10-13, branch `fix/close-ki-batch-014-024-036`, belum di-commit) |
-| Kategori | Tech-Debt |
-| Terkait | T-016 |
-
-`IdentityService`, `IIdentityRepository`, dan `SupabaseAvatarStorageAdapter` (domain `identity`, diisi pertama kali lewat T-016.2) belum punya unit test Vitest. Review arsitektur Ridwan sudah memverifikasi boundary domain bersih (tidak ada pelanggaran), tetapi coverage test-nya nihil. Tidak memblokir penutupan T-016.1/.2/.3/.5 — keempatnya sudah lolos QA browser end-to-end.
-
-**Update (2026-10-13):** 3 file unit test baru ditambahkan (`identity.service.test.ts`, `identity.repository.test.ts`, `supabase-avatar-storage-adapter.test.ts`) memakai double/fake lokal, tidak hit Prisma/Supabase asli. Review Ridwan: bersih, tidak ada pelanggaran boundary. QA Najwa: 20/20 test PASS, full suite 720 passed/6 skipped, 0 regresi. Detail: `COMPLETE_TASK.md`.
-
 ### KI-015 · Env var `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` belum diisi
 
 | Field | Value |
@@ -158,33 +146,6 @@ Sama seperti `OUTSTAND_API_KEY` (KI-003, Resolved 2026-09-24 — lihat `COMPLETE
 
 - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` — kode Google OAuth di `auth.ts` sudah siap (`socialProviders.google` terdaftar kondisional lewat `env.ts`), tapi tanpa env ini "Sign in with Google" tidak aktif. Masih placeholder dummy.
 - `JOB_SECRET` — **resolved 2026-08-14**: sudah diisi nilai asli generated di Railway staging (env var), dan job runner (T-027, `POST /api/jobs/run` via Railway Cron `X-Job-Secret`) sudah terverifikasi end-to-end 2x run berturut-turut SUCCESS di staging. Local `.env.local` masih boleh memakai nilai dummy untuk dev.
-
-### KI-024 · Header sidebar Settings belum sesuai spec Design System (back-button vs judul)
-
-| Field | Value |
-|-------|-------|
-| Status | Resolved (implementasi selesai & terverifikasi 2026-10-13, branch `fix/close-ki-batch-014-024-036`, belum di-commit) |
-| Kategori | Tech-Debt |
-| Terkait | T-039.5, ADR-077 |
-
-Ditemukan 2026-08-11 saat memperbaiki header `WorkspaceSideNav.tsx` agar
-sesuai Design System (lihat `COMPLETE_TASK.md`). `SettingsSideNav.tsx`
-(dibuat via T-039.5/ADR-077) merender `SideNavHeading` dengan back-icon +
-judul "Settings" sebagai **satu link utuh**, sedangkan spec desain
-(`.settings-sidebar-header` di `styles.css` Claude Design, baris ~316-319)
-memisahkan back-button (kotak ikon 28px, klik-able sendiri) dari judul
-"Settings" (teks statis, font `--text-body-size`, lebih kecil dari default
-`SideNavHeading` yang pakai `--text-large-size`). Belum diperbaiki — dicatat
-sebagai temuan untuk follow-up King Rezi, belum dibuatkan task formal.
-
-**Update (2026-10-13):** `SettingsSideNav.tsx` diubah — back-button (28px,
-`Button asChild size="icon-xs"`) dan judul "Settings" (`<span>` statis)
-dipisah jadi 2 elemen sesuai spec `.settings-sidebar-header`/
-`.settings-back-btn`/`.settings-sidebar-title`. Lint bersih. Review Ridwan:
-bersih. QA Najwa: PASS browser verification light+dark mode, back-button
-navigasi berfungsi. Gate DesignSync (T-103.3) dijalankan ulang di sesi
-utama — dikonfirmasi 1:1 cocok spec Claude Design, tidak ada drift sejak
-2026-08-11. Detail: `COMPLETE_TASK.md`.
 
 ### KI-027 · Selector target Admin di dialog Transfer Ownership (T-008) belum dikonfirmasi ke desain
 
@@ -231,39 +192,6 @@ sebelumnya, bukan dari sesi T-089). Bukan bug — keduanya sengaja tidak
 dihapus oleh Najwa karena hapus workspace bersifat ireversibel dan di luar
 wewenang eksekusi otonom QA. Perlu dibersihkan manual oleh King Rezi via
 Settings → General → Danger Zone kalau perlu. Tidak memblokir M8.
-
-### KI-036 · Dashboard (`app/(app)/page.tsx`) fetch data lewat Server Action, menyimpang RS-D02
-
-| Field | Value |
-|-------|-------|
-| Status | Resolved (implementasi selesai & terverifikasi 2026-10-13, branch `fix/close-ki-batch-014-024-036`, belum di-commit) |
-| Kategori | Tech-Debt |
-| Terkait | ADR-095, T-094 (T-094.4) |
-
-Ditemukan saat penulisan `rendering-strategy.md` (ADR-095, 2026-08-28): `app/(app)/page.tsx` (dashboard) mengambil data lewat Server Action (`getDashboardSummaryAction`) untuk pure read — seharusnya memanggil Application Service langsung dari Server Component (composition root), seperti pola yang sudah benar di `app/(app)/publish/calendar/page.tsx` (sesuai AGENTS.md rule 5 dan RS-D02 di `rendering-strategy.md`). ADR-095 secara eksplisit **tidak** memperbaiki ini sebagai bagian ADR — dicatat sebagai exception pra-existing, cleanup terpisah di **T-094.4** (`tasks/v01-foundation.md`). Tidak urgent, tidak memblokir M8.
-
-**Update (2026-08-28) — 2 exception tambahan ditemukan review arsitektur Ridwan** (sesi yang sama, setelah ADR-095/T-094 dicatat, belum masuk subtask formal manapun — technical debt yang perlu di-follow-up terpisah dari T-094.4 di atas):
-1. **RS-D03** — `app/(app)/settings/account/preferences/page.tsx` punya `"use client"` di baris pertama, membuat seluruh page jadi Client Component (seharusnya Server Component dengan `"use client"` hanya di leaf yang butuh interactivity).
-2. **CC-D02** — `draft-editor/actions.ts` (6 fungsi) tidak punya `try/catch`/`toActionError()` sama sekali; `settings/account/actions.ts` dan `onboarding/components/actions.ts` masih pakai pola `instanceof` manual sendiri, bukan `toActionError()`.
-
-**Update (2026-10-13) — ketiga exception diperbaiki:**
-- **RS-D02:** `app/(app)/page.tsx` sekarang panggil `AnalyticsService.getDashboardSummary` langsung dari Server Component, pola sama `publish/calendar/page.tsx`. Menutup **T-094.4**.
-- **RS-D03:** `"use client"` dihapus dari top-level `settings/account/preferences/page.tsx`, interactivity dipindah ke leaf baru `ThemeModeToggle.tsx`. Page sekarang Server Component murni.
-- **CC-D02:** `try/catch` + `toActionError()`/`isKnownActionError` ditambahkan di `draft-editor/actions.ts` (return type berubah ke union `{postId}|{error}`, seluruh caller sudah diverifikasi ikut update, typecheck 0 error), `settings/account/actions.ts`, dan `onboarding/components/actions.ts`.
-
-Review Ridwan: bersih, breaking change return type `draft-editor/actions.ts` sudah diverifikasi semua caller. QA Najwa: PASS (dashboard render benar, toggle tema berfungsi, save/update/delete draft golden path berfungsi). Detail: `COMPLETE_TASK.md`.
-
-### KI-037 · `design-tokens.md` section Spacing (ADR-095) belum disinkronkan ke Claude Design
-
-| Field | Value |
-|-------|-------|
-| Status | Resolved (implementasi selesai & terverifikasi 2026-10-13, branch `fix/close-ki-batch-014-024-036`, belum di-commit — perubahan ini murni di Claude Design, tidak menyentuh kode `apps/web`) |
-| Kategori | Process |
-| Terkait | ADR-095, ADR-056 |
-
-Section Spacing di `design-tokens.md` baru dikunci (base 1 unit = 4px, skala 0/0.5/1/1.5/2/3/4/5/6/8 = 0–32px, menggantikan `TBD` sejak ADR-038) lewat ADR-095. Mengikuti pola reminder ADR-056 (dokumen ini co-equal dengan Claude Design, perubahan salah satu wajib disinkronkan ke yang lain), sinkronisasi ke Claude Design belum dilakukan di sesi ADR-095 — perlu langkah lanjutan terpisah. Tidak memblokir M8.
-
-**Update (2026-10-13):** `foundations/layout.html` di Claude Design ditambah 3 unit spacing yang sebelumnya hilang (0px, 2px, 6px) — sekarang skala lengkap 10 unit (0/2/4/6/8/12/16/20/24/32px) sesuai `design-tokens.md` § Spacing. Dikerjakan langsung di sesi utama (bukan subagent, limitasi teknis DesignSync di sesi subagent), perubahan murni additive. Detail: `COMPLETE_TASK.md`.
 
 ### KI-044 · Tidak ada validasi mencegah Schedule ke waktu yang sudah lewat pada tanggal hari ini
 
@@ -417,13 +345,15 @@ dari sesi T-015 — baru ketahuan sekarang karena QA menyentuh area ini lagi
 saat verifikasi Reconnect. King Rezi eksplisit memutuskan (`AskUserQuestion`)
 ini dicatat sebagai Known Issue baru, **tidak diperbaiki di sesi T-015**.
 
-### KI-059 · `triggerPeriodicForAccounts` (Import Posts periodik) butuh `actingUserId` yang belum ada sumbernya
+### KI-088 · `triggerPeriodicForAccounts` (Import Posts periodik) butuh `actingUserId` yang belum ada sumbernya
 
 | Field | Value |
 |-------|-------|
 | Status | Open |
 | Kategori | Tech-Debt / Gap Produk |
 | Terkait | T-090 (T-090.3) |
+
+Nomor ini **KI-088**. KI-059 sudah dipakai untuk verifikasi upload media T-024 (Resolved 2026-09-15) dan tidak didaur ulang.
 
 Ditemukan Elon Backend Engineer saat implementasi T-090.3 (2026-10-08,
 `JOB-05 — Import Posts Trigger`): entry point periodik
@@ -436,50 +366,6 @@ user yang klik "Sync Now"). Didokumentasikan sebagai gap di docstring kode,
 belum jadi keputusan produk final, menunggu King Rezi. Tidak memblokir
 T-090.1–T-090.4 (sudah selesai); jalur periodik butuh keputusan ini sebelum
 dipakai di environment nyata.
-
-### KI-061 · Tidak ada warning UI saat media over-limit setelah ganti target akun/format
-
-| Field | Value |
-|-------|-------|
-| Status | Resolved (implementasi selesai & terverifikasi 2026-10-13, branch `fix/close-ki-batch-014-024-036`, belum di-commit) |
-| Kategori | UX Gap — Draft Editor (ADR-107) |
-| Terkait | Draft Editor (`Modal.tsx`), batas media per `ContentFormat` (ADR-107), T-024 (`tasks/v02-publishing-mvp.md`) |
-
-Ditemukan lewat diskusi King Rezi (2026-09-15, murni analisis kode, bukan
-implementasi): kalau user upload media dulu (mis. 5 gambar untuk format
-`Post`, batas 10 — aman), lalu menambah akun target dengan format yang
-lebih ketat (mis. Pinterest/`Pin`, batas 1 media), batas efektif otomatis
-turun jadi 1 (`maxMediaCountForFormats`, ADR-107) — tapi **tidak ada
-indikasi visual apa pun** bahwa 5 media yang sudah ada sekarang melebihi
-batas dan harus dihapus. Yang terjadi hanya: teks "Maks. X media" di bawah
-dropzone berubah angka (pasif), dan dropzone di-disable untuk upload baru
-— tidak ada highlight/badge/pesan pada thumbnail yang sudah kelebihan.
-User baru tahu ada masalah setelah klik Save as Draft/Schedule/Publish Now
-dan mendapat error dari server (`assertMediaCountWithinLimit`, ADR-107):
-*"Jumlah media (5) melebihi batas maksimum 1 untuk format yang sedang
-dipilih."*
-
-Root cause: tidak ada efek/watcher di `Modal.tsx` yang membandingkan
-`mediaItems.length` terhadap `effectiveMaxMedia` setiap kali
-`selectedAccountIds`/`formatByAccount` berubah (`toggleAccount`, baris
-~420-430) — validasi hanya jalan di titik upload (`handleFilesSelected`)
-dan di server saat submit. Dicatat sebagai Known Issue baru, belum
-diperbaiki (perlu cek Claude Design dulu sebelum implementasi UI apa pun,
-rule 17 AGENTS.md).
-
-**Update (2026-10-13) — selesai 2 tahap:** Rancangan dibuat di Claude Design
-(`templates/draft-editor.html` + `styles.css`, additive — class baru
-`.media-thumb.is-over-limit`, `.media-thumb-badge`, demo state baru, tidak
-mengubah default toggle/state lain) di sesi utama (limitasi teknis
-DesignSync di sesi subagent). Implementasi kode oleh Mark UI Engineer di
-`Modal.tsx`: variabel `overLimitMediaCount`, badge warning dekat teks
-"Maks. X media", border+background warning
-(`border-warning bg-warning/10`) + `Badge variant="warning"` di pojok
-kiri-atas tiap thumbnail over-limit (konvensi: index >= effectiveMaxMedia,
-konsisten dengan cara server `assertMediaCountWithinLimit` menolak
-berdasarkan TOTAL count). Diverifikasi end-to-end: typecheck+lint 0 error,
-browser testing real upload+delete di light & dark mode, tidak ada regresi
-di alur delete media existing. Detail: `COMPLETE_TASK.md`.
 
 ### KI-063 · `PublishingPost.publishedAt` tidak pernah diisi oleh `markPostPublished`/`markPostFailed`
 
@@ -556,131 +442,33 @@ pada row itu alih-alih `continue`-skip — hanya row yang SUDAH `active` yang
 tetap di-skip. `WorkspaceService.confirmFacebookPagesConnection` sendiri
 tidak perlu berubah (sudah delegasi penuh ke `createConnectedAccounts`).
 
----
-
-### KI-084 · Sidebar mobile tidak konsisten dengan sidebar desktop ✅ Resolved (2026-10-08)
+### KI-089 · Lebar sidebar kode (`18rem`) belum dikonfirmasi terhadap acuan 260px
 
 | Field | Value |
 |-------|-------|
-| Status | ✅ Resolved — diimplementasikan ke kode asli & diverifikasi di browser preview mobile (375px) |
-| Kategori | UI Bug / Regresi |
-| Terkait | KI-042 (Mobile Shell retrofit, ✅ Done 2026-10-07), KI-085 |
+| Status | Open |
+| Kategori | UI — belum dikonfirmasi |
+| Terkait | KI-084 (Resolved 2026-10-08, konsistensi sidebar mobile/desktop) |
 
-Ditemukan King Rezi (2026-10-07) setelah **KI-042** ditutup: hasil retrofit
-hamburger+drawer di mobile tidak disamakan secara visual dengan sidebar
-desktop. 3 gap konkret dari screenshot King Rezi:
-1. Icon hamburger (buka sidebar) di mobile berbeda dari icon toggle
-   buka/tutup sidebar di desktop — seharusnya sama.
-2. Layout sidebar (struktur/spacing/komponen) berbeda antara mobile dan
-   desktop — seharusnya identik, cuma beda trigger (drawer vs permanen).
-3. Button "X" (tutup sidebar) di mobile berbeda dari desktop — seharusnya
-   sama.
+Pertanyaan ini sempat tertulis di dalam KI-084. KI-084 sudah Resolved dan
+dikeluarkan dari daftar hidup, jadi pertanyaannya ikut hilang. Nomor KI-084
+tidak didaur ulang.
 
-Sebelum fix: wajib cek Claude Design (project "Social Media Management")
-apakah pola sidebar desktop sudah terkunci di sana sebagai acuan, sesuai
-`AGENTS.md` rule 17 — baru lanjut implementasi (domain UI component →
-Mark UI Engineer, ADR-063).
-
-**Update (2026-10-07):** Icon buka/tutup sidebar mobile sudah disamakan
-dengan desktop di 14 file Claude Design (component spec `navigation-mobile.html`
-+ `styles.css` + 7 screen workspace + 7 screen settings), diverifikasi via
-`get_file` setelah tiap push. Lihat **KI-085** untuk bug layout terpisah yang
-ditemukan King Rezi saat verifikasi di App Prototype.
-
-**Update (2026-10-08) — implementasi ke kode asli `apps/web`:**
-1. [`MobileTopBar.tsx`](../apps/web/src/app/(app)/components/MobileTopBar.tsx) —
-   icon trigger buka diganti dari `Menu01Icon` ke `SidebarLeftIcon`, sama
-   persis dengan `SidebarTrigger` desktop di `sidebar.tsx`.
-2. [`sidebar.tsx`](../apps/web/src/components/ui/sidebar.tsx) (`Sidebar`,
-   cabang `isMobile`) — default close button `SheetContent`
-   (`Cancel01Icon` dari `sheet.tsx` global) dimatikan via
-   `showCloseButton={false}`; tiap sidebar konsumen menyediakan close
-   affordance-nya sendiri di dalam header row (lihat poin 3).
-3. Lebar drawer mobile (`SIDEBAR_WIDTH_MOBILE`) sudah `18rem` (288px),
-   identik dengan `SIDEBAR_WIDTH` desktop di kode — konsisten secara
-   internal (mobile = desktop). **Catatan:** ini BUKAN `260px` yang
-   disebut sebagai nilai lock Claude Design di bullet riwayat 2026-10-07
-   di atas — belum direkonsiliasi apakah `260px` itu cuma nilai CSS
-   mockup statis Claude Design (bukan representasi literal lebar target
-   `apps/web`) atau target asli yang belum terpenuhi di kode (berlaku
-   juga untuk desktop, bukan regresi PR ini). Follow-up: konfirmasi ke
-   King Rezi sebelum menutup gap ini sebagai non-issue.
-
-**Perbaikan (2026-10-08, sesi sama) — close button menabrak "New Post":**
-Percobaan pertama taruh close button sebagai elemen `absolute` baru di
-`SheetContent` (`sidebar.tsx`) — King Rezi laporkan icon-nya tumpang
-tindih dengan tombol "New Post" di bawah header (keduanya di area
-y≈40-44px, terverifikasi via bounding-rect browser). Diperbaiki dengan
-pendekatan berbeda — reuse elemen yang SUDAH ada di flex row header,
-bukan absolute positioning baru:
-- [`WorkspaceSideNav.tsx`](../apps/web/src/app/(app)/components/WorkspaceSideNav.tsx) —
-  `SidebarTrigger` yang sudah ada di header (dulu `hidden md:flex`,
-  hanya tampil desktop) sekarang SELALU ditampilkan (`shrink-0` saja).
-  `toggleSidebar()` di baliknya sudah otomatis menutup drawer mobile
-  (`setOpenMobile` toggle) — jadi tombol buka desktop & tombol tutup
-  mobile adalah elemen yang SAMA PERSIS, tanpa kode baru.
-- [`SettingsSideNav.tsx`](../apps/web/src/app/(app)/settings/components/SettingsSideNav.tsx) —
-  sidebar ini sengaja tanpa `SidebarTrigger` di desktop (Keputusan #4,
-  fixed-width/no-collapse), jadi ditambah tombol close baru khusus
-  mobile (`md:hidden`) di header row yang sama dengan link "Settings",
-  icon `SidebarLeftIcon` + `closeMobileSidebar()` yang sudah ada.
-
-Diverifikasi ulang via browser preview emulasi mobile (375×812) di `/`
-(Workspace drawer) dan `/settings` (Settings drawer): close button kini di
-dalam alur flex header (bukan absolute), tidak overlap elemen apa pun,
-drawer terbuka & tertutup normal; regresi desktop dicek juga (trigger
-tetap di posisi semula). Menutup KI-084 sepenuhnya.
-
----
-
-### KI-085 · App Prototype: layout sidebar mobile rusak saat viewport "Website" ✅ Resolved (2026-10-07)
-
-| Field | Value |
-|-------|-------|
-| Status | ✅ Resolved — dikonfirmasi King Rezi di Claude Design |
-| Kategori | UI Bug / Tooling (Claude Design App Prototype) |
-| Terkait | KI-084, KI-042 |
-
-Ditemukan King Rezi (screenshot) di App Prototype dengan viewport
-**"Tampilan: Website"**: `.mobile-topbar` (hamburger+judul "Kopi Selasar")
-tampil sebagai elemen kedua yang tidak seharusnya ada, berdampingan dengan
-sidebar asli — baik saat drawer mobile terbuka (resize manual) **maupun**
-di fresh load pada lebar desktop penuh (sidebar asli sudah tampil normal,
-tapi topbar ikut nongol juga). Mode **"Tampilan: Mobile" (390px) selalu
-normal** — bug spesifik di jalur "Website".
-
-**Proses penyelesaian (3 percobaan, 2 gagal sebelum ketemu akar yang benar):**
-1. ~~CSS `.app-shell{flex-direction:column}` → `display:block`~~ — dugaan
-   soal komputasi flexbox bersarang, tidak menyelesaikan masalah (dites
-   King Rezi: "masih ada").
-2. ~~CSS `.app-shell:has(~ .mobile-nav-backdrop) .mobile-topbar{display:none}`~~
-   — `:has()` tidak didukung di renderer App Prototype, tidak berefek.
-3. ~~JS: sembunyikan `.mobile-topbar` di `openMobileNav()`/`closeMobileNav()`~~
-   — tidak menjangkau kasus fresh-load (topbar nongol tanpa drawer pernah
-   dibuka sama sekali, dikonfirmasi King Rezi).
-
-**Fix final yang berhasil (`AppPrototype.dc.html`, method `inject()` —
-dipanggil di SETIAP `onLoad` iframe, bukan cuma saat drawer dibuka):**
-guard JS yang mengecek `getComputedStyle` sidebar asli (`.app-shell >
-.sidebar`) di setiap load — kalau sidebar itu tampil (`display !== 'none'`),
-`.mobile-topbar` dipaksa `display:none` lewat `style.display`, independen
-dari cascade CSS manapun. **Dikonfirmasi King Rezi: sudah hilang.**
-
-Pelajaran untuk sesi berikutnya: ketergantungan ke CSS murni (termasuk
-`:has()`) tidak reliable di renderer App Prototype — pola yang terbukti
-jalan adalah guard JS langsung di `inject()` yang jalan di setiap screen
-load.
+Di kode, `SIDEBAR_WIDTH` dan `SIDEBAR_WIDTH_MOBILE` di
+`apps/web/src/components/ui/sidebar.tsx` sama-sama `18rem` (288px). Catatan
+lama menyebut acuan Claude Design 260px. Belum dikonfirmasi apakah 260px itu
+hanya nilai mockup statis, atau lebar yang seharusnya dipakai di aplikasi
+(desktop dan mobile, bukan regresi khusus mobile). Menunggu konfirmasi King
+Rezi sebelum dianggap bukan masalah. Tidak memblokir pekerjaan lain.
 
 ---
 
 ## Blockers
 
 **Wajib dicek AI sebelum mengerjakan subtask apapun yang menyentuh area di
-bawah.** Keduanya adalah dependency eksternal yang belum tersedia di
-lingkungan lokal/CI — bukan bug kode. Kalau eksekusi subtask di area ini
-gagal/crash, cek dulu apakah salah satu blocker ini penyebabnya sebelum
-menyimpulkan ada bug dan mulai "memperbaiki" kode yang sebenarnya sudah
-benar.
+bawah.** Ketiganya belum selesai. Kalau eksekusi subtask di area ini
+gagal, cek dulu apakah salah satu penghalang ini penyebabnya sebelum
+menyimpulkan ada bug di kode.
 
 | ID         | Blocker                                                        | Menghambat                          |
 | ---------- | --------------------------------------------------------------- | ------------------------------------ |

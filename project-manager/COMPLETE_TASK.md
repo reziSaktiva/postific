@@ -8,6 +8,26 @@ Seluruh perubahan penting pada dokumentasi maupun implementasi project dicatat p
 
 ---
 
+## 2026-10-13 — Koreksi review PR dokumentasi audit
+
+### Fixed
+- Baris komponen UI di `PROJECT_OVERVIEW.md` diselaraskan: migrasi Astryx sudah tuntas (v0.7, T-102), bukan lagi incremental.
+- Peringatan di `TASKS.md` tidak lagi menulis T-016 bergantung pada T-036. T-016.4 tetap belum dikerjakan.
+- Larangan jarak di `design-tokens.md` memakai utility `gap` pada parent flex/grid, bukan komponen Stack era lama.
+- Pertanyaan lebar sidebar (kode `18rem` vs acuan 260px) yang ikut hilang saat KI-084 dikeluarkan dicatat ulang sebagai **KI-089** (Open). KI-084 tetap Resolved dan tidak didaur ulang.
+
+## 2026-10-13 — Audit konsistensi dokumentasi (konfirmasi King Rezi)
+
+### Fixed
+- T-016.4 tidak lagi ditulis terblokir oleh T-036. T-036 sudah selesai; subtask preferensi notifikasi tetap belum dikerjakan.
+- Celah `actingUserId` pada impor periodik dipindah dari KI-059 ke **KI-088**. KI-059 tetap milik verifikasi upload media T-024.
+- Entri Resolved dikeluarkan dari daftar hidup `PROJECT_STATE.md`: KI-014, KI-024, KI-036, KI-037, KI-061, KI-084, KI-085.
+- Snapshot hanya menyebut T-037. Jumlah penghalang disamakan menjadi 3.
+- Project Claude Design di `ctx-design.md` dikembalikan ke `Social Media Management` (ADR-124).
+- Teks migrasi Astryx yang masih "berjalan" atau "belum termigrasi" di baseline engineering dan `PROJECT_OVERVIEW.md` diubah menjadi sudah tuntas.
+- Rujukan lockfile aktif diganti dari `bun.lockb` ke `bun.lock`.
+- CC-D02 dan `rendering-strategy.md` menyempit: `toActionError()` hanya untuk Server Action yang mengembalikan `{ error }`.
+
 ## 2026-10-13 — T-037 koreksi review: batas `toActionError` dan cakupan RLS
 
 ### Fixed

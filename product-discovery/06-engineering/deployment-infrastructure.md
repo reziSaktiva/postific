@@ -192,7 +192,7 @@ git push origin main       ──►  Railway (production env) ──►  build 
 
 ## Build Notes untuk Monorepo Bun
 
-- `bun install` dijalankan di **root** monorepo karena lockfile (`bun.lockb`) dan workspace protocol (`@postific/shared`) berada di root.
+- `bun install` dijalankan di **root** monorepo karena lockfile (`bun.lock`) dan workspace protocol (`@postific/shared`) berada di root.
 - Build hanya menghasilkan artefak untuk `apps/web` — `packages/shared` di-resolve sebagai source workspace (tidak perlu build terpisah pada MVP).
 - Next.js output mode dan konfigurasi build detail ditetapkan saat Repository & Bootstrap (M7); dokumen ini menetapkan command dan runtime-nya.
 
