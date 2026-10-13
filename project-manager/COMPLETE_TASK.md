@@ -28,6 +28,24 @@ Seluruh perubahan penting pada dokumentasi maupun implementasi project dicatat p
 - Rujukan lockfile aktif diganti dari `bun.lockb` ke `bun.lock`.
 - CC-D02 dan `rendering-strategy.md` menyempit: `toActionError()` hanya untuk Server Action yang mengembalikan `{ error }`.
 
+## 2026-10-13 — T-037 koreksi review: batas `toActionError` dan cakupan RLS
+
+### Fixed
+- Aturan #18 di `context/ctx-development.md` hanya mewajibkan `toActionError()` pada Server Action yang mengembalikan `{ error }`. Action `void`/`redirect` (`markNotificationReadAction`) dan action yang memetakan sesi kosong ke `null` (`getCalendarPostAction`) tidak diubah kontraknya.
+- Aturan #19 mencakup query baca dan tulis pada tabel ber-RLS. Callback `withCurrentUser` wajib memakai client `tx`, bukan singleton `prisma`. Tanpa GUC, `findMany` mengembalikan `[]` dan `updateMany`/`deleteMany` melaporkan 0 baris, tanpa throw.
+- Catatan snapshot 2026-09-08 di `tasks/v02-publishing-mvp.md` tidak lagi menyebut nomor #18 sebagai butir Testing. Nomor #18 sejak snapshot kedua adalah aturan error.
+
+## 2026-10-13 — T-037 snapshot kedua: aturan error, RLS, dan penamaan port
+
+### Added
+- Aturan operasional #18–#20 di `context/ctx-development.md`: error yang sampai ke user wajib subclass `ApplicationError` + `toActionError()`; mutasi Prisma ber-RLS wajib `withCurrentUser` / `setCurrentUserId`; port baru tanpa awalan `I`. Dua butir checklist sebelum task kode selesai.
+
+### Changed
+- T-037 tetap `🟡 In Progress` (kontinu). Subtask T-037.4–.6 dicentang sebagai snapshot kedua di `tasks/v02-publishing-mvp.md`. Fokus di `TASKS.md` dan baris Snapshot `PROJECT_STATE.md` menyebut tanggal snapshot ini. Aturan git di `ctx-development.md` bergeser jadi #21–#22.
+
+### Fixed
+- Tidak ada perbaikan kode. Ini pencatatan konvensi yang sudah terbukti di praktik (T-090 / T-090.5, CC-D01, CC-D02, CC-D04).
+
 ## 2026-10-13 — KI-014, KI-024, KI-036, KI-037, KI-061 ditutup dalam satu sesi (⚠️ belum di-commit)
 
 ### Konteks
