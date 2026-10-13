@@ -94,18 +94,61 @@ Aturan di bawah melengkapi hard rules di [`../AGENTS.md`](../AGENTS.md). Detail 
     di-spread untuk test case tertentu. Preseden:
     `domains/publishing/services/publishing.service.test.ts`. Pola yang sama
     dipakai untuk double lokal `IOutstandAdapter` di use-case test (bukan
-    singleton produksi — Fake produksi sudah dihapus, ADR-119).
+    singleton produksi — Fake produksi sudah dihapus, ADR-119). Tes ini
+    tidak membuktikan konteks RLS di implementasi Prisma — lihat aturan 19.
+
+### Dari praktik yang sudah terbukti di kode
+
+18. Error yang harus tampil sebagai pesan `{ error }` ke user (bukan
+    crash): lempar subclass `ApplicationError` di
+    `apps/web/src/lib/utils/errors.ts` — `AuthorizationError`,
+    `NotFoundError`, `ValidationError`, `ConflictError`,
+    `ExternalServiceError`, atau subclass-nya
+    (mis. `AlreadyConnectedError`). `XxxDomainError` di tiap domain
+    extends `Error`, bukan `ApplicationError` — jangan dipakai untuk pesan
+    yang harus sampai ke UI. Server Action yang **mengembalikan** `{ error }`
+    menangkap lewat `try/catch` + `toActionError()`; fungsi itu hanya
+    memetakan `instanceof ApplicationError`, selain itu di-throw lagi.
+    `throw new Error(...)` di jalur ini jadi overlay error Next.js, bukan
+    toast. Preseden: `getOutstandAdapter()` saat `OUTSTAND_API_KEY` kosong
+    (T-090.5) — sekarang `ExternalServiceError`. Isi `message` harus aman
+    ditampilkan. Jangan membungkus ulang action yang kontraknya bukan
+    `{ error }`: `markNotificationReadAction` mengembalikan `void` dan
+    membiarkan error naik (sesi kosong → `redirect("/login")`);
+    `getCalendarPostAction` memetakan sesi kosong ke `null`. Mengganti
+    keduanya ke `toActionError()` mengubah kontrak pemanggil. Detail:
+    `code-conventions.md` (CC-D01, CC-D02).
+19. Query Prisma, baca maupun tulis, pada tabel yang punya RLS: bungkus
+    dengan `withCurrentUser(userId, (tx) => ...)` di
+    `apps/web/src/lib/prisma/with-current-user.ts`. Di dalam callback pakai
+    client `tx`, bukan singleton `prisma` — `SET LOCAL` hanya hidup di
+    transaksi itu. Kalau sudah berada di dalam transaksi luar, panggil
+    `setCurrentUserId(tx, userId)` sebagai pernyataan pertama; jangan
+    menumpuk `withCurrentUser` (itu membuka transaksi kedua dan memecah
+    atomisitas, preseden `createWithOwner`). Tanpa `app.current_user_id`,
+    policy `USING` tidak cocok dan tidak melempar error: `findMany`
+    mengembalikan `[]`, `updateMany`/`deleteMany` melaporkan 0 baris.
+    Preseden tulis: `updateImportWatermark` (T-090). Preseden baca:
+    `getMember`, `listMembers`, `getChannelOrder`.
+20. Port dan interface baru: PascalCase tanpa awalan `I` (contoh
+    `PostMediaLookupPort`, `EnqueueAnalyticsSyncAccountsPort`). Awalan `I`
+    pada `IXxxRepository` serta adapter yang sudah lama (`IOutstandAdapter`,
+    `IMediaStorageAdapter`, `IJobScheduler`) adalah nama yang sudah
+    terpakai — jangan ditiru untuk port baru. Detail: `code-conventions.md`
+    (CC-D04).
 
 ### Git / PR (saat diminta user)
 
-18. Commit hanya jika user meminta — Conventional Commits, imperative, fokus “why”.
-19. Jangan `--no-verify` / force push ke main kecuali diminta eksplisit.
+21. Commit hanya jika user meminta — Conventional Commits, imperative, fokus “why”.
+22. Jangan `--no-verify` / force push ke main kecuali diminta eksplisit.
 
 ---
 
 ## Checklist sebelum selesai task kode
 
 - [ ] Tidak melanggar hard rules `AGENTS.md` (entry point, domain imports, Prisma/Supabase batas)
+- [ ] Pesan `{ error }` ke user adalah subclass `ApplicationError`, dan hanya Server Action yang mengembalikan `{ error }` memakai `toActionError` (action `void` / `redirect` / `null` tidak diubah kontraknya)
+- [ ] Query baca dan tulis pada tabel ber-RLS memakai `withCurrentUser` atau `setCurrentUserId`, dan query di dalamnya memakai client `tx`
 - [ ] `bun run typecheck` hijau
 - [ ] `bun run lint` hijau
 - [ ] Test relevan hijau (jika ada)
