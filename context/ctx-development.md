@@ -55,8 +55,8 @@ Aturan di bawah melengkapi hard rules di [`../AGENTS.md`](../AGENTS.md). Detail 
 ### UI / styling
 
 6. shadcn/ui adalah fondasi komponen permanen (ADR-097, membalik ADR-041).
-   Migrasi dari Astryx sudah tuntas 100% (rilis v0.7, T-102 `✅ Done`) — lihat
-   `tasks/v07-astryx-shadcn-migration.md`.
+   Migrasi dari Astryx ke shadcn/ui selesai (ADR-097); detail status lihat
+   `PROJECT_STATE.md` / `../project-manager/tasks/v07-astryx-shadcn-migration.md`.
 7. Tailwind dipakai langsung sebagai styling komponen shadcn (bukan lagi
    layout-only seperti era Astryx).
 8. Wrapper selektif tetap dipakai untuk komponen kritis/dipakai luas.
@@ -78,29 +78,16 @@ Aturan di bawah melengkapi hard rules di [`../AGENTS.md`](../AGENTS.md). Detail 
 
 ### Struktur repository & use-case
 
-14. Repository per domain selalu dipisah jadi dua lapis: interface
-    (`IXxxRepository`) di `apps/web/src/domains/<domain>/repositories/`,
-    implementasi Prisma nyata di `apps/web/src/lib/repositories/<domain>/`.
-    Domain layer hanya bergantung ke interface (hard rule 6 `AGENTS.md` —
-    domain tidak boleh impor Prisma langsung); Server Action/Application
-    Service yang meng-_inject_ implementasi Prisma dari `lib/repositories`.
-    Preseden: `domains/publishing/repositories/publishing.repository.ts` ↔
-    `lib/repositories/publishing/`.
-15. Kalau sebuah alur butuh dependency tambahan yang wajib ada di
-    constructor (mis. `IOutstandAdapter`) dan urutan operasinya kritis
-    (persist dulu → panggil adapter → persist outcome), taruh sebagai
-    **use-case class terpisah** (`xxx.use-case.ts`) — bukan method baru di
-    service umum domain tersebut. Tujuannya supaya lupa pass dependency
-    ketahuan TypeScript di call site (compile error), bukan baru meledak
-    saat runtime. Preseden: `SchedulePostsUseCase`, `PublishNowUseCase`,
-    `CancelScheduleUseCase` (`domains/publishing/services/*.use-case.ts`),
-    `AnalyticsIngestionUseCase` (`domains/analytics/services/`).
+14. Pola **Repository** (split interface domain ↔ implementasi Prisma) dan
+    pola **use-case class terpisah** untuk alur dengan dependency kritis
+    (mis. `IOutstandAdapter`) — didetailkan di `ctx-implementation.md`
+    (bukan di sini, sesuai batas file pada `context/README.md`).
 
 ### Testing
 
-16. Unit/domain test: **Vitest** (`bun run test`).
-17. Test yang ditambah harus relevan dengan behavior yang diubah; jangan stub berlebihan tanpa nilai.
-18. Service/use-case diuji dengan **fake repository** — bukan mock Prisma
+15. Unit/domain test: **Vitest** (`bun run test`).
+16. Test yang ditambah harus relevan dengan behavior yang diubah; jangan stub berlebihan tanpa nilai.
+17. Service/use-case diuji dengan **fake repository** — bukan mock Prisma
     dan bukan DB nyata. Pola: factory function `createFakeRepository()`
     yang mengembalikan objek literal `implements IXxxRepository` dengan
     default no-op per method, lalu `overrides: Partial<IXxxRepository>`
@@ -111,8 +98,8 @@ Aturan di bawah melengkapi hard rules di [`../AGENTS.md`](../AGENTS.md). Detail 
 
 ### Git / PR (saat diminta user)
 
-19. Commit hanya jika user meminta — Conventional Commits, imperative, fokus “why”.
-20. Jangan `--no-verify` / force push ke main kecuali diminta eksplisit.
+18. Commit hanya jika user meminta — Conventional Commits, imperative, fokus “why”.
+19. Jangan `--no-verify` / force push ke main kecuali diminta eksplisit.
 
 ---
 

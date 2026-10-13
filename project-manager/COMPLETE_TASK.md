@@ -8,6 +8,143 @@ Seluruh perubahan penting pada dokumentasi maupun implementasi project dicatat p
 
 ---
 
+## 2026-10-13 — `/docs-consistency-audit` scope "all" (project-manager + 125 ADR + context/ + product-discovery/) — 17 fix mekanis diterapkan, 1 temuan ambigu menunggu keputusan King Rezi
+
+### Konteks
+4 subagent membaca penuh scope masing-masing (project-manager tracking,
+seluruh ADR/`DECISIONS.md`, `context/`, `product-discovery/`) dan
+menghasilkan 18 temuan drift dokumentasi. 17 temuan Kelas A (mekanis, tidak
+butuh keputusan baru) langsung dieksekusi via Edit tool. 1 temuan Kelas B
+(ambigu) **belum** dieksekusi — menunggu konfirmasi King Rezi. Tidak ada
+perubahan kode/implementasi di sesi ini, murni dokumentasi.
+
+### Fixed — project-manager tracking (4)
+- `tasks/v07-astryx-shadcn-migration.md` — Status T-103 `⏳ Not Started` →
+  `✅ Done (2026-09-10)`, menyamakan dengan 4 subtask-nya yang sudah lama
+  Done.
+- `TASKS.md` — indeks v0.7 "9✅·1⏳" → "10✅"; Total "67 selesai" →
+  "68 selesai"; "252 subtask" → "263 subtask" (hasil hitung ulang langsung
+  dari `tasks/vXX-*.md`, bukan asumsi).
+- `PROJECT_STATE.md` — baris Snapshot & Metadata: "91 task"/"72 task"
+  disamakan jadi "99 task" (cocok Total resmi `TASKS.md`).
+- `PROJECT_STATE.md` — KI-046: hapus klaim basi "masih blocked T-005",
+  tambah catatan Update (2026-10-12) bahwa T-007.7 sudah ✅ Done via
+  Resend/T-110 tanpa dependency T-005.
+
+### Fixed — ADR/`DECISIONS.md` cross-reference (7, murni catatan silang, tidak ada substansi ADR yang diubah)
+- `decisions/ADR-012-addendum-product-baseline-roles-permissions.md` —
+  tambah "Amended by ADR-074 (role Manager dihapus)".
+- `decisions/ADR-018-application-layer-cross-domain-communication.md` —
+  tambah "Amended by ADR-078".
+- `decisions/ADR-047-publish-now-fitur-resmi-publish-langsung-tanpa-jadwal.md`
+  — tambah "Amended by ADR-074 (role Manager dihapus)".
+- `decisions/ADR-071-perluasan-bucket-avatars-untuk-avatar-user-personal.md`
+  — tambah "Amended by ADR-075".
+- `decisions/ADR-072-tabel-workspace-invitations-terpisah-untuk-invite-member-belum-punya-akun.md`
+  — koreksi tanggal "Amended by ADR-080" dari 2026-08-13 ke 2026-08-14.
+- `decisions/ADR-076-workspace-context-via-cookie-hapus-slug-konsolidasi-settings-organization-account.md`
+  — tambah "Amended by ADR-077".
+- `DECISIONS.md` — 4 baris index diperbarui: ADR-055 tambah ref ADR-102,
+  ADR-110 tambah ref ADR-113, ADR-012 & ADR-047 tambah ref ADR-074.
+
+### Fixed — `context/` (3, masing-masing gabungan beberapa file)
+- Hapus duplikasi badge status/progress ("migrasi tuntas 100%/✅ Done") yang
+  melanggar aturan `context/` sendiri (indeks, bukan salinan status) — di
+  `ctx-technical-context.md`, `ctx-design.md`, `ctx-development.md`,
+  `ctx-implementation.md` — diganti kalimat faktual yang menunjuk ke
+  `PROJECT_STATE.md`.
+- Perbaiki path relatif mati (`tasks/v07-...` →
+  `../project-manager/tasks/v07-...`) di 3 file `context/` yang sama.
+- Pindahkan konten pola Application Service/use-case yang salah tempat dari
+  `ctx-development.md` ke `ctx-implementation.md` (sesuai batas file di
+  `context/README.md`), rule di kedua file di-renumber supaya tidak ada
+  gap/duplikasi.
+
+### Fixed — `product-discovery/` (3)
+- `04-ux/user-flows.md` UF-02 step 5 — update dari ADR-023 (manual refresh)
+  jadi ADR-094 (Supabase Realtime granular patch `publishing_posts`,
+  termasuk Queue).
+- `04-ux/user-flows.md` UF-03 Happy Path step 2 — daftar status Calendar
+  dipersempit dari 6 jadi 3 (Scheduled/Published/Failed) sesuai amandemen
+  KSP-02-F02, + catatan Draft/In Review/Ready to Schedule tidak tampil di
+  Calendar.
+- `05-architecture/database-strategy.md` — tabel `publishing_posts` tambah
+  kolom `outstand_post_id`; tabel `publishing_post_targets` rename
+  `outstand_job_id` → `platform_post_id` dan `published_url` →
+  `platform_post_url`, sesuai amandemen ADR-092 yang sudah tercermin di
+  `domain-model.md`.
+
+### Belum dieksekusi — Kelas B, menunggu keputusan King Rezi
+- `context/ctx-design.md` field "Project" Claude Design masih tertulis
+  "Social Media Management", sedangkan produk sudah rename jadi Postific
+  (ADR-124). Perlu konfirmasi King Rezi: apakah project Claude Design ikut
+  di-rename, atau sengaja dibiarkan beda nama (sistem eksternal). Tidak
+  diubah sampai ada arahan eksplisit.
+
+## 2026-10-12 — T-110 (KI-053) ditemukan sudah TUNTAS sejak commit `bad28cb` — audit dokumentasi, tanpa perubahan kode
+
+### Konteks
+Diminta lanjutkan pengerjaan T-110.1, tapi verifikasi menemukan seluruh 5
+subtask T-110 (Verifikasi kepemilikan email di accept-invite, KI-053) sudah
+diimplementasikan dan ter-commit ke `staging` lewat commit `bad28cb`
+("feat(workspace): T-110 email ownership verification at accept-invite
+(KI-053)", 2026-10-06), dan commit itu sudah jadi ancestor branch kerja
+saat ini. Checklist/status di beberapa file dokumentasi masih belum
+diupdate — drift murni dokumentasi, **tidak ada kode yang ditulis/diubah**
+di sesi ini.
+
+### Verifikasi yang dilakukan
+- T-110.1 (Resend setup): package `resend`, env var
+  `RESEND_API_KEY`/`RESEND_FROM_EMAIL`, factory `getInviteEmailSender()`
+  (pola ADR-119), adapter `createResendInviteEmailSender` — semua ada di
+  kode.
+- T-110.2 (request OTP saat `isExistingUser:false`):
+  `requestAcceptInviteVerificationAction` dipanggil dari
+  `AcceptInviteForm.tsx` sebelum `authClient.signUp.email()` — ada.
+- T-110.3 (guard server): `WorkspaceService.confirmInviteEmailVerification`/
+  `requestInviteEmailVerification` — hash sha256, timing-safe compare, TTL
+  10 menit, cap 5 attempt, scoped ke invitation. Migration
+  `20260928120000_t110_invite_email_verification` dikonfirmasi sudah
+  ter-deploy ke DB dev (cek langsung via Supabase MCP).
+- T-110.4 (UI `pending-verification`): state baru di `AcceptInviteForm.tsx`
+  sesuai mockup Claude Design yang sudah dikunci — ada.
+- T-110.5 (test): unit test komprehensif ada di
+  `workspace.service.test.ts` (termasuk race-condition cap attempt). Commit
+  `bad28cb` mencatat full suite 609 passed/6 skipped. **Gap terbuka:**
+  verifikasi end-to-end browser nyata (skenario email A vs email B dibuka
+  dua orang berbeda) tidak ditemukan buktinya di sini — dicatat sebagai
+  item terbuka, bukan diklaim selesai.
+
+### Diperbarui (dokumentasi saja)
+- `tasks/v01-foundation.md` § T-110 — Status `🟡 In Progress`/subtask
+  `⏳ Not Started` → `✅ Done` (dengan catatan gap E2E browser di T-110.5),
+  ditambah catatan drift dokumentasi.
+- `TASKS.md` — indeks v0.1: 18 ✅ → 19 ✅, hapus baris "1 ⏳" (sudah 0);
+  Total "65 selesai" → "67 selesai" (dihitung ulang langsung dari seluruh
+  baris indeks release, ditemukan sudah off-by-one sebelum perubahan ini
+  juga — dikoreksi sekalian).
+- `PROJECT_STATE.md` — KI-053 (§ Known Issues): status "Promoted to T-110"
+  dipertahankan (konsisten dengan pola KI-049/KI-058 yang juga tetap
+  "Promoted to T-XXX" walau task sudah Done, bukan dihapus/ditandai
+  "Resolved" literal) + ditambah catatan T-110 selesai dan field `Terkait`
+  ditambah `T-110` (referensi balik). § Completed (Ringkasan): 1 bullet
+  baru ditambah, 1 bullet terlama (T-090) dihapus supaya tetap 5 item.
+
+### Keputusan ambigu — perlu konfirmasi King Rezi
+1. **Status final T-110.5**: ditandai `[x]` selesai dengan catatan gap
+   E2E browser terbuka (bukan `[ ]`/partial) — karena unit test coverage-nya
+   substansial dan mayoritas scope subtask (unit test) memang tuntas, hanya
+   item E2E browser yang belum terverifikasi. Kalau King Rezi menilai ini
+   harus tetap `[ ]`/partial sampai E2E browser benar-benar dijalankan,
+   tolong dikoreksi.
+2. **KI-053 tidak ditandai "Resolved" secara eksplisit** di
+   `PROJECT_STATE.md` (dibiarkan sebagai "Promoted to T-110" + catatan
+   selesai) — mengikuti pola existing KI-049/KI-058 yang juga dibiarkan
+   begitu meski task turunannya sudah Done, supaya tidak memicu guardrail
+   penghapusan Known Issue yang statusnya literal "Resolved". Kalau King
+   Rezi mau pola berbeda (literal "Resolved" + dihapus dari Known Issues),
+   silakan arahkan.
+
 ## 2026-10-12 — KI-052 Resolved: waktu relatif di daftar riwayat tidak lagi bentrok saat halaman dimuat
 
 ### Fixed

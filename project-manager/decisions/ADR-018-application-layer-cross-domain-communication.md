@@ -6,7 +6,7 @@ Application Layer — Cross-Domain Communication
 
 ### Status
 
-Accepted
+Accepted — Amended by ADR-078 (2026-08-12)
 
 ### Date
 

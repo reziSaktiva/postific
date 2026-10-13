@@ -289,6 +289,7 @@ Tabel BC-01 Identity dikelola sepenuhnya oleh **Better Auth**. Better Auth dikon
 | `published_at` | `timestamptz` | Waktu berhasil dipublikasikan |
 | `failed_at` | `timestamptz` | |
 | `failure_reason` | `text` | |
+| `outstand_post_id` | `text` | **(amandemen ADR-092)** SATU ID post dari Outstand API, mencakup seluruh `PostTarget` pada post ini sekaligus (1 call `schedulePost`/`publishNow` untuk semua target). Diisi post-level, bukan per `PostTarget` — lihat `domain-model.md` |
 | `deleted_at` | `timestamptz` | Soft delete — post dihapus tidak benar-benar di-remove (DB-D03) |
 | `created_at` | `timestamptz NOT NULL DEFAULT now()` | |
 | `updated_at` | `timestamptz NOT NULL DEFAULT now()` | |
@@ -305,9 +306,9 @@ Tabel BC-01 Identity dikelola sepenuhnya oleh **Better Auth**. Better Auth dikon
 | `platform` | `text NOT NULL` | Snapshot platform saat target dibuat |
 | `content_format` | `text NOT NULL DEFAULT 'post'` | `post \| reel \| story \| pin` (ADR-039). Default DB = fallback teknis; **Application Service wajib set nilai bisnis** (Pinterest → `pin`) dan memvalidasi matriks platform |
 | `platform_options` | `jsonb` | Field khusus platform (mis. Pinterest title/link/board); null jika tidak dipakai |
-| `outstand_job_id` | `text` | ID job dari Outstand API setelah post dijadwalkan |
+| `platform_post_id` | `text` | **(amandemen ADR-092, rename dari `outstand_job_id`)** ID post di platform ASLI (mis. Instagram) per akun — beda dari `publishing_posts.outstand_post_id` post-level. Diisi async lewat `fetchPostOutcome`/webhook, bukan sinkron dari `schedulePost`/`publishNow` |
 | `status` | `text NOT NULL DEFAULT 'pending'` | `pending \| scheduled \| published \| failed` |
-| `published_url` | `text` | URL post yang sudah dipublikasikan |
+| `platform_post_url` | `text` | **(amandemen ADR-092, rename dari `published_url`)** URL post yang sudah dipublikasikan per akun, diisi async bersamaan dengan `platform_post_id` |
 | `error` | `text` | Pesan error dari Outstand API jika publish gagal |
 | `created_at` | `timestamptz NOT NULL DEFAULT now()` | |
 | `updated_at` | `timestamptz NOT NULL DEFAULT now()` | |

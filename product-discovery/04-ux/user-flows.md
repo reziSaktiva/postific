@@ -135,7 +135,7 @@ Setiap flow memiliki struktur:
 2. Queue menampilkan post yang **sudah terjadwal** (status `Scheduled`), dikelompokkan per tanggal lalu per jam, murni berurutan berdasarkan waktu publish — tanpa badge status per item karena seluruh isi Queue statusnya seragam (amandemen ADR-083, 2026-08-19). Item `Failed` tidak muncul di sini — pindah ke **History** begitu percobaan publish selesai.
 3. Raka memindai coverage: melihat apakah ada hari tanpa posting, atau jadwal yang terlalu berdekatan untuk akun tertentu.
 4. Jika ada gap yang perlu diisi, Raka langsung membuat konten baru melalui **New Post** (kembali ke UF-01).
-5. Queue diperbarui setelah manual refresh (ADR-023 — bukan realtime; Realtime dibatasi tabel `notifications`).
+5. Queue diperbarui otomatis via Supabase Realtime granular client-side patch pada tabel `publishing_posts` (amandemen ADR-094, 2026-08-28) — bukan lagi manual-refresh-only seperti ADR-023 semula; lihat juga `rendering-strategy.md`.
 
 **Outcome:** Queue terorganisir dengan coverage yang sehat untuk periode berjalan.
 
@@ -178,7 +178,7 @@ Setiap flow memiliki struktur:
 ### Happy Path
 
 1. Raka membuka **Publish → Calendar** — tampilan default: weekly view.
-2. Calendar menampilkan seluruh konten terjadwal dalam minggu berjalan, dibedakan secara visual per akun dan status (`Scheduled`, `Published`, `In Review`, `Ready to Schedule`, `Draft`, `Failed`).
+2. Calendar menampilkan seluruh konten terjadwal dalam minggu berjalan, dibedakan secara visual per akun dan status — **hanya 3 dari 6 status kanonikal yang bisa tampil di grid: `Scheduled`, `Published`, `Failed`** (amandemen KSP-02-F02, polishing UI 2026-08-27). `Draft`, `In Review`, dan `Ready to Schedule` tidak pernah muncul di Calendar karena belum punya `scheduledAt`/`publishedAt` untuk diplot ke sel tanggal/jam — item berstatus itu tetap terlihat di **Publish → Drafts**.
 3. Raka memindai distribusi konten: akun mana yang paling banyak / sedikit, hari mana yang kosong.
 4. Raka mengklik satu item di Calendar untuk membuka Draft Editor dan melakukan edit jika diperlukan.
 5. Maya (di sesinya) membuka **Home → Today's Schedule** atau langsung **Publish → Calendar**.
