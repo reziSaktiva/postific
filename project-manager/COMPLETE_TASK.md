@@ -8,6 +8,14 @@ Seluruh perubahan penting pada dokumentasi maupun implementasi project dicatat p
 
 ---
 
+## 2026-10-13 — Penghalang staging ditutup: migrasi T-051 dan sisa KI-025
+
+### Fixed
+- Migrasi `20260922110000_t051_filter_active_status_engagement_sync_lookup` sudah ter-apply di staging sejak 2026-09-22. Fungsi lookup mengembalikan kolom `status`. Catatan "belum di-deploy" di Blockers dan `tasks/v04-engagement-mvp.md` adalah drift dokumen.
+- Health-check cron staging (sisa KI-025 item 1): service `cron` membalas 200 tiap menit pada 2026-10-13. Job `engagement.sync` terakhir selesai hari yang sama; dua baris `pending` adalah jadwal 30 menit berikutnya.
+- Backfill lima target Publish Now (sisa KI-025 item 3) sudah final sejak 2026-10-05: empat `published`, satu `failed` (`3YuZC`). Tidak ada target berstatus `pending`.
+- Penghalang aktif tinggal KI-015 (kredensial Google OAuth). Tidak ada kode baru dan tidak ada `db:deploy` di sesi ini.
+
 ## 2026-10-13 — Koreksi review PR dokumentasi audit
 
 ### Fixed
