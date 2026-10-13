@@ -6,11 +6,7 @@ import { redirect } from "next/navigation";
 import { WorkspaceService } from "@/domains/workspace";
 import { auth } from "@/lib/better-auth/auth";
 import { workspaceRepository } from "@/lib/repositories/workspace";
-import {
-  ConflictError,
-  toActionError,
-  ValidationError,
-} from "@/lib/utils/errors";
+import { toActionError } from "@/lib/utils/errors";
 import {
   ACTIVE_WORKSPACE_ID_COOKIE,
   activeWorkspaceCookieOptions,
@@ -33,10 +29,12 @@ export async function createWorkspaceAction(
       name,
     });
   } catch (error) {
-    if (error instanceof ValidationError || error instanceof ConflictError) {
-      return { error: error.message };
-    }
-    throw error;
+    // CC-D02 (KI-036): `toActionError()` yang sama dengan `selectWorkspaceAction`
+    // di bawah, bukan `instanceof ValidationError || instanceof ConflictError`
+    // manual — behavior sama persis untuk dua error type itu, sekaligus ikut
+    // menangkap `ApplicationError` subtype lain tanpa perlu menyalin ulang
+    // daftar instanceof setiap ada error type baru.
+    return toActionError(error);
   }
 
   (await cookies()).set(

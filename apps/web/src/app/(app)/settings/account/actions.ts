@@ -8,7 +8,7 @@ import { IdentityService } from "@/domains/identity";
 import { supabaseAvatarStorageAdapter } from "@/lib/adapters/avatar-storage";
 import { auth } from "@/lib/better-auth/auth";
 import { identityRepository } from "@/lib/repositories/identity";
-import { ValidationError } from "@/lib/utils/errors";
+import { toActionError } from "@/lib/utils/errors";
 
 export type UpdateProfileActionResult =
   | { ok: false; error: string }
@@ -45,14 +45,19 @@ export async function updateProfileAction(
 
     return { ok: true, name: profile.name, image: profile.image };
   } catch (error) {
-    if (error instanceof ValidationError) {
-      return { ok: false, error: error.message };
+    // CC-D02 (KI-036): pakai `toActionError()` yang sama dengan Server
+    // Action lain (bukan `instanceof ValidationError` manual) supaya seluruh
+    // `ApplicationError` (termasuk `ExternalServiceError` dari upload avatar
+    // gagal, pola sama `engage/actions.ts`) memetakan pesan yang sama
+    // konsisten — `toActionError` sendiri yang rethrow untuk error non-
+    // `ApplicationError`, ditangkap di sini supaya ProfileForm tetap selalu
+    // menerima `{ok:false}` (bukan exception tak tertangani) untuk error
+    // yang benar-benar tak terduga.
+    try {
+      return { ok: false, error: toActionError(error).error };
+    } catch {
+      console.error("[updateProfileAction] gagal update profil:", error);
+      return { ok: false, error: "Gagal menyimpan profil. Coba lagi." };
     }
-    // Error lain (mis. ExternalServiceError dari upload avatar gagal) tidak
-    // dilempar mentah ke client — diterjemahkan jadi pesan generik supaya
-    // ProfileForm selalu punya {ok:false} untuk ditampilkan, bukan exception
-    // tak tertangani.
-    console.error("[updateProfileAction] gagal update profil:", error);
-    return { ok: false, error: "Gagal menyimpan profil. Coba lagi." };
   }
 }

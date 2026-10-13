@@ -45,7 +45,7 @@ Matriks format per platform (IG/FB: Post/Reel/Story · TikTok: video feed tanpa 
 | **Domain**    | media · publishing                                             |
 | **ADR**       | ADR-040 (media upload working copy) · ADR-107 (batas maksimum jumlah media per `ContentFormat`, T-024.4) |
 | **Depends**   | T-025 (Media API adapter) — **di-bypass sebagian** lewat pola Fake (rule 19 AGENTS.md, lihat catatan di bawah) |
-| **Terkait**   | KI-059 Resolved (verifikasi manual browser T-024.4 & T-024.5, 2026-09-15) · KI-060 baru (Account Selector tidak ter-restore saat edit, di luar scope T-024) · KI-061 baru (tidak ada warning UI saat media over-limit setelah ganti target akun/format, ADR-107) |
+| **Terkait**   | KI-059 Resolved (verifikasi manual browser T-024.4 & T-024.5, 2026-09-15) · KI-060 Resolved (ADR-125, 2026-10-12, di luar scope T-024 literal) · KI-061 Resolved (2026-10-13, tidak ada warning UI saat media over-limit setelah ganti target akun/format, ADR-107) |
 | **Baca dulu** | `05-architecture/integration-layer.md` · `06-engineering/environment-management.md` |
 
 Kontrol lampiran media di Draft Editor sudah ada tapi **disabled** dengan keterangan "Lampiran media akan tersedia setelah OutstandAdapter Media API siap".
@@ -253,7 +253,20 @@ semantics `mediaIds`), sudah diperbaiki dan diverifikasi ulang (putaran 2:
 (**KI-059**) sudah **Resolved** (2026-09-15) — seluruh 6 kriteria PASS,
 T-024 sekarang teruji penuh end-to-end, bukan hanya verifikasi kode.
 Satu temuan baru di luar scope selama verifikasi ini: **KI-060** (Account
-Selector tidak ter-restore saat reopen edit draft, bukan regresi T-024).
+Selector tidak ter-restore saat reopen edit draft, bukan regresi T-024,
+sudah **Resolved** via ADR-125, 2026-10-12).
+
+**Update (2026-10-13) — KI-061 Resolved** (branch
+`fix/close-ki-batch-014-024-036`, belum di-commit; bukan subtask formal
+baru, tetap tercatat di luar 5/5 T-024.x literal): rancangan dibuat di
+Claude Design (`templates/draft-editor.html` + `styles.css`, additive) di
+sesi utama, lalu diimplementasikan Mark UI Engineer di `Modal.tsx` —
+`overLimitMediaCount`, badge warning dekat teks "Maks. X media",
+border+background warning + `Badge variant="warning"` di pojok kiri-atas
+tiap thumbnail over-limit (index >= `effectiveMaxMedia`, konsisten dengan
+`assertMediaCountWithinLimit` di server). Diverifikasi: typecheck+lint 0
+error, browser testing real upload+delete di light & dark mode, tanpa
+regresi. Detail: `COMPLETE_TASK.md`.
 
 - [x] **T-024.1** Domain `media` skeleton (service + repository, model `MediaItem` sudah ada di schema)
 - [x] **T-024.2** Upload ke Supabase Storage (Supabase JS client **hanya** untuk Storage/Realtime — CRUD tetap Prisma)

@@ -90,18 +90,39 @@ export function SettingsSideNav() {
         {/* eslint-disable-next-line no-restricted-syntax -- file ini sudah
             dimigrasi ke komposisi Tailwind shadcn (ADR-097). */}
         <div className="flex items-center justify-between gap-1">
-          <Link
-            href="/"
-            onClick={closeMobileSidebar}
-            className="flex min-w-0 items-center gap-2 px-1 font-heading text-sm font-semibold"
-          >
-            <HugeiconsIcon
-              icon={ArrowLeft01Icon}
-              strokeWidth={2}
-              className="size-4 shrink-0"
-            />
-            Settings
-          </Link>
+          {/* KI-024: spec Claude Design (`.settings-sidebar-header`,
+              styles.css baris ~316-319) memisahkan back-button (kotak ikon
+              28px, klik-able SENDIRI) dari judul "Settings" (teks statis,
+              font `--text-body-size`) — dulu digabung jadi satu `<Link>`
+              utuh (pola `SideNavHeading` lama, font `--text-large-size`).
+              Dipecah jadi 2 elemen: `Button asChild` 28px (`size-7`,
+              override `icon-xs`) untuk navigasi balik, dan `<span>` statis
+              non-klik-able untuk judul (tetap `text-sm`, setara
+              `--text-body-size` — sudah lebih kecil dari default `text-base`
+              yang merepresentasikan `--text-large-size`). */}
+          {/* eslint-disable-next-line no-restricted-syntax -- file ini sudah
+              dimigrasi ke komposisi Tailwind shadcn (ADR-097). */}
+          <div className="flex min-w-0 items-center gap-2 px-1">
+            <Button
+              asChild
+              variant="ghost"
+              size="icon-xs"
+              className="size-7 shrink-0"
+              aria-label="Kembali ke Home"
+            >
+              <Link href="/" onClick={closeMobileSidebar}>
+                <HugeiconsIcon
+                  icon={ArrowLeft01Icon}
+                  strokeWidth={2}
+                  className="size-4"
+                />
+              </Link>
+            </Button>
+            <span className="truncate font-heading text-sm font-semibold">
+              Settings
+            </span>
+          </div>
+
           {/* KI-084: Settings sidebar sengaja TANPA `SidebarTrigger` di
               desktop (Keputusan #4 T-105.0/T-105.1 — fixed-width, tidak bisa
               collapse). Di mobile tetap butuh affordance tutup drawer —
