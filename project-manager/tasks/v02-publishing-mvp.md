@@ -1203,7 +1203,7 @@ controlled) benar-benar menutup panel (`sheet-content` hilang dari DOM).
 
 | Field         | Value                                                        |
 | ------------- | ------------------------------------------------------------ |
-| **Status**    | 🟡 In Progress — kontinu by design, snapshot pertama (T-037.1–.3) sudah dicatat |
+| **Status**    | 🟡 In Progress — kontinu by design, snapshot kedua (T-037.4–.6) sudah dicatat 2026-10-13 |
 | **Domain**    | DX                                                           |
 | **ADR**       | ADR-034                                                      |
 | **Depends**   | —                                                            |
@@ -1214,8 +1214,13 @@ Berjalan **kontinu** selama rilis ini, bukan sekali selesai: setiap kali konvens
 - [x] **T-037.1** Catat konvensi struktur repository: interface di `src/domains/*/repositories/`, implementasi Prisma di `src/lib/repositories/*/` — sudah konsisten di `workspace` + `publishing`, tapi belum tertulis sebagai aturan sehingga domain baru bisa menyimpang
 - [x] **T-037.2** Catat konvensi penempatan use-case terpisah dari service (preseden: `schedule-posts.use-case.ts`)
 - [x] **T-037.3** Catat konvensi test: service diuji dengan repository fake (preseden yang sudah ada di `publishing`/`workspace`)
+- [x] **T-037.4** Catat konvensi error yang sampai ke user: subclass `ApplicationError` + `toActionError()` di Server Action; `throw new Error` polos di jalur itu jadi crash overlay (preseden `getOutstandAdapter()`, T-090.5)
+- [x] **T-037.5** Catat konvensi mutasi Prisma ber-RLS: `withCurrentUser` / `setCurrentUserId`; `updateMany` tanpa konteks itu bisa no-op senyap, dan tes fake repository tidak menangkapnya (preseden `updateImportWatermark`, T-090)
+- [x] **T-037.6** Catat konvensi penamaan port/interface baru tanpa awalan `I`; `IXxxRepository` dan adapter historis bukan pola untuk port baru (CC-D04)
 
 **Selesai (2026-09-08):** ketiga subtask dicatat sebagai aturan #14–#18 baru di `context/ctx-development.md` (section "Struktur repository & use-case" + tambahan poin #18 di section "Testing"), dengan preseden nyata yang diverifikasi di kode: repository dua-lapis (`domains/publishing/repositories/` ↔ `lib/repositories/publishing/`), use-case terpisah (`SchedulePostsUseCase`, `PublishNowUseCase`, `CancelScheduleUseCase`, `AnalyticsIngestionUseCase`), dan pola `createFakeRepository()` di `publishing.service.test.ts`. Task tetap berjalan kontinu (prioritas rendah, tidak memblokir rilis) — subtask ini ditutup sebagai snapshot pertama, bukan penutupan total scope task.
+
+**Snapshot kedua (2026-10-13):** T-037.4–.6 dicatat sebagai aturan #18–#20 di `context/ctx-development.md` (section "Dari praktik yang sudah terbukti di kode"), plus dua butir checklist sebelum task kode selesai. Aturan git bergeser jadi #21–#22. Preseden diverifikasi di kode: `toActionError` / `ExternalServiceError` di `lib/utils/errors.ts` dan `getOutstandAdapter()`; `withCurrentUser` di `lib/prisma/with-current-user.ts` (dipakai repository publishing, workspace, analytics, media, notification, engagement); port baru tanpa awalan `I` (`PostMediaLookupPort`, `EnqueueAnalyticsSyncAccountsPort`). Detail panjang tetap di `code-conventions.md` (CC-D01, CC-D02, CC-D04) — file konteks hanya menyimpan aturan operasional. Task tetap `🟡 In Progress`.
 
 ---
 

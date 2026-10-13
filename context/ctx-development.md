@@ -94,18 +94,49 @@ Aturan di bawah melengkapi hard rules di [`../AGENTS.md`](../AGENTS.md). Detail 
     di-spread untuk test case tertentu. Preseden:
     `domains/publishing/services/publishing.service.test.ts`. Pola yang sama
     dipakai untuk double lokal `IOutstandAdapter` di use-case test (bukan
-    singleton produksi — Fake produksi sudah dihapus, ADR-119).
+    singleton produksi — Fake produksi sudah dihapus, ADR-119). Tes ini
+    tidak membuktikan konteks RLS di implementasi Prisma — lihat aturan 19.
+
+### Dari praktik yang sudah terbukti di kode
+
+18. Error yang harus tampil sebagai pesan ke user (bukan crash): lempar
+    subclass `ApplicationError` di `apps/web/src/lib/utils/errors.ts` —
+    `AuthorizationError`, `NotFoundError`, `ValidationError`,
+    `ConflictError`, `ExternalServiceError`, atau subclass-nya
+    (mis. `AlreadyConnectedError`). Server Action menangkap lewat
+    `try/catch` + `toActionError()`; fungsi itu hanya memetakan
+    `instanceof ApplicationError`, selain itu di-throw lagi.
+    `throw new Error(...)` di jalur ini jadi overlay error Next.js, bukan
+    toast. Preseden: `getOutstandAdapter()` saat `OUTSTAND_API_KEY` kosong
+    (T-090.5) — sekarang `ExternalServiceError`. Isi `message` harus aman
+    ditampilkan. Detail: `code-conventions.md` (CC-D01, CC-D02).
+19. Mutasi Prisma pada tabel yang punya RLS: bungkus dengan
+    `withCurrentUser(userId, ...)` di
+    `apps/web/src/lib/prisma/with-current-user.ts`. Kalau sudah berada di
+    dalam transaksi luar, panggil `setCurrentUserId(tx, userId)` sebagai
+    pernyataan pertama — jangan menumpuk `withCurrentUser` di dalam
+    transaksi yang sudah ada. Tanpa `app.current_user_id`, `updateMany`
+    bisa cocok 0 baris tanpa melempar error. Preseden:
+    `updateImportWatermark` (T-090).
+20. Port dan interface baru: PascalCase tanpa awalan `I` (contoh
+    `PostMediaLookupPort`, `EnqueueAnalyticsSyncAccountsPort`). Awalan `I`
+    pada `IXxxRepository` serta adapter yang sudah lama (`IOutstandAdapter`,
+    `IMediaStorageAdapter`, `IJobScheduler`) adalah nama yang sudah
+    terpakai — jangan ditiru untuk port baru. Detail: `code-conventions.md`
+    (CC-D04).
 
 ### Git / PR (saat diminta user)
 
-18. Commit hanya jika user meminta — Conventional Commits, imperative, fokus “why”.
-19. Jangan `--no-verify` / force push ke main kecuali diminta eksplisit.
+21. Commit hanya jika user meminta — Conventional Commits, imperative, fokus “why”.
+22. Jangan `--no-verify` / force push ke main kecuali diminta eksplisit.
 
 ---
 
 ## Checklist sebelum selesai task kode
 
 - [ ] Tidak melanggar hard rules `AGENTS.md` (entry point, domain imports, Prisma/Supabase batas)
+- [ ] Error yang sampai ke user adalah subclass `ApplicationError`, dan Server Action memakai `toActionError`
+- [ ] Mutasi tabel ber-RLS memakai `withCurrentUser` atau `setCurrentUserId`
 - [ ] `bun run typecheck` hijau
 - [ ] `bun run lint` hijau
 - [ ] Test relevan hijau (jika ada)

@@ -8,6 +8,17 @@ Seluruh perubahan penting pada dokumentasi maupun implementasi project dicatat p
 
 ---
 
+## 2026-10-13 — T-037 snapshot kedua: aturan error, RLS, dan penamaan port
+
+### Added
+- Aturan operasional #18–#20 di `context/ctx-development.md`: error yang sampai ke user wajib subclass `ApplicationError` + `toActionError()`; mutasi Prisma ber-RLS wajib `withCurrentUser` / `setCurrentUserId`; port baru tanpa awalan `I`. Dua butir checklist sebelum task kode selesai.
+
+### Changed
+- T-037 tetap `🟡 In Progress` (kontinu). Subtask T-037.4–.6 dicentang sebagai snapshot kedua di `tasks/v02-publishing-mvp.md`. Fokus di `TASKS.md` dan baris Snapshot `PROJECT_STATE.md` menyebut tanggal snapshot ini. Aturan git di `ctx-development.md` bergeser jadi #21–#22.
+
+### Fixed
+- Tidak ada perbaikan kode. Ini pencatatan konvensi yang sudah terbukti di praktik (T-090 / T-090.5, CC-D01, CC-D02, CC-D04).
+
 ## 2026-10-13 — KI-014, KI-024, KI-036, KI-037, KI-061 ditutup dalam satu sesi (⚠️ belum di-commit)
 
 ### Konteks
