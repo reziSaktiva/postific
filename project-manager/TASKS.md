@@ -69,7 +69,7 @@ Ini penting untuk aturan `PROJECT_RULES.md` "Hindari implementasi fitur di luar 
 
 Urutan release mengikuti [`release-roadmap.md`](../product-discovery/02-product/release-roadmap.md). Perubahan urutan atau ruang lingkup release wajib lewat ADR.
 
-> ⚠️ **v0.1 dan v0.2 tidak sepenuhnya sekuensial.** Tiga task v0.1 (T-013, T-015, T-016) punya subtask yang bergantung pada task v0.2 (T-025, T-026, T-036 + domain publishing), jadi v0.1 tidak bisa ditutup sebelum v0.2 berjalan. T-012 sudah ✅ Done (2026-08-12), tidak lagi bagian dari daftar ini. Rinciannya di Catatan Rilis [`tasks/v01-foundation.md`](tasks/v01-foundation.md).
+> ⚠️ **v0.1 dan v0.2 tidak sepenuhnya sekuensial.** Dulu T-013, T-015, dan T-016 punya subtask yang bergantung pada v0.2 (T-025, T-026, T-036). T-012 sudah ✅ Done (2026-08-12). T-015 sudah ✅ Done. T-016.4 tidak lagi ditahan T-036 karena T-036 sudah ✅ Done; subtask itu tetap belum dikerjakan. Sisa yang masih terbuka ada di Catatan Rilis [`tasks/v01-foundation.md`](tasks/v01-foundation.md).
 
 ---
 

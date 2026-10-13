@@ -242,7 +242,7 @@ Tailwind utility langsung pada skala 4px di atas. Larangan prop `VStack` /
 * **Arbitrary value** (`gap-[13px]`, `p-[10px]`) — selalu pakai unit dari
   skala di atas.
 * **`margin`** pada child untuk spacing antar sibling — spacing datang dari
-  `gap` milik parent Stack/Grid, bukan `margin` self.
+  utility `gap` pada parent flex/grid, bukan `margin` pada child.
 
 Dua exception historis ditemukan (`p-0`, `my-1` di `ChannelsSection.tsx`) —
 dicatat sebagai technical debt kecil untuk dirapikan, **bukan** preseden

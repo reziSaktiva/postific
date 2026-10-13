@@ -8,6 +8,14 @@ Seluruh perubahan penting pada dokumentasi maupun implementasi project dicatat p
 
 ---
 
+## 2026-10-13 — Koreksi review PR dokumentasi audit
+
+### Fixed
+- Baris komponen UI di `PROJECT_OVERVIEW.md` diselaraskan: migrasi Astryx sudah tuntas (v0.7, T-102), bukan lagi incremental.
+- Peringatan di `TASKS.md` tidak lagi menulis T-016 bergantung pada T-036. T-016.4 tetap belum dikerjakan.
+- Larangan jarak di `design-tokens.md` memakai utility `gap` pada parent flex/grid, bukan komponen Stack era lama.
+- Pertanyaan lebar sidebar (kode `18rem` vs acuan 260px) yang ikut hilang saat KI-084 dikeluarkan dicatat ulang sebagai **KI-089** (Open). KI-084 tetap Resolved dan tidak didaur ulang.
+
 ## 2026-10-13 — Audit konsistensi dokumentasi (konfirmasi King Rezi)
 
 ### Fixed

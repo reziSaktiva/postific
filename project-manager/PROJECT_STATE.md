@@ -442,6 +442,25 @@ pada row itu alih-alih `continue`-skip — hanya row yang SUDAH `active` yang
 tetap di-skip. `WorkspaceService.confirmFacebookPagesConnection` sendiri
 tidak perlu berubah (sudah delegasi penuh ke `createConnectedAccounts`).
 
+### KI-089 · Lebar sidebar kode (`18rem`) belum dikonfirmasi terhadap acuan 260px
+
+| Field | Value |
+|-------|-------|
+| Status | Open |
+| Kategori | UI — belum dikonfirmasi |
+| Terkait | KI-084 (Resolved 2026-10-08, konsistensi sidebar mobile/desktop) |
+
+Pertanyaan ini sempat tertulis di dalam KI-084. KI-084 sudah Resolved dan
+dikeluarkan dari daftar hidup, jadi pertanyaannya ikut hilang. Nomor KI-084
+tidak didaur ulang.
+
+Di kode, `SIDEBAR_WIDTH` dan `SIDEBAR_WIDTH_MOBILE` di
+`apps/web/src/components/ui/sidebar.tsx` sama-sama `18rem` (288px). Catatan
+lama menyebut acuan Claude Design 260px. Belum dikonfirmasi apakah 260px itu
+hanya nilai mockup statis, atau lebar yang seharusnya dipakai di aplikasi
+(desktop dan mobile, bukan regresi khusus mobile). Menunggu konfirmasi King
+Rezi sebelum dianggap bukan masalah. Tidak memblokir pekerjaan lain.
+
 ---
 
 ## Blockers
