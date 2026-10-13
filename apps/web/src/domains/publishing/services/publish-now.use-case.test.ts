@@ -17,6 +17,7 @@ import type {
 } from "../adapters/outstand-adapter";
 import type { IJobScheduler } from "../adapters/job-scheduler";
 import { PublishingDomainError } from "../errors";
+import { READONLY_TERMINAL_CONFLICT_MESSAGE } from "../readonly-terminal-status";
 import type {
   IPublishingRepository,
   PublishingPostRecord,
@@ -216,6 +217,15 @@ describe("PublishNowUseCase.execute", () => {
     let publishNowCallCount = 0;
     const markPostPublished = vi.fn(async () => undefined);
     const repository = createFakeRepository({
+      findDraftById: async () => ({
+        id: POST_ID,
+        workspaceId: WORKSPACE_ID,
+        authorId: AUTHOR_ID,
+        caption: "Hello world",
+        status: ContentStatus.Draft,
+        createdAt: new Date(0),
+        updatedAt: new Date(0),
+      }),
       publishNow: async () => publishRecord,
       updateTargetOutcome: async (input) => {
         outcomes.push(input);
@@ -871,4 +881,59 @@ describe("PublishNowUseCase.execute", () => {
     expect(repositoryCalled).toBe(false);
     expect(adapterCalled).toBe(false);
   });
+
+  it.each([
+    ContentStatus.Published,
+    ContentStatus.Failed,
+    ContentStatus.Imported,
+  ])(
+    "T-091.1: post berstatus %s read-only — ConflictError, publishNow tidak dipanggil",
+    async (status) => {
+      let publishCalls = 0;
+      const repository = createFakeRepository({
+        findDraftById: async () => ({
+          id: POST_ID,
+          workspaceId: WORKSPACE_ID,
+          authorId: AUTHOR_ID,
+          caption: "Hello world",
+          status,
+          createdAt: new Date(0),
+          updatedAt: new Date(0),
+        }),
+        publishNow: async () => {
+          publishCalls += 1;
+          return null;
+        },
+      });
+      const useCase = new PublishNowUseCase(
+        repository,
+        createFakeOutstandAdapter(),
+        createFakeJobScheduler(),
+      );
+
+      const error = await useCase
+        .execute({
+          workspaceId: WORKSPACE_ID,
+          postId: POST_ID,
+          targets: [
+            {
+              connectedAccountId: CONNECTED_ACCOUNT_1,
+              platform: SocialPlatform.Instagram,
+              contentFormat: ContentFormat.Post,
+              outstandAccountId: "outstand-acc-1",
+            },
+          ],
+          actorRole: MemberRole.Creator,
+          actingUserId: AUTHOR_ID,
+        })
+        .then(
+          () => null,
+          (caught: unknown) => caught,
+        );
+
+      expect(error).toBeInstanceOf(ConflictError);
+      expect((error as Error).message).toBe(READONLY_TERMINAL_CONFLICT_MESSAGE);
+      expect(publishCalls).toBe(0);
+    },
+  );
 });

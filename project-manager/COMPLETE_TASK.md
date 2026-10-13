@@ -8,6 +8,14 @@ Seluruh perubahan penting pada dokumentasi maupun implementasi project dicatat p
 
 ---
 
+## 2026-10-13 — T-091.1 Guard read-only post terminal
+
+### Added
+- Guard di service/use-case: post Published, Failed, dan Imported ditolak sebelum diubah, dihapus, dijadwalkan, diterbitkan, atau dibatalkan jadwalnya. Filter status di repository tetap sebagai jaring pengaman.
+
+### Changed
+- T-091 menjadi In Progress (T-091.1 selesai, T-091.2 UI masih blocked).
+
 ## 2026-10-13 — Penghalang staging ditutup: migrasi T-051 dan sisa KI-025
 
 ### Fixed

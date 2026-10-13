@@ -11,6 +11,10 @@ import type { IOutstandAdapter } from "../adapters/outstand-adapter";
 import type { IJobScheduler } from "../adapters/job-scheduler";
 import { assertContentFormatAllowed } from "../content-format-matrix";
 import { assertPinterestBoardConstraints } from "../pinterest-board-constraints";
+import {
+  isReadonlyTerminalStatus,
+  READONLY_TERMINAL_CONFLICT_MESSAGE,
+} from "../readonly-terminal-status";
 import { assertScheduledAtNotInPast } from "../schedule-time-constraints";
 import { enqueueResolveOutcomeFallback } from "./enqueue-resolve-outcome-fallback";
 import type {
@@ -117,6 +121,16 @@ export class SchedulePostsUseCase {
     // berbeda dari server, dll). Reject di sini juga, sebelum apa pun
     // dipersist.
     assertScheduledAtNotInPast(input.scheduledAt);
+
+    // T-091.1 — tolak post terminal sebelum write. Filter status di
+    // `schedulePost` tetap menjadi safety net.
+    const existing = await this.repository.findDraftById(
+      { workspaceId: input.workspaceId, postId: input.postId },
+      input.actingUserId,
+    );
+    if (existing && isReadonlyTerminalStatus(existing.status)) {
+      throw new ConflictError(READONLY_TERMINAL_CONFLICT_MESSAGE);
+    }
 
     const record = await this.repository.schedulePost(
       {

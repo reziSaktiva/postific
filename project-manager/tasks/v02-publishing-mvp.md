@@ -1463,7 +1463,7 @@ konsisten semangat ADR-123, bukan amandemen keputusannya).
 
 | Field         | Value                                                        |
 | ------------- | ------------------------------------------------------------ |
-| **Status**    | ⏳ Not Started                                                |
+| **Status**    | 🟡 In Progress — T-091.1 selesai (2026-10-13); T-091.2 UI masih blocked menunggu desain Claude Design |
 | **Domain**    | publishing                                                   |
 | **ADR**       | — (bug-fix, tidak mengubah baseline — ditemukan bersamaan sesi ADR-093 tapi sengaja ditrack terpisah, lihat ADR-093 Context) |
 | **Depends**   | T-033.8 ✅ (Popover, tempat celah ini ditemukan)              |
@@ -1471,8 +1471,10 @@ konsisten semangat ADR-123, bukan amandemen keputusannya).
 
 Ditemukan saat diskusi ADR-093 (2026-08-28): post berstatus `Published`/`Failed` — dikirim lewat tool kita sendiri, **bukan** hasil import — saat ini masih bisa dibuka ke Draft Editor lewat CTA "Buka Draft Editor" di Popover Calendar (`CalendarPostPopover.tsx:174-182`, tidak ada pengecualian status). Post yang sudah live di platform sosial seharusnya tidak bisa diedit lagi dari sini.
 
-- [ ] **T-091.1** Guard read-only di level repository/service — tolak aksi mutasi (`updateDraft`, `deletePost`, `cancelSchedule`, `scheduleUpdate`, dst.) untuk post berstatus `Published`/`Failed`, pola defense-in-depth sama ADR-059 poin 6
+- [x] **T-091.1** Guard read-only di level repository/service — tolak aksi mutasi (`updateDraft`, `deletePost`, `cancelSchedule`, `scheduleUpdate`, dst.) untuk post berstatus `Published`/`Failed`, pola defense-in-depth sama ADR-059 poin 6 — **selesai 2026-10-13**
 - [ ] **T-091.2** UI: sembunyikan/nonaktifkan CTA "Buka Draft Editor" di `CalendarPostPopover.tsx` untuk status `Published`/`Failed` (cek juga Queue/History kalau ada titik CTA serupa) — **blocked**, state ini belum ada di mockup Claude Design manapun (`components/popover.html`), menunggu King Rezi mengonfirmasi desainnya (AGENTS.md rule 17)
+
+**Catatan (2026-10-13) — T-091.1 selesai (Prabowo Feature Engineer, branch `feature/t-091-1-readonly-guard`):** guard di service/use-case menolak mutasi user (`updateDraft`, `deletePost`, `schedule`, `publishNow`, `cancelSchedule`) untuk status `Published`, `Failed`, dan `Imported` dengan `ConflictError` sebelum write. Helper: `apps/web/src/domains/publishing/readonly-terminal-status.ts`. Filter `where.status` di repository Prisma tetap sebagai jaring pengaman (ADR-059 poin 6, ADR-093 poin 1). Jalur sistem (retry Failed, webhook, mark published/failed) sengaja tidak di-guard. Review Ridwan Architecture Reviewer: 0 temuan blocking (catatan non-blocking: balapan status antara baca dan tulis bisa jatuh ke pesan NotFound/konflik generik; hanya `deletePost` yang mengecek ulang). QA Najwa QA Engineer: tes guard 127 lulus; `bun run test` 747 passed / 6 skipped / 0 failed; typecheck apps/web bersih. Browser tidak dijalankan karena tidak ada perubahan UI. **T-091 tetap `🟡 In Progress`** — T-091.2 masih terbuka dan blocked.
 
 ---
 

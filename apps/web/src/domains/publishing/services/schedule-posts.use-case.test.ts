@@ -13,6 +13,7 @@ import { ConflictError } from "@/lib/utils/errors";
 import type { IOutstandAdapter } from "../adapters/outstand-adapter";
 import type { IJobScheduler } from "../adapters/job-scheduler";
 import { PublishingDomainError } from "../errors";
+import { READONLY_TERMINAL_CONFLICT_MESSAGE } from "../readonly-terminal-status";
 import type {
   IPublishingRepository,
   PublishingPostRecord,
@@ -194,6 +195,15 @@ describe("SchedulePostsUseCase.execute", () => {
     >[0][] = [];
     let schedulePostCallCount = 0;
     const repository = createFakeRepository({
+      findDraftById: async () => ({
+        id: POST_ID,
+        workspaceId: WORKSPACE_ID,
+        authorId: AUTHOR_ID,
+        caption: "Hello world",
+        status: ContentStatus.Draft,
+        createdAt: new Date(0),
+        updatedAt: new Date(0),
+      }),
       schedulePost: async () => scheduleRecord,
       updateTargetOutcome: async (input) => {
         outcomes.push(input);
@@ -616,4 +626,59 @@ describe("SchedulePostsUseCase.execute", () => {
     expect(adapterCalled).toBe(false);
     expect(updateTargetOutcomeCalled).toBe(false);
   });
+
+  it.each([
+    ContentStatus.Published,
+    ContentStatus.Failed,
+    ContentStatus.Imported,
+  ])(
+    "T-091.1: post berstatus %s read-only — ConflictError, schedulePost tidak dipanggil",
+    async (status) => {
+      let scheduleCalls = 0;
+      const repository = createFakeRepository({
+        findDraftById: async () => ({
+          id: POST_ID,
+          workspaceId: WORKSPACE_ID,
+          authorId: AUTHOR_ID,
+          caption: "Hello world",
+          status,
+          createdAt: new Date(0),
+          updatedAt: new Date(0),
+        }),
+        schedulePost: async () => {
+          scheduleCalls += 1;
+          return null;
+        },
+      });
+      const useCase = new SchedulePostsUseCase(
+        repository,
+        createFakeOutstandAdapter(),
+        createFakeJobScheduler(),
+      );
+
+      const error = await useCase
+        .execute({
+          workspaceId: WORKSPACE_ID,
+          postId: POST_ID,
+          scheduledAt: SCHEDULED_AT,
+          targets: [
+            {
+              connectedAccountId: CONNECTED_ACCOUNT_1,
+              platform: SocialPlatform.Instagram,
+              contentFormat: ContentFormat.Post,
+              outstandAccountId: "outstand-acc-1",
+            },
+          ],
+          actingUserId: AUTHOR_ID,
+        })
+        .then(
+          () => null,
+          (caught: unknown) => caught,
+        );
+
+      expect(error).toBeInstanceOf(ConflictError);
+      expect((error as Error).message).toBe(READONLY_TERMINAL_CONFLICT_MESSAGE);
+      expect(scheduleCalls).toBe(0);
+    },
+  );
 });
