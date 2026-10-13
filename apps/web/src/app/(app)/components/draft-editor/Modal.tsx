@@ -1200,7 +1200,16 @@ function DraftEditorForm({
                                 aria-label={`Hapus ${item.filename} secara permanen`}
                                 onClick={() => deleteMediaConfirm.open(item)}
                                 disabled={deleteMediaConfirm.isLoading}
-                                className="absolute top-1 right-1 rounded-full bg-background/80 p-1 opacity-0 transition-opacity group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-50"
+                                className={cn(
+                                  "absolute top-1 right-1 rounded-full bg-background/80 p-1 transition-opacity disabled:cursor-not-allowed disabled:opacity-50",
+                                  // Tile dalam batas tetap hover-only. Tile
+                                  // kelebihan batas harus selalu terlihat —
+                                  // layar sentuh tidak punya hover, padahal
+                                  // badge KI-061 menyuruh user menghapus.
+                                  isOverLimit
+                                    ? "opacity-100"
+                                    : "opacity-0 group-hover:opacity-100",
+                                )}
                               >
                                 <HugeiconsIcon
                                   icon={Delete02Icon}
