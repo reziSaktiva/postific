@@ -8,6 +8,20 @@ Seluruh perubahan penting pada dokumentasi maupun implementasi project dicatat p
 
 ---
 
+## 2026-10-14 — Perbaikan seluruh temuan review PR #168 (T-005)
+
+### Fixed
+- Branch `fix/t-005-restore-resend-decision` dikembalikan ke bentuk `origin/staging` ditambah T-005. Pekerjaan yang sudah ada di staging tidak ikut terhapus: preferensi notifikasi T-016.4, Cancel Schedule di kalender T-030.3, status terminal read-only T-091, dan catatan blocker yang sudah ditutup.
+- T-005.3–.5 selesai: Resend mengirim reset password dan verifikasi email, halaman `/verify-email` hidup, `requireEmailVerification` aktif.
+- Backfill `emailVerified = true` untuk akun yang sudah ada pindah ke migrasi `20261014160000_t005_5_bind_signup_proof_and_backfill_email_verified`. Migrasi itu jalan sekali saat deploy. Pendaftar baru tetap belum terverifikasi.
+- Sign-up accept-invite hanya ditandai terverifikasi kalau browser memegang cookie httpOnly `invite-email-proof` yang diterbitkan setelah OTP benar. Hash-nya yang disimpan. Mengetahui email saja tidak cukup. Sinyal itu sekali pakai. OTP baru mengosongkan tanda pakai dan hash lama, jadi sign-up yang gagal setelah consume bisa diulang dari kode baru. `emailVerifiedAt` tidak di-clear, karena `acceptInvite` masih membutuhkannya.
+- Akun yang sudah ada dan belum terverifikasi tidak diangkat jadi terverifikasi hanya karena cookie ada. Pemulihannya tetap lewat email verifikasi biasa.
+
+### Keputusan
+- Tidak ada ADR baru. Perbaikan ini menutup temuan review pada keputusan yang sudah ada (ADR-126, T-005, T-110).
+
+---
+
 ## 2026-10-14 — Perbaikan code review PR #165 (T-005.1 / ADR-126)
 
 ### Fixed

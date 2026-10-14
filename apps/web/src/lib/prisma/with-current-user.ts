@@ -90,3 +90,35 @@ export async function setInviteLookupToken(
 ): Promise<void> {
   await tx.$executeRaw`SELECT set_config('app.invite_lookup_token', ${token}, true)`;
 }
+
+/**
+ * Third GUC, same pattern as `setInviteLookupToken` above — scoped to
+ * EMAIL instead of TOKEN (T-005.5, migration
+ * `20261014120000_t005_5_accept_invite_prevverified_lookup`). Dipakai
+ * Better Auth `databaseHooks.user.create.before` (`lib/better-auth/
+ * auth.ts`) lewat `WorkspaceRepository.consumeVerifiedPendingInvitationForEmail`
+ * — hook itu berjalan SEBELUM user dibuat, jadi tidak ada
+ * `app.current_user_id` yang valid (chicken-and-egg yang sama dengan
+ * lookup token anonim di atas). RLS policy
+ * `workspace_invitations_public_email_pending_lookup` membandingkan
+ * terhadap GUC ini. Default-deny kalau GUC ini tidak pernah di-set.
+ */
+export async function setInviteLookupEmail(
+  tx: PrismaTransactionClient,
+  email: string,
+): Promise<void> {
+  await tx.$executeRaw`SELECT set_config('app.invite_lookup_email', ${email}, true)`;
+}
+
+/**
+ * Hash sha256 dari rahasia OTP accept-invite (T-005.5). Policy UPDATE
+ * `workspace_invitations_public_email_verified_consume` menolak baris
+ * kalau GUC ini tidak sama dengan `better_auth_email_proof_hash`.
+ * Parameter terikat, sama seperti GUC lain di file ini.
+ */
+export async function setInviteEmailProofHash(
+  tx: PrismaTransactionClient,
+  proofHash: string,
+): Promise<void> {
+  await tx.$executeRaw`SELECT set_config('app.invite_email_proof_hash', ${proofHash}, true)`;
+}

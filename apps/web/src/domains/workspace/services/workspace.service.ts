@@ -242,6 +242,11 @@ export function hashInviteVerificationCode(code: string): string {
   return createHash("sha256").update(code).digest("hex");
 }
 
+/** T-005.5 — sha256 dari rahasia cookie accept-invite. Jangan simpan plaintext-nya. */
+export function hashInviteEmailProof(proof: string): string {
+  return createHash("sha256").update(proof).digest("hex");
+}
+
 /**
  * Timing-safe compare (hindari timing attack pada perbandingan hash) —
  * code-review PR #142 finding: reuse `timingSafeEqualString` yang sudah
@@ -1128,7 +1133,7 @@ export class WorkspaceService {
   async confirmInviteEmailVerification(
     token: string,
     code: string,
-  ): Promise<void> {
+  ): Promise<string> {
     const invitation = await this.repository.findInvitationByToken(token);
     if (!invitation || invitation.status !== InvitationStatus.Pending) {
       throw new NotFoundError(
@@ -1188,7 +1193,53 @@ export class WorkspaceService {
       );
     }
 
-    await this.repository.markInvitationEmailVerified(token);
+    const proof = randomBytes(32).toString("base64url");
+    await this.repository.markInvitationEmailVerified(
+      token,
+      hashInviteEmailProof(proof),
+    );
+    return proof;
+  }
+
+  /**
+   * T-005.5 — dipanggil Better Auth `databaseHooks.user.create.before`
+   * (`lib/better-auth/auth.ts`, composition root) untuk memutuskan apakah
+   * user yang baru dibuat lewat `signUp.email()` boleh ditandai
+   * `emailVerified: true` langsung (skip gate verifikasi native Better
+   * Auth kedua kalinya) karena sudah membuktikan kepemilikan inbox lewat
+   * kode OTP accept-invite T-110 SEBELUM `signUp.email()` ini dipanggil
+   * (`AcceptInviteForm.tsx`: confirm kode → baru signUp). Normalisasi email
+   * (lowercase/trim) sebelum lookup — `WorkspaceInvitation.email` selalu
+   * disimpan lowercase (lihat `requestInviteEmailVerification`/`inviteMember`),
+   * Better Auth sendiri juga menormalisasi email jadi lowercase sebelum
+   * `createUser` (`sign-up.mjs`), tapi disiplin sendiri di sini supaya
+   * method ini tidak implisit bergantung urutan pemanggilan.
+   *
+   * **Fix CRITICAL finding (Ridwan Architecture Reviewer, 2026-10-14)** —
+   * nama method & kontrak diganti dari `hasVerifiedPendingInvitationForEmail`
+   * (SELECT murni, sinyal bisa dipakai ulang kapan saja sebelum invitation
+   * expired sampai 7 hari, celah identity-takeover kalau tab user crash
+   * sebelum `signUp.email()` selesai — detail lengkap di doc comment
+   * interface repository). Nama method ini SENGAJA "consume" (bukan "has")
+   * supaya pemanggil di `auth.ts` tidak salah kira ini murni cek tanpa efek
+   * samping. Satu rahasia hanya lolos sekali. OTP baru menerbitkan rahasia
+   * baru dan mengosongkan tanda consume, jadi sign-up yang gagal sesudah
+   * consume bisa diulang. Mengetahui email saja tidak cukup: `proof` harus
+   * sama dengan rahasia yang baru diserahkan ke browser lewat cookie.
+   */
+  async consumeVerifiedPendingInvitationForEmail(
+    email: string,
+    proof: string,
+  ): Promise<boolean> {
+    const normalizedProof = proof.trim();
+    if (!normalizedProof) {
+      return false;
+    }
+
+    return this.repository.consumeVerifiedPendingInvitationForEmail(
+      email.trim().toLowerCase(),
+      hashInviteEmailProof(normalizedProof),
+    );
   }
 
   /**

@@ -172,8 +172,22 @@ model WorkspaceInvitation {
   verificationCodeExpiresAt DateTime? @map("verification_code_expires_at") @db.Timestamptz(6)
   /** Reset ke 0 tiap kode baru diminta (`setInvitationVerificationCode`); increment tiap kode salah (anti brute-force, maks 5 percobaan). */
   verificationAttempts      Int       @default(0) @map("verification_attempts")
-  /** Diisi sekali (single-use) saat kode OTP dikonfirmasi benar — dipakai `WorkspaceService.acceptInvite` sebagai guard server-side (bukan klaim dari client). */
+  /** Diisi saat kode OTP dikonfirmasi benar — dipakai `WorkspaceService.acceptInvite` sebagai guard server-side. Tidak di-clear oleh hook Better Auth. */
   emailVerifiedAt           DateTime? @map("email_verified_at") @db.Timestamptz(6)
+  /**
+   * T-005.5 — single-use untuk `databaseHooks.user.create.before`.
+   * Terpisah dari `emailVerifiedAt` supaya `acceptInvite` (setelah sign-up)
+   * masih melihat bukti OTP. Di-reset ke null tiap OTP baru dikonfirmasi,
+   * lalu diisi sekali saat sign-up berhasil mengonsumsi sinyal.
+   */
+  betterAuthEmailVerifiedConsumedAt DateTime? @map("better_auth_email_verified_consumed_at") @db.Timestamptz(6)
+  /**
+   * T-005.5 — sha256 dari rahasia yang hanya diberikan ke browser yang
+   * baru saja mengonfirmasi OTP (cookie httpOnly). Sign-up tanpa rahasia
+   * ini tidak boleh ditandai `emailVerified`, walaupun email-nya cocok.
+   * Di-clear saat kode baru diminta atau saat sinyal berhasil dikonsumsi.
+   */
+  betterAuthEmailProofHash String? @map("better_auth_email_proof_hash")
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 

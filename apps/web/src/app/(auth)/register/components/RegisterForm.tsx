@@ -18,8 +18,16 @@ import { Spinner } from "@/components/ui/spinner";
 
 export function RegisterForm({
   isGoogleEnabled,
+  requireEmailVerification,
 }: {
   isGoogleEnabled: boolean;
+  /**
+   * T-005.4/.5 — cermin `requireEmailVerificationEnabled()` di `lib/env.ts`
+   * (thread lewat `register/page.tsx`, bukan dibaca ulang di sini, supaya
+   * tetap satu sumber kebenaran dengan `auth.ts`). Saat `true`, redirect
+   * sukses pergi ke `/verify-email?email=...`.
+   */
+  requireEmailVerification: boolean;
 }) {
   const router = useRouter();
   const [name, setName] = useState("");
@@ -53,6 +61,11 @@ export function RegisterForm({
 
     if (signUpError) {
       setError(signUpError.message ?? "Gagal membuat akun. Coba lagi.");
+      return;
+    }
+
+    if (requireEmailVerification) {
+      router.push(`/verify-email?email=${encodeURIComponent(email)}`);
       return;
     }
 

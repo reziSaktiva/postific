@@ -27,6 +27,7 @@ import type {
   WorkspaceRecord,
 } from "../repositories/workspace.repository";
 import {
+  hashInviteEmailProof,
   hashInviteVerificationCode,
   WorkspaceService,
 } from "./workspace.service";
@@ -263,6 +264,7 @@ function createFakeRepository(
       });
     },
     findUserByEmail: async () => null,
+    consumeVerifiedPendingInvitationForEmail: async () => false,
     acceptInvitation: async ({ workspaceId, invitationId, userId, role }) => {
       const entry = [...invitations.entries()].find(
         ([, invitation]) => invitation.id === invitationId,
@@ -3405,8 +3407,8 @@ describe("WorkspaceService.confirmInviteEmailVerification (T-110.3, KI-053)", ()
     ).rejects.toThrow(ValidationError);
   });
 
-  it("marks the email as verified (single-use) when the correct code is confirmed", async () => {
-    let markedVerified = false;
+  it("marks the email as verified and returns a proof whose hash is what the repository stores", async () => {
+    let storedProofHash: string | null = null;
     const service = new WorkspaceService(
       createFakeRepository({
         findInvitationByToken: async () =>
@@ -3415,20 +3417,21 @@ describe("WorkspaceService.confirmInviteEmailVerification (T-110.3, KI-053)", ()
             verificationCodeExpiresAt: new Date(Date.now() + 60_000),
             verificationAttempts: 2,
           }),
-        // Code-review PR #142 fix — reservasi atomic sekarang SELALU
-        // dipanggil sebelum membandingkan kode (lihat
-        // confirmInviteEmailVerification), termasuk saat kodenya benar.
-        // Double lokal: naikkan attempts persis seperti repository
-        // Prisma sungguhan untuk kasus "masih di bawah cap" (3 <= 5).
         incrementInvitationVerificationAttempts: async () => 3,
-        markInvitationEmailVerified: async () => {
-          markedVerified = true;
+        markInvitationEmailVerified: async (_token, proofHash) => {
+          storedProofHash = proofHash;
         },
       }),
     );
 
-    await service.confirmInviteEmailVerification("token", "111111");
-    expect(markedVerified).toBe(true);
+    const proof = await service.confirmInviteEmailVerification(
+      "token",
+      "111111",
+    );
+
+    expect(proof.length).toBeGreaterThan(20);
+    expect(storedProofHash).toBe(hashInviteEmailProof(proof));
+    expect(storedProofHash).not.toBe(proof);
   });
 
   it("code-review PR #142: rejects WITHOUT verifying when the atomic reservation reports the cap already reached (race-condition fix)", async () => {
@@ -3462,6 +3465,87 @@ describe("WorkspaceService.confirmInviteEmailVerification (T-110.3, KI-053)", ()
       service.confirmInviteEmailVerification("token", "111111"),
     ).rejects.toThrow(ValidationError);
     expect(markedVerified).toBe(false);
+  });
+});
+
+describe("WorkspaceService.consumeVerifiedPendingInvitationForEmail (T-005.5)", () => {
+  it("passes the lowercased email and the sha256 of the proof, not the raw secret", async () => {
+    let received: { email: string; proofHash: string } | null = null;
+    const service = new WorkspaceService(
+      createFakeRepository({
+        consumeVerifiedPendingInvitationForEmail: async (email, proofHash) => {
+          received = { email, proofHash };
+          return true;
+        },
+      }),
+    );
+
+    const result = await service.consumeVerifiedPendingInvitationForEmail(
+      "  Raka@Example.com  ",
+      "  raw-proof  ",
+    );
+
+    expect(result).toBe(true);
+    expect(received).toEqual({
+      email: "raka@example.com",
+      proofHash: hashInviteEmailProof("raw-proof"),
+    });
+  });
+
+  it("returns false without calling the repository when the proof is blank", async () => {
+    let called = false;
+    const service = new WorkspaceService(
+      createFakeRepository({
+        consumeVerifiedPendingInvitationForEmail: async () => {
+          called = true;
+          return true;
+        },
+      }),
+    );
+
+    await expect(
+      service.consumeVerifiedPendingInvitationForEmail(
+        "nobody@example.com",
+        "   ",
+      ),
+    ).resolves.toBe(false);
+    expect(called).toBe(false);
+  });
+
+  it("accepts one proof once, then accepts a new proof after the signal is re-armed", async () => {
+    const armedHashes = new Set<string>();
+    const service = new WorkspaceService(
+      createFakeRepository({
+        consumeVerifiedPendingInvitationForEmail: async (_email, proofHash) => {
+          if (!armedHashes.has(proofHash)) return false;
+          armedHashes.delete(proofHash);
+          return true;
+        },
+      }),
+    );
+
+    armedHashes.add(hashInviteEmailProof("first-proof"));
+
+    await expect(
+      service.consumeVerifiedPendingInvitationForEmail(
+        "alice@acme.com",
+        "first-proof",
+      ),
+    ).resolves.toBe(true);
+    await expect(
+      service.consumeVerifiedPendingInvitationForEmail(
+        "alice@acme.com",
+        "first-proof",
+      ),
+    ).resolves.toBe(false);
+
+    armedHashes.add(hashInviteEmailProof("second-proof"));
+    await expect(
+      service.consumeVerifiedPendingInvitationForEmail(
+        "Alice@Acme.com",
+        "second-proof",
+      ),
+    ).resolves.toBe(true);
   });
 });
 

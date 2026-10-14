@@ -53,6 +53,13 @@ import {
 // Bug 1). Discope ke provider spesifik (bukan seluruh `/api/webhooks`)
 // supaya route webhook provider lain yang ditambahkan nanti TIDAK otomatis
 // mewarisi bypass ini tanpa verifikasi signature-nya sendiri direview.
+// `/verify-email` (T-005.4, AS-D04) dibypass dengan alasan sama seperti
+// `/invite` di atas, bukan ditambahkan ke `PUBLIC_AUTH_PATHS`.
+// `requireEmailVerification` sudah `true`, jadi sign-up biasa belum punya
+// session saat membuka halaman ini. Setelah tautan verifikasi diklik,
+// Better Auth bisa membuat session (`autoSignInAfterVerification`) sementara
+// user masih di halaman yang sama. `PUBLIC_AUTH_PATHS` akan mengarahkan
+// session itu ke "/" . Bypass membiarkan kedua keadaan membuka halaman ini.
 const BYPASS_PREFIXES = [
   "/api/auth",
   "/api/jobs",
@@ -60,6 +67,7 @@ const BYPASS_PREFIXES = [
   "/api/v1",
   "/api/webhooks/outstand",
   "/invite",
+  "/verify-email",
 ];
 
 const PUBLIC_AUTH_PATHS = [

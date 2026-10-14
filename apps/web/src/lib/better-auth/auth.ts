@@ -2,14 +2,27 @@ import { dash } from "@better-auth/infra";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { bearer } from "better-auth/plugins/bearer";
+import { cookies } from "next/headers";
 
-import { secureCookiesEnabled } from "@/lib/env";
+import { WorkspaceService } from "@/domains/workspace";
+import { getAuthEmailSender } from "@/lib/adapters/email";
+import {
+  requireEmailVerificationEnabled,
+  secureCookiesEnabled,
+} from "@/lib/env";
 import { prisma } from "@/lib/prisma/client";
+import { workspaceRepository } from "@/lib/repositories/workspace";
+import { INVITE_EMAIL_PROOF_COOKIE } from "@/lib/workspace/invite-email-proof-cookie";
 
 /**
  * Better Auth instance (auth-strategy.md, ADR-030).
  * Identity tables: identity_* via Prisma @@map (DO-D05, DB-D04).
- * Email verification / password-reset email: stubbed until AS-D04 provider is chosen.
+ * Password reset + email verification: Resend (ADR-126, T-005.3) —
+ * `getAuthEmailSender()` (ADR-119 pattern: wajib env, throw loud, tanpa
+ * fallback Fake). `requireEmailVerification` sudah `true` (T-005.5,
+ * 2026-10-14) — lihat doc comment `requireEmailVerificationEnabled()` di
+ * `lib/env.ts` untuk 2 mitigasi yang mengawalinya (backfill akun existing +
+ * accept-invite skip via `databaseHooks` di bawah).
  */
 
 const secure = secureCookiesEnabled();
@@ -49,12 +62,93 @@ export const auth = betterAuth({
 
   emailAndPassword: {
     enabled: true,
-    // AS-D04 — enable when transactional email provider is configured
-    requireEmailVerification: false,
-    // AS-D04 — stubbed until a transactional email provider is chosen; logs the
-    // reset link server-side so the flow stays testable end-to-end locally.
+    // T-005.5 — lihat requireEmailVerificationEnabled() di lib/env.ts
+    // (single source of truth, `true` sejak 2026-10-14 setelah 2 mitigasi
+    // disetujui King Rezi: backfill akun existing + accept-invite skip).
+    requireEmailVerification: requireEmailVerificationEnabled(),
+    // T-005.3 (AS-D04, ADR-126) — Resend, lewat getAuthEmailSender()
+    // (ADR-119: wajib RESEND_API_KEY/RESEND_FROM_EMAIL, tanpa fallback Fake
+    // di produksi).
     sendResetPassword: async ({ user, url }) => {
-      console.log(`[auth] password reset link for ${user.email}: ${url}`);
+      await getAuthEmailSender().sendPasswordResetEmail({
+        email: user.email,
+        name: user.name,
+        url,
+      });
+    },
+  },
+
+  // T-005.3 (AS-D04, ADR-126) — wajib ada supaya requireEmailVerification
+  // (T-005.5) bisa benar-benar mengirim email saat di-flip. `sendOnSignUp`
+  // sengaja TIDAK di-set eksplisit — default Better Auth mengikuti
+  // `emailAndPassword.requireEmailVerification` (lihat node_modules
+  // @better-auth/core/types/init-options.d.mts), jadi satu sumber
+  // kebenaran yang sama dengan requireEmailVerificationEnabled() di atas.
+  emailVerification: {
+    sendVerificationEmail: async ({ user, url }) => {
+      // T-005.5 — Better Auth memanggil callback ini TANPA PEDULI
+      // `user.emailVerified` (lihat sign-up.mjs: kondisi kirim hanya cek
+      // config statis `emailVerification.sendOnSignUp`/
+      // `requireEmailVerification`, bukan field user). User accept-invite
+      // (T-110) sudah ditandai `emailVerified: true` SAAT DIBUAT oleh hook
+      // `databaseHooks.user.create.before` di bawah — tanpa guard ini
+      // mereka tetap dapat email "verifikasi" yang membingungkan padahal
+      // sudah terverifikasi lewat OTP.
+      if (user.emailVerified) {
+        return;
+      }
+      await getAuthEmailSender().sendVerificationEmail({
+        email: user.email,
+        name: user.name,
+        url,
+      });
+    },
+    // Auto-login user begitu link verifikasi diklik (Better Auth membuat
+    // session baru kalau belum ada) — menghindari user diminta login manual
+    // lagi setelah klik tautan dari email.
+    autoSignInAfterVerification: true,
+  },
+
+  // T-005.5 — "accept-invite skip" (mitigasi #2 disetujui King Rezi via
+  // AskUserQuestion, 2026-10-14). User yang baru dibuat lewat
+  // `signUp.email()` SEGERA SETELAH `WorkspaceService.
+  // confirmInviteEmailVerification` sukses (kode OTP T-110 benar) — lihat
+  // `AcceptInviteForm.tsx`: confirm kode dulu, baru `signUp.email()` — tidak
+  // boleh kena gate verifikasi native Better Auth kedua kalinya. Sinyal
+  // yang dipakai BUKAN flag dari body request. Cookie httpOnly
+  // `invite-email-proof` hanya diset setelah OTP benar, dan hash-nya harus
+  // cocok dengan baris invitation. Lihat
+  // `WorkspaceService.consumeVerifiedPendingInvitationForEmail` dan migrasi
+  // `20261014160000_t005_5_bind_signup_proof_and_backfill_email_verified`.
+  //
+  // Consume menandai `betterAuthEmailVerifiedConsumedAt` (bukan
+  // `emailVerifiedAt`, yang tetap dibaca `acceptInvite`) dan hanya cocok
+  // kalau cookie `invite-email-proof` berisi rahasia yang diterbitkan
+  // `confirmAcceptInviteVerificationAction`. Email yang kebetulan sama
+  // tidak cukup. Rahasia itu single-use, umur 5 menit, dan OTP baru
+  // menerbitkan rahasia baru kalau sign-up gagal sesudah consume.
+  //
+  // Hook ini tidak membuat session. `requireEmailVerification` membuat
+  // `signUp.email()` mengembalikan `token: null`. `AcceptInviteForm`
+  // lalu memanggil `signIn.email()`.
+  databaseHooks: {
+    user: {
+      create: {
+        before: async (user) => {
+          const proof = (await cookies()).get(INVITE_EMAIL_PROOF_COOKIE)?.value;
+          if (!proof) {
+            return;
+          }
+
+          const consumedVerifiedInvite = await new WorkspaceService(
+            workspaceRepository,
+          ).consumeVerifiedPendingInvitationForEmail(user.email, proof);
+
+          if (consumedVerifiedInvite) {
+            return { data: { ...user, emailVerified: true } };
+          }
+        },
+      },
     },
   },
 

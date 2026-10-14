@@ -11,6 +11,10 @@ import {
   ACTIVE_WORKSPACE_ID_COOKIE,
   activeWorkspaceCookieOptions,
 } from "@/lib/workspace/active-workspace-cookie";
+import {
+  INVITE_EMAIL_PROOF_COOKIE,
+  inviteEmailProofCookieOptions,
+} from "@/lib/workspace/invite-email-proof-cookie";
 
 /**
  * Request kode verifikasi OTP (T-110.2, KI-053) — dipanggil
@@ -52,11 +56,18 @@ export async function confirmAcceptInviteVerificationAction(
 ): Promise<{ error?: string }> {
   const workspaceService = new WorkspaceService(workspaceRepository);
 
+  let proof: string;
   try {
-    await workspaceService.confirmInviteEmailVerification(token, code);
+    proof = await workspaceService.confirmInviteEmailVerification(token, code);
   } catch (error) {
     return toActionError(error);
   }
+
+  (await cookies()).set(
+    INVITE_EMAIL_PROOF_COOKIE,
+    proof,
+    inviteEmailProofCookieOptions(),
+  );
 
   return {};
 }
