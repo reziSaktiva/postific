@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -61,23 +61,28 @@ export function NotificationPreferencesForm({
   const [error, setError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const submittingRef = useRef(false);
 
   function handleToggle(
     key: keyof NotificationPreferencesRecord,
     checked: boolean,
   ) {
+    if (submittingRef.current) return;
     setIsSuccess(false);
     setValues((prev) => ({ ...prev, [key]: checked }));
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setError(null);
     setIsSuccess(false);
     setIsSubmitting(true);
+    const payload = values;
 
     try {
-      const result = await updateNotificationPreferencesAction(values);
+      const result = await updateNotificationPreferencesAction(payload);
 
       if (!result.ok) {
         setError(result.error);
@@ -89,6 +94,7 @@ export function NotificationPreferencesForm({
     } catch {
       setError("Gagal menyimpan preferensi. Coba lagi.");
     } finally {
+      submittingRef.current = false;
       setIsSubmitting(false);
     }
   }
@@ -119,8 +125,15 @@ export function NotificationPreferencesForm({
           <form onSubmit={handleSubmit}>
             <FieldGroup>
               {PREFERENCE_ROWS.map((row) => (
-                <FieldLabel key={row.key} htmlFor={`notif-${row.key}`}>
-                  <Field orientation="horizontal">
+                <FieldLabel
+                  key={row.key}
+                  htmlFor={`notif-${row.key}`}
+                  className={isSubmitting ? "pointer-events-none" : undefined}
+                >
+                  <Field
+                    orientation="horizontal"
+                    data-disabled={isSubmitting ? true : undefined}
+                  >
                     <FieldContent>
                       <FieldTitle>{row.title}</FieldTitle>
                       <FieldDescription>{row.description}</FieldDescription>
@@ -128,6 +141,7 @@ export function NotificationPreferencesForm({
                     <Checkbox
                       id={`notif-${row.key}`}
                       checked={values[row.key]}
+                      disabled={isSubmitting}
                       onCheckedChange={(checked) =>
                         handleToggle(row.key, checked === true)
                       }

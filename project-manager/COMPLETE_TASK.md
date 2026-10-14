@@ -8,6 +8,14 @@ Seluruh perubahan penting pada dokumentasi maupun implementasi project dicatat p
 
 ---
 
+## 2026-10-14 — Perbaikan code review PR #164 (T-016.4)
+
+### Fixed
+- `IdentityService.updateNotificationPreferences` menolak payload yang bukan tiga boolean lengkap, dan hanya meneruskan ketiga field itu ke repository. Field yang absen tidak lagi ikut sebagai `undefined` (Prisma akan menganggapnya "jangan ubah kolom").
+- Form notifikasi mengunci toggle selama simpan, supaya perubahan di tengah proses tidak tertimpa hasil server.
+- Catatan di entri T-016.4 di bawah ("dokumentasi belum di-commit") dikoreksi: dokumentasi itu sudah masuk commit yang sama dengan PR #164.
+- Deskripsi PR #164 diselaraskan: migration sudah di-deploy, QA browser sudah lolos.
+
 ## 2026-10-14 — T-016.4 tuntas: `/account/notifications` preferensi notifikasi, T-016 ✅ Done 5/5 subtask
 
 ### Konteks
@@ -33,7 +41,7 @@ Branch `feature/t-016-4-notification-preferences` (checkout dari `staging`). Sub
 
 ### Catatan
 - Sudah di-commit + push ke branch `feature/t-016-4-notification-preferences`, PR dibuka: [#164](https://github.com/reziSaktiva/postific/pull/164) (`feature/t-016-4-notification-preferences` → `staging`), **belum di-merge**, menunggu King Rezi review/merge.
-- Perubahan dokumentasi sesi ini **belum di-commit** — dibiarkan di working tree sesuai instruksi King Rezi untuk direview/commit terpisah.
+- Dokumentasi sesi T-016.4 sudah ikut di commit yang sama pada PR #164. Kalimat sebelumnya yang menyebut dokumentasi belum di-commit sudah tidak berlaku (dikoreksi 2026-10-14).
 
 ## 2026-10-13 — T-030 tuntas: entry point Cancel Schedule di Calendar (⚠️ belum di-commit)
 

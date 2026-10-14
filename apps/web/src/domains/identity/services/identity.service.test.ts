@@ -357,5 +357,61 @@ describe("IdentityService", () => {
         notifyAnalyticsReport: true,
       });
     });
+
+    it("drops extra fields and forwards only the three booleans", async () => {
+      let captured: unknown = null;
+      const repository = createFakeRepository({
+        updateNotificationPreferences: async (_userId, data) => {
+          captured = data;
+          return data;
+        },
+      });
+      const service = new IdentityService(
+        repository,
+        createFakeAvatarStorage(),
+      );
+
+      await service.updateNotificationPreferences(USER_ID, {
+        notifyRepliesAndMentions: true,
+        notifyPublishSchedule: false,
+        notifyAnalyticsReport: true,
+        email: "lain@example.com",
+      } as never);
+
+      expect(captured).toEqual({
+        notifyRepliesAndMentions: true,
+        notifyPublishSchedule: false,
+        notifyAnalyticsReport: true,
+      });
+    });
+
+    it.each([
+      ["a field is not a boolean", { notifyRepliesAndMentions: "true" }],
+      [
+        "a field is missing",
+        { notifyPublishSchedule: true, notifyAnalyticsReport: false },
+      ],
+      ["the payload is null", null],
+    ])(
+      "throws ValidationError and does not write when %s",
+      async (_label, payload) => {
+        let called = false;
+        const repository = createFakeRepository({
+          updateNotificationPreferences: async (_userId, data) => {
+            called = true;
+            return data;
+          },
+        });
+        const service = new IdentityService(
+          repository,
+          createFakeAvatarStorage(),
+        );
+
+        await expect(
+          service.updateNotificationPreferences(USER_ID, payload as never),
+        ).rejects.toThrow(ValidationError);
+        expect(called).toBe(false);
+      },
+    );
   });
 });

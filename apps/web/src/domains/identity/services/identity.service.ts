@@ -11,6 +11,7 @@ import {
   ALLOWED_AVATAR_MIME_TYPES,
   MAX_AVATAR_BYTES,
   MAX_NAME_LENGTH,
+  parseNotificationPreferences,
 } from "../validation";
 
 export interface UpdateProfileInput {
@@ -94,6 +95,7 @@ export class IdentityService {
     userId: UserId,
     preferences: NotificationPreferencesRecord,
   ): Promise<NotificationPreferencesRecord> {
-    return this.repository.updateNotificationPreferences(userId, preferences);
+    const parsed = parseNotificationPreferences(preferences);
+    return this.repository.updateNotificationPreferences(userId, parsed);
   }
 }
