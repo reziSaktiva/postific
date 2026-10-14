@@ -8,6 +8,33 @@ Seluruh perubahan penting pada dokumentasi maupun implementasi project dicatat p
 
 ---
 
+## 2026-10-14 — T-016.4 tuntas: `/account/notifications` preferensi notifikasi, T-016 ✅ Done 5/5 subtask
+
+### Konteks
+Branch `feature/t-016-4-notification-preferences` (checkout dari `staging`). Subtask terakhir yang tersisa di T-016 (Account & user settings screens) — T-016.1/2/3/5 sudah selesai sebelumnya. Dengan T-016.4 selesai, Status task T-016 naik dari `🟡 In Progress` menjadi `✅ Done`.
+
+### Added
+- Halaman `apps/web/src/app/(app)/settings/account/notifications/page.tsx` diisi penuh (sebelumnya `ScaffoldPlaceholder`) — 3 preferensi email: Balasan & Mention (default ON), Jadwal Publish (default ON), Laporan Analytics (default OFF), sesuai rancangan Claude Design (`templates/settings-notifications.html`).
+- Domain `identity`: `IdentityService.getNotificationPreferences`/`updateNotificationPreferences`, dipanggil dari Server Action (`actions.ts`) → repository Prisma.
+- Component baru `NotificationPreferencesForm.tsx`, reuse pola komposisi `Field`/`FieldLabel`/`Checkbox` dari `InviteMemberDialog.tsx`.
+- Migration baru `apps/web/prisma/migrations/20261014090000_t016_4_add_notification_preferences/migration.sql` — 3 kolom boolean baru di model `User` (`identity_user`): `notifyRepliesAndMentions` (default true), `notifyPublishSchedule` (default true), `notifyAnalyticsReport` (default false).
+- Unit test baru untuk service + repository (double/fake lokal, tidak hit Prisma/Supabase asli).
+
+### Changed
+- `tasks/v01-foundation.md` § T-016: checkbox T-016.4 dicentang + catatan detail ditulis, Status task naik dari `🟡 In Progress` menjadi `✅ Done` (seluruh T-016.1–.5 selesai). Catatan Rilis (definisi "Foundation selesai") diupdate: T-016 dikeluarkan dari daftar task yang masih menunggu subtask.
+- `TASKS.md`: indeks v0.1 `19 ✅ · 1 🚫 · 4 🟡 · 1 ⏸️` → `20 ✅ · 1 🚫 · 3 🟡 · 1 ⏸️`, Total `71 selesai` → `72 selesai`, entri T-016 ditambahkan di "Selesai baru-baru ini", catatan "v0.1 dan v0.2 tidak sepenuhnya sekuensial" diupdate.
+- `PROJECT_STATE.md` § Completed (Ringkasan): entri T-016 ditambahkan di atas, entri terlama (T-110 KI-053, 2026-10-12) digeser keluar untuk menjaga batas 5 item — isinya tetap aman di riwayat ini (lihat entri T-110 di bawah).
+
+### Proses & verifikasi
+- Implementasi: Prabowo Feature Engineer. Review arsitektur: Ridwan Architecture Reviewer — lolos, tidak ada temuan pelanggaran (catatan non-blocking: `updateNotificationPreferences` pass-through tanpa validasi shape tambahan, dampak kecil karena Prisma + try/catch sudah menangkap).
+- Gate struktur T-103.3 dijalankan di sesi utama (karena `DesignSync` tidak termuat di sesi Najwa — limitasi teknis yang sudah berulang) — struktur `NotificationPreferencesForm.tsx` dibandingkan langsung ke `templates/settings-notifications.html`, PASS (Card wrapper, urutan 3 row, copy teks identik).
+- Migration sempat tertunda (bukan wewenang subagent), dijalankan King Rezi via `bun run db:deploy` (2026-10-14) ke DB Supabase dev/staging — diverifikasi langsung lewat Supabase MCP: 3 kolom sudah ada di `identity_user` dengan default yang benar.
+- QA Najwa QA Engineer: PASS semua skenario — golden path render default benar, toggle+submit+reload persist nyata (bukan optimistic UI, cross-check langsung ke DB cocok), submit tanpa perubahan tidak error, toggle+submit berturut-turut cepat tidak race condition, regresi halaman Account lain (`/settings/account`, `/preferences`, `/workspaces`) normal, light & dark mode readable. `bun run typecheck`/`lint`/`test` bersih (753 passed/6 skipped, 0 regresi). Catatan non-bug: dev server sempat perlu di-restart karena Prisma Client stale setelah migration baru (staleness proses dev lokal, bukan bug kode) — testing pakai akun login King Rezi sendiri (`rezi@insvire.com`), nilai preferensi dikembalikan ke semula (ON, ON, OFF) setelah testing selesai.
+
+### Catatan
+- Sudah di-commit + push ke branch `feature/t-016-4-notification-preferences`, PR dibuka: [#164](https://github.com/reziSaktiva/postific/pull/164) (`feature/t-016-4-notification-preferences` → `staging`), **belum di-merge**, menunggu King Rezi review/merge.
+- Perubahan dokumentasi sesi ini **belum di-commit** — dibiarkan di working tree sesuai instruksi King Rezi untuk direview/commit terpisah.
+
 ## 2026-10-13 — T-030 tuntas: entry point Cancel Schedule di Calendar (⚠️ belum di-commit)
 
 ### Konteks
