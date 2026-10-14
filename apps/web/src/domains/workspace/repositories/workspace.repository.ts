@@ -311,9 +311,19 @@ export interface IWorkspaceRepository {
    * langsung. Return `true` HANYA kalau baris benar-benar berhasil
    * di-consume (UPDATE match ≥1 baris) — panggilan kedua untuk email yang
    * sama SELALU `false` sampai ada konfirmasi OTP baru yang menerbitkan
-   * `emailVerifiedAt` baru.
+   * `emailVerifiedAt` baru DAN hash rahasia baru. Konfirmasi OTP ulang
+   * mengosongkan `betterAuthEmailVerifiedConsumedAt`, jadi sinyal yang
+   * sempat terpakai (sign-up gagal setelah consume) bisa dipakai lagi
+   * hanya oleh browser yang memegang rahasia baru.
+   *
+   * `proofHash` wajib. Kosong → `false` tanpa menulis. Hash itu harus
+   * sama dengan `betterAuthEmailProofHash` yang disimpan saat OTP
+   * dikonfirmasi. Mengetahui email saja tidak cukup.
    */
-  consumeVerifiedPendingInvitationForEmail(email: string): Promise<boolean>;
+  consumeVerifiedPendingInvitationForEmail(
+    email: string,
+    proofHash: string,
+  ): Promise<boolean>;
 
   /**
    * Lookup Better Auth `User` by email (T-093.1) — dipakai untuk auto-detect
@@ -378,7 +388,7 @@ export interface IWorkspaceRepository {
    * SETELAH kode dicocokkan benar. Compare-and-swap sama seperti
    * `setInvitationVerificationCode`.
    */
-  markInvitationEmailVerified(token: string): Promise<void>;
+  markInvitationEmailVerified(token: string, proofHash: string): Promise<void>;
 
   /**
    * Reservasi SATU slot percobaan verifikasi kode secara atomic, capped di

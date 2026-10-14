@@ -2,6 +2,7 @@ import { dash } from "@better-auth/infra";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { bearer } from "better-auth/plugins/bearer";
+import { cookies } from "next/headers";
 
 import { WorkspaceService } from "@/domains/workspace";
 import { getAuthEmailSender } from "@/lib/adapters/email";
@@ -11,6 +12,7 @@ import {
 } from "@/lib/env";
 import { prisma } from "@/lib/prisma/client";
 import { workspaceRepository } from "@/lib/repositories/workspace";
+import { INVITE_EMAIL_PROOF_COOKIE } from "@/lib/workspace/invite-email-proof-cookie";
 
 /**
  * Better Auth instance (auth-strategy.md, ADR-030).
@@ -113,41 +115,34 @@ export const auth = betterAuth({
   // confirmInviteEmailVerification` sukses (kode OTP T-110 benar) — lihat
   // `AcceptInviteForm.tsx`: confirm kode dulu, baru `signUp.email()` — tidak
   // boleh kena gate verifikasi native Better Auth kedua kalinya. Sinyal
-  // yang dipakai BUKAN flag dari body request (bisa dipalsukan siapa pun
-  // yang memanggil `/api/auth/sign-up/email` langsung), melainkan state
-  // tervalidasi server-side: ada `WorkspaceInvitation` pending, belum
-  // expired, untuk email ini, dengan `emailVerifiedAt` terisi (hanya bisa
-  // terisi lewat OTP confirm yang benar). Lihat
+  // yang dipakai BUKAN flag dari body request. Cookie httpOnly
+  // `invite-email-proof` hanya diset setelah OTP benar, dan hash-nya harus
+  // cocok dengan baris invitation. Lihat
   // `WorkspaceService.consumeVerifiedPendingInvitationForEmail` dan migrasi
-  // `20261014120000_t005_5_accept_invite_prevverified_lookup` +
-  // `20261014130000_t005_5_accept_invite_signal_single_use_ttl` (RLS GUC
-  // `app.invite_lookup_email`, pola sama token lookup T-093/T-110).
+  // `20261014160000_t005_5_bind_signup_proof_and_backfill_email_verified`.
   //
-  // FIX CRITICAL (Ridwan Architecture Reviewer, 2026-10-14) — method ini
-  // "consume" (bukan "has"): sinyal `emailVerifiedAt` di-clear ATOMIC di
-  // SATU UPDATE begitu dipakai (single-use) + dibatasi TTL 5 menit
-  // independen dari 7-hari `expiresAt` invitation. Tanpa ini, sinyal bisa
-  // dipakai ulang oleh SIAPA PUN yang tahu/menebak email korban (bypass
-  // total UI+OTP lewat `/api/auth/sign-up/email` langsung) selama invitation
-  // belum expired — identity takeover penuh kalau tab user crash sebelum
-  // `signUp.email()` selesai. Detail lengkap: doc comment
-  // `IWorkspaceRepository.consumeVerifiedPendingInvitationForEmail`.
+  // Consume menandai `betterAuthEmailVerifiedConsumedAt` (bukan
+  // `emailVerifiedAt`, yang tetap dibaca `acceptInvite`) dan hanya cocok
+  // kalau cookie `invite-email-proof` berisi rahasia yang diterbitkan
+  // `confirmAcceptInviteVerificationAction`. Email yang kebetulan sama
+  // tidak cukup. Rahasia itu single-use, umur 5 menit, dan OTP baru
+  // menerbitkan rahasia baru kalau sign-up gagal sesudah consume.
   //
-  // CATATAN PENTING — ini TIDAK membuat `signUp.email()` auto-create
-  // session (`shouldSkipAutoSignIn` di Better Auth dihitung dari config
-  // statis `requireEmailVerification`, SEBELUM hook ini sempat jalan, jadi
-  // tidak bisa diubah dari sini). `emailVerified: true` di sini hanya
-  // memastikan user ini tidak diblokir `EMAIL_NOT_VERIFIED` saat
-  // `AcceptInviteForm.tsx` memanggil `authClient.signIn.email()` SEGERA
-  // SETELAH `signUp.email()` (lihat komentar di file itu) — dua panggilan
-  // itulah yang benar-benar menghasilkan session, bukan hook ini.
+  // Hook ini tidak membuat session. `requireEmailVerification` membuat
+  // `signUp.email()` mengembalikan `token: null`. `AcceptInviteForm`
+  // lalu memanggil `signIn.email()`.
   databaseHooks: {
     user: {
       create: {
         before: async (user) => {
+          const proof = (await cookies()).get(INVITE_EMAIL_PROOF_COOKIE)?.value;
+          if (!proof) {
+            return;
+          }
+
           const consumedVerifiedInvite = await new WorkspaceService(
             workspaceRepository,
-          ).consumeVerifiedPendingInvitationForEmail(user.email);
+          ).consumeVerifiedPendingInvitationForEmail(user.email, proof);
 
           if (consumedVerifiedInvite) {
             return { data: { ...user, emailVerified: true } };

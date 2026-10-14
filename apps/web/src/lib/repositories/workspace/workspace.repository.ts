@@ -28,6 +28,7 @@ import {
 import { prisma } from "@/lib/prisma/client";
 import {
   setCurrentUserId,
+  setInviteEmailProofHash,
   setInviteLookupEmail,
   setInviteLookupToken,
   withCurrentUser,
@@ -492,22 +493,21 @@ export const workspaceRepository: IWorkspaceRepository = {
    * `schema.prisma` dan migrasi
    * `20261014150000_t005_5_separate_better_auth_consume_signal`.
    *
-   * `emailVerifiedAt: { gt: <5 menit lalu> }` — **angka `5` di sini HARUS
-   * SAMA PERSIS** dengan `interval '5 minutes'` yang di-hardcode di RLS
-   * policy `workspace_invitations_public_email_verified_consume` (migrasi
-   * terbaru di atas). RLS adalah enforcement boundary yang sebenarnya
-   * (default-deny kalau GUC tidak di-set ATAU kondisi tidak cocok); filter
-   * di query ini murni defense-in-depth kedua, sama pola
-   * `with-current-user.ts`. TIDAK dibuat jadi constant yang di-share
-   * lintas layer (Prisma di sini vs SQL murni di migrasi) — kalau nilainya
-   * perlu diubah, ubah KEDUANYA di migrasi baru + edit literal ini dalam
-   * PR yang sama.
+   * Angka `5` menit di sini HARUS sama dengan `interval '5 minutes'` di
+   * policy RLS dan dengan `INVITE_EMAIL_PROOF_MAX_AGE_SECONDS`.
+   * `proofHash` ikut di WHERE dan di GUC. Tanpa hash yang cocok, UPDATE
+   * tidak menyentuh baris.
    */
-  async consumeVerifiedPendingInvitationForEmail(email) {
+  async consumeVerifiedPendingInvitationForEmail(email, proofHash) {
+    if (!proofHash) {
+      return false;
+    }
+
     const freshnessThreshold = new Date(Date.now() - 5 * 60 * 1000);
 
     const consumed = await prisma.$transaction(async (tx) => {
       await setInviteLookupEmail(tx, email);
+      await setInviteEmailProofHash(tx, proofHash);
       return tx.workspaceInvitation.updateMany({
         where: {
           email,
@@ -515,8 +515,12 @@ export const workspaceRepository: IWorkspaceRepository = {
           expiresAt: { gt: new Date() },
           emailVerifiedAt: { not: null, gt: freshnessThreshold },
           betterAuthEmailVerifiedConsumedAt: null,
+          betterAuthEmailProofHash: proofHash,
         },
-        data: { betterAuthEmailVerifiedConsumedAt: new Date() },
+        data: {
+          betterAuthEmailVerifiedConsumedAt: new Date(),
+          betterAuthEmailProofHash: null,
+        },
       });
     });
 
@@ -550,6 +554,7 @@ export const workspaceRepository: IWorkspaceRepository = {
           verificationCodeHash: codeHash,
           verificationCodeExpiresAt: expiresAt,
           verificationAttempts: 0,
+          betterAuthEmailProofHash: null,
         },
       });
       if (updated.count === 0) {
@@ -560,8 +565,13 @@ export const workspaceRepository: IWorkspaceRepository = {
     });
   },
 
-  /** T-110.3 — single-use: clear hash+expiry sekaligus set `emailVerifiedAt`. Pola compare-and-swap sama `setInvitationVerificationCode`. */
-  async markInvitationEmailVerified(token) {
+  /**
+   * T-110.3 — clear hash kode sekaligus set `emailVerifiedAt`.
+   * T-005.5 — simpan hash rahasia sign-up dan kosongkan
+   * `betterAuthEmailVerifiedConsumedAt` supaya OTP yang baru
+   * dikonfirmasi mengisi ulang sinyal yang sempat terpakai.
+   */
+  async markInvitationEmailVerified(token, proofHash) {
     await prisma.$transaction(async (tx) => {
       await setInviteLookupToken(tx, token);
       const updated = await tx.workspaceInvitation.updateMany({
@@ -570,6 +580,8 @@ export const workspaceRepository: IWorkspaceRepository = {
           emailVerifiedAt: new Date(),
           verificationCodeHash: null,
           verificationCodeExpiresAt: null,
+          betterAuthEmailVerifiedConsumedAt: null,
+          betterAuthEmailProofHash: proofHash,
         },
       });
       if (updated.count === 0) {

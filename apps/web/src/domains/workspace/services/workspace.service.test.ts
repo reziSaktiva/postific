@@ -27,6 +27,7 @@ import type {
   WorkspaceRecord,
 } from "../repositories/workspace.repository";
 import {
+  hashInviteEmailProof,
   hashInviteVerificationCode,
   WorkspaceService,
 } from "./workspace.service";
@@ -3406,8 +3407,8 @@ describe("WorkspaceService.confirmInviteEmailVerification (T-110.3, KI-053)", ()
     ).rejects.toThrow(ValidationError);
   });
 
-  it("marks the email as verified (single-use) when the correct code is confirmed", async () => {
-    let markedVerified = false;
+  it("marks the email as verified and returns a proof whose hash is what the repository stores", async () => {
+    let storedProofHash: string | null = null;
     const service = new WorkspaceService(
       createFakeRepository({
         findInvitationByToken: async () =>
@@ -3416,20 +3417,21 @@ describe("WorkspaceService.confirmInviteEmailVerification (T-110.3, KI-053)", ()
             verificationCodeExpiresAt: new Date(Date.now() + 60_000),
             verificationAttempts: 2,
           }),
-        // Code-review PR #142 fix — reservasi atomic sekarang SELALU
-        // dipanggil sebelum membandingkan kode (lihat
-        // confirmInviteEmailVerification), termasuk saat kodenya benar.
-        // Double lokal: naikkan attempts persis seperti repository
-        // Prisma sungguhan untuk kasus "masih di bawah cap" (3 <= 5).
         incrementInvitationVerificationAttempts: async () => 3,
-        markInvitationEmailVerified: async () => {
-          markedVerified = true;
+        markInvitationEmailVerified: async (_token, proofHash) => {
+          storedProofHash = proofHash;
         },
       }),
     );
 
-    await service.confirmInviteEmailVerification("token", "111111");
-    expect(markedVerified).toBe(true);
+    const proof = await service.confirmInviteEmailVerification(
+      "token",
+      "111111",
+    );
+
+    expect(proof.length).toBeGreaterThan(20);
+    expect(storedProofHash).toBe(hashInviteEmailProof(proof));
+    expect(storedProofHash).not.toBe(proof);
   });
 
   it("code-review PR #142: rejects WITHOUT verifying when the atomic reservation reports the cap already reached (race-condition fix)", async () => {
@@ -3467,12 +3469,12 @@ describe("WorkspaceService.confirmInviteEmailVerification (T-110.3, KI-053)", ()
 });
 
 describe("WorkspaceService.consumeVerifiedPendingInvitationForEmail (T-005.5)", () => {
-  it("delegates to the repository with the email normalized (trim + lowercase)", async () => {
-    let receivedEmail: string | null = null;
+  it("passes the lowercased email and the sha256 of the proof, not the raw secret", async () => {
+    let received: { email: string; proofHash: string } | null = null;
     const service = new WorkspaceService(
       createFakeRepository({
-        consumeVerifiedPendingInvitationForEmail: async (email) => {
-          receivedEmail = email;
+        consumeVerifiedPendingInvitationForEmail: async (email, proofHash) => {
+          received = { email, proofHash };
           return true;
         },
       }),
@@ -3480,73 +3482,70 @@ describe("WorkspaceService.consumeVerifiedPendingInvitationForEmail (T-005.5)", 
 
     const result = await service.consumeVerifiedPendingInvitationForEmail(
       "  Raka@Example.com  ",
+      "  raw-proof  ",
     );
 
     expect(result).toBe(true);
-    expect(receivedEmail).toBe("raka@example.com");
+    expect(received).toEqual({
+      email: "raka@example.com",
+      proofHash: hashInviteEmailProof("raw-proof"),
+    });
   });
 
-  it("returns false when the repository finds no verified pending invitation", async () => {
+  it("returns false without calling the repository when the proof is blank", async () => {
+    let called = false;
     const service = new WorkspaceService(
       createFakeRepository({
-        consumeVerifiedPendingInvitationForEmail: async () => false,
-      }),
-    );
-
-    await expect(
-      service.consumeVerifiedPendingInvitationForEmail("nobody@example.com"),
-    ).resolves.toBe(false);
-  });
-
-  /**
-   * CRITICAL finding (Ridwan Architecture Reviewer, 2026-10-14) — Alice
-   * confirms her OTP code (invitation's `emailVerifiedAt` gets set), then
-   * her tab crashes/closes BEFORE `signUp.email()` completes. Without
-   * single-use consumption, anyone who knows/guesses her email could call
-   * `/api/auth/sign-up/email` directly at ANY later point (up to the
-   * invitation's 7-day expiry) and reuse HER verified signal — full
-   * identity takeover, no OTP ever required from the attacker. This test
-   * models the repository's REAL contract (one atomic UPDATE that reads
-   * AND clears `emailVerifiedAt` together, see
-   * `WorkspaceRepository.consumeVerifiedPendingInvitationForEmail`) with a
-   * stateful fake — first consume succeeds (the legitimate `signUp.email()`
-   * call, or an attacker who got there first), every subsequent attempt
-   * for the SAME email returns `false` (the abandoned-session replay, or
-   * the legitimate retry arriving second) regardless of how many times it
-   * is retried.
-   */
-  it("is single-use — a second consume attempt for the same email (replay / abandoned-session attack) never succeeds again", async () => {
-    const consumableEmails = new Set(["alice@acme.com"]);
-    const service = new WorkspaceService(
-      createFakeRepository({
-        // Stateful double modeling the repository's atomic
-        // "read-and-clear" UPDATE — NOT a plain lookup. Mirrors exactly
-        // what `markInvitationEmailVerified` already does for the OTP code
-        // hash itself (single-use, cleared on successful confirm).
-        consumeVerifiedPendingInvitationForEmail: async (email) => {
-          if (!consumableEmails.has(email)) return false;
-          consumableEmails.delete(email);
+        consumeVerifiedPendingInvitationForEmail: async () => {
+          called = true;
           return true;
         },
       }),
     );
 
-    // First call — the legitimate signUp.email() (or, in the attack
-    // scenario, whoever's request reaches the hook first).
     await expect(
-      service.consumeVerifiedPendingInvitationForEmail("alice@acme.com"),
-    ).resolves.toBe(true);
+      service.consumeVerifiedPendingInvitationForEmail(
+        "nobody@example.com",
+        "   ",
+      ),
+    ).resolves.toBe(false);
+    expect(called).toBe(false);
+  });
 
-    // Replay attempt(s) for the SAME email — simulates an attacker calling
-    // POST /api/auth/sign-up/email directly after Alice's tab abandoned
-    // the flow, or a legitimate retry that arrives after the first attempt
-    // already consumed the signal. Must NEVER get auto-verified again.
+  it("accepts one proof once, then accepts a new proof after the signal is re-armed", async () => {
+    const armedHashes = new Set<string>();
+    const service = new WorkspaceService(
+      createFakeRepository({
+        consumeVerifiedPendingInvitationForEmail: async (_email, proofHash) => {
+          if (!armedHashes.has(proofHash)) return false;
+          armedHashes.delete(proofHash);
+          return true;
+        },
+      }),
+    );
+
+    armedHashes.add(hashInviteEmailProof("first-proof"));
+
     await expect(
-      service.consumeVerifiedPendingInvitationForEmail("alice@acme.com"),
-    ).resolves.toBe(false);
+      service.consumeVerifiedPendingInvitationForEmail(
+        "alice@acme.com",
+        "first-proof",
+      ),
+    ).resolves.toBe(true);
     await expect(
-      service.consumeVerifiedPendingInvitationForEmail("Alice@Acme.com"),
+      service.consumeVerifiedPendingInvitationForEmail(
+        "alice@acme.com",
+        "first-proof",
+      ),
     ).resolves.toBe(false);
+
+    armedHashes.add(hashInviteEmailProof("second-proof"));
+    await expect(
+      service.consumeVerifiedPendingInvitationForEmail(
+        "Alice@Acme.com",
+        "second-proof",
+      ),
+    ).resolves.toBe(true);
   });
 });
 

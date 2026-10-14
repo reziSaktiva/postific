@@ -144,19 +144,18 @@ export function googleOAuthEnabled(): boolean {
  * `AskUserQuestion`) DUA mitigasi yang sebelumnya menahan flag ini (lihat
  * `tasks/v01-foundation.md` § T-005.5 untuk detail lengkap):
  *
- * 1. **Backfill akun existing** — seluruh baris `identity_user` yang ada
- *    SEBELUM flip ini sudah di-backfill `emailVerified = true` (one-off
- *    `UPDATE`, diterapkan ke dev DB; King Rezi menjalankan statement yang
- *    sama ke staging/production). Hanya akun BARU ke depan yang wajib
+ * 1. **Backfill akun existing** — migrasi
+ *    `20261014160000_t005_5_bind_signup_proof_and_backfill_email_verified`
+ *    mengisi `emailVerified = true` untuk baris yang sudah ada saat
+ *    migrasi itu jalan. Akun yang mendaftar sesudahnya tetap wajib
  *    verifikasi.
  * 2. **Accept-invite skip** — `databaseHooks.user.create.before` di
  *    `lib/better-auth/auth.ts` menandai user hasil accept-invite (T-110)
- *    `emailVerified: true` SAAT DIBUAT (lookup server-side ke
- *    `WorkspaceInvitation.emailVerifiedAt`, lihat
- *    `WorkspaceService.hasVerifiedPendingInvitationForEmail`), dan
- *    `AcceptInviteForm.tsx` memanggil `signIn.email()` segera setelah
- *    `signUp.email()` kalau response-nya tidak membawa `token` (Better
- *    Auth tidak lagi auto-create session saat flag ini `true`).
+ *    `emailVerified: true` SAAT DIBUAT, hanya kalau cookie
+ *    `invite-email-proof` cocok dengan hash yang disimpan saat OTP
+ *    dikonfirmasi. `AcceptInviteForm.tsx` memanggil `signIn.email()`
+ *    segera setelah `signUp.email()` kalau response-nya tidak membawa
+ *    `token`.
  */
 export function requireEmailVerificationEnabled(): boolean {
   return true;

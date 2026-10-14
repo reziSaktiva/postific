@@ -242,6 +242,11 @@ export function hashInviteVerificationCode(code: string): string {
   return createHash("sha256").update(code).digest("hex");
 }
 
+/** T-005.5 — sha256 dari rahasia cookie accept-invite. Jangan simpan plaintext-nya. */
+export function hashInviteEmailProof(proof: string): string {
+  return createHash("sha256").update(proof).digest("hex");
+}
+
 /**
  * Timing-safe compare (hindari timing attack pada perbandingan hash) —
  * code-review PR #142 finding: reuse `timingSafeEqualString` yang sudah
@@ -1128,7 +1133,7 @@ export class WorkspaceService {
   async confirmInviteEmailVerification(
     token: string,
     code: string,
-  ): Promise<void> {
+  ): Promise<string> {
     const invitation = await this.repository.findInvitationByToken(token);
     if (!invitation || invitation.status !== InvitationStatus.Pending) {
       throw new NotFoundError(
@@ -1188,7 +1193,12 @@ export class WorkspaceService {
       );
     }
 
-    await this.repository.markInvitationEmailVerified(token);
+    const proof = randomBytes(32).toString("base64url");
+    await this.repository.markInvitationEmailVerified(
+      token,
+      hashInviteEmailProof(proof),
+    );
+    return proof;
   }
 
   /**
@@ -1212,14 +1222,23 @@ export class WorkspaceService {
    * sebelum `signUp.email()` selesai — detail lengkap di doc comment
    * interface repository). Nama method ini SENGAJA "consume" (bukan "has")
    * supaya pemanggil di `auth.ts` tidak salah kira ini murni cek tanpa efek
-   * samping — **method ini SEKALI PAKAI**, panggilan kedua untuk email yang
-   * sama SELALU `false` sampai ada OTP baru yang dikonfirmasi lagi.
+   * samping. Satu rahasia hanya lolos sekali. OTP baru menerbitkan rahasia
+   * baru dan mengosongkan tanda consume, jadi sign-up yang gagal sesudah
+   * consume bisa diulang. Mengetahui email saja tidak cukup: `proof` harus
+   * sama dengan rahasia yang baru diserahkan ke browser lewat cookie.
    */
   async consumeVerifiedPendingInvitationForEmail(
     email: string,
+    proof: string,
   ): Promise<boolean> {
+    const normalizedProof = proof.trim();
+    if (!normalizedProof) {
+      return false;
+    }
+
     return this.repository.consumeVerifiedPendingInvitationForEmail(
       email.trim().toLowerCase(),
+      hashInviteEmailProof(normalizedProof),
     );
   }
 
