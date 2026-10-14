@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 
-import type { ConnectedAccountId, PostId } from "@postific/shared";
+import type { ConnectedAccountId } from "@postific/shared";
 import type { CalendarPostItem } from "@/domains/publishing";
 import { getMonthRange } from "@/domains/publishing";
 
@@ -84,8 +84,6 @@ export interface CalendarMonthGridProps {
   items: CalendarPostItem[];
   /** Filter Channels aktif (T-033.6) — array kosong = tanpa filter. */
   connectedAccountIds?: ConnectedAccountId[];
-  /** T-030.3 — diteruskan ke `CalendarPostPopover` tiap kartu. Opsional. */
-  onCancelSchedule?: (postId: PostId) => void;
 }
 
 /**
@@ -109,7 +107,6 @@ export function CalendarMonthGrid({
   date,
   items,
   connectedAccountIds = [],
-  onCancelSchedule,
 }: CalendarMonthGridProps) {
   const { expandedKeys: expandedDateKeys, toggle: toggleExpanded } =
     useExpandableKeys();
@@ -213,11 +210,7 @@ export function CalendarMonthGrid({
                         const PlatformGlyph =
                           PLATFORM_ICON[entry.platform].Icon;
                         return (
-                          <CalendarPostPopover
-                            key={entry.key}
-                            entry={entry}
-                            onCancelSchedule={onCancelSchedule}
-                          >
+                          <CalendarPostPopover key={entry.key} entry={entry}>
                             <button
                               type="button"
                               aria-label={`${entry.accountHandle} — ${

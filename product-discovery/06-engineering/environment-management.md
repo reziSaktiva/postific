@@ -130,8 +130,6 @@ Lokasi file di monorepo (ditetapkan M7): **`apps/web/`** — `.env.example` (di 
 | `OUTSTAND_API_KEY` | sandbox/local key | staging key | prod key | Integrasi Outstand |
 | `OUTSTAND_WEBHOOK_SECRET` | local | staging | prod | Verifikasi HMAC webhook |
 | `JOB_SECRET` | local | staging | prod | Header `X-Job-Secret` untuk trigger cron → web |
-| `RESEND_API_KEY` | key local | key staging | key prod | Resend (ADR-126, AS-D04). Wajib saat mengirim email undangan (T-110, T-007.7): `getInviteEmailSender()` throw kalau kosong. Halaman yang tidak mengirim email boleh boot tanpa nilai ini. Reset password dan verifikasi Better Auth memakai env yang sama; wiring masih T-005.3 |
-| `RESEND_FROM_EMAIL` | alamat pengirim | alamat pengirim | alamat pengirim | Wajib bersamaan dengan `RESEND_API_KEY` |
 
 **Tidak ada env var X/Twitter Client ID atau Client Secret.** BYOK X dikonfigurasi Project Owner langsung di dashboard Outstand per environment. Secret tersebut tidak disalin ke `.env.local`, Railway Variables, GitHub Actions, database, atau aplikasi.
 
@@ -142,12 +140,13 @@ Lokasi file di monorepo (ditetapkan M7): **`apps/web/`** — `.env.example` (di 
 | `NEXT_PUBLIC_SUPABASE_URL` | URL project — sama nilai dengan `SUPABASE_URL` tier terkait; dipakai browser client Realtime/Storage bila diperlukan |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Publishable key (pengganti anon/public key pada sistem API key Supabase terbaru) — **bukan** service role; dilindungi RLS |
 
-Hanya prefix `NEXT_PUBLIC_` yang boleh dibaca di Client Components. Service role, DB URLs, auth secrets, Outstand secrets, `JOB_SECRET`, `RESEND_API_KEY`, dan `RESEND_FROM_EMAIL` **wajib** server-only.
+Hanya prefix `NEXT_PUBLIC_` yang boleh dibaca di Client Components. Service role, DB URLs, auth secrets, Outstand secrets, dan `JOB_SECRET` **wajib** server-only.
 
 ## Opsional / deferred
 
 | Variable | Status |
 |----------|--------|
+| Provider email transactional (`RESEND_API_KEY`, dll.) | Belum ditetapkan (AS-D04) — ditambahkan ke katalog saat provider dipilih |
 | `NODE_ENV` | Diatur runtime (`development` / `production`) — tidak perlu diisi manual di Railway kecuali override khusus |
 
 ---

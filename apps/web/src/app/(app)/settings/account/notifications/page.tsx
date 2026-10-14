@@ -1,29 +1,10 @@
-import { asUserId } from "@postific/shared";
-import { redirect } from "next/navigation";
+import { ScaffoldPlaceholder } from "@/components/ScaffoldPlaceholder";
 
-import { IdentityService } from "@/domains/identity";
-import { supabaseAvatarStorageAdapter } from "@/lib/adapters/avatar-storage";
-import { getCachedSession } from "@/lib/better-auth/session";
-import { identityRepository } from "@/lib/repositories/identity";
-
-import { NotificationPreferencesForm } from "./components/NotificationPreferencesForm";
-
-export default async function Page() {
-  const session = await getCachedSession();
-  if (!session) {
-    redirect("/login");
-  }
-
-  const identityService = new IdentityService(
-    identityRepository,
-    supabaseAvatarStorageAdapter,
+export default function Page() {
+  return (
+    <ScaffoldPlaceholder
+      title="Account — Notifications"
+      message="Placeholder — implementasi direncanakan di T-016.4 (bergantung pada T-036, release v0.2, masih berjalan)."
+    />
   );
-  const preferences = await identityService.getNotificationPreferences(
-    asUserId(session.user.id),
-  );
-  if (!preferences) {
-    redirect("/login");
-  }
-
-  return <NotificationPreferencesForm preferences={preferences} />;
 }

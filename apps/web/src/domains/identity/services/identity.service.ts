@@ -3,15 +3,11 @@ import { ValidationError } from "@/lib/utils/errors";
 
 import type { IAvatarStorageAdapter } from "../adapters/avatar-storage-adapter";
 import type { IIdentityRepository } from "../repositories/identity.repository";
-import type {
-  NotificationPreferencesRecord,
-  UserProfileRecord,
-} from "../types";
+import type { UserProfileRecord } from "../types";
 import {
   ALLOWED_AVATAR_MIME_TYPES,
   MAX_AVATAR_BYTES,
   MAX_NAME_LENGTH,
-  parseNotificationPreferences,
 } from "../validation";
 
 export interface UpdateProfileInput {
@@ -82,20 +78,5 @@ export class IdentityService {
       }
       throw error;
     }
-  }
-
-  /** T-016.4: `null` = user tidak ditemukan. */
-  async getNotificationPreferences(
-    userId: UserId,
-  ): Promise<NotificationPreferencesRecord | null> {
-    return this.repository.findNotificationPreferences(userId);
-  }
-
-  async updateNotificationPreferences(
-    userId: UserId,
-    preferences: NotificationPreferencesRecord,
-  ): Promise<NotificationPreferencesRecord> {
-    const parsed = parseNotificationPreferences(preferences);
-    return this.repository.updateNotificationPreferences(userId, parsed);
   }
 }

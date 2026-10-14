@@ -1,7 +1,6 @@
 import type { MemberRole, PostId, UserId, WorkspaceId } from "@postific/shared";
 import { ConflictError } from "@/lib/utils/errors";
 import type { IOutstandAdapter } from "../adapters/outstand-adapter";
-import { assertPostMutable } from "../readonly-terminal-status";
 import { assertActorCanCancelSchedule } from "../rbac";
 import type {
   IPublishingRepository,
@@ -52,14 +51,6 @@ export class CancelScheduleUseCase {
     actingUserId: UserId;
   }): Promise<PublishingPostRecord> {
     assertActorCanCancelSchedule(input.actorRole);
-
-    // T-091.1 — tolak post terminal sebelum write. Filter status di
-    // `cancelSchedule` tetap menjadi safety net.
-    await assertPostMutable(
-      this.repository,
-      { workspaceId: input.workspaceId, postId: input.postId },
-      input.actingUserId,
-    );
 
     const record = await this.repository.cancelSchedule(
       { workspaceId: input.workspaceId, postId: input.postId },

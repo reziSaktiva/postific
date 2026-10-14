@@ -32,15 +32,6 @@ model User {
   sessions      Session[]
   accounts      Account[]
 
-  // T-016.4: preferensi notifikasi email, 3 kolom boolean terpisah (bukan
-  // JSON) — konsisten dengan pola kolom boolean flat yang sudah ada di
-  // schema ini (mis. `emailVerified` di model yang sama). Default
-  // mengikuti rancangan Claude Design (`templates/settings-notifications.html`):
-  // Balasan & Mention + Jadwal Publish default ON, Laporan Analytics default OFF.
-  notifyRepliesAndMentions Boolean @default(true)
-  notifyPublishSchedule    Boolean @default(true)
-  notifyAnalyticsReport    Boolean @default(false)
-
   @@unique([email])
   @@map("identity_user")
 }

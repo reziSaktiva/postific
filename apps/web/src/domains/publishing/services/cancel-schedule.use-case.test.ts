@@ -13,7 +13,6 @@ import type {
   PublishingCancelScheduleRecord,
   PublishingPostRecord,
 } from "../repositories/publishing.repository";
-import { READONLY_TERMINAL_CONFLICT_MESSAGE } from "../readonly-terminal-status";
 import { CancelScheduleUseCase } from "./cancel-schedule.use-case";
 
 const WORKSPACE_ID = asWorkspaceId("workspace-1");
@@ -39,7 +38,6 @@ function createFakeRepository(
     }),
     listDrafts: async () => [],
     findDraftById: async () => null,
-    findPostStatusById: async () => null,
     updateDraftCaption: async () => null,
     schedulePost: async () => null,
     publishNow: async () => null,
@@ -142,7 +140,6 @@ describe("CancelScheduleUseCase.execute", () => {
   it("happy path: post kembali ke Draft, memanggil adapter.cancelScheduledPost SEKALI dengan outstandPostId post-level (redesain 2026-08-26)", async () => {
     const cancelledPostIds: string[] = [];
     const repository = createFakeRepository({
-      findPostStatusById: async () => ({ status: ContentStatus.Scheduled }),
       cancelSchedule: async () => baseCancelRecord("fake-post-shared"),
     });
     const adapter = createFakeOutstandAdapter({
@@ -276,42 +273,4 @@ describe("CancelScheduleUseCase.execute", () => {
       }),
     ).rejects.toThrow(ConflictError);
   });
-
-  it.each([
-    ContentStatus.Published,
-    ContentStatus.Failed,
-    ContentStatus.Imported,
-  ])(
-    "T-091.1: post berstatus %s read-only — ConflictError, cancelSchedule tidak dipanggil",
-    async (status) => {
-      let cancelCalls = 0;
-      const repository = createFakeRepository({
-        findPostStatusById: async () => ({ status }),
-        cancelSchedule: async () => {
-          cancelCalls += 1;
-          return null;
-        },
-      });
-      const useCase = new CancelScheduleUseCase(
-        repository,
-        createFakeOutstandAdapter(),
-      );
-
-      const error = await useCase
-        .execute({
-          workspaceId: WORKSPACE_ID,
-          postId: POST_ID,
-          actorRole: MemberRole.Creator,
-          actingUserId: AUTHOR_ID,
-        })
-        .then(
-          () => null,
-          (caught: unknown) => caught,
-        );
-
-      expect(error).toBeInstanceOf(ConflictError);
-      expect((error as Error).message).toBe(READONLY_TERMINAL_CONFLICT_MESSAGE);
-      expect(cancelCalls).toBe(0);
-    },
-  );
 });
