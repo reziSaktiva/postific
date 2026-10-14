@@ -2,7 +2,11 @@
 
 import { type ReactNode, useState } from "react";
 
-import { ContentStatus } from "@postific/shared";
+import Link from "next/link";
+
+import { ContentStatus, type PostId } from "@postific/shared";
+
+import { isReadonlyTerminalStatus } from "@/domains/publishing/readonly-terminal-status";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +43,11 @@ export interface CalendarPostPopoverProps {
   entry: CalendarCardEntry;
   /** Trigger — dibungkus `PopoverTrigger asChild`, jadi cukup elemen tunggal yang punya `onClick`/focus bawaan (mis. tombol/`role="button"`). */
   children: ReactNode;
+  /** T-030.3 — handler buka dialog konfirmasi Cancel Schedule (state dilift
+   * ke `CalendarScreen`, pola sama `QueueScreen`/`useConfirmAction`). Opsional
+   * karena hanya dirender saat `entry.status === ContentStatus.Scheduled`;
+   * tidak mengubah apa pun di varian `isImported`. */
+  onCancelSchedule?: (postId: PostId) => void;
 }
 
 /**
@@ -72,16 +81,47 @@ export interface CalendarPostPopoverProps {
  * ditambahkan sebelum footer; (4) metrics block sengaja TIDAK ditampilkan
  * (post Imported belum tentu sudah disinkronkan Analytics, JOB-04 — beda
  * dari `Published` yang selalu lewat publish flow tool ini sendiri).
+ *
+ * T-091.2 — varian `Published`/`Failed` (read-only, guard service-level
+ * T-091.1 sudah ada duluan): LOCKED PATTERN (`components/popover.html`,
+ * Claude Design, 2026-10-13, King Rezi confirmed), register yang sama
+ * dengan pola Imported di atas. Beda dari Imported: (1) "Buka Draft Editor"
+ * juga DIHILANGKAN total untuk kedua status ini, tapi CTA penggantinya
+ * adalah "Lihat Detail →" ke halaman History Detail yang sudah ada
+ * (`/publish/history/[postId]`, T-034.3) — bukan link ke platform eksternal;
+ * (2) untuk `Published`, block metrics + link "Go to post →" yang sudah ada
+ * dari `isPublished` TETAP ditampilkan apa adanya, "Lihat Detail →"
+ * ditambahkan setelahnya, bukan menggantikannya; (3) untuk `Failed`, tidak
+ * ada metrics/link sama sekali (sudah otomatis dari kondisi `isPublished`
+ * yang false); (4) Retry sengaja TIDAK diduplikasi di sini — halaman History
+ * Detail sudah punya `RetryTargetButton.tsx` (T-111); (5) catatan teks beda
+ * per status: "Post ini sudah dipublish, tidak bisa diedit lagi." untuk
+ * `Published`, "Post ini gagal dipublish dan tidak bisa diedit dari sini."
+ * untuk `Failed`.
  */
 export function CalendarPostPopover({
   entry,
   children,
+  onCancelSchedule,
 }: CalendarPostPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { openEditDraft } = useDraftEditor();
   const platformLabel = PLATFORM_ICON[entry.platform].label;
   const isPublished = entry.status === ContentStatus.Published;
   const isImported = entry.status === ContentStatus.Imported;
+  /**
+   * Code review PR #163 — deep import langsung dari
+   * `@/domains/publishing/readonly-terminal-status` (bukan dari barrel
+   * `@/domains/publishing`), pola yang sama dengan `Modal.tsx` yang sudah
+   * deep-import `pinterest-board-constraints`/`schedule-time-constraints`
+   * dari domain yang sama. Reuse predikat ini (bukan duplikasi kondisi
+   * status secara manual) supaya kalau `READONLY_TERMINAL_STATUSES` di
+   * server berubah lagi, komponen ini otomatis ikut konsisten. `isImported`
+   * di atas tetap dicek lebih dulu di ternary di bawah, jadi true/false-nya
+   * `isTerminalReadonly` untuk status `Imported` tidak pernah dievaluasi.
+   */
+  const isTerminalReadonly = isReadonlyTerminalStatus(entry.status);
+  const isScheduled = entry.status === ContentStatus.Scheduled;
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -212,17 +252,46 @@ export function CalendarPostPopover({
                 </Button>
               )}
             </div>
+          ) : isTerminalReadonly ? (
+            // eslint-disable-next-line no-restricted-syntax -- T-091.2: layout-only
+            <div className="flex flex-col gap-1">
+              <Text variant="muted" as="span" className="text-xs">
+                {isPublished
+                  ? "Post ini sudah dipublish, tidak bisa diedit lagi."
+                  : "Post ini gagal dipublish dan tidak bisa diedit dari sini."}
+              </Text>
+              <Button variant="secondary" className="w-full" asChild>
+                <Link href={`/publish/history/${entry.postId}`}>
+                  Lihat Detail →
+                </Link>
+              </Button>
+            </div>
           ) : (
-            <Button
-              variant="default"
-              className="w-full"
-              onClick={() => {
-                setIsOpen(false);
-                openEditDraft(entry.postId);
-              }}
-            >
-              Buka Draft Editor
-            </Button>
+            // eslint-disable-next-line no-restricted-syntax -- T-030.3: layout-only, stack 2 tombol full-width (pola sama branch isImported)
+            <div className="flex flex-col gap-2">
+              <Button
+                variant="default"
+                className="w-full"
+                onClick={() => {
+                  setIsOpen(false);
+                  openEditDraft(entry.postId);
+                }}
+              >
+                Buka Draft Editor
+              </Button>
+              {isScheduled && onCancelSchedule ? (
+                <Button
+                  variant="destructive"
+                  className="w-full"
+                  onClick={() => {
+                    setIsOpen(false);
+                    onCancelSchedule(entry.postId);
+                  }}
+                >
+                  Batalkan Jadwal
+                </Button>
+              ) : null}
+            </div>
           )}
         </div>
       </PopoverContent>

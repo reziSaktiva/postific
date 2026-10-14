@@ -5,7 +5,7 @@
 * **Phase / Milestone:** Phase 6 — Implementation · M8 — Development (Sprint 5) · Overall: M7 100%, M8 in progress
 * **Active Mode:** Ready for Development — implementasi fitur produk sesuai Architecture & Engineering Baseline
 * **Top Next Tasks:** **T-037 Perkaya aturan coding** (🟡 In Progress; snapshot kedua 2026-10-13). Salinan ID dari **Fokus sekarang** di [`TASKS.md`](TASKS.md).
-* **Blocker:** 3 penghalang aktif — KI-015 (Google OAuth), migrasi `20260922110000_t051_filter_active_status_engagement_sync_lookup` yang belum di-deploy, dan sisa follow-up KI-025 (health-check cron + backfill). Detail di section **Blockers**.
+* **Blocker:** 1 penghalang aktif — KI-015 (Google OAuth). Migrasi T-051 dan sisa follow-up KI-025 sudah diverifikasi tertutup di staging (2026-10-13). Detail di section **Blockers**.
 * **Backlog task lengkap:** [`TASKS.md`](TASKS.md) — 99 task per release (v0.1 → v1.0, + v0.7 migrasi Astryx→shadcn/ui, ADR-097), detail di `tasks/`. Jangan cari detail task di file ini.
 * **KI-073–080 Resolved (2026-09-26)** — 4 bug publish Instagram (caption wajib untuk Story, Story publish tanpa media, upload media >1MB gagal, avatar akun tidak tampil di sidebar) diperbaiki + diverifikasi live ke akun Instagram/Facebook real (ADR-120). 2 bug turunan ditemukan saat verifikasi (akun `disconnected` tidak bisa reconnect; callback OAuth silent-success untuk conflict genuine) diperbaiki via **ADR-122**. Plus **KI-080** (baru+langsung Resolved) — Railway staging build gagal (`next.config.ts` tidak bisa resolve import workspace `@social/shared`) diperbaiki di branch terpisah sebelum masuk ke fix KI-078/079.
 * Detail phase/mode/issue ada di section di bawah. Riwayat completed/ADR lengkap: lihat `COMPLETE_TASK.md` (⚠️ jangan dibaca AI kecuali diperintah)/`DECISIONS.md`.
@@ -16,7 +16,7 @@
 
 | Field        | Value      |
 | ------------ | ---------- |
-| Version      | 1.1.4      |
+| Version      | 1.1.2      |
 | Status       | Active     |
 | Last Updated | 2026-10-14 |
 
@@ -229,8 +229,8 @@ scope resmi **T-007.7**, bukan lagi Known Issue berdiri sendiri.
 `tasks/v01-foundation.md` § T-007) — diimplementasikan via Resend (adapter
 yang sama dikunci T-110), **tanpa menunggu T-005** seperti dugaan awal di
 atas. Provider untuk seluruh app dikunci ke Resend di **ADR-126**
-(2026-10-14, KI-001 Resolved). **Update (2026-10-14): T-005 ✅ Done** —
-`requireEmailVerification: true` sudah aktif global, lihat `tasks/v01-foundation.md` § T-005.
+(2026-10-14, KI-001 Resolved). T-005 tetap 🟡 In Progress: katalog env
+selesai di T-005.2; sisa T-005.3–.5 (kirim email Better Auth) belum dikerjakan.
 
 ### KI-053 · Invite via Copy Link — email tidak diverifikasi kepemilikan inbox, rawan identity takeover
 
@@ -250,13 +250,11 @@ dan submit — form memang mengunci field email jadi read-only ke email A
 yang dikirim ke `authClient.signUp.email()` sama dengan email A, **bukan**
 membuktikan email B benar-benar memegang inbox email A.
 
-Root cause (historis): `requireEmailVerification: false` di Better Auth
-([auth.ts:53](../apps/web/src/lib/better-auth/auth.ts:53)) — Better Auth
-tidak pernah mengirim email konfirmasi untuk verifikasi kepemilikan inbox
-saat sign-up. **Update (2026-10-14, T-005 ✅ Done):** flag ini sekarang
-`true` secara global (provider Resend, ADR-126) — skenario identity
-takeover di atas via Copy Link polos tidak lagi mungkin untuk registrasi
-baru. Detail: `tasks/v01-foundation.md` § T-005.5.
+Root cause: `requireEmailVerification: false` di Better Auth
+([auth.ts:53](../apps/web/src/lib/better-auth/auth.ts:53); provider kini
+Resend lewat **ADR-126**, tapi `requireEmailVerification` tetap mati sampai
+T-005.5) — Better Auth tidak pernah
+mengirim email konfirmasi untuk verifikasi kepemilikan inbox saat sign-up.
 Guard `actorEmail === invitation.email` di
 `WorkspaceService.acceptInvite` ([workspace.service.ts:615](../apps/web/src/domains/workspace/services/workspace.service.ts:615))
 sudah benar secara logic (mencegah user lain yang sudah login pakai akun
@@ -460,15 +458,17 @@ Rezi sebelum dianggap bukan masalah. Tidak memblokir pekerjaan lain.
 ## Blockers
 
 **Wajib dicek AI sebelum mengerjakan subtask apapun yang menyentuh area di
-bawah.** Ketiganya belum selesai. Kalau eksekusi subtask di area ini
-gagal, cek dulu apakah salah satu penghalang ini penyebabnya sebelum
-menyimpulkan ada bug di kode.
+bawah.** Satu penghalang masih terbuka. Kalau eksekusi subtask di area ini
+gagal, cek dulu apakah penghalang ini penyebabnya sebelum menyimpulkan ada
+bug di kode.
 
 | ID         | Blocker                                                        | Menghambat                          |
 | ---------- | --------------------------------------------------------------- | ------------------------------------ |
 | **KI-015** | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` belum diisi (JOB_SECRET sudah resolved 2026-08-14 di Railway staging) | Google OAuth sign-in |
-| **—**      | Migration `20260922110000_t051_filter_active_status_engagement_sync_lookup` **belum di-deploy** (`bun run db:deploy` pending King Rezi) — bukan kredensial eksternal, murni menunggu eksekusi manual King Rezi | T-051 job `engagement.sync` (JOB-03) — sampai migration ter-apply, fungsi SQL yang dipakai job ini masih versi lama dan job **gagal untuk SEMUA akun** (bukan cuma akun yang disconnect) |
-| **KI-025 (follow-up)** | Ditemukan 2026-10-02 saat King Rezi menguji Comments Inbox manual (komentar di post Instagram akun `turanilkerl`, workspace "Lunch" tidak pernah muncul di `/engage`): tabel `background_jobs` berisi job `engagement.sync` DAN `publishing.scheduled_post.resolve_outcome` yang macet — `attempts: 0`, `started_at: null` selama berminggu-minggu, walau Railway Cron staging pernah diverifikasi 2x run sukses saat penutupan KI-025 (2026-08-14). Perlu re-verifikasi apakah service `cron` staging masih sehat (JOB_SECRET masih cocok, service masih jalan, dll) — kemungkinan regresi infra setelah verifikasi awal, bukan berarti KI-025 asli (pembuatan project Railway) keliru ditutup. **Gap kode terpisah ditemukan di jalur yang sama:** `PublishNowUseCase` (`apps/web/src/domains/publishing/services/publish-now.use-case.ts`) tidak pernah enqueue job `RESOLVE_SCHEDULED_POST_OUTCOME_JOB_TYPE` saat `fetchPostOutcome` mengembalikan status `"pending"` — beda dari `SchedulePostsUseCase` yang sudah benar melakukan ini (`schedule-posts.use-case.ts:225`). Constructor `PublishNowUseCase` bahkan belum menerima `jobScheduler` sama sekali. Akibatnya: post yang dipublish lewat Publish Now dan outcome-nya belum instan dari Outstand bisa stuck `PublishingPostTarget.status = "pending"` permanen, membuat post itu tidak pernah dianggap "syncable" oleh `SyncCommentsUseCase` — komentarnya ada di Outstand (dikonfirmasi langsung lewat Outstand API) tapi tidak pernah ter-pull ke app. Rencana: digabung jadi satu scope PR follow-up (bukan dipisah) — (1) re-verifikasi/health-check Railway Cron staging, (2) ~~tambah fallback enqueue `resolve_outcome` job di `PublishNowUseCase` pola sama `SchedulePostsUseCase`~~ **✅ selesai 2026-10-05** (lihat `COMPLETE_TASK.md`), (3) backfill one-off untuk post yang sudah telanjur stuck `"pending"` saat ini. **Sisa terbuka: item (1) health-check Railway Cron staging dan item (3) backfill** — belum dikerjakan. | Comments Inbox (`/engage`) tidak menerima komentar baru untuk post yang dipublish lewat Publish Now; `PublishingPostTarget.status`/`platformPostUrl` bisa stuck `"pending"` permanen untuk post tersebut (post BARU setelah fix ini tidak lagi stuck — post LAMA yang sudah telanjur stuck masih butuh backfill item 3) |
+
+**Resolved 2026-10-13:** migrasi `20260922110000_t051_filter_active_status_engagement_sync_lookup` sudah ter-apply di database staging sejak 2026-09-22 (`_prisma_migrations.finished_at` terisi, tidak di-rollback). Fungsi `webhook_find_account_owner_by_outstand_account_id` mengembalikan kolom `status`. Catatan "belum di-deploy" di Blockers adalah drift dokumen. Tidak ada `db:deploy` baru di sesi ini.
+
+**Resolved 2026-10-13:** sisa follow-up KI-025 (item 1 health-check cron + item 3 backfill). Service Railway `cron` staging membalas **200** tiap menit pada 2026-10-13. Job `engagement.sync` terakhir selesai 2026-10-13 07:08 UTC; dua baris `pending` adalah jadwal 30 menit berikutnya, bukan job macet. Lima target yang dulu stuck `pending` (`l21bW`, `MAnO3`, `FWnBp`, `XnD5d` → `published`; `3YuZC` → `failed`) sudah berstatus final sejak 2026-10-05. Tidak ada `PublishingPostTarget` berstatus `pending`. Item 2 (enqueue `resolve_outcome` di Publish Now) sudah selesai 2026-10-05. Tidak ada kode baru.
 
 **Resolved 2026-09-07:** KI-048 (3 migration Prisma T-026 belum `prisma
 migrate deploy` ke DB dev/live) — King Rezi menjalankan `bun run
@@ -501,11 +501,11 @@ seluruh daftar Known Issues.
 
 ## Completed (Ringkasan)
 
-* **T-005 ✅ TUNTAS 5/5 subtask — Email verification flow (2026-10-14)** — provider Resend dikunci (ADR-126, KI-001 Resolved); `sendResetPassword`/`sendVerificationEmail` nyata + halaman `/verify-email`; `requireEmailVerification: true` di-flip global dengan 2 mitigasi disetujui King Rezi (backfill akun existing, accept-invite skip via hook). **1 temuan Critical** (Ridwan Architecture Reviewer) ditemukan di mitigasi accept-invite — sinyal "OTP terverifikasi" bisa di-replay sampai 7 hari untuk identity takeover tanpa pernah tahu kode OTP — sudah diperbaiki (single-use + TTL 5 menit + kolom terpisah) dan dikonfirmasi tertutup lewat verifikasi ulang Ridwan. Residual risk sub-5-menit (butuh timing real-time korban) diterima sadar sebagai trade-off wajar. QA Najwa: PASS semua item yang bisa diuji di sesinya. Detail lengkap: `tasks/v01-foundation.md` § T-005, `COMPLETE_TASK.md`. **King Rezi perlu menjalankan backfill SQL yang sama ke staging/production sebelum deploy** (lihat § T-005.5).
+* **T-005.1–.2 + KI-001 (2026-10-14)** — provider email transactional dikunci ke Resend (ADR-126). KI-001 dikeluarkan dari daftar hidup. Katalog `RESEND_API_KEY` / `RESEND_FROM_EMAIL` masuk tabel server (T-005.2). T-005 tetap In Progress; sisa T-005.3–.5 belum dikerjakan. Detail: `decisions/ADR-126-transactional-email-provider-resend-t005.md`, `COMPLETE_TASK.md`.
+* **T-016 ✅ TUNTAS 5/5 subtask — Account & user settings screens, T-016.4 `/account/notifications` (2026-10-14)** — subtask terakhir (preferensi notifikasi: Balasan & Mention, Jadwal Publish, Laporan Analytics) diimplementasikan di domain `identity`, lolos review Ridwan (nihil temuan) dan QA end-to-end Najwa. Migration baru `identity_user` sudah dijalankan King Rezi & diverifikasi via Supabase MCP. PR #164 ke `staging` sudah di-merge. Detail: `tasks/v01-foundation.md` § T-016, `COMPLETE_TASK.md`.
+* **T-030 ✅ TUNTAS 3/3 subtask — Cancel Schedule + dialog konfirmasi (2026-10-13)** — entry point "Batalkan Jadwal" ditambahkan di popover Calendar (`CalendarPostPopover.tsx`), melengkapi bagian Queue yang sudah selesai sejak T-032.4. 100% reuse use-case/RBAC yang sama, tanpa business logic baru. Detail: `tasks/v02-publishing-mvp.md` § T-030, `COMPLETE_TASK.md`.
+* **Blocker staging ditutup (2026-10-13)** — migrasi T-051 sudah ter-apply sejak 2026-09-22, cron staging membalas 200 tiap menit, dan lima target Publish Now yang stuck `pending` sudah final sejak 2026-10-05. Penghalang aktif tinggal **KI-015**. Detail: `COMPLETE_TASK.md`.
 * **KI-087 ✅ Resolved (2026-10-13)** — service Railway `cron-analytics` (jadwal `0 0 * * *`, trigger `?type=analytics`) kembali membalas **200**. Akar masalah: image `curlimages/curl` menjalankan perintah tanpa shell, jadi `$JOB_SECRET` terkirim literal. Service dikembalikan ke image `alpine:3.20` + `sh -c` (pola yang sama dengan service `cron` yang sudah jalan). Nilai `JOB_SECRET` ketiga service memang sudah sama — dugaan mismatch secret tidak terbukti. Detail: `COMPLETE_TASK.md`.
-* **T-048 ✅ TUNTAS 4/4 subtask — Wire JOB-04 Analytics Sync ke job runner + Railway Cron harian (2026-10-13)** — verifikasi end-to-end T-048.4 lolos: Home (T-042) dan `/analyze` (T-043/T-046/T-047) menampilkan data metrik asli di staging, diisi fan-out harian yang menumpang cron menit (`railway.cron.json`, desain T-048.3). Gap infra `cron-analytics` 401 ditutup terpisah sebagai **KI-087**. Detail: `tasks/v03-analytics-mvp.md` § T-048, `COMPLETE_TASK.md`.
-* **T-110 ✅ TUNTAS 5/5 subtask — Verifikasi kepemilikan email di accept-invite, KI-053 (2026-10-12, implementasi asli commit `bad28cb` 2026-10-06)** — audit dokumentasi menemukan seluruh T-110 (Resend adapter, alur OTP, guard server, UI `pending-verification`, unit test) sudah diimplementasikan & ter-commit ke `staging` sejak 2026-10-06, tapi checklist/status di `TASKS.md`/`tasks/v01-foundation.md`/`PROJECT_STATE.md` belum diupdate — murni drift dokumentasi, tidak ada kode baru. **Gap terbuka:** verifikasi end-to-end browser nyata (email A vs email B dibuka beda orang) belum tercatat buktinya di `COMPLETE_TASK.md`. Detail: `tasks/v01-foundation.md` § T-110, `COMPLETE_TASK.md`.
-* **KI-060 + KI-032 ✅ Resolved (2026-10-12, ADR-125)** — akun tujuan ikut tersimpan saat Save Draft, dan Account Selector terisi lagi saat draft atau post terjadwal dibuka. Publish Now dari Queue bisa langsung ke konfirmasi kalau caption, akun, dan media sudah lengkap. Tanggal/jam jadwal tetap belum tersimpan. Detail: `COMPLETE_TASK.md`.
 Berikut ~5 item terakhir yang diselesaikan. Riwayat lengkap (sejak M0): lihat `COMPLETE_TASK.md` — ⚠️ jangan dibaca AI kecuali diperintah eksplisit King Rezi.
 
 ---

@@ -32,6 +32,15 @@ model User {
   sessions      Session[]
   accounts      Account[]
 
+  // T-016.4: preferensi notifikasi email, 3 kolom boolean terpisah (bukan
+  // JSON) — konsisten dengan pola kolom boolean flat yang sudah ada di
+  // schema ini (mis. `emailVerified` di model yang sama). Default
+  // mengikuti rancangan Claude Design (`templates/settings-notifications.html`):
+  // Balasan & Mention + Jadwal Publish default ON, Laporan Analytics default OFF.
+  notifyRepliesAndMentions Boolean @default(true)
+  notifyPublishSchedule    Boolean @default(true)
+  notifyAnalyticsReport    Boolean @default(false)
+
   @@unique([email])
   @@map("identity_user")
 }
@@ -163,26 +172,8 @@ model WorkspaceInvitation {
   verificationCodeExpiresAt DateTime? @map("verification_code_expires_at") @db.Timestamptz(6)
   /** Reset ke 0 tiap kode baru diminta (`setInvitationVerificationCode`); increment tiap kode salah (anti brute-force, maks 5 percobaan). */
   verificationAttempts      Int       @default(0) @map("verification_attempts")
-  /** Diisi sekali saat kode OTP dikonfirmasi benar — dipakai `WorkspaceService.acceptInvite` sebagai guard server-side (bukan klaim dari client). TIDAK di-clear lagi setelahnya (beda dari versi awal T-005.5) — field ini SEKARANG permanen sampai invitation accepted/revoked/expired, supaya `acceptInvite` (yang berjalan SETELAH signUp/signIn) masih bisa membacanya. Single-use untuk kebutuhan Better Auth (T-005.5) dilacak TERPISAH lewat `betterAuthEmailVerifiedConsumedAt` di bawah — lihat doc comment field itu untuk alasan dua field terpisah. */
+  /** Diisi sekali (single-use) saat kode OTP dikonfirmasi benar — dipakai `WorkspaceService.acceptInvite` sebagai guard server-side (bukan klaim dari client). */
   emailVerifiedAt           DateTime? @map("email_verified_at") @db.Timestamptz(6)
-  /**
-   * T-005.5 — fix CRITICAL finding (Ridwan Architecture Reviewer,
-   * 2026-10-14). SENGAJA field terpisah dari `emailVerifiedAt`, bukan
-   * reuse: `databaseHooks.user.create.before` (`lib/better-auth/auth.ts`)
-   * butuh sinyal single-use sendiri untuk memutuskan "boleh tandai
-   * emailVerified:true di Better Auth" — tapi `WorkspaceService.acceptInvite`
-   * (yang jalan SETELAH signUp/signIn, lewat `acceptInviteAction`) butuh
-   * `emailVerifiedAt` TETAP terisi di titik itu sebagai bukti OTP sudah
-   * dikonfirmasi untuk token ini. Kalau hook men-clear `emailVerifiedAt`
-   * sendiri (versi awal fix ini), `acceptInvite` salah menyimpulkan OTP
-   * belum pernah dikonfirmasi begitu hook sempat jalan duluan — regresi
-   * yang ditemukan lewat verifikasi end-to-end browser nyata (golden path
-   * accept-invite gagal dengan pesan "Verifikasi email diperlukan").
-   * Diisi SEKALI oleh `WorkspaceRepository.consumeVerifiedPendingInvitationForEmail`
-   * begitu hook berhasil consume — percobaan kedua (replay) untuk email
-   * yang sama tidak akan match lagi (kondisi `IS NULL` di WHERE/RLS).
-   */
-  betterAuthEmailVerifiedConsumedAt DateTime? @map("better_auth_email_verified_consumed_at") @db.Timestamptz(6)
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
