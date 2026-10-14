@@ -47,7 +47,7 @@ Periodic pull komentar dari Outstand per connected account, tulis ke `Engagement
 
 **QA Najwa QA Engineer:** golden path Refresh/Mark as Done/Kirim Balasan PASS (network request dicek langsung); regresi Connect/Disconnect/Reconnect (T-013/T-015) PASS meski file overlap. Seeding job otomatis tidak bisa diverifikasi browser end-to-end (tidak ada akses `JOB_SECRET`/DB) — diverifikasi lewat 2 unit test baru `workspace.service.test.ts` (seed saat create, seed saat reconnect), keduanya lolos. Test integration baru `workspace.repository.engagement-sync-lookup.test.ts` skip (tidak ada `DATABASE_URL` lokal) — expected.
 
-**⚠️ Catatan governance penting:** migration `20260922110000_t051_filter_active_status_engagement_sync_lookup` **BELUM di-deploy** ke database manapun (perlu `bun run db:deploy` manual oleh King Rezi). Sampai itu dijalankan, fungsi SQL yang dipakai JOB-03 masih versi lama — job akan **gagal untuk SEMUA akun** (bukan cuma yang disconnect) sampai migration ter-apply. Lihat juga Blockers di `PROJECT_STATE.md`.
+**Update (2026-10-13):** migration `20260922110000_t051_filter_active_status_engagement_sync_lookup` sudah ter-apply di database staging sejak 2026-09-22. Fungsi lookup mengembalikan kolom `status`. Catatan lama yang menulis migrasi ini belum di-deploy adalah drift dokumen, dan penghalang itu dikeluarkan dari `PROJECT_STATE.md`.
 
 **Verifikasi akhir T-050+T-051+T-052:** `typecheck`/`lint`/`test` bersih, **453 pass/6 skip** (naik dari 448, +5 test baru).
 

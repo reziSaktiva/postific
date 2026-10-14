@@ -8,6 +8,115 @@ Seluruh perubahan penting pada dokumentasi maupun implementasi project dicatat p
 
 ---
 
+## 2026-10-14 — Perbaikan code review PR #165 (T-005.1 / ADR-126)
+
+### Fixed
+- `tasks/v01-foundation.md`: catatan T-007.1, T-007.7, T-093, dan T-110 diselaraskan dengan ADR-126. Provider sudah Resend. KI-001 hanya menutup pilihan vendor. Verifikasi email global tetap mati sampai T-005.5. Mitigasi jalur accept-invite tetap di T-110.
+- `auth-strategy.md`: baris verifikasi email menyebut Resend, pengiriman nyata di T-005.3, dan flag di T-005.5.
+- `environment-management.md`: `RESEND_API_KEY` dan `RESEND_FROM_EMAIL` pindah dari tabel opsional ke katalog server. `.env.example` mengikuti keputusan yang sama.
+- T-005.2 dicentang. Sisa T-005 adalah T-005.3–.5. Indeks v0.1 tidak berubah (T-005 tetap 🟡).
+
+## 2026-10-14 — T-005.1: provider email transactional dikunci ke Resend (ADR-126), KI-001 Resolved
+
+### Konteks
+Branch `feature/t-005-1-resend-provider` (checkout dari `origin/staging`). King Rezi meminta provider T-005.1 dikunci ke Resend. Bukan implementasi kirim email Better Auth.
+
+### Added
+- `project-manager/decisions/ADR-126-transactional-email-provider-resend-t005.md` — Resend untuk reset password dan verifikasi email ke depan; memakai package dan env yang sudah ada dari T-110. T-005.2–.5 tetap terbuka.
+
+### Changed
+- `tasks/v01-foundation.md` § T-005: T-005.1 dicentang. Status `🚫 Blocked` → `🟡 In Progress`. Field Blocker dihapus. ADR: ADR-126.
+- `TASKS.md`: indeks v0.1 `20 ✅ · 1 🚫 · 3 🟡 · 1 ⏸️` → `20 ✅ · 4 🟡 · 1 ⏸️`. Baris T-005 dikeluarkan dari Keputusan terbuka.
+- `PROJECT_STATE.md`: KI-001 dihapus dari Known Issues (Resolved, riwayat di entri ini). Recent Decisions menambah ADR-126 dan mengeluarkan ADR-121 dari ringkasan 5. Completed menambah entri ini dan mengeluarkan T-048 dari ringkasan 5. Catatan KI-046 dan KI-053 diselaraskan: provider sudah Resend, verifikasi global masih mati sampai T-005.5.
+- `auth-strategy.md` (AS-D04), `environment-management.md` (baris provider), dan `context/ctx-technical-context.md`: keputusan provider tidak lagi "terbuka". Katalog env lengkap tetap tugas T-005.2.
+
+### Fixed
+- Keputusan terbuka di `TASKS.md` tidak lagi menulis bahwa T-005 menahan T-007.7. Jalur Kirim via Email sudah selesai 2026-10-12.
+
+## 2026-10-14 — Perbaikan code review PR #164 (T-016.4)
+
+### Fixed
+- `IdentityService.updateNotificationPreferences` menolak payload yang bukan tiga boolean lengkap, dan hanya meneruskan ketiga field itu ke repository. Field yang absen tidak lagi ikut sebagai `undefined` (Prisma akan menganggapnya "jangan ubah kolom").
+- Form notifikasi mengunci toggle selama simpan, supaya perubahan di tengah proses tidak tertimpa hasil server.
+- Catatan di entri T-016.4 di bawah ("dokumentasi belum di-commit") dikoreksi: dokumentasi itu sudah masuk commit yang sama dengan PR #164.
+- Deskripsi PR #164 diselaraskan: migration sudah di-deploy, QA browser sudah lolos.
+
+## 2026-10-14 — T-016.4 tuntas: `/account/notifications` preferensi notifikasi, T-016 ✅ Done 5/5 subtask
+
+### Konteks
+Branch `feature/t-016-4-notification-preferences` (checkout dari `staging`). Subtask terakhir yang tersisa di T-016 (Account & user settings screens) — T-016.1/2/3/5 sudah selesai sebelumnya. Dengan T-016.4 selesai, Status task T-016 naik dari `🟡 In Progress` menjadi `✅ Done`.
+
+### Added
+- Halaman `apps/web/src/app/(app)/settings/account/notifications/page.tsx` diisi penuh (sebelumnya `ScaffoldPlaceholder`) — 3 preferensi email: Balasan & Mention (default ON), Jadwal Publish (default ON), Laporan Analytics (default OFF), sesuai rancangan Claude Design (`templates/settings-notifications.html`).
+- Domain `identity`: `IdentityService.getNotificationPreferences`/`updateNotificationPreferences`, dipanggil dari Server Action (`actions.ts`) → repository Prisma.
+- Component baru `NotificationPreferencesForm.tsx`, reuse pola komposisi `Field`/`FieldLabel`/`Checkbox` dari `InviteMemberDialog.tsx`.
+- Migration baru `apps/web/prisma/migrations/20261014090000_t016_4_add_notification_preferences/migration.sql` — 3 kolom boolean baru di model `User` (`identity_user`): `notifyRepliesAndMentions` (default true), `notifyPublishSchedule` (default true), `notifyAnalyticsReport` (default false).
+- Unit test baru untuk service + repository (double/fake lokal, tidak hit Prisma/Supabase asli).
+
+### Changed
+- `tasks/v01-foundation.md` § T-016: checkbox T-016.4 dicentang + catatan detail ditulis, Status task naik dari `🟡 In Progress` menjadi `✅ Done` (seluruh T-016.1–.5 selesai). Catatan Rilis (definisi "Foundation selesai") diupdate: T-016 dikeluarkan dari daftar task yang masih menunggu subtask.
+- `TASKS.md`: indeks v0.1 `19 ✅ · 1 🚫 · 4 🟡 · 1 ⏸️` → `20 ✅ · 1 🚫 · 3 🟡 · 1 ⏸️`, Total `71 selesai` → `72 selesai`, entri T-016 ditambahkan di "Selesai baru-baru ini", catatan "v0.1 dan v0.2 tidak sepenuhnya sekuensial" diupdate.
+- `PROJECT_STATE.md` § Completed (Ringkasan): entri T-016 ditambahkan di atas, entri terlama (T-110 KI-053, 2026-10-12) digeser keluar untuk menjaga batas 5 item — isinya tetap aman di riwayat ini (lihat entri T-110 di bawah).
+
+### Proses & verifikasi
+- Implementasi: Prabowo Feature Engineer. Review arsitektur: Ridwan Architecture Reviewer — lolos, tidak ada temuan pelanggaran (catatan non-blocking: `updateNotificationPreferences` pass-through tanpa validasi shape tambahan, dampak kecil karena Prisma + try/catch sudah menangkap).
+- Gate struktur T-103.3 dijalankan di sesi utama (karena `DesignSync` tidak termuat di sesi Najwa — limitasi teknis yang sudah berulang) — struktur `NotificationPreferencesForm.tsx` dibandingkan langsung ke `templates/settings-notifications.html`, PASS (Card wrapper, urutan 3 row, copy teks identik).
+- Migration sempat tertunda (bukan wewenang subagent), dijalankan King Rezi via `bun run db:deploy` (2026-10-14) ke DB Supabase dev/staging — diverifikasi langsung lewat Supabase MCP: 3 kolom sudah ada di `identity_user` dengan default yang benar.
+- QA Najwa QA Engineer: PASS semua skenario — golden path render default benar, toggle+submit+reload persist nyata (bukan optimistic UI, cross-check langsung ke DB cocok), submit tanpa perubahan tidak error, toggle+submit berturut-turut cepat tidak race condition, regresi halaman Account lain (`/settings/account`, `/preferences`, `/workspaces`) normal, light & dark mode readable. `bun run typecheck`/`lint`/`test` bersih (753 passed/6 skipped, 0 regresi). Catatan non-bug: dev server sempat perlu di-restart karena Prisma Client stale setelah migration baru (staleness proses dev lokal, bukan bug kode) — testing pakai akun login King Rezi sendiri (`rezi@insvire.com`), nilai preferensi dikembalikan ke semula (ON, ON, OFF) setelah testing selesai.
+
+### Catatan
+- Sudah di-commit + push ke branch `feature/t-016-4-notification-preferences`, PR dibuka: [#164](https://github.com/reziSaktiva/postific/pull/164) (`feature/t-016-4-notification-preferences` → `staging`), **belum di-merge**, menunggu King Rezi review/merge.
+- Dokumentasi sesi T-016.4 sudah ikut di commit yang sama pada PR #164. Kalimat sebelumnya yang menyebut dokumentasi belum di-commit sudah tidak berlaku (dikoreksi 2026-10-14).
+
+## 2026-10-13 — T-030 tuntas: entry point Cancel Schedule di Calendar (⚠️ belum di-commit)
+
+### Konteks
+Sesi kerja di branch `feature/t-030-3-calendar-cancel-schedule` (commit `afabafb`). T-030.1/.2 sudah selesai sejak T-032.4 (bagian Queue) — sesi ini menutup satu-satunya bagian tersisa, T-030.3 untuk Calendar.
+
+### Added
+- Tombol "Batalkan Jadwal" (variant destructive) di popover Calendar (`CalendarPostPopover.tsx`), khusus post berstatus Scheduled, di bawah tombol "Buka Draft Editor" yang sudah ada. 100% reuse `CancelScheduleUseCase`/RBAC yang sama dengan Queue (T-032.4) — tidak ada business logic baru.
+- Server Action baru `cancelScheduleAction` di `apps/web/src/app/(app)/publish/calendar/actions.ts`.
+- File lain yang diubah: `components/CalendarScreen.tsx` (state dialog `useConfirmAction` + `AlertDialog`, pola identik `QueueScreen.tsx`), `components/CalendarWeekGrid.tsx`, `components/CalendarMonthGrid.tsx`, `components/CalendarAgendaList.tsx` (thread prop `onCancelSchedule`).
+
+### Changed
+- `tasks/v02-publishing-mvp.md` § T-030: checkbox T-030.3 dicentang, Status task naik dari `🟡 In Progress` menjadi `✅ Done` (ketiga subtask selesai). `TASKS.md`: indeks v0.2 `25 ✅ · 2 🟡 · 1 ⏳` → `26 ✅ · 1 🟡 · 1 ⏳`, Total `69 selesai` → `70 selesai`, entri baru ditambahkan di "Selesai baru-baru ini". `PROJECT_STATE.md` § Completed (Ringkasan): entri T-030 ditambahkan di atas, entri terlama (KI-060 + KI-032, 2026-10-12) digeser keluar untuk menjaga batas 5 item — isinya tetap aman di riwayat `COMPLETE_TASK.md`.
+
+### Proses & verifikasi
+- Dikerjakan Mark UI Engineer (implementasi), direview Ridwan Architecture Reviewer (0 temuan), di-QA Najwa QA Engineer: golden path Week/Month/Mobile Agenda PASS, negative case status lain tidak berubah PASS, dialog konfirmasi + loading state PASS, dark/light mode PASS, 726 test lulus/0 failed, `tsc --noEmit`/`eslint` bersih.
+- Desain tombol kedua ini dikonfirmasi langsung oleh King Rezi di chat, bukan via Claude Design terlebih dulu — gap terhadap rule 17 `AGENTS.md` ditemukan saat QA, lalu ditutup belakangan secara paralel oleh Neymar Product Designer yang menyinkronkan `components/popover.html` sebagai LOCKED PATTERN (bukan bagian task ini).
+
+### Known (housekeeping kecil, belum dibereskan)
+- 1 post test "Test Cancel Schedule T-030.3" masih nyangkut sebagai Draft di DB dev (dibuat Mark, direuse Najwa) — belum dihapus karena delete permanen di luar wewenang eksekusi otonom AI. Mirip pola KI-033; tidak dibuatkan KI baru karena dampaknya kecil dan lokal ke DB dev.
+
+### Catatan
+- Perubahan dokumentasi sesi ini **belum di-commit** — dibiarkan di working tree sesuai instruksi King Rezi untuk direview/commit terpisah.
+
+## 2026-10-13 — T-091.2 UI read-only Published/Failed, T-091 tuntas 2/2
+
+### Added
+- `CalendarPostPopover.tsx`: tombol "Buka Draft Editor" dihilangkan total untuk status Published/Failed, diganti kondisi `isTerminalReadonly` — catatan teks per status + tombol secondary "Lihat Detail →" ke History Detail (`/publish/history/[postId]`). Metrics block + link "Go to post →" untuk Published dipertahankan. Imported dan status lain (Draft/Scheduled/dst.) tidak berubah.
+
+### Changed
+- Desain dikunci King Rezi di Claude Design (`components/popover.html`) — "Opsi B: Lihat Detail", dua kartu baru (Published/Failed read-only, LOCKED PATTERN T-091.2, 2026-10-13).
+- T-091 menjadi `✅ Done` (2/2 subtask). Review Ridwan Architecture Reviewer 0 temuan. QA Najwa PASS — typecheck/lint/test bersih (747 passed/6 skipped), golden path Published PASS penuh, golden path Failed PASS via code review (limitasi data pre-existing: satu-satunya post Failed di DB dev tidak punya `scheduled_at`/`published_at` sehingga tidak muncul di Calendar — gap data lama, bukan bug T-091.2), regresi Imported/Draft/Scheduled aman.
+- Temuan sampingan QA (bukan bug T-091.2, tidak perlu task/ADR baru): tombol "Batalkan Jadwal" belum ada di popover Calendar untuk status Scheduled meski sudah di mockup — ini gap T-030.3 yang sudah ada dan sudah terdokumentasi.
+
+## 2026-10-13 — T-091.1 Guard read-only post terminal
+
+### Added
+- Guard di service/use-case: post Published, Failed, dan Imported ditolak sebelum diubah, dihapus, dijadwalkan, diterbitkan, atau dibatalkan jadwalnya. Filter status di repository tetap sebagai jaring pengaman.
+
+### Changed
+- T-091 menjadi In Progress (T-091.1 selesai, T-091.2 UI masih blocked).
+
+## 2026-10-13 — Penghalang staging ditutup: migrasi T-051 dan sisa KI-025
+
+### Fixed
+- Migrasi `20260922110000_t051_filter_active_status_engagement_sync_lookup` sudah ter-apply di staging sejak 2026-09-22. Fungsi lookup mengembalikan kolom `status`. Catatan "belum di-deploy" di Blockers dan `tasks/v04-engagement-mvp.md` adalah drift dokumen.
+- Health-check cron staging (sisa KI-025 item 1): service `cron` membalas 200 tiap menit pada 2026-10-13. Job `engagement.sync` terakhir selesai hari yang sama; dua baris `pending` adalah jadwal 30 menit berikutnya.
+- Backfill lima target Publish Now (sisa KI-025 item 3) sudah final sejak 2026-10-05: empat `published`, satu `failed` (`3YuZC`). Tidak ada target berstatus `pending`.
+- Penghalang aktif tinggal KI-015 (kredensial Google OAuth). Tidak ada kode baru dan tidak ada `db:deploy` di sesi ini.
+
 ## 2026-10-13 — Koreksi review PR dokumentasi audit
 
 ### Fixed

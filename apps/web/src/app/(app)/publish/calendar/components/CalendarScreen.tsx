@@ -2,7 +2,13 @@
 
 import { useCallback, useRef } from "react";
 
-import type { ConnectedAccountId, ContentStatus } from "@postific/shared";
+import { toast } from "sonner";
+
+import {
+  ContentStatus,
+  type ConnectedAccountId,
+  type PostId,
+} from "@postific/shared";
 import {
   effectiveCalendarDate,
   getMonthRange,
@@ -11,10 +17,24 @@ import {
   type CalendarViewMode,
 } from "@/domains/publishing";
 import type { ConnectedAccountRecord } from "@/domains/workspace";
+import { useConfirmAction } from "@/lib/hooks/use-confirm-action";
 import { usePublishingPostsRealtime } from "@/lib/hooks/use-publishing-posts-realtime";
 import { useSyncedState } from "@/lib/hooks/use-synced-state";
 
-import { getCalendarPostAction } from "../actions";
+import { Alert, AlertTitle } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Spinner } from "@/components/ui/spinner";
+
+import { cancelScheduleAction, getCalendarPostAction } from "../actions";
 import { CalendarAgendaList } from "./CalendarAgendaList";
 import { CalendarMonthGrid } from "./CalendarMonthGrid";
 import { CalendarToolbar } from "./CalendarToolbar";
@@ -100,6 +120,15 @@ type CalendarScreenProps = {
  * `useCalendarPeriodState`), perbedaan referensi terdeteksi di render
  * berikutnya dan `localItems` di-reset SEBELUM commit, jadi state lokal
  * tidak pernah "nyangkut" dari periode/filter sebelumnya.
+ *
+ * **T-030.3 — Cancel Schedule entry point:** state dialog konfirmasi
+ * (`useConfirmAction`) dilift ke sini (bukan di tiap grid/`CalendarPostPopover`)
+ * — pola persis `QueueScreen.tsx`, reuse 100% `cancelScheduleAction` dari
+ * `../actions` (copy `CancelScheduleUseCase` yang sama dipakai Queue, T-032.4).
+ * `onCancelSchedule={(postId) => cancelConfirm.open(postId)}` diteruskan ke
+ * `CalendarWeekGrid`/`CalendarMonthGrid`/`CalendarAgendaList`, yang masing-masing
+ * meneruskannya lagi ke `CalendarPostPopover` — tombol "Batalkan Jadwal" hanya
+ * dirender di footer popover saat `entry.status === ContentStatus.Scheduled`.
  */
 export function CalendarScreen({
   view,
@@ -110,6 +139,10 @@ export function CalendarScreen({
   connectedAccountIds,
   workspaceId,
 }: CalendarScreenProps) {
+  const cancelConfirm = useConfirmAction<PostId>(cancelScheduleAction, () =>
+    toast("Jadwal dibatalkan — post kembali ke Drafts"),
+  );
+
   const resetGenerationRef = useRef(0);
   const [localItems, setLocalItems] = useSyncedState(items, () => {
     resetGenerationRef.current += 1;
@@ -186,6 +219,12 @@ export function CalendarScreen({
     <div className="flex flex-col gap-4">
       <CalendarToolbar accounts={accounts} />
 
+      {cancelConfirm.error ? (
+        <Alert variant="destructive">
+          <AlertTitle>{cancelConfirm.error}</AlertTitle>
+        </Alert>
+      ) : null}
+
       {/* eslint-disable-next-line no-restricted-syntax -- KI-035 poin 3: layout-only, toggle CSS-only grid vs agenda */}
       <div className="hidden md:block">
         {view === "month" ? (
@@ -193,12 +232,14 @@ export function CalendarScreen({
             date={date}
             items={localItems}
             connectedAccountIds={connectedAccountIds}
+            onCancelSchedule={(postId) => cancelConfirm.open(postId)}
           />
         ) : (
           <CalendarWeekGrid
             date={date}
             items={localItems}
             connectedAccountIds={connectedAccountIds}
+            onCancelSchedule={(postId) => cancelConfirm.open(postId)}
           />
         )}
       </div>
@@ -208,8 +249,58 @@ export function CalendarScreen({
         <CalendarAgendaList
           items={localItems}
           connectedAccountIds={connectedAccountIds}
+          onCancelSchedule={(postId) => cancelConfirm.open(postId)}
         />
       </div>
+
+      <AlertDialog
+        open={cancelConfirm.isOpen}
+        onOpenChange={(open) => {
+          if (!open) cancelConfirm.close();
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Batalkan jadwal ini?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Post kembali menjadi Draft dan tidak akan dipublikasikan otomatis.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={cancelConfirm.isLoading}>
+              Batal
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={cancelConfirm.isLoading}
+              onClick={(e) => {
+                e.preventDefault();
+                // Race: realtime bisa saja mengubah post ini jadi
+                // Published/Failed SETELAH dialog dibuka tapi SEBELUM
+                // tombol ini diklik (job terjadwal keburu jalan). Server
+                // (`assertPostMutable`) tetap menolak di kasus itu, tapi
+                // re-check status di local state dulu supaya error yang
+                // tampil jelas ("sudah bukan Scheduled"), bukan pesan
+                // generik dari Server Action.
+                const current = localItems.find(
+                  (item) => item.id === cancelConfirm.target,
+                );
+                if (current && current.status !== ContentStatus.Scheduled) {
+                  cancelConfirm.close();
+                  toast.error(
+                    "Post ini sudah bukan Scheduled lagi — batalkan jadwal tidak diperlukan.",
+                  );
+                  return;
+                }
+                void cancelConfirm.confirm();
+              }}
+            >
+              {cancelConfirm.isLoading ? <Spinner /> : null}
+              Batalkan Jadwal
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

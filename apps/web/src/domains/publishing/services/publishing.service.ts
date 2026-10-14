@@ -11,6 +11,11 @@ import type {
 import type { PostMetricsRecord, SnapshotPeriod } from "@/domains/analytics";
 import { resolveConnectionDisplayStatus } from "@/domains/workspace";
 import { ConflictError, NotFoundError } from "@/lib/utils/errors";
+import {
+  assertPostMutable,
+  isReadonlyTerminalStatus,
+  READONLY_TERMINAL_CONFLICT_MESSAGE,
+} from "../readonly-terminal-status";
 import { assertActorCanDeletePost } from "../rbac";
 import type {
   CalendarItemRecord,
@@ -322,6 +327,17 @@ export const HISTORY_TERMINAL_STATUSES: readonly ContentStatus[] = [
   ContentStatus.Failed,
 ];
 
+const DELETE_NON_DRAFT_CONFLICT_MESSAGE =
+  "Hanya post berstatus Draft yang bisa dihapus. Batalkan jadwal (Cancel Schedule) dulu untuk post yang sudah dijadwalkan, baru bisa dihapus dari Drafts.";
+
+/** T-091.1 — pesan read-only untuk status terminal; status non-Draft lain tetap pesan Draft-only. */
+function deleteConflictMessage(status: ContentStatus): string {
+  if (isReadonlyTerminalStatus(status)) {
+    return READONLY_TERMINAL_CONFLICT_MESSAGE;
+  }
+  return DELETE_NON_DRAFT_CONFLICT_MESSAGE;
+}
+
 export class PublishingService {
   constructor(
     private readonly repository: IPublishingRepository,
@@ -397,6 +413,14 @@ export class PublishingService {
     },
     userId: UserId,
   ): Promise<PublishingPostRecord> {
+    // T-091.1 — tolak post terminal sebelum write. Repository tetap
+    // membatasi update ke Draft sebagai safety net.
+    await assertPostMutable(
+      this.repository,
+      { workspaceId: input.workspaceId, postId: input.postId },
+      userId,
+    );
+
     const post = await this.repository.updateDraftCaption(
       {
         workspaceId: input.workspaceId,
@@ -408,7 +432,15 @@ export class PublishingService {
       userId,
     );
     if (!post) {
-      throw new NotFoundError("Draft tidak ditemukan.");
+      // Code review PR #163 — balapan status antara guard di atas dan
+      // write ini (post masih Draft saat dibaca, berubah sebelum
+      // `updateMany`-nya commit): sebelumnya NotFoundError, padahal
+      // post-nya tetap ada (cuma sudah ganti status) — konsisten dengan
+      // cancelSchedule/schedulePost/publishNow yang melempar ConflictError
+      // untuk balapan serupa.
+      throw new ConflictError(
+        "Draft tidak bisa diperbarui — post tidak ditemukan atau statusnya bukan Draft.",
+      );
     }
     return post;
   }
@@ -463,9 +495,7 @@ export class PublishingService {
       throw new NotFoundError("Post tidak ditemukan.");
     }
     if (existing.status !== ContentStatus.Draft) {
-      throw new ConflictError(
-        "Hanya post berstatus Draft yang bisa dihapus. Batalkan jadwal (Cancel Schedule) dulu untuk post yang sudah dijadwalkan, baru bisa dihapus dari Drafts.",
-      );
+      throw new ConflictError(deleteConflictMessage(existing.status));
     }
 
     const post = await this.repository.softDeletePost(
@@ -482,9 +512,7 @@ export class PublishingService {
         userId,
       );
       if (recheck && recheck.status !== ContentStatus.Draft) {
-        throw new ConflictError(
-          "Hanya post berstatus Draft yang bisa dihapus. Batalkan jadwal (Cancel Schedule) dulu untuk post yang sudah dijadwalkan, baru bisa dihapus dari Drafts.",
-        );
+        throw new ConflictError(deleteConflictMessage(recheck.status));
       }
       throw new NotFoundError(
         "Post tidak ditemukan atau sudah dihapus sebelumnya.",
