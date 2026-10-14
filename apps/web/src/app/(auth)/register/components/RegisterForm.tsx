@@ -24,9 +24,8 @@ export function RegisterForm({
   /**
    * T-005.4/.5 — cermin `requireEmailVerificationEnabled()` di `lib/env.ts`
    * (thread lewat `register/page.tsx`, bukan dibaca ulang di sini, supaya
-   * tetap satu sumber kebenaran dengan `auth.ts`). Masih `false` untuk saat
-   * ini — begitu di-flip `true`, redirect sukses berpindah dari `/` ke
-   * `/verify-email?email=...` tanpa perlu ubah apapun di file ini lagi.
+   * tetap satu sumber kebenaran dengan `auth.ts`). Saat `true`, redirect
+   * sukses pergi ke `/verify-email?email=...`.
    */
   requireEmailVerification: boolean;
 }) {

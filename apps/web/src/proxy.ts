@@ -54,13 +54,12 @@ import {
 // supaya route webhook provider lain yang ditambahkan nanti TIDAK otomatis
 // mewarisi bypass ini tanpa verifikasi signature-nya sendiri direview.
 // `/verify-email` (T-005.4, AS-D04) dibypass dengan alasan sama seperti
-// `/invite` di atas, bukan ditambahkan ke `PUBLIC_AUTH_PATHS`: halaman ini
-// bisa diakses baik SUDAH punya session (hari ini, T-005.5 belum di-flip —
-// `signUp.email()` tetap auto-create session walau `emailVerified: false`)
-// MAUPUN belum (begitu `requireEmailVerificationEnabled()` di-flip `true`,
-// `signUp.email()` Better Auth tidak lagi auto-create session — lihat
-// `lib/env.ts`). Memasukkannya ke `PUBLIC_AUTH_PATHS` akan memicu redirect
-// "sudah login → ke /" (baris di bawah) yang salah untuk kasus pertama.
+// `/invite` di atas, bukan ditambahkan ke `PUBLIC_AUTH_PATHS`.
+// `requireEmailVerification` sudah `true`, jadi sign-up biasa belum punya
+// session saat membuka halaman ini. Setelah tautan verifikasi diklik,
+// Better Auth bisa membuat session (`autoSignInAfterVerification`) sementara
+// user masih di halaman yang sama. `PUBLIC_AUTH_PATHS` akan mengarahkan
+// session itu ke "/" . Bypass membiarkan kedua keadaan membuka halaman ini.
 const BYPASS_PREFIXES = [
   "/api/auth",
   "/api/jobs",

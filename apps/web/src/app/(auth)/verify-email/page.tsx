@@ -10,10 +10,9 @@ import { VerifyEmailCard } from "./components/VerifyEmailCard";
  * Design `templates/auth-verify-email.html` (dicek sebelum delegasi,
  * AGENTS.md rule 17 terpenuhi). Diisi lewat query `?email=` yang dikirim
  * `RegisterForm` setelah `authClient.signUp.email()` sukses — BUKAN dari
- * sesi, karena begitu `requireEmailVerification` di-flip jadi `true`
- * (T-005.5, masih `false` untuk saat ini) `signUp.email()` Better Auth
- * tidak lagi membuat session (lihat `requireEmailVerificationEnabled()` di
- * `lib/env.ts`), jadi tidak ada sesi untuk dibaca RSC pada titik ini.
+ * sesi. `requireEmailVerification` sudah `true`, jadi `signUp.email()`
+ * tidak membuat session (lihat `requireEmailVerificationEnabled()` di
+ * `lib/env.ts`). Tidak ada sesi untuk dibaca RSC pada titik ini.
  */
 export default async function VerifyEmailPage({
   searchParams,
