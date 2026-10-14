@@ -90,3 +90,24 @@ export async function setInviteLookupToken(
 ): Promise<void> {
   await tx.$executeRaw`SELECT set_config('app.invite_lookup_token', ${token}, true)`;
 }
+
+/**
+ * Third GUC, same pattern as `setInviteLookupToken` above — scoped to
+ * EMAIL instead of TOKEN (T-005.5, migration
+ * `20261014120000_t005_5_accept_invite_prevverified_lookup`). Dipakai
+ * Better Auth `databaseHooks.user.create.before` (`lib/better-auth/
+ * auth.ts`) lewat `WorkspaceRepository.hasVerifiedPendingInvitationForEmail`
+ * — hook itu berjalan SEBELUM user dibuat, jadi tidak ada
+ * `app.current_user_id` yang valid (chicken-and-egg yang sama dengan
+ * lookup token anonim di atas). RLS policy
+ * `workspace_invitations_public_email_verified_lookup` membandingkan
+ * terhadap GUC ini DAN mengunci sendiri kondisi
+ * pending/belum-expired/sudah-terverifikasi di dalam policy-nya —
+ * default-deny kalau GUC ini tidak pernah di-set.
+ */
+export async function setInviteLookupEmail(
+  tx: PrismaTransactionClient,
+  email: string,
+): Promise<void> {
+  await tx.$executeRaw`SELECT set_config('app.invite_lookup_email', ${email}, true)`;
+}

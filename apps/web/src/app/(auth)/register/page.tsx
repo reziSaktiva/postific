@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Text } from "@/components/ui/text";
-import { googleOAuthEnabled } from "@/lib/env";
+import { googleOAuthEnabled, requireEmailVerificationEnabled } from "@/lib/env";
 
 import { RegisterForm } from "./components/RegisterForm";
 
@@ -22,7 +22,10 @@ export default function RegisterPage() {
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-6">
-        <RegisterForm isGoogleEnabled={googleOAuthEnabled()} />
+        <RegisterForm
+          isGoogleEnabled={googleOAuthEnabled()}
+          requireEmailVerification={requireEmailVerificationEnabled()}
+        />
 
         <Text variant="muted" className="text-center">
           Sudah punya akun?{" "}

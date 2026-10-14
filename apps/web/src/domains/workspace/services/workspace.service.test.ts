@@ -263,6 +263,7 @@ function createFakeRepository(
       });
     },
     findUserByEmail: async () => null,
+    consumeVerifiedPendingInvitationForEmail: async () => false,
     acceptInvitation: async ({ workspaceId, invitationId, userId, role }) => {
       const entry = [...invitations.entries()].find(
         ([, invitation]) => invitation.id === invitationId,
@@ -3462,6 +3463,90 @@ describe("WorkspaceService.confirmInviteEmailVerification (T-110.3, KI-053)", ()
       service.confirmInviteEmailVerification("token", "111111"),
     ).rejects.toThrow(ValidationError);
     expect(markedVerified).toBe(false);
+  });
+});
+
+describe("WorkspaceService.consumeVerifiedPendingInvitationForEmail (T-005.5)", () => {
+  it("delegates to the repository with the email normalized (trim + lowercase)", async () => {
+    let receivedEmail: string | null = null;
+    const service = new WorkspaceService(
+      createFakeRepository({
+        consumeVerifiedPendingInvitationForEmail: async (email) => {
+          receivedEmail = email;
+          return true;
+        },
+      }),
+    );
+
+    const result = await service.consumeVerifiedPendingInvitationForEmail(
+      "  Raka@Example.com  ",
+    );
+
+    expect(result).toBe(true);
+    expect(receivedEmail).toBe("raka@example.com");
+  });
+
+  it("returns false when the repository finds no verified pending invitation", async () => {
+    const service = new WorkspaceService(
+      createFakeRepository({
+        consumeVerifiedPendingInvitationForEmail: async () => false,
+      }),
+    );
+
+    await expect(
+      service.consumeVerifiedPendingInvitationForEmail("nobody@example.com"),
+    ).resolves.toBe(false);
+  });
+
+  /**
+   * CRITICAL finding (Ridwan Architecture Reviewer, 2026-10-14) — Alice
+   * confirms her OTP code (invitation's `emailVerifiedAt` gets set), then
+   * her tab crashes/closes BEFORE `signUp.email()` completes. Without
+   * single-use consumption, anyone who knows/guesses her email could call
+   * `/api/auth/sign-up/email` directly at ANY later point (up to the
+   * invitation's 7-day expiry) and reuse HER verified signal — full
+   * identity takeover, no OTP ever required from the attacker. This test
+   * models the repository's REAL contract (one atomic UPDATE that reads
+   * AND clears `emailVerifiedAt` together, see
+   * `WorkspaceRepository.consumeVerifiedPendingInvitationForEmail`) with a
+   * stateful fake — first consume succeeds (the legitimate `signUp.email()`
+   * call, or an attacker who got there first), every subsequent attempt
+   * for the SAME email returns `false` (the abandoned-session replay, or
+   * the legitimate retry arriving second) regardless of how many times it
+   * is retried.
+   */
+  it("is single-use — a second consume attempt for the same email (replay / abandoned-session attack) never succeeds again", async () => {
+    const consumableEmails = new Set(["alice@acme.com"]);
+    const service = new WorkspaceService(
+      createFakeRepository({
+        // Stateful double modeling the repository's atomic
+        // "read-and-clear" UPDATE — NOT a plain lookup. Mirrors exactly
+        // what `markInvitationEmailVerified` already does for the OTP code
+        // hash itself (single-use, cleared on successful confirm).
+        consumeVerifiedPendingInvitationForEmail: async (email) => {
+          if (!consumableEmails.has(email)) return false;
+          consumableEmails.delete(email);
+          return true;
+        },
+      }),
+    );
+
+    // First call — the legitimate signUp.email() (or, in the attack
+    // scenario, whoever's request reaches the hook first).
+    await expect(
+      service.consumeVerifiedPendingInvitationForEmail("alice@acme.com"),
+    ).resolves.toBe(true);
+
+    // Replay attempt(s) for the SAME email — simulates an attacker calling
+    // POST /api/auth/sign-up/email directly after Alice's tab abandoned
+    // the flow, or a legitimate retry that arrives after the first attempt
+    // already consumed the signal. Must NEVER get auto-verified again.
+    await expect(
+      service.consumeVerifiedPendingInvitationForEmail("alice@acme.com"),
+    ).resolves.toBe(false);
+    await expect(
+      service.consumeVerifiedPendingInvitationForEmail("Alice@Acme.com"),
+    ).resolves.toBe(false);
   });
 });
 

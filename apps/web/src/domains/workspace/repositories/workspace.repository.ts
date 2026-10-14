@@ -260,6 +260,62 @@ export interface IWorkspaceRepository {
   ): Promise<WorkspaceInvitationRecord | null>;
 
   /**
+   * T-005.5 — fix CRITICAL finding (Ridwan Architecture Reviewer,
+   * 2026-10-14): versi awal (`hasVerifiedPendingInvitationForEmail`, SELECT
+   * murni) membiarkan sinyal "OTP sudah dikonfirmasi" (`emailVerifiedAt`)
+   * dipakai ulang kapan saja sebelum invitation itu sendiri expired (sampai
+   * 7 hari) — kalau Alice konfirmasi OTP lalu tab-nya crash SEBELUM
+   * `signUp.email()` selesai, siapa pun yang tahu/menebak emailnya bisa
+   * memanggil `/api/auth/sign-up/email` langsung (bypass UI+OTP total) dan
+   * ikut lolos ditandai `emailVerified: true` dari sinyal milik Alice —
+   * identity takeover penuh. Ada juga TOCTOU race lebih sempit: baca
+   * (SELECT) dan pakai sinyal itu dua operasi terpisah, tidak atomic.
+   *
+   * Fix (dua lapis, method ini MENGGANTI `hasVerifiedPendingInvitationForEmail`
+   * total — bukan ditambah di sampingnya):
+   * 1. **Single-use** — SATU statement UPDATE yang membaca DAN langsung
+   *    menandai `betterAuthEmailVerifiedConsumedAt` baris yang cocok,
+   *    bukan SELECT lalu UPDATE terpisah. Percobaan kedua (replay, atau 2
+   *    request konkuren) untuk email yang sama tidak akan pernah
+   *    menemukan sinyal itu lagi — row-level locking Postgres di dalam
+   *    satu UPDATE membuat ini aman di bawah concurrency juga (tidak ada
+   *    jeda check-then-act untuk di-race). **Field yang ditandai SENGAJA
+   *    bukan `emailVerifiedAt` sendiri** — fix regresi yang ditemukan
+   *    lewat verifikasi end-to-end browser (bukan dugaan): `emailVerifiedAt`
+   *    juga dibaca `WorkspaceService.acceptInvite` (jalan SETELAH
+   *    signUp/signIn) sebagai bukti OTP sudah dikonfirmasi untuk token ini
+   *    — kalau method ini meng-clear kolom yang sama, `acceptInvite` yang
+   *    jalan belakangan salah simpul OTP belum pernah dikonfirmasi. Lihat
+   *    migrasi `20261014150000_t005_5_separate_better_auth_consume_signal`
+   *    dan doc comment kolom di `schema.prisma`.
+   * 2. **TTL pendek independen dari `expiresAt` invitation** — 5 menit,
+   *    dikunci DI DALAM RLS policy itu sendiri (migrasi
+   *    `20261014130000_t005_5_accept_invite_signal_single_use_ttl`) — RLS
+   *    adalah enforcement boundary yang SEBENARNYA; query Prisma di
+   *    implementasi method ini menduplikasi angka yang sama persis sebagai
+   *    defense-in-depth kedua, BUKAN constant yang di-share lintas layer
+   *    (lihat komentar di implementasi Prisma-nya). Alur UI nyata
+   *    (`AcceptInviteForm.tsx`) memanggil `signUp.email()` SEGERA setelah
+   *    `confirmAcceptInviteVerificationAction` resolve (selisih beberapa
+   *    round-trip network, bukan menit), jadi 5 menit longgar untuk jalur
+   *    sah tapi menutup nyaris total jendela "OTP terkonfirmasi, tab
+   *    ditinggal berjam-jam/berhari-hari".
+   *
+   * Dipakai Better Auth `databaseHooks.user.create.before`
+   * (`lib/better-auth/auth.ts`). Anonim (tidak ada `app.current_user_id` —
+   * hook berjalan sebelum user dibuat, pola sama
+   * `findInvitationByToken`/`findUserByEmail` di atas), RLS
+   * `workspace_invitations` digeser pakai GUC `app.invite_lookup_email`
+   * (`setInviteLookupEmail`) — BUKAN flag boolean dari body request client,
+   * yang bisa dipalsukan siapa pun yang memanggil `/api/auth/sign-up/email`
+   * langsung. Return `true` HANYA kalau baris benar-benar berhasil
+   * di-consume (UPDATE match ≥1 baris) — panggilan kedua untuk email yang
+   * sama SELALU `false` sampai ada konfirmasi OTP baru yang menerbitkan
+   * `emailVerifiedAt` baru.
+   */
+  consumeVerifiedPendingInvitationForEmail(email: string): Promise<boolean>;
+
+  /**
    * Lookup Better Auth `User` by email (T-093.1) — dipakai untuk auto-detect
    * `isExistingUser` di halaman accept-invite (`/invite/[token]`): kalau
    * email invitation sudah punya akun, tampilkan form "Masuk"; kalau belum,

@@ -28,6 +28,7 @@ import {
 import { prisma } from "@/lib/prisma/client";
 import {
   setCurrentUserId,
+  setInviteLookupEmail,
   setInviteLookupToken,
   withCurrentUser,
 } from "@/lib/prisma/with-current-user";
@@ -468,6 +469,58 @@ export const workspaceRepository: IWorkspaceRepository = {
     });
 
     return invitation ? toInvitationRecord(invitation) : null;
+  },
+
+  /**
+   * T-005.5 — fix CRITICAL finding (Ridwan Architecture Reviewer,
+   * 2026-10-14, lihat catatan lengkap di interface). SATU `updateMany`
+   * atomic yang membaca DAN menandai `betterAuthEmailVerifiedConsumedAt`
+   * sekaligus (bukan `findFirst` lalu `update` terpisah seperti versi
+   * awal) — ini yang membuat sinyal single-use: begitu baris ini di-match
+   * sekali, baris yang sama tidak akan pernah match lagi untuk percobaan
+   * berikutnya (dan 2 request konkuren untuk email yang sama di-serialize
+   * oleh row lock Postgres di dalam statement `UPDATE` ini, bukan di-race).
+   *
+   * **Field yang di-consume SENGAJA `betterAuthEmailVerifiedConsumedAt`,
+   * BUKAN `emailVerifiedAt`** — fix regresi (ditemukan verifikasi browser
+   * end-to-end, bukan dugaan): versi awal meng-clear `emailVerifiedAt`
+   * langsung, tapi `WorkspaceService.acceptInvite` (jalan SETELAH
+   * signUp/signIn) membaca kolom YANG SAMA sebagai bukti OTP sudah
+   * dikonfirmasi — begitu hook ini jalan duluan dan meng-clear-nya,
+   * `acceptInvite` salah simpul "OTP belum pernah dikonfirmasi" dan
+   * menolak golden path yang sah. Lihat doc comment kolom di
+   * `schema.prisma` dan migrasi
+   * `20261014150000_t005_5_separate_better_auth_consume_signal`.
+   *
+   * `emailVerifiedAt: { gt: <5 menit lalu> }` — **angka `5` di sini HARUS
+   * SAMA PERSIS** dengan `interval '5 minutes'` yang di-hardcode di RLS
+   * policy `workspace_invitations_public_email_verified_consume` (migrasi
+   * terbaru di atas). RLS adalah enforcement boundary yang sebenarnya
+   * (default-deny kalau GUC tidak di-set ATAU kondisi tidak cocok); filter
+   * di query ini murni defense-in-depth kedua, sama pola
+   * `with-current-user.ts`. TIDAK dibuat jadi constant yang di-share
+   * lintas layer (Prisma di sini vs SQL murni di migrasi) — kalau nilainya
+   * perlu diubah, ubah KEDUANYA di migrasi baru + edit literal ini dalam
+   * PR yang sama.
+   */
+  async consumeVerifiedPendingInvitationForEmail(email) {
+    const freshnessThreshold = new Date(Date.now() - 5 * 60 * 1000);
+
+    const consumed = await prisma.$transaction(async (tx) => {
+      await setInviteLookupEmail(tx, email);
+      return tx.workspaceInvitation.updateMany({
+        where: {
+          email,
+          status: InvitationStatus.Pending,
+          expiresAt: { gt: new Date() },
+          emailVerifiedAt: { not: null, gt: freshnessThreshold },
+          betterAuthEmailVerifiedConsumedAt: null,
+        },
+        data: { betterAuthEmailVerifiedConsumedAt: new Date() },
+      });
+    });
+
+    return consumed.count > 0;
   },
 
   /** Sama pola tanpa `withCurrentUser` seperti `findInvitationByToken` (lihat catatan interface). */

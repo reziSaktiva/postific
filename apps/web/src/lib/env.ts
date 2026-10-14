@@ -133,3 +133,31 @@ export function googleOAuthEnabled(): boolean {
     process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET,
   );
 }
+
+/**
+ * T-005.5 (AS-D04) — single source of truth untuk `emailAndPassword.
+ * requireEmailVerification` di `lib/better-auth/auth.ts` DAN untuk redirect
+ * kondisional `RegisterForm` ke `/verify-email`. Sengaja satu fungsi yang
+ * dipakai di dua tempat supaya keduanya tidak pernah drift satu sama lain.
+ *
+ * `true` sejak 2026-10-14, setelah King Rezi menyetujui (via
+ * `AskUserQuestion`) DUA mitigasi yang sebelumnya menahan flag ini (lihat
+ * `tasks/v01-foundation.md` § T-005.5 untuk detail lengkap):
+ *
+ * 1. **Backfill akun existing** — seluruh baris `identity_user` yang ada
+ *    SEBELUM flip ini sudah di-backfill `emailVerified = true` (one-off
+ *    `UPDATE`, diterapkan ke dev DB; King Rezi menjalankan statement yang
+ *    sama ke staging/production). Hanya akun BARU ke depan yang wajib
+ *    verifikasi.
+ * 2. **Accept-invite skip** — `databaseHooks.user.create.before` di
+ *    `lib/better-auth/auth.ts` menandai user hasil accept-invite (T-110)
+ *    `emailVerified: true` SAAT DIBUAT (lookup server-side ke
+ *    `WorkspaceInvitation.emailVerifiedAt`, lihat
+ *    `WorkspaceService.hasVerifiedPendingInvitationForEmail`), dan
+ *    `AcceptInviteForm.tsx` memanggil `signIn.email()` segera setelah
+ *    `signUp.email()` kalau response-nya tidak membawa `token` (Better
+ *    Auth tidak lagi auto-create session saat flag ini `true`).
+ */
+export function requireEmailVerificationEnabled(): boolean {
+  return true;
+}

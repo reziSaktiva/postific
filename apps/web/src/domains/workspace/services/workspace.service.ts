@@ -1192,6 +1192,38 @@ export class WorkspaceService {
   }
 
   /**
+   * T-005.5 — dipanggil Better Auth `databaseHooks.user.create.before`
+   * (`lib/better-auth/auth.ts`, composition root) untuk memutuskan apakah
+   * user yang baru dibuat lewat `signUp.email()` boleh ditandai
+   * `emailVerified: true` langsung (skip gate verifikasi native Better
+   * Auth kedua kalinya) karena sudah membuktikan kepemilikan inbox lewat
+   * kode OTP accept-invite T-110 SEBELUM `signUp.email()` ini dipanggil
+   * (`AcceptInviteForm.tsx`: confirm kode → baru signUp). Normalisasi email
+   * (lowercase/trim) sebelum lookup — `WorkspaceInvitation.email` selalu
+   * disimpan lowercase (lihat `requestInviteEmailVerification`/`inviteMember`),
+   * Better Auth sendiri juga menormalisasi email jadi lowercase sebelum
+   * `createUser` (`sign-up.mjs`), tapi disiplin sendiri di sini supaya
+   * method ini tidak implisit bergantung urutan pemanggilan.
+   *
+   * **Fix CRITICAL finding (Ridwan Architecture Reviewer, 2026-10-14)** —
+   * nama method & kontrak diganti dari `hasVerifiedPendingInvitationForEmail`
+   * (SELECT murni, sinyal bisa dipakai ulang kapan saja sebelum invitation
+   * expired sampai 7 hari, celah identity-takeover kalau tab user crash
+   * sebelum `signUp.email()` selesai — detail lengkap di doc comment
+   * interface repository). Nama method ini SENGAJA "consume" (bukan "has")
+   * supaya pemanggil di `auth.ts` tidak salah kira ini murni cek tanpa efek
+   * samping — **method ini SEKALI PAKAI**, panggilan kedua untuk email yang
+   * sama SELALU `false` sampai ada OTP baru yang dikonfirmasi lagi.
+   */
+  async consumeVerifiedPendingInvitationForEmail(
+    email: string,
+  ): Promise<boolean> {
+    return this.repository.consumeVerifiedPendingInvitationForEmail(
+      email.trim().toLowerCase(),
+    );
+  }
+
+  /**
    * Finalisasi accept-invite (T-093.2/.3, ADR-080 poin 6) — dipanggil
    * SETELAH sign-up/sign-in Better Auth berhasil di client (composition
    * root: Server Action `acceptInviteAction`). Re-validasi token dari awal

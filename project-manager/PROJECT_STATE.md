@@ -16,9 +16,9 @@
 
 | Field        | Value      |
 | ------------ | ---------- |
-| Version      | 1.1.1      |
+| Version      | 1.1.4      |
 | Status       | Active     |
-| Last Updated | 2026-10-13 |
+| Last Updated | 2026-10-14 |
 
 ---
 
@@ -124,16 +124,6 @@ judul singkatnya. **Jangan menulis ulang daftar/detail task di sini**
 
 > **ID `KI-XXX`** (ADR-066, amandemen ADR-067) — global, tidak pernah didaur ulang. `Status`: `Open` / `Resolved` / `Sebagian Resolved — sisa scope: <ID>` / `Promoted to T-XXX`. `Sebagian Resolved` dipakai kalau sebagian besar gap sudah ditutup tapi ada 1 subtask/scope kecil yang eksplisit belum — sebutkan sisa scope-nya di string status. Terpisah dari namespace task (`T-XXX`) karena belum tentu jadi task formal. **Entry `Resolved` yang sudah tercatat di `COMPLETE_TASK.md` dihapus dari daftar ini** (bukan dibiarkan dengan status `Resolved`) — riwayatnya tetap ada di `COMPLETE_TASK.md`, ID-nya tidak didaur ulang untuk entry baru.
 
-### KI-001 · Transactional Email Provider belum ditetapkan
-
-| Field | Value |
-|-------|-------|
-| Status | Open |
-| Kategori | Dependency |
-| Terkait | T-005 |
-
-Password reset & email verification (Better Auth) membutuhkan email provider yang belum ditetapkan (kandidat: Resend, Postmark, AWS SES, SMTP Supabase). Dicatat di `auth-strategy.md` (AS-D04). `requireEmailVerification` dinonaktifkan sementara di skeleton. Tidak memblokir M8 awal.
-
 ### KI-015 · Env var `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` belum diisi
 
 | Field | Value |
@@ -238,8 +228,9 @@ scope resmi **T-007.7**, bukan lagi Known Issue berdiri sendiri.
 **Update (2026-10-12):** **T-007.7 sudah ✅ Done** (lihat
 `tasks/v01-foundation.md` § T-007) — diimplementasikan via Resend (adapter
 yang sama dikunci T-110), **tanpa menunggu T-005** seperti dugaan awal di
-atas. T-005 (provider email transactional untuk seluruh app) sendiri tetap
-**Open**, tidak ikut tertutup oleh penyelesaian T-007.7 ini.
+atas. Provider untuk seluruh app dikunci ke Resend di **ADR-126**
+(2026-10-14, KI-001 Resolved). **Update (2026-10-14): T-005 ✅ Done** —
+`requireEmailVerification: true` sudah aktif global, lihat `tasks/v01-foundation.md` § T-005.
 
 ### KI-053 · Invite via Copy Link — email tidak diverifikasi kepemilikan inbox, rawan identity takeover
 
@@ -259,10 +250,13 @@ dan submit — form memang mengunci field email jadi read-only ke email A
 yang dikirim ke `authClient.signUp.email()` sama dengan email A, **bukan**
 membuktikan email B benar-benar memegang inbox email A.
 
-Root cause: `requireEmailVerification: false` di Better Auth
-([auth.ts:53](../apps/web/src/lib/better-auth/auth.ts:53), bagian dari
-**KI-001** — provider email belum ditetapkan) — Better Auth tidak pernah
-mengirim email konfirmasi untuk verifikasi kepemilikan inbox saat sign-up.
+Root cause (historis): `requireEmailVerification: false` di Better Auth
+([auth.ts:53](../apps/web/src/lib/better-auth/auth.ts:53)) — Better Auth
+tidak pernah mengirim email konfirmasi untuk verifikasi kepemilikan inbox
+saat sign-up. **Update (2026-10-14, T-005 ✅ Done):** flag ini sekarang
+`true` secara global (provider Resend, ADR-126) — skenario identity
+takeover di atas via Copy Link polos tidak lagi mungkin untuk registrasi
+baru. Detail: `tasks/v01-foundation.md` § T-005.5.
 Guard `actorEmail === invitation.email` di
 `WorkspaceService.acceptInvite` ([workspace.service.ts:615](../apps/web/src/domains/workspace/services/workspace.service.ts:615))
 sudah benar secara logic (mencegah user lain yang sudah login pakai akun
@@ -507,11 +501,11 @@ seluruh daftar Known Issues.
 
 ## Completed (Ringkasan)
 
+* **T-005 ✅ TUNTAS 5/5 subtask — Email verification flow (2026-10-14)** — provider Resend dikunci (ADR-126, KI-001 Resolved); `sendResetPassword`/`sendVerificationEmail` nyata + halaman `/verify-email`; `requireEmailVerification: true` di-flip global dengan 2 mitigasi disetujui King Rezi (backfill akun existing, accept-invite skip via hook). **1 temuan Critical** (Ridwan Architecture Reviewer) ditemukan di mitigasi accept-invite — sinyal "OTP terverifikasi" bisa di-replay sampai 7 hari untuk identity takeover tanpa pernah tahu kode OTP — sudah diperbaiki (single-use + TTL 5 menit + kolom terpisah) dan dikonfirmasi tertutup lewat verifikasi ulang Ridwan. Residual risk sub-5-menit (butuh timing real-time korban) diterima sadar sebagai trade-off wajar. QA Najwa: PASS semua item yang bisa diuji di sesinya. Detail lengkap: `tasks/v01-foundation.md` § T-005, `COMPLETE_TASK.md`. **King Rezi perlu menjalankan backfill SQL yang sama ke staging/production sebelum deploy** (lihat § T-005.5).
 * **KI-087 ✅ Resolved (2026-10-13)** — service Railway `cron-analytics` (jadwal `0 0 * * *`, trigger `?type=analytics`) kembali membalas **200**. Akar masalah: image `curlimages/curl` menjalankan perintah tanpa shell, jadi `$JOB_SECRET` terkirim literal. Service dikembalikan ke image `alpine:3.20` + `sh -c` (pola yang sama dengan service `cron` yang sudah jalan). Nilai `JOB_SECRET` ketiga service memang sudah sama — dugaan mismatch secret tidak terbukti. Detail: `COMPLETE_TASK.md`.
 * **T-048 ✅ TUNTAS 4/4 subtask — Wire JOB-04 Analytics Sync ke job runner + Railway Cron harian (2026-10-13)** — verifikasi end-to-end T-048.4 lolos: Home (T-042) dan `/analyze` (T-043/T-046/T-047) menampilkan data metrik asli di staging, diisi fan-out harian yang menumpang cron menit (`railway.cron.json`, desain T-048.3). Gap infra `cron-analytics` 401 ditutup terpisah sebagai **KI-087**. Detail: `tasks/v03-analytics-mvp.md` § T-048, `COMPLETE_TASK.md`.
 * **T-110 ✅ TUNTAS 5/5 subtask — Verifikasi kepemilikan email di accept-invite, KI-053 (2026-10-12, implementasi asli commit `bad28cb` 2026-10-06)** — audit dokumentasi menemukan seluruh T-110 (Resend adapter, alur OTP, guard server, UI `pending-verification`, unit test) sudah diimplementasikan & ter-commit ke `staging` sejak 2026-10-06, tapi checklist/status di `TASKS.md`/`tasks/v01-foundation.md`/`PROJECT_STATE.md` belum diupdate — murni drift dokumentasi, tidak ada kode baru. **Gap terbuka:** verifikasi end-to-end browser nyata (email A vs email B dibuka beda orang) belum tercatat buktinya di `COMPLETE_TASK.md`. Detail: `tasks/v01-foundation.md` § T-110, `COMPLETE_TASK.md`.
 * **KI-060 + KI-032 ✅ Resolved (2026-10-12, ADR-125)** — akun tujuan ikut tersimpan saat Save Draft, dan Account Selector terisi lagi saat draft atau post terjadwal dibuka. Publish Now dari Queue bisa langsung ke konfirmasi kalau caption, akun, dan media sudah lengkap. Tanggal/jam jadwal tetap belum tersimpan. Detail: `COMPLETE_TASK.md`.
-* **KI-043 ✅ Resolved (2026-10-12)** — caption sementara di browser (localStorage) ikut dihapus setelah Schedule dan Publish Now berhasil pada New Post, sama seperti Save Draft. Edit Draft tidak menghapus caption New Post yang belum disimpan. Detail: `COMPLETE_TASK.md`.
 Berikut ~5 item terakhir yang diselesaikan. Riwayat lengkap (sejak M0): lihat `COMPLETE_TASK.md` — ⚠️ jangan dibaca AI kecuali diperintah eksplisit King Rezi.
 
 ---
@@ -520,11 +514,11 @@ Berikut ~5 item terakhir yang diselesaikan. Riwayat lengkap (sejak M0): lihat `C
 
 5 ADR terakhir. Daftar lengkap (indeks + link ke tiap ADR): lihat `DECISIONS.md`.
 
+* **ADR-126** — Provider email transactional dikunci ke Resend (T-005.1). Menutup KI-001. Katalog env selesai di T-005.2. Reset password dan verifikasi email Better Auth masih T-005.3–.5. Detail: `decisions/ADR-126-transactional-email-provider-resend-t005.md`.
 * **ADR-125** — Save Draft menyimpan akun tujuan (akun, format, opsi Pinterest) dan Draft Editor mengisi Account Selector dari data itu saat dibuka lagi. Menutup KI-060 dan KI-032. Tanggal/jam jadwal tidak ikut. Detail: `decisions/ADR-125-simpan-akun-tujuan-draft-ki060.md`.
 * **ADR-124** — Nama produk final "Postific"; package scope `@social/*` menjadi `@postific/*`. Detail: `decisions/ADR-124-nama-produk-postific-rename-package-scope-social-ke-postific.md`.
 * **ADR-123** — Wiring `RealOutstandAdapter.importPosts`/`fetchImportJobStatus` sungguhan (T-112): signature `fetchImportJobStatus` berubah jadi `(outstandAccountId, importJobId)` (endpoint sungguhan mensyaratkan account id di path, diverifikasi OpenAPI spec resmi); data post diambil tambahan lewat `GET /v1/posts?social_account_id=...` karena endpoint status tidak membawanya; status real API `partial` dipetakan ke `"completed"` (post berhasil tetap diambil, `error` diisi ringkasan gagal) — keputusan produk King Rezi. Detail: `decisions/ADR-123-wiring-import-posts-fetchimportjobstatus-outstandaccountid-partial-status-ki112.md`.
 * **ADR-122** — Reconnect untuk akun `disconnected` + disambiguasi `AlreadyConnectedError` vs double-submit (menutup KI-078/KI-079): `ConnectedAccountAction` digabung ke `ReconnectButton` untuk status `disconnected` (bukan hanya `reconnect-required`); `WorkspaceService.createOrRecoverConnectedAccount` membedakan double-submit genuine (jendela 15 detik pada `connectedAt`) dari percobaan connect ke akun yang sudah terhubung dari flow terpisah (`AlreadyConnectedError` baru). Detail: `decisions/ADR-122-reconnect-disconnected-accounts-plus-already-connected-conflict-ki078-079.md`.
-* **ADR-121** — Batas Minimum Jumlah Media per `ContentFormat` (Amandemen ADR-107/ADR-039, menutup KI-074): `MIN_MEDIA_COUNT_BY_FORMAT` baru (`Post` 0, `Reel`/`Story`/`Pin` masing-masing 1); batas efektif untuk beberapa target format = MAKSIMUM dari batas minimum semua format dipilih (kebalikan ADR-107 poin 2); ditegakkan hanya di `scheduleDraftAction`/`publishNowAction`, bukan draft. Detail: `decisions/ADR-121-batas-minimum-jumlah-media-per-content-format-ki074.md`.
 
 ---
 

@@ -8,6 +8,91 @@ Seluruh perubahan penting pada dokumentasi maupun implementasi project dicatat p
 
 ---
 
+## 2026-10-14 — T-005.5: flip `requireEmailVerification: true` + perbaikan temuan Critical (branch `fix/t-005-restore-resend-decision`)
+
+### Konteks
+Lanjutan T-005.3/.4 (entri di bawah). King Rezi menyetujui 2 mitigasi via `AskUserQuestion` untuk menutup T-005.5: (1) backfill `emailVerified` akun existing, (2) skip native-verification Better Auth untuk akun hasil accept-invite (T-110) lewat `databaseHooks.user.create.before`.
+
+### Added
+- Migrasi `20261014120000_t005_5_accept_invite_prevverified_lookup`, `20261014130000_t005_5_accept_invite_signal_single_use_ttl`, `20261014140000_t005_5_accept_invite_consume_select_visibility_fix`, `20261014150000_t005_5_separate_better_auth_consume_signal` — RLS lookup + single-use/TTL + fix SELECT-visibility (kelas bug sama T-093) + kolom terpisah `betterAuthEmailVerifiedConsumedAt`.
+- `WorkspaceService.consumeVerifiedPendingInvitationForEmail` (`workspace.repository.ts`/`workspace.service.ts`) — atomic consume, menggantikan versi awal `hasVerifiedPendingInvitationForEmail` yang hanya SELECT.
+- `databaseHooks.user.create.before` di `auth.ts` + fallback `signIn.email()` di `AcceptInviteForm.tsx` (Better Auth tidak bisa auto-session lewat hook saja).
+
+### Changed
+- `apps/web/src/lib/env.ts`: `requireEmailVerificationEnabled()` → `true`.
+- Backfill one-off (bukan migrasi tracked) diterapkan ke DB dev: `UPDATE "identity_user" SET "emailVerified" = true WHERE "emailVerified" = false;` (39/39 baris).
+- `tasks/v01-foundation.md` § T-005: seluruh subtask dicentang, Status → `✅ Done`.
+- `TASKS.md`: indeks v0.1 `19 ✅ · 5 🟡 · 1 ⏸️` → `20 ✅ · 4 🟡 · 1 ⏸️`; baris T-005.5 dikeluarkan dari Keputusan terbuka.
+- `PROJECT_STATE.md`: Completed Ringkasan diperbarui, referensi stale "T-005 masih 🟡/belum selesai" di catatan T-007.7 dan KI-053 diselaraskan.
+
+### Fixed
+- **🔴 CRITICAL (ditemukan Ridwan Architecture Reviewer sebelum T-005 ditutup):** versi pertama mitigasi accept-invite memakai sinyal "OTP terkonfirmasi" yang bisa di-replay kapan saja sampai invitation expired (7 hari) — siapa pun yang tahu/menebak email korban bisa membajak identitasnya lewat `POST /api/auth/sign-up/email` langsung, TANPA pernah tahu kode OTP. Diperbaiki: sinyal jadi single-use (atomic `updateMany`) + TTL 5 menit independen dari masa berlaku invitation. Re-verifikasi Ridwan mengonfirmasi exploit tertutup (bukan cuma menyempit), residual risk sub-5-menit (butuh timing real-time) diterima sadar sebagai trade-off wajar.
+- **Regresi (ditemukan sendiri oleh Prabowo saat verifikasi fix di atas, diperbaiki sebelum lapor selesai):** fix single-use sempat meng-clear kolom `emailVerifiedAt` yang juga dipakai `WorkspaceService.acceptInvite` sebagai bukti OTP — accept-invite yang SAH ikut gagal. Diperbaiki dengan kolom terpisah `betterAuthEmailVerifiedConsumedAt`; `emailVerifiedAt` kembali permanen seperti perilaku T-110 original.
+
+### Review
+- **Ridwan Architecture Reviewer** (2 putaran): putaran 1 menemukan Finding Critical di atas; putaran 2 (setelah fix) mengonfirmasi valid dan menutup — tidak ada pelanggaran arsitektur baru, tidak ada varian baru yang membypass OTP di `acceptInvite`. 2 catatan non-blocking untuk follow-up terpisah (integration test DB nyata untuk atomicity/TTL, pengetatan `WITH CHECK` di RLS policy kalau pola ini dipakai ulang caller lain nanti).
+- **Najwa QA Engineer:** existing-account login PASS (3 akun berbeda role), new-registration lockout PASS (termasuk 403 langsung dari API, bukan cuma redirect UI), security sanity check (daftar langsung dengan email yang punya invite pending belum ter-OTP) PASS — tidak salah ter-verifikasi, regresi halaman auth lain PASS. 1 item (accept-invite full happy path submit kode OTP benar) tidak tuntas di sesinya karena keterbatasan akses tool Supabase MCP — diselesaikan terpisah oleh Prabowo via script langsung terhadap DB dev + endpoint real.
+
+### Catatan untuk deploy
+**King Rezi perlu menjalankan SQL backfill yang sama persis ke staging dan production** sebelum/saat deploy branch ini (bukan migrasi tracked, tidak otomatis lewat CI/CD):
+```sql
+UPDATE "identity_user" SET "emailVerified" = true WHERE "emailVerified" = false;
+```
+
+## 2026-10-14 — T-005.3/.4: Resend wiring + halaman verify-email (branch `fix/t-005-restore-resend-decision`)
+
+### Konteks
+Lanjutan T-005 setelah restorasi ADR-126 di branch yang sama (lihat entri di bawah). Prabowo Feature Engineer mengerjakan T-005.3–.5; T-005.5 sengaja dihentikan (STOP), lihat bagian Fixed.
+
+### Added
+- `apps/web/src/lib/adapters/email/resend-auth-email-sender.ts` + `.test.ts` — adapter **sibling** baru (`IAuthEmailSender`), bukan extend `IInviteEmailSender` (port domain `workspace`, beda composition root). Dikonfirmasi tepat oleh review arsitektur Ridwan.
+- `apps/web/src/lib/adapters/email/index.ts`: factory `getAuthEmailSender()` (pola ADR-119, throw loud, tanpa fallback Fake).
+- `apps/web/src/app/(auth)/verify-email/page.tsx` + `components/VerifyEmailCard.tsx` — halaman sesuai desain Claude Design `templates/auth-verify-email.html` (dicek sebelum implementasi, AGENTS.md rule 17; dibandingkan ulang strukturnya di sesi utama karena sesi Najwa tidak punya akses `DesignSync` — cocok 1:1).
+
+### Changed
+- `apps/web/src/lib/better-auth/auth.ts`: `sendResetPassword` pakai adapter nyata; block `emailVerification.sendVerificationEmail` baru.
+- `apps/web/src/lib/env.ts`: `requireEmailVerificationEnabled()` (single source of truth, masih `return false`).
+- `apps/web/src/proxy.ts`: `/verify-email` ditambahkan ke `BYPASS_PREFIXES` (bug ditemukan+diperbaiki Prabowo saat verifikasi browser — tanpa ini halaman selalu redirect ke `/onboarding`).
+- `apps/web/src/app/(auth)/register/page.tsx` + `RegisterForm.tsx`: redirect ke `/verify-email?email=...` hanya kalau flag di atas `true` (sekarang `false` — behavior register hari ini tidak berubah).
+- `tasks/v01-foundation.md` § T-005: T-005.3/.4 dicentang dengan catatan detail.
+- `TASKS.md` § Keputusan terbuka: baris baru T-005.5.
+- `PROJECT_STATE.md`: entri Completed Ringkasan T-005 diperbarui jadi T-005.1–.4.
+
+### Fixed
+- **T-005.5 sengaja TIDAK di-flip** — Prabowo membaca source Better Auth 1.6.23 langsung (bukan dugaan) dan menemukan 2 masalah struktural: (1) `requireEmailVerification: true` akan mengunci SEMUA akun existing dari login karena `emailVerified` belum pernah diisi sejak awal project (butuh keputusan backfill data); (2) flag ini mematikan auto-sign-in setelah `signUp.email()`, yang akan membuat alur accept-invite (T-110, OTP-based) gagal di `acceptInviteAction` saat mencari sesi yang seharusnya sudah ada. Keduanya butuh keputusan King Rezi sebelum flag di-flip — tidak ditebak, sesuai `proactive-clarification`.
+
+### Review
+- **Ridwan Architecture Reviewer:** 0 temuan arsitektur. Keputusan adapter sibling (bukan extend `IInviteEmailSender`) dikonfirmasi tepat — memaksa reuse port domain `workspace` dari composition root `auth.ts` justru akan melanggar cross-domain boundary. 1 catatan non-blocking: `escapeHtml()` duplikat antara dua adapter email, bisa diekstrak kapan-kapan.
+- **Najwa QA Engineer:** 8/8 item PASS via browser real (golden path register tidak berubah, halaman verify-email render benar, resend button + cooldown 30s, error path Resend tervalidasi jelas, forgot-password, regresi accept-invite nihil, regresi navigasi nihil, mobile 375px PASS). Gate perbandingan struktural ke Claude Design tidak bisa dia jalankan sendiri (tidak ada akses `DesignSync` di sesi subagent) — ditutup di sesi utama, cocok 1:1.
+
+## 2026-10-14 — Perbaikan code review PR #165 (T-005.1 / ADR-126)
+
+### Fixed
+- `tasks/v01-foundation.md`: catatan T-007.1, T-007.7, T-093, dan T-110 diselaraskan dengan ADR-126. Provider sudah Resend. KI-001 hanya menutup pilihan vendor. Verifikasi email global tetap mati sampai T-005.5. Mitigasi jalur accept-invite tetap di T-110.
+- `auth-strategy.md`: baris verifikasi email menyebut Resend, pengiriman nyata di T-005.3, dan flag di T-005.5.
+- `environment-management.md`: `RESEND_API_KEY` dan `RESEND_FROM_EMAIL` pindah dari tabel opsional ke katalog server. `.env.example` mengikuti keputusan yang sama.
+- T-005.2 dicentang. Sisa T-005 adalah T-005.3–.5. Indeks v0.1 tidak berubah (T-005 tetap 🟡).
+
+## 2026-10-14 — T-005.1: provider email transactional dikunci ke Resend (ADR-126), KI-001 Resolved
+
+### Konteks
+Branch `feature/t-005-1-resend-provider` (checkout dari `origin/staging`). King Rezi meminta provider T-005.1 dikunci ke Resend. Bukan implementasi kirim email Better Auth.
+
+### Added
+- `project-manager/decisions/ADR-126-transactional-email-provider-resend-t005.md` — Resend untuk reset password dan verifikasi email ke depan; memakai package dan env yang sudah ada dari T-110. T-005.2–.5 tetap terbuka.
+
+### Changed
+- `tasks/v01-foundation.md` § T-005: T-005.1 dicentang. Status `🚫 Blocked` → `🟡 In Progress`. Field Blocker dihapus. ADR: ADR-126.
+- `TASKS.md`: indeks v0.1 `20 ✅ · 1 🚫 · 3 🟡 · 1 ⏸️` → `20 ✅ · 4 🟡 · 1 ⏸️`. Baris T-005 dikeluarkan dari Keputusan terbuka.
+- `PROJECT_STATE.md`: KI-001 dihapus dari Known Issues (Resolved, riwayat di entri ini). Recent Decisions menambah ADR-126 dan mengeluarkan ADR-121 dari ringkasan 5. Completed menambah entri ini dan mengeluarkan T-048 dari ringkasan 5. Catatan KI-046 dan KI-053 diselaraskan: provider sudah Resend, verifikasi global masih mati sampai T-005.5.
+- `auth-strategy.md` (AS-D04), `environment-management.md` (baris provider), dan `context/ctx-technical-context.md`: keputusan provider tidak lagi "terbuka". Katalog env lengkap tetap tugas T-005.2.
+
+### Fixed
+- Keputusan terbuka di `TASKS.md` tidak lagi menulis bahwa T-005 menahan T-007.7. Jalur Kirim via Email sudah selesai 2026-10-12.
+
+### Catatan restorasi (2026-10-14, branch `fix/t-005-restore-resend-decision`)
+PR #166 (staging → main) sempat di-revert sepenuhnya via PR #167 (termasuk ADR-126 dan seluruh perubahan di atas), lalu dikonfirmasi ulang King Rezi untuk dipulihkan **khusus** untuk T-005 — perubahan tak terkait dari PR #166 (T-030.3 calendar, T-016.4 notification preferences, T-091.1 readonly guard, dll.) sengaja tidak ikut dipulihkan di branch ini. Indeks v0.1 di `TASKS.md` memakai hitungan dasar branch ini (`19 ✅ · 4 🟡 · 1 ⏸️`, sebelum T-016 promosi) → `19 ✅ · 5 🟡 · 1 ⏸️` setelah T-005 pindah dari 🚫 ke 🟡.
+
 ## 2026-10-13 — Koreksi review PR dokumentasi audit
 
 ### Fixed

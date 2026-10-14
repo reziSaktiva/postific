@@ -42,7 +42,7 @@ Keputusan berikut sudah final dari Auth Architecture (ADR-024) dan menjadi input
 | AS-D01 | Better Auth Database | Better Auth menyimpan data auth di Supabase PostgreSQL yang sama, tabel prefix `identity_`, diakses via Prisma adapter + `DATABASE_URL` (pooled; lihat `database-orm.md`) |
 | AS-D02 | Session Strategy | Database session (bukan JWT-only) — token opaque di cookie, sesi tervalidasi ke tabel `identity_sessions` |
 | AS-D03 | Supabase Realtime Auth | Better Auth menerbitkan JWT Supabase-compatible (HS256, di-sign dengan `SUPABASE_JWT_SECRET`) berisi `sub = userId` agar `auth.uid()` valid untuk RLS Realtime |
-| AS-D04 | Password Reset | Via email token Better Auth — membutuhkan transactional email provider (dependency terbuka, lihat bagian Dependency) |
+| AS-D04 | Password Reset | Via email token Better Auth — provider **Resend** (ADR-126). Pengiriman nyata masih T-005.3 |
 | AS-D05 | Google OAuth Redirect | Callback per environment: `{BETTER_AUTH_URL}/api/auth/callback/google` — URL berbeda untuk production & staging |
 | AS-D06 | Mobile Auth | Better Auth **Bearer plugin** untuk `/api/v1` (ADR-043) — `Authorization: Bearer <token>` menggantikan cookie session untuk request mobile; satu instance Better Auth & satu tabel session dengan web |
 
@@ -73,7 +73,7 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true, // verifikasi email saat registrasi
-    // sendResetPassword: dikonfigurasi setelah email provider dipilih (AS-D04)
+    // sendResetPassword: Resend (ADR-126); wiring masih T-005.3
   },
 
   // Google OAuth (AU-D07)
@@ -116,7 +116,7 @@ export const auth = betterAuth({
 | Aspek | Konfigurasi |
 |-------|-------------|
 | Registrasi | Email + password via Server Action → `auth.api.signUpEmail()` |
-| Verifikasi email | Wajib (`requireEmailVerification: true`) — butuh email provider |
+| Verifikasi email | Wajib (`requireEmailVerification: true`) — provider Resend (ADR-126). Pengiriman nyata masih T-005.3; flag ini diaktifkan di T-005.5 |
 | Login | `auth.api.signInEmail()` |
 | Password reset | Token via email (AS-D04) |
 | Password hashing | Dikelola Better Auth (scrypt default) — tidak diimplementasikan manual |
@@ -273,15 +273,11 @@ Selaras dengan `deployment-infrastructure.md` (Supabase project terpisah, DI-D03
 
 ---
 
-# Dependency Terbuka — Transactional Email (AS-D04)
+# Transactional Email (AS-D04)
 
-Verifikasi email registrasi dan password reset membutuhkan **transactional email provider** yang **belum ditetapkan**. Ini bukan bagian dari baseline auth dan berdampak pada notifikasi sistem secara umum.
+Verifikasi email registrasi dan password reset memakai **Resend** (ADR-126, 2026-10-14). Env yang sama dengan undangan anggota: `RESEND_API_KEY` dan `RESEND_FROM_EMAIL` (sudah dipakai T-110 dan T-007.7).
 
-**Status:** perlu keputusan terpisah (kandidat: Resend, Postmark, AWS SES, atau SMTP Supabase bawaan untuk MVP).
-
-Sampai provider dipilih:
-- Fungsi `emailAndPassword.sendResetPassword` dan email verification di-stub / dinonaktifkan sementara.
-- Keputusan email provider disarankan diputuskan bersamaan dengan kebutuhan email notifikasi lain (di luar scope dokumen ini).
+**Status keputusan:** terkunci. **Status implementasi:** katalog env sudah di `environment-management.md` (T-005.2). `sendResetPassword` dan verifikasi email Better Auth masih stub / nonaktif sampai T-005.3–T-005.5.
 
 ---
 
@@ -306,7 +302,7 @@ Sampai provider dipilih:
 | AS-D01 | Better Auth menyimpan data auth di Supabase PostgreSQL yang sama (prefix `identity_`) via Prisma | Satu database & satu migrate path (DO-D05); konsisten dengan DB-D04 | DB terpisah untuk auth; driver non-Prisma terpisah dari schema |
 | AS-D02 | Database session (token opaque) alih-alih JWT stateless-only | Sesi dapat direvokasi (logout/hapus device); konsisten dengan `auth-architecture.md` | JWT stateless (tidak bisa direvokasi sebelum expiry) |
 | AS-D03 | Better Auth menerbitkan JWT Supabase-compatible untuk Realtime | Menyediakan `auth.uid()` bagi RLS Realtime tanpa memindahkan seluruh auth ke Supabase Auth | Pindah ke Supabase Auth (bertentangan ADR-024); polling manual (menghapus manfaat Realtime) |
-| AS-D04 | Password reset & email verification via transactional email (provider TBD) | Memisahkan pilihan email provider dari keputusan auth core; auth tidak terblok | Hardcode satu provider sekarang (keputusan prematur di luar scope) |
+| AS-D04 | Password reset & email verification via Resend (ADR-126) | Resend sudah terpasang untuk undangan (T-110, T-007.7); satu provider untuk email akun dan undangan | Postmark, AWS SES, SMTP Supabase |
 | AS-D05 | OAuth client & redirect URI terpisah per environment | Isolasi kredensial; callback URL berbeda antara prod & staging | Satu OAuth client dipakai bersama (redirect URI campur, rawan salah routing) |
 | AS-D06 | Better Auth Bearer plugin untuk auth mobile `/api/v1` | Mempertahankan satu sistem auth (satu secret, satu tabel session, satu tempat revoke) alih-alih membangun auth kedua khusus mobile; Bearer bebas CSRF dan tetap revocable (ADR-043) | API Key plugin sebagai auth login mobile (cocok programmatic access, bukan interactive login); backend auth terpisah untuk mobile (duplikasi sistem) |
 
