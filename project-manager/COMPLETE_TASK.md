@@ -8,6 +8,14 @@ Seluruh perubahan penting pada dokumentasi maupun implementasi project dicatat p
 
 ---
 
+## 2026-10-14 — Perbaikan code review PR #165 (T-005.1 / ADR-126)
+
+### Fixed
+- `tasks/v01-foundation.md`: catatan T-007.1, T-007.7, T-093, dan T-110 diselaraskan dengan ADR-126. Provider sudah Resend. KI-001 hanya menutup pilihan vendor. Verifikasi email global tetap mati sampai T-005.5. Mitigasi jalur accept-invite tetap di T-110.
+- `auth-strategy.md`: baris verifikasi email menyebut Resend, pengiriman nyata di T-005.3, dan flag di T-005.5.
+- `environment-management.md`: `RESEND_API_KEY` dan `RESEND_FROM_EMAIL` pindah dari tabel opsional ke katalog server. `.env.example` mengikuti keputusan yang sama.
+- T-005.2 dicentang. Sisa T-005 adalah T-005.3–.5. Indeks v0.1 tidak berubah (T-005 tetap 🟡).
+
 ## 2026-10-14 — T-005.1: provider email transactional dikunci ke Resend (ADR-126), KI-001 Resolved
 
 ### Konteks

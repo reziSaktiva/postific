@@ -116,7 +116,7 @@ export const auth = betterAuth({
 | Aspek | Konfigurasi |
 |-------|-------------|
 | Registrasi | Email + password via Server Action → `auth.api.signUpEmail()` |
-| Verifikasi email | Wajib (`requireEmailVerification: true`) — butuh email provider |
+| Verifikasi email | Wajib (`requireEmailVerification: true`) — provider Resend (ADR-126). Pengiriman nyata masih T-005.3; flag ini diaktifkan di T-005.5 |
 | Login | `auth.api.signInEmail()` |
 | Password reset | Token via email (AS-D04) |
 | Password hashing | Dikelola Better Auth (scrypt default) — tidak diimplementasikan manual |
@@ -277,7 +277,7 @@ Selaras dengan `deployment-infrastructure.md` (Supabase project terpisah, DI-D03
 
 Verifikasi email registrasi dan password reset memakai **Resend** (ADR-126, 2026-10-14). Env yang sama dengan undangan anggota: `RESEND_API_KEY` dan `RESEND_FROM_EMAIL` (sudah dipakai T-110 dan T-007.7).
 
-**Status keputusan:** terkunci. **Status implementasi:** `sendResetPassword` dan verifikasi email Better Auth masih stub / nonaktif sampai T-005.2–T-005.5. Katalog env di `environment-management.md` menyusul di T-005.2.
+**Status keputusan:** terkunci. **Status implementasi:** katalog env sudah di `environment-management.md` (T-005.2). `sendResetPassword` dan verifikasi email Better Auth masih stub / nonaktif sampai T-005.3–T-005.5.
 
 ---
 

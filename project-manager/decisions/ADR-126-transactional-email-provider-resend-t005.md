@@ -20,11 +20,12 @@ King Rezi mengunci provider email transactional aplikasi ke **Resend**.
    dan verifikasi email registrasi (AS-D04).
 2. Pakai integrasi yang sudah ada dari T-110: package `resend`, env
    `RESEND_API_KEY` dan `RESEND_FROM_EMAIL`. Jangan menambah provider kedua.
-3. ADR ini hanya menutup **T-005.1** (pilih provider) dan **KI-001**
-   (provider belum ditetapkan). Pengiriman email Better Auth yang nyata
-   tetap di **T-005.2–T-005.5**: katalog env, `sendResetPassword` +
-   `sendVerificationEmail`, halaman `verify-email`, dan
-   `requireEmailVerification: true`.
+3. ADR ini menutup **T-005.1** (pilih provider) dan **KI-001**
+   (provider belum ditetapkan). Katalog env (`RESEND_API_KEY`,
+   `RESEND_FROM_EMAIL`) dicatat di `environment-management.md` sebagai
+   **T-005.2**. Pengiriman email Better Auth yang nyata tetap di
+   **T-005.3–T-005.5**: `sendResetPassword` + `sendVerificationEmail`,
+   halaman `verify-email`, dan `requireEmailVerification: true`.
 4. T-110 (kode verifikasi accept-invite) dan T-007.7 (Kirim via Email)
    sudah memakai Resend. Keduanya tetap berdiri sendiri dan tidak menggantikan
    verifikasi email global Better Auth.

@@ -229,8 +229,8 @@ scope resmi **T-007.7**, bukan lagi Known Issue berdiri sendiri.
 `tasks/v01-foundation.md` § T-007) — diimplementasikan via Resend (adapter
 yang sama dikunci T-110), **tanpa menunggu T-005** seperti dugaan awal di
 atas. Provider untuk seluruh app dikunci ke Resend di **ADR-126**
-(2026-10-14, KI-001 Resolved). T-005 tetap 🟡 In Progress: sisa T-005.2–.5
-(kirim email Better Auth) belum dikerjakan.
+(2026-10-14, KI-001 Resolved). T-005 tetap 🟡 In Progress: katalog env
+selesai di T-005.2; sisa T-005.3–.5 (kirim email Better Auth) belum dikerjakan.
 
 ### KI-053 · Invite via Copy Link — email tidak diverifikasi kepemilikan inbox, rawan identity takeover
 
@@ -501,7 +501,7 @@ seluruh daftar Known Issues.
 
 ## Completed (Ringkasan)
 
-* **T-005.1 + KI-001 (2026-10-14)** — provider email transactional dikunci ke Resend (ADR-126). KI-001 dikeluarkan dari daftar hidup. T-005 naik dari Blocked ke In Progress; sisa T-005.2–.5 belum dikerjakan. Detail: `decisions/ADR-126-transactional-email-provider-resend-t005.md`, `COMPLETE_TASK.md`.
+* **T-005.1–.2 + KI-001 (2026-10-14)** — provider email transactional dikunci ke Resend (ADR-126). KI-001 dikeluarkan dari daftar hidup. Katalog `RESEND_API_KEY` / `RESEND_FROM_EMAIL` masuk tabel server (T-005.2). T-005 tetap In Progress; sisa T-005.3–.5 belum dikerjakan. Detail: `decisions/ADR-126-transactional-email-provider-resend-t005.md`, `COMPLETE_TASK.md`.
 * **T-016 ✅ TUNTAS 5/5 subtask — Account & user settings screens, T-016.4 `/account/notifications` (2026-10-14)** — subtask terakhir (preferensi notifikasi: Balasan & Mention, Jadwal Publish, Laporan Analytics) diimplementasikan di domain `identity`, lolos review Ridwan (nihil temuan) dan QA end-to-end Najwa. Migration baru `identity_user` sudah dijalankan King Rezi & diverifikasi via Supabase MCP. PR #164 ke `staging` sudah di-merge. Detail: `tasks/v01-foundation.md` § T-016, `COMPLETE_TASK.md`.
 * **T-030 ✅ TUNTAS 3/3 subtask — Cancel Schedule + dialog konfirmasi (2026-10-13)** — entry point "Batalkan Jadwal" ditambahkan di popover Calendar (`CalendarPostPopover.tsx`), melengkapi bagian Queue yang sudah selesai sejak T-032.4. 100% reuse use-case/RBAC yang sama, tanpa business logic baru. Detail: `tasks/v02-publishing-mvp.md` § T-030, `COMPLETE_TASK.md`.
 * **Blocker staging ditutup (2026-10-13)** — migrasi T-051 sudah ter-apply sejak 2026-09-22, cron staging membalas 200 tiap menit, dan lima target Publish Now yang stuck `pending` sudah final sejak 2026-10-05. Penghalang aktif tinggal **KI-015**. Detail: `COMPLETE_TASK.md`.
@@ -514,7 +514,7 @@ Berikut ~5 item terakhir yang diselesaikan. Riwayat lengkap (sejak M0): lihat `C
 
 5 ADR terakhir. Daftar lengkap (indeks + link ke tiap ADR): lihat `DECISIONS.md`.
 
-* **ADR-126** — Provider email transactional dikunci ke Resend (T-005.1). Menutup KI-001. Reset password dan verifikasi email Better Auth masih T-005.2–.5. Detail: `decisions/ADR-126-transactional-email-provider-resend-t005.md`.
+* **ADR-126** — Provider email transactional dikunci ke Resend (T-005.1). Menutup KI-001. Katalog env selesai di T-005.2. Reset password dan verifikasi email Better Auth masih T-005.3–.5. Detail: `decisions/ADR-126-transactional-email-provider-resend-t005.md`.
 * **ADR-125** — Save Draft menyimpan akun tujuan (akun, format, opsi Pinterest) dan Draft Editor mengisi Account Selector dari data itu saat dibuka lagi. Menutup KI-060 dan KI-032. Tanggal/jam jadwal tidak ikut. Detail: `decisions/ADR-125-simpan-akun-tujuan-draft-ki060.md`.
 * **ADR-124** — Nama produk final "Postific"; package scope `@social/*` menjadi `@postific/*`. Detail: `decisions/ADR-124-nama-produk-postific-rename-package-scope-social-ke-postific.md`.
 * **ADR-123** — Wiring `RealOutstandAdapter.importPosts`/`fetchImportJobStatus` sungguhan (T-112): signature `fetchImportJobStatus` berubah jadi `(outstandAccountId, importJobId)` (endpoint sungguhan mensyaratkan account id di path, diverifikasi OpenAPI spec resmi); data post diambil tambahan lewat `GET /v1/posts?social_account_id=...` karena endpoint status tidak membawanya; status real API `partial` dipetakan ke `"completed"` (post berhasil tetap diambil, `error` diisi ringkasan gagal) — keputusan produk King Rezi. Detail: `decisions/ADR-123-wiring-import-posts-fetchimportjobstatus-outstandaccountid-partial-status-ki112.md`.
