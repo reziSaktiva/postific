@@ -667,7 +667,7 @@ Jadi T-029.4/.5/.6 di bawah **desainnya sudah tersedia** — sisa pekerjaan murn
 
 | Field         | Value                                            |
 | ------------- | ------------------------------------------------ |
-| **Status**    | 🟡 In Progress — bagian Queue selesai via T-032.4; bagian Calendar masih belum ada entry point Cancel Schedule (T-033 sudah ✅ Done tapi tidak mencakup ini — lihat catatan) |
+| **Status**    | ✅ Done — bagian Queue selesai via T-032.4 (2026-08-20); bagian Calendar selesai via T-030.3 (2026-10-13) |
 | **Domain**    | publishing                                       |
 | **ADR**       | ADR-049 (Tier 2)                                 |
 | **Depends**   | T-028 ✅, T-032 ✅ (aksi dipicu dari Queue — selesai), T-033 ✅ (Calendar view selesai 2026-08-28, tapi tidak menambahkan entry point Cancel Schedule — lihat catatan) |
@@ -677,9 +677,11 @@ Jadi T-029.4/.5/.6 di bawah **desainnya sudah tersedia** — sisa pekerjaan murn
 
 **Catatan (2026-08-28):** T-033 (Calendar view) sudah `✅ Done`, tapi scope-nya berhenti di Popover ringkasan + CTA "Buka Draft Editor" (T-033.8) — **tidak** menambahkan entry point Cancel Schedule langsung di Calendar. Bagian Calendar task ini tetap `🟡 In Progress`, tidak lagi diblokir oleh T-033 yang belum selesai, melainkan menunggu implementasi entry point-nya sendiri (belum ada task terpisah untuk ini).
 
+**Selesai (2026-10-13):** Entry point Cancel Schedule ditambahkan di popover Calendar (`CalendarPostPopover.tsx`) — tombol "Batalkan Jadwal" (variant destructive) khusus post berstatus Scheduled, di bawah tombol "Buka Draft Editor" yang sudah ada. 100% reuse `CancelScheduleUseCase`/RBAC yang sama dengan Queue (T-032.4), tanpa business logic baru. File yang diubah: `apps/web/src/app/(app)/publish/calendar/actions.ts` (Server Action baru `cancelScheduleAction`), `components/CalendarScreen.tsx` (state dialog `useConfirmAction` + `AlertDialog`, pola identik `QueueScreen.tsx`), `components/CalendarWeekGrid.tsx`, `components/CalendarMonthGrid.tsx`, `components/CalendarAgendaList.tsx` (thread prop `onCancelSchedule`), `components/CalendarPostPopover.tsx` (tombol baru). Desain tombol kedua ini dikonfirmasi langsung oleh King Rezi di chat (gap rule 17 `AGENTS.md` ditemukan saat QA — ditutup belakangan secara paralel oleh Neymar Product Designer yang menyinkronkan `components/popover.html` sebagai LOCKED PATTERN, terpisah dari task ini). Dikerjakan Mark UI Engineer, direview Ridwan Architecture Reviewer (0 temuan), di-QA Najwa QA Engineer (golden path Week/Month/Mobile Agenda PASS, negative case PASS, dialog konfirmasi + loading state PASS, dark/light mode PASS, 726 test lulus/0 failed, `tsc`/`eslint` bersih). Branch `feature/t-030-3-calendar-cancel-schedule`, commit `afabafb`. **T-030 kini `✅ Done` penuh** (Queue + Calendar). Housekeeping kecil: 1 post test "Test Cancel Schedule T-030.3" masih nyangkut sebagai Draft di DB dev (dibuat Mark, direuse Najwa) — belum dihapus (di luar wewenang eksekusi otonom AI).
+
 - [x] **T-030.1** `PublishingService.cancelSchedule` + batalkan di Outstand (T-025) — diimplementasikan via `cancel-schedule.use-case.ts` + `IOutstandAdapter.cancelScheduledPost` (Fake, ADR-059) di T-032.4
 - [x] **T-030.2** Dialog konfirmasi Tier 2 — referensi copy & interaksi sudah ada di prototipe Claude Design (`openCancelScheduleDialog`/`applyCancelSchedule`, `templates/app-prototype/AppPrototype.dc.html`, dibuat via T-032.0 2026-08-19): warning "Post kembali menjadi Draft dan tidak akan dipublikasikan otomatis" + tombol `btn-danger` "Batalkan Jadwal" — diimplementasikan nyata sebagai `AlertDialog` Astryx di T-032.4
-- [ ] **T-030.3** Aksi tersedia dari Queue (tombol icon merah `.icon-btn-danger` per row, desain final T-032.0) + Calendar — **Queue selesai** (T-032.4, 2026-08-20); **Calendar belum**, entry point-nya belum diimplementasikan meski T-033 sudah selesai
+- [x] **T-030.3** Aksi tersedia dari Queue (tombol icon merah `.icon-btn-danger` per row, desain final T-032.0) + Calendar — **Queue selesai** (T-032.4, 2026-08-20); **Calendar selesai** (2026-10-13, popover `CalendarPostPopover.tsx`)
 
 ### T-031 · Redirect otomatis ke sub-screen tujuan setelah aksi terminal
 

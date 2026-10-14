@@ -4,7 +4,7 @@ import { type ReactNode, useState } from "react";
 
 import Link from "next/link";
 
-import { ContentStatus } from "@postific/shared";
+import { ContentStatus, type PostId } from "@postific/shared";
 
 import { isReadonlyTerminalStatus } from "@/domains/publishing/readonly-terminal-status";
 
@@ -43,6 +43,11 @@ export interface CalendarPostPopoverProps {
   entry: CalendarCardEntry;
   /** Trigger — dibungkus `PopoverTrigger asChild`, jadi cukup elemen tunggal yang punya `onClick`/focus bawaan (mis. tombol/`role="button"`). */
   children: ReactNode;
+  /** T-030.3 — handler buka dialog konfirmasi Cancel Schedule (state dilift
+   * ke `CalendarScreen`, pola sama `QueueScreen`/`useConfirmAction`). Opsional
+   * karena hanya dirender saat `entry.status === ContentStatus.Scheduled`;
+   * tidak mengubah apa pun di varian `isImported`. */
+  onCancelSchedule?: (postId: PostId) => void;
 }
 
 /**
@@ -97,6 +102,7 @@ export interface CalendarPostPopoverProps {
 export function CalendarPostPopover({
   entry,
   children,
+  onCancelSchedule,
 }: CalendarPostPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { openEditDraft } = useDraftEditor();
@@ -115,6 +121,7 @@ export function CalendarPostPopover({
    * `isTerminalReadonly` untuk status `Imported` tidak pernah dievaluasi.
    */
   const isTerminalReadonly = isReadonlyTerminalStatus(entry.status);
+  const isScheduled = entry.status === ContentStatus.Scheduled;
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -260,16 +267,31 @@ export function CalendarPostPopover({
               </Button>
             </div>
           ) : (
-            <Button
-              variant="default"
-              className="w-full"
-              onClick={() => {
-                setIsOpen(false);
-                openEditDraft(entry.postId);
-              }}
-            >
-              Buka Draft Editor
-            </Button>
+            // eslint-disable-next-line no-restricted-syntax -- T-030.3: layout-only, stack 2 tombol full-width (pola sama branch isImported)
+            <div className="flex flex-col gap-2">
+              <Button
+                variant="default"
+                className="w-full"
+                onClick={() => {
+                  setIsOpen(false);
+                  openEditDraft(entry.postId);
+                }}
+              >
+                Buka Draft Editor
+              </Button>
+              {isScheduled && onCancelSchedule ? (
+                <Button
+                  variant="destructive"
+                  className="w-full"
+                  onClick={() => {
+                    setIsOpen(false);
+                    onCancelSchedule(entry.postId);
+                  }}
+                >
+                  Batalkan Jadwal
+                </Button>
+              ) : null}
+            </div>
           )}
         </div>
       </PopoverContent>

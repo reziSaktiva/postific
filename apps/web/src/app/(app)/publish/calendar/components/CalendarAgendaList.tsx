@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 
-import type { ConnectedAccountId } from "@postific/shared";
+import type { ConnectedAccountId, PostId } from "@postific/shared";
 import type { CalendarPostItem } from "@/domains/publishing";
 
 import { Badge } from "@/components/ui/badge";
@@ -50,6 +50,8 @@ export interface CalendarAgendaListProps {
   items: CalendarPostItem[];
   /** Filter Channels aktif (T-033.6) — array kosong = tanpa filter, sama seperti grid. */
   connectedAccountIds?: ConnectedAccountId[];
+  /** T-030.3 — diteruskan ke `CalendarPostPopover` tiap kartu. Opsional. */
+  onCancelSchedule?: (postId: PostId) => void;
 }
 
 /**
@@ -71,6 +73,7 @@ export interface CalendarAgendaListProps {
 export function CalendarAgendaList({
   items,
   connectedAccountIds = [],
+  onCancelSchedule,
 }: CalendarAgendaListProps) {
   const todayKey = toUtcDateKey(new Date());
 
@@ -129,7 +132,11 @@ export function CalendarAgendaList({
             {group.entries.map((entry) => {
               const PlatformGlyph = PLATFORM_ICON[entry.platform].Icon;
               return (
-                <CalendarPostPopover key={entry.key} entry={entry}>
+                <CalendarPostPopover
+                  key={entry.key}
+                  entry={entry}
+                  onCancelSchedule={onCancelSchedule}
+                >
                   <button
                     type="button"
                     aria-label={`${entry.accountHandle} — ${
