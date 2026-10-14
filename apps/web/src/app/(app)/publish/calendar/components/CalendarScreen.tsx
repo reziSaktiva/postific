@@ -4,10 +4,10 @@ import { useCallback, useRef } from "react";
 
 import { toast } from "sonner";
 
-import type {
-  ConnectedAccountId,
+import {
   ContentStatus,
-  PostId,
+  type ConnectedAccountId,
+  type PostId,
 } from "@postific/shared";
 import {
   effectiveCalendarDate,
@@ -275,6 +275,23 @@ export function CalendarScreen({
               disabled={cancelConfirm.isLoading}
               onClick={(e) => {
                 e.preventDefault();
+                // Race: realtime bisa saja mengubah post ini jadi
+                // Published/Failed SETELAH dialog dibuka tapi SEBELUM
+                // tombol ini diklik (job terjadwal keburu jalan). Server
+                // (`assertPostMutable`) tetap menolak di kasus itu, tapi
+                // re-check status di local state dulu supaya error yang
+                // tampil jelas ("sudah bukan Scheduled"), bukan pesan
+                // generik dari Server Action.
+                const current = localItems.find(
+                  (item) => item.id === cancelConfirm.target,
+                );
+                if (current && current.status !== ContentStatus.Scheduled) {
+                  cancelConfirm.close();
+                  toast.error(
+                    "Post ini sudah bukan Scheduled lagi — batalkan jadwal tidak diperlukan.",
+                  );
+                  return;
+                }
                 void cancelConfirm.confirm();
               }}
             >
