@@ -344,7 +344,7 @@ mengubah markup yang dikunci).
 
 | Field         | Value                                                        |
 | ------------- | ------------------------------------------------------------ |
-| **Status**    | 🟡 In Progress — T-016.1/2/3/5 selesai (review Ridwan nihil temuan, QA end-to-end Najwa + verifikasi tambahan sesi utama lolos); T-016.4 belum dikerjakan. T-036 sudah ✅ Done, jadi subtask ini tidak lagi terblokir oleh task itu |
+| **Status**    | 🟡 In Progress — T-016.1/2/3/5 selesai (review Ridwan nihil temuan, QA end-to-end Najwa + verifikasi tambahan sesi utama lolos); T-016.4 sedang dikerjakan |
 | **Domain**    | identity                                                     |
 | **ADR**       | ADR-046 (routing convention), ADR-071 (perluasan bucket `avatars`) |
 | **Depends**   | T-003 ✅, T-009 ✅                                             |

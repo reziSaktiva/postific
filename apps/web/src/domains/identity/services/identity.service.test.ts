@@ -32,6 +32,12 @@ function createFakeRepository(
         ...(data.name !== undefined ? { name: data.name } : {}),
         ...(data.image !== undefined ? { image: data.image } : {}),
       }),
+    findNotificationPreferences: async () => ({
+      notifyRepliesAndMentions: true,
+      notifyPublishSchedule: true,
+      notifyAnalyticsReport: false,
+    }),
+    updateNotificationPreferences: async (_userId, data) => data,
     ...overrides,
   };
 }
@@ -276,6 +282,80 @@ describe("IdentityService", () => {
         service.updateProfile({ userId: USER_ID, name: "Raka" }),
       ).rejects.toThrow("DB write failed");
       expect(deleteCalled).toBe(false);
+    });
+  });
+
+  describe("getNotificationPreferences()", () => {
+    it("delegates to repository.findNotificationPreferences()", async () => {
+      const repository = createFakeRepository({
+        findNotificationPreferences: async () => ({
+          notifyRepliesAndMentions: false,
+          notifyPublishSchedule: true,
+          notifyAnalyticsReport: true,
+        }),
+      });
+      const service = new IdentityService(
+        repository,
+        createFakeAvatarStorage(),
+      );
+
+      const result = await service.getNotificationPreferences(USER_ID);
+
+      expect(result).toEqual({
+        notifyRepliesAndMentions: false,
+        notifyPublishSchedule: true,
+        notifyAnalyticsReport: true,
+      });
+    });
+
+    it("returns null when repository returns null (user not found)", async () => {
+      const repository = createFakeRepository({
+        findNotificationPreferences: async () => null,
+      });
+      const service = new IdentityService(
+        repository,
+        createFakeAvatarStorage(),
+      );
+
+      const result = await service.getNotificationPreferences(USER_ID);
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe("updateNotificationPreferences()", () => {
+    it("delegates to repository.updateNotificationPreferences() with the given payload", async () => {
+      let captured: unknown = null;
+      const repository = createFakeRepository({
+        updateNotificationPreferences: async (userId, data) => {
+          captured = { userId, data };
+          return data;
+        },
+      });
+      const service = new IdentityService(
+        repository,
+        createFakeAvatarStorage(),
+      );
+
+      const result = await service.updateNotificationPreferences(USER_ID, {
+        notifyRepliesAndMentions: false,
+        notifyPublishSchedule: false,
+        notifyAnalyticsReport: true,
+      });
+
+      expect(captured).toEqual({
+        userId: USER_ID,
+        data: {
+          notifyRepliesAndMentions: false,
+          notifyPublishSchedule: false,
+          notifyAnalyticsReport: true,
+        },
+      });
+      expect(result).toEqual({
+        notifyRepliesAndMentions: false,
+        notifyPublishSchedule: false,
+        notifyAnalyticsReport: true,
+      });
     });
   });
 });
