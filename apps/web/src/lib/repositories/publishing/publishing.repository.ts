@@ -258,24 +258,6 @@ export const publishingRepository: IPublishingRepository = {
     return post ? mapPost(post) : null;
   },
 
-  // Code review PR #163 — lihat doc comment interface-nya
-  // (`IPublishingRepository.findPostStatusById`): tidak lewat `mapPost`,
-  // jadi aman untuk post `Imported` (authorId null).
-  async findPostStatusById({ workspaceId, postId }, userId) {
-    const post = await withCurrentUser(userId, (tx) =>
-      tx.publishingPost.findFirst({
-        where: {
-          id: postId,
-          workspaceId,
-          deletedAt: null,
-        },
-        select: { status: true },
-      }),
-    );
-
-    return post ? { status: post.status as ContentStatus } : null;
-  },
-
   async updateDraftCaption(
     { workspaceId, postId, caption, mediaIds, targets },
     userId,
@@ -285,7 +267,6 @@ export const publishingRepository: IPublishingRepository = {
         where: {
           id: postId,
           workspaceId,
-          // T-091.1 — hanya Draft; Published/Failed/Imported di luar whitelist.
           status: ContentStatus.Draft,
           deletedAt: null,
         },
@@ -329,7 +310,6 @@ export const publishingRepository: IPublishingRepository = {
           where: {
             id: postId,
             workspaceId,
-            // T-091.1 — hanya Draft/ReadyToSchedule; Published/Failed/Imported di luar whitelist.
             status: {
               in: [ContentStatus.Draft, ContentStatus.ReadyToSchedule],
             },
@@ -445,7 +425,6 @@ export const publishingRepository: IPublishingRepository = {
           where: {
             id: postId,
             workspaceId,
-            // T-091.1 — hanya Draft/ReadyToSchedule; Published/Failed/Imported di luar whitelist.
             status: {
               in: [ContentStatus.Draft, ContentStatus.ReadyToSchedule],
             },
@@ -550,7 +529,6 @@ export const publishingRepository: IPublishingRepository = {
         where: {
           id: postId,
           workspaceId,
-          // T-091.1 — hanya Scheduled; Published/Failed/Imported di luar whitelist.
           status: ContentStatus.Scheduled,
           deletedAt: null,
         },
@@ -1063,9 +1041,8 @@ export const publishingRepository: IPublishingRepository = {
       // Guard ganda (koreksi 2026-09-10, lihat `IPublishingRepository.softDeletePost`):
       // hanya post Draft yang belum di-soft-delete yang bisa jadi target —
       // entry point Delete Post hanya ada di Drafts, post Scheduled harus
-      // di-Cancel Schedule dulu. Published/Failed/Imported (T-091.1) tertolak
-      // karena di luar whitelist Draft. `status: Draft` di sini murni safety
-      // net race condition; guard utama (pesan error informatif) sudah
+      // di-Cancel Schedule dulu. `status: Draft` di sini murni safety net
+      // race condition; guard utama (pesan error informatif) sudah
       // dilakukan `PublishingService.deletePost` lebih dulu.
       const { count } = await tx.publishingPost.updateMany({
         where: {

@@ -350,22 +350,6 @@ export interface IPublishingRepository {
   ): Promise<PublishingPostRecord | null>;
 
   /**
-   * Code review PR #163 — lean status-only lookup. `findDraftById` di atas
-   * memetakan hasilnya lewat `mapPost`, yang melempar `Error` mentah (bukan
-   * `ApplicationError`) untuk post berstatus `Imported` (`authorId` null,
-   * ADR-093) — tidak aman dipakai cuma untuk baca `.status` (mis. guard
-   * read-only T-091.1), karena `Imported` justru salah satu status yang
-   * guard itu harus tangani. Method ini TIDAK melalui `mapPost` dan TIDAK
-   * men-join `targets`, jadi aman untuk semua status termasuk `Imported`.
-   *
-   * `userId` (RLS, KI-026 follow-up) — acting user for `withCurrentUser`.
-   */
-  findPostStatusById(
-    input: { workspaceId: WorkspaceId; postId: PostId },
-    userId: UserId,
-  ): Promise<{ status: ContentStatus } | null>;
-
-  /**
    * Returns null when no matching draft exists in this workspace. `userId`
    * (RLS, KI-026 follow-up) — acting user for `withCurrentUser`.
    */

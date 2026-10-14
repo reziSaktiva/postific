@@ -52,8 +52,8 @@ Ini penting untuk aturan `PROJECT_RULES.md` "Hindari implementasi fitur di luar 
 
 | Release                    | Fokus                                              | Rentang ID  | Task | Status              | File                                                 |
 | -------------------------- | -------------------------------------------------- | ----------- | ---- | ------------------- | ---------------------------------------------------- |
-| **v0.1** Foundation        | Setup, Auth, Workspace, Connect Account, Settings  | T-001–T-019, T-039¹, T-089¹, T-093¹, T-094¹, T-109¹, T-110¹ | 25   | 20 ✅ · 4 🟡 · 1 ⏸️ | [tasks/v01-foundation.md](tasks/v01-foundation.md)         |
-| **v0.2** Publishing MVP    | Draft, Format, Schedule, Queue, Calendar, History  | T-020–T-038, T-090¹–T-092¹, T-104¹, T-106¹–T-108¹, T-111¹–T-112¹ | 28   | 27 ✅ · 1 🟡 · 0 ⏳ | [tasks/v02-publishing-mvp.md](tasks/v02-publishing-mvp.md) |
+| **v0.1** Foundation        | Setup, Auth, Workspace, Connect Account, Settings  | T-001–T-019, T-039¹, T-089¹, T-093¹, T-094¹, T-109¹, T-110¹ | 25   | 19 ✅ · 1 🚫 · 4 🟡 · 1 ⏸️ | [tasks/v01-foundation.md](tasks/v01-foundation.md)         |
+| **v0.2** Publishing MVP    | Draft, Format, Schedule, Queue, Calendar, History  | T-020–T-038, T-090¹–T-092¹, T-104¹, T-106¹–T-108¹, T-111¹–T-112¹ | 28   | 25 ✅ · 2 🟡 · 1 ⏳ | [tasks/v02-publishing-mvp.md](tasks/v02-publishing-mvp.md) |
 | **v0.3** Analytics MVP     | Dashboard, Metrics, Engagement Summary, Reports    | T-040–T-048 | 9    | 9 ✅                | [tasks/v03-analytics-mvp.md](tasks/v03-analytics-mvp.md)   |
 | **v0.4** Engagement MVP    | Comment sync 30 menit, Inbox, Reply                | T-050–T-056 | 7    | 6 ✅ · 1 ⏳ (Could Have) | [tasks/v04-engagement-mvp.md](tasks/v04-engagement-mvp.md) |
 | **v0.5** AI Assistant MVP  | Caption generation, improvement, rewrite           | T-060–T-065 | 6    | ⏳ 0 / 6             | [tasks/v05-ai-assistant-mvp.md](tasks/v05-ai-assistant-mvp.md) |
@@ -61,7 +61,7 @@ Ini penting untuk aturan `PROJECT_RULES.md` "Hindari implementasi fitur di luar 
 | **v1.0** Public Launch     | Stabilitas, Performance, Security, Docs            | T-080–T-088 | 9    | ⏳ 0 / 9             | [tasks/v10-public-launch.md](tasks/v10-public-launch.md)   |
 | **v0.7** Migrasi Astryx → shadcn/ui | Cross-cutting: ganti fondasi UI component system (ADR-097) | T-095–T-103, T-105¹ | 10   | 10 ✅               | [tasks/v07-astryx-shadcn-migration.md](tasks/v07-astryx-shadcn-migration.md) |
 
-**Total:** 99 task · 72 selesai · 263 subtask terdefinisi (v0.1–v0.3, v0.7).
+**Total:** 99 task · 69 selesai · 263 subtask terdefinisi (v0.1–v0.3, v0.7).
 
 > Riwayat perubahan indeks (kapan & kenapa tiap hitungan/status berubah) dicatat lengkap di `COMPLETE_TASK.md` — ⚠️ jangan dibaca AI kecuali diperintah eksplisit King Rezi. Status per-task terkini: lihat tabel di atas + `tasks/vXX-*.md`.
 
@@ -69,7 +69,7 @@ Ini penting untuk aturan `PROJECT_RULES.md` "Hindari implementasi fitur di luar 
 
 Urutan release mengikuti [`release-roadmap.md`](../product-discovery/02-product/release-roadmap.md). Perubahan urutan atau ruang lingkup release wajib lewat ADR.
 
-> ⚠️ **v0.1 dan v0.2 tidak sepenuhnya sekuensial.** Dulu T-013, T-015, dan T-016 punya subtask yang bergantung pada v0.2 (T-025, T-026, T-036). T-012 sudah ✅ Done (2026-08-12). T-015 sudah ✅ Done. T-016 sudah ✅ Done (2026-10-14) — T-016.4 (sisa subtask yang sebelumnya menunggu T-036) sudah diimplementasikan. Sisa yang masih terbuka ada di Catatan Rilis [`tasks/v01-foundation.md`](tasks/v01-foundation.md).
+> ⚠️ **v0.1 dan v0.2 tidak sepenuhnya sekuensial.** Dulu T-013, T-015, dan T-016 punya subtask yang bergantung pada v0.2 (T-025, T-026, T-036). T-012 sudah ✅ Done (2026-08-12). T-015 sudah ✅ Done. T-016.4 tidak lagi ditahan T-036 karena T-036 sudah ✅ Done; subtask itu tetap belum dikerjakan. Sisa yang masih terbuka ada di Catatan Rilis [`tasks/v01-foundation.md`](tasks/v01-foundation.md).
 
 ---
 
@@ -90,7 +90,7 @@ Subtask untuk v0.4 ke atas diisi saat release-nya mendekat. Alasannya: menyusunn
 
 **Fokus aktif:** **T-037** Perkaya aturan coding di `context/ctx-development.md` tetap 🟡 In Progress (kontinu by design, prioritas rendah, tidak memblokir rilis; snapshot kedua T-037.4–.6 dicatat 2026-10-13) — lihat `tasks/v02-publishing-mvp.md` § T-037.
 
-**Selesai baru-baru ini** (detail lengkap per task: `tasks/vXX-*.md`; riwayat penuh: `COMPLETE_TASK.md` — ⚠️ jangan dibaca AI kecuali diperintah eksplisit King Rezi): **T-016 ✅** Account & user settings screens, tuntas 5/5 subtask — T-016.4 `/account/notifications` (preferensi notifikasi) menutup subtask terakhir (2026-10-14) · **T-030 ✅** Cancel Schedule + dialog konfirmasi, tuntas 3/3 subtask — entry point Calendar ditambahkan di popover (2026-10-13, T-030.3), melengkapi bagian Queue yang sudah selesai sejak T-032.4 · **T-091 ✅** Post `Published`/`Failed` jadi read-only (tidak bisa dibuka ke Draft Editor), tuntas 2/2 subtask — UI "Lihat Detail" dikunci Claude Design, QA PASS (2026-10-13) · **T-048 ✅** Wire JOB-04 Analytics Sync ke job runner + Railway Cron harian, tuntas 4/4 subtask — verifikasi staging T-048.4 lolos (Home/`/analyze` menampilkan data asli); gap infra `cron-analytics` 401 ditutup sebagai KI-087 Resolved (2026-10-13) · **T-112 ✅** Wiring `importPosts`/`fetchImportJobStatus` ke endpoint Outstand sungguhan, tuntas 5/5 subtask termasuk polling fix + verifikasi end-to-end (2026-10-09, ADR-123) · **T-090 ✅** Import Posts dari Social Account, status `Imported` read-only, tuntas 5/5 subtask (2026-10-08, ADR-093) · **T-111 ✅** Restrukturisasi layout preview media post asli, History Detail & Post asal Engage, tuntas 8/8 subtask (2026-10-07, promosi KI-083) · **T-056 ✅** Preview post asli (caption+thumbnail+link) di kotak "Post asal" Comments Inbox (2026-10-06, promosi KI-065, PR #143) · **T-107**/**T-108**/**T-109 ✅** Isi `publishedAt`/`failedAt`/`failureReason`, validasi Schedule waktu lewat, RBAC UI Creator Connected Accounts (2026-09-28, promosi KI-049/KI-063/KI-044/KI-058) · **T-106 ✅** Hapus FakeOutstandAdapter + sisa data Fake/mock (2026-09-25, ADR-119, T-106.5) · T-025 KI-072 Pinterest `board_id` selesai via ADR-118 (2026-09-25, status tetap ✅ Done) · T-025 hardening code-review PR #133 (2026-09-25) · T-025 Real OutstandAdapter, tuntas 7/7 subtask (2026-09-24, KI-070/KI-003 Resolved) · T-050, T-051, T-052, T-053, T-054 (v0.4 Engagement MVP, 2026-09-22) · T-044, T-045 (v0.3 Analytics MVP tuntas 8/8, 2026-09-21) · T-043 (2026-09-18) · T-027 (2026-09-17) · T-024 (2026-09-14).
+**Selesai baru-baru ini** (detail lengkap per task: `tasks/vXX-*.md`; riwayat penuh: `COMPLETE_TASK.md` — ⚠️ jangan dibaca AI kecuali diperintah eksplisit King Rezi): **T-048 ✅** Wire JOB-04 Analytics Sync ke job runner + Railway Cron harian, tuntas 4/4 subtask — verifikasi staging T-048.4 lolos (Home/`/analyze` menampilkan data asli); gap infra `cron-analytics` 401 ditutup sebagai KI-087 Resolved (2026-10-13) · **T-112 ✅** Wiring `importPosts`/`fetchImportJobStatus` ke endpoint Outstand sungguhan, tuntas 5/5 subtask termasuk polling fix + verifikasi end-to-end (2026-10-09, ADR-123) · **T-090 ✅** Import Posts dari Social Account, status `Imported` read-only, tuntas 5/5 subtask (2026-10-08, ADR-093) · **T-111 ✅** Restrukturisasi layout preview media post asli, History Detail & Post asal Engage, tuntas 8/8 subtask (2026-10-07, promosi KI-083) · **T-056 ✅** Preview post asli (caption+thumbnail+link) di kotak "Post asal" Comments Inbox (2026-10-06, promosi KI-065, PR #143) · **T-107**/**T-108**/**T-109 ✅** Isi `publishedAt`/`failedAt`/`failureReason`, validasi Schedule waktu lewat, RBAC UI Creator Connected Accounts (2026-09-28, promosi KI-049/KI-063/KI-044/KI-058) · **T-106 ✅** Hapus FakeOutstandAdapter + sisa data Fake/mock (2026-09-25, ADR-119, T-106.5) · T-025 KI-072 Pinterest `board_id` selesai via ADR-118 (2026-09-25, status tetap ✅ Done) · T-025 hardening code-review PR #133 (2026-09-25) · T-025 Real OutstandAdapter, tuntas 7/7 subtask (2026-09-24, KI-070/KI-003 Resolved) · T-050, T-051, T-052, T-053, T-054 (v0.4 Engagement MVP, 2026-09-22) · T-044, T-045 (v0.3 Analytics MVP tuntas 8/8, 2026-09-21) · T-043 (2026-09-18) · T-027 (2026-09-17) · T-024 (2026-09-14).
 
 ---
 
@@ -100,6 +100,7 @@ Task yang **menghasilkan ADR**, bukan sekadar mengikuti ADR. Semuanya menunggu k
 
 | Task      | Keputusan yang belum diambil                              | Menghambat                     |
 | --------- | --------------------------------------------------------- | ------------------------------ |
+| **T-005** | Transactional email provider (AS-D04)                     | Email verification; invite member T-007.7 (jalur "Kirim via Email") — T-007.1 "Copy Link" (ADR-080) tidak terhambat |
 | **T-060** | Provider + model AI                                       | Seluruh v0.5                   |
 | **T-070** | Strategi route publik tanpa auth (+ custom domain?)       | Seluruh v0.6                   |
 | **T-081** | Framework E2E test                                        | Verifikasi golden path         |

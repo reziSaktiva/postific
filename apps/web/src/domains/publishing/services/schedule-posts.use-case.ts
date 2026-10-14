@@ -11,7 +11,6 @@ import type { IOutstandAdapter } from "../adapters/outstand-adapter";
 import type { IJobScheduler } from "../adapters/job-scheduler";
 import { assertContentFormatAllowed } from "../content-format-matrix";
 import { assertPinterestBoardConstraints } from "../pinterest-board-constraints";
-import { assertPostMutable } from "../readonly-terminal-status";
 import { assertScheduledAtNotInPast } from "../schedule-time-constraints";
 import { enqueueResolveOutcomeFallback } from "./enqueue-resolve-outcome-fallback";
 import type {
@@ -109,17 +108,6 @@ export class SchedulePostsUseCase {
     /** RLS (KI-026 follow-up) — acting user for `withCurrentUser`. */
     actingUserId: UserId;
   }): Promise<PublishingPostRecord> {
-    // T-091.1 — tolak post terminal sebelum write, diperiksa sebelum
-    // validasi format/board/waktu (code review PR #163) supaya post
-    // read-only selalu dapat pesan konflik yang spesifik, bukan error
-    // validasi target yang kebetulan juga invalid. Filter status di
-    // `schedulePost` tetap menjadi safety net.
-    await assertPostMutable(
-      this.repository,
-      { workspaceId: input.workspaceId, postId: input.postId },
-      input.actingUserId,
-    );
-
     for (const target of input.targets) {
       assertContentFormatAllowed(target.platform, target.contentFormat);
     }

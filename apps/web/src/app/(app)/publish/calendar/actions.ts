@@ -1,58 +1,13 @@
 "use server";
 
 import { asPostId, asUserId } from "@postific/shared";
-import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 
 import { AnalyticsService } from "@/domains/analytics";
-import {
-  CancelScheduleUseCase,
-  PublishingService,
-  type CalendarPostItem,
-} from "@/domains/publishing";
-import { toActionError } from "@/lib/utils/errors";
+import { PublishingService, type CalendarPostItem } from "@/domains/publishing";
 import { getCachedSession } from "@/lib/better-auth/session";
 import { getWorkspaceContext } from "@/lib/workspace/workspace-context";
-import { getOutstandAdapter } from "@/lib/adapters/outstand";
 import { analyticsRepository } from "@/lib/repositories/analytics";
 import { publishingRepository } from "@/lib/repositories/publishing";
-
-/**
- * Cancel Schedule (T-030.3) — dipanggil dari footer `CalendarPostPopover`
- * di halaman Calendar. Business logic (RBAC, guard status Scheduled,
- * panggilan `OutstandAdapter.cancelScheduledPost` per target) hidup di
- * `CancelScheduleUseCase.execute` — reuse 100% dari implementasi Queue
- * (T-032.4), hanya beda `revalidatePath` tujuannya. Action ini hanya
- * wiring: resolve workspace context/session, delegasikan ke use-case, lalu
- * revalidate halaman Calendar supaya popover/kartu yang dibatalkan langsung
- * hilang dari daftar tanpa perlu refresh manual.
- */
-export async function cancelScheduleAction(
-  postId: string,
-): Promise<{ error?: string }> {
-  const { workspaceId, role } = await getWorkspaceContext();
-  const session = await getCachedSession();
-  if (!session) {
-    redirect("/login");
-  }
-
-  try {
-    await new CancelScheduleUseCase(
-      publishingRepository,
-      getOutstandAdapter(),
-    ).execute({
-      workspaceId,
-      postId: asPostId(postId),
-      actorRole: role,
-      actingUserId: asUserId(session.user.id),
-    });
-  } catch (error) {
-    return toActionError(error);
-  }
-
-  revalidatePath("/publish/calendar");
-  return {};
-}
 
 /**
  * Granular patch Realtime Calendar (T-092.3, ADR-094 poin 5) — dipanggil

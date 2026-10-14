@@ -11,7 +11,6 @@ import type { IJobScheduler } from "../adapters/job-scheduler";
 import { assertContentFormatAllowed } from "../content-format-matrix";
 import { summarizeFailureReasons } from "../failure-reason";
 import { assertPinterestBoardConstraints } from "../pinterest-board-constraints";
-import { assertPostMutable } from "../readonly-terminal-status";
 import { assertActorCanPublishNow } from "../rbac";
 import type {
   IPublishingRepository,
@@ -120,17 +119,6 @@ export class PublishNowUseCase {
     actingUserId: UserId;
   }): Promise<PublishingPostRecord> {
     assertActorCanPublishNow(input.actorRole);
-
-    // T-091.1 — tolak post terminal sebelum write, diperiksa sebelum
-    // validasi format/board (code review PR #163) supaya post read-only
-    // selalu dapat pesan konflik yang spesifik, bukan error validasi target
-    // yang kebetulan juga invalid. Filter status di `publishNow` tetap
-    // menjadi safety net.
-    await assertPostMutable(
-      this.repository,
-      { workspaceId: input.workspaceId, postId: input.postId },
-      input.actingUserId,
-    );
 
     for (const target of input.targets) {
       assertContentFormatAllowed(target.platform, target.contentFormat);

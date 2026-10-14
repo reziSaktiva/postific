@@ -25,7 +25,6 @@ import type {
   PublishingPostRecord,
   QueueItemRecord,
 } from "../repositories/publishing.repository";
-import { READONLY_TERMINAL_CONFLICT_MESSAGE } from "../readonly-terminal-status";
 import { PublishingService } from "./publishing.service";
 
 const WORKSPACE_ID = asWorkspaceId("workspace-1");
@@ -50,7 +49,6 @@ function createFakeRepository(
     }),
     listDrafts: async () => [],
     findDraftById: async () => null,
-    findPostStatusById: async () => null,
     updateDraftCaption: async () => null,
     schedulePost: async () => null,
     publishNow: async () => null,
@@ -231,7 +229,6 @@ describe("PublishingService.updateDraft", () => {
       Parameters<IPublishingRepository["updateDraftCaption"]>[0] | null = null;
     const service = new PublishingService(
       createFakeRepository({
-        findPostStatusById: async () => ({ status: ContentStatus.Draft }),
         updateDraftCaption: async (input) => {
           received = input;
           return {
@@ -268,7 +265,6 @@ describe("PublishingService.updateDraft", () => {
       Parameters<IPublishingRepository["updateDraftCaption"]>[0] | null = null;
     const service = new PublishingService(
       createFakeRepository({
-        findPostStatusById: async () => ({ status: ContentStatus.Draft }),
         updateDraftCaption: async (input) => {
           received = input;
           return {
@@ -309,7 +305,7 @@ describe("PublishingService.updateDraft", () => {
     );
   });
 
-  it("throws ConflictError when the repository returns null (race: status berubah antara guard dan write)", async () => {
+  it("throws NotFoundError when the repository returns null", async () => {
     const service = new PublishingService(createFakeRepository());
 
     await expect(
@@ -321,46 +317,8 @@ describe("PublishingService.updateDraft", () => {
         },
         AUTHOR_ID,
       ),
-    ).rejects.toThrow(ConflictError);
+    ).rejects.toThrow(NotFoundError);
   });
-
-  it.each([
-    ContentStatus.Published,
-    ContentStatus.Failed,
-    ContentStatus.Imported,
-  ])(
-    "T-091.1: post berstatus %s read-only — ConflictError, updateDraftCaption tidak dipanggil",
-    async (status) => {
-      let updateCalls = 0;
-      const service = new PublishingService(
-        createFakeRepository({
-          findPostStatusById: async () => ({ status }),
-          updateDraftCaption: async () => {
-            updateCalls += 1;
-            return null;
-          },
-        }),
-      );
-
-      const error = await service
-        .updateDraft(
-          {
-            workspaceId: WORKSPACE_ID,
-            postId: asPostId("post-1"),
-            caption: "Hello",
-          },
-          AUTHOR_ID,
-        )
-        .then(
-          () => null,
-          (caught: unknown) => caught,
-        );
-
-      expect(error).toBeInstanceOf(ConflictError);
-      expect((error as Error).message).toBe(READONLY_TERMINAL_CONFLICT_MESSAGE);
-      expect(updateCalls).toBe(0);
-    },
-  );
 });
 
 describe("PublishingService.countScheduledByAccount", () => {
@@ -2505,6 +2463,8 @@ describe("PublishingService.deletePost", () => {
     ContentStatus.InReview,
     ContentStatus.ReadyToSchedule,
     ContentStatus.Scheduled,
+    ContentStatus.Published,
+    ContentStatus.Failed,
   ])(
     // Koreksi 2026-09-10: entry point Delete Post HANYA ada di Drafts —
     // King Rezi mengonfirmasi post Scheduled harus di-Cancel Schedule dulu
@@ -2523,60 +2483,16 @@ describe("PublishingService.deletePost", () => {
         }),
       );
 
-      const error = await service
-        .deletePost(
+      await expect(
+        service.deletePost(
           {
             workspaceId: WORKSPACE_ID,
             postId: asPostId("post-1"),
             actorRole: MemberRole.Owner,
           },
           AUTHOR_ID,
-        )
-        .then(
-          () => null,
-          (caught: unknown) => caught,
-        );
-
-      expect(error).toBeInstanceOf(ConflictError);
-      expect((error as Error).message).toMatch(/Hanya post berstatus Draft/);
-      expect(softDeleteCalls).toBe(0);
-    },
-  );
-
-  it.each([
-    ContentStatus.Published,
-    ContentStatus.Failed,
-    ContentStatus.Imported,
-  ])(
-    "T-091.1: post berstatus %s read-only — ConflictError eksplisit, TANPA memanggil softDeletePost",
-    async (status) => {
-      let softDeleteCalls = 0;
-      const service = new PublishingService(
-        createFakeRepository({
-          findDraftById: async () => draftRecord({ status }),
-          softDeletePost: async () => {
-            softDeleteCalls += 1;
-            return null;
-          },
-        }),
-      );
-
-      const error = await service
-        .deletePost(
-          {
-            workspaceId: WORKSPACE_ID,
-            postId: asPostId("post-1"),
-            actorRole: MemberRole.Owner,
-          },
-          AUTHOR_ID,
-        )
-        .then(
-          () => null,
-          (caught: unknown) => caught,
-        );
-
-      expect(error).toBeInstanceOf(ConflictError);
-      expect((error as Error).message).toBe(READONLY_TERMINAL_CONFLICT_MESSAGE);
+        ),
+      ).rejects.toThrow(ConflictError);
       expect(softDeleteCalls).toBe(0);
     },
   );
