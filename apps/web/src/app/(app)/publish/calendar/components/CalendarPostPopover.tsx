@@ -2,6 +2,8 @@
 
 import { type ReactNode, useState } from "react";
 
+import Link from "next/link";
+
 import { ContentStatus } from "@postific/shared";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -72,6 +74,23 @@ export interface CalendarPostPopoverProps {
  * ditambahkan sebelum footer; (4) metrics block sengaja TIDAK ditampilkan
  * (post Imported belum tentu sudah disinkronkan Analytics, JOB-04 — beda
  * dari `Published` yang selalu lewat publish flow tool ini sendiri).
+ *
+ * T-091.2 — varian `Published`/`Failed` (read-only, guard service-level
+ * T-091.1 sudah ada duluan): LOCKED PATTERN (`components/popover.html`,
+ * Claude Design, 2026-10-13, King Rezi confirmed), register yang sama
+ * dengan pola Imported di atas. Beda dari Imported: (1) "Buka Draft Editor"
+ * juga DIHILANGKAN total untuk kedua status ini, tapi CTA penggantinya
+ * adalah "Lihat Detail →" ke halaman History Detail yang sudah ada
+ * (`/publish/history/[postId]`, T-034.3) — bukan link ke platform eksternal;
+ * (2) untuk `Published`, block metrics + link "Go to post →" yang sudah ada
+ * dari `isPublished` TETAP ditampilkan apa adanya, "Lihat Detail →"
+ * ditambahkan setelahnya, bukan menggantikannya; (3) untuk `Failed`, tidak
+ * ada metrics/link sama sekali (sudah otomatis dari kondisi `isPublished`
+ * yang false); (4) Retry sengaja TIDAK diduplikasi di sini — halaman History
+ * Detail sudah punya `RetryTargetButton.tsx` (T-111); (5) catatan teks beda
+ * per status: "Post ini sudah dipublish, tidak bisa diedit lagi." untuk
+ * `Published`, "Post ini gagal dipublish dan tidak bisa diedit dari sini."
+ * untuk `Failed`.
  */
 export function CalendarPostPopover({
   entry,
@@ -82,6 +101,17 @@ export function CalendarPostPopover({
   const platformLabel = PLATFORM_ICON[entry.platform].label;
   const isPublished = entry.status === ContentStatus.Published;
   const isImported = entry.status === ContentStatus.Imported;
+  /**
+   * T-091.2: kondisi lokal (bukan reuse `isReadonlyTerminalStatus` dari
+   * `@/domains/publishing/readonly-terminal-status.ts`) — barrel domain itu
+   * (`@/domains/publishing/index.ts`) juga meng-export Application
+   * Service/use-case server-only (Prisma, Outstand adapter), jadi tidak
+   * aman diimpor dari komponen client ini. Pola sama persis dengan
+   * `isPublished`/`isImported` di atas.
+   */
+  const isTerminalReadonly =
+    entry.status === ContentStatus.Published ||
+    entry.status === ContentStatus.Failed;
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -211,6 +241,20 @@ export function CalendarPostPopover({
                   Lihat di {platformLabel} →
                 </Button>
               )}
+            </div>
+          ) : isTerminalReadonly ? (
+            // eslint-disable-next-line no-restricted-syntax -- T-091.2: layout-only
+            <div className="flex flex-col gap-1">
+              <Text variant="muted" as="span" className="text-xs">
+                {entry.status === ContentStatus.Published
+                  ? "Post ini sudah dipublish, tidak bisa diedit lagi."
+                  : "Post ini gagal dipublish dan tidak bisa diedit dari sini."}
+              </Text>
+              <Button variant="secondary" className="w-full" asChild>
+                <Link href={`/publish/history/${entry.postId}`}>
+                  Lihat Detail →
+                </Link>
+              </Button>
             </div>
           ) : (
             <Button

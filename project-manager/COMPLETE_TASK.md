@@ -8,6 +8,16 @@ Seluruh perubahan penting pada dokumentasi maupun implementasi project dicatat p
 
 ---
 
+## 2026-10-13 — T-091.2 UI read-only Published/Failed, T-091 tuntas 2/2
+
+### Added
+- `CalendarPostPopover.tsx`: tombol "Buka Draft Editor" dihilangkan total untuk status Published/Failed, diganti kondisi `isTerminalReadonly` — catatan teks per status + tombol secondary "Lihat Detail →" ke History Detail (`/publish/history/[postId]`). Metrics block + link "Go to post →" untuk Published dipertahankan. Imported dan status lain (Draft/Scheduled/dst.) tidak berubah.
+
+### Changed
+- Desain dikunci King Rezi di Claude Design (`components/popover.html`) — "Opsi B: Lihat Detail", dua kartu baru (Published/Failed read-only, LOCKED PATTERN T-091.2, 2026-10-13).
+- T-091 menjadi `✅ Done` (2/2 subtask). Review Ridwan Architecture Reviewer 0 temuan. QA Najwa PASS — typecheck/lint/test bersih (747 passed/6 skipped), golden path Published PASS penuh, golden path Failed PASS via code review (limitasi data pre-existing: satu-satunya post Failed di DB dev tidak punya `scheduled_at`/`published_at` sehingga tidak muncul di Calendar — gap data lama, bukan bug T-091.2), regresi Imported/Draft/Scheduled aman.
+- Temuan sampingan QA (bukan bug T-091.2, tidak perlu task/ADR baru): tombol "Batalkan Jadwal" belum ada di popover Calendar untuk status Scheduled meski sudah di mockup — ini gap T-030.3 yang sudah ada dan sudah terdokumentasi.
+
 ## 2026-10-13 — T-091.1 Guard read-only post terminal
 
 ### Added
