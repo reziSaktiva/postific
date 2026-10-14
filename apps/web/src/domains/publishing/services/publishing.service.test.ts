@@ -50,6 +50,7 @@ function createFakeRepository(
     }),
     listDrafts: async () => [],
     findDraftById: async () => null,
+    findPostStatusById: async () => null,
     updateDraftCaption: async () => null,
     schedulePost: async () => null,
     publishNow: async () => null,
@@ -230,15 +231,7 @@ describe("PublishingService.updateDraft", () => {
       Parameters<IPublishingRepository["updateDraftCaption"]>[0] | null = null;
     const service = new PublishingService(
       createFakeRepository({
-        findDraftById: async () => ({
-          id: asPostId("post-1"),
-          workspaceId: WORKSPACE_ID,
-          authorId: AUTHOR_ID,
-          caption: "  Hello world  ",
-          status: ContentStatus.Draft,
-          createdAt: new Date(0),
-          updatedAt: new Date(0),
-        }),
+        findPostStatusById: async () => ({ status: ContentStatus.Draft }),
         updateDraftCaption: async (input) => {
           received = input;
           return {
@@ -275,15 +268,7 @@ describe("PublishingService.updateDraft", () => {
       Parameters<IPublishingRepository["updateDraftCaption"]>[0] | null = null;
     const service = new PublishingService(
       createFakeRepository({
-        findDraftById: async () => ({
-          id: asPostId("post-1"),
-          workspaceId: WORKSPACE_ID,
-          authorId: AUTHOR_ID,
-          caption: "Hello",
-          status: ContentStatus.Draft,
-          createdAt: new Date(0),
-          updatedAt: new Date(0),
-        }),
+        findPostStatusById: async () => ({ status: ContentStatus.Draft }),
         updateDraftCaption: async (input) => {
           received = input;
           return {
@@ -324,7 +309,7 @@ describe("PublishingService.updateDraft", () => {
     );
   });
 
-  it("throws NotFoundError when the repository returns null", async () => {
+  it("throws ConflictError when the repository returns null (race: status berubah antara guard dan write)", async () => {
     const service = new PublishingService(createFakeRepository());
 
     await expect(
@@ -336,7 +321,7 @@ describe("PublishingService.updateDraft", () => {
         },
         AUTHOR_ID,
       ),
-    ).rejects.toThrow(NotFoundError);
+    ).rejects.toThrow(ConflictError);
   });
 
   it.each([
@@ -349,15 +334,7 @@ describe("PublishingService.updateDraft", () => {
       let updateCalls = 0;
       const service = new PublishingService(
         createFakeRepository({
-          findDraftById: async () => ({
-            id: asPostId("post-1"),
-            workspaceId: WORKSPACE_ID,
-            authorId: AUTHOR_ID,
-            caption: "Hello",
-            status,
-            createdAt: new Date(0),
-            updatedAt: new Date(0),
-          }),
+          findPostStatusById: async () => ({ status }),
           updateDraftCaption: async () => {
             updateCalls += 1;
             return null;

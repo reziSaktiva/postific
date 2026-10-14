@@ -47,6 +47,7 @@ function createFakeRepository(
     }),
     listDrafts: async () => [],
     findDraftById: async () => null,
+    findPostStatusById: async () => null,
     updateDraftCaption: async () => null,
     schedulePost: async () => null,
     publishNow: async () => null,
@@ -217,15 +218,7 @@ describe("PublishNowUseCase.execute", () => {
     let publishNowCallCount = 0;
     const markPostPublished = vi.fn(async () => undefined);
     const repository = createFakeRepository({
-      findDraftById: async () => ({
-        id: POST_ID,
-        workspaceId: WORKSPACE_ID,
-        authorId: AUTHOR_ID,
-        caption: "Hello world",
-        status: ContentStatus.Draft,
-        createdAt: new Date(0),
-        updatedAt: new Date(0),
-      }),
+      findPostStatusById: async () => ({ status: ContentStatus.Draft }),
       publishNow: async () => publishRecord,
       updateTargetOutcome: async (input) => {
         outcomes.push(input);
@@ -891,15 +884,7 @@ describe("PublishNowUseCase.execute", () => {
     async (status) => {
       let publishCalls = 0;
       const repository = createFakeRepository({
-        findDraftById: async () => ({
-          id: POST_ID,
-          workspaceId: WORKSPACE_ID,
-          authorId: AUTHOR_ID,
-          caption: "Hello world",
-          status,
-          createdAt: new Date(0),
-          updatedAt: new Date(0),
-        }),
+        findPostStatusById: async () => ({ status }),
         publishNow: async () => {
           publishCalls += 1;
           return null;

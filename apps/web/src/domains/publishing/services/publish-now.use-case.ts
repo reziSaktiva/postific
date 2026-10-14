@@ -11,10 +11,7 @@ import type { IJobScheduler } from "../adapters/job-scheduler";
 import { assertContentFormatAllowed } from "../content-format-matrix";
 import { summarizeFailureReasons } from "../failure-reason";
 import { assertPinterestBoardConstraints } from "../pinterest-board-constraints";
-import {
-  isReadonlyTerminalStatus,
-  READONLY_TERMINAL_CONFLICT_MESSAGE,
-} from "../readonly-terminal-status";
+import { assertPostMutable } from "../readonly-terminal-status";
 import { assertActorCanPublishNow } from "../rbac";
 import type {
   IPublishingRepository,
@@ -124,20 +121,21 @@ export class PublishNowUseCase {
   }): Promise<PublishingPostRecord> {
     assertActorCanPublishNow(input.actorRole);
 
+    // T-091.1 — tolak post terminal sebelum write, diperiksa sebelum
+    // validasi format/board (code review PR #163) supaya post read-only
+    // selalu dapat pesan konflik yang spesifik, bukan error validasi target
+    // yang kebetulan juga invalid. Filter status di `publishNow` tetap
+    // menjadi safety net.
+    await assertPostMutable(
+      this.repository,
+      { workspaceId: input.workspaceId, postId: input.postId },
+      input.actingUserId,
+    );
+
     for (const target of input.targets) {
       assertContentFormatAllowed(target.platform, target.contentFormat);
     }
     assertPinterestBoardConstraints(input.targets);
-
-    // T-091.1 — tolak post terminal sebelum write. Filter status di
-    // `publishNow` tetap menjadi safety net.
-    const existing = await this.repository.findDraftById(
-      { workspaceId: input.workspaceId, postId: input.postId },
-      input.actingUserId,
-    );
-    if (existing && isReadonlyTerminalStatus(existing.status)) {
-      throw new ConflictError(READONLY_TERMINAL_CONFLICT_MESSAGE);
-    }
 
     const record = await this.repository.publishNow(
       {

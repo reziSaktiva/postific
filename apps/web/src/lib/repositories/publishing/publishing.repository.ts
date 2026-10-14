@@ -258,6 +258,24 @@ export const publishingRepository: IPublishingRepository = {
     return post ? mapPost(post) : null;
   },
 
+  // Code review PR #163 — lihat doc comment interface-nya
+  // (`IPublishingRepository.findPostStatusById`): tidak lewat `mapPost`,
+  // jadi aman untuk post `Imported` (authorId null).
+  async findPostStatusById({ workspaceId, postId }, userId) {
+    const post = await withCurrentUser(userId, (tx) =>
+      tx.publishingPost.findFirst({
+        where: {
+          id: postId,
+          workspaceId,
+          deletedAt: null,
+        },
+        select: { status: true },
+      }),
+    );
+
+    return post ? { status: post.status as ContentStatus } : null;
+  },
+
   async updateDraftCaption(
     { workspaceId, postId, caption, mediaIds, targets },
     userId,

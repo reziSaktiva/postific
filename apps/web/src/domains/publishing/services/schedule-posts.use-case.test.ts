@@ -43,6 +43,7 @@ function createFakeRepository(
     }),
     listDrafts: async () => [],
     findDraftById: async () => null,
+    findPostStatusById: async () => null,
     updateDraftCaption: async () => null,
     schedulePost: async () => null,
     publishNow: async () => null,
@@ -195,15 +196,7 @@ describe("SchedulePostsUseCase.execute", () => {
     >[0][] = [];
     let schedulePostCallCount = 0;
     const repository = createFakeRepository({
-      findDraftById: async () => ({
-        id: POST_ID,
-        workspaceId: WORKSPACE_ID,
-        authorId: AUTHOR_ID,
-        caption: "Hello world",
-        status: ContentStatus.Draft,
-        createdAt: new Date(0),
-        updatedAt: new Date(0),
-      }),
+      findPostStatusById: async () => ({ status: ContentStatus.Draft }),
       schedulePost: async () => scheduleRecord,
       updateTargetOutcome: async (input) => {
         outcomes.push(input);
@@ -636,15 +629,7 @@ describe("SchedulePostsUseCase.execute", () => {
     async (status) => {
       let scheduleCalls = 0;
       const repository = createFakeRepository({
-        findDraftById: async () => ({
-          id: POST_ID,
-          workspaceId: WORKSPACE_ID,
-          authorId: AUTHOR_ID,
-          caption: "Hello world",
-          status,
-          createdAt: new Date(0),
-          updatedAt: new Date(0),
-        }),
+        findPostStatusById: async () => ({ status }),
         schedulePost: async () => {
           scheduleCalls += 1;
           return null;

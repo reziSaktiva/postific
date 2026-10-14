@@ -12,6 +12,7 @@ import type { PostMetricsRecord, SnapshotPeriod } from "@/domains/analytics";
 import { resolveConnectionDisplayStatus } from "@/domains/workspace";
 import { ConflictError, NotFoundError } from "@/lib/utils/errors";
 import {
+  assertPostMutable,
   isReadonlyTerminalStatus,
   READONLY_TERMINAL_CONFLICT_MESSAGE,
 } from "../readonly-terminal-status";
@@ -412,15 +413,13 @@ export class PublishingService {
     },
     userId: UserId,
   ): Promise<PublishingPostRecord> {
-    // T-091.1 — tolak post terminal sebelum write. `findDraftById` tidak
-    // memfilter status; repository tetap membatasi update ke Draft.
-    const existing = await this.repository.findDraftById(
+    // T-091.1 — tolak post terminal sebelum write. Repository tetap
+    // membatasi update ke Draft sebagai safety net.
+    await assertPostMutable(
+      this.repository,
       { workspaceId: input.workspaceId, postId: input.postId },
       userId,
     );
-    if (existing && isReadonlyTerminalStatus(existing.status)) {
-      throw new ConflictError(READONLY_TERMINAL_CONFLICT_MESSAGE);
-    }
 
     const post = await this.repository.updateDraftCaption(
       {
@@ -433,7 +432,15 @@ export class PublishingService {
       userId,
     );
     if (!post) {
-      throw new NotFoundError("Draft tidak ditemukan.");
+      // Code review PR #163 — balapan status antara guard di atas dan
+      // write ini (post masih Draft saat dibaca, berubah sebelum
+      // `updateMany`-nya commit): sebelumnya NotFoundError, padahal
+      // post-nya tetap ada (cuma sudah ganti status) — konsisten dengan
+      // cancelSchedule/schedulePost/publishNow yang melempar ConflictError
+      // untuk balapan serupa.
+      throw new ConflictError(
+        "Draft tidak bisa diperbarui — post tidak ditemukan atau statusnya bukan Draft.",
+      );
     }
     return post;
   }

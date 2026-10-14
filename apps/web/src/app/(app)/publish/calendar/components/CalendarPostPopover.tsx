@@ -6,6 +6,8 @@ import Link from "next/link";
 
 import { ContentStatus } from "@postific/shared";
 
+import { isReadonlyTerminalStatus } from "@/domains/publishing/readonly-terminal-status";
+
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -102,16 +104,17 @@ export function CalendarPostPopover({
   const isPublished = entry.status === ContentStatus.Published;
   const isImported = entry.status === ContentStatus.Imported;
   /**
-   * T-091.2: kondisi lokal (bukan reuse `isReadonlyTerminalStatus` dari
-   * `@/domains/publishing/readonly-terminal-status.ts`) — barrel domain itu
-   * (`@/domains/publishing/index.ts`) juga meng-export Application
-   * Service/use-case server-only (Prisma, Outstand adapter), jadi tidak
-   * aman diimpor dari komponen client ini. Pola sama persis dengan
-   * `isPublished`/`isImported` di atas.
+   * Code review PR #163 — deep import langsung dari
+   * `@/domains/publishing/readonly-terminal-status` (bukan dari barrel
+   * `@/domains/publishing`), pola yang sama dengan `Modal.tsx` yang sudah
+   * deep-import `pinterest-board-constraints`/`schedule-time-constraints`
+   * dari domain yang sama. Reuse predikat ini (bukan duplikasi kondisi
+   * status secara manual) supaya kalau `READONLY_TERMINAL_STATUSES` di
+   * server berubah lagi, komponen ini otomatis ikut konsisten. `isImported`
+   * di atas tetap dicek lebih dulu di ternary di bawah, jadi true/false-nya
+   * `isTerminalReadonly` untuk status `Imported` tidak pernah dievaluasi.
    */
-  const isTerminalReadonly =
-    entry.status === ContentStatus.Published ||
-    entry.status === ContentStatus.Failed;
+  const isTerminalReadonly = isReadonlyTerminalStatus(entry.status);
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -246,7 +249,7 @@ export function CalendarPostPopover({
             // eslint-disable-next-line no-restricted-syntax -- T-091.2: layout-only
             <div className="flex flex-col gap-1">
               <Text variant="muted" as="span" className="text-xs">
-                {entry.status === ContentStatus.Published
+                {isPublished
                   ? "Post ini sudah dipublish, tidak bisa diedit lagi."
                   : "Post ini gagal dipublish dan tidak bisa diedit dari sini."}
               </Text>
