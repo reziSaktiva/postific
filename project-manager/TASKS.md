@@ -52,7 +52,7 @@ Ini penting untuk aturan `PROJECT_RULES.md` "Hindari implementasi fitur di luar 
 
 | Release                    | Fokus                                              | Rentang ID  | Task | Status              | File                                                 |
 | -------------------------- | -------------------------------------------------- | ----------- | ---- | ------------------- | ---------------------------------------------------- |
-| **v0.1** Foundation        | Setup, Auth, Workspace, Connect Account, Settings  | T-001–T-019, T-039¹, T-089¹, T-093¹, T-094¹, T-109¹, T-110¹ | 25   | 20 ✅ · 1 🚫 · 3 🟡 · 1 ⏸️ | [tasks/v01-foundation.md](tasks/v01-foundation.md)         |
+| **v0.1** Foundation        | Setup, Auth, Workspace, Connect Account, Settings  | T-001–T-019, T-039¹, T-089¹, T-093¹, T-094¹, T-109¹, T-110¹ | 25   | 20 ✅ · 4 🟡 · 1 ⏸️ | [tasks/v01-foundation.md](tasks/v01-foundation.md)         |
 | **v0.2** Publishing MVP    | Draft, Format, Schedule, Queue, Calendar, History  | T-020–T-038, T-090¹–T-092¹, T-104¹, T-106¹–T-108¹, T-111¹–T-112¹ | 28   | 27 ✅ · 1 🟡 · 0 ⏳ | [tasks/v02-publishing-mvp.md](tasks/v02-publishing-mvp.md) |
 | **v0.3** Analytics MVP     | Dashboard, Metrics, Engagement Summary, Reports    | T-040–T-048 | 9    | 9 ✅                | [tasks/v03-analytics-mvp.md](tasks/v03-analytics-mvp.md)   |
 | **v0.4** Engagement MVP    | Comment sync 30 menit, Inbox, Reply                | T-050–T-056 | 7    | 6 ✅ · 1 ⏳ (Could Have) | [tasks/v04-engagement-mvp.md](tasks/v04-engagement-mvp.md) |
@@ -100,7 +100,6 @@ Task yang **menghasilkan ADR**, bukan sekadar mengikuti ADR. Semuanya menunggu k
 
 | Task      | Keputusan yang belum diambil                              | Menghambat                     |
 | --------- | --------------------------------------------------------- | ------------------------------ |
-| **T-005** | Transactional email provider (AS-D04)                     | Email verification; invite member T-007.7 (jalur "Kirim via Email") — T-007.1 "Copy Link" (ADR-080) tidak terhambat |
 | **T-060** | Provider + model AI                                       | Seluruh v0.5                   |
 | **T-070** | Strategi route publik tanpa auth (+ custom domain?)       | Seluruh v0.6                   |
 | **T-081** | Framework E2E test                                        | Verifikasi golden path         |

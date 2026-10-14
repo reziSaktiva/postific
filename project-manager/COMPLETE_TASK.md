@@ -8,6 +8,23 @@ Seluruh perubahan penting pada dokumentasi maupun implementasi project dicatat p
 
 ---
 
+## 2026-10-14 — T-005.1: provider email transactional dikunci ke Resend (ADR-126), KI-001 Resolved
+
+### Konteks
+Branch `feature/t-005-1-resend-provider` (checkout dari `origin/staging`). King Rezi meminta provider T-005.1 dikunci ke Resend. Bukan implementasi kirim email Better Auth.
+
+### Added
+- `project-manager/decisions/ADR-126-transactional-email-provider-resend-t005.md` — Resend untuk reset password dan verifikasi email ke depan; memakai package dan env yang sudah ada dari T-110. T-005.2–.5 tetap terbuka.
+
+### Changed
+- `tasks/v01-foundation.md` § T-005: T-005.1 dicentang. Status `🚫 Blocked` → `🟡 In Progress`. Field Blocker dihapus. ADR: ADR-126.
+- `TASKS.md`: indeks v0.1 `20 ✅ · 1 🚫 · 3 🟡 · 1 ⏸️` → `20 ✅ · 4 🟡 · 1 ⏸️`. Baris T-005 dikeluarkan dari Keputusan terbuka.
+- `PROJECT_STATE.md`: KI-001 dihapus dari Known Issues (Resolved, riwayat di entri ini). Recent Decisions menambah ADR-126 dan mengeluarkan ADR-121 dari ringkasan 5. Completed menambah entri ini dan mengeluarkan T-048 dari ringkasan 5. Catatan KI-046 dan KI-053 diselaraskan: provider sudah Resend, verifikasi global masih mati sampai T-005.5.
+- `auth-strategy.md` (AS-D04), `environment-management.md` (baris provider), dan `context/ctx-technical-context.md`: keputusan provider tidak lagi "terbuka". Katalog env lengkap tetap tugas T-005.2.
+
+### Fixed
+- Keputusan terbuka di `TASKS.md` tidak lagi menulis bahwa T-005 menahan T-007.7. Jalur Kirim via Email sudah selesai 2026-10-12.
+
 ## 2026-10-14 — Perbaikan code review PR #164 (T-016.4)
 
 ### Fixed

@@ -62,16 +62,15 @@ Empat halaman + form fungsional memanggil `authClient`. Kode: `apps/web/src/app/
 
 | Field         | Value                                                                 |
 | ------------- | --------------------------------------------------------------------- |
-| **Status**    | 🚫 Blocked                                                             |
+| **Status**    | 🟡 In Progress — T-005.1 selesai (Resend, ADR-126, 2026-10-14); sisa T-005.2–.5 |
 | **Domain**    | identity                                                              |
-| **ADR**       | —                                                                     |
+| **ADR**       | ADR-126                                                               |
 | **Depends**   | T-003 ✅                                                               |
-| **Blocker**   | Transactional email provider belum ditetapkan (AS-D04)                |
-| **Baca dulu** | `06-engineering/auth-strategy.md` (AS-D04) · `05-architecture/auth-architecture.md` |
+| **Baca dulu** | `06-engineering/auth-strategy.md` (AS-D04) · `05-architecture/auth-architecture.md` · `decisions/ADR-126-transactional-email-provider-resend-t005.md` |
 
-Aktifkan verifikasi email + password reset yang benar-benar mengirim email. Saat ini `sendResetPassword` hanya `console.log` link dan `requireEmailVerification` dinonaktifkan.
+Aktifkan verifikasi email + password reset yang benar-benar mengirim email. Saat ini `sendResetPassword` hanya `console.log` link dan `requireEmailVerification` dinonaktifkan. Provider sudah dikunci ke Resend; pengiriman email Better Auth belum di-wire.
 
-- [ ] **T-005.1** Pilih provider (kandidat: Resend, Postmark, AWS SES, SMTP Supabase) → butuh ADR baru
+- [x] **T-005.1** Provider dikunci ke **Resend** (ADR-126, 2026-10-14). Memakai package `resend` dan env `RESEND_API_KEY` / `RESEND_FROM_EMAIL` yang sudah hidup sejak T-110. Bukan implementasi kirim email Better Auth — itu T-005.2–.5.
 - [ ] **T-005.2** Konfigurasi provider + env var di `environment-management.md`
 - [ ] **T-005.3** Implementasi `sendResetPassword` + `sendVerificationEmail` nyata
 - [ ] **T-005.4** Halaman `verify-email` + state "menunggu verifikasi"

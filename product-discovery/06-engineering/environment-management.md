@@ -146,7 +146,7 @@ Hanya prefix `NEXT_PUBLIC_` yang boleh dibaca di Client Components. Service role
 
 | Variable | Status |
 |----------|--------|
-| Provider email transactional (`RESEND_API_KEY`, dll.) | Belum ditetapkan (AS-D04) — ditambahkan ke katalog saat provider dipilih |
+| Provider email transactional | Dipilih: Resend (ADR-126, AS-D04). `RESEND_API_KEY` / `RESEND_FROM_EMAIL` sudah dipakai T-110 dan T-007.7. Entri katalog lengkap untuk email Better Auth menyusul di T-005.2 |
 | `NODE_ENV` | Diatur runtime (`development` / `production`) — tidak perlu diisi manual di Railway kecuali override khusus |
 
 ---

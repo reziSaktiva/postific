@@ -61,7 +61,7 @@ Implementasi di repo:
    logic; shadcn/ui adalah kode sumber yang di-copy ke repo (ADR-097), tidak
    ada isu exact pin/Beta seperti Astryx sebelumnya.
 5. CI wajib: install → prisma generate/validate → typecheck → lint → test.
-6. Email transactional provider masih terbuka (AS-D04) — jangan hardcode provider baru tanpa keputusan.
+6. Email transactional memakai Resend (ADR-126, AS-D04). Jangan menambah provider lain. Wiring Better Auth masih T-005.2–.5.
 7. Jangan ubah Engineering Baseline tanpa ADR.
 8. Design tokens: SoT di `design-tokens.md`, co-equal dengan Claude Design
    (folder `design/` sudah dihapus dan tidak dibuat ulang, ADR-045, ADR-057
