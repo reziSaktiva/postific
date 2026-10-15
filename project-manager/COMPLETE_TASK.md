@@ -8,6 +8,42 @@ Seluruh perubahan penting pada dokumentasi maupun implementasi project dicatat p
 
 ---
 
+## 2026-10-15 — KI-086 (PR #173): `/code-review` fixes + merge ke `staging`
+
+### Konteks
+Lanjutan sesi KI-086/ADR-127 (entri di bawah). King Rezi minta `/code-review`
+atas PR #173 sebelum merge — 4 temuan (1 correctness PLAUSIBLE, 1
+test-coverage, 1 reuse, 1 conventions/docs), semuanya diperbaiki di commit
+`e75db43` pada branch yang sama sebelum merge.
+
+### Fixed
+- Stale `existingByOutstandId` map di `createConnectedAccounts` — map
+  entry di-set ke `active` tepat setelah reaktivasi, supaya
+  `outstandAccountId` duplikat dalam satu batch tidak mereaktivasi+
+  push record yang sama dua kali (dan tidak double-fire JOB-03 seeding).
+- `createConnectedAccounts` (reaktivasi) dan `reconnectAccount` kini
+  berbagi helper `buildReactivationData()` — payload reaktivasi tidak
+  lagi terduplikasi di dua tempat.
+- Docstring interface `createConnectedAccounts` diperjelas: `avatarUrl`
+  hanya di-refresh kalau ada nilai baru, bukan selalu (sebelumnya
+  overclaim "selalu di-refresh").
+- Fake `createConnectedAccounts` di `workspace.service.test.ts` kini
+  meniru reaktivasi (lewat `findConnectedAccountByOutstandId` +
+  `reconnectAccount`) alih-alih hardcode semantik skip-only lama —
+  test level-service sekarang bisa menguji jalur reaktivasi.
+
+### Verification
+- `bun run typecheck` — PASS.
+- `bun run test` (full suite, Postgres staging real) — 809 passed, 1
+  kegagalan pre-existing tidak terkait (sama seperti sesi sebelumnya).
+
+### Merge
+- PR #173 di-merge (fast-forward) ke `staging` atas persetujuan King
+  Rezi. Branch `feature/ki-086-facebook-reconnect` (remote + lokal)
+  dihapus otomatis oleh `gh pr merge --delete-branch`.
+
+---
+
 ## 2026-10-15 — KI-086: Reaktivasi reconnect Facebook `disconnected`/`reconnect-required` (ADR-127)
 
 ### Konteks
