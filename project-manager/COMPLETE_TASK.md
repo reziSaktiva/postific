@@ -8,6 +8,36 @@ Seluruh perubahan penting pada dokumentasi maupun implementasi project dicatat p
 
 ---
 
+## 2026-10-15 — T-114 (PR #170): QA + code-review quality fixes, merge ke `staging`
+
+### Konteks
+Lanjutan sesi T-114 (entri sebelumnya hari ini). PR #170 (`feature/t-114-backfill-imported-outstand-id` → `staging`) sudah mengklaim bersih; sesi ini King Rezi minta testing lebih dalam sebelum merge. Tidak ada perubahan status/subtask T-114 — murni quality hardening pada scope yang sudah Done.
+
+### Testing/QA (Najwa QA Engineer)
+- `bun run typecheck` ternyata **GAGAL** meski PR mengklaim bersih: 7 error `TS2322` karena field `skippedCount` kurang di 7 file fake repository test. Diperbaiki (commit `b642472`).
+- 1 gap test coverage minor ditemukan dan ditutup: cabang `complete: false`/`MAX_PAGES` safety-net di `fetchAllPostIdMappings` (didelegasikan ke Elon Backend Engineer, commit `85a51a6`).
+
+### `/code-review` (medium effort, 8 finder angle) — 7 temuan, semua ditindaklanjuti (commit `0e958fa`)
+- **Fixed:** pagination offset di `fetchAllPostIdMappings` (`real-outstand-adapter.ts`) pakai `rawPosts.length` (bukan `pagination.count` dari API) — glitch metadata API tidak lagi menyebabkan post ter-skip permanen tanpa terdeteksi.
+- **Fixed:** status matching di fungsi yang sama pakai `normalizeTargetStatus()` (bukan literal `"published"`) — status sinonim tidak lagi bikin post ter-skip permanen.
+- **Fixed:** `findOutstandPostOwners` + advisory lock per-`outstandPostId` di `backfill-outstand-post-ids.ts` dibatch jadi satu query (`unnest`+`LATERAL`) alih-alih N round-trip sequential.
+- **Fixed:** 18 copy-paste fake-stub literal di 12 file test dikonsolidasi ke helper baru `apps/web/src/lib/testing/outstand-post-id-backfill-stubs.ts`.
+- **Fixed:** `backfillUseCase` di `ImportPostsTriggerUseCase` diubah dari constructor param opsional jadi wajib — composition root yang lupa menyuplainya sekarang gagal di compile time, bukan silent no-op di runtime. Composition root produksi (`outstand-workspace-service.ts`) dan 17 call site test diupdate.
+- **Skipped di sini, di-follow-up terpisah oleh King Rezi di Cursor (commit `a79c45e`):** duplikasi SQL advisory-lock + owner-lookup antara T-114 dan T-113 diekstrak ke module bersama baru `apps/web/src/lib/repositories/publishing/outstand-post-id-locks.ts`. Diverifikasi ulang: typecheck/lint/test bersih, 804 passed/6 skipped, tidak ada regresi.
+- **No_change_needed (keputusan eksplisit King Rezi via `AskUserQuestion`):** backfill tetap jalan meski job import utama gagal (menggandakan beban ke Outstand saat outage) — dikonfirmasi memang desain disengaja, tidak perlu backoff/circuit-breaker tambahan untuk saat ini.
+
+### Merge
+PR #170 di-merge ke `staging` (merge commit `41d48d4`), CI hijau (2/2 check), `mergeStateStatus: CLEAN`.
+
+### Changed
+- `real-outstand-adapter.ts`, `backfill-outstand-post-ids.ts`, `outstand-post-id-locks.ts` (baru), `outstand-post-id-backfill-stubs.ts` (baru, testing helper), `ImportPostsTriggerUseCase` + `outstand-workspace-service.ts`, 12+17 file test terkait.
+- Tidak ada perubahan ke `tasks/v02-publishing-mvp.md`/`TASKS.md`/`PROJECT_STATE.md` — status T-114 ✅ Done sudah dicatat sebelum sesi ini, tidak ada drift.
+
+### Status
+T-114 tetap ✅ Done, kini sudah merge ke `staging` dengan kualitas kode ditingkatkan lewat code-review. Siap lanjut ke alur promosi `staging → main` (CI-D03) saat King Rezi siap.
+
+---
+
 ## 2026-10-15 — T-114 ✅ Done 5/5 subtask: backfill otomatis `outstandPostId` untuk post Imported lama
 
 ### Konteks
