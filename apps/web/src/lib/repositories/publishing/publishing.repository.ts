@@ -37,6 +37,7 @@ import {
   setCurrentUserId,
   withCurrentUser,
 } from "@/lib/prisma/with-current-user";
+import { backfillImportedPostOutstandIdsTx } from "@/lib/repositories/publishing/backfill-outstand-post-ids";
 import { replaceDraftTargets } from "@/lib/repositories/publishing/replace-draft-targets";
 import { upsertImportedPostsTx } from "@/lib/repositories/publishing/upsert-imported-posts";
 
@@ -1227,6 +1228,58 @@ export const publishingRepository: IPublishingRepository = {
 
     return withCurrentUser(actingUserId, (tx) =>
       upsertImportedPostsTx(tx, workspaceId, posts),
+    );
+  },
+
+  /**
+   * Backfill `outstandPostId` post Imported lama (T-114) — cek existence
+   * murah: satu `findFirst` (bukan `count`) di-scope `workspaceId` +
+   * `connectedAccountId` lewat `publishingPostTarget` (pola sama
+   * `listSyncablePostsByConnectedAccount`), nested filter ke `post` induk
+   * (`status: Imported`, `outstandPostId: null`, belum soft-deleted).
+   */
+  async hasImportedPostsMissingOutstandId(
+    { workspaceId, connectedAccountId },
+    userId,
+  ) {
+    const row = await withCurrentUser(userId, (tx) =>
+      tx.publishingPostTarget.findFirst({
+        where: {
+          connectedAccountId,
+          post: {
+            workspaceId,
+            status: ContentStatus.Imported,
+            outstandPostId: null,
+            deletedAt: null,
+          },
+        },
+        select: { id: true },
+      }),
+    );
+    return row !== null;
+  },
+
+  /**
+   * Backfill `outstandPostId` post Imported lama (T-114) — lihat docstring
+   * lengkap di `IPublishingRepository.backfillImportedPostOutstandIds`.
+   * Logika inti diekstrak ke `backfillImportedPostOutstandIdsTx` (pola sama
+   * `upsertImportedPostsTx`) supaya bisa di-unit-test dengan `tx` palsu.
+   */
+  async backfillImportedPostOutstandIds(
+    { workspaceId, connectedAccountId, mappings },
+    actingUserId,
+  ) {
+    if (mappings.length === 0) {
+      return { updatedCount: 0 };
+    }
+
+    return withCurrentUser(actingUserId, (tx) =>
+      backfillImportedPostOutstandIdsTx(
+        tx,
+        workspaceId,
+        connectedAccountId,
+        mappings,
+      ),
     );
   },
 };

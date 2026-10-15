@@ -2,6 +2,7 @@ import type {
   ConnectedAccountId,
   ContentFormat,
   MediaId,
+  OutstandPostIdMapping,
   PostId,
   PostTargetId,
   SocialPlatform,
@@ -1111,6 +1112,66 @@ export interface IPublishingRepository {
     },
     actingUserId: UserId,
   ): Promise<UpsertImportedPostsResult>;
+
+  /**
+   * Backfill `outstandPostId` post Imported lama (T-114, perluasan
+   * T-113/KI-090) — cek existence MURAH (satu query, bukan `COUNT` penuh)
+   * apakah `connectedAccountId` ini masih punya `PublishingPost` berstatus
+   * `Imported` dengan `outstandPostId` kosong. Dipanggil SETIAP
+   * `runImportSync` (manual/periodik) SEBELUM method `backfillImportedPostOutstandIds`
+   * di bawah — kalau `false`, caller (`BackfillOutstandPostIdsUseCase`)
+   * TIDAK memanggil `IOutstandAdapter.fetchAllPostIdMappings` sama sekali
+   * (hemat biaya panggilan Outstand untuk akun yang sudah pernah
+   * di-backfill, atau tidak pernah punya gap).
+   *
+   * `userId` (RLS, KI-026 follow-up) — acting user for `withCurrentUser`.
+   */
+  hasImportedPostsMissingOutstandId(
+    input: { workspaceId: WorkspaceId; connectedAccountId: ConnectedAccountId },
+    userId: UserId,
+  ): Promise<boolean>;
+
+  /**
+   * Backfill `outstandPostId` post Imported lama (T-114, perluasan
+   * T-113/KI-090) — cocokkan `mappings` (hasil `IOutstandAdapter.
+   * fetchAllPostIdMappings`, keyed `platformPostId`) ke
+   * `PublishingPostTarget.platformPostId` milik `connectedAccountId` ini
+   * yang post induknya masih `Imported` + `outstandPostId` kosong, lalu
+   * `UPDATE` kolom itu untuk baris yang cocok. Baris yang TIDAK cocok
+   * (mapping tidak membawa `platformPostId` itu, mis. post sudah
+   * dihapus/di-unpublish di Outstand) dibiarkan apa adanya — tidak error,
+   * tetap kosong sampai sync berikutnya mencoba lagi.
+   *
+   * **Guard concurrency (T-114.3, pertimbangan sama T-113 follow-up ronde
+   * 2):** implementasi mengambil `pg_advisory_xact_lock(hashtext(workspaceId))`
+   * SEBELUM SELECT/UPDATE apa pun — NAMESPACE LOCK YANG SAMA dengan
+   * `upsertImportedPostsTx` (`upsert-imported-posts.ts`), supaya backfill
+   * ini (transaksi terpisah dari transaksi Import biasa) tidak bisa
+   * berjalan bersamaan dengan `upsertImportedPosts` untuk workspace yang
+   * sama — keduanya menulis `PublishingPost.outstandPostId` yang dijaga
+   * partial unique index GLOBAL. Setiap `UPDATE` individu juga menyertakan
+   * `WHERE outstandPostId IS NULL` (bukan hanya filter di SELECT
+   * sebelumnya) sebagai lapis idempoten kedua — aman dipanggil ulang/
+   * tumpang-tindih dengan import baru yang kebetulan sudah mengisi baris
+   * yang sama di antara SELECT dan UPDATE ini.
+   *
+   * `actingUserId` (RLS, KI-026 follow-up) — acting user for `withCurrentUser`,
+   * sama pola `upsertImportedPosts` (boleh user mana pun yang aktif di
+   * `workspaceId` ini, bukan "pemilik" post).
+   */
+  backfillImportedPostOutstandIds(
+    input: {
+      workspaceId: WorkspaceId;
+      connectedAccountId: ConnectedAccountId;
+      mappings: OutstandPostIdMapping[];
+    },
+    actingUserId: UserId,
+  ): Promise<BackfillImportedPostOutstandIdsResult>;
+}
+
+/** Hasil `backfillImportedPostOutstandIds` (T-114) — ringkas, sama pola `UpsertImportedPostsResult`. */
+export interface BackfillImportedPostOutstandIdsResult {
+  updatedCount: number;
 }
 
 /**

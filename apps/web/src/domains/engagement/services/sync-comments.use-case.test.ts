@@ -82,6 +82,7 @@ function createFakeAdapter(
       posts: [],
       error: null,
     }),
+    fetchAllPostIdMappings: async () => [],
   };
 }
 

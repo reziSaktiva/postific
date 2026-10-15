@@ -969,6 +969,7 @@ function fakeOutstandAdapter(
       posts: [],
       error: null,
     }),
+    fetchAllPostIdMappings: async () => [],
     ...overrides,
   };
 }

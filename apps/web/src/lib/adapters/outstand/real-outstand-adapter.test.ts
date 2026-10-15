@@ -1821,3 +1821,139 @@ describe("RealOutstandAdapter.importPosts / fetchImportJobStatus (T-112)", () =>
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("RealOutstandAdapter.fetchAllPostIdMappings (T-114, backfill outstandPostId)", () => {
+  it("calls GET /v1/posts WITHOUT created_after/created_before (full history, not a date-bounded window)", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        success: true,
+        data: [],
+        pagination: { limit: 100, offset: 0, total: 0, count: 0 },
+      }),
+    );
+    const adapter = buildAdapter(fetchImpl);
+
+    await adapter.fetchAllPostIdMappings("acc-ig-1");
+
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    const calledUrl = new URL(String(fetchImpl.mock.calls[0]?.[0]));
+    expect(calledUrl.pathname).toBe("/v1/posts");
+    expect(calledUrl.searchParams.get("social_account_id")).toBe("acc-ig-1");
+    expect(calledUrl.searchParams.get("limit")).toBe("100");
+    expect(calledUrl.searchParams.get("offset")).toBe("0");
+    expect(calledUrl.searchParams.has("created_after")).toBe(false);
+    expect(calledUrl.searchParams.has("created_before")).toBe(false);
+  });
+
+  it("maps matched socialAccounts entries to {platformPostId, outstandPostId}, skipping posts targeting a different account", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        success: true,
+        data: [
+          {
+            id: "post-1",
+            socialAccounts: [
+              {
+                id: "acc-ig-1",
+                status: "published",
+                platformPostId: "ig-post-1",
+              },
+            ],
+          },
+          {
+            // Different account — must be skipped.
+            id: "post-2",
+            socialAccounts: [
+              {
+                id: "acc-other",
+                status: "published",
+                platformPostId: "other-1",
+              },
+            ],
+          },
+          {
+            // Not published at this account yet — must be skipped.
+            id: "post-3",
+            socialAccounts: [
+              { id: "acc-ig-1", status: "pending", platformPostId: null },
+            ],
+          },
+        ],
+        pagination: { limit: 100, offset: 0, total: 3, count: 3 },
+      }),
+    );
+    const adapter = buildAdapter(fetchImpl);
+
+    const result = await adapter.fetchAllPostIdMappings("acc-ig-1");
+
+    expect(result).toEqual([
+      { platformPostId: "ig-post-1", outstandPostId: "post-1" },
+    ]);
+  });
+
+  it("pages through GET /v1/posts using pagination.total/count until exhausted", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse(200, {
+          success: true,
+          data: [
+            {
+              id: "post-1",
+              socialAccounts: [
+                {
+                  id: "acc-ig-1",
+                  status: "published",
+                  platformPostId: "ig-post-1",
+                },
+              ],
+            },
+          ],
+          pagination: { limit: 1, offset: 0, total: 2, count: 1 },
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse(200, {
+          success: true,
+          data: [
+            {
+              id: "post-2",
+              socialAccounts: [
+                {
+                  id: "acc-ig-1",
+                  status: "published",
+                  platformPostId: "ig-post-2",
+                },
+              ],
+            },
+          ],
+          pagination: { limit: 1, offset: 1, total: 2, count: 1 },
+        }),
+      );
+    const adapter = buildAdapter(fetchImpl);
+
+    const result = await adapter.fetchAllPostIdMappings("acc-ig-1");
+
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    const firstUrl = new URL(String(fetchImpl.mock.calls[0]?.[0]));
+    const secondUrl = new URL(String(fetchImpl.mock.calls[1]?.[0]));
+    expect(firstUrl.searchParams.get("offset")).toBe("0");
+    expect(secondUrl.searchParams.get("offset")).toBe("1");
+    expect(result).toEqual([
+      { platformPostId: "ig-post-1", outstandPostId: "post-1" },
+      { platformPostId: "ig-post-2", outstandPostId: "post-2" },
+    ]);
+  });
+
+  it("stops after one page when the page comes back empty, even without a pagination object (defensive)", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(jsonResponse(200, { success: true, data: [] }));
+    const adapter = buildAdapter(fetchImpl);
+
+    const result = await adapter.fetchAllPostIdMappings("acc-ig-1");
+
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(result).toEqual([]);
+  });
+});

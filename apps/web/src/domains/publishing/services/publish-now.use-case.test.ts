@@ -76,6 +76,8 @@ function createFakeRepository(
       insertedCount: 0,
       skippedDuplicateCount: 0,
     }),
+    hasImportedPostsMissingOutstandId: async () => false,
+    backfillImportedPostOutstandIds: async () => ({ updatedCount: 0 }),
     ...overrides,
   };
 }
@@ -172,6 +174,7 @@ function createFakeOutstandAdapter(
       posts: [],
       error: null,
     }),
+    fetchAllPostIdMappings: async () => [],
     ...overrides,
   };
 }

@@ -12,6 +12,7 @@ import type {
   ImportSyncJobPayload,
   ImportSyncJobRecord,
 } from "../repositories/import-job.repository";
+import { BackfillOutstandPostIdsUseCase } from "./backfill-outstand-post-ids.use-case";
 import { ImportPostsProcessUseCase } from "./import-posts-process.use-case";
 import { ImportPostsTriggerUseCase } from "./import-posts-trigger.use-case";
 
@@ -87,6 +88,7 @@ function createFakeOutstandAdapter(
       posts: [],
       error: null,
     })),
+    fetchAllPostIdMappings: vi.fn(async () => []),
     ...overrides,
   };
 }
@@ -600,5 +602,218 @@ describe("ImportPostsTriggerUseCase.triggerPeriodicForAccounts (T-090.3)", () =>
     expect(results.get(okAccountId)?.outcome).toBe("triggered");
     expect(results.get(failAccountId)?.outcome).toBe("failed");
     expect(results.get(failAccountId)?.message).toMatch(/boom/);
+  });
+});
+
+/**
+ * T-114 — wiring `BackfillOutstandPostIdsUseCase` ke `runImportSync`
+ * (dipanggil lewat `triggerAuto`, entry point paling sederhana — tidak ada
+ * guard RBAC/cap/cooldown seperti `triggerManual`, perilaku backfill-nya
+ * sendiri sama untuk ketiga entry point karena ketiganya lewat
+ * `runImportSync` yang sama, T-114.4).
+ */
+function createFakePublishingRepositoryForBackfill(
+  overrides: Partial<{
+    hasImportedPostsMissingOutstandId: () => Promise<boolean>;
+    backfillImportedPostOutstandIds: () => Promise<{ updatedCount: number }>;
+  }> = {},
+) {
+  return {
+    hasImportedPostsMissingOutstandId: vi.fn(
+      overrides.hasImportedPostsMissingOutstandId ?? (async () => false),
+    ),
+    backfillImportedPostOutstandIds: vi.fn(
+      overrides.backfillImportedPostOutstandIds ??
+        (async () => ({ updatedCount: 0 })),
+    ),
+  };
+}
+
+describe("ImportPostsTriggerUseCase — T-114 backfill outstandPostId wiring", () => {
+  it("backfillUseCase undefined (pre-T-114 construction, 4-5 positional args) — sync succeeds exactly as before, no backfillUpdatedCount in result", async () => {
+    const useCase = new ImportPostsTriggerUseCase(
+      createFakeImportJobRepository(),
+      createFakeOutstandAdapter(),
+      createFakeWatermarkPort(),
+      createProcessUseCase(1),
+    );
+
+    const result = await useCase.triggerAuto({
+      workspaceId: WORKSPACE_ID,
+      connectedAccountId: CONNECTED_ACCOUNT_ID,
+      outstandAccountId: OUTSTAND_ACCOUNT_ID,
+      platform: SocialPlatform.Instagram,
+      actingUserId: ACTING_USER_ID,
+    });
+
+    expect(result.outcome).toBe("triggered");
+    expect(result.backfillUpdatedCount).toBeUndefined();
+  });
+
+  it("gap exists — calls backfillUseCase.backfillIfNeeded with the SAME workspaceId/connectedAccountId/outstandAccountId/actingUserId, and merges backfillUpdatedCount into the result", async () => {
+    const publishingRepo = createFakePublishingRepositoryForBackfill({
+      hasImportedPostsMissingOutstandId: async () => true,
+      backfillImportedPostOutstandIds: async () => ({ updatedCount: 5 }),
+    });
+    const backfillAdapter = createFakeOutstandAdapter({
+      fetchAllPostIdMappings: vi.fn(async () => [
+        { platformPostId: "platform-1", outstandPostId: "outstand-1" },
+      ]),
+    });
+    const backfillUseCase = new BackfillOutstandPostIdsUseCase(
+      publishingRepo as never,
+      backfillAdapter,
+    );
+
+    const useCase = new ImportPostsTriggerUseCase(
+      createFakeImportJobRepository(),
+      createFakeOutstandAdapter(),
+      createFakeWatermarkPort(),
+      createProcessUseCase(1),
+      undefined,
+      backfillUseCase,
+    );
+
+    const result = await useCase.triggerAuto({
+      workspaceId: WORKSPACE_ID,
+      connectedAccountId: CONNECTED_ACCOUNT_ID,
+      outstandAccountId: OUTSTAND_ACCOUNT_ID,
+      platform: SocialPlatform.Instagram,
+      actingUserId: ACTING_USER_ID,
+    });
+
+    expect(result.outcome).toBe("triggered");
+    expect(result.backfillUpdatedCount).toBe(5);
+    expect(
+      publishingRepo.hasImportedPostsMissingOutstandId,
+    ).toHaveBeenCalledWith(
+      { workspaceId: WORKSPACE_ID, connectedAccountId: CONNECTED_ACCOUNT_ID },
+      ACTING_USER_ID,
+    );
+    expect(backfillAdapter.fetchAllPostIdMappings).toHaveBeenCalledWith(
+      OUTSTAND_ACCOUNT_ID,
+    );
+  });
+
+  it("no gap — backfillIfNeeded resolves backfilled:false, result has no backfillUpdatedCount (Outstand fetchAllPostIdMappings never called, verified via BackfillOutstandPostIdsUseCase's own existence-check gate)", async () => {
+    const publishingRepo = createFakePublishingRepositoryForBackfill({
+      hasImportedPostsMissingOutstandId: async () => false,
+    });
+    const backfillAdapter = createFakeOutstandAdapter({
+      fetchAllPostIdMappings: vi.fn(async () => [
+        { platformPostId: "platform-1", outstandPostId: "outstand-1" },
+      ]),
+    });
+    const backfillUseCase = new BackfillOutstandPostIdsUseCase(
+      publishingRepo as never,
+      backfillAdapter,
+    );
+
+    const useCase = new ImportPostsTriggerUseCase(
+      createFakeImportJobRepository(),
+      createFakeOutstandAdapter(),
+      createFakeWatermarkPort(),
+      createProcessUseCase(1),
+      undefined,
+      backfillUseCase,
+    );
+
+    const result = await useCase.triggerAuto({
+      workspaceId: WORKSPACE_ID,
+      connectedAccountId: CONNECTED_ACCOUNT_ID,
+      outstandAccountId: OUTSTAND_ACCOUNT_ID,
+      platform: SocialPlatform.Instagram,
+      actingUserId: ACTING_USER_ID,
+    });
+
+    expect(result.outcome).toBe("triggered");
+    expect(result.backfillUpdatedCount).toBeUndefined();
+    expect(backfillAdapter.fetchAllPostIdMappings).not.toHaveBeenCalled();
+  });
+
+  it("backfill failure (adapter throws) is best-effort — does NOT fail the main sync, backfillUpdatedCount stays undefined", async () => {
+    const publishingRepo = createFakePublishingRepositoryForBackfill({
+      hasImportedPostsMissingOutstandId: async () => true,
+    });
+    const backfillAdapter = createFakeOutstandAdapter({
+      fetchAllPostIdMappings: vi.fn(async () => {
+        throw new Error("Outstand rate limited");
+      }),
+    });
+    const backfillUseCase = new BackfillOutstandPostIdsUseCase(
+      publishingRepo as never,
+      backfillAdapter,
+    );
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const useCase = new ImportPostsTriggerUseCase(
+      createFakeImportJobRepository(),
+      createFakeOutstandAdapter(),
+      createFakeWatermarkPort(),
+      createProcessUseCase(1),
+      undefined,
+      backfillUseCase,
+    );
+
+    const result = await useCase.triggerAuto({
+      workspaceId: WORKSPACE_ID,
+      connectedAccountId: CONNECTED_ACCOUNT_ID,
+      outstandAccountId: OUTSTAND_ACCOUNT_ID,
+      platform: SocialPlatform.Instagram,
+      actingUserId: ACTING_USER_ID,
+    });
+
+    expect(result.outcome).toBe("triggered");
+    expect(result.backfillUpdatedCount).toBeUndefined();
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining("T-114 backfill outstandPostId gagal"),
+    );
+    warnSpy.mockRestore();
+  });
+
+  it("backfill still runs even when the main import job itself fails — the two are independent (gap repair isn't gated on today's import succeeding)", async () => {
+    const publishingRepo = createFakePublishingRepositoryForBackfill({
+      hasImportedPostsMissingOutstandId: async () => true,
+      backfillImportedPostOutstandIds: async () => ({ updatedCount: 2 }),
+    });
+    const backfillAdapter = createFakeOutstandAdapter({
+      fetchAllPostIdMappings: vi.fn(async () => [
+        { platformPostId: "platform-1", outstandPostId: "outstand-1" },
+      ]),
+    });
+    const backfillUseCase = new BackfillOutstandPostIdsUseCase(
+      publishingRepo as never,
+      backfillAdapter,
+    );
+    const failingOutstandAdapter = createFakeOutstandAdapter({
+      importPosts: vi.fn(async () => {
+        throw new Error("boom");
+      }),
+    });
+
+    const useCase = new ImportPostsTriggerUseCase(
+      createFakeImportJobRepository(),
+      failingOutstandAdapter,
+      createFakeWatermarkPort(),
+      createProcessUseCase(1),
+      undefined,
+      backfillUseCase,
+    );
+
+    const result = await useCase.triggerAuto({
+      workspaceId: WORKSPACE_ID,
+      connectedAccountId: CONNECTED_ACCOUNT_ID,
+      outstandAccountId: OUTSTAND_ACCOUNT_ID,
+      platform: SocialPlatform.Instagram,
+      actingUserId: ACTING_USER_ID,
+    });
+
+    expect(result.outcome).toBe("failed");
+    expect(result.message).toMatch(/boom/);
+    // Gap-nya tetap ditutup walau import post BARU hari ini gagal.
+    expect(result.backfillUpdatedCount).toBe(2);
+    expect(
+      publishingRepo.backfillImportedPostOutstandIds,
+    ).toHaveBeenCalledTimes(1);
   });
 });

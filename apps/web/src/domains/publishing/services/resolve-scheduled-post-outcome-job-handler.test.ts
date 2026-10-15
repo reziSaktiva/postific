@@ -94,6 +94,8 @@ function createFakeRepository(
       insertedCount: 0,
       skippedDuplicateCount: 0,
     }),
+    hasImportedPostsMissingOutstandId: async () => false,
+    backfillImportedPostOutstandIds: async () => ({ updatedCount: 0 }),
     ...overrides,
   } satisfies IPublishingRepository;
 }
@@ -164,6 +166,7 @@ function createFakeAdapter(
       posts: [],
       error: null,
     }),
+    fetchAllPostIdMappings: async () => [],
   };
 }
 
