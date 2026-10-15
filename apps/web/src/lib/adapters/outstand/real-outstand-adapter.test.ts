@@ -1997,4 +1997,46 @@ describe("RealOutstandAdapter.fetchAllPostIdMappings (T-114, backfill outstandPo
       shapeDrift: true,
     });
   });
+
+  it("stops at MAX_PAGES and returns complete: false with a console.warn when the API claims more pages forever", async () => {
+    // `mockImplementation` (bukan `mockResolvedValue` dengan satu objek
+    // `Response` yang sama) — body sebuah `Response` hanya bisa dibaca
+    // sekali, jadi tiap pemanggilan butuh instance baru meski isinya
+    // identik untuk setiap halaman (satu definisi mock, bukan 500
+    // `mockResolvedValueOnce` manual).
+    const fetchImpl = vi.fn().mockImplementation(() =>
+      Promise.resolve(
+        jsonResponse(200, {
+          success: true,
+          data: [
+            {
+              id: "post-forever",
+              socialAccounts: [
+                {
+                  id: "acc-ig-1",
+                  status: "published",
+                  platformPostId: "ig-post-forever",
+                },
+              ],
+            },
+          ],
+          // `total` sangat besar dan tidak pernah berkurang — `hasMore` akan
+          // selalu true sehingga loop hanya bisa berhenti lewat safety net
+          // `MAX_PAGES`, bukan lewat kondisi `hasMore` wajar.
+          pagination: { limit: 100, offset: 0, total: 10_000_000, count: 100 },
+        }),
+      ),
+    );
+    const adapter = buildAdapter(fetchImpl);
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const result = await adapter.fetchAllPostIdMappings("acc-ig-1");
+
+    expect(fetchImpl).toHaveBeenCalledTimes(500);
+    expect(result.complete).toBe(false);
+    expect(result.mappings).toHaveLength(500);
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("acc-ig-1"));
+
+    warnSpy.mockRestore();
+  });
 });
