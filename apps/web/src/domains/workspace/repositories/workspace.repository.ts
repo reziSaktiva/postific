@@ -765,9 +765,10 @@ export interface IWorkspaceRepository {
    * jadi non-fungsional). Implementasi Prisma WAJIB `withCurrentUser`, sama
    * pola `reconnectAccount` di atas. Semua caller (`triggerAuto`/
    * `triggerPeriodicForAccounts`/`triggerManual`) sudah punya `actingUserId`
-   * di input masing-masing — termasuk jalur periodik (cron), yang caller-nya
-   * (belum diwiring, di luar scope T-090) wajib me-resolve acting user
-   * (kandidat: Account Owner workspace) sebelum memanggil.
+   * di input masing-masing — termasuk jalur periodik (cron, KI-088 resolved
+   * 2026-10-15), yang me-resolve-nya SENDIRI lewat
+   * `findAccountOwnerByOutstandAccountId` di bawah (pola sama JOB-04/JOB-03),
+   * BUKAN `Workspace.ownerId` langsung.
    *
    * Silent no-op kalau `connectedAccountId` tidak ditemukan ATAU acting user
    * bukan member aktif workspace tersebut (best effort, sama pola
