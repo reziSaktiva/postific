@@ -1094,6 +1094,21 @@ export interface IPublishingRepository {
    * invocation `upsertImportedPostsTx` untuk workspace yang sama,
    * dilepas otomatis saat transaksi commit/rollback.
    *
+   * **Review follow-up PR #169:**
+   * - Import ulang pada target yang sudah ada mengisi
+   *   `PublishingPost.outstandPostId` kalau nilainya masih `null` dan id
+   *   itu belum dipakai post lain. Id yang sudah terisi tidak ditimpa.
+   * - Kalau `outstandPostId` sudah dimiliki workspace LAIN (index-nya
+   *   global, RLS menyembunyikan baris itu dari `findMany`), post tetap
+   *   diimpor dengan `outstandPostId: null` supaya batch tidak batal.
+   *   Kepemilikan global dibaca lewat
+   *   `webhook_find_post_targets_by_outstand_post_id` (ADR-099), setelah
+   *   `pg_advisory_xact_lock` per id (key-space terpisah dari lock
+   *   workspace).
+   * - Kalau post di workspace ini sudah punya target untuk
+   *   `connectedAccountId` yang sama, target kedua tidak dibuat. Kalau
+   *   `platformPostId` target itu masih null, nilainya diisi dari import.
+   *
    * **Acting user untuk RLS (bukan `authorId` post — itu tetap `null`):**
    * `actingUserId` HANYA dipakai untuk `withCurrentUser` (RLS di-scope ke
    * MEMBERSHIP WORKSPACE, bukan `authorId` — lihat kebijakan
