@@ -20,6 +20,7 @@ import {
   type ImportJobHandle,
   type IOutstandAdapter,
   type OutstandMetricsPeriod,
+  type FetchAllPostIdMappingsResult,
   type OutstandPostIdMapping,
   type OutstandPostMediaInput,
   type OutstandPostTargetInput,
@@ -1686,11 +1687,13 @@ export function createRealOutstandAdapter(
      */
     async fetchAllPostIdMappings(
       outstandAccountId: string,
-    ): Promise<OutstandPostIdMapping[]> {
+    ): Promise<FetchAllPostIdMappingsResult> {
       const PAGE_LIMIT = 100;
       const MAX_PAGES = 500;
       const mappings: OutstandPostIdMapping[] = [];
       let offset = 0;
+      let shapeDrift = false;
+      let complete = true;
 
       for (let page = 0; page < MAX_PAGES; page++) {
         const response = await client.request<Record<string, unknown>>(
@@ -1710,9 +1713,14 @@ export function createRealOutstandAdapter(
           : [];
 
         for (const rawPost of rawPosts) {
-          const socialAccounts = Array.isArray(rawPost.socialAccounts)
-            ? (rawPost.socialAccounts as Record<string, unknown>[])
-            : [];
+          if (!Array.isArray(rawPost.socialAccounts)) {
+            shapeDrift = true;
+            continue;
+          }
+          const socialAccounts = rawPost.socialAccounts as Record<
+            string,
+            unknown
+          >[];
           const matchedAccount = socialAccounts.find(
             (account) =>
               account.id === outstandAccountId &&
@@ -1753,13 +1761,14 @@ export function createRealOutstandAdapter(
         if (!hasMore) break;
 
         if (page === MAX_PAGES - 1) {
+          complete = false;
           console.warn(
             `[RealOutstandAdapter] fetchAllPostIdMappings: akun ${outstandAccountId} melebihi batas ${MAX_PAGES} halaman (${MAX_PAGES * PAGE_LIMIT} post) — berhenti paksa, kemungkinan field "pagination" tidak sesuai ekspektasi.`,
           );
         }
       }
 
-      return mappings;
+      return { mappings, complete, shapeDrift };
     },
   };
 }

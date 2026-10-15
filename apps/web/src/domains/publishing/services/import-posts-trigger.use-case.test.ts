@@ -88,7 +88,11 @@ function createFakeOutstandAdapter(
       posts: [],
       error: null,
     })),
-    fetchAllPostIdMappings: vi.fn(async () => []),
+    fetchAllPostIdMappings: vi.fn(async () => ({
+      mappings: [],
+      complete: true,
+      shapeDrift: false,
+    })),
     ...overrides,
   };
 }
@@ -656,9 +660,13 @@ describe("ImportPostsTriggerUseCase — T-114 backfill outstandPostId wiring", (
       backfillImportedPostOutstandIds: async () => ({ updatedCount: 5 }),
     });
     const backfillAdapter = createFakeOutstandAdapter({
-      fetchAllPostIdMappings: vi.fn(async () => [
-        { platformPostId: "platform-1", outstandPostId: "outstand-1" },
-      ]),
+      fetchAllPostIdMappings: vi.fn(async () => ({
+        mappings: [
+          { platformPostId: "platform-1", outstandPostId: "outstand-1" },
+        ],
+        complete: true,
+        shapeDrift: false,
+      })),
     });
     const backfillUseCase = new BackfillOutstandPostIdsUseCase(
       publishingRepo as never,
@@ -700,9 +708,13 @@ describe("ImportPostsTriggerUseCase — T-114 backfill outstandPostId wiring", (
       hasImportedPostsMissingOutstandId: async () => false,
     });
     const backfillAdapter = createFakeOutstandAdapter({
-      fetchAllPostIdMappings: vi.fn(async () => [
-        { platformPostId: "platform-1", outstandPostId: "outstand-1" },
-      ]),
+      fetchAllPostIdMappings: vi.fn(async () => ({
+        mappings: [
+          { platformPostId: "platform-1", outstandPostId: "outstand-1" },
+        ],
+        complete: true,
+        shapeDrift: false,
+      })),
     });
     const backfillUseCase = new BackfillOutstandPostIdsUseCase(
       publishingRepo as never,
@@ -777,9 +789,13 @@ describe("ImportPostsTriggerUseCase — T-114 backfill outstandPostId wiring", (
       backfillImportedPostOutstandIds: async () => ({ updatedCount: 2 }),
     });
     const backfillAdapter = createFakeOutstandAdapter({
-      fetchAllPostIdMappings: vi.fn(async () => [
-        { platformPostId: "platform-1", outstandPostId: "outstand-1" },
-      ]),
+      fetchAllPostIdMappings: vi.fn(async () => ({
+        mappings: [
+          { platformPostId: "platform-1", outstandPostId: "outstand-1" },
+        ],
+        complete: true,
+        shapeDrift: false,
+      })),
     });
     const backfillUseCase = new BackfillOutstandPostIdsUseCase(
       publishingRepo as never,

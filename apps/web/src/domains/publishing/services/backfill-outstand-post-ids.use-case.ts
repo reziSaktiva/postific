@@ -36,9 +36,14 @@ export interface BackfillOutstandPostIdsResult {
  * satu query) SELALU dijalankan lebih dulu; `IOutstandAdapter.
  * fetchAllPostIdMappings` (panggilan Outstand yang menanyakan ULANG
  * seluruh riwayat akun, bukan window `since`/`until` biasa) HANYA
- * dipanggil kalau existence check menemukan gap — begitu satu kali
- * berhasil menutup gap-nya, sync berikutnya untuk akun yang sama tidak
- * pernah kena biaya panggilan tambahan ini lagi.
+ * dipanggil kalau existence check menemukan gap. Baris yang terisi, dan
+ * baris yang tidak bisa diisi (ditandai `outstandIdBackfillSkippedAt`),
+ * keluar dari cek itu — sync berikutnya untuk akun yang sama tidak kena
+ * biaya panggilan tambahan ini lagi. Riwayat yang terbaca sampai habis
+ * dengan shape yang dikenali menandai baris yang tidak cocok, termasuk
+ * kalau tidak ada satupun post published (akun kosong atau semua post
+ * sudah tidak tayang). Scan yang terpotong atau shape-nya tidak dikenali
+ * TIDAK menandai baris itu — gap tetap terbuka untuk sync berikutnya.
  */
 export class BackfillOutstandPostIdsUseCase {
   constructor(
@@ -60,16 +65,14 @@ export class BackfillOutstandPostIdsUseCase {
       return { backfilled: false, updatedCount: 0 };
     }
 
-    const mappings = await this.outstandAdapter.fetchAllPostIdMappings(
+    const history = await this.outstandAdapter.fetchAllPostIdMappings(
       input.outstandAccountId,
     );
-    if (mappings.length === 0) {
-      // Outstand tidak mengembalikan satu pun mapping yang bisa dipakai
-      // (akun baru/kosong, atau drift shape API) — tidak ada apa pun untuk
-      // di-backfill sekarang; `hasImportedPostsMissingOutstandId` akan tetap
-      // `true` sampai ada mapping yang cocok di sync berikutnya, BUKAN
-      // dianggap "sudah selesai" secara keliru (tidak menulis apa pun yang
-      // bisa membuat gap ini tampak tertutup padahal belum).
+    // Scan terpotong atau shape tidak dikenali: jangan anggap baris yang
+    // tidak muncul sebagai "memang tidak ada". Mapping kosong dalam kasus
+    // itu juga bukan bukti riwayat habis — gap tetap terbuka.
+    const settleUnmatched = history.complete && !history.shapeDrift;
+    if (history.mappings.length === 0 && !settleUnmatched) {
       return { backfilled: false, updatedCount: 0 };
     }
 
@@ -77,7 +80,8 @@ export class BackfillOutstandPostIdsUseCase {
       {
         workspaceId: input.workspaceId,
         connectedAccountId: input.connectedAccountId,
-        mappings,
+        mappings: history.mappings,
+        settleUnmatched,
       },
       input.actingUserId,
     );

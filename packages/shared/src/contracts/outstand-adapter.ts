@@ -583,6 +583,18 @@ export interface OutstandPostIdMapping {
 }
 
 /**
+ * Hasil `fetchAllPostIdMappings` (T-114). `complete` false kalau scan
+ * berhenti di batas halaman sebelum riwayat habis. `shapeDrift` true kalau
+ * ada item yang tidak punya `socialAccounts` array — caller tidak boleh
+ * menganggap baris lokal yang tidak ketemu sebagai "memang tidak ada".
+ */
+export interface FetchAllPostIdMappingsResult {
+  mappings: OutstandPostIdMapping[];
+  complete: boolean;
+  shapeDrift: boolean;
+}
+
+/**
  * Anti-Corruption Layer contract untuk Outstand (integration-layer.md,
  * ADR-040, redesain ADR baru 2026-08-26). Domain internal (Publishing,
  * Analytics, dst.) hanya mengenal interface ini — implementasi konkret
@@ -915,5 +927,5 @@ export interface IOutstandAdapter {
    */
   fetchAllPostIdMappings(
     outstandAccountId: string,
-  ): Promise<OutstandPostIdMapping[]>;
+  ): Promise<FetchAllPostIdMappingsResult>;
 }

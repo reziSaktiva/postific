@@ -174,7 +174,11 @@ function createFakeOutstandAdapter(
       posts: [],
       error: null,
     }),
-    fetchAllPostIdMappings: async () => [],
+    fetchAllPostIdMappings: async () => ({
+      mappings: [],
+      complete: true,
+      shapeDrift: false,
+    }),
     ...overrides,
   };
 }

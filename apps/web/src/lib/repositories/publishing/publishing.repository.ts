@@ -1243,7 +1243,10 @@ export const publishingRepository: IPublishingRepository = {
    * murah: satu `findFirst` (bukan `count`) di-scope `workspaceId` +
    * `connectedAccountId` lewat `publishingPostTarget` (pola sama
    * `listSyncablePostsByConnectedAccount`), nested filter ke `post` induk
-   * (`status: Imported`, `outstandPostId: null`, belum soft-deleted).
+   * (`status: Imported`, `outstandPostId: null`, belum soft-deleted, belum
+   * ditandai `outstandIdBackfillSkippedAt`). Target tanpa `platformPostId`
+   * tidak dihitung: tidak ada kunci untuk dicocokkan ke riwayat Outstand,
+   * jadi tidak boleh memicu unduhan penuh di setiap sync.
    */
   async hasImportedPostsMissingOutstandId(
     { workspaceId, connectedAccountId },
@@ -1253,11 +1256,13 @@ export const publishingRepository: IPublishingRepository = {
       tx.publishingPostTarget.findFirst({
         where: {
           connectedAccountId,
+          platformPostId: { not: null },
           post: {
             workspaceId,
             status: ContentStatus.Imported,
             outstandPostId: null,
             deletedAt: null,
+            outstandIdBackfillSkippedAt: null,
           },
         },
         select: { id: true },
@@ -1273,11 +1278,11 @@ export const publishingRepository: IPublishingRepository = {
    * `upsertImportedPostsTx`) supaya bisa di-unit-test dengan `tx` palsu.
    */
   async backfillImportedPostOutstandIds(
-    { workspaceId, connectedAccountId, mappings },
+    { workspaceId, connectedAccountId, mappings, settleUnmatched },
     actingUserId,
   ) {
-    if (mappings.length === 0) {
-      return { updatedCount: 0 };
+    if (mappings.length === 0 && !settleUnmatched) {
+      return { updatedCount: 0, skippedCount: 0 };
     }
 
     return withCurrentUser(actingUserId, (tx) =>
@@ -1286,6 +1291,7 @@ export const publishingRepository: IPublishingRepository = {
         workspaceId,
         connectedAccountId,
         mappings,
+        settleUnmatched,
       ),
     );
   },

@@ -2,6 +2,7 @@ import {
   asConnectedAccountId,
   asUserId,
   asWorkspaceId,
+  type FetchAllPostIdMappingsResult,
 } from "@postific/shared";
 import { describe, expect, it, vi } from "vitest";
 import { BackfillOutstandPostIdsUseCase } from "./backfill-outstand-post-ids.use-case";
@@ -28,13 +29,20 @@ function createFakeRepository(
   };
 }
 
+function history(
+  mappings: FetchAllPostIdMappingsResult["mappings"],
+  overrides: Partial<FetchAllPostIdMappingsResult> = {},
+): FetchAllPostIdMappingsResult {
+  return { mappings, complete: true, shapeDrift: false, ...overrides };
+}
+
 function createFakeAdapter(
-  fetchAllPostIdMappings?: () => Promise<
-    { platformPostId: string; outstandPostId: string }[]
-  >,
+  fetchAllPostIdMappings?: () => Promise<FetchAllPostIdMappingsResult>,
 ) {
   return {
-    fetchAllPostIdMappings: vi.fn(fetchAllPostIdMappings ?? (async () => [])),
+    fetchAllPostIdMappings: vi.fn(
+      fetchAllPostIdMappings ?? (async () => history([])),
+    ),
   };
 }
 
@@ -70,7 +78,7 @@ describe("BackfillOutstandPostIdsUseCase.backfillIfNeeded (T-114)", () => {
       { platformPostId: "platform-1", outstandPostId: "outstand-1" },
       { platformPostId: "platform-2", outstandPostId: "outstand-2" },
     ];
-    const adapter = createFakeAdapter(async () => mappings);
+    const adapter = createFakeAdapter(async () => history(mappings));
     const useCase = new BackfillOutstandPostIdsUseCase(
       repository as never,
       adapter as never,
@@ -92,16 +100,52 @@ describe("BackfillOutstandPostIdsUseCase.backfillIfNeeded (T-114)", () => {
         workspaceId: WORKSPACE_ID,
         connectedAccountId: CONNECTED_ACCOUNT_ID,
         mappings,
+        settleUnmatched: true,
       },
       ACTING_USER_ID,
     );
   });
 
-  it("gap exists but Outstand returns zero mappings — does not call the repository update, reports backfilled:false (gap stays open for next sync)", async () => {
+  it("complete empty history settles the gap (repository called with settleUnmatched) so the next sync does not refetch", async () => {
+    const repository = createFakeRepository({
+      hasImportedPostsMissingOutstandId: async () => true,
+      backfillImportedPostOutstandIds: async () => ({
+        updatedCount: 0,
+        skippedCount: 4,
+      }),
+    });
+    const adapter = createFakeAdapter(async () => history([]));
+    const useCase = new BackfillOutstandPostIdsUseCase(
+      repository as never,
+      adapter as never,
+    );
+
+    const result = await useCase.backfillIfNeeded({
+      workspaceId: WORKSPACE_ID,
+      connectedAccountId: CONNECTED_ACCOUNT_ID,
+      outstandAccountId: OUTSTAND_ACCOUNT_ID,
+      actingUserId: ACTING_USER_ID,
+    });
+
+    expect(result).toEqual({ backfilled: true, updatedCount: 0 });
+    expect(repository.backfillImportedPostOutstandIds).toHaveBeenCalledWith(
+      {
+        workspaceId: WORKSPACE_ID,
+        connectedAccountId: CONNECTED_ACCOUNT_ID,
+        mappings: [],
+        settleUnmatched: true,
+      },
+      ACTING_USER_ID,
+    );
+  });
+
+  it("gap exists but the history scan is unusable (shape drift) — does not call the repository, gap stays open", async () => {
     const repository = createFakeRepository({
       hasImportedPostsMissingOutstandId: async () => true,
     });
-    const adapter = createFakeAdapter(async () => []);
+    const adapter = createFakeAdapter(async () =>
+      history([], { shapeDrift: true }),
+    );
     const useCase = new BackfillOutstandPostIdsUseCase(
       repository as never,
       adapter as never,

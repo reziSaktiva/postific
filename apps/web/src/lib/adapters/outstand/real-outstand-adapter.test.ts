@@ -1886,9 +1886,11 @@ describe("RealOutstandAdapter.fetchAllPostIdMappings (T-114, backfill outstandPo
 
     const result = await adapter.fetchAllPostIdMappings("acc-ig-1");
 
-    expect(result).toEqual([
-      { platformPostId: "ig-post-1", outstandPostId: "post-1" },
-    ]);
+    expect(result).toEqual({
+      mappings: [{ platformPostId: "ig-post-1", outstandPostId: "post-1" }],
+      complete: true,
+      shapeDrift: false,
+    });
   });
 
   it("pages through GET /v1/posts using pagination.total/count until exhausted", async () => {
@@ -1939,10 +1941,14 @@ describe("RealOutstandAdapter.fetchAllPostIdMappings (T-114, backfill outstandPo
     const secondUrl = new URL(String(fetchImpl.mock.calls[1]?.[0]));
     expect(firstUrl.searchParams.get("offset")).toBe("0");
     expect(secondUrl.searchParams.get("offset")).toBe("1");
-    expect(result).toEqual([
-      { platformPostId: "ig-post-1", outstandPostId: "post-1" },
-      { platformPostId: "ig-post-2", outstandPostId: "post-2" },
-    ]);
+    expect(result).toEqual({
+      mappings: [
+        { platformPostId: "ig-post-1", outstandPostId: "post-1" },
+        { platformPostId: "ig-post-2", outstandPostId: "post-2" },
+      ],
+      complete: true,
+      shapeDrift: false,
+    });
   });
 
   it("stops after one page when the page comes back empty, even without a pagination object (defensive)", async () => {
@@ -1954,6 +1960,41 @@ describe("RealOutstandAdapter.fetchAllPostIdMappings (T-114, backfill outstandPo
     const result = await adapter.fetchAllPostIdMappings("acc-ig-1");
 
     expect(fetchImpl).toHaveBeenCalledTimes(1);
-    expect(result).toEqual([]);
+    expect(result).toEqual({
+      mappings: [],
+      complete: true,
+      shapeDrift: false,
+    });
+  });
+
+  it("flags shapeDrift when a raw post has no socialAccounts array, and still maps the posts that do", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        success: true,
+        data: [
+          { id: "post-drift" },
+          {
+            id: "post-ok",
+            socialAccounts: [
+              {
+                id: "acc-ig-1",
+                status: "published",
+                platformPostId: "ig-post-ok",
+              },
+            ],
+          },
+        ],
+        pagination: { limit: 100, offset: 0, total: 2, count: 2 },
+      }),
+    );
+    const adapter = buildAdapter(fetchImpl);
+
+    const result = await adapter.fetchAllPostIdMappings("acc-ig-1");
+
+    expect(result).toEqual({
+      mappings: [{ platformPostId: "ig-post-ok", outstandPostId: "post-ok" }],
+      complete: true,
+      shapeDrift: true,
+    });
   });
 });
