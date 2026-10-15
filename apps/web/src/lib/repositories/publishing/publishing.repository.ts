@@ -38,6 +38,7 @@ import {
   withCurrentUser,
 } from "@/lib/prisma/with-current-user";
 import { replaceDraftTargets } from "@/lib/repositories/publishing/replace-draft-targets";
+import { upsertImportedPostsTx } from "@/lib/repositories/publishing/upsert-imported-posts";
 
 /**
  * Sentinel internal — dilempar di dalam `$transaction` supaya semua
@@ -1006,6 +1007,15 @@ export const publishingRepository: IPublishingRepository = {
 
     const [first] = rows;
 
+    // Post Imported (ADR-093) punya `authorId` null, dan sejak T-113 juga
+    // punya `outstandPostId`. Lookup ini khusus outcome publish
+    // (`post.published` / `post.error`). Melempar di sini membuat receipt
+    // webhook gagal. Anggap tidak ketemu supaya processor mengembalikan
+    // `skipped_no_match` — tidak ada mutasi ke post Imported.
+    if (!first.author_id) {
+      return null;
+    }
+
     // Guard defensif (code review Ridwan Architecture Reviewer, T-026 —
     // defense-in-depth lapis kedua di samping partial unique index pada
     // `publishing_posts.outstand_post_id`, migration
@@ -1039,11 +1049,9 @@ export const publishingRepository: IPublishingRepository = {
     const record: WebhookPostLookupRecord = {
       postId: asPostId(first.post_id),
       workspaceId: asWorkspaceId(first.workspace_id),
-      // Code review PR #148 — `author_id` nullable sejak ADR-093 (T-090.1,
-      // status `Imported`); reuse guard `requireAuthorId` (bukan `asUserId`
-      // telanjang) supaya lookup ini throw loud kalau pernah menerima baris
-      // Imported, bukan diam-diam meloloskan `UserId` palsu ke webhook
-      // processor.
+      // `author_id` null sudah dikembalikan sebagai tidak-ketemu di atas
+      // (post Imported). Guard ini tetap untuk jalur publish, yang
+      // author-nya wajib ada.
       authorId: requireAuthorId(
         first.author_id,
         "findPostTargetsByOutstandPostId",
@@ -1215,94 +1223,18 @@ export const publishingRepository: IPublishingRepository = {
 
   /**
    * Import Posts dari Social Account (T-090.4, ADR-093 poin 3-4, 7) — lihat
-   * docstring lengkap di `IPublishingRepository.upsertImportedPosts`.
+   * docstring lengkap di `IPublishingRepository.upsertImportedPosts`. Logika
+   * inti diekstrak ke `upsertImportedPostsTx` (pola sama
+   * `replaceDraftTargets`) supaya bisa di-unit-test dengan `tx` palsu.
    */
   async upsertImportedPosts({ workspaceId, posts }, actingUserId) {
     if (posts.length === 0) {
       return { insertedCount: 0, skippedDuplicateCount: 0 };
     }
 
-    return withCurrentUser(actingUserId, async (tx) => {
-      // Dedup (ADR-093 poin 4) — satu query batch untuk SELURUH
-      // `platformPostId` di input, bukan satu query per post (N+1).
-      // `connectedAccountId` ikut disaring karena `platformPostId` hanya
-      // unik PER AKUN (dua akun berbeda bisa kebetulan punya
-      // `platformPostId` yang sama secara string, walau jarang — defensif,
-      // sama semangat dedup existing di ADR-092).
-      const connectedAccountIds = [
-        ...new Set(posts.map((post) => post.connectedAccountId)),
-      ];
-      const platformPostIds = [
-        ...new Set(posts.map((post) => post.platformPostId)),
-      ];
-
-      const existing = await tx.publishingPostTarget.findMany({
-        where: {
-          connectedAccountId: { in: connectedAccountIds },
-          platformPostId: { in: platformPostIds },
-        },
-        select: { connectedAccountId: true, platformPostId: true },
-      });
-      const existingKeys = new Set(
-        existing.map(
-          (row) => `${row.connectedAccountId}:${row.platformPostId}`,
-        ),
-      );
-
-      let insertedCount = 0;
-      let skippedDuplicateCount = 0;
-
-      for (const post of posts) {
-        const key = `${post.connectedAccountId}:${post.platformPostId}`;
-        if (existingKeys.has(key)) {
-          skippedDuplicateCount++;
-          continue;
-        }
-
-        await tx.publishingPost.create({
-          data: {
-            workspaceId,
-            // ADR-093 poin 3 — authorId null HANYA untuk status Imported.
-            authorId: null,
-            status: ContentStatus.Imported,
-            caption: post.caption,
-            publishedAt: post.publishedAt,
-            targets: {
-              create: [
-                {
-                  connectedAccountId: post.connectedAccountId,
-                  platform: post.platform,
-                  contentFormat: ContentFormat.Post,
-                  platformPostId: post.platformPostId,
-                  platformPostUrl: post.platformPostUrl,
-                  // Target hasil import sudah live di platform sejak
-                  // sebelum tool ini tahu soal post ini — "published" (bukan
-                  // "pending") adalah outcome yang benar, bukan hasil
-                  // percobaan publish kita sendiri.
-                  status: "published",
-                  // Media eksternal (`ImportedPostData.mediaUrls`) belum
-                  // punya kolom DB khusus (T-090 scope) — disimpan di sini
-                  // supaya tidak hilang untuk UI Imported nanti (T-090.5).
-                  platformOptions:
-                    post.mediaUrls.length > 0
-                      ? { mediaUrls: post.mediaUrls }
-                      : undefined,
-                },
-              ],
-            },
-          },
-        });
-
-        // Supaya post lain dalam BATCH YANG SAMA dengan `platformPostId`
-        // kebetulan identik (seharusnya tidak terjadi — Outstand tidak
-        // pernah mengembalikan duplikat dalam satu `fetchImportJobStatus`
-        // — tapi defensif) tidak ikut ter-insert dobel.
-        existingKeys.add(key);
-        insertedCount++;
-      }
-
-      return { insertedCount, skippedDuplicateCount };
-    });
+    return withCurrentUser(actingUserId, (tx) =>
+      upsertImportedPostsTx(tx, workspaceId, posts),
+    );
   },
 };
 
@@ -1310,7 +1242,7 @@ export const publishingRepository: IPublishingRepository = {
 interface WebhookPostTargetLookupRow {
   post_id: string;
   workspace_id: string;
-  author_id: string;
+  author_id: string | null;
   post_target_id: string;
   connected_account_id: string;
   outstand_account_id: string;

@@ -1511,7 +1511,11 @@ export function createRealOutstandAdapter(
      * `publishedAt` diambil dari field PER-akun (`socialAccounts[].
      * publishedAt`), fallback ke `since`/`until` job (lalu `new Date()`)
      * kalau null — konsisten pola `toDateOrNull` fallback di
-     * `fetchComments`.
+     * `fetchComments`. `outstandPostId` = `rawPost.id` (id internal
+     * Outstand di LEVEL POST, bukan per-akun — field yang sama dipakai
+     * path param `GET /v1/posts/{id}` di `fetchPostOutcome`/
+     * `fetchComments`) — T-113/KI-090, dibutuhkan supaya
+     * `SyncCommentsUseCase` bisa menarik comment post Imported ini.
      */
     async fetchImportJobStatus(
       outstandAccountId: string,
@@ -1617,6 +1621,11 @@ export function createRealOutstandAdapter(
 
         posts.push({
           platformPostId: matchedAccount.platformPostId as string,
+          // T-113/KI-090 — `rawPost.id` (id internal Outstand, field yang
+          // sama dipakai path param `GET /v1/posts/{id}` di
+          // `fetchPostOutcome`/`fetchComments`) sudah ada di tiap item
+          // `GET /v1/posts`, cuma belum pernah dibaca sebelum ini.
+          outstandPostId: toStringOrNull(rawPost.id),
           caption,
           publishedAt:
             toDateOrNull(matchedAccount.publishedAt) ??

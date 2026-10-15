@@ -18,7 +18,7 @@
 | ------------ | ---------- |
 | Version      | 1.1.2      |
 | Status       | Active     |
-| Last Updated | 2026-10-14 |
+| Last Updated | 2026-10-15 |
 
 ---
 
@@ -452,6 +452,48 @@ hanya nilai mockup statis, atau lebar yang seharusnya dipakai di aplikasi
 (desktop dan mobile, bukan regresi khusus mobile). Menunggu konfirmasi King
 Rezi sebelum dianggap bukan masalah. Tidak memblokir pekerjaan lain.
 
+### KI-090 · Comment pada post hasil Import tidak ikut masuk Engage Inbox — `outstandPostId` tidak pernah diisi
+
+| Field | Value |
+|-------|-------|
+| Status | Promoted to T-113 (2026-10-15) |
+| Kategori | Bug / Gap Produk |
+| Terkait | T-090, T-051, T-112, ADR-093, ADR-113, ADR-123 |
+
+Ditemukan King Rezi (2026-10-15) saat menanyakan apakah comment pada post
+hasil **Import Posts** (status `Imported`, T-090) ikut masuk ke Comments
+Inbox (Engage). Dikonfirmasi lewat pembacaan kode + tes langsung MCP
+Outstand (bukan asumsi):
+
+- Job sync comment (`SyncCommentsUseCase`, redesign per-post ADR-113)
+  mengambil daftar post lewat `listSyncablePostsByConnectedAccount`
+  (`apps/web/src/lib/repositories/publishing/publishing.repository.ts`),
+  yang mensyaratkan `PublishingPost.outstandPostId: { not: null }`.
+- Post hasil Import (`upsertImportedPosts`, path yang sama) **tidak pernah
+  mengisi `outstandPostId`** — hanya `PublishingPostTarget.platformPostId`
+  (id native platform) yang disimpan, diambil dari
+  `matchedAccount.platformPostId` di respons `RealOutstandAdapter
+  .fetchImportJobStatus`.
+- Akibatnya seluruh post `Imported` otomatis gugur dari antrian sync
+  comment — comment-nya tidak pernah ditarik ke `EngagementInboxItem`.
+
+**Ini bisa diperbaiki, bukan keterbatasan Outstand.** Dites langsung via MCP
+Outstand: `get_replies(post_id: "MAnO3", network: "instagram", username:
+"turanilkerl")` berhasil mengembalikan comment asli memakai id internal
+Outstand. Dan respons `GET /v1/posts` yang sama (dipakai
+`fetchImportJobStatus` saat import, lihat docstring adapter baris
+~1490–1500) **sudah membawa `id` internal Outstand itu juga** untuk setiap
+post yang di-discover — termasuk post Imported — tapi field ini tidak
+pernah dibaca/disimpan di mapping import
+(`apps/web/src/lib/adapters/outstand/real-outstand-adapter.ts` baris
+~1584–1627 hanya mengekstrak `platformPostId`, tidak pernah `rawPost.id`).
+
+Tidak memblokir M8 (Import Posts dan Comments Inbox masing-masing tetap
+berfungsi normal untuk kasusnya sendiri), tapi merupakan gap produk nyata:
+user yang mengandalkan Import Posts untuk post lama tidak akan melihat
+comment-nya di Engage. Dipromosikan langsung ke **T-113** (2026-10-15) atas
+permintaan King Rezi.
+
 ---
 
 ## Blockers
@@ -500,11 +542,11 @@ seluruh daftar Known Issues.
 
 ## Completed (Ringkasan)
 
+* **T-113 ✅ TUNTAS 4/4 subtask — comment post Imported ikut ter-sync ke Engage Inbox (2026-10-15)** — promosi **KI-090**. `outstandPostId` kini ditangkap+disimpan untuk post hasil Import Posts. 2 bug konkurensi/cross-post CONFIRMED ditemukan & diperbaiki lewat 3 ronde review Ridwan (unique index global, lalu race antar transaksi via `pg_advisory_xact_lock`). Diverifikasi end-to-end nyata: comment Reels Facebook berhasil masuk Comments Inbox. Detail: `tasks/v02-publishing-mvp.md` § T-113, `COMPLETE_TASK.md`.
 * **T-005 ✅ TUNTAS 5/5 — email verification flow (2026-10-14)** — Resend mengirim reset password dan verifikasi email. `/verify-email` hidup. `requireEmailVerification` aktif. Akun lama di-backfill lewat migrasi `20261014160000`. Accept-invite memakai cookie httpOnly `invite-email-proof` supaya sign-up tanpa OTP tidak ikut terverifikasi. Perbaikan review PR #168 juga mengembalikan pekerjaan staging (T-016.4, T-030.3, T-091) yang akan terhapus kalau branch di-merge apa adanya. Detail: `tasks/v01-foundation.md` § T-005, `COMPLETE_TASK.md`.
 * **T-016 ✅ TUNTAS 5/5 subtask — Account & user settings screens, T-016.4 `/account/notifications` (2026-10-14)** — subtask terakhir (preferensi notifikasi: Balasan & Mention, Jadwal Publish, Laporan Analytics) diimplementasikan di domain `identity`, lolos review Ridwan (nihil temuan) dan QA end-to-end Najwa. Migration baru `identity_user` sudah dijalankan King Rezi & diverifikasi via Supabase MCP. PR #164 ke `staging` sudah di-merge. Detail: `tasks/v01-foundation.md` § T-016, `COMPLETE_TASK.md`.
 * **T-030 ✅ TUNTAS 3/3 subtask — Cancel Schedule + dialog konfirmasi (2026-10-13)** — entry point "Batalkan Jadwal" ditambahkan di popover Calendar (`CalendarPostPopover.tsx`), melengkapi bagian Queue yang sudah selesai sejak T-032.4. 100% reuse use-case/RBAC yang sama, tanpa business logic baru. Detail: `tasks/v02-publishing-mvp.md` § T-030, `COMPLETE_TASK.md`.
 * **Blocker staging ditutup (2026-10-13)** — migrasi T-051 sudah ter-apply sejak 2026-09-22, cron staging membalas 200 tiap menit, dan lima target Publish Now yang stuck `pending` sudah final sejak 2026-10-05. Penghalang aktif tinggal **KI-015**. Detail: `COMPLETE_TASK.md`.
-* **KI-087 ✅ Resolved (2026-10-13)** — service Railway `cron-analytics` (jadwal `0 0 * * *`, trigger `?type=analytics`) kembali membalas **200**. Akar masalah: image `curlimages/curl` menjalankan perintah tanpa shell, jadi `$JOB_SECRET` terkirim literal. Service dikembalikan ke image `alpine:3.20` + `sh -c` (pola yang sama dengan service `cron` yang sudah jalan). Nilai `JOB_SECRET` ketiga service memang sudah sama — dugaan mismatch secret tidak terbukti. Detail: `COMPLETE_TASK.md`.
 Berikut ~5 item terakhir yang diselesaikan. Riwayat lengkap (sejak M0): lihat `COMPLETE_TASK.md` — ⚠️ jangan dibaca AI kecuali diperintah eksplisit King Rezi.
 
 ---

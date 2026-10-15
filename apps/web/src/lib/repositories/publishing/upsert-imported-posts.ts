@@ -1,0 +1,401 @@
+import {
+  ContentFormat,
+  ContentStatus,
+  type WorkspaceId,
+} from "@postific/shared";
+import type {
+  ImportedPostTargetInput,
+  UpsertImportedPostsResult,
+} from "@/domains/publishing/repositories/publishing.repository";
+import type { PrismaTransactionClient } from "@/lib/prisma/with-current-user";
+
+/**
+ * Import Posts dari Social Account (T-090.4, ADR-093 poin 3-4, 7) — logika
+ * inti `IPublishingRepository.upsertImportedPosts` (lihat docstring lengkap
+ * di sana), diekstrak ke fungsi berdiri sendiri (pola sama
+ * `replaceDraftTargets`) supaya bisa di-unit-test dengan `tx` palsu tanpa
+ * DB sungguhan — `PublishingRepository.upsertImportedPosts` di
+ * `publishing.repository.ts` hanya membungkusnya dengan `withCurrentUser`.
+ */
+export async function upsertImportedPostsTx(
+  tx: PrismaTransactionClient,
+  workspaceId: WorkspaceId,
+  posts: ImportedPostTargetInput[],
+): Promise<UpsertImportedPostsResult> {
+  // Advisory lock per `workspaceId` (dilepas otomatis saat transaksi
+  // commit/rollback — pola sama `EngagementRepository.upsertInboxItem`).
+  // Menyerialkan import di workspace yang sama supaya dua akun tidak
+  // sama-sama INSERT `outstandPostId` yang identik.
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${workspaceId})::bigint)`;
+
+  const outstandPostIds = [
+    ...new Set(
+      posts
+        .map((post) => post.outstandPostId)
+        .filter((id): id is string => typeof id === "string" && id.length > 0),
+    ),
+  ].sort();
+
+  // Lock kedua, key-space `(int, int)` — TERPISAH dari lock bigint di atas
+  // dan dari lock engagement (`hashtext(connectedAccountId)`). Mengunci
+  // tiap `outstandPostId` secara global (urut, supaya tidak deadlock)
+  // sebelum baca/tulis, karena unique index `outstand_post_id` juga global:
+  // dua workspace bisa mengimpor id yang sama tanpa saling menunggu lock
+  // workspace.
+  for (const outstandPostId of outstandPostIds) {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('publishing.outstand_post_id'), hashtext(${outstandPostId}))`;
+  }
+
+  const connectedAccountIds = [
+    ...new Set(posts.map((post) => post.connectedAccountId)),
+  ];
+  const platformPostIds = [
+    ...new Set(posts.map((post) => post.platformPostId)),
+  ];
+
+  const existingTargets = await tx.publishingPostTarget.findMany({
+    where: {
+      connectedAccountId: { in: connectedAccountIds },
+      platformPostId: { in: platformPostIds },
+    },
+    select: {
+      id: true,
+      postId: true,
+      connectedAccountId: true,
+      platformPostId: true,
+      post: { select: { outstandPostId: true } },
+    },
+  });
+  const existingTargetByKey = new Map<string, ExistingTargetRef>(
+    existingTargets.flatMap((row) =>
+      row.platformPostId
+        ? [
+            [
+              `${row.connectedAccountId}:${row.platformPostId}`,
+              {
+                postId: row.postId,
+                connectedAccountId: row.connectedAccountId,
+                platformPostId: row.platformPostId,
+                currentOutstandPostId: row.post.outstandPostId,
+              },
+            ] as const,
+          ]
+        : [],
+    ),
+  );
+
+  const existingPostsByOutstandId =
+    outstandPostIds.length > 0
+      ? await tx.publishingPost.findMany({
+          where: {
+            workspaceId,
+            outstandPostId: { in: outstandPostIds },
+            deletedAt: null,
+          },
+          select: { id: true, outstandPostId: true },
+        })
+      : [];
+  const postIdByOutstandId = new Map<string, string>(
+    existingPostsByOutstandId
+      .filter(
+        (row): row is { id: string; outstandPostId: string } =>
+          row.outstandPostId !== null,
+      )
+      .map((row) => [row.outstandPostId, row.id]),
+  );
+
+  // Index unique `outstand_post_id` global, sementara RLS
+  // `publishing_posts_workspace_isolation` menyembunyikan baris workspace
+  // lain dari `findMany` di atas (`app_runtime` tidak BYPASSRLS, ADR-099).
+  // Reuse fungsi SECURITY DEFINER yang sudah ada — exact-match per id,
+  // bukan fungsi bypass baru.
+  const globalOwners = await findGlobalOutstandPostOwners(tx, outstandPostIds);
+
+  const localPostIds = [
+    ...new Set([
+      ...postIdByOutstandId.values(),
+      ...[...globalOwners.values()]
+        .filter((owner) => owner.workspaceId === workspaceId)
+        .map((owner) => owner.postId),
+    ]),
+  ];
+  const targetsOnLocalPosts =
+    localPostIds.length > 0
+      ? await tx.publishingPostTarget.findMany({
+          where: {
+            postId: { in: localPostIds },
+            connectedAccountId: { in: connectedAccountIds },
+          },
+          select: {
+            id: true,
+            postId: true,
+            connectedAccountId: true,
+            platformPostId: true,
+          },
+        })
+      : [];
+  const targetByPostAccount = new Map(
+    targetsOnLocalPosts.map((row) => [
+      `${row.postId}:${row.connectedAccountId}`,
+      row,
+    ]),
+  );
+
+  let insertedCount = 0;
+  let skippedDuplicateCount = 0;
+
+  for (const post of posts) {
+    const key = `${post.connectedAccountId}:${post.platformPostId}`;
+    const duplicate = existingTargetByKey.get(key);
+    if (duplicate) {
+      if (post.outstandPostId) {
+        const filled = await backfillOutstandPostId(
+          tx,
+          workspaceId,
+          duplicate.postId,
+          duplicate.currentOutstandPostId,
+          post.outstandPostId,
+          globalOwners,
+          postIdByOutstandId,
+        );
+        if (filled) duplicate.currentOutstandPostId = post.outstandPostId;
+      }
+      skippedDuplicateCount++;
+      continue;
+    }
+
+    const owner = post.outstandPostId
+      ? globalOwners.get(post.outstandPostId)
+      : undefined;
+    if (owner && owner.workspaceId !== workspaceId) {
+      // Id sudah milik workspace lain. Unique index global menolak baris
+      // kedua, dan attach lintas tenant tidak boleh. Post tetap diimpor
+      // tanpa `outstandPostId` supaya satu tabrakan tidak membatalkan
+      // seluruh batch. Comment sync untuk salinan ini tidak jalan — id
+      // itu sudah mengarah ke workspace pemiliknya.
+      const created = await createImportedPost(tx, workspaceId, post, null);
+      existingTargetByKey.set(key, {
+        postId: created.id,
+        connectedAccountId: post.connectedAccountId,
+        platformPostId: post.platformPostId,
+        currentOutstandPostId: null,
+      });
+      insertedCount++;
+      continue;
+    }
+
+    const existingPostId = post.outstandPostId
+      ? (postIdByOutstandId.get(post.outstandPostId) ??
+        (owner?.workspaceId === workspaceId ? owner.postId : undefined))
+      : undefined;
+
+    if (existingPostId) {
+      const accountKey = `${existingPostId}:${post.connectedAccountId}`;
+      const existingAccountTarget = targetByPostAccount.get(accountKey);
+      const accountAlreadyOnPost =
+        existingAccountTarget !== undefined ||
+        (owner?.connectedAccountIds.has(post.connectedAccountId) ?? false);
+
+      if (accountAlreadyOnPost) {
+        if (
+          existingAccountTarget &&
+          existingAccountTarget.platformPostId === null
+        ) {
+          await tx.publishingPostTarget.updateMany({
+            where: {
+              id: existingAccountTarget.id,
+              postId: existingPostId,
+              connectedAccountId: post.connectedAccountId,
+              platformPostId: null,
+            },
+            data: targetFillData(post),
+          });
+          existingAccountTarget.platformPostId = post.platformPostId;
+        }
+        existingTargetByKey.set(key, {
+          postId: existingPostId,
+          connectedAccountId: post.connectedAccountId,
+          platformPostId: post.platformPostId,
+          currentOutstandPostId: post.outstandPostId,
+        });
+        skippedDuplicateCount++;
+        continue;
+      }
+
+      await tx.publishingPostTarget.create({
+        data: {
+          postId: existingPostId,
+          ...targetCreateFields(post),
+        },
+      });
+      targetByPostAccount.set(accountKey, {
+        id: "local",
+        postId: existingPostId,
+        connectedAccountId: post.connectedAccountId,
+        platformPostId: post.platformPostId,
+      });
+      owner?.connectedAccountIds.add(post.connectedAccountId);
+      existingTargetByKey.set(key, {
+        postId: existingPostId,
+        connectedAccountId: post.connectedAccountId,
+        platformPostId: post.platformPostId,
+        currentOutstandPostId: post.outstandPostId,
+      });
+      insertedCount++;
+      continue;
+    }
+
+    const createdPost = await createImportedPost(
+      tx,
+      workspaceId,
+      post,
+      post.outstandPostId,
+    );
+
+    if (post.outstandPostId) {
+      postIdByOutstandId.set(post.outstandPostId, createdPost.id);
+      globalOwners.set(post.outstandPostId, {
+        postId: createdPost.id,
+        workspaceId,
+        connectedAccountIds: new Set([post.connectedAccountId]),
+      });
+    }
+    targetByPostAccount.set(`${createdPost.id}:${post.connectedAccountId}`, {
+      id: "local",
+      postId: createdPost.id,
+      connectedAccountId: post.connectedAccountId,
+      platformPostId: post.platformPostId,
+    });
+    existingTargetByKey.set(key, {
+      postId: createdPost.id,
+      connectedAccountId: post.connectedAccountId,
+      platformPostId: post.platformPostId,
+      currentOutstandPostId: post.outstandPostId,
+    });
+    insertedCount++;
+  }
+
+  return { insertedCount, skippedDuplicateCount };
+}
+
+type ExistingTargetRef = {
+  postId: string;
+  connectedAccountId: string;
+  platformPostId: string;
+  currentOutstandPostId: string | null;
+};
+
+type GlobalOutstandPostOwner = {
+  postId: string;
+  workspaceId: string;
+  connectedAccountIds: Set<string>;
+};
+
+type GlobalOutstandPostRow = {
+  post_id: string;
+  workspace_id: string;
+  connected_account_id: string;
+};
+
+async function findGlobalOutstandPostOwners(
+  tx: PrismaTransactionClient,
+  outstandPostIds: string[],
+): Promise<Map<string, GlobalOutstandPostOwner>> {
+  const owners = new Map<string, GlobalOutstandPostOwner>();
+  for (const outstandPostId of outstandPostIds) {
+    const rows = await tx.$queryRaw<GlobalOutstandPostRow[]>`
+      SELECT post_id, workspace_id, connected_account_id
+      FROM "public"."webhook_find_post_targets_by_outstand_post_id"(${outstandPostId})
+    `;
+    for (const row of rows) {
+      const current = owners.get(outstandPostId) ?? {
+        postId: row.post_id,
+        workspaceId: row.workspace_id,
+        connectedAccountIds: new Set<string>(),
+      };
+      current.connectedAccountIds.add(row.connected_account_id);
+      owners.set(outstandPostId, current);
+    }
+  }
+  return owners;
+}
+
+async function backfillOutstandPostId(
+  tx: PrismaTransactionClient,
+  workspaceId: WorkspaceId,
+  postId: string,
+  currentOutstandPostId: string | null,
+  incomingOutstandPostId: string,
+  globalOwners: Map<string, GlobalOutstandPostOwner>,
+  postIdByOutstandId: Map<string, string>,
+): Promise<boolean> {
+  if (currentOutstandPostId) return false;
+
+  const owner = globalOwners.get(incomingOutstandPostId);
+  if (owner && owner.postId !== postId) return false;
+
+  const updated = await tx.publishingPost.updateMany({
+    where: {
+      id: postId,
+      workspaceId,
+      outstandPostId: null,
+      deletedAt: null,
+    },
+    data: { outstandPostId: incomingOutstandPostId },
+  });
+  if (updated.count === 0) return false;
+
+  postIdByOutstandId.set(incomingOutstandPostId, postId);
+  const connectedAccountIds = owner?.connectedAccountIds ?? new Set<string>();
+  globalOwners.set(incomingOutstandPostId, {
+    postId,
+    workspaceId,
+    connectedAccountIds,
+  });
+  return true;
+}
+
+function targetCreateFields(post: ImportedPostTargetInput) {
+  return {
+    connectedAccountId: post.connectedAccountId,
+    platform: post.platform,
+    contentFormat: ContentFormat.Post,
+    platformPostId: post.platformPostId,
+    platformPostUrl: post.platformPostUrl,
+    status: "published" as const,
+    platformOptions:
+      post.mediaUrls.length > 0 ? { mediaUrls: post.mediaUrls } : undefined,
+  };
+}
+
+function targetFillData(post: ImportedPostTargetInput) {
+  return {
+    platformPostId: post.platformPostId,
+    platformPostUrl: post.platformPostUrl,
+    ...(post.mediaUrls.length > 0
+      ? { platformOptions: { mediaUrls: post.mediaUrls } }
+      : {}),
+  };
+}
+
+async function createImportedPost(
+  tx: PrismaTransactionClient,
+  workspaceId: WorkspaceId,
+  post: ImportedPostTargetInput,
+  outstandPostId: string | null,
+): Promise<{ id: string }> {
+  return tx.publishingPost.create({
+    data: {
+      workspaceId,
+      authorId: null,
+      status: ContentStatus.Imported,
+      outstandPostId,
+      caption: post.caption,
+      publishedAt: post.publishedAt,
+      targets: {
+        create: [targetCreateFields(post)],
+      },
+    },
+    select: { id: true },
+  });
+}

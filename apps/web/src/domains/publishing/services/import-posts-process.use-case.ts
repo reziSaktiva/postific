@@ -51,6 +51,7 @@ export class ImportPostsProcessUseCase {
       platform: input.platform,
       platformPostId: post.platformPostId,
       platformPostUrl: post.platformPostUrl,
+      outstandPostId: post.outstandPostId,
       caption: post.caption,
       publishedAt: post.publishedAt,
       mediaUrls: post.mediaUrls,

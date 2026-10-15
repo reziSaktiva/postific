@@ -287,6 +287,16 @@ export interface ImportedPostTargetInput {
   platform: SocialPlatform;
   platformPostId: string;
   platformPostUrl: string | null;
+  /**
+   * Id internal Outstand untuk post ini (T-113/KI-090, dari
+   * `ImportedPostData.outstandPostId`) — disimpan ke
+   * `PublishingPost.outstandPostId` supaya
+   * `listSyncablePostsByConnectedAccount` (dipakai `SyncCommentsUseCase`)
+   * ikut menyertakan post Imported ini. `null` kalau Outstand tidak
+   * membawa `id` valid untuk post ini — import tetap jalan, hanya comment
+   * sync untuk post ini yang tidak akan terjadi sampai field ini terisi.
+   */
+  outstandPostId: string | null;
   caption: string;
   publishedAt: Date;
   /** Media eksternal — disimpan di `PublishingPostTarget.platformOptions` (lihat catatan `ImportedPostData.mediaUrls`), bukan kolom baru. */
@@ -1049,6 +1059,55 @@ export interface IPublishingRepository {
    * baru) — kalau sudah ada, skip (bukan duplikat, bukan error). Idempoten:
    * memanggil ulang dengan batch yang sama (mis. retry setelah network
    * error parsial) aman, tidak pernah menggandakan baris.
+   *
+   * **Cross-post guard (T-113 follow-up, temuan Ridwan Architecture
+   * Reviewer):** Import selalu per akun tunggal, tapi SATU post Outstand
+   * (satu `outstandPostId`) bisa saja sudah di-cross-post ke beberapa
+   * `connectedAccountId` berbeda di workspace yang sama — Import untuk akun
+   * kedua akan menerima `outstandPostId` yang SAMA dengan post yang sudah
+   * dibuat dari Import akun pertama. Dedup `(connectedAccountId,
+   * platformPostId)` di atas TIDAK menangkap ini (akun berbeda = key
+   * berbeda), dan `PublishingPost.outstandPostId` punya partial unique
+   * index GLOBAL (migration `20260907130000_t026_unique_outstand_post_id`)
+   * yang akan menolak `PublishingPost` kedua dengan `outstandPostId` sama.
+   * Sebelum insert, implementasi mengecek `outstandPostId` non-null
+   * terhadap `PublishingPost` yang sudah ada (di-scope `workspaceId`) —
+   * kalau cocok, post KEDUA ini TIDAK membuat `PublishingPost` baru,
+   * melainkan menambahkan `PublishingPostTarget` baru ke
+   * `PublishingPost` yang sudah ada (konsisten semantik
+   * `schedulePost`/`publishNow`: satu `outstandPostId` = satu
+   * `PublishingPost`, multi target untuk multi akun) — supaya akun kedua
+   * itu tetap terlihat di Engage/History sebagai target post yang sama,
+   * bukan di-skip diam-diam.
+   *
+   * **Advisory lock per workspace (T-113 follow-up, ronde 2 review
+   * Ridwan):** guard di atas (SELECT dulu, baru INSERT) atomik DALAM satu
+   * transaksi, tapi TIDAK atomik ANTAR transaksi/invocation berbeda — 2
+   * akun di workspace yang sama di-Import lewat 2 transaksi konkuren
+   * (mis. "Sync Now" 2 tab hampir bersamaan) yang kebetulan membawa
+   * `outstandPostId` yang sama bisa sama-sama lolos SELECT sebelum salah
+   * satu commit, lalu transaksi kedua tetap menabrak unique index.
+   * Implementasi mengambil `pg_advisory_xact_lock(hashtext(workspaceId))`
+   * sebagai statement PERTAMA (pola sama
+   * `EngagementRepository.upsertInboxItem`, `engagement.repository.ts`,
+   * lock scope per `connectedAccountId` di sana) — menyerialkan ANTAR
+   * invocation `upsertImportedPostsTx` untuk workspace yang sama,
+   * dilepas otomatis saat transaksi commit/rollback.
+   *
+   * **Review follow-up PR #169:**
+   * - Import ulang pada target yang sudah ada mengisi
+   *   `PublishingPost.outstandPostId` kalau nilainya masih `null` dan id
+   *   itu belum dipakai post lain. Id yang sudah terisi tidak ditimpa.
+   * - Kalau `outstandPostId` sudah dimiliki workspace LAIN (index-nya
+   *   global, RLS menyembunyikan baris itu dari `findMany`), post tetap
+   *   diimpor dengan `outstandPostId: null` supaya batch tidak batal.
+   *   Kepemilikan global dibaca lewat
+   *   `webhook_find_post_targets_by_outstand_post_id` (ADR-099), setelah
+   *   `pg_advisory_xact_lock` per id (key-space terpisah dari lock
+   *   workspace).
+   * - Kalau post di workspace ini sudah punya target untuk
+   *   `connectedAccountId` yang sama, target kedua tidak dibuat. Kalau
+   *   `platformPostId` target itu masih null, nilainya diisi dari import.
    *
    * **Acting user untuk RLS (bukan `authorId` post — itu tetap `null`):**
    * `actingUserId` HANYA dipakai untuk `withCurrentUser` (RLS di-scope ke

@@ -1457,6 +1457,127 @@ hanya 4 file kode (2 use-case + 1 test tiap-tiap): tidak menyentuh kontrak
 publik (`packages/shared`), tidak ada ADR baru (perbaikan perilaku internal,
 konsisten semangat ADR-123, bukan amandemen keputusannya).
 
+### T-113 · Simpan `outstandPostId` untuk post hasil Import supaya comment-nya ikut ter-sync ke Engage Inbox
+
+| Field         | Value                                                        |
+| ------------- | ------------------------------------------------------------ |
+| **Status**    | ✅ Done (4/4 subtask, 2026-10-15)                             |
+| **Domain**    | integration                                                   |
+| **ADR**       | — (bug fix, melengkapi desain yang sudah ada di ADR-093/ADR-113/ADR-123, bukan mengubah baseline) |
+| **Terkait**   | KI-090, T-090, T-051 (`SyncCommentsUseCase`), T-112             |
+| **Depends**   | — (seluruh plumbing Import Posts & comment sync sudah selesai; ini murni mengisi satu field yang hilang) |
+| **Baca dulu** | `apps/web/src/lib/adapters/outstand/real-outstand-adapter.ts` (`fetchImportJobStatus`, docstring `GET /v1/posts`) · `apps/web/src/lib/repositories/publishing/publishing.repository.ts` (`upsertImportedPosts`, `listSyncablePostsByConnectedAccount`) · `apps/web/src/domains/engagement/services/sync-comments.use-case.ts` |
+
+Promosi dari **KI-090** (ditemukan King Rezi 2026-10-15). Comment pada post
+hasil **Import Posts** (status `Imported`, T-090) tidak pernah masuk ke
+Comments Inbox karena `PublishingPost.outstandPostId` tidak pernah diisi
+untuk post Imported — sementara `listSyncablePostsByConnectedAccount`
+(dipakai `SyncCommentsUseCase`, redesign per-post ADR-113) mensyaratkan
+kolom itu `not: null`.
+
+Dikonfirmasi **bukan** keterbatasan Outstand — dites langsung via MCP
+Outstand: `GET /v1/posts/{id}/replies` berhasil untuk id internal Outstand
+biasa, dan respons `GET /v1/posts` yang sama dipakai
+`fetchImportJobStatus` saat import **sudah membawa `id` internal Outstand
+itu juga** untuk setiap post yang di-discover (lihat docstring adapter
+`real-outstand-adapter.ts` ~baris 1490–1500) — field ini saat ini hanya
+tidak pernah dibaca/disimpan.
+
+- [x] **T-113.1** Di `RealOutstandAdapter.fetchImportJobStatus`, tangkap
+      `rawPost.id` (id internal Outstand) dari setiap item respons
+      `GET /v1/posts` dan teruskan lewat `ImportedPostData` (field baru,
+      mis. `outstandPostId`) — tanpa mengubah kontrak `platformPostId` yang
+      sudah ada
+- [x] **T-113.2** Di `upsertImportedPosts`
+      (`publishing.repository.ts`), simpan nilai itu ke
+      `PublishingPost.outstandPostId` saat membuat/update row post Imported
+- [x] **T-113.3** Verifikasi end-to-end: jalankan Import Posts ke akun test
+      nyata yang punya post dengan comment asli, pastikan job
+      `SyncCommentsUseCase` berikutnya menarik comment-nya masuk ke
+      `EngagementInboxItem`/Comments Inbox
+- [x] **T-113.4** Cek regresi: post yang dibuat lewat flow publish biasa
+      (bukan Import) tetap tidak terpengaruh — `outstandPostId` untuk jalur
+      itu sudah diisi di tempat lain (`schedulePost`/`publishNow`), task ini
+      tidak boleh menimpa/mengubah perilaku itu
+
+**Implementasi (Elon Backend Engineer):** `rawPost.id` ditangkap di
+`fetchImportJobStatus` dan diteruskan lewat `ImportedPostData.outstandPostId`
+(`packages/shared/src/contracts/outstand-adapter.ts`) sampai tersimpan di
+`PublishingPost.outstandPostId` lewat `upsertImportedPosts`. Kontrak
+`platformPostId` tidak berubah. File baru
+`apps/web/src/lib/repositories/publishing/upsert-imported-posts.ts` (logic
+diekstrak dari `publishing.repository.ts`, pola sama `replace-draft-targets.ts`
+supaya testable tanpa DB).
+
+**Review Ridwan Architecture Reviewer (3 ronde) — 2 bug CONFIRMED ditemukan
+dan diperbaiki sebelum merge, bukan sekadar lolos di percobaan pertama:**
+
+1. **Ronde 1:** `upsertImportedPosts` membuat `PublishingPost` baru per akun
+   tanpa cek `outstandPostId` yang sudah dipakai row lain — kalau satu post
+   Outstand yang sama di-cross-post ke 2+ akun dalam satu workspace, insert
+   kedua menabrak partial unique index global
+   `publishing_posts_outstand_post_id_unique` (migration
+   `20260907130000_t026_unique_outstand_post_id`), membatalkan SELURUH
+   import akun itu (satu transaksi). **Fix:** guard SELECT-dulu-baru-INSERT
+   — kalau `outstandPostId` sudah ada di workspace, attach
+   `PublishingPostTarget` baru ke `PublishingPost` existing alih-alih buat
+   baris baru.
+2. **Ronde 2:** guard ronde 1 tidak atomik antar transaksi konkuren (mis. 2x
+   klik "Sync Now" untuk 2 akun berbeda hampir bersamaan) — kedua transaksi
+   bisa sama-sama lolos SELECT sebelum salah satu commit. **Fix:**
+   `pg_advisory_xact_lock` di-scope `workspaceId` sebagai statement pertama
+   `upsertImportedPostsTx`, meniru pola yang sudah ada di
+   `engagement.repository.ts` (`upsertInboxItem`).
+3. **Ronde 3:** bersih, tidak ada temuan baru — pola lock diverifikasi
+   konsisten dengan preseden, tidak ada SQL injection (`$executeRaw`
+   tagged-template), tidak menambah serialisasi baru di jalur cron
+   (`triggerPeriodicForAccounts` sudah sekuensial). 7 test (4 + 3) dijalankan
+   ulang sendiri oleh Ridwan, bukan percaya klaim — semua valid.
+
+**Follow-up code review PR #169 (2026-10-15):** empat temuan diperbaiki di
+branch yang sama, tanpa migrasi baru.
+
+1. Webhook `post.published` / `post.error` untuk post Imported (`authorId`
+   null) sekarang dikembalikan sebagai tidak ketemu (`skipped_no_match`),
+   bukan error yang menandai receipt gagal.
+2. Import ulang mengisi `outstandPostId` yang masih null. Id yang sudah
+   terisi tidak ditimpa.
+3. Kalau `outstandPostId` sudah dimiliki workspace lain, post tetap diimpor
+   dengan `outstandPostId` null supaya batch tidak batal. Kepemilikan global
+   dibaca lewat fungsi SECURITY DEFINER yang sudah ada (ADR-099), setelah
+   advisory lock per id.
+4. Akun yang sudah punya target pada post yang sama tidak dapat target
+   kedua. Kalau `platformPostId` target itu masih null, nilainya diisi.
+
+`bun run typecheck` bersih. `bun run test` 780 passed / 6 skipped
+(naik dari 773; tes baru di `upsert-imported-posts.test.ts` dan
+`find-post-targets-by-outstand-post-id.test.ts`).
+
+`bun run typecheck`/`lint` bersih, `bun run test` 773 passed/6 skipped (naik
+dari 766 baseline, 7 test baru untuk guard cross-post + lock).
+
+**Verifikasi end-to-end (2026-10-15, dev server + DB Supabase dev + MCP
+Outstand nyata, workspace "Lunch", akun Facebook "Cook It Real Good"):**
+King Rezi menambahkan 1 comment real ("nicee recipee, i like it") ke sebuah
+Reels yang di-post native di Facebook 12 Oktober 2026 (di luar jalur
+aplikasi). Sync Now dijalankan lewat UI — post Reels itu masuk sebagai
+`PublishingPost` baru status `Imported` dengan `outstandPostId` **terisi**
+(`XlLwW`, sebelumnya field ini akan selalu `null`). Tombol "Refresh" di
+Comments Inbox (`/engage`, `RefreshInboxUseCase` → `SyncCommentsUseCase`)
+di-klik — comment-nya langsung muncul di `engagement_inbox_items`
+(`external_id: "1742108387921088_1512756440658689"`, konten "nicee recipee,
+i like it") dan tampil di UI Comments Inbox di bawah thread "Hash Brown in
+Air Fryer". Rantai penuh Import → `outstandPostId` → `SyncCommentsUseCase` →
+Comments Inbox terbukti bekerja di lingkungan nyata, bukan cuma unit test
+mocked.
+
+**Catatan non-blocking di luar scope T-113** (ditemukan saat verifikasi,
+tidak diperbaiki di sesi ini): job Import Posts untuk akun Instagram sempat
+gagal dengan error "Tidak ada job handler terdaftar untuk type
+\"import.sync\"" — tidak berdampak ke hasil tes (akun itu memang tidak punya
+konten native baru untuk di-import), kemungkinan isu runner job generik di
+lingkungan dev, perlu diselidiki terpisah kalau relevan ke depan.
+
 ---
 
 ## Read-Only Enforcement
