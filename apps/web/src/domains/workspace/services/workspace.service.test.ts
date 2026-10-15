@@ -318,8 +318,31 @@ function createFakeRepository(
             }),
           );
         } catch (error) {
-          if (error instanceof ConflictError) continue;
-          throw error;
+          if (!(error instanceof ConflictError)) throw error;
+          // KI-086/ADR-127 (code review PR #173) — jangan skip diam-diam
+          // kalau row existing-nya BUKAN `active` (pola lama, sebelum fix
+          // ini selalu skip identik dengan row `active`). Test yang ingin
+          // menguji reaktivasi meng-override `createConnectedAccount` (throw
+          // ConflictError) DAN `findConnectedAccountByOutstandId` (return row
+          // disconnected/reconnect-required miliknya) secara konsisten —
+          // sama seperti real repository, row `active` tetap di-skip.
+          const existing = await current.findConnectedAccountByOutstandId(
+            input.workspaceId,
+            account.outstandAccountId,
+            input.actingUserId,
+          );
+          if (existing && existing.status !== "active") {
+            created.push(
+              await current.reconnectAccount({
+                workspaceId: input.workspaceId,
+                connectedAccountId: existing.id,
+                outstandAccountId: account.outstandAccountId,
+                handle: account.handle,
+                avatarUrl: account.avatarUrl,
+                actingUserId: input.actingUserId,
+              }),
+            );
+          }
         }
       }
       return created;

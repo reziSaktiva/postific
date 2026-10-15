@@ -697,10 +697,17 @@ export interface IWorkspaceRepository {
   }): Promise<ConnectedAccountRecord>;
 
   /**
-   * CREATE beberapa `WorkspaceConnectedAccount` dalam SATU transaksi.
-   * Akun yang `outstandAccountId`-nya sudah ada di workspace ini di-skip
-   * (idempoten). Kegagalan di tengah membatalkan seluruh batch, bukan
-   * menyisakan sebagian Page.
+   * CREATE beberapa `WorkspaceConnectedAccount` dalam SATU transaksi. Akun
+   * yang `outstandAccountId`-nya sudah ada di workspace ini DAN statusnya
+   * `active` di-skip (idempoten). Akun existing yang statusnya
+   * `disconnected`/`reconnect-required` DIREAKTIVASI (UPDATE: `status`
+   * jadi `active`, `reconnectRequired` jadi `false`, `handle` SELALU
+   * di-refresh, `avatarUrl` HANYA di-refresh kalau ada nilai baru — avatar
+   * lama dipertahankan kalau tidak) — bukan di-skip — supaya reconnect
+   * Facebook lewat jalur ini genuinely berfungsi (ADR-127, amandemen
+   * ADR-115 poin 8, menutup KI-086). Return value berisi Page yang baru
+   * dibuat DAN yang direaktivasi. Kegagalan di tengah membatalkan seluruh
+   * batch, bukan menyisakan sebagian Page.
    */
   createConnectedAccounts(input: {
     workspaceId: WorkspaceId;

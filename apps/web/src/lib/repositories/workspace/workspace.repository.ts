@@ -74,6 +74,27 @@ function isConnectedAccountConflict(error: unknown): boolean {
   );
 }
 
+/**
+ * Field bersama untuk mereaktivasi `WorkspaceConnectedAccount` yang
+ * `disconnected`/`reconnect-required` — dipakai `createConnectedAccounts`
+ * (batch Facebook Pages, KI-086/ADR-127) dan `reconnectAccount` (single
+ * platform lain, ADR-105/ADR-112), supaya definisi "apa artinya reaktivasi"
+ * tidak diduplikasi dan bisa drift (code review PR #173). `avatarUrl` HANYA
+ * ditulis kalau ada nilai baru — `fetchSocialAccountAvatarUrl`/re-fetch
+ * Facebook best-effort mengembalikan `null` untuk DUA kasus beda (akun
+ * genuinely tidak punya foto, ATAU fetch gagal transient), jadi tulis-selalu
+ * bisa menghapus avatar yang sudah benar tersimpan hanya karena satu request
+ * avatar gagal.
+ */
+function buildReactivationData(handle: string, avatarUrl?: string | null) {
+  return {
+    handle,
+    ...(avatarUrl ? { avatarUrl } : {}),
+    status: "active" as const,
+    reconnectRequired: false,
+  };
+}
+
 /** Shared mapper — dipakai `listConnectedAccounts`, `findConnectedAccountById`, `createConnectedAccount`, `reconnectAccount`. */
 function toConnectedAccountRecord(
   account: WorkspaceConnectedAccount,
@@ -1071,6 +1092,11 @@ export const workspaceRepository: IWorkspaceRepository = {
   },
 
   async createConnectedAccounts({ workspaceId, actingUserId, accounts }) {
+    // KI-086/ADR-127 — lookup existing JUGA ambil `id`+`status` (sebelumnya
+    // hanya `outstandAccountId`), supaya row yang statusnya BUKAN `active`
+    // (`disconnected`/`reconnect-required`) bisa direaktivasi, bukan di-skip
+    // diam-diam seperti row yang memang sudah `active`. Row `active` tetap
+    // di-skip (tidak ada yang berubah untuk kasus itu).
     return withCurrentUser(actingUserId, async (tx) => {
       const existing = await tx.workspaceConnectedAccount.findMany({
         where: {
@@ -1079,15 +1105,47 @@ export const workspaceRepository: IWorkspaceRepository = {
             in: accounts.map((account) => account.outstandAccountId),
           },
         },
-        select: { outstandAccountId: true },
+        select: { id: true, outstandAccountId: true, status: true },
       });
-      const existingIds = new Set(
-        existing.map((account) => account.outstandAccountId),
+      const existingByOutstandId = new Map(
+        existing.map((row) => [row.outstandAccountId, row]),
       );
 
       const created = [];
       for (const account of accounts) {
-        if (existingIds.has(account.outstandAccountId)) continue;
+        const match = existingByOutstandId.get(account.outstandAccountId);
+        if (match?.status === "active") continue;
+
+        if (match) {
+          // Reaktivasi. Beda dari `reconnectAccount` di bawah (yang pakai
+          // `updateMany` + guard `{id, workspaceId}` eksplisit karena
+          // `connectedAccountId`-nya datang dari input client): `match.id`
+          // di sini sudah dijamin milik `workspaceId` ini oleh `findMany`
+          // di atas (query yang sama, transaksi yang sama), dan RLS
+          // `workspace_connected_accounts` (`FOR ALL`) tetap jadi
+          // defense-in-depth independen — jadi `update` by id langsung
+          // sudah aman tanpa guard eksplisit tambahan. Review Ridwan
+          // Architecture Reviewer (ADR-127) mengonfirmasi ini bukan gap
+          // keamanan, hanya perbedaan pola yang disengaja.
+          const row = await tx.workspaceConnectedAccount.update({
+            where: { id: match.id },
+            data: buildReactivationData(account.handle, account.avatarUrl),
+          });
+          created.push(toConnectedAccountRecord(row));
+          // Code review PR #173 — `existingByOutstandId` dibangun SEKALI
+          // sebelum loop ini mulai. Kalau `accounts` (input batch) kebetulan
+          // berisi `outstandAccountId` yang sama dua kali (mis. Outstand
+          // mengembalikan baris duplikat), iterasi berikutnya untuk id yang
+          // sama HARUS melihat row ini sudah `active` — update entry Map di
+          // tempat supaya iterasi berikutnya kena skip di `match?.status ===
+          // "active"` di atas, bukan mereaktivasi+push duplikat lagi.
+          existingByOutstandId.set(account.outstandAccountId, {
+            ...match,
+            status: "active",
+          });
+          continue;
+        }
+
         const row = await tx.workspaceConnectedAccount.create({
           data: {
             workspaceId,
@@ -1125,19 +1183,7 @@ export const workspaceRepository: IWorkspaceRepository = {
           where: { id: connectedAccountId, workspaceId },
           data: {
             outstandAccountId,
-            handle,
-            // `avatarUrl` HANYA ditulis kalau fetch-nya berhasil dapat nilai
-            // (bukan `null`/`undefined`) — `fetchSocialAccountAvatarUrl`
-            // best-effort mengembalikan `null` untuk DUA kasus yang beda
-            // (akun genuinely tidak punya foto, ATAU fetch gagal transient),
-            // jadi tulis-selalu di sini bisa menghapus avatar yang sudah
-            // benar tersimpan hanya karena satu request avatar gagal saat
-            // reconnect. Konsekuensi: avatar lama tetap tampil kalau user
-            // BENAR-BENAR menghapus foto profilnya di platform asli — trade-off
-            // yang lebih aman daripada silent data loss pada kegagalan network.
-            ...(avatarUrl ? { avatarUrl } : {}),
-            status: "active",
-            reconnectRequired: false,
+            ...buildReactivationData(handle, avatarUrl),
           },
         });
       } catch (error) {

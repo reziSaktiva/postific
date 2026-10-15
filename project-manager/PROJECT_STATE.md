@@ -384,9 +384,9 @@ sudah tayang. Non-blocking, gap serupa pola **KI-049**
 
 | Field | Value |
 |-------|-------|
-| Status | Open |
+| Status | Resolved (2026-10-15, ADR-127) |
 | Kategori | Bug — Connected Accounts / Facebook Pages |
-| Terkait | ADR-115 poin 8 (Facebook Pages multi-select), ADR-122 (Reconnect `disconnected` untuk platform non-Facebook, menutup KI-078/KI-079) |
+| Terkait | ADR-115 poin 8 (Facebook Pages multi-select), ADR-122 (Reconnect `disconnected` untuk platform non-Facebook, menutup KI-078/KI-079), ADR-127 |
 
 Ditemukan King Rezi (2026-10-08) saat menanyakan cara reconnect akun
 Facebook yang sudah disconnected — dikonfirmasi lewat pembacaan kode
@@ -437,6 +437,21 @@ investigasi ulang):** di `createConnectedAccounts`, select juga `id` dan
 pada row itu alih-alih `continue`-skip — hanya row yang SUDAH `active` yang
 tetap di-skip. `WorkspaceService.confirmFacebookPagesConnection` sendiri
 tidak perlu berubah (sudah delegasi penuh ke `createConnectedAccounts`).
+
+**Resolved (2026-10-15, ADR-127):** King Rezi meminta dikerjakan. Cek
+Claude Design dulu (rule 17) — `templates/settings-connected-accounts.html`
+menggambarkan pola Reconnect generik tanpa pengecualian Facebook, jadi
+exclusion murni implementasi, bukan gap desain. Investigasi lanjutan
+menemukan `RealOutstandAdapter.connectAccount`/`resolveConnectCallback`
+throw eksplisit untuk Facebook — tombol `ReconnectButton` single-account
+memang tidak kompatibel dengan platform ini, jadi scope dikunci
+**backend-only** (bukan "full fix" yang sempat diajukan sebelum investigasi
+ini): persis "Rencana perbaikan" di atas diimplementasikan di
+`createConnectedAccounts`, `ReconnectButton`/`ConnectedAccountAction` TIDAK
+disentuh (tetap benar disembunyikan untuk Facebook). Diverifikasi integration
+test Postgres real (reaktivasi vs skip row `active`), full suite 809 passed
+(1 kegagalan pre-existing tidak terkait, `revoke-invitation.test.ts`, 
+dikonfirmasi terjadi juga di branch sebelum perubahan ini). Detail: ADR-127.
 
 ### KI-089 · Lebar sidebar kode (`18rem`) belum dikonfirmasi terhadap acuan 260px
 
@@ -547,11 +562,11 @@ seluruh daftar Known Issues.
 
 ## Completed (Ringkasan)
 
+* **KI-086 ✅ Resolved — reconnect Facebook `disconnected`/`reconnect-required` tidak lagi dead flow (2026-10-15, ADR-127)** — `createConnectedAccounts` kini mereaktivasi row existing yang bukan `active` (lewat flow "Connect Account" → Facebook Pages Picker), bukan skip diam-diam. Claude Design dicek dulu (rule 17): pola Reconnect generik, tidak ada pengecualian Facebook di desain. Scope dikunci backend-only — `ReconnectButton` tetap disembunyikan untuk Facebook (adapter throw eksplisit untuk platform ini, bukan gap UI). Detail: `decisions/ADR-127-reaktivasi-connected-account-facebook-ki086.md`, `COMPLETE_TASK.md`.
 * **KI-088 ✅ Resolved — gap `actingUserId` jalur periodik Import Posts ditutup (2026-10-15)** — King Rezi memilih (lewat `AskUserQuestion`) reuse pola JOB-04/JOB-03 (`findAccountOwnerByOutstandAccountId`) alih-alih `Workspace.ownerId` langsung. `triggerPeriodicForAccounts` sekarang me-resolve `actingUserId` sendiri per akun, tanpa dependency baru di composition root. Detail: `tasks/v02-publishing-mvp.md` § T-090 addendum, `COMPLETE_TASK.md`.
 * **T-114 ✅ TUNTAS 5/5 subtask — backfill otomatis `outstandPostId` post Imported lama (2026-10-15)** — lanjutan langsung T-113: 36 dari 39 post Imported lama di akun test masih `outstandPostId: null` (T-113 cuma memperbaiki import baru ke depan). Mekanisme permanen ditambahkan — tiap Sync Now/periodik otomatis backfill kalau masih ada gap, reuse namespace lock T-113. 0 temuan review Ridwan. Diverifikasi end-to-end nyata: 39/39 ter-backfill setelah satu kali Sync Now. Detail: `tasks/v02-publishing-mvp.md` § T-114, `COMPLETE_TASK.md`.
 * **T-113 ✅ TUNTAS 4/4 subtask — comment post Imported ikut ter-sync ke Engage Inbox (2026-10-15)** — promosi **KI-090**. `outstandPostId` kini ditangkap+disimpan untuk post hasil Import Posts. 2 bug konkurensi/cross-post CONFIRMED ditemukan & diperbaiki lewat 3 ronde review Ridwan (unique index global, lalu race antar transaksi via `pg_advisory_xact_lock`). Diverifikasi end-to-end nyata: comment Reels Facebook berhasil masuk Comments Inbox. Detail: `tasks/v02-publishing-mvp.md` § T-113, `COMPLETE_TASK.md`.
 * **T-005 ✅ TUNTAS 5/5 — email verification flow (2026-10-14)** — Resend mengirim reset password dan verifikasi email. `/verify-email` hidup. `requireEmailVerification` aktif. Akun lama di-backfill lewat migrasi `20261014160000`. Accept-invite memakai cookie httpOnly `invite-email-proof` supaya sign-up tanpa OTP tidak ikut terverifikasi. Perbaikan review PR #168 juga mengembalikan pekerjaan staging (T-016.4, T-030.3, T-091) yang akan terhapus kalau branch di-merge apa adanya. Detail: `tasks/v01-foundation.md` § T-005, `COMPLETE_TASK.md`.
-* **T-016 ✅ TUNTAS 5/5 subtask — Account & user settings screens, T-016.4 `/account/notifications` (2026-10-14)** — subtask terakhir (preferensi notifikasi: Balasan & Mention, Jadwal Publish, Laporan Analytics) diimplementasikan di domain `identity`, lolos review Ridwan (nihil temuan) dan QA end-to-end Najwa. Migration baru `identity_user` sudah dijalankan King Rezi & diverifikasi via Supabase MCP. PR #164 ke `staging` sudah di-merge. Detail: `tasks/v01-foundation.md` § T-016, `COMPLETE_TASK.md`.
 Berikut ~5 item terakhir yang diselesaikan. Riwayat lengkap (sejak M0): lihat `COMPLETE_TASK.md` — ⚠️ jangan dibaca AI kecuali diperintah eksplisit King Rezi.
 
 ---
@@ -560,11 +575,11 @@ Berikut ~5 item terakhir yang diselesaikan. Riwayat lengkap (sejak M0): lihat `C
 
 5 ADR terakhir. Daftar lengkap (indeks + link ke tiap ADR): lihat `DECISIONS.md`.
 
+* **ADR-127** — `createConnectedAccounts` mereaktivasi row `disconnected`/`reconnect-required` (dulu skip diam-diam) — amandemen ADR-115 poin 8, menutup KI-086. Scope dikunci backend-only; `ReconnectButton` tetap disembunyikan untuk Facebook (adapter throw eksplisit untuk platform itu). Detail: `decisions/ADR-127-reaktivasi-connected-account-facebook-ki086.md`.
 * **ADR-126** — Provider email transactional dikunci ke Resend (T-005.1). Menutup KI-001. Katalog env selesai di T-005.2. T-005.3–.5 sudah selesai: reset password, verifikasi email, dan `requireEmailVerification: true`. Detail: `decisions/ADR-126-transactional-email-provider-resend-t005.md`.
 * **ADR-125** — Save Draft menyimpan akun tujuan (akun, format, opsi Pinterest) dan Draft Editor mengisi Account Selector dari data itu saat dibuka lagi. Menutup KI-060 dan KI-032. Tanggal/jam jadwal tidak ikut. Detail: `decisions/ADR-125-simpan-akun-tujuan-draft-ki060.md`.
 * **ADR-124** — Nama produk final "Postific"; package scope `@social/*` menjadi `@postific/*`. Detail: `decisions/ADR-124-nama-produk-postific-rename-package-scope-social-ke-postific.md`.
 * **ADR-123** — Wiring `RealOutstandAdapter.importPosts`/`fetchImportJobStatus` sungguhan (T-112): signature `fetchImportJobStatus` berubah jadi `(outstandAccountId, importJobId)` (endpoint sungguhan mensyaratkan account id di path, diverifikasi OpenAPI spec resmi); data post diambil tambahan lewat `GET /v1/posts?social_account_id=...` karena endpoint status tidak membawanya; status real API `partial` dipetakan ke `"completed"` (post berhasil tetap diambil, `error` diisi ringkasan gagal) — keputusan produk King Rezi. Detail: `decisions/ADR-123-wiring-import-posts-fetchimportjobstatus-outstandaccountid-partial-status-ki112.md`.
-* **ADR-122** — Reconnect untuk akun `disconnected` + disambiguasi `AlreadyConnectedError` vs double-submit (menutup KI-078/KI-079): `ConnectedAccountAction` digabung ke `ReconnectButton` untuk status `disconnected` (bukan hanya `reconnect-required`); `WorkspaceService.createOrRecoverConnectedAccount` membedakan double-submit genuine (jendela 15 detik pada `connectedAt`) dari percobaan connect ke akun yang sudah terhubung dari flow terpisah (`AlreadyConnectedError` baru). Detail: `decisions/ADR-122-reconnect-disconnected-accounts-plus-already-connected-conflict-ki078-079.md`.
 
 ---
 
