@@ -8,6 +8,42 @@ Seluruh perubahan penting pada dokumentasi maupun implementasi project dicatat p
 
 ---
 
+## 2026-10-15 — T-113 ✅ Done 4/4 subtask: comment post Imported ikut ter-sync ke Engage Inbox
+
+### Konteks
+Lanjutan dari entri sebelumnya hari ini (KI-090/T-113 dicatat). Branch `feature/t-113-import-post-outstand-id`, PR #169 (ke `staging`).
+
+### Implementasi (Elon Backend Engineer)
+- `rawPost.id` (id internal Outstand dari `GET /v1/posts`) ditangkap di `RealOutstandAdapter.fetchImportJobStatus`, diteruskan lewat `ImportedPostData.outstandPostId` baru (`packages/shared/src/contracts/outstand-adapter.ts`), sampai tersimpan ke `PublishingPost.outstandPostId` di `upsertImportedPosts`. Kontrak `platformPostId` tidak berubah.
+- Logic `upsertImportedPosts` diekstrak ke file baru `apps/web/src/lib/repositories/publishing/upsert-imported-posts.ts` (fungsi `upsertImportedPostsTx(tx, ...)`, pola sama `replace-draft-targets.ts`) supaya testable tanpa DB nyata.
+
+### 2 bug CONFIRMED ditemukan & diperbaiki — review Ridwan Architecture Reviewer (3 ronde, bukan lolos di percobaan pertama)
+1. **Ronde 1:** post Outstand yang sama di-cross-post ke 2+ akun dalam satu workspace → insert kedua menabrak partial unique index global `publishing_posts_outstand_post_id_unique` (migration `20260907130000_t026_unique_outstand_post_id`), membatalkan SELURUH import akun itu (satu transaksi). Fix: guard SELECT-dulu-baru-INSERT — `outstandPostId` yang sudah ada di workspace di-attach sebagai `PublishingPostTarget` baru ke `PublishingPost` existing, bukan bikin baris baru.
+2. **Ronde 2:** guard ronde 1 tidak atomik antar transaksi konkuren (2x klik "Sync Now" untuk 2 akun berbeda hampir bersamaan). Fix: `pg_advisory_xact_lock` scoped `workspaceId` sebagai statement pertama `upsertImportedPostsTx`, meniru pola `engagement.repository.ts` (`upsertInboxItem`).
+3. **Ronde 3:** bersih — Ridwan menjalankan ulang sendiri 7 test baru + full suite, bukan percaya klaim.
+
+`bun run typecheck`/`lint` bersih. `bun run test` 773 passed/6 skipped (naik dari baseline 766, 7 test baru).
+
+### Verifikasi end-to-end (dev server + DB Supabase dev + MCP Outstand nyata)
+Workspace "Lunch", akun Facebook "Cook It Real Good". King Rezi menambahkan 1 comment real ("nicee recipee, i like it") ke sebuah Reels yang di-post native di Facebook 12 Oktober 2026 (di luar jalur aplikasi). Kendala selama verifikasi dan cara mengatasinya:
+- Manual Sync Now sempat kena **cap mingguan workspace** (`MANUAL_CAP_WINDOW_MS` 7 hari, row `background_jobs` lama tanggal 2026-10-09 masih terhitung) dan setelah itu **cooldown 24 jam per-akun** (`last_import_requested_at` ter-update dari percobaan sendiri) — keduanya di-reset manual oleh King Rezi langsung di Supabase SQL Editor (hapus 2 baris `background_jobs` test + `UPDATE ... SET last_import_requested_at = NULL`), bukan dieksekusi AI (operasi destructive lewat MCP Supabase ditolak sistem).
+- Setelah cap/cooldown bersih, Sync Now berhasil (`status: done`) — post Reels masuk sebagai `PublishingPost` baru status `Imported` dengan `outstandPostId` **terisi** (`XlLwW`; field ini akan selalu `null` sebelum fix).
+- Tombol "Refresh" di Comments Inbox (`/engage`, `RefreshInboxUseCase` → `SyncCommentsUseCase`) di-klik — comment langsung masuk `engagement_inbox_items` (`external_id: "1742108387921088_1512756440658689"`) dan tampil di UI Comments Inbox di bawah thread "Hash Brown in Air Fryer".
+- Rantai penuh **Import → `outstandPostId` → `SyncCommentsUseCase` → Comments Inbox** terbukti bekerja di lingkungan nyata, bukan cuma unit test mocked.
+
+### Catatan non-blocking (di luar scope T-113, tidak diperbaiki sesi ini)
+Job Import Posts untuk akun Instagram sempat gagal dengan error "Tidak ada job handler terdaftar untuk type \"import.sync\"" — tidak berdampak ke hasil tes (akun itu tidak punya konten native baru untuk di-import), kemungkinan isu runner job generik di lingkungan dev, belum diselidiki.
+
+### Changed
+- `tasks/v02-publishing-mvp.md` § T-113: status → ✅ Done 4/4 subtask, checklist dicentang semua, ditambah catatan implementasi + review + verifikasi di atas.
+- `TASKS.md`: indeks v0.2 `29 (27 ✅ · 1 🟡 · 1 ⏳)` → `29 (28 ✅ · 1 🟡)`. Total selesai `73` → `74`. "Fokus sekarang" baris T-113 diubah dari "menunggu dikerjakan" jadi "Selesai baru-baru ini (tambahan)".
+- `PROJECT_STATE.md`: Snapshot "Top Next Tasks" T-113 dihapus (sudah selesai). "Completed (Ringkasan)" menambah T-113 di atas, KI-087 (item terlama) dikeluarkan supaya tetap 5 item.
+
+### Status
+T-113 ✅ Done. KI-090 tetap tercatat dengan status "Promoted to T-113" (tidak dihapus dari Known Issues — ID tidak didaur ulang, pola sama KI-049/KI-063/KI-044/KI-058).
+
+---
+
 ## 2026-10-15 — KI-090 dicatat + dipromosikan ke T-113 (comment post Imported tidak masuk Engage)
 
 ### Konteks

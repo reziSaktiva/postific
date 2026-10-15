@@ -517,6 +517,18 @@ export type ImportJobStatus = "pending" | "completed" | "failed";
  */
 export interface ImportedPostData {
   platformPostId: string;
+  /**
+   * Id internal Outstand untuk post ini (field `id` di tiap item
+   * `GET /v1/posts`, SAMA dengan path param `GET /v1/posts/{id}` yang
+   * dipakai `fetchPostOutcome`/`fetchComments`) — T-113/KI-090: dibutuhkan
+   * supaya post hasil Import juga punya `PublishingPost.outstandPostId`
+   * terisi, syarat `listSyncablePostsByConnectedAccount` (dipakai
+   * `SyncCommentsUseCase`) untuk menarik comment post ini ke Engage Inbox.
+   * `null` kalau respons Outstand tidak membawa `id` yang valid (defensif,
+   * tidak menghalangi import post itu sendiri — hanya comment sync-nya
+   * yang tidak akan jalan untuk post ini).
+   */
+  outstandPostId: string | null;
   caption: string;
   publishedAt: Date;
   platformPostUrl: string | null;

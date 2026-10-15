@@ -1678,6 +1678,9 @@ describe("RealOutstandAdapter.importPosts / fetchImportJobStatus (T-112)", () =>
       posts: [
         {
           platformPostId: "ig-post-1",
+          // T-113/KI-090 — `rawPost.id` (id internal Outstand, LEVEL POST)
+          // harus ikut terpetakan supaya comment-nya bisa ter-sync nanti.
+          outstandPostId: "post-1",
           caption: "Hello from Instagram",
           publishedAt: new Date("2026-08-01T00:05:00.000Z"),
           platformPostUrl: "https://instagram.com/p/ig-post-1",
@@ -1750,6 +1753,57 @@ describe("RealOutstandAdapter.importPosts / fetchImportJobStatus (T-112)", () =>
     expect(result.posts).toHaveLength(1);
     expect(result.posts[0]?.platformPostId).toBe("ig-post-1");
     expect(result.error).toBe("2 dari 3 post gagal diimport.");
+  });
+
+  it("fetchImportJobStatus maps outstandPostId to null when GET /v1/posts item has no valid id (T-113/KI-090, defensif)", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse(200, {
+          success: true,
+          data: {
+            id: "import-job-1",
+            status: "completed",
+            since: "2026-07-10T00:00:00.000Z",
+            until: "2026-10-08T00:00:00.000Z",
+            imported: 1,
+            skipped: 0,
+            failed: 0,
+            error: null,
+          },
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse(200, {
+          success: true,
+          data: [
+            {
+              // `id` sengaja hilang — respons Outstand yang tidak lengkap.
+              containers: [{ id: "c1", content: "No post id", media: [] }],
+              socialAccounts: [
+                {
+                  id: "acc-ig-1",
+                  status: "published",
+                  platformPostId: "ig-post-no-id",
+                  platformPostUrl: null,
+                  publishedAt: null,
+                },
+              ],
+            },
+          ],
+        }),
+      );
+    const adapter = buildAdapter(fetchImpl);
+
+    const result = await adapter.fetchImportJobStatus(
+      "acc-ig-1",
+      "import-job-1",
+    );
+
+    expect(result.status).toBe("completed");
+    expect(result.posts).toHaveLength(1);
+    expect(result.posts[0]?.platformPostId).toBe("ig-post-no-id");
+    expect(result.posts[0]?.outstandPostId).toBeNull();
   });
 
   it("fetchImportJobStatus throws OutstandIntegrationError for an unrecognized status value (throw-loud, ADR-059)", async () => {
