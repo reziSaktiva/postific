@@ -1534,6 +1534,25 @@ dan diperbaiki sebelum merge, bukan sekadar lolos di percobaan pertama:**
    (`triggerPeriodicForAccounts` sudah sekuensial). 7 test (4 + 3) dijalankan
    ulang sendiri oleh Ridwan, bukan percaya klaim — semua valid.
 
+**Follow-up code review PR #169 (2026-10-15):** empat temuan diperbaiki di
+branch yang sama, tanpa migrasi baru.
+
+1. Webhook `post.published` / `post.error` untuk post Imported (`authorId`
+   null) sekarang dikembalikan sebagai tidak ketemu (`skipped_no_match`),
+   bukan error yang menandai receipt gagal.
+2. Import ulang mengisi `outstandPostId` yang masih null. Id yang sudah
+   terisi tidak ditimpa.
+3. Kalau `outstandPostId` sudah dimiliki workspace lain, post tetap diimpor
+   dengan `outstandPostId` null supaya batch tidak batal. Kepemilikan global
+   dibaca lewat fungsi SECURITY DEFINER yang sudah ada (ADR-099), setelah
+   advisory lock per id.
+4. Akun yang sudah punya target pada post yang sama tidak dapat target
+   kedua. Kalau `platformPostId` target itu masih null, nilainya diisi.
+
+`bun run typecheck` bersih. `bun run test` 780 passed / 6 skipped
+(naik dari 773; tes baru di `upsert-imported-posts.test.ts` dan
+`find-post-targets-by-outstand-post-id.test.ts`).
+
 `bun run typecheck`/`lint` bersih, `bun run test` 773 passed/6 skipped (naik
 dari 766 baseline, 7 test baru untuk guard cross-post + lock).
 

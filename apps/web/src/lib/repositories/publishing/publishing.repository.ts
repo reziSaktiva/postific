@@ -1008,6 +1008,15 @@ export const publishingRepository: IPublishingRepository = {
 
     const [first] = rows;
 
+    // Post Imported (ADR-093) punya `authorId` null, dan sejak T-113 juga
+    // punya `outstandPostId`. Lookup ini khusus outcome publish
+    // (`post.published` / `post.error`). Melempar di sini membuat receipt
+    // webhook gagal. Anggap tidak ketemu supaya processor mengembalikan
+    // `skipped_no_match` — tidak ada mutasi ke post Imported.
+    if (!first.author_id) {
+      return null;
+    }
+
     // Guard defensif (code review Ridwan Architecture Reviewer, T-026 —
     // defense-in-depth lapis kedua di samping partial unique index pada
     // `publishing_posts.outstand_post_id`, migration
@@ -1041,11 +1050,9 @@ export const publishingRepository: IPublishingRepository = {
     const record: WebhookPostLookupRecord = {
       postId: asPostId(first.post_id),
       workspaceId: asWorkspaceId(first.workspace_id),
-      // Code review PR #148 — `author_id` nullable sejak ADR-093 (T-090.1,
-      // status `Imported`); reuse guard `requireAuthorId` (bukan `asUserId`
-      // telanjang) supaya lookup ini throw loud kalau pernah menerima baris
-      // Imported, bukan diam-diam meloloskan `UserId` palsu ke webhook
-      // processor.
+      // `author_id` null sudah dikembalikan sebagai tidak-ketemu di atas
+      // (post Imported). Guard ini tetap untuk jalur publish, yang
+      // author-nya wajib ada.
       authorId: requireAuthorId(
         first.author_id,
         "findPostTargetsByOutstandPostId",
@@ -1288,7 +1295,7 @@ export const publishingRepository: IPublishingRepository = {
 interface WebhookPostTargetLookupRow {
   post_id: string;
   workspace_id: string;
-  author_id: string;
+  author_id: string | null;
   post_target_id: string;
   connected_account_id: string;
   outstand_account_id: string;

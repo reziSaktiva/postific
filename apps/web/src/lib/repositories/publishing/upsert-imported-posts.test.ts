@@ -33,9 +33,29 @@ function post(
  * merekam urutan pemanggilan method (termasuk `$executeRaw` lock) supaya
  * bisa diverifikasi lock diambil SEBELUM SELECT/INSERT mana pun.
  */
+type SeededTarget = {
+  id: string;
+  postId: string;
+  connectedAccountId: string;
+  platformPostId: string | null;
+  postOutstandPostId: string | null;
+};
+
+type GlobalOwnerRow = {
+  outstandPostId: string;
+  postId: string;
+  workspaceId: string;
+  connectedAccountId: string;
+};
+
 function createStore(
   seededPosts: { id: string; outstandPostId: string | null }[] = [],
+  options: {
+    seededTargets?: SeededTarget[];
+    globalRows?: GlobalOwnerRow[];
+  } = {},
 ) {
+  const seededTargets = options.seededTargets ?? [];
   const calls: string[] = [];
   const createdPosts: {
     id: string;
@@ -47,20 +67,89 @@ function createStore(
     connectedAccountId: string;
     platformPostId: string;
   }[] = [];
+  const updatedPosts: { id: string; outstandPostId: string }[] = [];
+  const updatedTargets: {
+    id: string;
+    platformPostId: string;
+    platformPostUrl: string | null;
+  }[] = [];
   let nextPostId = 1;
 
   const tx = {
     $executeRaw: async (
-      _strings: TemplateStringsArray,
+      strings: TemplateStringsArray,
       ...values: unknown[]
     ) => {
-      calls.push(`lock:${String(values[0])}`);
+      const sql = strings.join("?");
+      calls.push(
+        sql.includes("publishing.outstand_post_id")
+          ? `post-lock:${String(values[0])}`
+          : `lock:${String(values[0])}`,
+      );
       return 1;
     },
+    $queryRaw: async (_strings: TemplateStringsArray, ...values: unknown[]) => {
+      const outstandPostId = String(values[0]);
+      calls.push(`global:${outstandPostId}`);
+      return (options.globalRows ?? [])
+        .filter((row) => row.outstandPostId === outstandPostId)
+        .map((row) => ({
+          post_id: row.postId,
+          workspace_id: row.workspaceId,
+          connected_account_id: row.connectedAccountId,
+        }));
+    },
     publishingPostTarget: {
-      findMany: async () => {
+      findMany: async (args: {
+        where: {
+          connectedAccountId?: { in: string[] };
+          platformPostId?: { in: string[] };
+          postId?: { in: string[] };
+        };
+      }) => {
         calls.push("target.findMany");
-        return [];
+        const accountIds = new Set(args.where.connectedAccountId?.in ?? []);
+        if (args.where.platformPostId) {
+          const platformIds = new Set(args.where.platformPostId.in);
+          return seededTargets
+            .filter(
+              (row) =>
+                row.platformPostId !== null &&
+                accountIds.has(row.connectedAccountId) &&
+                platformIds.has(row.platformPostId),
+            )
+            .map((row) => ({
+              id: row.id,
+              postId: row.postId,
+              connectedAccountId: row.connectedAccountId,
+              platformPostId: row.platformPostId,
+              post: { outstandPostId: row.postOutstandPostId },
+            }));
+        }
+        const postIds = new Set(args.where.postId?.in ?? []);
+        return seededTargets
+          .filter(
+            (row) =>
+              postIds.has(row.postId) && accountIds.has(row.connectedAccountId),
+          )
+          .map((row) => ({
+            id: row.id,
+            postId: row.postId,
+            connectedAccountId: row.connectedAccountId,
+            platformPostId: row.platformPostId,
+          }));
+      },
+      updateMany: async (args: {
+        where: { id: string };
+        data: { platformPostId: string; platformPostUrl: string | null };
+      }) => {
+        calls.push("target.updateMany");
+        updatedTargets.push({
+          id: args.where.id,
+          platformPostId: args.data.platformPostId,
+          platformPostUrl: args.data.platformPostUrl,
+        });
+        return { count: 1 };
       },
       create: async (args: {
         data: {
@@ -114,10 +203,28 @@ function createStore(
         }
         return { id };
       },
+      updateMany: async (args: {
+        where: { id: string };
+        data: { outstandPostId: string };
+      }) => {
+        calls.push("post.updateMany");
+        updatedPosts.push({
+          id: args.where.id,
+          outstandPostId: args.data.outstandPostId,
+        });
+        return { count: 1 };
+      },
     },
   };
 
-  return { tx, calls, createdPosts, createdTargets };
+  return {
+    tx,
+    calls,
+    createdPosts,
+    createdTargets,
+    updatedPosts,
+    updatedTargets,
+  };
 }
 
 /**
@@ -170,13 +277,18 @@ function createSharedSimulatedDb() {
     let release: (() => void) | null = null;
     const tx = {
       $executeRaw: async () => {
-        if (honorLock) {
+        // Hanya panggilan pertama (lock workspace). Lock per
+        // `outstandPostId` yang menyusul tidak boleh mengantri di mutex
+        // yang sama — pemanggil ini masih memegang release-nya.
+        if (honorLock && release === null) {
           release = await lock.acquire(workspaceId);
         }
         return 1;
       },
+      $queryRaw: async () => [],
       publishingPostTarget: {
         findMany: async () => [],
+        updateMany: async () => ({ count: 0 }),
         create: async (args: {
           data: {
             postId: string;
@@ -229,6 +341,7 @@ function createSharedSimulatedDb() {
           }
           return { id };
         },
+        updateMany: async () => ({ count: 0 }),
       },
     };
 
@@ -405,5 +518,126 @@ describe("upsertImportedPostsTx (T-090.4, cross-post guard T-113 follow-up)", ()
     // Postgres error in production. This test exists to document/pin the
     // contrast, not to assert desired behavior.
     expect(db.posts).toHaveLength(2);
+  });
+
+  it("re-import mengisi outstandPostId yang masih null pada post yang sudah ada", async () => {
+    const { tx, createdPosts, updatedPosts } = createStore([], {
+      seededTargets: [
+        {
+          id: "target-old",
+          postId: "post-old",
+          connectedAccountId: "account-1",
+          platformPostId: "platform-post-1",
+          postOutstandPostId: null,
+        },
+      ],
+    });
+
+    const result = await upsertImportedPostsTx(tx as never, WORKSPACE_ID, [
+      post({ outstandPostId: "outstand-backfill" }),
+    ]);
+
+    expect(result).toEqual({ insertedCount: 0, skippedDuplicateCount: 1 });
+    expect(createdPosts).toHaveLength(0);
+    expect(updatedPosts).toEqual([
+      { id: "post-old", outstandPostId: "outstand-backfill" },
+    ]);
+  });
+
+  it("re-import tidak menimpa outstandPostId yang sudah terisi", async () => {
+    const { tx, updatedPosts } = createStore([], {
+      seededTargets: [
+        {
+          id: "target-old",
+          postId: "post-old",
+          connectedAccountId: "account-1",
+          platformPostId: "platform-post-1",
+          postOutstandPostId: "outstand-existing",
+        },
+      ],
+    });
+
+    const result = await upsertImportedPostsTx(tx as never, WORKSPACE_ID, [
+      post({ outstandPostId: "outstand-other" }),
+    ]);
+
+    expect(result).toEqual({ insertedCount: 0, skippedDuplicateCount: 1 });
+    expect(updatedPosts).toHaveLength(0);
+  });
+
+  it("outstandPostId milik workspace lain diimpor dengan id null, batch tetap jalan", async () => {
+    const { tx, createdPosts, createdTargets } = createStore([], {
+      globalRows: [
+        {
+          outstandPostId: "outstand-foreign",
+          postId: "post-other-workspace",
+          workspaceId: "workspace-other",
+          connectedAccountId: "account-foreign",
+        },
+      ],
+    });
+
+    const result = await upsertImportedPostsTx(tx as never, WORKSPACE_ID, [
+      post({ outstandPostId: "outstand-foreign" }),
+    ]);
+
+    expect(result).toEqual({ insertedCount: 1, skippedDuplicateCount: 0 });
+    expect(createdPosts).toEqual([
+      {
+        id: "post-1",
+        workspaceId: WORKSPACE_ID,
+        outstandPostId: null,
+      },
+    ]);
+    expect(createdTargets).toHaveLength(1);
+  });
+
+  it("akun yang sudah punya target pada post yang sama tidak dapat target kedua; platformPostId null diisi", async () => {
+    const { tx, createdPosts, createdTargets, updatedTargets } = createStore(
+      [{ id: "post-existing", outstandPostId: "outstand-shared" }],
+      {
+        seededTargets: [
+          {
+            id: "target-pending",
+            postId: "post-existing",
+            connectedAccountId: "account-1",
+            platformPostId: null,
+            postOutstandPostId: "outstand-shared",
+          },
+        ],
+      },
+    );
+
+    const result = await upsertImportedPostsTx(tx as never, WORKSPACE_ID, [
+      post({
+        connectedAccountId: asConnectedAccountId("account-1"),
+        platformPostId: "platform-post-filled",
+        outstandPostId: "outstand-shared",
+      }),
+    ]);
+
+    expect(result).toEqual({ insertedCount: 0, skippedDuplicateCount: 1 });
+    expect(createdPosts).toHaveLength(0);
+    expect(createdTargets).toHaveLength(0);
+    expect(updatedTargets).toEqual([
+      {
+        id: "target-pending",
+        platformPostId: "platform-post-filled",
+        platformPostUrl: "https://instagram.com/p/xyz",
+      },
+    ]);
+  });
+
+  it("mengunci tiap outstandPostId setelah lock workspace dan sebelum lookup global", async () => {
+    const { tx, calls } = createStore([]);
+
+    await upsertImportedPostsTx(tx as never, WORKSPACE_ID, [post()]);
+
+    const workspaceLock = calls.indexOf(`lock:${WORKSPACE_ID}`);
+    const postLock = calls.indexOf("post-lock:outstand-post-1");
+    const globalLookup = calls.indexOf("global:outstand-post-1");
+    expect(workspaceLock).toBe(0);
+    expect(postLock).toBeGreaterThan(workspaceLock);
+    expect(globalLookup).toBeGreaterThan(postLock);
   });
 });
