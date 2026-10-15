@@ -81,7 +81,10 @@ function createFakeRepository(
       skippedDuplicateCount: 0,
     }),
     hasImportedPostsMissingOutstandId: async () => false,
-    backfillImportedPostOutstandIds: async () => ({ updatedCount: 0 }),
+    backfillImportedPostOutstandIds: async () => ({
+      updatedCount: 0,
+      skippedCount: 0,
+    }),
     ...overrides,
   };
 }
