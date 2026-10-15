@@ -5,7 +5,11 @@ import {
   MemberRole,
   SocialPlatform,
 } from "@postific/shared";
-import type { IOutstandAdapter, ImportJobOutcome } from "@postific/shared";
+import type {
+  AccountOwnerLookupResult,
+  IOutstandAdapter,
+  ImportJobOutcome,
+} from "@postific/shared";
 import { describe, expect, it, vi } from "vitest";
 import type {
   IImportJobRepository,
@@ -108,8 +112,25 @@ function createFakeOutstandAdapter(
   };
 }
 
-function createFakeWatermarkPort() {
-  return { updateImportWatermark: vi.fn(async () => undefined) };
+function createFakeWatermarkPort(
+  overrides: {
+    findAccountOwnerByOutstandAccountId?: (
+      outstandAccountId: string,
+    ) => Promise<AccountOwnerLookupResult | null>;
+  } = {},
+) {
+  return {
+    updateImportWatermark: vi.fn(async () => undefined),
+    findAccountOwnerByOutstandAccountId:
+      overrides.findAccountOwnerByOutstandAccountId ??
+      vi.fn(async (outstandAccountId: string) => ({
+        workspaceId: WORKSPACE_ID,
+        connectedAccountId: asConnectedAccountId(
+          `account-for-${outstandAccountId}`,
+        ),
+        ownerUserId: ACTING_USER_ID,
+      })),
+  };
 }
 
 function createProcessUseCase(insertedCount = 0) {
@@ -596,16 +617,29 @@ describe("ImportPostsTriggerUseCase.triggerPeriodicForAccounts (T-090.3)", () =>
         return { importJobId: `job-for-${outstandAccountId}` };
       }),
     });
-    const useCase = new ImportPostsTriggerUseCase(
-      importJobs,
-      outstandAdapter,
-      createFakeWatermarkPort(),
-      createProcessUseCase(2),
-      noopBackfillUseCase,
-    );
 
     const okAccountId = asConnectedAccountId("account-ok");
     const failAccountId = asConnectedAccountId("account-fail");
+
+    const watermark = createFakeWatermarkPort({
+      findAccountOwnerByOutstandAccountId: vi.fn(async (outstandAccountId) => {
+        const connectedAccountId =
+          outstandAccountId === "outstand-ok" ? okAccountId : failAccountId;
+        return {
+          workspaceId: WORKSPACE_ID,
+          connectedAccountId,
+          ownerUserId: ACTING_USER_ID,
+        };
+      }),
+    });
+
+    const useCase = new ImportPostsTriggerUseCase(
+      importJobs,
+      outstandAdapter,
+      watermark,
+      createProcessUseCase(2),
+      noopBackfillUseCase,
+    );
 
     const results = await useCase.triggerPeriodicForAccounts([
       {
@@ -614,7 +648,6 @@ describe("ImportPostsTriggerUseCase.triggerPeriodicForAccounts (T-090.3)", () =>
         outstandAccountId: "outstand-ok",
         platform: SocialPlatform.Instagram,
         lastImportedUntil: null,
-        actingUserId: ACTING_USER_ID,
       },
       {
         workspaceId: WORKSPACE_ID,
@@ -622,7 +655,6 @@ describe("ImportPostsTriggerUseCase.triggerPeriodicForAccounts (T-090.3)", () =>
         outstandAccountId: "outstand-fails",
         platform: SocialPlatform.Facebook,
         lastImportedUntil: null,
-        actingUserId: ACTING_USER_ID,
       },
     ]);
 
@@ -630,6 +662,103 @@ describe("ImportPostsTriggerUseCase.triggerPeriodicForAccounts (T-090.3)", () =>
     expect(results.get(failAccountId)?.outcome).toBe("failed");
     expect(results.get(failAccountId)?.message).toMatch(/boom/);
   });
+
+  /**
+   * KI-088 (resolved 2026-10-15) — `actingUserId` di-resolve lewat
+   * `findAccountOwnerByOutstandAccountId` (pola JOB-04/JOB-03), caller TIDAK
+   * perlu/boleh lagi menyuplainya sendiri di `TriggerPeriodicAccountInput`.
+   */
+  it("resolves actingUserId per account via the owner lookup port instead of accepting it as input", async () => {
+    const importJobs = createFakeImportJobRepository();
+    const outstandAdapter = createFakeOutstandAdapter();
+    const watermark = createFakeWatermarkPort({
+      findAccountOwnerByOutstandAccountId: vi.fn(async () => ({
+        workspaceId: WORKSPACE_ID,
+        connectedAccountId: CONNECTED_ACCOUNT_ID,
+        ownerUserId: ACTING_USER_ID,
+      })),
+    });
+    const useCase = new ImportPostsTriggerUseCase(
+      importJobs,
+      outstandAdapter,
+      watermark,
+      createProcessUseCase(1),
+      noopBackfillUseCase,
+    );
+
+    const results = await useCase.triggerPeriodicForAccounts([
+      {
+        workspaceId: WORKSPACE_ID,
+        connectedAccountId: CONNECTED_ACCOUNT_ID,
+        outstandAccountId: OUTSTAND_ACCOUNT_ID,
+        platform: SocialPlatform.Instagram,
+        lastImportedUntil: null,
+      },
+    ]);
+
+    expect(watermark.findAccountOwnerByOutstandAccountId).toHaveBeenCalledWith(
+      OUTSTAND_ACCOUNT_ID,
+    );
+    expect(watermark.updateImportWatermark).toHaveBeenCalledWith(
+      expect.objectContaining({ actingUserId: ACTING_USER_ID }),
+    );
+    expect(results.get(CONNECTED_ACCOUNT_ID)?.outcome).toBe("triggered");
+  });
+
+  /**
+   * Dua mode gagal `resolveVerifiedAccountOwner` (owner lookup kosong, dan
+   * owner ditemukan tapi tidak cocok dengan input) — ditabelkan jadi satu
+   * `it.each` karena arrange/assert-nya identik, hanya mock lookup + regex
+   * pesan error yang berbeda per kasus.
+   */
+  it.each([
+    {
+      name: "owner lookup finds no active account",
+      lookup: async () => null,
+      messagePattern: /tidak ditemukan atau tidak aktif/,
+    },
+    {
+      name: "owner lookup result doesn't match the input (workspace/connectedAccountId mismatch)",
+      lookup: async () => ({
+        workspaceId: asWorkspaceId("workspace-other"),
+        connectedAccountId: CONNECTED_ACCOUNT_ID,
+        ownerUserId: ACTING_USER_ID,
+      }),
+      messagePattern: /tidak cocok dengan hasil/,
+    },
+  ])(
+    "marks an account as failed (without affecting others) when $name",
+    async ({ lookup, messagePattern }) => {
+      const importJobs = createFakeImportJobRepository();
+      const outstandAdapter = createFakeOutstandAdapter();
+      const watermark = createFakeWatermarkPort({
+        findAccountOwnerByOutstandAccountId: vi.fn(lookup),
+      });
+      const useCase = new ImportPostsTriggerUseCase(
+        importJobs,
+        outstandAdapter,
+        watermark,
+        createProcessUseCase(1),
+        noopBackfillUseCase,
+      );
+
+      const results = await useCase.triggerPeriodicForAccounts([
+        {
+          workspaceId: WORKSPACE_ID,
+          connectedAccountId: CONNECTED_ACCOUNT_ID,
+          outstandAccountId: OUTSTAND_ACCOUNT_ID,
+          platform: SocialPlatform.Instagram,
+          lastImportedUntil: null,
+        },
+      ]);
+
+      expect(results.get(CONNECTED_ACCOUNT_ID)?.outcome).toBe("failed");
+      expect(results.get(CONNECTED_ACCOUNT_ID)?.message).toMatch(
+        messagePattern,
+      );
+      expect(outstandAdapter.importPosts).not.toHaveBeenCalled();
+    },
+  );
 });
 
 /**

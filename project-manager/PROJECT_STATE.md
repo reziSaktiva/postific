@@ -340,7 +340,7 @@ ini dicatat sebagai Known Issue baru, **tidak diperbaiki di sesi T-015**.
 
 | Field | Value |
 |-------|-------|
-| Status | Open |
+| Status | Resolved (2026-10-15) |
 | Kategori | Tech-Debt / Gap Produk |
 | Terkait | T-090 (T-090.3) |
 
@@ -352,11 +352,16 @@ Ditemukan Elon Backend Engineer saat implementasi T-090.3 (2026-10-08,
 Cron harian) butuh `actingUserId` per akun untuk RBAC/audit trail, tapi
 trigger cron tidak punya sesi user untuk di-resolve — berbeda dari entry
 point otomatis (on-connect, actor = user yang connect) dan manual (actor =
-user yang klik "Sync Now"). Didokumentasikan sebagai gap di docstring kode,
-**bukan** diselesaikan — kandidat resolusi (mis. Account Owner workspace)
-belum jadi keputusan produk final, menunggu King Rezi. Tidak memblokir
-T-090.1–T-090.4 (sudah selesai); jalur periodik butuh keputusan ini sebelum
-dipakai di environment nyata.
+user yang klik "Sync Now").
+
+**Resolved 2026-10-15:** King Rezi memilih (lewat `AskUserQuestion`) reuse
+pola JOB-04 `AnalyticsSyncJobHandler`/JOB-03 `EngagementSyncJobHandler` —
+`actingUserId` di-resolve lewat Owner workspace dari akun itu sendiri
+(`findAccountOwnerByOutstandAccountId`), bukan `Workspace.ownerId` langsung.
+`triggerPeriodicForAccounts` sekarang me-resolve sendiri per akun (lookup
+gagal diisolasi sebagai kegagalan akun itu saja, tidak menghentikan akun
+lain di batch). Detail implementasi: `tasks/v02-publishing-mvp.md` § T-090
+addendum 2026-10-15. Cron wiring asli tetap di luar scope (tidak berubah).
 
 ### KI-063 · `PublishingPost.publishedAt` tidak pernah diisi oleh `markPostPublished`/`markPostFailed`
 
@@ -542,11 +547,11 @@ seluruh daftar Known Issues.
 
 ## Completed (Ringkasan)
 
+* **KI-088 ✅ Resolved — gap `actingUserId` jalur periodik Import Posts ditutup (2026-10-15)** — King Rezi memilih (lewat `AskUserQuestion`) reuse pola JOB-04/JOB-03 (`findAccountOwnerByOutstandAccountId`) alih-alih `Workspace.ownerId` langsung. `triggerPeriodicForAccounts` sekarang me-resolve `actingUserId` sendiri per akun, tanpa dependency baru di composition root. Detail: `tasks/v02-publishing-mvp.md` § T-090 addendum, `COMPLETE_TASK.md`.
 * **T-114 ✅ TUNTAS 5/5 subtask — backfill otomatis `outstandPostId` post Imported lama (2026-10-15)** — lanjutan langsung T-113: 36 dari 39 post Imported lama di akun test masih `outstandPostId: null` (T-113 cuma memperbaiki import baru ke depan). Mekanisme permanen ditambahkan — tiap Sync Now/periodik otomatis backfill kalau masih ada gap, reuse namespace lock T-113. 0 temuan review Ridwan. Diverifikasi end-to-end nyata: 39/39 ter-backfill setelah satu kali Sync Now. Detail: `tasks/v02-publishing-mvp.md` § T-114, `COMPLETE_TASK.md`.
 * **T-113 ✅ TUNTAS 4/4 subtask — comment post Imported ikut ter-sync ke Engage Inbox (2026-10-15)** — promosi **KI-090**. `outstandPostId` kini ditangkap+disimpan untuk post hasil Import Posts. 2 bug konkurensi/cross-post CONFIRMED ditemukan & diperbaiki lewat 3 ronde review Ridwan (unique index global, lalu race antar transaksi via `pg_advisory_xact_lock`). Diverifikasi end-to-end nyata: comment Reels Facebook berhasil masuk Comments Inbox. Detail: `tasks/v02-publishing-mvp.md` § T-113, `COMPLETE_TASK.md`.
 * **T-005 ✅ TUNTAS 5/5 — email verification flow (2026-10-14)** — Resend mengirim reset password dan verifikasi email. `/verify-email` hidup. `requireEmailVerification` aktif. Akun lama di-backfill lewat migrasi `20261014160000`. Accept-invite memakai cookie httpOnly `invite-email-proof` supaya sign-up tanpa OTP tidak ikut terverifikasi. Perbaikan review PR #168 juga mengembalikan pekerjaan staging (T-016.4, T-030.3, T-091) yang akan terhapus kalau branch di-merge apa adanya. Detail: `tasks/v01-foundation.md` § T-005, `COMPLETE_TASK.md`.
 * **T-016 ✅ TUNTAS 5/5 subtask — Account & user settings screens, T-016.4 `/account/notifications` (2026-10-14)** — subtask terakhir (preferensi notifikasi: Balasan & Mention, Jadwal Publish, Laporan Analytics) diimplementasikan di domain `identity`, lolos review Ridwan (nihil temuan) dan QA end-to-end Najwa. Migration baru `identity_user` sudah dijalankan King Rezi & diverifikasi via Supabase MCP. PR #164 ke `staging` sudah di-merge. Detail: `tasks/v01-foundation.md` § T-016, `COMPLETE_TASK.md`.
-* **T-030 ✅ TUNTAS 3/3 subtask — Cancel Schedule + dialog konfirmasi (2026-10-13)** — entry point "Batalkan Jadwal" ditambahkan di popover Calendar (`CalendarPostPopover.tsx`), melengkapi bagian Queue yang sudah selesai sejak T-032.4. 100% reuse use-case/RBAC yang sama, tanpa business logic baru. Detail: `tasks/v02-publishing-mvp.md` § T-030, `COMPLETE_TASK.md`.
 Berikut ~5 item terakhir yang diselesaikan. Riwayat lengkap (sejak M0): lihat `COMPLETE_TASK.md` — ⚠️ jangan dibaca AI kecuali diperintah eksplisit King Rezi.
 
 ---

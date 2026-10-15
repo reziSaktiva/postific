@@ -1,4 +1,5 @@
 import type {
+  AccountOwnerLookupResult,
   ConnectedAccountId,
   ImportJobOutcome,
   IOutstandAdapter,
@@ -8,6 +9,7 @@ import type {
   WorkspaceId,
 } from "@postific/shared";
 import { ConflictError } from "@/lib/utils/errors";
+import { resolveVerifiedAccountOwner } from "@/lib/jobs/account-owner-resolution";
 import { assertActorCanTriggerManualImportSync } from "../rbac";
 import type {
   IImportJobRepository,
@@ -84,6 +86,27 @@ interface ConnectedAccountWatermarkPort {
      */
     actingUserId: UserId;
   }): Promise<void>;
+
+  /**
+   * Resolusi `actingUserId` untuk jalur periodik (KI-088, resolved
+   * 2026-10-15) — pola yang sama persis dengan `AnalyticsSyncOwnerLookupPort`
+   * (`analytics-sync-job-handler.ts`, JOB-04) dan `EngagementSyncJobHandler`
+   * (JOB-03): Railway Cron tidak punya sesi user, jadi `actingUserId`
+   * di-resolve lewat Owner workspace dari akun itu sendiri (bukan
+   * `Workspace.ownerId` langsung — kandidat yang disebut di versi sebelumnya
+   * docstring ini, dibuang setelah King Rezi memilih reuse pola JOB-04/JOB-03
+   * yang sudah teruji produksi). Structural-typing cocok dengan
+   * `IWorkspaceRepository.findAccountOwnerByOutstandAccountId` — composition
+   * root (`createImportPostsTriggerUseCase`) tidak perlu menyuplai dependency
+   * baru, `workspaceRepository` yang sudah dipakai untuk `connectedAccounts`
+   * sudah mengimplementasikan method ini juga. `null` kalau akun tidak
+   * ditemukan/tidak aktif. Return shape `AccountOwnerLookupResult`
+   * (`@postific/shared`, AGENTS.md #8) — satu deklarasi dipakai bersama port
+   * lokal manapun yang butuh lookup ini, bukan di-retype per domain.
+   */
+  findAccountOwnerByOutstandAccountId(
+    outstandAccountId: string,
+  ): Promise<AccountOwnerLookupResult | null>;
 }
 
 export type ImportSyncTriggerOutcome =
@@ -134,18 +157,6 @@ export interface TriggerPeriodicAccountInput {
   outstandAccountId: string;
   platform: SocialPlatform;
   lastImportedUntil: Date | null;
-  /**
-   * **Gap diketahui (dilaporkan ke King Rezi, bukan diputuskan sepihak):**
-   * trigger periodik (Railway Cron) tidak punya sesi/user manusia — RLS
-   * `publishing_posts_workspace_isolation` tetap butuh `app.current_user_id`
-   * berupa member AKTIF workspace itu. Caller (handler cron, belum
-   * diwiring — di luar scope T-090) wajib me-resolve user ini sendiri
-   * (kandidat paling sederhana: Account Owner workspace) SEBELUM memanggil
-   * `triggerPeriodicForAccounts`; use-case ini tidak membuat keputusan itu
-   * sendiri karena butuh akses domain `workspace` (cross-domain, AGENTS.md
-   * #7).
-   */
-  actingUserId: UserId;
 }
 
 export interface TriggerManualInput {
@@ -166,7 +177,10 @@ export interface TriggerManualInput {
  * port dari `WorkspaceService.completeAccountConnection`), periodik
  * (`triggerPeriodicForAccounts`, menerima list akun `active` — caller yang
  * meresolve daftarnya, TIDAK ada Railway Cron wiring asli di sini, lihat
- * catatan T-090 di `tasks/v02-publishing-mvp.md`), dan manual
+ * catatan T-090 di `tasks/v02-publishing-mvp.md`; `actingUserId` per akun
+ * di-resolve SENDIRI oleh method ini lewat `ConnectedAccountWatermarkPort.
+ * findAccountOwnerByOutstandAccountId` — KI-088, resolved 2026-10-15, lihat
+ * docstring port tsb.), dan manual
  * (`triggerManual`, dipanggil Server Action "Sync Now").
  *
  * **Penyesuaian pragmatis (dicatat eksplisit, sama pola T-027 di
@@ -270,6 +284,14 @@ export class ImportPostsTriggerUseCase {
    * menghentikan akun lain dalam batch (`Promise.allSettled`-style,
    * manual try/catch per akun) — konsisten semangat JOB-03/JOB-04
    * (`background-jobs.md`: satu job per `ConnectedAccount`, independen).
+   *
+   * **`actingUserId` (KI-088, resolved 2026-10-15)** — jalur ini TIDAK
+   * punya sesi/user manusia (Railway Cron), jadi di-resolve DI SINI per akun
+   * lewat `resolveVerifiedAccountOwner` (`@/lib/jobs/account-owner-resolution`
+   * — rationale lengkap di docstring `ConnectedAccountWatermarkPort.
+   * findAccountOwnerByOutstandAccountId` di atas). Lookup gagal/akun tidak
+   * aktif/mismatch ditangani sama seperti kegagalan lain di batch ini —
+   * masuk `catch`, tidak menghentikan akun lain.
    */
   async triggerPeriodicForAccounts(
     accounts: TriggerPeriodicAccountInput[],
@@ -278,6 +300,16 @@ export class ImportPostsTriggerUseCase {
 
     for (const account of accounts) {
       try {
+        const owner = await resolveVerifiedAccountOwner(
+          this.connectedAccounts,
+          account.outstandAccountId,
+          {
+            workspaceId: account.workspaceId,
+            connectedAccountId: account.connectedAccountId,
+          },
+          "triggerPeriodicForAccounts",
+        );
+
         const result = await this.runImportSync({
           trigger: "periodic",
           workspaceId: account.workspaceId,
@@ -285,7 +317,7 @@ export class ImportPostsTriggerUseCase {
           outstandAccountId: account.outstandAccountId,
           platform: account.platform,
           since: account.lastImportedUntil ?? defaultSince(new Date()),
-          actingUserId: account.actingUserId,
+          actingUserId: owner.ownerUserId,
         });
         results.set(account.connectedAccountId, result);
       } catch (error) {

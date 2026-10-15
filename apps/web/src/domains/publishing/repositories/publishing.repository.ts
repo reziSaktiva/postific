@@ -1116,9 +1116,9 @@ export interface IPublishingRepository {
    * `publishing_posts_workspace_isolation`, migration T-017), jadi boleh
    * berupa user mana pun yang aktif di `workspaceId` ini. Caller (auto:
    * user yang connect akun; manual: user yang klik Sync Now; periodik:
-   * BELUM ada acting user alami karena dipicu cron tanpa sesi — lihat
-   * catatan gap di `ImportPostsTriggerUseCase.triggerPeriodicForAccounts`)
-   * yang menentukan nilainya.
+   * dipicu cron tanpa sesi, jadi di-resolve lewat Owner workspace akun itu —
+   * KI-088 resolved 2026-10-15, lihat `ImportPostsTriggerUseCase.
+   * triggerPeriodicForAccounts`) yang menentukan nilainya.
    */
   upsertImportedPosts(
     input: {

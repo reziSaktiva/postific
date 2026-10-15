@@ -8,6 +8,71 @@ Seluruh perubahan penting pada dokumentasi maupun implementasi project dicatat p
 
 ---
 
+## 2026-10-15 — KI-088 Resolved: resolusi `actingUserId` jalur periodik Import Posts (Elon Backend Engineer)
+
+### Konteks
+King Rezi minta KI-088 dikerjakan. Known Issue ini sejak T-090.3 (2026-10-08): `ImportPostsTriggerUseCase.triggerPeriodicForAccounts` (JOB-05, Railway Cron harian) butuh `actingUserId` per akun untuk RLS (`withCurrentUser`), tapi trigger cron tidak punya sesi user — berbeda dari jalur auto (actor = user yang connect) dan manual (actor = user yang klik Sync Now). Docstring sebelumnya mencatat ini sebagai gap terbuka, kandidat resolusi belum final, menunggu keputusan produk.
+
+### Keputusan (`.claude/skills/proactive-clarification/SKILL.md`)
+Riset kode (Explore subagent) menemukan precedent kuat: dua job cron lain yang punya masalah identik (JOB-04 `AnalyticsSyncJobHandler`, JOB-03 `EngagementSyncJobHandler`) sudah menyelesaikannya dengan resolve `actingUserId` lewat Owner workspace dari akun itu sendiri (`IWorkspaceRepository.findAccountOwnerByOutstandAccountId`) — bukan `Workspace.ownerId` langsung (kandidat lama yang disebut di docstring KI-088, belum ada precedent implementasi). Karena ini fork keputusan produk yang eksplisit belum final, ditanyakan ke King Rezi lewat `AskUserQuestion` sebelum eksekusi. **King Rezi memilih reuse pola JOB-04/JOB-03.**
+
+### Implementasi
+- `ConnectedAccountWatermarkPort` (`import-posts-trigger.use-case.ts`) ditambah method `findAccountOwnerByOutstandAccountId` — structural-typing cocok dengan `IWorkspaceRepository` yang sudah ada, composition root (`createImportPostsTriggerUseCase`) **tidak perlu dependency baru** (`workspaceRepository` yang sudah dipakai untuk `connectedAccounts` sudah mengimplementasikan method ini).
+- `TriggerPeriodicAccountInput.actingUserId` **dihapus** dari signature publik — `triggerPeriodicForAccounts` sekarang me-resolve `actingUserId` sendiri per akun lewat owner lookup, sebelum memanggil `runImportSync`. Lookup kosong/mismatch workspace-connectedAccount ditangani sebagai kegagalan akun itu saja (masuk `catch` per-akun yang sudah ada, tidak menghentikan akun lain di batch).
+- Docstring gap dikoreksi di 4 tempat: `TriggerPeriodicAccountInput`, docstring class `ImportPostsTriggerUseCase`, `IWorkspaceRepository.updateImportWatermark`, `IPublishingRepository.upsertImportedPosts`.
+- Test unit (`import-posts-trigger.use-case.test.ts`): 1 test existing disesuaikan (tidak lagi menyuplai `actingUserId` di input, owner lookup mock mapping per akun), 2 test baru (resolve lewat owner lookup + assert `actingUserId` diteruskan ke `updateImportWatermark`; owner lookup kosong → akun itu `failed` terisolasi, `importPosts` tidak dipanggil).
+
+### Review Ridwan Architecture Reviewer
+0 pelanggaran AGENTS.md #5-9 (domain `publishing` tidak impor Prisma/Supabase/HTTP client, cross-domain `publishing`→`workspace` tetap lewat port lokal). Diverifikasi independen: `tsc --noEmit`/lint/test dijalankan ulang, grep menyeluruh memastikan tidak ada caller lain yang masih mengirim `actingUserId` ke `TriggerPeriodicAccountInput`, structural-typing port (field tambahan `handle` di `IWorkspaceRepository` yang tidak dideklarasikan di port lokal) dikonfirmasi aman (width subtyping, bukan object literal). 1 temuan test-coverage: branch sanity-check "owner ditemukan tapi `workspaceId`/`connectedAccountId` tidak cocok dengan input" belum punya test, padahal precedent yang direplikasi (`analytics-sync-job-handler.test.ts`, `engagement-sync-job-handler.test.ts`) punya test eksplisit untuk ini. **Ditutup:** 1 test tambahan untuk branch mismatch tersebut.
+
+### Verifikasi
+`bun run typecheck` (apps/web) PASS. `import-posts-trigger.use-case.test.ts` 20/20 passed (termasuk 1 test tambahan dari review Ridwan). Domain `publishing` penuh 272/272 passed (24 file test, sebelum test tambahan terakhir). Lint bersih untuk seluruh file yang diubah.
+
+### Scope note
+Cron wiring asli (tidak ada Railway Cron yang memanggil `triggerPeriodicForAccounts` di produksi) **tetap di luar scope** — sama seperti sebelumnya, KI-088 murni soal SUMBER `actingUserId`, bukan wiring cron-nya.
+
+### Changed
+- `apps/web/src/domains/publishing/services/import-posts-trigger.use-case.ts` (+test)
+- `apps/web/src/domains/workspace/repositories/workspace.repository.ts` (docstring)
+- `apps/web/src/domains/publishing/repositories/publishing.repository.ts` (docstring)
+- `project-manager/PROJECT_STATE.md` (status KI-088 → Resolved, Completed Ringkasan)
+- `project-manager/tasks/v02-publishing-mvp.md` (addendum § T-090)
+
+### Status
+KI-088 Resolved. Tidak ada task/subtask baru dibuat — ini adalah penyelesaian Known Issue, bukan promosi ke task baru (berbeda dari KI-049/KI-063/KI-044/KI-058 yang dipromosikan jadi T-107–T-110).
+
+---
+
+## 2026-10-15 — T-114 (PR #170): QA + code-review quality fixes, merge ke `staging`
+
+### Konteks
+Lanjutan sesi T-114 (entri sebelumnya hari ini). PR #170 (`feature/t-114-backfill-imported-outstand-id` → `staging`) sudah mengklaim bersih; sesi ini King Rezi minta testing lebih dalam sebelum merge. Tidak ada perubahan status/subtask T-114 — murni quality hardening pada scope yang sudah Done.
+
+### Testing/QA (Najwa QA Engineer)
+- `bun run typecheck` ternyata **GAGAL** meski PR mengklaim bersih: 7 error `TS2322` karena field `skippedCount` kurang di 7 file fake repository test. Diperbaiki (commit `b642472`).
+- 1 gap test coverage minor ditemukan dan ditutup: cabang `complete: false`/`MAX_PAGES` safety-net di `fetchAllPostIdMappings` (didelegasikan ke Elon Backend Engineer, commit `85a51a6`).
+
+### `/code-review` (medium effort, 8 finder angle) — 7 temuan, semua ditindaklanjuti (commit `0e958fa`)
+- **Fixed:** pagination offset di `fetchAllPostIdMappings` (`real-outstand-adapter.ts`) pakai `rawPosts.length` (bukan `pagination.count` dari API) — glitch metadata API tidak lagi menyebabkan post ter-skip permanen tanpa terdeteksi.
+- **Fixed:** status matching di fungsi yang sama pakai `normalizeTargetStatus()` (bukan literal `"published"`) — status sinonim tidak lagi bikin post ter-skip permanen.
+- **Fixed:** `findOutstandPostOwners` + advisory lock per-`outstandPostId` di `backfill-outstand-post-ids.ts` dibatch jadi satu query (`unnest`+`LATERAL`) alih-alih N round-trip sequential.
+- **Fixed:** 18 copy-paste fake-stub literal di 12 file test dikonsolidasi ke helper baru `apps/web/src/lib/testing/outstand-post-id-backfill-stubs.ts`.
+- **Fixed:** `backfillUseCase` di `ImportPostsTriggerUseCase` diubah dari constructor param opsional jadi wajib — composition root yang lupa menyuplainya sekarang gagal di compile time, bukan silent no-op di runtime. Composition root produksi (`outstand-workspace-service.ts`) dan 17 call site test diupdate.
+- **Skipped di sini, di-follow-up terpisah oleh King Rezi di Cursor (commit `a79c45e`):** duplikasi SQL advisory-lock + owner-lookup antara T-114 dan T-113 diekstrak ke module bersama baru `apps/web/src/lib/repositories/publishing/outstand-post-id-locks.ts`. Diverifikasi ulang: typecheck/lint/test bersih, 804 passed/6 skipped, tidak ada regresi.
+- **No_change_needed (keputusan eksplisit King Rezi via `AskUserQuestion`):** backfill tetap jalan meski job import utama gagal (menggandakan beban ke Outstand saat outage) — dikonfirmasi memang desain disengaja, tidak perlu backoff/circuit-breaker tambahan untuk saat ini.
+
+### Merge
+PR #170 di-merge ke `staging` (merge commit `41d48d4`), CI hijau (2/2 check), `mergeStateStatus: CLEAN`.
+
+### Changed
+- `real-outstand-adapter.ts`, `backfill-outstand-post-ids.ts`, `outstand-post-id-locks.ts` (baru), `outstand-post-id-backfill-stubs.ts` (baru, testing helper), `ImportPostsTriggerUseCase` + `outstand-workspace-service.ts`, 12+17 file test terkait.
+- Tidak ada perubahan ke `tasks/v02-publishing-mvp.md`/`TASKS.md`/`PROJECT_STATE.md` — status T-114 ✅ Done sudah dicatat sebelum sesi ini, tidak ada drift.
+
+### Status
+T-114 tetap ✅ Done, kini sudah merge ke `staging` dengan kualitas kode ditingkatkan lewat code-review. Siap lanjut ke alur promosi `staging → main` (CI-D03) saat King Rezi siap.
+
+---
+
 ## 2026-10-15 — T-114 ✅ Done 5/5 subtask: backfill otomatis `outstandPostId` untuk post Imported lama
 
 ### Konteks
