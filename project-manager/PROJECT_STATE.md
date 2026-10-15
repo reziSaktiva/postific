@@ -4,7 +4,7 @@
 
 * **Phase / Milestone:** Phase 6 — Implementation · M8 — Development (Sprint 5) · Overall: M7 100%, M8 in progress
 * **Active Mode:** Ready for Development — implementasi fitur produk sesuai Architecture & Engineering Baseline
-* **Top Next Tasks:** **T-037 Perkaya aturan coding** (🟡 In Progress; snapshot kedua 2026-10-13). Salinan ID dari **Fokus sekarang** di [`TASKS.md`](TASKS.md).
+* **Top Next Tasks:** **T-037 Perkaya aturan coding** (🟡 In Progress; snapshot kedua 2026-10-13) · **T-113 Simpan `outstandPostId` post Imported** (⏳ Not Started, promosi KI-090, 2026-10-15, untuk Elon Backend Engineer). Salinan ID dari **Fokus sekarang** di [`TASKS.md`](TASKS.md).
 * **Blocker:** 1 penghalang aktif — KI-015 (Google OAuth). Migrasi T-051 dan sisa follow-up KI-025 sudah diverifikasi tertutup di staging (2026-10-13). Detail di section **Blockers**.
 * **Backlog task lengkap:** [`TASKS.md`](TASKS.md) — 99 task per release (v0.1 → v1.0, + v0.7 migrasi Astryx→shadcn/ui, ADR-097), detail di `tasks/`. Jangan cari detail task di file ini.
 * **KI-073–080 Resolved (2026-09-26)** — 4 bug publish Instagram (caption wajib untuk Story, Story publish tanpa media, upload media >1MB gagal, avatar akun tidak tampil di sidebar) diperbaiki + diverifikasi live ke akun Instagram/Facebook real (ADR-120). 2 bug turunan ditemukan saat verifikasi (akun `disconnected` tidak bisa reconnect; callback OAuth silent-success untuk conflict genuine) diperbaiki via **ADR-122**. Plus **KI-080** (baru+langsung Resolved) — Railway staging build gagal (`next.config.ts` tidak bisa resolve import workspace `@social/shared`) diperbaiki di branch terpisah sebelum masuk ke fix KI-078/079.
@@ -18,7 +18,7 @@
 | ------------ | ---------- |
 | Version      | 1.1.2      |
 | Status       | Active     |
-| Last Updated | 2026-10-14 |
+| Last Updated | 2026-10-15 |
 
 ---
 
@@ -451,6 +451,48 @@ lama menyebut acuan Claude Design 260px. Belum dikonfirmasi apakah 260px itu
 hanya nilai mockup statis, atau lebar yang seharusnya dipakai di aplikasi
 (desktop dan mobile, bukan regresi khusus mobile). Menunggu konfirmasi King
 Rezi sebelum dianggap bukan masalah. Tidak memblokir pekerjaan lain.
+
+### KI-090 · Comment pada post hasil Import tidak ikut masuk Engage Inbox — `outstandPostId` tidak pernah diisi
+
+| Field | Value |
+|-------|-------|
+| Status | Promoted to T-113 (2026-10-15) |
+| Kategori | Bug / Gap Produk |
+| Terkait | T-090, T-051, T-112, ADR-093, ADR-113, ADR-123 |
+
+Ditemukan King Rezi (2026-10-15) saat menanyakan apakah comment pada post
+hasil **Import Posts** (status `Imported`, T-090) ikut masuk ke Comments
+Inbox (Engage). Dikonfirmasi lewat pembacaan kode + tes langsung MCP
+Outstand (bukan asumsi):
+
+- Job sync comment (`SyncCommentsUseCase`, redesign per-post ADR-113)
+  mengambil daftar post lewat `listSyncablePostsByConnectedAccount`
+  (`apps/web/src/lib/repositories/publishing/publishing.repository.ts`),
+  yang mensyaratkan `PublishingPost.outstandPostId: { not: null }`.
+- Post hasil Import (`upsertImportedPosts`, path yang sama) **tidak pernah
+  mengisi `outstandPostId`** — hanya `PublishingPostTarget.platformPostId`
+  (id native platform) yang disimpan, diambil dari
+  `matchedAccount.platformPostId` di respons `RealOutstandAdapter
+  .fetchImportJobStatus`.
+- Akibatnya seluruh post `Imported` otomatis gugur dari antrian sync
+  comment — comment-nya tidak pernah ditarik ke `EngagementInboxItem`.
+
+**Ini bisa diperbaiki, bukan keterbatasan Outstand.** Dites langsung via MCP
+Outstand: `get_replies(post_id: "MAnO3", network: "instagram", username:
+"turanilkerl")` berhasil mengembalikan comment asli memakai id internal
+Outstand. Dan respons `GET /v1/posts` yang sama (dipakai
+`fetchImportJobStatus` saat import, lihat docstring adapter baris
+~1490–1500) **sudah membawa `id` internal Outstand itu juga** untuk setiap
+post yang di-discover — termasuk post Imported — tapi field ini tidak
+pernah dibaca/disimpan di mapping import
+(`apps/web/src/lib/adapters/outstand/real-outstand-adapter.ts` baris
+~1584–1627 hanya mengekstrak `platformPostId`, tidak pernah `rawPost.id`).
+
+Tidak memblokir M8 (Import Posts dan Comments Inbox masing-masing tetap
+berfungsi normal untuk kasusnya sendiri), tapi merupakan gap produk nyata:
+user yang mengandalkan Import Posts untuk post lama tidak akan melihat
+comment-nya di Engage. Dipromosikan langsung ke **T-113** (2026-10-15) atas
+permintaan King Rezi.
 
 ---
 

@@ -8,6 +8,24 @@ Seluruh perubahan penting pada dokumentasi maupun implementasi project dicatat p
 
 ---
 
+## 2026-10-15 — KI-090 dicatat + dipromosikan ke T-113 (comment post Imported tidak masuk Engage)
+
+### Konteks
+King Rezi bertanya apakah comment pada post hasil Import Posts (T-090) ikut masuk Comments Inbox. Investigasi kode + tes langsung MCP Outstand (`get_replies` pakai id internal Outstand "MAnO3", berhasil) mengonfirmasi: `listSyncablePostsByConnectedAccount` mensyaratkan `PublishingPost.outstandPostId` terisi, tapi `upsertImportedPosts` tidak pernah mengisinya untuk post Imported — padahal respons `GET /v1/posts` yang dipakai `fetchImportJobStatus` saat import sudah membawa id internal Outstand itu, hanya tidak pernah dibaca. Bukan keterbatasan Outstand API, murni gap mapping di kode sendiri.
+
+### Added
+- **KI-090** di `PROJECT_STATE.md` § Known Issues — langsung berstatus "Promoted to T-113" atas permintaan King Rezi.
+- **T-113** (`tasks/v02-publishing-mvp.md` § Import, setelah T-112) — 4 subtask: tangkap `rawPost.id` di `RealOutstandAdapter.fetchImportJobStatus`, simpan ke `PublishingPost.outstandPostId` di `upsertImportedPosts`, verifikasi end-to-end comment post Imported masuk Engage, cek regresi jalur publish biasa tidak terpengaruh. Domain `integration`, direkomendasikan untuk Elon Backend Engineer.
+
+### Changed
+- `TASKS.md`: indeks v0.2 `28 (27 ✅ · 1 🟡)` → `29 (27 ✅ · 1 🟡 · 1 ⏳)`. Total task `99` → `100`. Footnote ID ditambah penjelasan asal T-113. "Fokus sekarang" menambah baris task baru menunggu dikerjakan.
+- `PROJECT_STATE.md`: Snapshot "Top Next Tasks" menambah T-113. Metadata `Last Updated` → 2026-10-15.
+
+### Status
+Belum ada kode yang diubah — murni pencatatan KI + task, menunggu Elon Backend Engineer mengeksekusi T-113.
+
+---
+
 ## 2026-10-14 — Perbaikan seluruh temuan review PR #168 (T-005)
 
 ### Fixed

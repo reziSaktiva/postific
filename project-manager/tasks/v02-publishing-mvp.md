@@ -1457,6 +1457,49 @@ hanya 4 file kode (2 use-case + 1 test tiap-tiap): tidak menyentuh kontrak
 publik (`packages/shared`), tidak ada ADR baru (perbaikan perilaku internal,
 konsisten semangat ADR-123, bukan amandemen keputusannya).
 
+### T-113 · Simpan `outstandPostId` untuk post hasil Import supaya comment-nya ikut ter-sync ke Engage Inbox
+
+| Field         | Value                                                        |
+| ------------- | ------------------------------------------------------------ |
+| **Status**    | ⏳ Not Started                                                |
+| **Domain**    | integration                                                   |
+| **ADR**       | — (bug fix, melengkapi desain yang sudah ada di ADR-093/ADR-113/ADR-123, bukan mengubah baseline) |
+| **Terkait**   | KI-090, T-090, T-051 (`SyncCommentsUseCase`), T-112             |
+| **Depends**   | — (seluruh plumbing Import Posts & comment sync sudah selesai; ini murni mengisi satu field yang hilang) |
+| **Baca dulu** | `apps/web/src/lib/adapters/outstand/real-outstand-adapter.ts` (`fetchImportJobStatus`, docstring `GET /v1/posts`) · `apps/web/src/lib/repositories/publishing/publishing.repository.ts` (`upsertImportedPosts`, `listSyncablePostsByConnectedAccount`) · `apps/web/src/domains/engagement/services/sync-comments.use-case.ts` |
+
+Promosi dari **KI-090** (ditemukan King Rezi 2026-10-15). Comment pada post
+hasil **Import Posts** (status `Imported`, T-090) tidak pernah masuk ke
+Comments Inbox karena `PublishingPost.outstandPostId` tidak pernah diisi
+untuk post Imported — sementara `listSyncablePostsByConnectedAccount`
+(dipakai `SyncCommentsUseCase`, redesign per-post ADR-113) mensyaratkan
+kolom itu `not: null`.
+
+Dikonfirmasi **bukan** keterbatasan Outstand — dites langsung via MCP
+Outstand: `GET /v1/posts/{id}/replies` berhasil untuk id internal Outstand
+biasa, dan respons `GET /v1/posts` yang sama dipakai
+`fetchImportJobStatus` saat import **sudah membawa `id` internal Outstand
+itu juga** untuk setiap post yang di-discover (lihat docstring adapter
+`real-outstand-adapter.ts` ~baris 1490–1500) — field ini saat ini hanya
+tidak pernah dibaca/disimpan.
+
+- [ ] **T-113.1** Di `RealOutstandAdapter.fetchImportJobStatus`, tangkap
+      `rawPost.id` (id internal Outstand) dari setiap item respons
+      `GET /v1/posts` dan teruskan lewat `ImportedPostData` (field baru,
+      mis. `outstandPostId`) — tanpa mengubah kontrak `platformPostId` yang
+      sudah ada
+- [ ] **T-113.2** Di `upsertImportedPosts`
+      (`publishing.repository.ts`), simpan nilai itu ke
+      `PublishingPost.outstandPostId` saat membuat/update row post Imported
+- [ ] **T-113.3** Verifikasi end-to-end: jalankan Import Posts ke akun test
+      nyata yang punya post dengan comment asli, pastikan job
+      `SyncCommentsUseCase` berikutnya menarik comment-nya masuk ke
+      `EngagementInboxItem`/Comments Inbox
+- [ ] **T-113.4** Cek regresi: post yang dibuat lewat flow publish biasa
+      (bukan Import) tetap tidak terpengaruh — `outstandPostId` untuk jalur
+      itu sudah diisi di tempat lain (`schedulePost`/`publishNow`), task ini
+      tidak boleh menimpa/mengubah perilaku itu
+
 ---
 
 ## Read-Only Enforcement
