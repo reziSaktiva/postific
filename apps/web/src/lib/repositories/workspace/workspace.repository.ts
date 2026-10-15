@@ -74,6 +74,27 @@ function isConnectedAccountConflict(error: unknown): boolean {
   );
 }
 
+/**
+ * Field bersama untuk mereaktivasi `WorkspaceConnectedAccount` yang
+ * `disconnected`/`reconnect-required` — dipakai `createConnectedAccounts`
+ * (batch Facebook Pages, KI-086/ADR-127) dan `reconnectAccount` (single
+ * platform lain, ADR-105/ADR-112), supaya definisi "apa artinya reaktivasi"
+ * tidak diduplikasi dan bisa drift (code review PR #173). `avatarUrl` HANYA
+ * ditulis kalau ada nilai baru — `fetchSocialAccountAvatarUrl`/re-fetch
+ * Facebook best-effort mengembalikan `null` untuk DUA kasus beda (akun
+ * genuinely tidak punya foto, ATAU fetch gagal transient), jadi tulis-selalu
+ * bisa menghapus avatar yang sudah benar tersimpan hanya karena satu request
+ * avatar gagal.
+ */
+function buildReactivationData(handle: string, avatarUrl?: string | null) {
+  return {
+    handle,
+    ...(avatarUrl ? { avatarUrl } : {}),
+    status: "active" as const,
+    reconnectRequired: false,
+  };
+}
+
 /** Shared mapper — dipakai `listConnectedAccounts`, `findConnectedAccountById`, `createConnectedAccount`, `reconnectAccount`. */
 function toConnectedAccountRecord(
   account: WorkspaceConnectedAccount,
@@ -1106,19 +1127,22 @@ export const workspaceRepository: IWorkspaceRepository = {
           // sudah aman tanpa guard eksplisit tambahan. Review Ridwan
           // Architecture Reviewer (ADR-127) mengonfirmasi ini bukan gap
           // keamanan, hanya perbedaan pola yang disengaja.
-          // `avatarUrl` hanya ditulis kalau ada nilai baru, supaya avatar
-          // lama tidak hilang hanya karena confirm Facebook Pages ini
-          // tidak membawa foto untuk Page tertentu.
           const row = await tx.workspaceConnectedAccount.update({
             where: { id: match.id },
-            data: {
-              handle: account.handle,
-              ...(account.avatarUrl ? { avatarUrl: account.avatarUrl } : {}),
-              status: "active",
-              reconnectRequired: false,
-            },
+            data: buildReactivationData(account.handle, account.avatarUrl),
           });
           created.push(toConnectedAccountRecord(row));
+          // Code review PR #173 — `existingByOutstandId` dibangun SEKALI
+          // sebelum loop ini mulai. Kalau `accounts` (input batch) kebetulan
+          // berisi `outstandAccountId` yang sama dua kali (mis. Outstand
+          // mengembalikan baris duplikat), iterasi berikutnya untuk id yang
+          // sama HARUS melihat row ini sudah `active` — update entry Map di
+          // tempat supaya iterasi berikutnya kena skip di `match?.status ===
+          // "active"` di atas, bukan mereaktivasi+push duplikat lagi.
+          existingByOutstandId.set(account.outstandAccountId, {
+            ...match,
+            status: "active",
+          });
           continue;
         }
 
@@ -1159,19 +1183,7 @@ export const workspaceRepository: IWorkspaceRepository = {
           where: { id: connectedAccountId, workspaceId },
           data: {
             outstandAccountId,
-            handle,
-            // `avatarUrl` HANYA ditulis kalau fetch-nya berhasil dapat nilai
-            // (bukan `null`/`undefined`) — `fetchSocialAccountAvatarUrl`
-            // best-effort mengembalikan `null` untuk DUA kasus yang beda
-            // (akun genuinely tidak punya foto, ATAU fetch gagal transient),
-            // jadi tulis-selalu di sini bisa menghapus avatar yang sudah
-            // benar tersimpan hanya karena satu request avatar gagal saat
-            // reconnect. Konsekuensi: avatar lama tetap tampil kalau user
-            // BENAR-BENAR menghapus foto profilnya di platform asli — trade-off
-            // yang lebih aman daripada silent data loss pada kegagalan network.
-            ...(avatarUrl ? { avatarUrl } : {}),
-            status: "active",
-            reconnectRequired: false,
+            ...buildReactivationData(handle, avatarUrl),
           },
         });
       } catch (error) {
