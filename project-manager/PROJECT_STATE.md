@@ -4,7 +4,7 @@
 
 * **Phase / Milestone:** Phase 6 — Implementation · M8 — Development (Sprint 5) · Overall: M7 100%, M8 in progress
 * **Active Mode:** Ready for Development — implementasi fitur produk sesuai Architecture & Engineering Baseline
-* **Top Next Tasks:** **T-037 Perkaya aturan coding** (🟡 In Progress; snapshot kedua 2026-10-13). Salinan ID dari **Fokus sekarang** di [`TASKS.md`](TASKS.md).
+* **Top Next Tasks:** **T-037 Perkaya aturan coding** (🟡 In Progress; snapshot kedua 2026-10-13) · **T-114 Backfill `outstandPostId` post Imported lama** (⏳ Not Started, lanjutan T-113, 2026-10-15, untuk Elon Backend Engineer). Salinan ID dari **Fokus sekarang** di [`TASKS.md`](TASKS.md).
 * **Blocker:** 1 penghalang aktif — KI-015 (Google OAuth). Migrasi T-051 dan sisa follow-up KI-025 sudah diverifikasi tertutup di staging (2026-10-13). Detail di section **Blockers**.
 * **Backlog task lengkap:** [`TASKS.md`](TASKS.md) — 99 task per release (v0.1 → v1.0, + v0.7 migrasi Astryx→shadcn/ui, ADR-097), detail di `tasks/`. Jangan cari detail task di file ini.
 * **KI-073–080 Resolved (2026-09-26)** — 4 bug publish Instagram (caption wajib untuk Story, Story publish tanpa media, upload media >1MB gagal, avatar akun tidak tampil di sidebar) diperbaiki + diverifikasi live ke akun Instagram/Facebook real (ADR-120). 2 bug turunan ditemukan saat verifikasi (akun `disconnected` tidak bisa reconnect; callback OAuth silent-success untuk conflict genuine) diperbaiki via **ADR-122**. Plus **KI-080** (baru+langsung Resolved) — Railway staging build gagal (`next.config.ts` tidak bisa resolve import workspace `@social/shared`) diperbaiki di branch terpisah sebelum masuk ke fix KI-078/079.
