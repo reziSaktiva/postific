@@ -8,6 +8,26 @@ Seluruh perubahan penting pada dokumentasi maupun implementasi project dicatat p
 
 ---
 
+## 2026-10-15 — KI-088 (PR #171): code-review fixes + merge ke `staging`
+
+### Konteks
+Lanjutan sesi KI-088 (entri di bawah). King Rezi minta `/code-review` atas PR #171 sebelum merge.
+
+### `/code-review` (medium effort, 8 finder angle) — 6 temuan, 4 ditindaklanjuti, 2 di-skip
+- **Fixed:** guard owner-lookup (null-check + workspace/connectedAccountId mismatch-check) yang sebelumnya re-typed persis di `triggerPeriodicForAccounts` — sudah ada copy identik di `AnalyticsSyncJobHandler`/`EngagementSyncJobHandler` — diekstrak jadi helper bersama `resolveVerifiedAccountOwner` (`apps/web/src/lib/jobs/account-owner-resolution.ts`, baru).
+- **Fixed:** return-shape owner lookup (`{workspaceId, connectedAccountId, ownerUserId}`) yang sebelumnya di-retype lokal di 4 tempat — ditambah type `AccountOwnerLookupResult` di `packages/shared/src/value-objects.ts` (AGENTS.md #8 — shared value object tanpa business logic).
+- **Fixed:** docstring rationale KI-088 yang terduplikasi near-verbatim di 2 tempat dalam file yang sama — dikonsolidasi jadi satu referensi.
+- **Fixed:** 2 test owner-lookup-failure (null vs mismatch) yang 90% identik — digabung jadi satu `it.each`.
+- **Skipped (butuh ubah kontrak `IWorkspaceRepository` yang sudah dipakai produksi JOB-03/JOB-04, di luar scope minimal):** batch owner lookup jadi satu query (bukan N sequential); cross-check `platform` di sanity-check (lookup tidak membawa field itu).
+
+### Merge
+PR #171 di-merge ke `staging` (merge commit `99d68fe`), CI hijau (2/2 check), `mergeStateStatus: CLEAN`.
+
+### Status
+KI-088 tetap Resolved, kini sudah merge ke `staging` dengan kualitas kode ditingkatkan lewat code-review. Siap lanjut ke alur promosi `staging → main` (CI-D03) saat King Rezi siap.
+
+---
+
 ## 2026-10-15 — KI-088 Resolved: resolusi `actingUserId` jalur periodik Import Posts (Elon Backend Engineer)
 
 ### Konteks
