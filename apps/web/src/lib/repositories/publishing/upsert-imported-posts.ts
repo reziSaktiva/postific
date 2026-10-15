@@ -8,6 +8,12 @@ import type {
   UpsertImportedPostsResult,
 } from "@/domains/publishing/repositories/publishing.repository";
 import type { PrismaTransactionClient } from "@/lib/prisma/with-current-user";
+import {
+  findOutstandPostOwners,
+  lockOutstandPostIds,
+  lockWorkspaceForOutstandIdWrite,
+  type OutstandPostOwner,
+} from "./outstand-post-id-locks";
 
 /**
  * Import Posts dari Social Account (T-090.4, ADR-093 poin 3-4, 7) — logika
@@ -26,7 +32,7 @@ export async function upsertImportedPostsTx(
   // commit/rollback — pola sama `EngagementRepository.upsertInboxItem`).
   // Menyerialkan import di workspace yang sama supaya dua akun tidak
   // sama-sama INSERT `outstandPostId` yang identik.
-  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${workspaceId})::bigint)`;
+  await lockWorkspaceForOutstandIdWrite(tx, workspaceId);
 
   const outstandPostIds = [
     ...new Set(
@@ -41,10 +47,8 @@ export async function upsertImportedPostsTx(
   // tiap `outstandPostId` secara global (urut, supaya tidak deadlock)
   // sebelum baca/tulis, karena unique index `outstand_post_id` juga global:
   // dua workspace bisa mengimpor id yang sama tanpa saling menunggu lock
-  // workspace.
-  for (const outstandPostId of outstandPostIds) {
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('publishing.outstand_post_id'), hashtext(${outstandPostId}))`;
-  }
+  // workspace. Satu query batched, namespace yang sama dengan backfill.
+  await lockOutstandPostIds(tx, outstandPostIds);
 
   const connectedAccountIds = [
     ...new Set(posts.map((post) => post.connectedAccountId)),
@@ -107,9 +111,9 @@ export async function upsertImportedPostsTx(
   // Index unique `outstand_post_id` global, sementara RLS
   // `publishing_posts_workspace_isolation` menyembunyikan baris workspace
   // lain dari `findMany` di atas (`app_runtime` tidak BYPASSRLS, ADR-099).
-  // Reuse fungsi SECURITY DEFINER yang sudah ada — exact-match per id,
-  // bukan fungsi bypass baru.
-  const globalOwners = await findGlobalOutstandPostOwners(tx, outstandPostIds);
+  // Reuse fungsi SECURITY DEFINER yang sudah ada — satu query batched
+  // (`unnest`+`LATERAL`), bukan fungsi bypass baru.
+  const globalOwners = await findOutstandPostOwners(tx, outstandPostIds);
 
   const localPostIds = [
     ...new Set([
@@ -285,48 +289,13 @@ type ExistingTargetRef = {
   currentOutstandPostId: string | null;
 };
 
-type GlobalOutstandPostOwner = {
-  postId: string;
-  workspaceId: string;
-  connectedAccountIds: Set<string>;
-};
-
-type GlobalOutstandPostRow = {
-  post_id: string;
-  workspace_id: string;
-  connected_account_id: string;
-};
-
-async function findGlobalOutstandPostOwners(
-  tx: PrismaTransactionClient,
-  outstandPostIds: string[],
-): Promise<Map<string, GlobalOutstandPostOwner>> {
-  const owners = new Map<string, GlobalOutstandPostOwner>();
-  for (const outstandPostId of outstandPostIds) {
-    const rows = await tx.$queryRaw<GlobalOutstandPostRow[]>`
-      SELECT post_id, workspace_id, connected_account_id
-      FROM "public"."webhook_find_post_targets_by_outstand_post_id"(${outstandPostId})
-    `;
-    for (const row of rows) {
-      const current = owners.get(outstandPostId) ?? {
-        postId: row.post_id,
-        workspaceId: row.workspace_id,
-        connectedAccountIds: new Set<string>(),
-      };
-      current.connectedAccountIds.add(row.connected_account_id);
-      owners.set(outstandPostId, current);
-    }
-  }
-  return owners;
-}
-
 async function backfillOutstandPostId(
   tx: PrismaTransactionClient,
   workspaceId: WorkspaceId,
   postId: string,
   currentOutstandPostId: string | null,
   incomingOutstandPostId: string,
-  globalOwners: Map<string, GlobalOutstandPostOwner>,
+  globalOwners: Map<string, OutstandPostOwner>,
   postIdByOutstandId: Map<string, string>,
 ): Promise<boolean> {
   if (currentOutstandPostId) return false;

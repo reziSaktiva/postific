@@ -12,6 +12,7 @@ import {
   SocialPlatform,
 } from "@postific/shared";
 import { describe, expect, it } from "vitest";
+import { noopBackfillRepositoryStubs } from "@/lib/testing/outstand-post-id-backfill-stubs";
 import type { PostMetricsRecord } from "@/domains/analytics";
 import {
   AuthorizationError,
@@ -79,6 +80,7 @@ function createFakeRepository(
       insertedCount: 0,
       skippedDuplicateCount: 0,
     }),
+    ...noopBackfillRepositoryStubs,
     ...overrides,
   };
 }

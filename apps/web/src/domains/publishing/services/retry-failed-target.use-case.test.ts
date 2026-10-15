@@ -11,6 +11,10 @@ import {
 } from "@postific/shared";
 import { describe, expect, it } from "vitest";
 import {
+  noopBackfillRepositoryStubs,
+  noopFetchAllPostIdMappings,
+} from "@/lib/testing/outstand-post-id-backfill-stubs";
+import {
   AuthorizationError,
   ConflictError,
   NotFoundError,
@@ -80,6 +84,7 @@ function createFakeRepository(
       insertedCount: 0,
       skippedDuplicateCount: 0,
     }),
+    ...noopBackfillRepositoryStubs,
     ...overrides,
   };
 }
@@ -131,6 +136,7 @@ function createFakeOutstandAdapter(
       posts: [],
       error: null,
     }),
+    fetchAllPostIdMappings: noopFetchAllPostIdMappings,
     ...overrides,
   };
 }

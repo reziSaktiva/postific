@@ -10,6 +10,10 @@ import {
   SocialPlatform,
 } from "@postific/shared";
 import { describe, expect, it, vi } from "vitest";
+import {
+  noopBackfillRepositoryStubs,
+  noopFetchAllPostIdMappings,
+} from "@/lib/testing/outstand-post-id-backfill-stubs";
 import { AuthorizationError, ConflictError } from "@/lib/utils/errors";
 import type {
   IOutstandAdapter,
@@ -76,6 +80,7 @@ function createFakeRepository(
       insertedCount: 0,
       skippedDuplicateCount: 0,
     }),
+    ...noopBackfillRepositoryStubs,
     ...overrides,
   };
 }
@@ -172,6 +177,7 @@ function createFakeOutstandAdapter(
       posts: [],
       error: null,
     }),
+    fetchAllPostIdMappings: noopFetchAllPostIdMappings,
     ...overrides,
   };
 }

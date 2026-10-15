@@ -568,6 +568,33 @@ export interface ImportJobOutcome {
 }
 
 /**
+ * Satu pasangan `platformPostId` (per-akun, kunci dedup
+ * `PublishingPostTarget.platformPostId` yang sudah ada) → `outstandPostId`
+ * (id internal Outstand level-post, field `id` di tiap item `GET
+ * /v1/posts`) — hasil `fetchAllPostIdMappings` (T-114, backfill otomatis).
+ * Beda dari `ImportedPostData`: tidak membawa caption/media/publishedAt
+ * sama sekali — backfill hanya butuh mengisi SATU kolom
+ * (`PublishingPost.outstandPostId`) untuk baris yang sudah ada, bukan
+ * membuat/mengubah konten post.
+ */
+export interface OutstandPostIdMapping {
+  platformPostId: string;
+  outstandPostId: string;
+}
+
+/**
+ * Hasil `fetchAllPostIdMappings` (T-114). `complete` false kalau scan
+ * berhenti di batas halaman sebelum riwayat habis. `shapeDrift` true kalau
+ * ada item yang tidak punya `socialAccounts` array — caller tidak boleh
+ * menganggap baris lokal yang tidak ketemu sebagai "memang tidak ada".
+ */
+export interface FetchAllPostIdMappingsResult {
+  mappings: OutstandPostIdMapping[];
+  complete: boolean;
+  shapeDrift: boolean;
+}
+
+/**
  * Anti-Corruption Layer contract untuk Outstand (integration-layer.md,
  * ADR-040, redesain ADR baru 2026-08-26). Domain internal (Publishing,
  * Analytics, dst.) hanya mengenal interface ini — implementasi konkret
@@ -866,4 +893,39 @@ export interface IOutstandAdapter {
     outstandAccountId: string,
     importJobId: string,
   ): Promise<ImportJobOutcome>;
+
+  /**
+   * Backfill `outstandPostId` untuk post Imported LAMA (T-114, perluasan
+   * T-113/KI-090) — **diverifikasi terhadap OpenAPI spec resmi Outstand**
+   * (`GET /v1/posts`, dicek ulang 2026-10-15 lewat WebFetch
+   * `api.outstand.so/v1/posts/openapi.json`, BUKAN diasumsikan dari
+   * `fetchImportJobStatus`/ADR-123): `created_after`/`created_before`
+   * TIDAK wajib — memanggil tanpa keduanya mengembalikan SELURUH riwayat
+   * post organisasi (difilter `social_account_id`), bukan dibatasi window
+   * waktu. Pagination murni `limit`/`offset` (keduanya string di wire,
+   * default `"50"`/`"0"`) — TIDAK ada cursor. Response membawa objek
+   * `pagination: { limit, offset, total, count }` di level sama dengan
+   * `data` (dikonfirmasi lewat `real-outstand-adapter.ts` yang sudah
+   * membaca field ini sejak T-112/ADR-123, hanya belum pernah dipakai
+   * untuk loop pagination — "TIDAK ada pagination loop (YAGNI)" di
+   * `fetchImportJobStatus` SENGAJA tetap begitu, method ini yang baru
+   * benar-benar paging sampai habis).
+   *
+   * Dipanggil HANYA kalau caller (`BackfillOutstandPostIdsUseCase`) sudah
+   * mengonfirmasi lewat query DB murah (`IPublishingRepository.
+   * hasImportedPostsMissingOutstandId`) bahwa akun ini MASIH punya baris
+   * `PublishingPost` Imported dengan `outstandPostId` kosong — supaya sync
+   * normal (yang sudah tidak punya gap) tidak pernah kena biaya panggilan
+   * tambahan ini.
+   *
+   * Mapping per item SAMA PERSIS dengan logika `fetchImportJobStatus`
+   * (cari entri `socialAccounts[]` yang `id` cocok `outstandAccountId` DAN
+   * `status === "published"` DAN `platformPostId` terisi; post tanpa
+   * entri cocok di-skip) — tapi hasilnya hanya pasangan id (BUKAN
+   * `ImportedPostData` penuh, tidak butuh caption/media/publishedAt untuk
+   * backfill satu kolom).
+   */
+  fetchAllPostIdMappings(
+    outstandAccountId: string,
+  ): Promise<FetchAllPostIdMappingsResult>;
 }

@@ -2,6 +2,7 @@ import type {
   ConnectedAccountId,
   ContentFormat,
   MediaId,
+  OutstandPostIdMapping,
   PostId,
   PostTargetId,
   SocialPlatform,
@@ -1126,6 +1127,82 @@ export interface IPublishingRepository {
     },
     actingUserId: UserId,
   ): Promise<UpsertImportedPostsResult>;
+
+  /**
+   * Backfill `outstandPostId` post Imported lama (T-114, perluasan
+   * T-113/KI-090) — cek existence MURAH (satu query, bukan `COUNT` penuh)
+   * apakah `connectedAccountId` ini masih punya `PublishingPost` berstatus
+   * `Imported` dengan `outstandPostId` kosong, `platformPostId` terisi, dan
+   * belum ditandai `outstandIdBackfillSkippedAt`. Dipanggil SETIAP
+   * `runImportSync` (manual/periodik) SEBELUM method `backfillImportedPostOutstandIds`
+   * di bawah — kalau `false`, caller (`BackfillOutstandPostIdsUseCase`)
+   * TIDAK memanggil `IOutstandAdapter.fetchAllPostIdMappings` sama sekali
+   * (hemat biaya panggilan Outstand untuk akun yang sudah pernah
+   * di-backfill, atau tidak pernah punya gap). Baris yang tidak bisa
+   * diisi (id sudah dipakai post lain, atau tidak ada di riwayat Outstand)
+   * ditandai skipped oleh method di bawah, jadi tidak membuat cek ini
+   * tetap `true` selamanya. Target tanpa `platformPostId` juga tidak
+   * dihitung — tidak ada kunci pencocokan.
+   *
+   * `userId` (RLS, KI-026 follow-up) — acting user for `withCurrentUser`.
+   */
+  hasImportedPostsMissingOutstandId(
+    input: { workspaceId: WorkspaceId; connectedAccountId: ConnectedAccountId },
+    userId: UserId,
+  ): Promise<boolean>;
+
+  /**
+   * Backfill `outstandPostId` post Imported lama (T-114, perluasan
+   * T-113/KI-090) — cocokkan `mappings` (hasil `IOutstandAdapter.
+   * fetchAllPostIdMappings`, keyed `platformPostId`) ke
+   * `PublishingPostTarget.platformPostId` milik `connectedAccountId` ini
+   * yang post induknya masih `Imported` + `outstandPostId` kosong + belum
+   * ditandai skipped, lalu `UPDATE` kolom itu untuk baris yang cocok.
+   * Baris yang TIDAK cocok (mapping tidak membawa `platformPostId` itu,
+   * `platformPostId` kosong, atau id sudah dimiliki post lain — termasuk
+   * workspace lain lewat `webhook_find_post_targets_by_outstand_post_id`)
+   * TIDAK ditulis dan TIDAK melempar unique violation. Baris itu ditandai
+   * `outstandIdBackfillSkippedAt` supaya existence check berikutnya tidak
+   * mengunduh ulang seluruh riwayat. Satu tabrakan tidak membatalkan
+   * baris lain dalam batch yang sama.
+   *
+   * **Guard concurrency (T-114.3, pertimbangan sama T-113 follow-up ronde
+   * 2):** implementasi mengambil `pg_advisory_xact_lock(hashtext(workspaceId))`
+   * SEBELUM SELECT/UPDATE apa pun — NAMESPACE LOCK YANG SAMA dengan
+   * `upsertImportedPostsTx` (`upsert-imported-posts.ts`), lalu lock per
+   * `outstandPostId` di key-space yang sama (`hashtext('publishing.outstand_post_id')`,
+   * urut) sebelum menulis id itu. Setiap `UPDATE` individu juga menyertakan
+   * `WHERE outstandPostId IS NULL` (bukan hanya filter di SELECT
+   * sebelumnya) sebagai lapis idempoten kedua — aman dipanggil ulang/
+   * tumpang-tindih dengan import baru yang kebetulan sudah mengisi baris
+   * yang sama di antara SELECT dan UPDATE ini.
+   *
+   * `actingUserId` (RLS, KI-026 follow-up) — acting user for `withCurrentUser`,
+   * sama pola `upsertImportedPosts` (boleh user mana pun yang aktif di
+   * `workspaceId` ini, bukan "pemilik" post).
+   */
+  backfillImportedPostOutstandIds(
+    input: {
+      workspaceId: WorkspaceId;
+      connectedAccountId: ConnectedAccountId;
+      mappings: OutstandPostIdMapping[];
+      /**
+       * `true` kalau riwayat Outstand terbaca sampai habis dan shape-nya
+       * dikenali. Baris yang tidak ada di `mappings` ditandai skipped.
+       * `false` (scan terpotong atau shape drift) — baris yang tidak ada
+       * di peta ini TIDAK ditandai, supaya sync berikutnya bisa mencoba lagi.
+       */
+      settleUnmatched: boolean;
+    },
+    actingUserId: UserId,
+  ): Promise<BackfillImportedPostOutstandIdsResult>;
+}
+
+/** Hasil `backfillImportedPostOutstandIds` (T-114) — ringkas, sama pola `UpsertImportedPostsResult`. */
+export interface BackfillImportedPostOutstandIdsResult {
+  updatedCount: number;
+  /** Baris yang ditandai `outstandIdBackfillSkippedAt` pada pemanggilan ini. */
+  skippedCount: number;
 }
 
 /**

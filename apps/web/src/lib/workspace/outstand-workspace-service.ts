@@ -1,6 +1,7 @@
 import { EnqueueAnalyticsSyncUseCase } from "@/domains/analytics";
 import { ENGAGEMENT_SYNC_JOB_TYPE } from "@/domains/engagement";
 import {
+  BackfillOutstandPostIdsUseCase,
   ImportPostsProcessUseCase,
   ImportPostsTriggerUseCase,
 } from "@/domains/publishing";
@@ -25,13 +26,20 @@ import { seedSyncJobsOnAccountConnected } from "@/lib/workspace/seed-sync-jobs-o
  * `workspaceRepository` — bentuknya sudah cocok dengan
  * `ConnectedAccountWatermarkPort` di `ImportPostsTriggerUseCase`
  * (structural typing, tidak perlu wrapper tambahan).
+ *
+ * **T-114** — `BackfillOutstandPostIdsUseCase` adalah dependency WAJIB
+ * `ImportPostsTriggerUseCase` (code-review PR #170: dibuat required,
+ * bukan opsional, supaya lupa menyuplainya gagal di compile time, bukan
+ * no-op diam-diam di runtime).
  */
 export function createImportPostsTriggerUseCase(): ImportPostsTriggerUseCase {
+  const outstandAdapter = getOutstandAdapter();
   return new ImportPostsTriggerUseCase(
     importJobRepository,
-    getOutstandAdapter(),
+    outstandAdapter,
     workspaceRepository,
     new ImportPostsProcessUseCase(publishingRepository),
+    new BackfillOutstandPostIdsUseCase(publishingRepository, outstandAdapter),
   );
 }
 

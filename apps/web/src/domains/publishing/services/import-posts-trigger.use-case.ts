@@ -11,8 +11,10 @@ import { ConflictError } from "@/lib/utils/errors";
 import { assertActorCanTriggerManualImportSync } from "../rbac";
 import type {
   IImportJobRepository,
+  ImportSyncJobRecord,
   ImportSyncTrigger,
 } from "../repositories/import-job.repository";
+import type { BackfillOutstandPostIdsUseCase } from "./backfill-outstand-post-ids.use-case";
 import type { ImportPostsProcessUseCase } from "./import-posts-process.use-case";
 
 const DEFAULT_IMPORT_LOOKBACK_DAYS = 90;
@@ -96,6 +98,14 @@ export interface ImportSyncTriggerResult {
   message?: string;
   importedCount?: number;
   skippedDuplicateCount?: number;
+  /**
+   * T-114 — jumlah `PublishingPost` Imported lama yang baru saja
+   * ter-backfill `outstandPostId`-nya pada sync ini. `undefined` kalau
+   * backfill tidak dijalankan sama sekali (tidak ada gap untuk akun ini,
+   * ATAU `backfillUseCase` tidak diinjeksi — lihat `attemptBackfill`) atau
+   * gagal (best-effort, tidak pernah menggagalkan `outcome` di atas).
+   */
+  backfillUpdatedCount?: number;
 }
 
 interface RunImportSyncInput {
@@ -195,6 +205,13 @@ export class ImportPostsTriggerUseCase {
     private readonly outstandAdapter: IOutstandAdapter,
     private readonly connectedAccounts: ConnectedAccountWatermarkPort,
     private readonly processUseCase: ImportPostsProcessUseCase,
+    /**
+     * T-114 — WAJIB (bukan opsional lagi, code-review PR #170): diposisikan
+     * SEBELUM `sleep` supaya TypeScript menolak kompilasi kalau composition
+     * root mana pun lupa menyuplainya, alih-alih silently no-op di
+     * `attemptBackfill` seperti sebelumnya.
+     */
+    private readonly backfillUseCase: BackfillOutstandPostIdsUseCase,
     /** Injectable sleep (test memakai versi instan) — lihat `SleepFn`/`IMPORT_STATUS_POLL_*` di atas. */
     private readonly sleep: SleepFn = defaultSleep,
   ) {}
@@ -390,6 +407,36 @@ export class ImportPostsTriggerUseCase {
       actingUserId: input.actingUserId,
     });
 
+    const result = await this.runImportJob(input, job, until);
+
+    // T-114 — backfill otomatis `outstandPostId` post Imported lama,
+    // dipanggil SETIAP sync (manual/periodik) yang benar-benar berjalan
+    // (lolos guard concurrency di atas, sampai titik ini) — INDEPENDEN dari
+    // sukses/gagalnya job import utama di atas (`result.outcome` bisa
+    // `"triggered"` ATAU `"failed"`, backfill tetap dicoba: gap lama tidak
+    // ada hubungannya dengan apakah import post BARU kali ini berhasil).
+    // Best-effort (lihat `attemptBackfill`) — tidak pernah melempar atau
+    // menimpa `result.outcome`/`message` di atas, hanya menambahkan
+    // `backfillUpdatedCount` kalau backfill benar-benar berjalan.
+    const backfillUpdatedCount = await this.attemptBackfill(input);
+    return backfillUpdatedCount === undefined
+      ? result
+      : { ...result, backfillUpdatedCount };
+  }
+
+  /**
+   * Eksekusi inti JOB-05+JOB-06 (`importPosts` → poll `fetchImportJobStatus`
+   * → `ImportPostsProcessUseCase.process` → watermark/job bookkeeping) —
+   * diekstrak dari `runImportSync` (T-114) supaya backfill T-114 bisa
+   * dijalankan SETELAH method ini selesai apa pun hasilnya (sukses atau
+   * `catch` di bawah), tanpa menduplikasi logika backfill di dua tempat.
+   * Perilaku method ini sendiri TIDAK berubah dari sebelum T-114.
+   */
+  private async runImportJob(
+    input: RunImportSyncInput,
+    job: ImportSyncJobRecord,
+    until: Date,
+  ): Promise<ImportSyncTriggerResult> {
     try {
       const handle = await this.outstandAdapter.importPosts(
         input.outstandAccountId,
@@ -498,6 +545,36 @@ export class ImportPostsTriggerUseCase {
         // selamanya.
       }
       return { outcome: "failed", message };
+    }
+  }
+
+  /**
+   * T-114 — attempt backfill `outstandPostId` post Imported lama untuk akun
+   * ini. `undefined` kalau tidak ada gap untuk akun ini (cek existence
+   * murah di `BackfillOutstandPostIdsUseCase.backfillIfNeeded`), atau
+   * backfill gagal — kegagalan DITANGKAP di sini (best-effort, pola sama
+   * `completeAccountConnection`/`syncNowAction` menangani kegagalan
+   * `runImportSync` itu sendiri): backfill murni perbaikan data lama, satu
+   * kali gagal (mis. Outstand rate-limit sesaat) tidak boleh menggagalkan
+   * sync utama yang sudah berhasil, cukup dicoba lagi di sync berikutnya
+   * (existence check tetap `true` sampai benar-benar berhasil).
+   */
+  private async attemptBackfill(
+    input: RunImportSyncInput,
+  ): Promise<number | undefined> {
+    try {
+      const outcome = await this.backfillUseCase.backfillIfNeeded({
+        workspaceId: input.workspaceId,
+        connectedAccountId: input.connectedAccountId,
+        outstandAccountId: input.outstandAccountId,
+        actingUserId: input.actingUserId,
+      });
+      return outcome.backfilled ? outcome.updatedCount : undefined;
+    } catch (error) {
+      console.warn(
+        `[ImportPostsTriggerUseCase] T-114 backfill outstandPostId gagal untuk akun ${input.connectedAccountId}: ${error instanceof Error ? error.message : String(error)} — best-effort, tidak menggagalkan sync utama.`,
+      );
+      return undefined;
     }
   }
 }

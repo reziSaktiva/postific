@@ -8,6 +8,54 @@ Seluruh perubahan penting pada dokumentasi maupun implementasi project dicatat p
 
 ---
 
+## 2026-10-15 — T-114 ✅ Done 5/5 subtask: backfill otomatis `outstandPostId` untuk post Imported lama
+
+### Konteks
+Lanjutan dari entri sebelumnya hari ini (T-114 dibuat). Branch `feature/t-114-backfill-imported-outstand-id`.
+
+### Implementasi (Elon Backend Engineer)
+- Method baru `fetchAllPostIdMappings` di `IOutstandAdapter`/`RealOutstandAdapter` — paging penuh `GET /v1/posts` TANPA filter tanggal. Diverifikasi langsung ke OpenAPI spec resmi Outstand (`curl api.outstand.so/v1/posts/openapi.json`): `created_after`/`created_before` TIDAK `required`, jadi tanpa keduanya endpoint mengembalikan seluruh riwayat — bukan asumsi dari ADR lama.
+- Logic inti `backfillImportedPostOutstandIdsTx` di file baru `apps/web/src/lib/repositories/publishing/backfill-outstand-post-ids.ts` (pola sama `upsert-imported-posts.ts` T-113). Cheap existence-check (`hasImportedPostsMissingOutstandId`) dipanggil setiap sync — kalau tidak ada gap, skip total tanpa panggilan Outstand tambahan.
+- Concurrency: reuse **namespace lock identik** `pg_advisory_xact_lock(hashtext(workspaceId))` dengan `upsertImportedPostsTx` (T-113) supaya backfill (transaksi terpisah) tidak race dengan Import biasa untuk workspace yang sama. Lapis kedua: tiap `UPDATE` tetap `WHERE outstandPostId: null`.
+- Wiring: `BackfillOutstandPostIdsUseCase.backfillIfNeeded` dipanggil dari `runImportSync` (method baru `attemptBackfill`, satu definisi dipakai otomatis oleh `triggerAuto`/`triggerManual`/`triggerPeriodicForAccounts`) — best-effort, try/catch sendiri, gagal hanya `console.warn`, tidak pernah menimpa outcome/message sync utama, tetap jalan independen dari sukses/gagalnya job import utama. Composition root (`outstand-workspace-service.ts`) menyuplai instance-nya.
+
+### Review Ridwan Architecture Reviewer — 0 temuan
+Diverifikasi independen (bukan percaya klaim Elon): OpenAPI spec di-`curl` ulang sendiri, key lock dibandingkan baris-per-baris dengan T-113 (identik persis), klaim best-effort dikonfirmasi lewat test eksplisit. Satu catatan non-blocking: constructor `backfillUseCase` opsional — kalau composition root lain di masa depan lupa menyuplainya, backfill gagal diam-diam tanpa warning (saat ini composition root satu-satunya sudah benar). `bun run typecheck`/`lint` bersih, `bun run test` 789 passed/6 skipped (naik dari 773 baseline T-113, 16 test baru).
+
+### Verifikasi end-to-end (dev server + DB Supabase dev nyata, akun Facebook "Cook It Real Good")
+Sebelum Sync Now: 36 dari 39 `PublishingPost` status `Imported` masih `outstandPostId: null`. Satu kali klik "Sync Now" → **39/39 terisi** (`still_null: 0`). Refresh Comments Inbox dijalankan — jumlah `engagement_inbox_items` tetap 1 (comment Reels dari verifikasi T-113 sebelumnya), bukan bug: dikonfirmasi langsung lewat MCP Outstand bahwa 36 post lama itu memang tidak punya comment sungguhan di real life. Mekanisme backfill + sync terbukti menjangkau seluruh post; data-nya saja yang kosong.
+
+Reset cap mingguan/cooldown 24 jam dilakukan 2x tambahan hari ini (SQL dijalankan King Rezi sendiri di Supabase SQL Editor, sama seperti verifikasi T-113) — tidak ada data post/comment yang disentuh, hanya row test `background_jobs` dan timestamp `last_import_requested_at`.
+
+### Changed
+- `tasks/v02-publishing-mvp.md` § T-114: status → ✅ Done 5/5 subtask, checklist dicentang semua, ditambah catatan implementasi + review + verifikasi.
+- `TASKS.md`: indeks v0.2 `30 (28 ✅ · 1 🟡 · 1 ⏳)` → `30 (29 ✅ · 1 🟡)`. Total selesai `74` → `75`. "Fokus sekarang" baris T-114 diubah dari "menunggu dikerjakan" jadi "Selesai baru-baru ini (tambahan)".
+- `PROJECT_STATE.md`: Snapshot "Top Next Tasks" T-114 dihapus (sudah selesai). "Completed (Ringkasan)" menambah T-114 di atas, T-030/blocker-staging item terlama dikeluarkan supaya tetap 5 item.
+
+### Status
+T-114 ✅ Done. Siap commit + push ke branch `feature/t-114-backfill-imported-outstand-id`.
+
+---
+
+## 2026-10-15 — T-114 dibuat: backfill otomatis `outstandPostId` untuk post Imported lama
+
+### Konteks
+King Rezi bertanya lanjutan: bagaimana caranya mendapatkan SEMUA comment di SETIAP post Imported, bukan cuma yang baru. Dicek via Supabase: dari 39 `PublishingPost` status `Imported` di akun Facebook "Cook It Real Good", **36 masih `outstandPostId: null`** — T-113 hanya memperbaiki jalur import baru ke depan, post lama tidak ter-backfill karena sync berikutnya hanya query rentang `since: lastImportedUntil` (watermark), tidak pernah mengulang rentang lama.
+
+Ditanya ke King Rezi: backfill sebagai script one-off, atau mekanisme permanen di aplikasi. King Rezi memilih **mekanisme permanen** — setiap sync (manual/periodik) otomatis cek dan backfill kalau masih ada baris `outstandPostId` kosong untuk akun itu.
+
+### Added
+- **T-114** (`tasks/v02-publishing-mvp.md` § setelah T-113) — 5 subtask: cheap existence-check per akun, re-query `GET /v1/posts` penuh riwayat akun (verifikasi dulu ke OpenAPI spec, bukan asumsi), match `platformPostId → rawPost.id`, UPDATE baris kosong (pakai lock pattern sama T-113 kalau perlu), wire ke `runImportSync` (dipakai otomatis oleh `triggerManual` dan `triggerPeriodicForAccounts`), verifikasi end-to-end di 36 post lama akun test.
+
+### Changed
+- `TASKS.md`: indeks v0.2 `29 (28 ✅ · 1 🟡)` → `30 (28 ✅ · 1 🟡 · 1 ⏳)`. Total task `100` → `101`. Footnote ID + "Fokus sekarang" menambah T-114.
+- `PROJECT_STATE.md`: Snapshot "Top Next Tasks" menambah T-114.
+
+### Status
+Belum ada kode yang diubah — murni pencatatan task, menunggu Elon Backend Engineer mengeksekusi T-114.
+
+---
+
 ## 2026-10-15 — T-113 ✅ Done 4/4 subtask: comment post Imported ikut ter-sync ke Engage Inbox
 
 ### Konteks

@@ -1578,6 +1578,108 @@ gagal dengan error "Tidak ada job handler terdaftar untuk type
 konten native baru untuk di-import), kemungkinan isu runner job generik di
 lingkungan dev, perlu diselidiki terpisah kalau relevan ke depan.
 
+### T-114 · Backfill otomatis `outstandPostId` untuk post Imported lama saat Sync Now/periodik berjalan
+
+| Field         | Value                                                        |
+| ------------- | ------------------------------------------------------------ |
+| **Status**    | ✅ Done (5/5 subtask, 2026-10-15)                              |
+| **Domain**    | integration                                                   |
+| **ADR**       | — (perluasan T-113, bukan perubahan baseline)                 |
+| **Terkait**   | T-113, KI-090, T-090, T-051                                   |
+| **Depends**   | T-113 ✅                                                       |
+| **Baca dulu** | `apps/web/src/domains/publishing/services/import-posts-trigger.use-case.ts` (`runImportSync`) · `apps/web/src/lib/repositories/publishing/upsert-imported-posts.ts` · `apps/web/src/lib/adapters/outstand/real-outstand-adapter.ts` (`fetchImportJobStatus`, docstring `GET /v1/posts`) |
+
+T-113 (2026-10-15) hanya memperbaiki `outstandPostId` untuk post Imported
+**baru ke depan** — post Imported yang sudah ada SEBELUM fix itu tetap
+`outstandPostId: null` selamanya, karena sync berikutnya hanya mengambil
+rentang `since: lastImportedUntil` (watermark) sampai sekarang, tidak pernah
+mengulang rentang lama. Dikonfirmasi lewat DB dev: dari 39 `PublishingPost`
+status `Imported` di akun Facebook "Cook It Real Good", **36 masih
+`outstandPostId: null`** — comment pada 36 post itu tidak akan pernah masuk
+Comments Inbox tanpa backfill.
+
+King Rezi memutuskan ini jadi **mekanisme permanen** (bukan script one-off):
+setiap kali sync (manual atau periodik) berjalan untuk sebuah akun, kalau
+akun itu masih punya `PublishingPost` status `Imported` dengan
+`outstandPostId: null`, sync itu otomatis melakukan satu kali backfill
+tambahan untuk menutup gap-nya — dengan cara menanyakan ulang
+`GET /v1/posts` ke Outstand untuk seluruh riwayat akun itu (bukan cuma
+window `since`/`until` biasa), mencocokkan hasilnya ke
+`PublishingPostTarget.platformPostId` yang sudah ada, lalu mengisi
+`PublishingPost.outstandPostId` yang masih kosong. Setelah satu kali
+berhasil, tidak ada lagi baris yang kosong untuk akun itu — cek
+existence-nya murah (satu query), jadi sync-sync berikutnya tidak kena
+biaya API tambahan lagi.
+
+- [x] **T-114.1** Tambah method baru (adapter dan/atau repository) untuk
+      backfill: query existence `PublishingPost` status `Imported` +
+      `outstandPostId IS NULL` untuk sebuah `connectedAccountId` (cheap
+      check, dipanggil SETIAP sync) — kalau kosong, skip seluruhnya tanpa
+      panggilan Outstand tambahan
+- [x] **T-114.2** Kalau ada baris yang perlu backfill: panggil ulang
+      `GET /v1/posts` (verifikasi dulu ke OpenAPI spec resmi Outstand apakah
+      bisa query TANPA filter tanggal untuk seluruh riwayat akun, atau perlu
+      `created_after` sangat lama — jangan asumsikan dari ADR-123, cek
+      langsung) dengan pagination penuh (`limit`/`offset`) sampai semua post
+      akun itu ter-cover, bangun map `platformPostId → rawPost.id`
+- [x] **T-114.3** Cocokkan map itu ke baris `PublishingPost` yang
+      `outstandPostId IS NULL` (lewat `PublishingPostTarget.platformPostId`
+      + `connectedAccountId`), `UPDATE` kolom `outstandPostId` untuk baris
+      yang cocok — pakai guard `pg_advisory_xact_lock` scoped `workspaceId`
+      yang sama dengan T-113 kalau backfill ini jalan di transaksi terpisah
+      dari import biasa (hindari race yang sama seperti ronde 2 review
+      T-113)
+- [x] **T-114.4** Wire ke `runImportSync` (`import-posts-trigger.use-case.ts`)
+      — dipanggil SATU kali definisi, dipakai otomatis oleh `triggerManual`
+      maupun `triggerPeriodicForAccounts` (keduanya sudah lewat
+      `runImportSync` yang sama), bukan logic terpisah per jalur
+- [x] **T-114.5** Verifikasi end-to-end di akun test nyata ("Cook It Real
+      Good", 36 post Imported lama dengan `outstandPostId: null`): jalankan
+      Sync Now sekali, pastikan ke-36 baris itu ter-backfill, lalu Refresh
+      Comments Inbox dan pastikan comment pada post-post lama itu (kalau
+      ada) ikut masuk
+
+**Implementasi (Elon Backend Engineer):** method baru `fetchAllPostIdMappings`
+di `IOutstandAdapter`/`RealOutstandAdapter` (paging penuh `GET /v1/posts`
+tanpa filter tanggal — diverifikasi langsung ke OpenAPI spec resmi Outstand,
+`created_after`/`created_before` TIDAK wajib). Logic inti
+`backfillImportedPostOutstandIdsTx` di file baru
+`apps/web/src/lib/repositories/publishing/backfill-outstand-post-ids.ts`
+(pola sama `upsert-imported-posts.ts` T-113, testable tanpa DB). Guard
+concurrency reuse **namespace lock identik** dengan `upsertImportedPostsTx`
+(`pg_advisory_xact_lock(hashtext(workspaceId))`) supaya backfill (transaksi
+terpisah) tidak race dengan Import biasa untuk workspace yang sama — plus
+lapis kedua `WHERE outstandPostId: null` di tiap `UPDATE`. Dipanggil lewat
+`BackfillOutstandPostIdsUseCase.backfillIfNeeded` dari `runImportSync`
+(`attemptBackfill`, satu definisi dipakai otomatis oleh `triggerAuto`/
+`triggerManual`/`triggerPeriodicForAccounts`) — **best-effort**: dibungkus
+try/catch sendiri, gagal hanya `console.warn`, tidak pernah menimpa
+`outcome`/`message` hasil sync utama, dan tetap jalan independen dari
+sukses/gagalnya job import utama.
+
+**Review Ridwan Architecture Reviewer — 0 temuan.** Diverifikasi independen
+(bukan percaya klaim Elon): OpenAPI spec Outstand di-`curl` langsung
+(`created_after`/`created_before` memang tidak `required`), key lock
+dibandingkan baris-per-baris dengan T-113 (identik persis), wiring
+best-effort dikonfirmasi lewat test eksplisit (adapter throw → sync utama
+tetap `"triggered"`; backfill tetap jalan walau job import utama gagal).
+Satu catatan **non-blocking**: constructor `backfillUseCase` opsional —
+kalau composition root lain di masa depan lupa menyuplainya, backfill gagal
+diam-diam tanpa warning (saat ini composition root satu-satunya,
+`outstand-workspace-service.ts`, sudah benar menyuplainya). `bun run
+typecheck`/`lint` bersih, `bun run test` 789 passed/6 skipped (naik dari
+773 baseline T-113, 16 test baru).
+
+**Verifikasi end-to-end (2026-10-15, dev server + DB Supabase dev nyata,
+akun Facebook "Cook It Real Good"):** sebelum Sync Now, 36 dari 39
+`PublishingPost` status `Imported` masih `outstandPostId: null`. Satu kali
+klik "Sync Now" → **39/39 terisi** (`still_null: 0`). Refresh Comments Inbox
+dijalankan — jumlah `engagement_inbox_items` tetap 1 (comment Reels dari
+verifikasi T-113), **bukan bug**: dikonfirmasi langsung lewat MCP Outstand
+bahwa 36 post lama itu memang tidak punya comment sungguhan di real life
+(recipe page tanpa engagement). Mekanisme backfill + sync terbukti
+menjangkau seluruh post, data-nya saja yang kosong.
+
 ---
 
 ## Read-Only Enforcement

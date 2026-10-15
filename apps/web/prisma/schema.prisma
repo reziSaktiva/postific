@@ -308,6 +308,12 @@ model PublishingPost {
   // lapis kedua: guard runtime di
   // `PublishingRepository.findPostTargetsByOutstandPostId`.
   outstandPostId String?   @map("outstand_post_id")
+  // T-114 review — post Imported yang sudah dibandingkan dengan riwayat
+  // Outstand tetapi `outstandPostId`-nya tidak bisa diisi (id sudah dipakai
+  // post lain, atau `platformPostId` tidak ada di riwayat). Existence check
+  // backfill mengabaikan baris ini supaya sync berikutnya tidak mengunduh
+  // ulang seluruh riwayat akun. Bukan pengganti `outstandPostId`.
+  outstandIdBackfillSkippedAt DateTime? @map("outstand_id_backfill_skipped_at") @db.Timestamptz(6)
   deletedAt      DateTime? @map("deleted_at") @db.Timestamptz(6)
   createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
