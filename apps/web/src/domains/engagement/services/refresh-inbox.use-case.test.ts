@@ -9,6 +9,7 @@ import {
 } from "@postific/shared";
 import type { IOutstandAdapter, InboxCommentData } from "@postific/shared";
 import { describe, expect, it, vi } from "vitest";
+import { noopFetchAllPostIdMappings } from "@/lib/testing/outstand-post-id-backfill-stubs";
 import type { IEngagementRepository } from "../repositories/engagement.repository";
 import type { EngagementInboxItemRecord } from "../types";
 import { RefreshInboxUseCase } from "./refresh-inbox.use-case";
@@ -78,11 +79,7 @@ function createFakeAdapter(
       posts: [],
       error: null,
     }),
-    fetchAllPostIdMappings: async () => ({
-      mappings: [],
-      complete: true,
-      shapeDrift: false,
-    }),
+    fetchAllPostIdMappings: noopFetchAllPostIdMappings,
   };
 }
 

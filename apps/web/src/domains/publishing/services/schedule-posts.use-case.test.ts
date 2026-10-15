@@ -9,6 +9,10 @@ import {
   SocialPlatform,
 } from "@postific/shared";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  noopBackfillRepositoryStubs,
+  noopFetchAllPostIdMappings,
+} from "@/lib/testing/outstand-post-id-backfill-stubs";
 import { ConflictError } from "@/lib/utils/errors";
 import type { IOutstandAdapter } from "../adapters/outstand-adapter";
 import type { IJobScheduler } from "../adapters/job-scheduler";
@@ -72,11 +76,7 @@ function createFakeRepository(
       insertedCount: 0,
       skippedDuplicateCount: 0,
     }),
-    hasImportedPostsMissingOutstandId: async () => false,
-    backfillImportedPostOutstandIds: async () => ({
-      updatedCount: 0,
-      skippedCount: 0,
-    }),
+    ...noopBackfillRepositoryStubs,
     ...overrides,
   };
 }
@@ -128,11 +128,7 @@ function createFakeOutstandAdapter(
       posts: [],
       error: null,
     }),
-    fetchAllPostIdMappings: async () => ({
-      mappings: [],
-      complete: true,
-      shapeDrift: false,
-    }),
+    fetchAllPostIdMappings: noopFetchAllPostIdMappings,
     ...overrides,
   };
 }

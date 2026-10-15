@@ -1724,7 +1724,7 @@ export function createRealOutstandAdapter(
           const matchedAccount = socialAccounts.find(
             (account) =>
               account.id === outstandAccountId &&
-              account.status === "published" &&
+              normalizeTargetStatus(account.status) === "published" &&
               typeof account.platformPostId === "string" &&
               account.platformPostId.length > 0,
           );
@@ -1747,11 +1747,11 @@ export function createRealOutstandAdapter(
             ? (response.pagination as Record<string, unknown>)
             : null;
         const total = pagination ? toNumber(pagination.total, -1) : -1;
-        const count = pagination
-          ? toNumber(pagination.count, rawPosts.length)
-          : rawPosts.length;
 
-        offset += count > 0 ? count : PAGE_LIMIT;
+        // Majukan offset berdasarkan baris yang BENAR-BENAR diproses
+        // (`rawPosts.length`), bukan `pagination.count` — metadata API yang
+        // salah lapor tidak boleh membuat baris terlewat tanpa terdeteksi.
+        offset += rawPosts.length;
 
         // Tanpa `pagination`/`total` yang valid (drift shape API), fallback
         // ke heuristik "halaman penuh = mungkin masih ada lagi" — pola sama

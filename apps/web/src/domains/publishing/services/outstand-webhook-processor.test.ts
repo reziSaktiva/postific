@@ -8,6 +8,10 @@ import {
   NotificationType,
 } from "@postific/shared";
 import { describe, expect, it, vi } from "vitest";
+import {
+  noopBackfillRepositoryStubs,
+  noopFetchAllPostIdMappings,
+} from "@/lib/testing/outstand-post-id-backfill-stubs";
 import type {
   IOutstandAdapter,
   PostTargetOutcome,
@@ -97,11 +101,7 @@ function createFakeRepository(
       insertedCount: 0,
       skippedDuplicateCount: 0,
     }),
-    hasImportedPostsMissingOutstandId: async () => false,
-    backfillImportedPostOutstandIds: async () => ({
-      updatedCount: 0,
-      skippedCount: 0,
-    }),
+    ...noopBackfillRepositoryStubs,
     ...overrides,
   } satisfies IPublishingRepository;
 }
@@ -172,11 +172,7 @@ function createFakeAdapter(
       posts: [],
       error: null,
     }),
-    fetchAllPostIdMappings: async () => ({
-      mappings: [],
-      complete: true,
-      shapeDrift: false,
-    }),
+    fetchAllPostIdMappings: noopFetchAllPostIdMappings,
   };
 }
 

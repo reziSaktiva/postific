@@ -81,10 +81,16 @@ export async function backfillImportedPostOutstandIdsTx(
   // Lock per `outstandPostId`, key-space yang SAMA dengan
   // `upsertImportedPostsTx`, diurutkan supaya dua transaksi tidak deadlock.
   // Hanya id yang benar-benar mungkin ditulis batch ini — bukan seluruh
-  // riwayat akun.
+  // riwayat akun. Satu query lewat `unnest`+`ORDER BY` (bukan loop per id)
+  // supaya N id tidak jadi N round-trip DB terpisah selagi memegang lock
+  // workspace di atas.
   const sortedOutstandPostIds = [...idsToLock].sort();
-  for (const outstandPostId of sortedOutstandPostIds) {
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('publishing.outstand_post_id'), hashtext(${outstandPostId}))`;
+  if (sortedOutstandPostIds.length > 0) {
+    await tx.$queryRaw`
+      SELECT pg_advisory_xact_lock(hashtext('publishing.outstand_post_id'), hashtext(id))
+      FROM unnest(${sortedOutstandPostIds}::text[]) AS t(id)
+      ORDER BY id
+    `;
   }
 
   const owners = await findOutstandPostOwners(tx, sortedOutstandPostIds);
@@ -182,23 +188,33 @@ async function findOutstandPostOwners(
   outstandPostIds: string[],
 ): Promise<Map<string, OutstandPostOwner>> {
   const owners = new Map<string, OutstandPostOwner>();
-  for (const outstandPostId of outstandPostIds) {
-    const rows = await tx.$queryRaw<GlobalOutstandPostRow[]>`
-      SELECT post_id, workspace_id, connected_account_id
-      FROM "public"."webhook_find_post_targets_by_outstand_post_id"(${outstandPostId})
-    `;
-    for (const row of rows) {
-      const current = owners.get(outstandPostId) ?? {
-        postId: row.post_id,
-        workspaceId: row.workspace_id,
-        connectedAccountIds: new Set<string>(),
-      };
-      current.connectedAccountIds.add(row.connected_account_id);
-      owners.set(outstandPostId, current);
-    }
-  }
 
   if (outstandPostIds.length === 0) return owners;
+
+  // Satu query lewat `unnest`+`LATERAL` (bukan satu `$queryRaw` per id)
+  // supaya N outstandPostId tidak jadi N round-trip DB terpisah — fungsi
+  // SECURITY DEFINER-nya sendiri tidak berubah, hanya dipanggil per baris
+  // dalam satu statement.
+  const rows = await tx.$queryRaw<
+    (GlobalOutstandPostRow & { outstand_post_id: string })[]
+  >`
+    SELECT
+      ids.id AS outstand_post_id,
+      t.post_id,
+      t.workspace_id,
+      t.connected_account_id
+    FROM unnest(${outstandPostIds}::text[]) AS ids(id)
+    CROSS JOIN LATERAL "public"."webhook_find_post_targets_by_outstand_post_id"(ids.id) AS t
+  `;
+  for (const row of rows) {
+    const current = owners.get(row.outstand_post_id) ?? {
+      postId: row.post_id,
+      workspaceId: row.workspace_id,
+      connectedAccountIds: new Set<string>(),
+    };
+    current.connectedAccountIds.add(row.connected_account_id);
+    owners.set(row.outstand_post_id, current);
+  }
 
   const localOwners = await tx.publishingPost.findMany({
     where: {

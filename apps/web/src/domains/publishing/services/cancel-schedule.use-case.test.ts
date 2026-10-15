@@ -6,6 +6,10 @@ import {
   MemberRole,
 } from "@postific/shared";
 import { describe, expect, it } from "vitest";
+import {
+  noopBackfillRepositoryStubs,
+  noopFetchAllPostIdMappings,
+} from "@/lib/testing/outstand-post-id-backfill-stubs";
 import { AuthorizationError, ConflictError } from "@/lib/utils/errors";
 import type { IOutstandAdapter } from "../adapters/outstand-adapter";
 import type {
@@ -68,11 +72,7 @@ function createFakeRepository(
       insertedCount: 0,
       skippedDuplicateCount: 0,
     }),
-    hasImportedPostsMissingOutstandId: async () => false,
-    backfillImportedPostOutstandIds: async () => ({
-      updatedCount: 0,
-      skippedCount: 0,
-    }),
+    ...noopBackfillRepositoryStubs,
     ...overrides,
   };
 }
@@ -124,11 +124,7 @@ function createFakeOutstandAdapter(
       posts: [],
       error: null,
     }),
-    fetchAllPostIdMappings: async () => ({
-      mappings: [],
-      complete: true,
-      shapeDrift: false,
-    }),
+    fetchAllPostIdMappings: noopFetchAllPostIdMappings,
     ...overrides,
   };
 }

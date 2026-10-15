@@ -9,6 +9,7 @@ import {
   SocialPlatform,
 } from "@postific/shared";
 import { describe, expect, it } from "vitest";
+import { noopFetchAllPostIdMappings } from "@/lib/testing/outstand-post-id-backfill-stubs";
 import type {
   IAnalyticsRepository,
   PostMetricsRecord,
@@ -98,11 +99,7 @@ function createFakeOutstandAdapter(
       posts: [],
       error: null,
     }),
-    fetchAllPostIdMappings: async () => ({
-      mappings: [],
-      complete: true,
-      shapeDrift: false,
-    }),
+    fetchAllPostIdMappings: noopFetchAllPostIdMappings,
     ...overrides,
   };
 }

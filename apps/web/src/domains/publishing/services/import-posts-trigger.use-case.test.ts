@@ -21,6 +21,17 @@ const CONNECTED_ACCOUNT_ID = asConnectedAccountId("account-1");
 const ACTING_USER_ID = asUserId("user-1");
 const OUTSTAND_ACCOUNT_ID = "outstand-account-1";
 
+/**
+ * `backfillUseCase` jadi dependency WAJIB `ImportPostsTriggerUseCase`
+ * (code-review PR #170) — dipakai di test yang tidak peduli perilaku
+ * backfill sama sekali (tidak ada gap, lewat `createFakePublishingRepositoryForBackfill`
+ * default `hasImportedPostsMissingOutstandId: async () => false`).
+ */
+const noopBackfillUseCase = new BackfillOutstandPostIdsUseCase(
+  createFakePublishingRepositoryForBackfill() as never,
+  createFakeOutstandAdapter(),
+);
+
 function createFakeImportJobRepository(
   overrides: Partial<IImportJobRepository> = {},
 ): IImportJobRepository {
@@ -123,6 +134,7 @@ describe("ImportPostsTriggerUseCase.triggerAuto (T-090.3, ADR-093 poin 7)", () =
       outstandAdapter,
       watermark,
       processUseCase,
+      noopBackfillUseCase,
     );
 
     const result = await useCase.triggerAuto({
@@ -193,6 +205,7 @@ describe("ImportPostsTriggerUseCase.triggerAuto (T-090.3, ADR-093 poin 7)", () =
       outstandAdapter,
       watermark,
       processUseCase,
+      noopBackfillUseCase,
     );
 
     const result = await useCase.triggerAuto({
@@ -248,6 +261,7 @@ describe("ImportPostsTriggerUseCase — polling fetchImportJobStatus (bug fix 20
       outstandAdapter,
       watermark,
       processUseCase,
+      noopBackfillUseCase,
       sleep,
     );
 
@@ -295,6 +309,7 @@ describe("ImportPostsTriggerUseCase — polling fetchImportJobStatus (bug fix 20
       outstandAdapter,
       watermark,
       processUseCase,
+      noopBackfillUseCase,
       sleep,
     );
 
@@ -354,6 +369,7 @@ describe("ImportPostsTriggerUseCase — polling fetchImportJobStatus (bug fix 20
       outstandAdapter,
       watermark,
       processUseCase,
+      noopBackfillUseCase,
       sleep,
     );
 
@@ -393,6 +409,7 @@ describe("ImportPostsTriggerUseCase — polling fetchImportJobStatus (bug fix 20
         outstandAdapter,
         watermark,
         processUseCase,
+        noopBackfillUseCase,
         sleep,
       );
 
@@ -435,6 +452,7 @@ describe("ImportPostsTriggerUseCase — guard concurrent-import (ADR-093 poin 8)
       outstandAdapter,
       watermark,
       processUseCase,
+      noopBackfillUseCase,
     );
 
     const result = await useCase.triggerAuto({
@@ -477,6 +495,7 @@ describe("ImportPostsTriggerUseCase.triggerManual (T-090.3, ADR-093 poin 9)", ()
       createFakeOutstandAdapter(),
       createFakeWatermarkPort(),
       createProcessUseCase(),
+      noopBackfillUseCase,
     );
 
     await expect(
@@ -493,6 +512,7 @@ describe("ImportPostsTriggerUseCase.triggerManual (T-090.3, ADR-093 poin 9)", ()
       createFakeOutstandAdapter(),
       createFakeWatermarkPort(),
       createProcessUseCase(),
+      noopBackfillUseCase,
     );
 
     const result = await useCase.triggerManual(
@@ -510,6 +530,7 @@ describe("ImportPostsTriggerUseCase.triggerManual (T-090.3, ADR-093 poin 9)", ()
       createFakeOutstandAdapter(),
       createFakeWatermarkPort(),
       createProcessUseCase(),
+      noopBackfillUseCase,
     );
 
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
@@ -532,6 +553,7 @@ describe("ImportPostsTriggerUseCase.triggerManual (T-090.3, ADR-093 poin 9)", ()
       outstandAdapter,
       watermark,
       createProcessUseCase(1),
+      noopBackfillUseCase,
     );
 
     const result = await useCase.triggerManual(
@@ -579,6 +601,7 @@ describe("ImportPostsTriggerUseCase.triggerPeriodicForAccounts (T-090.3)", () =>
       outstandAdapter,
       createFakeWatermarkPort(),
       createProcessUseCase(2),
+      noopBackfillUseCase,
     );
 
     const okAccountId = asConnectedAccountId("account-ok");
@@ -634,12 +657,13 @@ function createFakePublishingRepositoryForBackfill(
 }
 
 describe("ImportPostsTriggerUseCase — T-114 backfill outstandPostId wiring", () => {
-  it("backfillUseCase undefined (pre-T-114 construction, 4-5 positional args) — sync succeeds exactly as before, no backfillUpdatedCount in result", async () => {
+  it("backfillUseCase required (code-review PR #170 — no longer optional) — with no gap, sync succeeds exactly as before, no backfillUpdatedCount in result", async () => {
     const useCase = new ImportPostsTriggerUseCase(
       createFakeImportJobRepository(),
       createFakeOutstandAdapter(),
       createFakeWatermarkPort(),
       createProcessUseCase(1),
+      noopBackfillUseCase,
     );
 
     const result = await useCase.triggerAuto({
@@ -678,7 +702,6 @@ describe("ImportPostsTriggerUseCase — T-114 backfill outstandPostId wiring", (
       createFakeOutstandAdapter(),
       createFakeWatermarkPort(),
       createProcessUseCase(1),
-      undefined,
       backfillUseCase,
     );
 
@@ -726,7 +749,6 @@ describe("ImportPostsTriggerUseCase — T-114 backfill outstandPostId wiring", (
       createFakeOutstandAdapter(),
       createFakeWatermarkPort(),
       createProcessUseCase(1),
-      undefined,
       backfillUseCase,
     );
 
@@ -763,7 +785,6 @@ describe("ImportPostsTriggerUseCase — T-114 backfill outstandPostId wiring", (
       createFakeOutstandAdapter(),
       createFakeWatermarkPort(),
       createProcessUseCase(1),
-      undefined,
       backfillUseCase,
     );
 
@@ -812,7 +833,6 @@ describe("ImportPostsTriggerUseCase — T-114 backfill outstandPostId wiring", (
       failingOutstandAdapter,
       createFakeWatermarkPort(),
       createProcessUseCase(1),
-      undefined,
       backfillUseCase,
     );
 

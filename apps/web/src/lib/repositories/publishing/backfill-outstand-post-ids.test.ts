@@ -70,27 +70,41 @@ function createStore(
 
   const tx = {
     $executeRaw: async (
-      strings: TemplateStringsArray,
+      _strings: TemplateStringsArray,
       ...values: unknown[]
     ) => {
-      const sql = strings.join("?");
-      calls.push(
-        sql.includes("publishing.outstand_post_id")
-          ? `post-lock:${String(values[0])}`
-          : `lock:${String(values[0])}`,
-      );
+      // Hanya lock per-workspace yang masih lewat `$executeRaw` — lock
+      // per-`outstandPostId` sekarang dibatch lewat `$queryRaw` (unnest).
+      calls.push(`lock:${String(values[0])}`);
       return 1;
     },
-    $queryRaw: async (_strings: TemplateStringsArray, ...values: unknown[]) => {
-      const outstandPostId = String(values[0]);
-      calls.push(`global:${outstandPostId}`);
-      return (options.globalOwners ?? [])
-        .filter((row) => row.outstandPostId === outstandPostId)
-        .map((row) => ({
-          post_id: row.postId,
-          workspace_id: row.workspaceId,
-          connected_account_id: row.connectedAccountId,
-        }));
+    $queryRaw: async (strings: TemplateStringsArray, ...values: unknown[]) => {
+      const sql = strings.join("?");
+      const ids = values[0] as string[];
+      if (sql.includes("publishing.outstand_post_id")) {
+        for (const id of ids) calls.push(`post-lock:${id}`);
+        return [];
+      }
+      const rows: {
+        outstand_post_id: string;
+        post_id: string;
+        workspace_id: string;
+        connected_account_id: string;
+      }[] = [];
+      for (const outstandPostId of ids) {
+        calls.push(`global:${outstandPostId}`);
+        for (const row of (options.globalOwners ?? []).filter(
+          (r) => r.outstandPostId === outstandPostId,
+        )) {
+          rows.push({
+            outstand_post_id: outstandPostId,
+            post_id: row.postId,
+            workspace_id: row.workspaceId,
+            connected_account_id: row.connectedAccountId,
+          });
+        }
+      }
+      return rows;
     },
     publishingPostTarget: {
       findMany: async (args: {

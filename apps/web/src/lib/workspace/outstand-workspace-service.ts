@@ -27,11 +27,10 @@ import { seedSyncJobsOnAccountConnected } from "@/lib/workspace/seed-sync-jobs-o
  * `ConnectedAccountWatermarkPort` di `ImportPostsTriggerUseCase`
  * (structural typing, tidak perlu wrapper tambahan).
  *
- * **T-114** — `BackfillOutstandPostIdsUseCase` disuplai sebagai argumen
- * ke-6 (setelah `sleep` default). Ini SATU-SATUNYA tempat yang menyuplai
- * dependency itu di jalur produksi — tanpa ini, `ImportPostsTriggerUseCase.
- * attemptBackfill` selalu no-op (`backfillUseCase` undefined) dan backfill
- * T-114 tidak akan pernah berjalan walau ada gap.
+ * **T-114** — `BackfillOutstandPostIdsUseCase` adalah dependency WAJIB
+ * `ImportPostsTriggerUseCase` (code-review PR #170: dibuat required,
+ * bukan opsional, supaya lupa menyuplainya gagal di compile time, bukan
+ * no-op diam-diam di runtime).
  */
 export function createImportPostsTriggerUseCase(): ImportPostsTriggerUseCase {
   const outstandAdapter = getOutstandAdapter();
@@ -40,7 +39,6 @@ export function createImportPostsTriggerUseCase(): ImportPostsTriggerUseCase {
     outstandAdapter,
     workspaceRepository,
     new ImportPostsProcessUseCase(publishingRepository),
-    undefined,
     new BackfillOutstandPostIdsUseCase(publishingRepository, outstandAdapter),
   );
 }
