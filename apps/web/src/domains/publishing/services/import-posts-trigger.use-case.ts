@@ -1,4 +1,5 @@
 import type {
+  AccountOwnerLookupResult,
   ConnectedAccountId,
   ImportJobOutcome,
   IOutstandAdapter,
@@ -8,6 +9,7 @@ import type {
   WorkspaceId,
 } from "@postific/shared";
 import { ConflictError } from "@/lib/utils/errors";
+import { resolveVerifiedAccountOwner } from "@/lib/jobs/account-owner-resolution";
 import { assertActorCanTriggerManualImportSync } from "../rbac";
 import type {
   IImportJobRepository,
@@ -98,13 +100,13 @@ interface ConnectedAccountWatermarkPort {
    * root (`createImportPostsTriggerUseCase`) tidak perlu menyuplai dependency
    * baru, `workspaceRepository` yang sudah dipakai untuk `connectedAccounts`
    * sudah mengimplementasikan method ini juga. `null` kalau akun tidak
-   * ditemukan/tidak aktif.
+   * ditemukan/tidak aktif. Return shape `AccountOwnerLookupResult`
+   * (`@postific/shared`, AGENTS.md #8) — satu deklarasi dipakai bersama port
+   * lokal manapun yang butuh lookup ini, bukan di-retype per domain.
    */
-  findAccountOwnerByOutstandAccountId(outstandAccountId: string): Promise<{
-    workspaceId: WorkspaceId;
-    connectedAccountId: ConnectedAccountId;
-    ownerUserId: UserId;
-  } | null>;
+  findAccountOwnerByOutstandAccountId(
+    outstandAccountId: string,
+  ): Promise<AccountOwnerLookupResult | null>;
 }
 
 export type ImportSyncTriggerOutcome =
@@ -284,14 +286,12 @@ export class ImportPostsTriggerUseCase {
    * (`background-jobs.md`: satu job per `ConnectedAccount`, independen).
    *
    * **`actingUserId` (KI-088, resolved 2026-10-15)** — jalur ini TIDAK
-   * punya sesi/user manusia (Railway Cron), jadi di-resolve DI SINI per
-   * akun lewat `ConnectedAccountWatermarkPort.findAccountOwnerByOutstandAccountId`
-   * (King Rezi memilih reuse pola JOB-04 `AnalyticsSyncJobHandler.syncAccount`/
-   * JOB-03 `EngagementSyncJobHandler` — Owner workspace dari akun itu sendiri,
-   * BUKAN `Workspace.ownerId` langsung, yang merupakan kandidat lama sebelum
-   * keputusan ini). Lookup gagal/akun tidak aktif ditangani sama seperti
-   * kegagalan lain di batch ini — masuk `catch`, tidak menghentikan akun
-   * lain.
+   * punya sesi/user manusia (Railway Cron), jadi di-resolve DI SINI per akun
+   * lewat `resolveVerifiedAccountOwner` (`@/lib/jobs/account-owner-resolution`
+   * — rationale lengkap di docstring `ConnectedAccountWatermarkPort.
+   * findAccountOwnerByOutstandAccountId` di atas). Lookup gagal/akun tidak
+   * aktif/mismatch ditangani sama seperti kegagalan lain di batch ini —
+   * masuk `catch`, tidak menghentikan akun lain.
    */
   async triggerPeriodicForAccounts(
     accounts: TriggerPeriodicAccountInput[],
@@ -300,27 +300,15 @@ export class ImportPostsTriggerUseCase {
 
     for (const account of accounts) {
       try {
-        const owner =
-          await this.connectedAccounts.findAccountOwnerByOutstandAccountId(
-            account.outstandAccountId,
-          );
-        if (!owner) {
-          throw new Error(
-            `triggerPeriodicForAccounts: outstandAccountId=${account.outstandAccountId} ` +
-              `tidak ditemukan atau tidak aktif (owner lookup kosong).`,
-          );
-        }
-        if (
-          owner.workspaceId !== account.workspaceId ||
-          owner.connectedAccountId !== account.connectedAccountId
-        ) {
-          throw new Error(
-            `triggerPeriodicForAccounts: input (workspaceId=${account.workspaceId}, ` +
-              `connectedAccountId=${account.connectedAccountId}) tidak cocok dengan hasil ` +
-              `owner lookup (workspaceId=${owner.workspaceId}, connectedAccountId=` +
-              `${owner.connectedAccountId}) untuk outstandAccountId=${account.outstandAccountId}.`,
-          );
-        }
+        const owner = await resolveVerifiedAccountOwner(
+          this.connectedAccounts,
+          account.outstandAccountId,
+          {
+            workspaceId: account.workspaceId,
+            connectedAccountId: account.connectedAccountId,
+          },
+          "triggerPeriodicForAccounts",
+        );
 
         const result = await this.runImportSync({
           trigger: "periodic",

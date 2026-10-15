@@ -5,7 +5,11 @@ import {
   MemberRole,
   SocialPlatform,
 } from "@postific/shared";
-import type { IOutstandAdapter, ImportJobOutcome } from "@postific/shared";
+import type {
+  AccountOwnerLookupResult,
+  IOutstandAdapter,
+  ImportJobOutcome,
+} from "@postific/shared";
 import { describe, expect, it, vi } from "vitest";
 import type {
   IImportJobRepository,
@@ -112,11 +116,7 @@ function createFakeWatermarkPort(
   overrides: {
     findAccountOwnerByOutstandAccountId?: (
       outstandAccountId: string,
-    ) => Promise<{
-      workspaceId: ReturnType<typeof asWorkspaceId>;
-      connectedAccountId: ReturnType<typeof asConnectedAccountId>;
-      ownerUserId: ReturnType<typeof asUserId>;
-    } | null>;
+    ) => Promise<AccountOwnerLookupResult | null>;
   } = {},
 ) {
   return {
@@ -705,72 +705,60 @@ describe("ImportPostsTriggerUseCase.triggerPeriodicForAccounts (T-090.3)", () =>
     expect(results.get(CONNECTED_ACCOUNT_ID)?.outcome).toBe("triggered");
   });
 
-  it("marks an account as failed (without affecting others) when the owner lookup finds no active account", async () => {
-    const importJobs = createFakeImportJobRepository();
-    const outstandAdapter = createFakeOutstandAdapter();
-    const watermark = createFakeWatermarkPort({
-      findAccountOwnerByOutstandAccountId: vi.fn(async () => null),
-    });
-    const useCase = new ImportPostsTriggerUseCase(
-      importJobs,
-      outstandAdapter,
-      watermark,
-      createProcessUseCase(1),
-      noopBackfillUseCase,
-    );
-
-    const results = await useCase.triggerPeriodicForAccounts([
-      {
-        workspaceId: WORKSPACE_ID,
-        connectedAccountId: CONNECTED_ACCOUNT_ID,
-        outstandAccountId: OUTSTAND_ACCOUNT_ID,
-        platform: SocialPlatform.Instagram,
-        lastImportedUntil: null,
-      },
-    ]);
-
-    expect(results.get(CONNECTED_ACCOUNT_ID)?.outcome).toBe("failed");
-    expect(results.get(CONNECTED_ACCOUNT_ID)?.message).toMatch(
-      /tidak ditemukan atau tidak aktif/,
-    );
-    expect(outstandAdapter.importPosts).not.toHaveBeenCalled();
-  });
-
-  it("marks an account as failed when the owner lookup result doesn't match the input (workspace/connectedAccountId mismatch)", async () => {
-    const importJobs = createFakeImportJobRepository();
-    const outstandAdapter = createFakeOutstandAdapter();
-    const otherWorkspaceId = asWorkspaceId("workspace-other");
-    const watermark = createFakeWatermarkPort({
-      findAccountOwnerByOutstandAccountId: vi.fn(async () => ({
-        workspaceId: otherWorkspaceId,
+  /**
+   * Dua mode gagal `resolveVerifiedAccountOwner` (owner lookup kosong, dan
+   * owner ditemukan tapi tidak cocok dengan input) — ditabelkan jadi satu
+   * `it.each` karena arrange/assert-nya identik, hanya mock lookup + regex
+   * pesan error yang berbeda per kasus.
+   */
+  it.each([
+    {
+      name: "owner lookup finds no active account",
+      lookup: async () => null,
+      messagePattern: /tidak ditemukan atau tidak aktif/,
+    },
+    {
+      name: "owner lookup result doesn't match the input (workspace/connectedAccountId mismatch)",
+      lookup: async () => ({
+        workspaceId: asWorkspaceId("workspace-other"),
         connectedAccountId: CONNECTED_ACCOUNT_ID,
         ownerUserId: ACTING_USER_ID,
-      })),
-    });
-    const useCase = new ImportPostsTriggerUseCase(
-      importJobs,
-      outstandAdapter,
-      watermark,
-      createProcessUseCase(1),
-      noopBackfillUseCase,
-    );
+      }),
+      messagePattern: /tidak cocok dengan hasil/,
+    },
+  ])(
+    "marks an account as failed (without affecting others) when $name",
+    async ({ lookup, messagePattern }) => {
+      const importJobs = createFakeImportJobRepository();
+      const outstandAdapter = createFakeOutstandAdapter();
+      const watermark = createFakeWatermarkPort({
+        findAccountOwnerByOutstandAccountId: vi.fn(lookup),
+      });
+      const useCase = new ImportPostsTriggerUseCase(
+        importJobs,
+        outstandAdapter,
+        watermark,
+        createProcessUseCase(1),
+        noopBackfillUseCase,
+      );
 
-    const results = await useCase.triggerPeriodicForAccounts([
-      {
-        workspaceId: WORKSPACE_ID,
-        connectedAccountId: CONNECTED_ACCOUNT_ID,
-        outstandAccountId: OUTSTAND_ACCOUNT_ID,
-        platform: SocialPlatform.Instagram,
-        lastImportedUntil: null,
-      },
-    ]);
+      const results = await useCase.triggerPeriodicForAccounts([
+        {
+          workspaceId: WORKSPACE_ID,
+          connectedAccountId: CONNECTED_ACCOUNT_ID,
+          outstandAccountId: OUTSTAND_ACCOUNT_ID,
+          platform: SocialPlatform.Instagram,
+          lastImportedUntil: null,
+        },
+      ]);
 
-    expect(results.get(CONNECTED_ACCOUNT_ID)?.outcome).toBe("failed");
-    expect(results.get(CONNECTED_ACCOUNT_ID)?.message).toMatch(
-      /tidak cocok dengan hasil/,
-    );
-    expect(outstandAdapter.importPosts).not.toHaveBeenCalled();
-  });
+      expect(results.get(CONNECTED_ACCOUNT_ID)?.outcome).toBe("failed");
+      expect(results.get(CONNECTED_ACCOUNT_ID)?.message).toMatch(
+        messagePattern,
+      );
+      expect(outstandAdapter.importPosts).not.toHaveBeenCalled();
+    },
+  );
 });
 
 /**
