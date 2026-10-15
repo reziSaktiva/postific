@@ -1071,6 +1071,11 @@ export const workspaceRepository: IWorkspaceRepository = {
   },
 
   async createConnectedAccounts({ workspaceId, actingUserId, accounts }) {
+    // KI-086/ADR-127 — lookup existing JUGA ambil `id`+`status` (sebelumnya
+    // hanya `outstandAccountId`), supaya row yang statusnya BUKAN `active`
+    // (`disconnected`/`reconnect-required`) bisa direaktivasi, bukan di-skip
+    // diam-diam seperti row yang memang sudah `active`. Row `active` tetap
+    // di-skip (tidak ada yang berubah untuk kasus itu).
     return withCurrentUser(actingUserId, async (tx) => {
       const existing = await tx.workspaceConnectedAccount.findMany({
         where: {
@@ -1079,15 +1084,44 @@ export const workspaceRepository: IWorkspaceRepository = {
             in: accounts.map((account) => account.outstandAccountId),
           },
         },
-        select: { outstandAccountId: true },
+        select: { id: true, outstandAccountId: true, status: true },
       });
-      const existingIds = new Set(
-        existing.map((account) => account.outstandAccountId),
+      const existingByOutstandId = new Map(
+        existing.map((row) => [row.outstandAccountId, row]),
       );
 
       const created = [];
       for (const account of accounts) {
-        if (existingIds.has(account.outstandAccountId)) continue;
+        const match = existingByOutstandId.get(account.outstandAccountId);
+        if (match?.status === "active") continue;
+
+        if (match) {
+          // Reaktivasi. Beda dari `reconnectAccount` di bawah (yang pakai
+          // `updateMany` + guard `{id, workspaceId}` eksplisit karena
+          // `connectedAccountId`-nya datang dari input client): `match.id`
+          // di sini sudah dijamin milik `workspaceId` ini oleh `findMany`
+          // di atas (query yang sama, transaksi yang sama), dan RLS
+          // `workspace_connected_accounts` (`FOR ALL`) tetap jadi
+          // defense-in-depth independen — jadi `update` by id langsung
+          // sudah aman tanpa guard eksplisit tambahan. Review Ridwan
+          // Architecture Reviewer (ADR-127) mengonfirmasi ini bukan gap
+          // keamanan, hanya perbedaan pola yang disengaja.
+          // `avatarUrl` hanya ditulis kalau ada nilai baru, supaya avatar
+          // lama tidak hilang hanya karena confirm Facebook Pages ini
+          // tidak membawa foto untuk Page tertentu.
+          const row = await tx.workspaceConnectedAccount.update({
+            where: { id: match.id },
+            data: {
+              handle: account.handle,
+              ...(account.avatarUrl ? { avatarUrl: account.avatarUrl } : {}),
+              status: "active",
+              reconnectRequired: false,
+            },
+          });
+          created.push(toConnectedAccountRecord(row));
+          continue;
+        }
+
         const row = await tx.workspaceConnectedAccount.create({
           data: {
             workspaceId,

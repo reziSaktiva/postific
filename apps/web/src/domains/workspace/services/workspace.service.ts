@@ -1982,16 +1982,29 @@ export class WorkspaceService {
    * SEMUA Page yang dipilih (bukan N panggilan — bentuk endpoint Outstand
    * sendiri, ADR-115 poin 8). Hasilnya disimpan lewat
    * `createConnectedAccounts` dalam SATU transaksi — Page yang sudah
-   * terhubung (`outstandAccountId` sama) di-skip, kegagalan di tengah
-   * membatalkan seluruh batch. Return value HANYA berisi Page yang
-   * BENAR-BENAR baru dibuat.
+   * `active` (`outstandAccountId` sama) di-skip, kegagalan di tengah
+   * membatalkan seluruh batch. Return value berisi Page yang BENAR-BENAR
+   * baru dibuat **DAN** Page yang direaktivasi (lihat poin reconnect di
+   * bawah).
    *
    * JOB-03 engagement sync seeding (`engagementSyncSeeder?.onAccountConnected`,
    * Temuan #1 Ridwan, pola sama `completeAccountConnection`) dipanggil
-   * SEKALI PER Page yang berhasil dibuat.
+   * SEKALI PER Page yang berhasil dibuat ATAU direaktivasi — konsisten
+   * dengan titik seed "created/activated" di `completeAccountConnection`.
    *
-   * **Reconnect Facebook Page tunggal — DI LUAR SCOPE** (ADR-115 poin 8):
-   * method ini SELALU CREATE, tidak menerima `redirectAccountId`.
+   * **Reconnect Facebook Page via flow ini — ADR-127 (amandemen ADR-115
+   * poin 8, menutup KI-086):** method ini tetap tidak menerima
+   * `redirectAccountId` eksplisit (tidak ada single-page OAuth untuk
+   * Facebook, lihat `RealOutstandAdapter.connectAccount`/
+   * `resolveConnectCallback` yang throw untuk platform ini) — tapi
+   * `createConnectedAccounts` sekarang mendeteksi row existing yang
+   * `disconnected`/`reconnect-required` lewat `outstandAccountId` yang
+   * cocok dan MEREAKTIVASI row itu (bukan create baru, bukan skip diam-diam
+   * seperti sebelumnya). Jalur reconnect Facebook karena itu adalah
+   * "Connect Account" biasa → pilih ulang Page yang sama di
+   * `FacebookPagesPickerDialog` — tombol `ReconnectButton`
+   * (`ConnectedAccountsList.tsx`) TETAP disembunyikan untuk Facebook,
+   * itu sudah benar (lihat docstring `ConnectedAccountAction`).
    *
    * **`avatarUrl` join balik (menutup KI-076, ADR-120)** —
    * `IOutstandAdapter.confirmFacebookPagesConnection` (endpoint

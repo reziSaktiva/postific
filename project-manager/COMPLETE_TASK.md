@@ -8,6 +8,69 @@ Seluruh perubahan penting pada dokumentasi maupun implementasi project dicatat p
 
 ---
 
+## 2026-10-15 — KI-086: Reaktivasi reconnect Facebook `disconnected`/`reconnect-required` (ADR-127)
+
+### Konteks
+King Rezi meminta KI-086 dikerjakan (sebelumnya ditunda 2026-10-08). Sebelum
+eksekusi: cek Claude Design (rule 17 AGENTS.md) — pola Reconnect generik
+sudah ada di `templates/settings-connected-accounts.html` tanpa pengecualian
+Facebook, jadi exclusion tombol murni keputusan implementasi, bukan gap
+desain. Scope awal yang diajukan ("full fix": backend + un-hide
+`ReconnectButton`) dikoreksi setelah membaca kode adapter:
+`RealOutstandAdapter.connectAccount`/`resolveConnectCallback` throw
+eksplisit untuk `SocialPlatform.Facebook` — tombol itu genuinely tidak
+kompatibel dengan platform ini (beda arsitektur OAuth), jadi disembunyikan
+sudah benar. Scope dikunci ulang ke King Rezi: **backend-only**.
+
+### Added
+- `project-manager/decisions/ADR-127-reaktivasi-connected-account-facebook-ki086.md`
+  — amandemen ADR-115 poin 8.
+- `apps/web/src/lib/repositories/workspace/workspace.repository.reactivate-connected-account.test.ts`
+  — integration test (Postgres real) untuk reaktivasi row `disconnected`
+  vs skip row `active`.
+
+### Changed
+- `apps/web/src/lib/repositories/workspace/workspace.repository.ts` —
+  `createConnectedAccounts` sekarang select juga `id`+`status` pada lookup
+  existing; row `disconnected`/`reconnect-required` DI-UPDATE (reaktivasi:
+  `status: "active"`, `reconnectRequired: false`, refresh `handle`,
+  `avatarUrl` hanya ditulis kalau ada nilai baru) alih-alih di-skip; row
+  `active` tetap di-skip (tidak berubah).
+- `apps/web/src/domains/workspace/services/workspace.service.ts` —
+  docstring `confirmFacebookPagesConnection` diperbarui mengikuti behavior
+  baru (return value kini termasuk Page yang direaktivasi, seeding JOB-03
+  dipanggil untuk keduanya).
+- `project-manager/DECISIONS.md`, `PROJECT_STATE.md` (Known Issues KI-086 →
+  Resolved, Completed (Ringkasan), Recent Decisions (Ringkasan)).
+
+### Verification
+- `bun run typecheck` — PASS (sebelum dan sesudah fix review).
+- `bun run test` (full suite, terhubung Postgres staging real) — 809 passed,
+  1 pre-existing failure tidak terkait (`workspace.repository.revoke-invitation.test.ts`,
+  dikonfirmasi gagal juga di branch SEBELUM perubahan sesi ini via
+  `git stash` — bukan regresi, di luar scope KI-086, belum ditindaklanjuti).
+- **Ridwan Architecture Reviewer** — PATUH seluruh aturan arsitektur keras
+  (entry point bersih, domain tidak sentuh Prisma, tidak ada cross-domain
+  liar, RLS tetap jadi defense-in-depth lintas-workspace, JOB-03 seeding
+  aman dipanggil ulang untuk row direaktivasi). 2 temuan Low (non-blocking)
+  — keduanya langsung diperbaiki di sesi yang sama: (1) docstring interface
+  `createConnectedAccounts` (`domains/workspace/repositories/workspace.repository.ts`)
+  diperbarui supaya tidak lagi bilang "selalu di-skip"; (2) komentar
+  implementasi yang menyiratkan "pola sama `reconnectAccount`" padahal
+  teknisnya beda (`update` by id vs `updateMany`+guard) diperjelas dengan
+  penjelasan kenapa keduanya tetap aman (RLS + `match.id` sudah terjamin
+  scope workspace dari `findMany` yang sama).
+- QA Najwa belum dijalankan di sesi ini — backend-only, tidak ada
+  perubahan UI untuk diverifikasi end-to-end browser.
+
+### Catatan
+- Tidak ada perubahan UI. `ReconnectButton`/`ConnectedAccountAction` tetap
+  menyembunyikan aksi untuk Facebook — itu BENAR, bukan bug tersisa.
+- Branch kerja: `feature/ki-086-facebook-reconnect` (dari `staging` terbaru,
+  bukan menumpuk di branch KI-088 lama yang sudah merge).
+
+---
+
 ## 2026-10-15 — KI-088 (PR #171): code-review fixes + merge ke `staging`
 
 ### Konteks
