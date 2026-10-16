@@ -18,6 +18,40 @@ Dokumen ini berisi log percakapan penting antar sesi yang memiliki dampak terhad
 
 ---
 
+## 2026-10-16 — Perbandingan metode Matt Pocock vs Project OS
+
+**Phase:** Phase 6 / M8 Development
+
+**Summary:** King Rezi minta Jokowi mempelajari skill system Matt Pocock
+(aihero.dev/skills, repo `mattpocock/skills` v1.3, 5 Oktober 2026) lalu
+membandingkannya dengan Project OS di repo ini. Matt menjual loop engineering
+yang composable (grill → spec → tiket vertikal → TDD → review → retro) dengan
+konteks yang dimuat bertahap. Project OS menjual memori produk lintas bulan
+(baseline, ADR, task per rilis, gerbang desain, subagent per domain).
+
+**Key Insight / Decision:** Belum ada keputusan migrasi. Rekomendasi yang
+disampaikan: jangan ganti Project OS. Matt lebih unggul di loop coding dan
+efisiensi token per giliran; Project OS lebih unggul sebagai pemerintahan
+produk. Langkah bernilai tinggi yang belum diputuskan: kurangi konteks yang
+selalu termuat (terutama file `AGENTS.md` di dalam skill vendor, ±130 KB per
+giliran di Cursor), lalu adopsi skill Matt yang user-invoked (`grill-with-docs`,
+`tdd`, `code-review`, `diagnosing-bugs`, `retro`) di samping skill yang ada.
+
+**Impact:** Tidak ada dokumen baseline produk yang diubah. Tindak lanjut
+dicatat sebagai task (2026-10-16): **T-116** → **T-117** → **T-118** di
+`tasks/v01-foundation.md`. Pemotongan token terbesar adalah mengganti nama tiga
+`AGENTS.md` di dalam skill vendor Vercel
+(`vercel-react-best-practices` ≈ 109 KB, `vercel-composition-patterns` ≈ 23 KB,
+`vercel-optimize` ≈ 2 KB) supaya Cursor berhenti menyuntikkannya setiap
+giliran — `SKILL.md` tetap menunjuk salinan lengkapnya. Skill Matt yang layak
+dicoba, setelah disesuaikan, hanya `tdd`, `diagnosing-bugs`, `grill-with-docs`,
+`code-review`, `retro`, `handoff`, `wait-what`. Jangan pasang `to-tickets`,
+`implement`, `implement-spec`, `wayfinder`, `triage`, atau
+`setup-matt-pocock-skills` — mereka bentrok dengan ADR-062 dan aturan commit.
+Kalau King Rezi menyetujui, perlu ADR karena menyentuh cara kerja agent.
+
+---
+
 ## 2026-10-08 — Pola berulang: gap kontrak Outstand baru ketemu pas verifikasi OpenAPI spec sungguhan (T-112, ADR-123)
 
 **Phase:** Phase 6 / M8 Development
