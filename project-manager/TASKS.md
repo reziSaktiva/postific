@@ -105,7 +105,6 @@ Task yang **menghasilkan ADR**, bukan sekadar mengikuti ADR. Semuanya menunggu k
 | Task      | Keputusan yang belum diambil                              | Menghambat                     |
 | --------- | --------------------------------------------------------- | ------------------------------ |
 | **T-060** | Provider + model AI                                       | Seluruh v0.5                   |
-| **T-070** | Strategi route publik tanpa auth (+ custom domain?)       | Seluruh v0.6                   |
 | **T-081** | Framework E2E test                                        | Verifikasi golden path         |
 | **T-086** | Tool observability / monitoring                           | Visibilitas kegagalan job      |
 | —         | **Billing** belum muncul di release manapun               | Belum masuk backlog sama sekali |

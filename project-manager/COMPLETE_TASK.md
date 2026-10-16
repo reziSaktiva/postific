@@ -8,6 +8,40 @@ Seluruh perubahan penting pada dokumentasi maupun implementasi project dicatat p
 
 ---
 
+## 2026-10-16 — T-070 subtask breakdown + ADR-128 (strategi routing Start Page)
+
+### Konteks
+King Rezi minta checkout branch baru untuk T-070 (belum dikerjakan) dan
+minta daftar subtask-nya. `tasks/v06-start-page-mvp.md` menyatakan subtask
+T-070 sengaja belum diisi (rolling wave). Sebelum merinci, ada fork
+keputusan arsitektur material yang belum ada di baseline mana pun: strategi
+routing halaman publik Start Page — subpath vs custom domain. Ditanyakan ke
+King Rezi lewat `AskUserQuestion` (3 opsi: subpath / custom domain /
+keduanya) — King Rezi memilih **subpath `/u/[slug]`**.
+
+### Added
+- Branch `feature/t-070-start-page-domain-skeleton` dari `staging`.
+- **ADR-128** — strategi routing publik Start Page: subpath `/u/[slug]`,
+  bypass penuh dari auth gate `proxy.ts` (pola sama `/invite/[token]`,
+  ADR-080), bukan `PUBLIC_AUTH_PATHS`. Custom domain eksplisit Out of Scope
+  v0.6.
+- Breakdown 7 subtask T-070 (T-070.1–.7) di `tasks/v06-start-page-mvp.md`:
+  ADR (✅ Done), repository interface publik, Application Service
+  `GetPublicStartPageBySlug`, bypass route di `proxy.ts`, RLS policy akses
+  anon, slug validation/reserved words, test akses publik tanpa session.
+
+### Updated
+- `project-manager/TASKS.md` § "Keputusan terbuka" — baris T-070 dihapus
+  (keputusan sudah diambil via ADR-128).
+- `project-manager/tasks/v06-start-page-mvp.md` § T-070 — tambah referensi
+  ADR-128 + subtask di atas.
+
+### Status
+T-070 masih `⏳ Not Started` secara keseluruhan (hanya subtask .1/ADR yang
+selesai) — implementasi kode belum dimulai sesuai permintaan King Rezi.
+
+---
+
 ## 2026-10-15 — KI-086 (PR #173): `/code-review` fixes + merge ke `staging`
 
 ### Konteks
