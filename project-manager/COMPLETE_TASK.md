@@ -8,6 +8,45 @@ Seluruh perubahan penting pada dokumentasi maupun implementasi project dicatat p
 
 ---
 
+## 2026-10-16 (sesi kedua) — Eksplorasi + kunci layout publik Start Page (ADR-129)
+
+### Konteks
+Lanjutan sesi T-070 (entri di bawah). King Rezi minta desain dulu di
+Claude Design sebelum T-071 masuk ke kode, dengan beberapa pilihan layout
+untuk dibandingkan. Didelegasikan ke **Neymar Product Designer**
+(`DesignSync` berhasil dimuat penuh di sesi ini — tidak ada known-issue
+baru untuk catatan limitasi di `.claude/agents/README.md`).
+
+### Added
+- 4 opsi layout halaman publik Start Page di Claude Design (project
+  "Postific", grup `Start Page (Exploration, T-071)`): A Classic Centered,
+  B Card Stack, C Hero Banner, D Minimal Dense — semua token dari
+  Stone/shadcn existing, tanpa token baru.
+- **ADR-129** — King Rezi memilih **Opsi B (Card Stack)** lewat
+  `AskUserQuestion` (4 opsi disajikan setara, tidak ada yang ditandai
+  direkomendasikan). Dikunci sebagai LOCKED PATTERN di
+  `templates/start-page-option-b-card-stack.html`; 3 opsi lain disimpan
+  sebagai referensi (tidak dihapus).
+
+### Updated
+- `tasks/v06-start-page-mvp.md` § T-071 — tambah referensi ADR-129 + catatan
+  wajib `DesignSync get_file` (gate T-103.3) sebelum Mark UI Engineer
+  menulis kode.
+- `project-manager/DECISIONS.md` — entri ADR-129.
+
+### Catatan terbuka (ADR-056)
+Opsi C (Hero Banner) butuh field `coverImageUrl` baru di schema
+`StartPagePage` kalau suatu saat dipilih ulang — tidak relevan sekarang
+karena tidak dipilih. `04-ux/information-architecture.md` § Start Page
+belum diselaraskan dengan layout Card Stack ini — ditunda sampai
+implementasi T-071 berjalan (belum diminta King Rezi sekarang).
+
+### Status
+T-071 masih `⏳ Not Started` — ini murni keputusan desain, implementasi kode
+belum dimulai.
+
+---
+
 ## 2026-10-16 — T-070 subtask breakdown + ADR-128 (strategi routing Start Page)
 
 ### Konteks
