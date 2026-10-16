@@ -8,6 +8,23 @@ Seluruh perubahan penting pada dokumentasi maupun implementasi project dicatat p
 
 ---
 
+## 2026-10-16 (sesi kelima) — Task T-116, T-117, T-118: pemotongan biaya token agent
+
+### Added
+- **T-116** Ganti nama tiga `AGENTS.md` vendor Vercel menjadi `REFERENCE.md` (⏳, 4 subtask)
+- **T-117** Tipiskan `AGENTS.md` root setelah ADR Accepted (⏳, 4 subtask, Depends T-116)
+- **T-118** Higiene sesi: satu task per percakapan, rantai subagent hanya untuk fitur (⏳, 3 subtask, Depends T-117)
+
+### Changed
+- `tasks/v01-foundation.md` — section baru **Konteks agent** + catatan rilis ID
+- `TASKS.md` — indeks v0.1 `25` → `28` (tambah 3 ⏳); total `102` → `105` task, subtask terdefinisi `268` → `279`; Fokus sekarang; Keputusan terbuka (T-117); catatan kaki ID
+- `PROJECT_STATE.md` Snapshot — Top Next Tasks menambah T-116 → T-117 → T-118; hitungan backlog `99` → `105` (angka 99 sudah basi sebelum sesi ini)
+- `CONVERSATIONS.md` entri 2026-10-16 — Impact menunjuk ketiga task
+
+Belum ada kode atau `AGENTS.md` yang diubah. T-037 tetap fokus yang sedang berjalan.
+
+---
+
 ## 2026-10-16 (sesi keempat) — Investigasi KI-090 lanjutan + task baru T-115 (auto-sync post native ala Buffer)
 
 ### Konteks

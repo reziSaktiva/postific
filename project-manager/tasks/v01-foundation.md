@@ -700,9 +700,97 @@ Alasan urgensinya: kalau jalur Bearer token baru dipasang setelah kode web matan
 
 ---
 
+## Konteks agent
+
+Tiga task ini lahir dari diskusi 2026-10-16 (lihat `CONVERSATIONS.md`): biaya token tiap giliran besar karena Cursor menyuntikkan setiap berkas bernama `AGENTS.md`, lalu pintu `AGENTS.md` root masih memuat esai yang sudah ada di dokumen lain. Urutannya wajib: T-116 → T-117 → T-118. Bukan UI. Gerbang Claude Design tidak berlaku.
+
+### T-116 · Ganti nama `AGENTS.md` di dalam skill vendor supaya tidak ikut setiap giliran
+
+| Field         | Value                                                        |
+| ------------- | ------------------------------------------------------------ |
+| **Status**    | ⏳ Not Started                                                 |
+| **Domain**    | platform/tooling                                              |
+| **ADR**       | — (ganti nama berkas salinan vendor, bukan keputusan arsitektur) |
+| **Depends**   | —                                                             |
+| **Baca dulu** | `AGENTS.md` (bagian Skills + Kompatibilitas tool, ADR-064) · `.claude/skills/vercel-react-best-practices/SKILL.md` · `.claude/skills/vercel-composition-patterns/SKILL.md` · `CONVERSATIONS.md` entri 2026-10-16 |
+
+Cursor memperlakukan setiap berkas bernama `AGENTS.md` sebagai aturan yang ikut di setiap pesan. Tiga salinan panduan Vercel ikut termuat penuh meski pertanyaannya tidak menyentuh React:
+
+- `.claude/skills/vercel-react-best-practices/AGENTS.md` (±109 KB)
+- `.claude/skills/vercel-composition-patterns/AGENTS.md` (±23 KB)
+- `.claude/skills/vercel-optimize/AGENTS.md` (±2 KB)
+
+`SKILL.md` masing-masing skill tetap pintu masuknya. Salinan panjang hanya dibaca saat skill itu dipakai. `AGENTS.md` di root repo tidak disentuh di task ini.
+
+- [ ] **T-116.1** Ganti nama ketiga berkas itu menjadi `REFERENCE.md` di folder yang sama. Jangan membuat `AGENTS.md` baru di dalam `.claude/skills/`.
+- [ ] **T-116.2** Ubah penunjuk di `SKILL.md` yang menyebut berkas itu: `vercel-react-best-practices/SKILL.md` dan `vercel-composition-patterns/SKILL.md` (kalimat "For the complete guide with all rules expanded"). Kalimat di `vercel-optimize` yang menyebut `AGENTS.md` **root** dibiarkan — itu pintu repo, bukan nama berkas vendor.
+- [ ] **T-116.3** Cari sisa rujukan ke jalur lama (`skills/vercel-react-best-practices/AGENTS.md`, `skills/vercel-composition-patterns/AGENTS.md`, `skills/vercel-optimize/AGENTS.md`) dan arahkan ke `REFERENCE.md`.
+- [ ] **T-116.4** Pastikan satu-satunya berkas bernama `AGENTS.md` yang tersisa di repo adalah yang di root. Isi panduan vendor tidak dihapus dan tidak diringkas di task ini.
+
+### T-117 · Tipiskan `AGENTS.md` root jadi pintu, bukan ensiklopedia
+
+| Field         | Value                                                        |
+| ------------- | ------------------------------------------------------------ |
+| **Status**    | ⏳ Not Started                                                 |
+| **Domain**    | platform/tooling                                              |
+| **ADR**       | ADR baru di subtask T-117.1 — jangan edit `AGENTS.md` sebelum ADR itu Accepted |
+| **Depends**   | T-116 ✅                                                       |
+| **Baca dulu** | `AGENTS.md` · `.claude/skills/project-os-navigator/SKILL.md` · `context/README.md` · `.claude/agents/README.md` · `apps/web/.claude/CLAUDE.md` · `CONVERSATIONS.md` entri 2026-10-16 |
+
+`AGENTS.md` root (±20 KB) ikut di setiap giliran, di Claude Code maupun Cursor. Banyak bagiannya mengulang dokumen yang sudah punya rumah. Task ini memindahkan pengulangan itu jadi penunjuk satu baris, dan menyisakan aturan yang benar-benar berlaku untuk setiap tugas.
+
+**Usulan belahan untuk ADR** (konfirmasi di T-117.1, jangan dianggap sudah Accepted):
+
+Tetap di `AGENTS.md`, dalam bentuk pendek:
+
+- satu kalimat proyek, package manager Bun
+- sapaan King Rezi, lima kata ajaib, nama Jokowi
+- larangan ubah baseline tanpa ADR
+- entry point tanpa business logic; domain tidak mengimpor Prisma, Supabase client, atau HTTP Outstand
+- lintas domain lewat API publik; shared types hanya di `packages/shared`
+- Supabase JS hanya Realtime + Storage
+- status fase/milestone hanya di `PROJECT_STATE.md`; status task di `TASKS.md` + `tasks/` (ADR-062)
+- persona kanonikal; bahasa Indonesia
+- commit/push hanya kalau diminta; jangan commit secret; jangan commit langsung ke `main` atau `staging`
+- UI memakai shadcn (ADR-097); gerbang Claude Design sebelum kode UI
+- Outstand: jangan menghidupkan lagi Fake adapter di jalur produksi (ADR-119)
+- satu kalimat bahwa dua pasang berkas kembar (MCP, proteksi secret) wajib diubah bersamaan (ADR-064)
+- penunjuk ke navigator, bukan menyalin isinya
+
+Jadi penunjuk satu baris, karena rumahnya sudah ada:
+
+- pohon `context/` → `context/README.md`
+- tabel subagent dan aturan paralel → `.claude/agents/README.md`
+- peta "baca dulu" dan perilaku per jenis sesi → `.claude/skills/project-os-navigator/SKILL.md`
+- workflow shadcn yang panjang → `apps/web/.claude/CLAUDE.md`
+- checklist setelah mengubah dokumen → navigator
+
+- [ ] **T-117.1** Tulis ADR baru: apa yang tetap di `AGENTS.md` root dan apa yang menjadi penunjuk. Sertakan usulan belahan di atas. **Jangan mengubah `AGENTS.md` sebelum ADR itu Accepted.**
+- [ ] **T-117.2** Tipiskan `AGENTS.md` sesuai ADR yang Accepted. Setiap aturan keras yang pindah harus masih bisa ditemukan lewat penunjuknya.
+- [ ] **T-117.3** Cocokkan isi yang ditunjuk. Kalau sebuah aturan keras belum punya rumah di navigator, `context/README.md`, `.claude/agents/README.md`, atau `apps/web/.claude/CLAUDE.md`, tambahkan di rumah itu — jangan dikembalikan sebagai esai di `AGENTS.md`.
+- [ ] **T-117.4** Baca ulang `AGENTS.md` yang sudah tipis sebagai pintu sesi baru: Snapshot, navigator, dan aturan keras tetap tercapai tanpa membuka ensiklopedia.
+
+### T-118 · Kunci higiene sesi: satu task per percakapan, rantai subagent hanya untuk fitur
+
+| Field         | Value                                                        |
+| ------------- | ------------------------------------------------------------ |
+| **Status**    | ⏳ Not Started                                                 |
+| **Domain**    | platform/tooling                                              |
+| **ADR**       | — (menegaskan navigator yang sudah ada; ADR baru hanya kalau T-118.1 mengubah mandat delegasi ADR-063) |
+| **Depends**   | T-117 ✅                                                       |
+| **Baca dulu** | `.claude/skills/project-os-navigator/SKILL.md` · `.claude/agents/README.md` (aturan orkestrasi, ADR-063) · `AGENTS.md` setelah T-117 |
+
+Navigator sudah melarang membaca `PROJECT_STATE` utuh, `COMPLETE_TASK`, dan seluruh folder `tasks/`. Sisa yang masih boros: rantai Ridwan → Najwa → Gibran untuk perubahan sepele, dan percakapan yang dibiarkan panjang sampai riwayatnya ikut dibayar di setiap giliran.
+
+- [ ] **T-118.1** Tambah di `project-os-navigator`: perubahan sepele (satu berkas, tanpa batas domain, tanpa UI) dikerjakan agen utama. Rantai Ridwan → Najwa → Gibran tetap untuk implementasi fitur yang menyentuh domain atau UI. Kalau kalimat ini mengubah mandat ADR-063, berhenti dan buat ADR dulu.
+- [ ] **T-118.2** Tambah higiene sesi di navigator: satu task per percakapan. Kalau sesi sudah panjang, catat ringkas di `CONVERSATIONS.md`, lalu lanjut di sesi baru.
+- [ ] **T-118.3** Di `AGENTS.md` root, cukup satu penunjuk ke dua aturan itu. Jangan menempelkan esainya kembali ke `AGENTS.md`.
+
+---
+
 ## Catatan Rilis
 
-* Nomor kosong v0.1 sudah terpakai semua (T-019 diisi task API mobile). Task v0.1 baru berikutnya memakai nomor global berikutnya yang belum pernah dipakai — jangan menggeser ID yang sudah ada. **T-039** (Migrasi Routing & Settings, ADR-076) memakai nomor ini: ID global berikutnya yang belum pernah dipakai, dipinjam dari ruang kosong yang sebelumnya dicadangkan untuk pertumbuhan v0.2 (lihat Catatan Rilis `tasks/v02-publishing-mvp.md`) — task tetap ditempatkan di file v0.1 karena scope-nya (Workspace/Settings routing) sejalan dengan T-009/T-016, bukan v0.2 Publishing. **T-089** (Workspace Switcher, ADR-088, 2026-08-24) juga memakai pola yang sama: ID global berikutnya yang belum pernah dipakai sama sekali (bukan dipinjam dari cadangan release manapun, karena seluruh rentang T-080–T-088 v1.0 sudah terisi) — ditempatkan di file v0.1 karena lahir sebagai amandemen ADR-076/T-039 (Workspace context & Settings), bukan task baru terpisah dari rumpun ini. **T-093** (Accept Invite page, 2026-08-28) memakai pola yang sama lagi — ID global berikutnya setelah T-092 (v0.2, ADR-094) — menutup gap yang sudah dicatat sejak ADR-080 (2026-08-14, halaman `/invite/[token]` belum pernah dibuat) tapi baru diberi nomor sekarang, saat King Rezi mengoreksi rantai dependency Realtime Calendar (invite-to-membership harus utuh dulu sebelum T-036/T-092 bisa diverifikasi dengan ≥2 akun nyata). **T-109**/**T-110** (ditambah 2026-09-28, promosi dari Known Issues KI-058/KI-053 setelah audit aplikasi menyeluruh dan keputusan mitigasi King Rezi) memakai ID global berikutnya setelah T-108 (v0.2, `tasks/v02-publishing-mvp.md`) — ditempatkan di file ini karena domain `workspace`/`identity`, masing-masing kelanjutan langsung T-015 dan T-093.
+* Nomor kosong v0.1 sudah terpakai semua (T-019 diisi task API mobile). Task v0.1 baru berikutnya memakai nomor global berikutnya yang belum pernah dipakai — jangan menggeser ID yang sudah ada. **T-039** (Migrasi Routing & Settings, ADR-076) memakai nomor ini: ID global berikutnya yang belum pernah dipakai, dipinjam dari ruang kosong yang sebelumnya dicadangkan untuk pertumbuhan v0.2 (lihat Catatan Rilis `tasks/v02-publishing-mvp.md`) — task tetap ditempatkan di file v0.1 karena scope-nya (Workspace/Settings routing) sejalan dengan T-009/T-016, bukan v0.2 Publishing. **T-089** (Workspace Switcher, ADR-088, 2026-08-24) juga memakai pola yang sama: ID global berikutnya yang belum pernah dipakai sama sekali (bukan dipinjam dari cadangan release manapun, karena seluruh rentang T-080–T-088 v1.0 sudah terisi) — ditempatkan di file v0.1 karena lahir sebagai amandemen ADR-076/T-039 (Workspace context & Settings), bukan task baru terpisah dari rumpun ini. **T-093** (Accept Invite page, 2026-08-28) memakai pola yang sama lagi — ID global berikutnya setelah T-092 (v0.2, ADR-094) — menutup gap yang sudah dicatat sejak ADR-080 (2026-08-14, halaman `/invite/[token]` belum pernah dibuat) tapi baru diberi nomor sekarang, saat King Rezi mengoreksi rantai dependency Realtime Calendar (invite-to-membership harus utuh dulu sebelum T-036/T-092 bisa diverifikasi dengan ≥2 akun nyata). **T-109**/**T-110** (ditambah 2026-09-28, promosi dari Known Issues KI-058/KI-053 setelah audit aplikasi menyeluruh dan keputusan mitigasi King Rezi) memakai ID global berikutnya setelah T-108 (v0.2, `tasks/v02-publishing-mvp.md`) — ditempatkan di file ini karena domain `workspace`/`identity`, masing-masing kelanjutan langsung T-015 dan T-093. **T-116**/**T-117**/**T-118** (ditambah 2026-10-16, diskusi biaya token agent) memakai ID global berikutnya setelah T-115 — ditempatkan di file ini karena domain `platform/tooling`, bukan fitur rilis produk. Urutan wajib: T-116 → T-117 → T-118.
 * **Definisi "Foundation selesai":** semua task di rilis ini `✅ Done` **kecuali** yang secara sadar ditunda dengan alasan tercatat — dan **kecuali tiga task yang menunggu v0.2** (lihat di bawah). **T-012** (Sidebar Channels) sebelumnya termasuk daftar ini tapi sudah ✅ Done (2026-08-12) — T-012.2 (scheduled count) ternyata tidak perlu menunggu real Outstand adapter, cukup data `PublishingPost`/`PublishingPostTarget` yang sudah ada sejak T-028.
 * **Task v0.1 yang tidak bisa ditutup sebelum v0.2 berjalan** (dependency lintas rilis, disengaja dan diketahui):
   * **T-013** Connect account — sisa T-013.4 (operasional BYOK X) murni operasional, bukan dependency v0.2. T-013.1/2/3 sudah selesai (2026-09-11), diselesaikan lewat Fake adapter (ADR-105, ADR-059 pattern) tanpa menunggu T-025 (Real OutstandAdapter, v0.2, kredensial belum ada).
