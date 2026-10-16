@@ -35,7 +35,7 @@ ID tiket global, tidak didaur ulang. Berikutnya: **T-124**. ID spec berikutnya: 
 | T-116 | ⏳     | Ganti nama `AGENTS.md` vendor supaya tidak ikut setiap giliran  | [v0.1](tickets/v01-foundation.md)     |
 | T-117 | ⏳     | Tipiskan `AGENTS.md` root. ADR dulu. Depends T-116              | [v0.1](tickets/v01-foundation.md)     |
 | T-118 | ⏳     | Higiene sesi agent. Depends T-117                               | [v0.1](tickets/v01-foundation.md)     |
-| T-115 | ⏳     | Wiring cron harian Import Posts periodik                        | [v0.2](tickets/v02-publishing-mvp.md) |
+| T-115 | 🟡     | Wiring cron harian Import Posts periodik                        | [v0.2](tickets/v02-publishing-mvp.md) |
 | T-008 | 🟡     | Workspace Settings — General + Danger Zone. Termasuk KI-027     | [v0.1](tickets/v01-foundation.md)     |
 | T-013 | 🟡     | Connect account. Sisa: T-013.4 BYOK X                           | [v0.1](tickets/v01-foundation.md)     |
 | T-017 | 🟡     | RLS SQL policies. Sisa: adopsi `withCurrentUser`                | [v0.1](tickets/v01-foundation.md)     |

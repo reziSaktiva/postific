@@ -1705,7 +1705,7 @@ menjangkau seluruh post, data-nya saja yang kosong.
 
 | Field         | Value                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**    | ⏳ Not Started                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| **Status**    | 🟡 In Progress                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | **Domain**    | integration                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | **ADR**       | — (menuntaskan desain yang SUDAH Accepted di ADR-093 poin 7, bukan keputusan baru)                                                                                                                                                                                                                                                                                                                                                       |
 | **Terkait**   | T-090, T-048 (pola fan-out JOB-04 dijadikan referensi langsung), T-112, KI-088                                                                                                                                                                                                                                                                                                                                                           |
@@ -1738,13 +1738,13 @@ beberapa jam) atau bypass Outstand lewat Meta Webhooks langsung
 (ditolak untuk MVP — melanggar ADR-040, kompleksitas App Review Meta tidak
 sepadan) dibahas di `CONVERSATIONS.md` entri 2026-10-16 tapi tidak dipilih.
 
-- [ ] **T-115.1** Buat `EnqueueImportSyncUseCase` (pola sama
+- [x] **T-115.1** Buat `EnqueueImportSyncUseCase` (pola sama
       `EnqueueAnalyticsSyncUseCase`, `enqueue-analytics-sync.ts`) —
       `executeIfDue()` fan-out satu job `import.sync` per
       `WorkspaceConnectedAccount` berstatus `active` yang belum dapat job
       sejak awal hari UTC (reuse semantik `hasAccountJob`/`createdSince`,
       cukup port baru tipis, jangan duplikasi logic `startOfUtcDay`)
-- [ ] **T-115.2** Buat job type baru `IMPORT_SYNC_JOB_TYPE` (`import.sync`) + handler (pola sama `EngagementSyncJobHandler`/
+- [x] **T-115.2** Buat job type baru `IMPORT_SYNC_JOB_TYPE` (`import.sync`) + handler (pola sama `EngagementSyncJobHandler`/
       `AnalyticsSyncJobHandler`) yang memanggil
       `ImportPostsTriggerUseCase.runImportSync`/jalur periodik dengan
       `actingUserId` di-resolve per akun lewat `resolveVerifiedAccountOwner`
@@ -1753,13 +1753,13 @@ sepadan) dibahas di `CONVERSATIONS.md` entri 2026-10-16 tapi tidak dipilih.
       `triggerPeriodicForAccounts`, method itu kemungkinan besar bisa
       dipanggil langsung per akun dari handler baru ini alih-alih ditulis
       ulang
-- [ ] **T-115.3** Daftarkan `EnqueueImportSyncUseCase.executeIfDue()` +
+- [x] **T-115.3** Daftarkan `EnqueueImportSyncUseCase.executeIfDue()` +
       handler `import.sync` baru ke composition root
       `apps/web/src/app/api/jobs/run/route.ts` (pola identik blok
       `enqueueAnalyticsSync`/`ANALYTICS_SYNC_JOB_TYPE` yang sudah ada,
       termasuk opsi `?type=import` untuk trigger manual paksa ala
       `?type=analytics` — berguna untuk verifikasi staging)
-- [ ] **T-115.4** Cek regresi guard biaya existing (ADR-093 poin 9) — cap
+- [x] **T-115.4** Cek regresi guard biaya existing (ADR-093 poin 9) — cap
       mingguan workspace dihitung dari `payload.trigger = "manual"` di
       `background_jobs`; pastikan job `trigger: "periodic"` baru ini TIDAK
       ikut kena guard yang ditujukan khusus jalur manual, dan sebaliknya
