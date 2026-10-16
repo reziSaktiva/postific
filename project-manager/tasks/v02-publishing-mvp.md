@@ -1692,6 +1692,80 @@ menjangkau seluruh post, data-nya saja yang kosong.
 
 ---
 
+### T-115 · Wiring cron harian Import Posts Trigger periodik (`triggerPeriodicForAccounts`) ke job runner produksi
+
+| Field         | Value                                                        |
+| ------------- | ------------------------------------------------------------ |
+| **Status**    | ⏳ Not Started                                                 |
+| **Domain**    | integration                                                   |
+| **ADR**       | — (menuntaskan desain yang SUDAH Accepted di ADR-093 poin 7, bukan keputusan baru) |
+| **Terkait**   | T-090, T-048 (pola fan-out JOB-04 dijadikan referensi langsung), T-112, KI-088 |
+| **Depends**   | T-090 ✅, T-112 ✅ (plumbing Import Posts manual/auto sudah lengkap & terverifikasi; task ini murni menyambung jalur periodik yang sejak awal memang didesain tapi belum pernah di-wire) |
+| **Baca dulu** | `apps/web/src/domains/publishing/services/import-posts-trigger.use-case.ts` (`triggerPeriodicForAccounts`, `runImportSync`) · `apps/web/src/domains/analytics/services/enqueue-analytics-sync.ts` (pola fan-out `executeIfDue` yang akan di-reuse) · `apps/web/src/app/api/jobs/run/route.ts` (composition root tempat handler didaftarkan) · `decisions/ADR-093-import-posts-dari-social-account-status-imported-read-only.md` (poin 7) |
+
+Ditemukan King Rezi (2026-10-16) lewat diskusi "apakah post native Facebook
+otomatis masuk Postific?" — jawabannya **tidak**, dan investigasi kode
+mengonfirmasi **gap yang sudah tercatat sejak T-090.3**: ADR-093 poin 7
+mendesain jalur periodik (Railway Cron harian) sebagai salah satu dari 3
+trigger Import Posts, `ImportPostsTriggerUseCase.triggerPeriodicForAccounts`
+sudah diimplementasikan penuh dan lolos unit test (T-090.3) — tapi **tidak
+pernah didaftarkan ke composition root job runner manapun**
+(`apps/web/src/app/api/jobs/run/route.ts` saat ini cuma mendaftarkan 3
+handler: `RESOLVE_SCHEDULED_POST_OUTCOME_JOB_TYPE`, `ENGAGEMENT_SYNC_JOB_TYPE`,
+`ANALYTICS_SYNC_JOB_TYPE` — tidak ada `import.sync`). Konsisten dengan
+catatan eksplisit di `PROJECT_STATE.md`/KI-088: *"Cron wiring asli tetap di
+luar scope (tidak berubah)"*. Dampak nyata: satu-satunya cara post native
+masuk Postific saat ini adalah klik manual "Sync Now" (dibatasi cooldown 24
+jam/akun + cap 1x/minggu/workspace, ADR-093 poin 9) — tidak ada auto-refresh
+sama sekali walau sudah didesain sejak awal.
+
+**Keputusan King Rezi (2026-10-16, lewat `AskQuestion`):** pilih opsi
+paling rendah risiko — selesaikan wiring **harian** sesuai desain ADR-093
+poin 7 apa adanya (bukan menaikkan frekuensi), reuse pola fan-out JOB-04
+(`EnqueueAnalyticsSyncUseCase.executeIfDue()`) yang sudah terbukti jalan di
+production. **Tidak perlu ADR baru** — ini murni menuntaskan keputusan yang
+sudah Accepted, bukan mengubah desain. Opsi menaikkan frekuensi (per
+beberapa jam) atau bypass Outstand lewat Meta Webhooks langsung
+(ditolak untuk MVP — melanggar ADR-040, kompleksitas App Review Meta tidak
+sepadan) dibahas di `CONVERSATIONS.md` entri 2026-10-16 tapi tidak dipilih.
+
+- [ ] **T-115.1** Buat `EnqueueImportSyncUseCase` (pola sama
+      `EnqueueAnalyticsSyncUseCase`, `enqueue-analytics-sync.ts`) —
+      `executeIfDue()` fan-out satu job `import.sync` per
+      `WorkspaceConnectedAccount` berstatus `active` yang belum dapat job
+      sejak awal hari UTC (reuse semantik `hasAccountJob`/`createdSince`,
+      cukup port baru tipis, jangan duplikasi logic `startOfUtcDay`)
+- [ ] **T-115.2** Buat job type baru `IMPORT_SYNC_JOB_TYPE` (`import.sync`)
+      + handler (pola sama `EngagementSyncJobHandler`/
+      `AnalyticsSyncJobHandler`) yang memanggil
+      `ImportPostsTriggerUseCase.runImportSync`/jalur periodik dengan
+      `actingUserId` di-resolve per akun lewat `resolveVerifiedAccountOwner`
+      (pola KI-088 yang sudah dipakai `triggerPeriodicForAccounts`) —
+      **pastikan tidak menduplikasi** logic yang sudah ada di
+      `triggerPeriodicForAccounts`, method itu kemungkinan besar bisa
+      dipanggil langsung per akun dari handler baru ini alih-alih ditulis
+      ulang
+- [ ] **T-115.3** Daftarkan `EnqueueImportSyncUseCase.executeIfDue()` +
+      handler `import.sync` baru ke composition root
+      `apps/web/src/app/api/jobs/run/route.ts` (pola identik blok
+      `enqueueAnalyticsSync`/`ANALYTICS_SYNC_JOB_TYPE` yang sudah ada,
+      termasuk opsi `?type=import` untuk trigger manual paksa ala
+      `?type=analytics` — berguna untuk verifikasi staging)
+- [ ] **T-115.4** Cek regresi guard biaya existing (ADR-093 poin 9) — cap
+      mingguan workspace dihitung dari `payload.trigger = "manual"` di
+      `background_jobs`; pastikan job `trigger: "periodic"` baru ini TIDAK
+      ikut kena guard yang ditujukan khusus jalur manual, dan sebaliknya
+      guard concurrent-import per akun (ADR-093 poin 8, berlaku untuk semua
+      sumber trigger) tetap menyala untuk jalur periodik ini juga
+- [ ] **T-115.5** Verifikasi end-to-end nyata di staging: pastikan job
+      harian benar-benar jalan tanpa aksi manual apa pun (pakai
+      `?type=import` sekali untuk mempercepat verifikasi), `lastImportedUntil`/
+      `lastImportRequestedAt` akun ter-update otomatis, dan post native baru
+      yang ditambahkan langsung di Facebook muncul di Postific dalam
+      waktu ≤24 jam tanpa klik "Sync Now"
+
+---
+
 ## Read-Only Enforcement
 
 ### T-091 · Post `Published`/`Failed` jadi read-only (tidak bisa dibuka ke Draft Editor)

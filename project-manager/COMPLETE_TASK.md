@@ -8,6 +8,65 @@ Seluruh perubahan penting pada dokumentasi maupun implementasi project dicatat p
 
 ---
 
+## 2026-10-16 (sesi keempat) — Investigasi KI-090 lanjutan + task baru T-115 (auto-sync post native ala Buffer)
+
+### Konteks
+King Rezi melaporkan gejala mirip KI-090 (comment post Imported "kurang
+lengkap") di akun Facebook "Cook It Real Good" (workspace "Lunch") — persis
+akun yang sama dipakai verifikasi T-113/T-114 kemarin. Sebelum menjawab,
+diverifikasi ulang langsung ke data nyata (bukan percaya klaim penutupan
+kemarin): query DB staging (seluruh 39 `publishing_posts` sudah punya
+`outstand_post_id` terisi), cek `background_jobs` (`engagement.sync` jalan
+rutin ~20 menit tanpa error), dan spot-check langsung lewat MCP Outstand
+`get_replies` ke 3 post lama — API asli mengembalikan array kosong (memang
+tidak ada comment), sementara post yang diketahui punya 1 comment test
+mengembalikan persis comment yang sama dengan isi `engagement_inbox_items`.
+**Kesimpulan: bukan bug**, pipeline KI-090 terbukti bekerja benar di data
+nyata.
+
+Diskusi berlanjut ke pertanyaan "sejauh apa post diambil saat import?" (90
+hari untuk trigger awal on-connect, watermark `lastImportedUntil` untuk
+trigger periodik/manual, limit 100/job tanpa pagination — ADR-093) lalu
+"apakah post native Facebook otomatis masuk Postific?". Investigasi kode
+menemukan **gap nyata**: `ImportPostsTriggerUseCase.triggerPeriodicForAccounts`
+(jalur periodik ADR-093 poin 7) sudah diimplementasikan penuh sejak T-090.3
+tapi **tidak pernah didaftarkan** ke composition root job runner
+(`/api/jobs/run/route.ts` cuma mendaftarkan 3 handler: resolve_outcome,
+engagement.sync, analytics.sync — tidak ada `import.sync`). Konsisten
+dengan catatan eksplisit sebelumnya ("cron wiring asli tetap di luar
+scope"), tapi ini pertama kalinya dampaknya diartikulasikan jelas ke King
+Rezi: satu-satunya cara post native masuk Postific saat ini adalah klik
+manual "Sync Now".
+
+King Rezi minta rekomendasi cara yang masuk akal (dibandingkan Buffer).
+Dicek dulu `integration-layer.md` (IL-D06/IL-D09) — Outstand memang tidak
+punya webhook untuk deteksi konten native baru (pola sama analytics &
+comments: pull-based polling, bukan push). 3 opsi diajukan via
+`AskQuestion`: (A) selesaikan wiring cron harian sesuai desain ADR-093
+apa adanya, reuse pola fan-out JOB-04 — tanpa ADR baru; (B) naikkan
+frekuensi (per beberapa jam) — perlu amandemen ADR-093, biaya naik linear;
+(C) bypass Outstand lewat Meta Webhooks langsung — ditolak, melanggar
+ADR-040. **King Rezi memilih Opsi A**, lalu memilih "buat task dulu,
+eksekusi menyusul" (bukan eksekusi langsung).
+
+### Decisions
+Tidak ada ADR baru — Opsi A murni menuntaskan keputusan yang sudah
+Accepted di ADR-093 poin 7, bukan mengubah desain.
+
+### Added
+- **T-115** (`tasks/v02-publishing-mvp.md`, domain `integration`, ⏳ Not
+  Started, 5 subtask) — wiring `EnqueueImportSyncUseCase` (pola fan-out
+  JOB-04) + handler `import.sync` baru ke `/api/jobs/run/route.ts`, supaya
+  jalur periodik ADR-093 poin 7 benar-benar jalan di production (bukan
+  cuma manual "Sync Now"). `TASKS.md` indeks diperbarui (v0.2: 30→31 task,
+  +1 ⏳; Total: 101→102 task, 263→268 subtask terdefinisi).
+
+### Fixed
+Tidak ada — sesi ini murni investigasi + perencanaan, tidak ada perubahan
+kode.
+
+---
+
 ## 2026-10-16 (sesi ketiga) — Layar Start Page → Page Editor + wiring App Prototype (ADR-130)
 
 ### Konteks
