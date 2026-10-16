@@ -153,7 +153,7 @@ orkestrasi" di atas untuk kapan perlu `isolation: "worktree"`).
 
 ---
 
-## Gate pola ambigu shadcn (T-103.2, AGENTS.md rule 17)
+## Gate pola ambigu shadcn (T-103.2, AGENTS.md rule 10)
 
 Sebelum subagent implementasi (terutama **Mark UI Engineer**) menulis kode
 untuk list/komposisi yang punya **lebih dari satu pola shadcn valid** secara
@@ -166,7 +166,7 @@ Components `readme.md` sudah spesifik, bukan generik "shadcn X"). Kalau
 `AskUserQuestion` (bukan menebak salah satu opsi), sertakan opsi konkret
 yang sedang dipertimbangkan. Ini mencegah pengulangan drift KI-054/KI-055
 (AI menebak pola "masuk akal" yang ternyata bukan yang King Rezi mau) — detail
-lengkap di `AGENTS.md` rule 17 dan `tickets/v07-astryx-shadcn-migration.md`
+lengkap di `AGENTS.md` rule 10 dan `tickets/v07-astryx-shadcn-migration.md`
 § T-103.
 
 ## Gate verifikasi struktur setelah implementasi (T-103.3)

@@ -28,7 +28,7 @@ secara otomatis — lihat `eslint.config.mjs`).
 |-------|-----------|--------|
 | Domain module layout & public API via `index.ts` | `monorepo-setup.md`, ADR-026 |
 | Naming komponen PascalCase / folder-helper kebab-case / peletakan `components/` via LCA | ADR-069 |
-| Persona & role canonical names (Raka, Maya, Sinta, Dimas, Lara / Account Owner, Admin, Creator) | ADR-074, AGENTS.md rule 11 |
+| Persona & role canonical names (Raka, Maya, Sinta, Dimas, Lara / Account Owner, Admin, Creator) | ADR-074, AGENTS.md rule 8 |
 | Port lokal + composition root untuk komunikasi cross-domain tanpa import konkret | ADR-078 |
 
 ---

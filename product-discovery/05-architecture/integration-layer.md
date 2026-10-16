@@ -92,7 +92,7 @@ Anti-Corruption Layer (ACL) adalah layer terjemahan yang:
 (ADR-059), tapi Analytics BC (metric ingestion) juga butuh mengimplementasikan
 method yang sama (`fetchPostMetrics`, `fetchWorkspaceMetrics`). File lokasi
 lama di domain `publishing` dipertahankan sebagai re-export barrel. Ini
-pengecualian baru pada aturan `packages/shared` (AGENTS.md rule 8): port/ACL
+pengecualian baru pada aturan `packages/shared` (AGENTS.md rule 5): port/ACL
 contract kini termasuk kategori yang boleh hidup di sana, selain shared types.
 
 **(amandemen ADR-092)** `schedulePost`/`publishNow` menerima SEMUA target

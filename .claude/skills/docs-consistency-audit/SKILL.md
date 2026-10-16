@@ -16,8 +16,8 @@ description: >-
 
 Skill ini untuk audit **sengaja dan menyeluruh** — bukan proses reaktif yang
 menempel di akhir tiap task. Tujuannya menangkap drift yang lolos dari
-kebiasaan "update docs setelah kerja" (`AGENTS.md` § "Setelah mengubah
-sesuatu"): ADR yang mengamandemen ADR lama tapi baseline yang dirujuknya
+kebiasaan "update docs setelah kerja" (`project-os-navigator/SKILL.md`
+§ "3. Pekerjaan Baru / Pembuatan Dokumen"): ADR yang mengamandemen ADR lama tapi baseline yang dirujuknya
 belum diupdate, hitungan/status yang diam-diam desync antar file, context/
 yang masih menjelaskan pola yang sudah digantikan.
 
