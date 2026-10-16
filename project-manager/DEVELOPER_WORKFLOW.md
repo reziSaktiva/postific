@@ -37,13 +37,11 @@ flowchart TD
   I --> K
 
   K --> L[Kode di apps/web/src/domains/*<br/>DDD + Modular Monolith]
-  L --> M[Update tasks/vXX-*.md<br/>+ hitungan di TASKS.md]
+  L --> M[Update tiket di tasks/vXX<br/>keluarkan dari AVAILABLE_TASKS]
   M --> N{Phase / milestone / Known Issues<br/>/ fokus terdekat berubah?}
   N -->|Ya| P[Update PROJECT_STATE.md]
-  N -->|Tidak| Q[Skip PROJECT_STATE.md]
-  P --> R[Tambah entri baru<br/>di COMPLETE_TASK.md]
-  Q --> R
-  R --> O[Selesai]
+  N -->|Tidak| O[Selesai]
+  P --> O
 ```
 
 **Rujukan:** `../AGENTS.md` (aturan keras + mapping task→baca),
@@ -143,7 +141,7 @@ disconnect (KSP-D09) — tetap menunggu di antrean sampai akun reconnect.
 * `../AGENTS.md` — pintu masuk agent, aturan keras
 * `../context/README.md` — indeks AI Context per domain
 * `PROJECT_STATE.md` — phase, milestone, Known Issues, blockers
-* `TASKS.md` — indeks backlog task per release; detail + subtask di `tasks/vXX-*.md`
+* `AVAILABLE_TASKS.md` — antrian task yang belum selesai; tiket di `tasks/vXX-*.md`
 * `DECISIONS.md` — seluruh ADR
 * `../product-discovery/04-ux/user-flows.md` — flow lengkap (UF-01 s/d UF-06)
 * `../product-discovery/02-product/roles-permissions.md` — roles & content status

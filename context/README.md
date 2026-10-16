@@ -48,10 +48,10 @@ context/
 
 ## Cara pakai (agent)
 
-1. Baca `../AGENTS.md` dan Snapshot `../project-manager/PROJECT_STATE.md` dulu. Kalau akan mengerjakan task: lanjut ke `../project-manager/TASKS.md` (indeks backlog), lalu **hanya** file `tasks/vXX-*.md` yang memuat task itu.
+1. Baca `../AGENTS.md` dan Snapshot `../project-manager/PROJECT_STATE.md` dulu. Kalau akan mengerjakan task: lanjut ke `../project-manager/AVAILABLE_TASKS.md` dan berhenti di situ untuk memilih ID, lalu buka hanya section tiket itu di `tasks/vXX-*.md`.
 2. Buka **satu atau dua** file `ctx-*` yang relevan dengan task (lihat tabel mapping di `AGENTS.md`).
 3. Ikuti link ke baseline; baca dokumen sumber sebelum mengubah kode atau keputusan material.
-4. Jangan menduplikasi status progress (% / ✅ / phase) di file `context/` — itu hanya di `PROJECT_STATE.md`, kecuali status per-task/subtask yang tempatnya di `TASKS.md` + `tasks/` (ADR-062).
+4. Jangan menduplikasi status progress (% / ✅ / phase) di file `context/` — itu hanya di `PROJECT_STATE.md`, kecuali status task yang tempatnya di `AVAILABLE_TASKS.md` + `tasks/` (ADR-062, ADR-131).
 
 ---
 

@@ -6,8 +6,8 @@ File peran (semua `*.md` di folder ini **kecuali dokumen ini sendiri**)
 diklasifikasikan **Static Reference** (`project-manager/PROJECT_RULES.md`) —
 read-only (chmod 444) dan **hanya boleh diubah atas permintaan eksplisit
 user**, bukan inisiatif AI, karena scope dan batasannya sudah disepakati
-langsung dengan user. Perubahan struktural wajib dicatat di
-`../../project-manager/COMPLETE_TASK.md`.
+langsung dengan user. Perubahan struktural dicatat sebagai ADR atau di tiket
+yang terkait (ADR-131).
 
 ---
 
@@ -21,7 +21,7 @@ langsung dengan user. Perubahan struktural wajib dicatat di
 | `elon-backend-engineer.md`        | Elon Backend Engineer        | Outstand ACL, webhook, background jobs, schema Prisma                                   | Tidak                                              |
 | `ridwan-architecture-reviewer.md` | Ridwan Architecture Reviewer | Review kepatuhan boundary DDD, read-only                                                | Ya — `Read, Bash, Grep, Glob, ReportFindings`      |
 | `najwa-qa-engineer.md`            | Najwa QA Engineer            | Vitest + verifikasi browser end-to-end                                                  | Ya — `Read, Bash, Grep, Glob, mcp__Claude_Browser, DesignSync` |
-| `gibran-project-manager.md`       | Gibran Project Manager       | Update `PROJECT_STATE.md` / `TASKS.md` / `tasks/` / `DECISIONS.md` / `COMPLETE_TASK.md` | Ya — `Read, Edit, Write, Bash, Grep, Glob`         |
+| `gibran-project-manager.md`       | Gibran Project Manager       | Update `PROJECT_STATE.md` / `AVAILABLE_TASKS.md` / `tasks/` / `DECISIONS.md` | Ya — `Read, Edit, Write, Bash, Grep, Glob`         |
 
 **Override model/effort per subagent:** frontmatter tiap file peran boleh
 menambah `effort: <low|medium|high|xhigh|max>` (dipakai `ridwan-architecture-reviewer.md`
@@ -29,7 +29,7 @@ dan `najwa-qa-engineer.md` sebagai quality gate — butuh ketelitian ekstra,
 bukan cuma golden path) dan/atau `model: <sonnet|opus|haiku|fable>` (belum
 dipakai subagent manapun saat ini) untuk menimpa default sesi utama.
 Perubahan ini termasuk "perubahan struktural" (README ini § "Mengubah
-subagent ini") — chmod dance + entri `COMPLETE_TASK.md` tetap wajib.
+subagent ini") — chmod dance tetap wajib, lalu catat di ADR atau tiket.
 Pertimbangkan risiko sebelum menurunkan `model` pada subagent yang tugasnya
 butuh ketelitian arithmetic/cross-file (mis. Gibran menghitung ulang jumlah
 subtask) — model lebih lemah yang salah hitung berarti sesi tambahan untuk
@@ -104,8 +104,8 @@ update catatan ini alih-alih mengasumsikan keterbatasan berlaku selamanya.
      implementasi kalau review tidak diminta).
   3. **Gibran** (governance/docs) — **selalu paling akhir, sendirian**.
      Jangan dijalankan bersamaan dengan agent lain yang berpotensi menyentuh
-     `PROJECT_STATE.md` / `TASKS.md` / `tasks/` / `DECISIONS.md` /
-     `COMPLETE_TASK.md`, untuk mencegah konflik/duplikasi status.
+     `PROJECT_STATE.md` / `AVAILABLE_TASKS.md` / `tasks/` / `DECISIONS.md`,
+     untuk mencegah konflik/duplikasi status.
 - Kalau beberapa agent implementasi mengubah file yang berpotensi tumpang
   tindih, gunakan opsi `isolation: "worktree"` per agent supaya tidak saling
   menimpa.
@@ -194,7 +194,7 @@ keliru, dst.):
 
 1. Konfirmasi eksplisit dari user dulu — jangan inisiatif sendiri.
 2. `chmod 644 <file>.md`, edit, lalu `chmod 444 <file>.md` lagi.
-3. Catat perubahan di `../../project-manager/COMPLETE_TASK.md`.
+3. Catat perubahan sebagai ADR atau di tiket yang terkait (ADR-131).
 
 ---
 

@@ -1,6 +1,6 @@
 # v0.7 — Migrasi Astryx → shadcn/ui
 
-> Bagian dari backlog berjenjang. Indeks + legend status: [`../TASKS.md`](../TASKS.md).
+> Bagian dari backlog berjenjang. Antrian: [`../AVAILABLE_TASKS.md`](../AVAILABLE_TASKS.md). Tiket selesai tetap di file ini. Deskripsi baru: ADR-131.
 
 **Tujuan rilis:** Mengganti fondasi UI component system dari Astryx ke
 shadcn/ui secara menyeluruh, sesuai **ADR-097** (reverse ADR-041).

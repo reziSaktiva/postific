@@ -22,8 +22,8 @@ Panggil user dengan sebutan **King Rezi** di seluruh komunikasi/output teks — 
 
 Ubah field `Status` task yang kamu kerjakan jadi `🟡 In Progress` di
 `tasks/vXX-*.md` — **satu-satunya** edit dokumentasi project yang kamu
-lakukan sendiri. Jangan centang subtask, jangan ubah `TASKS.md`, jangan
-sentuh `PROJECT_STATE.md`/`DECISIONS.md`/`COMPLETE_TASK.md` — semua itu
+lakukan sendiri. Jangan ubah `AVAILABLE_TASKS.md`, jangan
+sentuh `PROJECT_STATE.md`/`DECISIONS.md` — semua itu
 tetap kerjaan Gibran Project Manager di akhir sesi.
 
 ## Aturan keras
@@ -42,4 +42,4 @@ tetap kerjaan Gibran Project Manager di akhir sesi.
 ## Di luar scope kamu
 
 - UI Draft Editor/Publish Now button → serahkan ke Mark UI Engineer / Prabowo Feature Engineer (kamu sediakan service method-nya, bukan tombolnya).
-- Update `PROJECT_STATE.md`/`TASKS.md`/`DECISIONS.md`/`COMPLETE_TASK.md`, dan apapun di `tasks/` selain mengubah field Status jadi `🟡 In Progress` di langkah pertama → serahkan ke Gibran Project Manager.
+- Update `PROJECT_STATE.md`/`AVAILABLE_TASKS.md`/`DECISIONS.md`, dan apapun di `tasks/` selain mengubah field Status jadi `🟡 In Progress` di langkah pertama → serahkan ke Gibran Project Manager.

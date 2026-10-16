@@ -37,7 +37,7 @@ salah satu dari:
 
 | Argumen                          | Artinya                                                                 |
 | --------------------------------- | ------------------------------------------------------------------------ |
-| `project-manager`                 | `PROJECT_STATE.md`, `TASKS.md` + seluruh `tasks/vXX-*.md`, `DECISIONS.md` + seluruh `decisions/ADR-*.md` |
+| `project-manager`                 | `PROJECT_STATE.md`, `AVAILABLE_TASKS.md` + seluruh `tasks/vXX-*.md` + `specs/`, `DECISIONS.md` + seluruh `decisions/ADR-*.md` |
 | `context`                         | Seluruh `context/ctx-*.md` + `context/README.md`                        |
 | `product-discovery`               | Seluruh `product-discovery/**/*.md`                                     |
 | Kombinasi (`product-discovery+context`, dst.) | Union dari area yang disebut, dipisah `+`                   |
@@ -45,17 +45,13 @@ salah satu dari:
 | Nama topik/fitur bebas (mis. `calendar`, `workspace switcher`, `invite`) | **Topic-based scope** — lihat Langkah 0b |
 | Kosong / tidak ada argumen        | **Jangan menebak** — tanya dulu ke King Rezi area mana yang dimaksud (opsi: salah satu area di atas, atau topik spesifik) |
 
-**Selalu kecualikan `project-manager/COMPLETE_TASK.md` dari scope apapun**
-kecuali King Rezi eksplisit menyebutnya — ini hard rule project (`AGENTS.md`),
-bukan keputusan skill ini.
-
 ### Langkah 0b — Topic-Based Scope
 
 Kalau argumen adalah nama topik/fitur (bukan nama area baku di atas):
 
 1. Grep kata kunci topik (dan sinonim/istilah terkait yang jelas — mis.
    "calendar" juga cari "T-033", "kalender") di seluruh:
-   - `project-manager/TASKS.md` + `project-manager/tasks/`
+   - `project-manager/AVAILABLE_TASKS.md` + `project-manager/tasks/`
    - `project-manager/DECISIONS.md` + `project-manager/decisions/`
    - `project-manager/PROJECT_STATE.md`
    - `context/`
@@ -85,12 +81,10 @@ yang ambigu) tetap dilakukan oleh AI utama, bukan diserahkan ke subagent.
 
 Periksa lintas dokumen dalam scope untuk kategori berikut:
 
-1. **Status/progress drift** — status task berbeda antara `TASKS.md`,
-   `tasks/vXX-*.md`, dan `PROJECT_STATE.md` untuk task/ID yang sama.
-2. **Hitungan/index drift** — jumlah task selesai, breakdown status
-   (✅/🟡/⏳/🚫/⏸️), jumlah subtask di **Indeks release** tidak cocok dengan
-   isi aktual file `tasks/vXX-*.md` (hitung ulang langsung dari sana, jangan
-   percaya angka yang tertulis).
+1. **Status/progress drift** — status task terbuka di `AVAILABLE_TASKS.md`
+   berbeda dari tiket di `tasks/vXX-*.md`, atau task ✅ masih tertinggal di antrian.
+2. **Antrian drift** — `AVAILABLE_TASKS.md` memuat task ✅, atau task ⏳/🟡/🚫
+   yang ada di `tasks/vXX-*.md` tidak muncul di antrian.
 3. **ADR amandemen belum tercermin** — ADR baru mengubah/mengamandemen ADR
    lama, tapi dokumen lain yang merujuk ke keputusan lama (baseline
    `product-discovery/`, `context/ctx-*.md`, atau task lain) belum diupdate
@@ -163,13 +157,10 @@ eksplisit — jangan mengarang temuan supaya laporan terlihat berisi.
 2. Untuk temuan kelas B: tanya dulu, tunggu keputusan. Kalau keputusan itu
    mengubah baseline/arsitektur, ikuti alur ADR baru (mode "Planning Change"
    di `project-os-navigator`).
-3. Setiap perbaikan yang benar-benar dieksekusi dicatat sebagai entri baru
-   di `project-manager/COMPLETE_TASK.md` (section `### Fixed`), mengikuti
-   format yang sama dengan mode "Bug / Inkonsistensi Dokumen".
-4. Kalau perbaikan menyentuh hitungan/status di `TASKS.md` atau
-   `PROJECT_STATE.md`, pastikan diupdate bersamaan (jangan salah satu saja —
-   ini penyebab paling umum drift berulang, lihat riwayat "Koreksi hitungan"
-   di `TASKS.md`).
+3. Setiap perbaikan yang benar-benar dieksekusi cukup tercatat di tiket atau ADR.
+   Jangan menulis changelog terpisah (ADR-131).
+4. Kalau perbaikan menyentuh status tiket, update `tasks/vXX-*.md` dan
+   `AVAILABLE_TASKS.md` bersamaan.
 
 ---
 
@@ -177,8 +168,6 @@ eksplisit — jangan mengarang temuan supaya laporan terlihat berisi.
 
 - Jangan trigger skill ini secara otomatis di sesi kerja biasa — hanya saat
   diminta eksplisit.
-- Jangan pernah membaca `COMPLETE_TASK.md` sebagai bagian audit kecuali
-  diminta eksplisit oleh nama file itu.
 - Jangan memperbaiki apapun sebelum melaporkan dan dikonfirmasi — berlaku
   untuk temuan kelas A maupun B.
 - Untuk temuan kelas B, jangan menebak mana yang benar walau salah satu

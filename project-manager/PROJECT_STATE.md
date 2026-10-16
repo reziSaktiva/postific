@@ -4,11 +4,11 @@
 
 * **Phase / Milestone:** Phase 6 — Implementation · M8 — Development (Sprint 5) · Overall: M7 100%, M8 in progress
 * **Active Mode:** Ready for Development — implementasi fitur produk sesuai Architecture & Engineering Baseline
-* **Top Next Tasks:** **T-037 Perkaya aturan coding** (🟡 In Progress; snapshot kedua 2026-10-13). Berikutnya, berurutan: **T-116** Ganti nama AGENTS.md vendor, **T-117** Tipiskan AGENTS.md root, **T-118** Higiene sesi agent. Salinan ID dari **Fokus sekarang** di [`TASKS.md`](TASKS.md).
+* **Top Next Tasks:** **T-037 Perkaya aturan coding** (🟡 In Progress). Berikutnya, berurutan: **T-116** Ganti nama AGENTS.md vendor, **T-117** Tipiskan AGENTS.md root, **T-118** Higiene sesi agent. Antrian lengkap: [`AVAILABLE_TASKS.md`](AVAILABLE_TASKS.md).
 * **Blocker:** 1 penghalang aktif — KI-015 (Google OAuth). Migrasi T-051 dan sisa follow-up KI-025 sudah diverifikasi tertutup di staging (2026-10-13). Detail di section **Blockers**.
-* **Backlog task lengkap:** [`TASKS.md`](TASKS.md) — 105 task per release (v0.1 → v1.0, + v0.7 migrasi Astryx→shadcn/ui, ADR-097), detail di `tasks/`. Jangan cari detail task di file ini.
+* **Antrian task:** [`AVAILABLE_TASKS.md`](AVAILABLE_TASKS.md). Tiket, termasuk yang selesai, ada di `tasks/`. Jangan cari detail task di file ini.
 * **KI-073–080 Resolved (2026-09-26)** — 4 bug publish Instagram (caption wajib untuk Story, Story publish tanpa media, upload media >1MB gagal, avatar akun tidak tampil di sidebar) diperbaiki + diverifikasi live ke akun Instagram/Facebook real (ADR-120). 2 bug turunan ditemukan saat verifikasi (akun `disconnected` tidak bisa reconnect; callback OAuth silent-success untuk conflict genuine) diperbaiki via **ADR-122**. Plus **KI-080** (baru+langsung Resolved) — Railway staging build gagal (`next.config.ts` tidak bisa resolve import workspace `@social/shared`) diperbaiki di branch terpisah sebelum masuk ke fix KI-078/079.
-* Detail phase/mode/issue ada di section di bawah. Riwayat completed/ADR lengkap: lihat `COMPLETE_TASK.md` (⚠️ jangan dibaca AI kecuali diperintah)/`DECISIONS.md`.
+* Detail phase/mode/issue ada di section di bawah. Tiket selesai ada di `tasks/`. Keputusan ada di `DECISIONS.md`.
 
 ---
 
@@ -18,7 +18,7 @@
 | ------------ | ---------- |
 | Version      | 1.1.2      |
 | Status       | Active     |
-| Last Updated | 2026-10-15 |
+| Last Updated | 2026-10-16 |
 
 ---
 
@@ -49,10 +49,10 @@ M7 Repository & Bootstrap **selesai**. M8 Development **berjalan**.
 * Integrasi Outstand runtime asli (ADR-040) sudah hidup lewat Real
   OutstandAdapter (T-025 ✅, KI-003 Resolved); Fake jalur produksi dihapus
   (T-106 ✅, ADR-119 — `OUTSTAND_API_KEY` wajib). Migrasi UI
-  Astryx→shadcn/ui (ADR-097, rilis v0.7) sudah tuntas 100% — riwayat lengkap
-  di `COMPLETE_TASK.md`, bukan di sini.
-* **Perencanaan task** kini berjenjang per release di [`TASKS.md`](TASKS.md) +
-  `tasks/` (ADR-062).
+  Astryx→shadcn/ui (ADR-097, rilis v0.7) sudah tuntas 100% — tiketnya di
+  `tasks/v07-astryx-shadcn-migration.md`, bukan di sini.
+* **Antrian task** ada di [`AVAILABLE_TASKS.md`](AVAILABLE_TASKS.md). Tiket
+  per rilis ada di `tasks/` (ADR-062, ADR-131).
 
 ---
 
@@ -98,8 +98,8 @@ Restricted Actions:
 
 ## In Progress
 
-Task berstatus 🟡 dan subtask detail **hanya** ada di [`TASKS.md`](TASKS.md) +
-`tasks/vXX-*.md` (ADR-062) — tidak diduplikasi di sini supaya tidak desync.
+Task berstatus 🟡 **hanya** ada di [`AVAILABLE_TASKS.md`](AVAILABLE_TASKS.md)
+dan section tiketnya di `tasks/vXX-*.md` (ADR-131) — tidak diduplikasi di sini.
 
 Catatan non-task (bukan task, jadi memang layak di sini): template
 `design-tokens.md` berstatus Draft / TBD; nilai final berkembang iteratif
@@ -111,18 +111,15 @@ amandemen ADR-038 & ADR-041).
 
 ## Next Tasks
 
-Daftar lengkap 105 task (v0.1 → v1.0) beserta subtask, dependency, rantai
-blocker, catatan urutan rilis, dan keputusan terbuka yang menunggu King
-Rezi — semuanya **hanya** di **[`TASKS.md`](TASKS.md)** (section **Fokus
-sekarang** + **Keputusan terbuka**). Snapshot di atas sudah menyalin ID +
-judul singkatnya. **Jangan menulis ulang daftar/detail task di sini**
-(ADR-062) — daftar ketiga akan langsung desync.
+Antrian task yang belum selesai ada di **[`AVAILABLE_TASKS.md`](AVAILABLE_TASKS.md)**.
+Snapshot di atas sudah menyalin ID + judul singkatnya. **Jangan menulis ulang
+daftar/detail task di sini** (ADR-062, ADR-131).
 
 ---
 
 ## Known Issues
 
-> **ID `KI-XXX`** (ADR-066, amandemen ADR-067) — global, tidak pernah didaur ulang. `Status`: `Open` / `Resolved` / `Sebagian Resolved — sisa scope: <ID>` / `Promoted to T-XXX`. `Sebagian Resolved` dipakai kalau sebagian besar gap sudah ditutup tapi ada 1 subtask/scope kecil yang eksplisit belum — sebutkan sisa scope-nya di string status. Terpisah dari namespace task (`T-XXX`) karena belum tentu jadi task formal. **Entry `Resolved` yang sudah tercatat di `COMPLETE_TASK.md` dihapus dari daftar ini** (bukan dibiarkan dengan status `Resolved`) — riwayatnya tetap ada di `COMPLETE_TASK.md`, ID-nya tidak didaur ulang untuk entry baru.
+> **ID `KI-XXX`** (ADR-066, amandemen ADR-067, amandemen ADR-131) — global, tidak pernah didaur ulang. `Status`: `Open` / `Resolved` / `Sebagian Resolved — sisa scope: <ID>` / `Promoted to T-XXX`. `Sebagian Resolved` dipakai kalau sebagian besar gap sudah ditutup tapi ada 1 subtask/scope kecil yang eksplisit belum — sebutkan sisa scope-nya di string status. Terpisah dari namespace task (`T-XXX`) karena belum tentu jadi task formal. **Entry `Resolved` dihapus dari daftar ini begitu tiket atau commit yang menutupnya ada** — ID-nya tidak didaur ulang untuk entry baru.
 
 ### KI-015 · Env var `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` belum diisi
 
@@ -132,7 +129,7 @@ judul singkatnya. **Jangan menulis ulang daftar/detail task di sini**
 | Kategori | Dependency |
 | Terkait | T-025, T-026 |
 
-Sama seperti `OUTSTAND_API_KEY` (KI-003, Resolved 2026-09-24 — lihat `COMPLETE_TASK.md`):
+Sama seperti `OUTSTAND_API_KEY` (KI-003, Resolved 2026-09-24 — lihat tiket di `tasks/`):
 
 - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` — kode Google OAuth di `auth.ts` sudah siap (`socialProviders.google` terdaftar kondisional lewat `env.ts`), tapi tanpa env ini "Sign in with Google" tidak aktif. Masih placeholder dummy.
 - `JOB_SECRET` — **resolved 2026-08-14**: sudah diisi nilai asli generated di Railway staging (env var), dan job runner (T-027, `POST /api/jobs/run` via Railway Cron `X-Job-Secret`) sudah terverifikasi end-to-end 2x run berturut-turut SUCCESS di staging. Local `.env.local` masih boleh memakai nilai dummy untuk dev.
@@ -161,7 +158,7 @@ sekali — belum ada project/environment Railway `production`, dan belum
 ada project Supabase terpisah untuk production (staging permanen memakai
 project Supabase existing "Sosial Media Management",
 ref `ndcrkzqgqukqfmekgoze` — dikonfirmasi permanen via ADR-081, amandemen
-EM-D02; lihat catatan di `COMPLETE_TASK.md` 2026-08-14). Baseline
+EM-D02; lihat tiket di `tasks/` dan commit 2026-08-14). Baseline
 `deployment-infrastructure.md`, `environment-topology`
 (ADR-029), region Singapore (ADR-028), dan CI/CD pipeline (ADR-032) untuk
 jalur production masih rencana, belum ada realisasi. Tidak memblokir M8,
@@ -535,24 +532,24 @@ bug di kode.
 migrate deploy` ke DB dev/live) — King Rezi menjalankan `bun run
 db:deploy`, migration terverifikasi ter-apply (Najwa QA Engineer cross-check
 via Supabase MCP), retest end-to-end nyata 5 skenario webhook semua PASS.
-**T-026 dan T-036 keduanya ditutup `✅ Done`**, lihat `COMPLETE_TASK.md`.
+**T-026 dan T-036 keduanya ditutup `✅ Done`**, lihat tiket di `tasks/`.
 
 **Resolved 2026-08-14:** KI-025 (Railway belum pernah dibuat) — staging
-sudah live & terverifikasi, lihat `COMPLETE_TASK.md`. Sisa gap production
+sudah live & terverifikasi, lihat tiket di `tasks/`. Sisa gap production
 dicatat terpisah sebagai **KI-028** (tidak memblokir M8/T-027 staging).
 
 **Resolved 2026-08-24:** KI-034 (QA Najwa belum retest golden path switch
 workspace dengan dialog konfirmasi Tier 2 baru, T-089.6/ADR-089) — QA
 formal Najwa selesai, lolos penuh (unit test + full suite 157 passed/3
 skipped/0 gagal + golden path browser end-to-end, tidak ada bug baru),
-lihat `COMPLETE_TASK.md`.
+lihat tiket di `tasks/`.
 
 **Resolved 2026-08-31:** KI-038 (T-093.4 verifikasi RBAC end-to-end 2-akun
 browser nyata belum dilakukan) — Najwa QA Engineer menuntaskan verifikasi
 dengan 3 akun real (Owner/Admin/Creator) di satu workspace, seluruh skenario
 RBAC PASS; 1 bug ditemukan (Creator bisa mengakses `/settings/members` yang
 seharusnya "Tidak ada akses") dan sudah diperbaiki + diverifikasi ulang
-(commit `6fdf272`), lihat `COMPLETE_TASK.md`.
+(commit `6fdf272`), lihat tiket di `tasks/`.
 
 Detail masing-masing ada di section **Known Issues** di atas — tabel ini
 hanya pointer supaya blocker aktif langsung terlihat tanpa harus menyisir
@@ -562,12 +559,12 @@ seluruh daftar Known Issues.
 
 ## Completed (Ringkasan)
 
-* **KI-086 ✅ Resolved — reconnect Facebook `disconnected`/`reconnect-required` tidak lagi dead flow (2026-10-15, ADR-127)** — `createConnectedAccounts` kini mereaktivasi row existing yang bukan `active` (lewat flow "Connect Account" → Facebook Pages Picker), bukan skip diam-diam. Claude Design dicek dulu (rule 17): pola Reconnect generik, tidak ada pengecualian Facebook di desain. Scope dikunci backend-only — `ReconnectButton` tetap disembunyikan untuk Facebook (adapter throw eksplisit untuk platform ini, bukan gap UI). Detail: `decisions/ADR-127-reaktivasi-connected-account-facebook-ki086.md`, `COMPLETE_TASK.md`.
-* **KI-088 ✅ Resolved — gap `actingUserId` jalur periodik Import Posts ditutup (2026-10-15)** — King Rezi memilih (lewat `AskUserQuestion`) reuse pola JOB-04/JOB-03 (`findAccountOwnerByOutstandAccountId`) alih-alih `Workspace.ownerId` langsung. `triggerPeriodicForAccounts` sekarang me-resolve `actingUserId` sendiri per akun, tanpa dependency baru di composition root. Detail: `tasks/v02-publishing-mvp.md` § T-090 addendum, `COMPLETE_TASK.md`.
-* **T-114 ✅ TUNTAS 5/5 subtask — backfill otomatis `outstandPostId` post Imported lama (2026-10-15)** — lanjutan langsung T-113: 36 dari 39 post Imported lama di akun test masih `outstandPostId: null` (T-113 cuma memperbaiki import baru ke depan). Mekanisme permanen ditambahkan — tiap Sync Now/periodik otomatis backfill kalau masih ada gap, reuse namespace lock T-113. 0 temuan review Ridwan. Diverifikasi end-to-end nyata: 39/39 ter-backfill setelah satu kali Sync Now. Detail: `tasks/v02-publishing-mvp.md` § T-114, `COMPLETE_TASK.md`.
-* **T-113 ✅ TUNTAS 4/4 subtask — comment post Imported ikut ter-sync ke Engage Inbox (2026-10-15)** — promosi **KI-090**. `outstandPostId` kini ditangkap+disimpan untuk post hasil Import Posts. 2 bug konkurensi/cross-post CONFIRMED ditemukan & diperbaiki lewat 3 ronde review Ridwan (unique index global, lalu race antar transaksi via `pg_advisory_xact_lock`). Diverifikasi end-to-end nyata: comment Reels Facebook berhasil masuk Comments Inbox. Detail: `tasks/v02-publishing-mvp.md` § T-113, `COMPLETE_TASK.md`.
-* **T-005 ✅ TUNTAS 5/5 — email verification flow (2026-10-14)** — Resend mengirim reset password dan verifikasi email. `/verify-email` hidup. `requireEmailVerification` aktif. Akun lama di-backfill lewat migrasi `20261014160000`. Accept-invite memakai cookie httpOnly `invite-email-proof` supaya sign-up tanpa OTP tidak ikut terverifikasi. Perbaikan review PR #168 juga mengembalikan pekerjaan staging (T-016.4, T-030.3, T-091) yang akan terhapus kalau branch di-merge apa adanya. Detail: `tasks/v01-foundation.md` § T-005, `COMPLETE_TASK.md`.
-Berikut ~5 item terakhir yang diselesaikan. Riwayat lengkap (sejak M0): lihat `COMPLETE_TASK.md` — ⚠️ jangan dibaca AI kecuali diperintah eksplisit King Rezi.
+* **KI-086 ✅ Resolved — reconnect Facebook `disconnected`/`reconnect-required` tidak lagi dead flow (2026-10-15, ADR-127)** — `createConnectedAccounts` kini mereaktivasi row existing yang bukan `active` (lewat flow "Connect Account" → Facebook Pages Picker), bukan skip diam-diam. Claude Design dicek dulu (rule 17): pola Reconnect generik, tidak ada pengecualian Facebook di desain. Scope dikunci backend-only — `ReconnectButton` tetap disembunyikan untuk Facebook (adapter throw eksplisit untuk platform ini, bukan gap UI). Detail: `decisions/ADR-127-reaktivasi-connected-account-facebook-ki086.md`.
+* **KI-088 ✅ Resolved — gap `actingUserId` jalur periodik Import Posts ditutup (2026-10-15)** — King Rezi memilih (lewat `AskUserQuestion`) reuse pola JOB-04/JOB-03 (`findAccountOwnerByOutstandAccountId`) alih-alih `Workspace.ownerId` langsung. `triggerPeriodicForAccounts` sekarang me-resolve `actingUserId` sendiri per akun, tanpa dependency baru di composition root. Detail: `tasks/v02-publishing-mvp.md` § T-090 addendum.
+* **T-114 ✅ TUNTAS 5/5 subtask — backfill otomatis `outstandPostId` post Imported lama (2026-10-15)** — lanjutan langsung T-113: 36 dari 39 post Imported lama di akun test masih `outstandPostId: null` (T-113 cuma memperbaiki import baru ke depan). Mekanisme permanen ditambahkan — tiap Sync Now/periodik otomatis backfill kalau masih ada gap, reuse namespace lock T-113. 0 temuan review Ridwan. Diverifikasi end-to-end nyata: 39/39 ter-backfill setelah satu kali Sync Now. Detail: `tasks/v02-publishing-mvp.md` § T-114.
+* **T-113 ✅ TUNTAS 4/4 subtask — comment post Imported ikut ter-sync ke Engage Inbox (2026-10-15)** — promosi **KI-090**. `outstandPostId` kini ditangkap+disimpan untuk post hasil Import Posts. 2 bug konkurensi/cross-post CONFIRMED ditemukan & diperbaiki lewat 3 ronde review Ridwan (unique index global, lalu race antar transaksi via `pg_advisory_xact_lock`). Diverifikasi end-to-end nyata: comment Reels Facebook berhasil masuk Comments Inbox. Detail: `tasks/v02-publishing-mvp.md` § T-113.
+* **T-005 ✅ TUNTAS 5/5 — email verification flow (2026-10-14)** — Resend mengirim reset password dan verifikasi email. `/verify-email` hidup. `requireEmailVerification` aktif. Akun lama di-backfill lewat migrasi `20261014160000`. Accept-invite memakai cookie httpOnly `invite-email-proof` supaya sign-up tanpa OTP tidak ikut terverifikasi. Perbaikan review PR #168 juga mengembalikan pekerjaan staging (T-016.4, T-030.3, T-091) yang akan terhapus kalau branch di-merge apa adanya. Detail: `tasks/v01-foundation.md` § T-005.
+Berikut 5 item terakhir yang diselesaikan. Tiket lengkapnya ada di `tasks/`. Riwayat sesi ada di git.
 
 ---
 
@@ -575,17 +572,17 @@ Berikut ~5 item terakhir yang diselesaikan. Riwayat lengkap (sejak M0): lihat `C
 
 5 ADR terakhir. Daftar lengkap (indeks + link ke tiap ADR): lihat `DECISIONS.md`.
 
-* **ADR-127** — `createConnectedAccounts` mereaktivasi row `disconnected`/`reconnect-required` (dulu skip diam-diam) — amandemen ADR-115 poin 8, menutup KI-086. Scope dikunci backend-only; `ReconnectButton` tetap disembunyikan untuk Facebook (adapter throw eksplisit untuk platform itu). Detail: `decisions/ADR-127-reaktivasi-connected-account-facebook-ki086.md`.
-* **ADR-126** — Provider email transactional dikunci ke Resend (T-005.1). Menutup KI-001. Katalog env selesai di T-005.2. T-005.3–.5 sudah selesai: reset password, verifikasi email, dan `requireEmailVerification: true`. Detail: `decisions/ADR-126-transactional-email-provider-resend-t005.md`.
-* **ADR-125** — Save Draft menyimpan akun tujuan (akun, format, opsi Pinterest) dan Draft Editor mengisi Account Selector dari data itu saat dibuka lagi. Menutup KI-060 dan KI-032. Tanggal/jam jadwal tidak ikut. Detail: `decisions/ADR-125-simpan-akun-tujuan-draft-ki060.md`.
-* **ADR-124** — Nama produk final "Postific"; package scope `@social/*` menjadi `@postific/*`. Detail: `decisions/ADR-124-nama-produk-postific-rename-package-scope-social-ke-postific.md`.
-* **ADR-123** — Wiring `RealOutstandAdapter.importPosts`/`fetchImportJobStatus` sungguhan (T-112): signature `fetchImportJobStatus` berubah jadi `(outstandAccountId, importJobId)` (endpoint sungguhan mensyaratkan account id di path, diverifikasi OpenAPI spec resmi); data post diambil tambahan lewat `GET /v1/posts?social_account_id=...` karena endpoint status tidak membawanya; status real API `partial` dipetakan ke `"completed"` (post berhasil tetap diambil, `error` diisi ringkasan gagal) — keputusan produk King Rezi. Detail: `decisions/ADR-123-wiring-import-posts-fetchimportjobstatus-outstandaccountid-partial-status-ki112.md`.
+* **ADR-131** — Antrian kerja pindah ke `AVAILABLE_TASKS.md`. `COMPLETE_TASK.md` dihapus. Deskripsi kerja: docs → spec → tiket → implement. Amandemen ADR-061, ADR-062, ADR-067.
+* **ADR-130** — Layar Start Page editor dan pola Link List dikunci sebagai tabel tanpa header (T-072).
+* **ADR-129** — Halaman publik Start Page memakai layout Card Stack (T-071).
+* **ADR-128** — Halaman publik Start Page diakses lewat `/u/[slug]`, bukan custom domain (T-070).
+* **ADR-127** — `createConnectedAccounts` mereaktivasi row `disconnected`/`reconnect-required` (dulu skip diam-diam) — amandemen ADR-115 poin 8, menutup KI-086. Scope dikunci backend-only; `ReconnectButton` tetap disembunyikan untuk Facebook.
 
 ---
 
 ## Related Documents
 
-* TASKS.md — backlog task berjenjang (indeks) + `tasks/` per release
+* AVAILABLE_TASKS.md — antrian task yang belum selesai; tiket di `tasks/`
 * PROJECT_OVERVIEW.md
 * ARCHITECTURE_OVERVIEW.md
 * PROJECT_RULES.md

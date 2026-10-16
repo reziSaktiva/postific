@@ -162,7 +162,6 @@ Jika prinsip UX perlu diubah karena keputusan produk baru:
 1. Identifikasi prinsip mana yang terdampak.
 2. Dokumentasikan alasan perubahan pada `../../project-manager/DECISIONS.md`.
 3. Update dokumen UX yang merujuk prinsip tersebut.
-4. Catat perubahan pada `../../project-manager/COMPLETE_TASK.md` (ADR-061).
 
 ---
 

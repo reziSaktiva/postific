@@ -18,14 +18,15 @@ Jangan langsung baca semua dokumen `project-manager/` secara penuh untuk setiap 
 **Tingkat 2 — Status / progress / pertanyaan umum** (fase sekarang, next task, kenapa satu keputusan diambil, dsb — bukan minta kerjaan):
 
 - Baca **section "Snapshot"** di paling atas `project-manager/PROJECT_STATE.md` (~15-20 baris — phase/milestone, active mode, top next tasks, top blocker). Jangan baca seluruh isi `PROJECT_STATE.md`.
-- Kalau pertanyaan soal **task / rencana pengerjaan / apa yang berikutnya**, baca `project-manager/TASKS.md` (indeks, ~150 baris). Jangan membuka file di `project-manager/tasks/` kecuali memang butuh detail satu task tertentu.
+- Kalau pertanyaan soal **task yang tersedia / apa yang berikutnya**, baca `project-manager/AVAILABLE_TASKS.md` saja. Jangan membuka `project-manager/tasks/` untuk mencari antrian.
+- Kalau ID-nya sudah dipilih, buka **hanya section tiket itu** di satu file `tasks/vXX-*.md`.
 - Kalau pertanyaan menyebut ADR spesifik, buka **hanya** file `project-manager/decisions/ADR-XXX-*.md` itu (lihat indeksnya di `project-manager/DECISIONS.md`). Jangan baca seluruh isi folder `project-manager/decisions/`.
 
 **Tingkat 3 — Task nyata** (Pekerjaan Baru, Planning Change, Bug/Inkonsistensi — mode 3/4/5 di bawah): baca berurutan:
 
 1. `project-manager/PROJECT_STATE.md` — phase, milestone, Active Conversation Mode, Known Issues, blockers (baca Snapshot dulu supaya konteks ini tersedia sebelum memilih/merencanakan task)
-2. `project-manager/TASKS.md` — indeks backlog; temukan ID task yang relevan
-3. `project-manager/tasks/vXX-*.md` — **hanya satu file** release yang memuat task itu. Lalu buka dokumen yang disebut di field **Baca dulu** pada task tersebut (itu daftar bacaan minimal yang sudah dikurasi — tidak perlu menyisir `product-discovery/`)
+2. `project-manager/AVAILABLE_TASKS.md` — antrian; temukan ID task yang relevan
+3. `project-manager/tasks/vXX-*.md` — **hanya section tiket itu**. Lalu buka dokumen yang disebut di field **Docs** / **Baca dulu** (ADR-131)
 4. `project-manager/PROJECT_RULES.md` — aturan dan prinsip project
 5. `project-manager/DECISIONS.md` — indeks ADR; buka file `project-manager/decisions/ADR-XXX-*.md` spesifik yang relevan dengan task ini
 6. `project-manager/PROJECT_OVERVIEW.md` — gambaran project
@@ -118,22 +119,11 @@ Lihat `project-manager/PROJECT_RULES.md` bagian **Document Type Classification**
 3. Baca dokumen baseline yang relevan sebelum membuat dokumen baru.
 4. Ikuti format dokumen yang konsisten dengan dokumen existing (lihat contoh di folder yang sama).
 5. Setelah selesai, update:
-   - `project-manager/tasks/vXX-*.md` — centang subtask yang selesai + ubah status task
-   - `project-manager/TASKS.md` — perbarui hitungan di **Indeks release** + **Fokus sekarang** (wajib bersamaan dengan poin di atas, kalau tidak angka indeksnya jadi salah)
+   - `project-manager/tasks/vXX-*.md` — ubah status tiket. Jangan menambah cerita sesi
+   - `project-manager/AVAILABLE_TASKS.md` — task yang menjadi ✅ keluar dari tabel antrian
    - `project-manager/PROJECT_STATE.md` — hanya bila phase / milestone / Known Issues / fokus terdekat berubah. **Jangan** menyalin detail task ke sini (ADR-062)
-   - `project-manager/COMPLETE_TASK.md` — tambahkan entri baru di bagian atas (append; **jangan** baca entri lama di bawahnya, lihat peringatan di kepala file)
 
-**Format entri baru di COMPLETE_TASK.md:**
-
-```
-## [YYYY-MM-DD]
-### Added
-- [dokumen/fitur baru]
-### Changed
-- [perubahan pada dokumen existing]
-### Fixed
-- [perbaikan]
-```
+Jejak sesi adalah commit git. Tidak ada file changelog terpisah (ADR-131).
 
 ---
 
@@ -186,7 +176,6 @@ Lalu tambahkan satu baris ke tabel indeks di `project-manager/DECISIONS.md` (ADR
 
 4. Update dokumen yang terdampak.
 5. Update `PROJECT_STATE.md` — section **Snapshot** (kalau relevan dengan next tasks/blocker) dan **Recent Decisions (Ringkasan)** (geser satu ADR terlama keluar dari daftar 5 kalau sudah penuh).
-6. Tambahkan entri baru di bagian atas `COMPLETE_TASK.md` (append; jangan baca isi lama).
 
 ---
 
@@ -199,8 +188,7 @@ Lalu tambahkan satu baris ke tabel indeks di `project-manager/DECISIONS.md` (ADR
 1. Identifikasi dokumen mana yang terlibat dan apa yang bertentangan.
 2. Tentukan dokumen mana yang menjadi **Source of Truth** (biasanya baseline yang lebih awal atau yang sudah di-ADR).
 3. Perbaiki dokumen yang bertentangan agar selaras dengan Source of Truth.
-4. Catat perbaikan sebagai entri baru di bagian atas `COMPLETE_TASK.md` dengan section `### Fixed`.
-5. Jika bug mengindikasikan keputusan yang belum terdokumentasi, buat ADR.
+4. Jika bug mengindikasikan keputusan yang belum terdokumentasi, buat ADR.
 
 ---
 
@@ -232,13 +220,12 @@ social-media-management/
 │   ├── PROJECT_RULES.md     → Cara bekerja
 │   ├── PROJECT_STATE.md     → Phase, milestone, Known Issues ← update setiap ada
 │   │                           perubahan (baca "Snapshot" dulu untuk lookup cepat)
-│   ├── TASKS.md             → Indeks backlog task ← baca ini sebelum kerja
-│   ├── tasks/               → Satu file per release (vXX-*.md), detail task +
-│   │                           subtask ← buka HANYA file release yang dikerjakan
+│   ├── AVAILABLE_TASKS.md   → Antrian task yang belum selesai ← berhenti di sini
+│   ├── tasks/               → Tiket per rilis, termasuk yang sudah ✅ ← buka
+│   │                           hanya section tiket yang ID-nya sudah dipilih
+│   ├── specs/               → Spec untuk kerja multi-sesi (ADR-131)
 │   ├── DECISIONS.md         → Indeks ringkas ADR ← tambah 1 baris index per ADR baru
 │   ├── decisions/           → Satu file per ADR (ADR-XXX-slug.md) ← full text di sini
-│   ├── COMPLETE_TASK.md     → Riwayat lengkap task selesai ← append entri baru tiap
-│   │                           sesi, ⚠️ JANGAN dibaca AI kecuali diperintah eksplisit
 │   ├── CONVERSATIONS.md     → Log diskusi penting ← update jika ada insight
 │   └── BRAINSTORM.md        → Bank ide ← update dari sesi brainstorm
 └── product-discovery/       → Source of Truth produk: business s/d engineering

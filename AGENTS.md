@@ -8,21 +8,23 @@ Dokumen ini **bukan** Source of Truth produk. Ia mengarahkan agent ke dokumen ya
 
 **Source of Truth:**
 
-| Area                                | Lokasi                                     |
-| ----------------------------------- | ------------------------------------------ |
-| Status, phase, milestone, issue     | `project-manager/PROJECT_STATE.md`         |
-| Backlog task (release/task/subtask) | `project-manager/TASKS.md` + `tasks/`      |
-| Aturan kerja & governance           | `project-manager/PROJECT_RULES.md`         |
-| Keputusan (ADR)                     | `project-manager/DECISIONS.md`             |
-| Produk & engineering                | `product-discovery/`                       |
-| Orientasi arsitektur (ringkas)      | `project-manager/ARCHITECTURE_OVERVIEW.md` |
-| Alur kerja developer (mermaid)      | `project-manager/DEVELOPER_WORKFLOW.md`    |
-| AI Context (ringkas, per domain)    | `context/`                                 |
+| Area                             | Lokasi                                     |
+| -------------------------------- | ------------------------------------------ |
+| Status, phase, milestone, issue  | `project-manager/PROJECT_STATE.md`         |
+| Antrian task tersedia            | `project-manager/AVAILABLE_TASKS.md`       |
+| Tiket, termasuk yang selesai     | `project-manager/tasks/`                   |
+| Spec (kerja multi-sesi)          | `project-manager/specs/`                   |
+| Aturan kerja & governance        | `project-manager/PROJECT_RULES.md`         |
+| Keputusan (ADR)                  | `project-manager/DECISIONS.md`             |
+| Produk & engineering             | `product-discovery/`                       |
+| Orientasi arsitektur (ringkas)   | `project-manager/ARCHITECTURE_OVERVIEW.md` |
+| Alur kerja developer (mermaid)   | `project-manager/DEVELOPER_WORKFLOW.md`    |
+| AI Context (ringkas, per domain) | `context/`                                 |
 
 ## Wajib di awal sesi
 
 1. Baca **Snapshot** di `project-manager/PROJECT_STATE.md` — phase, mode percakapan, fokus terdekat.
-2. Kalau akan mengerjakan task: buka `project-manager/TASKS.md` (indeks), lalu **hanya** file `tasks/vXX-*.md` yang memuat task itu. Ikuti field **Baca dulu** pada task tersebut sebagai daftar bacaan minimal.
+2. Kalau akan mengerjakan task: buka `project-manager/AVAILABLE_TASKS.md` dan berhenti di situ untuk memilih ID. Baru kemudian buka **satu** section di `tasks/vXX-*.md`. Deskripsi mengikuti ADR-131 (docs → spec → tiket → implement).
 3. **Evaluasi delegasi subagent** (ADR-063) — kalau task itu scope implementasi kode: cek field **Domain**-nya terhadap pemetaan Domain → Subagent di `.claude/agents/README.md`, dan tentukan dikerjakan sendiri, satu subagent, atau beberapa subagent paralel (lihat poin di bawah kapan wajib paralel). Jangan lewati langkah ini hanya karena sudah biasa mengerjakan sendiri.
 4. Ikuti skill project: `.claude/skills/project-os-navigator/SKILL.md`.
 5. Untuk keputusan yang belum ada di baseline: ikuti `.claude/skills/proactive-clarification/SKILL.md`.
@@ -128,9 +130,7 @@ kedua tool — tidak ada instruksi khusus per-tool selain tabel di atas.
 - Arsitektur: **Modular Monolith + DDD** · domain di `apps/web/src/domains/`
 - UI: **shadcn/ui** (ADR-097, membalik ADR-041) · Stone theme token (ADR-087) · **Tailwind** sebagai styling langsung; migrasi dari Astryx sudah tuntas 100% (rilis v0.7, T-102)
 - Deploy: **Railway** (web + cron) · CI: **GitHub Actions**
-- Staging web: URL & detail deploy di `PROJECT_STATE.md` (KI-025) /
-  `COMPLETE_TASK.md` — pakai untuk smoke test manual sebelum PR
-  `staging → main` (lihat CI-D03).
+- Staging web: URL dan detail deploy di `PROJECT_STATE.md` (KI-025). Pakai untuk smoke test manual sebelum PR `staging → main` (lihat CI-D03).
 
 Detail: `project-manager/PROJECT_OVERVIEW.md` dan `product-discovery/06-engineering/`.
 
@@ -158,8 +158,9 @@ Detail: `project-manager/PROJECT_OVERVIEW.md` dan `product-discovery/06-engineer
 9. Supabase JS client: **hanya** Realtime + Storage. CRUD lewat Prisma.
 10. Status progress (% / ✅ / phase aktif / milestone) **hanya** di
     `PROJECT_STATE.md` — jangan taruh di README atau baseline. **Satu
-    pengecualian (ADR-062):** status per-task dan per-subtask ada di
-    `project-manager/TASKS.md` + `tasks/vXX-*.md`. Pengecualian ini tidak
+    pengecualian (ADR-062, ADR-131):** status per-task ada di
+    `project-manager/AVAILABLE_TASKS.md` (yang belum selesai) dan
+    `project-manager/tasks/vXX-*.md` (semua tiket, termasuk yang selesai). Pengecualian ini tidak
     meluas ke phase/milestone/overall progress.
 11. Persona kanonikal: Raka, Maya, Sinta, Dimas, Lara.
 12. Bahasa komunikasi & dokumentasi project: **Bahasa Indonesia** (kecuali user meminta lain).
@@ -274,20 +275,14 @@ fase aktif di file ini.
 
 ## Setelah mengubah sesuatu
 
-- Update status task di `project-manager/TASKS.md` **dan** file
-  `project-manager/tasks/vXX-*.md` terkait (dua-duanya, dalam perubahan yang
-  sama — kalau tidak, hitungan di indeks jadi salah).
+- Update status tiket di `project-manager/tasks/vXX-*.md` **dan** barisnya
+  di `project-manager/AVAILABLE_TASKS.md` (kalau masih antrian). Task yang
+  menjadi ✅ keluar dari `AVAILABLE_TASKS.md` dan tetap di file rilis.
 - Update `project-manager/PROJECT_STATE.md` bila phase / milestone / Known
   Issues / fokus terdekat berubah. Jangan menyalin detail task ke sana.
 - Section **"Completed (Ringkasan)"** di `PROJECT_STATE.md` dibatasi **5
-  item terakhir** (bukan sekadar target, ini hitungan aktual — cek
-  `grep -c "^\* \*\*"` pada section itu setelah edit). Setiap menambah
-  bullet baru, **hapus bullet paling lama** di bawahnya supaya total tetap
-  5 — isi lengkapnya sudah aman di `COMPLETE_TASK.md`, jadi tidak ada info
-  yang hilang. Ditemukan drift ke 7 item pada 2026-08-10 karena aturan ini
-  cuma teks di dalam file itu sendiri, bukan hard rule — sekarang dipindah
-  ke sini agar terlihat setiap awal sesi.
-- Catat di `project-manager/COMPLETE_TASK.md` (append entri baru saja — jangan baca isi lengkapnya kecuali diperintah eksplisit King Rezi).
+  item terakhir**. Setiap menambah bullet baru, hapus bullet paling lama.
+  Tiket lengkapnya ada di `tasks/vXX-*.md`. Riwayat sesi ada di git.
 - Insight diskusi penting → `project-manager/CONVERSATIONS.md`.
 - Keputusan material → ADR di `project-manager/DECISIONS.md`.
 

@@ -70,7 +70,7 @@ Setiap dokumen dalam project memiliki tipe yang menentukan kapan dan bagaimana d
 
 Dokumen yang mendeskripsikan struktur, tujuan, scope, dan aturan. Tidak boleh berisi informasi yang berubah-ubah (status, progress, fase aktif).
 
-Hanya boleh diubah jika terjadi perubahan **struktural** — scope baru, dokumen baru, atau aturan baru — dan perubahan tersebut wajib dicatat di `COMPLETE_TASK.md`.
+Hanya boleh diubah jika terjadi perubahan **struktural** — scope baru, dokumen baru, atau aturan baru — dan perubahan tersebut wajib dicatat sebagai ADR atau di tiket yang terkait (ADR-131).
 
 Termasuk:
 
@@ -91,9 +91,11 @@ Dokumen yang secara aktif diperbarui setiap sesi — satu-satunya tipe dokumen y
 Termasuk:
 
 * `PROJECT_STATE.md` — source of truth untuk **phase, milestone (M0–M9), overall progress, Active Conversation Mode, Known Issues, dan Blockers**.
-* `TASKS.md` + `tasks/vXX-*.md` — source of truth untuk **status per-task dan per-subtask** (ADR-062). Backlog berjenjang release → task → subtask.
+* `AVAILABLE_TASKS.md` — antrian task yang belum selesai (ADR-131).
+* `tasks/vXX-*.md` — tiket, termasuk yang sudah selesai (ADR-062, ADR-131).
+* `specs/` — spec untuk kerja yang melewati lebih dari satu sesi (ADR-131).
 
-Pembagiannya tegas: status *fase project* milik `PROJECT_STATE.md`, status *task* milik `TASKS.md`/`tasks/`. `PROJECT_STATE.md` hanya menyebut ID + judul singkat task dan menunjuk ke `TASKS.md` — detail task tidak diduplikasi.
+Pembagiannya tegas: status *fase project* milik `PROJECT_STATE.md`, status *task* milik `AVAILABLE_TASKS.md` (yang terbuka) dan `tasks/` (semua tiket). `PROJECT_STATE.md` hanya menyebut ID + judul singkat dan menunjuk ke `AVAILABLE_TASKS.md`.
 
 **Append-Only**
 
@@ -105,26 +107,25 @@ Termasuk:
 
 * `DECISIONS.md` — **indeks ringkas** ADR (tabel ADR#/Title/Status/Date/Ringkasan/link file), satu baris baru per ADR baru. Bukan lagi tempat full-text ADR (lihat `decisions/`).
 * `decisions/ADR-*.md` — satu file per ADR, isi lengkap (Title/Status/Date/Decision/Reason/Alternatives Considered). Entri lama tidak boleh diedit/dihapus (kecuali tag `Amended by` di header Status, lihat pengecualian di atas), sama seperti induknya.
-* `COMPLETE_TASK.md` — riwayat lengkap seluruh task/perubahan sejak awal project, satu entri baru per sesi kerja (append di bagian atas). **Tidak boleh dibaca AI kecuali diperintahkan eksplisit oleh King Rezi** — lihat peringatan di kepala file. Menambah entri baru tetap wajib (operasi tulis, bukan baca).
-* `CONVERSATIONS.md` — setiap sesi dicatat sebagai entri baru.
+* `CONVERSATIONS.md` — setiap sesi diskusi penting dicatat sebagai entri baru.
 * `BRAINSTORM.md` — setiap ide baru dicatat sebagai entri baru.
 
 ## Formatting Rules
 
 * README **tidak boleh** memuat status (✅ ⏳ 🟡), progress (%), atau fase aktif.
 * Status folder, milestone, dan fase hanya boleh ditampilkan pada `PROJECT_STATE.md`.
-* **Pengecualian tunggal (ADR-062):** status per-task dan per-subtask ditampilkan pada `TASKS.md` + `tasks/vXX-*.md`. Pengecualian ini **tidak** meluas ke phase, milestone, atau overall progress — ketiganya tetap eksklusif milik `PROJECT_STATE.md`, dan tetap terlarang di README maupun dokumen Static Reference lain.
-* **Known Issues (ADR-066, amandemen ADR-067):** setiap entry di section `Known Issues` (`PROJECT_STATE.md`) wajib memakai ID global `KI-XXX` (namespace terpisah dari task `T-XXX`) + field table ringkas (`Status`, `Kategori`, `Terkait`, `Ditemukan` bila diketahui). ID tidak pernah didaur ulang. Entry berstatus `Promoted to T-XXX` tetap tercatat sampai task tujuannya selesai. **Entry berstatus `Resolved` dihapus dari `PROJECT_STATE.md` begitu riwayat penyelesaiannya sudah tercatat di `COMPLETE_TASK.md`** — jangan dibiarkan menumpuk dengan status `Resolved` di kedua tempat sekaligus.
-* Setiap perubahan struktural pada dokumen Static Reference wajib dicatat pada `COMPLETE_TASK.md`.
+* **Pengecualian (ADR-062, ADR-131):** status per-task ditampilkan pada `AVAILABLE_TASKS.md` (yang belum selesai) dan `tasks/vXX-*.md` (semua tiket). Pengecualian ini **tidak** meluas ke phase, milestone, atau overall progress — ketiganya tetap eksklusif milik `PROJECT_STATE.md`, dan tetap terlarang di README maupun dokumen Static Reference lain.
+* **Known Issues (ADR-066, amandemen ADR-067, amandemen ADR-131):** setiap entry di section `Known Issues` (`PROJECT_STATE.md`) wajib memakai ID global `KI-XXX` (namespace terpisah dari task `T-XXX`) + field table ringkas (`Status`, `Kategori`, `Terkait`, `Ditemukan` bila diketahui). ID tidak pernah didaur ulang. Entry berstatus `Promoted to T-XXX` tetap tercatat sampai task tujuannya selesai. **Entry berstatus `Resolved` dihapus dari `PROJECT_STATE.md` begitu tiket atau commit yang menutupnya ada.**
+* Setiap perubahan struktural pada dokumen Static Reference wajib dicatat sebagai ADR atau di tiket yang terkait.
 
 ## Guardrail Ukuran Dokumen (Living/Append-Only)
 
 Supaya `PROJECT_STATE.md` tidak kembali membengkak, dicek sebagai bagian **Definition of Done** setiap milestone selesai:
 
-* `PROJECT_STATE.md` section "Completed (Ringkasan)" dijaga **≤ 5 item** (rolling window item terbaru — aturan mengikat, lihat `AGENTS.md` § "Setelah mengubah sesuatu"); "Recent Decisions (Ringkasan)" dijaga ≤ ~10 item. Item yang tergeser keluar tetap utuh di `COMPLETE_TASK.md`/`DECISIONS.md` — tidak hilang, hanya tidak lagi tampil inline.
-* `COMPLETE_TASK.md` sengaja **tidak** dirotasi/diarsipkan (satu file historis penuh, by design — lihat ADR-061) karena AI memang dilarang membacanya kecuali diperintah; ukurannya boleh terus tumbuh tanpa jadi beban token.
-* `TASKS.md` dijaga tetap ringkas (indeks saja, target ≤ ~150 baris). Detail task **wajib** tinggal di `tasks/vXX-*.md`, dan AI hanya membuka file release yang sedang dikerjakan — bukan seluruh folder `tasks/` (ADR-062).
-* Task berstatus `✅ Done` di `tasks/*.md` diringkas jadi satu paragraf jejak tanpa checklist subtask, supaya file release tidak tumbuh oleh pekerjaan yang sudah selesai. Riwayat lengkap per sesi tetap di `COMPLETE_TASK.md`.
+* `PROJECT_STATE.md` section "Completed (Ringkasan)" dijaga **≤ 5 item** (rolling window item terbaru — aturan mengikat, lihat `AGENTS.md` § "Setelah mengubah sesuatu"); "Recent Decisions (Ringkasan)" dijaga ≤ ~10 item. Item yang tergeser keluar tetap di tiket `tasks/` dan di `DECISIONS.md`.
+* `AVAILABLE_TASKS.md` hanya berisi task yang belum selesai. Mencari antrian berhenti di file itu (ADR-131).
+* Tiket, termasuk yang sudah ✅, tetap di `tasks/vXX-*.md`. AI membuka file itu hanya setelah ID dipilih, dan hanya section tiket itu.
+* Tiket baru mengikuti bentuk di `specs/README.md`: what to build, acceptance, blocked by, tautan spec atau "tidak ada — muat satu sesi". Jangan menulis cerita sesi ke dalam tiket. Riwayat sesi ada di git.
 
 ---
 
@@ -215,7 +216,7 @@ Sebuah milestone dianggap selesai apabila:
 * Keputusan penting telah dicatat pada `DECISIONS.md`.
 * Tidak terdapat blocker yang belum diselesaikan.
 * `PROJECT_STATE.md` telah diperbarui.
-* Status task di `TASKS.md` **dan** `tasks/vXX-*.md` telah diperbarui, dan hitungan di **Indeks release** + **Total** cocok dengan isi file release (ADR-062). Milestone tidak boleh dinyatakan selesai kalau backlog masih basi.
+* Status tiket di `tasks/vXX-*.md` telah diperbarui, dan baris task yang selesai sudah keluar dari `AVAILABLE_TASKS.md` (ADR-131). Milestone tidak boleh dinyatakan selesai kalau antrian masih basi.
 * Guardrail ukuran dokumen (lihat **Documentation Governance**) sudah dicek — rotasi ringkasan `PROJECT_STATE.md` kalau perlu.
 
 ---
@@ -227,5 +228,5 @@ Sebuah milestone dianggap selesai apabila:
 * `ARCHITECTURE_OVERVIEW.md`
 * `PROJECT_STATE.md`
 * `DECISIONS.md`
-* `COMPLETE_TASK.md`
+* `AVAILABLE_TASKS.md`
 * `../product-discovery/README.md`

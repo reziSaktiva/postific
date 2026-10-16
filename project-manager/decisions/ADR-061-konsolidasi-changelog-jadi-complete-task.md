@@ -6,7 +6,7 @@ Konsolidasi CHANGELOG jadi COMPLETE_TASK.md tunggal + larangan baca proaktif (Am
 
 ### Status
 
-Accepted
+Accepted — Amended by ADR-131 (2026-10-16)
 
 ### Date
 

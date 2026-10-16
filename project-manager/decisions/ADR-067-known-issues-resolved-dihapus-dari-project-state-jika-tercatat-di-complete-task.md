@@ -6,7 +6,7 @@ Known Issues `Resolved` Dihapus dari `PROJECT_STATE.md` Jika Sudah Tercatat di `
 
 ### Status
 
-Accepted
+Accepted — Amended by ADR-131 (2026-10-16)
 
 ### Date
 

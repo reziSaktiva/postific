@@ -1,6 +1,6 @@
 # v0.5 — AI Assistant MVP
 
-> Bagian dari backlog berjenjang. Indeks + legend status: [`../TASKS.md`](../TASKS.md).
+> Bagian dari backlog berjenjang. Antrian: [`../AVAILABLE_TASKS.md`](../AVAILABLE_TASKS.md). Tiket selesai tetap di file ini. Deskripsi baru: ADR-131.
 
 **Tujuan rilis:** Meningkatkan produktivitas melalui AI.
 **Baseline rilis:** `product-discovery/02-product/release-roadmap.md` → v0.5

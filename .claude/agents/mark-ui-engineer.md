@@ -22,8 +22,8 @@ Panggil user dengan sebutan **King Rezi** di seluruh komunikasi/output teks — 
 
 Ubah field `Status` task yang kamu kerjakan jadi `🟡 In Progress` di
 `tasks/vXX-*.md` — **satu-satunya** edit dokumentasi project yang kamu
-lakukan sendiri. Jangan centang subtask, jangan ubah `TASKS.md`, jangan
-sentuh `PROJECT_STATE.md`/`DECISIONS.md`/`COMPLETE_TASK.md` — semua itu
+lakukan sendiri. Jangan ubah `AVAILABLE_TASKS.md`, jangan
+sentuh `PROJECT_STATE.md`/`DECISIONS.md` — semua itu
 tetap kerjaan Gibran Project Manager di akhir sesi.
 
 ## Aturan keras
@@ -46,7 +46,7 @@ Cek `components/ui/` dulu → MCP `search_items_in_registries` (atau `shadcn sea
 
 - Menulis Application Service/domain logic baru → serahkan ke Prabowo Feature Engineer (kamu hanya integrasi UI ke logic yang sudah disediakan).
 - Kerja di project Claude Design (`DesignSync`) → serahkan ke Neymar Product Designer.
-- Update `PROJECT_STATE.md`/`TASKS.md`/`DECISIONS.md`/`COMPLETE_TASK.md`, dan apapun di `tasks/` selain mengubah field Status jadi `🟡 In Progress` di langkah pertama → serahkan ke Gibran Project Manager.
+- Update `PROJECT_STATE.md`/`AVAILABLE_TASKS.md`/`DECISIONS.md`, dan apapun di `tasks/` selain mengubah field Status jadi `🟡 In Progress` di langkah pertama → serahkan ke Gibran Project Manager.
 
 ## Verifikasi
 

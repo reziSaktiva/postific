@@ -55,12 +55,12 @@ social-media-management/
 │   ├── ARCHITECTURE_OVERVIEW.md
 │   ├── PROJECT_RULES.md
 │   ├── PROJECT_STATE.md      → baca section "Snapshot" dulu untuk lookup cepat
-│   ├── TASKS.md              → indeks backlog task per release
-│   ├── tasks/                → satu file per release (vXX-*.md), detail task + subtask
+│   ├── AVAILABLE_TASKS.md    → antrian task yang belum selesai
+│   ├── tasks/                → tiket per rilis, termasuk yang sudah selesai
+│   ├── specs/                → spec untuk kerja multi-sesi
 │   ├── DECISIONS.md          → indeks ringkas ADR (full text di decisions/)
 │   ├── decisions/            → satu file per ADR (ADR-XXX-slug.md)
 │   ├── DEVELOPER_WORKFLOW.md
-│   ├── COMPLETE_TASK.md      → riwayat lengkap task selesai ⚠️ JANGAN dibaca AI kecuali diperintah
 │   ├── CONVERSATIONS.md
 │   └── BRAINSTORM.md
 └── product-discovery/        → pengetahuan produk (business s/d engineering)
@@ -83,10 +83,11 @@ social-media-management/
 | `ARCHITECTURE_OVERVIEW.md`  | High-level architecture untuk blueprint Figma (bukan SoT detail arsitektur). |
 | `PROJECT_RULES.md`          | Aturan dan prinsip kerja project.                                           |
 | `PROJECT_STATE.md`          | Phase, milestone, overall progress, Known Issues, dan Blockers. Section "Snapshot" di atas untuk lookup cepat tanpa baca penuh. Bukan tempat detail task. |
-| `TASKS.md`                  | Indeks backlog task berjenjang per release (v0.1 → v1.0) + peta release↔milestone; detail task + subtask ada di `tasks/vXX-*.md`. Source of truth status per-task (ADR-062). |
+| `AVAILABLE_TASKS.md`        | Antrian task yang belum selesai. Mencari kerja tersedia berhenti di sini (ADR-131). |
+| `tasks/`                    | Tiket per rilis, termasuk yang sudah selesai. |
+| `specs/`                    | Spec untuk kerja yang melewati lebih dari satu sesi. Bentuknya di `specs/README.md`. |
 | `DECISIONS.md`              | Indeks ringkas seluruh ADR (tabel + link); full text tiap ADR ada di `decisions/ADR-XXX-slug.md`. |
 | `DEVELOPER_WORKFLOW.md`     | Alur kerja project & user flow inti sebagai diagram mermaid (visualisasi, bukan SoT). |
-| `COMPLETE_TASK.md`          | Riwayat lengkap seluruh task/perubahan sejak awal project. ⚠️ AI dilarang membaca isinya kecuali diperintah eksplisit King Rezi — cukup baca Snapshot di `PROJECT_STATE.md`. |
 | `CONVERSATIONS.md`          | Log percakapan penting antar sesi (diisi otomatis oleh AI).                 |
 | `BRAINSTORM.md`             | Bank ide dari sesi brainstorming (diisi otomatis oleh AI).                  |
 
