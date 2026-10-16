@@ -710,7 +710,7 @@ Tiga task ini lahir dari diskusi 2026-10-16 (lihat `CONVERSATIONS.md`): biaya to
 
 | Field         | Value                                                                                                                                                                                                            |
 | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**    | ⏳ Not Started                                                                                                                                                                                                   |
+| **Status**    | ✅ Done                                                                                                                                                                                                          |
 | **Domain**    | platform/tooling                                                                                                                                                                                                 |
 | **ADR**       | — (ganti nama berkas salinan vendor, bukan keputusan arsitektur)                                                                                                                                                 |
 | **Depends**   | —                                                                                                                                                                                                                |
@@ -724,18 +724,18 @@ Cursor memperlakukan setiap berkas bernama `AGENTS.md` sebagai aturan yang ikut 
 
 `SKILL.md` masing-masing skill tetap pintu masuknya. Salinan panjang hanya dibaca saat skill itu dipakai. `AGENTS.md` di root repo tidak disentuh di task ini.
 
-- [ ] **T-116.1** Ganti nama ketiga berkas itu menjadi `REFERENCE.md` di folder yang sama. Jangan membuat `AGENTS.md` baru di dalam `.claude/skills/`.
-- [ ] **T-116.2** Ubah penunjuk di `SKILL.md` yang menyebut berkas itu: `vercel-react-best-practices/SKILL.md` dan `vercel-composition-patterns/SKILL.md` (kalimat "For the complete guide with all rules expanded"). Kalimat di `vercel-optimize` yang menyebut `AGENTS.md` **root** dibiarkan — itu pintu repo, bukan nama berkas vendor.
-- [ ] **T-116.3** Cari sisa rujukan ke jalur lama (`skills/vercel-react-best-practices/AGENTS.md`, `skills/vercel-composition-patterns/AGENTS.md`, `skills/vercel-optimize/AGENTS.md`) dan arahkan ke `REFERENCE.md`.
-- [ ] **T-116.4** Pastikan satu-satunya berkas bernama `AGENTS.md` yang tersisa di repo adalah yang di root. Isi panduan vendor tidak dihapus dan tidak diringkas di task ini.
+- [x] **T-116.1** Ganti nama ketiga berkas itu menjadi `REFERENCE.md` di folder yang sama. Jangan membuat `AGENTS.md` baru di dalam `.claude/skills/`.
+- [x] **T-116.2** Ubah penunjuk di `SKILL.md` yang menyebut berkas itu: `vercel-react-best-practices/SKILL.md` dan `vercel-composition-patterns/SKILL.md` (kalimat "For the complete guide with all rules expanded"). Kalimat di `vercel-optimize` yang menyebut `AGENTS.md` **root** dibiarkan — itu pintu repo, bukan nama berkas vendor.
+- [x] **T-116.3** Cari sisa rujukan ke jalur lama (`skills/vercel-react-best-practices/AGENTS.md`, `skills/vercel-composition-patterns/AGENTS.md`, `skills/vercel-optimize/AGENTS.md`) dan arahkan ke `REFERENCE.md`.
+- [x] **T-116.4** Pastikan satu-satunya berkas bernama `AGENTS.md` yang tersisa di repo adalah yang di root. Isi panduan vendor tidak dihapus dan tidak diringkas di task ini.
 
 ### T-117 · Tipiskan `AGENTS.md` root jadi pintu, bukan ensiklopedia
 
 | Field         | Value                                                                                                                                                                                |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Status**    | ⏳ Not Started                                                                                                                                                                       |
+| **Status**    | ✅ Done                                                                                                                                                                              |
 | **Domain**    | platform/tooling                                                                                                                                                                     |
-| **ADR**       | ADR baru di subtask T-117.1 — jangan edit `AGENTS.md` sebelum ADR itu Accepted                                                                                                       |
+| **ADR**       | ADR-133 (Accepted, 2026-10-16)                                                                                                                                                       |
 | **Depends**   | T-116 ✅                                                                                                                                                                             |
 | **Baca dulu** | `AGENTS.md` · `.claude/skills/project-os-navigator/SKILL.md` · `context/README.md` · `.claude/agents/README.md` · `apps/web/.claude/CLAUDE.md` · `CONVERSATIONS.md` entri 2026-10-16 |
 
@@ -767,26 +767,26 @@ Jadi penunjuk satu baris, karena rumahnya sudah ada:
 - workflow shadcn yang panjang → `apps/web/.claude/CLAUDE.md`
 - checklist setelah mengubah dokumen → navigator
 
-- [ ] **T-117.1** Tulis ADR baru: apa yang tetap di `AGENTS.md` root dan apa yang menjadi penunjuk. Sertakan usulan belahan di atas. **Jangan mengubah `AGENTS.md` sebelum ADR itu Accepted.**
-- [ ] **T-117.2** Tipiskan `AGENTS.md` sesuai ADR yang Accepted. Setiap aturan keras yang pindah harus masih bisa ditemukan lewat penunjuknya.
-- [ ] **T-117.3** Cocokkan isi yang ditunjuk. Kalau sebuah aturan keras belum punya rumah di navigator, `context/README.md`, `.claude/agents/README.md`, atau `apps/web/.claude/CLAUDE.md`, tambahkan di rumah itu — jangan dikembalikan sebagai esai di `AGENTS.md`.
-- [ ] **T-117.4** Baca ulang `AGENTS.md` yang sudah tipis sebagai pintu sesi baru: Snapshot, navigator, dan aturan keras tetap tercapai tanpa membuka ensiklopedia.
+- [x] **T-117.1** Tulis ADR baru: apa yang tetap di `AGENTS.md` root dan apa yang menjadi penunjuk. Sertakan usulan belahan di atas. **Jangan mengubah `AGENTS.md` sebelum ADR itu Accepted.** → ADR-133.
+- [x] **T-117.2** Tipiskan `AGENTS.md` sesuai ADR yang Accepted. Setiap aturan keras yang pindah harus masih bisa ditemukan lewat penunjuknya.
+- [x] **T-117.3** Cocokkan isi yang ditunjuk. Kalau sebuah aturan keras belum punya rumah di navigator, `context/README.md`, `.claude/agents/README.md`, atau `apps/web/.claude/CLAUDE.md`, tambahkan di rumah itu — jangan dikembalikan sebagai esai di `AGENTS.md`. → tabel mapping task + housekeeping skill/subagent pindah ke `project-os-navigator/SKILL.md`; tabel kompatibilitas tool pindah ke `context/ctx-technical-context.md`.
+- [x] **T-117.4** Baca ulang `AGENTS.md` yang sudah tipis sebagai pintu sesi baru: Snapshot, navigator, dan aturan keras tetap tercapai tanpa membuka ensiklopedia.
 
 ### T-118 · Kunci higiene sesi: satu task per percakapan, rantai subagent hanya untuk fitur
 
 | Field         | Value                                                                                                                                |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Status**    | ⏳ Not Started                                                                                                                       |
+| **Status**    | ✅ Done                                                                                                                              |
 | **Domain**    | platform/tooling                                                                                                                     |
-| **ADR**       | — (menegaskan navigator yang sudah ada; ADR baru hanya kalau T-118.1 mengubah mandat delegasi ADR-063)                               |
+| **ADR**       | — (menegaskan navigator yang sudah ada; T-118.1 tidak mengubah mandat ADR-063, hanya menambah pengecualian perubahan sepele)         |
 | **Depends**   | T-117 ✅                                                                                                                             |
 | **Baca dulu** | `.claude/skills/project-os-navigator/SKILL.md` · `.claude/agents/README.md` (aturan orkestrasi, ADR-063) · `AGENTS.md` setelah T-117 |
 
 Navigator sudah melarang membaca `PROJECT_STATE` utuh, `COMPLETE_TASK`, dan seluruh folder `tickets/`. Sisa yang masih boros: rantai Ridwan → Najwa → Gibran untuk perubahan sepele, dan percakapan yang dibiarkan panjang sampai riwayatnya ikut dibayar di setiap giliran.
 
-- [ ] **T-118.1** Tambah di `project-os-navigator`: perubahan sepele (satu berkas, tanpa batas domain, tanpa UI) dikerjakan agen utama. Rantai Ridwan → Najwa → Gibran tetap untuk implementasi fitur yang menyentuh domain atau UI. Kalau kalimat ini mengubah mandat ADR-063, berhenti dan buat ADR dulu.
-- [ ] **T-118.2** Tambah higiene sesi di navigator: satu task per percakapan. Kalau sesi sudah panjang, catat ringkas di `CONVERSATIONS.md`, lalu lanjut di sesi baru.
-- [ ] **T-118.3** Di `AGENTS.md` root, cukup satu penunjuk ke dua aturan itu. Jangan menempelkan esainya kembali ke `AGENTS.md`.
+- [x] **T-118.1** Tambah di `project-os-navigator`: perubahan sepele (satu berkas, tanpa batas domain, tanpa UI) dikerjakan agen utama. Rantai Ridwan → Najwa → Gibran tetap untuk implementasi fitur yang menyentuh domain atau UI. Kalau kalimat ini mengubah mandat ADR-063, berhenti dan buat ADR dulu. → ditambahkan, tidak mengubah mandat ADR-063 (hanya pengecualian untuk scope sepele).
+- [x] **T-118.2** Tambah higiene sesi di navigator: satu task per percakapan. Kalau sesi sudah panjang, catat ringkas di `CONVERSATIONS.md`, lalu lanjut di sesi baru.
+- [x] **T-118.3** Di `AGENTS.md` root, cukup satu penunjuk ke dua aturan itu. Jangan menempelkan esainya kembali ke `AGENTS.md`.
 
 ---
 

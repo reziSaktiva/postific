@@ -78,6 +78,38 @@ Implementasi di repo:
 10. Media publishing: Supabase Storage menyimpan original; Outstand Media API
     menyimpan working copy setelah alur upload URL → `PUT` → confirm. Jangan
     menganggap signed URL Supabase sebagai URL publish Outstand.
+11. Kompatibilitas tool Claude Code ↔ Cursor (ADR-064) — lihat tabel di bawah.
+
+---
+
+## Kompatibilitas tool: Claude Code ↔ Cursor (ADR-064)
+
+Project ini dikerjakan di **dua tool**: Claude Code (utama) dan Cursor.
+Sebagian aset agent terbaca di keduanya, sebagian tidak:
+
+| Aset                                   | Claude Code                                     | Cursor                                            |
+| -------------------------------------- | ----------------------------------------------- | ------------------------------------------------- |
+| `AGENTS.md` (pintu masuk + hard rules) | ✅ via `CLAUDE.md`                              | ✅ native                                         |
+| `.claude/skills/`                      | ✅ satu-satunya lokasi                          | ✅ compatibility path                             |
+| `.claude/agents/` (7 subagent kerja)   | ✅                                              | ✅ compatibility path                             |
+| Config MCP (`xds` Astryx)              | ✅ `.mcp.json`                                  | ⚠️ `.cursor/mcp.json` — **file terpisah**         |
+| Proteksi baca secret                   | ✅ `.claude/settings.json` (`permissions.deny`) | ⚠️ `.cursorignore` — **file terpisah**            |
+| `.claude/launch.json` (preview server) | ✅                                              | ❌ tidak ada padanan — jalankan dev server manual |
+
+**Dua pasang file kembar yang WAJIB dijaga sinkron.** Config MCP dan proteksi
+secret tidak punya jalur kompatibilitas lintas tool — masing-masing tool
+hanya membaca formatnya sendiri, dan tidak bisa disatukan lewat symlink tanpa
+mengulang pola rapuh yang dibuang di ADR-064. Konsekuensinya:
+
+1. Menambah/mengubah MCP server → ubah **`.mcp.json` dan `.cursor/mcp.json`**
+   dalam perubahan yang sama. Formatnya identik (kunci `mcpServers`).
+2. Menambah/mengubah pola file rahasia → ubah **`permissions.deny` di
+   `.claude/settings.json` dan `.cursorignore`** dalam perubahan yang sama.
+   Kalau hanya satu yang diubah, salah satu tool kehilangan proteksinya
+   tanpa peringatan apa pun.
+
+Aturan lain (skill, subagent, hard rules, alur dokumentasi) berlaku identik di
+kedua tool — tidak ada instruksi khusus per-tool selain tabel di atas.
 
 ---
 
