@@ -122,7 +122,7 @@ Termasuk:
 
 Supaya `PROJECT_STATE.md` tidak kembali membengkak, dicek sebagai bagian **Definition of Done** setiap milestone selesai:
 
-- `PROJECT_STATE.md` section "Completed (Ringkasan)" dijaga **≤ 5 item** (rolling window item terbaru — aturan mengikat, lihat `AGENTS.md` § "Setelah mengubah sesuatu"); "Recent Decisions (Ringkasan)" dijaga ≤ ~10 item. Item yang tergeser keluar tetap di tiket `tickets/` dan di `DECISIONS.md`.
+- `PROJECT_STATE.md` section "Completed (Ringkasan)" dijaga **≤ 5 item** (rolling window item terbaru — aturan mengikat, lihat `.claude/skills/project-os-navigator/SKILL.md` § "3. Pekerjaan Baru / Pembuatan Dokumen"); "Recent Decisions (Ringkasan)" dijaga ≤ ~10 item. Item yang tergeser keluar tetap di tiket `tickets/` dan di `DECISIONS.md`.
 - `AVAILABLE_TICKETS.md` hanya berisi task yang belum selesai. Mencari antrian berhenti di file itu (ADR-131).
 - Tiket, termasuk yang sudah ✅, tetap di `tickets/vXX-*.md`. AI membuka file itu hanya setelah ID dipilih, dan hanya section tiket itu.
 - Tiket baru mengikuti bentuk di `specs/README.md`: what to build, acceptance, blocked by, tautan spec atau "tidak ada — muat satu sesi". Jangan menulis cerita sesi ke dalam tiket. Riwayat sesi ada di git.

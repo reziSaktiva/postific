@@ -240,6 +240,68 @@ social-media-management/
 
 ---
 
+## Mapping task → baca dulu
+
+| Jenis task                   | Context dulu                                 | Baseline minimal                                                                                        |
+| ----------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Fitur / use-case              | `ctx-domain` + `ctx-implementation`           | BC di `05-architecture/` + UX di `04-ux/` + `rendering-strategy.md` (+ `ctx-business` untuk roles/MVP)    |
+| Schema / migrasi              | `ctx-architecture` + `ctx-technical-context`  | `database-strategy.md` + `database-orm.md` + `apps/web/prisma/schema.prisma`                              |
+| Auth / session                | `ctx-architecture` + `ctx-technical-context`  | `auth-architecture.md` + `auth-strategy.md`                                                               |
+| Outstand / webhook / publish  | `ctx-architecture`                            | `integration-layer.md`                                                                                    |
+| Jobs / cron                   | `ctx-architecture`                            | `background-jobs.md`                                                                                      |
+| Env / deploy / CI             | `ctx-technical-context`                       | `environment-management.md`, `deployment-infrastructure.md`, `cicd-pipeline.md`                           |
+| Coding conventions / DX       | `ctx-development`                             | `dx-tooling.md` + `code-conventions.md`                                                                   |
+| UI component / styling        | `ctx-design` + `ctx-implementation`           | `apps/web/.claude/CLAUDE.md` + `monorepo-setup.md` + `design-tokens.md` + ADR-097                         |
+| Desain / handoff UI           | `ctx-design`                                  | `04-ux/` + pointer Claude Design (folder `design/` dihapus, ADR-045)                                      |
+
+---
+
+## Skills & subagent housekeeping
+
+**Satu-satunya folder skill di project ini adalah `.claude/skills/<nama>/`.**
+`.agents/skills/` sudah dihapus (ADR-064) supaya tidak ada dua salinan fisik
+yang bisa divergen. Claude Code hanya membaca `.claude/skills/`; Cursor tetap
+membaca folder yang sama lewat jalur kompatibilitasnya. Jalur kompatibilitas
+itu adalah fallback, bukan mekanisme native utama — evaluasi ulang kalau di
+masa depan pindah ke tool AI lain yang hanya comply ke standar terbuka
+[Agent Skills](https://agentskills.io) (lokasi native: `.agents/skills/`)
+tanpa special-case Claude.
+
+Aturan untuk mencegah duplikasi/divergensi terulang:
+
+1. **Jangan buat ulang folder `.agents/skills/`** kecuali ada keputusan baru
+   yang eksplisit dari King Rezi untuk kembali memakainya.
+2. Skill vendor/third-party (Prisma, Supabase, Vercel, Better Auth, dst.)
+   biasanya dipasang lewat installer resmi (`npx skills add ...`) yang
+   **defaultnya menulis ke `.agents/skills/`** — kalau itu terjadi lagi,
+   pindahkan manual hasilnya ke `.claude/skills/<nama>` (bukan dibiarkan
+   berdampingan dengan folder lain), lalu hapus folder `.agents/skills/`
+   yang baru terbentuk itu.
+3. Edit/tambah skill custom project langsung di `.claude/skills/<nama>/`.
+
+Berkas panduan vendor panjang di dalam sebuah skill (mis. rules lengkap)
+dinamai `REFERENCE.md`, bukan `AGENTS.md` — Cursor menyuntikkan setiap berkas
+bernama `AGENTS.md` ke setiap pesan, jadi nama itu dicadangkan untuk pintu
+masuk repo di root (T-116).
+
+**Delegasi subagent (ADR-063):** perubahan sepele — satu berkas, tanpa batas
+domain, tanpa permukaan UI (contoh: rename file, perbaikan satu baris di
+dokumen, typo) — dikerjakan agen utama langsung, tidak perlu melalui evaluasi
+Domain → Subagent di `.claude/agents/README.md`. Rantai delegasi (termasuk
+Ridwan → Najwa → Gibran untuk implementasi fitur) tetap wajib begitu
+pekerjaannya menyentuh domain kode (`apps/`, `packages/`) atau permukaan UI.
+Kalau ragu apakah sebuah perubahan "sepele", perlakukan sebagai tidak sepele
+dan jalankan evaluasi delegasi seperti biasa.
+
+**Higiene sesi:** satu task per percakapan. Kalau sebuah sesi sudah
+mengerjakan satu task sampai selesai dan diminta task baru yang tidak
+berhubungan, catat ringkas task yang baru selesai di `CONVERSATIONS.md` (atau
+pastikan sudah tercermin di status tiket/`PROJECT_STATE.md`), lalu sarankan
+melanjutkan di sesi baru untuk task berikutnya — riwayat percakapan yang
+panjang ikut terbayar di setiap giliran berikutnya di sesi yang sama.
+
+---
+
 ## Additional Resources
 
 - Untuk detail dokumen UX Planning: `product-discovery/04-ux/README.md`
