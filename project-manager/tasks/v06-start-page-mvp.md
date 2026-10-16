@@ -71,10 +71,19 @@ T-103.3) — jangan menebak struktur dari deskripsi ADR saja.
 
 ### T-072 · Link management
 
-`⏳ Not Started` · **Domain** start-page · UI · **ADR** — · **Depends** T-070
-**Baca dulu:** `02-product/mvp-definition.md`
+`⏳ Not Started` · **Domain** start-page · UI · **ADR** ADR-130 · **Depends** T-070
+**Baca dulu:** `02-product/mvp-definition.md` · ADR-130 · Claude Design `templates/start-page-editor.html` (LOCKED, App Prototype)
 
 **Must Have.** CRUD daftar tautan + urutan tampil. Pertimbangkan konfirmasi hapus tautan (ADR-049).
+
+**Layar sudah dikunci (ADR-130, 2026-10-16):** "Start Page → Page Editor"
+(`templates/start-page-editor.html`) — Profil Halaman, **Link List sebagai
+Table tanpa header** (bukan Item/ItemGroup atau card-per-item, dipilih King
+Rezi setelah Neymar menahan diri tidak menebak, gate T-103.2), Preview yang
+me-reuse struktur Opsi B Card Stack (ADR-129), dan Share (URL publik + toggle
+Published/Unpublished). Sudah disambungkan ke nav "Start Page" di App
+Prototype (7 template). Mark UI Engineer **wajib** `DesignSync get_file`
+pada layar ini sebelum menulis kode (gate T-103.3).
 
 ### T-073 · Theme configuration
 

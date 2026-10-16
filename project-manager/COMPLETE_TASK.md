@@ -8,6 +8,51 @@ Seluruh perubahan penting pada dokumentasi maupun implementasi project dicatat p
 
 ---
 
+## 2026-10-16 (sesi ketiga) — Layar Start Page → Page Editor + wiring App Prototype (ADR-130)
+
+### Konteks
+Lanjutan sesi desain Start Page (ADR-128/ADR-129 di bawah). King Rezi minta
+"Start Page" ditambahkan ke App Prototype (runner interaktif Claude Design).
+Dicek dulu: nav item "Start Page" sudah ada di sidebar bersama sejak awal
+tapi `href="#"` (tidak mengarah ke mana pun), dan `SCREENS` array App
+Prototype belum punya entry untuk Start Page sama sekali. Ditanyakan ke King
+Rezi (`AskUserQuestion`): nav diarahkan ke layar Page Editor baru (sesuai IA
+resmi) atau langsung ke desain publik Opsi B — King Rezi pilih **Page
+Editor baru**. Didelegasikan ke Neymar Product Designer (`DesignSync`
+berhasil penuh).
+
+### Added
+- `templates/start-page-editor.html` — layar baru "Start Page → Page
+  Editor": Profil Halaman, Link List (Table tanpa header), Preview (reuse
+  struktur Opsi B Card Stack), Share (URL publik + toggle Published).
+- Entry `SCREENS` baru di `AppPrototype.dc.html` (`key: 'start-page-editor'`,
+  `code: 'T-072'`) + nav item "Start Page" disambungkan (href diganti dari
+  `#` ke `start-page-editor.html`) di 7 template yang punya sidebar utama.
+- **ADR-130** — mengunci pola Link List sebagai **Table tanpa header**
+  (bukan Item/ItemGroup atau card-per-item). Neymar sengaja menahan diri
+  tidak menebak pola ini (ambigu, gate T-103.2) dan menulisnya sebagai
+  tentatif dulu — King Rezi mengonfirmasi lewat `AskUserQuestion` sebelum
+  dikunci final.
+
+### Updated
+- `tasks/v06-start-page-mvp.md` § T-072 — tambah referensi ADR-130 + catatan
+  gate T-103.3.
+- `project-manager/DECISIONS.md` — entri ADR-130.
+
+### Catatan terbuka (ADR-056)
+`04-ux/information-architecture.md` sudah menyebut alur Start Page → Page
+Editor → Preview+Share secara umum, tapi detail struktur konkret (Link List
+Table, Preview device frame, Share toggle) belum ditulis di baseline —
+ditunda sampai implementasi T-072 berjalan (belum diminta King Rezi
+sekarang). Tidak ada token baru, jadi `design-tokens.md` tidak perlu
+diselaraskan.
+
+### Status
+T-071/T-072 masih `⏳ Not Started` — ini murni keputusan desain + wiring
+prototipe, implementasi kode belum dimulai.
+
+---
+
 ## 2026-10-16 (sesi kedua) — Eksplorasi + kunci layout publik Start Page (ADR-129)
 
 ### Konteks
