@@ -6,6 +6,8 @@ const {
   listActiveConnectedAccountsForSync,
   hasJobMatchingPayloadKey,
   scheduleJob,
+  executeImportSync,
+  executeImportSyncIfDue,
 } = vi.hoisted(() => ({
   getServerEnv: vi.fn(),
   runPendingJobs: vi.fn(),
@@ -19,13 +21,18 @@ const {
   ),
   hasJobMatchingPayloadKey: vi.fn<(input: unknown) => Promise<boolean>>(),
   scheduleJob: vi.fn<(input: unknown) => Promise<void>>(),
+  executeImportSync: vi.fn(async () => ({ enqueued: 0 })),
+  executeImportSyncIfDue: vi.fn(async () => ({ enqueued: 0, skipped: true })),
 }));
 vi.mock("@/lib/env", () => ({ getServerEnv }));
 
 vi.mock("@/lib/adapters/outstand", () => ({
   getOutstandAdapter: vi.fn(() => ({})),
 }));
-vi.mock("@/lib/repositories/publishing", () => ({ publishingRepository: {} }));
+vi.mock("@/lib/repositories/publishing", () => ({
+  publishingRepository: {},
+  importJobRepository: {},
+}));
 vi.mock("@/lib/repositories/workspace", () => ({
   workspaceRepository: {
     listActiveConnectedAccountsForSync: () =>
@@ -50,6 +57,17 @@ vi.mock("@/domains/publishing", () => ({
   ResolveScheduledPostOutcomeJobHandler: class {
     handle = vi.fn();
   },
+  IMPORT_SYNC_JOB_TYPE: "import.sync",
+  ImportSyncJobHandler: class {
+    handle = vi.fn();
+  },
+  EnqueueImportSyncUseCase: class {
+    execute = executeImportSync;
+    executeIfDue = executeImportSyncIfDue;
+  },
+  ImportPostsTriggerUseCase: class {},
+  ImportPostsProcessUseCase: class {},
+  BackfillOutstandPostIdsUseCase: class {},
 }));
 vi.mock("@/domains/notification", () => ({
   NotificationService: class {},
@@ -104,6 +122,8 @@ describe("POST /api/jobs/run (T-027.1/.2)", () => {
 
     expect(response.status).toBe(401);
     expect(runPendingJobs).not.toHaveBeenCalled();
+    expect(executeImportSync).not.toHaveBeenCalled();
+    expect(executeImportSyncIfDue).not.toHaveBeenCalled();
   });
 
   it("rejects with 401 when the X-Job-Secret header is missing", async () => {
@@ -249,5 +269,54 @@ describe("POST /api/jobs/run (T-027.1/.2)", () => {
     expect(response.status).toBe(200);
     expect(runPendingJobs).toHaveBeenCalledTimes(1);
     expect(scheduleJob).not.toHaveBeenCalled();
+  });
+
+  it("calls import executeIfDue from the minute cron, not the forced execute", async () => {
+    const { POST } = await import("./route");
+
+    const response = await POST(buildRequest(SECRET));
+
+    expect(response.status).toBe(200);
+    expect(executeImportSyncIfDue).toHaveBeenCalledTimes(1);
+    expect(executeImportSync).not.toHaveBeenCalled();
+    const handlers = runPendingJobs.mock.calls[0]?.[1] as Record<
+      string,
+      unknown
+    >;
+    expect(typeof handlers["import.sync"]).toBe("function");
+  });
+
+  it("calls import execute when the request asks for type=import", async () => {
+    const { POST } = await import("./route");
+
+    const response = await POST(
+      buildRequest(SECRET, "http://localhost/api/jobs/run?type=import"),
+    );
+
+    expect(response.status).toBe(200);
+    expect(executeImportSync).toHaveBeenCalledTimes(1);
+    expect(executeImportSyncIfDue).not.toHaveBeenCalled();
+    expect(runPendingJobs).toHaveBeenCalledTimes(1);
+  });
+
+  it("still returns 200 and runs pending jobs when the import fan-out fails", async () => {
+    executeImportSyncIfDue.mockRejectedValueOnce(
+      new Error("fungsi import belum ada"),
+    );
+    listActiveConnectedAccountsForSync.mockResolvedValue([
+      {
+        workspaceId: "workspace-1",
+        connectedAccountId: "account-1",
+        outstandAccountId: "outstand-1",
+      },
+    ]);
+    hasJobMatchingPayloadKey.mockResolvedValue(false);
+    const { POST } = await import("./route");
+
+    const response = await POST(buildRequest(SECRET));
+
+    expect(response.status).toBe(200);
+    expect(runPendingJobs).toHaveBeenCalledTimes(1);
+    expect(scheduleJob).toHaveBeenCalled();
   });
 });

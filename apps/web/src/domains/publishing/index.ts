@@ -18,6 +18,8 @@ export * from "./services/outstand-webhook-processor";
 export * from "./services/resolve-scheduled-post-outcome-job-handler";
 export * from "./services/import-posts-process.use-case";
 export * from "./services/import-posts-trigger.use-case";
+export * from "./services/import-sync-job-handler";
+export * from "./services/enqueue-import-sync";
 export * from "./services/backfill-outstand-post-ids.use-case";
 export * from "./services/resolve-schedule-targets";
 export * from "./services/resolve-draft-media-ids";

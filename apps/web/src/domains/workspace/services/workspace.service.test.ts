@@ -69,6 +69,7 @@ function createFakeRepository(
     markAccountReconnectRequired: async () => null,
     findAccountOwnerByOutstandAccountId: async () => null,
     listActiveConnectedAccountsForSync: async () => [],
+    listAccountsForPeriodicImportSync: async () => [],
     disconnectAccount: async () => undefined,
     findConnectedAccountById: async () => null,
     findConnectedAccountByOutstandId: async () => null,
@@ -298,6 +299,7 @@ function createFakeRepository(
       return newMember;
     },
     updateImportWatermark: async () => undefined,
+    getImportWatermark: async () => null,
     ...overrides,
     createConnectedAccounts: async (input) => {
       const current = holder.repo;

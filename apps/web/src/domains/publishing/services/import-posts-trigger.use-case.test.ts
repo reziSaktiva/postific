@@ -11,6 +11,7 @@ import type {
   ImportJobOutcome,
 } from "@postific/shared";
 import { describe, expect, it, vi } from "vitest";
+import { ConflictError } from "@/lib/utils/errors";
 import type {
   IImportJobRepository,
   ImportSyncJobPayload,
@@ -51,6 +52,7 @@ function createFakeImportJobRepository(
     ),
     markImportSyncJobStatus: vi.fn(async () => undefined),
     hasActiveImportSyncJob: vi.fn(async () => false),
+    findActiveImportSyncJob: vi.fn(async () => null),
     countManualImportSyncJobsSince: vi.fn(async () => 0),
     ...overrides,
   };
@@ -117,6 +119,9 @@ function createFakeWatermarkPort(
     findAccountOwnerByOutstandAccountId?: (
       outstandAccountId: string,
     ) => Promise<AccountOwnerLookupResult | null>;
+    getImportWatermark?: () => Promise<{
+      lastImportedUntil: Date | null;
+    } | null>;
   } = {},
 ) {
   return {
@@ -130,6 +135,9 @@ function createFakeWatermarkPort(
         ),
         ownerUserId: ACTING_USER_ID,
       })),
+    getImportWatermark:
+      overrides.getImportWatermark ??
+      vi.fn(async () => ({ lastImportedUntil: null })),
   };
 }
 
@@ -202,11 +210,22 @@ describe("ImportPostsTriggerUseCase.triggerAuto (T-090.3, ADR-093 poin 7)", () =
     // `jobOutcome.error` null/full-success) supaya kasus `partial` (lihat
     // test baru di bawah) bisa meneruskan ringkasan kegagalan sebagian ke
     // `lastError` lewat jalur yang sama, bukan jalur baru/terpisah.
-    expect(importJobs.markImportSyncJobStatus).toHaveBeenCalledWith(
+    expect(importJobs.markImportSyncJobStatus).toHaveBeenNthCalledWith(
+      1,
+      expect.any(String),
+      "running",
+    );
+    expect(importJobs.markImportSyncJobStatus).toHaveBeenNthCalledWith(
+      2,
       expect.any(String),
       "done",
       undefined,
     );
+    const runningOrder = vi.mocked(importJobs.markImportSyncJobStatus).mock
+      .invocationCallOrder[0];
+    const networkOrder = vi.mocked(outstandAdapter.importPosts).mock
+      .invocationCallOrder[0];
+    expect(runningOrder).toBeLessThan(networkOrder!);
   });
 
   it("marks the job failed and does not update lastImportedUntil when fetchImportJobStatus does not resolve completed", async () => {
@@ -586,6 +605,13 @@ describe("ImportPostsTriggerUseCase.triggerManual (T-090.3, ADR-093 poin 9)", ()
     );
 
     expect(result.outcome).toBe("triggered");
+    expect(importJobs.countManualImportSyncJobsSince).toHaveBeenCalledWith(
+      WORKSPACE_ID,
+      expect.any(Date),
+    );
+    const manualPayload = vi.mocked(importJobs.createImportSyncJob).mock
+      .calls[0]?.[0];
+    expect(manualPayload?.trigger).toBe("manual");
     expect(outstandAdapter.importPosts).toHaveBeenCalledWith(
       OUTSTAND_ACCOUNT_ID,
       expect.objectContaining({ since: watermarkDate }),
@@ -699,6 +725,11 @@ describe("ImportPostsTriggerUseCase.triggerPeriodicForAccounts (T-090.3)", () =>
     expect(watermark.findAccountOwnerByOutstandAccountId).toHaveBeenCalledWith(
       OUTSTAND_ACCOUNT_ID,
     );
+    const createdPayload = vi.mocked(importJobs.createImportSyncJob).mock
+      .calls[0]?.[0];
+    expect(createdPayload?.trigger).toBe("periodic");
+    expect(createdPayload?.queued).toBeUndefined();
+    expect(importJobs.countManualImportSyncJobsSince).not.toHaveBeenCalled();
     expect(watermark.updateImportWatermark).toHaveBeenCalledWith(
       expect.objectContaining({ actingUserId: ACTING_USER_ID }),
     );
@@ -980,5 +1011,221 @@ describe("ImportPostsTriggerUseCase — T-114 backfill outstandPostId wiring", (
     expect(
       publishingRepo.backfillImportedPostOutstandIds,
     ).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("ImportPostsTriggerUseCase — concurrent guard stays on for manual and auto (T-115.4)", () => {
+  it("rejects manual sync when another import is already active for the account", async () => {
+    const importJobs = createFakeImportJobRepository({
+      hasActiveImportSyncJob: vi.fn(async () => true),
+    });
+    const outstandAdapter = createFakeOutstandAdapter();
+    const useCase = new ImportPostsTriggerUseCase(
+      importJobs,
+      outstandAdapter,
+      createFakeWatermarkPort(),
+      createProcessUseCase(),
+      noopBackfillUseCase,
+    );
+
+    const result = await useCase.triggerManual({
+      actorRole: MemberRole.Owner,
+      workspaceId: WORKSPACE_ID,
+      connectedAccountId: CONNECTED_ACCOUNT_ID,
+      outstandAccountId: OUTSTAND_ACCOUNT_ID,
+      platform: SocialPlatform.Instagram,
+      actingUserId: ACTING_USER_ID,
+      lastImportedUntil: null,
+      lastImportRequestedAt: null,
+    });
+
+    expect(result.outcome).toBe("rejected_concurrent");
+    expect(importJobs.createImportSyncJob).not.toHaveBeenCalled();
+    expect(outstandAdapter.importPosts).not.toHaveBeenCalled();
+  });
+
+  it.each(["auto", "manual"] as const)(
+    "maps a unique-index ConflictError to rejected_concurrent for %s without calling Outstand",
+    async (path) => {
+      const importJobs = createFakeImportJobRepository({
+        createImportSyncJob: vi.fn(async () => {
+          throw new ConflictError("sudah berjalan");
+        }),
+      });
+      const outstandAdapter = createFakeOutstandAdapter();
+      const useCase = new ImportPostsTriggerUseCase(
+        importJobs,
+        outstandAdapter,
+        createFakeWatermarkPort(),
+        createProcessUseCase(),
+        noopBackfillUseCase,
+      );
+
+      const result =
+        path === "auto"
+          ? await useCase.triggerAuto({
+              workspaceId: WORKSPACE_ID,
+              connectedAccountId: CONNECTED_ACCOUNT_ID,
+              outstandAccountId: OUTSTAND_ACCOUNT_ID,
+              platform: SocialPlatform.Instagram,
+              actingUserId: ACTING_USER_ID,
+            })
+          : await useCase.triggerManual({
+              actorRole: MemberRole.Owner,
+              workspaceId: WORKSPACE_ID,
+              connectedAccountId: CONNECTED_ACCOUNT_ID,
+              outstandAccountId: OUTSTAND_ACCOUNT_ID,
+              platform: SocialPlatform.Instagram,
+              actingUserId: ACTING_USER_ID,
+              lastImportedUntil: null,
+              lastImportRequestedAt: null,
+            });
+
+      expect(result.outcome).toBe("rejected_concurrent");
+      expect(outstandAdapter.importPosts).not.toHaveBeenCalled();
+      expect(importJobs.markImportSyncJobStatus).not.toHaveBeenCalled();
+    },
+  );
+});
+
+describe("ImportPostsTriggerUseCase.executeQueuedPeriodicImport (T-115)", () => {
+  const WATERMARK = new Date("2026-09-01T00:00:00.000Z");
+
+  function runningJob(
+    overrides: Partial<ImportSyncJobRecord["payload"]> = {},
+  ): ImportSyncJobRecord {
+    return {
+      id: "running-job",
+      status: "running",
+      createdAt: new Date("2026-10-16T00:00:00.000Z"),
+      payload: {
+        workspaceId: WORKSPACE_ID,
+        connectedAccountId: CONNECTED_ACCOUNT_ID,
+        outstandAccountId: OUTSTAND_ACCOUNT_ID,
+        trigger: "periodic",
+        queued: true,
+        platform: SocialPlatform.Instagram,
+        since: "",
+        until: "",
+        ...overrides,
+      },
+    };
+  }
+
+  function createQueuedUseCase(options: {
+    lastImportedUntil?: Date | null;
+    job?: ImportSyncJobRecord | null;
+    fetchImportJobStatus?: () => Promise<ImportJobOutcome>;
+  }) {
+    const importJobs = createFakeImportJobRepository({
+      findActiveImportSyncJob: vi.fn(async () =>
+        options.job === undefined ? runningJob() : options.job,
+      ),
+    });
+    const outstandAdapter = createFakeOutstandAdapter(
+      options.fetchImportJobStatus
+        ? { fetchImportJobStatus: options.fetchImportJobStatus }
+        : {},
+    );
+    const watermark = createFakeWatermarkPort({
+      findAccountOwnerByOutstandAccountId: vi.fn(async () => ({
+        workspaceId: WORKSPACE_ID,
+        connectedAccountId: CONNECTED_ACCOUNT_ID,
+        ownerUserId: ACTING_USER_ID,
+      })),
+      getImportWatermark: vi.fn(async () =>
+        options.lastImportedUntil === undefined
+          ? { lastImportedUntil: WATERMARK }
+          : { lastImportedUntil: options.lastImportedUntil },
+      ),
+    });
+    const useCase = new ImportPostsTriggerUseCase(
+      importJobs,
+      outstandAdapter,
+      watermark,
+      createProcessUseCase(2),
+      noopBackfillUseCase,
+    );
+    return { useCase, importJobs, outstandAdapter, watermark };
+  }
+
+  const queuedInput = {
+    workspaceId: WORKSPACE_ID,
+    connectedAccountId: CONNECTED_ACCOUNT_ID,
+    outstandAccountId: OUTSTAND_ACCOUNT_ID,
+    platform: SocialPlatform.Instagram,
+  };
+
+  it("imports from the watermark without inserting another job or counting the manual cap", async () => {
+    const { useCase, importJobs, outstandAdapter, watermark } =
+      createQueuedUseCase({});
+
+    await useCase.executeQueuedPeriodicImport(queuedInput);
+
+    expect(importJobs.createImportSyncJob).not.toHaveBeenCalled();
+    expect(importJobs.hasActiveImportSyncJob).not.toHaveBeenCalled();
+    expect(importJobs.countManualImportSyncJobsSince).not.toHaveBeenCalled();
+    expect(outstandAdapter.importPosts).toHaveBeenCalledWith(
+      OUTSTAND_ACCOUNT_ID,
+      expect.objectContaining({ since: WATERMARK }),
+    );
+    expect(watermark.updateImportWatermark).toHaveBeenNthCalledWith(1, {
+      connectedAccountId: CONNECTED_ACCOUNT_ID,
+      lastImportRequestedAt: expect.any(Date),
+      actingUserId: ACTING_USER_ID,
+    });
+    expect(importJobs.markImportSyncJobStatus).toHaveBeenCalledWith(
+      "running-job",
+      "done",
+      undefined,
+    );
+    const requestedOrder = vi.mocked(watermark.updateImportWatermark).mock
+      .invocationCallOrder[0];
+    const networkOrder = vi.mocked(outstandAdapter.importPosts).mock
+      .invocationCallOrder[0];
+    expect(requestedOrder).toBeLessThan(networkOrder!);
+  });
+
+  it("falls back to the 90 day lookback when lastImportedUntil is empty", async () => {
+    const { useCase, outstandAdapter } = createQueuedUseCase({
+      lastImportedUntil: null,
+    });
+
+    await useCase.executeQueuedPeriodicImport(queuedInput);
+
+    const since = vi.mocked(outstandAdapter.importPosts).mock.calls[0]?.[1]
+      .since as Date;
+    const elapsed = Date.now() - since.getTime();
+    expect(elapsed).toBeGreaterThan(89 * 24 * 60 * 60 * 1000);
+    expect(elapsed).toBeLessThan(91 * 24 * 60 * 60 * 1000);
+  });
+
+  it("throws when the import fails so the runner can retry, without swallowing the error", async () => {
+    const { useCase, importJobs } = createQueuedUseCase({
+      fetchImportJobStatus: async () => ({
+        status: "failed",
+        posts: [],
+        error: "Outstand down",
+      }),
+    });
+
+    await expect(
+      useCase.executeQueuedPeriodicImport(queuedInput),
+    ).rejects.toThrow(/Outstand down/);
+    expect(importJobs.markImportSyncJobStatus).toHaveBeenCalledWith(
+      "running-job",
+      "failed",
+      expect.stringContaining("Outstand down"),
+    );
+    expect(importJobs.createImportSyncJob).not.toHaveBeenCalled();
+  });
+
+  it("throws when there is no running queued job, so it does not import twice", async () => {
+    const { useCase, outstandAdapter } = createQueuedUseCase({ job: null });
+
+    await expect(
+      useCase.executeQueuedPeriodicImport(queuedInput),
+    ).rejects.toThrow(/tidak menemukan job/);
+    expect(outstandAdapter.importPosts).not.toHaveBeenCalled();
   });
 });
