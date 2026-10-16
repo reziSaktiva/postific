@@ -319,4 +319,4 @@ Verifikasi email registrasi dan password reset memakai **Resend** (ADR-126, 2026
 * `../../product-discovery/05-architecture/database-strategy.md` — DB-D04, DB-D05, RLS `app.current_user_id`
 * `../../product-discovery/05-architecture/realtime-strategy.md` — RLS subscription `auth.uid()` pada `notifications`
 * `../05-architecture/application-layer.md` — Route Handler v1 mobile client (AL-D08, ADR-043)
-* `../../project-manager/DECISIONS.md` — ADR-024, ADR-030, ADR-043
+* `../../project-os/DECISIONS.md` — ADR-024, ADR-030, ADR-043

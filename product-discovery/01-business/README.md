@@ -38,10 +38,10 @@ Topik berikut tidak dibahas di sini:
 * `pricing-strategy.md` — strategi harga awal dan asumsi monetisasi.
 * `success-metrics.md` — KPI utama untuk mengukur keberhasilan.
 * `../README.md` — dokumentasi fase Product Discovery.
-* `../../project-manager/PROJECT_OVERVIEW.md` — ringkasan project secara keseluruhan.
-* `../../project-manager/PROJECT_RULES.md` — aturan dan prinsip project.
-* `../../project-manager/PROJECT_STATE.md` — status project dan progress milestone.
-* `../../project-manager/DECISIONS.md` — catatan keputusan penting.
+* `../../project-os/PROJECT_OVERVIEW.md` — ringkasan project secara keseluruhan.
+* `../../project-os/PROJECT_RULES.md` — aturan dan prinsip project.
+* `../../project-os/PROJECT_STATE.md` — status project dan progress milestone.
+* `../../project-os/DECISIONS.md` — catatan keputusan penting.
 
 ---
 
@@ -86,8 +86,8 @@ Business Discovery dianggap selesai apabila:
 
 Keputusan yang mengubah arah bisnis, target pasar, model bisnis, atau strategi monetisasi harus dicatat pada:
 
-- `../../project-manager/DECISIONS.md`
+- `../../project-os/DECISIONS.md`
 
 Progress Business Discovery harus diperbarui pada:
 
-- `../../project-manager/PROJECT_STATE.md`
+- `../../project-os/PROJECT_STATE.md`

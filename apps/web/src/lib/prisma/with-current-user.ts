@@ -40,7 +40,7 @@ export type PrismaTransactionClient = Prisma.TransactionClient;
  *   see `getMember`/`listMembers` below, is the first adopter). Migrating
  *   every repository method in the codebase to run through this wrapper is
  *   a separate, larger task — see "Catatan Implementasi" on T-017 in
- *   `tasks/v01-foundation.md`.
+ *   `tickets/v01-foundation.md`.
  */
 export async function withCurrentUser<T>(
   userId: string,

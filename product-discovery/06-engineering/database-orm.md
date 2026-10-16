@@ -361,4 +361,4 @@ Detail script Bun (`db:migrate`, `db:generate`) ditetapkan di `dx-tooling.md` (D
 * `dx-tooling.md` — script lokal migrate/generate (ADR-034)
 * `../05-architecture/database-strategy.md` — skema tabel, RLS, soft delete
 * `../05-architecture/application-layer.md` — Repository Pattern
-* `../../project-manager/DECISIONS.md` — ADR-017 (amended), ADR-031
+* `../../project-os/DECISIONS.md` — ADR-017 (amended), ADR-031

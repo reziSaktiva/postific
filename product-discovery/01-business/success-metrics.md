@@ -104,7 +104,7 @@ Produk dianggap berhasil apabila:
 
 # Catatan Penerapan Metrik
 
-Status/phase proyek saat ini hanya hidup di `project-manager/PROJECT_STATE.md`
+Status/phase proyek saat ini hanya hidup di `project-os/PROJECT_STATE.md`
 (rule 10, AGENTS.md) — tidak diduplikasi di sini. Selama produk masih berada
 pada tahap perencanaan dan pengembangan, seluruh metrik di atas berfungsi
 sebagai target evaluasi di masa mendatang.
@@ -136,11 +136,11 @@ Seluruh target numerik harus didasarkan pada data penggunaan nyata.
 
 Perubahan KPI bisnis harus dicatat pada:
 
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/DECISIONS.md`
 
 Perubahan status dokumen harus diperbarui pada:
 
-* `../../project-manager/PROJECT_STATE.md`
+* `../../project-os/PROJECT_STATE.md`
 
 ---
 
@@ -149,6 +149,6 @@ Perubahan status dokumen harus diperbarui pada:
 * `README.md`
 * `business-model.md`
 * `pricing-strategy.md`
-* `../../project-manager/PROJECT_OVERVIEW.md`
-* `../../project-manager/PROJECT_STATE.md`
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/PROJECT_OVERVIEW.md`
+* `../../project-os/PROJECT_STATE.md`
+* `../../project-os/DECISIONS.md`

@@ -71,9 +71,9 @@ Di metadata atas:
 
 ## Langkah 4 — Catat di Project OS
 
-* Tambah/update ADR di `../../project-manager/DECISIONS.md` jika nilai brand/tema berdampak luas (atau amandemen singkat pada ADR-038 bahwa nilai sudah diisi).
-* Update `../../project-manager/CHANGELOG.md`.
-* Update `../../project-manager/PROJECT_STATE.md` bila ini menjadi next-task selesai / unlock UI shell.
+* Tambah/update ADR di `../../project-os/DECISIONS.md` jika nilai brand/tema berdampak luas (atau amandemen singkat pada ADR-038 bahwa nilai sudah diisi).
+* Update `../../project-os/CHANGELOG.md`.
+* Update `../../project-os/PROJECT_STATE.md` bila ini menjadi next-task selesai / unlock UI shell.
 
 ## Langkah 5 — Mirror ke kode (M8)
 
@@ -396,8 +396,8 @@ perlu di-approve eksplisit (bukan bagian "migrasi tanpa ubah visual").
 # Related Documents
 
 * `README.md` (folder Engineering)
-* `../../project-manager/DECISIONS.md` — ADR-038, ADR-041, ADR-056, ADR-057, ADR-095 (kunci skala Spacing), ADR-097 (migrasi ke shadcn/ui, membalik ADR-041)
-* `../../project-manager/PROJECT_OVERVIEW.md` — shadcn/ui + Tailwind langsung (ADR-097)
+* `../../project-os/DECISIONS.md` — ADR-038, ADR-041, ADR-056, ADR-057, ADR-095 (kunci skala Spacing), ADR-097 (migrasi ke shadcn/ui, membalik ADR-041)
+* `../../project-os/PROJECT_OVERVIEW.md` — shadcn/ui + Tailwind langsung (ADR-097)
 * `../04-ux/` — UX Baseline (alur & layar)
 * `../02-product/roles-permissions.md` — status konten kanonikal
 * `../../context/ctx-design.md` — pointer Claude Design (folder `design/` dihapus, ADR-045)

@@ -148,11 +148,11 @@ Insight yang mengarah pada perubahan terhadap:
 
 harus didokumentasikan pada:
 
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/DECISIONS.md`
 
 Perubahan progress User Discovery harus diperbarui pada:
 
-* `../../project-manager/PROJECT_STATE.md`
+* `../../project-os/PROJECT_STATE.md`
 
 ---
 
@@ -167,7 +167,7 @@ Perubahan progress User Discovery harus diperbarui pada:
 * `../02-product/product-scope.md`
 * `../02-product/mvp-definition.md`
 * `../02-product/feature-modules.md`
-* `../../project-manager/PROJECT_OVERVIEW.md`
-* `../../project-manager/PROJECT_RULES.md`
-* `../../project-manager/PROJECT_STATE.md`
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/PROJECT_OVERVIEW.md`
+* `../../project-os/PROJECT_RULES.md`
+* `../../project-os/PROJECT_STATE.md`
+* `../../project-os/DECISIONS.md`

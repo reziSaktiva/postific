@@ -137,7 +137,7 @@ const eslintConfig = defineConfig([
     "apps/web/next-env.d.ts",
     "apps/web/src/generated/**",
     "product-discovery/**",
-    "project-manager/**",
+    "project-os/**",
     // Skill vendor/custom (ADR-064) — bukan kode project, jangan di-lint.
     ".claude/**",
   ]),

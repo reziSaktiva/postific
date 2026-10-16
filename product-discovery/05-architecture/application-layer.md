@@ -565,5 +565,5 @@ Untuk MVP, tidak semua service method di atas diimplementasikan. Prioritas imple
 * `auth-architecture.md` — Better Auth dan otorisasi granular dalam Application Service
 * `../02-product/mvp-definition.md` — scope MVP yang menentukan method mana yang diimplementasikan
 * `../02-product/roles-permissions.md` — role dan permission yang menjadi constraint authorization
-* `../../project-manager/DECISIONS.md` — ADR-001 s/d ADR-015, AL-D01 s/d AL-D04, ADR-043 (AL-D08)
+* `../../project-os/DECISIONS.md` — ADR-001 s/d ADR-015, AL-D01 s/d AL-D04, ADR-043 (AL-D08)
 * `../06-engineering/auth-strategy.md` — Better Auth Bearer plugin, konfigurasi auth mobile (AS-D06)

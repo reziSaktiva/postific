@@ -908,4 +908,4 @@ Tabel berikut memetakan Bounded Context ke modul yang didefinisikan di Product B
 * `../02-product/roles-permissions.md` — Product Baseline: roles dan content status kanonikal
 * `../03-user/insights.md` — User Discovery: insights I-01, I-04, I-06, I-08
 * `../04-ux/key-screen-patterns.md` — UX Baseline: screen patterns sebagai referensi entitas
-* `../../project-manager/DECISIONS.md` — ADR-004 (Modular Monolith + DDD), pra-architecture decisions
+* `../../project-os/DECISIONS.md` — ADR-004 (Modular Monolith + DDD), pra-architecture decisions

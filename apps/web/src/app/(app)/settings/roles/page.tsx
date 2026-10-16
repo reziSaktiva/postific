@@ -4,7 +4,7 @@ export default function Page() {
   return (
     <ScaffoldPlaceholder
       title="Settings — Roles"
-      message="Placeholder — belum ada task tercatat untuk halaman ini di backlog (lihat project-manager/TASKS.md)."
+      message="Placeholder — belum ada tiket tercatat untuk halaman ini (lihat project-os/AVAILABLE_TICKETS.md)."
     />
   );
 }

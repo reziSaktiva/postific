@@ -160,9 +160,8 @@ Pengguna tidak perlu mengakses semuanya sejak hari pertama. Produk harus membiar
 Jika prinsip UX perlu diubah karena keputusan produk baru:
 
 1. Identifikasi prinsip mana yang terdampak.
-2. Dokumentasikan alasan perubahan pada `../../project-manager/DECISIONS.md`.
+2. Dokumentasikan alasan perubahan pada `../../project-os/DECISIONS.md`.
 3. Update dokumen UX yang merujuk prinsip tersebut.
-4. Catat perubahan pada `../../project-manager/COMPLETE_TASK.md` (ADR-061).
 
 ---
 
@@ -199,5 +198,5 @@ UX Principles dianggap selesai apabila:
 * `../03-user/user-journey.md`
 * `../02-product/mvp-definition.md`
 * `../02-product/feature-priority.md`
-* `../../project-manager/DECISIONS.md`
-* `../../project-manager/PROJECT_STATE.md`
+* `../../project-os/DECISIONS.md`
+* `../../project-os/PROJECT_STATE.md`

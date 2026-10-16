@@ -117,8 +117,8 @@ bawahnya. Ini pola yang harus diikuti untuk **semua page baru**.
 **Pola yang menyimpang (known exception, jangan ditiru):**
 `app/(app)/page.tsx` (dashboard) memanggil Server Action
 (`getDashboardSummaryAction`) untuk pure read — dicatat sebagai technical
-debt (lihat Known Issue terkait di `PROJECT_STATE.md`, dan task cleanup di
-`TASKS.md`). **Bukan pola yang benar untuk dicontoh di fitur baru.**
+debt (lihat Known Issue terkait di `PROJECT_STATE.md`, dan tiket cleanup di
+`tickets/`). **Bukan pola yang benar untuk dicontoh di fitur baru.**
 
 **Alasan aturan ini:** Server Action membawa overhead POST + serialisasi
 yang tidak perlu untuk read; Server Component sudah punya akses langsung ke
@@ -160,9 +160,9 @@ ini. Ini status quo eksplisit, bukan lupa dikonfigurasi.
 
 **Pengecualian terbuka:** Start Page / rute publik (v0.6, **T-070**).
 Strategi rendering-nya (SSG/ISR/dynamic) **belum diputuskan** — jangan
-diasumsikan dari dokumen ini. Keputusan itu menunggu T-070 dikerjakan
-(termasuk keputusan terbuka "Strategi route publik tanpa auth" di
-`TASKS.md`), dan akan mendapat ADR sendiri saat diputuskan.
+diasumsikan dari dokumen ini. URL publik sudah dikunci di ADR-128
+(`/u/[slug]`). Strategi SSG/ISR/dynamic masih terbuka dan akan mendapat
+ADR sendiri saat diputuskan.
 
 ---
 
@@ -198,5 +198,5 @@ tidak diduplikasi di sini:
 * `code-conventions.md` — kontrak error handling Server Action (CC-D02)
 * `monorepo-setup.md` — struktur `app/`, penamaan file
 * `../../context/ctx-implementation.md` — alur implementasi fitur
-* `../../project-manager/decisions/ADR-016-application-layer-next-js-entry-point-strategy.md`
-* `../../project-manager/decisions/ADR-095-*.md` (dokumen ini ditetapkan sebagai baseline)
+* `../../project-os/decisions/ADR-016-application-layer-next-js-entry-point-strategy.md`
+* `../../project-os/decisions/ADR-095-*.md` (dokumen ini ditetapkan sebagai baseline)

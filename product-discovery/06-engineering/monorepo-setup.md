@@ -26,7 +26,7 @@ social-media-management/          ← monorepo root
 ├── packages/
 │   └── shared/                   ← @postific/shared — shared types lintas domain
 ├── product-discovery/            ← dokumentasi produk (bukan kode)
-├── project-manager/              ← project OS (bukan kode)
+├── project-os/              ← project OS (bukan kode)
 ├── package.json                  ← Bun Workspaces root config
 ├── tsconfig.json                 ← TypeScript base config
 ├── .gitignore
@@ -36,7 +36,7 @@ social-media-management/          ← monorepo root
 **Prinsip root:**
 - `apps/` → satu atau lebih aplikasi yang bisa di-deploy.
 - `packages/` → shared libraries yang dikonsumsi oleh satu atau lebih app.
-- Folder dokumentasi (`product-discovery/`, `project-manager/`) tidak termasuk workspace — tidak diproses Bun.
+- Folder dokumentasi (`product-discovery/`, `project-os/`) tidak termasuk workspace — tidak diproses Bun.
 
 ---
 
@@ -320,7 +320,7 @@ src/components/
 **Aturan:**
 - **shadcn/ui adalah fondasi component system permanen** (ADR-097, membalik
   ADR-041). Migrasi dari Astryx sudah tuntas (rilis v0.7, T-102); riwayatnya
-  di `tasks/v07-astryx-shadcn-migration.md`.
+  di `tickets/v07-astryx-shadcn-migration.md`.
 - `ui/` menampung komponen shadcn hasil copy CLI/MCP; wrapper tambahan dibuat
   hanya untuk komponen kritis, komponen yang dipakai luas, default aplikasi
   yang konsisten, atau adaptasi behavior produk.
@@ -536,4 +536,4 @@ import { something } from '@/domains/workspace';  // di dalam packages/shared/
 * `../../product-discovery/05-architecture/application-layer.md` — layer stack dan entry point patterns
 * `../../product-discovery/05-architecture/auth-architecture.md` — Middleware workspace context
 * `../../product-discovery/04-ux/information-architecture.md` — hierarki layar (dasar routing structure)
-* `../../project-manager/DECISIONS.md` — ADR-001, ADR-002, ADR-003, ADR-004, ADR-026, ADR-035
+* `../../project-os/DECISIONS.md` — ADR-001, ADR-002, ADR-003, ADR-004, ADR-026, ADR-035

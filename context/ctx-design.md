@@ -44,7 +44,7 @@ Project lama bernama **"Modernist"** di akun yang sama **bukan** milik product i
 1. `04-ux/` tetap **SoT** untuk alur, IA, dan fungsi layar — Claude Design hanya representasi visual yang diturunkan darinya, bukan pengganti.
 2. `design-tokens.md` (`../product-discovery/06-engineering/design-tokens.md`) tetap **SoT design tokens** (ADR-038) — bukan project Claude Design, bukan screenshot.
 3. Implementasi layar M8 **tidak menunggu** token final: gunakan Stone theme (ADR-087) sebagai acuan nilai dan jangan mengarang custom brand hex. Sejak ADR-055 (diamandemen ADR-097), Light/Dark Mode Toggle adalah fitur resmi (kontrol persisten di sidebar footer) — mekanismenya lewat Tailwind `dark:` + shadcn theme provider, bukan tema/token baru.
-4. **shadcn/ui adalah fondasi komponen permanen** (ADR-097, membalik ADR-041). Migrasi dari Astryx ke shadcn/ui selesai (ADR-097); detail status lihat `PROJECT_STATE.md` / `../project-manager/tasks/v07-astryx-shadcn-migration.md` § T-102. Tailwind dipakai langsung sebagai styling komponen shadcn; wrapper di `components/ui/` dibuat selektif.
+4. **shadcn/ui adalah fondasi komponen permanen** (ADR-097, membalik ADR-041). Migrasi dari Astryx ke shadcn/ui selesai (ADR-097); detail status lihat `PROJECT_STATE.md` / `../project-os/tickets/v07-astryx-shadcn-migration.md` § T-102. Tailwind dipakai langsung sebagai styling komponen shadcn; wrapper di `components/ui/` dibuat selektif.
 5. Wireframe detail di fase M8: **terbatas** — hanya jika dibutuhkan untuk implementasi layar (lihat `PROJECT_STATE` Active Conversation Mode).
 6. Status konten & roles visual harus selaras `roles-permissions.md` (lihat `ctx-business.md`).
 7. Persona di UI copy / contoh: Raka, Maya, Sinta, Dimas, Lara.
@@ -99,7 +99,7 @@ CSS variable shadcn/ui + Tailwind token bridge.
 - Pola kode UI entry → `ctx-implementation.md`
 - Stack / mirror token ke kode → `ctx-technical-context.md`
 - Project mode (wireframe boleh/tidak) → `ctx-project.md` + `PROJECT_STATE.md`
-- Keputusan penghapusan `design/` → `../project-manager/DECISIONS.md` (ADR-045)
+- Keputusan penghapusan `design/` → `../project-os/DECISIONS.md` (ADR-045)
 - Scope discipline saat mengubah Claude Design → `../.claude/skills/claude-design-scope-discipline/SKILL.md` (ADR-052)
-- Sync docs ↔ Claude Design + kewajiban reminder proaktif → `../project-manager/DECISIONS.md` (ADR-056)
-- Tidak ada designer eksternal, permanen → `../project-manager/DECISIONS.md` (ADR-057)
+- Sync docs ↔ Claude Design + kewajiban reminder proaktif → `../project-os/DECISIONS.md` (ADR-056)
+- Tidak ada designer eksternal, permanen → `../project-os/DECISIONS.md` (ADR-057)

@@ -9,7 +9,7 @@ Bukan tempat config env, script DX, atau gaya kode.
 
 | Dokumen                                                                                            | Topik                                                             |
 | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| [`../project-manager/ARCHITECTURE_OVERVIEW.md`](../project-manager/ARCHITECTURE_OVERVIEW.md)       | Orientasi high-level                                              |
+| [`../project-os/ARCHITECTURE_OVERVIEW.md`](../project-os/ARCHITECTURE_OVERVIEW.md)                 | Orientasi high-level                                              |
 | [`../product-discovery/05-architecture/README.md`](../product-discovery/05-architecture/README.md) | Indeks Architecture Baseline v1.0 (ADR-025)                       |
 | [`application-layer.md`](../product-discovery/05-architecture/application-layer.md)                | 4-layer stack, entry points, services, repository, error handling |
 | [`domain-model.md`](../product-discovery/05-architecture/domain-model.md)                          | BC & boundary (detail juga di `ctx-domain.md`)                    |

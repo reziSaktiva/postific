@@ -164,7 +164,7 @@ Contoh pembahasan:
 
 Selama fase Product Discovery:
 
-* Setiap keputusan penting harus dicatat pada `../project-manager/PROJECT_STATE.md` dan `../project-manager/DECISIONS.md` sesuai kebutuhan.
+* Setiap keputusan penting harus dicatat pada `../project-os/PROJECT_STATE.md` dan `../project-os/DECISIONS.md` sesuai kebutuhan.
 * Hindari implementasi kode sebelum dokumentasi utama selesai.
 * Semua perubahan harus melalui diskusi dan keputusan yang jelas.
 * Dokumentasi menjadi sumber kebenaran (Source of Truth) sebelum implementasi dimulai.
@@ -204,9 +204,9 @@ Pada fase tersebut akan dilakukan:
 
 # Related Documents
 
-* `../project-manager/README.md`
-* `../project-manager/PROJECT_OVERVIEW.md`
-* `../project-manager/PROJECT_RULES.md`
-* `../project-manager/PROJECT_STATE.md`
-* `../project-manager/DECISIONS.md`
-* `../project-manager/CHANGELOG.md`
+* `../project-os/README.md`
+* `../project-os/PROJECT_OVERVIEW.md`
+* `../project-os/PROJECT_RULES.md`
+* `../project-os/PROJECT_STATE.md`
+* `../project-os/DECISIONS.md`
+* `../project-os/CHANGELOG.md`

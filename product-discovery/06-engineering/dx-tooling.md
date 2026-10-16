@@ -238,4 +238,4 @@ Jangan arahkan `.env.local` ke project staging/prod (EM-D02, EM-D06).
 * `environment-management.md` — `.env.local`, local menumpang project staging (ADR-081)
 * `database-orm.md` — Prisma generate/migrate di local
 * `dependency-strategy.md` — versi eksternal, lockfile, penempatan dep (ADR-035)
-* `../../project-manager/DECISIONS.md` — ADR-032, ADR-034, ADR-035
+* `../../project-os/DECISIONS.md` — ADR-032, ADR-034, ADR-035

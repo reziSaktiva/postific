@@ -378,4 +378,4 @@ Monitoring yang lebih advanced (alerting, dashboard) didokumentasikan di Enginee
 * `integration-layer.md` — webhook handling dan retry yang memicu JOB-01
 * `realtime-strategy.md` — notifikasi yang dibuat oleh JOB-02
 * `database-strategy.md` — tabel `background_jobs` sebagai bagian dari schema
-* `../../project-manager/DECISIONS.md` — ADR-022
+* `../../project-os/DECISIONS.md` — ADR-022

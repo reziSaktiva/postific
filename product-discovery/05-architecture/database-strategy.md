@@ -764,4 +764,4 @@ Detail implementasi migrasi didefinisikan di Engineering Planning (M6). Poin ars
 * `realtime-strategy.md` — Supabase Realtime untuk `notifications`
 * `auth-architecture.md` — Better Auth dan RLS detail — `workspace_members` sebagai authorization table
 * `../02-product/roles-permissions.md` — roles dan content status kanonikal
-* `../../project-manager/DECISIONS.md` — ADR-014, ADR-015 (keputusan baru dari sesi ini)
+* `../../project-os/DECISIONS.md` — ADR-014, ADR-015 (keputusan baru dari sesi ini)

@@ -370,4 +370,4 @@ Pain Points dianggap selesai apabila:
 * `../01-business/problem-statement.md`
 * `../01-business/competitor-analysis.md`
 * `../02-product/mvp-definition.md`
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/DECISIONS.md`

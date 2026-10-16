@@ -250,4 +250,4 @@ Keputusan self-host di masa depan wajib ADR di `DECISIONS.md`; dokumen ini hanya
 * `cicd-pipeline.md` — CI-D06, Railway memegang secret deploy
 * `dx-tooling.md` — script local `dev`, `db:*`, test tanpa secret prod
 * `../05-architecture/database-strategy.md` — platform data, RLS
-* `../../project-manager/DECISIONS.md` — ADR-029, ADR-032, ADR-033 (Amended by ADR-081)
+* `../../project-os/DECISIONS.md` — ADR-029, ADR-032, ADR-033 (Amended by ADR-081)

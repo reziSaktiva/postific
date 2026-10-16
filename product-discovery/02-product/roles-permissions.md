@@ -199,4 +199,4 @@ Dokumen ini dapat ditelusuri ke User Discovery Baseline v1.0 melalui pemetaan pe
 * `../04-ux/information-architecture.md`
 * `../04-ux/user-flows.md`
 * `../04-ux/key-screen-patterns.md`
-* `../../project-manager/DECISIONS.md` — ADR-008 (Product Baseline), ADR-012 (addendum ini), ADR-047 (Publish Now), ADR-048 (Disconnect Confirmation), ADR-049 (Safety Check / Double Confirmation), ADR-050 (Transfer Ownership & Delete Workspace), ADR-074 (reduksi 4 role → 3 role, resolusi KI-017)
+* `../../project-os/DECISIONS.md` — ADR-008 (Product Baseline), ADR-012 (addendum ini), ADR-047 (Publish Now), ADR-048 (Disconnect Confirmation), ADR-049 (Safety Check / Double Confirmation), ADR-050 (Transfer Ownership & Delete Workspace), ADR-074 (reduksi 4 role → 3 role, resolusi KI-017)

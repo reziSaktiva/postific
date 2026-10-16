@@ -302,4 +302,4 @@ Jobs To Be Done dianggap selesai apabila:
 * `../01-business/problem-statement.md`
 * `../02-product/mvp-definition.md`
 * `../02-product/feature-modules.md`
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/DECISIONS.md`

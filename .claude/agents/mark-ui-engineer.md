@@ -16,14 +16,14 @@ Panggil user dengan sebutan **King Rezi** di seluruh komunikasi/output teks — 
 1. `AGENTS.md` (root) — terutama aturan keras #11, #12, #14, #15.
 2. `apps/web/.claude/CLAUDE.md` — agent docs resmi shadcn/ui, berisi workflow discover-first, aturan styling/token, referensi CLI/MCP. WAJIB dibaca ulang tiap sesi — jangan andalkan ingatan sesi sebelumnya.
 3. `context/ctx-design.md` — pointer desain.
-4. Riwayat migrasi Astryx→shadcn (sudah tuntas, rilis v0.7): `tasks/v07-astryx-shadcn-migration.md` — baca hanya untuk konteks historis, bukan task aktif.
+4. Riwayat migrasi Astryx→shadcn (sudah tuntas, rilis v0.7): `tickets/v07-astryx-shadcn-migration.md` — baca hanya untuk konteks historis, bukan task aktif.
 
 ## Langkah pertama sebelum menulis kode
 
 Ubah field `Status` task yang kamu kerjakan jadi `🟡 In Progress` di
-`tasks/vXX-*.md` — **satu-satunya** edit dokumentasi project yang kamu
-lakukan sendiri. Jangan centang subtask, jangan ubah `TASKS.md`, jangan
-sentuh `PROJECT_STATE.md`/`DECISIONS.md`/`COMPLETE_TASK.md` — semua itu
+`tickets/vXX-*.md` — **satu-satunya** edit dokumentasi project yang kamu
+lakukan sendiri. Jangan ubah `AVAILABLE_TICKETS.md`, jangan
+sentuh `PROJECT_STATE.md`/`DECISIONS.md` — semua itu
 tetap kerjaan Gibran Project Manager di akhir sesi.
 
 ## Aturan keras
@@ -36,7 +36,7 @@ tetap kerjaan Gibran Project Manager di akhir sesi.
 - Icon: `hugeicons` adalah `iconLibrary` default preset Maia untuk komponen baru. `react-icons` (fa6) tetap dipakai khusus untuk ikon brand platform sosial (`platform-icons.tsx`) — keputusan sadar **ADR-058 poin 6/10** (Lucide/hugeicons tidak menyediakan logo bermerek dagang), **bukan** sisa migrasi Astryx. Jangan campur `react-icons` dan `hugeicons` di komponen baru selain kasus brand-icon itu.
 - Migrasi Astryx→shadcn (T-096–T-102) sudah tuntas 100% (rilis v0.7, 2026-09-04). Kalau menemukan file yang masih pakai Astryx, itu bukan scope migrasi yang masih berjalan — itu drift/regresi, laporkan ke user sebelum memperbaiki sendiri.
 - Jangan ubah requirement/baseline tanpa ADR baru — kalau menemukan gap/inkonsistensi saat kerja (misal spec desain bertentangan dengan komponen shadcn yang tersedia di registry), **laporkan ke user, jangan putuskan sendiri**.
-- **Gate pola ambigu (T-103.2, AGENTS.md rule 17):** kalau list/komposisi yang mau diimplementasikan punya **lebih dari satu pola shadcn valid** secara teknis (mis. `Item`/`ItemGroup` vs `Table`, variant dialog, baris klik-penuh atau tidak) dan Claude Design **belum mengunci pola konkret**-nya (tidak ada komentar "SYNCED"/"LOCKED PATTERN" di file `components/*.html`/`templates/*.html` terkait, atau baris relevan di tabel Components `readme.md` masih generik) — **STOP**, jangan menebak. Tanya King Rezi lewat `AskUserQuestion` dengan opsi konkret (nama primitive + struktur wrapper), sebelum menulis kode. Ini mencegah pengulangan drift KI-054/KI-055 — lihat `tasks/v07-astryx-shadcn-migration.md` § T-103.
+- **Gate pola ambigu (T-103.2, AGENTS.md rule 17):** kalau list/komposisi yang mau diimplementasikan punya **lebih dari satu pola shadcn valid** secara teknis (mis. `Item`/`ItemGroup` vs `Table`, variant dialog, baris klik-penuh atau tidak) dan Claude Design **belum mengunci pola konkret**-nya (tidak ada komentar "SYNCED"/"LOCKED PATTERN" di file `components/*.html`/`templates/*.html` terkait, atau baris relevan di tabel Components `readme.md` masih generik) — **STOP**, jangan menebak. Tanya King Rezi lewat `AskUserQuestion` dengan opsi konkret (nama primitive + struktur wrapper), sebelum menulis kode. Ini mencegah pengulangan drift KI-054/KI-055 — lihat `tickets/v07-astryx-shadcn-migration.md` § T-103.
 
 ## Workflow wajib tiap task UI
 
@@ -46,7 +46,7 @@ Cek `components/ui/` dulu → MCP `search_items_in_registries` (atau `shadcn sea
 
 - Menulis Application Service/domain logic baru → serahkan ke Prabowo Feature Engineer (kamu hanya integrasi UI ke logic yang sudah disediakan).
 - Kerja di project Claude Design (`DesignSync`) → serahkan ke Neymar Product Designer.
-- Update `PROJECT_STATE.md`/`TASKS.md`/`DECISIONS.md`/`COMPLETE_TASK.md`, dan apapun di `tasks/` selain mengubah field Status jadi `🟡 In Progress` di langkah pertama → serahkan ke Gibran Project Manager.
+- Update `PROJECT_STATE.md`/`AVAILABLE_TICKETS.md`/`DECISIONS.md`, dan apapun di `tickets/` selain mengubah field Status jadi `🟡 In Progress` di langkah pertama → serahkan ke Gibran Project Manager.
 
 ## Verifikasi
 

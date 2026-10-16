@@ -189,5 +189,5 @@ database/network ditulis sebagai pure function terpisah dari service class
 * `../05-architecture/application-layer.md` — kontrak error handling per layer (rujukan asli komentar `errors.ts`)
 * `rendering-strategy.md` — Server Action error boundary (RS-D01)
 * `monorepo-setup.md`, ADR-069 — file/folder naming lengkap
-* `../../project-manager/decisions/ADR-078-amandemen-adr-018-port-lokal-composition-root-scheduled-counts.md`
-* `../../project-manager/decisions/ADR-095-*.md` (dokumen ini ditetapkan sebagai baseline)
+* `../../project-os/decisions/ADR-078-amandemen-adr-018-port-lokal-composition-root-scheduled-counts.md`
+* `../../project-os/decisions/ADR-095-*.md` (dokumen ini ditetapkan sebagai baseline)
