@@ -640,3 +640,13 @@ Selama eksekusi terjadi 2 putaran revisi dari user: (1) hapus teks nama platform
 
 **Impact:** `DECISIONS.md` (ADR-077 baru, mengamandemen mekanisme render ADR-076), `information-architecture.md` (Secondary Navigation, section 6 Settings), `navigation-patterns.md` (section Settings, NP-D07, catatan back-navigation, tabel Ringkasan Pola), `tasks/v01-foundation.md` (subtask baru T-039.5), `COMPLETE_TASK.md`. Kode `apps/web` belum dimigrasikan — menyusul sebagai T-039.5.
 
+
+## 2026-10-16 — Verifikasi lanjutan KI-090: comment "kurang lengkap" di Import Posts bukan bug baru
+
+**Phase:** Phase 6 / M8 Development
+
+**Summary:** King Rezi melaporkan gejala yang persis sama dengan KI-090 — channel Facebook "Cook It Real Good" (workspace "Lunch", user `rezi@insvire.com`) berhasil Import Posts seluruhnya, tapi comment-nya "kurang lengkap". Sebelum menjawab, sesi ini memverifikasi ulang langsung ke data nyata (bukan asumsi klaim penutupan T-113/T-114 kemarin): (1) query DB staging (`ndcrkzqgqukqfmekgoze`) — seluruh 39 `publishing_posts` status `Imported` untuk akun itu sudah punya `outstand_post_id` terisi (tidak ada lagi `null`); (2) cek `background_jobs` type `engagement.sync` — job jalan rutin ~tiap 20 menit untuk `connectedAccountId` ini, seluruhnya `status: done`, `last_error: null`; (3) spot-check langsung lewat MCP Outstand `get_replies` ke 3 post lama (`XlLwz`, `2wuaX`, `1u7DA`) — API asli Facebook mengembalikan array kosong (memang tidak ada comment), sementara post yang diketahui punya comment test (`XlLwW`) mengembalikan persis 1 comment yang sama dengan isi `engagement_inbox_items` di DB.
+
+**Key Decision/Insight:** Pipeline KI-090 (T-113 capture `outstandPostId` + T-114 backfill otomatis) terbukti bekerja benar untuk kasus nyata ini — bukan regresi atau gap baru. "Comments kurang lengkap" yang dirasakan King Rezi sebenarnya refleksi data asli: mayoritas post lama akun itu memang tidak attract comment di Facebook, bukan kegagalan sync. Dikonfirmasi dengan bukti langsung (DB + job log + live API), bukan sekadar mengulang klaim penutupan T-113/T-114 sebelumnya. Pola ini — klarifikasi ulang via verifikasi data nyata sebelum menjawab laporan "bug" yang mirip isu lama — konsisten dengan pelajaran ADR-070 (jangan simpulkan bug sebelum menelusuri baseline/data).
+
+**Impact:** Tidak ada perubahan kode/dokumen baseline. Tidak ada ADR baru (tidak ada keputusan yang berubah). Entry ini murni mencatat hasil verifikasi supaya tidak perlu investigasi ulang kalau laporan serupa muncul lagi untuk akun yang sama.
