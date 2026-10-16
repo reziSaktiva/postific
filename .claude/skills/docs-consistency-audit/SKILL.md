@@ -2,12 +2,12 @@
 name: docs-consistency-audit
 description: >-
   Audit menyeluruh untuk mencari konflik, drift, atau inkonsistensi antar
-  dokumentasi project (product-discovery, project-manager, context/, ADR).
+  dokumentasi project (product-discovery, project-os, context/, ADR).
   HANYA dipicu saat King Rezi secara eksplisit meminta audit/cross-check/
   consistency-check dokumentasi — bukan behavior otomatis rutin (itu sudah
   dicakup mode "Bug / Inkonsistensi Dokumen" di project-os-navigator). Cakupan
   audit ditentukan lewat argumen: nama area (product-discovery, context,
-  project-manager, all) atau nama topik/fitur (mis. "calendar", "workspace
+  project-os, all) atau nama topik/fitur (mis. "calendar", "workspace
   switcher") yang akan di-resolve ke seluruh dokumen lintas layer yang
   menyinggung topik itu.
 ---
@@ -37,7 +37,7 @@ salah satu dari:
 
 | Argumen                          | Artinya                                                                 |
 | --------------------------------- | ------------------------------------------------------------------------ |
-| `project-manager`                 | `PROJECT_STATE.md`, `AVAILABLE_TICKETS.md` + seluruh `tickets/vXX-*.md` + `specs/`, `DECISIONS.md` + seluruh `decisions/ADR-*.md` |
+| `project-os`                      | `project-os/PROJECT_STATE.md`, `project-os/AVAILABLE_TICKETS.md` + seluruh `project-os/tickets/vXX-*.md` + `project-os/specs/`, `project-os/DECISIONS.md` + seluruh `project-os/decisions/ADR-*.md` |
 | `context`                         | Seluruh `context/ctx-*.md` + `context/README.md`                        |
 | `product-discovery`               | Seluruh `product-discovery/**/*.md`                                     |
 | Kombinasi (`product-discovery+context`, dst.) | Union dari area yang disebut, dipisah `+`                   |

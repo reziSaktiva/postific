@@ -751,7 +751,7 @@ Tetap di `AGENTS.md`, dalam bentuk pendek:
 - entry point tanpa business logic; domain tidak mengimpor Prisma, Supabase client, atau HTTP Outstand
 - lintas domain lewat API publik; shared types hanya di `packages/shared`
 - Supabase JS hanya Realtime + Storage
-- status fase/milestone hanya di `PROJECT_STATE.md`; status task di `TASKS.md` + `tickets/` (ADR-062)
+- status fase/milestone hanya di `PROJECT_STATE.md`; status tiket di `AVAILABLE_TICKETS.md` + `tickets/` (ADR-131)
 - persona kanonikal; bahasa Indonesia
 - commit/push hanya kalau diminta; jangan commit secret; jangan commit langsung ke `main` atau `staging`
 - UI memakai shadcn (ADR-097); gerbang Claude Design sebelum kode UI
@@ -870,4 +870,4 @@ Navigator sudah melarang membaca `PROJECT_STATE` utuh, `COMPLETE_TASK`, dan selu
   - **T-013** Connect account — sisa T-013.4 (operasional BYOK X) murni operasional, bukan dependency v0.2. T-013.1/2/3 sudah selesai (2026-09-11), diselesaikan lewat Fake adapter (ADR-105, ADR-059 pattern) tanpa menunggu T-025 (Real OutstandAdapter, v0.2, kredensial belum ada).
   - **T-016** Account settings — ✅ Done (2026-10-14). T-016.4 (preferensi notifikasi) sudah diimplementasikan, menutup subtask terakhir yang tersisa.
 
-  **Update (2026-09-11):** **T-015** (Reconnect flow) sudah ✅ Done — daftar di atas sebelumnya menganggapnya butuh T-026 (webhook, v0.2), ternyata bisa diselesaikan lewat Fake adapter (ADR-105) tanpa menunggu jalur real, sama seperti T-013.1/2. Konsekuensinya: v0.1 dan v0.2 **tidak sepenuhnya sekuensial** — sisa v0.1 di atas selesai berbarengan atau setelah v0.2. Kalau di kemudian hari pemisahan ini terasa menyesatkan, pilihan yang lebih bersih adalah memindahkan Connect Account + Channels/CTA ke v0.2 lewat ADR baru (indeks release di `TASKS.md` adalah turunan `release-roadmap.md`, jadi perubahan ruang lingkup rilis wajib lewat ADR).
+  **Update (2026-09-11):** **T-015** (Reconnect flow) sudah ✅ Done — daftar di atas sebelumnya menganggapnya butuh T-026 (webhook, v0.2), ternyata bisa diselesaikan lewat Fake adapter (ADR-105) tanpa menunggu jalur real, sama seperti T-013.1/2. Konsekuensinya: v0.1 dan v0.2 **tidak sepenuhnya sekuensial** — sisa v0.1 di atas selesai berbarengan atau setelah v0.2. Kalau di kemudian hari pemisahan ini terasa menyesatkan, pilihan yang lebih bersih adalah memindahkan Connect Account + Channels/CTA ke v0.2 lewat ADR baru (indeks rilis di `AVAILABLE_TICKETS.md` adalah turunan `release-roadmap.md`, jadi perubahan ruang lingkup rilis wajib lewat ADR).
