@@ -8,6 +8,124 @@ Seluruh perubahan penting pada dokumentasi maupun implementasi project dicatat p
 
 ---
 
+## 2026-10-16 (sesi ketiga) — Layar Start Page → Page Editor + wiring App Prototype (ADR-130)
+
+### Konteks
+Lanjutan sesi desain Start Page (ADR-128/ADR-129 di bawah). King Rezi minta
+"Start Page" ditambahkan ke App Prototype (runner interaktif Claude Design).
+Dicek dulu: nav item "Start Page" sudah ada di sidebar bersama sejak awal
+tapi `href="#"` (tidak mengarah ke mana pun), dan `SCREENS` array App
+Prototype belum punya entry untuk Start Page sama sekali. Ditanyakan ke King
+Rezi (`AskUserQuestion`): nav diarahkan ke layar Page Editor baru (sesuai IA
+resmi) atau langsung ke desain publik Opsi B — King Rezi pilih **Page
+Editor baru**. Didelegasikan ke Neymar Product Designer (`DesignSync`
+berhasil penuh).
+
+### Added
+- `templates/start-page-editor.html` — layar baru "Start Page → Page
+  Editor": Profil Halaman, Link List (Table tanpa header), Preview (reuse
+  struktur Opsi B Card Stack), Share (URL publik + toggle Published).
+- Entry `SCREENS` baru di `AppPrototype.dc.html` (`key: 'start-page-editor'`,
+  `code: 'T-072'`) + nav item "Start Page" disambungkan (href diganti dari
+  `#` ke `start-page-editor.html`) di 7 template yang punya sidebar utama.
+- **ADR-130** — mengunci pola Link List sebagai **Table tanpa header**
+  (bukan Item/ItemGroup atau card-per-item). Neymar sengaja menahan diri
+  tidak menebak pola ini (ambigu, gate T-103.2) dan menulisnya sebagai
+  tentatif dulu — King Rezi mengonfirmasi lewat `AskUserQuestion` sebelum
+  dikunci final.
+
+### Updated
+- `tasks/v06-start-page-mvp.md` § T-072 — tambah referensi ADR-130 + catatan
+  gate T-103.3.
+- `project-manager/DECISIONS.md` — entri ADR-130.
+
+### Catatan terbuka (ADR-056)
+`04-ux/information-architecture.md` sudah menyebut alur Start Page → Page
+Editor → Preview+Share secara umum, tapi detail struktur konkret (Link List
+Table, Preview device frame, Share toggle) belum ditulis di baseline —
+ditunda sampai implementasi T-072 berjalan (belum diminta King Rezi
+sekarang). Tidak ada token baru, jadi `design-tokens.md` tidak perlu
+diselaraskan.
+
+### Status
+T-071/T-072 masih `⏳ Not Started` — ini murni keputusan desain + wiring
+prototipe, implementasi kode belum dimulai.
+
+---
+
+## 2026-10-16 (sesi kedua) — Eksplorasi + kunci layout publik Start Page (ADR-129)
+
+### Konteks
+Lanjutan sesi T-070 (entri di bawah). King Rezi minta desain dulu di
+Claude Design sebelum T-071 masuk ke kode, dengan beberapa pilihan layout
+untuk dibandingkan. Didelegasikan ke **Neymar Product Designer**
+(`DesignSync` berhasil dimuat penuh di sesi ini — tidak ada known-issue
+baru untuk catatan limitasi di `.claude/agents/README.md`).
+
+### Added
+- 4 opsi layout halaman publik Start Page di Claude Design (project
+  "Postific", grup `Start Page (Exploration, T-071)`): A Classic Centered,
+  B Card Stack, C Hero Banner, D Minimal Dense — semua token dari
+  Stone/shadcn existing, tanpa token baru.
+- **ADR-129** — King Rezi memilih **Opsi B (Card Stack)** lewat
+  `AskUserQuestion` (4 opsi disajikan setara, tidak ada yang ditandai
+  direkomendasikan). Dikunci sebagai LOCKED PATTERN di
+  `templates/start-page-option-b-card-stack.html`; 3 opsi lain disimpan
+  sebagai referensi (tidak dihapus).
+
+### Updated
+- `tasks/v06-start-page-mvp.md` § T-071 — tambah referensi ADR-129 + catatan
+  wajib `DesignSync get_file` (gate T-103.3) sebelum Mark UI Engineer
+  menulis kode.
+- `project-manager/DECISIONS.md` — entri ADR-129.
+
+### Catatan terbuka (ADR-056)
+Opsi C (Hero Banner) butuh field `coverImageUrl` baru di schema
+`StartPagePage` kalau suatu saat dipilih ulang — tidak relevan sekarang
+karena tidak dipilih. `04-ux/information-architecture.md` § Start Page
+belum diselaraskan dengan layout Card Stack ini — ditunda sampai
+implementasi T-071 berjalan (belum diminta King Rezi sekarang).
+
+### Status
+T-071 masih `⏳ Not Started` — ini murni keputusan desain, implementasi kode
+belum dimulai.
+
+---
+
+## 2026-10-16 — T-070 subtask breakdown + ADR-128 (strategi routing Start Page)
+
+### Konteks
+King Rezi minta checkout branch baru untuk T-070 (belum dikerjakan) dan
+minta daftar subtask-nya. `tasks/v06-start-page-mvp.md` menyatakan subtask
+T-070 sengaja belum diisi (rolling wave). Sebelum merinci, ada fork
+keputusan arsitektur material yang belum ada di baseline mana pun: strategi
+routing halaman publik Start Page — subpath vs custom domain. Ditanyakan ke
+King Rezi lewat `AskUserQuestion` (3 opsi: subpath / custom domain /
+keduanya) — King Rezi memilih **subpath `/u/[slug]`**.
+
+### Added
+- Branch `feature/t-070-start-page-domain-skeleton` dari `staging`.
+- **ADR-128** — strategi routing publik Start Page: subpath `/u/[slug]`,
+  bypass penuh dari auth gate `proxy.ts` (pola sama `/invite/[token]`,
+  ADR-080), bukan `PUBLIC_AUTH_PATHS`. Custom domain eksplisit Out of Scope
+  v0.6.
+- Breakdown 7 subtask T-070 (T-070.1–.7) di `tasks/v06-start-page-mvp.md`:
+  ADR (✅ Done), repository interface publik, Application Service
+  `GetPublicStartPageBySlug`, bypass route di `proxy.ts`, RLS policy akses
+  anon, slug validation/reserved words, test akses publik tanpa session.
+
+### Updated
+- `project-manager/TASKS.md` § "Keputusan terbuka" — baris T-070 dihapus
+  (keputusan sudah diambil via ADR-128).
+- `project-manager/tasks/v06-start-page-mvp.md` § T-070 — tambah referensi
+  ADR-128 + subtask di atas.
+
+### Status
+T-070 masih `⏳ Not Started` secara keseluruhan (hanya subtask .1/ADR yang
+selesai) — implementasi kode belum dimulai sesuai permintaan King Rezi.
+
+---
+
 ## 2026-10-15 — KI-086 (PR #173): `/code-review` fixes + merge ke `staging`
 
 ### Konteks
