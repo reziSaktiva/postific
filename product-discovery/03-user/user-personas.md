@@ -320,4 +320,4 @@ User Personas dianggap selesai apabila:
 * `insights.md`
 * `../01-business/target-market.md`
 * `../02-product/mvp-definition.md`
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/DECISIONS.md`

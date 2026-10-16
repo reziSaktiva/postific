@@ -273,7 +273,7 @@ export interface EngageInboxViewProps {
  * T-056 yang truncate 1 baris). Link **"Go to post →"** (`platformPostUrl`)
  * TIDAK berubah dari T-056. Sengaja beda dari History Detail (T-111.1/.2,
  * modal penuh, media unconstrained) sesuai klarifikasi scope King Rezi
- * 2026-10-06 — lihat `tasks/v02-publishing-mvp.md` § T-111.
+ * 2026-10-06 — lihat `tickets/v02-publishing-mvp.md` § T-111.
  */
 export function EngageInboxView({
   initialItems,

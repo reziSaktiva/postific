@@ -155,11 +155,11 @@ Keputusan UX yang berdampak pada:
 
 harus didokumentasikan pada:
 
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/DECISIONS.md`
 
 Perubahan progress UX Planning harus diperbarui pada:
 
-* `../../project-manager/PROJECT_STATE.md`
+* `../../project-os/PROJECT_STATE.md`
 
 ---
 
@@ -181,7 +181,7 @@ Perubahan progress UX Planning harus diperbarui pada:
 * `../03-user/user-goals.md`
 * `../03-user/user-journey.md`
 * `../03-user/insights.md`
-* `../../project-manager/PROJECT_OVERVIEW.md`
-* `../../project-manager/PROJECT_RULES.md`
-* `../../project-manager/PROJECT_STATE.md`
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/PROJECT_OVERVIEW.md`
+* `../../project-os/PROJECT_RULES.md`
+* `../../project-os/PROJECT_STATE.md`
+* `../../project-os/DECISIONS.md`

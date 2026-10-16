@@ -483,4 +483,4 @@ Domain internal **tidak pernah** melihat HTTP error code Outstand secara langsun
 * `application-layer.md` — Route Handler sebagai entry point webhook; Application Service sebagai pemanggil OutstandAdapter
 * `background-jobs.md` — strategi retry webhook event dan jadwal polling analytics
 * `auth-architecture.md` — workspace membership check pada setiap operasi ConnectedAccount
-* `../../project-manager/DECISIONS.md` — ADR-005, ADR-016, ADR-018, ADR-019, ADR-020, ADR-021, ADR-079, ADR-092
+* `../../project-os/DECISIONS.md` — ADR-005, ADR-016, ADR-018, ADR-019, ADR-020, ADR-021, ADR-079, ADR-092

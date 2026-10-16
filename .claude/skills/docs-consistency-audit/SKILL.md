@@ -37,7 +37,7 @@ salah satu dari:
 
 | Argumen                          | Artinya                                                                 |
 | --------------------------------- | ------------------------------------------------------------------------ |
-| `project-manager`                 | `PROJECT_STATE.md`, `AVAILABLE_TASKS.md` + seluruh `tasks/vXX-*.md` + `specs/`, `DECISIONS.md` + seluruh `decisions/ADR-*.md` |
+| `project-manager`                 | `PROJECT_STATE.md`, `AVAILABLE_TICKETS.md` + seluruh `tickets/vXX-*.md` + `specs/`, `DECISIONS.md` + seluruh `decisions/ADR-*.md` |
 | `context`                         | Seluruh `context/ctx-*.md` + `context/README.md`                        |
 | `product-discovery`               | Seluruh `product-discovery/**/*.md`                                     |
 | Kombinasi (`product-discovery+context`, dst.) | Union dari area yang disebut, dipisah `+`                   |
@@ -51,9 +51,9 @@ Kalau argumen adalah nama topik/fitur (bukan nama area baku di atas):
 
 1. Grep kata kunci topik (dan sinonim/istilah terkait yang jelas — mis.
    "calendar" juga cari "T-033", "kalender") di seluruh:
-   - `project-manager/AVAILABLE_TASKS.md` + `project-manager/tasks/`
-   - `project-manager/DECISIONS.md` + `project-manager/decisions/`
-   - `project-manager/PROJECT_STATE.md`
+   - `project-os/AVAILABLE_TICKETS.md` + `project-os/tickets/`
+   - `project-os/DECISIONS.md` + `project-os/decisions/`
+   - `project-os/PROJECT_STATE.md`
    - `context/`
    - `product-discovery/`
 2. Kumpulkan daftar file yang match sebagai scope. Kalau hasil grep sangat
@@ -81,10 +81,10 @@ yang ambigu) tetap dilakukan oleh AI utama, bukan diserahkan ke subagent.
 
 Periksa lintas dokumen dalam scope untuk kategori berikut:
 
-1. **Status/progress drift** — status task terbuka di `AVAILABLE_TASKS.md`
-   berbeda dari tiket di `tasks/vXX-*.md`, atau task ✅ masih tertinggal di antrian.
-2. **Antrian drift** — `AVAILABLE_TASKS.md` memuat task ✅, atau task ⏳/🟡/🚫
-   yang ada di `tasks/vXX-*.md` tidak muncul di antrian.
+1. **Status/progress drift** — status task terbuka di `AVAILABLE_TICKETS.md`
+   berbeda dari tiket di `tickets/vXX-*.md`, atau task ✅ masih tertinggal di antrian.
+2. **Antrian drift** — `AVAILABLE_TICKETS.md` memuat task ✅, atau task ⏳/🟡/🚫
+   yang ada di `tickets/vXX-*.md` tidak muncul di antrian.
 3. **ADR amandemen belum tercermin** — ADR baru mengubah/mengamandemen ADR
    lama, tapi dokumen lain yang merujuk ke keputusan lama (baseline
    `product-discovery/`, `context/ctx-*.md`, atau task lain) belum diupdate
@@ -116,7 +116,7 @@ Ada satu jawaban yang jelas benar berdasarkan Source of Truth yang sudah
 ditetapkan (tabel Source of Truth di `AGENTS.md`, atau ADR yang sudah
 Accepted). Contoh: hitungan subtask yang salah jumlah (kebenarannya tinggal
 dihitung ulang dari file), status task di `PROJECT_STATE.md` yang belum
-disalin dari `tasks/vXX-*.md` yang sudah diupdate.
+disalin dari `tickets/vXX-*.md` yang sudah diupdate.
 
 → Laporkan dengan **usulan perbaikan konkret**, tapi tetap tunggu konfirmasi
 sebelum edit (lihat Langkah 5).
@@ -159,8 +159,8 @@ eksplisit — jangan mengarang temuan supaya laporan terlihat berisi.
    di `project-os-navigator`).
 3. Setiap perbaikan yang benar-benar dieksekusi cukup tercatat di tiket atau ADR.
    Jangan menulis changelog terpisah (ADR-131).
-4. Kalau perbaikan menyentuh status tiket, update `tasks/vXX-*.md` dan
-   `AVAILABLE_TASKS.md` bersamaan.
+4. Kalau perbaikan menyentuh status tiket, update `tickets/vXX-*.md` dan
+   `AVAILABLE_TICKETS.md` bersamaan.
 
 ---
 

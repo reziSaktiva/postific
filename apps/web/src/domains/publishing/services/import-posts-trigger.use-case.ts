@@ -177,7 +177,7 @@ export interface TriggerManualInput {
  * port dari `WorkspaceService.completeAccountConnection`), periodik
  * (`triggerPeriodicForAccounts`, menerima list akun `active` — caller yang
  * meresolve daftarnya, TIDAK ada Railway Cron wiring asli di sini, lihat
- * catatan T-090 di `tasks/v02-publishing-mvp.md`; `actingUserId` per akun
+ * catatan T-090 di `tickets/v02-publishing-mvp.md`; `actingUserId` per akun
  * di-resolve SENDIRI oleh method ini lewat `ConnectedAccountWatermarkPort.
  * findAccountOwnerByOutstandAccountId` — KI-088, resolved 2026-10-15, lihat
  * docstring port tsb.), dan manual

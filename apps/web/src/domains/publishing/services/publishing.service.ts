@@ -625,7 +625,7 @@ export class PublishingService {
    * menunggu rancangan Claude Design untuk kartu `Imported` (AGENTS.md rule
    * 17, T-090.5 waktu itu masih **blocked**). Rancangan sudah dikunci &
    * diimplementasikan (badge `Imported`, popover read-only, lihat
-   * `tasks/v02-publishing-mvp.md` § T-090 update 2026-10-08) — jalur
+   * `tickets/v02-publishing-mvp.md` § T-090 update 2026-10-08) — jalur
    * Realtime-patch ini sekarang konsisten dengan `listCalendarPosts`
    * (juga sudah tidak exclude `Imported` dari default statuses), supaya
    * post `Imported` yang baru ter-INSERT (auto-trigger on-connect ATAU klik

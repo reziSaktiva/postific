@@ -182,11 +182,11 @@ Keputusan architecture yang berdampak pada:
 
 harus didokumentasikan pada:
 
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/DECISIONS.md`
 
 Perubahan progress Architecture Planning harus diperbarui pada:
 
-* `../../project-manager/PROJECT_STATE.md`
+* `../../project-os/PROJECT_STATE.md`
 
 Untuk penyelarasan ADR-040, batas edit sesi dapat mengecualikan pembaruan living/append-only document; Decision Log masing-masing dokumen Architecture tetap harus menandai amandemen tersebut.
 
@@ -204,7 +204,7 @@ Untuk penyelarasan ADR-040, batas edit sesi dapat mengecualikan pembaruan living
 * `../04-ux/information-architecture.md`
 * `../04-ux/key-screen-patterns.md`
 * `../06-engineering/README.md`
-* `../../project-manager/PROJECT_OVERVIEW.md`
-* `../../project-manager/PROJECT_RULES.md`
-* `../../project-manager/PROJECT_STATE.md`
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/PROJECT_OVERVIEW.md`
+* `../../project-os/PROJECT_RULES.md`
+* `../../project-os/PROJECT_STATE.md`
+* `../../project-os/DECISIONS.md`

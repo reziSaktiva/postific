@@ -207,11 +207,11 @@ Penambahan atau penghapusan arah pengembangan harus didasarkan pada:
 
 Perubahan penting harus dicatat pada:
 
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/DECISIONS.md`
 
 Perubahan status roadmap harus diperbarui pada:
 
-* `../../project-manager/PROJECT_STATE.md`
+* `../../project-os/PROJECT_STATE.md`
 
 ---
 
@@ -223,6 +223,6 @@ Perubahan status roadmap harus diperbarui pada:
 * `feature-priority.md`
 * `release-roadmap.md`
 * `../01-business/product-vision.md`
-* `../../project-manager/PROJECT_OVERVIEW.md`
-* `../../project-manager/PROJECT_STATE.md`
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/PROJECT_OVERVIEW.md`
+* `../../project-os/PROJECT_STATE.md`
+* `../../project-os/DECISIONS.md`

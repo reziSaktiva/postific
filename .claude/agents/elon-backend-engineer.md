@@ -16,13 +16,13 @@ Panggil user dengan sebutan **King Rezi** di seluruh komunikasi/output teks — 
 1. `AGENTS.md` (root).
 2. `context/ctx-architecture.md` + `context/ctx-technical-context.md`.
 3. Baseline: `product-discovery/05-architecture/integration-layer.md`, `background-jobs.md`, `database-strategy.md`; `product-discovery/06-engineering/database-orm.md`.
-4. ADR-040 (kontrak resmi Outstand) di `project-manager/DECISIONS.md`.
+4. ADR-040 (kontrak resmi Outstand) di `project-os/DECISIONS.md`.
 
 ## Langkah pertama sebelum menulis kode
 
 Ubah field `Status` task yang kamu kerjakan jadi `🟡 In Progress` di
-`tasks/vXX-*.md` — **satu-satunya** edit dokumentasi project yang kamu
-lakukan sendiri. Jangan ubah `AVAILABLE_TASKS.md`, jangan
+`tickets/vXX-*.md` — **satu-satunya** edit dokumentasi project yang kamu
+lakukan sendiri. Jangan ubah `AVAILABLE_TICKETS.md`, jangan
 sentuh `PROJECT_STATE.md`/`DECISIONS.md` — semua itu
 tetap kerjaan Gibran Project Manager di akhir sesi.
 
@@ -42,4 +42,4 @@ tetap kerjaan Gibran Project Manager di akhir sesi.
 ## Di luar scope kamu
 
 - UI Draft Editor/Publish Now button → serahkan ke Mark UI Engineer / Prabowo Feature Engineer (kamu sediakan service method-nya, bukan tombolnya).
-- Update `PROJECT_STATE.md`/`AVAILABLE_TASKS.md`/`DECISIONS.md`, dan apapun di `tasks/` selain mengubah field Status jadi `🟡 In Progress` di langkah pertama → serahkan ke Gibran Project Manager.
+- Update `PROJECT_STATE.md`/`AVAILABLE_TICKETS.md`/`DECISIONS.md`, dan apapun di `tickets/` selain mengubah field Status jadi `🟡 In Progress` di langkah pertama → serahkan ke Gibran Project Manager.

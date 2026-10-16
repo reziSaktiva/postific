@@ -9,7 +9,7 @@ Jika isi file di sini bentrok dengan baseline atau ADR → **baseline + ADR mena
 ## Tujuan
 
 - Memberi pintu masuk ringkas per domain kerja (project, bisnis/produk, domain, arsitektur, teknis, development, implementasi, desain).
-- Menunjuk dokumen baseline yang wajib dibaca — bukan menyalin ulang `product-discovery/` atau `project-manager/`.
+- Menunjuk dokumen baseline yang wajib dibaca — bukan menyalin ulang `product-discovery/` atau `project-os/`.
 - Menegakkan batas antar file agar agent tidak salah menaruh aturan (mis. coding rules vs pola fitur).
 
 ---
@@ -48,10 +48,10 @@ context/
 
 ## Cara pakai (agent)
 
-1. Baca `../AGENTS.md` dan Snapshot `../project-manager/PROJECT_STATE.md` dulu. Kalau akan mengerjakan task: lanjut ke `../project-manager/AVAILABLE_TASKS.md` dan berhenti di situ untuk memilih ID, lalu buka hanya section tiket itu di `tasks/vXX-*.md`.
+1. Baca `../AGENTS.md` dan Snapshot `../project-os/PROJECT_STATE.md` dulu. Kalau akan mengerjakan task: lanjut ke `../project-os/AVAILABLE_TICKETS.md` dan berhenti di situ untuk memilih ID, lalu buka hanya section tiket itu di `tickets/vXX-*.md`.
 2. Buka **satu atau dua** file `ctx-*` yang relevan dengan task (lihat tabel mapping di `AGENTS.md`).
 3. Ikuti link ke baseline; baca dokumen sumber sebelum mengubah kode atau keputusan material.
-4. Jangan menduplikasi status progress (% / ✅ / phase) di file `context/` — itu hanya di `PROJECT_STATE.md`, kecuali status task yang tempatnya di `AVAILABLE_TASKS.md` + `tasks/` (ADR-062, ADR-131).
+4. Jangan menduplikasi status progress (% / ✅ / phase) di file `context/` — itu hanya di `PROJECT_STATE.md`, kecuali status task yang tempatnya di `AVAILABLE_TICKETS.md` + `tickets/` (ADR-062, ADR-131).
 
 ---
 
@@ -60,7 +60,7 @@ context/
 - Ringkas: indeks, checklist, dan aturan operasional.
 - Pointer wajib pakai path relatif ke repo (contoh: `../product-discovery/05-architecture/domain-model.md`).
 - Jangan salin paragraf panjang dari baseline.
-- Perubahan material (arsitektur, scope, stack) → ADR di `../project-manager/DECISIONS.md`, lalu update pointer di sini bila perlu.
+- Perubahan material (arsitektur, scope, stack) → ADR di `../project-os/DECISIONS.md`, lalu update pointer di sini bila perlu.
 
 ---
 
@@ -68,5 +68,5 @@ context/
 
 - Pintu masuk agent: `../AGENTS.md`
 - Source of Truth produk: `../product-discovery/`
-- Project OS: `../project-manager/`
+- Project OS: `../project-os/`
 - Pointer desain (Claude Design + UX): `ctx-design.md`

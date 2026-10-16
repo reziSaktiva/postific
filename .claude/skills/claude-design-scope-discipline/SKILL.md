@@ -5,7 +5,7 @@ description: Mencegah AI mengubah default/state yang sudah disetujui user sebaga
 
 # Claude Design — Scope Discipline
 
-Skill ini mengunci satu prinsip: **implementasi fitur baru tidak boleh diam-diam mengubah state/tampilan yang sudah disetujui user.** Ditulis setelah insiden nyata di ADR-052 (lihat `project-manager/DECISIONS.md`).
+Skill ini mengunci satu prinsip: **implementasi fitur baru tidak boleh diam-diam mengubah state/tampilan yang sudah disetujui user.** Ditulis setelah insiden nyata di ADR-052 (lihat `project-os/DECISIONS.md`).
 
 ---
 
@@ -83,7 +83,7 @@ Kronologi singkat (detail lengkap: `DECISIONS.md` ADR-052, addendum "Variant Dia
 
 ## Related
 
-- `project-manager/DECISIONS.md` — ADR-052 (insiden asal + kronologi lengkap).
+- `project-os/DECISIONS.md` — ADR-052 (insiden asal + kronologi lengkap).
 - `context/ctx-design.md` — Aturan operasional Claude Design (pointer ke skill ini).
 - `.claude/skills/proactive-clarification/SKILL.md` — cara bertanya saat ada fork keputusan/ambiguitas.
 - `AGENTS.md` — Aturan keras project.

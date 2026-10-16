@@ -16,7 +16,7 @@ Hasilnya dirangkum mengikuti vocabulary project:
 Assumption → Discovery → Observation → Insight → Decision
 ```
 
-Keputusan yang mengubah Target Market, Problem Statement, Product Vision, Product Scope, MVP, atau Feature Priority harus masuk ke `../../project-manager/DECISIONS.md`.
+Keputusan yang mengubah Target Market, Problem Statement, Product Vision, Product Scope, MVP, atau Feature Priority harus masuk ke `../../project-os/DECISIONS.md`.
 
 ---
 
@@ -284,6 +284,6 @@ Insights dianggap selesai apabila:
 * `../01-business/competitor-analysis.md`
 * `../02-product/mvp-definition.md`
 * `../02-product/feature-priority.md`
-* `../../project-manager/PROJECT_OVERVIEW.md`
-* `../../project-manager/PROJECT_STATE.md`
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/PROJECT_OVERVIEW.md`
+* `../../project-os/PROJECT_STATE.md`
+* `../../project-os/DECISIONS.md`

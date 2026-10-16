@@ -142,7 +142,7 @@ export function googleOAuthEnabled(): boolean {
  *
  * `true` sejak 2026-10-14, setelah King Rezi menyetujui (via
  * `AskUserQuestion`) DUA mitigasi yang sebelumnya menahan flag ini (lihat
- * `tasks/v01-foundation.md` § T-005.5 untuk detail lengkap):
+ * `tickets/v01-foundation.md` § T-005.5 untuk detail lengkap):
  *
  * 1. **Backfill akun existing** — migrasi
  *    `20261014160000_t005_5_bind_signup_proof_and_backfill_email_verified`

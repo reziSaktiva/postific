@@ -204,9 +204,9 @@ Status akhir setiap asumsi dicatat pada `insights.md`.
 
 * `../01-business/`
 * `../02-product/`
-* `../../project-manager/PROJECT_OVERVIEW.md`
-* `../../project-manager/PROJECT_RULES.md`
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/PROJECT_OVERVIEW.md`
+* `../../project-os/PROJECT_RULES.md`
+* `../../project-os/DECISIONS.md`
 
 ---
 
@@ -277,7 +277,7 @@ Insight harus menjelaskan:
 
 ## 5. Decision Gate
 
-Apabila insight memengaruhi Business Baseline, Product Baseline, atau Project Rules, perubahan harus melalui proses Decision dan dicatat pada `../../project-manager/DECISIONS.md` sebelum dokumen lain diperbarui.
+Apabila insight memengaruhi Business Baseline, Product Baseline, atau Project Rules, perubahan harus melalui proses Decision dan dicatat pada `../../project-os/DECISIONS.md` sebelum dokumen lain diperbarui.
 
 ---
 
@@ -445,6 +445,6 @@ Discovery Plan dianggap selesai apabila:
 * `../01-business/competitor-analysis.md`
 * `../02-product/mvp-definition.md`
 * `../02-product/feature-priority.md`
-* `../../project-manager/PROJECT_OVERVIEW.md`
-* `../../project-manager/PROJECT_RULES.md`
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/PROJECT_OVERVIEW.md`
+* `../../project-os/PROJECT_RULES.md`
+* `../../project-os/DECISIONS.md`

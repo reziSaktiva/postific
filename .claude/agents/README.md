@@ -3,7 +3,7 @@
 Panduan penggunaan 7 subagent kerja untuk project ini.
 
 File peran (semua `*.md` di folder ini **kecuali dokumen ini sendiri**)
-diklasifikasikan **Static Reference** (`project-manager/PROJECT_RULES.md`) —
+diklasifikasikan **Static Reference** (`project-os/PROJECT_RULES.md`) —
 read-only (chmod 444) dan **hanya boleh diubah atas permintaan eksplisit
 user**, bukan inisiatif AI, karena scope dan batasannya sudah disepakati
 langsung dengan user. Perubahan struktural dicatat sebagai ADR atau di tiket
@@ -21,7 +21,7 @@ yang terkait (ADR-131).
 | `elon-backend-engineer.md`        | Elon Backend Engineer        | Outstand ACL, webhook, background jobs, schema Prisma                                   | Tidak                                              |
 | `ridwan-architecture-reviewer.md` | Ridwan Architecture Reviewer | Review kepatuhan boundary DDD, read-only                                                | Ya — `Read, Bash, Grep, Glob, ReportFindings`      |
 | `najwa-qa-engineer.md`            | Najwa QA Engineer            | Vitest + verifikasi browser end-to-end                                                  | Ya — `Read, Bash, Grep, Glob, mcp__Claude_Browser, DesignSync` |
-| `gibran-project-manager.md`       | Gibran Project Manager       | Update `PROJECT_STATE.md` / `AVAILABLE_TASKS.md` / `tasks/` / `DECISIONS.md` | Ya — `Read, Edit, Write, Bash, Grep, Glob`         |
+| `gibran-project-manager.md`       | Gibran Project Manager       | Update `PROJECT_STATE.md` / `AVAILABLE_TICKETS.md` / `tickets/` / `DECISIONS.md` | Ya — `Read, Edit, Write, Bash, Grep, Glob`         |
 
 **Override model/effort per subagent:** frontmatter tiap file peran boleh
 menambah `effort: <low|medium|high|xhigh|max>` (dipakai `ridwan-architecture-reviewer.md`
@@ -104,7 +104,7 @@ update catatan ini alih-alih mengasumsikan keterbatasan berlaku selamanya.
      implementasi kalau review tidak diminta).
   3. **Gibran** (governance/docs) — **selalu paling akhir, sendirian**.
      Jangan dijalankan bersamaan dengan agent lain yang berpotensi menyentuh
-     `PROJECT_STATE.md` / `AVAILABLE_TASKS.md` / `tasks/` / `DECISIONS.md`,
+     `PROJECT_STATE.md` / `AVAILABLE_TICKETS.md` / `tickets/` / `DECISIONS.md`,
      untuk mencegah konflik/duplikasi status.
 - Kalau beberapa agent implementasi mengubah file yang berpotensi tumpang
   tindih, gunakan opsi `isolation: "worktree"` per agent supaya tidak saling
@@ -118,7 +118,7 @@ Ini bukan sekadar referensi pasif — `AGENTS.md` ("Wajib di awal sesi") dan
 `.claude/skills/project-os-navigator/SKILL.md` (behavior "Pekerjaan Baru")
 mewajibkan AI berhenti di titik ini **sebelum** mulai implementasi kode:
 
-1. Task punya field **Domain** (di `tasks/vXX-*.md`) yang scope-nya
+1. Task punya field **Domain** (di `tickets/vXX-*.md`) yang scope-nya
    implementasi kode (bukan diskusi/dokumentasi murni)? → cek tabel
    pemetaan di bawah.
 2. Ada **lebih dari satu task/subtask independen** (domain atau file
@@ -131,7 +131,7 @@ mewajibkan AI berhenti di titik ini **sebelum** mulai implementasi kode:
 
 ## Pemetaan Domain → Subagent
 
-Field **Domain** tiap task di `tasks/vXX-*.md` bisa langsung dipetakan ke
+Field **Domain** tiap task di `tickets/vXX-*.md` bisa langsung dipetakan ke
 subagent implementasi berikut sebagai titik awal (bukan aturan kaku — cek
 juga `description` di frontmatter masing-masing file peran untuk keputusan
 akhir):
@@ -166,7 +166,7 @@ Components `readme.md` sudah spesifik, bukan generik "shadcn X"). Kalau
 `AskUserQuestion` (bukan menebak salah satu opsi), sertakan opsi konkret
 yang sedang dipertimbangkan. Ini mencegah pengulangan drift KI-054/KI-055
 (AI menebak pola "masuk akal" yang ternyata bukan yang King Rezi mau) — detail
-lengkap di `AGENTS.md` rule 17 dan `tasks/v07-astryx-shadcn-migration.md`
+lengkap di `AGENTS.md` rule 17 dan `tickets/v07-astryx-shadcn-migration.md`
 § T-103.
 
 ## Gate verifikasi struktur setelah implementasi (T-103.3)
@@ -182,7 +182,7 @@ ditandai selesai. Najwa QA Engineer diberi akses tool `DesignSync` khusus
 untuk gate ini (lihat kolom "Tools dibatasi?" di tabel atas). Detail:
 `.claude/agents/mark-ui-engineer.md` § Verifikasi,
 `.claude/agents/najwa-qa-engineer.md` § Langkah kerja poin 5, dan
-`tasks/v07-astryx-shadcn-migration.md` § T-103.
+`tickets/v07-astryx-shadcn-migration.md` § T-103.
 
 ---
 
@@ -201,5 +201,5 @@ keliru, dst.):
 ## Related
 
 - Entry point agent: `../../AGENTS.md`
-- Governance dokumen: `../../project-manager/PROJECT_RULES.md` (klasifikasi
+- Governance dokumen: `../../project-os/PROJECT_RULES.md` (klasifikasi
   Static Reference)

@@ -8,23 +8,23 @@ Dokumen ini **bukan** Source of Truth produk. Ia mengarahkan agent ke dokumen ya
 
 **Source of Truth:**
 
-| Area                             | Lokasi                                     |
-| -------------------------------- | ------------------------------------------ |
-| Status, phase, milestone, issue  | `project-manager/PROJECT_STATE.md`         |
-| Antrian task tersedia            | `project-manager/AVAILABLE_TASKS.md`       |
-| Tiket, termasuk yang selesai     | `project-manager/tasks/`                   |
-| Spec (kerja multi-sesi)          | `project-manager/specs/`                   |
-| Aturan kerja & governance        | `project-manager/PROJECT_RULES.md`         |
-| Keputusan (ADR)                  | `project-manager/DECISIONS.md`             |
-| Produk & engineering             | `product-discovery/`                       |
-| Orientasi arsitektur (ringkas)   | `project-manager/ARCHITECTURE_OVERVIEW.md` |
-| Alur kerja developer (mermaid)   | `project-manager/DEVELOPER_WORKFLOW.md`    |
-| AI Context (ringkas, per domain) | `context/`                                 |
+| Area                             | Lokasi                                |
+| -------------------------------- | ------------------------------------- |
+| Status, phase, milestone, issue  | `project-os/PROJECT_STATE.md`         |
+| Antrian tiket tersedia           | `project-os/AVAILABLE_TICKETS.md`     |
+| Tiket, termasuk yang selesai     | `project-os/tickets/`                 |
+| Spec (kerja multi-sesi)          | `project-os/specs/`                   |
+| Aturan kerja & governance        | `project-os/PROJECT_RULES.md`         |
+| Keputusan (ADR)                  | `project-os/DECISIONS.md`             |
+| Produk & engineering             | `product-discovery/`                  |
+| Orientasi arsitektur (ringkas)   | `project-os/ARCHITECTURE_OVERVIEW.md` |
+| Alur kerja developer (mermaid)   | `project-os/DEVELOPER_WORKFLOW.md`    |
+| AI Context (ringkas, per domain) | `context/`                            |
 
 ## Wajib di awal sesi
 
-1. Baca **Snapshot** di `project-manager/PROJECT_STATE.md` — phase, mode percakapan, fokus terdekat.
-2. Kalau akan mengerjakan task: buka `project-manager/AVAILABLE_TASKS.md` dan berhenti di situ untuk memilih ID. Baru kemudian buka **satu** section di `tasks/vXX-*.md`. Deskripsi mengikuti ADR-131 (docs → spec → tiket → implement).
+1. Baca **Snapshot** di `project-os/PROJECT_STATE.md` — phase, mode percakapan, fokus terdekat.
+2. Kalau akan mengerjakan tiket: buka `project-os/AVAILABLE_TICKETS.md` dan berhenti di situ untuk memilih ID. Baru kemudian buka **satu** section di `tickets/vXX-*.md`. Kode hanya diubah kalau tiketnya sudah ada (ADR-132). Deskripsi mengikuti ADR-131 (docs → spec → tiket → implement).
 3. **Evaluasi delegasi subagent** (ADR-063) — kalau task itu scope implementasi kode: cek field **Domain**-nya terhadap pemetaan Domain → Subagent di `.claude/agents/README.md`, dan tentukan dikerjakan sendiri, satu subagent, atau beberapa subagent paralel (lihat poin di bawah kapan wajib paralel). Jangan lewati langkah ini hanya karena sudah biasa mengerjakan sendiri.
 4. Ikuti skill project: `.claude/skills/project-os-navigator/SKILL.md`.
 5. Untuk keputusan yang belum ada di baseline: ikuti `.claude/skills/proactive-clarification/SKILL.md`.
@@ -48,7 +48,7 @@ context/
 └── ctx-design.md              ← pointer UX (04-ux) + Claude Design (ADR-045)
 ```
 
-**Aturan:** file `context/ctx-*.md` adalah **indeks + aturan operasional untuk agent** — menunjuk ke baseline, bukan menyalin ulang isi `product-discovery/` atau `project-manager/`. Jika konflik, baseline + ADR menang.
+**Aturan:** file `context/ctx-*.md` adalah **indeks + aturan operasional untuk agent** — menunjuk ke baseline, bukan menyalin ulang isi `product-discovery/` atau `project-os/`. Jika konflik, baseline + ADR menang.
 
 ## Subagent kerja (`.claude/agents/`)
 
@@ -132,7 +132,7 @@ kedua tool — tidak ada instruksi khusus per-tool selain tabel di atas.
 - Deploy: **Railway** (web + cron) · CI: **GitHub Actions**
 - Staging web: URL dan detail deploy di `PROJECT_STATE.md` (KI-025). Pakai untuk smoke test manual sebelum PR `staging → main` (lihat CI-D03).
 
-Detail: `project-manager/PROJECT_OVERVIEW.md` dan `product-discovery/06-engineering/`.
+Detail: `project-os/PROJECT_OVERVIEW.md` dan `product-discovery/06-engineering/`.
 
 ## Aturan keras (jangan dilanggar)
 
@@ -159,8 +159,8 @@ Detail: `project-manager/PROJECT_OVERVIEW.md` dan `product-discovery/06-engineer
 10. Status progress (% / ✅ / phase aktif / milestone) **hanya** di
     `PROJECT_STATE.md` — jangan taruh di README atau baseline. **Satu
     pengecualian (ADR-062, ADR-131):** status per-task ada di
-    `project-manager/AVAILABLE_TASKS.md` (yang belum selesai) dan
-    `project-manager/tasks/vXX-*.md` (semua tiket, termasuk yang selesai). Pengecualian ini tidak
+    `project-os/AVAILABLE_TICKETS.md` (yang belum selesai) dan
+    `project-os/tickets/vXX-*.md` (semua tiket, termasuk yang selesai). Pengecualian ini tidak
     meluas ke phase/milestone/overall progress.
 11. Persona kanonikal: Raka, Maya, Sinta, Dimas, Lara.
 12. Bahasa komunikasi & dokumentasi project: **Bahasa Indonesia** (kecuali user meminta lain).
@@ -168,7 +168,7 @@ Detail: `project-manager/PROJECT_OVERVIEW.md` dan `product-discovery/06-engineer
 14. UI produk memakai **shadcn/ui** (ADR-097, membalik ADR-041). Wrapper
     dibuat selektif. Migrasi dari Astryx sudah tuntas 100% (rilis v0.7,
     T-102 `✅ Done`, 0 dependency `@astryxdesign/*` tersisa) — lihat
-    `tasks/v07-astryx-shadcn-migration.md`.
+    `tickets/v07-astryx-shadcn-migration.md`.
 15. Sebelum menulis atau mengubah komponen UI, baca
     `apps/web/.claude/CLAUDE.md` (agent docs resmi, lihat bawah) dan/atau
     cek registry/CLI/MCP shadcn lokal. Jangan menebak nama komponen, props,
@@ -203,7 +203,7 @@ Detail: `project-manager/PROJECT_OVERVIEW.md` dan `product-discovery/06-engineer
       sertakan opsi konkret (nama primitive + struktur wrapper) yang sedang
       dipertimbangkan, sebelum menulis kode. Ini persis mekanisme yang
       gagal di KI-054/KI-055 (AI menebak pola "masuk akal" yang ternyata
-      bukan yang King Rezi mau) — lihat `tasks/v07-astryx-shadcn-migration.md`
+      bukan yang King Rezi mau) — lihat `tickets/v07-astryx-shadcn-migration.md`
       § T-103 untuk latar belakang penuh.
     - Kalau **bukan** UI/UX-related: lanjut seperti biasa, tidak perlu cek
       Claude Design.
@@ -228,13 +228,23 @@ Detail: `project-manager/PROJECT_OVERVIEW.md` dan `product-discovery/06-engineer
     belum ada dan pekerjaan terhambat, selesaikan lewat double di tes +
     stub/throw jelas di Real adapter untuk method yang belum di-wire —
     jangan menghidupkan lagi fallback Fake di factory.
+20. Perubahan kode di `apps/` dan `packages/` wajib punya tiket di
+    `project-os/tickets/` (ADR-132). Tanpa tiket, kode tidak diubah. Tiket
+    boleh dibuat di sesi yang sama, sebelum baris kode pertama. Perubahan
+    dokumen tidak memakai aturan ini.
+21. Known Issue yang masih terbuka punya tiket (ADR-132). Baris KI di
+    `PROJECT_STATE.md` menunjuk tiket itu.
+22. Kalau kebenaran produk berubah, urutan tulisnya: `product-discovery/`,
+    lalu `context/` hanya bila penunjuknya berubah, lalu `project-os/`
+    (ADR, tiket, phase). Jangan menyalin paragraf yang sama ke ketiganya.
+    Mencari tiket tersedia tetap mulai dari `AVAILABLE_TICKETS.md`.
 
 ## Workflow shadcn/ui wajib (ADR-097)
 
 **shadcn/ui** menggantikan Astryx sebagai fondasi component system permanen
 (ADR-097, membalik ADR-041). Migrasi sudah tuntas 100% (rilis v0.7, T-102
 `✅ Done`, 0 dependency `@astryxdesign/*` tersisa) — lihat
-`tasks/v07-astryx-shadcn-migration.md`.
+`tickets/v07-astryx-shadcn-migration.md`.
 
 Untuk setiap task UI di `apps/web`: baca `apps/web/.claude/CLAUDE.md` dulu —
 dokumen ini akan ditulis ulang mengikuti workflow shadcn CLI/MCP (ADR-097
@@ -275,20 +285,20 @@ fase aktif di file ini.
 
 ## Setelah mengubah sesuatu
 
-- Update status tiket di `project-manager/tasks/vXX-*.md` **dan** barisnya
-  di `project-manager/AVAILABLE_TASKS.md` (kalau masih antrian). Task yang
-  menjadi ✅ keluar dari `AVAILABLE_TASKS.md` dan tetap di file rilis.
-- Update `project-manager/PROJECT_STATE.md` bila phase / milestone / Known
+- Update status tiket di `project-os/tickets/vXX-*.md` **dan** barisnya
+  di `project-os/AVAILABLE_TICKETS.md` (kalau masih antrian). Task yang
+  menjadi ✅ keluar dari `AVAILABLE_TICKETS.md` dan tetap di file rilis.
+- Update `project-os/PROJECT_STATE.md` bila phase / milestone / Known
   Issues / fokus terdekat berubah. Jangan menyalin detail task ke sana.
 - Section **"Completed (Ringkasan)"** di `PROJECT_STATE.md` dibatasi **5
   item terakhir**. Setiap menambah bullet baru, hapus bullet paling lama.
-  Tiket lengkapnya ada di `tasks/vXX-*.md`. Riwayat sesi ada di git.
-- Insight diskusi penting → `project-manager/CONVERSATIONS.md`.
-- Keputusan material → ADR di `project-manager/DECISIONS.md`.
+  Tiket lengkapnya ada di `tickets/vXX-*.md`. Riwayat sesi ada di git.
+- Insight diskusi penting → `project-os/CONVERSATIONS.md`.
+- Keputusan material → ADR di `project-os/DECISIONS.md`.
 
 ## Related
 
 - Root setup: `README.md`
 - Skills: `.claude/skills/`
 - AI Context index: `context/README.md`
-- Alur kerja developer (mermaid): `project-manager/DEVELOPER_WORKFLOW.md`
+- Alur kerja developer (mermaid): `project-os/DEVELOPER_WORKFLOW.md`

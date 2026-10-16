@@ -433,5 +433,5 @@ Siklus ini mencerminkan **UXP-01**: Draft → Schedule → Publish → Engage �
 * `../03-user/insights.md`
 * `../02-product/mvp-definition.md`
 * `../02-product/feature-modules.md`
-* `../../project-manager/DECISIONS.md`
-* `../../project-manager/PROJECT_STATE.md`
+* `../../project-os/DECISIONS.md`
+* `../../project-os/PROJECT_STATE.md`

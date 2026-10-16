@@ -205,11 +205,11 @@ Roadmap dianggap berhasil apabila:
 
 Perubahan terhadap urutan release atau ruang lingkup setiap release harus dicatat pada:
 
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/DECISIONS.md`
 
 Perubahan progress roadmap harus diperbarui pada:
 
-* `../../project-manager/PROJECT_STATE.md`
+* `../../project-os/PROJECT_STATE.md`
 
 ---
 
@@ -219,5 +219,5 @@ Perubahan progress roadmap harus diperbarui pada:
 * `mvp-definition.md`
 * `feature-priority.md`
 * `future-roadmap.md`
-* `../../project-manager/PROJECT_STATE.md`
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/PROJECT_STATE.md`
+* `../../project-os/DECISIONS.md`

@@ -330,5 +330,5 @@ Information Architecture dianggap selesai apabila:
 * `../03-user/user-personas.md`
 * `../03-user/user-journey.md`
 * `../03-user/insights.md`
-* `../../project-manager/PROJECT_STATE.md`
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/PROJECT_STATE.md`
+* `../../project-os/DECISIONS.md`

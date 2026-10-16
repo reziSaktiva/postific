@@ -183,5 +183,5 @@ Product Scope dianggap selesai apabila:
 * `../01-business/product-vision.md`
 * `../01-business/problem-statement.md`
 * `../01-business/target-market.md`
-* `../../project-manager/PROJECT_OVERVIEW.md`
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/PROJECT_OVERVIEW.md`
+* `../../project-os/DECISIONS.md`

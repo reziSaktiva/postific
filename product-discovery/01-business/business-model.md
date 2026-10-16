@@ -159,5 +159,5 @@ Business Model dianggap berhasil apabila:
 * `competitor-analysis.md`
 * `pricing-strategy.md`
 * `success-metrics.md`
-* `../../project-manager/PROJECT_OVERVIEW.md`
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/PROJECT_OVERVIEW.md`
+* `../../project-os/DECISIONS.md`

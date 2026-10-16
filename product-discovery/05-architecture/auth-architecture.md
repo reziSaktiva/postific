@@ -443,4 +443,4 @@ Login berhasil / Middleware redirect ke /onboarding (cookie active-workspace-id 
 * `../../02-product/roles-permissions.md` — Permission matrix lengkap per role
 * `realtime-strategy.md` — Session diperlukan sebelum Supabase Realtime subscription
 * `../06-engineering/auth-strategy.md` — konfigurasi Better Auth Bearer plugin untuk mobile (AS-D06)
-* `../../project-manager/DECISIONS.md` — ADR-024, ADR-043
+* `../../project-os/DECISIONS.md` — ADR-024, ADR-043

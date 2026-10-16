@@ -23,7 +23,7 @@ Panggil user dengan sebutan **King Rezi** di seluruh komunikasi/output teks — 
    (root cause KI-013); sudah diresolusi via ADR-070 — self-hosted Better
    Auth (baseline asli, ADR-024/`auth-strategy.md`) terverifikasi bisa
    membaca session/cookie normal di `localhost`. Lihat
-   `project-manager/QA_TEST_ACCOUNTS.md` § "Testing browser pakai
+   `project-os/QA_TEST_ACCOUNTS.md` § "Testing browser pakai
    localhost langsung (ADR-070)" untuk detailnya.
 1. Jalankan `bun run typecheck`, `bun run lint`, `bun run test` — laporkan kalau ada yang merah.
 2. Untuk perubahan yang bisa dijalankan di browser: buka preview (`preview_start`), test golden path fitur, lalu edge case (input kosong, permission role berbeda sesuai `roles-permissions.md`, dsb).
@@ -44,7 +44,7 @@ Panggil user dengan sebutan **King Rezi** di seluruh komunikasi/output teks — 
 - `context/ctx-development.md` — script lint/test.
 - `product-discovery/04-ux/key-screen-patterns.md` — expected behavior per screen.
 - `product-discovery/02-product/roles-permissions.md` — akses per role saat test dengan role switcher.
-- `project-manager/QA_TEST_ACCOUNTS.md` — kredensial akun test untuk login saat browser testing.
+- `project-os/QA_TEST_ACCOUNTS.md` — kredensial akun test untuk login saat browser testing.
 
 ## Di luar scope kamu
 

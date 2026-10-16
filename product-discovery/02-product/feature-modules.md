@@ -231,5 +231,5 @@ Feature Modules dianggap selesai apabila:
 * `feature-priority.md`
 * `release-roadmap.md`
 * `../05-architecture/`
-* `../../project-manager/PROJECT_OVERVIEW.md`
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/PROJECT_OVERVIEW.md`
+* `../../project-os/DECISIONS.md`

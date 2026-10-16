@@ -544,7 +544,7 @@ describe("PublishingService.listCalendarPosts", () => {
     ).resolves.toEqual([]);
   });
 
-  it("meneruskan input apa adanya ke repository saat caller tidak eksplisit memfilter statuses (T-090, rancangan Imported sudah dikunci — tidak lagi exclude Imported dari default, lihat tasks/v02-publishing-mvp.md § T-090)", async () => {
+  it("meneruskan input apa adanya ke repository saat caller tidak eksplisit memfilter statuses (T-090, rancangan Imported sudah dikunci — tidak lagi exclude Imported dari default, lihat tickets/v02-publishing-mvp.md § T-090)", async () => {
     let received:
       Parameters<IPublishingRepository["listCalendarPosts"]>[0] | null = null;
     const service = new PublishingService(
@@ -826,7 +826,7 @@ describe("PublishingService.getCalendarPostById", () => {
     expect(result).toEqual({ ...published, metrics: [] });
   });
 
-  it("mengembalikan post berstatus Imported apa adanya (T-090, rancangan Imported sudah dikunci — jalur Realtime-patch sekarang konsisten dengan listCalendarPosts yang juga tidak lagi exclude Imported, lihat tasks/v02-publishing-mvp.md § T-090)", async () => {
+  it("mengembalikan post berstatus Imported apa adanya (T-090, rancangan Imported sudah dikunci — jalur Realtime-patch sekarang konsisten dengan listCalendarPosts yang juga tidak lagi exclude Imported, lihat tickets/v02-publishing-mvp.md § T-090)", async () => {
     const imported = createCalendarItem({
       id: asPostId("post-imported"),
       status: ContentStatus.Imported,

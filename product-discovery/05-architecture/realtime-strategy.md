@@ -296,4 +296,4 @@ Fitur real-time berikut tidak masuk MVP tetapi perlu dipertimbangkan saat scalin
 * `background-jobs.md` — JOB-02 yang membuat notifikasi
 * `integration-layer.md` — webhook yang memicu chain ke notifikasi
 * `auth-architecture.md` — autentikasi diperlukan sebelum Realtime subscription
-* `../../project-manager/DECISIONS.md` — ADR-023, ADR-094
+* `../../project-os/DECISIONS.md` — ADR-023, ADR-094

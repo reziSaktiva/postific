@@ -96,7 +96,7 @@ Engineering Planning Baseline v1.0 (ADR-036)
 Repository & Bootstrap (M7)
 ```
 
-Setiap keputusan teknis yang signifikan harus dicatat sebagai ADR di `../../project-manager/DECISIONS.md`.
+Setiap keputusan teknis yang signifikan harus dicatat sebagai ADR di `../../project-os/DECISIONS.md`.
 
 ---
 
@@ -226,7 +226,7 @@ Engineering Planning dianggap selesai apabila:
 
 # Decision Rules
 
-Keputusan teknis berikut **wajib** masuk ke `../../project-manager/DECISIONS.md`:
+Keputusan teknis berikut **wajib** masuk ke `../../project-os/DECISIONS.md`:
 
 * Perubahan atau konfirmasi deployment platform
 * Perubahan atau konfirmasi authentication library
@@ -239,16 +239,16 @@ Keputusan teknis berikut **wajib** masuk ke `../../project-manager/DECISIONS.md`
 
 Perubahan progress Engineering Planning harus diperbarui pada:
 
-* `../../project-manager/PROJECT_STATE.md`
+* `../../project-os/PROJECT_STATE.md`
 
 ---
 
 # Related Documents
 
-* `../../project-manager/PROJECT_OVERVIEW.md`
-* `../../project-manager/PROJECT_RULES.md`
-* `../../project-manager/PROJECT_STATE.md`
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/PROJECT_OVERVIEW.md`
+* `../../project-os/PROJECT_RULES.md`
+* `../../project-os/PROJECT_STATE.md`
+* `../../project-os/DECISIONS.md`
 * `../README.md`
 * `../01-business/README.md`
 * `../02-product/README.md`

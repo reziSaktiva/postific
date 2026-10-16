@@ -118,7 +118,7 @@ bawahnya. Ini pola yang harus diikuti untuk **semua page baru**.
 `app/(app)/page.tsx` (dashboard) memanggil Server Action
 (`getDashboardSummaryAction`) untuk pure read — dicatat sebagai technical
 debt (lihat Known Issue terkait di `PROJECT_STATE.md`, dan tiket cleanup di
-`tasks/`). **Bukan pola yang benar untuk dicontoh di fitur baru.**
+`tickets/`). **Bukan pola yang benar untuk dicontoh di fitur baru.**
 
 **Alasan aturan ini:** Server Action membawa overhead POST + serialisasi
 yang tidak perlu untuk read; Server Component sudah punya akses langsung ke
@@ -198,5 +198,5 @@ tidak diduplikasi di sini:
 * `code-conventions.md` — kontrak error handling Server Action (CC-D02)
 * `monorepo-setup.md` — struktur `app/`, penamaan file
 * `../../context/ctx-implementation.md` — alur implementasi fitur
-* `../../project-manager/decisions/ADR-016-application-layer-next-js-entry-point-strategy.md`
-* `../../project-manager/decisions/ADR-095-*.md` (dokumen ini ditetapkan sebagai baseline)
+* `../../project-os/decisions/ADR-016-application-layer-next-js-entry-point-strategy.md`
+* `../../project-os/decisions/ADR-095-*.md` (dokumen ini ditetapkan sebagai baseline)

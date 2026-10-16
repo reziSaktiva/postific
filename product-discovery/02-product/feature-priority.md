@@ -237,5 +237,5 @@ Feature Priority dianggap selesai apabila:
 * `feature-modules.md`
 * `release-roadmap.md`
 * `future-roadmap.md`
-* `../../project-manager/PROJECT_OVERVIEW.md`
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/PROJECT_OVERVIEW.md`
+* `../../project-os/DECISIONS.md`

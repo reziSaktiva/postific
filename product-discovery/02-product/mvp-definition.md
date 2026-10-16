@@ -187,5 +187,5 @@ Apabila sebuah fitur tidak memenuhi kriteria tersebut, maka fitur harus dipertim
 * `release-roadmap.md`
 * `../01-business/product-vision.md`
 * `../01-business/problem-statement.md`
-* `../../project-manager/PROJECT_OVERVIEW.md`
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/PROJECT_OVERVIEW.md`
+* `../../project-os/DECISIONS.md`
