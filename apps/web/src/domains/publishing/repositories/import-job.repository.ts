@@ -110,19 +110,13 @@ export interface IImportJobRepository {
   ): Promise<boolean>;
 
   /**
-   * Baris `import.sync` berstatus `running` untuk akun ini — job yang
-   * baru diklaim runner (T-115). `null` kalau tidak ada. Tidak memakai
-   * jendela stale `hasActiveImportSyncJob`: baris antrian boleh menunggu
-   * di `pending` lebih lama dari beberapa menit sebelum diklaim, lalu
-   * langsung berstatus `running`.
-   *
-   * Pemanggil queued (`executeQueuedPeriodicImport`) memakai baris ini
-   * sebagai job-nya sendiri. Jangan menolak akun hanya karena baris ini
-   * aktif — itu bukan impor kedua.
+   * Baris `import.sync` by id (T-115) — dipakai `executeQueuedPeriodicImport`
+   * untuk membaca ULANG baris yang SUDAH diklaim runner (`jobId` datang dari
+   * `JobHandler`/`job-runner.ts`, bukan di-derive dari `connectedAccountId`
+   * supaya tidak salah ambil baris lain kalau suatu saat invarian "maks
+   * satu `running` per akun" terlanggar). `null` kalau tidak ada.
    */
-  findActiveImportSyncJob(
-    connectedAccountId: ConnectedAccountId,
-  ): Promise<ImportSyncJobRecord | null>;
+  findImportSyncJobById(jobId: string): Promise<ImportSyncJobRecord | null>;
 
   /**
    * Cap mingguan level-workspace (ADR-093 poin 9) — COUNT `background_jobs`

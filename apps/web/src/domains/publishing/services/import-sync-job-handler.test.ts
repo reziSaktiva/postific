@@ -22,9 +22,10 @@ describe("ImportSyncJobHandler", () => {
     const executeQueuedPeriodicImport = vi.fn(async () => undefined);
     const handler = new ImportSyncJobHandler({ executeQueuedPeriodicImport });
 
-    await handler.handle(payload);
+    await handler.handle(payload, "job-1");
 
     expect(executeQueuedPeriodicImport).toHaveBeenCalledWith({
+      jobId: "job-1",
       workspaceId: asWorkspaceId("workspace-1"),
       connectedAccountId: asConnectedAccountId("account-1"),
       outstandAccountId: "outstand-1",
@@ -37,7 +38,7 @@ describe("ImportSyncJobHandler", () => {
       executeQueuedPeriodicImport: vi.fn(),
     });
 
-    await expect(handler.handle(null)).rejects.toThrow(/tidak valid/);
+    await expect(handler.handle(null, "job-1")).rejects.toThrow(/tidak valid/);
   });
 
   it("throws when the job is inline rather than a queued periodic row", async () => {
@@ -45,10 +46,13 @@ describe("ImportSyncJobHandler", () => {
     const handler = new ImportSyncJobHandler({ executeQueuedPeriodicImport });
 
     await expect(
-      handler.handle({ ...payload, queued: false, trigger: "manual" }),
+      handler.handle({ ...payload, queued: false, trigger: "manual" }, "job-1"),
     ).rejects.toThrow(/bukan milik runner/);
     await expect(
-      handler.handle({ ...payload, trigger: "periodic", queued: undefined }),
+      handler.handle(
+        { ...payload, trigger: "periodic", queued: undefined },
+        "job-1",
+      ),
     ).rejects.toThrow(/bukan milik runner/);
     expect(executeQueuedPeriodicImport).not.toHaveBeenCalled();
   });
@@ -59,7 +63,7 @@ describe("ImportSyncJobHandler", () => {
     });
 
     await expect(
-      handler.handle({ ...payload, platform: "myspace" }),
+      handler.handle({ ...payload, platform: "myspace" }, "job-1"),
     ).rejects.toThrow(/tidak valid/);
   });
 
@@ -70,6 +74,8 @@ describe("ImportSyncJobHandler", () => {
       }),
     });
 
-    await expect(handler.handle(payload)).rejects.toThrow(/Outstand down/);
+    await expect(handler.handle(payload, "job-1")).rejects.toThrow(
+      /Outstand down/,
+    );
   });
 });

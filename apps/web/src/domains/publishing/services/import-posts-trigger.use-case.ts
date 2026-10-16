@@ -420,6 +420,7 @@ export class ImportPostsTriggerUseCase {
    * runner retry/dead-letter — tidak ditelan seperti batch inline.
    */
   async executeQueuedPeriodicImport(input: {
+    jobId: string;
     workspaceId: WorkspaceId;
     connectedAccountId: ConnectedAccountId;
     outstandAccountId: string;
@@ -445,9 +446,11 @@ export class ImportPostsTriggerUseCase {
       );
     }
 
-    const job = await this.importJobs.findActiveImportSyncJob(
-      input.connectedAccountId,
-    );
+    // `jobId` datang dari `JobHandler`/`job-runner.ts` (baris yang BENAR-BENAR
+    // diklaim runner) — bukan di-derive dari `connectedAccountId`, supaya
+    // tidak salah ambil baris lain kalau suatu saat ada lebih dari satu job
+    // `running` untuk akun ini.
+    const job = await this.importJobs.findImportSyncJobById(input.jobId);
     if (
       !job ||
       job.payload.queued !== true ||
@@ -455,7 +458,7 @@ export class ImportPostsTriggerUseCase {
       job.payload.connectedAccountId !== input.connectedAccountId
     ) {
       throw new Error(
-        `executeQueuedPeriodicImport: tidak menemukan job ${IMPORT_SYNC_JOB_TYPE} running queued periodic untuk connectedAccountId=${input.connectedAccountId}.`,
+        `executeQueuedPeriodicImport: tidak menemukan job ${IMPORT_SYNC_JOB_TYPE} running queued periodic jobId=${input.jobId} untuk connectedAccountId=${input.connectedAccountId}.`,
       );
     }
 

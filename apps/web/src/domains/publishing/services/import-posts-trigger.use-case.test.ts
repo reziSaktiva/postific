@@ -52,7 +52,7 @@ function createFakeImportJobRepository(
     ),
     markImportSyncJobStatus: vi.fn(async () => undefined),
     hasActiveImportSyncJob: vi.fn(async () => false),
-    findActiveImportSyncJob: vi.fn(async () => null),
+    findImportSyncJobById: vi.fn(async () => null),
     countManualImportSyncJobsSince: vi.fn(async () => 0),
     ...overrides,
   };
@@ -1118,7 +1118,7 @@ describe("ImportPostsTriggerUseCase.executeQueuedPeriodicImport (T-115)", () => 
     fetchImportJobStatus?: () => Promise<ImportJobOutcome>;
   }) {
     const importJobs = createFakeImportJobRepository({
-      findActiveImportSyncJob: vi.fn(async () =>
+      findImportSyncJobById: vi.fn(async () =>
         options.job === undefined ? runningJob() : options.job,
       ),
     });
@@ -1150,6 +1150,7 @@ describe("ImportPostsTriggerUseCase.executeQueuedPeriodicImport (T-115)", () => 
   }
 
   const queuedInput = {
+    jobId: "running-job",
     workspaceId: WORKSPACE_ID,
     connectedAccountId: CONNECTED_ACCOUNT_ID,
     outstandAccountId: OUTSTAND_ACCOUNT_ID,
@@ -1162,6 +1163,9 @@ describe("ImportPostsTriggerUseCase.executeQueuedPeriodicImport (T-115)", () => 
 
     await useCase.executeQueuedPeriodicImport(queuedInput);
 
+    expect(importJobs.findImportSyncJobById).toHaveBeenCalledWith(
+      "running-job",
+    );
     expect(importJobs.createImportSyncJob).not.toHaveBeenCalled();
     expect(importJobs.hasActiveImportSyncJob).not.toHaveBeenCalled();
     expect(importJobs.countManualImportSyncJobsSince).not.toHaveBeenCalled();

@@ -999,22 +999,36 @@ export const workspaceRepository: IWorkspaceRepository = {
       }[]
     >`SELECT * FROM "public"."import_list_accounts_for_periodic_sync"()`;
 
-    return rows.map((row) => {
+    const accounts: {
+      workspaceId: WorkspaceId;
+      connectedAccountId: ConnectedAccountId;
+      outstandAccountId: string;
+      platform: SocialPlatform;
+    }[] = [];
+
+    for (const row of rows) {
+      // Satu baris dengan platform di luar enum (data stale, rename enum,
+      // dsb.) TIDAK boleh menggagalkan fan-out akun lain — lewati baris itu
+      // saja (log untuk investigasi) daripada throw yang menghentikan
+      // seluruh batch lintas workspace.
       if (
         !Object.values(SocialPlatform).includes(row.platform as SocialPlatform)
       ) {
-        throw new Error(
-          `import_list_accounts_for_periodic_sync: platform tidak dikenal "${row.platform}" untuk connected_account_id=${row.connected_account_id}.`,
+        console.error(
+          `import_list_accounts_for_periodic_sync: platform tidak dikenal "${row.platform}" untuk connected_account_id=${row.connected_account_id}, baris dilewati.`,
         );
+        continue;
       }
 
-      return {
+      accounts.push({
         workspaceId: asWorkspaceId(row.workspace_id),
         connectedAccountId: asConnectedAccountId(row.connected_account_id),
         outstandAccountId: row.outstand_account_id,
         platform: row.platform as SocialPlatform,
-      };
-    });
+      });
+    }
+
+    return accounts;
   },
 
   async disconnectAccount(workspaceId, connectedAccountId, actingUserId) {

@@ -171,7 +171,8 @@ export async function POST(request: Request): Promise<Response> {
       engagementSyncHandler.handle(payload),
     [ANALYTICS_SYNC_JOB_TYPE]: (payload) =>
       analyticsSyncHandler.handle(payload),
-    [IMPORT_SYNC_JOB_TYPE]: (payload) => importSyncHandler.handle(payload),
+    [IMPORT_SYNC_JOB_TYPE]: (payload, jobId) =>
+      importSyncHandler.handle(payload, jobId),
   };
 
   const summary = await runPendingJobs(backgroundJobStore, handlers);

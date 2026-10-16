@@ -18,6 +18,7 @@ const PLATFORMS = new Set<string>(Object.values(SocialPlatform));
 
 export interface QueuedPeriodicImportExecutor {
   executeQueuedPeriodicImport(input: {
+    jobId: string;
     workspaceId: WorkspaceId;
     connectedAccountId: ConnectedAccountId;
     outstandAccountId: string;
@@ -99,9 +100,10 @@ function parsePayload(payload: unknown): QueuedPeriodicImportPayload {
 export class ImportSyncJobHandler {
   constructor(private readonly imports: QueuedPeriodicImportExecutor) {}
 
-  async handle(rawPayload: unknown): Promise<void> {
+  async handle(rawPayload: unknown, jobId: string): Promise<void> {
     const payload = parsePayload(rawPayload);
     await this.imports.executeQueuedPeriodicImport({
+      jobId,
       workspaceId: asWorkspaceId(payload.workspaceId),
       connectedAccountId: asConnectedAccountId(payload.connectedAccountId),
       outstandAccountId: payload.outstandAccountId,

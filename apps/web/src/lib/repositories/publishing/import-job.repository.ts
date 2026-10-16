@@ -103,17 +103,12 @@ export const importJobRepository: IImportJobRepository = {
     });
   },
 
-  async findActiveImportSyncJob(connectedAccountId) {
+  async findImportSyncJobById(jobId) {
     const job = await prisma.backgroundJob.findFirst({
       where: {
+        id: jobId,
         type: IMPORT_SYNC_JOB_TYPE,
-        status: "running",
-        payload: {
-          path: ["connectedAccountId"],
-          equals: connectedAccountId,
-        },
       },
-      orderBy: { startedAt: "desc" },
     });
 
     if (!job) {
