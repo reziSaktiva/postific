@@ -15,39 +15,54 @@ menggantikan.
 
 ## 1. Alur kerja project — dari kebutuhan sampai kode
 
-Bagaimana sebuah task (fitur, bug, keputusan) bergerak dari percakapan
-sampai menjadi kode yang jalan di `apps/web`.
+Bagaimana sebuah kebutuhan bergerak dari percakapan sampai menjadi dokumen
+atau kode. Empat lapisnya: docs, spec, tiket, lalu implementasi (ADR-131).
+Kode di `apps/` dan `packages/` hanya dimulai setelah tiketnya ada (ADR-132).
 
 ```mermaid
 flowchart TD
-  A[Task / kebutuhan baru] --> B{Sudah ada di baseline<br/>product-discovery/?}
+  A[Kebutuhan baru, atau pilih satu ID<br/>dari AVAILABLE_TICKETS.md] --> B{Kebenaran produk berubah?}
 
-  B -->|Belum, ini keputusan baru| C[Diskusi dulu<br/>skill proactive-clarification]
-  C --> D[Update product-discovery/<br/>+ catat ADR di DECISIONS.md]
+  B -->|Ya| C[Tulis product-discovery/ dulu]
+  C --> C2{Penunjuk context/ berubah?}
+  C2 -->|Ya| C3[Update context/ctx-*.md<br/>jangan salin paragraf yang sama]
+  C2 -->|Tidak| D
+  C3 --> D[ADR di project-os/decisions/<br/>bila keputusannya material]
   D --> E
-  B -->|Sudah ada| E[Baca context/ctx-*.md yang relevan<br/>lihat context/README.md untuk peta]
 
-  E --> F{Task melibatkan UI?}
-  F -->|Tidak| K[Implementasi langsung<br/>domain service / job / API]
+  B -->|Tidak| E{Melewati lebih dari satu sesi?}
 
-  F -->|Ya| G{Perlu referensi visual?}
-  G -->|Ya| H[Buka project Claude Design<br/>foundations/ · components/ · templates/]
-  G -->|Sudah jelas dari KSP docs| I
-  H --> I[Wajib: baca apps/web/.claude/CLAUDE.md<br/>agent docs resmi shadcn/ui, lalu jalankan CLI/MCP]
-  I --> K
+  E -->|Ya| F[Tulis specs/S-NNN.md<br/>perilaku, jahitan tes, di luar spec]
+  F --> Q
+  E -->|Tidak, tanpa spec| Q{Mengubah kode<br/>di apps/ atau packages/?}
 
-  K --> L[Kode di apps/web/src/domains/*<br/>DDD + Modular Monolith]
-  L --> M[Update tiket di tickets/vXX<br/>keluarkan dari AVAILABLE_TICKETS]
-  M --> N{Phase / milestone / Known Issues<br/>/ fokus terdekat berubah?}
-  N -->|Ya| P[Update PROJECT_STATE.md]
-  N -->|Tidak| O[Selesai]
+  Q -->|Tidak| L
+  Q -->|Ya| G[Tiket di tickets/vXX-*.md<br/>sudah ada sebelum baris kode pertama<br/>menunjuk docs atau spec]
+
+  G --> R[Baca context/ctx-*.md yang relevan]
+  R --> H{Menyentuh UI?}
+
+  H -->|Tidak| K
+  H -->|Ya| I{Rancangan ada di Claude Design<br/>dan polanya sudah terkunci?}
+  I -->|Belum ada, atau pola masih ambigu| STOP[Berhenti dan tanya King Rezi<br/>jangan menulis kode UI]
+  I -->|Sudah| J[Baca apps/web/.claude/CLAUDE.md<br/>lalu CLI/MCP shadcn]
+  J --> K[Kode domain, job, atau API]
+
+  K --> L[Bila tiket dikerjakan: status ✅<br/>baris keluar dari AVAILABLE_TICKETS<br/>tanpa cerita sesi]
+  L --> M{Fase, milestone, KI,<br/>atau fokus terdekat berubah?}
+  M -->|Ya| P[Update PROJECT_STATE.md]
+  M -->|Tidak| O[Selesai]
   P --> O
 ```
 
-**Rujukan:** `../AGENTS.md` (aturan keras + mapping task→baca),
-`context/README.md`, `../product-discovery/06-engineering/design-tokens.md`
-(ADR-042 — Claude Design), `.claude/skills/`, ADR-062 (backlog berjenjang +
-amandemen aturan status).
+Perubahan dokumen tidak memakai aturan tiket. Known Issue yang masih terbuka
+menunjuk satu tiket; barisnya di `PROJECT_STATE.md` cukup menyebut ID dan
+tiket itu. Jejak sesi ada di git.
+
+**Rujukan:** `../AGENTS.md` (aturan 17, 20, 22), `specs/README.md`,
+`context/README.md`, ADR-131, ADR-132. ADR-062 tetap berlaku untuk bentuk
+backlog per rilis pada bagian yang tidak diubah kedua ADR itu. Gerbang desain
+UI: ADR-042 dan ADR-056.
 
 ---
 
@@ -141,8 +156,9 @@ disconnect (KSP-D09) — tetap menunggu di antrean sampai akun reconnect.
 - `../AGENTS.md` — pintu masuk agent, aturan keras
 - `../context/README.md` — indeks AI Context per domain
 - `PROJECT_STATE.md` — phase, milestone, Known Issues, blockers
-- `AVAILABLE_TICKETS.md` — antrian task yang belum selesai; tiket di `tickets/vXX-*.md`
-- `DECISIONS.md` — seluruh ADR
+- `AVAILABLE_TICKETS.md` — antrian tiket yang belum selesai; tiket di `tickets/vXX-*.md`
+- `specs/README.md` — bentuk spec untuk kerja yang melewati lebih dari satu sesi (ADR-131)
+- `DECISIONS.md` — indeks ADR; teks penuh di `decisions/`
 - `../product-discovery/04-ux/user-flows.md` — flow lengkap (UF-01 s/d UF-06)
 - `../product-discovery/02-product/roles-permissions.md` — roles & content status
 - `../product-discovery/05-architecture/auth-architecture.md` — auth & session detail
