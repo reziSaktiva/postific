@@ -605,8 +605,10 @@ export interface IPublishingRepository {
   ): Promise<CalendarItemRecord | null>;
 
   /**
-   * History (T-034.1, KSP-D10) — post berstatus `Published`/`Failed`
-   * (percobaan publish sudah selesai, KSP-03) milik workspace, diurutkan
+   * History (T-034.1, KSP-D10) — post berstatus `Published`/`Failed`/
+   * `Imported` (T-126; "selesai", KSP-03 — `Imported` ikut dihitung selesai
+   * karena memang tidak pernah berupa percobaan publish dari tool ini)
+   * milik workspace, diurutkan
    * `updatedAt` descending (paling baru berubah status duluan — proksi
    * "waktu selesai" dipertahankan APA ADANYA meski `PublishingPost.failedAt`
    * sekarang diisi T-107 — lihat catatan update di bawah kenapa sorting

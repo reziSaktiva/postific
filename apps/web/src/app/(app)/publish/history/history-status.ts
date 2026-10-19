@@ -14,8 +14,9 @@ type BadgeVariant = NonNullable<VariantProps<typeof badgeVariants>["variant"]>;
  * (2026-09-08, Claude Design `templates/publish-history.html`) memakai
  * istilah "Error" — mengubah `CONTENT_STATUS_LABEL` langsung akan
  * berdampak ke layar lain yang sudah disetujui (Calendar filter, dsb),
- * jadi override lokal di sini saja. `HistoryItemRecord.status` cuma pernah
- * berisi `Published`/`Failed` (invariant `HISTORY_TERMINAL_STATUSES`).
+ * jadi override lokal di sini saja. `HistoryItemRecord.status` berisi
+ * `Published`/`Failed`/`Imported` (invariant `HISTORY_TERMINAL_STATUSES`,
+ * T-126 menambahkan `Imported` 2026-10-19).
  */
 export const HISTORY_STATUS_LABEL: Record<ContentStatus, string> = {
   [ContentStatus.Draft]: "Draft",
@@ -24,11 +25,9 @@ export const HISTORY_STATUS_LABEL: Record<ContentStatus, string> = {
   [ContentStatus.Scheduled]: "Scheduled",
   [ContentStatus.Published]: "Published",
   [ContentStatus.Failed]: "Error",
-  // T-090, ADR-093 — placeholder SEMENTARA (bukan keputusan desain final).
-  // `listHistory`/`getHistoryById` tetap di-clamp ke `HISTORY_TERMINAL_STATUSES`
-  // (Published/Failed saja, tidak berubah oleh T-090) jadi `Imported` TIDAK
-  // PERNAH benar-benar muncul di History sekarang — entry ini murni
-  // memenuhi exhaustiveness `Record<ContentStatus, string>`.
+  // T-126 (2026-10-19) — reuse badge "Imported" yang sudah LOCKED di
+  // Calendar/Popover (T-090.5, ADR-093), dikonfirmasi King Rezi untuk
+  // History juga. Bukan lagi placeholder exhaustiveness semata.
   [ContentStatus.Imported]: "Imported",
 };
 
@@ -48,7 +47,8 @@ export const HISTORY_STATUS_BADGE_VARIANT: Record<ContentStatus, BadgeVariant> =
     [ContentStatus.Scheduled]: "warning",
     [ContentStatus.Published]: "success",
     [ContentStatus.Failed]: "destructive",
-    // T-090, ADR-093 — placeholder, lihat catatan di `HISTORY_STATUS_LABEL`.
+    // T-126 — reuse variant `outline` yang sama dengan badge Imported di
+    // Calendar (T-090.5), lihat catatan di `HISTORY_STATUS_LABEL`.
     [ContentStatus.Imported]: "outline",
   };
 

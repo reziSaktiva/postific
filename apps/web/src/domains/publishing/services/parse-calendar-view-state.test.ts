@@ -13,8 +13,8 @@ describe("parseCalendarViewState", () => {
   });
 
   describe("view", () => {
-    it("default ke week kalau tidak ada", () => {
-      expect(parseCalendarViewState({}).view).toBe("week");
+    it("default ke month kalau tidak ada (T-125)", () => {
+      expect(parseCalendarViewState({}).view).toBe("month");
     });
 
     it("menerima month", () => {
@@ -25,12 +25,12 @@ describe("parseCalendarViewState", () => {
       expect(parseCalendarViewState({ view: "week" }).view).toBe("week");
     });
 
-    it("fallback ke week untuk value invalid", () => {
-      expect(parseCalendarViewState({ view: "yearly" }).view).toBe("week");
+    it("fallback ke month untuk value invalid", () => {
+      expect(parseCalendarViewState({ view: "yearly" }).view).toBe("month");
     });
 
-    it("case-sensitive — Month (kapital) fallback ke week", () => {
-      expect(parseCalendarViewState({ view: "Month" }).view).toBe("week");
+    it("case-sensitive — Month (kapital) fallback ke default month", () => {
+      expect(parseCalendarViewState({ view: "Month" }).view).toBe("month");
     });
 
     it("mengambil elemen pertama kalau query param diulang (array)", () => {
@@ -131,7 +131,7 @@ describe("parseCalendarViewState", () => {
 
   it("default view+date+statuses+connectedAccountIds sekaligus kalau searchParams kosong total", () => {
     expect(parseCalendarViewState({})).toEqual({
-      view: "week",
+      view: "month",
       date: new Date(),
       statuses: [],
       connectedAccountIds: [],

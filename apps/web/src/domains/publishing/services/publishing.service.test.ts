@@ -888,7 +888,7 @@ describe("PublishingService.listHistory", () => {
     ).resolves.toEqual([]);
   });
 
-  it("default statuses ke [Published, Failed] kalau tidak diisi caller", async () => {
+  it("default statuses ke [Published, Failed, Imported] kalau tidak diisi caller (T-126)", async () => {
     let received: Parameters<IPublishingRepository["listHistory"]>[0] | null =
       null;
     const service = new PublishingService(
@@ -904,7 +904,11 @@ describe("PublishingService.listHistory", () => {
 
     expect(received).toEqual({
       workspaceId: WORKSPACE_ID,
-      statuses: [ContentStatus.Published, ContentStatus.Failed],
+      statuses: [
+        ContentStatus.Published,
+        ContentStatus.Failed,
+        ContentStatus.Imported,
+      ],
     });
   });
 
@@ -929,11 +933,15 @@ describe("PublishingService.listHistory", () => {
     expect(received).toEqual({
       workspaceId: WORKSPACE_ID,
       connectedAccountIds,
-      statuses: [ContentStatus.Published, ContentStatus.Failed],
+      statuses: [
+        ContentStatus.Published,
+        ContentStatus.Failed,
+        ContentStatus.Imported,
+      ],
     });
   });
 
-  it("meng-clamp statuses ke subset terminal (Published/Failed) sebelum memanggil repository", async () => {
+  it("meng-clamp statuses ke subset terminal (Published/Failed/Imported) sebelum memanggil repository", async () => {
     let received: Parameters<IPublishingRepository["listHistory"]>[0] | null =
       null;
     const service = new PublishingService(
@@ -1219,6 +1227,51 @@ describe("PublishingService.getPostPerformance", () => {
     await expect(
       service.getPostPerformance(WORKSPACE_ID, "weekly", AUTHOR_ID),
     ).resolves.toEqual([]);
+  });
+
+  it("tidak menghitung post Imported di Post Performance", async () => {
+    // Wrapper object, bukan `let` langsung — TS tidak bisa menyimpulkan
+    // closure `listHistory` di bawah benar-benar jalan sebelum `expect`,
+    // jadi `let received: X | null` akan ter-narrow jadi literal `null`
+    // di titik baca (lihat `received.input?.statuses` di bawah: field pada
+    // objek `const` tidak kena masalah narrowing yang sama).
+    const received: {
+      input: Parameters<IPublishingRepository["listHistory"]>[0] | null;
+    } = { input: null };
+    const published = createHistoryItem({
+      id: asPostId("post-published"),
+      publishedAt: WITHIN_WEEK,
+    });
+    const imported = createHistoryItem({
+      id: asPostId("post-imported"),
+      status: ContentStatus.Imported,
+      authorId: null,
+      publishedAt: WITHIN_WEEK,
+    });
+    const service = new PublishingService(
+      createFakeRepository({
+        listHistory: async (input) => {
+          received.input = input;
+          const statuses = input.statuses ?? [];
+          return [published, imported].filter((item) =>
+            statuses.includes(item.status),
+          );
+        },
+      }),
+      { getPostMetricsByPosts: async () => new Map() },
+    );
+
+    const result = await service.getPostPerformance(
+      WORKSPACE_ID,
+      "weekly",
+      AUTHOR_ID,
+    );
+
+    expect(received.input?.statuses).toEqual([
+      ContentStatus.Published,
+      ContentStatus.Failed,
+    ]);
+    expect(result.map((row) => row.postId)).toEqual([published.id]);
   });
 
   it("maps caption + accountHandle with reach/engagementRate per post and account, sorted by reach descending", async () => {

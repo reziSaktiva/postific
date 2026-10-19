@@ -165,3 +165,65 @@ Workaround sebelumnya tidak cukup, dan dicatat supaya tidak diulang:
 - `cf39b675-7aa8-4ad4-b523-ef464eceef40` — akun `d17e38ce-fbae-434c-ab27-e417fca384ab` / `Kav29` (Facebook)
 
 Watermark kedua akun ter-update ke `2026-10-19 07:49:04` UTC. Error `Failed to deserialize column of type 'void'` tidak muncul. Service `cron` tetap image lama (2026-10-12); perannya hanya memanggil endpoint di `web`, dan kode lock jalan di `web`.
+
+### T-127 · Caption panjang bikin seluruh halaman scroll ke samping
+
+| Field       | Value                               |
+| ----------- | ----------------------------------- |
+| **Status**  | ✅ Done (2026-10-19)                |
+| **Domain**  | UI                                  |
+| **Spec**    | tidak ada — muat satu sesi, bug CSS |
+| **Docs**    | KI-092                              |
+| **Depends** | —                                   |
+
+**Ditemukan (KI-092, King Rezi, via code-review PR #183):** caption post di
+kartu Publish → History yang berisi URL panjang tanpa spasi (mis.
+`https://www.cookitrealgood.com/homemade-pumpkin-recipes/`) membuat
+**seluruh halaman** (bukan cuma satu kartu) bisa di-scroll ke samping —
+`document.body.scrollWidth` jauh melebihi `clientWidth` (diverifikasi
+browser: 6352px vs 753px pada viewport tablet).
+
+**Root cause:** `<div className="relative flex min-h-0 flex-1 flex-col">`
+di `apps/web/src/app/(app)/layout.tsx` (kolom konten, sibling dari sidebar
+di flex row `SidebarProvider`) sudah punya `min-h-0` untuk sumbu vertikal,
+tapi **tidak punya `min-w-0`** untuk sumbu horizontal. Classic flexbox trap:
+flex item tanpa `min-width:0` eksplisit defaultnya `min-width:auto`
+(ukuran minimum = konten), jadi begitu ADA satu teks tak terputus yang
+cukup panjang di dalam pohon flex yang dalam (caption → `ItemTitle`
+`truncate` → `ItemContent` → `Item`/`<a>` → `ItemGroup` → ... → kolom
+konten ini), ukuran minimumnya ikut menggelembung dan merambat ke ATAS
+sampai ke kolom konten ini — yang karena tidak dibatasi `min-w-0`, ikut
+melebar dan mendorong `<body>` jadi scroll horizontal. `truncate`
+(`overflow:hidden`+`text-overflow:ellipsis`) di `ItemTitle` MEMANG sudah
+benar dan tidak menjadi penyebab — `overflow:hidden` di situ sudah
+menjadikan ukuran minimum `ItemTitle` sendiri 0, tapi itu tidak menolong
+kalau ANCESTOR lain di jalur flex (di luar `apps/web/src/app/(app)/publish/history/`,
+yakni di shared layout) tidak diberi `min-w-0` juga — satu link di rantai
+flex yang kebobolan sudah cukup membuat semuanya melebar.
+
+- [x] Tambah `min-w-0` ke kolom konten `(app)/layout.tsx` (satu class,
+      simetris dengan `min-h-0` yang sudah ada).
+- [x] Diverifikasi browser: `/publish/history` (yang melahirkan laporan ini),
+      `/publish/calendar`, `/publish/drafts`, `/settings/profile` — di
+      desktop (1957px), tablet (768px), dan mobile (375px) —
+      `document.body.scrollWidth === document.documentElement.clientWidth`
+      di semuanya, tidak ada elemen yang overflow (`getBoundingClientRect().width`
+      dicek programatik, bukan cuma visual). Caption panjang sekarang
+      terpotong dengan "…" di desktop/tablet (`sm:truncate`) dan wrap
+      multi-baris di mobile (`whitespace-normal`), tanpa mendorong layout.
+- [x] `tsc --noEmit`/`eslint .` (apps/web) bersih, `bun run vitest run` 835
+      passed/7 skipped/0 failed — tidak ada regresi dari satu class CSS ini.
+
+**Catatan teknik untuk kasus serupa di masa depan:** kalau ada laporan
+"halaman bisa di-scroll ke samping" lagi, teknik diagnosis yang dipakai di
+sini — jalankan di browser console: `document.body.scrollWidth` vs
+`document.documentElement.clientWidth` (beda = ada overflow), lalu walk
+`children` dari `document.body` rekursif cari elemen pertama yang
+`getBoundingClientRect().width > viewportWidth` — ini akar masalahnya,
+JANGAN hanya fix elemen yang "paling mencurigakan" (biasanya kartu/teks di
+lokasi laporan) karena propagasi flexbox sering membuat akarnya ada di
+layout bersama (shared layout/shell), bukan di komponen yang dilaporkan.
+Fix idealnya tetap SATU `min-w-0` di titik akar (bukan menambal `truncate`/
+`break-words` di tiap komponen anak satu-satu), karena masalahnya adalah
+rantai flex yang gagal men-declare minimum-width:0, bukan teks yang tidak
+di-wrap.

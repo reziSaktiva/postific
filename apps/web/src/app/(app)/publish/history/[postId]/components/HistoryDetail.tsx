@@ -62,7 +62,14 @@ const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("id-ID", {
  * `IPublishingRepository.publishNow`).
  */
 function formatWhenLabel(item: HistoryItemRecord): string {
-  if (item.status === ContentStatus.Published) {
+  // T-126: `Imported` disamakan dengan `Published` di sini — keduanya
+  // selalu punya `publishedAt` terisi dan sama-sama terminal-sukses, bukan
+  // percobaan publish dari tool ini. Tanpa ini label salah jatuh ke
+  // fallback "Percobaan publish" di bawah.
+  if (
+    item.status === ContentStatus.Published ||
+    item.status === ContentStatus.Imported
+  ) {
     const date = item.publishedAt ?? item.updatedAt;
     return `Dipublikasikan ${DATE_TIME_FORMATTER.format(date)}`;
   }
