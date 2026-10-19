@@ -10,6 +10,7 @@ import {
   MemberRole,
   type PostId,
   SocialPlatform,
+  type UserId,
 } from "@postific/shared";
 import { describe, expect, it } from "vitest";
 import { noopBackfillRepositoryStubs } from "@/lib/testing/outstand-post-id-backfill-stubs";
@@ -859,6 +860,7 @@ function createHistoryItem(
     createdAt: new Date("2026-07-13T00:00:00Z"),
     updatedAt: new Date("2026-07-14T10:00:00Z"),
     mediaIds: [],
+    authorId: AUTHOR_ID,
     targets: [
       {
         id: asPostTargetId("target-1"),
@@ -1013,7 +1015,7 @@ describe("PublishingService.getHistoryById", () => {
 
     await expect(
       service.getHistoryById(WORKSPACE_ID, asPostId("post-1"), AUTHOR_ID),
-    ).resolves.toEqual({ ...item, metrics: null });
+    ).resolves.toEqual({ ...item, metrics: null, authorName: null });
   });
 
   // T-043.3 — reuse semantik `PostMetricsPort` yang sama dengan
@@ -1039,7 +1041,7 @@ describe("PublishingService.getHistoryById", () => {
       AUTHOR_ID,
     );
 
-    expect(result).toEqual({ ...failed, metrics: null });
+    expect(result).toEqual({ ...failed, metrics: null, authorName: null });
     expect(calls).toBe(0);
   });
 
@@ -1055,7 +1057,7 @@ describe("PublishingService.getHistoryById", () => {
       AUTHOR_ID,
     );
 
-    expect(result).toEqual({ ...published, metrics: [] });
+    expect(result).toEqual({ ...published, metrics: [], authorName: null });
   });
 
   it("metrics diisi dari PostMetricsPort untuk post Published", async () => {
@@ -1092,7 +1094,83 @@ describe("PublishingService.getHistoryById", () => {
     );
 
     expect(receivedPostIds).toEqual([published.id]);
-    expect(result).toEqual({ ...published, metrics: [metric] });
+    expect(result).toEqual({
+      ...published,
+      metrics: [metric],
+      authorName: null,
+    });
+  });
+
+  // T-121, menutup KI-050.
+  it("authorName null kalau authorId post null (status Imported), AuthorPort tidak pernah dipanggil", async () => {
+    const imported = createHistoryItem({
+      status: ContentStatus.Failed,
+      authorId: null,
+    });
+    let calls = 0;
+    const service = new PublishingService(
+      createFakeRepository({ getHistoryById: async () => imported }),
+      undefined,
+      undefined,
+      {
+        findById: async () => {
+          calls += 1;
+          return { name: "Should not be called" };
+        },
+      },
+    );
+
+    const result = await service.getHistoryById(
+      WORKSPACE_ID,
+      imported.id,
+      AUTHOR_ID,
+    );
+
+    expect(result.authorName).toBeNull();
+    expect(calls).toBe(0);
+  });
+
+  it("authorName diisi dari AuthorPort kalau authorId ada", async () => {
+    const item = createHistoryItem({ status: ContentStatus.Failed });
+    let receivedAuthorId: UserId | null = null;
+    const service = new PublishingService(
+      createFakeRepository({ getHistoryById: async () => item }),
+      undefined,
+      undefined,
+      {
+        findById: async (userId) => {
+          receivedAuthorId = userId;
+          return { name: "Raka" };
+        },
+      },
+    );
+
+    const result = await service.getHistoryById(
+      WORKSPACE_ID,
+      item.id,
+      AUTHOR_ID,
+    );
+
+    expect(receivedAuthorId).toBe(AUTHOR_ID);
+    expect(result.authorName).toBe("Raka");
+  });
+
+  it("authorName null kalau AuthorPort tidak menemukan user (data korup)", async () => {
+    const item = createHistoryItem({ status: ContentStatus.Failed });
+    const service = new PublishingService(
+      createFakeRepository({ getHistoryById: async () => item }),
+      undefined,
+      undefined,
+      { findById: async () => null },
+    );
+
+    const result = await service.getHistoryById(
+      WORKSPACE_ID,
+      item.id,
+      AUTHOR_ID,
+    );
+
+    expect(result.authorName).toBeNull();
   });
 });
 

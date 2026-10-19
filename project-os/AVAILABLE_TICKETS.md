@@ -33,14 +33,10 @@ ID tiket global, tidak didaur ulang. Berikutnya: **T-125**. ID spec berikutnya: 
 | ----- | ------ | --------------------------------------------------------------- | ------------------------------------- |
 | T-037 | 🟡     | Perkaya aturan coding di `context/ctx-development.md`           | [v0.2](tickets/v02-publishing-mvp.md) |
 | T-115 | 🟡     | Wiring cron harian Import Posts periodik                        | [v0.2](tickets/v02-publishing-mvp.md) |
-| T-008 | 🟡     | Workspace Settings — General + Danger Zone. Termasuk KI-027     | [v0.1](tickets/v01-foundation.md)     |
 | T-013 | 🟡     | Connect account. Sisa: T-013.4 BYOK X                           | [v0.1](tickets/v01-foundation.md)     |
 | T-017 | 🟡     | RLS SQL policies. Sisa: adopsi `withCurrentUser`                | [v0.1](tickets/v01-foundation.md)     |
 | T-119 | 🚫     | Isi env Google OAuth. KI-015. King Rezi yang mengisi rahasianya | [KI](tickets/known-issues.md)         |
-| T-120 | 🚫     | Hapus dua workspace QA. KI-033. Tunggu konfirmasi King Rezi     | [KI](tickets/known-issues.md)         |
 | T-122 | ⏳     | Buktikan E2E invite Copy Link, email A vs email B. KI-053       | [KI](tickets/known-issues.md)         |
-| T-123 | 🚫     | Konfirmasi lebar sidebar. KI-089                                | [KI](tickets/known-issues.md)         |
-| T-121 | 🚫     | Putuskan meta penulis di History. KI-050                        | [KI](tickets/known-issues.md)         |
 | T-124 | 🟡     | Kolom void pada lock outstandPostId. KI-091                     | [KI](tickets/known-issues.md)         |
 
 T-037 prioritas rendah dan tidak memblokir rilis. T-116 → T-117 → T-118 (token-agent) selesai 2026-10-16, lihat `tickets/v01-foundation.md`. T-124 🟡: retest lokal `?type=import` lulus setelah lock per `outstandPostId` pindah ke `$executeRaw` (kolom `void`). Belum hidup di staging.
@@ -64,14 +60,12 @@ v0.3 dan v0.7 tidak punya tiket terbuka.
 
 ## Keputusan yang masih menunggu
 
-| Tiket | Yang belum diputuskan              | Menghambat       |
-| ----- | ---------------------------------- | ---------------- |
-| T-060 | Provider dan model AI              | Seluruh v0.5     |
-| T-081 | Framework E2E                      | Golden path v1.0 |
-| T-086 | Tool observability                 | Visibilitas job  |
-| T-121 | Apakah History menampilkan penulis | T-121            |
-| T-123 | Lebar sidebar 18rem atau 260px     | T-123            |
-| —     | Billing belum masuk rilis manapun  | Belum ada tiket  |
+| Tiket | Yang belum diputuskan             | Menghambat       |
+| ----- | --------------------------------- | ---------------- |
+| T-060 | Provider dan model AI             | Seluruh v0.5     |
+| T-081 | Framework E2E                     | Golden path v1.0 |
+| T-086 | Tool observability                | Visibilitas job  |
+| —     | Billing belum masuk rilis manapun | Belum ada tiket  |
 
 ---
 

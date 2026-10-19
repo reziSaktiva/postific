@@ -72,6 +72,29 @@ interface ConnectedAccountsPort {
 }
 
 /**
+ * Port lokal untuk cross-domain `publishing` → `identity` (T-121, menutup
+ * KI-050) — pola sama `PostMetricsPort`/`ConnectedAccountsPort`: `identity`
+ * konkret TIDAK boleh diimport ke file ini; composition root
+ * (`/publish/history/[postId]/page.tsx`) menyuplai instance lewat
+ * constructor. Opsional — kalau tidak disuplai, `getHistoryById` tetap
+ * jalan tapi `authorName` selalu `null` (bukan error), supaya test/caller
+ * lama yang tidak butuh nama penulis tidak wajib berubah.
+ *
+ * Composition root menyuplai lewat `IdentityService.getProfile` (dibungkus
+ * adapter tipis `{ findById }`), BUKAN `identityRepository` langsung —
+ * review Ridwan Architecture Reviewer (2026-10-19) menandai penyuplaian
+ * repository mentah sebagai jendela belakang yang melompati Application
+ * Service `identity`, berbeda dengan `PostMetricsPort`/`ConnectedAccountsPort`
+ * di file yang sama yang keduanya lewat Service. Dalih awal "konsisten
+ * `IWorkspaceRepository.findUsersByIds`" tidak tepat: preseden itu domain
+ * `workspace` query lewat REPOSITORY MILIKNYA SENDIRI, bukan menyuntikkan
+ * repository domain lain langsung ke service domain lain.
+ */
+interface AuthorPort {
+  findById(userId: UserId): Promise<{ name: string } | null>;
+}
+
+/**
  * Satu item Calendar hasil `PublishingService.listCalendarPosts` —
  * `CalendarItemRecord` mentah dari repository + `metrics`. `metrics`
  * bermakna dua kondisi berbeda by design (KSP-02-F08 — metrik hanya
@@ -98,9 +121,20 @@ export interface CalendarPostItem extends CalendarItemRecord {
  * untuk post non-Published (tidak pernah di-fetch), `[]` untuk post
  * Published yang belum punya baris `PostMetrics` ter-ingest, array berisi
  * kalau sudah ada.
+ *
+ * `authorName` (T-121, menutup KI-050) — sama alasan `metrics`: field
+ * cross-domain `publishing` → `identity` ditambahkan DI SINI, bukan di
+ * `HistoryItemRecord` (yang hanya membawa `authorId` mentah). `null` dalam
+ * dua kondisi berbeda: post `Imported` (`authorId` memang `null`, by
+ * design — UI menampilkan "Diimpor dari platform" untuk kondisi ini, BUKAN
+ * kosong/error), atau `authorId` ada tapi `AuthorPort` tidak disuplai ke
+ * constructor ATAU user-nya sudah tidak ditemukan (data korup/terhapus) —
+ * diperlakukan sama seperti `listMembersWithUser` (`WorkspaceService`):
+ * lewati diam-diam, bukan throw.
  */
 export interface HistoryDetailItem extends HistoryItemRecord {
   metrics: PostMetricsRecord[] | null;
+  authorName: string | null;
 }
 
 /**
@@ -343,6 +377,7 @@ export class PublishingService {
     private readonly repository: IPublishingRepository,
     private readonly postMetrics?: PostMetricsPort,
     private readonly connectedAccounts?: ConnectedAccountsPort,
+    private readonly authorPort?: AuthorPort,
   ) {}
 
   async saveDraft(input: {
@@ -723,6 +758,12 @@ export class PublishingService {
    * `IPublishingRepository.getHistoryById` (proyeksi data murni yang tidak
    * boleh tahu soal `analytics`). Lihat catatan `HistoryDetailItem`.
    *
+   * **T-121 (menutup KI-050)** — `authorName` diisi lewat `AuthorPort` yang
+   * sama pola dengan `metrics`/`PostMetricsPort`: `null` kalau `authorId`
+   * post ini memang `null` (status `Imported`, by design — TIDAK dicoba
+   * di-lookup sama sekali), `null` juga kalau `AuthorPort` tidak disuplai
+   * ke constructor atau user-nya tidak ditemukan.
+   *
    * `userId` (RLS, KI-026 follow-up) — acting user untuk `withCurrentUser`.
    */
   async getHistoryById(
@@ -747,7 +788,12 @@ export class PublishingService {
           ? []
           : null;
 
-    return { ...post, metrics };
+    const authorName =
+      post.authorId && this.authorPort
+        ? ((await this.authorPort.findById(post.authorId))?.name ?? null)
+        : null;
+
+    return { ...post, metrics, authorName };
   }
 
   /**

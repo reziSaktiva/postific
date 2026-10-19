@@ -238,6 +238,22 @@ export interface HistoryItemRecord {
   updatedAt: Date;
   /** Media post asli (KI-082) — satu set per post (ADR-107, sama `PublishingPostRecord.mediaIds`), dipakai untuk resolve thumbnail "Hasil per Akun" di History Detail (`HistoryDetail.tsx`). */
   mediaIds: MediaId[];
+  /**
+   * Penulis post (T-121, menutup KI-050) — `PublishingPost.authorId` apa
+   * adanya. `null` HANYA untuk post berstatus `Imported` (ditarik langsung
+   * dari platform sosial, memang tidak punya penulis internal secara
+   * desain, ADR-093) — field lain di History (`Published`/`Failed`) selalu
+   * punya `authorId` terisi karena hanya post yang sempat melalui
+   * draft→schedule/publish yang bisa mencapai status terminal itu.
+   *
+   * Nama penulis SENGAJA TIDAK di-resolve di sini — repository ini murni
+   * proyeksi `publishing`, tidak boleh tahu domain `identity` (konsisten
+   * precedent `HistoryDetailItem.metrics`/`CalendarPostItem.metrics`,
+   * Ridwan Architecture Reviewer 2026-09-18, Temuan 2). Join nama dilakukan
+   * di `PublishingService.getHistoryById` lewat `AuthorPort` lokal →
+   * `HistoryDetailItem.authorName`.
+   */
+  authorId: UserId | null;
   targets: HistoryItemTargetRecord[];
 }
 

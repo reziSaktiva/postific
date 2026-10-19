@@ -27,7 +27,7 @@ Tiket fitur yang kebetulan memuat atau menutup satu KI tetap di file rilisnya. C
 
 | Field       | Value                      |
 | ----------- | -------------------------- |
-| **Status**  | 🚫 Blocked                 |
+| **Status**  | ✅ Done                    |
 | **Domain**  | workspace                  |
 | **Spec**    | tidak ada — muat satu sesi |
 | **Docs**    | KI-033, T-089              |
@@ -35,16 +35,14 @@ Tiket fitur yang kebetulan memuat atau menutup satu KI tetap di file rilisnya. C
 
 **What to build:** Dua workspace uji tidak lagi ada di database: "Najwa QA Test Workspace" dan "QA Queue Test".
 
-- [ ] King Rezi mengonfirmasi kedua nama itu boleh dihapus
-- [ ] Keduanya terhapus, dan tidak ada workspace lain yang ikut terhapus
-
-**Blocked by:** konfirmasi hapus dari King Rezi
+- [x] King Rezi mengonfirmasi (via `AskUserQuestion`) kedua nama itu boleh dihapus
+- [x] Keduanya terhapus — "Najwa QA Test Workspace" (`57f91193-17df-444b-b734-064b748d1d58`) dan "QA Queue Test" (`46b1941a-e991-43eb-88ba-6b198fda0d71`) — diverifikasi via query SQL (hasil kosong setelah `DELETE`), tidak ada workspace lain yang ikut terhapus
 
 ### T-121 · Putuskan meta penulis di detail History
 
 | Field       | Value                                        |
 | ----------- | -------------------------------------------- |
-| **Status**  | 🚫 Blocked                                   |
+| **Status**  | ✅ Done                                      |
 | **Domain**  | publishing · UI                              |
 | **Spec**    | tidak ada — muat satu sesi setelah keputusan |
 | **Docs**    | KI-050, T-034                                |
@@ -52,11 +50,11 @@ Tiket fitur yang kebetulan memuat atau menutup satu KI tetap di file rilisnya. C
 
 **What to build:** Halaman detail History menampilkan penulis post, atau keputusan tertulis bahwa penulis memang tidak ditampilkan.
 
-- [ ] King Rezi memilih: penulis ditampilkan, atau sengaja disembunyikan
-- [ ] Kalau ditampilkan, detail History menunjukkan siapa yang membuat post
-- [ ] Kalau disembunyikan, tiket ini ditutup tanpa perubahan kode
+- [x] King Rezi memutuskan (via `AskUserQuestion`, dengan info effort dari investigasi): penulis **ditampilkan**
+- [x] Detail History menunjukkan siapa yang membuat post — `authorId` ditambahkan ke `HistoryItemRecord`, `AuthorPort` baru di `PublishingService` disuplai lewat `IdentityService` (cross-domain yang benar, diperbaiki setelah review Ridwan Architecture Reviewer — sebelumnya disuplai `identityRepository` mentah), render "Dibuat oleh &lt;nama&gt;" di `HistoryDetail.tsx` dengan fallback "Diimpor dari platform" untuk post `authorId` null
+- [x] n/a — opsi "disembunyikan" tidak dipilih
 
-**Blocked by:** keputusan King Rezi
+**Catatan QA (Najwa):** PASS — golden path Published & Failed terverifikasi browser nyata, regresi aman, 832 test pass / 7 skip / 0 fail. Fallback "Diimpor dari platform" belum ada bukti visual karena data test tidak punya post berstatus Imported — keterbatasan data, bukan bug.
 
 ### T-122 · Buktikan invite Copy Link tidak bisa diambil email lain
 
@@ -79,7 +77,7 @@ Tiket fitur yang kebetulan memuat atau menutup satu KI tetap di file rilisnya. C
 
 | Field       | Value                                            |
 | ----------- | ------------------------------------------------ |
-| **Status**  | 🚫 Blocked                                       |
+| **Status**  | ✅ Done                                          |
 | **Domain**  | platform · UI                                    |
 | **Spec**    | tidak ada — muat satu sesi setelah angka dikunci |
 | **Docs**    | KI-089, KI-084                                   |
@@ -87,10 +85,8 @@ Tiket fitur yang kebetulan memuat atau menutup satu KI tetap di file rilisnya. C
 
 **What to build:** Lebar sidebar di kode sama dengan angka yang King Rezi kunci (kode sekarang `18rem`; acuan yang disebut sebelumnya 260px).
 
-- [ ] King Rezi memilih angkanya
-- [ ] Kalau angkanya beda dari kode, sidebar mengikuti angka itu setelah gerbang desain UI
-
-**Blocked by:** pilihan lebar dari King Rezi
+- [x] King Rezi memilih (via `AskUserQuestion`): lebar sidebar dikunci **`18rem`** — nilai ini sudah ada di kode, jadi tidak ada kode yang diubah
+- [x] n/a — angka sama dengan kode, tidak ada perubahan yang perlu mengikuti
 
 ### T-124 · Import sync gagal mendeserialisasi kolom void pada advisory lock (KI-091)
 

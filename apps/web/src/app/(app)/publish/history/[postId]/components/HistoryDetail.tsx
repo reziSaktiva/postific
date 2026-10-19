@@ -110,6 +110,23 @@ function ViewOriginalPostLink({ url }: { url: string | null }) {
 }
 
 /**
+ * Label penulis (T-121, menutup KI-050) — "Diimpor dari platform" untuk
+ * post `Imported` (`authorId` null by design, ADR-093), nama penulis kalau
+ * tersedia, `null` (baris di-skip caller) kalau `authorId` ada tapi
+ * `authorName` tidak ter-resolve (user terhapus/`AuthorPort` tidak
+ * disuplai) — lihat catatan `HistoryDetailItem.authorName`.
+ */
+function formatAuthorLabel(item: HistoryDetailItem): string | null {
+  if (!item.authorId) {
+    return "Diimpor dari platform";
+  }
+  if (item.authorName) {
+    return `Dibuat oleh ${item.authorName}`;
+  }
+  return null;
+}
+
+/**
  * Metrik ringkas per target (T-043.3) — mapping label sama seperti Popover
  * Calendar (T-033.8): Views→`impressions`, Reach→`reach`,
  * Replies→`comments`, Eng. Rate→`engagementRate`. `metric` bernilai `null`
@@ -177,11 +194,17 @@ export interface HistoryDetailProps {
  * tetap terlihat ter-mount di belakang (untuk transisi/animasi tertentu),
  * itu perlu task terpisah untuk setup intercepting route.
  *
- * **Gap dilaporkan (sudah ada sejak T-034.3, belum berubah):** mockup
- * asli menyebut meta "dibuat oleh siapa", tapi `HistoryItemRecord` tidak
- * membawa `authorId`/nama author — field baru tidak ditambahkan di luar
- * scope task ini.
+ * **T-121 (menutup KI-050, 2026-10-19):** gap "dibuat oleh siapa" di atas
+ * sudah ditutup — King Rezi memutuskan penulis DITAMPILKAN. Label "Dibuat
+ * oleh <nama>" dirender di bawah timestamp "Dibuat X lalu"; post `Imported`
+ * (`item.authorId` null, ADR-093 — ditarik dari platform sosial, memang
+ * tidak punya penulis internal secara desain) menampilkan "Diimpor dari
+ * platform" sebagai pengganti, BUKAN baris kosong. `item.authorName` bisa
+ * `null` walau `authorId` ada (user sudah terhapus/`AuthorPort` tidak
+ * disuplai, `PublishingService.getHistoryById`) — baris "Dibuat oleh"
+ * di-skip untuk kondisi itu (bukan menampilkan nama kosong).
  *
+
  * **Gap baru (T-111.2):** `HistoryItemTargetRecord` tidak membawa
  * `avatarUrl` akun (hanya `accountHandle`) — `ChannelAvatarBadge` per
  * baris "Hasil per Akun" karena itu SELALU jatuh ke `AvatarFallback`
@@ -198,6 +221,7 @@ export function HistoryDetail({ item, thumbnail }: HistoryDetailProps) {
   // `router.push` selesai (bisa lambat di koneksi lemah) — lihat komentar
   // di atas soal keputusan tidak memakai intercepting route.
   const [isOpen, setIsOpen] = useState(true);
+  const authorLabel = formatAuthorLabel(item);
 
   return (
     <Dialog
@@ -237,6 +261,11 @@ export function HistoryDetail({ item, thumbnail }: HistoryDetailProps) {
             <Text variant="muted" as="span" className="text-xs">
               Dibuat {formatRelativeTime(item.createdAt)}
             </Text>
+            {authorLabel ? (
+              <Text variant="muted" as="span" className="text-xs">
+                {authorLabel}
+              </Text>
+            ) : null}
           </div>
 
           {thumbnail ? (
