@@ -2380,6 +2380,43 @@ kategorinya seperti T-125, tidak melalui evaluasi delegasi subagent (ADR-063).
 
 ---
 
+### T-129 · Imported posts ikut dihitung di Analyze
+
+| Field         | Value                                                                                                                                  |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**    | ✅ Done (2026-10-19) — T-129.1 saja. T-129.2 (Home) ⏳ belum, butuh investigasi lanjut sebelum implement (lihat catatan Home di bawah) |
+| **Domain**    | publishing · analytics                                                                                                                 |
+| **ADR**       | — (membalik keputusan sesi T-126/koreksi PR 183, bukan baseline arsitektur)                                                            |
+| **Terkait**   | T-126 (History menampilkan Imported — sumber keputusan sebelumnya yang dibalik di sini), T-090/ADR-093 (status `Imported`)             |
+| **Depends**   | T-126 ✅                                                                                                                               |
+| **Baca dulu** | `apps/web/src/domains/publishing/services/publishing.service.ts` (`HISTORY_TERMINAL_STATUSES`, `getPostPerformance`)                   |
+
+King Rezi bertanya (2026-10-19) kenapa post `Imported` tidak muncul di Home
+dan Analyze. Investigasi menemukan dua akar masalah berbeda:
+
+1. **Analyze** — disengaja. `getPostPerformance` (dipakai bersama oleh
+   `getAccountOverview`, `getAnalyzeSummary`, `getEngagementSummary`,
+   `getComparativeReport`) mengunci `statuses: [Published, Failed]` sejak
+   koreksi review PR 183 (T-126) supaya Imported tidak ikut angka performa.
+2. **Home** — beda mekanisme, BUKAN filter status internal. `totalPosts`
+   dkk. di `AnalyticsService.getDashboardSummary` dibaca dari
+   `AnalyticsWorkspaceSnapshot` yang disinkronkan dari metrik Outstand
+   (`fetchWorkspaceMetrics` → `posts_count`, lihat
+   `analytics-ingestion.use-case.ts` + `real-outstand-adapter.ts`) —
+   mengubahnya butuh ganti param/endpoint Outstand atau beralih ke agregat
+   Prisma internal, bukan sekadar ubah array status.
+
+Dikonfirmasi King Rezi via `AskUserQuestion` (2026-10-19): Analyze → ya,
+masukkan Imported sekarang. Home → perlu investigasi lanjut dulu (scope
+lebih besar), **belum dikerjakan di sini**.
+
+- [x] **T-129.1** `getPostPerformance` (`publishing.service.ts`) — `statuses` diganti dari `[Published, Failed]` eksplisit jadi reuse `HISTORY_TERMINAL_STATUSES` (`[Published, Failed, Imported]`), konsisten dengan default History. Komentar di `HISTORY_TERMINAL_STATUSES` dan di atas pemanggilan `listHistory` diupdate (tidak lagi bilang Analyze sengaja exclude Imported). Test `publishing.service.test.ts` ("tidak menghitung Imported" → "ikut menghitung Imported") diupdate.
+- [ ] **T-129.2** ⏳ Home (`AnalyticsService.getDashboardSummary` / ingestion Outstand) — belum dikerjakan, perlu keputusan lebih dulu: ganti param/endpoint `fetchWorkspaceMetrics`, atau ganti ke agregat Prisma internal atas `PublishingPost`. Dibahas terpisah dari T-129.1.
+
+**Verifikasi T-129.1:** `bun run vitest run` (root) — 835 passed/7 skipped, 0 failed. `tsc --noEmit` (apps/web) bersih. Browser preview manual (data nyata, akun "Cook It Real Good" dengan 15 post Imported) — `/analyze`: Total Posts naik dari 4 → 19, Account Overview menampilkan "15 posts" untuk Cook It Real Good, Post Performance menampilkan baris-baris post Imported-nya.
+
+---
+
 ## Dari Known Issue
 
 T-121 (KI-050) ada di [`known-issues.md`](known-issues.md) (ADR-134).

@@ -362,9 +362,11 @@ export interface ComparativeReport {
  * "Imported" yang sudah LOCKED di Calendar (T-090.5), tanpa entri baru di
  * filter dropdown status History (`STATUS_OPTIONS`, `HistoryList.tsx`).
  *
- * Analyze (`getPostPerformance` dan pemakai turunannya) sengaja TIDAK
- * memakai seluruh daftar ini. Caller itu mengirim `[Published, Failed]`
- * eksplisit supaya post impor tidak ikut mengubah angka performa.
+ * Analyze (`getPostPerformance` dan pemakai turunannya) memakai daftar yang
+ * sama persis sejak T-129.1 (2026-10-19) — sebelumnya (T-126/koreksi PR 183)
+ * caller itu mengunci `[Published, Failed]` supaya post impor tidak ikut
+ * mengubah angka performa; King Rezi membalik keputusan itu supaya Imported
+ * ikut dihitung di Analyze juga, konsisten dengan History.
  */
 export const HISTORY_TERMINAL_STATUSES: readonly ContentStatus[] = [
   ContentStatus.Published,
@@ -879,16 +881,18 @@ export class PublishingService {
     // guard null-safety (`publishedAt` nullable di tipe), bukan lagi
     // pekerjaan utama penyaringan rentang tanggal.
     //
-    // Status dikunci ke `Published`/`Failed`, bukan default History.
-    // T-126 menambahkan `Imported` ke default itu supaya post impor tampil
-    // di halaman History. Post impor punya `publishedAt` dan target
-    // `published`, jadi ikut default History akan menambah baris di Post
-    // Performance, ringkasan akun, dan laporan perbandingan.
+    // T-129.1 (2026-10-19): `Imported` ikut dihitung di sini, sama seperti
+    // default History (`HISTORY_TERMINAL_STATUSES`). Sebelumnya (T-126,
+    // koreksi PR 183) caller ini sengaja mengunci ke `[Published, Failed]`
+    // supaya post impor tidak ikut angka Analyze — King Rezi membalik
+    // keputusan itu (2026-10-19): post impor punya `publishedAt` dan target
+    // `published` sungguhan, jadi SEHARUSNYA ikut Post Performance,
+    // Account Overview, Summary, Engagement Summary, dan Reports.
     const historyItems = await this.listHistory(
       {
         workspaceId,
         publishedAtRange: { from, to },
-        statuses: [ContentStatus.Published, ContentStatus.Failed],
+        statuses: [...HISTORY_TERMINAL_STATUSES],
       },
       userId,
     );

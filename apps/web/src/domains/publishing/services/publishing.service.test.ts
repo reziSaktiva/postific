@@ -1229,7 +1229,7 @@ describe("PublishingService.getPostPerformance", () => {
     ).resolves.toEqual([]);
   });
 
-  it("tidak menghitung post Imported di Post Performance", async () => {
+  it("ikut menghitung post Imported di Post Performance (T-129.1, sebelumnya dikecualikan di T-126/PR 183)", async () => {
     // Wrapper object, bukan `let` langsung — TS tidak bisa menyimpulkan
     // closure `listHistory` di bawah benar-benar jalan sebelum `expect`,
     // jadi `let received: X | null` akan ter-narrow jadi literal `null`
@@ -1270,8 +1270,12 @@ describe("PublishingService.getPostPerformance", () => {
     expect(received.input?.statuses).toEqual([
       ContentStatus.Published,
       ContentStatus.Failed,
+      ContentStatus.Imported,
     ]);
-    expect(result.map((row) => row.postId)).toEqual([published.id]);
+    expect(result.map((row) => row.postId)).toEqual([
+      published.id,
+      imported.id,
+    ]);
   });
 
   it("maps caption + accountHandle with reach/engagementRate per post and account, sorted by reach descending", async () => {
