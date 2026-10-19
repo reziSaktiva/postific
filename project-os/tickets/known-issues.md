@@ -146,8 +146,9 @@ tetap menyala).
       Batas 10 job per run (BG-D05) tidak diubah. Tes unit
       `job-runner.test.ts` memastikan job kedua tidak mulai sebelum job
       pertama selesai.
-- [ ] Retest `?type=import` di staging setelah perubahan ini hidup di sana,
-      untuk akun yang sebelumnya gagal (`4a48b968-c6ef-4b97-a7a2-7c61bd68c089`,
-      `eH82r`). Pastikan `lastImportedUntil` ter-update sukses.
+- [ ] Retest `?type=import` dari cabang ini (2026-10-19, server lokal, env yang sama). Dua job `import.sync` yang sedang menunggu retry dijalankan satu per satu oleh kode baru. Keduanya tetap gagal dengan `Failed to deserialize column of type 'void'` dan sudah `failed` (attempts 4/4, tidak di-retry lagi):
+  - `07b435ac-a08a-4f13-ba2d-2ac6c5e7df66` — akun `4a48b968-c6ef-4b97-a7a2-7c61bd68c089` / `eH82r`
+  - `633eacfd-e796-42e5-9020-455f5486162c` — akun `d17e38ce-fbae-434c-ab27-e417fca384ab` / `Kav29`
+    Job pertama di batch sudah gagal, jadi menjalankan job satu per satu tidak menghilangkan error ini. `lastImportedUntil` tidak ter-update pada run ini.
 
-**Blocked by:** retest staging. Perubahan ini belum hidup di staging.
+**Blocked by:** workaround satu-per-satu tidak menutup KI-091 pada retest langsung. Dua job import sudah dead-letter.
