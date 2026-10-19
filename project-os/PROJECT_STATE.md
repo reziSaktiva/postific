@@ -124,16 +124,16 @@ daftar/detail task di sini** (ADR-062, ADR-131).
 
 > **ID `KI-XXX`** (ADR-066, ADR-067, ADR-131, ADR-132). ID tidak didaur ulang. Setiap KI yang masih terbuka punya tiket. Baris di sini hanya menunjuk tiket itu. KI keluar dari daftar ini saat tiket penutupnya selesai.
 
-| KI     | Status                                                            | Tiket                                 |
-| ------ | ----------------------------------------------------------------- | ------------------------------------- |
-| KI-015 | Sebagian Resolved — sisa: env Google OAuth belum diisi            | [T-119](tickets/known-issues.md)      |
-| KI-027 | Open — konfirmasi desain selector Admin                           | [T-008](tickets/v01-foundation.md)    |
-| KI-028 | Open — environment production belum ada                           | [T-088](tickets/v10-public-launch.md) |
-| KI-033 | Open — dua workspace QA belum dihapus                             | [T-120](tickets/known-issues.md)      |
-| KI-050 | Open — meta penulis di History belum diputuskan                   | [T-121](tickets/known-issues.md)      |
-| KI-053 | Sisa: bukti E2E email A vs email B. Perbaikan kodenya di T-110 ✅ | [T-122](tickets/known-issues.md)      |
-| KI-089 | Open — lebar sidebar belum dikonfirmasi                           | [T-123](tickets/known-issues.md)      |
-| KI-091 | Open — bug upstream Prisma adapter-pg rusak saat job konkuren     | [T-124](tickets/known-issues.md)      |
+| KI     | Status                                                                                   | Tiket                                 |
+| ------ | ---------------------------------------------------------------------------------------- | ------------------------------------- |
+| KI-015 | Sebagian Resolved — sisa: env Google OAuth belum diisi                                   | [T-119](tickets/known-issues.md)      |
+| KI-027 | Open — konfirmasi desain selector Admin                                                  | [T-008](tickets/v01-foundation.md)    |
+| KI-028 | Open — environment production belum ada                                                  | [T-088](tickets/v10-public-launch.md) |
+| KI-033 | Open — dua workspace QA belum dihapus                                                    | [T-120](tickets/known-issues.md)      |
+| KI-050 | Open — meta penulis di History belum diputuskan                                          | [T-121](tickets/known-issues.md)      |
+| KI-053 | Sisa: bukti E2E email A vs email B. Perbaikan kodenya di T-110 ✅                        | [T-122](tickets/known-issues.md)      |
+| KI-089 | Open — lebar sidebar belum dikonfirmasi                                                  | [T-123](tickets/known-issues.md)      |
+| KI-091 | Open — bug upstream Prisma adapter-pg. Opsi naik versi dicek 2026-10-19, belum ada rilis | [T-124](tickets/known-issues.md)      |
 
 KI yang tiketnya sudah selesai dikeluarkan dari daftar ini pada 2026-10-16 (ADR-132): KI-044 (T-108), KI-046 (T-007.7), KI-049 dan KI-063 (T-107), KI-058 (T-109), KI-086 (ADR-127), KI-088 (T-090), KI-090 (T-113).
 

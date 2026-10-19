@@ -94,13 +94,13 @@ Tiket fitur yang kebetulan memuat atau menutup satu KI tetap di file rilisnya. C
 
 ### T-124 · Bug upstream Prisma `@prisma/adapter-pg` merusak koneksi pool saat job background jalan konkuren
 
-| Field       | Value                                                                 |
-| ----------- | --------------------------------------------------------------------- |
-| **Status**  | ⏳ Not Started                                                        |
-| **Domain**  | platform · jobs                                                       |
-| **Spec**    | tidak ada — menunggu fix upstream atau keputusan workaround King Rezi |
-| **Docs**    | KI-091                                                                |
-| **Depends** | — (ditemukan saat verifikasi staging T-115.5)                         |
+| Field       | Value                                                              |
+| ----------- | ------------------------------------------------------------------ |
+| **Status**  | 🚫 Blocked                                                         |
+| **Domain**  | platform · jobs                                                    |
+| **Spec**    | tidak ada — menunggu rilis upstream atau keputusan workaround lain |
+| **Docs**    | KI-091                                                             |
+| **Depends** | — (ditemukan saat verifikasi staging T-115.5)                      |
 
 **What to build:** belum ada implementasi — tiket ini murni pelacak bug upstream
 sampai King Rezi memutuskan workaround mana yang dipakai (lihat KI-091 untuk
@@ -132,14 +132,22 @@ ini muncul. Ini BUKAN bug logic T-115 — T-115 sendiri sudah diverifikasi
 benar (enqueue jalan, watermark ter-update saat sukses, guard concurrent
 tetap menyala).
 
-- [ ] King Rezi memilih salah satu opsi remediasi (atau opsi lain):
+- [x] King Rezi memilih opsi naik/turun versi Prisma (2026-10-19). Tidak ada
+      rilis yang memuat perbaikan, jadi dependency tidak diubah:
+  - [`prisma/orm#30374`](https://github.com/prisma/orm/issues/30374) masih
+    open.
+  - [`prisma/orm#29979`](https://github.com/prisma/orm/pull/29979) masih
+    open, belum merge. Empat commit-nya ada di depan tag `7.10.1`, bukan di
+    dalam tag itu.
+  - `@prisma/adapter-pg` stabil terbaru adalah `7.10.1` (project ini
+    `7.8.0`). Tidak memuat perbaikan. Paket `prisma` di tag `latest` adalah
+    prarilis `8.0.0-rc.23`, tetapi `@prisma/adapter-pg` tidak punya rilis 8
+    yang memuat perbaikan itu.
+- [ ] Opsi yang belum dipilih:
   - Serialize `runPendingJobs` — jalankan job satu per satu (bukan
     `Promise.all`) supaya tidak ada >1 interactive transaction konkuren di
     satu `pg.Pool`. Trade-off: batch job lebih lambat (batas request Railway
     30 detik, BG-D05).
-  - Upgrade/downgrade versi Prisma kalau ada rilis yang sudah fix
-    `prisma/orm#30374` (per 2026-10-19 belum ada — RC `8.0.0-rc.23`
-    statusnya belum diverifikasi fix issue ini).
   - Terima risiko untuk sementara — retry/backoff background job (maks 4
     attempts) kemungkinan besar akhirnya berhasil karena sifat bug-nya
     intermiten, tapi akun bisa dead-letter kalau 4x berturut-turut apes.
@@ -147,4 +155,4 @@ tetap menyala).
       staging untuk akun yang sebelumnya gagal (`4a48b968-c6ef-4b97-a7a2-7c61bd68c089`,
       `eH82r`), pastikan `lastImportedUntil` ter-update sukses.
 
-**Blocked by:** keputusan remediasi dari King Rezi
+**Blocked by:** tidak ada rilis Prisma yang memperbaiki KI-091. Opsi remediasi lain belum dipilih.
