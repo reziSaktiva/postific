@@ -12,7 +12,7 @@ import { DashboardHome } from "./components/DashboardHome";
 
 import type { SnapshotPeriod } from "@/domains/analytics";
 
-const DEFAULT_PERIOD: SnapshotPeriod = "weekly";
+const DEFAULT_PERIOD: SnapshotPeriod = "monthly";
 
 /**
  * Dashboard Home (`/`, T-042.2, KSP-01-F04) — composition root tipis: pure

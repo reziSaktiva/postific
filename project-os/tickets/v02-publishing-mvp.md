@@ -2354,6 +2354,32 @@ selalu punya `publishedAt`), belum dikunci King Rezi — perlu
 
 ---
 
+### T-128 · Default view Home & Analyze jadi Monthly/Bulan
+
+| Field         | Value                                                                                                                         |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| **Status**    | ✅ Done (2026-10-19)                                                                                                          |
+| **Domain**    | analytics · UI                                                                                                                |
+| **ADR**       | — (ubah default, bukan baseline — kedua period `weekly`/`monthly` sudah didesain & diimplementasikan penuh sejak T-042/T-043) |
+| **Terkait**   | T-125 (pola sama untuk Calendar), T-042.3–T-042.5 (Dashboard Home), T-043–T-047 (Analyze)                                     |
+| **Depends**   | T-042 ✅, T-043 ✅                                                                                                            |
+| **Baca dulu** | `apps/web/src/app/(app)/page.tsx`, `apps/web/src/app/(app)/analyze/page.tsx`                                                  |
+
+Diminta King Rezi (2026-10-19): saat buka halaman Home (`/`) dan Analyze
+(`/analyze`), selector rentang waktu default yang muncul sekarang `weekly`
+("Mingguan"). King Rezi ingin default-nya `monthly` ("Bulanan"). Bukan
+perubahan desain baru — selector Mingguan/Bulanan dan kedua tampilan datanya
+sudah ada & terkonfirmasi di Claude Design sejak T-042/T-043; task ini murni
+mengubah nilai default state (dua konstanta, tidak saling bergantung), sama
+kategorinya seperti T-125, tidak melalui evaluasi delegasi subagent (ADR-063).
+
+- [x] **T-128.1** `DEFAULT_PERIOD` di `apps/web/src/app/(app)/page.tsx` (Home) → `"monthly"`.
+- [x] **T-128.2** `INITIAL_PERIOD` di `apps/web/src/app/(app)/analyze/page.tsx` (Analyze) → `"monthly"`.
+
+**Verifikasi:** `tsc --noEmit` (apps/web) bersih. Browser preview manual — `/` dan `/analyze` dibuka tanpa interaksi apa pun: selector menampilkan "Bulanan" terpilih dan data yang tampil sudah rentang bulan berjalan; ganti ke "Mingguan" via selector tetap berfungsi normal di kedua halaman.
+
+---
+
 ## Dari Known Issue
 
 T-121 (KI-050) ada di [`known-issues.md`](known-issues.md) (ADR-134).
