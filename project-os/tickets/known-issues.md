@@ -90,15 +90,15 @@ Tiket fitur yang kebetulan memuat atau menutup satu KI tetap di file rilisnya. C
 
 ### T-124 · Import sync gagal mendeserialisasi kolom void pada advisory lock (KI-091)
 
-| Field       | Value                                              |
-| ----------- | -------------------------------------------------- |
-| **Status**  | 🟡 In Progress                                     |
-| **Domain**  | platform · jobs                                    |
-| **Spec**    | tidak ada — muat satu sesi. Sisa: hidup di staging |
-| **Docs**    | KI-091                                             |
-| **Depends** | — (ditemukan saat verifikasi staging T-115.5)      |
+| Field       | Value                                         |
+| ----------- | --------------------------------------------- |
+| **Status**  | ✅ Done                                       |
+| **Domain**  | platform · jobs                               |
+| **Spec**    | tidak ada — muat satu sesi                    |
+| **Docs**    | KI-091                                        |
+| **Depends** | — (ditemukan saat verifikasi staging T-115.5) |
 
-**What to build:** `lockOutstandPostIds` memakai `$executeRaw` untuk `pg_advisory_xact_lock` (kolom `void`). Patch `@prisma/adapter-pg@7.8.0` tetap terpasang sebagai jaring pengaman untuk query yang bersamaan pada satu koneksi (`prisma/orm#29979`). `runPendingJobs` tetap paralel. Sisa kerja: retest di staging.
+**What to build:** `lockOutstandPostIds` memakai `$executeRaw` untuk `pg_advisory_xact_lock` (kolom `void`). Patch `@prisma/adapter-pg@7.8.0` tetap terpasang sebagai jaring pengaman untuk query yang bersamaan pada satu koneksi (`prisma/orm#29979`). `runPendingJobs` tetap paralel. Retest staging lulus 2026-10-19.
 
 Ditemukan 2026-10-19 saat verifikasi end-to-end staging T-115.5 (wiring cron
 Import Posts periodik). `POST /api/jobs/run?type=import` memicu error
@@ -159,4 +159,9 @@ Workaround sebelumnya tidak cukup, dan dicatat supaya tidak diulang:
 - Job satu per satu: job pertama di batch sudah gagal dengan error yang sama. Antrian itu juga dicabut dari `runPendingJobs` karena menabrak reclaim 30 detik (BG-D04).
 - Patch lokal `@prisma/adapter-pg@7.8.0` (isi `prisma/orm#29979`, query di satu koneksi diantrikan) terpasang dan ter-compile di server lokal. Retest dengan patch itu saja tetap `dead_lettered` untuk kedua job. Patch ikut commit ini sebagai jaring pengaman, bukan penyebab retest lulus.
 
-**Blocked by:** belum hidup di staging. Cron staging masih menjalankan kode lama.
+**Retest staging (2026-10-19):** service `web` staging menjalankan revisi `d7ef246`. Perbaikan lock ada di PR 180, yang sudah menjadi leluhur revisi itu: `36248f7` (`$executeRaw` untuk lock `outstandPostId`) dan `ae4770d` (`runPendingJobs` kembali paralel), lewat merge `f0e5393`. Pesan `d7ef246` sendiri milik T-121 dan T-008. `POST /api/jobs/run?type=import` mengklaim 2 job `import.sync` dan keduanya `outcome: done` pada percobaan pertama (`attempts: 0`, `last_error` kosong), jalan paralel (waktu mulai sama):
+
+- `a3ae1107-882c-4f8f-b2bb-ecdeb85fc9c8` — akun `4a48b968-c6ef-4b97-a7a2-7c61bd68c089` / `eH82r` (Instagram)
+- `cf39b675-7aa8-4ad4-b523-ef464eceef40` — akun `d17e38ce-fbae-434c-ab27-e417fca384ab` / `Kav29` (Facebook)
+
+Watermark kedua akun ter-update ke `2026-10-19 07:49:04` UTC. Error `Failed to deserialize column of type 'void'` tidak muncul. Service `cron` tetap image lama (2026-10-12); perannya hanya memanggil endpoint di `web`, dan kode lock jalan di `web`.

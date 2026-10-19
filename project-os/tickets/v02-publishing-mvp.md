@@ -1705,7 +1705,7 @@ menjangkau seluruh post, data-nya saja yang kosong.
 
 | Field         | Value                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**    | 🟡 In Progress                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| **Status**    | 🟡 In Progress (4/5, sisa T-115.5)                                                                                                                                                                                                                                                                                                                                                                                                       |
 | **Domain**    | integration                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | **ADR**       | — (menuntaskan desain yang SUDAH Accepted di ADR-093 poin 7, bukan keputusan baru)                                                                                                                                                                                                                                                                                                                                                       |
 | **Terkait**   | T-090, T-048 (pola fan-out JOB-04 dijadikan referensi langsung), T-112, KI-088                                                                                                                                                                                                                                                                                                                                                           |
@@ -1713,20 +1713,24 @@ menjangkau seluruh post, data-nya saja yang kosong.
 | **Baca dulu** | `apps/web/src/domains/publishing/services/import-posts-trigger.use-case.ts` (`triggerPeriodicForAccounts`, `runImportSync`) · `apps/web/src/domains/analytics/services/enqueue-analytics-sync.ts` (pola fan-out `executeIfDue` yang akan di-reuse) · `apps/web/src/app/api/jobs/run/route.ts` (composition root tempat handler didaftarkan) · `decisions/ADR-093-import-posts-dari-social-account-status-imported-read-only.md` (poin 7) |
 
 Ditemukan King Rezi (2026-10-16) lewat diskusi "apakah post native Facebook
-otomatis masuk Postific?" — jawabannya **tidak**, dan investigasi kode
-mengonfirmasi **gap yang sudah tercatat sejak T-090.3**: ADR-093 poin 7
-mendesain jalur periodik (Railway Cron harian) sebagai salah satu dari 3
-trigger Import Posts, `ImportPostsTriggerUseCase.triggerPeriodicForAccounts`
-sudah diimplementasikan penuh dan lolos unit test (T-090.3) — tapi **tidak
-pernah didaftarkan ke composition root job runner manapun**
-(`apps/web/src/app/api/jobs/run/route.ts` saat ini cuma mendaftarkan 3
+otomatis masuk Postific?" — jawaban **pada tanggal itu** adalah tidak.
+Investigasi kode mengonfirmasi **gap yang sudah tercatat sejak T-090.3**:
+ADR-093 poin 7 mendesain jalur periodik (Railway Cron harian) sebagai salah
+satu dari 3 trigger Import Posts.
+`ImportPostsTriggerUseCase.triggerPeriodicForAccounts` sudah
+diimplementasikan penuh dan lolos unit test (T-090.3). Pada 2026-10-16 method
+itu belum terdaftar di composition root job runner.
+`apps/web/src/app/api/jobs/run/route.ts` saat itu hanya mendaftarkan 3
 handler: `RESOLVE_SCHEDULED_POST_OUTCOME_JOB_TYPE`, `ENGAGEMENT_SYNC_JOB_TYPE`,
-`ANALYTICS_SYNC_JOB_TYPE` — tidak ada `import.sync`). Konsisten dengan
-catatan eksplisit di `PROJECT_STATE.md`/KI-088: _"Cron wiring asli tetap di
-luar scope (tidak berubah)"_. Dampak nyata: satu-satunya cara post native
-masuk Postific saat ini adalah klik manual "Sync Now" (dibatasi cooldown 24
-jam/akun + cap 1x/minggu/workspace, ADR-093 poin 9) — tidak ada auto-refresh
-sama sekali walau sudah didesain sejak awal.
+`ANALYTICS_SYNC_JOB_TYPE`. Catatan `PROJECT_STATE.md`/KI-088 pada periode yang
+sama berbunyi _"Cron wiring asli tetap di luar scope (tidak berubah)"_.
+Dampak pada 2026-10-16: satu-satunya cara post native masuk Postific adalah
+klik manual "Sync Now" (dibatasi cooldown 24 jam/akun + cap 1x/minggu/workspace,
+ADR-093 poin 9).
+
+Paragraf di atas adalah keadaan **sebelum wiring**. T-115.1–T-115.4 kemudian
+mendaftarkan handler `import.sync` ke route itu. Sisa yang masih terbuka ada
+di T-115.5.
 
 **Keputusan King Rezi (2026-10-16, lewat `AskQuestion`):** pilih opsi
 paling rendah risiko — selesaikan wiring **harian** sesuai desain ADR-093
@@ -1772,19 +1776,21 @@ sepadan) dibahas di `CONVERSATIONS.md` entri 2026-10-16 tapi tidak dipilih.
       yang ditambahkan langsung di Facebook muncul di Postific dalam
       waktu ≤24 jam tanpa klik "Sync Now"
 
-**Catatan (2026-10-19) — T-115.5 dicoba, belum lolos penuh:** PR 179 merge
-ke staging, migration `import_list_accounts_for_periodic_sync` ter-apply
-otomatis (Railway `preDeployCommand`). `?type=import` dipanggil manual —
-mekanisme enqueue + fan-out + watermark terbukti BENAR (satu akun sukses
-penuh, `lastImportedUntil` ter-update), tapi eksekusinya **tidak konsisten**:
-job `import.sync` lain gagal berulang dengan error Prisma
-`Failed to deserialize column of type 'void'` dari `$queryRaw`, intermiten
-(akun yang sama bisa sukses lalu gagal di percobaan berikutnya). Root cause
-sudah diinvestigasi tuntas dan BUKAN bug logic T-115 — lihat **KI-091**
-(`$queryRaw` pada `pg_advisory_xact_lock` mengembalikan kolom `void`;
-perbaikan di `lockOutstandPostIds` memakai `$executeRaw`).
-Tiket terpisah **T-124** (`tickets/known-issues.md`, ADR-134) dibuat untuk melacak remediasinya. T-115.5 tetap
-`[ ]` sampai retest staging di T-124 berhasil konsisten.
+**Catatan (2026-10-19) — T-115.5 belum lulus; job dan watermark sudah
+terbukti:** percobaan pertama di staging gagal intermiten karena KI-091.
+Perbaikan lock kemudian hidup di service `web` lewat PR 180 (`36248f7` lock
+`$executeRaw`, `ae4770d` `runPendingJobs` kembali paralel, merge `f0e5393`).
+Revisi yang berjalan di staging saat retest adalah `d7ef246`. Commit itu
+memuat perbaikan lewat riwayatnya; pesannya sendiri milik T-121 dan T-008.
+`?type=import` sekali mengklaim 2 job dan keduanya `done` pada percobaan
+pertama. Watermark Facebook `Kav29` dan Instagram `eH82r` ter-update ke
+`2026-10-19 07:49:04` UTC. Bukti job ada di T-124.
+
+Sisa kriteria: satu post yang dibuat langsung di Facebook muncul di Postific
+setelah job import, beserta ID post-nya. Watermark yang maju tetap terjadi
+pada import yang selesai tanpa post baru. `?type=import` memanggil
+`execute()` — jalur paksa yang tiket ini izinkan untuk mempercepat bukti
+bahwa job jalan. Cron menit memanggil `executeIfDue()`.
 
 ---
 
