@@ -32,9 +32,6 @@ ID tiket global, tidak didaur ulang. Berikutnya: **T-124**. ID spec berikutnya: 
 | ID    | Status | Judul                                                           | File                                  |
 | ----- | ------ | --------------------------------------------------------------- | ------------------------------------- |
 | T-037 | 🟡     | Perkaya aturan coding di `context/ctx-development.md`           | [v0.2](tickets/v02-publishing-mvp.md) |
-| T-116 | ⏳     | Ganti nama `AGENTS.md` vendor supaya tidak ikut setiap giliran  | [v0.1](tickets/v01-foundation.md)     |
-| T-117 | ⏳     | Tipiskan `AGENTS.md` root. ADR dulu. Depends T-116              | [v0.1](tickets/v01-foundation.md)     |
-| T-118 | ⏳     | Higiene sesi agent. Depends T-117                               | [v0.1](tickets/v01-foundation.md)     |
 | T-115 | 🟡     | Wiring cron harian Import Posts periodik                        | [v0.2](tickets/v02-publishing-mvp.md) |
 | T-008 | 🟡     | Workspace Settings — General + Danger Zone. Termasuk KI-027     | [v0.1](tickets/v01-foundation.md)     |
 | T-013 | 🟡     | Connect account. Sisa: T-013.4 BYOK X                           | [v0.1](tickets/v01-foundation.md)     |
@@ -45,7 +42,7 @@ ID tiket global, tidak didaur ulang. Berikutnya: **T-124**. ID spec berikutnya: 
 | T-123 | 🚫     | Konfirmasi lebar sidebar. KI-089                                | [v0.1](tickets/v01-foundation.md)     |
 | T-121 | 🚫     | Putuskan meta penulis di History. KI-050                        | [v0.2](tickets/v02-publishing-mvp.md) |
 
-T-037 prioritas rendah dan tidak memblokir rilis. Urutan token-agent: T-116 → T-117 → T-118.
+T-037 prioritas rendah dan tidak memblokir rilis. T-116 → T-117 → T-118 (token-agent) selesai 2026-10-16, lihat `tickets/v01-foundation.md`.
 
 ---
 
@@ -66,15 +63,14 @@ v0.3 dan v0.7 tidak punya tiket terbuka.
 
 ## Keputusan yang masih menunggu
 
-| Tiket | Yang belum diputuskan              | Menghambat        |
-| ----- | ---------------------------------- | ----------------- |
-| T-117 | Belahan isi `AGENTS.md` root       | T-117.2 dan T-118 |
-| T-060 | Provider dan model AI              | Seluruh v0.5      |
-| T-081 | Framework E2E                      | Golden path v1.0  |
-| T-086 | Tool observability                 | Visibilitas job   |
-| T-121 | Apakah History menampilkan penulis | T-121             |
-| T-123 | Lebar sidebar 18rem atau 260px     | T-123             |
-| —     | Billing belum masuk rilis manapun  | Belum ada tiket   |
+| Tiket | Yang belum diputuskan              | Menghambat       |
+| ----- | ---------------------------------- | ---------------- |
+| T-060 | Provider dan model AI              | Seluruh v0.5     |
+| T-081 | Framework E2E                      | Golden path v1.0 |
+| T-086 | Tool observability                 | Visibilitas job  |
+| T-121 | Apakah History menampilkan penulis | T-121            |
+| T-123 | Lebar sidebar 18rem atau 260px     | T-123            |
+| —     | Billing belum masuk rilis manapun  | Belum ada tiket  |
 
 ---
 

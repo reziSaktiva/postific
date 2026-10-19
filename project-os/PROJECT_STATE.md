@@ -4,7 +4,7 @@
 
 - **Phase / Milestone:** Phase 6 — Implementation · M8 — Development (Sprint 5) · Overall: M7 100%, M8 in progress
 - **Active Mode:** Ready for Development — implementasi fitur produk sesuai Architecture & Engineering Baseline
-- **Top Next Tasks:** **T-037 Perkaya aturan coding** (🟡 In Progress). **T-115 Wiring cron harian Import Posts periodik** (🟡 In Progress). Berikutnya, berurutan: **T-116** Ganti nama AGENTS.md vendor, **T-117** Tipiskan AGENTS.md root, **T-118** Higiene sesi agent. Antrian lengkap: [`AVAILABLE_TICKETS.md`](AVAILABLE_TICKETS.md).
+- **Top Next Tasks:** **T-037 Perkaya aturan coding** (🟡 In Progress). **T-115 Wiring cron harian Import Posts periodik** (🟡 In Progress). T-116 → T-117 → T-118 (biaya token agent) selesai 2026-10-16 (ADR-133). Antrian lengkap: [`AVAILABLE_TICKETS.md`](AVAILABLE_TICKETS.md).
 - **Blocker:** 1 penghalang aktif — KI-015 (Google OAuth). Migrasi T-051 dan sisa follow-up KI-025 sudah diverifikasi tertutup di staging (2026-10-13). Detail di section **Blockers**.
 - **Antrian task:** [`AVAILABLE_TICKETS.md`](AVAILABLE_TICKETS.md). Tiket, termasuk yang selesai, ada di `tickets/`. Jangan cari detail task di file ini.
 - **KI-073–080 Resolved (2026-09-26)** — 4 bug publish Instagram (caption wajib untuk Story, Story publish tanpa media, upload media >1MB gagal, avatar akun tidak tampil di sidebar) diperbaiki + diverifikasi live ke akun Instagram/Facebook real (ADR-120). 2 bug turunan ditemukan saat verifikasi (akun `disconnected` tidak bisa reconnect; callback OAuth silent-success untuk conflict genuine) diperbaiki via **ADR-122**. Plus **KI-080** (baru+langsung Resolved) — Railway staging build gagal (`next.config.ts` tidak bisa resolve import workspace `@social/shared`) diperbaiki di branch terpisah sebelum masuk ke fix KI-078/079.
@@ -184,11 +184,11 @@ seluruh daftar Known Issues.
 
 ## Completed (Ringkasan)
 
+- **T-116 → T-117 → T-118 ✅ Done — biaya token `AGENTS.md` dipangkas (2026-10-16, ADR-133)** — tiga berkas panduan vendor Vercel di `.claude/skills/` (±134 KB total) berganti nama `AGENTS.md` → `REFERENCE.md` supaya tidak ikut termuat penuh di setiap giliran Cursor. `AGENTS.md` root ditipiskan (304 baris/20.4 KB → 138 baris/8.9 KB — esai dipindah jadi penunjuk ke `project-os-navigator/SKILL.md` dan `context/ctx-technical-context.md`). Navigator mendapat aturan baru: perubahan sepele dikerjakan agen utama tanpa evaluasi Domain → Subagent, dan satu task per percakapan. Detail: `tickets/v01-foundation.md` § Konteks agent.
 - **KI-086 ✅ Resolved — reconnect Facebook `disconnected`/`reconnect-required` tidak lagi dead flow (2026-10-15, ADR-127)** — `createConnectedAccounts` kini mereaktivasi row existing yang bukan `active` (lewat flow "Connect Account" → Facebook Pages Picker), bukan skip diam-diam. Claude Design dicek dulu (rule 17): pola Reconnect generik, tidak ada pengecualian Facebook di desain. Scope dikunci backend-only — `ReconnectButton` tetap disembunyikan untuk Facebook (adapter throw eksplisit untuk platform ini, bukan gap UI). Detail: `decisions/ADR-127-reaktivasi-connected-account-facebook-ki086.md`.
 - **KI-088 ✅ Resolved — gap `actingUserId` jalur periodik Import Posts ditutup (2026-10-15)** — King Rezi memilih (lewat `AskUserQuestion`) reuse pola JOB-04/JOB-03 (`findAccountOwnerByOutstandAccountId`) alih-alih `Workspace.ownerId` langsung. `triggerPeriodicForAccounts` sekarang me-resolve `actingUserId` sendiri per akun, tanpa dependency baru di composition root. Detail: `tickets/v02-publishing-mvp.md` § T-090 addendum.
 - **T-114 ✅ TUNTAS 5/5 subtask — backfill otomatis `outstandPostId` post Imported lama (2026-10-15)** — lanjutan langsung T-113: 36 dari 39 post Imported lama di akun test masih `outstandPostId: null` (T-113 cuma memperbaiki import baru ke depan). Mekanisme permanen ditambahkan — tiap Sync Now/periodik otomatis backfill kalau masih ada gap, reuse namespace lock T-113. 0 temuan review Ridwan. Diverifikasi end-to-end nyata: 39/39 ter-backfill setelah satu kali Sync Now. Detail: `tickets/v02-publishing-mvp.md` § T-114.
 - **T-113 ✅ TUNTAS 4/4 subtask — comment post Imported ikut ter-sync ke Engage Inbox (2026-10-15)** — promosi **KI-090**. `outstandPostId` kini ditangkap+disimpan untuk post hasil Import Posts. 2 bug konkurensi/cross-post CONFIRMED ditemukan & diperbaiki lewat 3 ronde review Ridwan (unique index global, lalu race antar transaksi via `pg_advisory_xact_lock`). Diverifikasi end-to-end nyata: comment Reels Facebook berhasil masuk Comments Inbox. Detail: `tickets/v02-publishing-mvp.md` § T-113.
-- **T-005 ✅ TUNTAS 5/5 — email verification flow (2026-10-14)** — Resend mengirim reset password dan verifikasi email. `/verify-email` hidup. `requireEmailVerification` aktif. Akun lama di-backfill lewat migrasi `20261014160000`. Accept-invite memakai cookie httpOnly `invite-email-proof` supaya sign-up tanpa OTP tidak ikut terverifikasi. Perbaikan review PR #168 juga mengembalikan pekerjaan staging (T-016.4, T-030.3, T-091) yang akan terhapus kalau branch di-merge apa adanya. Detail: `tickets/v01-foundation.md` § T-005.
   Berikut 5 item terakhir yang diselesaikan. Tiket lengkapnya ada di `tickets/`. Riwayat sesi ada di git.
 
 ---
@@ -197,11 +197,11 @@ seluruh daftar Known Issues.
 
 5 ADR terakhir. Daftar lengkap (indeks + link ke tiap ADR): lihat `DECISIONS.md`.
 
+- **ADR-133** — `AGENTS.md` root jadi pintu tipis. Esai yang sudah punya rumah di `context/`, `.claude/agents/README.md`, `project-os-navigator/SKILL.md`, dan `apps/web/.claude/CLAUDE.md` jadi penunjuk satu baris.
 - **ADR-132** — Folder kerja menjadi `project-os/`. Rumah tiket menjadi `tickets/` dan `AVAILABLE_TICKETS.md`. Kode hanya berubah lewat tiket. Known Issue terbuka punya tiket. Urutan tulis dokumen: product-discovery → context → project-os.
 - **ADR-131** — Antrian kerja pindah ke file tiket yang belum selesai. `COMPLETE_TASK.md` dihapus. Deskripsi kerja: docs → spec → tiket → implement.
 - **ADR-130** — Layar Start Page editor dan pola Link List dikunci sebagai tabel tanpa header (T-072).
 - **ADR-129** — Halaman publik Start Page memakai layout Card Stack (T-071).
-- **ADR-128** — Halaman publik Start Page diakses lewat `/u/[slug]`, bukan custom domain (T-070).
 
 ---
 
