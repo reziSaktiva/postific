@@ -157,7 +157,7 @@ describe("runPendingJobs", () => {
     });
   });
 
-  it("runs claimed jobs one at a time (KI-091)", async () => {
+  it("starts the next claimed job while an earlier one is still running (BG-D04)", async () => {
     const events: string[] = [];
     let releaseFirst: () => void = () => undefined;
     const firstBlocked = new Promise<void>((resolve) => {
@@ -176,17 +176,17 @@ describe("runPendingJobs", () => {
         events.push("a-end");
       },
       b: async () => {
-        events.push("b");
+        events.push("b-start");
       },
     };
 
     const pending = runPendingJobs(store, handlers);
     await vi.waitFor(() => {
-      expect(events).toEqual(["a-start"]);
+      expect(events).toEqual(["a-start", "b-start"]);
     });
     releaseFirst();
     await pending;
 
-    expect(events).toEqual(["a-start", "a-end", "b"]);
+    expect(events).toEqual(["a-start", "b-start", "a-end"]);
   });
 });

@@ -1781,11 +1781,10 @@ job `import.sync` lain gagal berulang dengan error Prisma
 `Failed to deserialize column of type 'void'` dari `$queryRaw`, intermiten
 (akun yang sama bisa sukses lalu gagal di percobaan berikutnya). Root cause
 sudah diinvestigasi tuntas dan BUKAN bug logic T-115 — lihat **KI-091**
-(bug upstream terbuka `prisma/orm#30374` di `@prisma/adapter-pg@7.8.0`,
-dipicu job background konkuren via `Promise.all` di `runPendingJobs`).
+(`$queryRaw` pada `pg_advisory_xact_lock` mengembalikan kolom `void`;
+perbaikan di `lockOutstandPostIds` memakai `$executeRaw`).
 Tiket terpisah **T-124** (`tickets/known-issues.md`, ADR-134) dibuat untuk melacak remediasinya. T-115.5 tetap
-`[ ]` sampai King Rezi memilih opsi remediasi di T-124 dan retest berhasil
-konsisten.
+`[ ]` sampai retest staging di T-124 berhasil konsisten.
 
 ---
 

@@ -92,7 +92,7 @@ Tiket fitur yang kebetulan memuat atau menutup satu KI tetap di file rilisnya. C
 
 **Blocked by:** pilihan lebar dari King Rezi
 
-### T-124 · Bug upstream Prisma `@prisma/adapter-pg` merusak koneksi pool saat job background jalan konkuren
+### T-124 · Import sync gagal mendeserialisasi kolom void pada advisory lock (KI-091)
 
 | Field       | Value                                              |
 | ----------- | -------------------------------------------------- |
@@ -102,7 +102,7 @@ Tiket fitur yang kebetulan memuat atau menutup satu KI tetap di file rilisnya. C
 | **Docs**    | KI-091                                             |
 | **Depends** | — (ditemukan saat verifikasi staging T-115.5)      |
 
-**What to build:** `runPendingJobs` menjalankan job yang diklaim satu per satu, supaya tidak ada dua transaksi interaktif bersamaan di pool yang sama. Bug upstream tetap ada. Workaround ini yang dipakai sampai Prisma merilis perbaikannya.
+**What to build:** `lockOutstandPostIds` memakai `$executeRaw` untuk `pg_advisory_xact_lock` (kolom `void`). Patch `@prisma/adapter-pg@7.8.0` tetap terpasang sebagai jaring pengaman untuk query yang bersamaan pada satu koneksi (`prisma/orm#29979`). `runPendingJobs` tetap paralel. Sisa kerja: retest di staging.
 
 Ditemukan 2026-10-19 saat verifikasi end-to-end staging T-115.5 (wiring cron
 Import Posts periodik). `POST /api/jobs/run?type=import` memicu error
@@ -110,25 +110,29 @@ intermiten `Invalid prisma.$queryRaw() invocation: Failed to deserialize
 column of type 'void'` pada sebagian job `import.sync` — job yang sama untuk
 akun yang sama kadang sukses kadang gagal pada percobaan berurutan.
 
-Root cause: bug terbuka upstream [`prisma/orm#30374`](https://github.com/prisma/orm/issues/30374)
-di `@prisma/adapter-pg@7.8.0` (versi persis yang dipakai project ini) — kalau
-ada error level-Postgres ASLI (bukan `throw` JS) terjadi di dalam interactive
-transaction (`prisma.$transaction`, dipakai lewat `withCurrentUser()` di
-`apps/web/src/lib/prisma/with-current-user.ts`), koneksi `pg.Client` yang
-dipegang jadi rusak — query BERIKUTNYA di client yang sama (bisa milik job
-lain yang berbeda) menerima payload query lain, muncul sebagai error
-deserialize acak. PR perbaikannya ([`prisma/orm#29979`](https://github.com/prisma/orm/pull/29979))
-juga masih belum di-merge per 2026-10-19.
+Penyebab yang menutup retest lokal: `lockOutstandPostIds` memakai
+`$queryRaw` pada `SELECT pg_advisory_xact_lock(...)`. Fungsi itu
+mengembalikan `void`, dan `$queryRaw` gagal mendeserialisasi kolom itu.
+Lock per `outstandPostId` sekarang memakai `$executeRaw`.
 
-**Kenapa baru muncul sekarang:** `runPendingJobs` (`apps/web/src/lib/jobs/job-runner.ts`)
-menjalankan seluruh job yang diklaim lewat `Promise.all` — konkuren. T-115
-menambah `import.sync` (pakai `withCurrentUser` lewat `updateImportWatermark`/
-`getImportWatermark`) ke campuran job yang sudah ada (`analytics.sync`,
-`engagement.sync`, dst.) — menaikkan peluang lebih dari satu interactive
-transaction jalan bersamaan dalam satu batch cron, yang menjadi prasyarat bug
-ini muncul. Ini BUKAN bug logic T-115 — T-115 sendiri sudah diverifikasi
-benar (enqueue jalan, watermark ter-update saat sukses, guard concurrent
-tetap menyala).
+Batch `runPendingJobs` tetap paralel. Dua isu upstream di
+`@prisma/adapter-pg@7.8.0` tetap terbuka dan dicatat terpisah:
+
+- [`prisma/orm#30374`](https://github.com/prisma/orm/issues/30374) — setelah
+  error Postgres di dalam interactive transaction, query berikutnya pada
+  client yang sama bisa menerima payload query lain.
+- [`prisma/orm#29979`](https://github.com/prisma/orm/pull/29979) — query
+  bersamaan pada satu koneksi `pg`. Belum merge per 2026-10-19. Isinya
+  dipasang sebagai patch lokal. Retest dengan patch itu saja tetap gagal;
+  patch tetap ikut sebagai jaring pengaman.
+
+**Kenapa baru muncul sekarang:** jalur import (T-115) mengunci
+`outstandPostId` lewat `lockOutstandPostIds`. Query itu `SELECT
+pg_advisory_xact_lock(...)` dan semula memakai `$queryRaw`. Fungsi Postgres
+itu mengembalikan `void`, lalu Prisma gagal mendeserialisasi kolomnya.
+Lock workspace untuk fungsi yang sama sudah memakai `$executeRaw`. Ini
+BUKAN bug logic T-115 — enqueue, watermark, dan guard concurrent sudah
+diverifikasi benar.
 
 - [x] King Rezi memilih opsi naik/turun versi Prisma (2026-10-19). Tidak ada
       rilis yang memuat perbaikan, jadi dependency tidak diubah:
@@ -141,11 +145,13 @@ tetap menyala).
     `7.8.0`). Tidak memuat perbaikan. Paket `prisma` di tag `latest` adalah
     prarilis `8.0.0-rc.23`, tetapi `@prisma/adapter-pg` tidak punya rilis 8
     yang memuat perbaikan itu.
-- [x] King Rezi memilih serialize `runPendingJobs` (2026-10-19). Job diklaim
-      dijalankan satu per satu di `apps/web/src/lib/jobs/job-runner.ts`.
-      Batas 10 job per run (BG-D05) tidak diubah. Tes unit
-      `job-runner.test.ts` memastikan job kedua tidak mulai sebelum job
-      pertama selesai.
+- [x] King Rezi memilih serialize `runPendingJobs` (2026-10-19). Dicabut
+      hari yang sama setelah code review. `claimPending` mengisi `startedAt`
+      seluruh batch sekaligus, dan BG-D04 mengklaim ulang job `running`
+      yang usianya lewat 30 detik. Job yang masih mengantri di batch serial
+      ikut terambil cron berikutnya dan bisa jalan dua kali.
+      `runPendingJobs` kembali paralel (`Promise.all`). Tes unit memastikan
+      job kedua sudah mulai sebelum job pertama selesai.
 - [x] Retest `?type=import` dari cabang ini (2026-10-19, server lokal, env yang sama). Dua job `import.sync` diantrikan ulang lalu dijalankan. Keduanya `outcome: done`, status `done`, `last_error` kosong:
   - `07b435ac-a08a-4f13-ba2d-2ac6c5e7df66` — akun `4a48b968-c6ef-4b97-a7a2-7c61bd68c089` / `eH82r`
   - `633eacfd-e796-42e5-9020-455f5486162c` — akun `d17e38ce-fbae-434c-ab27-e417fca384ab` / `Kav29`
@@ -154,7 +160,7 @@ tetap menyala).
 
 Workaround sebelumnya tidak cukup, dan dicatat supaya tidak diulang:
 
-- Job satu per satu: job pertama di batch sudah gagal dengan error yang sama.
+- Job satu per satu: job pertama di batch sudah gagal dengan error yang sama. Antrian itu juga dicabut dari `runPendingJobs` karena menabrak reclaim 30 detik (BG-D04).
 - Patch lokal `@prisma/adapter-pg@7.8.0` (isi `prisma/orm#29979`, query di satu koneksi diantrikan) terpasang dan ter-compile di server lokal. Retest dengan patch itu saja tetap `dead_lettered` untuk kedua job. Patch ikut commit ini sebagai jaring pengaman, bukan penyebab retest lulus.
 
 **Blocked by:** belum hidup di staging. Cron staging masih menjalankan kode lama.

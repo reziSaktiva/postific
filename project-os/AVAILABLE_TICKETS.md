@@ -41,7 +41,7 @@ ID tiket global, tidak didaur ulang. Berikutnya: **T-125**. ID spec berikutnya: 
 | T-122 | ⏳     | Buktikan E2E invite Copy Link, email A vs email B. KI-053       | [KI](tickets/known-issues.md)         |
 | T-123 | 🚫     | Konfirmasi lebar sidebar. KI-089                                | [KI](tickets/known-issues.md)         |
 | T-121 | 🚫     | Putuskan meta penulis di History. KI-050                        | [KI](tickets/known-issues.md)         |
-| T-124 | 🟡     | Bug upstream Prisma adapter-pg (job konkuren). KI-091           | [KI](tickets/known-issues.md)         |
+| T-124 | 🟡     | Kolom void pada lock outstandPostId. KI-091                     | [KI](tickets/known-issues.md)         |
 
 T-037 prioritas rendah dan tidak memblokir rilis. T-116 → T-117 → T-118 (token-agent) selesai 2026-10-16, lihat `tickets/v01-foundation.md`. T-124 🟡: retest lokal `?type=import` lulus setelah lock per `outstandPostId` pindah ke `$executeRaw` (kolom `void`). Belum hidup di staging.
 
