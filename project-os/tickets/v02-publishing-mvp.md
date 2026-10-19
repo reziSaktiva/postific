@@ -1705,7 +1705,7 @@ menjangkau seluruh post, data-nya saja yang kosong.
 
 | Field         | Value                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**    | 🟡 In Progress                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| **Status**    | ✅ Done (5/5 subtask, 2026-10-19)                                                                                                                                                                                                                                                                                                                                                                                                        |
 | **Domain**    | integration                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | **ADR**       | — (menuntaskan desain yang SUDAH Accepted di ADR-093 poin 7, bukan keputusan baru)                                                                                                                                                                                                                                                                                                                                                       |
 | **Terkait**   | T-090, T-048 (pola fan-out JOB-04 dijadikan referensi langsung), T-112, KI-088                                                                                                                                                                                                                                                                                                                                                           |
@@ -1765,26 +1765,19 @@ sepadan) dibahas di `CONVERSATIONS.md` entri 2026-10-16 tapi tidak dipilih.
       ikut kena guard yang ditujukan khusus jalur manual, dan sebaliknya
       guard concurrent-import per akun (ADR-093 poin 8, berlaku untuk semua
       sumber trigger) tetap menyala untuk jalur periodik ini juga
-- [ ] **T-115.5** Verifikasi end-to-end nyata di staging: pastikan job
+- [x] **T-115.5** Verifikasi end-to-end nyata di staging: pastikan job
       harian benar-benar jalan tanpa aksi manual apa pun (pakai
       `?type=import` sekali untuk mempercepat verifikasi), `lastImportedUntil`/
       `lastImportRequestedAt` akun ter-update otomatis, dan post native baru
       yang ditambahkan langsung di Facebook muncul di Postific dalam
       waktu ≤24 jam tanpa klik "Sync Now"
 
-**Catatan (2026-10-19) — T-115.5 dicoba, belum lolos penuh:** PR 179 merge
-ke staging, migration `import_list_accounts_for_periodic_sync` ter-apply
-otomatis (Railway `preDeployCommand`). `?type=import` dipanggil manual —
-mekanisme enqueue + fan-out + watermark terbukti BENAR (satu akun sukses
-penuh, `lastImportedUntil` ter-update), tapi eksekusinya **tidak konsisten**:
-job `import.sync` lain gagal berulang dengan error Prisma
-`Failed to deserialize column of type 'void'` dari `$queryRaw`, intermiten
-(akun yang sama bisa sukses lalu gagal di percobaan berikutnya). Root cause
-sudah diinvestigasi tuntas dan BUKAN bug logic T-115 — lihat **KI-091**
-(`$queryRaw` pada `pg_advisory_xact_lock` mengembalikan kolom `void`;
-perbaikan di `lockOutstandPostIds` memakai `$executeRaw`).
-Tiket terpisah **T-124** (`tickets/known-issues.md`, ADR-134) dibuat untuk melacak remediasinya. T-115.5 tetap
-`[ ]` sampai retest staging di T-124 berhasil konsisten.
+**Catatan (2026-10-19) — T-115.5 lulus setelah T-124:** percobaan pertama
+di staging gagal intermiten karena KI-091 (bukan logic T-115). Setelah
+T-124 hidup di service `web` (commit `d7ef246`), `?type=import` sekali
+mengklaim 2 job dan keduanya `done` pada percobaan pertama. Watermark
+Facebook `Kav29` dan Instagram `eH82r` ter-update ke `2026-10-19 07:49:04`
+UTC. Bukti job ada di T-124.
 
 ---
 
