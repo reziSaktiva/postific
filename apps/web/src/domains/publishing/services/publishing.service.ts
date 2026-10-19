@@ -758,11 +758,11 @@ export class PublishingService {
    * `IPublishingRepository.getHistoryById` (proyeksi data murni yang tidak
    * boleh tahu soal `analytics`). Lihat catatan `HistoryDetailItem`.
    *
-   * **T-121 (menutup KI-050)** — `authorName` diisi lewat `AuthorPort` yang
-   * sama pola dengan `metrics`/`PostMetricsPort`: `null` kalau `authorId`
-   * post ini memang `null` (status `Imported`, by design — TIDAK dicoba
-   * di-lookup sama sekali), `null` juga kalau `AuthorPort` tidak disuplai
-   * ke constructor atau user-nya tidak ditemukan.
+   * **T-121 (menutup KI-050)** — `authorName` diisi lewat `AuthorPort`,
+   * pola sama `metrics`/`PostMetricsPort` di atas; semantik null-nya lihat
+   * catatan `HistoryDetailItem.authorName`, tidak diulang di sini. Kedua
+   * lookup (`postMetrics`/`authorPort`) independen satu sama lain —
+   * dijalankan lewat `Promise.all` di bawah, bukan sequential.
    *
    * `userId` (RLS, KI-026 follow-up) — acting user untuk `withCurrentUser`.
    */
@@ -779,19 +779,18 @@ export class PublishingService {
       throw new NotFoundError("Riwayat post tidak ditemukan.");
     }
 
-    const metrics =
+    const [metrics, authorName] = await Promise.all([
       post.status === ContentStatus.Published && this.postMetrics
-        ? ((
-            await this.postMetrics.getPostMetricsByPosts([post.id], userId)
-          ).get(post.id) ?? [])
-        : post.status === ContentStatus.Published
-          ? []
-          : null;
-
-    const authorName =
+        ? this.postMetrics
+            .getPostMetricsByPosts([post.id], userId)
+            .then((byPostId) => byPostId.get(post.id) ?? [])
+        : Promise.resolve(post.status === ContentStatus.Published ? [] : null),
       post.authorId && this.authorPort
-        ? ((await this.authorPort.findById(post.authorId))?.name ?? null)
-        : null;
+        ? this.authorPort
+            .findById(post.authorId)
+            .then((author) => author?.name ?? null)
+        : Promise.resolve(null),
+    ]);
 
     return { ...post, metrics, authorName };
   }

@@ -32,6 +32,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+import { formatAuthorLabel } from "../../../../components/author-label";
 import {
   formatEngagementRate,
   formatMetricCount,
@@ -110,23 +111,6 @@ function ViewOriginalPostLink({ url }: { url: string | null }) {
 }
 
 /**
- * Label penulis (T-121, menutup KI-050) — "Diimpor dari platform" untuk
- * post `Imported` (`authorId` null by design, ADR-093), nama penulis kalau
- * tersedia, `null` (baris di-skip caller) kalau `authorId` ada tapi
- * `authorName` tidak ter-resolve (user terhapus/`AuthorPort` tidak
- * disuplai) — lihat catatan `HistoryDetailItem.authorName`.
- */
-function formatAuthorLabel(item: HistoryDetailItem): string | null {
-  if (!item.authorId) {
-    return "Diimpor dari platform";
-  }
-  if (item.authorName) {
-    return `Dibuat oleh ${item.authorName}`;
-  }
-  return null;
-}
-
-/**
  * Metrik ringkas per target (T-043.3) — mapping label sama seperti Popover
  * Calendar (T-033.8): Views→`impressions`, Reach→`reach`,
  * Replies→`comments`, Eng. Rate→`engagementRate`. `metric` bernilai `null`
@@ -196,15 +180,11 @@ export interface HistoryDetailProps {
  *
  * **T-121 (menutup KI-050, 2026-10-19):** gap "dibuat oleh siapa" di atas
  * sudah ditutup — King Rezi memutuskan penulis DITAMPILKAN. Label "Dibuat
- * oleh <nama>" dirender di bawah timestamp "Dibuat X lalu"; post `Imported`
- * (`item.authorId` null, ADR-093 — ditarik dari platform sosial, memang
- * tidak punya penulis internal secara desain) menampilkan "Diimpor dari
- * platform" sebagai pengganti, BUKAN baris kosong. `item.authorName` bisa
- * `null` walau `authorId` ada (user sudah terhapus/`AuthorPort` tidak
- * disuplai, `PublishingService.getHistoryById`) — baris "Dibuat oleh"
- * di-skip untuk kondisi itu (bukan menampilkan nama kosong).
+ * oleh <nama>" dirender di bawah timestamp "Dibuat X lalu" lewat
+ * `formatAuthorLabel` (`author-label.ts`) — semantik null `authorId`/
+ * `authorName` ada di situ dan di `HistoryDetailItem.authorName`
+ * (`publishing.service.ts`), tidak diulang di sini.
  *
-
  * **Gap baru (T-111.2):** `HistoryItemTargetRecord` tidak membawa
  * `avatarUrl` akun (hanya `accountHandle`) — `ChannelAvatarBadge` per
  * baris "Hasil per Akun" karena itu SELALU jatuh ke `AvatarFallback`

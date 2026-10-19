@@ -1104,7 +1104,7 @@ describe("PublishingService.getHistoryById", () => {
   // T-121, menutup KI-050.
   it("authorName null kalau authorId post null (status Imported), AuthorPort tidak pernah dipanggil", async () => {
     const imported = createHistoryItem({
-      status: ContentStatus.Failed,
+      status: ContentStatus.Imported,
       authorId: null,
     });
     let calls = 0;
