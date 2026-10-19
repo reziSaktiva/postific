@@ -7,8 +7,8 @@ import {
   InvitationStatus,
   MemberRole,
   MemberStatus,
+  SocialPlatform,
   type ConnectedAccountId,
-  type SocialPlatform,
   type UserId,
   type WorkspaceId,
 } from "@postific/shared";
@@ -989,6 +989,48 @@ export const workspaceRepository: IWorkspaceRepository = {
     }));
   },
 
+  async listAccountsForPeriodicImportSync() {
+    const rows = await prisma.$queryRaw<
+      {
+        workspace_id: string;
+        connected_account_id: string;
+        outstand_account_id: string;
+        platform: string;
+      }[]
+    >`SELECT * FROM "public"."import_list_accounts_for_periodic_sync"()`;
+
+    const accounts: {
+      workspaceId: WorkspaceId;
+      connectedAccountId: ConnectedAccountId;
+      outstandAccountId: string;
+      platform: SocialPlatform;
+    }[] = [];
+
+    for (const row of rows) {
+      // Satu baris dengan platform di luar enum (data stale, rename enum,
+      // dsb.) TIDAK boleh menggagalkan fan-out akun lain — lewati baris itu
+      // saja (log untuk investigasi) daripada throw yang menghentikan
+      // seluruh batch lintas workspace.
+      if (
+        !Object.values(SocialPlatform).includes(row.platform as SocialPlatform)
+      ) {
+        console.error(
+          `import_list_accounts_for_periodic_sync: platform tidak dikenal "${row.platform}" untuk connected_account_id=${row.connected_account_id}, baris dilewati.`,
+        );
+        continue;
+      }
+
+      accounts.push({
+        workspaceId: asWorkspaceId(row.workspace_id),
+        connectedAccountId: asConnectedAccountId(row.connected_account_id),
+        outstandAccountId: row.outstand_account_id,
+        platform: row.platform as SocialPlatform,
+      });
+    }
+
+    return accounts;
+  },
+
   async disconnectAccount(workspaceId, connectedAccountId, actingUserId) {
     await withCurrentUser(actingUserId, async (tx) => {
       const result = await tx.workspaceConnectedAccount.updateMany({
@@ -1258,6 +1300,21 @@ export const workspaceRepository: IWorkspaceRepository = {
         },
       }),
     );
+  },
+
+  async getImportWatermark({ connectedAccountId, actingUserId }) {
+    const account = await withCurrentUser(actingUserId, (tx) =>
+      tx.workspaceConnectedAccount.findFirst({
+        where: { id: connectedAccountId },
+        select: { lastImportedUntil: true },
+      }),
+    );
+
+    if (!account) {
+      return null;
+    }
+
+    return { lastImportedUntil: account.lastImportedUntil };
   },
 };
 

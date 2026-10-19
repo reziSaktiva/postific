@@ -59,7 +59,7 @@ dulu** sebelum T-096 dimulai.
       fungsional** (isi `tailwindcss/index.css` upstream persis 3 baris
       itu digabung), urutan `@layer` tidak berubah karena cascade layer
       order ditentukan oleh deklarasi `@layer reset, theme, base,
-    astryx-base, astryx-theme, components, utilities;` di baris 1,
+  astryx-base, astryx-theme, components, utilities;` di baris 1,
       bukan posisi fisik import. * `bunx shadcn@latest init` auto-edit `layout.tsx` (tambah font
       Figtree + import `cn` dari `@/lib/utils`) dan `globals.css`
       (append CSS variable tema shadcn default + `@layer base` baru) —
@@ -109,7 +109,7 @@ dulu** sebelum T-096 dimulai.
       `get_audit_checklist`.
 - [x] **T-095.3** Tulis ulang total `apps/web/.claude/CLAUDE.md` — ganti
       seluruh workflow agent docs dari Astryx CLI (`astryx build/
-  template/component`) ke workflow shadcn CLI/MCP yang setara
+template/component`) ke workflow shadcn CLI/MCP yang setara
       (discover-first, larangan menebak nama komponen/props). Workflow baru:
       cek `components/ui/` dulu → search registry (MCP
       `search_items_in_registries` / `shadcn search`) → view source/props
@@ -188,7 +188,7 @@ manapun karena blast radius-nya mencakup semua halaman. Highest-risk task
 di rilis ini (root layout + provider), verifikasi ekstra hati-hati.
 
 - [x] **T-096.1** `globals.css` baru — hapus `@layer astryx-base,
-  astryx-theme` dan `@import` Astryx (`reset.css`, `astryx.css`,
+astryx-theme` dan `@import` Astryx (`reset.css`, `astryx.css`,
       `theme-stone/theme.css`, `tailwind-theme.css`), pasang base
       Tailwind v4 + shadcn sesuai pemetaan token T-095.5
 - [x] **T-096.2** `components/Providers.tsx` — ganti `Theme`/`stoneTheme`
@@ -951,7 +951,7 @@ dimigrasikan, memastikan tidak ada sisa Astryx di codebase.
       `apps/web/package.json`; hapus script `astryx`; hapus field
       `"astryx"` config — **tuntas sepenuhnya** (2026-09-04): setelah
       T-102.6 selesai, `@astryxdesign/core` juga sudah dihapus, `bun
-  install` sukses, `bun.lock` sinkron
+install` sukses, `bun.lock` sinkron
 - [x] **T-102.3** Update dokumen `context/ctx-design.md` dan
       `context/ctx-implementation.md` yang masih menyebut Astryx sebagai
       baseline aktif — **selesai** (2026-09-04): kedua file diperbarui,
@@ -1235,7 +1235,7 @@ belum dikunci, AI **berhenti dan tanya**, bukan menebak lagi.
       selesai. `.claude/agents/najwa-qa-engineer.md` § Langkah kerja —
       ditambah poin 5 dengan kewajiban sama, **plus** tool `DesignSync`
       ditambahkan ke frontmatter `tools:` Najwa (sebelumnya hanya `Read,
-  Bash, Grep, Glob, mcp__Claude_Browser`) supaya gate ini benar-benar
+Bash, Grep, Glob, mcp__Claude_Browser`) supaya gate ini benar-benar
       bisa dieksekusi Najwa sendiri, bukan cuma tertulis di checklist.
       `.claude/agents/README.md` — section baru "Gate verifikasi struktur
       setelah implementasi (T-103.3)" + kolom Tools Najwa di tabel
@@ -1348,7 +1348,7 @@ utama sebagai gantinya.
       total); **(2)** trigger (`SidebarTrigger` replica) ditaruh di
       header sidebar dekat workspace switcher, bukan bikin header baru
       di main content (deviasi dari pola resmi shadcn `SidebarInset >
-  header`, disengaja); **(3)** section Channels disembunyikan total
+header`, disengaja); **(3)** section Channels disembunyikan total
       saat collapsed (pola sama `NavProjects`
       `group-data-[collapsible=icon]:hidden` di contoh resmi shadcn),
       bukan varian compact; **(4)** hanya sidebar workspace utama yang

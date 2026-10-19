@@ -3,12 +3,12 @@ import type {
   ImportSyncJobPayload,
   ImportSyncJobRecord,
 } from "@/domains/publishing/repositories/import-job.repository";
+import { IMPORT_SYNC_JOB_TYPE } from "@/domains/publishing/services/import-sync-job-handler";
 import { Prisma } from "@/generated/prisma/client";
 import { backgroundJobStore } from "@/lib/jobs/background-job-store";
 import { prisma } from "@/lib/prisma/client";
 import { ConflictError } from "@/lib/utils/errors";
-
-const IMPORT_SYNC_JOB_TYPE = "import.sync";
+import { manualImportSyncCapWhere } from "@/lib/repositories/publishing/manual-import-sync-cap";
 
 /**
  * Code review PR #148 (finding #4) — `hasActiveImportSyncJob` dulu
@@ -103,31 +103,31 @@ export const importJobRepository: IImportJobRepository = {
     });
   },
 
-  async countManualImportSyncJobsSince(workspaceId, since) {
-    return prisma.backgroundJob.count({
+  async findImportSyncJobById(jobId) {
+    const job = await prisma.backgroundJob.findFirst({
       where: {
+        id: jobId,
         type: IMPORT_SYNC_JOB_TYPE,
-        // Code review PR #148 (finding #3) — job yang berakhir `failed`
-        // TIDAK memakai jatah cap mingguan: sebelum perbaikan ini, setiap
-        // percobaan (termasuk yang gagal karena adapter belum di-wire,
-        // ADR-119) ikut terhitung, jadi satu klik "Sync Now" yang gagal
-        // membuat workspace tidak bisa mencoba lagi selama seminggu
-        // walau belum pernah ada import yang sukses.
-        status: { not: "failed" },
-        createdAt: { gte: since },
-        payload: {
-          path: ["workspaceId"],
-          equals: workspaceId,
-        },
-        AND: [
-          {
-            payload: {
-              path: ["trigger"],
-              equals: "manual",
-            },
-          },
-        ],
       },
+    });
+
+    if (!job) {
+      return null;
+    }
+
+    return {
+      id: job.id,
+      payload: job.payload as unknown as ImportSyncJobPayload,
+      status: job.status as ImportSyncJobRecord["status"],
+      createdAt: job.createdAt,
+    };
+  },
+
+  async countManualImportSyncJobsSince(workspaceId, since) {
+    // Filter ada di `manualImportSyncCapWhere` — `trigger = manual` dan
+    // status bukan `failed` (PR #148 finding #3). Job periodik tidak masuk.
+    return prisma.backgroundJob.count({
+      where: manualImportSyncCapWhere(workspaceId, since),
     });
   },
 };

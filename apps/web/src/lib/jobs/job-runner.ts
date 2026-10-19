@@ -20,7 +20,7 @@ import type { ClaimedBackgroundJob } from "./background-job-store";
  * domain) — tetap dijaga supaya reusable dan gampang di-unit-test.
  */
 
-export type JobHandler = (payload: unknown) => Promise<void>;
+export type JobHandler = (payload: unknown, jobId: string) => Promise<void>;
 
 export interface JobRunnerStore {
   claimPending(limit: number): Promise<ClaimedBackgroundJob[]>;
@@ -79,7 +79,7 @@ async function runOne(
   }
 
   try {
-    await handler(job.payload);
+    await handler(job.payload, job.id);
     await store.markDone(job.id);
     return { id: job.id, type: job.type, outcome: "done" };
   } catch (rawError) {

@@ -1,4 +1,8 @@
-import type { ConnectedAccountId, WorkspaceId } from "@postific/shared";
+import type {
+  ConnectedAccountId,
+  SocialPlatform,
+  WorkspaceId,
+} from "@postific/shared";
 
 /**
  * Import Posts dari Social Account (T-090, ADR-093 poin 7-9) — repository
@@ -24,9 +28,22 @@ export interface ImportSyncJobPayload {
   connectedAccountId: ConnectedAccountId;
   outstandAccountId: string;
   trigger: ImportSyncTrigger;
-  /** ISO string — rentang yang diminta untuk `importPosts` (bukan `Date`, JSON kolom `payload` menyimpan string). */
+  /**
+   * ISO string — rentang yang diminta untuk `importPosts` (bukan `Date`,
+   * JSON kolom `payload` menyimpan string). Baris antrian harian (T-115)
+   * menyimpan string kosong: `since` dihitung dari watermark saat handler
+   * berjalan, bukan saat enqueue.
+   */
   since: string;
   until: string;
+  /**
+   * `true` hanya pada baris yang dijadwalkan `EnqueueImportSyncUseCase`
+   * dan dieksekusi job runner. Job inline `runImportSync` tidak mengisi
+   * field ini.
+   */
+  queued?: boolean;
+  /** Wajib untuk baris antrian. Job inline membawa platform di input caller, bukan di payload. */
+  platform?: SocialPlatform;
 }
 
 export interface ImportSyncJobRecord {
@@ -91,6 +108,15 @@ export interface IImportJobRepository {
   hasActiveImportSyncJob(
     connectedAccountId: ConnectedAccountId,
   ): Promise<boolean>;
+
+  /**
+   * Baris `import.sync` by id (T-115) — dipakai `executeQueuedPeriodicImport`
+   * untuk membaca ULANG baris yang SUDAH diklaim runner (`jobId` datang dari
+   * `JobHandler`/`job-runner.ts`, bukan di-derive dari `connectedAccountId`
+   * supaya tidak salah ambil baris lain kalau suatu saat invarian "maks
+   * satu `running` per akun" terlanggar). `null` kalau tidak ada.
+   */
+  findImportSyncJobById(jobId: string): Promise<ImportSyncJobRecord | null>;
 
   /**
    * Cap mingguan level-workspace (ADR-093 poin 9) — COUNT `background_jobs`

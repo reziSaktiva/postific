@@ -42,7 +42,7 @@ describe("runPendingJobs", () => {
 
     const summary = await runPendingJobs(store, { "test.job": handler });
 
-    expect(handler).toHaveBeenCalledWith({ foo: "bar" });
+    expect(handler).toHaveBeenCalledWith({ foo: "bar" }, "job-1");
     expect(markDone).toHaveBeenCalledWith("job-1");
     expect(summary).toEqual({
       claimed: 1,

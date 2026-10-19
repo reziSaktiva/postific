@@ -597,6 +597,22 @@ export interface IWorkspaceRepository {
   >;
 
   /**
+   * Fan-out JOB-05 (T-115) — ConnectedAccount `active` yang tidak
+   * `reconnectRequired`, plus `platform`. Tidak butuh acting user: query
+   * lewat SECURITY DEFINER `import_list_accounts_for_periodic_sync` karena
+   * cron tidak punya sesi. Signature fungsi analytics tidak dipakai di
+   * sini (fungsi itu tidak mengembalikan platform).
+   */
+  listAccountsForPeriodicImportSync(): Promise<
+    {
+      workspaceId: WorkspaceId;
+      connectedAccountId: ConnectedAccountId;
+      outstandAccountId: string;
+      platform: SocialPlatform;
+    }[]
+  >;
+
+  /**
    * Disconnect akun (T-014.2, ADR-048/ADR-049) — set
    * `WorkspaceConnectedAccount.status` jadi `"disconnected"` DAN
    * `reconnectRequired` jadi `false` (state "perlu reconnect" tidak relevan
@@ -788,4 +804,16 @@ export interface IWorkspaceRepository {
     lastImportRequestedAt?: Date;
     actingUserId: UserId;
   }): Promise<void>;
+
+  /**
+   * Baca watermark import saat job antrian benar-benar jalan (T-115).
+   * `since` periodik tidak disimpan di payload enqueue — dihitung di sini
+   * dari `lastImportedUntil`. `actingUserId` wajib (RLS, sama
+   * `updateImportWatermark`). `null` kalau akun tidak terlihat oleh acting
+   * user itu.
+   */
+  getImportWatermark(input: {
+    connectedAccountId: ConnectedAccountId;
+    actingUserId: UserId;
+  }): Promise<{ lastImportedUntil: Date | null } | null>;
 }

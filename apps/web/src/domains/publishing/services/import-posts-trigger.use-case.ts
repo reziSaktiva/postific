@@ -10,6 +10,7 @@ import type {
 } from "@postific/shared";
 import { ConflictError } from "@/lib/utils/errors";
 import { resolveVerifiedAccountOwner } from "@/lib/jobs/account-owner-resolution";
+import { IMPORT_SYNC_JOB_TYPE } from "./import-sync-job-handler";
 import { assertActorCanTriggerManualImportSync } from "../rbac";
 import type {
   IImportJobRepository,
@@ -62,6 +63,11 @@ function defaultSince(now: Date): Date {
   );
 }
 
+/** `since` periodik: watermark terakhir, atau 90 hari kalau akun belum pernah sukses diimpor. */
+function periodicImportSince(lastImportedUntil: Date | null, now: Date): Date {
+  return lastImportedUntil ?? defaultSince(now);
+}
+
 /**
  * Port lokal cross-domain `publishing` → `workspace` (T-090.3, AGENTS.md
  * #7) — pola sama `WorkspaceReconnectPort`/`NotificationPort` di
@@ -107,6 +113,15 @@ interface ConnectedAccountWatermarkPort {
   findAccountOwnerByOutstandAccountId(
     outstandAccountId: string,
   ): Promise<AccountOwnerLookupResult | null>;
+
+  /**
+   * Watermark saat eksekusi job antrian (T-115). `null` kalau akun tidak
+   * terlihat oleh `actingUserId` (RLS).
+   */
+  getImportWatermark(input: {
+    connectedAccountId: ConnectedAccountId;
+    actingUserId: UserId;
+  }): Promise<{ lastImportedUntil: Date | null } | null>;
 }
 
 export type ImportSyncTriggerOutcome =
@@ -175,9 +190,11 @@ export interface TriggerManualInput {
  * `background-jobs.md`). Tiga entry point berbagi satu core
  * (`runImportSync`): otomatis on-connect (`triggerAuto`, dipanggil lewat
  * port dari `WorkspaceService.completeAccountConnection`), periodik
- * (`triggerPeriodicForAccounts`, menerima list akun `active` — caller yang
- * meresolve daftarnya, TIDAK ada Railway Cron wiring asli di sini, lihat
- * catatan T-090 di `tickets/v02-publishing-mvp.md`; `actingUserId` per akun
+ * (`triggerPeriodicForAccounts`, batch inline — tetap dipakai test dan
+ * pemanggil yang sudah memegang daftar akun; fan-out produksi T-115 tidak
+ * memanggil method ini, karena itu akan menyisipkan baris job kedua.
+ * Antrian harian: `EnqueueImportSyncUseCase` + `executeQueuedPeriodicImport`.
+ * `actingUserId` per akun
  * di-resolve SENDIRI oleh method ini lewat `ConnectedAccountWatermarkPort.
  * findAccountOwnerByOutstandAccountId` — KI-088, resolved 2026-10-15, lihat
  * docstring port tsb.), dan manual
@@ -191,7 +208,9 @@ export interface TriggerManualInput {
  * runner asli (`/api/jobs/run`) belum dibangun (T-027 belum dikerjakan).
  * Baris `background_jobs` TETAP di-insert (audit log + cap-counting,
  * ADR-093 poin 7, 9) — hanya CARA ia diproses yang sinkron, bukan
- * keberadaannya.
+ * keberadaannya. Baris antrian harian (T-115) adalah pengecualian:
+ * status awal `pending`, dieksekusi runner lewat
+ * `executeQueuedPeriodicImport`, bukan lewat `runImportSync`.
  *
  * **Amandemen ADR-119 (2026-10-08, rebase branch `claude/t-090-e6bb6d`
  * ke `staging`):** `FakeOutstandAdapter` sudah dihapus total dari jalur
@@ -316,7 +335,7 @@ export class ImportPostsTriggerUseCase {
           connectedAccountId: account.connectedAccountId,
           outstandAccountId: account.outstandAccountId,
           platform: account.platform,
-          since: account.lastImportedUntil ?? defaultSince(new Date()),
+          since: periodicImportSince(account.lastImportedUntil, new Date()),
           actingUserId: owner.ownerUserId,
         });
         results.set(account.connectedAccountId, result);
@@ -387,6 +406,86 @@ export class ImportPostsTriggerUseCase {
     });
   }
 
+  /**
+   * Eksekusi baris antrian `import.sync` yang SUDAH ada (T-115) — job yang
+   * baru diklaim runner (`status: running`, `payload.queued: true`).
+   *
+   * Tidak memanggil `runImportSync` / `triggerPeriodicForAccounts`: keduanya
+   * menyisipkan baris baru dan menabrak unique index akun ini. Guard
+   * concurrent tetap berlaku untuk job aktif LAIN; baris yang sedang
+   * di-handle adalah job itu sendiri, jadi tidak ditolak.
+   *
+   * `since` dihitung saat eksekusi dari watermark (`periodicImportSince`),
+   * bukan dari placeholder payload enqueue. Kegagalan dilempar supaya
+   * runner retry/dead-letter — tidak ditelan seperti batch inline.
+   */
+  async executeQueuedPeriodicImport(input: {
+    jobId: string;
+    workspaceId: WorkspaceId;
+    connectedAccountId: ConnectedAccountId;
+    outstandAccountId: string;
+    platform: SocialPlatform;
+  }): Promise<void> {
+    const owner = await resolveVerifiedAccountOwner(
+      this.connectedAccounts,
+      input.outstandAccountId,
+      {
+        workspaceId: input.workspaceId,
+        connectedAccountId: input.connectedAccountId,
+      },
+      "executeQueuedPeriodicImport",
+    );
+
+    const watermark = await this.connectedAccounts.getImportWatermark({
+      connectedAccountId: input.connectedAccountId,
+      actingUserId: owner.ownerUserId,
+    });
+    if (!watermark) {
+      throw new Error(
+        `executeQueuedPeriodicImport: watermark akun ${input.connectedAccountId} tidak ditemukan.`,
+      );
+    }
+
+    // `jobId` datang dari `JobHandler`/`job-runner.ts` (baris yang BENAR-BENAR
+    // diklaim runner) — bukan di-derive dari `connectedAccountId`, supaya
+    // tidak salah ambil baris lain kalau suatu saat ada lebih dari satu job
+    // `running` untuk akun ini.
+    const job = await this.importJobs.findImportSyncJobById(input.jobId);
+    if (
+      !job ||
+      job.payload.queued !== true ||
+      job.payload.trigger !== "periodic" ||
+      job.payload.connectedAccountId !== input.connectedAccountId
+    ) {
+      throw new Error(
+        `executeQueuedPeriodicImport: tidak menemukan job ${IMPORT_SYNC_JOB_TYPE} running queued periodic jobId=${input.jobId} untuk connectedAccountId=${input.connectedAccountId}.`,
+      );
+    }
+
+    const until = new Date();
+    const runInput: RunImportSyncInput = {
+      trigger: "periodic",
+      workspaceId: input.workspaceId,
+      connectedAccountId: input.connectedAccountId,
+      outstandAccountId: input.outstandAccountId,
+      platform: input.platform,
+      since: periodicImportSince(watermark.lastImportedUntil, until),
+      actingUserId: owner.ownerUserId,
+    };
+
+    await this.connectedAccounts.updateImportWatermark({
+      connectedAccountId: input.connectedAccountId,
+      lastImportRequestedAt: until,
+      actingUserId: owner.ownerUserId,
+    });
+
+    const result = await this.runImportJob(runInput, job, until);
+    await this.attemptBackfill(runInput);
+    if (result.outcome === "failed") {
+      throw new Error(result.message ?? "Import periodik antrian gagal.");
+    }
+  }
+
   private async runImportSync(
     input: RunImportSyncInput,
   ): Promise<ImportSyncTriggerResult> {
@@ -429,6 +528,12 @@ export class ImportPostsTriggerUseCase {
       }
       throw error;
     }
+
+    // T-115 — `running` sebelum network call. Cron hanya mengklaim
+    // `pending` (atau `running` yang stale > 30 detik). Job inline yang
+    // dibiarkan `pending` selama polling Outstand (sampai 25 detik) bisa
+    // diambil runner dan dead-letter karena bukan payload queued.
+    await this.importJobs.markImportSyncJobStatus(job.id, "running");
 
     // `lastImportRequestedAt` di-update SETIAP KALI import direquest, dari
     // jalur manapun (ADR-093 poin 6) — SEBELUM network call, konsisten

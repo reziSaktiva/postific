@@ -32,7 +32,7 @@ ID tiket global, tidak didaur ulang. Berikutnya: **T-124**. ID spec berikutnya: 
 | ID    | Status | Judul                                                           | File                                  |
 | ----- | ------ | --------------------------------------------------------------- | ------------------------------------- |
 | T-037 | 🟡     | Perkaya aturan coding di `context/ctx-development.md`           | [v0.2](tickets/v02-publishing-mvp.md) |
-| T-115 | ⏳     | Wiring cron harian Import Posts periodik                        | [v0.2](tickets/v02-publishing-mvp.md) |
+| T-115 | 🟡     | Wiring cron harian Import Posts periodik                        | [v0.2](tickets/v02-publishing-mvp.md) |
 | T-008 | 🟡     | Workspace Settings — General + Danger Zone. Termasuk KI-027     | [v0.1](tickets/v01-foundation.md)     |
 | T-013 | 🟡     | Connect account. Sisa: T-013.4 BYOK X                           | [v0.1](tickets/v01-foundation.md)     |
 | T-017 | 🟡     | RLS SQL policies. Sisa: adopsi `withCurrentUser`                | [v0.1](tickets/v01-foundation.md)     |

@@ -4,7 +4,7 @@
 
 - **Phase / Milestone:** Phase 6 — Implementation · M8 — Development (Sprint 5) · Overall: M7 100%, M8 in progress
 - **Active Mode:** Ready for Development — implementasi fitur produk sesuai Architecture & Engineering Baseline
-- **Top Next Tasks:** **T-037 Perkaya aturan coding** (🟡 In Progress). T-116 → T-117 → T-118 (biaya token agent) selesai 2026-10-16 (ADR-133). Antrian lengkap: [`AVAILABLE_TICKETS.md`](AVAILABLE_TICKETS.md).
+- **Top Next Tasks:** **T-037 Perkaya aturan coding** (🟡 In Progress). **T-115 Wiring cron harian Import Posts periodik** (🟡 In Progress). T-116 → T-117 → T-118 (biaya token agent) selesai 2026-10-16 (ADR-133). Antrian lengkap: [`AVAILABLE_TICKETS.md`](AVAILABLE_TICKETS.md).
 - **Blocker:** 1 penghalang aktif — KI-015 (Google OAuth). Migrasi T-051 dan sisa follow-up KI-025 sudah diverifikasi tertutup di staging (2026-10-13). Detail di section **Blockers**.
 - **Antrian task:** [`AVAILABLE_TICKETS.md`](AVAILABLE_TICKETS.md). Tiket, termasuk yang selesai, ada di `tickets/`. Jangan cari detail task di file ini.
 - **KI-073–080 Resolved (2026-09-26)** — 4 bug publish Instagram (caption wajib untuk Story, Story publish tanpa media, upload media >1MB gagal, avatar akun tidak tampil di sidebar) diperbaiki + diverifikasi live ke akun Instagram/Facebook real (ADR-120). 2 bug turunan ditemukan saat verifikasi (akun `disconnected` tidak bisa reconnect; callback OAuth silent-success untuk conflict genuine) diperbaiki via **ADR-122**. Plus **KI-080** (baru+langsung Resolved) — Railway staging build gagal (`next.config.ts` tidak bisa resolve import workspace `@social/shared`) diperbaiki di branch terpisah sebelum masuk ke fix KI-078/079.

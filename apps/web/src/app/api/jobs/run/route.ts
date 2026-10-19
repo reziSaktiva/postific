@@ -11,6 +11,12 @@ import {
   SyncCommentsUseCase,
 } from "@/domains/engagement";
 import {
+  BackfillOutstandPostIdsUseCase,
+  EnqueueImportSyncUseCase,
+  IMPORT_SYNC_JOB_TYPE,
+  ImportPostsProcessUseCase,
+  ImportPostsTriggerUseCase,
+  ImportSyncJobHandler,
   OutstandWebhookProcessor,
   RESOLVE_SCHEDULED_POST_OUTCOME_JOB_TYPE,
   ResolveScheduledPostOutcomeJobHandler,
@@ -25,7 +31,11 @@ import { backgroundJobScheduler } from "@/lib/jobs/job-scheduler";
 import { notificationRepository } from "@/lib/repositories/notification";
 import { analyticsRepository } from "@/lib/repositories/analytics";
 import { createAnalyticsSyncJobsPort } from "@/lib/jobs/analytics-sync-enqueue-port";
-import { publishingRepository } from "@/lib/repositories/publishing";
+import { createImportSyncJobsPort } from "@/lib/jobs/import-sync-enqueue-port";
+import {
+  importJobRepository,
+  publishingRepository,
+} from "@/lib/repositories/publishing";
 import { timingSafeEqualString } from "@/lib/utils/timing-safe-equal-string";
 import { createActiveWorkspaceMembersPort } from "@/lib/workspace/active-members-port";
 import { workspaceRepository } from "@/lib/repositories/workspace";
@@ -43,15 +53,17 @@ import { workspaceRepository } from "@/lib/repositories/workspace";
  * orkestrasi generik claim/retry/dead-letter).
  *
  * Registry: JOB-07 (`RESOLVE_SCHEDULED_POST_OUTCOME_JOB_TYPE`), JOB-03
- * (`ENGAGEMENT_SYNC_JOB_TYPE`), JOB-04 (`ANALYTICS_SYNC_JOB_TYPE`, T-048).
- * JOB-01 (webhook processing) SENGAJA TETAP inline sync di
+ * (`ENGAGEMENT_SYNC_JOB_TYPE`), JOB-04 (`ANALYTICS_SYNC_JOB_TYPE`, T-048),
+ * JOB-05 (`IMPORT_SYNC_JOB_TYPE`, T-115 — hanya baris antrian
+ * `queued: true`). JOB-01 (webhook processing) SENGAJA TETAP inline sync di
  * `/api/webhooks/outstand/route.ts`.
  *
- * Fan-out JOB-04 menumpang cron menit yang sudah hidup
- * (`railway.cron.json`): paling banyak sekali per hari UTC, lalu
- * `runPendingJobs` mengeksekusi job yang due. `?type=analytics`
- * (`scripts/trigger-analytics-sync.ts`) memaksa antrian baru untuk
- * verifikasi manual. Kegagalan fan-out tidak boleh menahan JOB-03/JOB-07.
+ * Fan-out JOB-04 dan JOB-05 menumpang cron menit yang sudah hidup
+ * (`railway.cron.json`, tanpa crontab baru): paling banyak sekali per hari
+ * UTC lewat `executeIfDue`, lalu `runPendingJobs` mengeksekusi job yang
+ * due. `?type=analytics` dan `?type=import` memaksa antrian baru untuk
+ * verifikasi manual. Kegagalan salah satu fan-out tidak boleh menahan
+ * fan-out lain maupun JOB-03/JOB-07.
  */
 export async function POST(request: Request): Promise<Response> {
   const { JOB_SECRET } = getServerEnv();
@@ -109,9 +121,25 @@ export async function POST(request: Request): Promise<Response> {
     workspaceRepository,
     createAnalyticsSyncJobsPort(),
   );
+  const outstandAdapter = getOutstandAdapter();
+  const enqueueImportSync = new EnqueueImportSyncUseCase(
+    workspaceRepository,
+    createImportSyncJobsPort(),
+  );
+  const importSyncHandler = new ImportSyncJobHandler(
+    new ImportPostsTriggerUseCase(
+      importJobRepository,
+      outstandAdapter,
+      workspaceRepository,
+      new ImportPostsProcessUseCase(publishingRepository),
+      new BackfillOutstandPostIdsUseCase(publishingRepository, outstandAdapter),
+    ),
+  );
+
+  const jobType = new URL(request.url).searchParams.get("type");
 
   try {
-    if (new URL(request.url).searchParams.get("type") === "analytics") {
+    if (jobType === "analytics") {
       await enqueueAnalyticsSync.execute();
     } else {
       await enqueueAnalyticsSync.executeIfDue();
@@ -123,6 +151,19 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 
+  try {
+    if (jobType === "import") {
+      await enqueueImportSync.execute();
+    } else {
+      await enqueueImportSync.executeIfDue();
+    }
+  } catch (error) {
+    console.error(
+      "[jobs/run] fan-out import gagal, job lain tetap dijalankan:",
+      error,
+    );
+  }
+
   const handlers: Record<string, JobHandler> = {
     [RESOLVE_SCHEDULED_POST_OUTCOME_JOB_TYPE]: (payload) =>
       resolveScheduledPostOutcomeHandler.handle(payload),
@@ -130,6 +171,8 @@ export async function POST(request: Request): Promise<Response> {
       engagementSyncHandler.handle(payload),
     [ANALYTICS_SYNC_JOB_TYPE]: (payload) =>
       analyticsSyncHandler.handle(payload),
+    [IMPORT_SYNC_JOB_TYPE]: (payload, jobId) =>
+      importSyncHandler.handle(payload, jobId),
   };
 
   const summary = await runPendingJobs(backgroundJobStore, handlers);

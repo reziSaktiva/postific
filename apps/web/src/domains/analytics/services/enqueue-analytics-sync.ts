@@ -1,3 +1,4 @@
+import { startOfUtcDay } from "@/lib/jobs/utc-day";
 import {
   ANALYTICS_SYNC_JOB_TYPE,
   analyticsWorkspaceSnapshotPayload,
@@ -119,10 +120,4 @@ export class EnqueueAnalyticsSyncUseCase {
 
     return enqueued;
   }
-}
-
-export function startOfUtcDay(now: Date): Date {
-  const start = new Date(now);
-  start.setUTCHours(0, 0, 0, 0);
-  return start;
 }
