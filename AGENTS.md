@@ -24,7 +24,7 @@ dirujuk, dokumen yang dirujuk menang.
 ## Wajib di awal sesi
 
 1. Baca **Snapshot** di `project-os/PROJECT_STATE.md` — phase, mode percakapan, fokus terdekat.
-2. Kalau akan mengerjakan tiket: buka `project-os/AVAILABLE_TICKETS.md` dan berhenti di situ untuk memilih ID. Baru kemudian buka **satu** section di `tickets/vXX-*.md`. Kode hanya diubah kalau tiketnya sudah ada (ADR-132). Deskripsi mengikuti ADR-131 (docs → spec → tiket → implement).
+2. Kalau akan mengerjakan tiket: buka `project-os/AVAILABLE_TICKETS.md` dan berhenti di situ untuk memilih ID. Baru kemudian buka **satu** section di file yang disebut kolom File (`tickets/vXX-*.md`, atau `tickets/known-issues.md` untuk tiket dari Known Issue — ADR-134). Kode hanya diubah kalau tiketnya sudah ada (ADR-132). Deskripsi mengikuti ADR-131 (docs → spec → tiket → implement).
 3. **Evaluasi delegasi subagent** (ADR-063) kalau task itu scope implementasi kode atau UI — lihat pemetaan Domain → Subagent dan pengecualian perubahan sepele di navigator (poin 4) dan `.claude/agents/README.md`.
 4. Ikuti skill project: `.claude/skills/project-os-navigator/SKILL.md` — cascade baca, mapping task → dokumen, higiene sesi, dan housekeeping skill/subagent ada di sana.
 5. Untuk keputusan yang belum ada di baseline: ikuti `.claude/skills/proactive-clarification/SKILL.md`.
@@ -48,8 +48,9 @@ dirujuk, dokumen yang dirujuk menang.
 7. Status progress (% / ✅ / phase aktif / milestone) **hanya** di
    `PROJECT_STATE.md` — jangan taruh di README atau baseline. **Satu
    pengecualian (ADR-062, ADR-131):** status per-tiket ada di
-   `project-os/AVAILABLE_TICKETS.md` (yang belum selesai) dan
-   `project-os/tickets/vXX-*.md` (semua tiket, termasuk yang selesai).
+   `project-os/AVAILABLE_TICKETS.md` (yang belum selesai),
+   `project-os/tickets/vXX-*.md` (tiket rilis, termasuk yang selesai), dan
+   `project-os/tickets/known-issues.md` (tiket dari Known Issue, ADR-134).
 8. Persona kanonikal: Raka, Maya, Sinta, Dimas, Lara. Bahasa komunikasi & dokumentasi project: **Bahasa Indonesia** (kecuali user meminta lain).
 9. Jangan commit / push kecuali user meminta eksplisit. Jangan commit secret (`.env.local`, kredensial). Sebelum commit/push: kalau HEAD ada di `main` **atau** `staging`, buat branch baru dulu (`feature/<nama>` atau `fix/<nama>`) — jangan pernah commit langsung ke salah satu dari dua branch itu (alur CI-D03: `feature/* → PR → staging → PR → main`).
 10. **UI produk memakai shadcn/ui** (ADR-097). **Setiap task yang diperintahkan

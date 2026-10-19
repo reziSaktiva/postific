@@ -2,18 +2,18 @@
 
 Antrian tiket yang belum selesai. ADR-131, ADR-132.
 
-Mencari kerja tersedia berhenti di file ini. Tiket ✅ dan ⏸️ ada di `tickets/vXX-*.md` — buka file itu hanya setelah ID-nya dipilih, dan hanya section tiket itu.
+Mencari kerja tersedia berhenti di file ini. Tiket ✅ dan ⏸️ ada di `tickets/vXX-*.md`. Tiket yang lahir dari Known Issue ada di `tickets/known-issues.md` (ADR-134). Buka file itu hanya setelah ID-nya dipilih, dan hanya section tiket itu.
 
-Perubahan kode di `apps/` dan `packages/` wajib punya tiket di sini atau di file rilis. Deskripsi: docs → spec → tiket → implement. Bentuknya di [`specs/README.md`](specs/README.md).
+Perubahan kode di `apps/` dan `packages/` wajib punya tiket di sini, di file rilis, atau di `tickets/known-issues.md`. Deskripsi: docs → spec → tiket → implement. Bentuknya di [`specs/README.md`](specs/README.md).
 
 ---
 
 ## Cara pakai
 
 1. Pilih satu ID dari tabel di bawah.
-2. Buka **satu** file rilis, lompat ke heading tiket itu. Ikuti field **Docs** / **Baca dulu**. Jangan menyapu folder `tickets/`.
+2. Buka **satu** file yang disebut kolom File, lompat ke heading tiket itu. Tiket rilis ada di `tickets/vXX-*.md`. Tiket yang lahir dari Known Issue ada di `tickets/known-issues.md` (ADR-134). Ikuti field **Docs** / **Baca dulu**. Jangan menyapu folder `tickets/`.
 3. Kalau pekerjaannya melewati beberapa sesi dan belum ada spec, tulis `specs/S-NNN.md` dulu. Spec pertama adalah **S-001**.
-4. Selesai: status ✅ di file rilis, barisnya dihapus dari tabel ini. Jangan menambah catatan sesi.
+4. Selesai: status ✅ di file tiketnya, barisnya dihapus dari tabel ini. Jangan menambah catatan sesi.
 
 Phase dan blocker ada di [`PROJECT_STATE.md`](PROJECT_STATE.md). Known Issue yang masih terbuka punya baris di tabel KI file itu, dan tiketnya ada di sini.
 
@@ -36,12 +36,12 @@ ID tiket global, tidak didaur ulang. Berikutnya: **T-125**. ID spec berikutnya: 
 | T-008 | 🟡     | Workspace Settings — General + Danger Zone. Termasuk KI-027     | [v0.1](tickets/v01-foundation.md)     |
 | T-013 | 🟡     | Connect account. Sisa: T-013.4 BYOK X                           | [v0.1](tickets/v01-foundation.md)     |
 | T-017 | 🟡     | RLS SQL policies. Sisa: adopsi `withCurrentUser`                | [v0.1](tickets/v01-foundation.md)     |
-| T-119 | 🚫     | Isi env Google OAuth. KI-015. King Rezi yang mengisi rahasianya | [v0.1](tickets/v01-foundation.md)     |
-| T-120 | 🚫     | Hapus dua workspace QA. KI-033. Tunggu konfirmasi King Rezi     | [v0.1](tickets/v01-foundation.md)     |
-| T-122 | ⏳     | Buktikan E2E invite Copy Link, email A vs email B. KI-053       | [v0.1](tickets/v01-foundation.md)     |
-| T-123 | 🚫     | Konfirmasi lebar sidebar. KI-089                                | [v0.1](tickets/v01-foundation.md)     |
-| T-121 | 🚫     | Putuskan meta penulis di History. KI-050                        | [v0.2](tickets/v02-publishing-mvp.md) |
-| T-124 | ⏳     | Bug upstream Prisma adapter-pg (job konkuren). KI-091           | [v0.1](tickets/v01-foundation.md)     |
+| T-119 | 🚫     | Isi env Google OAuth. KI-015. King Rezi yang mengisi rahasianya | [KI](tickets/known-issues.md)         |
+| T-120 | 🚫     | Hapus dua workspace QA. KI-033. Tunggu konfirmasi King Rezi     | [KI](tickets/known-issues.md)         |
+| T-122 | ⏳     | Buktikan E2E invite Copy Link, email A vs email B. KI-053       | [KI](tickets/known-issues.md)         |
+| T-123 | 🚫     | Konfirmasi lebar sidebar. KI-089                                | [KI](tickets/known-issues.md)         |
+| T-121 | 🚫     | Putuskan meta penulis di History. KI-050                        | [KI](tickets/known-issues.md)         |
+| T-124 | ⏳     | Bug upstream Prisma adapter-pg (job konkuren). KI-091           | [KI](tickets/known-issues.md)         |
 
 T-037 prioritas rendah dan tidak memblokir rilis. T-116 → T-117 → T-118 (token-agent) selesai 2026-10-16, lihat `tickets/v01-foundation.md`.
 
@@ -87,5 +87,6 @@ v0.3 dan v0.7 tidak punya tiket terbuka.
 | v0.6  | [tickets/v06-start-page-mvp.md](tickets/v06-start-page-mvp.md)                   |
 | v0.7  | [tickets/v07-astryx-shadcn-migration.md](tickets/v07-astryx-shadcn-migration.md) |
 | v1.0  | [tickets/v10-public-launch.md](tickets/v10-public-launch.md)                     |
+| KI    | [tickets/known-issues.md](tickets/known-issues.md)                               |
 
-T-018 (⏸️) ada di v0.1. Bukan antrian.
+T-018 (⏸️) ada di v0.1. Bukan antrian. Tiket yang lahir dari Known Issue ada di file KI, bukan di file rilis (ADR-134).

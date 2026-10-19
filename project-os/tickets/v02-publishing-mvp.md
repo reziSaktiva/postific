@@ -1783,7 +1783,7 @@ job `import.sync` lain gagal berulang dengan error Prisma
 sudah diinvestigasi tuntas dan BUKAN bug logic T-115 — lihat **KI-091**
 (bug upstream terbuka `prisma/orm#30374` di `@prisma/adapter-pg@7.8.0`,
 dipicu job background konkuren via `Promise.all` di `runPendingJobs`).
-Tiket terpisah **T-124** dibuat untuk melacak remediasinya. T-115.5 tetap
+Tiket terpisah **T-124** (`tickets/known-issues.md`, ADR-134) dibuat untuk melacak remediasinya. T-115.5 tetap
 `[ ]` sampai King Rezi memilih opsi remediasi di T-124 dan retest berhasil
 konsisten.
 
@@ -2286,25 +2286,9 @@ scope T-111 yang disetujui King Rezi):**
 
 ---
 
-## Dari Known Issue (ADR-132)
+## Dari Known Issue
 
-### T-121 · Putuskan meta penulis di detail History
-
-| Field       | Value                                        |
-| ----------- | -------------------------------------------- |
-| **Status**  | 🚫 Blocked                                   |
-| **Domain**  | publishing · UI                              |
-| **Spec**    | tidak ada — muat satu sesi setelah keputusan |
-| **Docs**    | KI-050, T-034                                |
-| **Depends** | T-034 ✅                                     |
-
-**What to build:** Halaman detail History menampilkan penulis post, atau keputusan tertulis bahwa penulis memang tidak ditampilkan.
-
-- [ ] King Rezi memilih: penulis ditampilkan, atau sengaja disembunyikan
-- [ ] Kalau ditampilkan, detail History menunjukkan siapa yang membuat post
-- [ ] Kalau disembunyikan, tiket ini ditutup tanpa perubahan kode
-
-**Blocked by:** keputusan King Rezi
+T-121 (KI-050) ada di [`known-issues.md`](known-issues.md) (ADR-134).
 
 ---
 

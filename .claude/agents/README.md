@@ -118,7 +118,7 @@ Ini bukan sekadar referensi pasif — `AGENTS.md` ("Wajib di awal sesi") dan
 `.claude/skills/project-os-navigator/SKILL.md` (behavior "Pekerjaan Baru")
 mewajibkan AI berhenti di titik ini **sebelum** mulai implementasi kode:
 
-1. Task punya field **Domain** (di `tickets/vXX-*.md`) yang scope-nya
+1. Task punya field **Domain** (di file tiketnya) yang scope-nya
    implementasi kode (bukan diskusi/dokumentasi murni)? → cek tabel
    pemetaan di bawah.
 2. Ada **lebih dari satu task/subtask independen** (domain atau file
@@ -131,7 +131,7 @@ mewajibkan AI berhenti di titik ini **sebelum** mulai implementasi kode:
 
 ## Pemetaan Domain → Subagent
 
-Field **Domain** tiap task di `tickets/vXX-*.md` bisa langsung dipetakan ke
+Field **Domain** tiap task di file tiketnya (`tickets/vXX-*.md` atau `tickets/known-issues.md`) bisa langsung dipetakan ke
 subagent implementasi berikut sebagai titik awal (bukan aturan kaku — cek
 juga `description` di frontmatter masing-masing file peran untuk keputusan
 akhir):

@@ -92,7 +92,8 @@ Termasuk:
 
 - `PROJECT_STATE.md` — source of truth untuk **phase, milestone (M0–M9), overall progress, Active Conversation Mode, Known Issues, dan Blockers**.
 - `AVAILABLE_TICKETS.md` — antrian task yang belum selesai (ADR-131).
-- `tickets/vXX-*.md` — tiket, termasuk yang sudah selesai (ADR-062, ADR-131).
+- `tickets/vXX-*.md` — tiket rilis, termasuk yang sudah selesai (ADR-062, ADR-131).
+- `tickets/known-issues.md` — tiket yang lahir dari Known Issue (ADR-134).
 - `specs/` — spec untuk kerja yang melewati lebih dari satu sesi (ADR-131).
 
 Pembagiannya tegas: status _fase project_ milik `PROJECT_STATE.md`, status _task_ milik `AVAILABLE_TICKETS.md` (yang terbuka) dan `tickets/` (semua tiket). `PROJECT_STATE.md` hanya menyebut ID + judul singkat dan menunjuk ke `AVAILABLE_TICKETS.md`.
@@ -114,7 +115,7 @@ Termasuk:
 
 - README **tidak boleh** memuat status (✅ ⏳ 🟡), progress (%), atau fase aktif.
 - Status folder, milestone, dan fase hanya boleh ditampilkan pada `PROJECT_STATE.md`.
-- **Pengecualian (ADR-062, ADR-131):** status per-task ditampilkan pada `AVAILABLE_TICKETS.md` (yang belum selesai) dan `tickets/vXX-*.md` (semua tiket). Pengecualian ini **tidak** meluas ke phase, milestone, atau overall progress — ketiganya tetap eksklusif milik `PROJECT_STATE.md`, dan tetap terlarang di README maupun dokumen Static Reference lain.
+- **Pengecualian (ADR-062, ADR-131, ADR-134):** status per-task ditampilkan pada `AVAILABLE_TICKETS.md` (yang belum selesai), `tickets/vXX-*.md` (tiket rilis), dan `tickets/known-issues.md` (tiket dari Known Issue). Pengecualian ini **tidak** meluas ke phase, milestone, atau overall progress — ketiganya tetap eksklusif milik `PROJECT_STATE.md`, dan tetap terlarang di README maupun dokumen Static Reference lain.
 - **Known Issues (ADR-066, ADR-067, ADR-131, ADR-132):** setiap KI memakai ID `KI-XXX` yang tidak didaur ulang. KI yang masih terbuka punya tiket. Barisnya di `PROJECT_STATE.md` menunjuk tiket itu. KI keluar dari daftar saat tiket penutupnya selesai.
 - Setiap perubahan struktural pada dokumen Static Reference wajib dicatat sebagai ADR atau di tiket yang terkait.
 
@@ -124,7 +125,7 @@ Supaya `PROJECT_STATE.md` tidak kembali membengkak, dicek sebagai bagian **Defin
 
 - `PROJECT_STATE.md` section "Completed (Ringkasan)" dijaga **≤ 5 item** (rolling window item terbaru — aturan mengikat, lihat `.claude/skills/project-os-navigator/SKILL.md` § "3. Pekerjaan Baru / Pembuatan Dokumen"); "Recent Decisions (Ringkasan)" dijaga ≤ ~10 item. Item yang tergeser keluar tetap di tiket `tickets/` dan di `DECISIONS.md`.
 - `AVAILABLE_TICKETS.md` hanya berisi task yang belum selesai. Mencari antrian berhenti di file itu (ADR-131).
-- Tiket, termasuk yang sudah ✅, tetap di `tickets/vXX-*.md`. AI membuka file itu hanya setelah ID dipilih, dan hanya section tiket itu.
+- Tiket rilis, termasuk yang sudah ✅, tetap di `tickets/vXX-*.md`. Tiket yang lahir dari Known Issue ada di `tickets/known-issues.md` (ADR-134). AI membuka file itu hanya setelah ID dipilih, dan hanya section tiket itu.
 - Tiket baru mengikuti bentuk di `specs/README.md`: what to build, acceptance, blocked by, tautan spec atau "tidak ada — muat satu sesi". Jangan menulis cerita sesi ke dalam tiket. Riwayat sesi ada di git.
 
 ---
@@ -219,7 +220,7 @@ Sebuah milestone dianggap selesai apabila:
 - Keputusan penting telah dicatat pada `DECISIONS.md`.
 - Tidak terdapat blocker yang belum diselesaikan.
 - `PROJECT_STATE.md` telah diperbarui.
-- Status tiket di `tickets/vXX-*.md` telah diperbarui, dan baris task yang selesai sudah keluar dari `AVAILABLE_TICKETS.md` (ADR-131). Milestone tidak boleh dinyatakan selesai kalau antrian masih basi.
+- Status tiket di `tickets/vXX-*.md` atau `tickets/known-issues.md` telah diperbarui, dan baris task yang selesai sudah keluar dari `AVAILABLE_TICKETS.md` (ADR-131, ADR-134). Milestone tidak boleh dinyatakan selesai kalau antrian masih basi.
 - Guardrail ukuran dokumen (lihat **Documentation Governance**) sudah dicek — rotasi ringkasan `PROJECT_STATE.md` kalau perlu.
 
 ---

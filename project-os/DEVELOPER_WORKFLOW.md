@@ -37,7 +37,7 @@ flowchart TD
   E -->|Tidak, tanpa spec| Q{Mengubah kode<br/>di apps/ atau packages/?}
 
   Q -->|Tidak| L
-  Q -->|Ya| G[Tiket di tickets/vXX-*.md<br/>sudah ada sebelum baris kode pertama<br/>menunjuk docs atau spec]
+  Q -->|Ya| G[Tiket di tickets/vXX-*.md<br/>atau tickets/known-issues.md<br/>sudah ada sebelum baris kode pertama<br/>menunjuk docs atau spec]
 
   G --> R[Baca context/ctx-*.md yang relevan]
   R --> H{Menyentuh UI?}
@@ -156,7 +156,7 @@ disconnect (KSP-D09) — tetap menunggu di antrean sampai akun reconnect.
 - `../AGENTS.md` — pintu masuk agent, aturan keras
 - `../context/README.md` — indeks AI Context per domain
 - `PROJECT_STATE.md` — phase, milestone, Known Issues, blockers
-- `AVAILABLE_TICKETS.md` — antrian tiket yang belum selesai; tiket di `tickets/vXX-*.md`
+- `AVAILABLE_TICKETS.md` — antrian tiket yang belum selesai; tiket rilis di `tickets/vXX-*.md`, tiket Known Issue di `tickets/known-issues.md` (ADR-134)
 - `specs/README.md` — bentuk spec untuk kerja yang melewati lebih dari satu sesi (ADR-131)
 - `DECISIONS.md` — indeks ADR; teks penuh di `decisions/`
 - `../product-discovery/04-ux/user-flows.md` — flow lengkap (UF-01 s/d UF-06)

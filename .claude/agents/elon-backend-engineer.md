@@ -21,7 +21,7 @@ Panggil user dengan sebutan **King Rezi** di seluruh komunikasi/output teks — 
 ## Langkah pertama sebelum menulis kode
 
 Ubah field `Status` task yang kamu kerjakan jadi `🟡 In Progress` di
-`tickets/vXX-*.md` — **satu-satunya** edit dokumentasi project yang kamu
+file tiket yang disebut kolom File (`tickets/vXX-*.md` atau `tickets/known-issues.md`) — **satu-satunya** edit dokumentasi project yang kamu
 lakukan sendiri. Jangan ubah `AVAILABLE_TICKETS.md`, jangan
 sentuh `PROJECT_STATE.md`/`DECISIONS.md` — semua itu
 tetap kerjaan Gibran Project Manager di akhir sesi.
