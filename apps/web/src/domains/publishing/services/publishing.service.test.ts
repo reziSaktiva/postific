@@ -1230,8 +1230,14 @@ describe("PublishingService.getPostPerformance", () => {
   });
 
   it("tidak menghitung post Imported di Post Performance", async () => {
-    let received: Parameters<IPublishingRepository["listHistory"]>[0] | null =
-      null;
+    // Wrapper object, bukan `let` langsung — TS tidak bisa menyimpulkan
+    // closure `listHistory` di bawah benar-benar jalan sebelum `expect`,
+    // jadi `let received: X | null` akan ter-narrow jadi literal `null`
+    // di titik baca (lihat `received.input?.statuses` di bawah: field pada
+    // objek `const` tidak kena masalah narrowing yang sama).
+    const received: {
+      input: Parameters<IPublishingRepository["listHistory"]>[0] | null;
+    } = { input: null };
     const published = createHistoryItem({
       id: asPostId("post-published"),
       publishedAt: WITHIN_WEEK,
@@ -1245,7 +1251,7 @@ describe("PublishingService.getPostPerformance", () => {
     const service = new PublishingService(
       createFakeRepository({
         listHistory: async (input) => {
-          received = input;
+          received.input = input;
           const statuses = input.statuses ?? [];
           return [published, imported].filter((item) =>
             statuses.includes(item.status),
@@ -1261,7 +1267,7 @@ describe("PublishingService.getPostPerformance", () => {
       AUTHOR_ID,
     );
 
-    expect(received?.statuses).toEqual([
+    expect(received.input?.statuses).toEqual([
       ContentStatus.Published,
       ContentStatus.Failed,
     ]);
