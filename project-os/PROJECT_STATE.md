@@ -127,15 +127,11 @@ daftar/detail task di sini** (ADR-062, ADR-131).
 | KI     | Status                                                                                  | Tiket                                 |
 | ------ | --------------------------------------------------------------------------------------- | ------------------------------------- |
 | KI-015 | Sebagian Resolved — sisa: env Google OAuth belum diisi                                  | [T-119](tickets/known-issues.md)      |
-| KI-027 | Open — konfirmasi desain selector Admin                                                 | [T-008](tickets/v01-foundation.md)    |
 | KI-028 | Open — environment production belum ada                                                 | [T-088](tickets/v10-public-launch.md) |
-| KI-033 | Open — dua workspace QA belum dihapus                                                   | [T-120](tickets/known-issues.md)      |
-| KI-050 | Open — meta penulis di History belum diputuskan                                         | [T-121](tickets/known-issues.md)      |
 | KI-053 | Sisa: bukti E2E email A vs email B. Perbaikan kodenya di T-110 ✅                       | [T-122](tickets/known-issues.md)      |
-| KI-089 | Open — lebar sidebar belum dikonfirmasi                                                 | [T-123](tickets/known-issues.md)      |
 | KI-091 | Open — retest lokal lulus setelah lock `void` pindah ke `$executeRaw`. Belum di staging | [T-124](tickets/known-issues.md)      |
 
-KI yang tiketnya sudah selesai dikeluarkan dari daftar ini pada 2026-10-16 (ADR-132): KI-044 (T-108), KI-046 (T-007.7), KI-049 dan KI-063 (T-107), KI-058 (T-109), KI-086 (ADR-127), KI-088 (T-090), KI-090 (T-113).
+KI yang tiketnya sudah selesai dikeluarkan dari daftar ini pada 2026-10-16 (ADR-132): KI-044 (T-108), KI-046 (T-007.7), KI-049 dan KI-063 (T-107), KI-058 (T-109), KI-086 (ADR-127), KI-088 (T-090), KI-090 (T-113). Pada 2026-10-19: KI-027 (T-008), KI-033 (T-120), KI-050 (T-121), KI-089 (T-123).
 
 ---
 
@@ -185,11 +181,11 @@ seluruh daftar Known Issues.
 
 ## Completed (Ringkasan)
 
+- **T-008, T-120, T-121, T-123 ✅ Done (2026-10-19)** — empat keputusan King Rezi via `AskUserQuestion` menutup tiket: T-008 (KI-027, pola Selector Admin target diterima, Claude Design disinkronkan), T-120 (KI-033, 2 workspace QA terhapus & terverifikasi), T-121 (KI-050, History Detail menampilkan penulis lewat `AuthorPort`/`IdentityService`, QA PASS), T-123 (KI-089, lebar sidebar dikunci `18rem` — sudah sesuai kode, tanpa perubahan kode). Detail: `tickets/v01-foundation.md` § T-008, `tickets/known-issues.md` § T-120/T-121/T-123.
 - **T-116 → T-117 → T-118 ✅ Done — biaya token `AGENTS.md` dipangkas (2026-10-16, ADR-133)** — tiga berkas panduan vendor Vercel di `.claude/skills/` (±134 KB total) berganti nama `AGENTS.md` → `REFERENCE.md` supaya tidak ikut termuat penuh di setiap giliran Cursor. `AGENTS.md` root ditipiskan (304 baris/20.4 KB → 138 baris/8.9 KB — esai dipindah jadi penunjuk ke `project-os-navigator/SKILL.md` dan `context/ctx-technical-context.md`). Navigator mendapat aturan baru: perubahan sepele dikerjakan agen utama tanpa evaluasi Domain → Subagent, dan satu task per percakapan. Detail: `tickets/v01-foundation.md` § Konteks agent.
 - **KI-086 ✅ Resolved — reconnect Facebook `disconnected`/`reconnect-required` tidak lagi dead flow (2026-10-15, ADR-127)** — `createConnectedAccounts` kini mereaktivasi row existing yang bukan `active` (lewat flow "Connect Account" → Facebook Pages Picker), bukan skip diam-diam. Claude Design dicek dulu (rule 17): pola Reconnect generik, tidak ada pengecualian Facebook di desain. Scope dikunci backend-only — `ReconnectButton` tetap disembunyikan untuk Facebook (adapter throw eksplisit untuk platform ini, bukan gap UI). Detail: `decisions/ADR-127-reaktivasi-connected-account-facebook-ki086.md`.
 - **KI-088 ✅ Resolved — gap `actingUserId` jalur periodik Import Posts ditutup (2026-10-15)** — King Rezi memilih (lewat `AskUserQuestion`) reuse pola JOB-04/JOB-03 (`findAccountOwnerByOutstandAccountId`) alih-alih `Workspace.ownerId` langsung. `triggerPeriodicForAccounts` sekarang me-resolve `actingUserId` sendiri per akun, tanpa dependency baru di composition root. Detail: `tickets/v02-publishing-mvp.md` § T-090 addendum.
 - **T-114 ✅ TUNTAS 5/5 subtask — backfill otomatis `outstandPostId` post Imported lama (2026-10-15)** — lanjutan langsung T-113: 36 dari 39 post Imported lama di akun test masih `outstandPostId: null` (T-113 cuma memperbaiki import baru ke depan). Mekanisme permanen ditambahkan — tiap Sync Now/periodik otomatis backfill kalau masih ada gap, reuse namespace lock T-113. 0 temuan review Ridwan. Diverifikasi end-to-end nyata: 39/39 ter-backfill setelah satu kali Sync Now. Detail: `tickets/v02-publishing-mvp.md` § T-114.
-- **T-113 ✅ TUNTAS 4/4 subtask — comment post Imported ikut ter-sync ke Engage Inbox (2026-10-15)** — promosi **KI-090**. `outstandPostId` kini ditangkap+disimpan untuk post hasil Import Posts. 2 bug konkurensi/cross-post CONFIRMED ditemukan & diperbaiki lewat 3 ronde review Ridwan (unique index global, lalu race antar transaksi via `pg_advisory_xact_lock`). Diverifikasi end-to-end nyata: comment Reels Facebook berhasil masuk Comments Inbox. Detail: `tickets/v02-publishing-mvp.md` § T-113.
   Berikut 5 item terakhir yang diselesaikan. Tiket lengkapnya ada di `tickets/`. Riwayat sesi ada di git.
 
 ---

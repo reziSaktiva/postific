@@ -181,6 +181,10 @@ function mapHistoryItem(post: QueuePostWithTargets): HistoryItemRecord {
     createdAt: post.createdAt,
     updatedAt: post.updatedAt,
     mediaIds: post.mediaIds.map((id) => asMediaId(id)),
+    // T-121/KI-050 — `null` sah untuk post `Imported` (ADR-093), tidak
+    // lewat `requireAuthorId` (beda dari `mapPost`, yang hanya dipanggil
+    // untuk jalur Draft→Schedule/Publish yang selalu mewajibkan authorId).
+    authorId: post.authorId ? asUserId(post.authorId) : null,
     targets: post.targets.map((target): HistoryItemTargetRecord => ({
       id: asPostTargetId(target.id),
       connectedAccountId: asConnectedAccountId(target.connectedAccountId),

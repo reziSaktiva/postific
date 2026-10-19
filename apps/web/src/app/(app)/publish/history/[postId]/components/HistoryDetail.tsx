@@ -32,6 +32,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+import { formatAuthorLabel } from "../../../../components/author-label";
 import {
   formatEngagementRate,
   formatMetricCount,
@@ -177,10 +178,12 @@ export interface HistoryDetailProps {
  * tetap terlihat ter-mount di belakang (untuk transisi/animasi tertentu),
  * itu perlu task terpisah untuk setup intercepting route.
  *
- * **Gap dilaporkan (sudah ada sejak T-034.3, belum berubah):** mockup
- * asli menyebut meta "dibuat oleh siapa", tapi `HistoryItemRecord` tidak
- * membawa `authorId`/nama author — field baru tidak ditambahkan di luar
- * scope task ini.
+ * **T-121 (menutup KI-050, 2026-10-19):** gap "dibuat oleh siapa" di atas
+ * sudah ditutup — King Rezi memutuskan penulis DITAMPILKAN. Label "Dibuat
+ * oleh <nama>" dirender di bawah timestamp "Dibuat X lalu" lewat
+ * `formatAuthorLabel` (`author-label.ts`) — semantik null `authorId`/
+ * `authorName` ada di situ dan di `HistoryDetailItem.authorName`
+ * (`publishing.service.ts`), tidak diulang di sini.
  *
  * **Gap baru (T-111.2):** `HistoryItemTargetRecord` tidak membawa
  * `avatarUrl` akun (hanya `accountHandle`) — `ChannelAvatarBadge` per
@@ -198,6 +201,7 @@ export function HistoryDetail({ item, thumbnail }: HistoryDetailProps) {
   // `router.push` selesai (bisa lambat di koneksi lemah) — lihat komentar
   // di atas soal keputusan tidak memakai intercepting route.
   const [isOpen, setIsOpen] = useState(true);
+  const authorLabel = formatAuthorLabel(item);
 
   return (
     <Dialog
@@ -237,6 +241,11 @@ export function HistoryDetail({ item, thumbnail }: HistoryDetailProps) {
             <Text variant="muted" as="span" className="text-xs">
               Dibuat {formatRelativeTime(item.createdAt)}
             </Text>
+            {authorLabel ? (
+              <Text variant="muted" as="span" className="text-xs">
+                {authorLabel}
+              </Text>
+            ) : null}
           </div>
 
           {thumbnail ? (

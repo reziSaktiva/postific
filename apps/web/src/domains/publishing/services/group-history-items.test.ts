@@ -1,4 +1,4 @@
-import { ContentStatus, asPostId } from "@postific/shared";
+import { ContentStatus, asPostId, asUserId } from "@postific/shared";
 import { describe, expect, it } from "vitest";
 import type { HistoryItemRecord } from "../repositories/publishing.repository";
 import { groupHistoryItemsByDate } from "./group-history-items";
@@ -15,6 +15,7 @@ function createHistoryItem(
     createdAt: new Date("2026-07-13T00:00:00Z"),
     updatedAt: new Date("2026-07-14T10:00:00Z"),
     mediaIds: [],
+    authorId: asUserId("user-1"),
     targets: [],
     ...overrides,
   };
