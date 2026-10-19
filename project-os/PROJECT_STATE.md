@@ -133,6 +133,7 @@ daftar/detail task di sini** (ADR-062, ADR-131).
 | KI-050 | Open — meta penulis di History belum diputuskan                   | [T-121](tickets/v02-publishing-mvp.md) |
 | KI-053 | Sisa: bukti E2E email A vs email B. Perbaikan kodenya di T-110 ✅ | [T-122](tickets/v01-foundation.md)     |
 | KI-089 | Open — lebar sidebar belum dikonfirmasi                           | [T-123](tickets/v01-foundation.md)     |
+| KI-091 | Open — bug upstream Prisma adapter-pg rusak saat job konkuren     | [T-124](tickets/v01-foundation.md)     |
 
 KI yang tiketnya sudah selesai dikeluarkan dari daftar ini pada 2026-10-16 (ADR-132): KI-044 (T-108), KI-046 (T-007.7), KI-049 dan KI-063 (T-107), KI-058 (T-109), KI-086 (ADR-127), KI-088 (T-090), KI-090 (T-113).
 

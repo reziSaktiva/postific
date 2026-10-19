@@ -1772,6 +1772,21 @@ sepadan) dibahas di `CONVERSATIONS.md` entri 2026-10-16 tapi tidak dipilih.
       yang ditambahkan langsung di Facebook muncul di Postific dalam
       waktu ≤24 jam tanpa klik "Sync Now"
 
+**Catatan (2026-10-19) — T-115.5 dicoba, belum lolos penuh:** PR 179 merge
+ke staging, migration `import_list_accounts_for_periodic_sync` ter-apply
+otomatis (Railway `preDeployCommand`). `?type=import` dipanggil manual —
+mekanisme enqueue + fan-out + watermark terbukti BENAR (satu akun sukses
+penuh, `lastImportedUntil` ter-update), tapi eksekusinya **tidak konsisten**:
+job `import.sync` lain gagal berulang dengan error Prisma
+`Failed to deserialize column of type 'void'` dari `$queryRaw`, intermiten
+(akun yang sama bisa sukses lalu gagal di percobaan berikutnya). Root cause
+sudah diinvestigasi tuntas dan BUKAN bug logic T-115 — lihat **KI-091**
+(bug upstream terbuka `prisma/orm#30374` di `@prisma/adapter-pg@7.8.0`,
+dipicu job background konkuren via `Promise.all` di `runPendingJobs`).
+Tiket terpisah **T-124** dibuat untuk melacak remediasinya. T-115.5 tetap
+`[ ]` sampai King Rezi memilih opsi remediasi di T-124 dan retest berhasil
+konsisten.
+
 ---
 
 ## Read-Only Enforcement

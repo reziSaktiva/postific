@@ -23,7 +23,7 @@ Phase dan blocker ada di [`PROJECT_STATE.md`](PROJECT_STATE.md). Known Issue yan
 | 🟡     | Sedang dikerjakan                                 |
 | 🚫     | Terhenti, menunggu King Rezi atau dependency luar |
 
-ID tiket global, tidak didaur ulang. Berikutnya: **T-124**. ID spec berikutnya: **S-001**.
+ID tiket global, tidak didaur ulang. Berikutnya: **T-125**. ID spec berikutnya: **S-001**.
 
 ---
 
@@ -41,6 +41,7 @@ ID tiket global, tidak didaur ulang. Berikutnya: **T-124**. ID spec berikutnya: 
 | T-122 | ⏳     | Buktikan E2E invite Copy Link, email A vs email B. KI-053       | [v0.1](tickets/v01-foundation.md)     |
 | T-123 | 🚫     | Konfirmasi lebar sidebar. KI-089                                | [v0.1](tickets/v01-foundation.md)     |
 | T-121 | 🚫     | Putuskan meta penulis di History. KI-050                        | [v0.2](tickets/v02-publishing-mvp.md) |
+| T-124 | ⏳     | Bug upstream Prisma adapter-pg (job konkuren). KI-091           | [v0.1](tickets/v01-foundation.md)     |
 
 T-037 prioritas rendah dan tidak memblokir rilis. T-116 → T-117 → T-118 (token-agent) selesai 2026-10-16, lihat `tickets/v01-foundation.md`.
 

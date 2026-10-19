@@ -862,9 +862,68 @@ Navigator sudah melarang membaca `PROJECT_STATE` utuh, `COMPLETE_TASK`, dan selu
 
 ---
 
+### T-124 · Bug upstream Prisma `@prisma/adapter-pg` merusak koneksi pool saat job background jalan konkuren
+
+| Field       | Value                                                                 |
+| ----------- | --------------------------------------------------------------------- |
+| **Status**  | ⏳ Not Started                                                        |
+| **Domain**  | platform · jobs                                                       |
+| **Spec**    | tidak ada — menunggu fix upstream atau keputusan workaround King Rezi |
+| **Docs**    | KI-091                                                                |
+| **Depends** | — (ditemukan saat verifikasi staging T-115.5)                         |
+
+**What to build:** belum ada implementasi — tiket ini murni pelacak bug upstream
+sampai King Rezi memutuskan workaround mana yang dipakai (lihat KI-091 untuk
+detail lengkap root cause dan opsi).
+
+Ditemukan 2026-10-19 saat verifikasi end-to-end staging T-115.5 (wiring cron
+Import Posts periodik). `POST /api/jobs/run?type=import` memicu error
+intermiten `Invalid prisma.$queryRaw() invocation: Failed to deserialize
+column of type 'void'` pada sebagian job `import.sync` — job yang sama untuk
+akun yang sama kadang sukses kadang gagal pada percobaan berurutan.
+
+Root cause: bug terbuka upstream [`prisma/orm#30374`](https://github.com/prisma/orm/issues/30374)
+di `@prisma/adapter-pg@7.8.0` (versi persis yang dipakai project ini) — kalau
+ada error level-Postgres ASLI (bukan `throw` JS) terjadi di dalam interactive
+transaction (`prisma.$transaction`, dipakai lewat `withCurrentUser()` di
+`apps/web/src/lib/prisma/with-current-user.ts`), koneksi `pg.Client` yang
+dipegang jadi rusak — query BERIKUTNYA di client yang sama (bisa milik job
+lain yang berbeda) menerima payload query lain, muncul sebagai error
+deserialize acak. PR perbaikannya ([`prisma/orm#29979`](https://github.com/prisma/orm/pull/29979))
+juga masih belum di-merge per 2026-10-19.
+
+**Kenapa baru muncul sekarang:** `runPendingJobs` (`apps/web/src/lib/jobs/job-runner.ts`)
+menjalankan seluruh job yang diklaim lewat `Promise.all` — konkuren. T-115
+menambah `import.sync` (pakai `withCurrentUser` lewat `updateImportWatermark`/
+`getImportWatermark`) ke campuran job yang sudah ada (`analytics.sync`,
+`engagement.sync`, dst.) — menaikkan peluang lebih dari satu interactive
+transaction jalan bersamaan dalam satu batch cron, yang menjadi prasyarat bug
+ini muncul. Ini BUKAN bug logic T-115 — T-115 sendiri sudah diverifikasi
+benar (enqueue jalan, watermark ter-update saat sukses, guard concurrent
+tetap menyala).
+
+- [ ] King Rezi memilih salah satu opsi remediasi (atau opsi lain):
+  - Serialize `runPendingJobs` — jalankan job satu per satu (bukan
+    `Promise.all`) supaya tidak ada >1 interactive transaction konkuren di
+    satu `pg.Pool`. Trade-off: batch job lebih lambat (batas request Railway
+    30 detik, BG-D05).
+  - Upgrade/downgrade versi Prisma kalau ada rilis yang sudah fix
+    `prisma/orm#30374` (per 2026-10-19 belum ada — RC `8.0.0-rc.23`
+    statusnya belum diverifikasi fix issue ini).
+  - Terima risiko untuk sementara — retry/backoff background job (maks 4
+    attempts) kemungkinan besar akhirnya berhasil karena sifat bug-nya
+    intermiten, tapi akun bisa dead-letter kalau 4x berturut-turut apes.
+- [ ] Setelah opsi dipilih dan diimplementasikan: retest `?type=import` di
+      staging untuk akun yang sebelumnya gagal (`4a48b968-c6ef-4b97-a7a2-7c61bd68c089`,
+      `eH82r`), pastikan `lastImportedUntil` ter-update sukses.
+
+**Blocked by:** keputusan remediasi dari King Rezi
+
+---
+
 ## Catatan Rilis
 
-- Nomor kosong v0.1 sudah terpakai semua (T-019 diisi task API mobile). Task v0.1 baru berikutnya memakai nomor global berikutnya yang belum pernah dipakai — jangan menggeser ID yang sudah ada. **T-039** (Migrasi Routing & Settings, ADR-076) memakai nomor ini: ID global berikutnya yang belum pernah dipakai, dipinjam dari ruang kosong yang sebelumnya dicadangkan untuk pertumbuhan v0.2 (lihat Catatan Rilis `tickets/v02-publishing-mvp.md`) — task tetap ditempatkan di file v0.1 karena scope-nya (Workspace/Settings routing) sejalan dengan T-009/T-016, bukan v0.2 Publishing. **T-089** (Workspace Switcher, ADR-088, 2026-08-24) juga memakai pola yang sama: ID global berikutnya yang belum pernah dipakai sama sekali (bukan dipinjam dari cadangan release manapun, karena seluruh rentang T-080–T-088 v1.0 sudah terisi) — ditempatkan di file v0.1 karena lahir sebagai amandemen ADR-076/T-039 (Workspace context & Settings), bukan task baru terpisah dari rumpun ini. **T-093** (Accept Invite page, 2026-08-28) memakai pola yang sama lagi — ID global berikutnya setelah T-092 (v0.2, ADR-094) — menutup gap yang sudah dicatat sejak ADR-080 (2026-08-14, halaman `/invite/[token]` belum pernah dibuat) tapi baru diberi nomor sekarang, saat King Rezi mengoreksi rantai dependency Realtime Calendar (invite-to-membership harus utuh dulu sebelum T-036/T-092 bisa diverifikasi dengan ≥2 akun nyata). **T-109**/**T-110** (ditambah 2026-09-28, promosi dari Known Issues KI-058/KI-053 setelah audit aplikasi menyeluruh dan keputusan mitigasi King Rezi) memakai ID global berikutnya setelah T-108 (v0.2, `tickets/v02-publishing-mvp.md`) — ditempatkan di file ini karena domain `workspace`/`identity`, masing-masing kelanjutan langsung T-015 dan T-093. **T-116**/**T-117**/**T-118** (ditambah 2026-10-16, diskusi biaya token agent) memakai ID global berikutnya setelah T-115 — ditempatkan di file ini karena domain `platform/tooling`, bukan fitur rilis produk. Urutan wajib: T-116 → T-117 → T-118.
+- Nomor kosong v0.1 sudah terpakai semua (T-019 diisi task API mobile). Task v0.1 baru berikutnya memakai nomor global berikutnya yang belum pernah dipakai — jangan menggeser ID yang sudah ada. **T-039** (Migrasi Routing & Settings, ADR-076) memakai nomor ini: ID global berikutnya yang belum pernah dipakai, dipinjam dari ruang kosong yang sebelumnya dicadangkan untuk pertumbuhan v0.2 (lihat Catatan Rilis `tickets/v02-publishing-mvp.md`) — task tetap ditempatkan di file v0.1 karena scope-nya (Workspace/Settings routing) sejalan dengan T-009/T-016, bukan v0.2 Publishing. **T-089** (Workspace Switcher, ADR-088, 2026-08-24) juga memakai pola yang sama: ID global berikutnya yang belum pernah dipakai sama sekali (bukan dipinjam dari cadangan release manapun, karena seluruh rentang T-080–T-088 v1.0 sudah terisi) — ditempatkan di file v0.1 karena lahir sebagai amandemen ADR-076/T-039 (Workspace context & Settings), bukan task baru terpisah dari rumpun ini. **T-093** (Accept Invite page, 2026-08-28) memakai pola yang sama lagi — ID global berikutnya setelah T-092 (v0.2, ADR-094) — menutup gap yang sudah dicatat sejak ADR-080 (2026-08-14, halaman `/invite/[token]` belum pernah dibuat) tapi baru diberi nomor sekarang, saat King Rezi mengoreksi rantai dependency Realtime Calendar (invite-to-membership harus utuh dulu sebelum T-036/T-092 bisa diverifikasi dengan ≥2 akun nyata). **T-109**/**T-110** (ditambah 2026-09-28, promosi dari Known Issues KI-058/KI-053 setelah audit aplikasi menyeluruh dan keputusan mitigasi King Rezi) memakai ID global berikutnya setelah T-108 (v0.2, `tickets/v02-publishing-mvp.md`) — ditempatkan di file ini karena domain `workspace`/`identity`, masing-masing kelanjutan langsung T-015 dan T-093. **T-116**/**T-117**/**T-118** (ditambah 2026-10-16, diskusi biaya token agent) memakai ID global berikutnya setelah T-115 — ditempatkan di file ini karena domain `platform/tooling`, bukan fitur rilis produk. Urutan wajib: T-116 → T-117 → T-118. **T-124** (ditambah 2026-10-19, bug upstream Prisma ditemukan saat verifikasi staging T-115.5, KI-091) memakai ID global berikutnya setelah T-123 — ditempatkan di file ini karena domain `platform/jobs` (infra job runner lintas domain), bukan fitur rilis produk.
 - **Definisi "Foundation selesai":** semua task di rilis ini `✅ Done` **kecuali** yang secara sadar ditunda dengan alasan tercatat — dan **kecuali tiga task yang menunggu v0.2** (lihat di bawah). **T-012** (Sidebar Channels) sebelumnya termasuk daftar ini tapi sudah ✅ Done (2026-08-12) — T-012.2 (scheduled count) ternyata tidak perlu menunggu real Outstand adapter, cukup data `PublishingPost`/`PublishingPostTarget` yang sudah ada sejak T-028.
 - **Task v0.1 yang tidak bisa ditutup sebelum v0.2 berjalan** (dependency lintas rilis, disengaja dan diketahui):
   - **T-013** Connect account — sisa T-013.4 (operasional BYOK X) murni operasional, bukan dependency v0.2. T-013.1/2/3 sudah selesai (2026-09-11), diselesaikan lewat Fake adapter (ADR-105, ADR-059 pattern) tanpa menunggu T-025 (Real OutstandAdapter, v0.2, kredensial belum ada).
