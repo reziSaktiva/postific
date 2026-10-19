@@ -70,21 +70,20 @@ function createStore(
 
   const tx = {
     $executeRaw: async (
-      _strings: TemplateStringsArray,
+      strings: TemplateStringsArray,
       ...values: unknown[]
     ) => {
-      // Hanya lock per-workspace yang masih lewat `$executeRaw` — lock
-      // per-`outstandPostId` sekarang dibatch lewat `$queryRaw` (unnest).
+      const sql = strings.join("?");
+      if (sql.includes("publishing.outstand_post_id")) {
+        const ids = values[0] as string[];
+        for (const id of ids) calls.push(`post-lock:${id}`);
+        return 1;
+      }
       calls.push(`lock:${String(values[0])}`);
       return 1;
     },
-    $queryRaw: async (strings: TemplateStringsArray, ...values: unknown[]) => {
-      const sql = strings.join("?");
+    $queryRaw: async (_strings: TemplateStringsArray, ...values: unknown[]) => {
       const ids = values[0] as string[];
-      if (sql.includes("publishing.outstand_post_id")) {
-        for (const id of ids) calls.push(`post-lock:${id}`);
-        return [];
-      }
       const rows: {
         outstand_post_id: string;
         post_id: string;

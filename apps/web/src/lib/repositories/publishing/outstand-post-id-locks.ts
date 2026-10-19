@@ -42,7 +42,10 @@ export async function lockOutstandPostIds(
 ): Promise<void> {
   if (sortedOutstandPostIds.length === 0) return;
 
-  await tx.$queryRaw`
+  // `$executeRaw`, sama seperti lock workspace. `pg_advisory_xact_lock`
+  // mengembalikan `void`; `$queryRaw` gagal mendeserialisasi kolom itu
+  // (KI-091, "Failed to deserialize column of type 'void'").
+  await tx.$executeRaw`
     SELECT pg_advisory_xact_lock(hashtext('publishing.outstand_post_id'), hashtext(id))
     FROM unnest(${sortedOutstandPostIds}::text[]) AS t(id)
     ORDER BY id

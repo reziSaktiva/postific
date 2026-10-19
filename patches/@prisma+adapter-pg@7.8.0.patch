@@ -1,0 +1,92 @@
+diff --git a/dist/index.js b/dist/index.js
+index d595ae4..4d364ec 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -595,6 +595,9 @@ var PgQueryable = class {
+   }
+   provider = "postgres";
+   adapterName = name;
++  // KI-091 / prisma/orm#29979: satu koneksi pg tidak boleh menjalankan dua query bersamaan.
++  serializeQueries = true;
++  #queryLock = Promise.resolve();
+   /**
+    * Execute a query given as SQL, interpolating the given parameters.
+    */
+@@ -648,6 +651,22 @@ var PgQueryable = class {
+    * marked as unhealthy.
+    */
+   async performIO(query) {
++    if (!this.serializeQueries) {
++      return this.#performIO(query);
++    }
++    const previous = this.#queryLock;
++    let release;
++    this.#queryLock = new Promise((resolve) => {
++      release = resolve;
++    });
++    await previous;
++    try {
++      return await this.#performIO(query);
++    } finally {
++      release();
++    }
++  }
++  async #performIO(query) {
+     const { sql, args } = query;
+     const values = args.map((arg, i) => mapArg(arg, query.argTypes[i]));
+     try {
+@@ -711,6 +730,8 @@ var PrismaPgAdapter = class extends PgQueryable {
+     this.pgOptions = pgOptions;
+     this.release = release;
+   }
++  // Pool sudah mengatur konkurensi sendiri. Jangan antri seluruh pool.
++  serializeQueries = false;
+   async startTransaction(isolationLevel) {
+     const options = {
+       usePhantomQuery: false
+diff --git a/dist/index.mjs b/dist/index.mjs
+index c7ae0dc..1cba477 100644
+--- a/dist/index.mjs
++++ b/dist/index.mjs
+@@ -559,6 +559,9 @@ var PgQueryable = class {
+   }
+   provider = "postgres";
+   adapterName = name;
++  // KI-091 / prisma/orm#29979: satu koneksi pg tidak boleh menjalankan dua query bersamaan.
++  serializeQueries = true;
++  #queryLock = Promise.resolve();
+   /**
+    * Execute a query given as SQL, interpolating the given parameters.
+    */
+@@ -612,6 +615,22 @@ var PgQueryable = class {
+    * marked as unhealthy.
+    */
+   async performIO(query) {
++    if (!this.serializeQueries) {
++      return this.#performIO(query);
++    }
++    const previous = this.#queryLock;
++    let release;
++    this.#queryLock = new Promise((resolve) => {
++      release = resolve;
++    });
++    await previous;
++    try {
++      return await this.#performIO(query);
++    } finally {
++      release();
++    }
++  }
++  async #performIO(query) {
+     const { sql, args } = query;
+     const values = args.map((arg, i) => mapArg(arg, query.argTypes[i]));
+     try {
+@@ -675,6 +694,8 @@ var PrismaPgAdapter = class extends PgQueryable {
+     this.pgOptions = pgOptions;
+     this.release = release;
+   }
++  // Pool sudah mengatur konkurensi sendiri. Jangan antri seluruh pool.
++  serializeQueries = false;
+   async startTransaction(isolationLevel) {
+     const options = {
+       usePhantomQuery: false
