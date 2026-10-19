@@ -51,6 +51,10 @@ import { Text } from "@/components/ui/text";
 
 import { PLATFORM_ICON } from "../../../components/platform-icons";
 import {
+  historyListClockDate,
+  historyListShowsPublishMeta,
+} from "../history-list-row";
+import {
   HISTORY_STATUS_BADGE_VARIANT,
   HISTORY_STATUS_LABEL,
 } from "../history-status";
@@ -333,14 +337,14 @@ export function HistoryList({
 
               <ItemGroup className="gap-2">
                 {group.items.map((item) => {
-                  // T-126: `Imported` dianggap sama dengan `Published` di
-                  // sini (sama-sama terminal-sukses, bukan error) — tanpa
-                  // ini, copy error "Gagal dipublikasikan." (merah) akan
-                  // salah tampil untuk post Imported.
-                  const isPublished =
-                    item.status === ContentStatus.Published ||
-                    item.status === ContentStatus.Imported;
-                  const effectiveDate = item.publishedAt ?? item.updatedAt;
+                  // T-126: `Imported` sama dengan `Published` untuk teks
+                  // meta (terminal-sukses). Jam di kiri kartu mengikuti
+                  // `updatedAt`, sama dengan judul tanggal kelompok —
+                  // `publishedAt` post impor bisa berminggu-minggu lebih awal.
+                  const showsPublishMeta = historyListShowsPublishMeta(
+                    item.status,
+                  );
+                  const publishedAt = item.publishedAt ?? item.updatedAt;
 
                   return (
                     <Item
@@ -356,7 +360,7 @@ export function HistoryList({
                           as="span"
                           className="w-12 shrink-0 text-xs"
                         >
-                          {formatItemTime(effectiveDate)}
+                          {formatItemTime(historyListClockDate(item))}
                         </Text>
 
                         {/* eslint-disable-next-line no-restricted-syntax -- layout-only */}
@@ -391,13 +395,13 @@ export function HistoryList({
                             as="span"
                             suppressHydrationWarning
                             className={
-                              isPublished
+                              showsPublishMeta
                                 ? "truncate text-xs"
                                 : "truncate text-xs text-destructive"
                             }
                           >
-                            {isPublished
-                              ? `Dipublikasikan ${formatRelativeTime(effectiveDate, relativeNow)}`
+                            {showsPublishMeta
+                              ? `Dipublikasikan ${formatRelativeTime(publishedAt, relativeNow)}`
                               : getPrimaryErrorMessage(item)}
                           </Text>
                         </ItemContent>

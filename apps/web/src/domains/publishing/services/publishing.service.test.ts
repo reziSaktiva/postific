@@ -1229,6 +1229,45 @@ describe("PublishingService.getPostPerformance", () => {
     ).resolves.toEqual([]);
   });
 
+  it("tidak menghitung post Imported di Post Performance", async () => {
+    let received: Parameters<IPublishingRepository["listHistory"]>[0] | null =
+      null;
+    const published = createHistoryItem({
+      id: asPostId("post-published"),
+      publishedAt: WITHIN_WEEK,
+    });
+    const imported = createHistoryItem({
+      id: asPostId("post-imported"),
+      status: ContentStatus.Imported,
+      authorId: null,
+      publishedAt: WITHIN_WEEK,
+    });
+    const service = new PublishingService(
+      createFakeRepository({
+        listHistory: async (input) => {
+          received = input;
+          const statuses = input.statuses ?? [];
+          return [published, imported].filter((item) =>
+            statuses.includes(item.status),
+          );
+        },
+      }),
+      { getPostMetricsByPosts: async () => new Map() },
+    );
+
+    const result = await service.getPostPerformance(
+      WORKSPACE_ID,
+      "weekly",
+      AUTHOR_ID,
+    );
+
+    expect(received?.statuses).toEqual([
+      ContentStatus.Published,
+      ContentStatus.Failed,
+    ]);
+    expect(result.map((row) => row.postId)).toEqual([published.id]);
+  });
+
   it("maps caption + accountHandle with reach/engagementRate per post and account, sorted by reach descending", async () => {
     const postA = asPostId("post-a");
     const postB = asPostId("post-b");

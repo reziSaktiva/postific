@@ -361,6 +361,10 @@ export interface ComparativeReport {
  * King Rezi mengonfirmasi (`AskUserQuestion`) reuse badge `outline`/
  * "Imported" yang sudah LOCKED di Calendar (T-090.5), tanpa entri baru di
  * filter dropdown status History (`STATUS_OPTIONS`, `HistoryList.tsx`).
+ *
+ * Analyze (`getPostPerformance` dan pemakai turunannya) sengaja TIDAK
+ * memakai seluruh daftar ini. Caller itu mengirim `[Published, Failed]`
+ * eksplisit supaya post impor tidak ikut mengubah angka performa.
  */
 export const HISTORY_TERMINAL_STATUSES: readonly ContentStatus[] = [
   ContentStatus.Published,
@@ -874,8 +878,18 @@ export class PublishingService {
     // difilter di sini) — filter JS di bawah tetap dipertahankan sebagai
     // guard null-safety (`publishedAt` nullable di tipe), bukan lagi
     // pekerjaan utama penyaringan rentang tanggal.
+    //
+    // Status dikunci ke `Published`/`Failed`, bukan default History.
+    // T-126 menambahkan `Imported` ke default itu supaya post impor tampil
+    // di halaman History. Post impor punya `publishedAt` dan target
+    // `published`, jadi ikut default History akan menambah baris di Post
+    // Performance, ringkasan akun, dan laporan perbandingan.
     const historyItems = await this.listHistory(
-      { workspaceId, publishedAtRange: { from, to } },
+      {
+        workspaceId,
+        publishedAtRange: { from, to },
+        statuses: [ContentStatus.Published, ContentStatus.Failed],
+      },
       userId,
     );
     // Half-open `[from, to)` — bukan `<= toMs` (review finding 2026-09-22):

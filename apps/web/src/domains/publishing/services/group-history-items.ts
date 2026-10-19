@@ -32,9 +32,10 @@ export interface HistoryGroup {
  * urutan grup SELALU konsisten dengan urutan `items` — `publishedAt` bisa
  * `null` untuk post `Failed` yang gagal sebelum sempat publish, dan
  * mem-fallback ke field lain di sini akan membuat urutan tanggal grup dan
- * urutan item tidak lagi selaras dengan input. UI (`HistoryList`) tetap
- * bebas menampilkan `publishedAt` sebagai teks waktu per-item Published,
- * terpisah dari kunci grouping ini.
+ * urutan item tidak lagi selaras dengan input. Jam di kiri kartu History
+ * wajib memakai `updatedAt` yang sama (`historyListClockDate`), supaya
+ * jam dan judul tanggal satu hari kalender. Teks "Dipublikasikan …"
+ * boleh memakai `publishedAt`.
  *
  * Pure function (tanpa I/O) supaya bisa diuji tanpa fake repository —
  * lihat `group-history-items.test.ts`.
