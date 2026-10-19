@@ -159,7 +159,7 @@ Workaround sebelumnya tidak cukup, dan dicatat supaya tidak diulang:
 - Job satu per satu: job pertama di batch sudah gagal dengan error yang sama. Antrian itu juga dicabut dari `runPendingJobs` karena menabrak reclaim 30 detik (BG-D04).
 - Patch lokal `@prisma/adapter-pg@7.8.0` (isi `prisma/orm#29979`, query di satu koneksi diantrikan) terpasang dan ter-compile di server lokal. Retest dengan patch itu saja tetap `dead_lettered` untuk kedua job. Patch ikut commit ini sebagai jaring pengaman, bukan penyebab retest lulus.
 
-**Retest staging (2026-10-19):** service `web` staging sudah menjalankan commit `d7ef246` (berisi perbaikan ini). `POST /api/jobs/run?type=import` mengklaim 2 job `import.sync` dan keduanya `outcome: done` pada percobaan pertama (`attempts: 0`, `last_error` kosong), jalan paralel (waktu mulai sama):
+**Retest staging (2026-10-19):** service `web` staging menjalankan revisi `d7ef246`. Perbaikan lock ada di PR 180, yang sudah menjadi leluhur revisi itu: `36248f7` (`$executeRaw` untuk lock `outstandPostId`) dan `ae4770d` (`runPendingJobs` kembali paralel), lewat merge `f0e5393`. Pesan `d7ef246` sendiri milik T-121 dan T-008. `POST /api/jobs/run?type=import` mengklaim 2 job `import.sync` dan keduanya `outcome: done` pada percobaan pertama (`attempts: 0`, `last_error` kosong), jalan paralel (waktu mulai sama):
 
 - `a3ae1107-882c-4f8f-b2bb-ecdeb85fc9c8` — akun `4a48b968-c6ef-4b97-a7a2-7c61bd68c089` / `eH82r` (Instagram)
 - `cf39b675-7aa8-4ad4-b523-ef464eceef40` — akun `d17e38ce-fbae-434c-ab27-e417fca384ab` / `Kav29` (Facebook)
