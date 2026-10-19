@@ -1772,6 +1772,20 @@ sepadan) dibahas di `CONVERSATIONS.md` entri 2026-10-16 tapi tidak dipilih.
       yang ditambahkan langsung di Facebook muncul di Postific dalam
       waktu ≤24 jam tanpa klik "Sync Now"
 
+**Catatan (2026-10-19) — T-115.5 dicoba, belum lolos penuh:** PR 179 merge
+ke staging, migration `import_list_accounts_for_periodic_sync` ter-apply
+otomatis (Railway `preDeployCommand`). `?type=import` dipanggil manual —
+mekanisme enqueue + fan-out + watermark terbukti BENAR (satu akun sukses
+penuh, `lastImportedUntil` ter-update), tapi eksekusinya **tidak konsisten**:
+job `import.sync` lain gagal berulang dengan error Prisma
+`Failed to deserialize column of type 'void'` dari `$queryRaw`, intermiten
+(akun yang sama bisa sukses lalu gagal di percobaan berikutnya). Root cause
+sudah diinvestigasi tuntas dan BUKAN bug logic T-115 — lihat **KI-091**
+(`$queryRaw` pada `pg_advisory_xact_lock` mengembalikan kolom `void`;
+perbaikan di `lockOutstandPostIds` memakai `$executeRaw`).
+Tiket terpisah **T-124** (`tickets/known-issues.md`, ADR-134) dibuat untuk melacak remediasinya. T-115.5 tetap
+`[ ]` sampai retest staging di T-124 berhasil konsisten.
+
 ---
 
 ## Read-Only Enforcement
@@ -2271,25 +2285,9 @@ scope T-111 yang disetujui King Rezi):**
 
 ---
 
-## Dari Known Issue (ADR-132)
+## Dari Known Issue
 
-### T-121 · Putuskan meta penulis di detail History
-
-| Field       | Value                                        |
-| ----------- | -------------------------------------------- |
-| **Status**  | 🚫 Blocked                                   |
-| **Domain**  | publishing · UI                              |
-| **Spec**    | tidak ada — muat satu sesi setelah keputusan |
-| **Docs**    | KI-050, T-034                                |
-| **Depends** | T-034 ✅                                     |
-
-**What to build:** Halaman detail History menampilkan penulis post, atau keputusan tertulis bahwa penulis memang tidak ditampilkan.
-
-- [ ] King Rezi memilih: penulis ditampilkan, atau sengaja disembunyikan
-- [ ] Kalau ditampilkan, detail History menunjukkan siapa yang membuat post
-- [ ] Kalau disembunyikan, tiket ini ditutup tanpa perubahan kode
-
-**Blocked by:** keputusan King Rezi
+T-121 (KI-050) ada di [`known-issues.md`](known-issues.md) (ADR-134).
 
 ---
 

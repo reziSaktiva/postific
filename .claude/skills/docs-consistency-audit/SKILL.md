@@ -37,7 +37,7 @@ salah satu dari:
 
 | Argumen                          | Artinya                                                                 |
 | --------------------------------- | ------------------------------------------------------------------------ |
-| `project-os`                      | `project-os/PROJECT_STATE.md`, `project-os/AVAILABLE_TICKETS.md` + seluruh `project-os/tickets/vXX-*.md` + `project-os/specs/`, `project-os/DECISIONS.md` + seluruh `project-os/decisions/ADR-*.md` |
+| `project-os`                      | `project-os/PROJECT_STATE.md`, `project-os/AVAILABLE_TICKETS.md` + seluruh `project-os/tickets/vXX-*.md` + `project-os/tickets/known-issues.md` + `project-os/specs/`, `project-os/DECISIONS.md` + seluruh `project-os/decisions/ADR-*.md` |
 | `context`                         | Seluruh `context/ctx-*.md` + `context/README.md`                        |
 | `product-discovery`               | Seluruh `product-discovery/**/*.md`                                     |
 | Kombinasi (`product-discovery+context`, dst.) | Union dari area yang disebut, dipisah `+`                   |
@@ -82,9 +82,9 @@ yang ambigu) tetap dilakukan oleh AI utama, bukan diserahkan ke subagent.
 Periksa lintas dokumen dalam scope untuk kategori berikut:
 
 1. **Status/progress drift** — status task terbuka di `AVAILABLE_TICKETS.md`
-   berbeda dari tiket di `tickets/vXX-*.md`, atau task ✅ masih tertinggal di antrian.
+   berbeda dari tiket di `tickets/vXX-*.md` atau `tickets/known-issues.md`, atau task ✅ masih tertinggal di antrian.
 2. **Antrian drift** — `AVAILABLE_TICKETS.md` memuat task ✅, atau task ⏳/🟡/🚫
-   yang ada di `tickets/vXX-*.md` tidak muncul di antrian.
+   yang ada di file tiket tidak muncul di antrian.
 3. **ADR amandemen belum tercermin** — ADR baru mengubah/mengamandemen ADR
    lama, tapi dokumen lain yang merujuk ke keputusan lama (baseline
    `product-discovery/`, `context/ctx-*.md`, atau task lain) belum diupdate
@@ -116,7 +116,7 @@ Ada satu jawaban yang jelas benar berdasarkan Source of Truth yang sudah
 ditetapkan (tabel Source of Truth di `AGENTS.md`, atau ADR yang sudah
 Accepted). Contoh: hitungan subtask yang salah jumlah (kebenarannya tinggal
 dihitung ulang dari file), status task di `PROJECT_STATE.md` yang belum
-disalin dari `tickets/vXX-*.md` yang sudah diupdate.
+disalin dari file tiket yang sudah diupdate.
 
 → Laporkan dengan **usulan perbaikan konkret**, tapi tetap tunggu konfirmasi
 sebelum edit (lihat Langkah 5).
@@ -159,7 +159,8 @@ eksplisit — jangan mengarang temuan supaya laporan terlihat berisi.
    di `project-os-navigator`).
 3. Setiap perbaikan yang benar-benar dieksekusi cukup tercatat di tiket atau ADR.
    Jangan menulis changelog terpisah (ADR-131).
-4. Kalau perbaikan menyentuh status tiket, update `tickets/vXX-*.md` dan
+4. Kalau perbaikan menyentuh status tiket, update file tiketnya
+   (`tickets/vXX-*.md` atau `tickets/known-issues.md`) dan
    `AVAILABLE_TICKETS.md` bersamaan.
 
 ---

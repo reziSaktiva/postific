@@ -4,12 +4,12 @@ Rumah lapis **spec** (ADR-131). Bukan rumah docs, bukan rumah tiket, bukan catat
 
 ## Empat lapis
 
-| Lapis     | Rumah                                          | Agent membuka ini kapan                                              |
-| --------- | ---------------------------------------------- | -------------------------------------------------------------------- |
-| Docs      | `product-discovery/`, `context/`, `decisions/` | Saat butuh bahasa domain atau keputusan yang sudah ada               |
-| Spec      | `specs/S-NNN.md` di folder ini                 | Saat pekerjaan melewati lebih dari satu sesi                         |
-| Tiket     | `tickets/vXX-*.md`                             | Setelah ID task dipilih dari `AVAILABLE_TICKETS.md`                  |
-| Implement | kode dan tes                                   | Saat tiket dikerjakan. Hasilnya commit, bukan paragraf baru di tiket |
+| Lapis     | Rumah                                                                                     | Agent membuka ini kapan                                              |
+| --------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Docs      | `product-discovery/`, `context/`, `decisions/`                                            | Saat butuh bahasa domain atau keputusan yang sudah ada               |
+| Spec      | `specs/S-NNN.md` di folder ini                                                            | Saat pekerjaan melewati lebih dari satu sesi                         |
+| Tiket     | `tickets/vXX-*.md`, atau `tickets/known-issues.md` untuk tiket dari Known Issue (ADR-134) | Setelah ID task dipilih dari `AVAILABLE_TICKETS.md`                  |
+| Implement | kode dan tes                                                                              | Saat tiket dikerjakan. Hasilnya commit, bukan paragraf baru di tiket |
 
 Pekerjaan yang muat satu sesi tidak dibuatkan spec. Tiket menunjuk docs yang berlaku, lalu langsung diimplementasikan.
 
@@ -42,9 +42,9 @@ Yang sengaja tidak ikut.
 
 ID spec global, tidak didaur ulang. Nomor berikutnya dicatat di `AVAILABLE_TICKETS.md` saat spec pertama dibuat. Saat folder ini masih kosong, spec pertama adalah **S-001**.
 
-## Bentuk tiket di `tickets/vXX-*.md`
+## Bentuk tiket
 
-Tiket tetap di file rilis, termasuk setelah selesai.
+Tiket rilis tetap di `tickets/vXX-*.md`, termasuk setelah selesai. Tiket yang lahir dari Known Issue ada di `tickets/known-issues.md` (ADR-134), bentuknya sama.
 
 ```markdown
 ### T-xxx · Judul
@@ -67,4 +67,4 @@ Tiket tetap di file rilis, termasuk setelah selesai.
 
 Jangan menulis path file, jumlah tes, nama subagent, atau cerita sesi ke dalam tiket. Itu milik commit.
 
-Saat tiket ✅, barisnya keluar dari `AVAILABLE_TICKETS.md`. Section di `tickets/vXX-*.md` tetap.
+Saat tiket ✅, barisnya keluar dari `AVAILABLE_TICKETS.md`. Section di file tiketnya tetap.

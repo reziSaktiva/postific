@@ -6,7 +6,7 @@ Antrian kerja pindah ke `AVAILABLE_TICKETS.md`, `COMPLETE_TASK.md` dihapus, desk
 
 ### Status
 
-Accepted — Amended by ADR-132 (2026-10-16)
+Accepted — Amended by ADR-132 (2026-10-16), ADR-134 (2026-10-19)
 
 ### Date
 
