@@ -888,7 +888,7 @@ describe("PublishingService.listHistory", () => {
     ).resolves.toEqual([]);
   });
 
-  it("default statuses ke [Published, Failed] kalau tidak diisi caller", async () => {
+  it("default statuses ke [Published, Failed, Imported] kalau tidak diisi caller (T-126)", async () => {
     let received: Parameters<IPublishingRepository["listHistory"]>[0] | null =
       null;
     const service = new PublishingService(
@@ -904,7 +904,11 @@ describe("PublishingService.listHistory", () => {
 
     expect(received).toEqual({
       workspaceId: WORKSPACE_ID,
-      statuses: [ContentStatus.Published, ContentStatus.Failed],
+      statuses: [
+        ContentStatus.Published,
+        ContentStatus.Failed,
+        ContentStatus.Imported,
+      ],
     });
   });
 
@@ -929,11 +933,15 @@ describe("PublishingService.listHistory", () => {
     expect(received).toEqual({
       workspaceId: WORKSPACE_ID,
       connectedAccountIds,
-      statuses: [ContentStatus.Published, ContentStatus.Failed],
+      statuses: [
+        ContentStatus.Published,
+        ContentStatus.Failed,
+        ContentStatus.Imported,
+      ],
     });
   });
 
-  it("meng-clamp statuses ke subset terminal (Published/Failed) sebelum memanggil repository", async () => {
+  it("meng-clamp statuses ke subset terminal (Published/Failed/Imported) sebelum memanggil repository", async () => {
     let received: Parameters<IPublishingRepository["listHistory"]>[0] | null =
       null;
     const service = new PublishingService(

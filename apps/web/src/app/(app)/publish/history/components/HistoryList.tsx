@@ -333,7 +333,13 @@ export function HistoryList({
 
               <ItemGroup className="gap-2">
                 {group.items.map((item) => {
-                  const isPublished = item.status === ContentStatus.Published;
+                  // T-126: `Imported` dianggap sama dengan `Published` di
+                  // sini (sama-sama terminal-sukses, bukan error) — tanpa
+                  // ini, copy error "Gagal dipublikasikan." (merah) akan
+                  // salah tampil untuk post Imported.
+                  const isPublished =
+                    item.status === ContentStatus.Published ||
+                    item.status === ContentStatus.Imported;
                   const effectiveDate = item.publishedAt ?? item.updatedAt;
 
                   return (

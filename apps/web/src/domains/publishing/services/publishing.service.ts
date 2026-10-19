@@ -355,10 +355,17 @@ export interface ComparativeReport {
  * `PublishingService.listHistory` (clamp filter caller) dan implementasi
  * Prisma `getHistoryById` (guard invariant post tunggal) — lihat
  * `IPublishingRepository.listHistory`.
+ *
+ * `Imported` ditambahkan di T-126 (2026-10-19) — sejak T-090/ADR-093 nilai
+ * ini sengaja dikecualikan (T-090 poin 6) sampai pola tampilannya dikunci;
+ * King Rezi mengonfirmasi (`AskUserQuestion`) reuse badge `outline`/
+ * "Imported" yang sudah LOCKED di Calendar (T-090.5), tanpa entri baru di
+ * filter dropdown status History (`STATUS_OPTIONS`, `HistoryList.tsx`).
  */
 export const HISTORY_TERMINAL_STATUSES: readonly ContentStatus[] = [
   ContentStatus.Published,
   ContentStatus.Failed,
+  ContentStatus.Imported,
 ];
 
 const DELETE_NON_DRAFT_CONFLICT_MESSAGE =

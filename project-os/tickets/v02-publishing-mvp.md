@@ -2291,6 +2291,67 @@ scope T-111 yang disetujui King Rezi):**
 
 ---
 
+### T-125 · Default view Calendar jadi Monthly/Bulan
+
+| Field         | Value                                                                                                            |
+| ------------- | ---------------------------------------------------------------------------------------------------------------- |
+| **Status**    | ✅ Done (2026-10-19)                                                                                             |
+| **Domain**    | publishing · UI                                                                                                  |
+| **ADR**       | — (ubah default, bukan baseline — kedua view `week`/`month` sudah didesain & diimplementasikan penuh sejak T-33) |
+| **Terkait**   | T-033 (Calendar view)                                                                                            |
+| **Depends**   | T-033 ✅                                                                                                         |
+| **Baca dulu** | `apps/web/src/domains/publishing/services/parse-calendar-view-state.ts`                                          |
+
+Diminta King Rezi (2026-10-19): saat buka `/publish/calendar` tanpa query
+param `?view=`, tampilan default yang muncul sekarang `week` (ADR-046,
+dikonfirmasi di Claude Design `templates/publish-calendar.html` — "default
+Week"). King Rezi ingin default-nya `month`. Bukan perubahan desain baru —
+toggle Minggu/Bulan dan kedua grid-nya sudah ada & terkonfirmasi di Claude
+Design sejak T-033; task ini murni mengubah nilai default state URL,
+termasuk kategori perubahan sepele (satu konstanta + penyesuaian fallback
+logic), tidak melalui evaluasi delegasi subagent (ADR-063).
+
+- [x] **T-125.1** `DEFAULT_CALENDAR_VIEW` di `parse-calendar-view-state.ts` → `"month"`, `parseViewMode` disesuaikan jadi eksplisit menerima literal `"week"`/`"month"` (sebelumnya fallback implisit via default — kalau default langsung diganti `"month"` tanpa ini, `?view=week` eksplisit akan ikut jatuh ke `"month"`), test terkait diupdate (22/22 pass). Diverifikasi browser: buka `/publish/calendar` tanpa query param → "Bulan" terpilih + grid Month tampil; toggle ke "Minggu" (`?view=week`) tetap berfungsi normal. `tsc --noEmit` bersih.
+
+### T-126 · Imported posts tampil di Publish → History
+
+| Field         | Value                                                                                                                                                                                                                                            |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Status**    | ✅ Done (2026-10-19)                                                                                                                                                                                                                             |
+| **Domain**    | publishing · UI                                                                                                                                                                                                                                  |
+| **ADR**       | ADR-093 (status `Imported`, "tampil di Calendar & History" — bagian History belum pernah dieksekusi)                                                                                                                                             |
+| **Terkait**   | T-090 (Imported — Calendar sudah ditampilkan, T-090 poin 6; History sengaja tetap dikecualikan), T-034 (History)                                                                                                                                 |
+| **Depends**   | T-090 ✅                                                                                                                                                                                                                                         |
+| **Baca dulu** | `apps/web/src/domains/publishing/services/publishing.service.ts` (`HISTORY_TERMINAL_STATUSES`, `listHistory`) · `apps/web/src/app/(app)/publish/history/history-status.ts` · Claude Design project "Postific" (`templates/publish-history.html`) |
+
+Diminta King Rezi (2026-10-19): post berstatus `Imported` (post native yang
+ditarik dari Outstand, lihat ADR-093) ingin ikut muncul di halaman History.
+
+**Root cause:** `HISTORY_TERMINAL_STATUSES = [Published, Failed]` di
+`publishing.service.ts` secara sengaja mengecualikan `Imported` (T-090 poin 6) — `HISTORY_STATUS_LABEL`/`HISTORY_STATUS_BADGE_VARIANT` di
+`history-status.ts` sudah punya entry `Imported` tapi ditandai eksplisit
+**"placeholder SEMENTARA, bukan keputusan desain final"**, murni untuk
+memenuhi exhaustiveness check TypeScript.
+
+**STOP — AGENTS.md rule 10:** dicek ke Claude Design project "Postific",
+`templates/publish-history.html` **belum** merancang state `Imported` sama
+sekali (filter status cuma "Semua Status/Published/Error", tidak ada chip
+`Imported`). Badge `Imported` (`outline`, label "Imported") sudah LOCKED
+untuk Calendar/Popover (T-090.5), tapi apakah pola yang sama di-reuse apa
+adanya untuk History, atau History butuh treatment lain (mis. masuk filter
+dropdown status, grouping tanggal pakai field apa karena `Imported` tidak
+selalu punya `publishedAt`), belum dikunci King Rezi — perlu
+`AskUserQuestion` dulu sebelum kode/Claude Design disentuh.
+
+- [x] **T-126.1** Kunci rancangan di Claude Design — King Rezi dikonfirmasi via `AskUserQuestion` (2026-10-19): reuse badge `outline`/"Imported" yang sudah LOCKED di Calendar (T-090.5) apa adanya, TANPA entri baru di dropdown filter status History. `templates/publish-history.html` disinkronkan (contoh baris Imported ditambah di kelompok "Selasa, 15 Juli", ditandai LOCKED PATTERN).
+- [x] **T-126.2** Implementasi: `HISTORY_TERMINAL_STATUSES` (`publishing.service.ts`) += `ContentStatus.Imported`. Dropdown filter status (`STATUS_OPTIONS`, `HistoryList.tsx`) **tidak diubah** sesuai keputusan T-126.1.
+
+**Bug ditemukan & diperbaiki sekalian (ditemukan saat verifikasi browser, bukan scope terpisah):** sebelum fix ini, menambahkan `Imported` ke `HISTORY_TERMINAL_STATUSES` SAJA akan membuat `HistoryList.tsx` (variabel `isPublished = item.status === ContentStatus.Published`) dan `HistoryDetail.tsx` (`formatWhenLabel`) salah menganggap post Imported sebagai "gagal" — list akan menampilkan teks merah "Gagal dipublikasikan." dan detail menampilkan judul "Percobaan publish ...". Kedua tempat diperbaiki agar `ContentStatus.Imported` diperlakukan sama seperti `Published` (sama-sama terminal-sukses, punya `publishedAt` asli dari platform) — bukan percobaan publish dari tool ini. `history-status.ts` dan docstring `IPublishingRepository.getHistoryById`/`listHistory` diupdate agar tidak lagi menyebut entry `Imported` sebagai "placeholder sementara". Metrics tile tetap tidak tampil untuk Imported (otomatis, `item.metrics` selalu `null` untuk status non-Published — konsisten keputusan Calendar T-090.5 "metrics block sengaja tidak ditampilkan").
+
+**Verifikasi:** `bun run vitest run` (root) — 832 passed/7 skipped, 0 failed (termasuk 2 test `listHistory` yang diupdate ke default `[Published, Failed, Imported]`). `tsc --noEmit`/`eslint .` (apps/web) bersih. Browser preview manual (data nyata, akun "Cook It Real Good"): `/publish/history` — badge "Imported" tampil benar di tiap item, teks meta "Dipublikasikan X lalu" (bukan error/merah); detail dialog — judul "Dipublikasikan 18 Oktober 2026 pukul 17.59" + badge "Imported", "Hasil per Akun" menampilkan link "Lihat post asli", tanpa metrics tile.
+
+---
+
 ## Dari Known Issue
 
 T-121 (KI-050) ada di [`known-issues.md`](known-issues.md) (ADR-134).
