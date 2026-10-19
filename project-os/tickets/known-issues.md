@@ -94,17 +94,15 @@ Tiket fitur yang kebetulan memuat atau menutup satu KI tetap di file rilisnya. C
 
 ### T-124 · Bug upstream Prisma `@prisma/adapter-pg` merusak koneksi pool saat job background jalan konkuren
 
-| Field       | Value                                                              |
-| ----------- | ------------------------------------------------------------------ |
-| **Status**  | 🚫 Blocked                                                         |
-| **Domain**  | platform · jobs                                                    |
-| **Spec**    | tidak ada — menunggu rilis upstream atau keputusan workaround lain |
-| **Docs**    | KI-091                                                             |
-| **Depends** | — (ditemukan saat verifikasi staging T-115.5)                      |
+| Field       | Value                                            |
+| ----------- | ------------------------------------------------ |
+| **Status**  | 🟡 In Progress                                   |
+| **Domain**  | platform · jobs                                  |
+| **Spec**    | tidak ada — muat satu sesi. Sisa: retest staging |
+| **Docs**    | KI-091                                           |
+| **Depends** | — (ditemukan saat verifikasi staging T-115.5)    |
 
-**What to build:** belum ada implementasi — tiket ini murni pelacak bug upstream
-sampai King Rezi memutuskan workaround mana yang dipakai (lihat KI-091 untuk
-detail lengkap root cause dan opsi).
+**What to build:** `runPendingJobs` menjalankan job yang diklaim satu per satu, supaya tidak ada dua transaksi interaktif bersamaan di pool yang sama. Bug upstream tetap ada. Workaround ini yang dipakai sampai Prisma merilis perbaikannya.
 
 Ditemukan 2026-10-19 saat verifikasi end-to-end staging T-115.5 (wiring cron
 Import Posts periodik). `POST /api/jobs/run?type=import` memicu error
@@ -143,16 +141,13 @@ tetap menyala).
     `7.8.0`). Tidak memuat perbaikan. Paket `prisma` di tag `latest` adalah
     prarilis `8.0.0-rc.23`, tetapi `@prisma/adapter-pg` tidak punya rilis 8
     yang memuat perbaikan itu.
-- [ ] Opsi yang belum dipilih:
-  - Serialize `runPendingJobs` — jalankan job satu per satu (bukan
-    `Promise.all`) supaya tidak ada >1 interactive transaction konkuren di
-    satu `pg.Pool`. Trade-off: batch job lebih lambat (batas request Railway
-    30 detik, BG-D05).
-  - Terima risiko untuk sementara — retry/backoff background job (maks 4
-    attempts) kemungkinan besar akhirnya berhasil karena sifat bug-nya
-    intermiten, tapi akun bisa dead-letter kalau 4x berturut-turut apes.
-- [ ] Setelah opsi dipilih dan diimplementasikan: retest `?type=import` di
-      staging untuk akun yang sebelumnya gagal (`4a48b968-c6ef-4b97-a7a2-7c61bd68c089`,
-      `eH82r`), pastikan `lastImportedUntil` ter-update sukses.
+- [x] King Rezi memilih serialize `runPendingJobs` (2026-10-19). Job diklaim
+      dijalankan satu per satu di `apps/web/src/lib/jobs/job-runner.ts`.
+      Batas 10 job per run (BG-D05) tidak diubah. Tes unit
+      `job-runner.test.ts` memastikan job kedua tidak mulai sebelum job
+      pertama selesai.
+- [ ] Retest `?type=import` di staging setelah perubahan ini hidup di sana,
+      untuk akun yang sebelumnya gagal (`4a48b968-c6ef-4b97-a7a2-7c61bd68c089`,
+      `eH82r`). Pastikan `lastImportedUntil` ter-update sukses.
 
-**Blocked by:** tidak ada rilis Prisma yang memperbaiki KI-091. Opsi remediasi lain belum dipilih.
+**Blocked by:** retest staging. Perubahan ini belum hidup di staging.

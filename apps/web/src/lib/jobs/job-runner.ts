@@ -55,11 +55,8 @@ export const DEFAULT_JOB_BATCH_LIMIT = 10;
 /**
  * Eksekusi SATU job yang sudah diklaim (status `running`) — tidak pernah
  * throw (semua error ditangkap di sini dan dipetakan ke
- * `scheduleRetry`/`markFailed`), supaya `Promise.all` di `runPendingJobs`
- * aman menjalankan seluruh batch PARALEL tanpa satu job gagal
- * menggagalkan job lain di batch yang sama (beda job = independen
- * sepenuhnya, tidak ada alasan menjalankannya sekuensial — penting untuk
- * batas waktu Railway 30 detik per request, BG-D05).
+ * `scheduleRetry`/`markFailed`), supaya satu job gagal tidak menggagalkan
+ * job lain di batch yang sama.
  */
 async function runOne(
   store: JobRunnerStore,
@@ -103,6 +100,11 @@ async function runOne(
  * T-027.1 — klaim batch job due, eksekusi via handler registry, update
  * status masing-masing (done/retry/dead-letter). Dipanggil oleh
  * `POST /api/jobs/run` SETELAH otentikasi `X-Job-Secret` (T-027.2) sukses.
+ *
+ * Job dijalankan satu per satu, bukan `Promise.all` (KI-091,
+ * prisma/orm#30374): `@prisma/adapter-pg` merusak koneksi pool kalau lebih
+ * dari satu transaksi interaktif jalan bersamaan. Batas jumlah job per run
+ * tetap `DEFAULT_JOB_BATCH_LIMIT` (BG-D05, 30 detik).
  */
 export async function runPendingJobs(
   store: JobRunnerStore,
@@ -113,9 +115,10 @@ export async function runPendingJobs(
   const now = options?.now ?? (() => new Date());
 
   const jobs = await store.claimPending(limit);
-  const results = await Promise.all(
-    jobs.map((job) => runOne(store, handlers, job, now)),
-  );
+  const results: JobRunResult[] = [];
+  for (const claimed of jobs) {
+    results.push(await runOne(store, handlers, claimed, now));
+  }
 
   return { claimed: jobs.length, results };
 }

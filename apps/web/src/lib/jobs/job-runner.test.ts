@@ -156,4 +156,37 @@ describe("runPendingJobs", () => {
       error: "boom",
     });
   });
+
+  it("runs claimed jobs one at a time (KI-091)", async () => {
+    const events: string[] = [];
+    let releaseFirst: () => void = () => undefined;
+    const firstBlocked = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
+    const store = createFakeStore({
+      claimPending: async () => [
+        job({ id: "job-a", type: "a" }),
+        job({ id: "job-b", type: "b" }),
+      ],
+    });
+    const handlers: Record<string, JobHandler> = {
+      a: async () => {
+        events.push("a-start");
+        await firstBlocked;
+        events.push("a-end");
+      },
+      b: async () => {
+        events.push("b");
+      },
+    };
+
+    const pending = runPendingJobs(store, handlers);
+    await vi.waitFor(() => {
+      expect(events).toEqual(["a-start"]);
+    });
+    releaseFirst();
+    await pending;
+
+    expect(events).toEqual(["a-start", "a-end", "b"]);
+  });
 });
