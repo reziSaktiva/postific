@@ -2423,6 +2423,131 @@ Known Issue terbuka, bukan subtask di tiket ini.
 
 ---
 
+### T-131 · Bedakan request body Import Posts per trigger (cron harian / connect akun / manual Settings)
+
+| Field         | Value                                                                                                                                                                                                                                                                                                                                                                       |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**    | ⏳ Belum dimulai                                                                                                                                                                                                                                                                                                                                                            |
+| **Domain**    | publishing                                                                                                                                                                                                                                                                                                                                                                  |
+| **ADR**       | — (parameter tuning atas desain existing ADR-093 poin 5/7/9, bukan keputusan arsitektur baru)                                                                                                                                                                                                                                                                               |
+| **Terkait**   | T-090, T-112, T-115 (tiga entry point `ImportPostsTriggerUseCase` yang parameternya diubah di sini), T-132, T-133                                                                                                                                                                                                                                                           |
+| **Depends**   | T-115 ✅ (cron sudah wired ke job runner produksi; tiket ini murni mengubah nilai `since`/`until`/`limit` masing-masing trigger, bukan wiring baru)                                                                                                                                                                                                                         |
+| **Baca dulu** | `apps/web/src/domains/publishing/services/import-posts-trigger.use-case.ts` (`triggerAuto`, `triggerPeriodicForAccounts`, `executeQueuedPeriodicImport`, `triggerManual`, `periodicImportSince`, `defaultSince`, `DEFAULT_IMPORT_LOOKBACK_DAYS`, `DEFAULT_IMPORT_LIMIT`) · `decisions/ADR-093-import-posts-dari-social-account-status-imported-read-only.md` (poin 5, 7, 9) |
+
+**Konteks (diskusi King Rezi, 2026-10-20):** ketiga entry point Import Posts
+(`triggerAuto` on-connect, cron harian T-115, `triggerManual` tombol "Sync
+Now" Settings) sekarang memanggil `runImportSync` yang sama persis — body ke
+Outstand (`since`/`until`/`limit`) identik di ketiganya, bedanya cuma cara
+`since` dihitung. King Rezi ingin ketiganya benar-benar berbeda kebijakan,
+dikonfirmasi lewat `AskUserQuestion`:
+
+| Trigger                | `since` baru                                                                                                                                                                                 | `until` | `limit` baru    |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | --------------- |
+| Cron harian            | **Mana yang lebih jauh ke belakang** antara watermark terakhir dan 24 jam lalu (pengaman anti-gap — kalau cron sempat gagal/terlewat, tetap mengejar dari watermark, bukan terpotong 24 jam) | now     | 100 (tetap)     |
+| Saat connect akun      | 1 tahun lalu (dari 90 hari)                                                                                                                                                                  | now     | 1000 (dari 100) |
+| Manual tombol Settings | watermark terakhir (tetap) — default 1 tahun kalau akun belum pernah sync (ikut baris di atas, bukan 90 hari lagi)                                                                           | now     | 1000 (dari 100) |
+
+**Catatan biaya (perlu diverifikasi saat implementasi):** endpoint
+`POST /v1/social-accounts/{id}/imports` ditandai "BERBAYAR" di ADR-093,
+tapi model biayanya (per-call vs per-post-yang-diimpor) belum pernah
+dikonfirmasi ke Outstand. Menaikkan `limit` dari 100 → 1000 bisa menaikkan
+biaya kalau modelnya per-post — cek dulu sebelum deploy ke production.
+
+- [ ] **T-131.1** `triggerAuto` (on-connect) — ubah `defaultSince`/lookback jadi 1 tahun (dari `DEFAULT_IMPORT_LOOKBACK_DAYS = 90`), limit jadi 1000 (dari `DEFAULT_IMPORT_LIMIT = 100`). Pertimbangkan apakah kedua konstanta ini perlu dipecah per-trigger (bukan lagi satu konstanta modul dipakai ketiganya)
+- [ ] **T-131.2** `triggerManual` — `since` tetap `input.lastImportedUntil` kalau ada; default saat kosong ikut 1 tahun (bukan 90 hari) biar konsisten dengan T-131.1. Limit jadi 1000
+- [ ] **T-131.3** Cron harian (`periodicImportSince`, dipakai `triggerPeriodicForAccounts` dan `executeQueuedPeriodicImport`) — ubah jadi `since = min(lastImportedUntil ?? (now - 24 jam), now - 24 jam)` (ambil yang lebih tua/lebih jauh ke belakang). Limit tetap 100
+- [ ] **T-131.4** Unit test tiap trigger untuk nilai baru, termasuk skenario gap cron eksplisit: watermark lebih tua dari 24 jam (mis. cron sempat gagal 3 hari) → `since` harus ikut watermark, BUKAN terpotong jadi 24 jam
+- [ ] **T-131.5** Regresi guard biaya existing (ADR-093 poin 8 concurrent-import per akun, poin 9 cooldown 24 jam + cap mingguan manual) — pastikan kenaikan `limit` tidak mengubah semantik guard yang sudah ada, dan guard manual tetap mengacu `payload.trigger = "manual"` seperti sebelumnya
+
+---
+
+### T-132 · Klasifikasi jenis konten (Story/Reel/Feed) hasil Import Posts via Outstand Analytics
+
+| Field         | Value                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Status**    | ⏳ Belum dimulai                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| **Domain**    | publishing · integration                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| **ADR**       | **Perlu ADR baru** — perluasan kontrak ACL `IOutstandAdapter.fetchPostMetrics`/`FetchPostMetricsResult` (AGENTS.md #2, perubahan shape kontrak publik domain)                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| **Terkait**   | T-090, T-041 (gap `FetchPostMetricsResult` sudah tercatat sejak redesain 2026-08-26, follow-up ini belum pernah dikerjakan), T-131, T-133                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| **Depends**   | — (independen dari T-131 — bisa paralel; T-133 butuh tiket ini selesai dulu)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| **Baca dulu** | `packages/shared/src/contracts/outstand-adapter.ts` (`FetchPostMetricsResult`, baris 393-416 — baca komentar gap-nya dulu) · `packages/shared/src/enums.ts` (`ContentFormat` — `Post`/`Reel`/`Story`/`Pin` SUDAH ada, tidak perlu enum baru) · `apps/web/src/lib/adapters/outstand/real-outstand-adapter.ts` (`fetchPostMetrics`) · `apps/web/src/lib/repositories/publishing/upsert-imported-posts.ts` (`targetCreateFields`, baris 327-338 — hardcode `contentFormat: ContentFormat.Post`) · `apps/web/src/domains/publishing/services/backfill-outstand-post-ids.use-case.ts` (pola best-effort T-114 yang direuse di sini) |
+
+**Konteks (investigasi 2026-10-20, dikonfirmasi King Rezi):** endpoint
+import Outstand (`GET /v1/posts`, `GET /v1/posts/{id}`) **tidak punya field
+jenis konten sama sekali** — dipastikan lewat OpenAPI resmi DAN data nyata
+(post Story asli di akun test tidak punya field pembeda apa pun). Satu-nya
+sinyal RESMI (bukan tebakan) ada di `GET /v1/posts/{id}/analytics`
+(`fetchPostMetrics`):
+
+- Instagram: `media_product_type` (`FEED`/`REELS`/`STORY`), dikonfirmasi di `MAnO3` (`FEED`)
+- Facebook: `platform_specific.video.is_reel`, dikonfirmasi di `LGyF6` — post yang di DB kita ter-label `contentFormat: 'post'` ternyata `is_reel: true` (BUKTI NYATA bug hardcode, bukan hipotesis)
+- Story yang sudah kadaluarsa (>24 jam): analytics gagal (`metrics_expired`/`story_expired`) — jenis kontennya TIDAK BISA diketahui lagi lewat jalur ini, harus fallback
+
+Kontrak `FetchPostMetricsResult` SAAT INI flat (`impressions`, `reach`,
+`likes`, `comments`, `shares`, `clicks`, `engagementRate`) — field di atas
+**dibuang** oleh adapter sebelum sampai ke domain manapun (gap yang sudah
+didokumentasikan sebagai follow-up T-041 sejak redesain 2026-08-26, baru
+dikerjakan di tiket ini).
+
+**Keputusan King Rezi (`AskUserQuestion`, 2026-10-20):** pakai sinyal
+analytics ini (bukan heuristik URL/aspek-rasio — eksplisit ditolak King
+Rezi setelah riset sendiri ke dokumentasi Outstand), jalan sebagai langkah
+best-effort TERPISAH dari proses import utama (pola sama T-114 backfill —
+gagal di sini tidak membatalkan import yang sudah sukses), diterapkan ke
+SEMUA post yang berhasil diimpor per sync (N = limit trigger yang sedang
+jalan dari T-131, BUKAN dibatasi angka tetap seperti usulan awal 20).
+
+- [ ] **T-132.1** Tulis ADR baru: perluasan `FetchPostMetricsResult` per-akun dengan field opsional `mediaProductType?: "FEED" | "REELS" | "STORY"` (Instagram), `isReel?: boolean` (Facebook), `storyExpired?: boolean` — definisikan juga aturan mapping ke `ContentFormat` internal (`Post`/`Reel`/`Story`) dan fallback eksplisit kalau semua field ini kosong/tidak relevan untuk platform tersebut
+- [ ] **T-132.2** Update `RealOutstandAdapter.fetchPostMetrics` supaya meneruskan field baru dari response asli Outstand (sekarang dibuang saat mapping ke shape flat)
+- [ ] **T-132.3** Update double/fake test kalau masih dipakai di unit test (ADR-119 — bukan jalur produksi, cuma test)
+- [ ] **T-132.4** Use-case klasifikasi baru (pola best-effort sama `BackfillOutstandPostIdsUseCase`/T-114) — dipanggil setelah `ImportPostsProcessUseCase.process`, iterasi SEMUA post yang baru diimpor di batch itu, panggil `fetchPostMetrics` per post, update `PublishingPostTarget.contentFormat` sesuai mapping T-132.1, biarkan default (fallback) kalau sinyal tidak tersedia
+- [ ] **T-132.5** Ganti hardcode `contentFormat: ContentFormat.Post` di `upsert-imported-posts.ts:331` jadi default eksplisit "belum terklasifikasi" dengan komentar yang menjelaskan keterbatasan Outstand (bukan diam-diam berasumsi "semua post biasa") — nilai akhir akan di-overwrite T-132.4 kalau sinyal tersedia
+- [ ] **T-132.6** Unit test: mapping `media_product_type`/`is_reel` → `ContentFormat`, kasus Story expired (fallback), kasus platform tanpa sinyal analytics (fallback)
+- [ ] **T-132.7** Verifikasi tampilan popover Calendar "Imported" (T-090.5, LOCKED PATTERN) untuk `ContentFormat.Reel`/`.Story` hasil klasifikasi baru — enum & label UI-nya kemungkinan SUDAH ada (dipakai alur publish biasa), jadi cek dulu apakah ini genuinely perlu sentuhan komponen baru atau cukup data yang sekarang benar; kalau butuh KOMPONEN/VARIAN baru, **wajib cek Claude Design dulu** (AGENTS.md #10) sebelum ubah kode
+
+---
+
+### T-133 · Backfill retroaktif Import Posts lama + verifikasi dukungan resmi Import per platform
+
+| Field         | Value                                                                                                                                                                                                                            |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**    | ⏳ Belum dimulai                                                                                                                                                                                                                 |
+| **Domain**    | publishing · integration                                                                                                                                                                                                         |
+| **ADR**       | —                                                                                                                                                                                                                                |
+| **Terkait**   | T-131, T-132, T-114 (pola backfill existing direuse untuk migrasi satu-kali)                                                                                                                                                     |
+| **Depends**   | T-131 ✅, T-132 ✅ (butuh parameter baru & logic klasifikasi sudah ada SEBELUM backfill dijalankan, supaya tidak backfill dua kali dengan hasil berbeda)                                                                         |
+| **Baca dulu** | `apps/web/src/domains/publishing/services/backfill-outstand-post-ids.use-case.ts` (T-114, pola migrasi satu-kali yang direuse) · `apps/web/src/domains/publishing/services/import-posts-trigger.use-case.ts` · hasil T-131/T-132 |
+
+**Konteks:** dua gap yang perlu dibereskan untuk akun yang SUDAH terhubung
+sebelum T-131/T-132 ada:
+
+1. 43 post `Imported` existing (akun test "Cook It Real Good") masih
+   `contentFormat: 'post'` hardcoded — perlu diklasifikasi ulang pakai
+   T-132.4 secara retroaktif.
+2. Lookback akun existing sudah "maju" mengikuti watermark masing-masing
+   (sebagian jauh lebih baru dari 1 tahun lalu) — perluasan default ke 1
+   tahun di T-131.1 TIDAK otomatis membuat akun lama "mundur" menangkap
+   konten lama yang pernah terlewat; perlu trigger ulang eksplisit dengan
+   `since` diperluas.
+
+Selain itu, King Rezi minta semua platform masuk scope, dengan prioritas:
+**Instagram → Facebook → TikTok → Pinterest**, sisanya menyusul. Investigasi
+2026-10-20 ke `outstand.so/docs/configurations/{platform}` menemukan **Import
+belum terbukti didokumentasikan resmi di luar Instagram/Facebook** —
+LinkedIn eksplisit menolak untuk personal profile ("importing posts from a
+personal profile is not supported and will fail"), TikTok/YouTube/Pinterest
+tidak menyebut import sama sekali di dokumentasi publik mereka. Jangan
+asumsikan endpoint generic `POST /v1/social-accounts/{id}/imports` otomatis
+jalan untuk semua network — perlu dibuktikan satu-satu.
+
+- [ ] **T-133.1** Verifikasi langsung ke Outstand (uji coba `importPosts` ke akun test TikTok dan Pinterest yang representatif, atau konfirmasi resmi dari support Outstand kalau tidak ada akun test) — apakah endpoint Import benar-benar berfungsi untuk kedua platform ini. Kalau gagal/tidak didukung, catat sebagai keterbatasan eksplisit (bukan diasumsikan jalan)
+- [ ] **T-133.2** Migrasi satu-kali: re-trigger import untuk `WorkspaceConnectedAccount` existing (Instagram, Facebook dulu) dengan `since` diperluas ke 1 tahun lalu — dijalankan sebagai script/job satu-off, BUKAN bagian job rutin, dedup existing (`upsertImportedPostsTx`) sudah aman dipakai ulang
+- [ ] **T-133.3** Jalankan T-132.4 (use-case klasifikasi) secara retroaktif untuk 43 post Imported existing + post baru hasil T-133.2
+- [ ] **T-133.4** Verifikasi end-to-end browser + DB nyata (pola sama addendum T-090/T-112) minimal untuk Instagram + Facebook; lanjut TikTok/Pinterest kalau T-133.1 konfirmasi didukung
+- [ ] **T-133.5** Update `PROJECT_STATE.md`/`AVAILABLE_TICKETS.md` setelah selesai (status final tiket ini saja, bukan detail task — ADR-062)
+
+---
+
 ## Dari Known Issue
 
 T-121 (KI-050) ada di [`known-issues.md`](known-issues.md) (ADR-134).
