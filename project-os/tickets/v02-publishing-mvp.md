@@ -2350,7 +2350,7 @@ selalu punya `publishedAt`), belum dikunci King Rezi — perlu
 
 **Verifikasi:** `bun run vitest run` (root) — 832 passed/7 skipped, 0 failed (termasuk 2 test `listHistory` yang diupdate ke default `[Published, Failed, Imported]`). `tsc --noEmit`/`eslint .` (apps/web) bersih. Browser preview manual (data nyata, akun "Cook It Real Good"): `/publish/history` — badge "Imported" tampil benar di tiap item, teks meta "Dipublikasikan X lalu" (bukan error/merah); detail dialog — judul "Dipublikasikan 18 Oktober 2026 pukul 17.59" + badge "Imported", "Hasil per Akun" menampilkan link "Lihat post asli", tanpa metrics tile.
 
-**Koreksi review PR 183 (2026-10-19):** `getPostPerformance` mengirim status `[Published, Failed]` eksplisit, jadi post `Imported` tetap di History dan tidak ikut angka Analyze. Jam di kiri kartu History memakai `updatedAt` (sama dengan judul tanggal kelompok). Teks "Dipublikasikan …" tetap memakai `publishedAt`.
+**Koreksi review PR 183 (2026-10-19):** saat itu `getPostPerformance` mengirim status `[Published, Failed]` eksplisit, jadi post `Imported` tetap di History dan tidak ikut angka Analyze. **Dibalik di T-129.1 (2026-10-19, lihat section T-129 di bawah)** — `getPostPerformance` sekarang reuse `HISTORY_TERMINAL_STATUSES`, jadi Imported SEKARANG ikut dihitung di Analyze juga. Jam di kiri kartu History memakai `updatedAt` (sama dengan judul tanggal kelompok). Teks "Dipublikasikan …" tetap memakai `publishedAt`.
 
 ---
 

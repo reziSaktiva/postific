@@ -882,17 +882,18 @@ export class PublishingService {
     // pekerjaan utama penyaringan rentang tanggal.
     //
     // T-129.1 (2026-10-19): `Imported` ikut dihitung di sini, sama seperti
-    // default History (`HISTORY_TERMINAL_STATUSES`). Sebelumnya (T-126,
-    // koreksi PR 183) caller ini sengaja mengunci ke `[Published, Failed]`
-    // supaya post impor tidak ikut angka Analyze — King Rezi membalik
-    // keputusan itu (2026-10-19): post impor punya `publishedAt` dan target
-    // `published` sungguhan, jadi SEHARUSNYA ikut Post Performance,
-    // Account Overview, Summary, Engagement Summary, dan Reports.
+    // default History (`HISTORY_TERMINAL_STATUSES`) — `statuses` sengaja
+    // TIDAK diisi di bawah supaya `listHistory` jatuh ke default itu
+    // sendiri. Sebelumnya (T-126, koreksi PR 183) caller ini sengaja
+    // mengunci ke `[Published, Failed]` supaya post impor tidak ikut angka
+    // Analyze — King Rezi membalik keputusan itu (2026-10-19): post impor
+    // punya `publishedAt` dan target `published` sungguhan, jadi
+    // SEHARUSNYA ikut Post Performance, Account Overview, Summary,
+    // Engagement Summary, dan Reports.
     const historyItems = await this.listHistory(
       {
         workspaceId,
         publishedAtRange: { from, to },
-        statuses: [...HISTORY_TERMINAL_STATUSES],
       },
       userId,
     );
