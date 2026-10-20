@@ -2350,7 +2350,76 @@ selalu punya `publishedAt`), belum dikunci King Rezi — perlu
 
 **Verifikasi:** `bun run vitest run` (root) — 832 passed/7 skipped, 0 failed (termasuk 2 test `listHistory` yang diupdate ke default `[Published, Failed, Imported]`). `tsc --noEmit`/`eslint .` (apps/web) bersih. Browser preview manual (data nyata, akun "Cook It Real Good"): `/publish/history` — badge "Imported" tampil benar di tiap item, teks meta "Dipublikasikan X lalu" (bukan error/merah); detail dialog — judul "Dipublikasikan 18 Oktober 2026 pukul 17.59" + badge "Imported", "Hasil per Akun" menampilkan link "Lihat post asli", tanpa metrics tile.
 
-**Koreksi review PR 183 (2026-10-19):** `getPostPerformance` mengirim status `[Published, Failed]` eksplisit, jadi post `Imported` tetap di History dan tidak ikut angka Analyze. Jam di kiri kartu History memakai `updatedAt` (sama dengan judul tanggal kelompok). Teks "Dipublikasikan …" tetap memakai `publishedAt`.
+**Koreksi review PR 183 (2026-10-19):** saat itu `getPostPerformance` mengirim status `[Published, Failed]` eksplisit, jadi post `Imported` tetap di History dan tidak ikut angka Analyze. **Dibalik di T-129.1 (2026-10-19, lihat section T-129 di bawah)** — `getPostPerformance` sekarang reuse `HISTORY_TERMINAL_STATUSES`, jadi Imported SEKARANG ikut dihitung di Analyze juga. Jam di kiri kartu History memakai `updatedAt` (sama dengan judul tanggal kelompok). Teks "Dipublikasikan …" tetap memakai `publishedAt`.
+
+---
+
+### T-128 · Default view Home & Analyze jadi Monthly/Bulan
+
+| Field         | Value                                                                                                                         |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| **Status**    | ✅ Done (2026-10-19)                                                                                                          |
+| **Domain**    | analytics · UI                                                                                                                |
+| **ADR**       | — (ubah default, bukan baseline — kedua period `weekly`/`monthly` sudah didesain & diimplementasikan penuh sejak T-042/T-043) |
+| **Terkait**   | T-125 (pola sama untuk Calendar), T-042.3–T-042.5 (Dashboard Home), T-043–T-047 (Analyze)                                     |
+| **Depends**   | T-042 ✅, T-043 ✅                                                                                                            |
+| **Baca dulu** | `apps/web/src/app/(app)/page.tsx`, `apps/web/src/app/(app)/analyze/page.tsx`                                                  |
+
+Diminta King Rezi (2026-10-19): saat buka halaman Home (`/`) dan Analyze
+(`/analyze`), selector rentang waktu default yang muncul sekarang `weekly`
+("Mingguan"). King Rezi ingin default-nya `monthly` ("Bulanan"). Bukan
+perubahan desain baru — selector Mingguan/Bulanan dan kedua tampilan datanya
+sudah ada & terkonfirmasi di Claude Design sejak T-042/T-043; task ini murni
+mengubah nilai default state (dua konstanta, tidak saling bergantung), sama
+kategorinya seperti T-125, tidak melalui evaluasi delegasi subagent (ADR-063).
+
+- [x] **T-128.1** `DEFAULT_PERIOD` di `apps/web/src/app/(app)/page.tsx` (Home) → `"monthly"`.
+- [x] **T-128.2** `INITIAL_PERIOD` di `apps/web/src/app/(app)/analyze/page.tsx` (Analyze) → `"monthly"`.
+
+**Verifikasi:** `tsc --noEmit` (apps/web) bersih. Browser preview manual — `/` dan `/analyze` dibuka tanpa interaksi apa pun: selector menampilkan "Bulanan" terpilih dan data yang tampil sudah rentang bulan berjalan; ganti ke "Mingguan" via selector tetap berfungsi normal di kedua halaman.
+
+---
+
+### T-129 · Imported posts ikut dihitung di Analyze
+
+| Field         | Value                                                                                                                                      |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Status**    | ✅ Done (2026-10-19) — scope Analyze (T-129.1) saja. Follow-up Home dipindah jadi KI-093/T-130 (`known-issues.md`), lihat catatan di bawah |
+| **Domain**    | publishing · analytics                                                                                                                     |
+| **ADR**       | — (membalik keputusan sesi T-126/koreksi PR 183, bukan baseline arsitektur)                                                                |
+| **Terkait**   | T-126 (History menampilkan Imported — sumber keputusan sebelumnya yang dibalik di sini), T-090/ADR-093 (status `Imported`)                 |
+| **Depends**   | T-126 ✅                                                                                                                                   |
+| **Baca dulu** | `apps/web/src/domains/publishing/services/publishing.service.ts` (`HISTORY_TERMINAL_STATUSES`, `getPostPerformance`)                       |
+
+King Rezi bertanya (2026-10-19) kenapa post `Imported` tidak muncul di Home
+dan Analyze. Investigasi menemukan dua akar masalah berbeda:
+
+1. **Analyze** — disengaja. `getPostPerformance` (dipakai bersama oleh
+   `getAccountOverview`, `getAnalyzeSummary`, `getEngagementSummary`,
+   `getComparativeReport`) mengunci `statuses: [Published, Failed]` sejak
+   koreksi review PR 183 (T-126) supaya Imported tidak ikut angka performa.
+2. **Home** — beda mekanisme, BUKAN filter status internal. `totalPosts`
+   dkk. di `AnalyticsService.getDashboardSummary` dibaca dari
+   `AnalyticsWorkspaceSnapshot` yang disinkronkan dari metrik Outstand
+   (`fetchWorkspaceMetrics` → `posts_count`, lihat
+   `analytics-ingestion.use-case.ts` + `real-outstand-adapter.ts`) —
+   mengubahnya butuh ganti param/endpoint Outstand atau beralih ke agregat
+   Prisma internal, bukan sekadar ubah array status.
+
+Dikonfirmasi King Rezi via `AskUserQuestion` (2026-10-19): Analyze → ya,
+masukkan Imported sekarang. Home → perlu investigasi lanjut dulu (scope
+lebih besar), **belum dikerjakan di sini**.
+
+- [x] **T-129.1** `getPostPerformance` (`publishing.service.ts`) — `statuses` diganti dari `[Published, Failed]` eksplisit jadi reuse `HISTORY_TERMINAL_STATUSES` (`[Published, Failed, Imported]`), konsisten dengan default History. Komentar di `HISTORY_TERMINAL_STATUSES` dan di atas pemanggilan `listHistory` diupdate (tidak lagi bilang Analyze sengaja exclude Imported). Test `publishing.service.test.ts` ("tidak menghitung Imported" → "ikut menghitung Imported") diupdate.
+
+**Verifikasi T-129.1:** `bun run vitest run` (root) — 835 passed/7 skipped, 0 failed. `tsc --noEmit` (apps/web) bersih. Browser preview manual (data nyata, akun "Cook It Real Good" dengan 15 post Imported) — `/analyze`: Total Posts naik dari 4 → 19, Account Overview menampilkan "15 posts" untuk Cook It Real Good, Post Performance menampilkan baris-baris post Imported-nya.
+
+**Follow-up Home (2026-10-19, sesi lanjutan):** investigasi lanjut (MCP
+`outstand`, live) menemukan root cause Home **beda** dari Analyze — bukan
+soal exclude status, tapi field `posts_count` yang `null` dari Outstand
+untuk akun Facebook Page (lihat detail lengkap di **KI-093/T-130**,
+`known-issues.md`). King Rezi memilih menunda eksekusinya — dicatat sebagai
+Known Issue terbuka, bukan subtask di tiket ini.
 
 ---
 

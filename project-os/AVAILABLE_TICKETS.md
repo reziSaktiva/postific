@@ -23,20 +23,21 @@ Phase dan blocker ada di [`PROJECT_STATE.md`](PROJECT_STATE.md). Known Issue yan
 | 🟡     | Sedang dikerjakan                                 |
 | 🚫     | Terhenti, menunggu King Rezi atau dependency luar |
 
-ID tiket global, tidak didaur ulang. Berikutnya: **T-128**. ID spec berikutnya: **S-001**.
+ID tiket global, tidak didaur ulang. Berikutnya: **T-131**. ID spec berikutnya: **S-001**.
 
 ---
 
 ## Sekarang
 
-| ID    | Status | Judul                                                           | File                                  |
-| ----- | ------ | --------------------------------------------------------------- | ------------------------------------- |
-| T-037 | 🟡     | Perkaya aturan coding di `context/ctx-development.md`           | [v0.2](tickets/v02-publishing-mvp.md) |
-| T-115 | 🟡     | Wiring cron harian Import Posts. Sisa: post native Facebook     | [v0.2](tickets/v02-publishing-mvp.md) |
-| T-013 | 🟡     | Connect account. Sisa: T-013.4 BYOK X                           | [v0.1](tickets/v01-foundation.md)     |
-| T-017 | 🟡     | RLS SQL policies. Sisa: adopsi `withCurrentUser`                | [v0.1](tickets/v01-foundation.md)     |
-| T-119 | 🚫     | Isi env Google OAuth. KI-015. King Rezi yang mengisi rahasianya | [KI](tickets/known-issues.md)         |
-| T-122 | ⏳     | Buktikan E2E invite Copy Link, email A vs email B. KI-053       | [KI](tickets/known-issues.md)         |
+| ID    | Status | Judul                                                                | File                                  |
+| ----- | ------ | -------------------------------------------------------------------- | ------------------------------------- |
+| T-037 | 🟡     | Perkaya aturan coding di `context/ctx-development.md`                | [v0.2](tickets/v02-publishing-mvp.md) |
+| T-115 | 🟡     | Wiring cron harian Import Posts. Sisa: post native Facebook          | [v0.2](tickets/v02-publishing-mvp.md) |
+| T-013 | 🟡     | Connect account. Sisa: T-013.4 BYOK X                                | [v0.1](tickets/v01-foundation.md)     |
+| T-017 | 🟡     | RLS SQL policies. Sisa: adopsi `withCurrentUser`                     | [v0.1](tickets/v01-foundation.md)     |
+| T-119 | 🚫     | Isi env Google OAuth. KI-015. King Rezi yang mengisi rahasianya      | [KI](tickets/known-issues.md)         |
+| T-122 | ⏳     | Buktikan E2E invite Copy Link, email A vs email B. KI-053            | [KI](tickets/known-issues.md)         |
+| T-130 | ⏳     | `totalPosts` Home tidak akurat untuk akun `posts_count` null. KI-093 | [KI](tickets/known-issues.md)         |
 
 T-037 prioritas rendah dan tidak memblokir rilis. T-115 masih 🟡: job import dan watermark sudah terbukti di staging; sisa T-115.5 adalah post native Facebook yang muncul di Postific. T-124 selesai 2026-10-19 (error kolom void, KI-091). T-116 → T-117 → T-118 (token-agent) selesai 2026-10-16, lihat `tickets/v01-foundation.md`.
 

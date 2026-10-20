@@ -227,3 +227,67 @@ Fix idealnya tetap SATU `min-w-0` di titik akar (bukan menambal `truncate`/
 `break-words` di tiap komponen anak satu-satu), karena masalahnya adalah
 rantai flex yang gagal men-declare minimum-width:0, bukan teks yang tidak
 di-wrap.
+
+### T-130 · `totalPosts` Home tidak akurat untuk akun yang `posts_count`-nya `null` di Outstand
+
+| Field       | Value                                                                |
+| ----------- | -------------------------------------------------------------------- |
+| **Status**  | ⏳ Open — King Rezi memutuskan dicatat dulu, belum diimplementasikan |
+| **Domain**  | analytics                                                            |
+| **Spec**    | tidak ada — single-issue, dampak kecil                               |
+| **Docs**    | KI-093, T-129 (Analyze — sudah fixed di T-129.1)                     |
+| **Depends** | —                                                                    |
+
+**Ditemukan (KI-093, King Rezi, 2026-10-19):** setelah T-129.1 (Imported
+posts ikut dihitung di Analyze), King Rezi bertanya kenapa post Imported
+"Cook It Real Good" (15 post Facebook) tidak ikut menaikkan angka "Post
+terpublikasi" di Home. Awalnya diduga exclude status sama seperti Analyze
+sebelum T-129.1 — **ternyata root cause berbeda dan lebih sempit.**
+
+**Investigasi (MCP `outstand`, live read-only, 2026-10-19):**
+
+1. `AnalyticsService.getDashboardSummary` → `totalPosts` Home dibaca dari
+   `AnalyticsWorkspaceSnapshot`, diisi `AnalyticsIngestionUseCase.syncWorkspaceSnapshot`
+   dari `IOutstandAdapter.fetchWorkspaceMetrics` (`GET /v1/social-accounts/{id}/metrics`,
+   field `data.posts_count`) — bukan dari query Prisma status internal sama
+   sekali, beda mekanisme dari Analyze.
+2. Tes live `get_account_metrics` akun "turanilkerl" (Instagram, `eH82r`):
+   `posts_count: 3` — akurat, cocok angka Home.
+3. Tes live `get_account_metrics` akun "Cook It Real Good" (Facebook Page,
+   `Kav29`): `posts_count: null` — **field ini kosong untuk Facebook Page**,
+   padahal `engagement.reach`/`engagement.likes` dkk di response yang SAMA
+   tetap terisi valid (reach 4812, engagement 97). `toNumber(null)` di
+   `real-outstand-adapter.ts:1255` menjadikannya 0, jadi 15 post Facebook
+   akun ini tidak menambah `totalPosts` Home sama sekali.
+4. King Rezi minta dicek dokumentasi `GET /v1/posts/{id}/analytics`
+   (per-post analytics) — dikonfirmasi **tidak ada pembedaan sumber post**
+   (Imported vs native) di endpoint itu. Dibuktikan live: `get_post_analytics`
+   untuk post Imported `LGyF6` ("Watermelon Salad", Cook It Real Good)
+   mengembalikan metrik lengkap (likes 2, comments 0, shares 1,
+   impressions 383) — Outstand **bisa** kasih analytics detail per post
+   Imported, tidak ada keterbatasan di situ.
+
+**Kesimpulan:** bukan "Outstand tidak mendukung analytics Imported" dan
+bukan exclude status seperti Analyze — gapnya spesifik di satu field
+(`posts_count`) dari satu endpoint agregat level-akun
+(`fetchWorkspaceMetrics`), untuk platform Facebook Page. Berlaku untuk
+SEMUA post di akun itu (Imported maupun bukan), bukan cuma yang Imported.
+
+**Opsi perbaikan (didiskusikan, belum dieksekusi):** hitung `totalPosts`
+Home dari DB internal (status `Published`/`Failed`/`Imported`, reuse
+`HISTORY_TERMINAL_STATUSES` — pola sama T-129.1) lewat port cross-domain
+baru `analytics` → `publishing` (pola sama `ActiveAccountsPort`), alih-alih
+`posts_count` Outstand yang terbukti tidak reliable untuk Facebook.
+`totalReach`/`totalEngagements` Home tetap dari Outstand (field itu sudah
+terbukti valid). King Rezi memilih menunda eksekusi — dicatat di sini
+sebagai Known Issue terbuka, bukan dikerjakan di sesi ini.
+
+- [ ] Tambah port `analytics` → `publishing` untuk hitung jumlah post
+      terminal-status per workspace/periode (pola `ActiveAccountsPort`).
+- [ ] `AnalyticsIngestionUseCase.syncWorkspaceSnapshot` pakai hasil port itu
+      untuk `totalPosts`, bukan jumlah `metrics.totalPosts` per akun dari
+      Outstand.
+- [ ] Test unit untuk kasus `posts_count: null`/platform tanpa dukungan
+      field itu.
+- [ ] Verifikasi browser: Home menampilkan jumlah post yang cocok dengan
+      Analyze untuk periode yang sama.
