@@ -20,8 +20,20 @@ import type {
 import type { BackfillOutstandPostIdsUseCase } from "./backfill-outstand-post-ids.use-case";
 import type { ImportPostsProcessUseCase } from "./import-posts-process.use-case";
 
-const DEFAULT_IMPORT_LOOKBACK_DAYS = 90;
-const DEFAULT_IMPORT_LIMIT = 100;
+/**
+ * T-131 — sebelum tiket ini, `DEFAULT_IMPORT_LOOKBACK_DAYS`/`DEFAULT_IMPORT_LIMIT`
+ * satu konstanta dipakai ketiga trigger (auto/manual/periodik) sekaligus.
+ * King Rezi (AskUserQuestion, 2026-10-20) minta ketiganya benar-benar beda
+ * kebijakan — dipecah jadi dua pasang konstanta di bawah, bukan lagi satu:
+ * - Auto (on-connect) & manual ("Sync Now"): lookback 1 tahun, limit 1000.
+ * - Periodik (cron harian + antrian T-115): limit tetap 100; lookback-nya
+ *   BUKAN angka hari tetap lagi — lihat `periodicImportSince` (anti-gap,
+ *   pakai `CRON_LOOKBACK_MS` sebagai salah satu dari dua kandidat `since`).
+ */
+const AUTO_MANUAL_LOOKBACK_DAYS = 365;
+const AUTO_MANUAL_IMPORT_LIMIT = 1000;
+const CRON_IMPORT_LIMIT = 100;
+const CRON_LOOKBACK_MS = 24 * 60 * 60 * 1000;
 const MANUAL_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 const MANUAL_CAP_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -57,15 +69,28 @@ export type SleepFn = (ms: number) => Promise<void>;
 const defaultSleep: SleepFn = (ms) =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
+/** `since` default untuk trigger auto (on-connect) & manual ("Sync Now") — 1 tahun ke belakang (T-131.1/T-131.2). */
 function defaultSince(now: Date): Date {
   return new Date(
-    now.getTime() - DEFAULT_IMPORT_LOOKBACK_DAYS * 24 * 60 * 60 * 1000,
+    now.getTime() - AUTO_MANUAL_LOOKBACK_DAYS * 24 * 60 * 60 * 1000,
   );
 }
 
-/** `since` periodik: watermark terakhir, atau 90 hari kalau akun belum pernah sukses diimpor. */
+/**
+ * `since` periodik (cron harian T-115 + antrian `executeQueuedPeriodicImport`)
+ * — T-131.3, pengaman anti-gap. BUKAN sekadar watermark atau sekadar 24 jam
+ * lalu: ambil yang LEBIH JAUH ke belakang (lebih tua) di antara keduanya,
+ * `since = min(lastImportedUntil ?? (now - 24 jam), now - 24 jam)`. Kalau
+ * cron sempat gagal/terlewat beberapa hari, watermark lebih tua dari 24 jam
+ * lalu akan tetap dipakai (mengejar gap), BUKAN terpotong jadi cuma 24 jam
+ * terakhir seperti sebelum tiket ini.
+ */
 function periodicImportSince(lastImportedUntil: Date | null, now: Date): Date {
-  return lastImportedUntil ?? defaultSince(now);
+  const twentyFourHoursAgo = new Date(now.getTime() - CRON_LOOKBACK_MS);
+  const candidate = lastImportedUntil ?? twentyFourHoursAgo;
+  return candidate.getTime() < twentyFourHoursAgo.getTime()
+    ? candidate
+    : twentyFourHoursAgo;
 }
 
 /**
@@ -153,6 +178,14 @@ interface RunImportSyncInput {
   outstandAccountId: string;
   platform: SocialPlatform;
   since: Date;
+  /**
+   * T-131 — `limit` sekarang per-trigger (bukan satu `DEFAULT_IMPORT_LIMIT`
+   * untuk ketiganya): 1000 untuk auto/manual, 100 untuk periodik. Dipakai
+   * baik sebagai body request `importPosts` maupun sebagai ambang
+   * `isPossiblyTruncated` di `runImportJob` — HARUS angka yang SAMA dengan
+   * yang benar-benar dikirim ke Outstand untuk trigger ini.
+   */
+  limit: number;
   /** RLS acting user — lihat catatan `IPublishingRepository.upsertImportedPosts` untuk kenapa ini boleh bukan "pemilik" post (post Imported tidak punya pemilik). */
   actingUserId: UserId;
 }
@@ -283,7 +316,7 @@ export class ImportPostsTriggerUseCase {
     return outcome;
   }
 
-  /** Otomatis on-connect (ADR-093 poin 7) — `since` SELALU 90 hari ke belakang (`lastImportedUntil` dijamin kosong, akun baru dibuat). */
+  /** Otomatis on-connect (ADR-093 poin 7, T-131.1) — `since` SELALU 1 tahun ke belakang (`lastImportedUntil` dijamin kosong, akun baru dibuat), `limit` 1000. */
   async triggerAuto(input: TriggerAutoInput): Promise<ImportSyncTriggerResult> {
     return this.runImportSync({
       trigger: "auto",
@@ -292,6 +325,7 @@ export class ImportPostsTriggerUseCase {
       outstandAccountId: input.outstandAccountId,
       platform: input.platform,
       since: defaultSince(new Date()),
+      limit: AUTO_MANUAL_IMPORT_LIMIT,
       actingUserId: input.actingUserId,
     });
   }
@@ -336,6 +370,7 @@ export class ImportPostsTriggerUseCase {
           outstandAccountId: account.outstandAccountId,
           platform: account.platform,
           since: periodicImportSince(account.lastImportedUntil, new Date()),
+          limit: CRON_IMPORT_LIMIT,
           actingUserId: owner.ownerUserId,
         });
         results.set(account.connectedAccountId, result);
@@ -401,7 +436,10 @@ export class ImportPostsTriggerUseCase {
       connectedAccountId: input.connectedAccountId,
       outstandAccountId: input.outstandAccountId,
       platform: input.platform,
+      // T-131.2 — tetap watermark kalau ada; default 1 tahun (bukan 90 hari
+      // lagi) kalau akun belum pernah sukses diimpor, konsisten T-131.1.
       since: input.lastImportedUntil ?? defaultSince(now),
+      limit: AUTO_MANUAL_IMPORT_LIMIT,
       actingUserId: input.actingUserId,
     });
   }
@@ -470,6 +508,7 @@ export class ImportPostsTriggerUseCase {
       outstandAccountId: input.outstandAccountId,
       platform: input.platform,
       since: periodicImportSince(watermark.lastImportedUntil, until),
+      limit: CRON_IMPORT_LIMIT,
       actingUserId: owner.ownerUserId,
     };
 
@@ -577,7 +616,7 @@ export class ImportPostsTriggerUseCase {
     try {
       const handle = await this.outstandAdapter.importPosts(
         input.outstandAccountId,
-        { since: input.since, until, limit: DEFAULT_IMPORT_LIMIT },
+        { since: input.since, until, limit: input.limit },
       );
       const jobOutcome = await this.pollImportJobStatus(
         input.outstandAccountId,
@@ -631,15 +670,15 @@ export class ImportPostsTriggerUseCase {
 
       // Code review PR #148 (finding #5) — `IOutstandAdapter.importPosts`
       // tidak punya cursor/next-page (kontrak `packages/shared`), jadi
-      // kalau hasil batch ini PAS sejumlah `DEFAULT_IMPORT_LIMIT`, mungkin
-      // masih ada post lain dalam rentang `since`-`until` yang belum
-      // terambil. Watermark HANYA dimajukan ke `until` kalau batch ini
-      // TIDAK penuh (berarti seluruh rentang sudah habis) — kalau penuh,
-      // watermark dibiarkan apa adanya supaya trigger berikutnya mengulang
-      // rentang yang sama (aman berkat dedup `upsertImportedPosts`)
-      // daripada diam-diam melompati sisa post yang belum terambil.
-      const isPossiblyTruncated =
-        jobOutcome.posts.length >= DEFAULT_IMPORT_LIMIT;
+      // kalau hasil batch ini PAS sejumlah `input.limit` (T-131 — limit kini
+      // per-trigger, bukan satu `DEFAULT_IMPORT_LIMIT` lagi), mungkin masih
+      // ada post lain dalam rentang `since`-`until` yang belum terambil.
+      // Watermark HANYA dimajukan ke `until` kalau batch ini TIDAK penuh
+      // (berarti seluruh rentang sudah habis) — kalau penuh, watermark
+      // dibiarkan apa adanya supaya trigger berikutnya mengulang rentang
+      // yang sama (aman berkat dedup `upsertImportedPosts`) daripada diam-
+      // diam melompati sisa post yang belum terambil.
+      const isPossiblyTruncated = jobOutcome.posts.length >= input.limit;
       if (!isPossiblyTruncated) {
         // `lastImportedUntil` ke nilai `until` yang DIPAKAI job ini (ADR-093
         // poin 7) — BUKAN publishedAt post terbaru, supaya trigger berikutnya

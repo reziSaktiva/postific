@@ -2427,7 +2427,7 @@ Known Issue terbuka, bukan subtask di tiket ini.
 
 | Field         | Value                                                                                                                                                                                                                                                                                                                                                                       |
 | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**    | ⏳ Belum dimulai                                                                                                                                                                                                                                                                                                                                                            |
+| **Status**    | ✅ Done (5/5 subtask)                                                                                                                                                                                                                                                                                                                                                       |
 | **Domain**    | publishing                                                                                                                                                                                                                                                                                                                                                                  |
 | **ADR**       | — (parameter tuning atas desain existing ADR-093 poin 5/7/9, bukan keputusan arsitektur baru)                                                                                                                                                                                                                                                                               |
 | **Terkait**   | T-090, T-112, T-115 (tiga entry point `ImportPostsTriggerUseCase` yang parameternya diubah di sini), T-132, T-133                                                                                                                                                                                                                                                           |
@@ -2452,12 +2452,15 @@ dikonfirmasi lewat `AskUserQuestion`:
 tapi model biayanya (per-call vs per-post-yang-diimpor) belum pernah
 dikonfirmasi ke Outstand. Menaikkan `limit` dari 100 → 1000 bisa menaikkan
 biaya kalau modelnya per-post — cek dulu sebelum deploy ke production.
+Status implementasi (2026-10-20): verifikasi model biaya ini BELUM
+dilakukan — follow-up terbuka, jangan deploy ke production sebelum
+dikonfirmasi ke Outstand.
 
-- [ ] **T-131.1** `triggerAuto` (on-connect) — ubah `defaultSince`/lookback jadi 1 tahun (dari `DEFAULT_IMPORT_LOOKBACK_DAYS = 90`), limit jadi 1000 (dari `DEFAULT_IMPORT_LIMIT = 100`). Pertimbangkan apakah kedua konstanta ini perlu dipecah per-trigger (bukan lagi satu konstanta modul dipakai ketiganya)
-- [ ] **T-131.2** `triggerManual` — `since` tetap `input.lastImportedUntil` kalau ada; default saat kosong ikut 1 tahun (bukan 90 hari) biar konsisten dengan T-131.1. Limit jadi 1000
-- [ ] **T-131.3** Cron harian (`periodicImportSince`, dipakai `triggerPeriodicForAccounts` dan `executeQueuedPeriodicImport`) — ubah jadi `since = min(lastImportedUntil ?? (now - 24 jam), now - 24 jam)` (ambil yang lebih tua/lebih jauh ke belakang). Limit tetap 100
-- [ ] **T-131.4** Unit test tiap trigger untuk nilai baru, termasuk skenario gap cron eksplisit: watermark lebih tua dari 24 jam (mis. cron sempat gagal 3 hari) → `since` harus ikut watermark, BUKAN terpotong jadi 24 jam
-- [ ] **T-131.5** Regresi guard biaya existing (ADR-093 poin 8 concurrent-import per akun, poin 9 cooldown 24 jam + cap mingguan manual) — pastikan kenaikan `limit` tidak mengubah semantik guard yang sudah ada, dan guard manual tetap mengacu `payload.trigger = "manual"` seperti sebelumnya
+- [x] **T-131.1** `triggerAuto` (on-connect) — ubah `defaultSince`/lookback jadi 1 tahun (dari `DEFAULT_IMPORT_LOOKBACK_DAYS = 90`), limit jadi 1000 (dari `DEFAULT_IMPORT_LIMIT = 100`). Pertimbangkan apakah kedua konstanta ini perlu dipecah per-trigger (bukan lagi satu konstanta modul dipakai ketiganya)
+- [x] **T-131.2** `triggerManual` — `since` tetap `input.lastImportedUntil` kalau ada; default saat kosong ikut 1 tahun (bukan 90 hari) biar konsisten dengan T-131.1. Limit jadi 1000
+- [x] **T-131.3** Cron harian (`periodicImportSince`, dipakai `triggerPeriodicForAccounts` dan `executeQueuedPeriodicImport`) — ubah jadi `since = min(lastImportedUntil ?? (now - 24 jam), now - 24 jam)` (ambil yang lebih tua/lebih jauh ke belakang). Limit tetap 100
+- [x] **T-131.4** Unit test tiap trigger untuk nilai baru, termasuk skenario gap cron eksplisit: watermark lebih tua dari 24 jam (mis. cron sempat gagal 3 hari) → `since` harus ikut watermark, BUKAN terpotong jadi 24 jam
+- [x] **T-131.5** Regresi guard biaya existing (ADR-093 poin 8 concurrent-import per akun, poin 9 cooldown 24 jam + cap mingguan manual) — pastikan kenaikan `limit` tidak mengubah semantik guard yang sudah ada, dan guard manual tetap mengacu `payload.trigger = "manual"` seperti sebelumnya
 
 ---
 
@@ -2515,7 +2518,7 @@ jalan dari T-131, BUKAN dibatasi angka tetap seperti usulan awal 20).
 | **Domain**    | publishing · integration                                                                                                                                                                                                         |
 | **ADR**       | —                                                                                                                                                                                                                                |
 | **Terkait**   | T-131, T-132, T-114 (pola backfill existing direuse untuk migrasi satu-kali)                                                                                                                                                     |
-| **Depends**   | T-131 ✅, T-132 ✅ (butuh parameter baru & logic klasifikasi sudah ada SEBELUM backfill dijalankan, supaya tidak backfill dua kali dengan hasil berbeda)                                                                         |
+| **Depends**   | T-131 ✅ (selesai), T-132 ⏳ (belum — butuh parameter baru & logic klasifikasi sudah ada SEBELUM backfill dijalankan, supaya tidak backfill dua kali dengan hasil berbeda)                                                       |
 | **Baca dulu** | `apps/web/src/domains/publishing/services/backfill-outstand-post-ids.use-case.ts` (T-114, pola migrasi satu-kali yang direuse) · `apps/web/src/domains/publishing/services/import-posts-trigger.use-case.ts` · hasil T-131/T-132 |
 
 **Konteks:** dua gap yang perlu dibereskan untuk akun yang SUDAH terhubung

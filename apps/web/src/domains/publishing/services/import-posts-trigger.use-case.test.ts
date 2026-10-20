@@ -179,9 +179,10 @@ describe("ImportPostsTriggerUseCase.triggerAuto (T-090.3, ADR-093 poin 7)", () =
     expect(importJobs.createImportSyncJob).toHaveBeenCalledWith(
       expect.objectContaining({ trigger: "auto" }),
     );
+    // T-131.1 — auto (on-connect) sekarang limit 1000 (bukan 100).
     expect(outstandAdapter.importPosts).toHaveBeenCalledWith(
       OUTSTAND_ACCOUNT_ID,
-      expect.objectContaining({ limit: 100 }),
+      expect.objectContaining({ limit: 1000 }),
     );
     // T-112/ADR-123 — `fetchImportJobStatus` sekarang butuh `outstandAccountId`
     // SELAIN `importJobId` (endpoint real `GET /v1/social-accounts/{id}/
@@ -629,6 +630,251 @@ describe("ImportPostsTriggerUseCase.triggerManual (T-090.3, ADR-093 poin 9)", ()
       2,
       expect.objectContaining({ actingUserId: ACTING_USER_ID }),
     );
+  });
+});
+
+describe("ImportPostsTriggerUseCase — T-131 per-trigger since/limit policy", () => {
+  it("triggerAuto (T-131.1) requests ~1 year lookback and limit 1000", async () => {
+    const importJobs = createFakeImportJobRepository();
+    const outstandAdapter = createFakeOutstandAdapter();
+    const watermark = createFakeWatermarkPort();
+    const processUseCase = createProcessUseCase(1);
+
+    const useCase = new ImportPostsTriggerUseCase(
+      importJobs,
+      outstandAdapter,
+      watermark,
+      processUseCase,
+      noopBackfillUseCase,
+    );
+
+    await useCase.triggerAuto({
+      workspaceId: WORKSPACE_ID,
+      connectedAccountId: CONNECTED_ACCOUNT_ID,
+      outstandAccountId: OUTSTAND_ACCOUNT_ID,
+      platform: SocialPlatform.Instagram,
+      actingUserId: ACTING_USER_ID,
+    });
+
+    const callArgs = vi.mocked(outstandAdapter.importPosts).mock.calls[0]?.[1];
+    expect(callArgs?.limit).toBe(1000);
+    const elapsed = Date.now() - (callArgs?.since as Date).getTime();
+    expect(elapsed).toBeGreaterThan(364 * 24 * 60 * 60 * 1000);
+    expect(elapsed).toBeLessThan(366 * 24 * 60 * 60 * 1000);
+  });
+
+  it("triggerManual (T-131.2) uses the watermark as since (unchanged) but limit is now 1000", async () => {
+    const importJobs = createFakeImportJobRepository();
+    const outstandAdapter = createFakeOutstandAdapter();
+    const watermark = createFakeWatermarkPort();
+    const watermarkDate = new Date("2026-09-01T00:00:00Z");
+
+    const useCase = new ImportPostsTriggerUseCase(
+      importJobs,
+      outstandAdapter,
+      watermark,
+      createProcessUseCase(1),
+      noopBackfillUseCase,
+    );
+
+    await useCase.triggerManual({
+      actorRole: MemberRole.Owner,
+      workspaceId: WORKSPACE_ID,
+      connectedAccountId: CONNECTED_ACCOUNT_ID,
+      outstandAccountId: OUTSTAND_ACCOUNT_ID,
+      platform: SocialPlatform.Instagram,
+      actingUserId: ACTING_USER_ID,
+      lastImportedUntil: watermarkDate,
+      lastImportRequestedAt: null,
+    });
+
+    expect(outstandAdapter.importPosts).toHaveBeenCalledWith(
+      OUTSTAND_ACCOUNT_ID,
+      expect.objectContaining({ since: watermarkDate, limit: 1000 }),
+    );
+  });
+
+  it("triggerManual (T-131.2) falls back to ~1 year (not 90 days) when the account never synced before", async () => {
+    const importJobs = createFakeImportJobRepository();
+    const outstandAdapter = createFakeOutstandAdapter();
+    const watermark = createFakeWatermarkPort();
+
+    const useCase = new ImportPostsTriggerUseCase(
+      importJobs,
+      outstandAdapter,
+      watermark,
+      createProcessUseCase(1),
+      noopBackfillUseCase,
+    );
+
+    await useCase.triggerManual({
+      actorRole: MemberRole.Owner,
+      workspaceId: WORKSPACE_ID,
+      connectedAccountId: CONNECTED_ACCOUNT_ID,
+      outstandAccountId: OUTSTAND_ACCOUNT_ID,
+      platform: SocialPlatform.Instagram,
+      actingUserId: ACTING_USER_ID,
+      lastImportedUntil: null,
+      lastImportRequestedAt: null,
+    });
+
+    const callArgs = vi.mocked(outstandAdapter.importPosts).mock.calls[0]?.[1];
+    expect(callArgs?.limit).toBe(1000);
+    const elapsed = Date.now() - (callArgs?.since as Date).getTime();
+    expect(elapsed).toBeGreaterThan(364 * 24 * 60 * 60 * 1000);
+    expect(elapsed).toBeLessThan(366 * 24 * 60 * 60 * 1000);
+  });
+
+  it("triggerPeriodicForAccounts (T-131.3) keeps limit 100 and uses the anti-gap since (stale watermark wins over 24h-ago)", async () => {
+    const importJobs = createFakeImportJobRepository();
+    const outstandAdapter = createFakeOutstandAdapter();
+    const watermark = createFakeWatermarkPort({
+      findAccountOwnerByOutstandAccountId: vi.fn(async () => ({
+        workspaceId: WORKSPACE_ID,
+        connectedAccountId: CONNECTED_ACCOUNT_ID,
+        ownerUserId: ACTING_USER_ID,
+      })),
+    });
+    const staleWatermark = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000);
+
+    const useCase = new ImportPostsTriggerUseCase(
+      importJobs,
+      outstandAdapter,
+      watermark,
+      createProcessUseCase(1),
+      noopBackfillUseCase,
+    );
+
+    await useCase.triggerPeriodicForAccounts([
+      {
+        workspaceId: WORKSPACE_ID,
+        connectedAccountId: CONNECTED_ACCOUNT_ID,
+        outstandAccountId: OUTSTAND_ACCOUNT_ID,
+        platform: SocialPlatform.Instagram,
+        lastImportedUntil: staleWatermark,
+      },
+    ]);
+
+    expect(outstandAdapter.importPosts).toHaveBeenCalledWith(
+      OUTSTAND_ACCOUNT_ID,
+      expect.objectContaining({ since: staleWatermark, limit: 100 }),
+    );
+  });
+
+  // T-131.5 — regresi guard biaya existing: kenaikan limit (1000) tidak
+  // mengubah semantik guard concurrent-import (ADR-093 poin 8), cooldown
+  // 24 jam, atau cap mingguan manual (ADR-093 poin 9) — ketiganya dicek
+  // SEBELUM runImportSync, jadi independen dari nilai limit/since.
+  describe("T-131.5 — cost guard regression (limit bump must not change guard semantics)", () => {
+    it("manual cap guard (payload.trigger = 'manual') still rejects before calling Outstand, even with the new limit/since values", async () => {
+      const importJobs = createFakeImportJobRepository({
+        countManualImportSyncJobsSince: vi.fn(async () => 1),
+      });
+      const outstandAdapter = createFakeOutstandAdapter();
+      const useCase = new ImportPostsTriggerUseCase(
+        importJobs,
+        outstandAdapter,
+        createFakeWatermarkPort(),
+        createProcessUseCase(),
+        noopBackfillUseCase,
+      );
+
+      const result = await useCase.triggerManual({
+        actorRole: MemberRole.Owner,
+        workspaceId: WORKSPACE_ID,
+        connectedAccountId: CONNECTED_ACCOUNT_ID,
+        outstandAccountId: OUTSTAND_ACCOUNT_ID,
+        platform: SocialPlatform.Instagram,
+        actingUserId: ACTING_USER_ID,
+        lastImportedUntil: null,
+        lastImportRequestedAt: null,
+      });
+
+      expect(result.outcome).toBe("rejected_cap");
+      expect(outstandAdapter.importPosts).not.toHaveBeenCalled();
+    });
+
+    it("manual cooldown guard (24h) still rejects before calling Outstand", async () => {
+      const importJobs = createFakeImportJobRepository();
+      const outstandAdapter = createFakeOutstandAdapter();
+      const useCase = new ImportPostsTriggerUseCase(
+        importJobs,
+        outstandAdapter,
+        createFakeWatermarkPort(),
+        createProcessUseCase(),
+        noopBackfillUseCase,
+      );
+
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      const result = await useCase.triggerManual({
+        actorRole: MemberRole.Owner,
+        workspaceId: WORKSPACE_ID,
+        connectedAccountId: CONNECTED_ACCOUNT_ID,
+        outstandAccountId: OUTSTAND_ACCOUNT_ID,
+        platform: SocialPlatform.Instagram,
+        actingUserId: ACTING_USER_ID,
+        lastImportedUntil: null,
+        lastImportRequestedAt: oneHourAgo,
+      });
+
+      expect(result.outcome).toBe("rejected_cooldown");
+      expect(outstandAdapter.importPosts).not.toHaveBeenCalled();
+    });
+
+    it("createImportSyncJob payload still records trigger: 'manual' (cap-counting query relies on this field, unaffected by the limit bump)", async () => {
+      const importJobs = createFakeImportJobRepository();
+      const outstandAdapter = createFakeOutstandAdapter();
+      const useCase = new ImportPostsTriggerUseCase(
+        importJobs,
+        outstandAdapter,
+        createFakeWatermarkPort(),
+        createProcessUseCase(1),
+        noopBackfillUseCase,
+      );
+
+      await useCase.triggerManual({
+        actorRole: MemberRole.Owner,
+        workspaceId: WORKSPACE_ID,
+        connectedAccountId: CONNECTED_ACCOUNT_ID,
+        outstandAccountId: OUTSTAND_ACCOUNT_ID,
+        platform: SocialPlatform.Instagram,
+        actingUserId: ACTING_USER_ID,
+        lastImportedUntil: null,
+        lastImportRequestedAt: null,
+      });
+
+      expect(importJobs.createImportSyncJob).toHaveBeenCalledWith(
+        expect.objectContaining({ trigger: "manual" }),
+      );
+    });
+
+    it("concurrent-import guard (ADR-093 poin 8) still rejects manual before calling Outstand, with the new limit in play", async () => {
+      const importJobs = createFakeImportJobRepository({
+        hasActiveImportSyncJob: vi.fn(async () => true),
+      });
+      const outstandAdapter = createFakeOutstandAdapter();
+      const useCase = new ImportPostsTriggerUseCase(
+        importJobs,
+        outstandAdapter,
+        createFakeWatermarkPort(),
+        createProcessUseCase(),
+        noopBackfillUseCase,
+      );
+
+      const result = await useCase.triggerManual({
+        actorRole: MemberRole.Owner,
+        workspaceId: WORKSPACE_ID,
+        connectedAccountId: CONNECTED_ACCOUNT_ID,
+        outstandAccountId: OUTSTAND_ACCOUNT_ID,
+        platform: SocialPlatform.Instagram,
+        actingUserId: ACTING_USER_ID,
+        lastImportedUntil: null,
+        lastImportRequestedAt: null,
+      });
+
+      expect(result.outcome).toBe("rejected_concurrent");
+      expect(outstandAdapter.importPosts).not.toHaveBeenCalled();
+    });
   });
 });
 
@@ -1190,7 +1436,10 @@ describe("ImportPostsTriggerUseCase.executeQueuedPeriodicImport (T-115)", () => 
     expect(requestedOrder).toBeLessThan(networkOrder!);
   });
 
-  it("falls back to the 90 day lookback when lastImportedUntil is empty", async () => {
+  // T-131.3 — fallback periodik sekarang 24 jam (bukan 90 hari) saat akun
+  // belum pernah sukses diimpor (lastImportedUntil null): null ?? (now-24h)
+  // dibandingkan dengan (now-24h) sendiri, keduanya identik.
+  it("falls back to the 24 hour lookback when lastImportedUntil is empty", async () => {
     const { useCase, outstandAdapter } = createQueuedUseCase({
       lastImportedUntil: null,
     });
@@ -1200,8 +1449,58 @@ describe("ImportPostsTriggerUseCase.executeQueuedPeriodicImport (T-115)", () => 
     const since = vi.mocked(outstandAdapter.importPosts).mock.calls[0]?.[1]
       .since as Date;
     const elapsed = Date.now() - since.getTime();
-    expect(elapsed).toBeGreaterThan(89 * 24 * 60 * 60 * 1000);
-    expect(elapsed).toBeLessThan(91 * 24 * 60 * 60 * 1000);
+    expect(elapsed).toBeGreaterThanOrEqual(24 * 60 * 60 * 1000 - 1000);
+    expect(elapsed).toBeLessThan(24 * 60 * 60 * 1000 + 5000);
+  });
+
+  // T-131.3 — limit periodik tetap 100 (bukan ikut naik ke 1000 seperti
+  // auto/manual).
+  it("still requests limit 100 (unchanged by the T-131 auto/manual limit bump)", async () => {
+    const { useCase, outstandAdapter } = createQueuedUseCase({});
+
+    await useCase.executeQueuedPeriodicImport(queuedInput);
+
+    expect(outstandAdapter.importPosts).toHaveBeenCalledWith(
+      OUTSTAND_ACCOUNT_ID,
+      expect.objectContaining({ limit: 100 }),
+    );
+  });
+
+  // T-131.4 — skenario gap cron eksplisit: watermark 3 hari lalu (lebih tua
+  // dari 24 jam) HARUS tetap dipakai sebagai `since` (anti-gap), bukan
+  // terpotong jadi cuma 24 jam terakhir.
+  it("uses the stale watermark (older than 24h) as since when cron missed several days — anti-gap guard (T-131.3/T-131.4)", async () => {
+    const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+    const { useCase, outstandAdapter } = createQueuedUseCase({
+      lastImportedUntil: threeDaysAgo,
+    });
+
+    await useCase.executeQueuedPeriodicImport(queuedInput);
+
+    expect(outstandAdapter.importPosts).toHaveBeenCalledWith(
+      OUTSTAND_ACCOUNT_ID,
+      expect.objectContaining({ since: threeDaysAgo }),
+    );
+  });
+
+  // Kontras dengan test di atas: watermark LEBIH BARU dari 24 jam lalu (mis.
+  // 2 jam lalu, cron sempat jalan ekstra atau manual sync terjadi di antara
+  // cron) — `since` harus 24 jam lalu (yang "lebih jauh ke belakang" di
+  // kasus ini), BUKAN watermark yang lebih baru.
+  it("uses 24h-ago as since (not the fresher watermark) when the watermark is more recent than 24h ago", async () => {
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+    const { useCase, outstandAdapter } = createQueuedUseCase({
+      lastImportedUntil: twoHoursAgo,
+    });
+
+    await useCase.executeQueuedPeriodicImport(queuedInput);
+
+    const since = vi.mocked(outstandAdapter.importPosts).mock.calls[0]?.[1]
+      .since as Date;
+    expect(since.getTime()).toBeLessThan(twoHoursAgo.getTime());
+    const elapsed = Date.now() - since.getTime();
+    expect(elapsed).toBeGreaterThanOrEqual(24 * 60 * 60 * 1000 - 1000);
+    expect(elapsed).toBeLessThan(24 * 60 * 60 * 1000 + 5000);
   });
 
   it("throws when the import fails so the runner can retry, without swallowing the error", async () => {
