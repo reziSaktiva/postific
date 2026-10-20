@@ -18,6 +18,7 @@ import type {
   ImportSyncTrigger,
 } from "../repositories/import-job.repository";
 import type { BackfillOutstandPostIdsUseCase } from "./backfill-outstand-post-ids.use-case";
+import type { ClassifyImportedPostTargetsUseCase } from "./classify-imported-post-targets.use-case";
 import type { ImportPostsProcessUseCase } from "./import-posts-process.use-case";
 
 /**
@@ -278,6 +279,14 @@ export class ImportPostsTriggerUseCase {
      * `attemptBackfill` seperti sebelumnya.
      */
     private readonly backfillUseCase: BackfillOutstandPostIdsUseCase,
+    /**
+     * T-132.4 (ADR-135) — WAJIB (bukan opsional), pola sama `backfillUseCase`
+     * di atas (code-review PR #170 untuk alasan "required, bukan diam-diam
+     * no-op"): klasifikasi `ContentFormat` post hasil Import dipanggil
+     * SETIAP sync yang benar-benar memproses post baru, lihat
+     * `attemptClassification` di bawah.
+     */
+    private readonly classifyUseCase: ClassifyImportedPostTargetsUseCase,
     /** Injectable sleep (test memakai versi instan) — lihat `SleepFn`/`IMPORT_STATUS_POLL_*` di atas. */
     private readonly sleep: SleepFn = defaultSleep,
   ) {}
@@ -657,6 +666,15 @@ export class ImportPostsTriggerUseCase {
         actingUserId: input.actingUserId,
       });
 
+      // T-132.4 (ADR-135) — klasifikasi `ContentFormat` (Post/Reel/Story)
+      // untuk SEMUA post pada batch sync ini (`jobOutcome.posts`, BUKAN
+      // seluruh riwayat Imported akun), dipanggil SETELAH process() di atas
+      // selesai (apa pun hasilnya — `processed` tetap valid walau sebagian
+      // post di batch ini duplikat/sudah ada). Best-effort, lihat
+      // `attemptClassification` — gagal di sini tidak pernah menggagalkan
+      // import yang sudah berhasil di atas.
+      await this.attemptClassification(input, jobOutcome.posts);
+
       // Code review PR #149 — `jobOutcome.error` di titik ini (status
       // SUDAH `"completed"`) hanya terisi untuk kasus real API `partial`
       // (lihat `RealOutstandAdapter.fetchImportJobStatus`, ADR-123): post
@@ -751,6 +769,37 @@ export class ImportPostsTriggerUseCase {
         `[ImportPostsTriggerUseCase] T-114 backfill outstandPostId gagal untuk akun ${input.connectedAccountId}: ${error instanceof Error ? error.message : String(error)} — best-effort, tidak menggagalkan sync utama.`,
       );
       return undefined;
+    }
+  }
+
+  /**
+   * T-132.4 (ADR-135) — klasifikasi `ContentFormat` untuk batch post yang
+   * baru diproses `ImportPostsProcessUseCase.process` pada sync ini.
+   * Kegagalan (network Outstand, atau kegagalan tak terduga lain) DITANGKAP
+   * di sini — best-effort, pola sama `attemptBackfill`: klasifikasi murni
+   * perbaikan data, gagal sekali (mis. Outstand rate-limit sesaat) tidak
+   * boleh menggagalkan sync import yang sudah berhasil. Beda dari
+   * `attemptBackfill`, TIDAK ada existence check terpisah — method ini
+   * SELALU dipanggil setiap `runImportJob` berhasil sampai titik ini
+   * (`jobOutcome.posts` adalah daftar post YANG BARU diproses, bisa kosong).
+   */
+  private async attemptClassification(
+    input: RunImportSyncInput,
+    posts: ImportJobOutcome["posts"],
+  ): Promise<void> {
+    if (posts.length === 0) return;
+    try {
+      await this.classifyUseCase.classifyBatch({
+        workspaceId: input.workspaceId,
+        connectedAccountId: input.connectedAccountId,
+        platform: input.platform,
+        posts,
+        actingUserId: input.actingUserId,
+      });
+    } catch (error) {
+      console.warn(
+        `[ImportPostsTriggerUseCase] T-132.4 klasifikasi ContentFormat gagal untuk akun ${input.connectedAccountId}: ${error instanceof Error ? error.message : String(error)} — best-effort, tidak menggagalkan sync utama.`,
+      );
     }
   }
 }

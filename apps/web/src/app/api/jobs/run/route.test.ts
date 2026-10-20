@@ -68,6 +68,7 @@ vi.mock("@/domains/publishing", () => ({
   ImportPostsTriggerUseCase: class {},
   ImportPostsProcessUseCase: class {},
   BackfillOutstandPostIdsUseCase: class {},
+  ClassifyImportedPostTargetsUseCase: class {},
 }));
 vi.mock("@/domains/notification", () => ({
   NotificationService: class {},

@@ -324,11 +324,28 @@ async function backfillOutstandPostId(
   return true;
 }
 
+/**
+ * Default placeholder `ContentFormat` untuk post hasil Import (ADR-135,
+ * T-132.5) — Outstand TIDAK menyediakan jenis konten (Post/Reel/Story) sama
+ * sekali di endpoint import (`GET /v1/posts`, `GET /v1/posts/{id}`),
+ * dipastikan lewat OpenAPI resmi DAN data nyata. `ContentFormat.Post` di
+ * sini BUKAN asumsi "semua post hasil import memang Post" — murni nilai
+ * "belum terklasifikasi" sementara (ADR-135 TIDAK menambah enum
+ * `ContentFormat` baru untuk kasus ini, lihat ADR-135 poin 4). Nilai ini
+ * di-OVERWRITE belakangan oleh `ClassifyImportedPostTargetsUseCase`
+ * (T-132.4, dipanggil `ImportPostsTriggerUseCase.runImportJob` SETELAH
+ * `upsertImportedPosts` ini selesai) KALAU sinyal analytics
+ * (`IOutstandAdapter.fetchPostMetrics`) tersedia — kalau tidak (Story
+ * expired, platform tanpa sinyal resmi), nilai placeholder ini TETAP di DB
+ * apa adanya.
+ */
+const UNCLASSIFIED_CONTENT_FORMAT_PLACEHOLDER = ContentFormat.Post;
+
 function targetCreateFields(post: ImportedPostTargetInput) {
   return {
     connectedAccountId: post.connectedAccountId,
     platform: post.platform,
-    contentFormat: ContentFormat.Post,
+    contentFormat: UNCLASSIFIED_CONTENT_FORMAT_PLACEHOLDER,
     platformPostId: post.platformPostId,
     platformPostUrl: post.platformPostUrl,
     status: "published" as const,

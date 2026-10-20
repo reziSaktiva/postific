@@ -12,6 +12,7 @@ import {
 } from "@/domains/engagement";
 import {
   BackfillOutstandPostIdsUseCase,
+  ClassifyImportedPostTargetsUseCase,
   EnqueueImportSyncUseCase,
   IMPORT_SYNC_JOB_TYPE,
   ImportPostsProcessUseCase,
@@ -133,6 +134,10 @@ export async function POST(request: Request): Promise<Response> {
       workspaceRepository,
       new ImportPostsProcessUseCase(publishingRepository),
       new BackfillOutstandPostIdsUseCase(publishingRepository, outstandAdapter),
+      new ClassifyImportedPostTargetsUseCase(
+        publishingRepository,
+        outstandAdapter,
+      ),
     ),
   );
 
