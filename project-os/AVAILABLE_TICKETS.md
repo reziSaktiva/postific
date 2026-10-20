@@ -38,11 +38,10 @@ ID tiket global, tidak didaur ulang. Berikutnya: **T-134**. ID spec berikutnya: 
 | T-119 | 🚫     | Isi env Google OAuth. KI-015. King Rezi yang mengisi rahasianya      | [KI](tickets/known-issues.md)         |
 | T-122 | ⏳     | Buktikan E2E invite Copy Link, email A vs email B. KI-053            | [KI](tickets/known-issues.md)         |
 | T-130 | ⏳     | `totalPosts` Home tidak akurat untuk akun `posts_count` null. KI-093 | [KI](tickets/known-issues.md)         |
-| T-131 | ⏳     | Beda request body Import Posts per trigger (cron/connect/manual)     | [v0.2](tickets/v02-publishing-mvp.md) |
 | T-132 | ⏳     | Klasifikasi jenis konten (Story/Reel) hasil Import Posts             | [v0.2](tickets/v02-publishing-mvp.md) |
 | T-133 | ⏳     | Backfill retroaktif Import Posts lama + verifikasi platform          | [v0.2](tickets/v02-publishing-mvp.md) |
 
-T-037 prioritas rendah dan tidak memblokir rilis. T-115 masih 🟡: job import dan watermark sudah terbukti di staging; sisa T-115.5 adalah post native Facebook yang muncul di Postific. T-124 selesai 2026-10-19 (error kolom void, KI-091). T-116 → T-117 → T-118 (token-agent) selesai 2026-10-16, lihat `tickets/v01-foundation.md`. T-131/T-132/T-133 (ditambah 2026-10-20, revisi scope Import Posts dari King Rezi) — T-133 depends T-131+T-132.
+T-037 prioritas rendah dan tidak memblokir rilis. T-115 masih 🟡: job import dan watermark sudah terbukti di staging; sisa T-115.5 adalah post native Facebook yang muncul di Postific. T-124 selesai 2026-10-19 (error kolom void, KI-091). T-116 → T-117 → T-118 (token-agent) selesai 2026-10-16, lihat `tickets/v01-foundation.md`. T-131 selesai 2026-10-20 (revisi scope Import Posts dari King Rezi). T-132/T-133 masih ⏳ — T-133 depends T-131 ✅ + T-132 ⏳.
 
 ---
 
