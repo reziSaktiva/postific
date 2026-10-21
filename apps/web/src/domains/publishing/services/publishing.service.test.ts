@@ -16,6 +16,7 @@ import { describe, expect, it } from "vitest";
 import {
   noopBackfillRepositoryStubs,
   noopClassifyRepositoryStub,
+  noopTerminalPostsRepositoryStub,
 } from "@/lib/testing/outstand-post-id-backfill-stubs";
 import type { PostMetricsRecord } from "@/domains/analytics";
 import {
@@ -86,6 +87,7 @@ function createFakeRepository(
     }),
     ...noopBackfillRepositoryStubs,
     ...noopClassifyRepositoryStub,
+    ...noopTerminalPostsRepositoryStub,
     ...overrides,
   };
 }

@@ -68,6 +68,7 @@ function createFakeRepository(
     acceptOwnershipTransfer: async () => undefined,
     markAccountReconnectRequired: async () => null,
     findAccountOwnerByOutstandAccountId: async () => null,
+    findWorkspaceOwnerUserId: async () => null,
     listActiveConnectedAccountsForSync: async () => [],
     listAccountsForPeriodicImportSync: async () => [],
     disconnectAccount: async () => undefined,
@@ -925,6 +926,74 @@ describe("WorkspaceService.disconnectAccount", () => {
     await expect(
       service.disconnectAccount(WORKSPACE_ID, OWNER_USER, CONNECTED_ACCOUNT_ID),
     ).rejects.toThrow(ConflictError);
+  });
+
+  it("T-134 (KI-094): calls analyticsRecompute.onAccountDisconnected with the workspaceId after a successful disconnect", async () => {
+    const disconnectAccount = vi.fn(async () => undefined);
+    const onAccountDisconnected = vi.fn(async () => undefined);
+    const service = new WorkspaceService(
+      createFakeRepository({
+        ...seedMembers(baseSeed()),
+        disconnectAccount,
+      }),
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      { onAccountDisconnected },
+    );
+
+    await service.disconnectAccount(
+      WORKSPACE_ID,
+      OWNER_USER,
+      CONNECTED_ACCOUNT_ID,
+    );
+
+    expect(onAccountDisconnected).toHaveBeenCalledWith(WORKSPACE_ID);
+  });
+
+  it("T-134 (KI-094): disconnect still succeeds (DB update already committed) when analyticsRecompute.onAccountDisconnected throws", async () => {
+    const disconnectAccount = vi.fn(async () => undefined);
+    const onAccountDisconnected = vi.fn(async () => {
+      throw new Error("job scheduler down");
+    });
+    const service = new WorkspaceService(
+      createFakeRepository({
+        ...seedMembers(baseSeed()),
+        disconnectAccount,
+      }),
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      { onAccountDisconnected },
+    );
+
+    await expect(
+      service.disconnectAccount(WORKSPACE_ID, OWNER_USER, CONNECTED_ACCOUNT_ID),
+    ).resolves.toBeUndefined();
+    expect(disconnectAccount).toHaveBeenCalledOnce();
+    expect(onAccountDisconnected).toHaveBeenCalledOnce();
+  });
+
+  it("does not throw when analyticsRecompute is not supplied (optional port)", async () => {
+    const disconnectAccount = vi.fn(async () => undefined);
+    const service = new WorkspaceService(
+      createFakeRepository({
+        ...seedMembers(baseSeed()),
+        disconnectAccount,
+      }),
+    );
+
+    await expect(
+      service.disconnectAccount(WORKSPACE_ID, OWNER_USER, CONNECTED_ACCOUNT_ID),
+    ).resolves.toBeUndefined();
   });
 });
 

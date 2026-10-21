@@ -39,6 +39,7 @@ import {
 } from "@/lib/prisma/with-current-user";
 import { backfillImportedPostOutstandIdsTx } from "@/lib/repositories/publishing/backfill-outstand-post-ids";
 import { classifyImportedPostTargetsTx } from "@/lib/repositories/publishing/classify-imported-post-targets";
+import { countTerminalPostsWhere } from "@/lib/repositories/publishing/count-terminal-posts";
 import { replaceDraftTargets } from "@/lib/repositories/publishing/replace-draft-targets";
 import { upsertImportedPostsTx } from "@/lib/repositories/publishing/upsert-imported-posts";
 
@@ -830,6 +831,14 @@ export const publishingRepository: IPublishingRepository = {
     );
 
     return posts.map(mapHistoryItem);
+  },
+
+  async countTerminalPosts({ workspaceId, since, until }, userId) {
+    return withCurrentUser(userId, (tx) =>
+      tx.publishingPost.count({
+        where: countTerminalPostsWhere(workspaceId, since, until),
+      }),
+    );
   },
 
   async getHistoryById({ workspaceId, postId }, userId) {

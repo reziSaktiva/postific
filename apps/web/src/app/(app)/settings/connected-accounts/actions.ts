@@ -16,6 +16,7 @@ import { workspaceRepository } from "@/lib/repositories/workspace";
 import { getWorkspaceContext } from "@/lib/workspace/workspace-context";
 import {
   createImportPostsTriggerUseCase,
+  createWorkspaceServiceForDisconnect,
   createWorkspaceServiceWithOutstandAdapter,
 } from "@/lib/workspace/outstand-workspace-service";
 import {
@@ -61,6 +62,16 @@ async function persistConnectNonceCookie(redirectUrl: string): Promise<void> {
  * adalah scope T-014.3 (belum dikerjakan) — action ini sendiri tidak
  * mengasumsikan sudah dikonfirmasi, hanya mengeksekusi apa yang diminta
  * caller.
+ *
+ * **T-134 (KI-094)** — pakai `createWorkspaceServiceForDisconnect()` (bukan
+ * `new WorkspaceService(workspaceRepository)` polos seperti sebelumnya)
+ * supaya `disconnectAccount` disuplai `AnalyticsRecomputePort` dan benar-benar
+ * meng-enqueue job recompute snapshot. Factory ini SENGAJA tidak memanggil
+ * `getOutstandAdapter()` (Temuan #1 review Ridwan, T-134) — pakai
+ * `createWorkspaceServiceWithOutstandAdapter()` di sini sebelumnya salah
+ * karena menambah dependency `OUTSTAND_API_KEY` ke jalur yang justru harus
+ * tetap jalan walau Outstand bermasalah (lihat "Keputusan revisi scope" T-134
+ * di `project-os/tickets/known-issues.md`).
  */
 export async function disconnectAccountAction(
   connectedAccountId: string,
@@ -71,9 +82,8 @@ export async function disconnectAccountAction(
     redirect("/login");
   }
 
-  const workspaceService = new WorkspaceService(workspaceRepository);
-
   try {
+    const workspaceService = createWorkspaceServiceForDisconnect();
     await workspaceService.disconnectAccount(
       workspaceId,
       asUserId(session.user.id),

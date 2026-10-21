@@ -230,13 +230,13 @@ di-wrap.
 
 ### T-130 · `totalPosts` Home tidak akurat untuk akun yang `posts_count`-nya `null` di Outstand
 
-| Field       | Value                                                                |
-| ----------- | -------------------------------------------------------------------- |
-| **Status**  | ⏳ Open — King Rezi memutuskan dicatat dulu, belum diimplementasikan |
-| **Domain**  | analytics                                                            |
-| **Spec**    | tidak ada — single-issue, dampak kecil                               |
-| **Docs**    | KI-093, T-129 (Analyze — sudah fixed di T-129.1)                     |
-| **Depends** | —                                                                    |
+| Field       | Value                                                                                                                                     |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**  | 🚫 Implementasi selesai (root cause fixed, review + QA PASS) — blocked verifikasi browser E2E, butuh akun test Outstand baru (2026-10-21) |
+| **Domain**  | analytics                                                                                                                                 |
+| **Spec**    | tidak ada — single-issue, dampak kecil                                                                                                    |
+| **Docs**    | KI-093, T-129 (Analyze — sudah fixed di T-129.1)                                                                                          |
+| **Depends** | —                                                                                                                                         |
 
 **Ditemukan (KI-093, King Rezi, 2026-10-19):** setelah T-129.1 (Imported
 posts ikut dihitung di Analyze), King Rezi bertanya kenapa post Imported
@@ -282,15 +282,24 @@ baru `analytics` → `publishing` (pola sama `ActiveAccountsPort`), alih-alih
 terbukti valid). King Rezi memilih menunda eksekusi — dicatat di sini
 sebagai Known Issue terbuka, bukan dikerjakan di sesi ini.
 
-- [ ] Tambah port `analytics` → `publishing` untuk hitung jumlah post
+- [x] Tambah port `analytics` → `publishing` untuk hitung jumlah post
       terminal-status per workspace/periode (pola `ActiveAccountsPort`).
-- [ ] `AnalyticsIngestionUseCase.syncWorkspaceSnapshot` pakai hasil port itu
+- [x] `AnalyticsIngestionUseCase.syncWorkspaceSnapshot` pakai hasil port itu
       untuk `totalPosts`, bukan jumlah `metrics.totalPosts` per akun dari
       Outstand.
-- [ ] Test unit untuk kasus `posts_count: null`/platform tanpa dukungan
+- [x] Test unit untuk kasus `posts_count: null`/platform tanpa dukungan
       field itu.
-- [ ] Verifikasi browser: Home menampilkan jumlah post yang cocok dengan
-      Analyze untuk periode yang sama.
+- [x] Keputusan produk granularitas Home vs Analyze (King Rezi, 2026-10-21):
+      boleh BEDA — Home menghitung jumlah post (distinct `PublishingPost`),
+      Analyze menghitung post × akun-target (`getAnalyzeSummary.totalPosts`)
+      — TIDAK perlu dipaksa sama. **Ditutup sebagai keputusan final
+      "accepted as different"**, bukan lagi item terbuka — lihat catatan
+      granularitas di "Implementasi" di bawah untuk detail teknis.
+- [ ] Verifikasi browser dengan data real (angka Home akurat, tidak error,
+      sesuai definisi sumber data baru) — **tertunda**, butuh akun test
+      Outstand baru (workspace King Rezi kosong sejak pembersihan data T-134,
+      2026-10-21). Bukan item yang menunggu keputusan produk lagi — murni
+      menunggu lingkungan test tersedia.
 
 **Prioritas dinaikkan (King Rezi, 2026-10-21):** bagian dari batch investigasi
 ketidaksesuaian data Supabase vs Outstand — dikerjakan bersamaan dengan
@@ -298,17 +307,163 @@ ketidaksesuaian data Supabase vs Outstand — dikerjakan bersamaan dengan
 Tiket ini juga jadi salah satu syarat pembuka blocker **T-133** (lihat
 catatan blocking di `v02-publishing-mvp.md` § T-133).
 
-### T-134 · Disconnect akun sosial tidak dipropagasi ke Outstand (KI-094)
+**Implementasi (Prabowo Feature Engineer, 2026-10-21):**
 
-| Field       | Value                                                                                                                                                                                                                                                  |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Status**  | ⏳ Open — prioritas tinggi (batch investigasi King Rezi, 2026-10-21)                                                                                                                                                                                   |
-| **Domain**  | workspace · integration                                                                                                                                                                                                                                |
-| **ADR**     | **Perlu ADR baru** sebelum implementasi — menambah kontrak baru (`deleteSocialAccount`/`revoke`) di `IOutstandAdapter`, mengubah perilaku `WorkspaceService.disconnectAccount` yang sebelumnya sengaja (T-013, ADR-048/ADR-049) hanya update status DB |
-| **Spec**    | tidak ada — single-issue, tapi perlu ADR dulu (lihat kolom ADR)                                                                                                                                                                                        |
-| **Docs**    | T-013, ADR-048, ADR-049 (keputusan lama "disconnect = update status DB saja", konsekuensi ke akurasi metrics belum pernah dibahas di ADR manapun)                                                                                                      |
-| **Terkait** | KI-093/T-130 (gap #2, sama-sama bikin metrics Home tidak akurat, root cause beda), T-133 (blocker)                                                                                                                                                     |
-| **Depends** | —                                                                                                                                                                                                                                                      |
+- Port baru `TerminalPostsCountPort` (interface lokal, structural typing —
+  pola sama `ActiveAccountsPort`) didefinisikan di
+  `apps/web/src/domains/analytics/services/analytics-ingestion.use-case.ts`,
+  method `countTerminalPosts({ workspaceId, since, until }, userId): Promise<number>`.
+  Jadi constructor param WAJIB ke-3 `AnalyticsIngestionUseCase` (bukan
+  optional) — `syncPostMetrics` tidak memakainya, tapi satu Use Case satu
+  constructor, pola sama `IOutstandAdapter`.
+- Implementasi: method baru `IPublishingRepository.countTerminalPosts`
+  (`apps/web/src/domains/publishing/repositories/publishing.repository.ts`)
+  - implementasi Prisma di
+    `apps/web/src/lib/repositories/publishing/publishing.repository.ts`
+    (`tx.publishingPost.count`, `withCurrentUser`). `where` clause diekstrak
+    jadi fungsi murni `countTerminalPostsWhere`
+    (`apps/web/src/lib/repositories/publishing/count-terminal-posts.ts`, pola
+    sama `manualImportSyncCapWhere`) supaya bisa dites tanpa DB nyata — filter
+    `status: { in: HISTORY_TERMINAL_STATUSES }`, `publishedAt` half-open
+    `[since, until)`, konsisten `listHistory`/`getPostPerformance`.
+- `syncWorkspaceSnapshot` (`analytics-ingestion.use-case.ts`) sekarang
+  memanggil port ini untuk `totalPosts`, bukan menjumlahkan
+  `metrics.totalPosts` dari `fetchWorkspaceMetrics` Outstand sama sekali.
+  `totalReach`/`totalEngagements` TIDAK diubah, tetap dari Outstand.
+  Di-wire di composition root `apps/web/src/app/api/jobs/run/route.ts`
+  (`publishingRepository` dipassing langsung sebagai port — structural
+  typing, sama pola `publishingRepository` dipakai sebagai
+  `AnalyticsSyncPostsPort` di handler yang sama).
+- **Catatan granularitas (dicatat, bukan diputuskan sendiri):** port ini
+  menghitung baris `PublishingPost` (distinct post) sesuai teks checklist
+  tiket ini ("jumlah post"), BUKAN baris post × target seperti
+  `PublishingService.getAnalyzeSummary.totalPosts` (Analyze menghitung
+  target berstatus `published` per post). Untuk post single-platform kedua
+  angka akan sama; untuk post yang dipublish ke >1 akun di periode yang
+  sama, angka Home (jumlah post) akan LEBIH KECIL dari angka Analyze
+  (jumlah post × akun). Checklist item terakhir (verifikasi browser Home
+  vs Analyze) belum dieksekusi — kalau King Rezi menginginkan Home dan
+  Analyze match PERSIS di semua skenario (bukan cuma kasus single-platform),
+  ini butuh keputusan produk tambahan (ganti granularitas port, atau
+  terima bedanya sebagai definisi "post" vs "slot publish" yang memang
+  beda). Post `Failed` (yang `publishedAt`-nya di-null-kan, KI-081)
+  otomatis tidak pernah masuk rentang periode manapun — efektif hanya
+  `Published`+`Imported` yang terhitung, SAMA perilaku yang sudah ada di
+  `getPostPerformance`, bukan regresi baru.
+- Test: `apps/web/src/domains/analytics/services/analytics-ingestion.use-case.test.ts`
+  (3 test baru/diperbarui — kasus akun `posts_count: 0`/null ala Facebook
+  Page tapi `totalReach`/`totalEngagements` tetap valid, kasus normal
+  dengan `totalPosts` dari port beda dari jumlah Outstand untuk membuktikan
+  independensi, dan kasus workspace tanpa post sama sekali → `totalPosts: 0`)
+  - `apps/web/src/lib/repositories/publishing/count-terminal-posts.test.ts`
+    (bentuk `where` Prisma). Fake `IPublishingRepository` di 7 test file lain
+    (`publishing.service.test.ts`, `publish-now`/`cancel-schedule`/
+    `retry-failed-target`/`schedule-posts.use-case.test.ts`,
+    `outstand-webhook-processor.test.ts`,
+    `resolve-scheduled-post-outcome-job-handler.test.ts`) diperbarui pakai
+    stub baru `noopTerminalPostsRepositoryStub`
+    (`apps/web/src/lib/testing/outstand-post-id-backfill-stubs.ts`, pola sama
+    `noopBackfillRepositoryStubs`/`noopClassifyRepositoryStub`) supaya
+    compile tetap lulus. **Hasil test: 898 passed, 7 skipped, 0 gagal**
+    (full suite `bunx vitest run`); `tsc --noEmit` bersih; `eslint .` bersih
+    (exit 0).
+
+**Keputusan final (King Rezi, 2026-10-21):** eksekusi opsi "DB internal" di
+atas. Dicek dulu dokumentasi resmi Outstand `GET /v1/social-accounts/{id}/metrics`
+(raw HTML halaman docs, bukan ringkasan) — baris penjelasan per-platform
+eksplisit menyebut `posts_count` untuk Pinterest ("includes both created and
+saved pins") dan BlueSky ("posts count - current snapshot only"), tapi baris
+Facebook hanya menyebut "page followers/fans, engagement (impressions, reach,
+post_engagements)" — **`posts_count` tidak disebut sama sekali untuk
+Facebook**. Contoh JSON di docs yang menunjukkan `posts_count: 150` memakai
+`"network": "tiktok"`, bukan Facebook. Kesimpulan: null untuk Facebook Page
+bukan bug kebetulan, field itu memang tidak didukung/didokumentasikan
+Outstand untuk platform ini — tidak ada alasan menunggu konfirmasi Outstand
+sebelum eksekusi fix di sisi kita.
+
+**QA (Najwa QA Engineer, 2026-10-21):** test suite ulang —
+`bunx vitest run` dari root: **898 passed, 7 skipped, 0 fail**. `bun run
+typecheck` (`apps/web`): bersih. `bun run lint` (`apps/web`): exit 0 (hanya
+warning non-fatal "Pages directory cannot be found", tidak terkait
+perubahan ini). `DashboardHome.tsx:157` dicek langsung — label "Post
+terpublikasi" memang tidak berubah, hanya `value={summary.totalPosts}` yang
+sumbernya sudah diganti di backend — klaim T-136.2 "tanpa perubahan kode
+UI" terkonfirmasi akurat. T-130.292 (verifikasi browser Home vs Analyze)
+dan T-136.3 **tetap belum bisa dieksekusi** — Outstand workspace King Rezi
+kosong (0 akun, 0 post) di sesi ini, jadi tidak ada data post real untuk
+dibandingkan; browser testing yang bisa dilakukan (Home render dengan 0
+post, tanpa error) PASS — lihat § T-134 untuk detail checklist browser.
+
+**Keputusan produk granularitas Home vs Analyze (King Rezi, via
+`AskUserQuestion`, 2026-10-21):** beda granularitas yang dicatat di
+"Implementasi" (Home = jumlah post distinct, Analyze = jumlah post × akun
+target) **diterima sebagai definisi yang memang berbeda** — bukan bug, bukan
+item yang menunggu keputusan produk lagi. Home dan Analyze **tidak** perlu
+menampilkan angka yang identik persis untuk periode yang sama; keduanya sudah
+benar untuk makna masing-masing ("jumlah post" vs "jumlah slot publish").
+Satu-satunya sisa pekerjaan adalah verifikasi browser dengan data nyata
+(lihat checklist di atas), bukan penyesuaian granularitas lebih lanjut.
+Didokumentasikan sebagai ADR-136 (bersama keputusan window kalender bulan
+T-135 dan sumber `totalPosts` DB internal).
+
+**Status final (Gibran Project Manager, 2026-10-21):** implementasi, test
+otomatis, review Ridwan, dan QA Najwa semua PASS. Tiket ini **belum** ✅ Done
+penuh — satu item tersisa (verifikasi browser dengan data real) murni
+terhambat ketiadaan akun test Outstand baru, bukan bug/pekerjaan kode yang
+belum selesai. Status diset 🚫 (menunggu dependency eksternal), bukan ✅,
+sampai verifikasi itu bisa dilakukan.
+
+### T-134 · Snapshot analytics tidak di-recompute saat disconnect (KI-094)
+
+| Field       | Value                                                                                                                                                                                                                       |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**  | 🚫 Implementasi selesai (root cause fixed, review + QA PASS), **scope direvisi 2026-10-21 (lihat Keputusan revisi scope di bawah)** — blocked verifikasi E2E (T-134.4), butuh akun test Outstand baru                       |
+| **Domain**  | workspace · analytics                                                                                                                                                                                                       |
+| **ADR**     | **Tidak perlu ADR baru** (direvisi) — tidak ada kontrak Outstand baru, tidak mengubah perilaku `WorkspaceService.disconnectAccount` yang sengaja tidak memanggil Outstand (T-013, ADR-048/ADR-049 tetap berlaku apa adanya) |
+| **Spec**    | tidak ada — single-issue                                                                                                                                                                                                    |
+| **Docs**    | T-013, ADR-048, ADR-049 (tetap valid, tidak disentuh revisi ini), T-048 (`analytics_list_active_connected_accounts`)                                                                                                        |
+| **Terkait** | KI-093/T-130 (gap #2, sama-sama bikin metrics Home tidak akurat, root cause beda), T-133 (blocker)                                                                                                                          |
+| **Depends** | —                                                                                                                                                                                                                           |
+
+**Keputusan revisi scope (King Rezi, 2026-10-21):** investigasi lanjutan di
+sesi ini membuktikan judul dan root-cause awal tiket ini **keliru**. Dicek
+lewat OpenAPI spec resmi Outstand (`https://api.outstand.so/v1/social-accounts/openapi.json`,
+live-fetched): satu-satunya endpoint untuk "memutus" akun adalah
+`DELETE /v1/social-accounts/{id}`, dan sifatnya **irreversible** — "Cannot be
+undone... revokes access entirely... to reconnect, you will need to complete
+the full OAuth flow again." Ini **konflik langsung** dengan flow reaktivasi
+ADR-127 (`createConnectedAccounts` di
+[workspace.repository.ts:1136](../../apps/web/src/lib/repositories/workspace/workspace.repository.ts:1136))
+yang menghidupkan kembali row `disconnected`/`reconnect-required` TANPA OAuth
+ulang, dengan asumsi `outstandAccountId` lama masih valid di Outstand.
+
+Lebih jauh, dicek via subagent read-only ke kode nyata: job sync harian
+(`AnalyticsSyncJobHandler` → `listActiveConnectedAccountsForSync` → SQL
+function `analytics_list_active_connected_accounts()`, migration T-048)
+**sudah** memfilter `status = 'active' AND reconnect_required = false`
+sebelum memanggil `fetchWorkspaceMetrics` — begitu akun di-disconnect di app
+kita, job itu **tidak pernah lagi** memanggil Outstand untuk akun itu. Jadi
+dugaan awal ("Outstand terus-menerus dihitung karena belum di-disconnect di
+sisi Outstand") **salah**. Penyebab sebenarnya: `AnalyticsWorkspaceSnapshot`
+adalah cache yang ditulis SAAT akun masih `active`; begitu disconnect, baris
+cache lama itu tidak langsung di-recompute, sehingga angka Home/Analyze
+"nyangkut" sampai siklus sync berikutnya menimpanya.
+
+**Scope baru, jauh lebih kecil:** `WorkspaceService.disconnectAccount`
+memicu recompute `AnalyticsWorkspaceSnapshot` untuk workspace terkait segera
+setelah update status DB (reuse `AnalyticsIngestionUseCase.syncWorkspaceSnapshot`
+yang sudah ada, bukan tunggu cron harian) — **tidak ada** panggilan Outstand
+API, **tidak ada** kontrak baru di `IOutstandAdapter`, **tidak ada** ADR baru.
+Opsi "panggil `DELETE` Outstand di tombol Disconnect" ditolak eksplisit oleh
+King Rezi karena merusak reaktivasi ADR-127 dan tidak dibutuhkan untuk
+memperbaiki gejala yang dilaporkan.
+
+**Pembersihan data terkait (sudah dieksekusi manual, bukan oleh kode T-134):**
+King Rezi menghapus 2 akun sosial tersisa langsung lewat dashboard Outstand,
+lalu AI menghapus 49 post record yang jadi orphan (`DELETE /v1/posts/{id}`
+via tool `delete_post`, org-wide, tidak menyentuh konten live di platform)
+pada 2026-10-21 — menutup kebutuhan T-134.4 versi lama (cleanup 3 post test
+QA akun `turanilkerl`) secara langsung, bukan lewat kode.
 
 **Ditemukan (investigasi King Rezi, 2026-10-21):** saat user disconnect akun
 sosial lewat UI kita, yang terjadi hanya `UPDATE status='disconnected'` di
@@ -325,49 +480,156 @@ mengimplementasikannya.
 OutstandAdapter") → repository port (`workspace.repository.ts:615-641`
 domain) → implementasi Prisma di atas.
 
-**Dampak:** akun yang sudah "diputus" di sisi kita tetap `connected` di
-Outstand selamanya, post lamanya terus dihitung di metrics (`posts_count`,
-engagement) tanpa batas waktu.
+**Dampak (direvisi):** angka Home/Analyze sempat menampilkan data akun yang
+sudah disconnect sampai siklus recompute berikutnya jalan — bukan "Outstand
+menghitung selamanya" seperti dugaan awal. Data residu 49 post (termasuk 3
+post test QA `turanilkerl`) sudah dibersihkan manual di luar kode (lihat
+Keputusan revisi scope di atas) — bukan lagi bukti bug yang masih terbuka.
 
-**Bukti nyata:** akun Instagram `turanilkerl` (connected sejak 2026-09-25,
-kemungkinan sudah di-disconnect di app kita) masih berstatus `connected` di
-Outstand dengan 3 post test QA lama (Sep 2026) yang terus dihitung di
-dashboard Home kita — lihat T-134.4 untuk pembersihan data residunya.
+- [x] **T-134.1** Tambah entry point public di domain `analytics` (kalau
+      belum ada) untuk trigger recompute `AnalyticsWorkspaceSnapshot` satu
+      workspace sesuai periode aktif, reuse `AnalyticsIngestionUseCase.syncWorkspaceSnapshot`
+      yang sudah dipakai job cron — jangan duplikasi logic
+- [x] **T-134.2** `WorkspaceService.disconnectAccount` memanggil entry point
+      itu setelah `UPDATE status='disconnected'` sukses; tidak mengubah
+      docstring "TIDAK memanggil OutstandAdapter" (masih akurat — ini
+      memanggil domain `analytics` internal, bukan Outstand)
+- [x] **T-134.3** Test unit: disconnect satu akun memicu recompute snapshot
+      workspace itu, dan `totalPosts`/metrics lain tidak lagi menghitung
+      kontribusi akun yang baru disconnect pada response berikutnya
 
-- [ ] **T-134.1** Tulis ADR baru: keputusan menambah kontrak
-      `deleteSocialAccount`/`revoke` (nama final diputuskan saat menulis ADR)
-      di `IOutstandAdapter`, dan kapan dipanggil dalam alur
-      `WorkspaceService.disconnectAccount` (sebelum/sesudah update status DB,
-      perilaku kalau Outstand API gagal — jangan membuat DB dan Outstand makin
-      tidak sinkron kalau call-nya gagal)
-- [ ] **T-134.2** Implementasi method baru di `RealOutstandAdapter` (ADR-119 —
-      tidak ada Fake di jalur produksi)
-- [ ] **T-134.3** `WorkspaceService.disconnectAccount` memanggil method baru
-      itu; update docstring yang sekarang eksplisit bilang "TIDAK memanggil
-      OutstandAdapter"
-- [ ] **T-134.4** Cleanup data residu: 3 post test QA ("[TEST QA Jokowi] Uji
-      upload JPG - mohon abaikan", "teataewtet", "lalalala") di akun Instagram
-      `turanilkerl` yang sudah disconnect dari app kita tapi masih live di
-      Outstand/Instagram — verifikasi lewat method T-134.2 baru, pastikan
-      akun ini ikut ter-disconnect benar di Outstand (gap #6 investigasi
-      2026-10-21, konsekuensi langsung gap ini)
-- [ ] **T-134.5** Test unit untuk jalur sukses dan gagal (Outstand API error
-      saat disconnect — DB tidak boleh diam-diam out-of-sync lagi)
-- [ ] **T-134.6** Verifikasi end-to-end browser + akun real: disconnect dari
-      UI kita benar-benar membuat akun `disconnected` di Outstand, post lama
-      akun itu berhenti dihitung di metrics Home/Analyze
+**Temuan #1 review Ridwan Architecture Reviewer (2026-10-21) — sudah
+diperbaiki:** `disconnectAccountAction` sempat memanggil
+`createWorkspaceServiceWithOutstandAdapter()` DI LUAR try/catch — factory itu
+throw `ExternalServiceError` (ADR-119) kalau `OUTSTAND_API_KEY` kosong/
+invalid, membuat disconnect bisa crash dengan exception tidak tertangani
+persis saat Outstand bermasalah — kontradiksi langsung dengan tujuan tiket
+ini. Diperbaiki dengan factory baru `createWorkspaceServiceForDisconnect()`
+di `apps/web/src/lib/workspace/outstand-workspace-service.ts` yang TIDAK
+memanggil `getOutstandAdapter()` sama sekali (hanya menyuplai
+`AnalyticsRecomputePort`), dipakai `disconnectAccountAction` di dalam
+try/catch. Diverifikasi ulang: `tsc --noEmit` bersih, `eslint` bersih,
+`bunx vitest run` tetap 898 passed/0 gagal.
+
+- [ ] **T-134.4** Verifikasi end-to-end browser (perlu akun test baru —
+      Outstand workspace saat ini kosong setelah pembersihan 2026-10-21):
+      disconnect dari UI kita langsung membuat angka Home/Analyze update,
+      tidak perlu menunggu cron harian — **TERTUNDA**, belum bisa dilakukan
+      sesi ini karena workspace Outstand King Rezi masih kosong (semua akun
+      sudah dihapus manual). Verifikasi end-to-end tetap jadi follow-up
+      terbuka sampai ada akun test baru.
+
+**Catatan implementasi (2026-10-21, sesi T-130/T-134/T-135/T-136):**
+
+- **Entry point baru** — `EnqueueAnalyticsSyncUseCase.enqueueWorkspaceSnapshot(workspaceId)`
+  (`apps/web/src/domains/analytics/services/enqueue-analytics-sync.ts`) —
+  reuse `EnqueueAnalyticsSyncJobsPort` yang sudah ada (bukan memanggil
+  `syncWorkspaceSnapshot` langsung secara sinkron dari `disconnectAccount`),
+  konsisten dengan pola `onAccountConnected` yang sudah meng-enqueue job
+  JOB-04 lewat infrastruktur yang sama. Logic enqueue-nya diekstrak ke
+  private helper `scheduleWorkspaceSnapshotIfNeeded` supaya tidak duplikasi
+  dengan `enqueueForAccounts`.
+- **Hook baru** — `AnalyticsRecomputePort.onAccountDisconnected(workspaceId)`
+  di `WorkspaceService` (`apps/web/src/domains/workspace/services/workspace.service.ts`,
+  pola sama `EngagementSyncSeederPort`/`ImportPostsAutoTriggerPort`), opsional
+  di constructor (parameter ke-9). `disconnectAccount` memanggilnya
+  SETELAH `repository.disconnectAccount` sukses, dibungkus try/catch
+  best-effort (`console.error` kalau gagal, TIDAK melempar ulang) — gagal
+  enqueue job background tidak membatalkan disconnect yang sudah commit ke DB.
+  Diwire di composition root `createWorkspaceServiceWithOutstandAdapter()`
+  (`apps/web/src/lib/workspace/outstand-workspace-service.ts`). Server Action
+  `disconnectAccountAction` (`apps/web/src/app/(app)/settings/connected-accounts/actions.ts`)
+  diubah dari `new WorkspaceService(workspaceRepository)` polos jadi
+  `createWorkspaceServiceWithOutstandAdapter()` supaya port ini benar-benar
+  tersambung (file ini sudah mewajibkan `OUTSTAND_API_KEY` untuk action lain
+  di halaman yang sama, jadi tidak menambah dependency env var baru).
+- **Gap kritis 0-akun (ditemukan saat implementasi, di luar checklist awal
+  tiket, sudah diperbaiki)** — `AnalyticsSyncJobHandler.syncWorkspace`
+  sebelumnya **throw** kalau tidak ada akun aktif tersisa di workspace,
+  sehingga job recompute yang di-enqueue saat disconnect akun TERAKHIR akan
+  selalu gagal dan snapshot lama tidak pernah ter-reset ke nol — membuat
+  tujuan T-134 gagal tercapai justru untuk kasus paling umum. Diperbaiki:
+  `syncWorkspace` sekarang tetap upsert snapshot NOL untuk kasus ini
+  (`accounts: []` ke `AnalyticsIngestionUseCase.syncWorkspaceSnapshot`,
+  totals otomatis nol tanpa panggilan Outstand sama sekali karena
+  `mapWithConcurrency` atas array kosong). Acting user RLS untuk kasus ini
+  diresolve lewat method baru `IWorkspaceRepository.findWorkspaceOwnerUserId`
+  (baca `Workspace.ownerId` langsung, tabel ini bukan RLS-protected) sebagai
+  fallback KHUSUS saat 0 akun aktif — behavior lama (throw) untuk kasus lain
+  (race/anomali data saat akun masih ada tapi owner tidak ketemu) TIDAK
+  berubah.
+- **File yang diubah:** `apps/web/src/domains/analytics/services/enqueue-analytics-sync.ts`,
+  `apps/web/src/domains/analytics/services/analytics-sync-job-handler.ts`,
+  `apps/web/src/domains/workspace/services/workspace.service.ts`,
+  `apps/web/src/domains/workspace/repositories/workspace.repository.ts`
+  (port `findWorkspaceOwnerUserId`), `apps/web/src/lib/repositories/workspace/workspace.repository.ts`
+  (implementasi Prisma), `apps/web/src/lib/workspace/outstand-workspace-service.ts`
+  (wiring), `apps/web/src/app/(app)/settings/connected-accounts/actions.ts`
+  (switch composition root).
+- **Test:** 7 test baru (2 di `enqueue-analytics-sync.test.ts`, 2 di
+  `analytics-sync-job-handler.test.ts` untuk gap 0-akun, 3 di
+  `workspace.service.test.ts` untuk hook disconnect) — seluruhnya PASS.
+  Full suite repo (`bunx vitest run`): **898 passed, 7 skipped, 0 fail**.
+  `tsc --noEmit` bersih, `eslint` bersih untuk seluruh file yang diubah.
+
+**QA (Najwa QA Engineer, 2026-10-21):** verifikasi independen Temuan #1
+Ridwan — dibaca langsung `apps/web/src/app/(app)/settings/connected-accounts/actions.ts`
+(`disconnectAccountAction`) dan `apps/web/src/lib/workspace/outstand-workspace-service.ts`
+(`createWorkspaceServiceForDisconnect`): dikonfirmasi factory baru dipanggil
+DI DALAM try/catch (baris 86), dan factory itu sendiri **tidak** memanggil
+`getOutstandAdapter()` sama sekali (hanya `workspaceRepository` +
+`AnalyticsRecomputePort` via `EnqueueAnalyticsSyncUseCase`) — fix Temuan #1
+valid. RBAC `assertActorCanManageConnectedAccounts` (Owner/Admin only) di
+`WorkspaceService.disconnectAccount` tidak tersentuh perubahan ini — tidak
+ada regresi RBAC. Best-effort `analyticsRecompute?.onAccountDisconnected`
+dibungkus try/catch dengan `console.error`, tidak melempar ulang — sesuai
+klaim "tidak membatalkan disconnect".
+
+Test suite ulang (root, `bunx vitest run`): 898 passed, 7 skipped, 0 fail.
+`tsc --noEmit` dan `eslint .` (`apps/web`) bersih.
+
+**Verifikasi browser (checklist yang BISA dilakukan — Outstand workspace
+kosong, 0 akun):**
+
+- [x] Login akun test (Raka Pratama, Owner, `raka.test@kopiselasar.com`)
+      via `localhost:3000` langsung (ADR-070) — session/cookie terbaca
+      normal, tidak perlu ngrok.
+- [x] Halaman Home (`/`) render tanpa error console/network dengan data
+      kosong — "Post terpublikasi" 0, "Total engagement" 0, "Akun aktif" 0,
+      "Rata-rata engagement rate" 0.0%.
+- [x] Halaman Settings → Connected Accounts render state kosong ("Belum ada
+      akun terhubung") tanpa crash, tombol "Connect Account" membuka dropdown
+      8 platform tanpa error — regresi fungsi Connect (file yang sama,
+      masih pakai `createWorkspaceServiceWithOutstandAdapter()`) PASS untuk
+      sejauh yang bisa diuji tanpa OAuth real.
+- [ ] **TIDAK BISA dilakukan:** klik tombol Disconnect sungguhan (tidak ada
+      akun terhubung untuk didisconnect), jadi end-to-end trigger recompute
+      snapshot (T-134.4) tetap **TERTUNDA** seperti sudah dicatat — bukan
+      kegagalan QA, murni keterbatasan lingkungan (workspace Outstand
+      King Rezi kosong di sesi ini).
+- [ ] Tidak mencoba klik salah satu platform di dropdown Connect Account
+      sampai redirect OAuth real (di luar scope aman untuk dicoba otomatis
+      oleh QA — butuh kredensial platform sungguhan).
+
+**Status final (Gibran Project Manager, 2026-10-21):** scope revisi (recompute
+snapshot, tanpa panggilan Outstand) sudah diimplementasikan penuh, temuan
+review Ridwan sudah diperbaiki, QA Najwa PASS untuk semua yang bisa diuji
+tanpa akun terhubung. Tiket ini **belum** ✅ Done penuh — T-134.4 (klik
+Disconnect sungguhan lalu verifikasi recompute) butuh minimal satu akun
+terhubung di workspace test, yang saat ini kosong. Status diset 🚫, bukan ✅,
+sampai ada akun test baru.
 
 ### T-135 · Definisi periode "bulanan" Home/Analyze beda dari kalender Outstand (KI-095)
 
-| Field       | Value                                                                                         |
-| ----------- | --------------------------------------------------------------------------------------------- |
-| **Status**  | ⏳ Open — prioritas tinggi (batch investigasi King Rezi, 2026-10-21)                          |
-| **Domain**  | analytics                                                                                     |
-| **ADR**     | — (kemungkinan perlu keputusan produk soal definisi window, bukan arsitektur — lihat T-135.1) |
-| **Spec**    | tidak ada — single-issue                                                                      |
-| **Docs**    | T-128/T-129 (default view Bulanan Home/Analyze)                                               |
-| **Terkait** | T-134, T-136, T-130 (batch investigasi sama, 2026-10-21), T-133 (blocker)                     |
-| **Depends** | —                                                                                             |
+| Field       | Value                                                                                                                            |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**  | 🚫 Implementasi selesai (kalender bulan, review + QA PASS) — blocked verifikasi browser (T-135.4), butuh akun test Outstand baru |
+| **Domain**  | analytics                                                                                                                        |
+| **ADR**     | — (kemungkinan perlu keputusan produk soal definisi window, bukan arsitektur — lihat T-135.1)                                    |
+| **Spec**    | tidak ada — single-issue                                                                                                         |
+| **Docs**    | T-128/T-129 (default view Bulanan Home/Analyze)                                                                                  |
+| **Terkait** | T-134, T-136, T-130 (batch investigasi sama, 2026-10-21), T-133 (blocker)                                                        |
+| **Depends** | —                                                                                                                                |
 
 **Ditemukan (investigasi King Rezi, 2026-10-21):** snapshot "monthly" kita
 dihitung sebagai rolling 30 hari dari `now`
@@ -380,23 +642,79 @@ menunjukkan 12 post bulan ini sedangkan Home kita menunjukkan 3; beda window
 waktu ini salah satu kontributornya (bukan satu-satunya — lihat juga gap #1
 T-134 dan gap #2 T-130).
 
-- [ ] **T-135.1** King Rezi memutuskan (via `AskUserQuestion`): window
-      "bulanan" tetap rolling 30 hari, atau pindah ke kalender bulan
-      (tanggal 1 s.d. akhir bulan, sama seperti Outstand)
-- [ ] **T-135.2** Implementasi sesuai keputusan T-135.1 di
+- [x] **T-135.1** King Rezi memutuskan (via `AskUserQuestion`, 2026-10-21):
+      pindah ke **kalender bulan** (tanggal 1 s.d. akhir bulan, sama seperti
+      Outstand) — bukan rolling 30 hari
+- [x] **T-135.2** Implementasi sesuai keputusan T-135.1 di
       `resolveAnalyticsSnapshotWindow` (dan tempat lain yang reuse fungsi ini,
       cek pemanggil)
-- [ ] **T-135.3** Test unit untuk window baru (termasuk edge case: hari
+- [x] **T-135.3** Test unit untuk window baru (termasuk edge case: hari
       pertama bulan, bulan dengan 28/29/30/31 hari kalau pindah ke kalender
       bulan)
 - [ ] **T-135.4** Verifikasi browser: angka "bulan ini" Home/Analyze cocok
-      dengan ekspektasi window yang dipilih
+      dengan ekspektasi window yang dipilih — **belum dilakukan**, lihat
+      catatan implementasi di bawah
+
+**Catatan implementasi (Prabowo, 2026-10-21):**
+
+- File yang diubah:
+  `apps/web/src/domains/analytics/services/analytics-sync-job-handler.ts`
+  (cabang `monthly` di `resolveAnalyticsSnapshotWindow`, baris ~147-171) dan
+  `apps/web/src/domains/analytics/services/analytics-sync-job-handler.test.ts`
+  (test case baru untuk window `monthly`).
+- Behavior baru: `monthly` sekarang kalender bulan — `periodStart` = tanggal
+  1 bulan berjalan jam 00:00:00 UTC, `periodEnd` tetap `now` (saat job
+  jalan), **bukan** dimajukan ke akhir bulan kalau bulan belum selesai.
+  `weekly` tidak diubah, tetap rolling 7 hari.
+- Grep ulang `resolveAnalyticsSnapshotWindow` di seluruh `apps/web/src`
+  mengonfirmasi hanya satu pemanggil (`syncWorkspace`,
+  `analytics-sync-job-handler.ts:279`) — investigasi sebelumnya akurat,
+  tidak ada pemanggil lain yang kebobolan.
+  - Test: `bunx vitest run analytics-sync-job-handler.test.ts` → 13 passed
+    (6 test baru untuk `monthly`: kalender bulan umum, hari pertama bulan,
+    31/30/28/29 hari). `bun run typecheck` dan `eslint` pada kedua file
+    bersih.
+  - T-135.4 (verifikasi browser angka "bulan ini" Home/Analyze) belum
+    dilakukan di sesi ini — snapshot baru baru berlaku untuk job sync
+    berikutnya (snapshot lama di DB masih pakai window rolling 30 hari
+    sampai job `analytics.sync` jalan ulang); perlu keputusan apakah
+    snapshot lama perlu di-backfill/invalidasi atau cukup menunggu cron
+    berikutnya menimpa baris `[workspaceId, period, periodStart]` yang baru.
+
+**QA (Najwa QA Engineer, 2026-10-21):** dibaca langsung
+`resolveAnalyticsSnapshotWindow` (`analytics-sync-job-handler.ts`) —
+konfirmasi cabang `monthly` memakai `Date.UTC(now.getUTCFullYear(),
+now.getUTCMonth(), 1, 0, 0, 0, 0)` untuk `periodStart` dan `periodEnd = now`
+apa adanya (tidak dimajukan ke akhir bulan), sesuai klaim implementasi.
+Test suite ulang: 898 passed, 7 skipped, 0 fail (termasuk
+`analytics-sync-job-handler.test.ts`). T-135.4 (verifikasi browser angka
+"bulan ini") **tetap belum bisa dieksekusi** — sama alasan T-130/T-136,
+workspace Outstand kosong, dan snapshot lama di DB production/dev belum
+tentu sudah di-overwrite job cron berikutnya (di luar scope backfill QA).
+
+**Backfill operasional (dieksekusi manual oleh coordinator, 2026-10-21,
+bukan oleh kode T-135):** pertanyaan terbuka di catatan implementasi di atas
+("apakah snapshot lama perlu di-backfill/invalidasi") sudah dijawab King
+Rezi — **backfill segera**, bukan menunggu siklus cron alami. Snapshot
+`AnalyticsWorkspaceSnapshot` untuk seluruh 13 workspace sudah dijalankan
+ulang manual dan per 2026-10-21 sudah memakai formula window baru (kalender
+bulan). Lihat juga § T-134 untuk pembersihan data residu yang dieksekusi di
+sesi yang sama.
+
+**Status final (Gibran Project Manager, 2026-10-21):** perubahan window
+kalender bulan sudah diimplementasikan, diuji (6 test baru), direview
+(Ridwan PASS), dan diverifikasi kode (Najwa PASS), plus backfill operasional
+13 workspace sudah dieksekusi — jadi snapshot production tidak lagi
+"menunggu" formula lama. Tiket ini **belum** ✅ Done penuh — T-135.4
+(verifikasi browser angka "bulan ini" dengan data post nyata) tetap
+tertunda karena workspace test Outstand kosong. Status diset 🚫, bukan ✅,
+sampai ada akun test baru.
 
 ### T-136 · Ambiguitas semantik label "Post terpublikasi" Home (KI-096)
 
 | Field       | Value                                                                                                                                                     |
 | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | ⏳ Open — prioritas tinggi (batch investigasi King Rezi, 2026-10-21)                                                                                      |
+| **Status**  | 🚫 Implementasi selesai (ikut T-130, review + QA PASS) — blocked verifikasi browser (T-136.3), butuh akun test Outstand baru                              |
 | **Domain**  | analytics · UI                                                                                                                                            |
 | **ADR**     | — (keputusan produk soal sumber metric, bukan arsitektur)                                                                                                 |
 | **Spec**    | tidak ada — single-issue                                                                                                                                  |
@@ -418,11 +736,82 @@ akun yang sudah disconnect — lihat T-134/gap #1).
 Outstand tapi dengan label yang lebih jujur (mis. "Post di akun terhubung"
 bukan "Post terpublikasi").
 
-- [ ] **T-136.1** King Rezi memutuskan (via `AskUserQuestion`): ganti sumber
-      data (ikut T-130) atau ganti label (tetap sumber Outstand, teks lebih
-      jujur)
-- [ ] **T-136.2** Implementasi sesuai keputusan T-136.1 di `DashboardHome.tsx`
+- [x] **T-136.1** King Rezi memutuskan (via `AskUserQuestion`, 2026-10-21):
+      ganti sumber data, ikut T-130 (DB internal) — bukan ganti label teks
+      saja
+- [x] **T-136.2** Implementasi sesuai keputusan T-136.1 di `DashboardHome.tsx`
       dan/atau `AnalyticsService.getDashboardSummary`
 - [ ] **T-136.3** Verifikasi browser: label dan angka konsisten secara makna
       (tidak ada lagi "Post terpublikasi" yang sebenarnya termasuk post dari
-      akun disconnected/native)
+      akun disconnected/native) — **belum dilakukan**, sama alasan dengan
+      T-130 (butuh workspace dengan data nyata)
+
+**Catatan implementasi (Prabowo Feature Engineer, 2026-10-21):**
+
+T-136.2 selesai TANPA perubahan kode UI — implementasi T-130 (lihat § T-130
+"Implementasi") sudah cukup: `summary.totalPosts` yang dikonsumsi
+`DashboardHome.tsx:157-158` (`StatTile label="Post terpublikasi"`) sekarang
+mengalir dari `TerminalPostsCountPort.countTerminalPosts` (status internal
+`PublishingPost`: `Published`/`Failed`/`Imported`, dan efektif
+`Published`+`Imported` saja karena `publishedAt` post `Failed` di-null-kan —
+lihat catatan granularitas di § T-130), BUKAN lagi dari `posts_count`
+Outstand. Jadi label "Post terpublikasi" sekarang akurat secara makna: tidak
+lagi bisa kebawa post native/akun disconnected dari Outstand (itu gap T-134
+yang terpisah dan sudah tidak relevan untuk `totalPosts` karena sumbernya
+sudah bukan Outstand sama sekali). Tidak ada file `DashboardHome.tsx` atau
+`AnalyticsService.getDashboardSummary` yang perlu diubah — keduanya sudah
+generik (`summary.totalPosts` apa adanya), gap-nya murni di sumber data
+`syncWorkspaceSnapshot` yang sudah diperbaiki di T-130. T-136.3 (verifikasi
+browser) belum dieksekusi, sama seperti T-130 — dicatat sebagai follow-up,
+bukan diasumsikan selesai.
+
+**QA (Najwa QA Engineer, 2026-10-21):** verifikasi independen klaim "T-136.2
+selesai TANPA perubahan kode UI" — dibaca langsung
+`apps/web/src/app/(app)/components/DashboardHome.tsx` baris 157-158:
+`label="Post terpublikasi"` dan `value={summary.totalPosts.toLocaleString("id-ID")}`
+memang tidak berubah (tidak ada file `.tsx` yang terdiff di working tree
+untuk keempat tiket ini — `git status` dikonfirmasi tidak ada perubahan
+`.tsx`/`components/ui`). Karena tidak ada kode UI baru yang
+diimplementasikan, langkah wajib DesignSync (AGENTS.md rule 10/T-103.3)
+tidak applicable untuk QA sesi ini. T-136.3 (verifikasi browser label vs
+angka) **tetap belum bisa dieksekusi** — sama keterbatasan lingkungan
+(workspace Outstand kosong) seperti T-130/T-135.
+
+**Rekomendasi status akhir (keempat tiket):** implementasi, test otomatis,
+dan review kode PASS — siap lanjut ke tahap dokumentasi final Gibran Project
+Manager. Checklist "Verifikasi browser dengan data real" (T-130 item
+terakhir, T-134.4, T-135.4, T-136.3) tetap dicatat **terbuka/tertunda**
+karena limitasi lingkungan (Outstand workspace kosong), bukan kegagalan QA
+— perlu di-follow-up setelah ada akun test baru di-reconnect.
+
+**Status final (Gibran Project Manager, 2026-10-21):** T-136.2 terbukti
+sengaja tidak menyentuh kode UI (hanya mewarisi fix sumber data T-130),
+diverifikasi independen QA. Tiket ini **belum** ✅ Done penuh — T-136.3
+tertunda karena alasan eksternal yang sama dengan T-130/T-134/T-135. Status
+diset 🚫, bukan ✅.
+
+**Keputusan dokumentasi batch (Gibran Project Manager, 2026-10-21):**
+
+- Keempat tiket (T-130, T-134, T-135, T-136) substansinya (root-cause fix,
+  implementasi, test otomatis, review Ridwan, QA Najwa) **tuntas** — status
+  di masing-masing diset 🚫 (bukan ✅ Done, bukan 🟡), karena satu-satunya
+  sisa pekerjaan di tiap tiket adalah verifikasi E2E browser yang terhambat
+  faktor eksternal (tidak ada akun test Outstand di workspace King Rezi),
+  bukan bug atau pekerjaan kode yang belum selesai.
+- **Blocker T-133 TETAP tertutup (tidak dibuka)** — syarat yang tertulis
+  eksplisit di `v02-publishing-mvp.md` § T-133 ("Begitu keempatnya ✅ Done,
+  status tiket ini kembali ke 🚫 Sebagian siap") belum terpenuhi secara
+  literal karena keempat tiket ini belum berstatus ✅ Done (masih 🚫,
+  menunggu akun test). Begitu akun test Outstand baru tersedia dan
+  T-130.292/T-134.4/T-135.4/T-136.3 lolos verifikasi browser, keempat tiket
+  ini bisa langsung ditutup ✅ Done dan blocker T-133 dibuka tanpa perlu
+  investigasi ulang — tidak ada pekerjaan kode tersisa.
+- Keputusan definisi produk dari King Rezi yang mengubah metric/window
+  user-facing (sumber `totalPosts` Home pindah ke status internal
+  `PublishingPost`, window "bulanan" pindah ke kalender bulan, granularitas
+  Home vs Analyze diterima berbeda) dicatat sebagai **ADR-136** —
+  lihat `DECISIONS.md` dan `decisions/ADR-136-redefinisi-totalpost-window-bulanan-home-analytics.md`.
+  Opsi "panggil Outstand DELETE saat disconnect" yang ditolak King Rezi
+  (lihat § T-134 "Keputusan revisi scope") TIDAK memerlukan ADR terpisah —
+  tidak ada kontrak baru dibuat, dan ADR-048/ADR-049 (disconnect tidak
+  memanggil Outstand) tetap berlaku apa adanya, tidak diamendemen.

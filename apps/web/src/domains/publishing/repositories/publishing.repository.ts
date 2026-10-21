@@ -652,6 +652,39 @@ export interface IPublishingRepository {
   ): Promise<HistoryItemRecord[]>;
 
   /**
+   * T-130/KI-093 — jumlah `PublishingPost` berstatus terminal
+   * (`HISTORY_TERMINAL_STATUSES`: `Published`/`Failed`/`Imported`) milik
+   * `workspaceId`, dengan `publishedAt` jatuh di rentang `[since, until)`
+   * (half-open, konsisten `listHistory.publishedAtRange`/
+   * `getPostPerformance` — review finding 2026-09-22 soal rentang
+   * bersebelahan tidak boleh overlap).
+   *
+   * Dipakai `AnalyticsIngestionUseCase.syncWorkspaceSnapshot` (lewat port
+   * lokal `TerminalPostsCountPort`, pola sama `ActiveAccountsPort`) sebagai
+   * pengganti `IOutstandAdapter.fetchWorkspaceMetrics().totalPosts` —
+   * field `posts_count` Outstand terbukti `null` untuk akun Facebook Page
+   * (tidak didokumentasikan Outstand untuk platform ini), jadi `totalPosts`
+   * Home/snapshot sekarang dihitung dari status internal kita sendiri,
+   * bukan dari Outstand.
+   *
+   * **Catatan granularitas:** ini menghitung baris `PublishingPost`
+   * (distinct post), BUKAN baris post × target seperti
+   * `PublishingService.getAnalyzeSummary.totalPosts` (yang menghitung
+   * target berstatus `published` per post) — definisi "jumlah post" di
+   * Home sengaja literal "berapa post", bukan granularitas Analyze. Post
+   * `Failed` yang `publishedAt`-nya di-null-kan (`markPostFailed`, KI-081)
+   * otomatis tidak masuk rentang manapun — perilaku ini SAMA dengan
+   * `getPostPerformance` (post tanpa `publishedAt` sudah lama tidak pernah
+   * muncul di hitungan ber-periode), bukan regresi baru dari perubahan ini.
+   *
+   * `userId` (RLS, KI-026 follow-up) — acting user untuk `withCurrentUser`.
+   */
+  countTerminalPosts(
+    input: { workspaceId: WorkspaceId; since: Date; until: Date },
+    userId: UserId,
+  ): Promise<number>;
+
+  /**
    * Detail satu History item (T-034.1) — mendukung route
    * `/publish/history/[postId]` (UI-nya T-034.3), supaya composition
    * root halaman detail tidak perlu query seluruh riwayat workspace

@@ -38,6 +38,21 @@ export const noopClassifyRepositoryStub: Pick<
   classifyImportedPostTargets: async () => ({ updatedCount: 0 }),
 };
 
+/**
+ * No-op stub untuk `IPublishingRepository.countTerminalPosts` (T-130/KI-093)
+ * — sama rasional dengan stub lain di file ini: fake di test yang tidak
+ * menguji perhitungan `totalPosts` snapshot analytics tidak perlu
+ * hand-roll method ini. Test yang memang menguji perilaku ini
+ * (`analytics-ingestion.use-case.test.ts`) punya fake `TerminalPostsCountPort`
+ * sendiri, bukan lewat sini.
+ */
+export const noopTerminalPostsRepositoryStub: Pick<
+  IPublishingRepository,
+  "countTerminalPosts"
+> = {
+  countTerminalPosts: async () => 0,
+};
+
 export const noopFetchAllPostIdMappings: IOutstandAdapter["fetchAllPostIdMappings"] =
   async () => ({
     mappings: [],

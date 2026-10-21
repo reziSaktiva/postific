@@ -28,6 +28,9 @@ function createOwnerLookup(
       connectedAccountId: PAYLOAD.connectedAccountId,
       ownerUserId: asUserId("owner-1"),
     }),
+    // T-134 (KI-094) gap kritis — default `null` (anomali/tidak ditemukan).
+    // Test yang butuh fallback ini sukses menimpa lewat `overrides`.
+    findWorkspaceOwnerUserId: async () => null,
     ...overrides,
   };
 }
@@ -73,13 +76,47 @@ function createAccounts(
 }
 
 describe("resolveAnalyticsSnapshotWindow", () => {
-  it("buckets periodStart to UTC midnight so the same calendar day upserts one row", () => {
+  it("weekly tetap rolling 7 hari, periodStart dibucket ke UTC midnight", () => {
     const weekly = resolveAnalyticsSnapshotWindow("weekly", NOW);
     expect(weekly.periodEnd).toEqual(NOW);
     expect(weekly.periodStart.toISOString()).toBe("2026-10-05T00:00:00.000Z");
+  });
 
+  it("monthly memakai kalender bulan: tanggal 1 jam 00:00 UTC s.d. now (T-135.2)", () => {
     const monthly = resolveAnalyticsSnapshotWindow("monthly", NOW);
-    expect(monthly.periodStart.toISOString()).toBe("2026-09-12T00:00:00.000Z");
+    expect(monthly.periodStart.toISOString()).toBe("2026-10-01T00:00:00.000Z");
+    expect(monthly.periodEnd).toEqual(NOW);
+  });
+
+  it("monthly di hari pertama bulan: periodStart = now dibucket ke jam 00:00 UTC hari itu juga", () => {
+    const firstDayOfMonth = new Date("2026-11-01T08:15:00.000Z");
+    const monthly = resolveAnalyticsSnapshotWindow("monthly", firstDayOfMonth);
+    expect(monthly.periodStart.toISOString()).toBe("2026-11-01T00:00:00.000Z");
+    expect(monthly.periodEnd).toEqual(firstDayOfMonth);
+  });
+
+  it("monthly tidak terpengaruh jumlah hari bulan sebelumnya (31 hari, Januari)", () => {
+    const now = new Date("2026-01-31T23:59:00.000Z");
+    const monthly = resolveAnalyticsSnapshotWindow("monthly", now);
+    expect(monthly.periodStart.toISOString()).toBe("2026-01-01T00:00:00.000Z");
+  });
+
+  it("monthly tidak terpengaruh jumlah hari bulan sebelumnya (30 hari, April)", () => {
+    const now = new Date("2026-04-30T12:00:00.000Z");
+    const monthly = resolveAnalyticsSnapshotWindow("monthly", now);
+    expect(monthly.periodStart.toISOString()).toBe("2026-04-01T00:00:00.000Z");
+  });
+
+  it("monthly di Februari tahun non-kabisat (28 hari)", () => {
+    const now = new Date("2027-02-28T18:00:00.000Z");
+    const monthly = resolveAnalyticsSnapshotWindow("monthly", now);
+    expect(monthly.periodStart.toISOString()).toBe("2027-02-01T00:00:00.000Z");
+  });
+
+  it("monthly di Februari tahun kabisat (29 hari)", () => {
+    const now = new Date("2028-02-29T06:30:00.000Z");
+    const monthly = resolveAnalyticsSnapshotWindow("monthly", now);
+    expect(monthly.periodStart.toISOString()).toBe("2028-02-01T00:00:00.000Z");
   });
 });
 
@@ -231,5 +268,68 @@ describe("AnalyticsSyncJobHandler.handle", () => {
       ]);
       expect(actingUserId).toBe("owner-1");
     }
+  });
+
+  it("T-134 gap kritis: upserts a zero snapshot instead of throwing when the workspace has no active accounts left (last account just disconnected)", async () => {
+    const syncPostMetrics = vi.fn();
+    const syncWorkspaceSnapshot = vi.fn<
+      AnalyticsIngestionUseCase["syncWorkspaceSnapshot"]
+    >(async () => ({}) as never);
+    const findWorkspaceOwnerUserId = vi.fn(async () => asUserId("owner-1"));
+    const handler = new AnalyticsSyncJobHandler(
+      {
+        syncPostMetrics,
+        syncWorkspaceSnapshot,
+      } as unknown as AnalyticsIngestionUseCase,
+      createOwnerLookup({ findWorkspaceOwnerUserId }),
+      createPosts(),
+      // Tidak ada akun workspace ini sama sekali di daftar aktif —
+      // mensimulasikan akun TERAKHIR baru saja di-disconnect.
+      createAccounts({
+        listActiveConnectedAccountsForSync: async () => [
+          {
+            workspaceId: "workspace-other",
+            connectedAccountId: "account-other",
+            outstandAccountId: "outstand-other",
+          },
+        ],
+      }),
+      () => NOW,
+    );
+
+    await expect(
+      handler.handle({
+        scope: ANALYTICS_SYNC_SCOPE_WORKSPACE,
+        workspaceId: PAYLOAD.workspaceId,
+        workspaceSnapshotId: PAYLOAD.workspaceId,
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(findWorkspaceOwnerUserId).toHaveBeenCalledWith(PAYLOAD.workspaceId);
+    expect(syncWorkspaceSnapshot).toHaveBeenCalledTimes(2);
+    for (const [input, actingUserId] of syncWorkspaceSnapshot.mock.calls) {
+      expect(input.accounts).toEqual([]);
+      expect(actingUserId).toBe("owner-1");
+    }
+  });
+
+  it("T-134 gap kritis: still throws when the workspace has no active accounts AND no owner can be resolved at all (genuine anomaly)", async () => {
+    const syncWorkspaceSnapshot = vi.fn();
+    const handler = new AnalyticsSyncJobHandler(
+      { syncWorkspaceSnapshot } as unknown as AnalyticsIngestionUseCase,
+      createOwnerLookup({ findWorkspaceOwnerUserId: async () => null }),
+      createPosts(),
+      createAccounts({ listActiveConnectedAccountsForSync: async () => [] }),
+      () => NOW,
+    );
+
+    await expect(
+      handler.handle({
+        scope: ANALYTICS_SYNC_SCOPE_WORKSPACE,
+        workspaceId: PAYLOAD.workspaceId,
+        workspaceSnapshotId: PAYLOAD.workspaceId,
+      }),
+    ).rejects.toThrow("tidak ditemukan atau tidak aktif");
+    expect(syncWorkspaceSnapshot).not.toHaveBeenCalled();
   });
 });

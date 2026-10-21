@@ -973,6 +973,21 @@ export const workspaceRepository: IWorkspaceRepository = {
     };
   },
 
+  /**
+   * T-134 (KI-094) gap kritis — lihat docstring interface
+   * `findWorkspaceOwnerUserId` untuk alasan lengkap. Plain
+   * `prisma.workspace.findUnique` tanpa `withCurrentUser` — pola yang sama
+   * dengan `findById` di atas (`workspaces` bukan tabel RLS-protected).
+   */
+  async findWorkspaceOwnerUserId(workspaceId) {
+    const workspace = await prisma.workspace.findUnique({
+      where: { id: workspaceId },
+      select: { ownerId: true },
+    });
+
+    return workspace ? asUserId(workspace.ownerId) : null;
+  },
+
   async listActiveConnectedAccountsForSync() {
     const rows = await prisma.$queryRaw<
       {
