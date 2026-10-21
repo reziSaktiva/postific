@@ -23,7 +23,7 @@ Phase dan blocker ada di [`PROJECT_STATE.md`](PROJECT_STATE.md). Known Issue yan
 | 🟡     | Sedang dikerjakan                                 |
 | 🚫     | Terhenti, menunggu King Rezi atau dependency luar |
 
-ID tiket global, tidak didaur ulang. Berikutnya: **T-138**. ID spec berikutnya: **S-001**.
+ID tiket global, tidak didaur ulang. Berikutnya: **T-139**. ID spec berikutnya: **S-001**.
 
 ---
 
@@ -31,7 +31,8 @@ ID tiket global, tidak didaur ulang. Berikutnya: **T-138**. ID spec berikutnya: 
 
 | ID    | Status | Judul                                                                                                                                                           | File                                  |
 | ----- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| T-137 | ⏳     | Adapter SMTP sementara email staging (Resend terkunci testing mode). KI-097, ADR-137                                                                            | [KI](tickets/known-issues.md)         |
+| T-137 | 🚫     | Adapter SMTP sementara email staging. Kode selesai (review+QA PASS); sisa King Rezi isi env Railway staging. KI-097, ADR-137                                    | [KI](tickets/known-issues.md)         |
+| T-138 | ⏳     | Escape HTML hilang di email kode verifikasi accept-invite (Resend & SMTP). KI-098                                                                               | [KI](tickets/known-issues.md)         |
 | T-037 | 🟡     | Perkaya aturan coding di `context/ctx-development.md`                                                                                                           | [v0.2](tickets/v02-publishing-mvp.md) |
 | T-115 | 🟡     | Wiring cron harian Import Posts. Sisa: post native Facebook                                                                                                     | [v0.2](tickets/v02-publishing-mvp.md) |
 | T-013 | 🟡     | Connect account. Sisa: T-013.4 BYOK X                                                                                                                           | [v0.1](tickets/v01-foundation.md)     |
