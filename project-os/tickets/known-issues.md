@@ -6,6 +6,46 @@ Tiket fitur yang kebetulan memuat atau menutup satu KI tetap di file rilisnya. C
 
 ---
 
+### T-137 · Adapter SMTP sementara untuk email staging (KI-097, ADR-137)
+
+| Field       | Value                                                                                |
+| ----------- | ------------------------------------------------------------------------------------ |
+| **Status**  | 🟡 In Progress                                                                       |
+| **Domain**  | notification                                                                         |
+| **Spec**    | tidak ada — muat satu sesi                                                           |
+| **Docs**    | KI-097, ADR-137, ADR-126                                                             |
+| **Depends** | — (sunset: dicabut begitu domain Resend terverifikasi, lihat T-119 sebagai pola env) |
+
+**What to build:** Khusus environment staging, email transactional (reset
+password, verifikasi email Better Auth, kode verifikasi accept-invite,
+undangan anggota workspace) dikirim lewat SMTP langsung (`rezi@insvire.com`)
+alih-alih Resend, karena akun Resend terkunci mode testing (domain pengirim
+`onboarding@resend.dev` tidak bisa diverifikasi — bukan domain sendiri) dan
+hanya bisa kirim ke `rezi@insvire.com`, memblokir QA flow multi-akun. Scope
+**hanya staging** — production tetap Resend (ADR-126 tidak diamendemen untuk
+production).
+
+- [ ] Adapter baru `createSmtpAuthEmailSender`/`createSmtpInviteEmailSender`
+      (`nodemailer`) sebagai sibling dari adapter Resend yang sudah ada —
+      bukan mengganti/menghapus kode Resend
+- [ ] Factory `getAuthEmailSender()`/`getInviteEmailSender()`
+      (`apps/web/src/lib/adapters/email/index.ts`) memilih adapter
+      berdasarkan env `EMAIL_PROVIDER` (`"smtp"` → SMTP, default/`"resend"`
+      → Resend seperti sekarang)
+- [ ] Env baru didokumentasikan: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`,
+      `SMTP_PASSWORD`, `SMTP_FROM_EMAIL` — King Rezi yang mengisi nilainya
+      langsung di Railway staging (agent tidak pernah memegang kredensial,
+      pola sama T-119)
+- [ ] `EMAIL_PROVIDER=smtp` di-set di Railway staging oleh King Rezi;
+      production tidak diisi (tetap fallback Resend)
+- [ ] Diverifikasi: undangan member/kode accept-invite terkirim ke email
+      selain `rezi@insvire.com` di staging
+- [ ] **Syarat selesai/sunset**: setelah domain pengirim Resend
+      terverifikasi, `EMAIL_PROVIDER` dihapus dari staging (balik ke Resend
+      penuh) — dicatat sebagai follow-up, bukan bagian wajib tiket ini
+
+**Blocked by:** King Rezi mengisi `SMTP_HOST`/`SMTP_PORT`/`SMTP_USER`/`SMTP_PASSWORD`/`SMTP_FROM_EMAIL` di Railway staging setelah kode adapter siap.
+
 ### T-119 · Isi env Google OAuth
 
 | Field       | Value                                                                |
