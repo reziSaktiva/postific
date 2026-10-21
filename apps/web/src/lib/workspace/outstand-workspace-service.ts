@@ -99,6 +99,16 @@ export function createImportPostsTriggerUseCase(): ImportPostsTriggerUseCase {
  * sendiri juga tidak bersentuhan dengan Outstand (lihat
  * `createAnalyticsSyncJobsPort`).
  */
+function createAnalyticsRecomputePort(
+  enqueueAnalyticsSync: EnqueueAnalyticsSyncUseCase,
+): { onAccountDisconnected: (workspaceId: string) => Promise<void> } {
+  return {
+    onAccountDisconnected: async (workspaceId) => {
+      await enqueueAnalyticsSync.enqueueWorkspaceSnapshot(workspaceId);
+    },
+  };
+}
+
 export function createWorkspaceServiceForDisconnect(): WorkspaceService {
   const enqueueAnalyticsSync = new EnqueueAnalyticsSyncUseCase(
     workspaceRepository,
@@ -114,11 +124,7 @@ export function createWorkspaceServiceForDisconnect(): WorkspaceService {
     undefined,
     undefined,
     undefined,
-    {
-      onAccountDisconnected: async (workspaceId) => {
-        await enqueueAnalyticsSync.enqueueWorkspaceSnapshot(workspaceId);
-      },
-    },
+    createAnalyticsRecomputePort(enqueueAnalyticsSync),
   );
 }
 
@@ -163,10 +169,6 @@ export function createWorkspaceServiceWithOutstandAdapter(): WorkspaceService {
       triggerAuto: (input) => importPostsTriggerUseCase.triggerAuto(input),
     },
     undefined,
-    {
-      onAccountDisconnected: async (workspaceId) => {
-        await enqueueAnalyticsSync.enqueueWorkspaceSnapshot(workspaceId);
-      },
-    },
+    createAnalyticsRecomputePort(enqueueAnalyticsSync),
   );
 }

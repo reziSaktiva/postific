@@ -29,6 +29,38 @@ const OUTSTAND_PERIOD_BY_SNAPSHOT_PERIOD: Record<
   monthly: "last_30_days",
 };
 
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+/**
+ * T-135/KI-095 follow-up (code-review PR #188) — `OutstandMetricsPeriod`
+ * cuma punya `last_7_days`/`last_30_days` (tidak ada opsi kalender bulan),
+ * padahal `periodStart`/`periodEnd` untuk `monthly` sejak T-135.2 memakai
+ * kalender bulan (tanggal 1 s.d. `now`). Dibiarkan selalu `last_30_days`,
+ * `totalReach`/`totalEngagements` (dari Outstand) bisa merujuk rentang
+ * waktu yang jauh berbeda dari `totalPosts` (dari `countTerminalPosts`,
+ * scoped ke `periodStart`/`periodEnd` yang SAMA) — paling parah di
+ * awal-awal bulan (mis. tanggal 2, `totalPosts` cuma ~2 hari tapi
+ * `totalReach`/`totalEngagements` tetap 30 hari ke belakang, mayoritas
+ * bulan sebelumnya). Memilih `last_7_days` kalau rentang kalender bulan
+ * yang sudah berjalan ≤ 7 hari TIDAK menghilangkan mismatch ini (Outstand
+ * tetap tidak punya opsi kalender bulan persis), tapi mempersempitnya ke
+ * window yang lebih dekat dengan `totalPosts` dibanding selalu memaksa
+ * `last_30_days` di hari-hari awal bulan.
+ */
+function resolveOutstandPeriodForSnapshot(input: {
+  period: SnapshotPeriod;
+  periodStart: Date;
+  periodEnd: Date;
+}): OutstandMetricsPeriod {
+  if (input.period !== "monthly") {
+    return OUTSTAND_PERIOD_BY_SNAPSHOT_PERIOD[input.period];
+  }
+
+  const elapsedDays =
+    (input.periodEnd.getTime() - input.periodStart.getTime()) / MS_PER_DAY;
+  return elapsedDays <= 7 ? "last_7_days" : "last_30_days";
+}
+
 /**
  * Panggilan Outstand di job analytics jalan paralel terbatas. Job runner
  * menganggap job `running` lebih dari 30 detik macet lalu mengklaimnya
@@ -230,7 +262,7 @@ export class AnalyticsIngestionUseCase {
     },
     actingUserId: UserId,
   ): Promise<WorkspaceSnapshotRecord> {
-    const outstandPeriod = OUTSTAND_PERIOD_BY_SNAPSHOT_PERIOD[input.period];
+    const outstandPeriod = resolveOutstandPeriodForSnapshot(input);
     const [metricsByAccount, totalPosts] = await Promise.all([
       mapWithConcurrency(
         input.accounts,
