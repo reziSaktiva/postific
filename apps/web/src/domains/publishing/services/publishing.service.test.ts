@@ -13,7 +13,10 @@ import {
   type UserId,
 } from "@postific/shared";
 import { describe, expect, it } from "vitest";
-import { noopBackfillRepositoryStubs } from "@/lib/testing/outstand-post-id-backfill-stubs";
+import {
+  noopBackfillRepositoryStubs,
+  noopClassifyRepositoryStub,
+} from "@/lib/testing/outstand-post-id-backfill-stubs";
 import type { PostMetricsRecord } from "@/domains/analytics";
 import {
   AuthorizationError,
@@ -82,6 +85,7 @@ function createFakeRepository(
       skippedDuplicateCount: 0,
     }),
     ...noopBackfillRepositoryStubs,
+    ...noopClassifyRepositoryStub,
     ...overrides,
   };
 }

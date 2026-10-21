@@ -23,25 +23,27 @@ Phase dan blocker ada di [`PROJECT_STATE.md`](PROJECT_STATE.md). Known Issue yan
 | 🟡     | Sedang dikerjakan                                 |
 | 🚫     | Terhenti, menunggu King Rezi atau dependency luar |
 
-ID tiket global, tidak didaur ulang. Berikutnya: **T-134**. ID spec berikutnya: **S-001**.
+ID tiket global, tidak didaur ulang. Berikutnya: **T-137**. ID spec berikutnya: **S-001**.
 
 ---
 
 ## Sekarang
 
-| ID    | Status | Judul                                                                | File                                  |
-| ----- | ------ | -------------------------------------------------------------------- | ------------------------------------- |
-| T-037 | 🟡     | Perkaya aturan coding di `context/ctx-development.md`                | [v0.2](tickets/v02-publishing-mvp.md) |
-| T-115 | 🟡     | Wiring cron harian Import Posts. Sisa: post native Facebook          | [v0.2](tickets/v02-publishing-mvp.md) |
-| T-013 | 🟡     | Connect account. Sisa: T-013.4 BYOK X                                | [v0.1](tickets/v01-foundation.md)     |
-| T-017 | 🟡     | RLS SQL policies. Sisa: adopsi `withCurrentUser`                     | [v0.1](tickets/v01-foundation.md)     |
-| T-119 | 🚫     | Isi env Google OAuth. KI-015. King Rezi yang mengisi rahasianya      | [KI](tickets/known-issues.md)         |
-| T-122 | ⏳     | Buktikan E2E invite Copy Link, email A vs email B. KI-053            | [KI](tickets/known-issues.md)         |
-| T-130 | ⏳     | `totalPosts` Home tidak akurat untuk akun `posts_count` null. KI-093 | [KI](tickets/known-issues.md)         |
-| T-132 | ⏳     | Klasifikasi jenis konten (Story/Reel) hasil Import Posts             | [v0.2](tickets/v02-publishing-mvp.md) |
-| T-133 | ⏳     | Backfill retroaktif Import Posts lama + verifikasi platform          | [v0.2](tickets/v02-publishing-mvp.md) |
+| ID    | Status | Judul                                                                                                                                      | File                                  |
+| ----- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------- |
+| T-037 | 🟡     | Perkaya aturan coding di `context/ctx-development.md`                                                                                      | [v0.2](tickets/v02-publishing-mvp.md) |
+| T-115 | 🟡     | Wiring cron harian Import Posts. Sisa: post native Facebook                                                                                | [v0.2](tickets/v02-publishing-mvp.md) |
+| T-013 | 🟡     | Connect account. Sisa: T-013.4 BYOK X                                                                                                      | [v0.1](tickets/v01-foundation.md)     |
+| T-017 | 🟡     | RLS SQL policies. Sisa: adopsi `withCurrentUser`                                                                                           | [v0.1](tickets/v01-foundation.md)     |
+| T-119 | 🚫     | Isi env Google OAuth. KI-015. King Rezi yang mengisi rahasianya                                                                            | [KI](tickets/known-issues.md)         |
+| T-122 | ⏳     | Buktikan E2E invite Copy Link, email A vs email B. KI-053                                                                                  | [KI](tickets/known-issues.md)         |
+| T-130 | ⏳🔴   | `totalPosts` Home tidak akurat untuk akun `posts_count` null. KI-093 — prioritas tinggi, blocker T-133                                     | [KI](tickets/known-issues.md)         |
+| T-134 | ⏳🔴   | Disconnect akun sosial tidak dipropagasi ke Outstand. KI-094 — prioritas tinggi, blocker T-133                                             | [KI](tickets/known-issues.md)         |
+| T-135 | ⏳🔴   | Definisi periode "bulanan" beda dari kalender Outstand. KI-095 — prioritas tinggi, blocker T-133                                           | [KI](tickets/known-issues.md)         |
+| T-136 | ⏳🔴   | Ambiguitas label "Post terpublikasi" Home. KI-096 — prioritas tinggi, blocker T-133                                                        | [KI](tickets/known-issues.md)         |
+| T-133 | 🚫     | Backfill retroaktif Import Posts lama — **di-block King Rezi (2026-10-21) oleh T-130/T-134/T-135/T-136**; TikTok/Pinterest tanpa akun test | [v0.2](tickets/v02-publishing-mvp.md) |
 
-T-037 prioritas rendah dan tidak memblokir rilis. T-115 masih 🟡: job import dan watermark sudah terbukti di staging; sisa T-115.5 adalah post native Facebook yang muncul di Postific. T-124 selesai 2026-10-19 (error kolom void, KI-091). T-116 → T-117 → T-118 (token-agent) selesai 2026-10-16, lihat `tickets/v01-foundation.md`. T-131 selesai 2026-10-20 (revisi scope Import Posts dari King Rezi). T-132/T-133 masih ⏳ — T-133 depends T-131 ✅ + T-132 ⏳.
+T-037 prioritas rendah dan tidak memblokir rilis. T-115 masih 🟡: job import dan watermark sudah terbukti di staging; sisa T-115.5 adalah post native Facebook yang muncul di Postific. T-124 selesai 2026-10-19 (error kolom void, KI-091). T-116 → T-117 → T-118 (token-agent) selesai 2026-10-16, lihat `tickets/v01-foundation.md`. T-131 dan T-132 selesai 2026-10-20 (revisi scope Import Posts dari King Rezi; T-132 klasifikasi `ContentFormat` via Outstand Analytics, ADR-135). **T-130, T-134, T-135, T-136 (🔴 prioritas tinggi, 2026-10-21)** lahir dari satu investigasi ketidaksesuaian data Supabase vs Outstand yang sama — dikerjakan sebagai satu batch, lalu jadi syarat pembuka blocker **T-133**. T-133 🚫 sekarang di-block King Rezi oleh keempat tiket itu (sebelumnya tertahan menunggu konfirmasi eksekusi script; T-133.1 tetap tidak bisa diverifikasi tanpa akun test TikTok/Pinterest, terpisah dari blocker baru ini).
 
 ---
 

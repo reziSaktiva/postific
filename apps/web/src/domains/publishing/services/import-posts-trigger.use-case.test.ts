@@ -18,6 +18,7 @@ import type {
   ImportSyncJobRecord,
 } from "../repositories/import-job.repository";
 import { BackfillOutstandPostIdsUseCase } from "./backfill-outstand-post-ids.use-case";
+import { ClassifyImportedPostTargetsUseCase } from "./classify-imported-post-targets.use-case";
 import { ImportPostsProcessUseCase } from "./import-posts-process.use-case";
 import { ImportPostsTriggerUseCase } from "./import-posts-trigger.use-case";
 
@@ -34,6 +35,17 @@ const OUTSTAND_ACCOUNT_ID = "outstand-account-1";
  */
 const noopBackfillUseCase = new BackfillOutstandPostIdsUseCase(
   createFakePublishingRepositoryForBackfill() as never,
+  createFakeOutstandAdapter(),
+);
+
+/**
+ * `classifyUseCase` jadi dependency WAJIB `ImportPostsTriggerUseCase`
+ * (T-132.4, ADR-135, pola sama `noopBackfillUseCase` di atas) — dipakai di
+ * test yang tidak peduli perilaku klasifikasi sama sekali. Wiring itu
+ * sendiri diuji terpisah, lihat describe block "T-132.4" di bawah.
+ */
+const noopClassifyUseCase = new ClassifyImportedPostTargetsUseCase(
+  { classifyImportedPostTargets: async () => ({ updatedCount: 0 }) } as never,
   createFakeOutstandAdapter(),
 );
 
@@ -164,6 +176,7 @@ describe("ImportPostsTriggerUseCase.triggerAuto (T-090.3, ADR-093 poin 7)", () =
       watermark,
       processUseCase,
       noopBackfillUseCase,
+      noopClassifyUseCase,
     );
 
     const result = await useCase.triggerAuto({
@@ -247,6 +260,7 @@ describe("ImportPostsTriggerUseCase.triggerAuto (T-090.3, ADR-093 poin 7)", () =
       watermark,
       processUseCase,
       noopBackfillUseCase,
+      noopClassifyUseCase,
     );
 
     const result = await useCase.triggerAuto({
@@ -303,6 +317,7 @@ describe("ImportPostsTriggerUseCase — polling fetchImportJobStatus (bug fix 20
       watermark,
       processUseCase,
       noopBackfillUseCase,
+      noopClassifyUseCase,
       sleep,
     );
 
@@ -351,6 +366,7 @@ describe("ImportPostsTriggerUseCase — polling fetchImportJobStatus (bug fix 20
       watermark,
       processUseCase,
       noopBackfillUseCase,
+      noopClassifyUseCase,
       sleep,
     );
 
@@ -411,6 +427,7 @@ describe("ImportPostsTriggerUseCase — polling fetchImportJobStatus (bug fix 20
       watermark,
       processUseCase,
       noopBackfillUseCase,
+      noopClassifyUseCase,
       sleep,
     );
 
@@ -451,6 +468,7 @@ describe("ImportPostsTriggerUseCase — polling fetchImportJobStatus (bug fix 20
         watermark,
         processUseCase,
         noopBackfillUseCase,
+        noopClassifyUseCase,
         sleep,
       );
 
@@ -494,6 +512,7 @@ describe("ImportPostsTriggerUseCase — guard concurrent-import (ADR-093 poin 8)
       watermark,
       processUseCase,
       noopBackfillUseCase,
+      noopClassifyUseCase,
     );
 
     const result = await useCase.triggerAuto({
@@ -537,6 +556,7 @@ describe("ImportPostsTriggerUseCase.triggerManual (T-090.3, ADR-093 poin 9)", ()
       createFakeWatermarkPort(),
       createProcessUseCase(),
       noopBackfillUseCase,
+      noopClassifyUseCase,
     );
 
     await expect(
@@ -554,6 +574,7 @@ describe("ImportPostsTriggerUseCase.triggerManual (T-090.3, ADR-093 poin 9)", ()
       createFakeWatermarkPort(),
       createProcessUseCase(),
       noopBackfillUseCase,
+      noopClassifyUseCase,
     );
 
     const result = await useCase.triggerManual(
@@ -572,6 +593,7 @@ describe("ImportPostsTriggerUseCase.triggerManual (T-090.3, ADR-093 poin 9)", ()
       createFakeWatermarkPort(),
       createProcessUseCase(),
       noopBackfillUseCase,
+      noopClassifyUseCase,
     );
 
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
@@ -595,6 +617,7 @@ describe("ImportPostsTriggerUseCase.triggerManual (T-090.3, ADR-093 poin 9)", ()
       watermark,
       createProcessUseCase(1),
       noopBackfillUseCase,
+      noopClassifyUseCase,
     );
 
     const result = await useCase.triggerManual(
@@ -646,6 +669,7 @@ describe("ImportPostsTriggerUseCase — T-131 per-trigger since/limit policy", (
       watermark,
       processUseCase,
       noopBackfillUseCase,
+      noopClassifyUseCase,
     );
 
     await useCase.triggerAuto({
@@ -675,6 +699,7 @@ describe("ImportPostsTriggerUseCase — T-131 per-trigger since/limit policy", (
       watermark,
       createProcessUseCase(1),
       noopBackfillUseCase,
+      noopClassifyUseCase,
     );
 
     await useCase.triggerManual({
@@ -705,6 +730,7 @@ describe("ImportPostsTriggerUseCase — T-131 per-trigger since/limit policy", (
       watermark,
       createProcessUseCase(1),
       noopBackfillUseCase,
+      noopClassifyUseCase,
     );
 
     await useCase.triggerManual({
@@ -743,6 +769,7 @@ describe("ImportPostsTriggerUseCase — T-131 per-trigger since/limit policy", (
       watermark,
       createProcessUseCase(1),
       noopBackfillUseCase,
+      noopClassifyUseCase,
     );
 
     await useCase.triggerPeriodicForAccounts([
@@ -777,6 +804,7 @@ describe("ImportPostsTriggerUseCase — T-131 per-trigger since/limit policy", (
         createFakeWatermarkPort(),
         createProcessUseCase(),
         noopBackfillUseCase,
+        noopClassifyUseCase,
       );
 
       const result = await useCase.triggerManual({
@@ -803,6 +831,7 @@ describe("ImportPostsTriggerUseCase — T-131 per-trigger since/limit policy", (
         createFakeWatermarkPort(),
         createProcessUseCase(),
         noopBackfillUseCase,
+        noopClassifyUseCase,
       );
 
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
@@ -830,6 +859,7 @@ describe("ImportPostsTriggerUseCase — T-131 per-trigger since/limit policy", (
         createFakeWatermarkPort(),
         createProcessUseCase(1),
         noopBackfillUseCase,
+        noopClassifyUseCase,
       );
 
       await useCase.triggerManual({
@@ -859,6 +889,7 @@ describe("ImportPostsTriggerUseCase — T-131 per-trigger since/limit policy", (
         createFakeWatermarkPort(),
         createProcessUseCase(),
         noopBackfillUseCase,
+        noopClassifyUseCase,
       );
 
       const result = await useCase.triggerManual({
@@ -911,6 +942,7 @@ describe("ImportPostsTriggerUseCase.triggerPeriodicForAccounts (T-090.3)", () =>
       watermark,
       createProcessUseCase(2),
       noopBackfillUseCase,
+      noopClassifyUseCase,
     );
 
     const results = await useCase.triggerPeriodicForAccounts([
@@ -956,6 +988,7 @@ describe("ImportPostsTriggerUseCase.triggerPeriodicForAccounts (T-090.3)", () =>
       watermark,
       createProcessUseCase(1),
       noopBackfillUseCase,
+      noopClassifyUseCase,
     );
 
     const results = await useCase.triggerPeriodicForAccounts([
@@ -1017,6 +1050,7 @@ describe("ImportPostsTriggerUseCase.triggerPeriodicForAccounts (T-090.3)", () =>
         watermark,
         createProcessUseCase(1),
         noopBackfillUseCase,
+        noopClassifyUseCase,
       );
 
       const results = await useCase.triggerPeriodicForAccounts([
@@ -1070,6 +1104,7 @@ describe("ImportPostsTriggerUseCase — T-114 backfill outstandPostId wiring", (
       createFakeWatermarkPort(),
       createProcessUseCase(1),
       noopBackfillUseCase,
+      noopClassifyUseCase,
     );
 
     const result = await useCase.triggerAuto({
@@ -1109,6 +1144,7 @@ describe("ImportPostsTriggerUseCase — T-114 backfill outstandPostId wiring", (
       createFakeWatermarkPort(),
       createProcessUseCase(1),
       backfillUseCase,
+      noopClassifyUseCase,
     );
 
     const result = await useCase.triggerAuto({
@@ -1156,6 +1192,7 @@ describe("ImportPostsTriggerUseCase — T-114 backfill outstandPostId wiring", (
       createFakeWatermarkPort(),
       createProcessUseCase(1),
       backfillUseCase,
+      noopClassifyUseCase,
     );
 
     const result = await useCase.triggerAuto({
@@ -1192,6 +1229,7 @@ describe("ImportPostsTriggerUseCase — T-114 backfill outstandPostId wiring", (
       createFakeWatermarkPort(),
       createProcessUseCase(1),
       backfillUseCase,
+      noopClassifyUseCase,
     );
 
     const result = await useCase.triggerAuto({
@@ -1240,6 +1278,7 @@ describe("ImportPostsTriggerUseCase — T-114 backfill outstandPostId wiring", (
       createFakeWatermarkPort(),
       createProcessUseCase(1),
       backfillUseCase,
+      noopClassifyUseCase,
     );
 
     const result = await useCase.triggerAuto({
@@ -1260,6 +1299,132 @@ describe("ImportPostsTriggerUseCase — T-114 backfill outstandPostId wiring", (
   });
 });
 
+function fakeClassifyUseCase(
+  classifyBatch: (input: unknown) => Promise<{ classifiedCount: number }>,
+) {
+  return {
+    classifyBatch: vi.fn(classifyBatch),
+  } as unknown as ClassifyImportedPostTargetsUseCase;
+}
+
+describe("ImportPostsTriggerUseCase — T-132.4 classify ContentFormat wiring (ADR-135)", () => {
+  it("classifyUseCase required (ADR-135, pola sama backfillUseCase) — with no posts imported this batch, classifyBatch is never called", async () => {
+    const classifyBatch = vi.fn(async () => ({ classifiedCount: 0 }));
+    const useCase = new ImportPostsTriggerUseCase(
+      createFakeImportJobRepository(),
+      createFakeOutstandAdapter(), // fetchImportJobStatus default posts: []
+      createFakeWatermarkPort(),
+      createProcessUseCase(0),
+      noopBackfillUseCase,
+      fakeClassifyUseCase(classifyBatch),
+    );
+
+    const result = await useCase.triggerAuto({
+      workspaceId: WORKSPACE_ID,
+      connectedAccountId: CONNECTED_ACCOUNT_ID,
+      outstandAccountId: OUTSTAND_ACCOUNT_ID,
+      platform: SocialPlatform.Instagram,
+      actingUserId: ACTING_USER_ID,
+    });
+
+    expect(result.outcome).toBe("triggered");
+    expect(classifyBatch).not.toHaveBeenCalled();
+  });
+
+  it("calls classifyUseCase.classifyBatch with the batch's posts, workspaceId/connectedAccountId/platform/actingUserId, AFTER processUseCase.process", async () => {
+    const importedPosts = [
+      {
+        platformPostId: "platform-post-1",
+        outstandPostId: "outstand-post-1",
+        caption: "caption",
+        publishedAt: new Date("2026-10-01T00:00:00.000Z"),
+        platformPostUrl: null,
+        mediaUrls: [],
+      },
+    ];
+    const outstandAdapter = createFakeOutstandAdapter({
+      fetchImportJobStatus: vi.fn(async (): Promise<ImportJobOutcome> => ({
+        status: "completed",
+        posts: importedPosts,
+        error: null,
+      })),
+    });
+    const classifyBatch = vi.fn(async () => ({ classifiedCount: 1 }));
+    const useCase = new ImportPostsTriggerUseCase(
+      createFakeImportJobRepository(),
+      outstandAdapter,
+      createFakeWatermarkPort(),
+      createProcessUseCase(1),
+      noopBackfillUseCase,
+      fakeClassifyUseCase(classifyBatch),
+    );
+
+    const result = await useCase.triggerAuto({
+      workspaceId: WORKSPACE_ID,
+      connectedAccountId: CONNECTED_ACCOUNT_ID,
+      outstandAccountId: OUTSTAND_ACCOUNT_ID,
+      platform: SocialPlatform.Instagram,
+      actingUserId: ACTING_USER_ID,
+    });
+
+    expect(result.outcome).toBe("triggered");
+    expect(classifyBatch).toHaveBeenCalledWith({
+      workspaceId: WORKSPACE_ID,
+      connectedAccountId: CONNECTED_ACCOUNT_ID,
+      platform: SocialPlatform.Instagram,
+      posts: importedPosts,
+      actingUserId: ACTING_USER_ID,
+    });
+  });
+
+  it("classification failure (classifyBatch throws) is best-effort — does NOT fail the main sync", async () => {
+    const importedPosts = [
+      {
+        platformPostId: "platform-post-1",
+        outstandPostId: "outstand-post-1",
+        caption: "caption",
+        publishedAt: new Date("2026-10-01T00:00:00.000Z"),
+        platformPostUrl: null,
+        mediaUrls: [],
+      },
+    ];
+    const outstandAdapter = createFakeOutstandAdapter({
+      fetchImportJobStatus: vi.fn(async (): Promise<ImportJobOutcome> => ({
+        status: "completed",
+        posts: importedPosts,
+        error: null,
+      })),
+    });
+    const classifyBatch = vi.fn(async () => {
+      throw new Error("Outstand rate limited");
+    });
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const useCase = new ImportPostsTriggerUseCase(
+      createFakeImportJobRepository(),
+      outstandAdapter,
+      createFakeWatermarkPort(),
+      createProcessUseCase(1),
+      noopBackfillUseCase,
+      fakeClassifyUseCase(classifyBatch),
+    );
+
+    const result = await useCase.triggerAuto({
+      workspaceId: WORKSPACE_ID,
+      connectedAccountId: CONNECTED_ACCOUNT_ID,
+      outstandAccountId: OUTSTAND_ACCOUNT_ID,
+      platform: SocialPlatform.Instagram,
+      actingUserId: ACTING_USER_ID,
+    });
+
+    expect(result.outcome).toBe("triggered");
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining("T-132.4 klasifikasi ContentFormat gagal"),
+    );
+    warnSpy.mockRestore();
+  });
+});
+
 describe("ImportPostsTriggerUseCase — concurrent guard stays on for manual and auto (T-115.4)", () => {
   it("rejects manual sync when another import is already active for the account", async () => {
     const importJobs = createFakeImportJobRepository({
@@ -1272,6 +1437,7 @@ describe("ImportPostsTriggerUseCase — concurrent guard stays on for manual and
       createFakeWatermarkPort(),
       createProcessUseCase(),
       noopBackfillUseCase,
+      noopClassifyUseCase,
     );
 
     const result = await useCase.triggerManual({
@@ -1305,6 +1471,7 @@ describe("ImportPostsTriggerUseCase — concurrent guard stays on for manual and
         createFakeWatermarkPort(),
         createProcessUseCase(),
         noopBackfillUseCase,
+        noopClassifyUseCase,
       );
 
       const result =
@@ -1391,6 +1558,7 @@ describe("ImportPostsTriggerUseCase.executeQueuedPeriodicImport (T-115)", () => 
       watermark,
       createProcessUseCase(2),
       noopBackfillUseCase,
+      noopClassifyUseCase,
     );
     return { useCase, importJobs, outstandAdapter, watermark };
   }

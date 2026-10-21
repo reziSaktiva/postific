@@ -38,6 +38,7 @@ import {
   withCurrentUser,
 } from "@/lib/prisma/with-current-user";
 import { backfillImportedPostOutstandIdsTx } from "@/lib/repositories/publishing/backfill-outstand-post-ids";
+import { classifyImportedPostTargetsTx } from "@/lib/repositories/publishing/classify-imported-post-targets";
 import { replaceDraftTargets } from "@/lib/repositories/publishing/replace-draft-targets";
 import { upsertImportedPostsTx } from "@/lib/repositories/publishing/upsert-imported-posts";
 
@@ -1296,6 +1297,30 @@ export const publishingRepository: IPublishingRepository = {
         connectedAccountId,
         mappings,
         settleUnmatched,
+      ),
+    );
+  },
+
+  /**
+   * Klasifikasi `ContentFormat` post hasil Import (ADR-135, T-132.4) — lihat
+   * docstring lengkap di `IPublishingRepository.classifyImportedPostTargets`.
+   * Logika inti diekstrak ke `classifyImportedPostTargetsTx` (pola sama
+   * `upsertImportedPostsTx`) supaya bisa di-unit-test dengan `tx` palsu.
+   */
+  async classifyImportedPostTargets(
+    { workspaceId, connectedAccountId, updates },
+    actingUserId,
+  ) {
+    if (updates.length === 0) {
+      return { updatedCount: 0 };
+    }
+
+    return withCurrentUser(actingUserId, (tx) =>
+      classifyImportedPostTargetsTx(
+        tx,
+        workspaceId,
+        connectedAccountId,
+        updates,
       ),
     );
   },

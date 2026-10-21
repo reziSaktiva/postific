@@ -21,6 +21,7 @@ export * from "./services/import-posts-trigger.use-case";
 export * from "./services/import-sync-job-handler";
 export * from "./services/enqueue-import-sync";
 export * from "./services/backfill-outstand-post-ids.use-case";
+export * from "./services/classify-imported-post-targets.use-case";
 export * from "./services/resolve-schedule-targets";
 export * from "./services/resolve-draft-media-ids";
 export * from "./services/resolve-outstand-post-media";

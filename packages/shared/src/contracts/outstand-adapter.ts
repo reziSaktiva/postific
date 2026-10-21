@@ -413,6 +413,42 @@ export interface FetchPostMetricsResult {
   shares: number;
   clicks: number | null;
   engagementRate: number;
+  /**
+   * Klasifikasi jenis konten (ADR-135, T-132) — dibaca dari entri PERTAMA
+   * `metrics_by_account[]` response asli `get-post-analytics` (lihat
+   * docstring `aggregated`/`metrics_by_account` di atas). Instagram-only
+   * (`media_product_type`, dikonfirmasi lewat MCP resmi Outstand terhadap
+   * post nyata `MAnO3`, 2026-10-20): `"FEED"` (post biasa), `"REELS"`,
+   * atau `"STORY"`. `undefined` kalau akun pertama di response bukan
+   * Instagram, atau field ini tidak ada di response (termasuk kasus
+   * `storyExpired`, lihat di bawah). Pemetaan ke `ContentFormat` internal
+   * ada di `ClassifyImportedPostTargetsUseCase.mapFetchPostMetricsToContentFormat`,
+   * BUKAN di adapter ini (ACL tidak boleh tahu `ContentFormat`, AGENTS.md #2).
+   */
+  mediaProductType?: "FEED" | "REELS" | "STORY";
+  /**
+   * Klasifikasi jenis konten (ADR-135, T-132) — Facebook-only
+   * (`platform_specific.video.is_reel`, dikonfirmasi lewat MCP resmi
+   * Outstand terhadap post nyata `LGyF6`, 2026-10-20 — post itu tersimpan
+   * `contentFormat: 'post'` hardcode di DB kita padahal aslinya Reel, bukti
+   * nyata bug yang ditutup ADR-135). `undefined` kalau akun pertama bukan
+   * Facebook, atau post itu tidak punya media video sama sekali (field
+   * `video` tidak ada di `platform_specific`).
+   */
+  isReel?: boolean;
+  /**
+   * Klasifikasi jenis konten (ADR-135, T-132) — `true` kalau entri akun
+   * pertama punya `metrics: null` DAN `metrics_error.code === "metrics_expired"`
+   * (dikonfirmasi lewat MCP resmi Outstand terhadap Instagram Story asli
+   * yang sudah >24 jam, post `l21bW`, 2026-10-20: response TETAP
+   * `success: true`, bukan HTTP error — bentuk sukses-tapi-kosong).
+   * Berlaku lintas platform (field generik, bukan Instagram-only), walau
+   * baru dikonfirmasi untuk Instagram. Jenis konten TIDAK BISA diketahui
+   * lagi lewat jalur ini kalau field ini `true` — caller WAJIB fallback
+   * eksplisit (biarkan `ContentFormat` default, jangan menebak), lihat
+   * ADR-135 poin 4.
+   */
+  storyExpired?: boolean;
 }
 
 export interface FetchWorkspaceMetricsResult {

@@ -8,6 +8,7 @@ import {
 import { describe, expect, it } from "vitest";
 import {
   noopBackfillRepositoryStubs,
+  noopClassifyRepositoryStub,
   noopFetchAllPostIdMappings,
 } from "@/lib/testing/outstand-post-id-backfill-stubs";
 import { AuthorizationError, ConflictError } from "@/lib/utils/errors";
@@ -73,6 +74,7 @@ function createFakeRepository(
       skippedDuplicateCount: 0,
     }),
     ...noopBackfillRepositoryStubs,
+    ...noopClassifyRepositoryStub,
     ...overrides,
   };
 }

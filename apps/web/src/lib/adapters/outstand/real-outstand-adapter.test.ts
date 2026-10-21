@@ -761,6 +761,248 @@ describe("RealOutstandAdapter analytics (fetchPostMetrics/fetchWorkspaceMetrics,
     expect(result.engagementRate).toBe(0);
   });
 
+  describe("fetchPostMetrics classification signals (ADR-135, T-132 — payload nyata lewat MCP mcp.outstand.so, 2026-10-20)", () => {
+    it("reads Instagram media_product_type FEED from metrics_by_account[0] (real payload, post MAnO3)", async () => {
+      const fetchImpl = vi.fn().mockResolvedValue(
+        jsonResponse(200, {
+          success: true,
+          post: {
+            id: "MAnO3",
+            publishedAt: "2026-09-26T04:47:13.603Z",
+            createdAt: "2026-09-26T04:46:52.999Z",
+          },
+          metrics_by_account: [
+            {
+              social_account: {
+                id: "eH82r",
+                nickname: "turanilkerl",
+                network: "instagram",
+                username: "turanilkerl",
+              },
+              platform_post_id: "18108984935619405",
+              platform_post_url: "https://www.instagram.com/p/DdvNcuNDBkr/",
+              published_at: "2026-09-26T04:47:13.550Z",
+              metrics: {
+                platform_specific: {
+                  reach: 1,
+                  saved: 0,
+                  likes: 0,
+                  comments: 1,
+                  shares: 0,
+                  views: 8,
+                  media_product_type: "FEED",
+                },
+                reach: 1,
+                likes: 0,
+                comments: 1,
+                saves: 0,
+                shares: 0,
+                views: 8,
+                media_product_type: "FEED",
+                engagement_rate: 100,
+              },
+            },
+          ],
+          aggregated_metrics: {
+            total_likes: 0,
+            total_comments: 1,
+            total_shares: 0,
+            total_views: 8,
+            total_impressions: 0,
+            total_reach: 1,
+            average_engagement_rate: 100,
+          },
+        }),
+      );
+      const adapter = buildAdapter(fetchImpl);
+
+      const result = await adapter.fetchPostMetrics("MAnO3");
+
+      expect(result.mediaProductType).toBe("FEED");
+      expect(result.isReel).toBeUndefined();
+      expect(result.storyExpired).toBeUndefined();
+    });
+
+    it("reads Facebook platform_specific.video.is_reel from metrics_by_account[0] (real payload, post LGyF6 — bug proof: stored as contentFormat 'post' despite being a Reel)", async () => {
+      const fetchImpl = vi.fn().mockResolvedValue(
+        jsonResponse(200, {
+          success: true,
+          post: {
+            id: "LGyF6",
+            publishedAt: "2026-10-15T09:46:28.000Z",
+            createdAt: "2026-10-19T02:28:21.849Z",
+          },
+          metrics_by_account: [
+            {
+              social_account: {
+                id: "Kav29",
+                nickname: "Cook It Real Good",
+                network: "facebook",
+                username: "Cook It Real Good",
+              },
+              platform_post_id: "748994198575173_1745439427587984",
+              platform_post_url:
+                "https://facebook.com/748994198575173_1745439427587984",
+              published_at: "2026-10-15T09:46:28.000Z",
+              metrics: {
+                likes: 2,
+                comments: 0,
+                shares: 1,
+                impressions: 383,
+                reach: 0,
+                engagement_rate: null,
+                platform_specific: {
+                  likes: 2,
+                  comments: 0,
+                  shares: 1,
+                  video: {
+                    video_id: "2386688518787210",
+                    is_reel: true,
+                  },
+                },
+              },
+            },
+          ],
+          aggregated_metrics: {
+            total_likes: 2,
+            total_comments: 0,
+            total_shares: 1,
+            total_views: 356,
+            total_impressions: 383,
+            total_reach: 0,
+            average_engagement_rate: 0,
+          },
+        }),
+      );
+      const adapter = buildAdapter(fetchImpl);
+
+      const result = await adapter.fetchPostMetrics("LGyF6");
+
+      expect(result.isReel).toBe(true);
+      expect(result.mediaProductType).toBeUndefined();
+      expect(result.storyExpired).toBeUndefined();
+    });
+
+    it("reads Facebook platform_specific.video.is_reel === false explicitly (non-Reel Facebook video post)", async () => {
+      const fetchImpl = vi.fn().mockResolvedValue(
+        jsonResponse(200, {
+          success: true,
+          post: { id: "post-fb-nonreel" },
+          metrics_by_account: [
+            {
+              social_account: { id: "acc-1", network: "facebook" },
+              metrics: {
+                likes: 0,
+                comments: 0,
+                shares: 0,
+                platform_specific: {
+                  video: { video_id: "v1", is_reel: false },
+                },
+              },
+            },
+          ],
+          aggregated_metrics: {},
+        }),
+      );
+      const adapter = buildAdapter(fetchImpl);
+
+      const result = await adapter.fetchPostMetrics("post-fb-nonreel");
+
+      expect(result.isReel).toBe(false);
+    });
+
+    it("marks storyExpired when metrics is null with metrics_error.code 'metrics_expired' (real payload, Instagram Story post l21bW, published >24h ago) — NOT an HTTP error, response stays success:true", async () => {
+      const fetchImpl = vi.fn().mockResolvedValue(
+        jsonResponse(200, {
+          success: true,
+          post: {
+            id: "l21bW",
+            publishedAt: "2026-09-26T06:13:46.139Z",
+            createdAt: "2026-09-26T06:13:25.995Z",
+          },
+          metrics_by_account: [
+            {
+              social_account: {
+                id: "eH82r",
+                nickname: "turanilkerl",
+                network: "instagram",
+                username: "turanilkerl",
+              },
+              platform_post_id: "17957025843015475",
+              platform_post_url:
+                "https://www.instagram.com/stories/turanilkerl/3994514109600922311",
+              published_at: "2026-09-26T06:13:46.088Z",
+              metrics: null,
+              metrics_error: {
+                code: "metrics_expired",
+                message:
+                  "Insights for media 17957025843015475 are no longer available - the story has likely expired",
+              },
+            },
+          ],
+          aggregated_metrics: {
+            total_likes: 0,
+            total_comments: 0,
+            total_shares: 0,
+            total_views: 0,
+            total_impressions: 0,
+            total_reach: 0,
+            average_engagement_rate: 0,
+          },
+        }),
+      );
+      const adapter = buildAdapter(fetchImpl);
+
+      const result = await adapter.fetchPostMetrics("l21bW");
+
+      expect(result.storyExpired).toBe(true);
+      expect(result.mediaProductType).toBeUndefined();
+      expect(result.isReel).toBeUndefined();
+    });
+
+    it("returns all three classification fields undefined when metrics_by_account is empty (platform without this analytics signal, e.g. TikTok/Pinterest)", async () => {
+      const fetchImpl = vi.fn().mockResolvedValue(
+        jsonResponse(200, {
+          success: true,
+          post: { id: "post-no-signal" },
+          metrics_by_account: [],
+          aggregated_metrics: {},
+        }),
+      );
+      const adapter = buildAdapter(fetchImpl);
+
+      const result = await adapter.fetchPostMetrics("post-no-signal");
+
+      expect(result.mediaProductType).toBeUndefined();
+      expect(result.isReel).toBeUndefined();
+      expect(result.storyExpired).toBeUndefined();
+    });
+
+    it("returns metadata fields undefined for null metrics without a metrics_expired error code (unrecognized failure shape — not mistaken for story expiry)", async () => {
+      const fetchImpl = vi.fn().mockResolvedValue(
+        jsonResponse(200, {
+          success: true,
+          post: { id: "post-weird" },
+          metrics_by_account: [
+            {
+              social_account: { id: "acc-1", network: "instagram" },
+              metrics: null,
+              metrics_error: { code: "some_other_error", message: "..." },
+            },
+          ],
+          aggregated_metrics: {},
+        }),
+      );
+      const adapter = buildAdapter(fetchImpl);
+
+      const result = await adapter.fetchPostMetrics("post-weird");
+
+      expect(result.storyExpired).toBeUndefined();
+      expect(result.mediaProductType).toBeUndefined();
+      expect(result.isReel).toBeUndefined();
+    });
+  });
+
   it("fetchWorkspaceMetrics passes since/until as Unix timestamps to /v1/social-accounts/{id}/metrics and maps the best-effort shape", async () => {
     const fetchImpl = vi.fn().mockResolvedValue(
       jsonResponse(200, {

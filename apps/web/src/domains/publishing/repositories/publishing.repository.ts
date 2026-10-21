@@ -1214,6 +1214,49 @@ export interface IPublishingRepository {
     },
     actingUserId: UserId,
   ): Promise<BackfillImportedPostOutstandIdsResult>;
+
+  /**
+   * Klasifikasi `ContentFormat` post hasil Import (ADR-135, T-132.4) —
+   * dipanggil `ClassifyImportedPostTargetsUseCase` SETELAH sinyal analytics
+   * (`IOutstandAdapter.fetchPostMetrics`) sudah di-resolve caller (repository
+   * TIDAK boleh tahu `IOutstandAdapter`, AGENTS.md #6 — pola sama
+   * `upsertImportedPosts`). `UPDATE` `PublishingPostTarget.contentFormat`
+   * untuk baris yang cocok `connectedAccountId` + `platformPostId` di
+   * `updates` DAN masih milik post `workspaceId` ini (belum soft-deleted) —
+   * TIDAK di-scope ke status `Imported` secara khusus (beda dari
+   * `backfillImportedPostOutstandIds`) supaya method yang sama bisa dipakai
+   * T-133.3 (backfill retroaktif post Imported lama) tanpa perlu query
+   * terpisah. Baris yang `platformPostId`-nya tidak ditemukan untuk
+   * `connectedAccountId` ini dilewati diam-diam (tidak melempar) — konsisten
+   * sifat best-effort use-case pemanggilnya; TIDAK ada unique constraint
+   * `(connectedAccountId, platformPostId)` di level DB yang berisiko
+   * dilanggar operasi ini (murni `UPDATE` kolom, bukan `INSERT`), jadi TIDAK
+   * butuh advisory lock seperti `upsertImportedPostsTx`/
+   * `backfillImportedPostOutstandIdsTx`.
+   *
+   * `actingUserId` (RLS) — acting user for `withCurrentUser`, pola sama
+   * `upsertImportedPosts`/`backfillImportedPostOutstandIds` (boleh user mana
+   * pun yang aktif di `workspaceId` ini).
+   */
+  classifyImportedPostTargets(
+    input: {
+      workspaceId: WorkspaceId;
+      connectedAccountId: ConnectedAccountId;
+      updates: ClassifyImportedPostTargetUpdate[];
+    },
+    actingUserId: UserId,
+  ): Promise<ClassifyImportedPostTargetsRepositoryResult>;
+}
+
+/** Satu baris hasil klasifikasi (ADR-135, T-132.4) siap di-`UPDATE` — pola sama `OutstandPostIdMapping`. */
+export interface ClassifyImportedPostTargetUpdate {
+  platformPostId: string;
+  contentFormat: ContentFormat;
+}
+
+/** Hasil `classifyImportedPostTargets` (T-132.4) — ringkas, sama pola `UpsertImportedPostsResult`. */
+export interface ClassifyImportedPostTargetsRepositoryResult {
+  updatedCount: number;
 }
 
 /** Hasil `backfillImportedPostOutstandIds` (T-114) — ringkas, sama pola `UpsertImportedPostsResult`. */

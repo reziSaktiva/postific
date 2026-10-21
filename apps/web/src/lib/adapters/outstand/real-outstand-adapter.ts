@@ -202,6 +202,86 @@ function clampEngagementRate(value: number): number {
 }
 
 /**
+ * Hasil ekstraksi 3 field klasifikasi (ADR-135, T-132) dari entri PERTAMA
+ * `metrics_by_account[]` — lihat `extractClassificationSignals` di bawah.
+ */
+interface ClassificationSignals {
+  mediaProductType?: "FEED" | "REELS" | "STORY";
+  isReel?: boolean;
+  storyExpired?: boolean;
+}
+
+/**
+ * ADR-135 (T-132) — baca sinyal klasifikasi jenis konten dari entri PERTAMA
+ * `metrics_by_account[]` response `get-post-analytics`. Bentuk response
+ * DIVERIFIKASI LANGSUNG lewat MCP resmi `mcp.outstand.so`
+ * (`get_post_analytics`, 2026-10-20) terhadap 3 post nyata:
+ *
+ * - Instagram FEED (`MAnO3`): `metrics_by_account[0].metrics.media_product_type === "FEED"`.
+ * - Facebook Reel (`LGyF6`): `metrics_by_account[0].metrics.platform_specific.video.is_reel === true`.
+ * - Instagram Story expired (`l21bW`, >24 jam): `metrics_by_account[0]` punya
+ *   `metrics: null` DAN `metrics_error: { code: "metrics_expired", message: "..." }`
+ *   — response TETAP `{ success: true }`, BUKAN HTTP error.
+ *
+ * Hanya entri PERTAMA yang dibaca (lihat ADR-135 poin 1 untuk batas scope
+ * multi-akun). Entri array kosong, atau bentuk yang tidak dikenali, selalu
+ * menghasilkan ketiga field `undefined` (fallback aman, BUKAN throw —
+ * caller `ClassifyImportedPostTargetsUseCase` memperlakukan `undefined`
+ * sebagai "tidak ada sinyal", bukan error).
+ */
+function extractClassificationSignals(
+  response: Record<string, unknown>,
+): ClassificationSignals {
+  const accounts = Array.isArray(response.metrics_by_account)
+    ? (response.metrics_by_account as Record<string, unknown>[])
+    : [];
+  const firstAccount = accounts[0];
+  if (!firstAccount) return {};
+
+  const metrics =
+    typeof firstAccount.metrics === "object" && firstAccount.metrics !== null
+      ? (firstAccount.metrics as Record<string, unknown>)
+      : null;
+
+  const metricsError =
+    typeof firstAccount.metrics_error === "object" &&
+    firstAccount.metrics_error !== null
+      ? (firstAccount.metrics_error as Record<string, unknown>)
+      : null;
+
+  // Story expired — `metrics` null DISERTAI `metrics_error.code` spesifik
+  // (bukan null generik: timeout/field hilang lain tidak boleh disalahartikan
+  // sebagai story expired).
+  if (metrics === null && metricsError?.code === "metrics_expired") {
+    return { storyExpired: true };
+  }
+  if (metrics === null) return {};
+
+  const rawMediaProductType = metrics.media_product_type;
+  const mediaProductType =
+    rawMediaProductType === "FEED" ||
+    rawMediaProductType === "REELS" ||
+    rawMediaProductType === "STORY"
+      ? rawMediaProductType
+      : undefined;
+
+  const platformSpecific =
+    typeof metrics.platform_specific === "object" &&
+    metrics.platform_specific !== null
+      ? (metrics.platform_specific as Record<string, unknown>)
+      : undefined;
+  const video =
+    typeof platformSpecific?.video === "object" &&
+    platformSpecific.video !== null
+      ? (platformSpecific.video as Record<string, unknown>)
+      : undefined;
+  const isReel =
+    typeof video?.is_reel === "boolean" ? video.is_reel : undefined;
+
+  return { mediaProductType, isReel };
+}
+
+/**
  * Konversi `OutstandMetricsPeriod` (vocabulary domain internal) ke rentang
  * Unix timestamp (`since`/`until`, detik) yang dibutuhkan
  * `GET /v1/social-accounts/{id}/metrics` (diverifikasi terhadap OpenAPI spec
@@ -1164,6 +1244,11 @@ export function createRealOutstandAdapter(
      * "clicks" agregat sama sekali → selalu `null`. Revisi penuh kontrak
      * (array per-akun + aggregate) tetap follow-up T-041, di luar scope
      * T-025 sesuai catatan ADR-092.
+     *
+     * **ADR-135 (T-132)** — `mediaProductType`/`isReel`/`storyExpired`
+     * ditambahkan di sini, dibaca dari entri PERTAMA `metrics_by_account[]`
+     * (lihat `extractClassificationSignals`) — sebelumnya field ini DIBUANG
+     * begitu saja saat mapping ke shape flat.
      */
     async fetchPostMetrics(
       outstandPostId: string,
@@ -1193,6 +1278,7 @@ export function createRealOutstandAdapter(
         shares,
         reach,
       );
+      const classification = extractClassificationSignals(response);
 
       return {
         impressions: toNumber(aggregated.total_impressions),
@@ -1203,6 +1289,7 @@ export function createRealOutstandAdapter(
         // Outstand tidak mengekspos metrik "clicks" agregat di endpoint ini.
         clicks: null,
         engagementRate,
+        ...classification,
       };
     },
 

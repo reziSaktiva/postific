@@ -7,6 +7,7 @@ import type {
   UserId,
   WorkspaceId,
 } from "@postific/shared";
+import { mapWithConcurrency } from "@/lib/utils/map-with-concurrency";
 import type {
   IAnalyticsRepository,
   PostMetricsRecord,
@@ -34,35 +35,6 @@ const OUTSTAND_PERIOD_BY_SNAPSHOT_PERIOD: Record<
  * ulang — fetch berurutan untuk puluhan post melewati batas itu.
  */
 const OUTSTAND_FETCH_CONCURRENCY = 8;
-
-async function mapWithConcurrency<T, R>(
-  items: readonly T[],
-  concurrency: number,
-  map: (item: T) => Promise<R>,
-): Promise<R[]> {
-  const results = new Array<R>(items.length);
-  let cursor = 0;
-
-  async function worker(): Promise<void> {
-    while (cursor < items.length) {
-      const index = cursor;
-      cursor += 1;
-      const item = items[index];
-      if (item === undefined) {
-        return;
-      }
-      results[index] = await map(item);
-    }
-  }
-
-  const workerCount = Math.min(Math.max(concurrency, 1), items.length);
-  if (workerCount === 0) {
-    return results;
-  }
-
-  await Promise.all(Array.from({ length: workerCount }, () => worker()));
-  return results;
-}
 
 export interface SyncPostMetricsTargetInput {
   postId: PostId;

@@ -2468,9 +2468,9 @@ dikonfirmasi ke Outstand.
 
 | Field         | Value                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Status**    | ⏳ Belum dimulai                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| **Status**    | ✅ Selesai (2026-10-20)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | **Domain**    | publishing · integration                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| **ADR**       | **Perlu ADR baru** — perluasan kontrak ACL `IOutstandAdapter.fetchPostMetrics`/`FetchPostMetricsResult` (AGENTS.md #2, perubahan shape kontrak publik domain)                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| **ADR**       | **ADR-135** (Accepted) — perluasan kontrak ACL `IOutstandAdapter.fetchPostMetrics`/`FetchPostMetricsResult` (AGENTS.md #2, perubahan shape kontrak publik domain)                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | **Terkait**   | T-090, T-041 (gap `FetchPostMetricsResult` sudah tercatat sejak redesain 2026-08-26, follow-up ini belum pernah dikerjakan), T-131, T-133                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | **Depends**   | — (independen dari T-131 — bisa paralel; T-133 butuh tiket ini selesai dulu)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | **Baca dulu** | `packages/shared/src/contracts/outstand-adapter.ts` (`FetchPostMetricsResult`, baris 393-416 — baca komentar gap-nya dulu) · `packages/shared/src/enums.ts` (`ContentFormat` — `Post`/`Reel`/`Story`/`Pin` SUDAH ada, tidak perlu enum baru) · `apps/web/src/lib/adapters/outstand/real-outstand-adapter.ts` (`fetchPostMetrics`) · `apps/web/src/lib/repositories/publishing/upsert-imported-posts.ts` (`targetCreateFields`, baris 327-338 — hardcode `contentFormat: ContentFormat.Post`) · `apps/web/src/domains/publishing/services/backfill-outstand-post-ids.use-case.ts` (pola best-effort T-114 yang direuse di sini) |
@@ -2500,13 +2500,23 @@ gagal di sini tidak membatalkan import yang sudah sukses), diterapkan ke
 SEMUA post yang berhasil diimpor per sync (N = limit trigger yang sedang
 jalan dari T-131, BUKAN dibatasi angka tetap seperti usulan awal 20).
 
-- [ ] **T-132.1** Tulis ADR baru: perluasan `FetchPostMetricsResult` per-akun dengan field opsional `mediaProductType?: "FEED" | "REELS" | "STORY"` (Instagram), `isReel?: boolean` (Facebook), `storyExpired?: boolean` — definisikan juga aturan mapping ke `ContentFormat` internal (`Post`/`Reel`/`Story`) dan fallback eksplisit kalau semua field ini kosong/tidak relevan untuk platform tersebut
-- [ ] **T-132.2** Update `RealOutstandAdapter.fetchPostMetrics` supaya meneruskan field baru dari response asli Outstand (sekarang dibuang saat mapping ke shape flat)
-- [ ] **T-132.3** Update double/fake test kalau masih dipakai di unit test (ADR-119 — bukan jalur produksi, cuma test)
-- [ ] **T-132.4** Use-case klasifikasi baru (pola best-effort sama `BackfillOutstandPostIdsUseCase`/T-114) — dipanggil setelah `ImportPostsProcessUseCase.process`, iterasi SEMUA post yang baru diimpor di batch itu, panggil `fetchPostMetrics` per post, update `PublishingPostTarget.contentFormat` sesuai mapping T-132.1, biarkan default (fallback) kalau sinyal tidak tersedia
-- [ ] **T-132.5** Ganti hardcode `contentFormat: ContentFormat.Post` di `upsert-imported-posts.ts:331` jadi default eksplisit "belum terklasifikasi" dengan komentar yang menjelaskan keterbatasan Outstand (bukan diam-diam berasumsi "semua post biasa") — nilai akhir akan di-overwrite T-132.4 kalau sinyal tersedia
-- [ ] **T-132.6** Unit test: mapping `media_product_type`/`is_reel` → `ContentFormat`, kasus Story expired (fallback), kasus platform tanpa sinyal analytics (fallback)
-- [ ] **T-132.7** Verifikasi tampilan popover Calendar "Imported" (T-090.5, LOCKED PATTERN) untuk `ContentFormat.Reel`/`.Story` hasil klasifikasi baru — enum & label UI-nya kemungkinan SUDAH ada (dipakai alur publish biasa), jadi cek dulu apakah ini genuinely perlu sentuhan komponen baru atau cukup data yang sekarang benar; kalau butuh KOMPONEN/VARIAN baru, **wajib cek Claude Design dulu** (AGENTS.md #10) sebelum ubah kode
+- [x] **T-132.1** Tulis ADR baru: perluasan `FetchPostMetricsResult` per-akun dengan field opsional `mediaProductType?: "FEED" | "REELS" | "STORY"` (Instagram), `isReel?: boolean` (Facebook), `storyExpired?: boolean` — definisikan juga aturan mapping ke `ContentFormat` internal (`Post`/`Reel`/`Story`) dan fallback eksplisit kalau semua field ini kosong/tidak relevan untuk platform tersebut
+- [x] **T-132.2** Update `RealOutstandAdapter.fetchPostMetrics` supaya meneruskan field baru dari response asli Outstand (sekarang dibuang saat mapping ke shape flat)
+- [x] **T-132.3** Update double/fake test kalau masih dipakai di unit test (ADR-119 — bukan jalur produksi, cuma test)
+- [x] **T-132.4** Use-case klasifikasi baru (pola best-effort sama `BackfillOutstandPostIdsUseCase`/T-114) — dipanggil setelah `ImportPostsProcessUseCase.process`, iterasi SEMUA post yang baru diimpor di batch itu, panggil `fetchPostMetrics` per post, update `PublishingPostTarget.contentFormat` sesuai mapping T-132.1, biarkan default (fallback) kalau sinyal tidak tersedia
+- [x] **T-132.5** Ganti hardcode `contentFormat: ContentFormat.Post` di `upsert-imported-posts.ts:331` jadi default eksplisit "belum terklasifikasi" dengan komentar yang menjelaskan keterbatasan Outstand (bukan diam-diam berasumsi "semua post biasa") — nilai akhir akan di-overwrite T-132.4 kalau sinyal tersedia
+- [x] **T-132.6** Unit test: mapping `media_product_type`/`is_reel` → `ContentFormat`, kasus Story expired (fallback), kasus platform tanpa sinyal analytics (fallback)
+- [x] **T-132.7** Verifikasi tampilan popover Calendar "Imported" (T-090.5, LOCKED PATTERN) untuk `ContentFormat.Reel`/`.Story` hasil klasifikasi baru — enum & label UI-nya kemungkinan SUDAH ada (dipakai alur publish biasa), jadi cek dulu apakah ini genuinely perlu sentuhan komponen baru atau cukup data yang sekarang benar; kalau butuh KOMPONEN/VARIAN baru, **wajib cek Claude Design dulu** (AGENTS.md #10) sebelum ubah kode
+
+**Catatan T-132.7 (2026-10-20):** TIDAK perlu komponen/varian UI baru — komponen
+Calendar "Imported" popover existing sudah generik untuk seluruh `ContentFormat`
+(Post/Reel/Story/Pin), data yang sekarang benar sudah cukup.
+
+**Status QA (2026-10-20):** Review Ridwan Architecture Reviewer PASS (tidak ada
+pelanggaran). QA Najwa PASS (unit test independen hijau semua); verifikasi
+visual popover Reel/Story belum bisa dibuktikan karena belum ada data nyata
+berlabel Reel/Story di workspace test — gap data yang memang expected, bukan
+bug.
 
 ---
 
@@ -2514,11 +2524,11 @@ jalan dari T-131, BUKAN dibatasi angka tetap seperti usulan awal 20).
 
 | Field         | Value                                                                                                                                                                                                                            |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**    | ⏳ Belum dimulai                                                                                                                                                                                                                 |
+| **Status**    | 🚫 Blocked — King Rezi memblokir eksplisit (2026-10-21) sampai T-130, T-134, T-135, T-136 tuntas; sebelumnya tertahan menunggu konfirmasi eksekusi script                                                                        |
 | **Domain**    | publishing · integration                                                                                                                                                                                                         |
 | **ADR**       | —                                                                                                                                                                                                                                |
-| **Terkait**   | T-131, T-132, T-114 (pola backfill existing direuse untuk migrasi satu-kali)                                                                                                                                                     |
-| **Depends**   | T-131 ✅ (selesai), T-132 ⏳ (belum — butuh parameter baru & logic klasifikasi sudah ada SEBELUM backfill dijalankan, supaya tidak backfill dua kali dengan hasil berbeda)                                                       |
+| **Terkait**   | T-131, T-132, T-114 (pola backfill existing direuse untuk migrasi satu-kali), T-130/T-134/T-135/T-136 (blocker, lihat catatan di bawah)                                                                                          |
+| **Depends**   | T-131 ✅ (selesai), T-132 ✅ (selesai)                                                                                                                                                                                           |
 | **Baca dulu** | `apps/web/src/domains/publishing/services/backfill-outstand-post-ids.use-case.ts` (T-114, pola migrasi satu-kali yang direuse) · `apps/web/src/domains/publishing/services/import-posts-trigger.use-case.ts` · hasil T-131/T-132 |
 
 **Konteks:** dua gap yang perlu dibereskan untuk akun yang SUDAH terhubung
@@ -2548,6 +2558,37 @@ jalan untuk semua network — perlu dibuktikan satu-satu.
 - [ ] **T-133.3** Jalankan T-132.4 (use-case klasifikasi) secara retroaktif untuk 43 post Imported existing + post baru hasil T-133.2
 - [ ] **T-133.4** Verifikasi end-to-end browser + DB nyata (pola sama addendum T-090/T-112) minimal untuk Instagram + Facebook; lanjut TikTok/Pinterest kalau T-133.1 konfirmasi didukung
 - [ ] **T-133.5** Update `PROJECT_STATE.md`/`AVAILABLE_TICKETS.md` setelah selesai (status final tiket ini saja, bukan detail task — ADR-062)
+
+**Catatan status (2026-10-20):** T-133.1 tidak bisa diverifikasi — tidak ada
+akun test TikTok/Pinterest di workspace ini, dicatat sebagai keterbatasan
+eksplisit. T-133.2 & T-133.3: script migrasi satu-off sudah ditulis
+(`apps/web/scripts/t133-retrigger-import-extended-lookback.ts`,
+`apps/web/scripts/t133-backfill-classify-imported-content-format.ts`, default
+dry-run, perlu flag `--execute`), BELUM dieksekusi — menunggu konfirmasi
+eksplisit King Rezi karena memanggil Outstand API nyata + menulis data
+production/staging. T-133.4 & T-133.5 belum bisa dikerjakan (tergantung
+eksekusi di atas).
+
+**Blocking eksplisit (King Rezi, 2026-10-21):** jangan eksekusi T-133.2
+(re-trigger import dengan `since` diperluas) sebelum 4 tiket berikut tuntas —
+ketiganya lahir dari investigasi ketidaksesuaian data Supabase vs Outstand di
+sesi yang sama, dan langsung mempengaruhi akurasi data yang mau di-backfill
+di sini (percuma backfill retroaktif kalau akun yang sudah disconnect masih
+ikut ketarik, atau window "bulanan" yang dipakai untuk verifikasi hasilnya
+sendiri belum didefinisikan ulang):
+
+- **T-130** (`known-issues.md`, KI-093) — `totalPosts` Home tidak akurat
+  untuk akun `posts_count` null di Outstand (Facebook Page)
+- **T-134** (`known-issues.md`, KI-094) — disconnect akun sosial tidak
+  dipropagasi ke Outstand; termasuk cleanup data residu akun `turanilkerl`
+- **T-135** (`known-issues.md`, KI-095) — definisi periode "bulanan"
+  Home/Analyze beda dari kalender Outstand
+- **T-136** (`known-issues.md`, KI-096) — ambiguitas semantik label "Post
+  terpublikasi" Home
+
+Begitu keempatnya ✅ Done, status tiket ini kembali ke 🚫 Sebagian siap
+(menunggu konfirmasi eksekusi script seperti sebelumnya), bukan otomatis
+jalan.
 
 ---
 

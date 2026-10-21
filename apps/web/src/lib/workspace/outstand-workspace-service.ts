@@ -2,6 +2,7 @@ import { EnqueueAnalyticsSyncUseCase } from "@/domains/analytics";
 import { ENGAGEMENT_SYNC_JOB_TYPE } from "@/domains/engagement";
 import {
   BackfillOutstandPostIdsUseCase,
+  ClassifyImportedPostTargetsUseCase,
   ImportPostsProcessUseCase,
   ImportPostsTriggerUseCase,
 } from "@/domains/publishing";
@@ -31,6 +32,9 @@ import { seedSyncJobsOnAccountConnected } from "@/lib/workspace/seed-sync-jobs-o
  * `ImportPostsTriggerUseCase` (code-review PR #170: dibuat required,
  * bukan opsional, supaya lupa menyuplainya gagal di compile time, bukan
  * no-op diam-diam di runtime).
+ *
+ * **T-132.4 (ADR-135)** — `ClassifyImportedPostTargetsUseCase` sama-sama
+ * dependency WAJIB (pola sama `BackfillOutstandPostIdsUseCase` di atas).
  */
 export function createImportPostsTriggerUseCase(): ImportPostsTriggerUseCase {
   const outstandAdapter = getOutstandAdapter();
@@ -40,6 +44,10 @@ export function createImportPostsTriggerUseCase(): ImportPostsTriggerUseCase {
     workspaceRepository,
     new ImportPostsProcessUseCase(publishingRepository),
     new BackfillOutstandPostIdsUseCase(publishingRepository, outstandAdapter),
+    new ClassifyImportedPostTargetsUseCase(
+      publishingRepository,
+      outstandAdapter,
+    ),
   );
 }
 

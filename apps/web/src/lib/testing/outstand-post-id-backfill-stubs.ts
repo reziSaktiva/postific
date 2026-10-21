@@ -22,6 +22,22 @@ export const noopBackfillRepositoryStubs: Pick<
   }),
 };
 
+/**
+ * No-op stub for `IPublishingRepository.classifyImportedPostTargets`
+ * (ADR-135, T-132.4) — same rationale as `noopBackfillRepositoryStubs`
+ * above: fakes in tests that don't exercise classification behavior
+ * themselves shouldn't need to hand-roll this method. Tests that actually
+ * exercise classification (`classify-imported-post-targets.use-case.test.ts`,
+ * `import-posts-trigger.use-case.test.ts`) should keep their own bespoke
+ * implementations, not use this.
+ */
+export const noopClassifyRepositoryStub: Pick<
+  IPublishingRepository,
+  "classifyImportedPostTargets"
+> = {
+  classifyImportedPostTargets: async () => ({ updatedCount: 0 }),
+};
+
 export const noopFetchAllPostIdMappings: IOutstandAdapter["fetchAllPostIdMappings"] =
   async () => ({
     mappings: [],

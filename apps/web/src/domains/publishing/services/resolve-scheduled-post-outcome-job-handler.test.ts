@@ -9,6 +9,7 @@ import {
 import { describe, expect, it, vi } from "vitest";
 import {
   noopBackfillRepositoryStubs,
+  noopClassifyRepositoryStub,
   noopFetchAllPostIdMappings,
 } from "@/lib/testing/outstand-post-id-backfill-stubs";
 import type {
@@ -99,6 +100,7 @@ function createFakeRepository(
       skippedDuplicateCount: 0,
     }),
     ...noopBackfillRepositoryStubs,
+    ...noopClassifyRepositoryStub,
     ...overrides,
   } satisfies IPublishingRepository;
 }
