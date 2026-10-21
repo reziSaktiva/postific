@@ -1,4 +1,8 @@
-import type { ConnectedAccountId, WorkspaceId } from "@postific/shared";
+import type {
+  ConnectedAccountId,
+  ContentFormat,
+  WorkspaceId,
+} from "@postific/shared";
 import type {
   ClassifyImportedPostTargetUpdate,
   ClassifyImportedPostTargetsRepositoryResult,
@@ -12,13 +16,16 @@ import type { PrismaTransactionClient } from "@/lib/prisma/with-current-user";
  * `upsertImportedPostsTx`/`backfillImportedPostOutstandIdsTx`) supaya bisa
  * di-unit-test dengan `tx` palsu tanpa DB sungguhan.
  *
- * Satu `UPDATE` per entri `updates` (bukan batched `updateMany` dengan
- * `CASE WHEN`) — jumlah baris per sync kecil (N post yang baru diimpor,
- * dibatasi `limit` trigger T-131, maks 1000), kesederhanaan lebih penting
- * di sini daripada micro-optimisasi query count. Baris yang tidak match
- * (`platformPostId` tidak ditemukan untuk `connectedAccountId` ini, atau
- * post induknya sudah soft-deleted) dilewati diam-diam — `updateMany`
- * mengembalikan `count: 0` untuk kasus itu, bukan error.
+ * Dikelompokkan per `contentFormat` lalu satu `updateMany` (dengan
+ * `platformPostId: { in: [...] }`) per grup — bukan satu `UPDATE` per entri.
+ * `ContentFormat` adalah enum kecil (Post/Reel/Story), jadi walau `updates`
+ * bisa sampai 1000 baris (limit trigger T-131), jumlah query tetap paling
+ * banyak 3 — menghindari sampai 1000 round-trip DB sequential yang
+ * memperpanjang durasi transaction & tekanan connection-pool sebanding
+ * ukuran batch. Baris yang tidak match (`platformPostId` tidak ditemukan
+ * untuk `connectedAccountId` ini, atau post induknya sudah soft-deleted)
+ * dilewati diam-diam — `updateMany` mengembalikan `count: 0` untuk kasus
+ * itu, bukan error.
  */
 export async function classifyImportedPostTargetsTx(
   tx: PrismaTransactionClient,
@@ -30,15 +37,26 @@ export async function classifyImportedPostTargetsTx(
     return { updatedCount: 0 };
   }
 
-  let updatedCount = 0;
+  const platformPostIdsByContentFormat = new Map<ContentFormat, string[]>();
   for (const update of updates) {
+    const platformPostIds =
+      platformPostIdsByContentFormat.get(update.contentFormat) ?? [];
+    platformPostIds.push(update.platformPostId);
+    platformPostIdsByContentFormat.set(update.contentFormat, platformPostIds);
+  }
+
+  let updatedCount = 0;
+  for (const [
+    contentFormat,
+    platformPostIds,
+  ] of platformPostIdsByContentFormat) {
     const result = await tx.publishingPostTarget.updateMany({
       where: {
         connectedAccountId,
-        platformPostId: update.platformPostId,
+        platformPostId: { in: platformPostIds },
         post: { workspaceId, deletedAt: null },
       },
-      data: { contentFormat: update.contentFormat },
+      data: { contentFormat },
     });
     updatedCount += result.count;
   }

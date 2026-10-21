@@ -14,6 +14,10 @@ const CONNECTED_ACCOUNT_ID = asConnectedAccountId("account-1");
  * satu-satunya method Prisma yang dipakai `classifyImportedPostTargetsTx`
  * (pola sama `backfill-outstand-post-ids.test.ts`, tapi jauh lebih sederhana
  * karena fungsi ini murni `UPDATE`, tanpa lock/`findMany`).
+ *
+ * `where.platformPostId` sekarang `{ in: string[] }` (batching per
+ * `contentFormat`, bukan satu `UPDATE` per entri) — fake ini mencocokkan
+ * lewat `.includes()`.
  */
 function createFakeTx(
   seededTargets: Array<{
@@ -36,7 +40,7 @@ function createFakeTx(
           }: {
             where: {
               connectedAccountId: string;
-              platformPostId: string;
+              platformPostId: { in: string[] };
               post: { workspaceId: string; deletedAt: null };
             };
             data: { contentFormat: ContentFormat };
@@ -45,7 +49,7 @@ function createFakeTx(
             const matches = seededTargets.filter(
               (target) =>
                 target.connectedAccountId === where.connectedAccountId &&
-                target.platformPostId === where.platformPostId &&
+                where.platformPostId.in.includes(target.platformPostId) &&
                 target.workspaceId === where.post.workspaceId &&
                 target.deletedAt === null,
             );
@@ -184,6 +188,53 @@ describe("classifyImportedPostTargetsTx (T-132.4, ADR-135)", () => {
     );
 
     expect(result).toEqual({ updatedCount: 0 });
+  });
+
+  it("batches updates sharing the same contentFormat into a single updateMany call (avoids N sequential queries for large batches)", async () => {
+    const { tx, updateManyCalls } = createFakeTx([
+      {
+        connectedAccountId: CONNECTED_ACCOUNT_ID,
+        platformPostId: "platform-post-1",
+        workspaceId: WORKSPACE_ID,
+        deletedAt: null,
+      },
+      {
+        connectedAccountId: CONNECTED_ACCOUNT_ID,
+        platformPostId: "platform-post-2",
+        workspaceId: WORKSPACE_ID,
+        deletedAt: null,
+      },
+      {
+        connectedAccountId: CONNECTED_ACCOUNT_ID,
+        platformPostId: "platform-post-3",
+        workspaceId: WORKSPACE_ID,
+        deletedAt: null,
+      },
+    ]);
+
+    const result = await classifyImportedPostTargetsTx(
+      tx,
+      WORKSPACE_ID,
+      CONNECTED_ACCOUNT_ID,
+      [
+        {
+          platformPostId: "platform-post-1",
+          contentFormat: ContentFormat.Reel,
+        },
+        {
+          platformPostId: "platform-post-2",
+          contentFormat: ContentFormat.Reel,
+        },
+        {
+          platformPostId: "platform-post-3",
+          contentFormat: ContentFormat.Story,
+        },
+      ],
+    );
+
+    // 3 update sharing 2 distinct contentFormat -> 2 updateMany calls, not 3.
+    expect(updateManyCalls).toHaveLength(2);
+    expect(result).toEqual({ updatedCount: 3 });
   });
 
   it("does not match a soft-deleted post (deletedAt not null)", async () => {

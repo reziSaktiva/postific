@@ -8,10 +8,19 @@ import {
   type UserId,
   type WorkspaceId,
 } from "@postific/shared";
+import { mapWithConcurrency } from "@/lib/utils/map-with-concurrency";
 import type {
   ClassifyImportedPostTargetUpdate,
   IPublishingRepository,
 } from "../repositories/publishing.repository";
+
+/**
+ * Panggilan `fetchPostMetrics` jalan paralel terbatas (pola sama
+ * `analytics-ingestion.use-case.ts`) — job runner menganggap job `running`
+ * macet setelah 30 detik (BG-D05); fetch berurutan untuk batch sampai 1000
+ * post (limit import T-131) melewati batas itu jauh.
+ */
+const OUTSTAND_FETCH_CONCURRENCY = 8;
 
 export interface ClassifyImportedPostTargetsInput {
   workspaceId: WorkspaceId;
@@ -112,31 +121,38 @@ export class ClassifyImportedPostTargetsUseCase {
   async classifyBatch(
     input: ClassifyImportedPostTargetsInput,
   ): Promise<ClassifyImportedPostTargetsResult> {
-    const updates: ClassifyImportedPostTargetUpdate[] = [];
+    const perPostUpdates = await mapWithConcurrency(
+      input.posts,
+      OUTSTAND_FETCH_CONCURRENCY,
+      async (post): Promise<ClassifyImportedPostTargetUpdate | undefined> => {
+        if (!post.outstandPostId) return undefined;
 
-    for (const post of input.posts) {
-      if (!post.outstandPostId) continue;
+        let metrics: FetchPostMetricsResult;
+        try {
+          metrics = await this.outstandAdapter.fetchPostMetrics(
+            post.outstandPostId,
+          );
+        } catch (error) {
+          console.warn(
+            `[ClassifyImportedPostTargetsUseCase] fetchPostMetrics gagal untuk outstandPostId=${post.outstandPostId} (platformPostId=${post.platformPostId}): ${error instanceof Error ? error.message : String(error)} — best-effort, lanjut ke post berikutnya di batch ini.`,
+          );
+          return undefined;
+        }
 
-      let metrics: FetchPostMetricsResult;
-      try {
-        metrics = await this.outstandAdapter.fetchPostMetrics(
-          post.outstandPostId,
+        const contentFormat = mapFetchPostMetricsToContentFormat(
+          input.platform,
+          metrics,
         );
-      } catch (error) {
-        console.warn(
-          `[ClassifyImportedPostTargetsUseCase] fetchPostMetrics gagal untuk outstandPostId=${post.outstandPostId} (platformPostId=${post.platformPostId}): ${error instanceof Error ? error.message : String(error)} — best-effort, lanjut ke post berikutnya di batch ini.`,
-        );
-        continue;
-      }
+        if (contentFormat === undefined) return undefined;
 
-      const contentFormat = mapFetchPostMetricsToContentFormat(
-        input.platform,
-        metrics,
-      );
-      if (contentFormat === undefined) continue;
+        return { platformPostId: post.platformPostId, contentFormat };
+      },
+    );
 
-      updates.push({ platformPostId: post.platformPostId, contentFormat });
-    }
+    const updates = perPostUpdates.filter(
+      (update): update is ClassifyImportedPostTargetUpdate =>
+        update !== undefined,
+    );
 
     if (updates.length === 0) {
       return { classifiedCount: 0 };
