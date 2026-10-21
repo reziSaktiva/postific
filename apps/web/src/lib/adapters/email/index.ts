@@ -7,11 +7,9 @@ import {
   createResendAuthEmailSender,
   type IAuthEmailSender,
 } from "./resend-auth-email-sender";
-import {
-  createSmtpAuthEmailSender,
-  type SmtpConfig,
-} from "./smtp-auth-email-sender";
+import { createSmtpAuthEmailSender } from "./smtp-auth-email-sender";
 import { createSmtpInviteEmailSender } from "./smtp-invite-email-sender";
+import type { SmtpConfig } from "./smtp-transport";
 
 /**
  * T-137 (KI-097, ADR-137) — baca `SMTP_HOST`/`SMTP_PORT`/`SMTP_USER`/

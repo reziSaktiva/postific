@@ -36,6 +36,7 @@ describe("createSmtpAuthEmailSender", () => {
       host: "smtp.test.local",
       port: 587,
       secure: false,
+      requireTLS: true,
       auth: { user: "rezi@insvire.com", pass: "secret" },
     });
   });
@@ -45,6 +46,22 @@ describe("createSmtpAuthEmailSender", () => {
 
     expect(createTransport).toHaveBeenCalledWith(
       expect.objectContaining({ secure: true }),
+    );
+  });
+
+  it("requireTLS: true saat port 587 (STARTTLS) supaya tidak silent fallback ke plaintext", () => {
+    createSmtpAuthEmailSender({ ...config, port: 587 });
+
+    expect(createTransport).toHaveBeenCalledWith(
+      expect.objectContaining({ requireTLS: true }),
+    );
+  });
+
+  it("requireTLS: false di port 465 (sudah implicit TLS lewat secure: true, STARTTLS tidak relevan)", () => {
+    createSmtpAuthEmailSender({ ...config, port: 465 });
+
+    expect(createTransport).toHaveBeenCalledWith(
+      expect.objectContaining({ secure: true, requireTLS: false }),
     );
   });
 

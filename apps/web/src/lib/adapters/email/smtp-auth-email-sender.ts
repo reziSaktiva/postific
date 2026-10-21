@@ -1,8 +1,9 @@
-import nodemailer from "nodemailer";
 import type {
   AuthEmailInput,
   IAuthEmailSender,
 } from "./resend-auth-email-sender";
+import { escapeHtml } from "./html-escape";
+import { createSmtpTransport, type SmtpConfig } from "./smtp-transport";
 
 /**
  * Adapter SMTP untuk email transactional Better Auth (reset password,
@@ -26,15 +27,6 @@ import type {
  * yang gagal connect/auth akan throw dari `sendMail` sendiri (nodemailer),
  * bukan silent fallback.
  */
-
-/** Copy Bahasa Indonesia, konsisten dengan seluruh UI/komunikasi produk (AGENTS.md rule 12) — sama persis dengan versi Resend. */
-function escapeHtml(value: string): string {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
-}
 
 function renderPasswordResetEmailHtml(input: AuthEmailInput): string {
   const name = escapeHtml(input.name);
@@ -70,26 +62,10 @@ function renderVerificationEmailHtml(input: AuthEmailInput): string {
   `.trim();
 }
 
-export interface SmtpConfig {
-  host: string;
-  port: number;
-  user: string;
-  password: string;
-  fromEmail: string;
-}
-
 export function createSmtpAuthEmailSender(
   config: SmtpConfig,
 ): IAuthEmailSender {
-  const transport = nodemailer.createTransport({
-    host: config.host,
-    port: config.port,
-    secure: config.port === 465,
-    auth: {
-      user: config.user,
-      pass: config.password,
-    },
-  });
+  const transport = createSmtpTransport(config);
 
   return {
     async sendPasswordResetEmail(input) {

@@ -1,10 +1,10 @@
-import nodemailer from "nodemailer";
 import type {
   IInviteEmailSender,
   InviteVerificationEmailInput,
   MemberInvitationEmailInput,
 } from "./resend-invite-email-sender";
-import type { SmtpConfig } from "./smtp-auth-email-sender";
+import { escapeHtml } from "./html-escape";
+import { createSmtpTransport, type SmtpConfig } from "./smtp-transport";
 
 /**
  * Adapter SMTP untuk kode verifikasi accept-invite dan undangan anggota
@@ -19,15 +19,6 @@ import type { SmtpConfig } from "./smtp-auth-email-sender";
  * Sengaja TIDAK ADA fallback Fake di jalur produksi (ADR-119 berlaku
  * analog) — lihat catatan yang sama di `smtp-auth-email-sender.ts`.
  */
-
-/** Copy Bahasa Indonesia, konsisten dengan seluruh UI/komunikasi produk (AGENTS.md rule 12) — sama persis dengan versi Resend. */
-function escapeHtml(value: string): string {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
-}
 
 function renderVerificationEmailHtml(
   input: InviteVerificationEmailInput,
@@ -76,15 +67,7 @@ function renderMemberInvitationHtml(input: MemberInvitationEmailInput): string {
 export function createSmtpInviteEmailSender(
   config: SmtpConfig,
 ): IInviteEmailSender {
-  const transport = nodemailer.createTransport({
-    host: config.host,
-    port: config.port,
-    secure: config.port === 465,
-    auth: {
-      user: config.user,
-      pass: config.password,
-    },
-  });
+  const transport = createSmtpTransport(config);
 
   return {
     async sendInviteVerificationCode(input) {

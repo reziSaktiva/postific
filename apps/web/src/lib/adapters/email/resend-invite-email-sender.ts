@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { escapeHtml } from "./html-escape";
 
 /**
  * Adapter konkret Resend untuk kode verifikasi accept-invite (T-110,
@@ -33,15 +34,6 @@ export interface IInviteEmailSender {
     input: InviteVerificationEmailInput,
   ): Promise<void>;
   sendMemberInvitation(input: MemberInvitationEmailInput): Promise<void>;
-}
-
-/** Copy Bahasa Indonesia, konsisten dengan seluruh UI/komunikasi produk (AGENTS.md rule 12). */
-function escapeHtml(value: string): string {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
 }
 
 function renderVerificationEmailHtml(
