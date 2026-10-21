@@ -2590,6 +2590,16 @@ Begitu keempatnya ✅ Done, status tiket ini kembali ke 🚫 Sebagian siap
 (menunggu konfirmasi eksekusi script seperti sebelumnya), bukan otomatis
 jalan.
 
+**Update (Gibran Project Manager, 2026-10-21):** implementasi, test otomatis,
+review Ridwan, dan QA Najwa untuk keempat tiket (T-130/T-134/T-135/T-136)
+sudah PASS — lihat `tickets/known-issues.md` § masing-masing. Blocker ini
+**tetap** berlaku apa adanya karena keempatnya masih berstatus 🚫 (belum ✅
+Done penuh), satu-satunya sisa pekerjaan di tiap tiket adalah verifikasi
+E2E browser yang terhambat ketiadaan akun test Outstand baru (workspace King
+Rezi kosong). Begitu akun test tersedia dan verifikasi browser lolos,
+keempat tiket ditutup ✅ Done dan blocker ini terbuka tanpa perlu investigasi
+ulang — tidak ada pekerjaan kode tersisa untuk membuka blocker ini.
+
 ---
 
 ## Dari Known Issue

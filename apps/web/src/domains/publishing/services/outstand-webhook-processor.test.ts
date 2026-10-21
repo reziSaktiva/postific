@@ -11,6 +11,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   noopBackfillRepositoryStubs,
   noopClassifyRepositoryStub,
+  noopTerminalPostsRepositoryStub,
   noopFetchAllPostIdMappings,
 } from "@/lib/testing/outstand-post-id-backfill-stubs";
 import type {
@@ -104,6 +105,7 @@ function createFakeRepository(
     }),
     ...noopBackfillRepositoryStubs,
     ...noopClassifyRepositoryStub,
+    ...noopTerminalPostsRepositoryStub,
     ...overrides,
   } satisfies IPublishingRepository;
 }

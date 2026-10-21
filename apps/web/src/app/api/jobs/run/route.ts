@@ -111,6 +111,12 @@ export async function POST(request: Request): Promise<Response> {
   const analyticsIngestion = new AnalyticsIngestionUseCase(
     analyticsRepository,
     getOutstandAdapter(),
+    // T-130/KI-093 — `publishingRepository` structural-typed sebagai
+    // `TerminalPostsCountPort` (pola sama `publishingRepository` dipakai
+    // langsung sebagai `AnalyticsSyncPostsPort` di bawah): `totalPosts`
+    // snapshot sekarang dihitung dari status internal `PublishingPost`,
+    // bukan `posts_count` Outstand (null untuk Facebook Page).
+    publishingRepository,
   );
   const analyticsSyncHandler = new AnalyticsSyncJobHandler(
     analyticsIngestion,

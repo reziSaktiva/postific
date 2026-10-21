@@ -146,4 +146,43 @@ describe("EnqueueAnalyticsSyncUseCase", () => {
       }),
     );
   });
+
+  describe("enqueueWorkspaceSnapshot (T-134, KI-094)", () => {
+    it("enqueues a workspace snapshot job for disconnect-triggered recompute", async () => {
+      const jobs = createJobs();
+      const useCase = new EnqueueAnalyticsSyncUseCase(
+        { listActiveConnectedAccountsForSync: async () => [] },
+        jobs,
+        () => NOW,
+      );
+
+      const enqueued = await useCase.enqueueWorkspaceSnapshot("workspace-1");
+
+      expect(enqueued).toBe(1);
+      expect(jobs.scheduleJob).toHaveBeenCalledTimes(1);
+      expect(jobs.scheduleJob).toHaveBeenCalledWith({
+        type: ANALYTICS_SYNC_JOB_TYPE,
+        payload: analyticsWorkspaceSnapshotPayload("workspace-1"),
+        scheduledAt: NOW,
+      });
+      expect(jobs.hasWorkspaceSnapshot).toHaveBeenCalledWith(
+        "workspace-1",
+        undefined,
+      );
+    });
+
+    it("skips scheduling when a pending/running snapshot job already exists", async () => {
+      const jobs = createJobs({ hasWorkspaceSnapshot: async () => true });
+      const useCase = new EnqueueAnalyticsSyncUseCase(
+        { listActiveConnectedAccountsForSync: async () => [] },
+        jobs,
+        () => NOW,
+      );
+
+      const enqueued = await useCase.enqueueWorkspaceSnapshot("workspace-1");
+
+      expect(enqueued).toBe(0);
+      expect(jobs.scheduleJob).not.toHaveBeenCalled();
+    });
+  });
 });

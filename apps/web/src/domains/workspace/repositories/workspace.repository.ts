@@ -582,6 +582,21 @@ export interface IWorkspaceRepository {
   } | null>;
 
   /**
+   * T-134 (KI-094) gap kritis — resolve `Workspace.ownerId` langsung tanpa
+   * lewat `ConnectedAccount` sama sekali. Dibutuhkan `AnalyticsSyncJobHandler.syncWorkspace`
+   * sebagai fallback acting user untuk workspace yang baru kehilangan
+   * SATU-SATUNYA akun aktifnya (disconnect) — `findAccountOwnerByOutstandAccountId`
+   * tidak bisa dipakai lagi karena tidak ada akun `active` tersisa untuk
+   * di-lookup sama sekali. `workspaces` BUKAN tabel RLS-protected (migration
+   * `20260813045625_t017_add_rls_policies`, § "Tables intentionally WITHOUT
+   * workspace-isolation RLS"), jadi baca `ownerId` di sini aman tanpa sesi —
+   * pola read plain yang sama dengan `findById`. Returns `null` kalau
+   * `workspaceId` itu sendiri tidak ditemukan (anomali — payload job tidak
+   * valid).
+   */
+  findWorkspaceOwnerUserId(workspaceId: WorkspaceId): Promise<UserId | null>;
+
+  /**
    * Fan-out JOB-04 (T-048) — seluruh ConnectedAccount `active` yang tidak
    * `reconnectRequired`, lintas workspace. Tidak butuh acting user: query
    * lewat SECURITY DEFINER `analytics_list_active_connected_accounts`

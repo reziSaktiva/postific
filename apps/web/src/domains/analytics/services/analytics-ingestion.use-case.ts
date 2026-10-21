@@ -68,6 +68,35 @@ export interface SyncWorkspaceSnapshotAccountInput {
 }
 
 /**
+ * Port lokal untuk cross-domain `analytics` → `publishing` (T-130/KI-093,
+ * AGENTS.md #7) — interface lokal, structural typing, bukan shared type;
+ * pola identik `ActiveAccountsPort` (`analytics.service.ts`). Implementasi
+ * konkret (`publishingRepository`/`IPublishingRepository.countTerminalPosts`)
+ * TIDAK boleh diimport ke file ini — caller (composition root
+ * `/api/jobs/run/route.ts`, dan fake di test) cukup passing object yang
+ * bentuknya cocok secara struktural.
+ *
+ * **Kenapa ada:** `totalPosts` snapshot sebelumnya dijumlahkan dari
+ * `IOutstandAdapter.fetchWorkspaceMetrics().totalPosts` (field
+ * `posts_count` Outstand) — field ini terbukti `null` untuk akun Facebook
+ * Page (tidak didokumentasikan Outstand untuk platform ini, KI-093),
+ * sehingga semua post di akun itu tidak pernah menaikkan `totalPosts`
+ * Home. `totalReach`/`totalEngagements` TIDAK terdampak (field itu valid
+ * di response yang sama) dan tetap dari Outstand — lihat `syncWorkspaceSnapshot`
+ * di bawah.
+ */
+export interface TerminalPostsCountPort {
+  countTerminalPosts(
+    input: {
+      workspaceId: WorkspaceId;
+      since: Date;
+      until: Date;
+    },
+    userId: UserId,
+  ): Promise<number>;
+}
+
+/**
  * Use Case terpisah dari `AnalyticsService` (bukan method di dalamnya) —
  * pola yang sama dengan `SchedulePostsUseCase` (ADR-059 poin 5): constructor
  * MEWAJIBKAN `IOutstandAdapter` secara tipe untuk operasi yang butuh
@@ -82,11 +111,21 @@ export interface SyncWorkspaceSnapshotAccountInput {
  * Penjadwalan cron (Railway Cron harian, JOB-04) di-wire terpisah oleh
  * `AnalyticsSyncJobHandler` (T-048) — Use Case ini tetap tidak tahu soal
  * antrian job.
+ *
+ * `terminalPosts` (T-130/KI-093) WAJIB di constructor (bukan optional
+ * seperti `ActiveAccountsPort` di `AnalyticsService`) — `syncWorkspaceSnapshot`
+ * SELALU membutuhkannya sejak Outstand `posts_count` ditinggalkan
+ * sepenuhnya untuk `totalPosts`, jadi lupa pass dependency ini ketahuan
+ * TypeScript di call site, bukan baru meledak runtime (`syncPostMetrics`
+ * tidak memakainya sama sekali, tapi tetap satu constructor untuk satu
+ * Use Case, pola sama `IOutstandAdapter` yang juga cuma dipakai sebagian
+ * method).
  */
 export class AnalyticsIngestionUseCase {
   constructor(
     private readonly repository: IAnalyticsRepository,
     private readonly outstandAdapter: IOutstandAdapter,
+    private readonly terminalPosts: TerminalPostsCountPort,
   ) {}
 
   /**
@@ -166,6 +205,19 @@ export class AnalyticsIngestionUseCase {
    * Outstand tidak menyediakan endpoint "top post" dan menentukannya butuh
    * query lintas `AnalyticsPostMetric` yang bisa jadi task terpisah);
    * caller boleh mengoper nilai yang sudah diketahui, default `null`.
+   *
+   * **T-130/KI-093 (2026-10-21):** `totalPosts` TIDAK LAGI dijumlahkan dari
+   * `metrics.totalPosts` (`posts_count` Outstand) — field itu terbukti
+   * `null` untuk akun Facebook Page (tidak didokumentasikan Outstand untuk
+   * platform ini), jadi SEMUA post di akun seperti itu sebelumnya gagal
+   * menaikkan `totalPosts` Home sama sekali, padahal `totalReach`/
+   * `totalEngagements` di response yang SAMA tetap valid. `totalPosts`
+   * sekarang dihitung dari status internal `PublishingPost`
+   * (`HISTORY_TERMINAL_STATUSES`) lewat `TerminalPostsCountPort`, scoped ke
+   * `input.periodStart`/`input.periodEnd` yang SAMA dipakai untuk
+   * menyimpan snapshot ini — independen dari Outstand. `totalReach`/
+   * `totalEngagements` TETAP dijumlahkan dari `fetchWorkspaceMetrics`
+   * seperti sebelumnya (field itu tidak bermasalah).
    */
   async syncWorkspaceSnapshot(
     input: {
@@ -179,22 +231,30 @@ export class AnalyticsIngestionUseCase {
     actingUserId: UserId,
   ): Promise<WorkspaceSnapshotRecord> {
     const outstandPeriod = OUTSTAND_PERIOD_BY_SNAPSHOT_PERIOD[input.period];
-    const metricsByAccount = await mapWithConcurrency(
-      input.accounts,
-      OUTSTAND_FETCH_CONCURRENCY,
-      (account) =>
-        this.outstandAdapter.fetchWorkspaceMetrics(
-          account.outstandAccountId,
-          outstandPeriod,
-        ),
-    );
+    const [metricsByAccount, totalPosts] = await Promise.all([
+      mapWithConcurrency(
+        input.accounts,
+        OUTSTAND_FETCH_CONCURRENCY,
+        (account) =>
+          this.outstandAdapter.fetchWorkspaceMetrics(
+            account.outstandAccountId,
+            outstandPeriod,
+          ),
+      ),
+      this.terminalPosts.countTerminalPosts(
+        {
+          workspaceId: input.workspaceId,
+          since: input.periodStart,
+          until: input.periodEnd,
+        },
+        actingUserId,
+      ),
+    ]);
 
-    let totalPosts = 0;
     let totalReach = 0;
     let totalEngagements = 0;
 
     for (const metrics of metricsByAccount) {
-      totalPosts += metrics.totalPosts;
       totalReach += metrics.totalReach;
       totalEngagements += metrics.totalEngagements;
     }

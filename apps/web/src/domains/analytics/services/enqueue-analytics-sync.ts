@@ -97,27 +97,66 @@ export class EnqueueAnalyticsSyncUseCase {
     }
 
     for (const workspaceId of workspaceIds) {
-      const alreadyScheduled = await this.jobs.hasWorkspaceSnapshot(
+      const scheduled = await this.scheduleWorkspaceSnapshotIfNeeded(
         workspaceId,
+        scheduledAt,
         createdSince,
       );
-      if (alreadyScheduled) {
-        continue;
+      if (scheduled) {
+        enqueued += 1;
       }
-
-      const snapshot = analyticsWorkspaceSnapshotPayload(workspaceId);
-      await this.jobs.scheduleJob({
-        type: ANALYTICS_SYNC_JOB_TYPE,
-        payload: {
-          scope: snapshot.scope,
-          workspaceId: snapshot.workspaceId,
-          workspaceSnapshotId: snapshot.workspaceSnapshotId,
-        },
-        scheduledAt,
-      });
-      enqueued += 1;
     }
 
     return enqueued;
+  }
+
+  /**
+   * T-134 (KI-094) — entry point public untuk trigger recompute
+   * `AnalyticsWorkspaceSnapshot` SATU workspace segera, dipanggil
+   * `WorkspaceService.disconnectAccount` (lewat `AnalyticsRecomputePort`,
+   * composition root `outstand-workspace-service.ts`) supaya snapshot cache
+   * tidak "nyangkut" menghitung akun yang baru di-disconnect sampai siklus
+   * fan-out harian JOB-04 berikutnya menimpanya. Reuse
+   * `scheduleWorkspaceSnapshotIfNeeded` — job yang di-enqueue di sini
+   * SAMA PERSIS bentuknya dengan job snapshot workspace di
+   * `enqueueForAccounts` (tipe `ANALYTICS_SYNC_JOB_TYPE`, scope
+   * `"workspace"`), jadi `AnalyticsSyncJobHandler` yang menjalankannya tidak
+   * perlu tahu job ini datang dari disconnect atau dari fan-out biasa.
+   * Tanpa `createdSince` — sama pola seed `onAccountConnected`: hanya
+   * dilewati kalau masih ada job pending/running untuk workspace ini,
+   * bukan dedup per hari UTC.
+   */
+  async enqueueWorkspaceSnapshot(workspaceId: string): Promise<number> {
+    const scheduled = await this.scheduleWorkspaceSnapshotIfNeeded(
+      workspaceId,
+      this.now(),
+    );
+    return scheduled ? 1 : 0;
+  }
+
+  private async scheduleWorkspaceSnapshotIfNeeded(
+    workspaceId: string,
+    scheduledAt: Date,
+    createdSince?: Date,
+  ): Promise<boolean> {
+    const alreadyScheduled = await this.jobs.hasWorkspaceSnapshot(
+      workspaceId,
+      createdSince,
+    );
+    if (alreadyScheduled) {
+      return false;
+    }
+
+    const snapshot = analyticsWorkspaceSnapshotPayload(workspaceId);
+    await this.jobs.scheduleJob({
+      type: ANALYTICS_SYNC_JOB_TYPE,
+      payload: {
+        scope: snapshot.scope,
+        workspaceId: snapshot.workspaceId,
+        workspaceSnapshotId: snapshot.workspaceSnapshotId,
+      },
+      scheduledAt,
+    });
+    return true;
   }
 }

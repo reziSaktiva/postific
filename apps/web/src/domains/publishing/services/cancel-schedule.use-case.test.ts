@@ -9,6 +9,7 @@ import { describe, expect, it } from "vitest";
 import {
   noopBackfillRepositoryStubs,
   noopClassifyRepositoryStub,
+  noopTerminalPostsRepositoryStub,
   noopFetchAllPostIdMappings,
 } from "@/lib/testing/outstand-post-id-backfill-stubs";
 import { AuthorizationError, ConflictError } from "@/lib/utils/errors";
@@ -75,6 +76,7 @@ function createFakeRepository(
     }),
     ...noopBackfillRepositoryStubs,
     ...noopClassifyRepositoryStub,
+    ...noopTerminalPostsRepositoryStub,
     ...overrides,
   };
 }

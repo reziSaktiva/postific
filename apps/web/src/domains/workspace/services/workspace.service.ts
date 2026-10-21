@@ -191,6 +191,27 @@ interface EngagementSyncSeederPort {
 }
 
 /**
+ * Port lokal untuk cross-domain `workspace` → `analytics` (T-134, KI-094,
+ * AGENTS.md #7) — pola sama `EngagementSyncSeederPort` di atas.
+ * `WorkspaceService` hanya tahu "akun di workspace ini baru di-disconnect,
+ * panggil hook ini" — TIDAK tahu apa pun soal `EnqueueAnalyticsSyncUseCase`,
+ * `IJobScheduler`, maupun tipe job `analytics.sync`. Composition root
+ * (`createWorkspaceServiceWithOutstandAdapter`) menyuplai implementasi
+ * konkret yang meng-enqueue job recompute snapshot workspace lewat
+ * `EnqueueAnalyticsSyncUseCase.enqueueWorkspaceSnapshot` — reuse
+ * infrastruktur JOB-04 yang sudah ada, BUKAN memanggil Outstand sama sekali
+ * (lihat "Keputusan revisi scope" tiket T-134 di
+ * `project-os/tickets/known-issues.md`: opsi panggil `DELETE` Outstand saat
+ * disconnect ditolak eksplisit King Rezi karena merusak flow reaktivasi
+ * ADR-127). Opsional (`undefined` di test/caller lama) — kalau tidak
+ * disuplai, recompute di-skip diam-diam (pola sama `EngagementSyncSeederPort`),
+ * bukan throw.
+ */
+interface AnalyticsRecomputePort {
+  onAccountDisconnected(workspaceId: WorkspaceId): Promise<void>;
+}
+
+/**
  * Port lokal untuk cross-domain/infra `workspace` → email transactional
  * (T-110, KI-053, AGENTS.md #6) — `WorkspaceService` TIDAK BOLEH mengimpor
  * Resend SDK/HTTP client langsung. Implementasi konkret ada di
@@ -309,6 +330,15 @@ export class WorkspaceService {
      * mengirim href ke host lain.
      */
     private readonly inviteLinkBaseUrl?: string,
+    /**
+     * Recompute `AnalyticsWorkspaceSnapshot` SEGERA setelah disconnect
+     * (T-134, KI-094) — lihat docstring `AnalyticsRecomputePort`. Opsional
+     * (`undefined` di caller/test lama) — composition root produksi
+     * (`createWorkspaceServiceWithOutstandAdapter`) WAJIB menyuplainya
+     * supaya `disconnectAccount` benar-benar memicu recompute segera,
+     * bukan menunggu fan-out harian JOB-04.
+     */
+    private readonly analyticsRecompute?: AnalyticsRecomputePort,
   ) {}
 
   async createWorkspace(input: {
@@ -1579,6 +1609,21 @@ export class WorkspaceService {
       connectedAccountId,
       actorUserId,
     );
+
+    // T-134 (KI-094) — recompute snapshot analytics workspace ini SEGERA
+    // (bukan menunggu fan-out harian JOB-04) supaya Home/Analyze tidak terus
+    // menampilkan angka akun yang baru di-disconnect. Best-effort: disconnect
+    // di DB di atas sudah sukses — kegagalan enqueue job background TIDAK
+    // boleh membatalkan aksi disconnect utama (pola sama best-effort
+    // `importPostsTrigger` di `createConnectedAccount`), cukup dicatat.
+    try {
+      await this.analyticsRecompute?.onAccountDisconnected(workspaceId);
+    } catch (error) {
+      console.error(
+        "[WorkspaceService.disconnectAccount] gagal enqueue recompute analytics snapshot",
+        error,
+      );
+    }
   }
 
   /**
