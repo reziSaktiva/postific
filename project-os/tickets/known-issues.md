@@ -6,6 +6,101 @@ Tiket fitur yang kebetulan memuat atau menutup satu KI tetap di file rilisnya. C
 
 ---
 
+### T-137 · Adapter SMTP sementara untuk email staging (KI-097, ADR-137)
+
+| Field       | Value                                                                                |
+| ----------- | ------------------------------------------------------------------------------------ |
+| **Status**  | 🟡 In Progress                                                                       |
+| **Domain**  | notification                                                                         |
+| **Spec**    | tidak ada — muat satu sesi                                                           |
+| **Docs**    | KI-097, ADR-137, ADR-126                                                             |
+| **Depends** | — (sunset: dicabut begitu domain Resend terverifikasi, lihat T-119 sebagai pola env) |
+
+**What to build:** Khusus environment staging, email transactional (reset
+password, verifikasi email Better Auth, kode verifikasi accept-invite,
+undangan anggota workspace) dikirim lewat SMTP langsung (`rezi@insvire.com`)
+alih-alih Resend, karena akun Resend terkunci mode testing (domain pengirim
+`onboarding@resend.dev` tidak bisa diverifikasi — bukan domain sendiri) dan
+hanya bisa kirim ke `rezi@insvire.com`, memblokir QA flow multi-akun. Scope
+**hanya staging** — production tetap Resend (ADR-126 tidak diamendemen untuk
+production).
+
+- [x] Adapter baru `createSmtpAuthEmailSender`/`createSmtpInviteEmailSender`
+      (`nodemailer`) sebagai sibling dari adapter Resend yang sudah ada —
+      bukan mengganti/menghapus kode Resend
+- [x] Factory `getAuthEmailSender()`/`getInviteEmailSender()`
+      (`apps/web/src/lib/adapters/email/index.ts`) memilih adapter
+      berdasarkan env `EMAIL_PROVIDER` (`"smtp"` → SMTP, default/`"resend"`
+      → Resend seperti sekarang)
+- [x] Env baru didokumentasikan: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`,
+      `SMTP_PASSWORD`, `SMTP_FROM_EMAIL` — King Rezi yang mengisi nilainya
+      langsung di Railway staging (agent tidak pernah memegang kredensial,
+      pola sama T-119)
+- [ ] `EMAIL_PROVIDER=smtp` di-set di Railway staging oleh King Rezi;
+      production tidak diisi (tetap fallback Resend)
+- [ ] Diverifikasi: undangan member/kode accept-invite terkirim ke email
+      selain `rezi@insvire.com` di staging
+- [ ] **Syarat selesai/sunset**: setelah domain pengirim Resend
+      terverifikasi, `EMAIL_PROVIDER` dihapus dari staging (balik ke Resend
+      penuh) — dicatat sebagai follow-up, bukan bagian wajib tiket ini
+
+**Blocked by:** King Rezi mengisi `SMTP_HOST`/`SMTP_PORT`/`SMTP_USER`/`SMTP_PASSWORD`/`SMTP_FROM_EMAIL` di Railway staging setelah kode adapter siap.
+
+**Progress:** Implementasi + review (Ridwan, tidak ada pelanggaran arsitektur)
+
+- QA (Najwa, PASS — 17 test, typecheck & lint bersih) selesai di branch
+  `feature/t137-smtp-staging-email`. Sisa checklist bergantung King Rezi
+  mengisi env Railway staging dan verifikasi e2e, jadi tiket tetap **🟡 In
+  Progress** (belum `✅ Done`).
+
+### T-138 · Escape HTML hilang di email kode verifikasi accept-invite (KI-098)
+
+| Field       | Value                      |
+| ----------- | -------------------------- |
+| **Status**  | ✅ Done                    |
+| **Domain**  | notification               |
+| **Spec**    | tidak ada — muat satu sesi |
+| **Docs**    | KI-098                     |
+| **Depends** | —                          |
+
+**What to build:** Ditemukan Najwa (QA Engineer) saat QA T-137, sebagai bug
+pre-existing — bukan bagian T-137. Di
+`apps/web/src/lib/adapters/email/resend-invite-email-sender.ts`, fungsi
+`renderVerificationEmailHtml()` (baris ~47-64) menempel `input.workspaceName`
+dan `input.code` langsung ke template HTML tanpa melalui `escapeHtml()` —
+berbeda dengan `renderMemberInvitationHtml()` di file yang sama (baris
+~66-86) yang sudah benar membungkus semua input (`workspaceName`,
+`invitedByName`, `roleLabel`, `inviteLink`) dengan `escapeHtml()`. Risiko:
+kalau `workspaceName` (input user bebas saat membuat workspace) mengandung
+karakter HTML (`<`, `>`, `"`, `&`), karakter itu diinterpretasikan sebagai
+markup oleh email client penerima saat email kode verifikasi accept-invite
+dikirim — berpotensi HTML injection di body email. `code` sendiri risikonya
+lebih kecil (digenerate sistem), tapi tetap tidak konsisten dengan pola
+escape di fungsi sebelahnya. Bug ini ikut ter-duplikasi secara identik ke
+adapter SMTP baru (`apps/web/src/lib/adapters/email/smtp-invite-email-sender.ts`,
+fungsi sejenis) karena T-137 memang didesain untuk mengkopi behavior Resend
+1:1 — jadi kedua adapter (Resend & SMTP) punya bug yang sama, perbaikannya
+harus di keduanya sekaligus.
+
+Fix yang diusulkan: tambahkan `escapeHtml(input.workspaceName)` dan
+`escapeHtml(input.code)` di `renderVerificationEmailHtml()` pada kedua file,
+mengikuti pola yang sudah ada di `renderMemberInvitationHtml()`.
+
+- [x] Escape `workspaceName` dan `code` di `renderVerificationEmailHtml()`,
+      `resend-invite-email-sender.ts`
+- [x] Escape yang sama di fungsi sejenis,
+      `smtp-invite-email-sender.ts`
+- [x] Tambah/update test yang memverifikasi escaping di kode verifikasi,
+      sejenis test escape yang sudah ada untuk `renderMemberInvitationHtml`
+
+**Hasil:** Fix diimplementasikan Elon (Backend Engineer) di kedua adapter,
+mengikuti pola `escapeHtml()` yang sudah ada di `renderMemberInvitationHtml()`.
+Direview Ridwan (Architecture Reviewer) — tidak ada pelanggaran arsitektur.
+QA Najwa (QA Engineer) — PASS, 19 test lulus di folder email (termasuk test
+escaping baru yang memverifikasi payload berbahaya `<script>`, `&`, `"` benar-benar
+ter-escape di output), typecheck & lint bersih, tidak ada regresi. Perubahan ada
+di branch `feature/t137-smtp-staging-email`, akan masuk PR #189.
+
 ### T-119 · Isi env Google OAuth
 
 | Field       | Value                                                                |
