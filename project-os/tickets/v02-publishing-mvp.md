@@ -2524,10 +2524,10 @@ bug.
 
 | Field         | Value                                                                                                                                                                                                                            |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**    | 🚫 Sebagian siap — tertahan menunggu konfirmasi eksekusi script dari King Rezi                                                                                                                                                   |
+| **Status**    | 🚫 Blocked — King Rezi memblokir eksplisit (2026-10-21) sampai T-130, T-134, T-135, T-136 tuntas; sebelumnya tertahan menunggu konfirmasi eksekusi script                                                                        |
 | **Domain**    | publishing · integration                                                                                                                                                                                                         |
 | **ADR**       | —                                                                                                                                                                                                                                |
-| **Terkait**   | T-131, T-132, T-114 (pola backfill existing direuse untuk migrasi satu-kali)                                                                                                                                                     |
+| **Terkait**   | T-131, T-132, T-114 (pola backfill existing direuse untuk migrasi satu-kali), T-130/T-134/T-135/T-136 (blocker, lihat catatan di bawah)                                                                                          |
 | **Depends**   | T-131 ✅ (selesai), T-132 ✅ (selesai)                                                                                                                                                                                           |
 | **Baca dulu** | `apps/web/src/domains/publishing/services/backfill-outstand-post-ids.use-case.ts` (T-114, pola migrasi satu-kali yang direuse) · `apps/web/src/domains/publishing/services/import-posts-trigger.use-case.ts` · hasil T-131/T-132 |
 
@@ -2568,6 +2568,27 @@ dry-run, perlu flag `--execute`), BELUM dieksekusi — menunggu konfirmasi
 eksplisit King Rezi karena memanggil Outstand API nyata + menulis data
 production/staging. T-133.4 & T-133.5 belum bisa dikerjakan (tergantung
 eksekusi di atas).
+
+**Blocking eksplisit (King Rezi, 2026-10-21):** jangan eksekusi T-133.2
+(re-trigger import dengan `since` diperluas) sebelum 4 tiket berikut tuntas —
+ketiganya lahir dari investigasi ketidaksesuaian data Supabase vs Outstand di
+sesi yang sama, dan langsung mempengaruhi akurasi data yang mau di-backfill
+di sini (percuma backfill retroaktif kalau akun yang sudah disconnect masih
+ikut ketarik, atau window "bulanan" yang dipakai untuk verifikasi hasilnya
+sendiri belum didefinisikan ulang):
+
+- **T-130** (`known-issues.md`, KI-093) — `totalPosts` Home tidak akurat
+  untuk akun `posts_count` null di Outstand (Facebook Page)
+- **T-134** (`known-issues.md`, KI-094) — disconnect akun sosial tidak
+  dipropagasi ke Outstand; termasuk cleanup data residu akun `turanilkerl`
+- **T-135** (`known-issues.md`, KI-095) — definisi periode "bulanan"
+  Home/Analyze beda dari kalender Outstand
+- **T-136** (`known-issues.md`, KI-096) — ambiguitas semantik label "Post
+  terpublikasi" Home
+
+Begitu keempatnya ✅ Done, status tiket ini kembali ke 🚫 Sebagian siap
+(menunggu konfirmasi eksekusi script seperti sebelumnya), bukan otomatis
+jalan.
 
 ---
 

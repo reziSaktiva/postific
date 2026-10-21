@@ -4,7 +4,7 @@
 
 - **Phase / Milestone:** Phase 6 — Implementation · M8 — Development (Sprint 5) · Overall: M7 100%, M8 in progress
 - **Active Mode:** Ready for Development — implementasi fitur produk sesuai Architecture & Engineering Baseline
-- **Top Next Tasks:** **T-037 Perkaya aturan coding** (🟡 In Progress, prioritas rendah). **T-115 Wiring cron harian Import Posts periodik** (🟡 In Progress — sisa T-115.5: post native Facebook muncul di Postific). T-128/T-129 selesai 2026-10-19 (default view Home/Analyze jadi Bulanan; Imported posts ikut dihitung di Analyze). **T-130 baru (KI-093, ⏳ Open)** — `totalPosts` Home tidak akurat untuk akun yang `posts_count`-nya `null` di Outstand (Facebook Page), ditunda King Rezi. Revisi scope Import Posts dari King Rezi (2026-10-20): **T-131 selesai** — beda request body cron/connect/manual. **T-132 selesai (2026-10-20, ADR-135)** — klasifikasi jenis konten Story/Reel/Post hasil Import via Outstand Analytics. **T-133 🚫 siap sebagian** — script migrasi/backfill sudah ditulis, tertahan menunggu konfirmasi eksekusi King Rezi; T-133.1 tidak bisa diverifikasi (tanpa akun test TikTok/Pinterest). T-124 selesai 2026-10-19 (KI-091, error kolom `void` hilang di retest staging). T-116 → T-117 → T-118 (biaya token agent) selesai 2026-10-16 (ADR-133). Antrian lengkap: [`AVAILABLE_TICKETS.md`](AVAILABLE_TICKETS.md).
+- **Top Next Tasks:** **T-037 Perkaya aturan coding** (🟡 In Progress, prioritas rendah). **T-115 Wiring cron harian Import Posts periodik** (🟡 In Progress — sisa T-115.5: post native Facebook muncul di Postific). T-128/T-129 selesai 2026-10-19 (default view Home/Analyze jadi Bulanan; Imported posts ikut dihitung di Analyze). Revisi scope Import Posts dari King Rezi (2026-10-20): **T-131 selesai** — beda request body cron/connect/manual. **T-132 selesai (2026-10-20, ADR-135)** — klasifikasi jenis konten Story/Reel/Post hasil Import via Outstand Analytics. **Fokus terdekat sekarang (2026-10-21, prioritas tinggi King Rezi):** investigasi ketidaksesuaian data Supabase vs Outstand melahirkan 4 tiket — **T-130 (KI-093)**, **T-134 (KI-094)** disconnect akun sosial tidak dipropagasi ke Outstand, **T-135 (KI-095)** definisi periode "bulanan" beda dari kalender Outstand, **T-136 (KI-096)** ambiguitas label "Post terpublikasi" Home — dikerjakan sebagai satu batch. **T-133 sekarang 🚫 di-block King Rezi** sampai keempat tiket itu tuntas (sebelumnya tertahan menunggu konfirmasi eksekusi script; T-133.1 tetap tidak bisa diverifikasi tanpa akun test TikTok/Pinterest). T-124 selesai 2026-10-19 (KI-091, error kolom `void` hilang di retest staging). T-116 → T-117 → T-118 (biaya token agent) selesai 2026-10-16 (ADR-133). Antrian lengkap: [`AVAILABLE_TICKETS.md`](AVAILABLE_TICKETS.md).
 - **Blocker:** 1 penghalang aktif — KI-015 (Google OAuth). Migrasi T-051 dan sisa follow-up KI-025 sudah diverifikasi tertutup di staging (2026-10-13). Detail di section **Blockers**.
 - **Antrian task:** [`AVAILABLE_TICKETS.md`](AVAILABLE_TICKETS.md). Tiket, termasuk yang selesai, ada di `tickets/`. Jangan cari detail task di file ini.
 - **KI-073–080 Resolved (2026-09-26)** — 4 bug publish Instagram (caption wajib untuk Story, Story publish tanpa media, upload media >1MB gagal, avatar akun tidak tampil di sidebar) diperbaiki + diverifikasi live ke akun Instagram/Facebook real (ADR-120). 2 bug turunan ditemukan saat verifikasi (akun `disconnected` tidak bisa reconnect; callback OAuth silent-success untuk conflict genuine) diperbaiki via **ADR-122**. Plus **KI-080** (baru+langsung Resolved) — Railway staging build gagal (`next.config.ts` tidak bisa resolve import workspace `@social/shared`) diperbaiki di branch terpisah sebelum masuk ke fix KI-078/079.
@@ -16,9 +16,9 @@
 
 | Field        | Value      |
 | ------------ | ---------- |
-| Version      | 1.1.2      |
+| Version      | 1.1.3      |
 | Status       | Active     |
-| Last Updated | 2026-10-20 |
+| Last Updated | 2026-10-21 |
 
 ---
 
@@ -124,12 +124,15 @@ daftar/detail task di sini** (ADR-062, ADR-131).
 
 > **ID `KI-XXX`** (ADR-066, ADR-067, ADR-131, ADR-132). ID tidak didaur ulang. Setiap KI yang masih terbuka punya tiket. Baris di sini hanya menunjuk tiket itu. KI keluar dari daftar ini saat tiket penutupnya selesai.
 
-| KI     | Status                                                                      | Tiket                                 |
-| ------ | --------------------------------------------------------------------------- | ------------------------------------- |
-| KI-015 | Sebagian Resolved — sisa: env Google OAuth belum diisi                      | [T-119](tickets/known-issues.md)      |
-| KI-028 | Open — environment production belum ada                                     | [T-088](tickets/v10-public-launch.md) |
-| KI-053 | Sisa: bukti E2E email A vs email B. Perbaikan kodenya di T-110 ✅           | [T-122](tickets/known-issues.md)      |
-| KI-093 | Open — `totalPosts` Home tidak akurat (akun `posts_count` null di Outstand) | [T-130](tickets/known-issues.md)      |
+| KI     | Status                                                                                        | Tiket                                 |
+| ------ | --------------------------------------------------------------------------------------------- | ------------------------------------- |
+| KI-015 | Sebagian Resolved — sisa: env Google OAuth belum diisi                                        | [T-119](tickets/known-issues.md)      |
+| KI-028 | Open — environment production belum ada                                                       | [T-088](tickets/v10-public-launch.md) |
+| KI-053 | Sisa: bukti E2E email A vs email B. Perbaikan kodenya di T-110 ✅                             | [T-122](tickets/known-issues.md)      |
+| KI-093 | Open, prioritas tinggi — `totalPosts` Home tidak akurat (akun `posts_count` null di Outstand) | [T-130](tickets/known-issues.md)      |
+| KI-094 | Open, prioritas tinggi — disconnect akun sosial tidak dipropagasi ke Outstand                 | [T-134](tickets/known-issues.md)      |
+| KI-095 | Open, prioritas tinggi — definisi periode "bulanan" beda dari kalender Outstand               | [T-135](tickets/known-issues.md)      |
+| KI-096 | Open, prioritas tinggi — ambiguitas label "Post terpublikasi" Home                            | [T-136](tickets/known-issues.md)      |
 
 KI yang tiketnya sudah selesai dikeluarkan dari daftar ini pada 2026-10-16 (ADR-132): KI-044 (T-108), KI-046 (T-007.7), KI-049 dan KI-063 (T-107), KI-058 (T-109), KI-086 (ADR-127), KI-088 (T-090), KI-090 (T-113). Pada 2026-10-19: KI-027 (T-008), KI-033 (T-120), KI-050 (T-121), KI-089 (T-123), KI-091 (T-124).
 

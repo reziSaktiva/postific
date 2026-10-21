@@ -291,3 +291,138 @@ sebagai Known Issue terbuka, bukan dikerjakan di sesi ini.
       field itu.
 - [ ] Verifikasi browser: Home menampilkan jumlah post yang cocok dengan
       Analyze untuk periode yang sama.
+
+**Prioritas dinaikkan (King Rezi, 2026-10-21):** bagian dari batch investigasi
+ketidaksesuaian data Supabase vs Outstand — dikerjakan bersamaan dengan
+**T-134, T-135, T-136** (gap #1, #3, #4 baru dari investigasi yang sama).
+Tiket ini juga jadi salah satu syarat pembuka blocker **T-133** (lihat
+catatan blocking di `v02-publishing-mvp.md` § T-133).
+
+### T-134 · Disconnect akun sosial tidak dipropagasi ke Outstand (KI-094)
+
+| Field       | Value                                                                                                                                                                                                                                                  |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Status**  | ⏳ Open — prioritas tinggi (batch investigasi King Rezi, 2026-10-21)                                                                                                                                                                                   |
+| **Domain**  | workspace · integration                                                                                                                                                                                                                                |
+| **ADR**     | **Perlu ADR baru** sebelum implementasi — menambah kontrak baru (`deleteSocialAccount`/`revoke`) di `IOutstandAdapter`, mengubah perilaku `WorkspaceService.disconnectAccount` yang sebelumnya sengaja (T-013, ADR-048/ADR-049) hanya update status DB |
+| **Spec**    | tidak ada — single-issue, tapi perlu ADR dulu (lihat kolom ADR)                                                                                                                                                                                        |
+| **Docs**    | T-013, ADR-048, ADR-049 (keputusan lama "disconnect = update status DB saja", konsekuensi ke akurasi metrics belum pernah dibahas di ADR manapun)                                                                                                      |
+| **Terkait** | KI-093/T-130 (gap #2, sama-sama bikin metrics Home tidak akurat, root cause beda), T-133 (blocker)                                                                                                                                                     |
+| **Depends** | —                                                                                                                                                                                                                                                      |
+
+**Ditemukan (investigasi King Rezi, 2026-10-21):** saat user disconnect akun
+sosial lewat UI kita, yang terjadi hanya `UPDATE status='disconnected'` di
+tabel `WorkspaceConnectedAccount`
+(`apps/web/src/lib/repositories/workspace/workspace.repository.ts:1034-1049`).
+Tidak ada pemanggilan ke Outstand API sama sekali — `IOutstandAdapter`
+(`packages/shared/src/contracts/outstand-adapter.ts:641`) tidak punya method
+`deleteSocialAccount`/`revoke`, dan `RealOutstandAdapter` juga tidak
+mengimplementasikannya.
+
+**Alur lengkap:** UI `ConnectedAccountsList.tsx:426` → Server Action
+`actions.ts:65` (`disconnectAccountAction`) → `WorkspaceService.disconnectAccount`
+(`workspace.service.ts:1566` — docstring eksplisit bilang "TIDAK memanggil
+OutstandAdapter") → repository port (`workspace.repository.ts:615-641`
+domain) → implementasi Prisma di atas.
+
+**Dampak:** akun yang sudah "diputus" di sisi kita tetap `connected` di
+Outstand selamanya, post lamanya terus dihitung di metrics (`posts_count`,
+engagement) tanpa batas waktu.
+
+**Bukti nyata:** akun Instagram `turanilkerl` (connected sejak 2026-09-25,
+kemungkinan sudah di-disconnect di app kita) masih berstatus `connected` di
+Outstand dengan 3 post test QA lama (Sep 2026) yang terus dihitung di
+dashboard Home kita — lihat T-134.4 untuk pembersihan data residunya.
+
+- [ ] **T-134.1** Tulis ADR baru: keputusan menambah kontrak
+      `deleteSocialAccount`/`revoke` (nama final diputuskan saat menulis ADR)
+      di `IOutstandAdapter`, dan kapan dipanggil dalam alur
+      `WorkspaceService.disconnectAccount` (sebelum/sesudah update status DB,
+      perilaku kalau Outstand API gagal — jangan membuat DB dan Outstand makin
+      tidak sinkron kalau call-nya gagal)
+- [ ] **T-134.2** Implementasi method baru di `RealOutstandAdapter` (ADR-119 —
+      tidak ada Fake di jalur produksi)
+- [ ] **T-134.3** `WorkspaceService.disconnectAccount` memanggil method baru
+      itu; update docstring yang sekarang eksplisit bilang "TIDAK memanggil
+      OutstandAdapter"
+- [ ] **T-134.4** Cleanup data residu: 3 post test QA ("[TEST QA Jokowi] Uji
+      upload JPG - mohon abaikan", "teataewtet", "lalalala") di akun Instagram
+      `turanilkerl` yang sudah disconnect dari app kita tapi masih live di
+      Outstand/Instagram — verifikasi lewat method T-134.2 baru, pastikan
+      akun ini ikut ter-disconnect benar di Outstand (gap #6 investigasi
+      2026-10-21, konsekuensi langsung gap ini)
+- [ ] **T-134.5** Test unit untuk jalur sukses dan gagal (Outstand API error
+      saat disconnect — DB tidak boleh diam-diam out-of-sync lagi)
+- [ ] **T-134.6** Verifikasi end-to-end browser + akun real: disconnect dari
+      UI kita benar-benar membuat akun `disconnected` di Outstand, post lama
+      akun itu berhenti dihitung di metrics Home/Analyze
+
+### T-135 · Definisi periode "bulanan" Home/Analyze beda dari kalender Outstand (KI-095)
+
+| Field       | Value                                                                                         |
+| ----------- | --------------------------------------------------------------------------------------------- |
+| **Status**  | ⏳ Open — prioritas tinggi (batch investigasi King Rezi, 2026-10-21)                          |
+| **Domain**  | analytics                                                                                     |
+| **ADR**     | — (kemungkinan perlu keputusan produk soal definisi window, bukan arsitektur — lihat T-135.1) |
+| **Spec**    | tidak ada — single-issue                                                                      |
+| **Docs**    | T-128/T-129 (default view Bulanan Home/Analyze)                                               |
+| **Terkait** | T-134, T-136, T-130 (batch investigasi sama, 2026-10-21), T-133 (blocker)                     |
+| **Depends** | —                                                                                             |
+
+**Ditemukan (investigasi King Rezi, 2026-10-21):** snapshot "monthly" kita
+dihitung sebagai rolling 30 hari dari `now`
+(`apps/web/src/domains/analytics/services/analytics-sync-job-handler.ts:148-155`,
+fungsi `resolveAnalyticsSnapshotWindow`), **bukan** kalender bulan (tanggal 1
+s.d. akhir bulan) seperti yang ditampilkan dashboard native Outstand.
+Akibatnya angka "bulan ini" di kita tidak pernah bisa dibandingkan
+apple-to-apple dengan Outstand dashboard — user melaporkan Outstand
+menunjukkan 12 post bulan ini sedangkan Home kita menunjukkan 3; beda window
+waktu ini salah satu kontributornya (bukan satu-satunya — lihat juga gap #1
+T-134 dan gap #2 T-130).
+
+- [ ] **T-135.1** King Rezi memutuskan (via `AskUserQuestion`): window
+      "bulanan" tetap rolling 30 hari, atau pindah ke kalender bulan
+      (tanggal 1 s.d. akhir bulan, sama seperti Outstand)
+- [ ] **T-135.2** Implementasi sesuai keputusan T-135.1 di
+      `resolveAnalyticsSnapshotWindow` (dan tempat lain yang reuse fungsi ini,
+      cek pemanggil)
+- [ ] **T-135.3** Test unit untuk window baru (termasuk edge case: hari
+      pertama bulan, bulan dengan 28/29/30/31 hari kalau pindah ke kalender
+      bulan)
+- [ ] **T-135.4** Verifikasi browser: angka "bulan ini" Home/Analyze cocok
+      dengan ekspektasi window yang dipilih
+
+### T-136 · Ambiguitas semantik label "Post terpublikasi" Home (KI-096)
+
+| Field       | Value                                                                                                                                                     |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**  | ⏳ Open — prioritas tinggi (batch investigasi King Rezi, 2026-10-21)                                                                                      |
+| **Domain**  | analytics · UI                                                                                                                                            |
+| **ADR**     | — (keputusan produk soal sumber metric, bukan arsitektur)                                                                                                 |
+| **Spec**    | tidak ada — single-issue                                                                                                                                  |
+| **Docs**    | T-130/KI-093 (root cause teknis field `posts_count` terkait erat)                                                                                         |
+| **Terkait** | T-130, T-134, T-135 (batch investigasi sama, 2026-10-21), T-133 (blocker)                                                                                 |
+| **Depends** | sebaiknya diputuskan bersamaan dengan T-130 — kalau T-130 pindah ke hitung dari DB internal, label ini otomatis jadi akurat untuk makna "status internal" |
+
+**Ditemukan (investigasi King Rezi, 2026-10-21):** label di
+`DashboardHome.tsx:155-162` menyiratkan status internal
+(`PublishingPost.status === 'published'`), tapi nilai `summary.totalPosts`
+sebenarnya diambil mentah dari `posts_count` Outstand
+(`AnalyticsService.getDashboardSummary` → `analytics-ingestion.use-case.ts`
+→ `real-outstand-adapter.ts` `fetchWorkspaceMetrics`), yang bisa termasuk
+post yang tidak pernah lewat sistem kita (native post di platform, post dari
+akun yang sudah disconnect — lihat T-134/gap #1).
+
+**Perlu keputusan produk:** apakah metric ini dihitung dari status internal
+`PublishingPost` (konsisten dengan opsi perbaikan T-130), atau tetap dari
+Outstand tapi dengan label yang lebih jujur (mis. "Post di akun terhubung"
+bukan "Post terpublikasi").
+
+- [ ] **T-136.1** King Rezi memutuskan (via `AskUserQuestion`): ganti sumber
+      data (ikut T-130) atau ganti label (tetap sumber Outstand, teks lebih
+      jujur)
+- [ ] **T-136.2** Implementasi sesuai keputusan T-136.1 di `DashboardHome.tsx`
+      dan/atau `AnalyticsService.getDashboardSummary`
+- [ ] **T-136.3** Verifikasi browser: label dan angka konsisten secara makna
+      (tidak ada lagi "Post terpublikasi" yang sebenarnya termasuk post dari
+      akun disconnected/native)
