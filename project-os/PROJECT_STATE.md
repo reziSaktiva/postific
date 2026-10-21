@@ -134,9 +134,8 @@ daftar/detail task di sini** (ADR-062, ADR-131).
 | KI-095 | Sebagian Resolved — window kalender bulan sudah diimplementasikan + backfill 13 workspace; sisa verifikasi browser (butuh akun test baru)     | [T-135](tickets/known-issues.md)      |
 | KI-096 | Sebagian Resolved — label ikut akurat dari fix KI-093; sisa verifikasi browser (butuh akun test baru)                                         | [T-136](tickets/known-issues.md)      |
 | KI-097 | Sebagian Resolved — adapter SMTP + factory `EMAIL_PROVIDER` selesai (review+QA PASS); sisa King Rezi isi env Railway staging & verifikasi e2e | [T-137](tickets/known-issues.md)      |
-| KI-098 | Open — escape HTML hilang di email kode verifikasi accept-invite (Resend & SMTP), ditemukan QA T-137                                          | [T-138](tickets/known-issues.md)      |
 
-KI yang tiketnya sudah selesai dikeluarkan dari daftar ini pada 2026-10-16 (ADR-132): KI-044 (T-108), KI-046 (T-007.7), KI-049 dan KI-063 (T-107), KI-058 (T-109), KI-086 (ADR-127), KI-088 (T-090), KI-090 (T-113). Pada 2026-10-19: KI-027 (T-008), KI-033 (T-120), KI-050 (T-121), KI-089 (T-123), KI-091 (T-124).
+KI yang tiketnya sudah selesai dikeluarkan dari daftar ini pada 2026-10-16 (ADR-132): KI-044 (T-108), KI-046 (T-007.7), KI-049 dan KI-063 (T-107), KI-058 (T-109), KI-086 (ADR-127), KI-088 (T-090), KI-090 (T-113). Pada 2026-10-19: KI-027 (T-008), KI-033 (T-120), KI-050 (T-121), KI-089 (T-123), KI-091 (T-124). Pada 2026-10-21: KI-098 (T-138, Resolved — fix escape HTML diimplementasikan + review + QA PASS).
 
 ---
 

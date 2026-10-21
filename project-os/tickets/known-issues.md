@@ -57,7 +57,7 @@ production).
 
 | Field       | Value                      |
 | ----------- | -------------------------- |
-| **Status**  | 🔴 Open                    |
+| **Status**  | ✅ Done                    |
 | **Domain**  | notification               |
 | **Spec**    | tidak ada — muat satu sesi |
 | **Docs**    | KI-098                     |
@@ -86,12 +86,20 @@ Fix yang diusulkan: tambahkan `escapeHtml(input.workspaceName)` dan
 `escapeHtml(input.code)` di `renderVerificationEmailHtml()` pada kedua file,
 mengikuti pola yang sudah ada di `renderMemberInvitationHtml()`.
 
-- [ ] Escape `workspaceName` dan `code` di `renderVerificationEmailHtml()`,
+- [x] Escape `workspaceName` dan `code` di `renderVerificationEmailHtml()`,
       `resend-invite-email-sender.ts`
-- [ ] Escape yang sama di fungsi sejenis,
+- [x] Escape yang sama di fungsi sejenis,
       `smtp-invite-email-sender.ts`
-- [ ] Tambah/update test yang memverifikasi escaping di kode verifikasi,
+- [x] Tambah/update test yang memverifikasi escaping di kode verifikasi,
       sejenis test escape yang sudah ada untuk `renderMemberInvitationHtml`
+
+**Hasil:** Fix diimplementasikan Elon (Backend Engineer) di kedua adapter,
+mengikuti pola `escapeHtml()` yang sudah ada di `renderMemberInvitationHtml()`.
+Direview Ridwan (Architecture Reviewer) — tidak ada pelanggaran arsitektur.
+QA Najwa (QA Engineer) — PASS, 19 test lulus di folder email (termasuk test
+escaping baru yang memverifikasi payload berbahaya `<script>`, `&`, `"` benar-benar
+ter-escape di output), typecheck & lint bersih, tidak ada regresi. Perubahan ada
+di branch `feature/t137-smtp-staging-email`, akan masuk PR #189.
 
 ### T-119 · Isi env Google OAuth
 

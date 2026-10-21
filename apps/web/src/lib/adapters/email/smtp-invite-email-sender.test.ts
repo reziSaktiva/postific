@@ -64,6 +64,24 @@ describe("createSmtpInviteEmailSender", () => {
         }),
       ).rejects.toThrow(/connection refused/);
     });
+
+    it("escapes workspace name and code in the html (KI-098, T-138)", async () => {
+      const sender = createSmtpInviteEmailSender(config);
+
+      await sender.sendInviteVerificationCode({
+        email: "maya@example.com",
+        code: '<script>123</script>&"456"',
+        workspaceName: 'Kopi <Selasar> & "Raka"',
+      });
+
+      const html = sendMail.mock.calls[0]?.[0]?.html as string;
+      expect(html).toContain("Kopi &lt;Selasar&gt; &amp; &quot;Raka&quot;");
+      expect(html).toContain(
+        "&lt;script&gt;123&lt;/script&gt;&amp;&quot;456&quot;",
+      );
+      expect(html).not.toContain("<script>");
+      expect(html).not.toContain('"456"');
+    });
   });
 
   describe("sendMemberInvitation", () => {

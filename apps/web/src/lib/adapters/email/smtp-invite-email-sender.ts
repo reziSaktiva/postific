@@ -32,15 +32,18 @@ function escapeHtml(value: string): string {
 function renderVerificationEmailHtml(
   input: InviteVerificationEmailInput,
 ): string {
+  const workspaceName = escapeHtml(input.workspaceName);
+  const code = escapeHtml(input.code);
+
   return `
     <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
       <p>Halo,</p>
       <p>
         Gunakan kode berikut untuk memverifikasi email Anda dan bergabung ke
-        workspace <strong>${input.workspaceName}</strong>:
+        workspace <strong>${workspaceName}</strong>:
       </p>
       <p style="font-size: 32px; font-weight: 700; letter-spacing: 0.3em; text-align: center;">
-        ${input.code}
+        ${code}
       </p>
       <p>Kode ini berlaku selama 10 menit. Jangan bagikan kode ini ke siapa pun.</p>
       <p>Kalau Anda tidak meminta ini, abaikan email ini.</p>
