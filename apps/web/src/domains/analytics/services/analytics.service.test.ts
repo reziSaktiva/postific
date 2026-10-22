@@ -24,7 +24,6 @@ function createFakeRepository(
   overrides: Partial<IAnalyticsRepository> = {},
 ): IAnalyticsRepository {
   return {
-    findMetricsByPost: async () => [],
     findMetricsByPosts: async () => [],
     findLatestWorkspaceSnapshot: async () => null,
     upsertPostMetrics: async (input) => ({
@@ -39,45 +38,6 @@ function createFakeRepository(
     ...overrides,
   };
 }
-
-describe("AnalyticsService.getPostMetrics", () => {
-  it("delegates to the repository", async () => {
-    const metrics: PostMetricsRecord[] = [
-      {
-        id: asPostMetricsId("metric-1"),
-        postId: POST_ID,
-        connectedAccountId: asConnectedAccountId("conn-1"),
-        platform: SocialPlatform.Instagram,
-        impressions: 100,
-        reach: 80,
-        likes: 10,
-        comments: 2,
-        shares: 1,
-        clicks: null,
-        engagementRate: 0.1625,
-        fetchedAt: new Date(0),
-      },
-    ];
-    let received: PostId | null = null;
-    const service = new AnalyticsService(
-      createFakeRepository({
-        findMetricsByPost: async (postId) => {
-          received = postId;
-          return metrics;
-        },
-      }),
-    );
-
-    await expect(service.getPostMetrics(POST_ID)).resolves.toBe(metrics);
-    expect(received).toBe(POST_ID);
-  });
-
-  it("returns an empty array when the repository has no metrics for the post", async () => {
-    const service = new AnalyticsService(createFakeRepository());
-
-    await expect(service.getPostMetrics(POST_ID)).resolves.toEqual([]);
-  });
-});
 
 describe("AnalyticsService.getPostMetricsByPosts", () => {
   it("returns an empty Map without calling the repository when input is empty", async () => {

@@ -628,13 +628,13 @@ browser end-to-end + 2 edge case tambahan) selesai tanpa bug baru — lihat
 
 ### T-017 · RLS SQL policies
 
-| Field         | Value                                                                                                                       |
-| ------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| **Status**    | 🟡 In Progress — adopsi `withCurrentUser` ke seluruh repository (sebelumnya sengaja ditunda) sedang dikerjakan (2026-08-13) |
-| **Domain**    | platform                                                                                                                    |
-| **ADR**       | ADR-015, ADR-033                                                                                                            |
-| **Depends**   | T-002 ✅                                                                                                                    |
-| **Baca dulu** | `06-engineering/database-orm.md` (DO-D06) · `05-architecture/database-strategy.md`                                          |
+| Field         | Value                                                                              |
+| ------------- | ---------------------------------------------------------------------------------- |
+| **Status**    | ✅ Done (2026-10-22) — adopsi `withCurrentUser` ke seluruh repository tuntas       |
+| **Domain**    | platform                                                                           |
+| **ADR**       | ADR-015, ADR-033                                                                   |
+| **Depends**   | T-002 ✅                                                                           |
+| **Baca dulu** | `06-engineering/database-orm.md` (DO-D06) · `05-architecture/database-strategy.md` |
 
 RLS policy sudah digenerate dan **applied ke database nyata** — bukan draft. Helper `withCurrentUser(userId, callback)` (`apps/web/src/lib/prisma/with-current-user.ts`) membungkus `prisma.$transaction` + `set_config('app.current_user_id', $1, true)` (tagged-template, aman dari SQL injection). Migration `20260813045625_t017_add_rls_policies` (`apps/web/prisma/migrations/`) berisi `ENABLE ROW LEVEL SECURITY` + `CREATE POLICY` untuk 16 tabel: 12 dengan `workspace_id` langsung, 4 varian EXISTS-join ke parent (`publishing_post_targets`, `ai_results`, `engagement_replies`, `start_page_links`), plus `analytics_post_metrics` (subquery via `publishing_posts.post_id`, terverifikasi memang tidak punya `workspace_id` langsung). Adopsi contoh: `WorkspaceRepository.getMember` sudah jalan lewat `withCurrentUser` (adopsi penuh ke semua repository sengaja ditunda — bukan bagian scope T-017 ini).
 
@@ -656,6 +656,12 @@ Ketiga migration di atas sudah **applied ke database Supabase nyata** (`bunx pri
 - [x] **T-017.1** Implementasi jalur server set `app.current_user_id` per request — `withCurrentUser` helper
 - [x] **T-017.2** Generate RLS policy per tabel domain — migration applied ke DB nyata (termasuk 3 migration perbaikan gap runtime di atas)
 - [x] **T-017.3** Test negatif — `with-current-user.test.ts`, integration test nyata ke Supabase (auto-skip tanpa `DATABASE_URL`); 2 assertion yang sebelumnya berlabel "KNOWN GAP" (mendokumentasikan bug BYPASSRLS) sudah **dibalik jadi assertion positif** (2026-08-13) — cross-workspace row tidak terlihat, default-deny tanpa `SET LOCAL` benar-benar terjadi. Full suite: 14 file test, 105 passed + 1 skipped (skip disengaja untuk environment tanpa DB); `tsc --noEmit` bersih, tidak ada regresi di test lain yang menyentuh `workspace_members`/`workspaces`.
+
+**Adopsi `withCurrentUser` tuntas (2026-10-22):** audit menyeluruh seluruh file `apps/web/src/lib/repositories/*/*.repository.ts` terhadap 16 tabel yang punya RLS policy. Satu gap nyata ditemukan: `analyticsRepository.findMetricsByPost` (`apps/web/src/lib/repositories/analytics/analytics.repository.ts`) query `analyticsPostMetric.findMany` langsung lewat `prisma` tanpa `withCurrentUser`, padahal `analytics_post_metrics` RLS-protected (EXISTS-join via `publishing_posts.post_id`). Fix: tambah parameter opsional `actingUserId?: UserId` — di interface (`apps/web/src/domains/analytics/repositories/analytics.repository.ts`), implementasi (wrap `withCurrentUser` kalau `actingUserId` diisi, pola sama dengan `findMetricsByPosts` yang sudah benar), dan `AnalyticsService.getPostMetrics` (`apps/web/src/domains/analytics/services/analytics.service.ts`) yang meneruskan parameter itu ke repository. Backward-compatible (optional param).
+
+Repository lain sudah diverifikasi lengkap, tidak ada gap: `engagement.repository.ts`, `media.repository.ts`, `notification.repository.ts`, `publishing.repository.ts`, `workspace.repository.ts`, `import-job.repository.ts` (query ke tabel RLS-protected sudah dibungkus `withCurrentUser`, atau raw dengan alasan terdokumentasi di kode — mis. lookup webhook sebelum ada acting userId, atau tabel yang memang bukan RLS-protected seperti `backgroundJob`). `identity.repository.ts` (tabel `user`/Better Auth) sengaja tidak disentuh — tabel `user` bukan salah satu dari 16 tabel yang punya RLS policy. Tabel `ai_requests`/`ai_results`/`start_page_links`/`start_page_pages` sudah punya RLS policy tapi belum ada kode repository yang menyentuhnya sama sekali (fitur AI Assistant v0.5 dan Start Page v0.6 belum dibangun) — baru relevan saat fitur itu mulai dikerjakan.
+
+Validasi: `bunx prisma generate` + `tsc --noEmit` bersih (satu error pre-existing tidak terkait, modul `nodemailer`, dikonfirmasi ada sebelum perubahan ini juga via `git stash` A/B test). Full suite vitest root: 914 passed, 6 skipped; 6 file test gagal semuanya integration test nyata ke Supabase (`workspace.repository.*.test.ts`) yang timeout karena environment sandbox tidak reachable ke DB — dikonfirmasi pre-existing, gagal sama persis sebelum perubahan ini. 38 test analytics (termasuk yang menyentuh `findMetricsByPost`) PASS. Lint bersih untuk file yang diubah.
 
 ### T-018 · Investigasi hydration gagal lewat tunnel ngrok
 
