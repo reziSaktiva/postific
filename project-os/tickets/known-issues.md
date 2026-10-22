@@ -1075,3 +1075,80 @@ dicatat sebagai arah):**
 scope-nya infrastruktur import secara umum (job `import.sync`), bukan
 spesifik ke empat tiket analytics batch itu — tapi ditemukan dan dicatat di
 sesi QA yang sama (2026-10-22).
+
+### T-140 · Infinite redirect loop `/` ↔ `/login` saat session cookie stale/invalid (KI-100)
+
+| Field       | Value                                                                                                                                  |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**  | ✅ Done — fix diimplementasikan, test regresi ditambahkan (919 passed, 0 fail), King Rezi konfirmasi `localhost:3000` bisa dibuka lagi |
+| **Domain**  | workspace · auth (`proxy.ts`)                                                                                                          |
+| **Spec**    | tidak ada — single-issue                                                                                                               |
+| **Docs**    | tidak ada                                                                                                                              |
+| **Terkait** | ADR-076 (proxy.ts, migrasi `[slug]` → `(app)`), ditemukan King Rezi 2026-10-22                                                         |
+| **Depends** | —                                                                                                                                      |
+
+**Ditemukan (King Rezi, 2026-10-22):** `bun dev` lokal + buka
+`http://localhost:3000/` di browser biasa (bukan Browser pane sesi ini) →
+`ERR_TOO_MANY_REDIRECTS` ("localhost redirected you too many times").
+Dikonfirmasi lewat tab Network DevTools: redirect 307 bolak-balik murni
+antara `/` dan `/login`, berulang puluhan kali sampai Chrome menyerah.
+
+**Root cause:** `apps/web/src/proxy.ts` — gate murah
+`hasSessionCookie = Boolean(getSessionCookie(request))` (baris ~124) hanya
+mengecek **keberadaan** cookie, bukan validitasnya. Alur yang terjadi:
+
+1. `/` → `hasSessionCookie` true, bukan `isPublicAuthPage` → lanjut ke
+   validasi penuh `auth.api.getSession()` (baris ~152) → `null` (cookie ada
+   tapi SESSION-nya sudah tidak valid lagi — mis. baris `identity_session`
+   kedaluwarsa/dihapus/dirotasi) → `redirectTo("/login")`.
+2. `/login` → `hasSessionCookie` masih true (cookie fisik belum dihapus) DAN
+   `isPublicAuthPage` true → `redirectTo("/")` (baris ~130-132).
+3. Kembali ke `/` → sama persis seperti langkah 1 (cookie masih di browser,
+   session masih invalid) → loop tanpa akhir.
+
+Komentar kode di baris ~134-144 proxy.ts sendiri sudah mendokumentasikan gap
+serupa untuk kombinasi `!hasSessionCookie && isPublicAuthPage` (sudah
+ditutup) — tapi TIDAK menutup kombinasi "cookie ada tapi session di DB sudah
+invalid", yang ternyata adalah skenario yang benar-benar terjadi di sesi ini
+(kemungkinan dipicu oleh pembersihan data/testing berat sepanjang sesi
+2026-10-21/22 yang menyentuh banyak baris DB, meski belum dikonfirmasi
+baris `identity_session` spesifik mana yang invalid).
+
+- [x] **T-140.1** Saat `auth.api.getSession()` di proxy.ts mengembalikan
+      `null` untuk cookie yang ADA (bukan kombinasi lain yang sudah
+      ditangani), hapus cookie session Better Auth di response redirect ke
+      `/login` — pakai nama cookie yang di-resolve dari `getCookies(auth.options).sessionToken.name`
+      (`better-auth/cookies`), BUKAN hardcode string, supaya tidak drift
+      kalau `cookiePrefix`/`useSecureCookies` berubah nanti. Diimplementasikan
+      lewat helper baru `apps/web/src/lib/better-auth/session-cookie-name.ts`
+      (`getSessionCookieName()`) + fungsi `redirectToLoginClearingStaleSession()`
+      di `proxy.ts`, dipakai di cabang `if (!session)` setelah validasi penuh
+- [x] **T-140.2** Terapkan perbaikan serupa di
+      `apps/web/src/app/onboarding/resume/route.ts` (cabang `!session`) untuk
+      defense-in-depth — route ini bisa diakses langsung (dibypass proxy
+      untuk prefix `/onboarding`) dengan cookie session stale yang sama.
+      Diimplementasikan (hapus cookie sebelum redirect ke `/login`)
+- [x] **T-140.3** Test: skenario cookie session ada tapi invalid
+      (`auth.api.getSession` resolve `null`) tidak menghasilkan redirect
+      balik ke halaman yang sama. Ditambahkan test baru di
+      `apps/web/src/proxy.test.ts` ("clears the stale session cookie when
+      redirecting to /login") — assert `response.cookies.get(...)` untuk
+      nama cookie session kembali dengan `value: ""` dan `expires` di masa
+      lalu, membuktikan cookie benar-benar dihapus (bukan cuma redirect
+      tujuannya benar seperti test lama yang sudah ada sebelumnya). Full
+      suite: **919 passed, 7 skipped, 0 fail** (naik dari 898 baseline
+      sebelum T-140 + 1 test baru ini); `tsc --noEmit` dan `eslint .`
+      (`apps/web`) bersih
+- [x] **T-140.4** Verifikasi browser langsung oleh King Rezi di environment
+      yang melaporkan bug ini (local `bun dev`) — dikonfirmasi King Rezi
+      2026-10-22: `localhost:3000` bisa dibuka lagi setelah fix (hot-reload
+      otomatis Next.js dev server). Catatan: ini konfirmasi akses normal
+      kembali, BUKAN reproduksi ulang skenario cookie-stale-spesifik untuk
+      membuktikan loop benar-benar tidak muncul lagi pada kasus itu persis
+      (lihat gap T-140.3 di atas)
+
+**Catatan:** ini BUG PRODUKSI (bukan limitasi test data seperti T-130/T-139)
+— siapa pun yang punya session cookie stale (expired naturally, logout dari
+tab lain, DB session dibersihkan manual) akan mengalami ini, bukan hanya di
+local dev. Prioritas tinggi karena mengunci akses ke seluruh aplikasi tanpa
+cara recover selain hapus cookie manual.

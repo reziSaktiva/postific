@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { asUserId } from "@postific/shared";
 import { auth } from "@/lib/better-auth/auth";
+import { getSessionCookieName } from "@/lib/better-auth/session-cookie-name";
 import { getServerEnv } from "@/lib/env";
 import { workspaceRepository } from "@/lib/repositories/workspace";
 import { WorkspaceService } from "@/domains/workspace";
@@ -24,7 +25,14 @@ export async function GET(request: NextRequest) {
 
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.redirect(new URL("/login", appOrigin));
+    // T-140/KI-100 — cookie session bisa saja ADA tapi sudah invalid di DB
+    // (route ini dibypass proxy.ts untuk prefix `/onboarding`, jadi tidak
+    // mewarisi pembersihan cookie yang sudah dipasang di sana). Tanpa
+    // menghapusnya di sini juga, user bisa terjebak loop /onboarding/resume
+    // <-> /login <-> / yang sama persis.
+    const response = NextResponse.redirect(new URL("/login", appOrigin));
+    response.cookies.delete(getSessionCookieName());
+    return response;
   }
 
   const workspaceService = new WorkspaceService(workspaceRepository);

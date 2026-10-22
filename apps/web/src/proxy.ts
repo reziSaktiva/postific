@@ -4,6 +4,7 @@ import { getSessionCookie } from "better-auth/cookies";
 import { asUserId, asWorkspaceId, MemberStatus } from "@postific/shared";
 
 import { auth } from "@/lib/better-auth/auth";
+import { getSessionCookieName } from "@/lib/better-auth/session-cookie-name";
 import { WorkspaceService } from "@/domains/workspace";
 import { getServerEnv } from "@/lib/env";
 import { workspaceRepository } from "@/lib/repositories/workspace";
@@ -94,6 +95,22 @@ function redirectTo(path: string): NextResponse {
 }
 
 /**
+ * T-140/KI-100 — dipakai SATU-SATUNYA tempat cookie ADA tapi
+ * `auth.api.getSession()` resolve `null` (session sudah invalid/kedaluwarsa
+ * di DB, tapi cookie fisiknya belum hilang dari browser). Tanpa menghapus
+ * cookie di sini, request berikutnya ke `/login` masih melihat
+ * `hasSessionCookie` true → redirect balik ke `/` → infinite loop
+ * (ERR_TOO_MANY_REDIRECTS, ditemukan King Rezi 2026-10-22). Beda dari
+ * `redirectTo("/login")` biasa (dipakai saat cookie memang tidak ada sama
+ * sekali — tidak ada yang perlu dihapus).
+ */
+function redirectToLoginClearingStaleSession(): NextResponse {
+  const response = redirectTo("/login");
+  response.cookies.delete(getSessionCookieName());
+  return response;
+}
+
+/**
  * `x-workspace-id`/`x-workspace-role` HARUS hanya bisa datang dari blok
  * injection di bawah (setelah membership tervalidasi) — tanpa strip ini,
  * client bisa mengirim header itu sendiri lewat curl/devtools dan lolos
@@ -151,7 +168,7 @@ export async function proxy(request: NextRequest) {
 
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return redirectTo("/login");
+    return redirectToLoginClearingStaleSession();
   }
 
   const workspaceIdFromCookie = request.cookies.get(
