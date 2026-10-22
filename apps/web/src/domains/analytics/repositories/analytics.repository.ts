@@ -71,7 +71,7 @@ export interface UpsertWorkspaceSnapshotInput {
  * src/lib/repositories/analytics.
  *
  * T-040 (skeleton) hanya menyediakan read path yang dipakai kontrak
- * `AnalyticsService` di `application-layer.md` (`getPostMetrics`,
+ * `AnalyticsService` di `application-layer.md` (`getPostMetricsByPosts`,
  * `getWorkspaceSnapshot`). T-041 menambah write path untuk ingestion
  * (`upsertPostMetrics`, `upsertWorkspaceSnapshot`, JOB-04) — keduanya WAJIB
  * upsert (bukan insert biasa) supaya ingestion ulang periode/post yang sama
@@ -79,25 +79,25 @@ export interface UpsertWorkspaceSnapshotInput {
  */
 export interface IAnalyticsRepository {
   /**
-   * Semua metrik (satu baris per target/platform) untuk satu post.
+   * Metrik per post, beberapa sekaligus (T-033.1, Calendar view — popover
+   * metrik post Published, KSP-02-F08). Dipakai lewat `getPostMetricsByPosts`
+   * supaya caller lintas domain (`PublishingService`, via port lokal) tidak
+   * N+1 query satu post per item Calendar. Returns flat array (bukan
+   * grouped) — pengelompokan per `postId` jadi tanggung jawab
+   * `AnalyticsService.getPostMetricsByPosts`.
    *
    * `actingUserId` opsional (T-017 RLS adoption) — kalau diisi, query
    * dibungkus `withCurrentUser` supaya RLS policy `analytics_post_metrics`
-   * (EXISTS-join via `publishing_posts.post_id`) aktif. Pola sama dengan
-   * `findMetricsByPosts`/`findLatestWorkspaceSnapshot` di bawah.
-   */
-  findMetricsByPost(
-    postId: PostId,
-    actingUserId?: UserId,
-  ): Promise<PostMetricsRecord[]>;
-
-  /**
-   * Batch varian `findMetricsByPost` untuk beberapa post sekaligus
-   * (T-033.1, Calendar view — popover metrik post Published, KSP-02-F08).
-   * Dipakai lewat `getPostMetricsByPosts` supaya caller lintas domain
-   * (`PublishingService`, via port lokal) tidak N+1 query satu post per
-   * item Calendar. Returns flat array (bukan grouped) — pengelompokan per
-   * `postId` jadi tanggung jawab `AnalyticsService.getPostMetricsByPosts`.
+   * (EXISTS-join via `publishing_posts.post_id`) aktif.
+   *
+   * **Catatan T-017 (2026-10-22):** varian single-post `findMetricsByPost`
+   * sempat ada di sini tapi dihapus — review PR #190 menemukan method itu
+   * (dan `AnalyticsService.getPostMetrics`) tidak punya caller produksi sama
+   * sekali (T-043 sudah dipindah ke jalur ini, varian batch, sejak refactor
+   * circular-dependency `publishing`↔`analytics`); mempertahankannya dengan
+   * `actingUserId` opsional hanya menambah jalur fail-open yang tidak pernah
+   * dites lewat pemakaian nyata. Kalau butuh metrik satu post lagi nanti,
+   * panggil varian batch ini dengan array satu elemen.
    */
   findMetricsByPosts(
     postIds: PostId[],

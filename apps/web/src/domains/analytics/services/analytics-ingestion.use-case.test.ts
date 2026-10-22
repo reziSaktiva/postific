@@ -34,7 +34,6 @@ function createFakeRepository(
   overrides: Partial<IAnalyticsRepository> = {},
 ): IAnalyticsRepository {
   return {
-    findMetricsByPost: async () => [],
     findMetricsByPosts: async () => [],
     findLatestWorkspaceSnapshot: async () => null,
     upsertPostMetrics: async (input) =>
@@ -187,8 +186,10 @@ describe("AnalyticsIngestionUseCase.syncPostMetrics", () => {
         store.set(key, record);
         return record;
       },
-      findMetricsByPost: async (postId) =>
-        Array.from(store.values()).filter((row) => row.postId === postId),
+      findMetricsByPosts: async (postIds) =>
+        Array.from(store.values()).filter((row) =>
+          postIds.includes(row.postId),
+        ),
     });
     // Adapter deterministik (mengikuti pola fakeOutstandAdapter) — nilai
     // yang sama untuk outstandPostId yang sama di kedua panggilan.
@@ -209,7 +210,7 @@ describe("AnalyticsIngestionUseCase.syncPostMetrics", () => {
     await useCase.syncPostMetrics([target], ACTING_USER_ID);
     await useCase.syncPostMetrics([target], ACTING_USER_ID);
 
-    const rows = await repository.findMetricsByPost(POST_ID);
+    const rows = await repository.findMetricsByPosts([POST_ID]);
     expect(rows).toHaveLength(1);
     expect(rows[0]).toEqual(
       expect.objectContaining({
