@@ -29,11 +29,6 @@ export class AnalyticsService {
     private readonly activeAccounts?: ActiveAccountsPort,
   ) {}
 
-  /** Metrik performa per post (T-043 UI konsumsi lewat ini). */
-  async getPostMetrics(postId: PostId): Promise<PostMetricsRecord[]> {
-    return this.repository.findMetricsByPost(postId);
-  }
-
   /**
    * Batch varian `getPostMetrics` (T-033.1, Calendar view — popover metrik
    * post Published, KSP-02-F08). Dikonsumsi lintas domain oleh

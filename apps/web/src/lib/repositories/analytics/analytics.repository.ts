@@ -61,15 +61,6 @@ function mapWorkspaceSnapshot(
 }
 
 export const analyticsRepository: IAnalyticsRepository = {
-  async findMetricsByPost(postId) {
-    const rows = await prisma.analyticsPostMetric.findMany({
-      where: { postId },
-      orderBy: { fetchedAt: "desc" },
-    });
-
-    return rows.map(mapPostMetric);
-  },
-
   async findMetricsByPosts(postIds, actingUserId) {
     if (postIds.length === 0) {
       return [];
