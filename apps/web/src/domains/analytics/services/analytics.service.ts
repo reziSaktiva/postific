@@ -30,8 +30,11 @@ export class AnalyticsService {
   ) {}
 
   /** Metrik performa per post (T-043 UI konsumsi lewat ini). */
-  async getPostMetrics(postId: PostId): Promise<PostMetricsRecord[]> {
-    return this.repository.findMetricsByPost(postId);
+  async getPostMetrics(
+    postId: PostId,
+    actingUserId?: UserId,
+  ): Promise<PostMetricsRecord[]> {
+    return this.repository.findMetricsByPost(postId, actingUserId);
   }
 
   /**

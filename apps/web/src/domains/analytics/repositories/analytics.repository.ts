@@ -78,8 +78,18 @@ export interface UpsertWorkspaceSnapshotInput {
  * tidak menggandakan angka (idempotensi, T-041.5).
  */
 export interface IAnalyticsRepository {
-  /** Semua metrik (satu baris per target/platform) untuk satu post. */
-  findMetricsByPost(postId: PostId): Promise<PostMetricsRecord[]>;
+  /**
+   * Semua metrik (satu baris per target/platform) untuk satu post.
+   *
+   * `actingUserId` opsional (T-017 RLS adoption) — kalau diisi, query
+   * dibungkus `withCurrentUser` supaya RLS policy `analytics_post_metrics`
+   * (EXISTS-join via `publishing_posts.post_id`) aktif. Pola sama dengan
+   * `findMetricsByPosts`/`findLatestWorkspaceSnapshot` di bawah.
+   */
+  findMetricsByPost(
+    postId: PostId,
+    actingUserId?: UserId,
+  ): Promise<PostMetricsRecord[]>;
 
   /**
    * Batch varian `findMetricsByPost` untuk beberapa post sekaligus
