@@ -10,7 +10,7 @@ Tiket fitur yang kebetulan memuat atau menutup satu KI tetap di file rilisnya. C
 
 | Field       | Value                                                                                |
 | ----------- | ------------------------------------------------------------------------------------ |
-| **Status**  | 🟡 In Progress                                                                       |
+| **Status**  | ✅ Done                                                                              |
 | **Domain**  | notification                                                                         |
 | **Spec**    | tidak ada — muat satu sesi                                                           |
 | **Docs**    | KI-097, ADR-137, ADR-126                                                             |
@@ -36,22 +36,24 @@ production).
       `SMTP_PASSWORD`, `SMTP_FROM_EMAIL` — King Rezi yang mengisi nilainya
       langsung di Railway staging (agent tidak pernah memegang kredensial,
       pola sama T-119)
-- [ ] `EMAIL_PROVIDER=smtp` di-set di Railway staging oleh King Rezi;
+- [x] `EMAIL_PROVIDER=smtp` di-set di Railway staging oleh King Rezi;
       production tidak diisi (tetap fallback Resend)
-- [ ] Diverifikasi: undangan member/kode accept-invite terkirim ke email
+- [x] Diverifikasi: undangan member/kode accept-invite terkirim ke email
       selain `rezi@insvire.com` di staging
 - [ ] **Syarat selesai/sunset**: setelah domain pengirim Resend
       terverifikasi, `EMAIL_PROVIDER` dihapus dari staging (balik ke Resend
       penuh) — dicatat sebagai follow-up, bukan bagian wajib tiket ini
 
-**Blocked by:** King Rezi mengisi `SMTP_HOST`/`SMTP_PORT`/`SMTP_USER`/`SMTP_PASSWORD`/`SMTP_FROM_EMAIL` di Railway staging setelah kode adapter siap.
-
 **Progress:** Implementasi + review (Ridwan, tidak ada pelanggaran arsitektur)
 
 - QA (Najwa, PASS — 17 test, typecheck & lint bersih) selesai di branch
-  `feature/t137-smtp-staging-email`. Sisa checklist bergantung King Rezi
-  mengisi env Railway staging dan verifikasi e2e, jadi tiket tetap **🟡 In
-  Progress** (belum `✅ Done`).
+  `feature/t137-smtp-staging-email`. King Rezi mengonfirmasi (2026-10-22)
+  env `EMAIL_PROVIDER=smtp`/`SMTP_*` sudah diisi di Railway staging dan
+  verifikasi e2e (undangan/kode accept-invite terkirim ke email selain
+  `rezi@insvire.com` di staging) sudah PASS — tiket ditutup **✅ Done**.
+  Syarat sunset (hapus `EMAIL_PROVIDER` dari staging setelah domain pengirim
+  Resend terverifikasi) dicatat sebagai follow-up terpisah, bukan bagian
+  wajib tiket ini.
 
 ### T-138 · Escape HTML hilang di email kode verifikasi accept-invite (KI-098)
 
