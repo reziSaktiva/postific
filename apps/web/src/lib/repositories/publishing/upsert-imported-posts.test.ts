@@ -3,9 +3,13 @@ import {
   asWorkspaceId,
   SocialPlatform,
 } from "@postific/shared";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { ImportedPostTargetInput } from "@/domains/publishing/repositories/publishing.repository";
-import { upsertImportedPostsTx } from "./upsert-imported-posts";
+import {
+  UPSERT_IMPORTED_POSTS_CHUNK_SIZE,
+  upsertImportedPostsInChunks,
+  upsertImportedPostsTx,
+} from "./upsert-imported-posts";
 
 const WORKSPACE_ID = asWorkspaceId("workspace-1");
 
@@ -660,5 +664,330 @@ describe("upsertImportedPostsTx (T-090.4, cross-post guard T-113 follow-up)", ()
     expect(workspaceLock).toBe(0);
     expect(postLock).toBeGreaterThan(workspaceLock);
     expect(globalLookup).toBeGreaterThan(postLock);
+  });
+});
+
+describe("upsertImportedPostsInChunks (T-139, KI-099)", () => {
+  function posts(count: number, offset = 0): ImportedPostTargetInput[] {
+    return Array.from({ length: count }, (_, index) =>
+      post({
+        platformPostId: `platform-post-${offset + index}`,
+        outstandPostId: `outstand-post-${offset + index}`,
+      }),
+    );
+  }
+
+  it("tidak memanggil runChunk untuk batch kosong", async () => {
+    const runChunk = vi.fn();
+
+    const result = await upsertImportedPostsInChunks([], runChunk);
+
+    expect(result).toEqual({ insertedCount: 0, skippedDuplicateCount: 0 });
+    expect(runChunk).not.toHaveBeenCalled();
+  });
+
+  it("memecah batch sesuai chunkSize secara berurutan dan menjumlahkan hasilnya", async () => {
+    const sizes: number[] = [];
+    const runChunk = async (chunk: ImportedPostTargetInput[]) => {
+      sizes.push(chunk.length);
+      return { insertedCount: chunk.length - 1, skippedDuplicateCount: 1 };
+    };
+
+    const result = await upsertImportedPostsInChunks(posts(120), runChunk, 50);
+
+    expect(sizes).toEqual([50, 50, 20]);
+    expect(result).toEqual({ insertedCount: 117, skippedDuplicateCount: 3 });
+  });
+
+  it("memakai UPSERT_IMPORTED_POSTS_CHUNK_SIZE sebagai default", async () => {
+    const sizes: number[] = [];
+    await upsertImportedPostsInChunks(
+      posts(UPSERT_IMPORTED_POSTS_CHUNK_SIZE * 2 + 1),
+      async (chunk) => {
+        sizes.push(chunk.length);
+        return { insertedCount: chunk.length, skippedDuplicateCount: 0 };
+      },
+    );
+
+    expect(sizes).toEqual([
+      UPSERT_IMPORTED_POSTS_CHUNK_SIZE,
+      UPSERT_IMPORTED_POSTS_CHUNK_SIZE,
+      1,
+    ]);
+  });
+
+  it("menghentikan chunk berikutnya dan melempar error kalau satu chunk gagal", async () => {
+    const runChunk = vi
+      .fn()
+      .mockResolvedValueOnce({ insertedCount: 50, skippedDuplicateCount: 0 })
+      .mockRejectedValueOnce(new Error("boom"));
+
+    await expect(
+      upsertImportedPostsInChunks(posts(150), runChunk, 50),
+    ).rejects.toThrow("boom");
+    expect(runChunk).toHaveBeenCalledTimes(2);
+  });
+});
+
+/**
+ * DB simulasi PERSISTEN lintas transaksi (berbeda dari `createStore` di atas
+ * yang seed-nya statis): tiap "transaksi" menulis ke buffer yang baru
+ * di-commit kalau callback selesai tanpa error, di-buang kalau melempar —
+ * meniru semantik rollback per transaksi supaya bisa menguji chunking
+ * (T-139). `queryCount` per transaksi dipakai sebagai proksi durasi
+ * (timeout 5000 ms Prisma bergantung pada jumlah round-trip).
+ */
+function createPersistentChunkDb(
+  options: { failOnCreateNumber?: number } = {},
+) {
+  const posts: {
+    id: string;
+    outstandPostId: string | null;
+    targets: { connectedAccountId: string; platformPostId: string }[];
+  }[] = [];
+  // Target yang ditempelkan ke post yang SUDAH ada (cross-post guard) —
+  // di-commit/di-buang bersama transaksinya, sama seperti `posts`.
+  const attachedTargets: {
+    postId: string;
+    connectedAccountId: string;
+    platformPostId: string;
+  }[] = [];
+  const queryCounts: number[] = [];
+  let createCalls = 0;
+
+  async function runInTransaction(
+    chunk: ImportedPostTargetInput[],
+  ): Promise<{ insertedCount: number; skippedDuplicateCount: number }> {
+    const buffered: typeof posts = [];
+    const bufferedAttached: typeof attachedTargets = [];
+    let queries = 0;
+    const visible = () => [...posts, ...buffered];
+
+    const tx = {
+      $executeRaw: async () => {
+        queries++;
+        return 1;
+      },
+      $queryRaw: async () => {
+        queries++;
+        return [];
+      },
+      publishingPostTarget: {
+        findMany: async (args: {
+          where: {
+            platformPostId?: { in: string[] };
+            postId?: { in: string[] };
+            connectedAccountId: { in: string[] };
+          };
+        }) => {
+          queries++;
+          const accountIds = new Set(args.where.connectedAccountId.in);
+          if (args.where.platformPostId) {
+            const platformIds = new Set(args.where.platformPostId.in);
+            return visible().flatMap((row) =>
+              row.targets
+                .filter(
+                  (target) =>
+                    accountIds.has(target.connectedAccountId) &&
+                    platformIds.has(target.platformPostId),
+                )
+                .map((target) => ({
+                  id: `target-${row.id}`,
+                  postId: row.id,
+                  connectedAccountId: target.connectedAccountId,
+                  platformPostId: target.platformPostId,
+                  post: { outstandPostId: row.outstandPostId },
+                })),
+            );
+          }
+          const postIds = new Set(args.where.postId?.in ?? []);
+          return visible()
+            .filter((row) => postIds.has(row.id))
+            .flatMap((row) =>
+              row.targets
+                .filter((target) => accountIds.has(target.connectedAccountId))
+                .map((target) => ({
+                  id: `target-${row.id}`,
+                  postId: row.id,
+                  connectedAccountId: target.connectedAccountId,
+                  platformPostId: target.platformPostId,
+                })),
+            );
+        },
+        updateMany: async () => {
+          queries++;
+          return { count: 0 };
+        },
+        create: async (args: {
+          data: {
+            postId: string;
+            connectedAccountId: string;
+            platformPostId: string;
+          };
+        }) => {
+          queries++;
+          bufferedAttached.push(args.data);
+          return { id: `target-attached-${bufferedAttached.length}` };
+        },
+      },
+      publishingPost: {
+        findMany: async (args: {
+          where: { outstandPostId: { in: string[] } };
+        }) => {
+          queries++;
+          const wanted = new Set(args.where.outstandPostId.in);
+          return visible()
+            .filter(
+              (row) =>
+                row.outstandPostId !== null && wanted.has(row.outstandPostId),
+            )
+            .map((row) => ({ ...row, workspaceId: WORKSPACE_ID }));
+        },
+        create: async (args: {
+          data: {
+            outstandPostId: string | null;
+            targets: {
+              create: { connectedAccountId: string; platformPostId: string }[];
+            };
+          };
+        }) => {
+          queries++;
+          createCalls++;
+          if (createCalls === options.failOnCreateNumber) {
+            throw new Error("Transaction API error: expired transaction");
+          }
+          const row = {
+            id: `post-${posts.length + buffered.length + 1}`,
+            outstandPostId: args.data.outstandPostId,
+            targets: args.data.targets.create,
+          };
+          buffered.push(row);
+          return { id: row.id };
+        },
+        updateMany: async () => {
+          queries++;
+          return { count: 0 };
+        },
+      },
+    };
+
+    try {
+      const result = await upsertImportedPostsTx(
+        tx as never,
+        WORKSPACE_ID,
+        chunk,
+      );
+      posts.push(...buffered);
+      attachedTargets.push(...bufferedAttached);
+      return result;
+    } finally {
+      queryCounts.push(queries);
+    }
+  }
+
+  return { posts, attachedTargets, queryCounts, runInTransaction };
+}
+
+describe("upsertImportedPostsInChunks + upsertImportedPostsTx — batch besar (T-139, KI-099)", () => {
+  function bigBatch(count: number): ImportedPostTargetInput[] {
+    return Array.from({ length: count }, (_, index) =>
+      post({
+        platformPostId: `platform-post-${index}`,
+        outstandPostId: `outstand-post-${index}`,
+      }),
+    );
+  }
+
+  it("batch 230 post tersimpan seluruhnya lewat 5 transaksi, tiap transaksi dibatasi ukurannya", async () => {
+    const db = createPersistentChunkDb();
+
+    const result = await upsertImportedPostsInChunks(
+      bigBatch(230),
+      db.runInTransaction,
+    );
+
+    expect(result).toEqual({ insertedCount: 230, skippedDuplicateCount: 0 });
+    expect(db.posts).toHaveLength(230);
+    expect(db.queryCounts).toHaveLength(5);
+    // Satu transaksi untuk 230 post butuh >230 round-trip; dengan chunk 50
+    // tiap transaksi cukup ~50 insert + sedikit lock/lookup, tidak tumbuh
+    // mengikuti ukuran batch — inilah yang menahan durasi di bawah timeout.
+    for (const queries of db.queryCounts) {
+      expect(queries).toBeLessThanOrEqual(
+        UPSERT_IMPORTED_POSTS_CHUNK_SIZE + 10,
+      );
+    }
+  });
+
+  it("import ulang batch yang sama idempoten: semua dihitung duplikat, tidak ada post baru", async () => {
+    const db = createPersistentChunkDb();
+    await upsertImportedPostsInChunks(bigBatch(120), db.runInTransaction);
+
+    const result = await upsertImportedPostsInChunks(
+      bigBatch(120),
+      db.runInTransaction,
+    );
+
+    expect(result).toEqual({ insertedCount: 0, skippedDuplicateCount: 120 });
+    expect(db.posts).toHaveLength(120);
+  });
+
+  it("post yang sama muncul di dua chunk berbeda hanya disimpan sekali (dedup lintas chunk)", async () => {
+    const db = createPersistentChunkDb();
+    const batch = bigBatch(60);
+    // Post indeks 55 (chunk ke-2) menduplikasi indeks 5 (chunk ke-1).
+    batch[55] = batch[5] as ImportedPostTargetInput;
+
+    const result = await upsertImportedPostsInChunks(
+      batch,
+      db.runInTransaction,
+    );
+
+    expect(result).toEqual({ insertedCount: 59, skippedDuplicateCount: 1 });
+    expect(db.posts).toHaveLength(59);
+  });
+
+  it("outstandPostId yang sama dengan platformPostId berbeda di dua chunk: post tidak digandakan, akun kedua dapat target di post yang sudah commit", async () => {
+    const db = createPersistentChunkDb();
+    const batch = bigBatch(60);
+    // Indeks 55 (chunk ke-2) = post yang SAMA di Outstand (outstandPostId
+    // indeks 5, chunk ke-1) tapi milik akun lain dengan platformPostId lain.
+    batch[55] = post({
+      connectedAccountId: asConnectedAccountId("account-2"),
+      platformPostId: "platform-post-account-2",
+      outstandPostId: "outstand-post-5",
+    });
+
+    const result = await upsertImportedPostsInChunks(
+      batch,
+      db.runInTransaction,
+    );
+
+    expect(result).toEqual({ insertedCount: 60, skippedDuplicateCount: 0 });
+    // 59 post (indeks 55 tidak membuat post baru) + 1 target tambahan.
+    expect(db.posts).toHaveLength(59);
+    expect(db.attachedTargets).toHaveLength(1);
+    expect(db.attachedTargets[0]).toMatchObject({
+      postId: db.posts.find((row) => row.outstandPostId === "outstand-post-5")
+        ?.id,
+      connectedAccountId: asConnectedAccountId("account-2"),
+      platformPostId: "platform-post-account-2",
+    });
+  });
+
+  it("chunk gagal: chunk sebelumnya tetap commit, chunk gagal rollback, retry hanya menyelesaikan sisanya", async () => {
+    // 130 post → chunk 50/50/30. `post.create` ke-101 = post pertama chunk 3.
+    const db = createPersistentChunkDb({ failOnCreateNumber: 101 });
+    const batch = bigBatch(130);
+
+    await expect(
+      upsertImportedPostsInChunks(batch, db.runInTransaction),
+    ).rejects.toThrow("expired transaction");
+    expect(db.posts).toHaveLength(100);
+
+    const retry = await upsertImportedPostsInChunks(batch, db.runInTransaction);
+
+    expect(retry).toEqual({ insertedCount: 30, skippedDuplicateCount: 100 });
+    expect(db.posts).toHaveLength(130);
   });
 });

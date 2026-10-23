@@ -16,6 +16,54 @@ import {
 } from "./outstand-post-id-locks";
 
 /**
+ * Jumlah post maksimum per transaksi interaktif Prisma (T-139, KI-099).
+ * `upsertImportedPostsTx` menulis post satu per satu (beberapa query per
+ * post), jadi satu transaksi untuk seluruh batch import besar melewati
+ * timeout default Prisma 5000 ms dan seluruh job gagal. Dipecah supaya
+ * durasi tiap transaksi dibatasi, tidak tumbuh mengikuti ukuran batch.
+ */
+export const UPSERT_IMPORTED_POSTS_CHUNK_SIZE = 50;
+
+/**
+ * Timeout tiap transaksi chunk (ms) — pengaman di atas default Prisma 5000
+ * ms untuk satu chunk yang lambat (latensi DB tinggi), BUKAN pengganti
+ * chunking: durasi total tetap tidak dibatasi oleh angka ini.
+ */
+export const UPSERT_IMPORTED_POSTS_TX_TIMEOUT_MS = 15_000;
+
+/**
+ * Pecah `posts` jadi chunk berurutan dan jalankan `runChunk` (satu
+ * transaksi) per chunk, lalu jumlahkan hasilnya (T-139, KI-099).
+ *
+ * Konsekuensi yang disengaja: all-or-nothing per BATCH hilang, hanya
+ * per CHUNK. Aman karena `upsertImportedPostsTx` idempoten (dedup
+ * `connectedAccountId`+`platformPostId` dan `outstandPostId`) dan tiap
+ * chunk membaca ulang DB, jadi chunk yang sudah commit terlihat oleh chunk
+ * berikutnya. Kalau satu chunk melempar error, chunk sebelumnya tetap
+ * tersimpan, error dilempar ke pemanggil (job retry), dan retry hanya
+ * menghitung ulang sisanya sebagai duplikat — watermark tidak dimajukan
+ * kalau use-case pemanggil gagal (lihat `import-posts-trigger.use-case.ts`).
+ */
+export async function upsertImportedPostsInChunks(
+  posts: ImportedPostTargetInput[],
+  runChunk: (
+    chunk: ImportedPostTargetInput[],
+  ) => Promise<UpsertImportedPostsResult>,
+  chunkSize: number = UPSERT_IMPORTED_POSTS_CHUNK_SIZE,
+): Promise<UpsertImportedPostsResult> {
+  let insertedCount = 0;
+  let skippedDuplicateCount = 0;
+
+  for (let start = 0; start < posts.length; start += chunkSize) {
+    const result = await runChunk(posts.slice(start, start + chunkSize));
+    insertedCount += result.insertedCount;
+    skippedDuplicateCount += result.skippedDuplicateCount;
+  }
+
+  return { insertedCount, skippedDuplicateCount };
+}
+
+/**
  * Import Posts dari Social Account (T-090.4, ADR-093 poin 3-4, 7) — logika
  * inti `IPublishingRepository.upsertImportedPosts` (lihat docstring lengkap
  * di sana), diekstrak ke fungsi berdiri sendiri (pola sama

@@ -1938,9 +1938,87 @@ describe("RealOutstandAdapter.importPosts / fetchImportJobStatus (T-112)", () =>
     // hanya `social_account_id`+`limit` seperti sebelumnya), supaya hasil
     // tidak match post lain di akun yang sama di luar rentang job ini.
     expect(secondUrl).toBe(
-      "https://api.outstand.so/v1/posts?social_account_id=acc-ig-1&limit=1" +
+      "https://api.outstand.so/v1/posts?social_account_id=acc-ig-1&limit=100&offset=0" +
         "&created_after=2026-07-10T00%3A00%3A00.000Z" +
         "&created_before=2026-10-08T00%3A00%3A00.000Z",
+    );
+  });
+
+  it("fetchImportJobStatus paginates GET /v1/posts in pages of max 100 when the job reports more than 100 posts (T-141/KI-101)", async () => {
+    const buildPosts = (from: number, count: number) =>
+      Array.from({ length: count }, (_, index) => ({
+        id: `post-${from + index}`,
+        containers: [{ id: `c-${from + index}`, content: "x", media: [] }],
+        socialAccounts: [
+          {
+            id: "acc-ig-1",
+            status: "published",
+            platformPostId: `ig-post-${from + index}`,
+            platformPostUrl: null,
+            publishedAt: "2026-08-01T00:05:00.000Z",
+          },
+        ],
+      }));
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse(200, {
+          success: true,
+          data: {
+            id: "import-job-1",
+            status: "completed",
+            since: "2026-07-10T00:00:00.000Z",
+            until: "2026-10-08T00:00:00.000Z",
+            imported: 200,
+            skipped: 30,
+            failed: 0,
+            error: null,
+          },
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse(200, {
+          success: true,
+          data: buildPosts(0, 100),
+          pagination: { limit: 100, offset: 0, total: 230, count: 100 },
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse(200, {
+          success: true,
+          data: buildPosts(100, 100),
+          pagination: { limit: 100, offset: 100, total: 230, count: 100 },
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse(200, {
+          success: true,
+          data: buildPosts(200, 30),
+          pagination: { limit: 30, offset: 200, total: 230, count: 30 },
+        }),
+      );
+    const adapter = buildAdapter(fetchImpl);
+
+    const result = await adapter.fetchImportJobStatus(
+      "acc-ig-1",
+      "import-job-1",
+    );
+
+    expect(result.status).toBe("completed");
+    expect(result.posts).toHaveLength(230);
+    expect(result.posts[229]?.platformPostId).toBe("ig-post-229");
+    expect(fetchImpl).toHaveBeenCalledTimes(4);
+    const range =
+      "&created_after=2026-07-10T00%3A00%3A00.000Z" +
+      "&created_before=2026-10-08T00%3A00%3A00.000Z";
+    expect(fetchImpl.mock.calls[1][0]).toBe(
+      `https://api.outstand.so/v1/posts?social_account_id=acc-ig-1&limit=100&offset=0${range}`,
+    );
+    expect(fetchImpl.mock.calls[2][0]).toBe(
+      `https://api.outstand.so/v1/posts?social_account_id=acc-ig-1&limit=100&offset=100${range}`,
+    );
+    expect(fetchImpl.mock.calls[3][0]).toBe(
+      `https://api.outstand.so/v1/posts?social_account_id=acc-ig-1&limit=100&offset=200${range}`,
     );
   });
 

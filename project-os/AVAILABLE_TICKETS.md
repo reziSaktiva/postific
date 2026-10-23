@@ -23,27 +23,23 @@ Phase dan blocker ada di [`PROJECT_STATE.md`](PROJECT_STATE.md). Known Issue yan
 | 🟡     | Sedang dikerjakan                                 |
 | 🚫     | Terhenti, menunggu King Rezi atau dependency luar |
 
-ID tiket global, tidak didaur ulang. Berikutnya: **T-139**. ID spec berikutnya: **S-001**.
+ID tiket global, tidak didaur ulang. Berikutnya: **T-144**. ID spec berikutnya: **S-001**.
 
 ---
 
 ## Sekarang
 
-| ID    | Status | Judul                                                                                                                                                           | File                                  |
-| ----- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| T-137 | 🚫     | Adapter SMTP sementara email staging. Kode selesai (review+QA PASS); sisa King Rezi isi env Railway staging. KI-097, ADR-137                                    | [KI](tickets/known-issues.md)         |
-| T-037 | 🟡     | Perkaya aturan coding di `context/ctx-development.md`                                                                                                           | [v0.2](tickets/v02-publishing-mvp.md) |
-| T-115 | 🟡     | Wiring cron harian Import Posts. Sisa: post native Facebook                                                                                                     | [v0.2](tickets/v02-publishing-mvp.md) |
-| T-013 | 🟡     | Connect account. Sisa: T-013.4 BYOK X                                                                                                                           | [v0.1](tickets/v01-foundation.md)     |
-| T-119 | 🚫     | Isi env Google OAuth. KI-015. King Rezi yang mengisi rahasianya                                                                                                 | [KI](tickets/known-issues.md)         |
-| T-122 | ⏳     | Buktikan E2E invite Copy Link, email A vs email B. KI-053                                                                                                       | [KI](tickets/known-issues.md)         |
-| T-130 | 🚫🔴   | `totalPosts` Home — implementasi selesai (review+QA PASS). KI-093 — blocked verifikasi browser, butuh akun test Outstand baru                                   | [KI](tickets/known-issues.md)         |
-| T-134 | 🚫🔴   | Disconnect akun sosial, scope direvisi ke recompute snapshot — implementasi selesai. KI-094 — blocked verifikasi E2E, butuh akun test baru                      | [KI](tickets/known-issues.md)         |
-| T-135 | 🚫🔴   | Periode "bulanan" jadi kalender bulan — implementasi selesai. KI-095 — blocked verifikasi browser, butuh akun test baru                                         | [KI](tickets/known-issues.md)         |
-| T-136 | 🚫🔴   | Label "Post terpublikasi" Home — implementasi selesai (ikut T-130). KI-096 — blocked verifikasi browser, butuh akun test baru                                   | [KI](tickets/known-issues.md)         |
-| T-133 | 🚫     | Backfill retroaktif Import Posts lama — **tetap di-block**: T-130/T-134/T-135/T-136 belum ✅ Done penuh (sisa verifikasi E2E); TikTok/Pinterest tanpa akun test | [v0.2](tickets/v02-publishing-mvp.md) |
+| ID    | Status | Judul                                                                                                                           | File                                  |
+| ----- | ------ | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| T-037 | 🟡     | Perkaya aturan coding di `context/ctx-development.md`                                                                           | [v0.2](tickets/v02-publishing-mvp.md) |
+| T-115 | 🟡     | Wiring cron harian Import Posts. Sisa: post native Facebook                                                                     | [v0.2](tickets/v02-publishing-mvp.md) |
+| T-013 | 🟡     | Connect account. Sisa: T-013.4 BYOK X                                                                                           | [v0.1](tickets/v01-foundation.md)     |
+| T-119 | 🚫     | Isi env Google OAuth. KI-015. King Rezi yang mengisi rahasianya                                                                 | [KI](tickets/known-issues.md)         |
+| T-122 | ⏳     | Buktikan E2E invite Copy Link, email A vs email B. KI-053                                                                       | [KI](tickets/known-issues.md)         |
+| T-142 | 🚫     | Usulan: History post `Imported` memakai `publishedAt`. Bukan bug — menunggu keputusan produk King Rezi dan cek Claude Design    | [v0.2](tickets/v02-publishing-mvp.md) |
+| T-143 | ⏳🔴   | Import periodik tidak mengejar riwayat akun baru (watermark null) + hasil terpotong 100 post. KI-102 — post TikTok 7 Okt hilang | [KI](tickets/known-issues.md)         |
 
-T-037 prioritas rendah dan tidak memblokir rilis. T-115 masih 🟡: job import dan watermark sudah terbukti di staging; sisa T-115.5 adalah post native Facebook yang muncul di Postific. T-124 selesai 2026-10-19 (error kolom void, KI-091). T-116 → T-117 → T-118 (token-agent) selesai 2026-10-16, lihat `tickets/v01-foundation.md`. T-131 dan T-132 selesai 2026-10-20 (revisi scope Import Posts dari King Rezi; T-132 klasifikasi `ContentFormat` via Outstand Analytics, ADR-135). **T-130, T-134, T-135, T-136 (🔴 prioritas tinggi)** lahir dari satu investigasi ketidaksesuaian data Supabase vs Outstand yang sama — implementasinya tuntas 2026-10-21 (review Ridwan PASS, QA Najwa PASS, ADR-136), tapi keempatnya masih 🚫 (bukan ✅) karena verifikasi browser E2E butuh akun test Outstand baru yang belum ada (workspace King Rezi kosong sejak pembersihan data manual T-134). T-133 🚫 **tetap** di-block sampai keempat tiket itu ✅ Done penuh (syarat literal di tiket T-133 belum terpenuhi; T-133.1 tetap tidak bisa diverifikasi tanpa akun test TikTok/Pinterest, terpisah dari blocker ini).
+T-037 prioritas rendah dan tidak memblokir rilis. T-115 masih 🟡: job import dan watermark sudah terbukti di staging; sisa T-115.5 adalah post native Facebook yang muncul di Postific. T-124 selesai 2026-10-19 (error kolom void, KI-091). T-116 → T-117 → T-118 (token-agent) selesai 2026-10-16, lihat `tickets/v01-foundation.md`. T-131 dan T-132 selesai 2026-10-20 (revisi scope Import Posts dari King Rezi; T-132 klasifikasi `ContentFormat` via Outstand Analytics, ADR-135). **T-130, T-134, T-135, T-136 (🔴 prioritas tinggi)** lahir dari satu investigasi ketidaksesuaian data Supabase vs Outstand yang sama — implementasinya tuntas 2026-10-21 (review Ridwan PASS, QA Najwa PASS, ADR-136). Akun test real "Cook It Real Good" tersedia 2026-10-22: **T-134 dan T-135 ✅ Done**. 2026-10-23: **T-130, T-136, T-139 ✅ Done** (Home menampilkan 12 post Oktober sesuai DB; import Instagram 182 post tersimpan lewat chunk per transaksi) dan bug baru **T-141 ✅ Done** (pagination `GET /v1/posts`, limit maks 100). **T-133 ✅ Done (2026-10-23):** script T-133.2/.3 dieksekusi atas konfirmasi King Rezi (Facebook 184, Instagram 182 post, terklasifikasi), diverifikasi di Home/Analyze/History; TikTok terbukti didukung Import, Pinterest tetap keterbatasan eksplisit (tanpa akun test). **T-140 ✅ Done** (2026-10-22, KI-100) — bug produksi infinite redirect loop `/` ↔ `/login` saat session cookie stale/invalid di `proxy.ts`, ditemukan King Rezi saat `bun dev` lokal, diperbaiki sesi yang sama (hapus cookie session stale sebelum redirect, lihat `tickets/known-issues.md`).
 
 ---
 
@@ -64,12 +60,13 @@ v0.3 dan v0.7 tidak punya tiket terbuka.
 
 ## Keputusan yang masih menunggu
 
-| Tiket | Yang belum diputuskan             | Menghambat       |
-| ----- | --------------------------------- | ---------------- |
-| T-060 | Provider dan model AI             | Seluruh v0.5     |
-| T-081 | Framework E2E                     | Golden path v1.0 |
-| T-086 | Tool observability                | Visibilitas job  |
-| —     | Billing belum masuk rilis manapun | Belum ada tiket  |
+| Tiket | Yang belum diputuskan                                               | Menghambat           |
+| ----- | ------------------------------------------------------------------- | -------------------- |
+| T-142 | Perilaku History untuk post Imported (`publishedAt` vs `updatedAt`) | Perubahan UI History |
+| T-060 | Provider dan model AI                                               | Seluruh v0.5         |
+| T-081 | Framework E2E                                                       | Golden path v1.0     |
+| T-086 | Tool observability                                                  | Visibilitas job      |
+| —     | Billing belum masuk rilis manapun                                   | Belum ada tiket      |
 
 ---
 

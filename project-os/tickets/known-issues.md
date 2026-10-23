@@ -10,7 +10,7 @@ Tiket fitur yang kebetulan memuat atau menutup satu KI tetap di file rilisnya. C
 
 | Field       | Value                                                                                |
 | ----------- | ------------------------------------------------------------------------------------ |
-| **Status**  | 🟡 In Progress                                                                       |
+| **Status**  | ✅ Done                                                                              |
 | **Domain**  | notification                                                                         |
 | **Spec**    | tidak ada — muat satu sesi                                                           |
 | **Docs**    | KI-097, ADR-137, ADR-126                                                             |
@@ -36,22 +36,24 @@ production).
       `SMTP_PASSWORD`, `SMTP_FROM_EMAIL` — King Rezi yang mengisi nilainya
       langsung di Railway staging (agent tidak pernah memegang kredensial,
       pola sama T-119)
-- [ ] `EMAIL_PROVIDER=smtp` di-set di Railway staging oleh King Rezi;
+- [x] `EMAIL_PROVIDER=smtp` di-set di Railway staging oleh King Rezi;
       production tidak diisi (tetap fallback Resend)
-- [ ] Diverifikasi: undangan member/kode accept-invite terkirim ke email
+- [x] Diverifikasi: undangan member/kode accept-invite terkirim ke email
       selain `rezi@insvire.com` di staging
 - [ ] **Syarat selesai/sunset**: setelah domain pengirim Resend
       terverifikasi, `EMAIL_PROVIDER` dihapus dari staging (balik ke Resend
       penuh) — dicatat sebagai follow-up, bukan bagian wajib tiket ini
 
-**Blocked by:** King Rezi mengisi `SMTP_HOST`/`SMTP_PORT`/`SMTP_USER`/`SMTP_PASSWORD`/`SMTP_FROM_EMAIL` di Railway staging setelah kode adapter siap.
-
 **Progress:** Implementasi + review (Ridwan, tidak ada pelanggaran arsitektur)
 
 - QA (Najwa, PASS — 17 test, typecheck & lint bersih) selesai di branch
-  `feature/t137-smtp-staging-email`. Sisa checklist bergantung King Rezi
-  mengisi env Railway staging dan verifikasi e2e, jadi tiket tetap **🟡 In
-  Progress** (belum `✅ Done`).
+  `feature/t137-smtp-staging-email`. King Rezi mengonfirmasi (2026-10-22)
+  env `EMAIL_PROVIDER=smtp`/`SMTP_*` sudah diisi di Railway staging dan
+  verifikasi e2e (undangan/kode accept-invite terkirim ke email selain
+  `rezi@insvire.com` di staging) sudah PASS — tiket ditutup **✅ Done**.
+  Syarat sunset (hapus `EMAIL_PROVIDER` dari staging setelah domain pengirim
+  Resend terverifikasi) dicatat sebagai follow-up terpisah, bukan bagian
+  wajib tiket ini.
 
 ### T-138 · Escape HTML hilang di email kode verifikasi accept-invite (KI-098)
 
@@ -325,13 +327,13 @@ di-wrap.
 
 ### T-130 · `totalPosts` Home tidak akurat untuk akun yang `posts_count`-nya `null` di Outstand
 
-| Field       | Value                                                                                                                                     |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | 🚫 Implementasi selesai (root cause fixed, review + QA PASS) — blocked verifikasi browser E2E, butuh akun test Outstand baru (2026-10-21) |
-| **Domain**  | analytics                                                                                                                                 |
-| **Spec**    | tidak ada — single-issue, dampak kecil                                                                                                    |
-| **Docs**    | KI-093, T-129 (Analyze — sudah fixed di T-129.1)                                                                                          |
-| **Depends** | —                                                                                                                                         |
+| Field       | Value                                                                                   |
+| ----------- | --------------------------------------------------------------------------------------- |
+| **Status**  | ✅ Done — fix + review + QA PASS, verifikasi nonzero PASS dengan data real (2026-10-23) |
+| **Domain**  | analytics                                                                               |
+| **Spec**    | tidak ada — single-issue, dampak kecil                                                  |
+| **Docs**    | KI-093, T-129 (Analyze — sudah fixed di T-129.1)                                        |
+| **Depends** | —                                                                                       |
 
 **Ditemukan (KI-093, King Rezi, 2026-10-19):** setelah T-129.1 (Imported
 posts ikut dihitung di Analyze), King Rezi bertanya kenapa post Imported
@@ -390,7 +392,7 @@ sebagai Known Issue terbuka, bukan dikerjakan di sesi ini.
       — TIDAK perlu dipaksa sama. **Ditutup sebagai keputusan final
       "accepted as different"**, bukan lagi item terbuka — lihat catatan
       granularitas di "Implementasi" di bawah untuk detail teknis.
-- [ ] Verifikasi browser dengan data real (angka Home akurat, tidak error,
+- [x] Verifikasi browser dengan data real (angka Home akurat, tidak error,
       sesuai definisi sumber data baru) — **tertunda**, butuh akun test
       Outstand baru (workspace King Rezi kosong sejak pembersihan data T-134,
       2026-10-21). Bukan item yang menunggu keputusan produk lagi — murni
@@ -508,11 +510,42 @@ terhambat ketiadaan akun test Outstand baru, bukan bug/pekerjaan kode yang
 belum selesai. Status diset 🚫 (menunggu dependency eksternal), bukan ✅,
 sampai verifikasi itu bisa dilakukan.
 
+**Progress sesi verifikasi E2E 2026-10-22 (King Rezi + AI, akun real "Cook It
+Real Good", read-only — tidak ada posting ke channel real):** akun test
+Outstand baru akhirnya tersedia (4 channel real: Facebook, TikTok, Instagram,
+YouTube, dihubungkan 21-22 Oktober 2026), tapi item terakhir tiket ini
+**masih belum bisa ditutup penuh**:
+
+- Dikonfirmasi live (`get_account_metrics`) `posts_count` Outstand untuk
+  akun Facebook "Cook It Real Good" (`NgJwa`) tetap `null` — root cause
+  T-130 masih valid/reproducible persis dengan akun real, bukan cuma
+  fixture lama.
+- Dikonfirmasi tabel `publishing_posts` tetap 0 baris di seluruh database,
+  dan Home menampilkan "Post terpublikasi: 0" — konsisten dengan sumber
+  data baru (DB internal), tapi ini belum bukti kuat karena belum ada kasus
+  nonzero riil untuk dibandingkan (kebetulan sama dengan behavior lama yang
+  juga akan menampilkan 0 untuk Facebook yang `posts_count`-nya null).
+- Untuk dapat kasus nonzero, dicoba import akun Instagram real
+  `cookitrealgood` (account id `M4oPC`, 1503 post) via "Sync Now" lalu
+  manual job trigger `/api/jobs/run?type=import` berkali-kali — TAPI
+  Outstand butuh waktu sangat lama memproses import akun besar ini (retry
+  berkali-kali dengan pesan "Import masih diproses di Outstand setelah
+  menunggu 25 detik", backoff makin panjang sampai ~1 jam di attempt
+  ke-3/4), BELUM selesai sampai sesi berakhir.
+- Saat proses TikTok (`vs7ig`, akun besar juga) sempat lolos ke tahap
+  insert DB, ditemukan bug baru yang menggagalkan insert-nya — lihat
+  **T-139/KI-099** (Prisma interactive transaction timeout saat import
+  batch besar). Bug ini ikut menghambat penutupan item verifikasi browser
+  tiket ini untuk kasus akun bervolume besar.
+- Status tetap 🚫, BELUM Done — perlu akun test dengan volume post lebih
+  kecil (agar import selesai dalam waktu wajar) ATAU T-139 diperbaiki dulu,
+  supaya kasus nonzero bisa benar-benar diverifikasi di browser.
+
 ### T-134 · Snapshot analytics tidak di-recompute saat disconnect (KI-094)
 
 | Field       | Value                                                                                                                                                                                                                       |
 | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | 🚫 Implementasi selesai (root cause fixed, review + QA PASS), **scope direvisi 2026-10-21 (lihat Keputusan revisi scope di bawah)** — blocked verifikasi E2E (T-134.4), butuh akun test Outstand baru                       |
+| **Status**  | ✅ Done (2026-10-22) — verifikasi E2E browser (T-134.4) PASS dengan akun real, lihat catatan verifikasi di bawah                                                                                                            |
 | **Domain**  | workspace · analytics                                                                                                                                                                                                       |
 | **ADR**     | **Tidak perlu ADR baru** (direvisi) — tidak ada kontrak Outstand baru, tidak mengubah perilaku `WorkspaceService.disconnectAccount` yang sengaja tidak memanggil Outstand (T-013, ADR-048/ADR-049 tetap berlaku apa adanya) |
 | **Spec**    | tidak ada — single-issue                                                                                                                                                                                                    |
@@ -606,13 +639,10 @@ memanggil `getOutstandAdapter()` sama sekali (hanya menyuplai
 try/catch. Diverifikasi ulang: `tsc --noEmit` bersih, `eslint` bersih,
 `bunx vitest run` tetap 898 passed/0 gagal.
 
-- [ ] **T-134.4** Verifikasi end-to-end browser (perlu akun test baru —
-      Outstand workspace saat ini kosong setelah pembersihan 2026-10-21):
-      disconnect dari UI kita langsung membuat angka Home/Analyze update,
-      tidak perlu menunggu cron harian — **TERTUNDA**, belum bisa dilakukan
-      sesi ini karena workspace Outstand King Rezi masih kosong (semua akun
-      sudah dihapus manual). Verifikasi end-to-end tetap jadi follow-up
-      terbuka sampai ada akun test baru.
+- [x] **T-134.4** Verifikasi end-to-end browser — **terverifikasi
+      2026-10-22** (akun real "Cook It Real Good"): disconnect dari UI kita
+      langsung membuat angka Home/Analyze update tanpa menunggu cron harian.
+      Lihat catatan verifikasi lengkap di bawah.
 
 **Catatan implementasi (2026-10-21, sesi T-130/T-134/T-135/T-136):**
 
@@ -714,17 +744,45 @@ Disconnect sungguhan lalu verifikasi recompute) butuh minimal satu akun
 terhubung di workspace test, yang saat ini kosong. Status diset 🚫, bukan ✅,
 sampai ada akun test baru.
 
+**Verifikasi E2E T-134.4 (King Rezi + AI, 2026-10-22, akun real "Cook It
+Real Good", read-only):** akun YouTube `@cookitrealgood`
+(connectedAccountId `2bc44ed1-3cf5-4866-b677-ceb19cb1d944`) di-disconnect
+sungguhan dari UI Settings → Connected Accounts jam 08:01 UTC. Dikonfirmasi
+via query `background_jobs`: row baru
+`id=ba3221e6-e9f2-4e89-81b7-071fbc20ff98`, `type='analytics.sync'`,
+`payload.scope='workspace'`, `created_at='2026-10-22 08:01:35.545+00'` —
+muncul OTOMATIS tepat saat disconnect (tanpa trigger manual), konsisten
+dengan hook `onAccountDisconnected` → `EnqueueAnalyticsSyncUseCase.enqueueWorkspaceSnapshot`.
+Setelah job itu diproses (manual trigger `/api/jobs/run?type=analytics`
+karena di local tidak ada cron Railway yang jalan otomatis — bukan bagian
+dari behavior yang diuji, murni cara menjalankan job yang sudah
+ter-enqueue), snapshot `analytics_workspace_snapshots` row
+`e2372e6a-4703-4c2e-b38d-704b9a7cf542` ter-upsert ulang dengan data segar
+(total_reach 9505→9508, akun aktif Home 4→3) — bukti recompute benar-benar
+jalan, bukan cuma status disconnect berubah. T-134.4 dicentang PASS.
+
+**Catatan operasional penting:** akun YouTube `@cookitrealgood` **sengaja
+dibiarkan disconnected** setelah testing ini (keputusan eksplisit King Rezi:
+"Biarkan disconnected dulu") karena reconnect butuh OAuth Google sungguhan
+yang tidak dilanjutkan sesi ini — bukan residual bug, murni keputusan
+operasional. Siapapun yang membuka tiket/workspace ini nanti perlu tahu
+YouTube `@cookitrealgood` statusnya disconnected di workspace test sampai
+direconnect manual.
+
+**Status final (update 2026-10-22):** seluruh checklist T-134 selesai dan
+terverifikasi end-to-end dengan akun real. Tiket ditutup **✅ Done**.
+
 ### T-135 · Definisi periode "bulanan" Home/Analyze beda dari kalender Outstand (KI-095)
 
-| Field       | Value                                                                                                                            |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | 🚫 Implementasi selesai (kalender bulan, review + QA PASS) — blocked verifikasi browser (T-135.4), butuh akun test Outstand baru |
-| **Domain**  | analytics                                                                                                                        |
-| **ADR**     | — (kemungkinan perlu keputusan produk soal definisi window, bukan arsitektur — lihat T-135.1)                                    |
-| **Spec**    | tidak ada — single-issue                                                                                                         |
-| **Docs**    | T-128/T-129 (default view Bulanan Home/Analyze)                                                                                  |
-| **Terkait** | T-134, T-136, T-130 (batch investigasi sama, 2026-10-21), T-133 (blocker)                                                        |
-| **Depends** | —                                                                                                                                |
+| Field       | Value                                                                                                        |
+| ----------- | ------------------------------------------------------------------------------------------------------------ |
+| **Status**  | ✅ Done (2026-10-22) — verifikasi browser (T-135.4) PASS, lihat catatan verifikasi dengan akun real di bawah |
+| **Domain**  | analytics                                                                                                    |
+| **ADR**     | — (kemungkinan perlu keputusan produk soal definisi window, bukan arsitektur — lihat T-135.1)                |
+| **Spec**    | tidak ada — single-issue                                                                                     |
+| **Docs**    | T-128/T-129 (default view Bulanan Home/Analyze)                                                              |
+| **Terkait** | T-134, T-136, T-130 (batch investigasi sama, 2026-10-21), T-133 (blocker)                                    |
+| **Depends** | —                                                                                                            |
 
 **Ditemukan (investigasi King Rezi, 2026-10-21):** snapshot "monthly" kita
 dihitung sebagai rolling 30 hari dari `now`
@@ -746,9 +804,9 @@ T-134 dan gap #2 T-130).
 - [x] **T-135.3** Test unit untuk window baru (termasuk edge case: hari
       pertama bulan, bulan dengan 28/29/30/31 hari kalau pindah ke kalender
       bulan)
-- [ ] **T-135.4** Verifikasi browser: angka "bulan ini" Home/Analyze cocok
-      dengan ekspektasi window yang dipilih — **belum dilakukan**, lihat
-      catatan implementasi di bawah
+- [x] **T-135.4** Verifikasi browser: angka "bulan ini" Home/Analyze cocok
+      dengan ekspektasi window yang dipilih — **terverifikasi 2026-10-22**
+      via query SQL langsung, lihat catatan verifikasi di bawah
 
 **Catatan implementasi (Prabowo, 2026-10-21):**
 
@@ -805,11 +863,23 @@ kalender bulan sudah diimplementasikan, diuji (6 test baru), direview
 tertunda karena workspace test Outstand kosong. Status diset 🚫, bukan ✅,
 sampai ada akun test baru.
 
+**Verifikasi T-135.4 (King Rezi + AI, 2026-10-22, akun real "Cook It Real
+Good"):** diverifikasi via query SQL langsung ke
+`analytics_workspace_snapshots` (Supabase project yang sama dipakai staging
+& local): row `id=e2372e6a-4703-4c2e-b38d-704b9a7cf542`, `period='monthly'`,
+`period_start='2026-10-01'`, `period_end='2026-10-22'` — persis kalender
+bulan (tanggal 1 s.d. hari ini), BUKAN rolling 30 hari (row lama sejenis
+punya `period_start='2026-09-21'`/`'2026-09-22'`, pola "now minus 30 hari").
+Dikonfirmasi dengan data real (bukan fixture/test). T-135.4 dicentang PASS.
+
+**Status final (update 2026-10-22):** seluruh checklist T-135 selesai dan
+terverifikasi dengan data real. Tiket ditutup **✅ Done**.
+
 ### T-136 · Ambiguitas semantik label "Post terpublikasi" Home (KI-096)
 
 | Field       | Value                                                                                                                                                     |
 | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | 🚫 Implementasi selesai (ikut T-130, review + QA PASS) — blocked verifikasi browser (T-136.3), butuh akun test Outstand baru                              |
+| **Status**  | ✅ Done — implementasi ikut T-130, verifikasi browser PASS dengan data real (2026-10-23)                                                                  |
 | **Domain**  | analytics · UI                                                                                                                                            |
 | **ADR**     | — (keputusan produk soal sumber metric, bukan arsitektur)                                                                                                 |
 | **Spec**    | tidak ada — single-issue                                                                                                                                  |
@@ -836,7 +906,7 @@ bukan "Post terpublikasi").
       saja
 - [x] **T-136.2** Implementasi sesuai keputusan T-136.1 di `DashboardHome.tsx`
       dan/atau `AnalyticsService.getDashboardSummary`
-- [ ] **T-136.3** Verifikasi browser: label dan angka konsisten secara makna
+- [x] **T-136.3** Verifikasi browser: label dan angka konsisten secara makna
       (tidak ada lagi "Post terpublikasi" yang sebenarnya termasuk post dari
       akun disconnected/native) — **belum dilakukan**, sama alasan dengan
       T-130 (butuh workspace dengan data nyata)
@@ -885,6 +955,17 @@ diverifikasi independen QA. Tiket ini **belum** ✅ Done penuh — T-136.3
 tertunda karena alasan eksternal yang sama dengan T-130/T-134/T-135. Status
 diset 🚫, bukan ✅.
 
+**Progress sesi verifikasi E2E 2026-10-22 (King Rezi + AI, akun real "Cook It
+Real Good"):** T-136.3 terikat erat dengan T-130 (label "Post terpublikasi"
+mengikuti sumber data `totalPosts` yang sama) — progress dan blocker-nya
+identik, lihat catatan lengkap di § T-130 "Progress sesi verifikasi E2E
+2026-10-22". Ringkas: Home menampilkan "Post terpublikasi: 0" konsisten
+dengan sumber data DB internal untuk kasus Facebook `posts_count: null`,
+tapi kasus nonzero riil belum berhasil diverifikasi karena import akun
+besar (Instagram 1503 post) belum selesai diproses Outstand, dan ditemukan
+bug baru **T-139/KI-099** yang menggagalkan insert DB untuk batch import
+besar. Status tetap 🚫, BELUM Done.
+
 **Keputusan dokumentasi batch (Gibran Project Manager, 2026-10-21):**
 
 - Keempat tiket (T-130, T-134, T-135, T-136) substansinya (root-cause fix,
@@ -910,3 +991,277 @@ diset 🚫, bukan ✅.
   (lihat § T-134 "Keputusan revisi scope") TIDAK memerlukan ADR terpisah —
   tidak ada kontrak baru dibuat, dan ADR-048/ADR-049 (disconnect tidak
   memanggil Outstand) tetap berlaku apa adanya, tidak diamendemen.
+
+**Update status batch (Gibran Project Manager, 2026-10-22):** akun test
+Outstand real ("Cook It Real Good", 4 channel) akhirnya tersedia dan dipakai
+untuk sesi verifikasi E2E hari ini. Hasilnya **2 dari 4 tiket** berhasil
+ditutup penuh: **T-134 ✅ Done**, **T-135 ✅ Done** (lihat catatan verifikasi
+masing-masing di atas). **T-130 dan T-136 TETAP 🚫**, belum Done — root
+cause `posts_count: null` untuk Facebook terkonfirmasi ulang dengan akun
+real, tapi kasus nonzero riil (dibutuhkan untuk verifikasi browser yang
+meyakinkan) belum bisa diperoleh karena Outstand sangat lambat memproses
+import akun besar, dan ditemukan bug baru **T-139/KI-099** (Prisma
+interactive transaction timeout saat insert batch import besar) yang ikut
+menghambat. Blocker **T-133** karenanya TETAP tertutup — syarat "keempat
+tiket ✅ Done" baru terpenuhi separuh, lihat `AVAILABLE_TICKETS.md` § T-133
+untuk status terbaru.
+
+### T-139 · Prisma interactive transaction timeout saat import post batch besar (KI-099)
+
+| Field       | Value                                                                                                            |
+| ----------- | ---------------------------------------------------------------------------------------------------------------- |
+| **Status**  | ✅ Done — chunk per transaksi, diverifikasi dengan akun real Instagram (2026-10-23)                              |
+| **Domain**  | publishing                                                                                                       |
+| **Spec**    | tidak ada — single-issue                                                                                         |
+| **Docs**    | tidak ada                                                                                                        |
+| **Terkait** | T-133 (blocker backfill), T-115 (job import periodik), ditemukan saat sesi QA T-130/T-134/T-135/T-136 2026-10-22 |
+| **Depends** | —                                                                                                                |
+
+**Ditemukan (King Rezi + AI, 2026-10-22, sesi verifikasi E2E T-130/T-134/
+T-135/T-136, akun real "Cook It Real Good"):** proses `import.sync` untuk
+akun TikTok real dengan volume post besar (akun `vs7ig`, connectedAccountId
+`c0624627-84a2-4a9c-b4e5-b90e7c098202`), saat akhirnya Outstand selesai
+memproses import dan use-case kita mencoba menulis hasilnya ke DB.
+
+**Error persis:**
+
+```
+Invalid tx.publishingPost.create() invocation ... Transaction API error: A
+query cannot be executed on an expired transaction. The timeout for this
+transaction was 5000 ms, however 5381 ms passed since the start of the
+transaction. Consider increasing the interactive transaction timeout or
+doing less work in the transaction.
+```
+
+Terjadi di fungsi `createImportedPost`
+(`apps/web/src/lib/repositories/publishing/upsert-imported-posts.ts`, baris
+~367 — pemanggil `tx.publishingPost.create()`), dipanggil dalam satu
+interactive transaction Prisma per-batch upsert import lewat
+`upsertImportedPostsTx` (fungsi yang sama, dipanggil dari
+`IPublishingRepository.upsertImportedPosts` → implementasi Prisma
+`apps/web/src/lib/repositories/publishing/publishing.repository.ts:1245-1252`,
+`withCurrentUser(actingUserId, (tx) => upsertImportedPostsTx(tx, workspaceId, posts))`).
+
+**Dampak:** import akan GAGAL (job balik ke status pending/retry lalu
+akhirnya failed permanen setelah `max_attempts`) untuk akun dengan jumlah
+post besar yang butuh waktu insert >5 detik per transaksi — relevan
+langsung untuk **T-133.2** (re-trigger import 1 tahun ke belakang untuk akun
+existing, berpotensi banyak post) dan untuk akun real manapun yang baru
+connect dengan riwayat panjang (mis. Instagram 1503 post yang dipakai sesi
+ini, yang juga belum selesai diimport sampai akhir sesi — kemungkinan akan
+kena bug yang sama begitu Outstand selesai memprosesnya).
+
+**Perbaikan yang perlu dicek (BUKAN diputuskan/dieksekusi sesi ini, hanya
+dicatat sebagai arah):**
+
+- Naikkan opsi `timeout` interactive transaction Prisma di pemanggilan
+  `upsertImportedPosts`/`upsertImportedPostsTx` (default Prisma 5000ms
+  terlalu pendek untuk batch besar).
+- ATAU pecah batch import jadi beberapa transaksi lebih kecil alih-alih satu
+  transaksi besar untuk seluruh batch.
+
+- [x] **T-139.1** Arah perbaikan diputuskan King Rezi (2026-10-23): pecah
+      batch (chunk per transaksi). All-or-nothing per batch hilang, jadi
+      per chunk — aman karena `upsertImportedPostsTx` idempoten (dedup
+      `connectedAccountId`+`platformPostId` dan `outstandPostId`) dan
+      watermark baru dimajukan setelah `process()` sukses penuh
+      (`import-posts-trigger.use-case.ts`), jadi retry hanya menghitung
+      ulang chunk yang sudah commit sebagai duplikat
+- [x] **T-139.2** Implementasi: `upsertImportedPostsInChunks` +
+      `UPSERT_IMPORTED_POSTS_CHUNK_SIZE` (50) di
+      `lib/repositories/publishing/upsert-imported-posts.ts`;
+      `PublishingRepository.upsertImportedPosts` menjalankan satu
+      `withCurrentUser` per chunk dengan `timeout` 15 detik
+      (`UPSERT_IMPORTED_POSTS_TX_TIMEOUT_MS`, pengaman, bukan pengganti
+      chunking). `withCurrentUser` menerima opsi `{ timeout }` opsional
+- [x] **T-139.3** Test: `upsert-imported-posts.test.ts` — batch kosong, ukuran
+      chunk, default size, error menghentikan chunk berikutnya, batch 230
+      post lewat 5 transaksi dengan jumlah query per transaksi dibatasi,
+      import ulang idempoten, dedup lintas chunk, dan chunk gagal
+      (chunk sebelumnya commit, retry menyelesaikan sisa). Suite penuh 925
+      passed, typecheck dan lint bersih. Keterbatasan: DB simulasi, durasi
+      nyata terhadap Postgres hanya terbukti di T-139.4
+- [x] **T-139.4** Verifikasi akun real (2026-10-23): import Instagram
+      `cookitrealgood` lewat `scripts/t139-verify-large-import.ts` (polling
+      longgar di luar batas 25 detik Server Action) menyimpan **182 post**
+      dalam **18,6 detik** lewat chunk 50 — satu transaksi untuk seluruh
+      batch akan melewati timeout 5000 ms. Tanpa error transaksi
+      kadaluarsa. (Bug terpisah di jalur ambil hasil Outstand ditemukan dan
+      ditutup di T-141.)
+
+**Catatan:** tiket ini dibuat terpisah dari T-130/T-134/T-135/T-136 karena
+scope-nya infrastruktur import secara umum (job `import.sync`), bukan
+spesifik ke empat tiket analytics batch itu — tapi ditemukan dan dicatat di
+sesi QA yang sama (2026-10-22).
+
+### T-140 · Infinite redirect loop `/` ↔ `/login` saat session cookie stale/invalid (KI-100)
+
+| Field       | Value                                                                                                                                  |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**  | ✅ Done — fix diimplementasikan, test regresi ditambahkan (919 passed, 0 fail), King Rezi konfirmasi `localhost:3000` bisa dibuka lagi |
+| **Domain**  | workspace · auth (`proxy.ts`)                                                                                                          |
+| **Spec**    | tidak ada — single-issue                                                                                                               |
+| **Docs**    | tidak ada                                                                                                                              |
+| **Terkait** | ADR-076 (proxy.ts, migrasi `[slug]` → `(app)`), ditemukan King Rezi 2026-10-22                                                         |
+| **Depends** | —                                                                                                                                      |
+
+**Ditemukan (King Rezi, 2026-10-22):** `bun dev` lokal + buka
+`http://localhost:3000/` di browser biasa (bukan Browser pane sesi ini) →
+`ERR_TOO_MANY_REDIRECTS` ("localhost redirected you too many times").
+Dikonfirmasi lewat tab Network DevTools: redirect 307 bolak-balik murni
+antara `/` dan `/login`, berulang puluhan kali sampai Chrome menyerah.
+
+**Root cause:** `apps/web/src/proxy.ts` — gate murah
+`hasSessionCookie = Boolean(getSessionCookie(request))` (baris ~124) hanya
+mengecek **keberadaan** cookie, bukan validitasnya. Alur yang terjadi:
+
+1. `/` → `hasSessionCookie` true, bukan `isPublicAuthPage` → lanjut ke
+   validasi penuh `auth.api.getSession()` (baris ~152) → `null` (cookie ada
+   tapi SESSION-nya sudah tidak valid lagi — mis. baris `identity_session`
+   kedaluwarsa/dihapus/dirotasi) → `redirectTo("/login")`.
+2. `/login` → `hasSessionCookie` masih true (cookie fisik belum dihapus) DAN
+   `isPublicAuthPage` true → `redirectTo("/")` (baris ~130-132).
+3. Kembali ke `/` → sama persis seperti langkah 1 (cookie masih di browser,
+   session masih invalid) → loop tanpa akhir.
+
+Komentar kode di baris ~134-144 proxy.ts sendiri sudah mendokumentasikan gap
+serupa untuk kombinasi `!hasSessionCookie && isPublicAuthPage` (sudah
+ditutup) — tapi TIDAK menutup kombinasi "cookie ada tapi session di DB sudah
+invalid", yang ternyata adalah skenario yang benar-benar terjadi di sesi ini
+(kemungkinan dipicu oleh pembersihan data/testing berat sepanjang sesi
+2026-10-21/22 yang menyentuh banyak baris DB, meski belum dikonfirmasi
+baris `identity_session` spesifik mana yang invalid).
+
+- [x] **T-140.1** Saat `auth.api.getSession()` di proxy.ts mengembalikan
+      `null` untuk cookie yang ADA (bukan kombinasi lain yang sudah
+      ditangani), hapus cookie session Better Auth di response redirect ke
+      `/login` — pakai nama cookie yang di-resolve dari `getCookies(auth.options).sessionToken.name`
+      (`better-auth/cookies`), BUKAN hardcode string, supaya tidak drift
+      kalau `cookiePrefix`/`useSecureCookies` berubah nanti. Diimplementasikan
+      lewat helper baru `apps/web/src/lib/better-auth/session-cookie-name.ts`
+      (`getSessionCookieName()`) + fungsi `redirectToLoginClearingStaleSession()`
+      di `proxy.ts`, dipakai di cabang `if (!session)` setelah validasi penuh
+- [x] **T-140.2** Terapkan perbaikan serupa di
+      `apps/web/src/app/onboarding/resume/route.ts` (cabang `!session`) untuk
+      defense-in-depth — route ini bisa diakses langsung (dibypass proxy
+      untuk prefix `/onboarding`) dengan cookie session stale yang sama.
+      Diimplementasikan (hapus cookie sebelum redirect ke `/login`)
+- [x] **T-140.3** Test: skenario cookie session ada tapi invalid
+      (`auth.api.getSession` resolve `null`) tidak menghasilkan redirect
+      balik ke halaman yang sama. Ditambahkan test baru di
+      `apps/web/src/proxy.test.ts` ("clears the stale session cookie when
+      redirecting to /login") — assert `response.cookies.get(...)` untuk
+      nama cookie session kembali dengan `value: ""` dan `expires` di masa
+      lalu, membuktikan cookie benar-benar dihapus (bukan cuma redirect
+      tujuannya benar seperti test lama yang sudah ada sebelumnya). Full
+      suite: **919 passed, 7 skipped, 0 fail** (naik dari 898 baseline
+      sebelum T-140 + 1 test baru ini); `tsc --noEmit` dan `eslint .`
+      (`apps/web`) bersih
+- [x] **T-140.4** Verifikasi browser langsung oleh King Rezi di environment
+      yang melaporkan bug ini (local `bun dev`) — dikonfirmasi King Rezi
+      2026-10-22: `localhost:3000` bisa dibuka lagi setelah fix (hot-reload
+      otomatis Next.js dev server). Catatan: ini konfirmasi akses normal
+      kembali, BUKAN reproduksi ulang skenario cookie-stale-spesifik untuk
+      membuktikan loop benar-benar tidak muncul lagi pada kasus itu persis
+      (lihat gap T-140.3 di atas)
+
+**Catatan:** ini BUG PRODUKSI (bukan limitasi test data seperti T-130/T-139)
+— siapa pun yang punya session cookie stale (expired naturally, logout dari
+tab lain, DB session dibersihkan manual) akan mengalami ini, bukan hanya di
+local dev. Prioritas tinggi karena mengunci akses ke seluruh aplikasi tanpa
+cara recover selain hapus cookie manual.
+
+### T-141 · `fetchImportJobStatus` gagal HTTP 400 untuk import >100 post — `GET /v1/posts` limit maksimum 100 (KI-101)
+
+| Field       | Value                                                                                         |
+| ----------- | --------------------------------------------------------------------------------------------- |
+| **Status**  | ✅ Done — pagination + test, diverifikasi dengan akun real Instagram (2026-10-23)             |
+| **Domain**  | integration (Outstand adapter)                                                                |
+| **Spec**    | tidak ada — single-issue                                                                      |
+| **Docs**    | tidak ada                                                                                     |
+| **Terkait** | T-139 (ditemukan saat verifikasi T-139.4), T-133 (menghambat T-133.2), T-112 (adapter import) |
+| **Depends** | —                                                                                             |
+
+**Ditemukan (2026-10-23, verifikasi T-139.4 lewat `scripts/t139-verify-large-import.ts`):**
+job import Instagram `cookitrealgood` (1503 post) selesai `completed` di
+Outstand (job `BVlEn`), tapi `RealOutstandAdapter.fetchImportJobStatus`
+lalu memanggil `GET /v1/posts` dengan `limit = imported + skipped` (ribuan)
+tanpa `offset`. Outstand membatasi `limit` 1–100 per halaman (skema
+`list_posts`), jadi respons HTTP 400 dan seluruh import akun besar gagal
+sebelum menyentuh DB — terpisah dari T-139 (timeout transaksi) dan dari
+keterlambatan Outstand ("masih diproses setelah 25 detik").
+
+- [x] **T-141.1** `fetchImportJobStatus` mengambil `GET /v1/posts` per halaman
+      (maks 100, `offset` = jumlah baris terkumpul) sampai jumlah yang
+      dilaporkan job terkumpul, halaman pendek, atau `pagination.total`
+      tercapai; `MAX_PAGES` 50 sebagai safety net
+- [x] **T-141.2** Test: `real-outstand-adapter.test.ts` — job 230 post →
+      3 halaman (limit 100/100/30, offset 0/100/200); test lama (satu
+      halaman) tetap lolos
+- [x] **T-141.3** Verifikasi akun real (2026-10-23): job Outstand
+      `jpSt2` `completed`, 182 post terambil (2 halaman) tanpa HTTP 400,
+      semua tersimpan, 12 di antaranya terbit Oktober 2026
+
+### T-143 · Import periodik tidak pernah mengejar riwayat akun baru; hasil terpotong di 100 post (KI-102)
+
+| Field       | Value                                                                                          |
+| ----------- | ---------------------------------------------------------------------------------------------- |
+| **Status**  | ⏳ Terkonfirmasi sebagian, belum ada perbaikan — menunggu persetujuan arah perbaikan King Rezi |
+| **Domain**  | publishing · integration                                                                       |
+| **Spec**    | tidak ada — single-issue                                                                       |
+| **Docs**    | T-131 (lookback per trigger), T-115 (cron import), T-141 (pagination `/v1/posts`)              |
+| **Terkait** | T-133, T-141, ditemukan King Rezi 2026-10-23 (post TikTok 7 Okt tidak muncul)                  |
+| **Depends** | —                                                                                              |
+
+**Ditemukan (King Rezi, 2026-10-23):** akun TikTok `cookitrealgood` baru
+terhubung, tetapi post tanggal 7 Okt 2026 tidak muncul. Outstand punya 118
+post TikTok (`list_posts`, `total: 118`); DB kita hanya 100 (14 Mar – 30 Mei
+2026), 18 terbaru tidak ada. Setelah import manual dengan limit 1000 (script
+`t139-verify-large-import.ts`) 18 post masuk, termasuk post 7 Okt.
+
+**Investigasi (2026-10-23):**
+
+1. Import saat connect (`auto`, since 1 tahun, limit 1000) untuk TikTok
+   berstatus `failed` — "masih diproses di Outstand setelah menunggu 25
+   detik" — dan tidak pernah dipoll ulang oleh kita.
+2. Cron periodik (`periodic`) memakai `since = periodicImportSince(...)`,
+   yaitu `min(lastImportedUntil ?? (now − 24 jam), now − 24 jam)` dan
+   `CRON_IMPORT_LIMIT = 100`. Untuk akun dengan watermark `null`, cron
+   hanya meminta 24 jam terakhir, jadi **tidak pernah mengejar riwayat 1
+   tahun** (itu tugas import connect/manual yang tadi gagal).
+3. Post yang tetap masuk (100 terlama) kemungkinan besar berasal dari job
+   Outstand connect yang akhirnya selesai di sisi Outstand, lalu diambil
+   lewat `GET /v1/posts` oleh job cron. `fetchImportJobStatus` memakai
+   `limit = imported + skipped`, atau **100 kalau keduanya 0**. `GET /v1/posts`
+   mengurut `createdAt` menurun, sehingga halaman pertama (100) berisi post
+   terlama (terbit Mar–Mei) dan 18 terbaru jatuh di luar. Ini sejalan dengan
+   data, tapi **angka `imported`/`skipped` job cron tidak tersimpan**, jadi
+   mekanisme tepatnya tidak bisa dibuktikan ulang.
+4. Dugaan awal "terpotong CRON_IMPORT_LIMIT saat watermark null" **benar
+   sebagian**: batas 100 ikut berperan lewat fallback `wanted = 100`, tapi
+   penyebab utamanya adalah cron tidak melakukan lookback penuh dan import
+   connect yang timeout tidak dipulihkan. `last_imported_until` TikTok masih
+   `null`.
+5. YouTube **bukan** kasus ini: Outstand mengembalikan 0 post untuk akun
+   `nNvkl`, jadi 0 di DB benar. (Satu job periodik YouTube 22 Okt gagal
+   "owner lookup kosong" lalu sukses 23 Okt.)
+
+**Usulan perbaikan (belum dieksekusi):**
+
+- [ ] **T-143.1** Periodik: kalau `lastImportedUntil === null` (belum pernah
+      sync sukses), pakai `defaultSince` (1 tahun) dan limit
+      `AUTO_MANUAL_IMPORT_LIMIT` (1000), bukan 24 jam / 100. Watermark
+      dimajukan hanya kalau batch tidak penuh (aturan yang sudah ada)
+- [ ] **T-143.2** `fetchImportJobStatus`: kalau `imported + skipped` 0, jangan
+      jatuh ke limit 100 — paginasi sampai `pagination.total` tercapai
+      (dibatasi `MAX_PAGES`), supaya hasil tidak terpotong
+- [ ] **T-143.3** Simpan `imported`/`skipped`/`failed` job di `lastError`/payload
+      job `import.sync` supaya kasus seperti ini bisa dibuktikan
+- [ ] **T-143.4** Test unit untuk watermark `null` (since 1 tahun, limit 1000)
+      dan fallback 0/0 dengan >100 post
+- [ ] **T-143.5** Verifikasi dengan akun real baru (connect TikTok/Instagram,
+      tunggu satu siklus cron)
+
+**Sementara:** untuk akun yang sudah terpotong, jalankan
+`bun --env-file=.env.local run scripts/t139-verify-large-import.ts <platform>`
+(dedup aman) — sudah dipakai untuk TikTok 2026-10-23.

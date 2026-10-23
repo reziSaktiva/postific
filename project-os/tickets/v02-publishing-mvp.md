@@ -2524,7 +2524,7 @@ bug.
 
 | Field         | Value                                                                                                                                                                                                                            |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**    | 🚫 Blocked — King Rezi memblokir eksplisit (2026-10-21) sampai T-130, T-134, T-135, T-136 tuntas; sebelumnya tertahan menunggu konfirmasi eksekusi script                                                                        |
+| **Status**    | ✅ Done — T-133.2/.3 dieksekusi dan T-133.4 diverifikasi browser (2026-10-23); Pinterest keterbatasan eksplisit (T-133.1)                                                                                                        |
 | **Domain**    | publishing · integration                                                                                                                                                                                                         |
 | **ADR**       | —                                                                                                                                                                                                                                |
 | **Terkait**   | T-131, T-132, T-114 (pola backfill existing direuse untuk migrasi satu-kali), T-130/T-134/T-135/T-136 (blocker, lihat catatan di bawah)                                                                                          |
@@ -2553,10 +2553,10 @@ tidak menyebut import sama sekali di dokumentasi publik mereka. Jangan
 asumsikan endpoint generic `POST /v1/social-accounts/{id}/imports` otomatis
 jalan untuk semua network — perlu dibuktikan satu-satu.
 
-- [ ] **T-133.1** Verifikasi langsung ke Outstand (uji coba `importPosts` ke akun test TikTok dan Pinterest yang representatif, atau konfirmasi resmi dari support Outstand kalau tidak ada akun test) — apakah endpoint Import benar-benar berfungsi untuk kedua platform ini. Kalau gagal/tidak didukung, catat sebagai keterbatasan eksplisit (bukan diasumsikan jalan)
-- [ ] **T-133.2** Migrasi satu-kali: re-trigger import untuk `WorkspaceConnectedAccount` existing (Instagram, Facebook dulu) dengan `since` diperluas ke 1 tahun lalu — dijalankan sebagai script/job satu-off, BUKAN bagian job rutin, dedup existing (`upsertImportedPostsTx`) sudah aman dipakai ulang
-- [ ] **T-133.3** Jalankan T-132.4 (use-case klasifikasi) secara retroaktif untuk 43 post Imported existing + post baru hasil T-133.2
-- [ ] **T-133.4** Verifikasi end-to-end browser + DB nyata (pola sama addendum T-090/T-112) minimal untuk Instagram + Facebook; lanjut TikTok/Pinterest kalau T-133.1 konfirmasi didukung
+- [~] **T-133.1** Verifikasi langsung ke Outstand (uji coba `importPosts` ke akun test TikTok dan Pinterest yang representatif, atau konfirmasi resmi dari support Outstand kalau tidak ada akun test) — apakah endpoint Import benar-benar berfungsi untuk kedua platform ini. Kalau gagal/tidak didukung, catat sebagai keterbatasan eksplisit (bukan diasumsikan jalan)
+- [x] **T-133.2** Migrasi satu-kali: re-trigger import untuk `WorkspaceConnectedAccount` existing (Instagram, Facebook dulu) dengan `since` diperluas ke 1 tahun lalu — dijalankan sebagai script/job satu-off, BUKAN bagian job rutin, dedup existing (`upsertImportedPostsTx`) sudah aman dipakai ulang
+- [x] **T-133.3** Jalankan T-132.4 (use-case klasifikasi) secara retroaktif untuk 43 post Imported existing + post baru hasil T-133.2
+- [x] **T-133.4** Verifikasi end-to-end browser + DB nyata (pola sama addendum T-090/T-112) minimal untuk Instagram + Facebook; lanjut TikTok/Pinterest kalau T-133.1 konfirmasi didukung
 - [ ] **T-133.5** Update `PROJECT_STATE.md`/`AVAILABLE_TICKETS.md` setelah selesai (status final tiket ini saja, bukan detail task — ADR-062)
 
 **Catatan status (2026-10-20):** T-133.1 tidak bisa diverifikasi — tidak ada
@@ -2568,6 +2568,40 @@ dry-run, perlu flag `--execute`), BELUM dieksekusi — menunggu konfirmasi
 eksplisit King Rezi karena memanggil Outstand API nyata + menulis data
 production/staging. T-133.4 & T-133.5 belum bisa dikerjakan (tergantung
 eksekusi di atas).
+
+**Update T-133.1 (2026-10-23):** TikTok **terbukti didukung** — akun real
+`cookitrealgood` (TikTok) menyelesaikan job `import.sync` (`done`) dan
+menyimpan 100 post `Imported` (terbit 2026-03-14 s/d 2026-05-30), dicek
+langsung di DB. Pinterest sengaja diabaikan (King Rezi tidak bisa login ke
+akun Pinterest), tetap keterbatasan eksplisit.
+
+**Update blocker (2026-10-23):** T-130, T-134, T-135, T-136 dan T-139
+(hambatan tambahan, import batch besar) semuanya ✅ Done; bug tambahan
+T-141 (pagination `GET /v1/posts`) juga ✅ Done. Blocker terbuka. Status
+tiket ini sekarang **Sebagian siap** — T-133.2/.3 (script `--execute`)
+menunggu konfirmasi eksplisit King Rezi, belum dijalankan.
+
+**Eksekusi (King Rezi konfirmasi di chat, 2026-10-23):**
+`t133-retrigger-import-extended-lookback.ts --execute` dijalankan dua kali.
+Run 1: Instagram 0 baru / 182 duplikat / 179 terklasifikasi (3 timeout
+analytics Outstand), Facebook gagal "timeout polling" 120 detik (Outstand
+lambat). Run 2: **Facebook imported=184 (classified=103)**, Instagram
+skippedDuplicate=182 classified=182. Hasil DB: Facebook 81 post + 103 reel,
+Instagram 80 post + 102 reel (rentang 2025-10-22 s/d 2026-10-22), TikTok 100
+post. T-133.3: script klasifikasi terpisah 0 kandidat (sudah tercakup
+langkah klasifikasi T-133.2; 43 post lama akun lama sudah hilang saat
+pembersihan data T-134). Snapshot Home `monthly totalPosts=25` (diverifikasi
+via script refresh, bukan dilihat di browser).
+
+**T-133.4 diverifikasi browser (2026-10-23, localhost:3000, akun real):**
+Home "Post terpublikasi" = 25 (post distinct, cocok snapshot); Analyze
+Bulanan Total Posts = 29 (Facebook 15 + Instagram 14, granularitas
+post x akun, beda dari Home sesuai keputusan ADR-136) dengan daftar Post
+Performance berisi post Facebook dan Instagram; History menampilkan post
+`Imported` Facebook dan Instagram. Catatan pengamatan (di luar scope, belum
+diselidiki): di History semua baris tampil dengan jam 10.12 di bawah grup
+"Jumat, 23 Oktober" walau tertulis dipublikasikan lebih lama — kemungkinan
+pengelompokan memakai waktu import, bukan `publishedAt`.
 
 **Blocking eksplisit (King Rezi, 2026-10-21):** jangan eksekusi T-133.2
 (re-trigger import dengan `since` diperluas) sebelum 4 tiket berikut tuntas —
@@ -2599,6 +2633,47 @@ E2E browser yang terhambat ketiadaan akun test Outstand baru (workspace King
 Rezi kosong). Begitu akun test tersedia dan verifikasi browser lolos,
 keempat tiket ditutup ✅ Done dan blocker ini terbuka tanpa perlu investigasi
 ulang — tidak ada pekerjaan kode tersisa untuk membuka blocker ini.
+
+### T-142 · Usulan: History post `Imported` dikelompokkan dan diurutkan memakai `publishedAt`
+
+| Field         | Value                                                                                                                                                                                                                   |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**    | 🚫 Usulan — menunggu keputusan produk King Rezi dan cek rancangan di Claude Design sebelum ada kode (AGENTS.md aturan 10)                                                                                               |
+| **Domain**    | publishing · UI                                                                                                                                                                                                         |
+| **ADR**       | kemungkinan perlu ADR baru kalau kontrak urutan `listHistory` berubah (aturan 2)                                                                                                                                        |
+| **Terkait**   | ADR-093 (Imported tampil di History), T-034 (History), T-133 (backfill 1 tahun yang memunculkan masalah ini)                                                                                                            |
+| **Depends**   | keputusan produk T-142.1, rancangan Claude Design T-142.2                                                                                                                                                               |
+| **Baca dulu** | `apps/web/src/domains/publishing/services/group-history-items.ts` · `apps/web/src/app/(app)/publish/history/history-list-row.ts` · `listHistory` di `apps/web/src/lib/repositories/publishing/publishing.repository.ts` |
+
+**Bukan bug.** History mengelompokkan dan mengurutkan per `updatedAt`
+("waktu selesai") dan memakai `updatedAt` yang sama untuk jam kartu
+(`historyListClockDate`) — disengaja, terdokumentasi di kode, supaya urutan
+grup selaras dengan `orderBy: { updatedAt: "desc" }`.
+
+**Masalah produk (ditemukan 2026-10-23, verifikasi T-133.4):** untuk post
+`Imported`, `updatedAt` = waktu import, bukan waktu terbit. Setelah backfill
+1 tahun T-133, 366 post Imported (Facebook 184, Instagram 182, plus TikTok 100) menumpuk di grup tanggal import (22 dan 23 Oktober) dengan jam yang
+sama (satu batch, mis. 10.12), sementara teks kartu menulis "Dipublikasikan
+15 Okt 2026". Tanggal grup, jam, dan teks meta saling bertentangan, dan
+riwayat publish asli tertimbun.
+
+**Usulan:** untuk post `Imported`, kunci pengelompokan, urutan, dan jam kartu
+memakai `publishedAt`; post `Published`/`Failed` tetap memakai `updatedAt`
+(atau seluruhnya `publishedAt ?? updatedAt`).
+
+- [ ] **T-142.1** King Rezi memutuskan perilaku History (via `AskUserQuestion`):
+      Imported memakai `publishedAt`, atau tetap `updatedAt` dengan penanda
+      "diimpor"; apakah Published ikut berubah
+- [ ] **T-142.2** Cek Claude Design (project "Social Media Management") apakah
+      layar History sudah merancang kelompok tanggal untuk Imported; kalau
+      belum, STOP dan minta rancangan lebih dulu (AGENTS.md aturan 10)
+- [ ] **T-142.3** Kalau kontrak urutan `listHistory` berubah (`orderBy`,
+      kunci grup, `historyListClockDate`), tulis ADR baru
+- [ ] **T-142.4** Implementasi sesuai keputusan, sesuaikan
+      `group-history-items.ts`, `history-list-row.ts`, `listHistory`, dan
+      Realtime patch di `HistoryList.tsx` (sort lokal harus konsisten)
+- [ ] **T-142.5** Test unit pengelompokan (Imported lintas tanggal, campuran
+      Imported dan Published) dan verifikasi browser History
 
 ---
 

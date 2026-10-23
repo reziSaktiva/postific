@@ -17,6 +17,20 @@ vi.mock("better-auth/cookies", () => ({
   getSessionCookie: getSessionCookieMock,
 }));
 
+// T-140/KI-100 — nama cookie session nyata (resolve via `auth.options`) tidak
+// relevan untuk test ini (proxy.ts hanya perlu memanggil expireSessionCookie); fixed value supaya tidak perlu mock `auth.options` lengkap.
+const STALE_SESSION_COOKIE_NAME = "better-auth.session_token";
+vi.mock("@/lib/better-auth/session-cookie-name", () => ({
+  expireSessionCookie: (response: {
+    cookies: { set: (cookie: Record<string, unknown>) => void };
+  }) =>
+    response.cookies.set({
+      name: STALE_SESSION_COOKIE_NAME,
+      value: "",
+      expires: new Date(0),
+    }),
+}));
+
 vi.mock("@/lib/better-auth/auth", () => ({
   auth: { api: { getSession: getSessionMock } },
 }));
@@ -141,6 +155,38 @@ describe("proxy (middleware)", () => {
     );
 
     expect(new URL(response.headers.get("location")!).pathname).toBe("/login");
+  });
+
+  it("clears the stale session cookie when redirecting to /login (regression: T-140/KI-100 infinite redirect loop)", async () => {
+    getSessionCookieMock.mockReturnValue("some-cookie-value");
+    getSessionMock.mockResolvedValue(null);
+
+    const response = await proxy(
+      makeRequest("/", "active-workspace-id=workspace-1"),
+    );
+
+    // Tanpa fix ini, cookie session stale tidak pernah dihapus — request
+    // berikutnya ke /login masih melihat `hasSessionCookie` true dan
+    // redirect balik ke "/", menghasilkan infinite redirect loop.
+    const clearedCookie = response.cookies.get(STALE_SESSION_COOKIE_NAME);
+    expect(clearedCookie?.value).toBe("");
+    expect(clearedCookie?.expires).toBeDefined();
+    expect(new Date(clearedCookie!.expires!).getTime()).toBeLessThan(
+      Date.now(),
+    );
+  });
+
+  it("does NOT clear the session cookie when getSession throws (lookup DB gagal sementara bukan session invalid)", async () => {
+    // Better Auth: endpoint `getSession` melempar APIError(INTERNAL_SERVER_ERROR)
+    // kalau lookup DB gagal; `null` hanya berarti cookie tidak valid / session
+    // tidak ada / kedaluwarsa. Jadi error sementara tidak pernah mencapai
+    // pembersihan cookie — request gagal, session user tetap utuh.
+    getSessionCookieMock.mockReturnValue("some-cookie-value");
+    getSessionMock.mockRejectedValue(new Error("FAILED_TO_GET_SESSION"));
+
+    await expect(
+      proxy(makeRequest("/", "active-workspace-id=workspace-1")),
+    ).rejects.toThrow("FAILED_TO_GET_SESSION");
   });
 
   it("redirects to /onboarding when the active-workspace-id cookie is missing", async () => {
