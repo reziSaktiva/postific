@@ -157,7 +157,7 @@ di branch `feature/t137-smtp-staging-email`, akan masuk PR #189.
 
 | Field       | Value                      |
 | ----------- | -------------------------- |
-| **Status**  | ⏳ Not Started             |
+| **Status**  | ✅ Done                    |
 | **Domain**  | workspace                  |
 | **Spec**    | tidak ada — muat satu sesi |
 | **Docs**    | KI-053, T-110, ADR-080     |
@@ -165,8 +165,10 @@ di branch `feature/t137-smtp-staging-email`, akan masuk PR #189.
 
 **What to build:** Ada bukti browser bahwa invite Copy Link untuk email A tidak bisa diselesaikan oleh email B sebagai orang lain.
 
-- [ ] Email B tidak berhasil membuat akun atas nama undangan email A
-- [ ] Bukti skenario itu tercatat di tiket ini secukupnya, tanpa cerita sesi panjang
+- [x] Email B tidak berhasil membuat akun atas nama undangan email A
+- [x] Bukti skenario itu tercatat di tiket ini secukupnya, tanpa cerita sesi panjang
+
+**Catatan penutupan (2026-10-23):** Selesai atas pernyataan King Rezi setelah uji manual sendiri (email A vs email B). Tidak ada bukti otomatis yang diverifikasi agen. KI-053 ditutup.
 
 **Blocked by:** tidak ada
 

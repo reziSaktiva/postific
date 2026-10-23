@@ -17,6 +17,7 @@ import type { PinterestBoard } from "@postific/shared";
 import { ContentFormat, ContentStatus, SocialPlatform } from "@postific/shared";
 import { pinterestBoardConstraintMessage } from "@/domains/publishing/pinterest-board-constraints";
 import { scheduleTimeConstraintMessage } from "@/domains/publishing/schedule-time-constraints";
+import { wibLocalToUtc } from "@/domains/publishing/wib-time";
 
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -497,9 +498,7 @@ function DraftEditorForm({
   // otomatis re-evaluate begitu waktu berjalan lewat titik yang dipilih user.
   const scheduleTimeMessage =
     scheduleDate && scheduleTime
-      ? scheduleTimeConstraintMessage(
-          new Date(`${scheduleDate}T${scheduleTime}`),
-        )
+      ? scheduleTimeConstraintMessage(wibLocalToUtc(scheduleDate, scheduleTime))
       : null;
 
   const isReadyToSchedule =
@@ -822,8 +821,10 @@ function DraftEditorForm({
   async function handleConfirmSchedule() {
     setIsScheduling(true);
     try {
-      const scheduledAt = new Date(
-        `${scheduleDate}T${scheduleTime}`,
+      // T-146: input jadwal ditafsirkan sebagai WIB, bukan zona browser.
+      const scheduledAt = wibLocalToUtc(
+        scheduleDate ?? "",
+        scheduleTime ?? "",
       ).toISOString();
 
       const result = await scheduleDraftAction({
