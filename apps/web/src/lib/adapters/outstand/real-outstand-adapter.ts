@@ -1629,9 +1629,11 @@ export function createRealOutstandAdapter(
      *    risiko dibanding tanpa filter waktu sama sekali (lihat code
      *    review PR #149: sebelumnya HANYA `social_account_id` + `limit`,
      *    beresiko match post lain di akun yang sama kalau ada aktivitas di
-     *    luar rentang job ini). Limit diset ke `imported + skipped` job ini
-     *    (atau 100 kalau nol/tidak ada) — TIDAK ada pagination loop (YAGNI,
-     *    sama semantik `limit` yang dipakai `importPosts` membuat job ini).
+     *    luar rentang job ini). Hasil dipaginasi (T-141/T-143.2, limit 100
+     *    per halaman) sampai `pagination.total` tercapai — BUKAN lagi
+     *    dibatasi `imported + skipped` job (angka itu bisa 0/0 dan dulu
+     *    jatuh ke 100, memotong hasil). Angka `imported`/`skipped`/`failed`
+     *    dikembalikan di `counts` (T-143.3).
      *
      * **Pemetaan status (ADR-123, keputusan King Rezi 2026-10-08):**
      * `queued|running` → `"pending"` (posts kosong, tidak fetch /posts
@@ -1692,8 +1694,13 @@ export function createRealOutstandAdapter(
       const failed = toNumber(job.failed);
       const jobError = toStringOrNull(job.error);
 
+      const counts = { imported, skipped, failed };
+
+      // T-143.3 — angka job ikut dilaporkan walau masih `queued`/`running`,
+      // supaya job lokal yang timeout polling tetap menyimpan angka Outstand
+      // terakhir yang terlihat.
       if (rawStatus === "queued" || rawStatus === "running") {
-        return { status: "pending", posts: [], error: null };
+        return { status: "pending", posts: [], error: null, counts };
       }
 
       if (rawStatus === "failed") {
@@ -1701,6 +1708,7 @@ export function createRealOutstandAdapter(
           status: "failed",
           posts: [],
           error: jobError ?? "Import job gagal di sisi Outstand.",
+          counts,
         };
       }
 
@@ -1743,6 +1751,8 @@ export function createRealOutstandAdapter(
           status: "failed",
           posts: [],
           error: `GET /v1/posts melebihi ${POSTS_MAX_PAGES} halaman — hasil import terpotong.`,
+          counts,
+          fetchedPosts: rawPosts.length,
         };
       }
 
@@ -1818,10 +1828,11 @@ export function createRealOutstandAdapter(
           status: "completed",
           posts,
           error: `${failed} dari ${total} post gagal diimport.`,
+          counts,
         };
       }
 
-      return { status: "completed", posts, error: null };
+      return { status: "completed", posts, error: null, counts };
     },
 
     /**

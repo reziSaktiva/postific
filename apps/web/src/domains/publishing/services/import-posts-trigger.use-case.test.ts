@@ -234,6 +234,10 @@ describe("ImportPostsTriggerUseCase.triggerAuto (T-090.3, ADR-093 poin 7)", () =
       expect.any(String),
       "done",
       undefined,
+      expect.objectContaining({
+        limit: 1000,
+        insertedCount: expect.any(Number),
+      }),
     );
     const runningOrder = vi.mocked(importJobs.markImportSyncJobStatus).mock
       .invocationCallOrder[0];
@@ -277,6 +281,7 @@ describe("ImportPostsTriggerUseCase.triggerAuto (T-090.3, ADR-093 poin 7)", () =
       expect.any(String),
       "failed",
       expect.stringContaining("Outstand down"),
+      expect.objectContaining({ limit: 1000, fetchedPosts: 0 }),
     );
     // Hanya 1 call (request mulai) — TIDAK ada update lastImportedUntil
     // karena job gagal (ADR-093 poin 7).
@@ -386,6 +391,7 @@ describe("ImportPostsTriggerUseCase — polling fetchImportJobStatus (bug fix 20
         expect.any(String),
         "failed",
         expect.stringContaining("masih diproses di Outstand"),
+        expect.objectContaining({ fetchedPosts: 0 }),
       );
       // Code review PR #149 — komentar lama di sini salah hitung ("call
       // ke-13"); ditulis ulang + assertion dipertegas jadi angka pasti
@@ -492,6 +498,7 @@ describe("ImportPostsTriggerUseCase — polling fetchImportJobStatus (bug fix 20
         expect.any(String),
         "done",
         "1 dari 3 post gagal diimport.",
+        expect.objectContaining({ fetchedPosts: expect.any(Number) }),
       );
     },
   );
@@ -785,6 +792,185 @@ describe("ImportPostsTriggerUseCase — T-131 per-trigger since/limit policy", (
     expect(outstandAdapter.importPosts).toHaveBeenCalledWith(
       OUTSTAND_ACCOUNT_ID,
       expect.objectContaining({ since: staleWatermark, limit: 100 }),
+    );
+  });
+
+  it("triggerPeriodicForAccounts (T-143.1) uses 1 year since and limit 1000 when lastImportedUntil is null, and keeps the watermark when the batch is full", async () => {
+    const importJobs = createFakeImportJobRepository();
+    const posts = Array.from({ length: 1000 }, (_, i) => ({
+      platformPostId: `p-${i}`,
+      outstandPostId: `o-${i}`,
+      caption: "",
+      publishedAt: new Date("2026-01-01T00:00:00.000Z"),
+      platformPostUrl: null,
+      mediaUrls: [],
+    }));
+    const outstandAdapter = createFakeOutstandAdapter({
+      fetchImportJobStatus: vi.fn(async (): Promise<ImportJobOutcome> => ({
+        status: "completed",
+        posts,
+        error: null,
+        counts: { imported: 900, skipped: 100, failed: 0 },
+      })),
+    });
+    const watermark = createFakeWatermarkPort({
+      findAccountOwnerByOutstandAccountId: vi.fn(async () => ({
+        workspaceId: WORKSPACE_ID,
+        connectedAccountId: CONNECTED_ACCOUNT_ID,
+        ownerUserId: ACTING_USER_ID,
+      })),
+    });
+    const useCase = new ImportPostsTriggerUseCase(
+      importJobs,
+      outstandAdapter,
+      watermark,
+      createProcessUseCase(1),
+      noopBackfillUseCase,
+      noopClassifyUseCase,
+    );
+
+    await useCase.triggerPeriodicForAccounts([
+      {
+        workspaceId: WORKSPACE_ID,
+        connectedAccountId: CONNECTED_ACCOUNT_ID,
+        outstandAccountId: OUTSTAND_ACCOUNT_ID,
+        platform: SocialPlatform.Instagram,
+        lastImportedUntil: null,
+      },
+    ]);
+
+    const callArgs = vi.mocked(outstandAdapter.importPosts).mock.calls[0]?.[1];
+    expect(callArgs?.limit).toBe(1000);
+    const elapsed = Date.now() - (callArgs?.since as Date).getTime();
+    expect(elapsed).toBeGreaterThan(364 * 24 * 60 * 60 * 1000);
+    expect(elapsed).toBeLessThan(366 * 24 * 60 * 60 * 1000);
+    // Batch penuh (1000 >= limit) -> watermark TIDAK dimajukan.
+    expect(watermark.updateImportWatermark).not.toHaveBeenCalledWith(
+      expect.objectContaining({ lastImportedUntil: expect.any(Date) }),
+    );
+    // T-143.3 — angka job tersimpan di payload job.
+    expect(importJobs.markImportSyncJobStatus).toHaveBeenCalledWith(
+      expect.any(String),
+      "done",
+      undefined,
+      expect.objectContaining({
+        limit: 1000,
+        fetchedPosts: 1000,
+        outstandImported: 900,
+        outstandSkipped: 100,
+        outstandFailed: 0,
+        insertedCount: 1,
+      }),
+    );
+  });
+
+  function t143Posts(count: number) {
+    return Array.from({ length: count }, (_, i) => ({
+      platformPostId: `p-${i}`,
+      outstandPostId: `o-${i}`,
+      caption: "",
+      publishedAt: new Date("2026-01-01T00:00:00.000Z"),
+      platformPostUrl: null,
+      mediaUrls: [],
+    }));
+  }
+
+  function t143UseCase(
+    importJobs: ReturnType<typeof createFakeImportJobRepository>,
+    outcome: ImportJobOutcome,
+  ) {
+    const outstandAdapter = createFakeOutstandAdapter({
+      fetchImportJobStatus: vi.fn(
+        async (): Promise<ImportJobOutcome> => outcome,
+      ),
+    });
+    const watermark = createFakeWatermarkPort({
+      findAccountOwnerByOutstandAccountId: vi.fn(async () => ({
+        workspaceId: WORKSPACE_ID,
+        connectedAccountId: CONNECTED_ACCOUNT_ID,
+        ownerUserId: ACTING_USER_ID,
+      })),
+    });
+    const useCase = new ImportPostsTriggerUseCase(
+      importJobs,
+      outstandAdapter,
+      watermark,
+      createProcessUseCase(1),
+      noopBackfillUseCase,
+      noopClassifyUseCase,
+    );
+    return { useCase, watermark };
+  }
+
+  const t143Account = {
+    workspaceId: WORKSPACE_ID,
+    connectedAccountId: CONNECTED_ACCOUNT_ID,
+    outstandAccountId: OUTSTAND_ACCOUNT_ID,
+    platform: SocialPlatform.Instagram,
+    lastImportedUntil: null,
+  };
+
+  it("triggerPeriodicForAccounts (T-143) advances the watermark when Outstand counts stay below the limit even if more posts than the limit were paginated", async () => {
+    const importJobs = createFakeImportJobRepository();
+    const { useCase, watermark } = t143UseCase(importJobs, {
+      status: "completed",
+      posts: t143Posts(1200),
+      error: null,
+      counts: { imported: 600, skipped: 100, failed: 0 },
+    });
+
+    await useCase.triggerPeriodicForAccounts([t143Account]);
+
+    expect(watermark.updateImportWatermark).toHaveBeenCalledWith(
+      expect.objectContaining({ lastImportedUntil: expect.any(Date) }),
+    );
+  });
+
+  it("triggerPeriodicForAccounts (T-143) keeps the watermark when Outstand counts reach the limit", async () => {
+    const importJobs = createFakeImportJobRepository();
+    const { useCase, watermark } = t143UseCase(importJobs, {
+      status: "completed",
+      posts: t143Posts(10),
+      error: null,
+      counts: { imported: 900, skipped: 50, failed: 50 },
+    });
+
+    await useCase.triggerPeriodicForAccounts([t143Account]);
+
+    expect(watermark.updateImportWatermark).not.toHaveBeenCalledWith(
+      expect.objectContaining({ lastImportedUntil: expect.any(Date) }),
+    );
+  });
+
+  it("keeps the computed counts and since in the failed result when writing the 'done' status throws (T-143.3)", async () => {
+    const markImportSyncJobStatus = vi.fn(
+      async (_id: string, status: string) => {
+        if (status === "done") throw new Error("db transient");
+      },
+    );
+    const importJobs = createFakeImportJobRepository({
+      markImportSyncJobStatus,
+    });
+    const { useCase } = t143UseCase(importJobs, {
+      status: "completed",
+      posts: t143Posts(5),
+      error: null,
+      counts: { imported: 5, skipped: 0, failed: 0 },
+    });
+
+    await useCase.triggerPeriodicForAccounts([t143Account]);
+
+    expect(markImportSyncJobStatus).toHaveBeenLastCalledWith(
+      expect.any(String),
+      "failed",
+      expect.stringContaining("db transient"),
+      expect.objectContaining({
+        limit: 1000,
+        since: expect.any(String),
+        fetchedPosts: 5,
+        outstandImported: 5,
+        insertedCount: 1,
+      }),
     );
   });
 
@@ -1596,6 +1782,7 @@ describe("ImportPostsTriggerUseCase.executeQueuedPeriodicImport (T-115)", () => 
       "running-job",
       "done",
       undefined,
+      expect.objectContaining({ limit: 100, insertedCount: 2 }),
     );
     const requestedOrder = vi.mocked(watermark.updateImportWatermark).mock
       .invocationCallOrder[0];
@@ -1604,10 +1791,10 @@ describe("ImportPostsTriggerUseCase.executeQueuedPeriodicImport (T-115)", () => 
     expect(requestedOrder).toBeLessThan(networkOrder!);
   });
 
-  // T-131.3 — fallback periodik sekarang 24 jam (bukan 90 hari) saat akun
-  // belum pernah sukses diimpor (lastImportedUntil null): null ?? (now-24h)
-  // dibandingkan dengan (now-24h) sendiri, keduanya identik.
-  it("falls back to the 24 hour lookback when lastImportedUntil is empty", async () => {
+  // T-143.1/KI-102 — watermark null (belum pernah sync sukses) TIDAK lagi
+  // jatuh ke 24 jam / limit 100: periodik mengejar riwayat penuh seperti
+  // auto/manual (1 tahun, limit 1000).
+  it("catches up the full history (1 year, limit 1000) when lastImportedUntil is null (T-143.1)", async () => {
     const { useCase, outstandAdapter } = createQueuedUseCase({
       lastImportedUntil: null,
     });
@@ -1617,11 +1804,16 @@ describe("ImportPostsTriggerUseCase.executeQueuedPeriodicImport (T-115)", () => 
     const since = vi.mocked(outstandAdapter.importPosts).mock.calls[0]?.[1]
       .since as Date;
     const elapsed = Date.now() - since.getTime();
-    expect(elapsed).toBeGreaterThanOrEqual(24 * 60 * 60 * 1000 - 1000);
-    expect(elapsed).toBeLessThan(24 * 60 * 60 * 1000 + 5000);
+    const oneYear = 365 * 24 * 60 * 60 * 1000;
+    expect(elapsed).toBeGreaterThanOrEqual(oneYear - 1000);
+    expect(elapsed).toBeLessThan(oneYear + 5000);
+    expect(outstandAdapter.importPosts).toHaveBeenCalledWith(
+      OUTSTAND_ACCOUNT_ID,
+      expect.objectContaining({ limit: 1000 }),
+    );
   });
 
-  // T-131.3 — limit periodik tetap 100 (bukan ikut naik ke 1000 seperti
+  // T-131.3 — limit periodik akun ber-watermark tetap 100 (bukan ikut naik ke 1000 seperti
   // auto/manual).
   it("still requests limit 100 (unchanged by the T-131 auto/manual limit bump)", async () => {
     const { useCase, outstandAdapter } = createQueuedUseCase({});
@@ -1687,6 +1879,7 @@ describe("ImportPostsTriggerUseCase.executeQueuedPeriodicImport (T-115)", () => 
       "running-job",
       "failed",
       expect.stringContaining("Outstand down"),
+      expect.objectContaining({ limit: 100 }),
     );
     expect(importJobs.createImportSyncJob).not.toHaveBeenCalled();
   });

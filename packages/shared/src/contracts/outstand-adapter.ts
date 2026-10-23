@@ -601,6 +601,19 @@ export interface ImportJobOutcome {
   status: ImportJobStatus;
   posts: ImportedPostData[];
   error: string | null;
+  /**
+   * T-143.3 — angka ringkasan job dari Outstand (`imported`/`skipped`/
+   * `failed` di `GET .../imports/{id}`). Opsional: hanya diisi adapter
+   * nyata saat status sudah final. Disimpan di payload job `import.sync`
+   * supaya kasus "hasil terpotong" bisa dibuktikan ulang.
+   */
+  counts?: { imported: number; skipped: number; failed: number };
+  /**
+   * T-143.3 — jumlah post mentah yang sempat diambil dari `GET /v1/posts`
+   * saat `posts` dikosongkan (hasil terpotong `POSTS_MAX_PAGES`). Kalau
+   * kosong, pemanggil memakai `posts.length`.
+   */
+  fetchedPosts?: number;
 }
 
 /**
