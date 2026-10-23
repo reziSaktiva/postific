@@ -2638,7 +2638,7 @@ ulang — tidak ada pekerjaan kode tersisa untuk membuka blocker ini.
 
 | Field         | Value                                                                                                                                                                                                                                                                                                                                                                             |
 | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**    | ⏳ 🔴 Prioritas tinggi — 🟡 siap implementasi — keputusan produk T-142.1 (2026-10-23); T-142.2/T-142.3 digugurkan King Rezi (2026-10-23)                                                                                                                                                                                                                                          |
+| **Status**    | ✅ Done (PR 193) — keputusan produk T-142.1 (2026-10-23); T-142.2/T-142.3 digugurkan; verifikasi browser oleh King Rezi 2026-10-23                                                                                                                                                                                                                                                |
 | **Domain**    | publishing · UI                                                                                                                                                                                                                                                                                                                                                                   |
 | **ADR**       | tidak perlu (T-142.3 gugur): hanya mengganti kolom kunci, bukan baseline arsitektur                                                                                                                                                                                                                                                                                               |
 | **Terkait**   | ADR-093 (Imported tampil di History), T-034 (History), T-133 (backfill 1 tahun yang memunculkan bug), T-143 / KI-102 (import periodik, menambah baris Imported ber-`updatedAt` baru)                                                                                                                                                                                              |
@@ -2685,9 +2685,10 @@ konsisten (sort lokal sama dengan `orderBy` server).
 - [x] **T-142.4** Implementasi: `group-history-items.ts`, `history-list-row.ts`,
       `listHistory` (satu lokasi: sort JS memakai `compareHistoryItemsDesc`; baris ~251 itu `listDrafts`, tidak diubah), dan Realtime patch di
       `HistoryList.tsx` (`publishedAt ?? updatedAt`, Failed `failedAt ?? updatedAt`)
-- [ ] **T-142.5** Test unit pengelompokan lintas tanggal (Imported lintas
+- [x] **T-142.5** Test unit pengelompokan lintas tanggal (Imported lintas
       tanggal, campuran Imported/Published/Failed, `publishedAt` null) dan
-      verifikasi browser History
+      verifikasi browser History. Diverifikasi King Rezi di browser
+      2026-10-23: kartu Imported di grup tanggal terbitnya, jam cocok, urutan benar
 
 ---
 
