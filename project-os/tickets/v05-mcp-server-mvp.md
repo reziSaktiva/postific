@@ -7,7 +7,7 @@
 **Tujuan rilis:** Memungkinkan pengguna bekerja di Postific melalui AI pilihannya sendiri.
 **Baseline rilis:** `product-discovery/02-product/release-roadmap.md` → v0.5 · ADR-138 (arah, scope, tool) · ADR-139 (hosting, auth; Proposed sampai T-148 selesai)
 
-**Kedalaman dokumen ini:** task-level saja (rolling wave). Subtask dirinci setelah spike T-148 selesai dan ADR-139 menjadi Accepted. Karena inisiatif ini melewati banyak sesi, tulis spec **S-001** sebelum T-149 dimulai.
+**Kedalaman dokumen ini:** task-level saja (rolling wave). Subtask dirinci setelah spike T-148 selesai dan ADR-139 menjadi Accepted. Spec rilis ini: [`../specs/S-001.md`](../specs/S-001.md).
 
 **Titik awal:** domain `ai-assistant/` hanya stub kosong dan model `AiRequest`/`AiResult` ada di schema tanpa pemakai. Keduanya dihapus di T-149. `better-auth` 1.6.23 sudah membawa plugin `mcp`. `@modelcontextprotocol/sdk` belum terpasang.
 
