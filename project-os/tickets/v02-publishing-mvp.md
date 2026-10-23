@@ -2553,7 +2553,7 @@ tidak menyebut import sama sekali di dokumentasi publik mereka. Jangan
 asumsikan endpoint generic `POST /v1/social-accounts/{id}/imports` otomatis
 jalan untuk semua network — perlu dibuktikan satu-satu.
 
-- [ ] **T-133.1** Verifikasi langsung ke Outstand (uji coba `importPosts` ke akun test TikTok dan Pinterest yang representatif, atau konfirmasi resmi dari support Outstand kalau tidak ada akun test) — apakah endpoint Import benar-benar berfungsi untuk kedua platform ini. Kalau gagal/tidak didukung, catat sebagai keterbatasan eksplisit (bukan diasumsikan jalan)
+- [~] **T-133.1** Verifikasi langsung ke Outstand (uji coba `importPosts` ke akun test TikTok dan Pinterest yang representatif, atau konfirmasi resmi dari support Outstand kalau tidak ada akun test) — apakah endpoint Import benar-benar berfungsi untuk kedua platform ini. Kalau gagal/tidak didukung, catat sebagai keterbatasan eksplisit (bukan diasumsikan jalan)
 - [ ] **T-133.2** Migrasi satu-kali: re-trigger import untuk `WorkspaceConnectedAccount` existing (Instagram, Facebook dulu) dengan `since` diperluas ke 1 tahun lalu — dijalankan sebagai script/job satu-off, BUKAN bagian job rutin, dedup existing (`upsertImportedPostsTx`) sudah aman dipakai ulang
 - [ ] **T-133.3** Jalankan T-132.4 (use-case klasifikasi) secara retroaktif untuk 43 post Imported existing + post baru hasil T-133.2
 - [ ] **T-133.4** Verifikasi end-to-end browser + DB nyata (pola sama addendum T-090/T-112) minimal untuk Instagram + Facebook; lanjut TikTok/Pinterest kalau T-133.1 konfirmasi didukung
@@ -2568,6 +2568,18 @@ dry-run, perlu flag `--execute`), BELUM dieksekusi — menunggu konfirmasi
 eksplisit King Rezi karena memanggil Outstand API nyata + menulis data
 production/staging. T-133.4 & T-133.5 belum bisa dikerjakan (tergantung
 eksekusi di atas).
+
+**Update T-133.1 (2026-10-23):** TikTok **terbukti didukung** — akun real
+`cookitrealgood` (TikTok) menyelesaikan job `import.sync` (`done`) dan
+menyimpan 100 post `Imported` (terbit 2026-03-14 s/d 2026-05-30), dicek
+langsung di DB. Pinterest sengaja diabaikan (King Rezi tidak bisa login ke
+akun Pinterest), tetap keterbatasan eksplisit.
+
+**Update blocker (2026-10-23):** T-130, T-134, T-135, T-136 dan T-139
+(hambatan tambahan, import batch besar) semuanya ✅ Done; bug tambahan
+T-141 (pagination `GET /v1/posts`) juga ✅ Done. Blocker terbuka. Status
+tiket ini sekarang **Sebagian siap** — T-133.2/.3 (script `--execute`)
+menunggu konfirmasi eksplisit King Rezi, belum dijalankan.
 
 **Blocking eksplisit (King Rezi, 2026-10-21):** jangan eksekusi T-133.2
 (re-trigger import dengan `since` diperluas) sebelum 4 tiket berikut tuntas —

@@ -327,13 +327,13 @@ di-wrap.
 
 ### T-130 · `totalPosts` Home tidak akurat untuk akun yang `posts_count`-nya `null` di Outstand
 
-| Field       | Value                                                                                                                                     |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | 🚫 Implementasi selesai (root cause fixed, review + QA PASS) — blocked verifikasi browser E2E, butuh akun test Outstand baru (2026-10-21) |
-| **Domain**  | analytics                                                                                                                                 |
-| **Spec**    | tidak ada — single-issue, dampak kecil                                                                                                    |
-| **Docs**    | KI-093, T-129 (Analyze — sudah fixed di T-129.1)                                                                                          |
-| **Depends** | —                                                                                                                                         |
+| Field       | Value                                                                                   |
+| ----------- | --------------------------------------------------------------------------------------- |
+| **Status**  | ✅ Done — fix + review + QA PASS, verifikasi nonzero PASS dengan data real (2026-10-23) |
+| **Domain**  | analytics                                                                               |
+| **Spec**    | tidak ada — single-issue, dampak kecil                                                  |
+| **Docs**    | KI-093, T-129 (Analyze — sudah fixed di T-129.1)                                        |
+| **Depends** | —                                                                                       |
 
 **Ditemukan (KI-093, King Rezi, 2026-10-19):** setelah T-129.1 (Imported
 posts ikut dihitung di Analyze), King Rezi bertanya kenapa post Imported
@@ -392,7 +392,7 @@ sebagai Known Issue terbuka, bukan dikerjakan di sesi ini.
       — TIDAK perlu dipaksa sama. **Ditutup sebagai keputusan final
       "accepted as different"**, bukan lagi item terbuka — lihat catatan
       granularitas di "Implementasi" di bawah untuk detail teknis.
-- [ ] Verifikasi browser dengan data real (angka Home akurat, tidak error,
+- [x] Verifikasi browser dengan data real (angka Home akurat, tidak error,
       sesuai definisi sumber data baru) — **tertunda**, butuh akun test
       Outstand baru (workspace King Rezi kosong sejak pembersihan data T-134,
       2026-10-21). Bukan item yang menunggu keputusan produk lagi — murni
@@ -879,7 +879,7 @@ terverifikasi dengan data real. Tiket ditutup **✅ Done**.
 
 | Field       | Value                                                                                                                                                     |
 | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | 🚫 Implementasi selesai (ikut T-130, review + QA PASS) — blocked verifikasi browser (T-136.3), butuh akun test Outstand baru                              |
+| **Status**  | ✅ Done — implementasi ikut T-130, verifikasi browser PASS dengan data real (2026-10-23)                                                                  |
 | **Domain**  | analytics · UI                                                                                                                                            |
 | **ADR**     | — (keputusan produk soal sumber metric, bukan arsitektur)                                                                                                 |
 | **Spec**    | tidak ada — single-issue                                                                                                                                  |
@@ -906,7 +906,7 @@ bukan "Post terpublikasi").
       saja
 - [x] **T-136.2** Implementasi sesuai keputusan T-136.1 di `DashboardHome.tsx`
       dan/atau `AnalyticsService.getDashboardSummary`
-- [ ] **T-136.3** Verifikasi browser: label dan angka konsisten secara makna
+- [x] **T-136.3** Verifikasi browser: label dan angka konsisten secara makna
       (tidak ada lagi "Post terpublikasi" yang sebenarnya termasuk post dari
       akun disconnected/native) — **belum dilakukan**, sama alasan dengan
       T-130 (butuh workspace dengan data nyata)
@@ -1010,7 +1010,7 @@ untuk status terbaru.
 
 | Field       | Value                                                                                                            |
 | ----------- | ---------------------------------------------------------------------------------------------------------------- |
-| **Status**  | 🟡 Implementasi + test selesai (2026-10-23), sisa T-139.4 verifikasi akun real bervolume besar                   |
+| **Status**  | ✅ Done — chunk per transaksi, diverifikasi dengan akun real Instagram (2026-10-23)                              |
 | **Domain**  | publishing                                                                                                       |
 | **Spec**    | tidak ada — single-issue                                                                                         |
 | **Docs**    | tidak ada                                                                                                        |
@@ -1081,9 +1081,13 @@ dicatat sebagai arah):**
       (chunk sebelumnya commit, retry menyelesaikan sisa). Suite penuh 925
       passed, typecheck dan lint bersih. Keterbatasan: DB simulasi, durasi
       nyata terhadap Postgres hanya terbukti di T-139.4
-- [ ] **T-139.4** Verifikasi dengan akun real bervolume besar (Instagram
-      `cookitrealgood` 1503 post atau TikTok `vs7ig` yang memicu bug ini
-      masih tersedia sebagai akun test) — **belum dilakukan**
+- [x] **T-139.4** Verifikasi akun real (2026-10-23): import Instagram
+      `cookitrealgood` lewat `scripts/t139-verify-large-import.ts` (polling
+      longgar di luar batas 25 detik Server Action) menyimpan **182 post**
+      dalam **18,6 detik** lewat chunk 50 — satu transaksi untuk seluruh
+      batch akan melewati timeout 5000 ms. Tanpa error transaksi
+      kadaluarsa. (Bug terpisah di jalur ambil hasil Outstand ditemukan dan
+      ditutup di T-141.)
 
 **Catatan:** tiket ini dibuat terpisah dari T-130/T-134/T-135/T-136 karena
 scope-nya infrastruktur import secara umum (job `import.sync`), bukan
@@ -1166,3 +1170,34 @@ baris `identity_session` spesifik mana yang invalid).
 tab lain, DB session dibersihkan manual) akan mengalami ini, bukan hanya di
 local dev. Prioritas tinggi karena mengunci akses ke seluruh aplikasi tanpa
 cara recover selain hapus cookie manual.
+
+### T-141 · `fetchImportJobStatus` gagal HTTP 400 untuk import >100 post — `GET /v1/posts` limit maksimum 100 (KI-101)
+
+| Field       | Value                                                                                         |
+| ----------- | --------------------------------------------------------------------------------------------- |
+| **Status**  | ✅ Done — pagination + test, diverifikasi dengan akun real Instagram (2026-10-23)             |
+| **Domain**  | integration (Outstand adapter)                                                                |
+| **Spec**    | tidak ada — single-issue                                                                      |
+| **Docs**    | tidak ada                                                                                     |
+| **Terkait** | T-139 (ditemukan saat verifikasi T-139.4), T-133 (menghambat T-133.2), T-112 (adapter import) |
+| **Depends** | —                                                                                             |
+
+**Ditemukan (2026-10-23, verifikasi T-139.4 lewat `scripts/t139-verify-large-import.ts`):**
+job import Instagram `cookitrealgood` (1503 post) selesai `completed` di
+Outstand (job `BVlEn`), tapi `RealOutstandAdapter.fetchImportJobStatus`
+lalu memanggil `GET /v1/posts` dengan `limit = imported + skipped` (ribuan)
+tanpa `offset`. Outstand membatasi `limit` 1–100 per halaman (skema
+`list_posts`), jadi respons HTTP 400 dan seluruh import akun besar gagal
+sebelum menyentuh DB — terpisah dari T-139 (timeout transaksi) dan dari
+keterlambatan Outstand ("masih diproses setelah 25 detik").
+
+- [x] **T-141.1** `fetchImportJobStatus` mengambil `GET /v1/posts` per halaman
+      (maks 100, `offset` = jumlah baris terkumpul) sampai jumlah yang
+      dilaporkan job terkumpul, halaman pendek, atau `pagination.total`
+      tercapai; `MAX_PAGES` 50 sebagai safety net
+- [x] **T-141.2** Test: `real-outstand-adapter.test.ts` — job 230 post →
+      3 halaman (limit 100/100/30, offset 0/100/200); test lama (satu
+      halaman) tetap lolos
+- [x] **T-141.3** Verifikasi akun real (2026-10-23): job Outstand
+      `jpSt2` `completed`, 182 post terambil (2 halaman) tanpa HTTP 400,
+      semua tersimpan, 12 di antaranya terbit Oktober 2026

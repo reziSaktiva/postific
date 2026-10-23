@@ -1653,25 +1653,62 @@ export function createRealOutstandAdapter(
       const until = toDateOrNull(job.until);
       const fallbackPublishedAt = until ?? since ?? new Date();
 
-      const postsResponse = await client.request<Record<string, unknown>>(
-        "/v1/posts",
-        {
-          method: "GET",
-          query: {
-            social_account_id: outstandAccountId,
-            limit: String(imported + skipped > 0 ? imported + skipped : 100),
-            // Code review PR #149 — persempit hasil ke rentang waktu job
-            // ini (lihat catatan "jujur" di docstring method ini), bukan
-            // hanya mengandalkan `social_account_id` + `limit`.
-            ...(since ? { created_after: since.toISOString() } : {}),
-            ...(until ? { created_before: until.toISOString() } : {}),
+      // T-141/KI-101 — `GET /v1/posts` membatasi `limit` maksimum 100 per
+      // halaman (HTTP 400 kalau lebih), sedangkan job besar melaporkan
+      // `imported + skipped` ribuan. Ambil per halaman 100 lewat `offset`
+      // sampai jumlah yang dilaporkan job terkumpul, halaman terakhir
+      // pendek, atau `pagination.total` tercapai. `MAX_PAGES` murni safety
+      // net (50 halaman = 5000 post, di atas `limit` import 1000).
+      const PAGE_LIMIT = 100;
+      const MAX_PAGES = 50;
+      const wanted = imported + skipped > 0 ? imported + skipped : PAGE_LIMIT;
+      const rawPosts: Record<string, unknown>[] = [];
+      for (let page = 0; page < MAX_PAGES; page++) {
+        const pageLimit = Math.min(PAGE_LIMIT, wanted - rawPosts.length);
+        const postsResponse = await client.request<Record<string, unknown>>(
+          "/v1/posts",
+          {
+            method: "GET",
+            query: {
+              social_account_id: outstandAccountId,
+              limit: String(pageLimit),
+              ...(rawPosts.length > 0
+                ? { offset: String(rawPosts.length) }
+                : {}),
+              // Code review PR #149 — persempit hasil ke rentang waktu job
+              // ini (lihat catatan "jujur" di docstring method ini), bukan
+              // hanya mengandalkan `social_account_id` + `limit`.
+              ...(since ? { created_after: since.toISOString() } : {}),
+              ...(until ? { created_before: until.toISOString() } : {}),
+            },
           },
-        },
-      );
+        );
 
-      const rawPosts = Array.isArray(postsResponse.data)
-        ? (postsResponse.data as Record<string, unknown>[])
-        : [];
+        const pageRows = Array.isArray(postsResponse.data)
+          ? (postsResponse.data as Record<string, unknown>[])
+          : [];
+        rawPosts.push(...pageRows);
+
+        const pagination =
+          typeof postsResponse.pagination === "object" &&
+          postsResponse.pagination !== null
+            ? (postsResponse.pagination as Record<string, unknown>)
+            : null;
+        const total = pagination ? toNumber(pagination.total, -1) : -1;
+
+        if (
+          pageRows.length < pageLimit ||
+          rawPosts.length >= wanted ||
+          (total >= 0 && rawPosts.length >= total)
+        ) {
+          break;
+        }
+        if (page === MAX_PAGES - 1) {
+          console.warn(
+            `[RealOutstandAdapter] fetchImportJobStatus: job "${importJobId}" (akun ${outstandAccountId}) melebihi ${MAX_PAGES} halaman — berhenti paksa, hasil mungkin terpotong.`,
+          );
+        }
+      }
 
       const posts: ImportedPostData[] = [];
       for (const rawPost of rawPosts) {
