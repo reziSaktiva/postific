@@ -1206,7 +1206,7 @@ keterlambatan Outstand ("masih diproses setelah 25 detik").
 
 | Field       | Value                                                                             |
 | ----------- | --------------------------------------------------------------------------------- |
-| **Status**  | 🟡 In Progress                                                                    |
+| **Status**  | ✅ Done (2026-10-23, atas pernyataan King Rezi)                                   |
 | **Domain**  | publishing · integration                                                          |
 | **Spec**    | tidak ada — single-issue                                                          |
 | **Docs**    | T-131 (lookback per trigger), T-115 (cron import), T-141 (pagination `/v1/posts`) |
@@ -1274,8 +1274,13 @@ post TikTok (`list_posts`, `total: 118`); DB kita hanya 100 (14 Mar – 30 Mei
       terkumpul)
 - [x] **T-143.4** Test unit untuk watermark `null` (since 1 tahun, limit 1000)
       dan fallback 0/0 dengan >100 post
-- [ ] **T-143.5** Verifikasi dengan akun real baru (connect TikTok/Instagram,
-      tunggu satu siklus cron)
+- [x] **T-143.5** Verifikasi dengan akun real baru (connect TikTok/Instagram,
+      tunggu satu siklus cron). Dinyatakan selesai oleh King Rezi
+      (2026-10-23). Catatan jujur: saat dicek AI di DB pada 2026-10-23 07:19
+      UTC, belum ada job `import.sync` dengan `payload.result` (kode T-143
+      belum pernah berjalan di cron) dan `last_imported_until` TikTok masih
+      `null`; bukti verifikasi King Rezi tidak tercatat di sini. Kalau
+      siklus cron 2026-10-24 00:00 UTC menunjukkan hal lain, buka ulang
 
 **Sementara:** untuk akun yang sudah terpotong, jalankan
 `bun --env-file=.env.local run scripts/t139-verify-large-import.ts <platform>`
