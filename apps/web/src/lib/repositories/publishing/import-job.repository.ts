@@ -76,7 +76,25 @@ export const importJobRepository: IImportJobRepository = {
     };
   },
 
-  async markImportSyncJobStatus(jobId, status, lastError) {
+  async markImportSyncJobStatus(jobId, status, lastError, result) {
+    // T-143.3 — `result` digabung ke payload secara ATOMIK dalam satu
+    // statement (`payload || {"result": ...}`, jsonb concat di Postgres):
+    // hanya key `result` yang ditulis, key lain (`queued`, `trigger`,
+    // `connectedAccountId`, ... — dipakai partial unique index & klaim job)
+    // tidak pernah dibaca-ulang lalu ditimpa, jadi runner konkuren (reclaim
+    // stale 30 detik `background-job-store`) tidak bisa saling menimpa.
+    if (result) {
+      await prisma.$executeRaw`
+        UPDATE background_jobs
+        SET payload = payload || ${JSON.stringify({ result })}::jsonb,
+            status = ${status},
+            last_error = ${lastError ?? null},
+            completed_at = CASE WHEN ${status} IN ('done', 'failed') THEN now() ELSE completed_at END,
+            started_at = CASE WHEN ${status} = 'running' THEN now() ELSE started_at END
+        WHERE id = ${jobId}::uuid
+      `;
+      return;
+    }
     await prisma.backgroundJob.update({
       where: { id: jobId },
       data: {

@@ -15,6 +15,7 @@ import { assertActorCanTriggerManualImportSync } from "../rbac";
 import type {
   IImportJobRepository,
   ImportSyncJobRecord,
+  ImportSyncJobResult,
   ImportSyncTrigger,
 } from "../repositories/import-job.repository";
 import type { BackfillOutstandPostIdsUseCase } from "./backfill-outstand-post-ids.use-case";
@@ -27,13 +28,22 @@ import type { ImportPostsProcessUseCase } from "./import-posts-process.use-case"
  * King Rezi (AskUserQuestion, 2026-10-20) minta ketiganya benar-benar beda
  * kebijakan — dipecah jadi dua pasang konstanta di bawah, bukan lagi satu:
  * - Auto (on-connect) & manual ("Sync Now"): lookback 1 tahun, limit 1000.
- * - Periodik (cron harian + antrian T-115): limit tetap 100; lookback-nya
- *   BUKAN angka hari tetap lagi — lihat `periodicImportSince` (anti-gap,
- *   pakai `CRON_LOOKBACK_MS` sebagai salah satu dari dua kandidat `since`).
+ * - Periodik (cron harian + antrian T-115): akun BER-watermark limit 100;
+ *   lookback-nya BUKAN angka hari tetap lagi — lihat `periodicImportSince`
+ *   (anti-gap, pakai `CRON_LOOKBACK_MS` sebagai salah satu dari dua kandidat
+ *   `since`). Akun TANPA watermark (`lastImportedUntil === null`, T-143)
+ *   mengejar riwayat penuh: `PERIODIC_FIRST_SYNC_*` di bawah.
  */
 const AUTO_MANUAL_LOOKBACK_DAYS = 365;
 const AUTO_MANUAL_IMPORT_LIMIT = 1000;
 const CRON_IMPORT_LIMIT = 100;
+/**
+ * T-143.1 — kebijakan periodik untuk akun yang belum pernah sync sukses.
+ * Sengaja konstanta sendiri (nilainya sama dengan auto/manual hari ini) supaya
+ * mengubah kebijakan auto/manual tidak diam-diam mengubah catch-up periodik.
+ */
+const PERIODIC_FIRST_SYNC_LOOKBACK_DAYS = 365;
+const PERIODIC_FIRST_SYNC_LIMIT = 1000;
 const CRON_LOOKBACK_MS = 24 * 60 * 60 * 1000;
 const MANUAL_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 const MANUAL_CAP_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
@@ -92,6 +102,88 @@ function periodicImportSince(lastImportedUntil: Date | null, now: Date): Date {
   return candidate.getTime() < twentyFourHoursAgo.getTime()
     ? candidate
     : twentyFourHoursAgo;
+}
+
+/**
+ * T-143.1 — rencana `since`/`limit` untuk import periodik. Akun yang belum
+ * pernah sync sukses (`lastImportedUntil === null`) harus mengejar riwayat
+ * penuh seperti import connect/manual (1 tahun, limit 1000); kalau tidak,
+ * cron cuma meminta 24 jam terakhir dan import connect yang gagal/timeout
+ * tidak pernah dipulihkan (KI-102). Akun dengan watermark memakai
+ * `periodicImportSince` + `CRON_IMPORT_LIMIT` (tidak berubah dari T-131.3).
+ * Watermark dimajukan hanya kalau job tidak terpotong (`isImportTruncated`).
+ * `since` yang dipakai di sini dihitung saat EKSEKUSI; `since` di payload
+ * enqueue (T-115) hanya placeholder — nilai sebenarnya dicatat di
+ * `payload.result.since`.
+ */
+function periodicImportPlan(
+  lastImportedUntil: Date | null,
+  now: Date,
+): { since: Date; limit: number } {
+  if (lastImportedUntil === null) {
+    return {
+      since: new Date(
+        now.getTime() - PERIODIC_FIRST_SYNC_LOOKBACK_DAYS * 24 * 60 * 60 * 1000,
+      ),
+      limit: PERIODIC_FIRST_SYNC_LIMIT,
+    };
+  }
+  return {
+    since: periodicImportSince(lastImportedUntil, now),
+    limit: CRON_IMPORT_LIMIT,
+  };
+}
+
+/**
+ * T-143.3 — ringkasan hasil job untuk disimpan di payload `import.sync`.
+ * Hanya field yang tersedia yang diisi (adapter nyata saja yang membawa
+ * `counts`).
+ */
+function buildImportJobResult(
+  input: { limit: number; since: Date },
+  outcome?: ImportJobOutcome,
+  processed?: { insertedCount: number; skippedDuplicateCount: number },
+): ImportSyncJobResult {
+  return {
+    limit: input.limit,
+    since: input.since.toISOString(),
+    ...(outcome
+      ? { fetchedPosts: outcome.fetchedPosts ?? outcome.posts.length }
+      : {}),
+    ...(outcome?.counts
+      ? {
+          outstandImported: outcome.counts.imported,
+          outstandSkipped: outcome.counts.skipped,
+          outstandFailed: outcome.counts.failed,
+        }
+      : {}),
+    ...(processed
+      ? {
+          insertedCount: processed.insertedCount,
+          skippedDuplicateCount: processed.skippedDuplicateCount,
+        }
+      : {}),
+  };
+}
+
+/**
+ * Apakah import ini mungkin terpotong (sisa post di rentang `since`-`until`
+ * belum terambil) — menentukan apakah watermark boleh dimajukan.
+ *
+ * `GET /v1/posts` sudah dipaginasi penuh (T-141), jadi jumlah post yang
+ * terambil tidak lagi membuktikan pemotongan. Pembatas sebenarnya adalah
+ * `limit` job import di sisi Outstand: kalau Outstand melaporkan
+ * `imported + skipped + failed` mencapai `limit`, mungkin masih ada sisa.
+ * Tanpa `counts` (adapter lain/double), jatuh ke heuristik lama
+ * `posts.length >= limit`. Akun yang benar-benar punya >= `limit` post dalam
+ * rentang tetap tidak memajukan watermark (butuh cursor Outstand).
+ */
+function isImportTruncated(outcome: ImportJobOutcome, limit: number): boolean {
+  if (outcome.counts) {
+    const { imported, skipped, failed } = outcome.counts;
+    return imported + skipped + failed >= limit;
+  }
+  return outcome.posts.length >= limit;
 }
 
 /**
@@ -372,14 +464,15 @@ export class ImportPostsTriggerUseCase {
           "triggerPeriodicForAccounts",
         );
 
+        const plan = periodicImportPlan(account.lastImportedUntil, new Date());
         const result = await this.runImportSync({
           trigger: "periodic",
           workspaceId: account.workspaceId,
           connectedAccountId: account.connectedAccountId,
           outstandAccountId: account.outstandAccountId,
           platform: account.platform,
-          since: periodicImportSince(account.lastImportedUntil, new Date()),
-          limit: CRON_IMPORT_LIMIT,
+          since: plan.since,
+          limit: plan.limit,
           actingUserId: owner.ownerUserId,
         });
         results.set(account.connectedAccountId, result);
@@ -510,14 +603,15 @@ export class ImportPostsTriggerUseCase {
     }
 
     const until = new Date();
+    const plan = periodicImportPlan(watermark.lastImportedUntil, until);
     const runInput: RunImportSyncInput = {
       trigger: "periodic",
       workspaceId: input.workspaceId,
       connectedAccountId: input.connectedAccountId,
       outstandAccountId: input.outstandAccountId,
       platform: input.platform,
-      since: periodicImportSince(watermark.lastImportedUntil, until),
-      limit: CRON_IMPORT_LIMIT,
+      since: plan.since,
+      limit: plan.limit,
       actingUserId: owner.ownerUserId,
     };
 
@@ -622,12 +716,17 @@ export class ImportPostsTriggerUseCase {
     job: ImportSyncJobRecord,
     until: Date,
   ): Promise<ImportSyncTriggerResult> {
+    // Dipertahankan di luar `try` supaya jalur `catch` tetap bisa menyimpan
+    // angka yang sudah terkumpul (mis. penulisan status `done` gagal).
+    let jobOutcome: ImportJobOutcome | undefined;
+    let processed:
+      { insertedCount: number; skippedDuplicateCount: number } | undefined;
     try {
       const handle = await this.outstandAdapter.importPosts(
         input.outstandAccountId,
         { since: input.since, until, limit: input.limit },
       );
-      const jobOutcome = await this.pollImportJobStatus(
+      jobOutcome = await this.pollImportJobStatus(
         input.outstandAccountId,
         handle.importJobId,
       );
@@ -654,11 +753,12 @@ export class ImportPostsTriggerUseCase {
           job.id,
           "failed",
           message,
+          buildImportJobResult(input, jobOutcome),
         );
         return { outcome: "failed", message };
       }
 
-      const processed = await this.processUseCase.process({
+      processed = await this.processUseCase.process({
         workspaceId: input.workspaceId,
         connectedAccountId: input.connectedAccountId,
         platform: input.platform,
@@ -688,15 +788,18 @@ export class ImportPostsTriggerUseCase {
 
       // Code review PR #148 (finding #5) — `IOutstandAdapter.importPosts`
       // tidak punya cursor/next-page (kontrak `packages/shared`), jadi
-      // kalau hasil batch ini PAS sejumlah `input.limit` (T-131 — limit kini
-      // per-trigger, bukan satu `DEFAULT_IMPORT_LIMIT` lagi), mungkin masih
-      // ada post lain dalam rentang `since`-`until` yang belum terambil.
-      // Watermark HANYA dimajukan ke `until` kalau batch ini TIDAK penuh
+      // kalau job ini mencapai `input.limit` (T-131 — limit kini per-trigger,
+      // bukan satu `DEFAULT_IMPORT_LIMIT` lagi), mungkin masih ada post lain
+      // dalam rentang `since`-`until` yang belum terambil.
+      // Watermark HANYA dimajukan ke `until` kalau job ini TIDAK penuh
       // (berarti seluruh rentang sudah habis) — kalau penuh, watermark
       // dibiarkan apa adanya supaya trigger berikutnya mengulang rentang
       // yang sama (aman berkat dedup `upsertImportedPosts`) daripada diam-
       // diam melompati sisa post yang belum terambil.
-      const isPossiblyTruncated = jobOutcome.posts.length >= input.limit;
+      // T-143: sinyal pemotongan = angka job Outstand vs `limit`, lihat
+      // `isImportTruncated` (jumlah post terambil tidak lagi relevan karena
+      // `GET /v1/posts` sudah dipaginasi penuh).
+      const isPossiblyTruncated = isImportTruncated(jobOutcome, input.limit);
       if (!isPossiblyTruncated) {
         // `lastImportedUntil` ke nilai `until` yang DIPAKAI job ini (ADR-093
         // poin 7) — BUKAN publishedAt post terbaru, supaya trigger berikutnya
@@ -713,6 +816,7 @@ export class ImportPostsTriggerUseCase {
         job.id,
         "done",
         partialWarning,
+        buildImportJobResult(input, jobOutcome, processed),
       );
 
       return {
@@ -728,6 +832,10 @@ export class ImportPostsTriggerUseCase {
           job.id,
           "failed",
           message,
+          // T-143.3 — job yang gagal lewat exception tetap mencatat limit/
+          // since dan angka yang sudah terkumpul (outcome fetch / hasil
+          // process) supaya kasus terpotong bisa dibuktikan ulang.
+          buildImportJobResult(input, jobOutcome, processed),
         );
       } catch {
         // Code review PR #148 (finding #4) — kalau PENULISAN status gagal
