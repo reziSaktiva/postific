@@ -830,6 +830,8 @@ export const publishingRepository: IPublishingRepository = {
         // `compareHistoryItemsDesc` (T-142), yang tetap dipakai sort lokal
         // Realtime di UI. Index `(workspace_id, occurred_at desc)`.
         orderBy: [
+          // `occurred_at` = generated column T-145; aturannya WAJIB sama dengan
+          // `historyItemOccurredAt` (group-history-items.ts) — ubah keduanya bersama.
           { occurredAt: "desc" },
           { updatedAt: "desc" },
           { id: "desc" },

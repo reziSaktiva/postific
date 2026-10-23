@@ -9,6 +9,10 @@ import type { HistoryItemRecord } from "../repositories/publishing.repository";
  * `publishedAt ?? updatedAt`. `updatedAt` hanya fallback — kolom audit itu
  * berubah tiap baris di-update (import, klasifikasi, backfill), jadi bukan
  * waktu terbit.
+ *
+ * WAJIB identik dengan generated column `publishing_posts.occurred_at`
+ * (T-145, migrasi `..._t145_publishing_posts_occurred_at`, `ORDER BY` di
+ * `listHistory`): ubah salah satu, ubah keduanya.
  */
 export function historyItemOccurredAt(item: HistoryItemRecord): Date {
   if (item.status === ContentStatus.Failed) {
@@ -71,7 +75,7 @@ export function groupHistoryItemsByDate(
   const groupByDate = new Map<string, HistoryGroup>();
 
   for (const item of items) {
-    const date = toCalendarDateKey(historyItemOccurredAt(item));
+    const date = toWibDateKey(historyItemOccurredAt(item));
     let group = groupByDate.get(date);
     if (!group) {
       group = { date, items: [] };
@@ -82,8 +86,4 @@ export function groupHistoryItemsByDate(
   }
 
   return groups;
-}
-
-function toCalendarDateKey(date: Date): string {
-  return toWibDateKey(date);
 }

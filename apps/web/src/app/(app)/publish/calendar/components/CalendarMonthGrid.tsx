@@ -53,8 +53,10 @@ function buildMonthGridDays(anchor: Date): MonthGridDay[] {
   const leadingPadding = (getWibDateParts(monthStart).weekday + 6) % 7; // Senin=0 ... Minggu=6
   const gridStart = addDays(monthStart, -leadingPadding);
 
-  const daysInMonth =
-    Math.round((monthEnd.getTime() - monthStart.getTime()) / MS_PER_DAY) + 1;
+  // `monthEnd` = 23:59:59.999 hari terakhir, jadi +1 ms dulu supaya N hari (bukan N+1).
+  const daysInMonth = Math.round(
+    (monthEnd.getTime() + 1 - monthStart.getTime()) / MS_PER_DAY,
+  );
   const totalCells = Math.ceil((leadingPadding + daysInMonth) / 7) * 7;
 
   const anchorParts = getWibDateParts(anchor);

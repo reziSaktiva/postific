@@ -33,7 +33,7 @@ export function groupQueueItemsByDate(items: QueueItemRecord[]): QueueGroup[] {
   const groupByDate = new Map<string, QueueGroup>();
 
   for (const item of items) {
-    const date = toCalendarDateKey(item.scheduledAt);
+    const date = toWibDateKey(item.scheduledAt);
     let group = groupByDate.get(date);
     if (!group) {
       group = { date, items: [] };
@@ -44,8 +44,4 @@ export function groupQueueItemsByDate(items: QueueItemRecord[]): QueueGroup[] {
   }
 
   return groups;
-}
-
-function toCalendarDateKey(date: Date): string {
-  return toWibDateKey(date);
 }
