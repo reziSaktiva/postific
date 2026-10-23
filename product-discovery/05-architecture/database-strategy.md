@@ -167,7 +167,7 @@ Semua tabel berada di satu schema `public`. Domain dipisahkan menggunakan **pref
 | `identity_` | BC-01 Identity (managed by Better Auth) |
 | `workspace_` | BC-02 Workspace |
 | `publishing_` | BC-03 Publishing |
-| `ai_` | BC-04 AI Assistant |
+| `mcp_` | BC-04 MCP Access |
 | `engagement_` | BC-05 Engagement |
 | `analytics_` | BC-06 Analytics |
 | `start_page_` | BC-07 Start Page |
@@ -335,30 +335,41 @@ dipertahankan sebagai referensi historis, bukan aktif dipakai.
 
 ---
 
-## BC-04 — AI Assistant
+## BC-04 — MCP Access
 
-### `ai_requests`
+Kolom indikatif (ADR-138, ADR-139); final di spec dan T-149 setelah spike T-148.
+
+### `mcp_grants`
 
 | Kolom | Tipe | Keterangan |
 |-------|------|-----------|
-| `id` | `uuid PK DEFAULT gen_random_uuid()` | AI Request ID |
+| `id` | `uuid PK DEFAULT gen_random_uuid()` | Grant ID |
+| `workspace_id` | `uuid NOT NULL REFERENCES workspaces(id)` | Satu workspace per koneksi |
+| `user_id` | `uuid NOT NULL` | Referensi ke `identity_user.id`; role pengguna ini yang berlaku |
+| `client_id` | `text NOT NULL` | Klien AI hasil dynamic client registration |
+| `scopes` | `text[] NOT NULL` | `read \| draft \| schedule` (MVP) |
+| `created_at` | `timestamptz NOT NULL DEFAULT now()` | |
+| `revoked_at` | `timestamptz` | Terisi saat dicabut |
+
+### `mcp_audit_logs`
+
+| Kolom | Tipe | Keterangan |
+|-------|------|-----------|
+| `id` | `uuid PK DEFAULT gen_random_uuid()` | Audit ID |
 | `workspace_id` | `uuid NOT NULL REFERENCES workspaces(id)` | |
-| `user_id` | `uuid NOT NULL` | Referensi ke `identity_user.id` |
-| `post_id` | `uuid` | Optional — referensi ke `publishing_posts.id` |
-| `type` | `text NOT NULL` | `generate \| improve \| rewrite \| variation` |
-| `prompt` | `text NOT NULL` | Input dari pengguna atau sistem |
-| `context` | `text` | Teks caption yang sudah ada (untuk improve/rewrite) |
-| `created_at` | `timestamptz NOT NULL DEFAULT now()` | |
+| `user_id` | `uuid NOT NULL` | |
+| `grant_id` | `uuid REFERENCES mcp_grants(id)` | |
+| `client_id` | `text NOT NULL` | |
+| `tool_name` | `text NOT NULL` | |
+| `scope` | `text NOT NULL` | |
+| `input_summary` | `text` | Ringkasan yang disamarkan |
+| `status` | `text NOT NULL` | `success \| denied \| error` |
+| `error_code` | `text` | |
+| `duration_ms` | `integer` | |
+| `target_id` | `text` | ID hasil aksi, misalnya post |
+| `created_at` | `timestamptz NOT NULL DEFAULT now()` | Retensi 90 hari (dihapus cron) |
 
-### `ai_results`
-
-| Kolom | Tipe | Keterangan |
-|-------|------|-----------|
-| `id` | `uuid PK DEFAULT gen_random_uuid()` | AI Result ID |
-| `request_id` | `uuid NOT NULL REFERENCES ai_requests(id) ON DELETE CASCADE` | |
-| `content` | `text NOT NULL` | Hasil teks yang dihasilkan AI |
-| `variant_index` | `integer NOT NULL DEFAULT 0` | Urutan varian (0 untuk hasil tunggal) |
-| `created_at` | `timestamptz NOT NULL DEFAULT now()` | |
+Penanda sumber MCP di BC-03: `publishing_posts` mendapat kolom `created_via` (`app | mcp`) dan `created_via_client_id` (nullable), diputuskan final di T-152. Penghitung rate limit per workspace juga berbasis Postgres (ADR-138 poin 7), bentuk tabelnya diputuskan di T-154.
 
 ---
 
@@ -690,7 +701,7 @@ Seluruh tabel menggunakan **hard delete** (data dihapus dari database) kecuali `
 ## Exception: `publishing_posts` — Soft Delete
 
 `publishing_posts` menggunakan soft delete (`deleted_at timestamptz`) karena:
-* Post yang sudah dipublikasikan mungkin masih memiliki `PostTarget`, `PostMetrics`, dan `AIRequest` yang mereferensikannya.
+* Post yang sudah dipublikasikan mungkin masih memiliki `PostTarget` dan `PostMetrics` yang mereferensikannya.
 * Historical analytics memerlukan referensi post meski sudah "dihapus" dari tampilan.
 * Creator mungkin ingin recover draft yang tidak sengaja terhapus.
 
@@ -722,8 +733,8 @@ Detail implementasi migrasi didefinisikan di Engineering Planning (M6). Poin ars
 | `Post` | `publishing_posts` | BC-03 |
 | `PostTarget` | `publishing_post_targets` | BC-03 |
 | ~~`QueueSlot`~~ | ~~`publishing_queue_slots`~~ | BC-03 — **deprecated (ADR-083, 2026-08-19):** entity dihapus dari `domain-model.md`, Queue jadi computed view atas `Post`/`PostTarget`. Tabel fisik masih ada di DB (nol referensi kode), dijadwalkan dihapus lewat migration saat T-032.5 dikerjakan |
-| `AIRequest` | `ai_requests` | BC-04 |
-| `AIResult` | `ai_results` | BC-04 |
+| `McpGrant` | `mcp_grants` | BC-04 |
+| `McpAuditLog` | `mcp_audit_logs` | BC-04 |
 | `InboxItem` | `engagement_inbox_items` | BC-05 |
 | `Reply` | `engagement_replies` | BC-05 |
 | `PostMetrics` | `analytics_post_metrics` | BC-06 |

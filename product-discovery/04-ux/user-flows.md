@@ -71,7 +71,7 @@ Setiap flow memiliki struktur:
 
 **Trigger:** Raka memulai sesi kerja konten harian atau menerima brief baru.
 
-**Modul:** Publishing (Draft Editor, Account Selector, Content Format Selector, Schedule Picker), AI Assistant
+**Modul:** Publishing (Draft Editor, Account Selector, Content Format Selector, Schedule Picker). AI pengguna dapat membuat draft dan menjadwalkan lewat MCP (ADR-138)
 
 ---
 

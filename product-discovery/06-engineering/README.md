@@ -131,7 +131,7 @@ Setiap keputusan teknis yang signifikan harus dicatat sebagai ADR di `../../proj
 
 ## Dari Product Baseline v1.0
 
-* Domain prioritas MVP: Publishing, Workspace, Engagement, Analytics, AI Assistant.
+* Domain prioritas MVP: Publishing, Workspace, Engagement, Analytics, MCP Access (ADR-138).
 * Skala awal: tim kecil (Marketing Team), bukan enterprise.
 
 ## Dari UX Planning
