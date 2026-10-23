@@ -1256,7 +1256,7 @@ post TikTok (`list_posts`, `total: 118`); DB kita hanya 100 (14 Mar – 30 Mei
    `nNvkl`, jadi 0 di DB benar. (Satu job periodik YouTube 22 Okt gagal
    "owner lookup kosong" lalu sukses 23 Okt.)
 
-**Perbaikan (disetujui King Rezi, diimplementasi 2026-10-23; T-143.5 belum):**
+**Perbaikan (disetujui King Rezi, diimplementasi 2026-10-23; T-143.5 dinyatakan selesai oleh King Rezi, bukti cron belum terlihat di DB):**
 
 - [x] **T-143.1** Periodik: kalau `lastImportedUntil === null` (belum pernah
       sync sukses), pakai `defaultSince` (1 tahun) dan limit

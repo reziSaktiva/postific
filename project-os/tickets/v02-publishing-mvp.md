@@ -2792,7 +2792,7 @@ kecil (satu baris per post), terapkan di luar jam sibuk.
 **Catatan review (2026-10-23), masih terbuka setelah Done:**
 
 - SQL migrasi sudah terterap di Postgres DB (lihat T-145.2); belum diuji lewat shadow DB.
-- Belum dijalankan (sebelum PR 194 merge dianjurkan): jalankan `prisma migrate diff --from-migrations ...
+- Belum dijalankan (PR 194 sudah merge, belum ada pengujian shadow DB): jalankan `prisma migrate diff --from-migrations ...
 --to-schema-datamodel` dengan shadow DB. Hasilnya harus kosong; ini menguji
   drift akibat `@default(dbgenerated())` pada kolom generated.
 - Paritas ekspresi SQL `occurred_at` terhadap `historyItemOccurredAt` (JS)
