@@ -5,6 +5,7 @@ import {
   getWibHour,
   startOfWibDay,
   toWibDateKey,
+  wibLocalToUtc,
   wibMidnightUtc,
 } from "./wib-time";
 
@@ -52,5 +53,37 @@ describe("wib-time", () => {
       day: 13,
       weekday: 1,
     });
+  });
+
+  it("wibLocalToUtc menafsirkan input sebagai WIB (09:00 WIB = 02:00Z)", () => {
+    expect(wibLocalToUtc("2026-09-01", "09:00").toISOString()).toBe(
+      "2026-09-01T02:00:00.000Z",
+    );
+  });
+
+  it("wibLocalToUtc melewati batas hari: 00:30 WIB = 17:30Z hari sebelumnya", () => {
+    expect(wibLocalToUtc("2026-09-01", "00:30").toISOString()).toBe(
+      "2026-08-31T17:30:00.000Z",
+    );
+  });
+
+  it("wibLocalToUtc menerima detik dan menolak input tak valid", () => {
+    expect(wibLocalToUtc("2026-09-01", "09:00:30").toISOString()).toBe(
+      "2026-09-01T02:00:30.000Z",
+    );
+    expect(Number.isNaN(wibLocalToUtc("", "09:00").getTime())).toBe(true);
+  });
+
+  it("wibLocalToUtc tidak bergantung zona proses", () => {
+    const original = process.env.TZ;
+    process.env.TZ = "Asia/Makassar";
+    try {
+      expect(wibLocalToUtc("2026-09-01", "09:00").toISOString()).toBe(
+        "2026-09-01T02:00:00.000Z",
+      );
+    } finally {
+      if (original === undefined) delete process.env.TZ;
+      else process.env.TZ = original;
+    }
   });
 });

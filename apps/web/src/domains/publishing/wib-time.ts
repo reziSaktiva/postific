@@ -62,3 +62,15 @@ export function startOfWibDay(date: Date): Date {
   const { year, month, day } = getWibDateParts(date);
   return wibMidnightUtc(year, month, day);
 }
+
+/**
+ * Tafsirkan input tanggal+jam picker jadwal (T-146) sebagai waktu dinding WIB,
+ * bukan zona browser. `date` "YYYY-MM-DD", `time` "HH:mm" (atau "HH:mm:ss").
+ * Input tak valid menghasilkan `Invalid Date` (sama seperti `new Date(...)`),
+ * jadi pemanggil tetap memakai pola `Number.isNaN(getTime())`.
+ */
+export function wibLocalToUtc(date: string, time: string): Date {
+  const offsetHours = WIB_OFFSET_MS / (60 * 60 * 1000);
+  const offset = `+${String(offsetHours).padStart(2, "0")}:00`;
+  return new Date(`${date}T${time}${offset}`);
+}
