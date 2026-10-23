@@ -2524,7 +2524,7 @@ bug.
 
 | Field         | Value                                                                                                                                                                                                                            |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**    | 🟡 T-133.2/.3 dieksekusi 2026-10-23 (konfirmasi King Rezi), sisa T-133.4 cek visual browser; Pinterest keterbatasan eksplisit                                                                                                    |
+| **Status**    | ✅ Done — T-133.2/.3 dieksekusi dan T-133.4 diverifikasi browser (2026-10-23); Pinterest keterbatasan eksplisit (T-133.1)                                                                                                        |
 | **Domain**    | publishing · integration                                                                                                                                                                                                         |
 | **ADR**       | —                                                                                                                                                                                                                                |
 | **Terkait**   | T-131, T-132, T-114 (pola backfill existing direuse untuk migrasi satu-kali), T-130/T-134/T-135/T-136 (blocker, lihat catatan di bawah)                                                                                          |
@@ -2556,7 +2556,7 @@ jalan untuk semua network — perlu dibuktikan satu-satu.
 - [~] **T-133.1** Verifikasi langsung ke Outstand (uji coba `importPosts` ke akun test TikTok dan Pinterest yang representatif, atau konfirmasi resmi dari support Outstand kalau tidak ada akun test) — apakah endpoint Import benar-benar berfungsi untuk kedua platform ini. Kalau gagal/tidak didukung, catat sebagai keterbatasan eksplisit (bukan diasumsikan jalan)
 - [x] **T-133.2** Migrasi satu-kali: re-trigger import untuk `WorkspaceConnectedAccount` existing (Instagram, Facebook dulu) dengan `since` diperluas ke 1 tahun lalu — dijalankan sebagai script/job satu-off, BUKAN bagian job rutin, dedup existing (`upsertImportedPostsTx`) sudah aman dipakai ulang
 - [x] **T-133.3** Jalankan T-132.4 (use-case klasifikasi) secara retroaktif untuk 43 post Imported existing + post baru hasil T-133.2
-- [~] **T-133.4** Verifikasi end-to-end browser + DB nyata (pola sama addendum T-090/T-112) minimal untuk Instagram + Facebook; lanjut TikTok/Pinterest kalau T-133.1 konfirmasi didukung
+- [x] **T-133.4** Verifikasi end-to-end browser + DB nyata (pola sama addendum T-090/T-112) minimal untuk Instagram + Facebook; lanjut TikTok/Pinterest kalau T-133.1 konfirmasi didukung
 - [ ] **T-133.5** Update `PROJECT_STATE.md`/`AVAILABLE_TICKETS.md` setelah selesai (status final tiket ini saja, bukan detail task — ADR-062)
 
 **Catatan status (2026-10-20):** T-133.1 tidak bisa diverifikasi — tidak ada
@@ -2593,9 +2593,15 @@ langkah klasifikasi T-133.2; 43 post lama akun lama sudah hilang saat
 pembersihan data T-134). Snapshot Home `monthly totalPosts=25` (diverifikasi
 via script refresh, bukan dilihat di browser).
 
-**Sisa T-133.4:** cek visual browser Home/Analyze/History untuk Instagram +
-Facebook belum dilakukan (akses browser ditolak pemeriksa izin pada sesi
-ini). Pinterest tetap keterbatasan eksplisit (T-133.1).
+**T-133.4 diverifikasi browser (2026-10-23, localhost:3000, akun real):**
+Home "Post terpublikasi" = 25 (post distinct, cocok snapshot); Analyze
+Bulanan Total Posts = 29 (Facebook 15 + Instagram 14, granularitas
+post x akun, beda dari Home sesuai keputusan ADR-136) dengan daftar Post
+Performance berisi post Facebook dan Instagram; History menampilkan post
+`Imported` Facebook dan Instagram. Catatan pengamatan (di luar scope, belum
+diselidiki): di History semua baris tampil dengan jam 10.12 di bawah grup
+"Jumat, 23 Oktober" walau tertulis dipublikasikan lebih lama — kemungkinan
+pengelompokan memakai waktu import, bukan `publishedAt`.
 
 **Blocking eksplisit (King Rezi, 2026-10-21):** jangan eksekusi T-133.2
 (re-trigger import dengan `since` diperluas) sebelum 4 tiket berikut tuntas —
