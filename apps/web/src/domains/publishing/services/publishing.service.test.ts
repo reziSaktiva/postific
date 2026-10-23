@@ -863,6 +863,7 @@ function createHistoryItem(
     status: ContentStatus.Published,
     scheduledAt: null,
     publishedAt: new Date("2026-07-14T10:00:00Z"),
+    failedAt: null,
     createdAt: new Date("2026-07-13T00:00:00Z"),
     updatedAt: new Date("2026-07-14T10:00:00Z"),
     mediaIds: [],

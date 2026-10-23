@@ -2634,46 +2634,60 @@ Rezi kosong). Begitu akun test tersedia dan verifikasi browser lolos,
 keempat tiket ditutup ✅ Done dan blocker ini terbuka tanpa perlu investigasi
 ulang — tidak ada pekerjaan kode tersisa untuk membuka blocker ini.
 
-### T-142 · Usulan: History post `Imported` dikelompokkan dan diurutkan memakai `publishedAt`
+### T-142 · Bug 🔴: History mengelompokkan, mengurutkan, dan menjam kartu memakai `updatedAt` (kolom audit), bukan `publishedAt`
 
-| Field         | Value                                                                                                                                                                                                                   |
-| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**    | 🚫 Usulan — menunggu keputusan produk King Rezi dan cek rancangan di Claude Design sebelum ada kode (AGENTS.md aturan 10)                                                                                               |
-| **Domain**    | publishing · UI                                                                                                                                                                                                         |
-| **ADR**       | kemungkinan perlu ADR baru kalau kontrak urutan `listHistory` berubah (aturan 2)                                                                                                                                        |
-| **Terkait**   | ADR-093 (Imported tampil di History), T-034 (History), T-133 (backfill 1 tahun yang memunculkan masalah ini)                                                                                                            |
-| **Depends**   | keputusan produk T-142.1, rancangan Claude Design T-142.2                                                                                                                                                               |
-| **Baca dulu** | `apps/web/src/domains/publishing/services/group-history-items.ts` · `apps/web/src/app/(app)/publish/history/history-list-row.ts` · `listHistory` di `apps/web/src/lib/repositories/publishing/publishing.repository.ts` |
+| Field         | Value                                                                                                                                                                                                                                                                                                                                                                             |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**    | ⏳ 🔴 Prioritas tinggi — 🟡 siap implementasi — keputusan produk T-142.1 (2026-10-23); T-142.2/T-142.3 digugurkan King Rezi (2026-10-23)                                                                                                                                                                                                                                          |
+| **Domain**    | publishing · UI                                                                                                                                                                                                                                                                                                                                                                   |
+| **ADR**       | tidak perlu (T-142.3 gugur): hanya mengganti kolom kunci, bukan baseline arsitektur                                                                                                                                                                                                                                                                                               |
+| **Terkait**   | ADR-093 (Imported tampil di History), T-034 (History), T-133 (backfill 1 tahun yang memunculkan bug), T-143 / KI-102 (import periodik, menambah baris Imported ber-`updatedAt` baru)                                                                                                                                                                                              |
+| **Depends**   | —                                                                                                                                                                                                                                                                                                                                                                                 |
+| **Baca dulu** | `apps/web/src/domains/publishing/services/group-history-items.ts` · `apps/web/src/app/(app)/publish/history/history-list-row.ts` · `apps/web/src/app/(app)/publish/history/HistoryList.tsx` · `listHistory` di `apps/web/src/lib/repositories/publishing/publishing.repository.ts` (`orderBy updatedAt desc` di sekitar baris 828; baris ~251 adalah `listDrafts`, bukan History) |
 
-**Bukan bug.** History mengelompokkan dan mengurutkan per `updatedAt`
-("waktu selesai") dan memakai `updatedAt` yang sama untuk jam kartu
-(`historyListClockDate`) — disengaja, terdokumentasi di kode, supaya urutan
-grup selaras dengan `orderBy: { updatedAt: "desc" }`.
+**Bug (dilaporkan King Rezi 2026-10-23, setelah verifikasi):** di Publish
+-> History semua post tercatat di grup tanggal hari ini, padahal seharusnya
+sesuai `publishedAt`. Sebelumnya dicatat sebagai usulan non-bug; King Rezi
+memutuskan memakai `publishedAt` (T-142.1), jadi ini sekarang bug.
 
-**Masalah produk (ditemukan 2026-10-23, verifikasi T-133.4):** untuk post
-`Imported`, `updatedAt` = waktu import, bukan waktu terbit. Setelah backfill
-1 tahun T-133, 366 post Imported (Facebook 184, Instagram 182, plus TikTok 100) menumpuk di grup tanggal import (22 dan 23 Oktober) dengan jam yang
-sama (satu batch, mis. 10.12), sementara teks kartu menulis "Dipublikasikan
-15 Okt 2026". Tanggal grup, jam, dan teks meta saling bertentangan, dan
-riwayat publish asli tertimbun.
+**Diagnosis (diverifikasi di kode):**
 
-**Usulan:** untuk post `Imported`, kunci pengelompokan, urutan, dan jam kartu
-memakai `publishedAt`; post `Published`/`Failed` tetap memakai `updatedAt`
-(atau seluruhnya `publishedAt ?? updatedAt`).
+- `groupHistoryItemsByDate` (`group-history-items.ts:50`) mengunci grup dengan
+  `toCalendarDateKey(item.updatedAt)`; `historyListClockDate`
+  (`history-list-row.ts`) memakai `updatedAt` yang sama; `listHistory`
+  memakai `orderBy: { updatedAt: "desc" }`.
+- Desain awal sengaja memakai `updatedAt` agar urutan grup selaras dengan
+  `orderBy`, dengan asumsi `updatedAt` ~ waktu selesai. Asumsi patah untuk post
+  `Imported`: `updatedAt` = waktu import (satu batch, jam sama), `publishedAt` =
+  waktu terbit asli. Setelah backfill T-133 (366 post) dan import
+  periodik/cron, semua menumpuk di grup hari import, sementara teks kartu
+  menulis "Dipublikasikan <publishedAt>" sehingga tanggal grup, jam, dan teks
+  saling bertentangan.
+- Risiko tambahan: `updatedAt` berubah tiap baris di-update (klasifikasi
+  ContentFormat T-132, backfill, re-import), jadi post lama bisa "pindah" ke
+  hari ini kapan pun.
+- Akar masalah: kunci grup, urutan, dan jam memakai kolom audit (`updatedAt`)
+  alih-alih waktu bisnis (`publishedAt`). Published/Failed hanya tampak aman
+  karena `publishedAt` ~ `updatedAt` saat baris dibuat.
 
-- [ ] **T-142.1** King Rezi memutuskan perilaku History (via `AskUserQuestion`):
-      Imported memakai `publishedAt`, atau tetap `updatedAt` dengan penanda
-      "diimpor"; apakah Published ikut berubah
-- [ ] **T-142.2** Cek Claude Design (project "Social Media Management") apakah
-      layar History sudah merancang kelompok tanggal untuk Imported; kalau
-      belum, STOP dan minta rancangan lebih dulu (AGENTS.md aturan 10)
-- [ ] **T-142.3** Kalau kontrak urutan `listHistory` berubah (`orderBy`,
-      kunci grup, `historyListClockDate`), tulis ADR baru
-- [ ] **T-142.4** Implementasi sesuai keputusan, sesuaikan
-      `group-history-items.ts`, `history-list-row.ts`, `listHistory`, dan
-      Realtime patch di `HistoryList.tsx` (sort lokal harus konsisten)
-- [ ] **T-142.5** Test unit pengelompokan (Imported lintas tanggal, campuran
-      Imported dan Published) dan verifikasi browser History
+**Perbaikan:** kunci grup, `orderBy`, dan jam kartu = `publishedAt ?? updatedAt`
+(Failed: `failedAt ?? updatedAt`). Realtime patch di `HistoryList.tsx` ikut
+konsisten (sort lokal sama dengan `orderBy` server).
+
+- [x] **T-142.1** Keputusan produk King Rezi (2026-10-23): History memakai
+      `publishedAt` (bukan `updatedAt`) untuk pengelompokan, urutan, dan jam
+- [x] **T-142.2** ~~Cek Claude Design~~ **Gugur** (King Rezi, 2026-10-23):
+      tampilan History tidak berubah (tata letak, komponen, kelompok tanggal
+      sama); yang salah hanya kolom kunci, jadi ini perbaikan data, bukan
+      keputusan visual (aturan 10 tidak terpicu)
+- [x] **T-142.3** ~~ADR baru~~ **Gugur** (King Rezi, 2026-10-23): mengganti
+      kolom kunci urutan bukan perubahan baseline; keputusan dicatat di tiket
+- [x] **T-142.4** Implementasi: `group-history-items.ts`, `history-list-row.ts`,
+      `listHistory` (satu lokasi: sort JS memakai `compareHistoryItemsDesc`; baris ~251 itu `listDrafts`, tidak diubah), dan Realtime patch di
+      `HistoryList.tsx` (`publishedAt ?? updatedAt`, Failed `failedAt ?? updatedAt`)
+- [ ] **T-142.5** Test unit pengelompokan lintas tanggal (Imported lintas
+      tanggal, campuran Imported/Published/Failed, `publishedAt` null) dan
+      verifikasi browser History
 
 ---
 

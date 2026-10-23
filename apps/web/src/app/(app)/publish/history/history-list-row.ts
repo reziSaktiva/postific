@@ -1,14 +1,14 @@
 import { ContentStatus } from "@postific/shared";
+import { historyItemOccurredAt } from "@/domains/publishing";
 import type { HistoryItemRecord } from "@/domains/publishing";
 
 /**
- * Jam di kiri kartu History. Wajib satu hari kalender dengan judul
- * kelompok, yang dikunci dari `updatedAt` (`groupHistoryItemsByDate`).
- * `publishedAt` post `Imported` bisa berminggu-minggu lebih awal dari
- * waktu impor, jadi tidak boleh dipakai sebagai jam di dalam kelompok.
+ * Jam di kiri kartu History. Memakai kunci waktu bisnis yang sama dengan
+ * judul kelompok (`historyItemOccurredAt`, T-142), jadi jam dan tanggal
+ * kelompok selalu satu hari kalender.
  */
 export function historyListClockDate(item: HistoryItemRecord): Date {
-  return item.updatedAt;
+  return historyItemOccurredAt(item);
 }
 
 /**

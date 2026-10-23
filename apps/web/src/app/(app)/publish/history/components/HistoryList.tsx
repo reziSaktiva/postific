@@ -12,6 +12,7 @@ import Link from "next/link";
 
 import { ContentStatus } from "@postific/shared";
 import {
+  compareHistoryItemsDesc,
   groupHistoryItemsByDate,
   HISTORY_TERMINAL_STATUSES,
   type HistoryGroup,
@@ -116,8 +117,8 @@ const HISTORY_VIEW_STATUSES: ReadonlySet<ContentStatus> = new Set(
 
 export interface HistoryListProps {
   /**
-   * Hasil `PublishingService.listHistory` (flat, sudah terurut `updatedAt`
-   * descending oleh repository) — T-092.6: pengelompokan per tanggal
+   * Hasil `PublishingService.listHistory` (flat, sudah terurut waktu bisnis
+   * descending (`compareHistoryItemsDesc`) oleh repository) — T-092.6: pengelompokan per tanggal
    * dipindah ke DALAM komponen ini (`groupHistoryItemsByDate` dipanggil di
    * bawah, atas hasil gabungan `items` + granular patch Realtime), bukan
    * lagi di composition root `page.tsx`.
@@ -160,7 +161,7 @@ export interface HistoryListProps {
  * ditemukan/soft-deleted, berarti item dihapus dari local state) — echo
  * dari aksi milik user sendiri diproses sama seperti event orang lain,
  * tanpa deteksi/skip apa pun (idempoten by design, ADR-094 poin 5). Urutan
- * dipertahankan `updatedAt` descending (sama `orderBy` `listHistory`),
+ * dipertahankan waktu bisnis descending (`compareHistoryItemsDesc`, sama dengan `listHistory`),
  * lalu dikelompokkan ulang via `groupHistoryItemsByDate` sebelum difilter
  * Status/Akun.
  */
@@ -219,9 +220,7 @@ export function HistoryList({
             return withoutStale;
           }
 
-          return [...withoutStale, historyItem].sort(
-            (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime(),
-          );
+          return [...withoutStale, historyItem].sort(compareHistoryItemsDesc);
         });
       })();
     },
@@ -339,8 +338,8 @@ export function HistoryList({
                 {group.items.map((item) => {
                   // T-126: `Imported` sama dengan `Published` untuk teks
                   // meta (terminal-sukses). Jam di kiri kartu mengikuti
-                  // `updatedAt`, sama dengan judul tanggal kelompok —
-                  // `publishedAt` post impor bisa berminggu-minggu lebih awal.
+                  // kunci waktu bisnis yang sama dengan judul tanggal
+                  // kelompok (`historyItemOccurredAt`, T-142).
                   const showsPublishMeta = historyListShowsPublishMeta(
                     item.status,
                   );

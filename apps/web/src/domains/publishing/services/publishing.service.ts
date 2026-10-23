@@ -710,8 +710,8 @@ export class PublishingService {
   /**
    * History (T-034.1, KSP-D10) — post yang percobaan publish-nya sudah
    * selesai (`Published`/`Failed`), beserta status/error per target,
-   * diurutkan repository descending oleh `updatedAt` (proksi waktu
-   * selesai, lihat catatan gap di `IPublishingRepository.listHistory`).
+   * diurutkan repository descending menurut waktu terbit
+   * (`historyItemOccurredAt`, T-142; lihat `IPublishingRepository.listHistory`).
    *
    * `statuses` input **di-clamp** ke `HISTORY_TERMINAL_STATUSES` di sini
    * (bukan dipercaya mentah seperti `listCalendarPosts`) — invariant

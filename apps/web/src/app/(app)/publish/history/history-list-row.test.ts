@@ -16,6 +16,7 @@ function createHistoryItem(
     status: ContentStatus.Published,
     scheduledAt: null,
     publishedAt: new Date("2026-09-01T17:59:00Z"),
+    failedAt: null,
     createdAt: new Date("2026-09-01T17:59:00Z"),
     updatedAt: new Date("2026-10-19T07:49:00Z"),
     mediaIds: [],
@@ -26,14 +27,14 @@ function createHistoryItem(
 }
 
 describe("history list row", () => {
-  it("jam kartu Imported jatuh di tanggal kelompok yang sama", () => {
+  it("jam kartu Imported mengikuti publishedAt dan satu tanggal dengan kelompok", () => {
     const item = createHistoryItem({
       status: ContentStatus.Imported,
       authorId: null,
     });
     const [group] = groupHistoryItemsByDate([item]);
 
-    expect(group?.date).toBe("2026-10-19");
+    expect(group?.date).toBe("2026-09-01");
     expect(historyListClockDate(item).toISOString().slice(0, 10)).toBe(
       group?.date,
     );
