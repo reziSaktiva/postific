@@ -745,6 +745,13 @@ function createPersistentChunkDb(
     outstandPostId: string | null;
     targets: { connectedAccountId: string; platformPostId: string }[];
   }[] = [];
+  // Target yang ditempelkan ke post yang SUDAH ada (cross-post guard) —
+  // di-commit/di-buang bersama transaksinya, sama seperti `posts`.
+  const attachedTargets: {
+    postId: string;
+    connectedAccountId: string;
+    platformPostId: string;
+  }[] = [];
   const queryCounts: number[] = [];
   let createCalls = 0;
 
@@ -752,6 +759,7 @@ function createPersistentChunkDb(
     chunk: ImportedPostTargetInput[],
   ): Promise<{ insertedCount: number; skippedDuplicateCount: number }> {
     const buffered: typeof posts = [];
+    const bufferedAttached: typeof attachedTargets = [];
     let queries = 0;
     const visible = () => [...posts, ...buffered];
 
@@ -810,9 +818,16 @@ function createPersistentChunkDb(
           queries++;
           return { count: 0 };
         },
-        create: async () => {
+        create: async (args: {
+          data: {
+            postId: string;
+            connectedAccountId: string;
+            platformPostId: string;
+          };
+        }) => {
           queries++;
-          return { id: "unused" };
+          bufferedAttached.push(args.data);
+          return { id: `target-attached-${bufferedAttached.length}` };
         },
       },
       publishingPost: {
@@ -821,10 +836,12 @@ function createPersistentChunkDb(
         }) => {
           queries++;
           const wanted = new Set(args.where.outstandPostId.in);
-          return visible().filter(
-            (row) =>
-              row.outstandPostId !== null && wanted.has(row.outstandPostId),
-          );
+          return visible()
+            .filter(
+              (row) =>
+                row.outstandPostId !== null && wanted.has(row.outstandPostId),
+            )
+            .map((row) => ({ ...row, workspaceId: WORKSPACE_ID }));
         },
         create: async (args: {
           data: {
@@ -861,13 +878,14 @@ function createPersistentChunkDb(
         chunk,
       );
       posts.push(...buffered);
+      attachedTargets.push(...bufferedAttached);
       return result;
     } finally {
       queryCounts.push(queries);
     }
   }
 
-  return { posts, queryCounts, runInTransaction };
+  return { posts, attachedTargets, queryCounts, runInTransaction };
 }
 
 describe("upsertImportedPostsInChunks + upsertImportedPostsTx — batch besar (T-139, KI-099)", () => {
@@ -927,6 +945,34 @@ describe("upsertImportedPostsInChunks + upsertImportedPostsTx — batch besar (T
 
     expect(result).toEqual({ insertedCount: 59, skippedDuplicateCount: 1 });
     expect(db.posts).toHaveLength(59);
+  });
+
+  it("outstandPostId yang sama dengan platformPostId berbeda di dua chunk: post tidak digandakan, akun kedua dapat target di post yang sudah commit", async () => {
+    const db = createPersistentChunkDb();
+    const batch = bigBatch(60);
+    // Indeks 55 (chunk ke-2) = post yang SAMA di Outstand (outstandPostId
+    // indeks 5, chunk ke-1) tapi milik akun lain dengan platformPostId lain.
+    batch[55] = post({
+      connectedAccountId: asConnectedAccountId("account-2"),
+      platformPostId: "platform-post-account-2",
+      outstandPostId: "outstand-post-5",
+    });
+
+    const result = await upsertImportedPostsInChunks(
+      batch,
+      db.runInTransaction,
+    );
+
+    expect(result).toEqual({ insertedCount: 60, skippedDuplicateCount: 0 });
+    // 59 post (indeks 55 tidak membuat post baru) + 1 target tambahan.
+    expect(db.posts).toHaveLength(59);
+    expect(db.attachedTargets).toHaveLength(1);
+    expect(db.attachedTargets[0]).toMatchObject({
+      postId: db.posts.find((row) => row.outstandPostId === "outstand-post-5")
+        ?.id,
+      connectedAccountId: asConnectedAccountId("account-2"),
+      platformPostId: "platform-post-account-2",
+    });
   });
 
   it("chunk gagal: chunk sebelumnya tetap commit, chunk gagal rollback, retry hanya menyelesaikan sisanya", async () => {

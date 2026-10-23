@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { asUserId } from "@postific/shared";
 import { auth } from "@/lib/better-auth/auth";
-import { getSessionCookieName } from "@/lib/better-auth/session-cookie-name";
+import { expireSessionCookie } from "@/lib/better-auth/session-cookie-name";
 import { getServerEnv } from "@/lib/env";
 import { workspaceRepository } from "@/lib/repositories/workspace";
 import { WorkspaceService } from "@/domains/workspace";
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     // menghapusnya di sini juga, user bisa terjebak loop /onboarding/resume
     // <-> /login <-> / yang sama persis.
     const response = NextResponse.redirect(new URL("/login", appOrigin));
-    response.cookies.delete(getSessionCookieName());
+    expireSessionCookie(response);
     return response;
   }
 

@@ -4,7 +4,7 @@ import { getSessionCookie } from "better-auth/cookies";
 import { asUserId, asWorkspaceId, MemberStatus } from "@postific/shared";
 
 import { auth } from "@/lib/better-auth/auth";
-import { getSessionCookieName } from "@/lib/better-auth/session-cookie-name";
+import { expireSessionCookie } from "@/lib/better-auth/session-cookie-name";
 import { WorkspaceService } from "@/domains/workspace";
 import { getServerEnv } from "@/lib/env";
 import { workspaceRepository } from "@/lib/repositories/workspace";
@@ -106,7 +106,7 @@ function redirectTo(path: string): NextResponse {
  */
 function redirectToLoginClearingStaleSession(): NextResponse {
   const response = redirectTo("/login");
-  response.cookies.delete(getSessionCookieName());
+  expireSessionCookie(response);
   return response;
 }
 

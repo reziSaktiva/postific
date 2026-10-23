@@ -1,19 +1,46 @@
+import type { NextResponse } from "next/server";
 import { getCookies } from "better-auth/cookies";
 
 import { auth } from "./auth";
 
+let sessionTokenCookie:
+  ReturnType<typeof getCookies>["sessionToken"] | undefined;
+
 /**
- * Nama cookie session Better Auth yang SEBENARNYA diset (T-140, KI-100) —
- * resolve dari `auth.options` lewat `getCookies()` (sama fungsi yang dipakai
- * Better Auth sendiri untuk menentukan nama cookie), bukan hardcode string
- * literal, supaya tidak drift kalau `advanced.cookiePrefix`/
- * `advanced.useSecureCookies` di `auth.ts` berubah nanti. Dipakai proxy.ts
- * dan `onboarding/resume/route.ts` untuk menghapus cookie session yang
- * terbukti stale/invalid (`auth.api.getSession()` resolve `null` padahal
- * cookie-nya ada) — tanpa ini, user dengan cookie stale bisa terjebak
- * infinite redirect loop `/` <-> `/login` (cookie tidak pernah hilang,
- * proxy terus menyangka masih login).
+ * Nama + atribut cookie session Better Auth yang SEBENARNYA diset (T-140,
+ * KI-100) — resolve dari `auth.options` lewat `getCookies()` (sama fungsi
+ * yang dipakai Better Auth sendiri), bukan hardcode, supaya tidak drift
+ * kalau `advanced.cookiePrefix`/`advanced.useSecureCookies` di `auth.ts`
+ * berubah. Konstan selama proses hidup, jadi di-memoize.
  */
-export function getSessionCookieName(): string {
-  return getCookies(auth.options).sessionToken.name;
+function getSessionTokenCookie() {
+  return (sessionTokenCookie ??= getCookies(auth.options).sessionToken);
+}
+
+/**
+ * Kedaluwarsakan cookie session yang terbukti stale/invalid
+ * (`auth.api.getSession()` resolve `null` padahal cookie-nya ada) — tanpa
+ * ini, user bisa terjebak infinite redirect loop `/` <-> `/login` (cookie
+ * tidak pernah hilang, proxy terus menyangka masih login). Dipakai
+ * `proxy.ts` dan `onboarding/resume/route.ts`.
+ *
+ * Atribut (`secure`, `path`, `domain`, ...) HARUS sama dengan saat cookie
+ * diset: browser menolak Set-Cookie berprefix `__Secure-` yang tidak
+ * `Secure`, jadi `response.cookies.delete(name)` polos tidak menghapus
+ * apa pun di HTTPS.
+ */
+export function expireSessionCookie(response: NextResponse): void {
+  const { name, attributes } = getSessionTokenCookie();
+  response.cookies.set({
+    name,
+    value: "",
+    path: attributes.path,
+    domain: attributes.domain,
+    secure: attributes.secure,
+    httpOnly: attributes.httpOnly,
+    sameSite: attributes.sameSite.toLowerCase() as "strict" | "lax" | "none",
+    partitioned: attributes.partitioned,
+    expires: new Date(0),
+    maxAge: 0,
+  });
 }

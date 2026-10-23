@@ -498,6 +498,72 @@ function assertSinglePinterestTargetWithBoard(
   }
 }
 
+/**
+ * `GET /v1/posts` membatasi `limit` maksimum 100 per halaman (HTTP 400 kalau
+ * lebih) dan memakai pagination `limit`/`offset` murni. Dipakai bersama oleh
+ * `fetchImportJobStatus` dan `fetchAllPostIdMappings`.
+ *
+ * Berhenti saat halaman kosong, `pagination.total` tercapai, atau (tanpa
+ * `total` yang valid) halaman tidak penuh. Offset dimajukan dari baris yang
+ * BENAR-BENAR diterima, bukan `pagination.count`. `MAX_PAGES` murni safety
+ * net (500 halaman = 50.000 post): kalau tercapai, `complete=false` dan
+ * di-log — pemanggil WAJIB memperlakukan hasil sebagai terpotong.
+ */
+const POSTS_PAGE_LIMIT = 100;
+const POSTS_MAX_PAGES = 500;
+
+async function fetchAllPostsPages(
+  client: OutstandHttpClient,
+  outstandAccountId: string,
+  range: Record<string, string>,
+  label: string,
+): Promise<{ rows: Record<string, unknown>[]; complete: boolean }> {
+  const rows: Record<string, unknown>[] = [];
+  let complete = true;
+
+  for (let page = 0; page < POSTS_MAX_PAGES; page++) {
+    const response = await client.request<Record<string, unknown>>(
+      "/v1/posts",
+      {
+        method: "GET",
+        query: {
+          social_account_id: outstandAccountId,
+          limit: String(POSTS_PAGE_LIMIT),
+          offset: String(rows.length),
+          ...range,
+        },
+      },
+    );
+
+    const pageRows = Array.isArray(response.data)
+      ? (response.data as Record<string, unknown>[])
+      : [];
+    if (pageRows.length === 0) break;
+    rows.push(...pageRows);
+
+    const pagination =
+      typeof response.pagination === "object" && response.pagination !== null
+        ? (response.pagination as Record<string, unknown>)
+        : null;
+    const total = pagination ? toNumber(pagination.total, -1) : -1;
+
+    // Tanpa `pagination`/`total` yang valid (drift shape API), fallback ke
+    // heuristik "halaman penuh = mungkin masih ada lagi".
+    const hasMore =
+      total >= 0 ? rows.length < total : pageRows.length === POSTS_PAGE_LIMIT;
+    if (!hasMore) break;
+
+    if (page === POSTS_MAX_PAGES - 1) {
+      complete = false;
+      console.warn(
+        `[RealOutstandAdapter] ${label} melebihi batas ${POSTS_MAX_PAGES} halaman (${POSTS_MAX_PAGES * POSTS_PAGE_LIMIT} post) — berhenti paksa, kemungkinan field "pagination" tidak sesuai ekspektasi.`,
+      );
+    }
+  }
+
+  return { rows, complete };
+}
+
 export function createRealOutstandAdapter(
   apiKey: string,
   options: RealOutstandAdapterOptions,
@@ -1653,61 +1719,31 @@ export function createRealOutstandAdapter(
       const until = toDateOrNull(job.until);
       const fallbackPublishedAt = until ?? since ?? new Date();
 
-      // T-141/KI-101 — `GET /v1/posts` membatasi `limit` maksimum 100 per
-      // halaman (HTTP 400 kalau lebih), sedangkan job besar melaporkan
-      // `imported + skipped` ribuan. Ambil per halaman 100 lewat `offset`
-      // sampai jumlah yang dilaporkan job terkumpul, halaman terakhir
-      // pendek, atau `pagination.total` tercapai. `MAX_PAGES` murni safety
-      // net (50 halaman = 5000 post, di atas `limit` import 1000).
-      const PAGE_LIMIT = 100;
-      const MAX_PAGES = 50;
-      const wanted = imported + skipped > 0 ? imported + skipped : PAGE_LIMIT;
-      const rawPosts: Record<string, unknown>[] = [];
-      for (let page = 0; page < MAX_PAGES; page++) {
-        const pageLimit = Math.min(PAGE_LIMIT, wanted - rawPosts.length);
-        const postsResponse = await client.request<Record<string, unknown>>(
-          "/v1/posts",
-          {
-            method: "GET",
-            query: {
-              social_account_id: outstandAccountId,
-              limit: String(pageLimit),
-              ...(rawPosts.length > 0
-                ? { offset: String(rawPosts.length) }
-                : {}),
-              // Code review PR #149 — persempit hasil ke rentang waktu job
-              // ini (lihat catatan "jujur" di docstring method ini), bukan
-              // hanya mengandalkan `social_account_id` + `limit`.
-              ...(since ? { created_after: since.toISOString() } : {}),
-              ...(until ? { created_before: until.toISOString() } : {}),
-            },
-          },
-        );
+      // T-141/KI-101 — paginasi lewat `fetchAllPostsPages` (limit maks 100
+      // per halaman). Batas berhenti adalah `pagination.total` (post di
+      // rentang job ini), BUKAN `imported + skipped` dari job.
+      const { rows: rawPosts, complete } = await fetchAllPostsPages(
+        client,
+        outstandAccountId,
+        // Code review PR #149 — persempit hasil ke rentang waktu job
+        // ini (lihat catatan "jujur" di docstring method ini), bukan
+        // hanya mengandalkan `social_account_id`.
+        {
+          ...(since ? { created_after: since.toISOString() } : {}),
+          ...(until ? { created_before: until.toISOString() } : {}),
+        },
+        `fetchImportJobStatus: job "${importJobId}" (akun ${outstandAccountId})`,
+      );
 
-        const pageRows = Array.isArray(postsResponse.data)
-          ? (postsResponse.data as Record<string, unknown>[])
-          : [];
-        rawPosts.push(...pageRows);
-
-        const pagination =
-          typeof postsResponse.pagination === "object" &&
-          postsResponse.pagination !== null
-            ? (postsResponse.pagination as Record<string, unknown>)
-            : null;
-        const total = pagination ? toNumber(pagination.total, -1) : -1;
-
-        if (
-          pageRows.length < pageLimit ||
-          rawPosts.length >= wanted ||
-          (total >= 0 && rawPosts.length >= total)
-        ) {
-          break;
-        }
-        if (page === MAX_PAGES - 1) {
-          console.warn(
-            `[RealOutstandAdapter] fetchImportJobStatus: job "${importJobId}" (akun ${outstandAccountId}) melebihi ${MAX_PAGES} halaman — berhenti paksa, hasil mungkin terpotong.`,
-          );
-        }
+      // Hasil terpotong (MAX_PAGES tercapai) TIDAK boleh dilaporkan
+      // "completed" — pemanggil akan memajukan watermark dan sisa post tidak
+      // pernah diimpor ulang. Lapor "failed" supaya job di-retry.
+      if (!complete) {
+        return {
+          status: "failed",
+          posts: [],
+          error: `GET /v1/posts melebihi ${POSTS_MAX_PAGES} halaman — hasil import terpotong.`,
+        };
       }
 
       const posts: ImportedPostData[] = [];
@@ -1812,84 +1848,41 @@ export function createRealOutstandAdapter(
     async fetchAllPostIdMappings(
       outstandAccountId: string,
     ): Promise<FetchAllPostIdMappingsResult> {
-      const PAGE_LIMIT = 100;
-      const MAX_PAGES = 500;
       const mappings: OutstandPostIdMapping[] = [];
-      let offset = 0;
       let shapeDrift = false;
-      let complete = true;
 
-      for (let page = 0; page < MAX_PAGES; page++) {
-        const response = await client.request<Record<string, unknown>>(
-          "/v1/posts",
-          {
-            method: "GET",
-            query: {
-              social_account_id: outstandAccountId,
-              limit: String(PAGE_LIMIT),
-              offset: String(offset),
-            },
-          },
+      const { rows: rawPosts, complete } = await fetchAllPostsPages(
+        client,
+        outstandAccountId,
+        {},
+        `fetchAllPostIdMappings: akun ${outstandAccountId}`,
+      );
+
+      for (const rawPost of rawPosts) {
+        if (!Array.isArray(rawPost.socialAccounts)) {
+          shapeDrift = true;
+          continue;
+        }
+        const socialAccounts = rawPost.socialAccounts as Record<
+          string,
+          unknown
+        >[];
+        const matchedAccount = socialAccounts.find(
+          (account) =>
+            account.id === outstandAccountId &&
+            normalizeTargetStatus(account.status) === "published" &&
+            typeof account.platformPostId === "string" &&
+            account.platformPostId.length > 0,
         );
+        if (!matchedAccount) continue;
 
-        const rawPosts = Array.isArray(response.data)
-          ? (response.data as Record<string, unknown>[])
-          : [];
+        const outstandPostId = toStringOrNull(rawPost.id);
+        if (!outstandPostId) continue;
 
-        for (const rawPost of rawPosts) {
-          if (!Array.isArray(rawPost.socialAccounts)) {
-            shapeDrift = true;
-            continue;
-          }
-          const socialAccounts = rawPost.socialAccounts as Record<
-            string,
-            unknown
-          >[];
-          const matchedAccount = socialAccounts.find(
-            (account) =>
-              account.id === outstandAccountId &&
-              normalizeTargetStatus(account.status) === "published" &&
-              typeof account.platformPostId === "string" &&
-              account.platformPostId.length > 0,
-          );
-          if (!matchedAccount) continue;
-
-          const outstandPostId = toStringOrNull(rawPost.id);
-          if (!outstandPostId) continue;
-
-          mappings.push({
-            platformPostId: matchedAccount.platformPostId as string,
-            outstandPostId,
-          });
-        }
-
-        if (rawPosts.length === 0) break;
-
-        const pagination =
-          typeof response.pagination === "object" &&
-          response.pagination !== null
-            ? (response.pagination as Record<string, unknown>)
-            : null;
-        const total = pagination ? toNumber(pagination.total, -1) : -1;
-
-        // Majukan offset berdasarkan baris yang BENAR-BENAR diproses
-        // (`rawPosts.length`), bukan `pagination.count` — metadata API yang
-        // salah lapor tidak boleh membuat baris terlewat tanpa terdeteksi.
-        offset += rawPosts.length;
-
-        // Tanpa `pagination`/`total` yang valid (drift shape API), fallback
-        // ke heuristik "halaman penuh = mungkin masih ada lagi" — pola sama
-        // `isPossiblyTruncated` di `ImportPostsTriggerUseCase.runImportSync`.
-        const hasMore =
-          total >= 0 ? offset < total : rawPosts.length === PAGE_LIMIT;
-        if (!hasMore) break;
-
-        if (page === MAX_PAGES - 1) {
-          complete = false;
-          console.warn(
-            `[RealOutstandAdapter] fetchAllPostIdMappings: akun ${outstandAccountId} melebihi batas ${MAX_PAGES} halaman (${MAX_PAGES * PAGE_LIMIT} post) — berhenti paksa, kemungkinan field "pagination" tidak sesuai ekspektasi.`,
-          );
-        }
+        mappings.push({
+          platformPostId: matchedAccount.platformPostId as string,
+          outstandPostId,
+        });
       }
 
       return { mappings, complete, shapeDrift };

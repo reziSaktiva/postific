@@ -1938,7 +1938,7 @@ describe("RealOutstandAdapter.importPosts / fetchImportJobStatus (T-112)", () =>
     // hanya `social_account_id`+`limit` seperti sebelumnya), supaya hasil
     // tidak match post lain di akun yang sama di luar rentang job ini.
     expect(secondUrl).toBe(
-      "https://api.outstand.so/v1/posts?social_account_id=acc-ig-1&limit=1" +
+      "https://api.outstand.so/v1/posts?social_account_id=acc-ig-1&limit=100&offset=0" +
         "&created_after=2026-07-10T00%3A00%3A00.000Z" +
         "&created_before=2026-10-08T00%3A00%3A00.000Z",
     );
@@ -2012,13 +2012,13 @@ describe("RealOutstandAdapter.importPosts / fetchImportJobStatus (T-112)", () =>
       "&created_after=2026-07-10T00%3A00%3A00.000Z" +
       "&created_before=2026-10-08T00%3A00%3A00.000Z";
     expect(fetchImpl.mock.calls[1][0]).toBe(
-      `https://api.outstand.so/v1/posts?social_account_id=acc-ig-1&limit=100${range}`,
+      `https://api.outstand.so/v1/posts?social_account_id=acc-ig-1&limit=100&offset=0${range}`,
     );
     expect(fetchImpl.mock.calls[2][0]).toBe(
       `https://api.outstand.so/v1/posts?social_account_id=acc-ig-1&limit=100&offset=100${range}`,
     );
     expect(fetchImpl.mock.calls[3][0]).toBe(
-      `https://api.outstand.so/v1/posts?social_account_id=acc-ig-1&limit=30&offset=200${range}`,
+      `https://api.outstand.so/v1/posts?social_account_id=acc-ig-1&limit=100&offset=200${range}`,
     );
   });
 

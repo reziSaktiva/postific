@@ -1257,7 +1257,12 @@ export const publishingRepository: IPublishingRepository = {
       withCurrentUser(
         actingUserId,
         (tx) => upsertImportedPostsTx(tx, workspaceId, chunk),
-        { timeout: UPSERT_IMPORTED_POSTS_TX_TIMEOUT_MS },
+        {
+          // `maxWait` = tunggu koneksi pool (default Prisma 2 s) — chunk
+          // bersaing dengan job lain, jadi disamakan dengan `timeout`.
+          maxWait: UPSERT_IMPORTED_POSTS_TX_TIMEOUT_MS,
+          timeout: UPSERT_IMPORTED_POSTS_TX_TIMEOUT_MS,
+        },
       ),
     );
   },

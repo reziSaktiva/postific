@@ -12,7 +12,7 @@
  * murni uji tulis batch besar. Dedup `upsertImportedPostsTx` membuat re-run
  * aman, tapi tiap run memanggil Outstand sungguhan dan menulis data nyata.
  *
- *   bun --env-file=.env.local run scripts/t139-verify-large-import.ts <handle> <platform>
+ *   bun --env-file=.env.local run scripts/t139-verify-large-import.ts <platform>   (mis. instagram)
  */
 import { SocialPlatform } from "@postific/shared";
 import { ImportPostsProcessUseCase } from "@/domains/publishing";
@@ -30,8 +30,15 @@ function sleep(ms: number): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  const platformArg = process.argv[2] as SocialPlatform | undefined;
-  if (!platformArg) throw new Error("Usage: <platform> (mis. instagram)");
+  const platformArg = process.argv[2];
+  if (
+    !platformArg ||
+    !(Object.values(SocialPlatform) as string[]).includes(platformArg)
+  ) {
+    throw new Error(
+      `Usage: <platform> — salah satu dari: ${Object.values(SocialPlatform).join(", ")}`,
+    );
+  }
 
   const adapter = getOutstandAdapter();
   const processUseCase = new ImportPostsProcessUseCase(publishingRepository);
