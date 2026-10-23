@@ -15,6 +15,7 @@ import {
   compareHistoryItemsDesc,
   groupHistoryItemsByDate,
   HISTORY_TERMINAL_STATUSES,
+  WIB_TIME_ZONE,
   type HistoryGroup,
   type HistoryItemRecord,
 } from "@/domains/publishing";
@@ -64,7 +65,7 @@ const DATE_HEADING_FORMATTER = new Intl.DateTimeFormat("id-ID", {
   weekday: "long",
   day: "numeric",
   month: "long",
-  timeZone: "UTC",
+  timeZone: WIB_TIME_ZONE,
 });
 
 /** Sama pola `QueueList`/`CalendarAgendaList` — parse UTC-safe dipusatkan di `formatUtcDateKeyHeading`. */
@@ -76,6 +77,7 @@ function formatItemTime(date: Date): string {
   return date.toLocaleTimeString("id-ID", {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: WIB_TIME_ZONE,
   });
 }
 

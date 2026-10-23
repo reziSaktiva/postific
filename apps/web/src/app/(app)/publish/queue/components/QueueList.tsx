@@ -10,7 +10,7 @@ import {
 } from "@hugeicons/core-free-icons";
 
 import type { ConnectedAccountId, PostId } from "@postific/shared";
-import type { QueueGroup } from "@/domains/publishing";
+import { WIB_TIME_ZONE, type QueueGroup } from "@/domains/publishing";
 import { formatRelativeTime } from "@/lib/utils/format-relative-time";
 import { formatUtcDateKeyHeading } from "@/lib/utils";
 
@@ -44,10 +44,10 @@ const DATE_HEADING_FORMATTER = new Intl.DateTimeFormat("id-ID", {
   weekday: "long",
   day: "numeric",
   month: "long",
-  timeZone: "UTC",
+  timeZone: WIB_TIME_ZONE,
 });
 
-/** `group.date` adalah kalender UTC "YYYY-MM-DD" — format tampilan lengkap
+/** `group.date` adalah kalender WIB (Asia/Jakarta, T-144) "YYYY-MM-DD" — format tampilan lengkap
  * (mis. "Senin, 14 Juli", mengikuti mockup Claude Design KSP-03) adalah
  * tanggung jawab UI (T-032.3). Parse UTC-safe dipusatkan di
  * `formatUtcDateKeyHeading` (`@/lib/utils`, code review PR #105). */
@@ -59,6 +59,7 @@ function formatScheduledTime(date: Date): string {
   return date.toLocaleTimeString("id-ID", {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: WIB_TIME_ZONE,
   });
 }
 

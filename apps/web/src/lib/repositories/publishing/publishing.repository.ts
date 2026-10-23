@@ -11,7 +11,6 @@ import {
   type SocialPlatform,
 } from "@postific/shared";
 import {
-  compareHistoryItemsDesc,
   HISTORY_TERMINAL_STATUSES,
   type CalendarItemRecord,
   type CalendarItemTargetRecord,
@@ -825,11 +824,16 @@ export const publishingRepository: IPublishingRepository = {
               }
             : {}),
         },
-        // Urutan akhir dihitung di JS (`compareHistoryItemsDesc`, T-142):
-        // kunci `publishedAt ?? updatedAt` / Failed `failedAt ?? updatedAt`
-        // butuh COALESCE lintas kolom yang tidak bisa diekspresikan oleh
-        // `orderBy` Prisma. Query ini tidak dipaginasi (tanpa take/cursor),
-        // jadi sort di memori aman dan konsisten dengan UI.
+        // T-145: urutan dari DB lewat kolom generated `occurred_at`
+        // (Failed `failed_at ?? updated_at`, selain itu `published_at ??
+        // updated_at`) + tie-breaker `updatedAt desc, id desc` — setara
+        // `compareHistoryItemsDesc` (T-142), yang tetap dipakai sort lokal
+        // Realtime di UI. Index `(workspace_id, occurred_at desc)`.
+        orderBy: [
+          { occurredAt: "desc" },
+          { updatedAt: "desc" },
+          { id: "desc" },
+        ],
         include: {
           targets: {
             include: { connectedAccount: true },
@@ -838,7 +842,7 @@ export const publishingRepository: IPublishingRepository = {
       }),
     );
 
-    return posts.map(mapHistoryItem).sort(compareHistoryItemsDesc);
+    return posts.map(mapHistoryItem);
   },
 
   async countTerminalPosts({ workspaceId, since, until }, userId) {

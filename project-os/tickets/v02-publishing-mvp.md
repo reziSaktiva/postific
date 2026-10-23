@@ -2690,6 +2690,148 @@ konsisten (sort lokal sama dengan `orderBy` server).
       verifikasi browser History. Diverifikasi King Rezi di browser
       2026-10-23: kartu Imported di grup tanggal terbitnya, jam cocok, urutan benar
 
+### T-144 · Zona waktu tampilan Publish → History/Calendar/Queue memakai Asia/Jakarta (WIB tetap), bukan UTC
+
+| Field         | Value                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**    | 🟡 In Progress — keputusan King Rezi 2026-10-23 (via AskUserQuestion)                                                                                                                                                                                                                                                                                                                                       |
+| **Domain**    | publishing · UI                                                                                                                                                                                                                                                                                                                                                                                             |
+| **ADR**       | tidak ada ADR existing yang menetapkan UTC untuk tampilan Publish (grep `DECISIONS.md` dan `decisions/`: satu-satunya "UTC" eksplisit ada di ADR-136, window bulanan Home/Analytics, di luar scope tiket ini). Komentar kode yang menyebut konvensi UTC hanya konvensi kode. Belum ada timezone per workspace. Bila nanti timezone per workspace dibuat, itu butuh ADR baru; ADR-136 tidak diubah tiket ini |
+| **Terkait**   | T-142 (PR 193, asal temuan), ADR-136 (window bulanan UTC, tidak disentuh)                                                                                                                                                                                                                                                                                                                                   |
+| **Depends**   | T-142                                                                                                                                                                                                                                                                                                                                                                                                       |
+| **Baca dulu** | `apps/web/src/domains/publishing/services/group-history-items.ts` · `group-queue-items.ts` · `calendar-range.ts` · `apps/web/src/app/(app)/publish/history/HistoryList.tsx` · `QueueList.tsx` · `CalendarToolbar.tsx` · `CalendarAgendaList.tsx`                                                                                                                                                            |
+
+**Asal:** code review PR 193 (T-142) temuan #1.
+
+**Masalah:** kunci grup tanggal (`toCalendarDateKey` memakai `toISOString`
+di `group-history-items.ts` dan `group-queue-items.ts`), `calendar-range.ts`,
+dan formatter `timeZone: "UTC"` di `HistoryList.tsx`, `QueueList.tsx`,
+`CalendarToolbar.tsx`, `CalendarAgendaList.tsx` memakai UTC. Post terbit
+2026-09-02 00:59 WIB (= 2026-09-01T17:59Z) tampil di grup 1 September jam
+17:59.
+
+**Keputusan (King Rezi, 2026-10-23):** pakai `Asia/Jakarta` tetap di ketiga
+layar (History, Calendar, Queue). Belum ada timezone per workspace.
+
+**Claude Design:** tidak dicek, tampilan dan tata letak tidak berubah, hanya
+zona waktu data (aturan 10 tidak terpicu).
+
+- [x] **T-144.1** Helper tanggal zona WIB bersama (satu tempat) untuk kunci tanggal, awal/akhir hari, dan formatter
+- [x] **T-144.2** History memakai helper (grup, jam kartu, Realtime patch)
+- [x] **T-144.3** Queue memakai helper
+- [x] **T-144.4** Calendar: range, group, dan formatter
+- [x] **T-144.5** Test unit batas hari WIB (mis. 2026-09-01T17:59Z masuk 2 September 00:59)
+- [ ] **T-144.6** Verifikasi browser (oleh King Rezi)
+
+**Hasil review Ridwan (2026-10-23):** temuan 1 diperbaiki (`formatRelativeTime`
+kini memakai `timeZone` WIB); `MS_PER_DAY` duplikat dan komentar UTC usang
+dirapikan.
+
+**Keterbatasan (diketahui, belum diputuskan):**
+
+- Input jadwal di Draft Editor masih memakai zona waktu browser, sedangkan
+  tampilan Publish sudah WIB. Ditindaklanjuti di **T-146**.
+- Ada dua definisi "bulan": Calendar memakai WIB (tiket ini), Home/Analyze
+  memakai UTC (ADR-136). Belum diformalkan lewat ADR. Usulan Ridwan, keputusan
+  ada di King Rezi.
+
+### T-145 · `occurredAt` tersimpan untuk pengurutan History di database
+
+| Field         | Value                                                                                                                                              |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**    | 🟡 In Progress — T-145.1/.3/.4 selesai di kode; migrasi (T-145.2) ditulis tapi belum diterapkan/diverifikasi ke Postgres                           |
+| **Domain**    | publishing · database                                                                                                                              |
+| **ADR**       | cek saat T-145.1: perubahan skema/baseline data bisa butuh ADR baru; catat keputusannya di tiket                                                   |
+| **Terkait**   | T-142 (PR 193, asal temuan), T-144                                                                                                                 |
+| **Depends**   | T-142 (PR 193) merged                                                                                                                              |
+| **Baca dulu** | `listHistory` di `apps/web/src/lib/repositories/publishing/publishing.repository.ts` · `compareHistoryItemsDesc` · `apps/web/prisma/schema.prisma` |
+
+**Asal:** code review PR 193 temuan #4.
+
+**Masalah:** `listHistory` kini sort di JS (`compareHistoryItemsDesc`)
+karena Prisma `orderBy` tidak bisa COALESCE lintas kolom, sehingga
+pagination tidak mungkin.
+
+**Usulan:** kolom/ekspresi `occurredAt` di DB (Failed: `failedAt ??
+updatedAt`, selain itu `publishedAt ?? updatedAt`) lewat generated column atau
+kolom biasa + backfill, plus index `(workspace_id, occurred_at desc)`
+sehingga `orderBy` DB dan pagination mungkin.
+
+**Keputusan T-145.1 (2026-10-23):** generated column `GENERATED ALWAYS AS
+(CASE WHEN status = 'failed' THEN COALESCE(failed_at, updated_at) ELSE
+COALESCE(published_at, updated_at) END) STORED`, raw SQL di migrasi
+`20261023120000_t145_publishing_posts_occurred_at`. Alasan: (1) nilai selalu
+konsisten dengan status/timestamp (retry Failed -> Published, import, update
+`updated_at` otomatis menghitung ulang) tanpa trigger atau jalur tulis baru di
+aplikasi; (2) tanpa backfill terpisah (kolom terisi saat ADD COLUMN);
+(3) ekspresi CASE/COALESCE atas `timestamptz` bersifat IMMUTABLE sehingga sah;
+(4) RLS tidak terpengaruh (kebijakan `publishing_posts_workspace_isolation`
+per-baris); (5) shadow DB hanya replay DDL biasa. Di `schema.prisma` kolom
+dideklarasikan `occurredAt DateTime @default(dbgenerated())` (read-only,
+tidak ikut `data` create/update); risiko: `prisma migrate dev` perlu dicek
+tidak menghasilkan drift palsu untuk kolom generated ini (belum diuji, tidak
+ada Postgres lokal). Kolom biasa + backfill ditolak: butuh trigger atau tiap
+jalur tulis mengisi sendiri, rawan drift.
+Tie-breaker `orderBy`: `occurredAt desc, updatedAt desc, id desc` (uuid
+Postgres berurut bytewise = urutan leksikografis string hex huruf kecil di
+JS). Komparator JS `compareHistoryItemsDesc` tetap dipakai sort lokal
+Realtime; beda presisi hanya mikrodetik (DB) vs milidetik (JS).
+**ADR:** perubahan skema data tambahan (kolom turunan, bukan perubahan
+baseline/kontrak) — keputusan apakah butuh ADR ada di King Rezi; ADR tidak
+dibuat oleh sesi ini.
+**Risiko operasional:** `ADD COLUMN ... GENERATED STORED` menulis ulang seluruh
+tabel `publishing_posts` dengan ACCESS EXCLUSIVE lock selama rewrite; tabel
+kecil (satu baris per post), terapkan di luar jam sibuk.
+
+- [x] **T-145.1** Desain: generated column vs kolom biasa; migrasi Prisma 7 + shadow DB; cek kebutuhan ADR (keputusan di atas; shadow DB belum dijalankan, tidak ada Postgres lokal)
+- [ ] **T-145.2** Migrasi + backfill (SQL ditulis; belum diterapkan/diverifikasi terhadap Postgres; backfill tidak perlu karena generated column)
+- [x] **T-145.3** `listHistory` `orderBy occurredAt desc` dengan tie-breaker `updatedAt desc, id desc`; sort JS di repository dihapus (komparator tetap untuk Realtime)
+- [x] **T-145.4** Test (`list-history.test.ts` memeriksa orderBy dan tidak re-sort; `bun run test` hijau)
+- [ ] **T-145.5** Verifikasi staging
+
+**Catatan review (2026-10-23):**
+
+- SQL migrasi belum teruji terhadap Postgres.
+- Sebelum merge, jalankan `prisma migrate diff --from-migrations ...
+--to-schema-datamodel` dengan shadow DB. Hasilnya harus kosong; ini menguji
+  drift akibat `@default(dbgenerated())` pada kolom generated.
+- Paritas ekspresi SQL `occurred_at` terhadap `historyItemOccurredAt` (JS)
+  perlu komentar silang di kedua tempat atau test integrasi.
+
+### T-146 · Input jadwal draft editor memakai zona waktu browser, tampilan Publish sudah WIB
+
+| Field         | Value                                                                                                                                    |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**    | ⏳ Belum dimulai                                                                                                                         |
+| **Domain**    | publishing · UI                                                                                                                          |
+| **ADR**       | tidak ada; bila King Rezi memutuskan zona per workspace, butuh ADR baru                                                                  |
+| **Terkait**   | T-144 (asal temuan, review Ridwan temuan 2), ADR-136 (tidak disentuh)                                                                    |
+| **Depends**   | T-144                                                                                                                                    |
+| **Baca dulu** | `apps/web/src/app/(app)/components/draft-editor/Modal.tsx` · `schedule-time-constraints` · `apps/web/src/domains/publishing/wib-time.ts` |
+
+**Asal:** review Ridwan T-144 temuan 2.
+
+**Lokasi:** `apps/web/src/app/(app)/components/draft-editor/Modal.tsx`
+(sekitar baris 501 dan 825-827: `new Date(`${scheduleDate}T${scheduleTime}`).toISOString()`
+dibaca sebagai waktu lokal browser), `schedule-time-constraints`, dan pesan
+validasi di Modal.
+
+**Masalah:** pengguna di browser UTC+8 mengetik 09:00, tersimpan 01:00Z,
+Queue/Calendar/History (WIB) menampilkan 08:00. Pengguna WIB tidak terdampak.
+
+**Usulan:** input jadwal ditafsirkan sebagai WIB. Tambah
+`wibLocalToUtc(date, time)` di `wib-time.ts`; validasi "waktu di masa depan"
+dan constraint memakai WIB; label zona "WIB" di picker.
+
+**Claude Design:** UI-related (aturan 10), flow picker terlihat user. Cek
+Claude Design sebelum kode, atau minta konfirmasi King Rezi bahwa hanya
+penafsiran waktu yang berubah, bukan tampilan.
+
+- [ ] **T-146.1** Konfirmasi/cek desain (Claude Design atau konfirmasi King Rezi)
+- [ ] **T-146.2** Helper `wibLocalToUtc` + Modal + constraints
+- [ ] **T-146.3** Test
+- [ ] **T-146.4** Verifikasi browser (oleh King Rezi)
+
 ---
 
 ## Dari Known Issue

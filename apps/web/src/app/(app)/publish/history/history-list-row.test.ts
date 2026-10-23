@@ -1,6 +1,6 @@
 import { ContentStatus, asPostId, asUserId } from "@postific/shared";
 import { describe, expect, it } from "vitest";
-import { groupHistoryItemsByDate } from "@/domains/publishing";
+import { groupHistoryItemsByDate, toWibDateKey } from "@/domains/publishing";
 import type { HistoryItemRecord } from "@/domains/publishing";
 import {
   historyListClockDate,
@@ -34,10 +34,8 @@ describe("history list row", () => {
     });
     const [group] = groupHistoryItemsByDate([item]);
 
-    expect(group?.date).toBe("2026-09-01");
-    expect(historyListClockDate(item).toISOString().slice(0, 10)).toBe(
-      group?.date,
-    );
+    expect(group?.date).toBe("2026-09-02"); // 17:59Z = 00:59 WIB (T-144)
+    expect(toWibDateKey(historyListClockDate(item))).toBe(group?.date);
     expect(historyListShowsPublishMeta(item.status)).toBe(true);
   });
 

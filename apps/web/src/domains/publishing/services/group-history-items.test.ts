@@ -205,4 +205,20 @@ describe("groupHistoryItemsByDate", () => {
       "x",
     ]);
   });
+
+  it("batas hari WIB (T-144): 17:59Z masuk 2 September, 16:59Z masih 1 September", () => {
+    const afterMidnight = createHistoryItem({
+      id: asPostId("after"),
+      publishedAt: new Date("2026-09-01T17:59:00Z"),
+    });
+    const beforeMidnight = createHistoryItem({
+      id: asPostId("before"),
+      publishedAt: new Date("2026-09-01T16:59:00Z"),
+    });
+
+    expect(groupHistoryItemsByDate([afterMidnight, beforeMidnight])).toEqual([
+      { date: "2026-09-02", items: [afterMidnight] },
+      { date: "2026-09-01", items: [beforeMidnight] },
+    ]);
+  });
 });
