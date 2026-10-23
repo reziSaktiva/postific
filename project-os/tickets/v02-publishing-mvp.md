@@ -1,11 +1,13 @@
 # v0.2 — Publishing MVP
 
 > Bagian dari backlog berjenjang. Antrian: [`../AVAILABLE_TICKETS.md`](../AVAILABLE_TICKETS.md). Tiket selesai tetap di file ini. Deskripsi baru: ADR-131. Nama folder: ADR-132.
+>
+> **Catatan historis (2026-10-23):** tiket Done di file ini mencatat kondisi saat dikerjakan. Sebutan "Fake adapter" sebagai jalur kerja sudah usang: Fake dihapus dari jalur produksi oleh ADR-119 (`OUTSTAND_API_KEY` wajib). Sebutan "Astryx" sudah digantikan shadcn/ui (ADR-097, T-102).
 
 **Tujuan rilis:** Memungkinkan pengguna membuat dan menjadwalkan konten.
 **Baseline rilis:** `product-discovery/02-product/release-roadmap.md` → v0.2
 
-**Rantai blocker rilis ini:** Real OutstandAdapter (T-025) belum ada → schedule hanya jalan lewat Fake · Connect account (T-013) belum ada → connected account harus di-seed · **job runner (T-027) sudah ✅ Done (2026-09-17)** — transisi status post terjadwal sekarang otomatis lewat job baru `publishing.scheduled_post.resolve_outcome` (JOB-07) begitu due, melengkapi webhook T-026 (✅ Done 2026-09-07) yang menangani transisi status pasca-publish/error/token-expired lewat inbound webhook Outstand. Provisioning Railway Cron project sungguhan masih blocked (KI-025) — job runner baru config-as-code (`railway.json`/`railway.cron.json`), belum ada service `cron` sungguhan live. Sisa rantai blocker rilis ini sekarang T-025 dan T-013.
+**Rantai blocker rilis ini (catatan historis saat rilis dibuka; Real OutstandAdapter T-025 ✅ Done dan Fake jalur produksi dihapus ADR-119):** Real OutstandAdapter (T-025) belum ada → schedule hanya jalan lewat Fake · Connect account (T-013) belum ada → connected account harus di-seed · **job runner (T-027) sudah ✅ Done (2026-09-17)** — transisi status post terjadwal sekarang otomatis lewat job baru `publishing.scheduled_post.resolve_outcome` (JOB-07) begitu due, melengkapi webhook T-026 (✅ Done 2026-09-07) yang menangani transisi status pasca-publish/error/token-expired lewat inbound webhook Outstand. Provisioning Railway Cron project sungguhan masih blocked (KI-025) — job runner baru config-as-code (`railway.json`/`railway.cron.json`), belum ada service `cron` sungguhan live. Sisa rantai blocker rilis ini (per 2026-10-23): hanya T-013.4 (operasional BYOK X); T-025 sudah ✅ Done.
 
 ---
 
@@ -1239,13 +1241,13 @@ Berjalan **kontinu** selama rilis ini, bukan sekali selesai: setiap kali konvens
 
 ### T-090 · Import Posts dari Social Account (status `Imported`, read-only)
 
-| Field         | Value                                                                                                                                                                                                 |
-| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**    | ✅ Done (5/5 subtask, 2026-10-08)                                                                                                                                                                     |
-| **Domain**    | publishing                                                                                                                                                                                            |
-| **ADR**       | ADR-093                                                                                                                                                                                               |
-| **Depends**   | T-013 ✅ (Connect Account — trigger otomatis) · T-025 (real adapter, Fake dulu pola ADR-059) · T-034 (History, untuk tampilan lengkap — bagian Calendar bisa jalan duluan tanpa menunggu)             |
-| **Baca dulu** | `05-architecture/integration-layer.md` · `05-architecture/background-jobs.md` · `05-architecture/domain-model.md` · `decisions/ADR-093-import-posts-dari-social-account-status-imported-read-only.md` |
+| Field         | Value                                                                                                                                                                                                                    |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Status**    | ✅ Done (5/5 subtask, 2026-10-08)                                                                                                                                                                                        |
+| **Domain**    | publishing                                                                                                                                                                                                               |
+| **ADR**       | ADR-093                                                                                                                                                                                                                  |
+| **Depends**   | T-013.1–.3 ✅ (Connect Account — trigger otomatis; sisa T-013.4 operasional) · T-025 (real adapter, Fake dulu pola ADR-059) · T-034 (History, untuk tampilan lengkap — bagian Calendar bisa jalan duluan tanpa menunggu) |
+| **Baca dulu** | `05-architecture/integration-layer.md` · `05-architecture/background-jobs.md` · `05-architecture/domain-model.md` · `decisions/ADR-093-import-posts-dari-social-account-status-imported-read-only.md`                    |
 
 Outstand punya endpoint berbayar `POST /v1/social-accounts/{id}/imports` untuk menarik post yang dibuat langsung di platform sosial (bukan lewat tool kita) — ditemukan saat diskusi Realtime Calendar (2026-08-28), dikerjakan sebagai fitur terpisah (ADR-093). Tiga jalur trigger (otomatis saat connect, periodik cron harian, manual dari Settings) dengan pengaman biaya berlapis karena endpoint ini berbayar — lihat ADR-093 untuk detail lengkap tiap keputusan.
 
@@ -2431,7 +2433,7 @@ Known Issue terbuka, bukan subtask di tiket ini.
 | **Domain**    | publishing                                                                                                                                                                                                                                                                                                                                                                  |
 | **ADR**       | — (parameter tuning atas desain existing ADR-093 poin 5/7/9, bukan keputusan arsitektur baru)                                                                                                                                                                                                                                                                               |
 | **Terkait**   | T-090, T-112, T-115 (tiga entry point `ImportPostsTriggerUseCase` yang parameternya diubah di sini), T-132, T-133                                                                                                                                                                                                                                                           |
-| **Depends**   | T-115 ✅ (cron sudah wired ke job runner produksi; tiket ini murni mengubah nilai `since`/`until`/`limit` masing-masing trigger, bukan wiring baru)                                                                                                                                                                                                                         |
+| **Depends**   | T-115.1–.4 ✅ (sisa T-115.5 tidak memblokir; cron sudah wired ke job runner produksi; tiket ini murni mengubah nilai `since`/`until`/`limit` masing-masing trigger, bukan wiring baru)                                                                                                                                                                                      |
 | **Baca dulu** | `apps/web/src/domains/publishing/services/import-posts-trigger.use-case.ts` (`triggerAuto`, `triggerPeriodicForAccounts`, `executeQueuedPeriodicImport`, `triggerManual`, `periodicImportSince`, `defaultSince`, `DEFAULT_IMPORT_LOOKBACK_DAYS`, `DEFAULT_IMPORT_LIMIT`) · `decisions/ADR-093-import-posts-dari-social-account-status-imported-read-only.md` (poin 5, 7, 9) |
 
 **Konteks (diskusi King Rezi, 2026-10-20):** ketiga entry point Import Posts
@@ -2557,7 +2559,7 @@ jalan untuk semua network — perlu dibuktikan satu-satu.
 - [x] **T-133.2** Migrasi satu-kali: re-trigger import untuk `WorkspaceConnectedAccount` existing (Instagram, Facebook dulu) dengan `since` diperluas ke 1 tahun lalu — dijalankan sebagai script/job satu-off, BUKAN bagian job rutin, dedup existing (`upsertImportedPostsTx`) sudah aman dipakai ulang
 - [x] **T-133.3** Jalankan T-132.4 (use-case klasifikasi) secara retroaktif untuk 43 post Imported existing + post baru hasil T-133.2
 - [x] **T-133.4** Verifikasi end-to-end browser + DB nyata (pola sama addendum T-090/T-112) minimal untuk Instagram + Facebook; lanjut TikTok/Pinterest kalau T-133.1 konfirmasi didukung
-- [ ] **T-133.5** Update `PROJECT_STATE.md`/`AVAILABLE_TICKETS.md` setelah selesai (status final tiket ini saja, bukan detail task — ADR-062)
+- [x] **T-133.5** Update `PROJECT_STATE.md`/`AVAILABLE_TICKETS.md` setelah selesai (status final tiket ini saja, bukan detail task — ADR-062). Terpenuhi: T-133 ✅ Done (2026-10-23) tercatat di keduanya
 
 **Catatan status (2026-10-20):** T-133.1 tidak bisa diverifikasi — tidak ada
 akun test TikTok/Pinterest di workspace ini, dicatat sebagai keterbatasan
@@ -2605,7 +2607,7 @@ pengelompokan memakai waktu import, bukan `publishedAt`.
 
 **Blocking eksplisit (King Rezi, 2026-10-21):** jangan eksekusi T-133.2
 (re-trigger import dengan `since` diperluas) sebelum 4 tiket berikut tuntas —
-ketiganya lahir dari investigasi ketidaksesuaian data Supabase vs Outstand di
+keempatnya lahir dari investigasi ketidaksesuaian data Supabase vs Outstand di
 sesi yang sama, dan langsung mempengaruhi akurasi data yang mau di-backfill
 di sini (percuma backfill retroaktif kalau akun yang sudah disconnect masih
 ikut ketarik, atau window "bulanan" yang dipakai untuk verifikasi hasilnya
@@ -2694,7 +2696,7 @@ konsisten (sort lokal sama dengan `orderBy` server).
 
 | Field         | Value                                                                                                                                                                                                                                                                                                                                                                                                       |
 | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**    | 🟡 In Progress — keputusan King Rezi 2026-10-23 (via AskUserQuestion)                                                                                                                                                                                                                                                                                                                                       |
+| **Status**    | ✅ Done (2026-10-23, PR 194) — keputusan King Rezi 2026-10-23 (via AskUserQuestion)                                                                                                                                                                                                                                                                                                                         |
 | **Domain**    | publishing · UI                                                                                                                                                                                                                                                                                                                                                                                             |
 | **ADR**       | tidak ada ADR existing yang menetapkan UTC untuk tampilan Publish (grep `DECISIONS.md` dan `decisions/`: satu-satunya "UTC" eksplisit ada di ADR-136, window bulanan Home/Analytics, di luar scope tiket ini). Komentar kode yang menyebut konvensi UTC hanya konvensi kode. Belum ada timezone per workspace. Bila nanti timezone per workspace dibuat, itu butuh ADR baru; ADR-136 tidak diubah tiket ini |
 | **Terkait**   | T-142 (PR 193, asal temuan), ADR-136 (window bulanan UTC, tidak disentuh)                                                                                                                                                                                                                                                                                                                                   |
@@ -2721,7 +2723,7 @@ zona waktu data (aturan 10 tidak terpicu).
 - [x] **T-144.3** Queue memakai helper
 - [x] **T-144.4** Calendar: range, group, dan formatter
 - [x] **T-144.5** Test unit batas hari WIB (mis. 2026-09-01T17:59Z masuk 2 September 00:59)
-- [ ] **T-144.6** Verifikasi browser (oleh King Rezi)
+- [x] **T-144.6** Verifikasi browser (2026-10-23, dijalankan AI atas permintaan King Rezi di dev server lokal pada branch `staging` pasca merge PR 194, bukan di deploy Railway). History dan Calendar cocok dengan `published_at` di DB dalam WIB, termasuk batas hari (16 Okt 21:00 UTC tampil 17 Okt 04.00; 4 Okt 21:00 UTC tampil Senin 5 Okt 04:00). Queue kosong (tidak ada post terjadwal), jadi grup tanggal Queue belum teruji dengan data nyata; tidak ada error console
 
 **Hasil review Ridwan (2026-10-23):** temuan 1 diperbaiki (`formatRelativeTime`
 kini memakai `timeZone` WIB); `MS_PER_DAY` duplikat dan komentar UTC usang
@@ -2739,7 +2741,7 @@ dirapikan.
 
 | Field         | Value                                                                                                                                              |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**    | 🟡 In Progress — T-145.1/.3/.4 selesai di kode; migrasi (T-145.2) ditulis tapi belum diterapkan/diverifikasi ke Postgres                           |
+| **Status**    | ✅ Done (2026-10-23, PR 194) — migrasi terterap di DB dan urutan History terverifikasi; dua catatan review tersisa di bawah                        |
 | **Domain**    | publishing · database                                                                                                                              |
 | **ADR**       | cek saat T-145.1: perubahan skema/baseline data bisa butuh ADR baru; catat keputusannya di tiket                                                   |
 | **Terkait**   | T-142 (PR 193, asal temuan), T-144                                                                                                                 |
@@ -2784,15 +2786,15 @@ tabel `publishing_posts` dengan ACCESS EXCLUSIVE lock selama rewrite; tabel
 kecil (satu baris per post), terapkan di luar jam sibuk.
 
 - [x] **T-145.1** Desain: generated column vs kolom biasa; migrasi Prisma 7 + shadow DB; cek kebutuhan ADR (keputusan di atas; shadow DB belum dijalankan, tidak ada Postgres lokal)
-- [ ] **T-145.2** Migrasi + backfill (SQL ditulis; belum diterapkan/diverifikasi terhadap Postgres; backfill tidak perlu karena generated column)
+- [x] **T-145.2** Migrasi + backfill (terterap 2026-10-23 06:50 UTC, tanpa rollback; kolom `occurred_at` `GENERATED ALWAYS` sesuai ekspresi desain, indeks `(workspace_id, occurred_at DESC)` ada; 484 post, 0 null, 0 beda dari `published_at`; backfill tidak perlu karena generated column. Belum ada post `failed` di data, cabang failed belum teruji dengan data nyata)
 - [x] **T-145.3** `listHistory` `orderBy occurredAt desc` dengan tie-breaker `updatedAt desc, id desc`; sort JS di repository dihapus (komparator tetap untuk Realtime)
 - [x] **T-145.4** Test (`list-history.test.ts` memeriksa orderBy dan tidak re-sort; `bun run test` hijau)
-- [ ] **T-145.5** Verifikasi staging
+- [x] **T-145.5** Verifikasi staging (2026-10-23: urutan 8 post teratas di halaman History sama dengan `ORDER BY occurred_at DESC, updated_at DESC, id DESC` di DB; dicek lewat dev server lokal ke DB yang sama, bukan deploy Railway)
 
-**Catatan review (2026-10-23):**
+**Catatan review (2026-10-23), masih terbuka setelah Done:**
 
-- SQL migrasi belum teruji terhadap Postgres.
-- Sebelum merge, jalankan `prisma migrate diff --from-migrations ...
+- SQL migrasi sudah terterap di Postgres DB (lihat T-145.2); belum diuji lewat shadow DB.
+- Belum dijalankan (PR 194 sudah merge, belum ada pengujian shadow DB): jalankan `prisma migrate diff --from-migrations ...
 --to-schema-datamodel` dengan shadow DB. Hasilnya harus kosong; ini menguji
   drift akibat `@default(dbgenerated())` pada kolom generated.
 - Paritas ekspresi SQL `occurred_at` terhadap `historyItemOccurredAt` (JS)
@@ -2836,7 +2838,7 @@ penafsiran waktu yang berubah, bukan tampilan.
 
 ## Dari Known Issue
 
-T-121 (KI-050) ada di [`known-issues.md`](known-issues.md) (ADR-134).
+Tiket yang lahir sebagai pelacak Known Issue ada di [`known-issues.md`](known-issues.md) (ADR-134); daftar lengkapnya hanya di file itu, tidak disalin ke sini.
 
 ---
 

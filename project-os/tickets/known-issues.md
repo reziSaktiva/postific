@@ -103,7 +103,7 @@ escaping baru yang memverifikasi payload berbahaya `<script>`, `&`, `"` benar-be
 ter-escape di output), typecheck & lint bersih, tidak ada regresi. Perubahan ada
 di branch `feature/t137-smtp-staging-email`, akan masuk PR #189.
 
-### T-119 · Isi env Google OAuth
+### T-119 · Isi env Google OAuth (KI-015)
 
 | Field       | Value                                                                |
 | ----------- | -------------------------------------------------------------------- |
@@ -120,7 +120,7 @@ di branch `feature/t137-smtp-staging-email`, akan masuk PR #189.
 
 **Blocked by:** rahasia Google OAuth dari King Rezi
 
-### T-120 · Hapus dua workspace sisa QA
+### T-120 · Hapus dua workspace sisa QA (KI-033)
 
 | Field       | Value                      |
 | ----------- | -------------------------- |
@@ -135,7 +135,7 @@ di branch `feature/t137-smtp-staging-email`, akan masuk PR #189.
 - [x] King Rezi mengonfirmasi (via `AskUserQuestion`) kedua nama itu boleh dihapus
 - [x] Keduanya terhapus — "Najwa QA Test Workspace" (`57f91193-17df-444b-b734-064b748d1d58`) dan "QA Queue Test" (`46b1941a-e991-43eb-88ba-6b198fda0d71`) — diverifikasi via query SQL (hasil kosong setelah `DELETE`), tidak ada workspace lain yang ikut terhapus
 
-### T-121 · Putuskan meta penulis di detail History
+### T-121 · Putuskan meta penulis di detail History (KI-050)
 
 | Field       | Value                                        |
 | ----------- | -------------------------------------------- |
@@ -153,7 +153,7 @@ di branch `feature/t137-smtp-staging-email`, akan masuk PR #189.
 
 **Catatan QA (Najwa):** PASS — golden path Published & Failed terverifikasi browser nyata, regresi aman, 832 test pass / 7 skip / 0 fail. Fallback "Diimpor dari platform" belum ada bukti visual karena data test tidak punya post berstatus Imported — keterbatasan data, bukan bug.
 
-### T-122 · Buktikan invite Copy Link tidak bisa diambil email lain
+### T-122 · Buktikan invite Copy Link tidak bisa diambil email lain (KI-053)
 
 | Field       | Value                      |
 | ----------- | -------------------------- |
@@ -170,7 +170,7 @@ di branch `feature/t137-smtp-staging-email`, akan masuk PR #189.
 
 **Blocked by:** tidak ada
 
-### T-123 · Konfirmasi lebar sidebar
+### T-123 · Konfirmasi lebar sidebar (KI-089, KI-084)
 
 | Field       | Value                                            |
 | ----------- | ------------------------------------------------ |
@@ -263,7 +263,7 @@ Workaround sebelumnya tidak cukup, dan dicatat supaya tidak diulang:
 
 Watermark kedua akun ter-update ke `2026-10-19 07:49:04` UTC. Error `Failed to deserialize column of type 'void'` tidak muncul. Service `cron` tetap image lama (2026-10-12); perannya hanya memanggil endpoint di `web`, dan kode lock jalan di `web`.
 
-### T-127 · Caption panjang bikin seluruh halaman scroll ke samping
+### T-127 · Caption panjang bikin seluruh halaman scroll ke samping (KI-092)
 
 | Field       | Value                               |
 | ----------- | ----------------------------------- |
@@ -325,7 +325,7 @@ Fix idealnya tetap SATU `min-w-0` di titik akar (bukan menambal `truncate`/
 rantai flex yang gagal men-declare minimum-width:0, bukan teks yang tidak
 di-wrap.
 
-### T-130 · `totalPosts` Home tidak akurat untuk akun yang `posts_count`-nya `null` di Outstand
+### T-130 · `totalPosts` Home tidak akurat untuk akun yang `posts_count`-nya `null` di Outstand (KI-093)
 
 | Field       | Value                                                                                   |
 | ----------- | --------------------------------------------------------------------------------------- |
@@ -393,10 +393,10 @@ sebagai Known Issue terbuka, bukan dikerjakan di sesi ini.
       "accepted as different"**, bukan lagi item terbuka — lihat catatan
       granularitas di "Implementasi" di bawah untuk detail teknis.
 - [x] Verifikasi browser dengan data real (angka Home akurat, tidak error,
-      sesuai definisi sumber data baru) — **tertunda**, butuh akun test
-      Outstand baru (workspace King Rezi kosong sejak pembersihan data T-134,
-      2026-10-21). Bukan item yang menunggu keputusan produk lagi — murni
-      menunggu lingkungan test tersedia.
+      sesuai definisi sumber data baru) — **selesai 2026-10-23** dengan akun
+      real "Cook It Real Good": Home menampilkan 12 post Oktober sesuai DB
+      (sebelumnya tertunda karena workspace King Rezi kosong sejak
+      pembersihan data T-134, 2026-10-21).
 
 **Prioritas dinaikkan (King Rezi, 2026-10-21):** bagian dari batch investigasi
 ketidaksesuaian data Supabase vs Outstand — dikerjakan bersamaan dengan
@@ -485,7 +485,7 @@ warning non-fatal "Pages directory cannot be found", tidak terkait
 perubahan ini). `DashboardHome.tsx:157` dicek langsung — label "Post
 terpublikasi" memang tidak berubah, hanya `value={summary.totalPosts}` yang
 sumbernya sudah diganti di backend — klaim T-136.2 "tanpa perubahan kode
-UI" terkonfirmasi akurat. T-130.292 (verifikasi browser Home vs Analyze)
+UI" terkonfirmasi akurat. item verifikasi browser T-130 (Home vs Analyze)
 dan T-136.3 **tetap belum bisa dieksekusi** — Outstand workspace King Rezi
 kosong (0 akun, 0 post) di sesi ini, jadi tidak ada data post real untuk
 dibandingkan; browser testing yang bisa dilakukan (Home render dengan 0
@@ -561,7 +561,7 @@ live-fetched): satu-satunya endpoint untuk "memutus" akun adalah
 undone... revokes access entirely... to reconnect, you will need to complete
 the full OAuth flow again." Ini **konflik langsung** dengan flow reaktivasi
 ADR-127 (`createConnectedAccounts` di
-[workspace.repository.ts:1136](../../apps/web/src/lib/repositories/workspace/workspace.repository.ts:1136))
+[workspace.repository.ts:1136](../../apps/web/src/lib/repositories/workspace/workspace.repository.ts#L1136))
 yang menghidupkan kembali row `disconnected`/`reconnect-required` TANPA OAuth
 ulang, dengan asumsi `outstandAccountId` lama masih valid di Outstand.
 
@@ -774,15 +774,15 @@ terverifikasi end-to-end dengan akun real. Tiket ditutup **✅ Done**.
 
 ### T-135 · Definisi periode "bulanan" Home/Analyze beda dari kalender Outstand (KI-095)
 
-| Field       | Value                                                                                                        |
-| ----------- | ------------------------------------------------------------------------------------------------------------ |
-| **Status**  | ✅ Done (2026-10-22) — verifikasi browser (T-135.4) PASS, lihat catatan verifikasi dengan akun real di bawah |
-| **Domain**  | analytics                                                                                                    |
-| **ADR**     | — (kemungkinan perlu keputusan produk soal definisi window, bukan arsitektur — lihat T-135.1)                |
-| **Spec**    | tidak ada — single-issue                                                                                     |
-| **Docs**    | T-128/T-129 (default view Bulanan Home/Analyze)                                                              |
-| **Terkait** | T-134, T-136, T-130 (batch investigasi sama, 2026-10-21), T-133 (blocker)                                    |
-| **Depends** | —                                                                                                            |
+| Field       | Value                                                                                                   |
+| ----------- | ------------------------------------------------------------------------------------------------------- |
+| **Status**  | ✅ Done (2026-10-22) — verifikasi (T-135.4) PASS via query SQL dengan akun real, lihat catatan di bawah |
+| **Domain**  | analytics                                                                                               |
+| **ADR**     | — (kemungkinan perlu keputusan produk soal definisi window, bukan arsitektur — lihat T-135.1)           |
+| **Spec**    | tidak ada — single-issue                                                                                |
+| **Docs**    | T-128/T-129 (default view Bulanan Home/Analyze)                                                         |
+| **Terkait** | T-134, T-136, T-130 (batch investigasi sama, 2026-10-21), T-133 (blocker)                               |
+| **Depends** | —                                                                                                       |
 
 **Ditemukan (investigasi King Rezi, 2026-10-21):** snapshot "monthly" kita
 dihitung sebagai rolling 30 hari dari `now`
@@ -804,7 +804,7 @@ T-134 dan gap #2 T-130).
 - [x] **T-135.3** Test unit untuk window baru (termasuk edge case: hari
       pertama bulan, bulan dengan 28/29/30/31 hari kalau pindah ke kalender
       bulan)
-- [x] **T-135.4** Verifikasi browser: angka "bulan ini" Home/Analyze cocok
+- [x] **T-135.4** Verifikasi (via query SQL, bukan browser): angka "bulan ini" Home/Analyze cocok
       dengan ekspektasi window yang dipilih — **terverifikasi 2026-10-22**
       via query SQL langsung, lihat catatan verifikasi di bawah
 
@@ -908,8 +908,10 @@ bukan "Post terpublikasi").
       dan/atau `AnalyticsService.getDashboardSummary`
 - [x] **T-136.3** Verifikasi browser: label dan angka konsisten secara makna
       (tidak ada lagi "Post terpublikasi" yang sebenarnya termasuk post dari
-      akun disconnected/native) — **belum dilakukan**, sama alasan dengan
-      T-130 (butuh workspace dengan data nyata)
+      akun disconnected/native) — **selesai 2026-10-23** bersama verifikasi
+      T-130 (akun real "Cook It Real Good": Home menampilkan 12 post
+      Oktober sesuai DB). Sebelumnya tertunda karena butuh workspace dengan
+      data nyata
 
 **Catatan implementasi (Prabowo Feature Engineer, 2026-10-21):**
 
@@ -979,7 +981,7 @@ besar. Status tetap 🚫, BELUM Done.
   status tiket ini kembali ke 🚫 Sebagian siap") belum terpenuhi secara
   literal karena keempat tiket ini belum berstatus ✅ Done (masih 🚫,
   menunggu akun test). Begitu akun test Outstand baru tersedia dan
-  T-130.292/T-134.4/T-135.4/T-136.3 lolos verifikasi browser, keempat tiket
+  item verifikasi browser T-130/T-134.4/T-135.4/T-136.3 lolos verifikasi browser, keempat tiket
   ini bisa langsung ditutup ✅ Done dan blocker T-133 dibuka tanpa perlu
   investigasi ulang — tidak ada pekerjaan kode tersisa.
 - Keputusan definisi produk dari King Rezi yang mengubah metric/window
@@ -1005,6 +1007,14 @@ interactive transaction timeout saat insert batch import besar) yang ikut
 menghambat. Blocker **T-133** karenanya TETAP tertutup — syarat "keempat
 tiket ✅ Done" baru terpenuhi separuh, lihat `AVAILABLE_TICKETS.md` § T-133
 untuk status terbaru.
+
+**Status final batch (update 2026-10-23):** **T-130 ✅ Done** dan
+**T-136 ✅ Done**. Verifikasi browser dengan akun real "Cook It Real Good"
+selesai: Home menampilkan 12 post Oktober sesuai DB (item verifikasi browser
+T-130 dan T-136.3 dicentang). Narasi "Status tetap 🚫, BELUM Done" di
+bagian T-130/T-136 di atas adalah catatan historis sesi 2026-10-21/22 dan
+sudah digantikan paragraf ini. Dengan keempat tiket batch ✅ Done, blocker
+T-133 terbuka (lihat `v02-publishing-mvp.md` § T-133).
 
 ### T-139 · Prisma interactive transaction timeout saat import post batch besar (KI-099)
 
@@ -1206,7 +1216,7 @@ keterlambatan Outstand ("masih diproses setelah 25 detik").
 
 | Field       | Value                                                                             |
 | ----------- | --------------------------------------------------------------------------------- |
-| **Status**  | 🟡 In Progress                                                                    |
+| **Status**  | ✅ Done (2026-10-23, atas pernyataan King Rezi)                                   |
 | **Domain**  | publishing · integration                                                          |
 | **Spec**    | tidak ada — single-issue                                                          |
 | **Docs**    | T-131 (lookback per trigger), T-115 (cron import), T-141 (pagination `/v1/posts`) |
@@ -1246,7 +1256,7 @@ post TikTok (`list_posts`, `total: 118`); DB kita hanya 100 (14 Mar – 30 Mei
    `nNvkl`, jadi 0 di DB benar. (Satu job periodik YouTube 22 Okt gagal
    "owner lookup kosong" lalu sukses 23 Okt.)
 
-**Perbaikan (disetujui King Rezi, diimplementasi 2026-10-23; T-143.5 belum):**
+**Perbaikan (disetujui King Rezi, diimplementasi 2026-10-23; T-143.5 dinyatakan selesai oleh King Rezi, bukti cron belum terlihat di DB):**
 
 - [x] **T-143.1** Periodik: kalau `lastImportedUntil === null` (belum pernah
       sync sukses), pakai `defaultSince` (1 tahun) dan limit
@@ -1274,8 +1284,13 @@ post TikTok (`list_posts`, `total: 118`); DB kita hanya 100 (14 Mar – 30 Mei
       terkumpul)
 - [x] **T-143.4** Test unit untuk watermark `null` (since 1 tahun, limit 1000)
       dan fallback 0/0 dengan >100 post
-- [ ] **T-143.5** Verifikasi dengan akun real baru (connect TikTok/Instagram,
-      tunggu satu siklus cron)
+- [x] **T-143.5** Verifikasi dengan akun real baru (connect TikTok/Instagram,
+      tunggu satu siklus cron). Dinyatakan selesai oleh King Rezi
+      (2026-10-23). Catatan jujur: saat dicek AI di DB pada 2026-10-23 07:19
+      UTC, belum ada job `import.sync` dengan `payload.result` (kode T-143
+      belum pernah berjalan di cron) dan `last_imported_until` TikTok masih
+      `null`; bukti verifikasi King Rezi tidak tercatat di sini. Kalau
+      siklus cron 2026-10-24 00:00 UTC menunjukkan hal lain, buka ulang
 
 **Sementara:** untuk akun yang sudah terpotong, jalankan
 `bun --env-file=.env.local run scripts/t139-verify-large-import.ts <platform>`

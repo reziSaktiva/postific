@@ -1,6 +1,8 @@
 # v0.1 — Foundation
 
 > Bagian dari backlog berjenjang. Antrian: [`../AVAILABLE_TICKETS.md`](../AVAILABLE_TICKETS.md). Tiket selesai tetap di file ini. Deskripsi baru: ADR-131. Nama folder: ADR-132.
+>
+> **Catatan historis (2026-10-23):** tiket Done di file ini mencatat kondisi saat dikerjakan. Sebutan "Fake adapter" sebagai jalur kerja sudah usang: Fake dihapus dari jalur produksi oleh ADR-119 (`OUTSTAND_API_KEY` wajib). Sebutan "Astryx" sudah digantikan shadcn/ui (ADR-097, T-102).
 
 **Tujuan rilis:** Membangun fondasi aplikasi.
 **Baseline rilis:** `product-discovery/02-product/release-roadmap.md` → v0.1
@@ -13,7 +15,7 @@
 
 `✅ Done` · **ADR** ADR-001, ADR-002, ADR-026, ADR-032, ADR-034, ADR-035
 
-Bun + Next.js 16 + Astryx, workspace `apps/web` + `packages/shared`, ESLint/Prettier, Lefthook + lint-staged, Vitest, GitHub Actions gates.
+Bun + Next.js 16 + Astryx (kemudian diganti shadcn/ui, ADR-097), workspace `apps/web` + `packages/shared`, ESLint/Prettier, Lefthook + lint-staged, Vitest, GitHub Actions gates.
 
 ### T-002 · Prisma schema + migrasi awal
 
@@ -281,7 +283,7 @@ OAuth flow dikelola Outstand; access token tidak disimpan di DB internal. Seed m
 | **Domain**    | workspace                                                                                                                                            |
 | **ADR**       | ADR-048, ADR-049                                                                                                                                     |
 | **Terkait**   | KI-058 (`PROJECT_STATE.md`, 2026-09-11 — UI tidak menyembunyikan aksi Connect/Disconnect/Reconnect untuk role Creator, gap sudah ada sejak task ini) |
-| **Depends**   | T-013                                                                                                                                                |
+| **Depends**   | T-013.1–.3 ✅                                                                                                                                        |
 | **Baca dulu** | `04-ux/key-screen-patterns.md` (KSP-08-F07)                                                                                                          |
 
 RBAC Owner/Admin — tidak ada perubahan RBAC, tinggal tambah gate konfirmasi sebelum memanggil service.
@@ -298,7 +300,7 @@ RBAC Owner/Admin — tidak ada perubahan RBAC, tinggal tambah gate konfirmasi se
 | **Domain**    | workspace · integration                                                                                                                                                                                                                                                                        |
 | **ADR**       | ADR-040, ADR-105                                                                                                                                                                                                                                                                               |
 | **Terkait**   | KI-058 (`PROJECT_STATE.md`, 2026-09-11 — UI tidak menyembunyikan aksi Connect/Disconnect/Reconnect untuk role Creator, ditemukan Najwa QA Engineer saat verifikasi task ini)                                                                                                                   |
-| **Depends**   | T-013 · **T-026 (v0.2, ⏳)** webhook `account.token_expired`                                                                                                                                                                                                                                   |
+| **Depends**   | T-013 · **T-026 (v0.2, ✅)** webhook `account.token_expired`                                                                                                                                                                                                                                   |
 | **Baca dulu** | `05-architecture/integration-layer.md`                                                                                                                                                                                                                                                         |
 
 - [x] **T-015.1** Tandai status akun expired saat webhook `account.token_expired` masuk
@@ -509,7 +511,7 @@ bawah untuk detail.
 | **Domain**    | workspace · UI                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | **ADR**       | ADR-088 (amandemen ADR-076 poin 4), ADR-089 (amandemen ADR-088 — dialog konfirmasi Tier 2 sebelum switch)                                                                                                                                                                                                                                                                                                                                                                                          |
 | **Terkait**   | T-039 (reuse mekanisme cookie `active-workspace-id`), KI-023 (`PROJECT_STATE.md`, catatan update 2026-08-24), KI-033 (`PROJECT_STATE.md`, 2 workspace test tersisa dari QA sesi ini), KI-034 (`PROJECT_STATE.md`, QA Najwa retest golden path switch dengan dialog konfirmasi baru — Resolved 2026-08-24)                                                                                                                                                                                          |
-| **Depends**   | T-039 🟡 (cookie `active-workspace-id` + validasi ulang `workspace_members`), T-006 ✅ (`WorkspaceService.createWorkspace` existing, dipakai ulang dialog "Buat Workspace Baru")                                                                                                                                                                                                                                                                                                                   |
+| **Depends**   | T-039 ✅ (cookie `active-workspace-id` + validasi ulang `workspace_members`), T-006 ✅ (`WorkspaceService.createWorkspace` existing, dipakai ulang dialog "Buat Workspace Baru")                                                                                                                                                                                                                                                                                                                   |
 | **Baca dulu** | `decisions/ADR-088-amandemen-adr-076-workspace-switcher-deliberate-via-settings-account-workspaces.md` · `decisions/ADR-076-workspace-context-via-cookie-hapus-slug-konsolidasi-settings-organization-account.md` · `05-architecture/auth-architecture.md` (Workspace Context Resolution, Onboarding Flow, AU-D03) · `05-architecture/application-layer.md` (kontrak `switchWorkspace` baru di `WorkspaceService`) · `04-ux/information-architecture.md` (Settings → Account → Workspaces)         |
 
 **Gap yang melahirkan task ini:** ADR-076 poin 4 (versi awal) menjadikan
@@ -798,14 +800,14 @@ Navigator sudah melarang membaca `PROJECT_STATE` utuh, `COMPLETE_TASK`, dan selu
 
 ## Dari Known Issue
 
-Tiket yang lahir sebagai pelacak Known Issue (T-119, T-120, T-122, T-123, T-124) ada di [`known-issues.md`](known-issues.md) (ADR-134). KI-027 tetap di T-008 di file ini.
+Tiket yang lahir sebagai pelacak Known Issue ada di [`known-issues.md`](known-issues.md) (ADR-134); daftar lengkapnya hanya di file itu, tidak disalin ke sini. KI-027 tetap di T-008 di file ini.
 
 ---
 
 ## Catatan Rilis
 
 - Nomor kosong v0.1 sudah terpakai semua (T-019 diisi task API mobile). Task v0.1 baru berikutnya memakai nomor global berikutnya yang belum pernah dipakai — jangan menggeser ID yang sudah ada. **T-039** (Migrasi Routing & Settings, ADR-076) memakai nomor ini: ID global berikutnya yang belum pernah dipakai, dipinjam dari ruang kosong yang sebelumnya dicadangkan untuk pertumbuhan v0.2 (lihat Catatan Rilis `tickets/v02-publishing-mvp.md`) — task tetap ditempatkan di file v0.1 karena scope-nya (Workspace/Settings routing) sejalan dengan T-009/T-016, bukan v0.2 Publishing. **T-089** (Workspace Switcher, ADR-088, 2026-08-24) juga memakai pola yang sama: ID global berikutnya yang belum pernah dipakai sama sekali (bukan dipinjam dari cadangan release manapun, karena seluruh rentang T-080–T-088 v1.0 sudah terisi) — ditempatkan di file v0.1 karena lahir sebagai amandemen ADR-076/T-039 (Workspace context & Settings), bukan task baru terpisah dari rumpun ini. **T-093** (Accept Invite page, 2026-08-28) memakai pola yang sama lagi — ID global berikutnya setelah T-092 (v0.2, ADR-094) — menutup gap yang sudah dicatat sejak ADR-080 (2026-08-14, halaman `/invite/[token]` belum pernah dibuat) tapi baru diberi nomor sekarang, saat King Rezi mengoreksi rantai dependency Realtime Calendar (invite-to-membership harus utuh dulu sebelum T-036/T-092 bisa diverifikasi dengan ≥2 akun nyata). **T-109**/**T-110** (ditambah 2026-09-28, promosi dari Known Issues KI-058/KI-053 setelah audit aplikasi menyeluruh dan keputusan mitigasi King Rezi) memakai ID global berikutnya setelah T-108 (v0.2, `tickets/v02-publishing-mvp.md`) — ditempatkan di file ini karena domain `workspace`/`identity`, masing-masing kelanjutan langsung T-015 dan T-093. **T-116**/**T-117**/**T-118** (ditambah 2026-10-16, diskusi biaya token agent) memakai ID global berikutnya setelah T-115 — ditempatkan di file ini karena domain `platform/tooling`, bukan fitur rilis produk. Urutan wajib: T-116 → T-117 → T-118. **T-124** (ditambah 2026-10-19, bug upstream Prisma ditemukan saat verifikasi staging T-115.5, KI-091) memakai ID global berikutnya setelah T-123 — ditempatkan di file ini karena domain `platform/jobs` (infra job runner lintas domain), bukan fitur rilis produk. Pada 2026-10-19 (ADR-134) T-119, T-120, T-122, T-123, dan T-124 pindah ke `tickets/known-issues.md`.
-- **Definisi "Foundation selesai":** semua task di rilis ini `✅ Done` **kecuali** yang secara sadar ditunda dengan alasan tercatat — dan **kecuali tiga task yang menunggu v0.2** (lihat di bawah). **T-012** (Sidebar Channels) sebelumnya termasuk daftar ini tapi sudah ✅ Done (2026-08-12) — T-012.2 (scheduled count) ternyata tidak perlu menunggu real Outstand adapter, cukup data `PublishingPost`/`PublishingPostTarget` yang sudah ada sejak T-028.
+- **Definisi "Foundation selesai":** semua task di rilis ini `✅ Done` **kecuali** yang secara sadar ditunda dengan alasan tercatat — dan **kecuali task yang menunggu v0.2 (kini tinggal T-013)** (lihat di bawah). **T-012** (Sidebar Channels) sebelumnya termasuk daftar ini tapi sudah ✅ Done (2026-08-12) — T-012.2 (scheduled count) ternyata tidak perlu menunggu real Outstand adapter, cukup data `PublishingPost`/`PublishingPostTarget` yang sudah ada sejak T-028.
 - **Task v0.1 yang tidak bisa ditutup sebelum v0.2 berjalan** (dependency lintas rilis, disengaja dan diketahui):
   - **T-013** Connect account — sisa T-013.4 (operasional BYOK X) murni operasional, bukan dependency v0.2. T-013.1/2/3 sudah selesai (2026-09-11), diselesaikan lewat Fake adapter (ADR-105, ADR-059 pattern) tanpa menunggu T-025 (Real OutstandAdapter, v0.2, kredensial belum ada).
   - **T-016** Account settings — ✅ Done (2026-10-14). T-016.4 (preferensi notifikasi) sudah diimplementasikan, menutup subtask terakhir yang tersisa.

@@ -8,7 +8,7 @@ Instagram/X/LinkedIn/Threads/TikTok/YouTube/Pinterest, dst.)
 
 ### Status
 
-Accepted — Amends ADR-105 — Amended by ADR-120 (2026-09-26)
+Accepted — Amends ADR-105 — Amended by ADR-115 (2026-09-24), ADR-120 (2026-09-26)
 
 ### Date
 

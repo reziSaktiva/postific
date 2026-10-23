@@ -6,7 +6,7 @@ Design Tokens — lokasi SoT & alur lock setelah design siap
 
 ### Status
 
-Accepted — Amended by ADR-041 (2026-07-23), ADR-056 (2026-07-31), ADR-057 (2026-07-31)
+Accepted — Amended by ADR-041 (2026-07-23), ADR-045 (2026-07-28), ADR-056 (2026-07-31), ADR-057 (2026-07-31)
 
 ### Date
 

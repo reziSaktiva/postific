@@ -6,7 +6,7 @@ Content Format (Post / Reel / Story / Pin) masuk MVP Publishing
 
 ### Status
 
-Accepted — Amended by ADR-107 (2026-09-14)
+Accepted — Amended by ADR-107 (2026-09-14), ADR-121 (2026-09-26)
 
 ### Date
 

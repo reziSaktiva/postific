@@ -1,6 +1,8 @@
 # v0.4 — Engagement MVP
 
 > Bagian dari backlog berjenjang. Antrian: [`../AVAILABLE_TICKETS.md`](../AVAILABLE_TICKETS.md). Tiket selesai tetap di file ini. Deskripsi baru: ADR-131. Nama folder: ADR-132.
+>
+> **Catatan historis (2026-10-23):** tiket Done di file ini mencatat kondisi saat dikerjakan. Sebutan "Fake adapter" sebagai jalur kerja sudah usang: Fake dihapus dari jalur produksi oleh ADR-119 (`OUTSTAND_API_KEY` wajib). Sebutan "Astryx" sudah digantikan shadcn/ui (ADR-097, T-102).
 
 **Tujuan rilis:** Menyatukan interaksi media sosial dalam satu tempat.
 **Baseline rilis:** `product-discovery/02-product/release-roadmap.md` → v0.4

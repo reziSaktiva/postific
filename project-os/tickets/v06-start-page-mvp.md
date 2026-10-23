@@ -15,7 +15,7 @@
 
 ### T-070 · Start Page domain skeleton + strategi route publik
 
-`⏳ Not Started` · **Domain** start-page · **ADR** ADR-017, ADR-024, ADR-031, ADR-128 · **Depends** T-002 ✅
+`⏳ Not Started` (subtask T-070.1, ADR strategi routing, sudah ✅ lewat ADR-128; implementasi kode belum dimulai) · **Domain** start-page · **ADR** ADR-017, ADR-024, ADR-031, ADR-128 · **Depends** T-002 ✅
 **Baca dulu:** `05-architecture/auth-architecture.md` · `apps/web/src/proxy.ts` · `05-architecture/database-strategy.md` · ADR-128
 
 Service + repository, plus keputusan arsitektur: di mana route publik hidup, bagaimana ia melewati auth guard, bagaimana RLS diperlakukan untuk data yang memang publik, dan apakah pakai custom domain atau subpath. **Keputusan arsitektur sudah dikunci di ADR-128 (2026-10-16): subpath `/u/[slug]`, bukan custom domain** — subtask di bawah mengikuti keputusan itu.
