@@ -2524,7 +2524,7 @@ bug.
 
 | Field         | Value                                                                                                                                                                                                                            |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**    | 🚫 Blocked — King Rezi memblokir eksplisit (2026-10-21) sampai T-130, T-134, T-135, T-136 tuntas; sebelumnya tertahan menunggu konfirmasi eksekusi script                                                                        |
+| **Status**    | 🟡 T-133.2/.3 dieksekusi 2026-10-23 (konfirmasi King Rezi), sisa T-133.4 cek visual browser; Pinterest keterbatasan eksplisit                                                                                                    |
 | **Domain**    | publishing · integration                                                                                                                                                                                                         |
 | **ADR**       | —                                                                                                                                                                                                                                |
 | **Terkait**   | T-131, T-132, T-114 (pola backfill existing direuse untuk migrasi satu-kali), T-130/T-134/T-135/T-136 (blocker, lihat catatan di bawah)                                                                                          |
@@ -2554,9 +2554,9 @@ asumsikan endpoint generic `POST /v1/social-accounts/{id}/imports` otomatis
 jalan untuk semua network — perlu dibuktikan satu-satu.
 
 - [~] **T-133.1** Verifikasi langsung ke Outstand (uji coba `importPosts` ke akun test TikTok dan Pinterest yang representatif, atau konfirmasi resmi dari support Outstand kalau tidak ada akun test) — apakah endpoint Import benar-benar berfungsi untuk kedua platform ini. Kalau gagal/tidak didukung, catat sebagai keterbatasan eksplisit (bukan diasumsikan jalan)
-- [ ] **T-133.2** Migrasi satu-kali: re-trigger import untuk `WorkspaceConnectedAccount` existing (Instagram, Facebook dulu) dengan `since` diperluas ke 1 tahun lalu — dijalankan sebagai script/job satu-off, BUKAN bagian job rutin, dedup existing (`upsertImportedPostsTx`) sudah aman dipakai ulang
-- [ ] **T-133.3** Jalankan T-132.4 (use-case klasifikasi) secara retroaktif untuk 43 post Imported existing + post baru hasil T-133.2
-- [ ] **T-133.4** Verifikasi end-to-end browser + DB nyata (pola sama addendum T-090/T-112) minimal untuk Instagram + Facebook; lanjut TikTok/Pinterest kalau T-133.1 konfirmasi didukung
+- [x] **T-133.2** Migrasi satu-kali: re-trigger import untuk `WorkspaceConnectedAccount` existing (Instagram, Facebook dulu) dengan `since` diperluas ke 1 tahun lalu — dijalankan sebagai script/job satu-off, BUKAN bagian job rutin, dedup existing (`upsertImportedPostsTx`) sudah aman dipakai ulang
+- [x] **T-133.3** Jalankan T-132.4 (use-case klasifikasi) secara retroaktif untuk 43 post Imported existing + post baru hasil T-133.2
+- [~] **T-133.4** Verifikasi end-to-end browser + DB nyata (pola sama addendum T-090/T-112) minimal untuk Instagram + Facebook; lanjut TikTok/Pinterest kalau T-133.1 konfirmasi didukung
 - [ ] **T-133.5** Update `PROJECT_STATE.md`/`AVAILABLE_TICKETS.md` setelah selesai (status final tiket ini saja, bukan detail task — ADR-062)
 
 **Catatan status (2026-10-20):** T-133.1 tidak bisa diverifikasi — tidak ada
@@ -2580,6 +2580,22 @@ akun Pinterest), tetap keterbatasan eksplisit.
 T-141 (pagination `GET /v1/posts`) juga ✅ Done. Blocker terbuka. Status
 tiket ini sekarang **Sebagian siap** — T-133.2/.3 (script `--execute`)
 menunggu konfirmasi eksplisit King Rezi, belum dijalankan.
+
+**Eksekusi (King Rezi konfirmasi di chat, 2026-10-23):**
+`t133-retrigger-import-extended-lookback.ts --execute` dijalankan dua kali.
+Run 1: Instagram 0 baru / 182 duplikat / 179 terklasifikasi (3 timeout
+analytics Outstand), Facebook gagal "timeout polling" 120 detik (Outstand
+lambat). Run 2: **Facebook imported=184 (classified=103)**, Instagram
+skippedDuplicate=182 classified=182. Hasil DB: Facebook 81 post + 103 reel,
+Instagram 80 post + 102 reel (rentang 2025-10-22 s/d 2026-10-22), TikTok 100
+post. T-133.3: script klasifikasi terpisah 0 kandidat (sudah tercakup
+langkah klasifikasi T-133.2; 43 post lama akun lama sudah hilang saat
+pembersihan data T-134). Snapshot Home `monthly totalPosts=25` (diverifikasi
+via script refresh, bukan dilihat di browser).
+
+**Sisa T-133.4:** cek visual browser Home/Analyze/History untuk Instagram +
+Facebook belum dilakukan (akses browser ditolak pemeriksa izin pada sesi
+ini). Pinterest tetap keterbatasan eksplisit (T-133.1).
 
 **Blocking eksplisit (King Rezi, 2026-10-21):** jangan eksekusi T-133.2
 (re-trigger import dengan `since` diperluas) sebelum 4 tiket berikut tuntas —
