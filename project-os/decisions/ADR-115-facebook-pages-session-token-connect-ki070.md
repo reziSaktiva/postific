@@ -7,7 +7,8 @@ Connect Account — Facebook Pages via Session-Token + Page-Selection
 
 ### Status
 
-Proposed — Amended by ADR-116 (2026-09-24), ADR-127 (2026-10-15). Menunggu review Elon Backend
+Accepted (2026-10-23, keputusan King Rezi; semula Proposed) — Amended by ADR-116
+(2026-09-24), ADR-127 (2026-10-15). Semula menunggu review Elon Backend
 Engineer/Ridwan Architecture Reviewer sebelum implementasi, dan verifikasi
 wire-format terhadap OpenAPI spec resmi Outstand (`api.outstand.so`) yang
 tidak bisa diakses langsung dari sesi ini (lihat bagian **Belum

@@ -4,9 +4,9 @@
 
 | Field        | Value      |
 | ------------ | ---------- |
-| Version      | 0.3.1      |
+| Version      | 0.3.2      |
 | Status       | Active     |
-| Last Updated | 2026-08-05 |
+| Last Updated | 2026-10-23 |
 
 ---
 
