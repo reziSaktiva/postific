@@ -225,8 +225,9 @@ export interface HistoryItemTargetRecord extends QueueItemTargetRecord {
  * outcome final per akun untuk UI daftar (T-034.2) dan detail (T-034.3).
  *
  * `updatedAt` disertakan (beda dari `CalendarItemRecord`/`QueueItemRecord`)
- * karena dipakai sebagai proksi "waktu selesai" untuk pengurutan — lihat
- * catatan gap `failedAt`/`failureReason` di `IPublishingRepository.listHistory`.
+ * hanya sebagai fallback "waktu selesai" (T-142): urutan, grup tanggal, dan
+ * jam kartu memakai `historyItemOccurredAt` (`publishedAt`/`failedAt` lebih
+ * dulu, lalu `updatedAt`).
  */
 export interface HistoryItemRecord {
   id: PostId;
@@ -234,6 +235,8 @@ export interface HistoryItemRecord {
   status: ContentStatus;
   scheduledAt: Date | null;
   publishedAt: Date | null;
+  /** Waktu gagal (T-142) — kunci waktu bisnis item `Failed` di History (`failedAt ?? updatedAt`). */
+  failedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
   /** Media post asli (KI-082) — satu set per post (ADR-107, sama `PublishingPostRecord.mediaIds`), dipakai untuk resolve thumbnail "Hasil per Akun" di History Detail (`HistoryDetail.tsx`). */
@@ -608,11 +611,9 @@ export interface IPublishingRepository {
    * History (T-034.1, KSP-D10) — post berstatus `Published`/`Failed`/
    * `Imported` (T-126; "selesai", KSP-03 — `Imported` ikut dihitung selesai
    * karena memang tidak pernah berupa percobaan publish dari tool ini)
-   * milik workspace, diurutkan
-   * `updatedAt` descending (paling baru berubah status duluan — proksi
-   * "waktu selesai" dipertahankan APA ADANYA meski `PublishingPost.failedAt`
-   * sekarang diisi T-107 — lihat catatan update di bawah kenapa sorting
-   * TIDAK ikut diubah ke `failedAt`/`publishedAt`).
+   * milik workspace, diurutkan descending menurut waktu terbit
+   * (`historyItemOccurredAt`, T-142: `publishedAt ?? updatedAt`, Failed
+   * `failedAt ?? updatedAt`), bukan waktu baris diubah/diimpor.
    *
    * `statuses` — caller (`PublishingService.listHistory`) WAJIB sudah
    * mempersempitnya ke subset `HISTORY_TERMINAL_STATUSES` sebelum
@@ -621,18 +622,8 @@ export interface IPublishingRepository {
    * terfilter, sama pola dengan `listCalendarPosts`/`listQueue`.
    * `connectedAccountIds` opsional, sama pola dengan `listCalendarPosts`.
    *
-   * **Update T-107 (koreksi KI-049/KI-063):** `PublishingPost.failedAt`/
-   * `.failureReason` SEKARANG diisi oleh `markPostFailed` (sebelumnya
-   * tidak pernah ditulis sama sekali) — tapi TETAP SENGAJA tidak
-   * dimasukkan ke `HistoryItemRecord` di sini (keputusan review Ridwan
-   * Architecture Reviewer dipertahankan, bukan di-superscede diam-diam):
-   * `updatedAt` tetap dipakai sebagai proksi "waktu selesai" untuk
-   * `orderBy` supaya scope T-107 murni bug-fix data layer, tidak
-   * mengubah kontrak `HistoryItemRecord`/sorting History (itu perubahan
-   * terpisah yang perlu keputusan produk sendiri kalau memang diinginkan
-   * nanti). Pesan error final per akun tetap tersedia lewat
-   * `HistoryItemTargetRecord.error` (diisi `updateTargetOutcome`) — TIDAK
-   * berubah oleh T-107.
+   * **T-142:** `failedAt` kini ikut di `HistoryItemRecord`. `updatedAt`
+   * (kolom audit) tidak lagi jadi kunci urutan, hanya fallback.
    *
    * `userId` (RLS, KI-026 follow-up) — acting user for `withCurrentUser`.
    */

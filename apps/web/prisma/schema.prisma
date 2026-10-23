@@ -317,12 +317,23 @@ model PublishingPost {
   deletedAt      DateTime? @map("deleted_at") @db.Timestamptz(6)
   createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  // T-145 — waktu bisnis History, GENERATED ALWAYS ... STORED di Postgres
+  // (migration `20261023120000_t145_publishing_posts_occurred_at`):
+  // `status = 'failed'` -> `COALESCE(failed_at, updated_at)`, selain itu
+  // `COALESCE(published_at, updated_at)`. Semantik identik
+  // `historyItemOccurredAt` (T-142). READ-ONLY: jangan pernah diisi dari
+  // aplikasi (Postgres menolak INSERT/UPDATE eksplisit ke generated column).
+  // `dbgenerated()` tanpa argumen = default tidak diketahui Prisma, sehingga
+  // kolom ini tidak ikut `data` pada create/createMany.
+  occurredAt     DateTime  @default(dbgenerated()) @map("occurred_at") @db.Timestamptz(6)
 
   workspace Workspace              @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   targets   PublishingPostTarget[]
 
   @@index([workspaceId])
   @@index([workspaceId, status])
+  // T-145 — `listHistory` `orderBy occurredAt desc` (+ pagination kelak).
+  @@index([workspaceId, occurredAt(sort: Desc)])
   // `listHistory`'s `publishedAtRange` filter (T-045/T-046/T-047, /analyze)
   // butuh `publishedAt` ikut ter-index bareng `workspaceId`+`status` supaya
   // Postgres tidak scan seluruh riwayat per-status sebelum menyaring rentang

@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 
 import type { ConnectedAccountId, PostId } from "@postific/shared";
-import type { CalendarPostItem } from "@/domains/publishing";
+import { WIB_TIME_ZONE, type CalendarPostItem } from "@/domains/publishing";
 
 import { Badge } from "@/components/ui/badge";
 import { Text } from "@/components/ui/text";
@@ -21,7 +21,7 @@ import {
   CONTENT_FORMAT_LABEL,
   flattenCalendarItemsToEntries,
   formatCalendarHour,
-  toUtcDateKey,
+  toWibDateKey,
 } from "./calendar-grid-shared";
 
 /** "Rabu, 16 Jul" — beda dari `formatGroupDateHeading` (`QueueList.tsx`,
@@ -32,7 +32,7 @@ const AGENDA_DATE_HEADING_FORMATTER = new Intl.DateTimeFormat("id-ID", {
   weekday: "long",
   day: "numeric",
   month: "short",
-  timeZone: "UTC",
+  timeZone: WIB_TIME_ZONE,
 });
 
 /** Parse UTC-safe dipusatkan di `formatUtcDateKeyHeading` (`@/lib/utils`,
@@ -75,7 +75,7 @@ export function CalendarAgendaList({
   connectedAccountIds = [],
   onCancelSchedule,
 }: CalendarAgendaListProps) {
-  const todayKey = toUtcDateKey(new Date());
+  const todayKey = toWibDateKey(new Date());
 
   const connectedAccountIdsKey = connectedAccountIds.join(",");
   const groups = useMemo(() => {

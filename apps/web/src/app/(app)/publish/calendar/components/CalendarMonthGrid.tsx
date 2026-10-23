@@ -4,7 +4,7 @@ import { useMemo } from "react";
 
 import type { ConnectedAccountId, PostId } from "@postific/shared";
 import type { CalendarPostItem } from "@/domains/publishing";
-import { getMonthRange } from "@/domains/publishing";
+import { getMonthRange, getWibDateParts } from "@/domains/publishing";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -27,7 +27,7 @@ import {
   formatCalendarHour,
   MAX_VISIBLE_PER_CELL,
   MS_PER_DAY,
-  toUtcDateKey,
+  toWibDateKey,
   useExpandableKeys,
 } from "./calendar-grid-shared";
 
@@ -50,21 +50,25 @@ interface MonthGridDay {
 /** Susun sel grid Month: cukup minggu (kelipatan 7) untuk menutupi 1 bulan penuh, termasuk padding awal/akhir. Minggu mulai Senin. */
 function buildMonthGridDays(anchor: Date): MonthGridDay[] {
   const { from: monthStart, to: monthEnd } = getMonthRange(anchor);
-  const leadingPadding = (monthStart.getUTCDay() + 6) % 7; // Senin=0 ... Minggu=6
+  const leadingPadding = (getWibDateParts(monthStart).weekday + 6) % 7; // Senin=0 ... Minggu=6
   const gridStart = addDays(monthStart, -leadingPadding);
 
-  const daysInMonth =
-    Math.round((monthEnd.getTime() - monthStart.getTime()) / MS_PER_DAY) + 1;
+  // `monthEnd` = 23:59:59.999 hari terakhir, jadi +1 ms dulu supaya N hari (bukan N+1).
+  const daysInMonth = Math.round(
+    (monthEnd.getTime() + 1 - monthStart.getTime()) / MS_PER_DAY,
+  );
   const totalCells = Math.ceil((leadingPadding + daysInMonth) / 7) * 7;
 
+  const anchorParts = getWibDateParts(anchor);
   return Array.from({ length: totalCells }, (_, index) => {
     const cellDate = addDays(gridStart, index);
+    const cellParts = getWibDateParts(cellDate);
     return {
       date: cellDate,
-      dateKey: toUtcDateKey(cellDate),
+      dateKey: toWibDateKey(cellDate),
       isCurrentMonth:
-        cellDate.getUTCFullYear() === anchor.getUTCFullYear() &&
-        cellDate.getUTCMonth() === anchor.getUTCMonth(),
+        cellParts.year === anchorParts.year &&
+        cellParts.month === anchorParts.month,
     };
   });
 }
@@ -116,7 +120,7 @@ export function CalendarMonthGrid({
 
   const gridDays = useMemo(() => buildMonthGridDays(date), [date]);
   const weeks = useMemo(() => chunkIntoWeeks(gridDays), [gridDays]);
-  const todayKey = toUtcDateKey(new Date());
+  const todayKey = toWibDateKey(new Date());
 
   const connectedAccountIdsKey = connectedAccountIds.join(",");
   const entriesByDate = useMemo(() => {
@@ -205,7 +209,7 @@ export function CalendarMonthGrid({
                             : "text-muted-foreground",
                       )}
                     >
-                      {day.date.getUTCDate()}
+                      {getWibDateParts(day.date).day}
                     </Text>
 
                     {day.isCurrentMonth &&

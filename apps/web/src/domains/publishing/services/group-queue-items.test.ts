@@ -82,4 +82,20 @@ describe("groupQueueItemsByDate", () => {
     expect(groups[0]?.items).toEqual([earliest, middle]);
     expect(groups[1]?.items).toEqual([latestNextDay]);
   });
+
+  it("batas hari WIB (T-144): 17:59Z masuk 2 September, 16:59Z masih 1 September", () => {
+    const beforeMidnight = createQueueItem({
+      id: asPostId("before"),
+      scheduledAt: new Date("2026-09-01T16:59:00Z"),
+    });
+    const afterMidnight = createQueueItem({
+      id: asPostId("after"),
+      scheduledAt: new Date("2026-09-01T17:59:00Z"),
+    });
+
+    expect(groupQueueItemsByDate([beforeMidnight, afterMidnight])).toEqual([
+      { date: "2026-09-01", items: [beforeMidnight] },
+      { date: "2026-09-02", items: [afterMidnight] },
+    ]);
+  });
 });

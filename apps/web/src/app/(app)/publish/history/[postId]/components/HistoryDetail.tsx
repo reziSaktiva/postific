@@ -9,6 +9,7 @@ import type {
   HistoryDetailItem,
   HistoryItemRecord,
 } from "@/domains/publishing";
+import { WIB_TIME_ZONE } from "@/domains/publishing";
 import type { MediaThumbnailDto } from "@/domains/media";
 import { formatRelativeTime } from "@/lib/utils/format-relative-time";
 import { linkifyCaption } from "@/lib/linkify";
@@ -52,6 +53,7 @@ const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("id-ID", {
   year: "numeric",
   hour: "2-digit",
   minute: "2-digit",
+  timeZone: WIB_TIME_ZONE,
 });
 
 /**

@@ -4,7 +4,7 @@ import { useMemo } from "react";
 
 import type { ConnectedAccountId, PostId } from "@postific/shared";
 import type { CalendarPostItem } from "@/domains/publishing";
-import { getWeekRange } from "@/domains/publishing";
+import { getWeekRange, getWibDateParts } from "@/domains/publishing";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -25,7 +25,7 @@ import {
   DAY_LABELS,
   flattenCalendarItemsToEntries,
   MAX_VISIBLE_PER_CELL,
-  toUtcDateKey,
+  toWibDateKey,
   useExpandableKeys,
   WEEK_HOUR_LABELS,
 } from "./calendar-grid-shared";
@@ -74,8 +74,8 @@ export function CalendarWeekGrid({
     const { from: weekStart } = getWeekRange(date);
     return Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
   }, [date]);
-  const dayKeys = useMemo(() => days.map(toUtcDateKey), [days]);
-  const todayKey = toUtcDateKey(new Date());
+  const dayKeys = useMemo(() => days.map(toWibDateKey), [days]);
+  const todayKey = toWibDateKey(new Date());
 
   const connectedAccountIdsKey = connectedAccountIds.join(",");
   const cellEntries = useMemo(() => {
@@ -134,7 +134,7 @@ export function CalendarWeekGrid({
                       isToday ? "font-bold text-primary" : "font-normal",
                     )}
                   >
-                    {day.getUTCDate()}
+                    {getWibDateParts(day).day}
                   </Text>
                 </div>
               );

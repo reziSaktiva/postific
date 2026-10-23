@@ -184,6 +184,7 @@ function mapHistoryItem(post: QueuePostWithTargets): HistoryItemRecord {
     status: post.status as ContentStatus,
     scheduledAt: post.scheduledAt,
     publishedAt: post.publishedAt,
+    failedAt: post.failedAt,
     createdAt: post.createdAt,
     updatedAt: post.updatedAt,
     mediaIds: post.mediaIds.map((id) => asMediaId(id)),
@@ -823,9 +824,18 @@ export const publishingRepository: IPublishingRepository = {
               }
             : {}),
         },
-        // Proksi "waktu selesai" — lihat catatan gap `failedAt` di
-        // `IPublishingRepository.listHistory`.
-        orderBy: { updatedAt: "desc" },
+        // T-145: urutan dari DB lewat kolom generated `occurred_at`
+        // (Failed `failed_at ?? updated_at`, selain itu `published_at ??
+        // updated_at`) + tie-breaker `updatedAt desc, id desc` — setara
+        // `compareHistoryItemsDesc` (T-142), yang tetap dipakai sort lokal
+        // Realtime di UI. Index `(workspace_id, occurred_at desc)`.
+        orderBy: [
+          // `occurred_at` = generated column T-145; aturannya WAJIB sama dengan
+          // `historyItemOccurredAt` (group-history-items.ts) — ubah keduanya bersama.
+          { occurredAt: "desc" },
+          { updatedAt: "desc" },
+          { id: "desc" },
+        ],
         include: {
           targets: {
             include: { connectedAccount: true },
