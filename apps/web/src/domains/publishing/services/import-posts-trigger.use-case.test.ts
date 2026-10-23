@@ -864,6 +864,116 @@ describe("ImportPostsTriggerUseCase — T-131 per-trigger since/limit policy", (
     );
   });
 
+  function t143Posts(count: number) {
+    return Array.from({ length: count }, (_, i) => ({
+      platformPostId: `p-${i}`,
+      outstandPostId: `o-${i}`,
+      caption: "",
+      publishedAt: new Date("2026-01-01T00:00:00.000Z"),
+      platformPostUrl: null,
+      mediaUrls: [],
+    }));
+  }
+
+  function t143UseCase(
+    importJobs: ReturnType<typeof createFakeImportJobRepository>,
+    outcome: ImportJobOutcome,
+  ) {
+    const outstandAdapter = createFakeOutstandAdapter({
+      fetchImportJobStatus: vi.fn(
+        async (): Promise<ImportJobOutcome> => outcome,
+      ),
+    });
+    const watermark = createFakeWatermarkPort({
+      findAccountOwnerByOutstandAccountId: vi.fn(async () => ({
+        workspaceId: WORKSPACE_ID,
+        connectedAccountId: CONNECTED_ACCOUNT_ID,
+        ownerUserId: ACTING_USER_ID,
+      })),
+    });
+    const useCase = new ImportPostsTriggerUseCase(
+      importJobs,
+      outstandAdapter,
+      watermark,
+      createProcessUseCase(1),
+      noopBackfillUseCase,
+      noopClassifyUseCase,
+    );
+    return { useCase, watermark };
+  }
+
+  const t143Account = {
+    workspaceId: WORKSPACE_ID,
+    connectedAccountId: CONNECTED_ACCOUNT_ID,
+    outstandAccountId: OUTSTAND_ACCOUNT_ID,
+    platform: SocialPlatform.Instagram,
+    lastImportedUntil: null,
+  };
+
+  it("triggerPeriodicForAccounts (T-143) advances the watermark when Outstand counts stay below the limit even if more posts than the limit were paginated", async () => {
+    const importJobs = createFakeImportJobRepository();
+    const { useCase, watermark } = t143UseCase(importJobs, {
+      status: "completed",
+      posts: t143Posts(1200),
+      error: null,
+      counts: { imported: 600, skipped: 100, failed: 0 },
+    });
+
+    await useCase.triggerPeriodicForAccounts([t143Account]);
+
+    expect(watermark.updateImportWatermark).toHaveBeenCalledWith(
+      expect.objectContaining({ lastImportedUntil: expect.any(Date) }),
+    );
+  });
+
+  it("triggerPeriodicForAccounts (T-143) keeps the watermark when Outstand counts reach the limit", async () => {
+    const importJobs = createFakeImportJobRepository();
+    const { useCase, watermark } = t143UseCase(importJobs, {
+      status: "completed",
+      posts: t143Posts(10),
+      error: null,
+      counts: { imported: 900, skipped: 50, failed: 50 },
+    });
+
+    await useCase.triggerPeriodicForAccounts([t143Account]);
+
+    expect(watermark.updateImportWatermark).not.toHaveBeenCalledWith(
+      expect.objectContaining({ lastImportedUntil: expect.any(Date) }),
+    );
+  });
+
+  it("keeps the computed counts and since in the failed result when writing the 'done' status throws (T-143.3)", async () => {
+    const markImportSyncJobStatus = vi.fn(
+      async (_id: string, status: string) => {
+        if (status === "done") throw new Error("db transient");
+      },
+    );
+    const importJobs = createFakeImportJobRepository({
+      markImportSyncJobStatus,
+    });
+    const { useCase } = t143UseCase(importJobs, {
+      status: "completed",
+      posts: t143Posts(5),
+      error: null,
+      counts: { imported: 5, skipped: 0, failed: 0 },
+    });
+
+    await useCase.triggerPeriodicForAccounts([t143Account]);
+
+    expect(markImportSyncJobStatus).toHaveBeenLastCalledWith(
+      expect.any(String),
+      "failed",
+      expect.stringContaining("db transient"),
+      expect.objectContaining({
+        limit: 1000,
+        since: expect.any(String),
+        fetchedPosts: 5,
+        outstandImported: 5,
+        insertedCount: 1,
+      }),
+    );
+  });
+
   // T-131.5 — regresi guard biaya existing: kenaikan limit (1000) tidak
   // mengubah semantik guard concurrent-import (ADR-093 poin 8), cooldown
   // 24 jam, atau cap mingguan manual (ADR-093 poin 9) — ketiganya dicek
@@ -1703,7 +1813,7 @@ describe("ImportPostsTriggerUseCase.executeQueuedPeriodicImport (T-115)", () => 
     );
   });
 
-  // T-131.3 — limit periodik tetap 100 (bukan ikut naik ke 1000 seperti
+  // T-131.3 — limit periodik akun ber-watermark tetap 100 (bukan ikut naik ke 1000 seperti
   // auto/manual).
   it("still requests limit 100 (unchanged by the T-131 auto/manual limit bump)", async () => {
     const { useCase, outstandAdapter } = createQueuedUseCase({});

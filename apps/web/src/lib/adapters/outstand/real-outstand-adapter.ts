@@ -1694,11 +1694,14 @@ export function createRealOutstandAdapter(
       const failed = toNumber(job.failed);
       const jobError = toStringOrNull(job.error);
 
-      if (rawStatus === "queued" || rawStatus === "running") {
-        return { status: "pending", posts: [], error: null };
-      }
-
       const counts = { imported, skipped, failed };
+
+      // T-143.3 — angka job ikut dilaporkan walau masih `queued`/`running`,
+      // supaya job lokal yang timeout polling tetap menyimpan angka Outstand
+      // terakhir yang terlihat.
+      if (rawStatus === "queued" || rawStatus === "running") {
+        return { status: "pending", posts: [], error: null, counts };
+      }
 
       if (rawStatus === "failed") {
         return {
@@ -1749,6 +1752,7 @@ export function createRealOutstandAdapter(
           posts: [],
           error: `GET /v1/posts melebihi ${POSTS_MAX_PAGES} halaman — hasil import terpotong.`,
           counts,
+          fetchedPosts: rawPosts.length,
         };
       }
 

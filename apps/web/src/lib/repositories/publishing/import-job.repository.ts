@@ -77,27 +77,27 @@ export const importJobRepository: IImportJobRepository = {
   },
 
   async markImportSyncJobStatus(jobId, status, lastError, result) {
-    // T-143.3 — merge `result` ke payload (read-modify-write, tidak atomik).
-    // Biasanya satu eksekusi per job, tapi job `running` yang lewat batas
-    // stale `background-job-store` (30 detik) bisa diklaim ulang runner lain,
-    // sehingga penulis konkuren mungkin terjadi dan `result` bisa tertimpa
-    // (lost update). Dedup import mencegah data ganda; hanya `result` yang
-    // terdampak.
-    let payloadUpdate: Prisma.InputJsonValue | undefined;
+    // T-143.3 — `result` digabung ke payload secara ATOMIK dalam satu
+    // statement (`payload || {"result": ...}`, jsonb concat di Postgres):
+    // hanya key `result` yang ditulis, key lain (`queued`, `trigger`,
+    // `connectedAccountId`, ... — dipakai partial unique index & klaim job)
+    // tidak pernah dibaca-ulang lalu ditimpa, jadi runner konkuren (reclaim
+    // stale 30 detik `background-job-store`) tidak bisa saling menimpa.
     if (result) {
-      const existing = await prisma.backgroundJob.findUnique({
-        where: { id: jobId },
-        select: { payload: true },
-      });
-      payloadUpdate = {
-        ...((existing?.payload as Record<string, unknown> | null) ?? {}),
-        result,
-      } as unknown as Prisma.InputJsonValue;
+      await prisma.$executeRaw`
+        UPDATE background_jobs
+        SET payload = payload || ${JSON.stringify({ result })}::jsonb,
+            status = ${status},
+            last_error = ${lastError ?? null},
+            completed_at = CASE WHEN ${status} IN ('done', 'failed') THEN now() ELSE completed_at END,
+            started_at = CASE WHEN ${status} = 'running' THEN now() ELSE started_at END
+        WHERE id = ${jobId}::uuid
+      `;
+      return;
     }
     await prisma.backgroundJob.update({
       where: { id: jobId },
       data: {
-        ...(payloadUpdate !== undefined ? { payload: payloadUpdate } : {}),
         status,
         lastError: lastError ?? null,
         completedAt:

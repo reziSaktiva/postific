@@ -1251,17 +1251,27 @@ post TikTok (`list_posts`, `total: 118`); DB kita hanya 100 (14 Mar – 30 Mei
 - [x] **T-143.1** Periodik: kalau `lastImportedUntil === null` (belum pernah
       sync sukses), pakai `defaultSince` (1 tahun) dan limit
       `AUTO_MANUAL_IMPORT_LIMIT` (1000), bukan 24 jam / 100. Watermark
-      dimajukan hanya kalau batch tidak penuh (aturan yang sudah ada)
+      dimajukan hanya kalau job tidak terpotong. Sinyal terpotong sekarang
+      `imported + skipped + failed >= limit` dari angka job Outstand (bukan
+      lagi `posts.length >= limit`, karena `GET /v1/posts` sudah dipaginasi
+      penuh); tanpa `counts` jatuh ke `posts.length >= limit`. Keterbatasan
+      yang tersisa: akun yang benar-benar punya >= 1000 post dalam setahun
+      tetap tidak memajukan watermark (butuh cursor Outstand)
 - [x] **T-143.2** `fetchImportJobStatus`: kalau `imported + skipped` 0, jangan
       jatuh ke limit 100 — paginasi sampai `pagination.total` tercapai
       (dibatasi `MAX_PAGES`), supaya hasil tidak terpotong. Catatan: T-141
       sudah menghapus limit `imported + skipped` (paginasi `fetchAllPostsPages`);
-      T-143 menambah test 0/0 dengan 118 post dan membereskan docstring
+      T-143 menambah test 0/0 dengan 118 post dan membereskan docstring.
+      Adapter juga melaporkan `counts` pada status `pending` (timeout polling)
+      dan `fetchedPosts` pada kegagalan `POSTS_MAX_PAGES`
 - [x] **T-143.3** Simpan `imported`/`skipped`/`failed` job di `lastError`/payload
       job `import.sync` supaya kasus seperti ini bisa dibuktikan. Disimpan di
       `background_jobs.payload.result` (`outstandImported/Skipped/Failed`,
       `fetchedPosts`, `insertedCount`, `skippedDuplicateCount`, `limit`) lewat
       `ImportJobOutcome.counts` + argumen ke-4 `markImportSyncJobStatus`
+      (merge jsonb atomik `payload || {result}`; `since` yang benar-benar
+      diminta ikut dicatat; jalur exception menyimpan angka yang sudah
+      terkumpul)
 - [x] **T-143.4** Test unit untuk watermark `null` (since 1 tahun, limit 1000)
       dan fallback 0/0 dengan >100 post
 - [ ] **T-143.5** Verifikasi dengan akun real baru (connect TikTok/Instagram,

@@ -1808,7 +1808,12 @@ describe("RealOutstandAdapter.importPosts / fetchImportJobStatus (T-112)", () =>
       "import-job-1",
     );
 
-    expect(result).toEqual({ status: "pending", posts: [], error: null });
+    expect(result).toEqual({
+      status: "pending",
+      posts: [],
+      error: null,
+      counts: { imported: 0, skipped: 0, failed: 0 },
+    });
     expect(fetchImpl).toHaveBeenCalledTimes(1);
     const [url] = fetchImpl.mock.calls[0];
     expect(url).toBe(
@@ -2081,6 +2086,47 @@ describe("RealOutstandAdapter.importPosts / fetchImportJobStatus (T-112)", () =>
     expect(result.posts).toHaveLength(118);
     expect(result.counts).toEqual({ imported: 0, skipped: 0, failed: 0 });
     expect(fetchImpl).toHaveBeenCalledTimes(3);
+  });
+
+  it("fetchImportJobStatus reports counts and fetchedPosts when GET /v1/posts hits MAX_PAGES (T-143.3)", async () => {
+    const jobResponse = () =>
+      jsonResponse(200, {
+        success: true,
+        data: {
+          id: "import-job-1",
+          status: "completed",
+          since: "2025-10-23T00:00:00.000Z",
+          until: "2026-10-23T00:00:00.000Z",
+          imported: 7,
+          skipped: 3,
+          failed: 1,
+          error: null,
+        },
+      });
+    const postsResponse = () =>
+      jsonResponse(200, {
+        success: true,
+        data: [{ id: "post-forever", socialAccounts: [] }],
+        pagination: { limit: 100, offset: 0, total: 10_000_000, count: 100 },
+      });
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(jobResponse())
+      .mockImplementation(() => Promise.resolve(postsResponse()));
+    const adapter = buildAdapter(fetchImpl);
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const result = await adapter.fetchImportJobStatus(
+      "acc-ig-1",
+      "import-job-1",
+    );
+
+    expect(result.status).toBe("failed");
+    expect(result.posts).toEqual([]);
+    expect(result.counts).toEqual({ imported: 7, skipped: 3, failed: 1 });
+    expect(result.fetchedPosts).toBe(500);
+
+    warnSpy.mockRestore();
   });
 
   it("fetchImportJobStatus maps partial to completed WITH posts + a summarized error message", async () => {

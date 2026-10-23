@@ -49,7 +49,7 @@ export interface ImportSyncJobPayload {
    * payload). `outstandImported`/`outstandSkipped`/`outstandFailed` = angka
    * ringkasan job di Outstand; `fetchedPosts` = post yang berhasil diambil
    * dari `GET /v1/posts`; `insertedCount`/`skippedDuplicateCount` = hasil
-   * proses di sisi kita; `limit` = limit yang diminta.
+   * proses di sisi kita; `limit`/`since` = parameter yang benar-benar diminta saat eksekusi.
    */
   result?: ImportSyncJobResult;
 }
@@ -62,6 +62,8 @@ export interface ImportSyncJobResult {
   insertedCount?: number;
   skippedDuplicateCount?: number;
   limit?: number;
+  /** ISO — `since` yang benar-benar diminta saat eksekusi (payload enqueue hanya placeholder). */
+  since?: string;
 }
 
 export interface ImportSyncJobRecord {

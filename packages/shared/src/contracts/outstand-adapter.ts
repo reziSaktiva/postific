@@ -608,6 +608,12 @@ export interface ImportJobOutcome {
    * supaya kasus "hasil terpotong" bisa dibuktikan ulang.
    */
   counts?: { imported: number; skipped: number; failed: number };
+  /**
+   * T-143.3 — jumlah post mentah yang sempat diambil dari `GET /v1/posts`
+   * saat `posts` dikosongkan (hasil terpotong `POSTS_MAX_PAGES`). Kalau
+   * kosong, pemanggil memakai `posts.length`.
+   */
+  fetchedPosts?: number;
 }
 
 /**
