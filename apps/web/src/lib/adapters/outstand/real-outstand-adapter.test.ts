@@ -1841,6 +1841,7 @@ describe("RealOutstandAdapter.importPosts / fetchImportJobStatus (T-112)", () =>
       status: "failed",
       posts: [],
       error: "Outstand rate limited",
+      counts: expect.any(Object),
     });
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
@@ -1930,6 +1931,7 @@ describe("RealOutstandAdapter.importPosts / fetchImportJobStatus (T-112)", () =>
         },
       ],
       error: null,
+      counts: { imported: 1, skipped: 0, failed: 0 },
     });
     expect(fetchImpl).toHaveBeenCalledTimes(2);
     const [secondUrl] = fetchImpl.mock.calls[1];
@@ -2020,6 +2022,65 @@ describe("RealOutstandAdapter.importPosts / fetchImportJobStatus (T-112)", () =>
     expect(fetchImpl.mock.calls[3][0]).toBe(
       `https://api.outstand.so/v1/posts?social_account_id=acc-ig-1&limit=100&offset=200${range}`,
     );
+  });
+
+  it("fetchImportJobStatus paginates until pagination.total even when job imported+skipped is 0 (T-143.2, no fallback limit 100)", async () => {
+    const buildPosts = (start: number, count: number) =>
+      Array.from({ length: count }, (_, i) => ({
+        id: `post-${start + i}`,
+        containers: [{ content: "x", media: [] }],
+        socialAccounts: [
+          {
+            id: "acc-ig-1",
+            status: "published",
+            platformPostId: `ig-post-${start + i}`,
+            platformPostUrl: null,
+            publishedAt: "2026-08-01T00:05:00.000Z",
+          },
+        ],
+      }));
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse(200, {
+          success: true,
+          data: {
+            id: "import-job-1",
+            status: "completed",
+            since: "2025-10-23T00:00:00.000Z",
+            until: "2026-10-23T00:00:00.000Z",
+            imported: 0,
+            skipped: 0,
+            failed: 0,
+            error: null,
+          },
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse(200, {
+          success: true,
+          data: buildPosts(0, 100),
+          pagination: { limit: 100, offset: 0, total: 118, count: 100 },
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse(200, {
+          success: true,
+          data: buildPosts(100, 18),
+          pagination: { limit: 100, offset: 100, total: 118, count: 18 },
+        }),
+      );
+    const adapter = buildAdapter(fetchImpl);
+
+    const result = await adapter.fetchImportJobStatus(
+      "acc-ig-1",
+      "import-job-1",
+    );
+
+    expect(result.status).toBe("completed");
+    expect(result.posts).toHaveLength(118);
+    expect(result.counts).toEqual({ imported: 0, skipped: 0, failed: 0 });
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
   });
 
   it("fetchImportJobStatus maps partial to completed WITH posts + a summarized error message", async () => {

@@ -1204,14 +1204,14 @@ keterlambatan Outstand ("masih diproses setelah 25 detik").
 
 ### T-143 · Import periodik tidak pernah mengejar riwayat akun baru; hasil terpotong di 100 post (KI-102)
 
-| Field       | Value                                                                                          |
-| ----------- | ---------------------------------------------------------------------------------------------- |
-| **Status**  | ⏳ Terkonfirmasi sebagian, belum ada perbaikan — menunggu persetujuan arah perbaikan King Rezi |
-| **Domain**  | publishing · integration                                                                       |
-| **Spec**    | tidak ada — single-issue                                                                       |
-| **Docs**    | T-131 (lookback per trigger), T-115 (cron import), T-141 (pagination `/v1/posts`)              |
-| **Terkait** | T-133, T-141, ditemukan King Rezi 2026-10-23 (post TikTok 7 Okt tidak muncul)                  |
-| **Depends** | —                                                                                              |
+| Field       | Value                                                                             |
+| ----------- | --------------------------------------------------------------------------------- |
+| **Status**  | 🟡 In Progress                                                                    |
+| **Domain**  | publishing · integration                                                          |
+| **Spec**    | tidak ada — single-issue                                                          |
+| **Docs**    | T-131 (lookback per trigger), T-115 (cron import), T-141 (pagination `/v1/posts`) |
+| **Terkait** | T-133, T-141, ditemukan King Rezi 2026-10-23 (post TikTok 7 Okt tidak muncul)     |
+| **Depends** | —                                                                                 |
 
 **Ditemukan (King Rezi, 2026-10-23):** akun TikTok `cookitrealgood` baru
 terhubung, tetapi post tanggal 7 Okt 2026 tidak muncul. Outstand punya 118
@@ -1246,18 +1246,23 @@ post TikTok (`list_posts`, `total: 118`); DB kita hanya 100 (14 Mar – 30 Mei
    `nNvkl`, jadi 0 di DB benar. (Satu job periodik YouTube 22 Okt gagal
    "owner lookup kosong" lalu sukses 23 Okt.)
 
-**Usulan perbaikan (belum dieksekusi):**
+**Perbaikan (disetujui King Rezi, diimplementasi 2026-10-23; T-143.5 belum):**
 
-- [ ] **T-143.1** Periodik: kalau `lastImportedUntil === null` (belum pernah
+- [x] **T-143.1** Periodik: kalau `lastImportedUntil === null` (belum pernah
       sync sukses), pakai `defaultSince` (1 tahun) dan limit
       `AUTO_MANUAL_IMPORT_LIMIT` (1000), bukan 24 jam / 100. Watermark
       dimajukan hanya kalau batch tidak penuh (aturan yang sudah ada)
-- [ ] **T-143.2** `fetchImportJobStatus`: kalau `imported + skipped` 0, jangan
+- [x] **T-143.2** `fetchImportJobStatus`: kalau `imported + skipped` 0, jangan
       jatuh ke limit 100 — paginasi sampai `pagination.total` tercapai
-      (dibatasi `MAX_PAGES`), supaya hasil tidak terpotong
-- [ ] **T-143.3** Simpan `imported`/`skipped`/`failed` job di `lastError`/payload
-      job `import.sync` supaya kasus seperti ini bisa dibuktikan
-- [ ] **T-143.4** Test unit untuk watermark `null` (since 1 tahun, limit 1000)
+      (dibatasi `MAX_PAGES`), supaya hasil tidak terpotong. Catatan: T-141
+      sudah menghapus limit `imported + skipped` (paginasi `fetchAllPostsPages`);
+      T-143 menambah test 0/0 dengan 118 post dan membereskan docstring
+- [x] **T-143.3** Simpan `imported`/`skipped`/`failed` job di `lastError`/payload
+      job `import.sync` supaya kasus seperti ini bisa dibuktikan. Disimpan di
+      `background_jobs.payload.result` (`outstandImported/Skipped/Failed`,
+      `fetchedPosts`, `insertedCount`, `skippedDuplicateCount`, `limit`) lewat
+      `ImportJobOutcome.counts` + argumen ke-4 `markImportSyncJobStatus`
+- [x] **T-143.4** Test unit untuk watermark `null` (since 1 tahun, limit 1000)
       dan fallback 0/0 dengan >100 post
 - [ ] **T-143.5** Verifikasi dengan akun real baru (connect TikTok/Instagram,
       tunggu satu siklus cron)

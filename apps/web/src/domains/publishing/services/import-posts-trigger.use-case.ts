@@ -15,6 +15,7 @@ import { assertActorCanTriggerManualImportSync } from "../rbac";
 import type {
   IImportJobRepository,
   ImportSyncJobRecord,
+  ImportSyncJobResult,
   ImportSyncTrigger,
 } from "../repositories/import-job.repository";
 import type { BackfillOutstandPostIdsUseCase } from "./backfill-outstand-post-ids.use-case";
@@ -92,6 +93,57 @@ function periodicImportSince(lastImportedUntil: Date | null, now: Date): Date {
   return candidate.getTime() < twentyFourHoursAgo.getTime()
     ? candidate
     : twentyFourHoursAgo;
+}
+
+/**
+ * T-143.1 — rencana `since`/`limit` untuk import periodik. Akun yang belum
+ * pernah sync sukses (`lastImportedUntil === null`) harus mengejar riwayat
+ * penuh seperti import connect/manual (1 tahun, limit 1000); kalau tidak,
+ * cron cuma meminta 24 jam terakhir dan import connect yang gagal/timeout
+ * tidak pernah dipulihkan (KI-102). Akun dengan watermark memakai
+ * `periodicImportSince` + `CRON_IMPORT_LIMIT` seperti sebelumnya. Watermark
+ * tetap dimajukan hanya kalau batch tidak penuh (aturan di `runImportJob`).
+ */
+function periodicImportPlan(
+  lastImportedUntil: Date | null,
+  now: Date,
+): { since: Date; limit: number } {
+  if (lastImportedUntil === null) {
+    return { since: defaultSince(now), limit: AUTO_MANUAL_IMPORT_LIMIT };
+  }
+  return {
+    since: periodicImportSince(lastImportedUntil, now),
+    limit: CRON_IMPORT_LIMIT,
+  };
+}
+
+/**
+ * T-143.3 — ringkasan hasil job untuk disimpan di payload `import.sync`.
+ * Hanya field yang tersedia yang diisi (adapter nyata saja yang membawa
+ * `counts`).
+ */
+function buildImportJobResult(
+  limit: number,
+  outcome: ImportJobOutcome,
+  processed?: { insertedCount: number; skippedDuplicateCount: number },
+): ImportSyncJobResult {
+  return {
+    limit,
+    fetchedPosts: outcome.posts.length,
+    ...(outcome.counts
+      ? {
+          outstandImported: outcome.counts.imported,
+          outstandSkipped: outcome.counts.skipped,
+          outstandFailed: outcome.counts.failed,
+        }
+      : {}),
+    ...(processed
+      ? {
+          insertedCount: processed.insertedCount,
+          skippedDuplicateCount: processed.skippedDuplicateCount,
+        }
+      : {}),
+  };
 }
 
 /**
@@ -372,14 +424,15 @@ export class ImportPostsTriggerUseCase {
           "triggerPeriodicForAccounts",
         );
 
+        const plan = periodicImportPlan(account.lastImportedUntil, new Date());
         const result = await this.runImportSync({
           trigger: "periodic",
           workspaceId: account.workspaceId,
           connectedAccountId: account.connectedAccountId,
           outstandAccountId: account.outstandAccountId,
           platform: account.platform,
-          since: periodicImportSince(account.lastImportedUntil, new Date()),
-          limit: CRON_IMPORT_LIMIT,
+          since: plan.since,
+          limit: plan.limit,
           actingUserId: owner.ownerUserId,
         });
         results.set(account.connectedAccountId, result);
@@ -510,14 +563,15 @@ export class ImportPostsTriggerUseCase {
     }
 
     const until = new Date();
+    const plan = periodicImportPlan(watermark.lastImportedUntil, until);
     const runInput: RunImportSyncInput = {
       trigger: "periodic",
       workspaceId: input.workspaceId,
       connectedAccountId: input.connectedAccountId,
       outstandAccountId: input.outstandAccountId,
       platform: input.platform,
-      since: periodicImportSince(watermark.lastImportedUntil, until),
-      limit: CRON_IMPORT_LIMIT,
+      since: plan.since,
+      limit: plan.limit,
       actingUserId: owner.ownerUserId,
     };
 
@@ -654,6 +708,7 @@ export class ImportPostsTriggerUseCase {
           job.id,
           "failed",
           message,
+          buildImportJobResult(input.limit, jobOutcome),
         );
         return { outcome: "failed", message };
       }
@@ -713,6 +768,7 @@ export class ImportPostsTriggerUseCase {
         job.id,
         "done",
         partialWarning,
+        buildImportJobResult(input.limit, jobOutcome, processed),
       );
 
       return {
@@ -728,6 +784,9 @@ export class ImportPostsTriggerUseCase {
           job.id,
           "failed",
           message,
+          // T-143.3 — job yang gagal lewat exception tetap mencatat limit
+          // supaya kasus terpotong bisa dibuktikan ulang.
+          { limit: input.limit },
         );
       } catch {
         // Code review PR #148 (finding #4) — kalau PENULISAN status gagal

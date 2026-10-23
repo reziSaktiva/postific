@@ -76,10 +76,28 @@ export const importJobRepository: IImportJobRepository = {
     };
   },
 
-  async markImportSyncJobStatus(jobId, status, lastError) {
+  async markImportSyncJobStatus(jobId, status, lastError, result) {
+    // T-143.3 — merge `result` ke payload (read-modify-write, tidak atomik).
+    // Biasanya satu eksekusi per job, tapi job `running` yang lewat batas
+    // stale `background-job-store` (30 detik) bisa diklaim ulang runner lain,
+    // sehingga penulis konkuren mungkin terjadi dan `result` bisa tertimpa
+    // (lost update). Dedup import mencegah data ganda; hanya `result` yang
+    // terdampak.
+    let payloadUpdate: Prisma.InputJsonValue | undefined;
+    if (result) {
+      const existing = await prisma.backgroundJob.findUnique({
+        where: { id: jobId },
+        select: { payload: true },
+      });
+      payloadUpdate = {
+        ...((existing?.payload as Record<string, unknown> | null) ?? {}),
+        result,
+      } as unknown as Prisma.InputJsonValue;
+    }
     await prisma.backgroundJob.update({
       where: { id: jobId },
       data: {
+        ...(payloadUpdate !== undefined ? { payload: payloadUpdate } : {}),
         status,
         lastError: lastError ?? null,
         completedAt:

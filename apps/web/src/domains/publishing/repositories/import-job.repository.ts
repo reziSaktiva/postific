@@ -44,6 +44,24 @@ export interface ImportSyncJobPayload {
   queued?: boolean;
   /** Wajib untuk baris antrian. Job inline membawa platform di input caller, bukan di payload. */
   platform?: SocialPlatform;
+  /**
+   * T-143.3 — hasil akhir job, ditulis `markImportSyncJobStatus` (merge ke
+   * payload). `outstandImported`/`outstandSkipped`/`outstandFailed` = angka
+   * ringkasan job di Outstand; `fetchedPosts` = post yang berhasil diambil
+   * dari `GET /v1/posts`; `insertedCount`/`skippedDuplicateCount` = hasil
+   * proses di sisi kita; `limit` = limit yang diminta.
+   */
+  result?: ImportSyncJobResult;
+}
+
+export interface ImportSyncJobResult {
+  outstandImported?: number;
+  outstandSkipped?: number;
+  outstandFailed?: number;
+  fetchedPosts?: number;
+  insertedCount?: number;
+  skippedDuplicateCount?: number;
+  limit?: number;
 }
 
 export interface ImportSyncJobRecord {
@@ -82,6 +100,7 @@ export interface IImportJobRepository {
     jobId: string,
     status: "running" | "done" | "failed",
     lastError?: string,
+    result?: ImportSyncJobResult,
   ): Promise<void>;
 
   /**
