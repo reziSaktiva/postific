@@ -2634,6 +2634,47 @@ Rezi kosong). Begitu akun test tersedia dan verifikasi browser lolos,
 keempat tiket ditutup ✅ Done dan blocker ini terbuka tanpa perlu investigasi
 ulang — tidak ada pekerjaan kode tersisa untuk membuka blocker ini.
 
+### T-142 · Usulan: History post `Imported` dikelompokkan dan diurutkan memakai `publishedAt`
+
+| Field         | Value                                                                                                                                                                                                                   |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**    | 🚫 Usulan — menunggu keputusan produk King Rezi dan cek rancangan di Claude Design sebelum ada kode (AGENTS.md aturan 10)                                                                                               |
+| **Domain**    | publishing · UI                                                                                                                                                                                                         |
+| **ADR**       | kemungkinan perlu ADR baru kalau kontrak urutan `listHistory` berubah (aturan 2)                                                                                                                                        |
+| **Terkait**   | ADR-093 (Imported tampil di History), T-034 (History), T-133 (backfill 1 tahun yang memunculkan masalah ini)                                                                                                            |
+| **Depends**   | keputusan produk T-142.1, rancangan Claude Design T-142.2                                                                                                                                                               |
+| **Baca dulu** | `apps/web/src/domains/publishing/services/group-history-items.ts` · `apps/web/src/app/(app)/publish/history/history-list-row.ts` · `listHistory` di `apps/web/src/lib/repositories/publishing/publishing.repository.ts` |
+
+**Bukan bug.** History mengelompokkan dan mengurutkan per `updatedAt`
+("waktu selesai") dan memakai `updatedAt` yang sama untuk jam kartu
+(`historyListClockDate`) — disengaja, terdokumentasi di kode, supaya urutan
+grup selaras dengan `orderBy: { updatedAt: "desc" }`.
+
+**Masalah produk (ditemukan 2026-10-23, verifikasi T-133.4):** untuk post
+`Imported`, `updatedAt` = waktu import, bukan waktu terbit. Setelah backfill
+1 tahun T-133, 366 post Imported (Facebook 184, Instagram 182, plus TikTok 100) menumpuk di grup tanggal import (22 dan 23 Oktober) dengan jam yang
+sama (satu batch, mis. 10.12), sementara teks kartu menulis "Dipublikasikan
+15 Okt 2026". Tanggal grup, jam, dan teks meta saling bertentangan, dan
+riwayat publish asli tertimbun.
+
+**Usulan:** untuk post `Imported`, kunci pengelompokan, urutan, dan jam kartu
+memakai `publishedAt`; post `Published`/`Failed` tetap memakai `updatedAt`
+(atau seluruhnya `publishedAt ?? updatedAt`).
+
+- [ ] **T-142.1** King Rezi memutuskan perilaku History (via `AskUserQuestion`):
+      Imported memakai `publishedAt`, atau tetap `updatedAt` dengan penanda
+      "diimpor"; apakah Published ikut berubah
+- [ ] **T-142.2** Cek Claude Design (project "Social Media Management") apakah
+      layar History sudah merancang kelompok tanggal untuk Imported; kalau
+      belum, STOP dan minta rancangan lebih dulu (AGENTS.md aturan 10)
+- [ ] **T-142.3** Kalau kontrak urutan `listHistory` berubah (`orderBy`,
+      kunci grup, `historyListClockDate`), tulis ADR baru
+- [ ] **T-142.4** Implementasi sesuai keputusan, sesuaikan
+      `group-history-items.ts`, `history-list-row.ts`, `listHistory`, dan
+      Realtime patch di `HistoryList.tsx` (sort lokal harus konsisten)
+- [ ] **T-142.5** Test unit pengelompokan (Imported lintas tanggal, campuran
+      Imported dan Published) dan verifikasi browser History
+
 ---
 
 ## Dari Known Issue
