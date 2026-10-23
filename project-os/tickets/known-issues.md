@@ -1010,7 +1010,7 @@ untuk status terbaru.
 
 | Field       | Value                                                                                                            |
 | ----------- | ---------------------------------------------------------------------------------------------------------------- |
-| **Status**  | 🚫 Baru ditemukan, belum ada perbaikan                                                                           |
+| **Status**  | 🟡 Implementasi + test selesai (2026-10-23), sisa T-139.4 verifikasi akun real bervolume besar                   |
 | **Domain**  | publishing                                                                                                       |
 | **Spec**    | tidak ada — single-issue                                                                                         |
 | **Docs**    | tidak ada                                                                                                        |
@@ -1060,16 +1060,30 @@ dicatat sebagai arah):**
 - ATAU pecah batch import jadi beberapa transaksi lebih kecil alih-alih satu
   transaksi besar untuk seluruh batch.
 
-- [ ] **T-139.1** Putuskan arah perbaikan (naikkan timeout vs pecah batch)
-      — kemungkinan butuh diskusi dengan King Rezi kalau menyentuh trade-off
-      konsistensi (satu transaksi besar menjamin all-or-nothing per batch;
-      memecah batch mengubah jaminan itu)
-- [ ] **T-139.2** Implementasi perbaikan terpilih
-- [ ] **T-139.3** Test unit/integrasi untuk skenario batch besar (atau
-      minimal pastikan tidak regresi untuk batch kecil yang sudah ada)
+- [x] **T-139.1** Arah perbaikan diputuskan King Rezi (2026-10-23): pecah
+      batch (chunk per transaksi). All-or-nothing per batch hilang, jadi
+      per chunk — aman karena `upsertImportedPostsTx` idempoten (dedup
+      `connectedAccountId`+`platformPostId` dan `outstandPostId`) dan
+      watermark baru dimajukan setelah `process()` sukses penuh
+      (`import-posts-trigger.use-case.ts`), jadi retry hanya menghitung
+      ulang chunk yang sudah commit sebagai duplikat
+- [x] **T-139.2** Implementasi: `upsertImportedPostsInChunks` +
+      `UPSERT_IMPORTED_POSTS_CHUNK_SIZE` (50) di
+      `lib/repositories/publishing/upsert-imported-posts.ts`;
+      `PublishingRepository.upsertImportedPosts` menjalankan satu
+      `withCurrentUser` per chunk dengan `timeout` 15 detik
+      (`UPSERT_IMPORTED_POSTS_TX_TIMEOUT_MS`, pengaman, bukan pengganti
+      chunking). `withCurrentUser` menerima opsi `{ timeout }` opsional
+- [x] **T-139.3** Test: `upsert-imported-posts.test.ts` — batch kosong, ukuran
+      chunk, default size, error menghentikan chunk berikutnya, batch 230
+      post lewat 5 transaksi dengan jumlah query per transaksi dibatasi,
+      import ulang idempoten, dedup lintas chunk, dan chunk gagal
+      (chunk sebelumnya commit, retry menyelesaikan sisa). Suite penuh 925
+      passed, typecheck dan lint bersih. Keterbatasan: DB simulasi, durasi
+      nyata terhadap Postgres hanya terbukti di T-139.4
 - [ ] **T-139.4** Verifikasi dengan akun real bervolume besar (Instagram
       `cookitrealgood` 1503 post atau TikTok `vs7ig` yang memicu bug ini
-      masih tersedia sebagai akun test)
+      masih tersedia sebagai akun test) — **belum dilakukan**
 
 **Catatan:** tiket ini dibuat terpisah dari T-130/T-134/T-135/T-136 karena
 scope-nya infrastruktur import secara umum (job `import.sync`), bukan

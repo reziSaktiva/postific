@@ -41,7 +41,11 @@ import { backfillImportedPostOutstandIdsTx } from "@/lib/repositories/publishing
 import { classifyImportedPostTargetsTx } from "@/lib/repositories/publishing/classify-imported-post-targets";
 import { countTerminalPostsWhere } from "@/lib/repositories/publishing/count-terminal-posts";
 import { replaceDraftTargets } from "@/lib/repositories/publishing/replace-draft-targets";
-import { upsertImportedPostsTx } from "@/lib/repositories/publishing/upsert-imported-posts";
+import {
+  UPSERT_IMPORTED_POSTS_TX_TIMEOUT_MS,
+  upsertImportedPostsInChunks,
+  upsertImportedPostsTx,
+} from "@/lib/repositories/publishing/upsert-imported-posts";
 
 /**
  * Sentinel internal — dilempar di dalam `$transaction` supaya semua
@@ -1247,8 +1251,14 @@ export const publishingRepository: IPublishingRepository = {
       return { insertedCount: 0, skippedDuplicateCount: 0 };
     }
 
-    return withCurrentUser(actingUserId, (tx) =>
-      upsertImportedPostsTx(tx, workspaceId, posts),
+    // Satu transaksi per chunk (T-139, KI-099), bukan satu untuk seluruh
+    // batch — lihat `upsertImportedPostsInChunks`.
+    return upsertImportedPostsInChunks(posts, (chunk) =>
+      withCurrentUser(
+        actingUserId,
+        (tx) => upsertImportedPostsTx(tx, workspaceId, chunk),
+        { timeout: UPSERT_IMPORTED_POSTS_TX_TIMEOUT_MS },
+      ),
     );
   },
 

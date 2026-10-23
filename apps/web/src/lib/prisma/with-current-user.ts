@@ -45,11 +45,12 @@ export type PrismaTransactionClient = Prisma.TransactionClient;
 export async function withCurrentUser<T>(
   userId: string,
   callback: (tx: PrismaTransactionClient) => Promise<T>,
+  options?: { timeout?: number },
 ): Promise<T> {
   return prisma.$transaction(async (tx) => {
     await setCurrentUserId(tx, userId);
     return callback(tx);
-  });
+  }, options);
 }
 
 /**
