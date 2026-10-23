@@ -92,7 +92,7 @@ Secondary navigation diakses melalui elemen tetap di luar primary nav — tidak 
 
 Berdasarkan UXP-05 dan UXP-03, beberapa elemen sengaja **tidak** menjadi item navigasi:
 
-- **AI Assistant** — tidak muncul sebagai menu. AI hadir sebagai kontekstual action di dalam Draft Editor.
+- **AI Assistant** — dicabut (ADR-138); tidak ada AI bawaan dan tidak ada menu atau kontrol AI di Draft Editor. AI pengguna bekerja lewat MCP. Lokasi layar persetujuan OAuth, daftar dan pencabutan klien AI, serta badge sumber MCP di History/Draft **belum ditetapkan** dan menunggu rancangan Claude Design (ADR-139).
 - **Media Library** — diakses dari dalam Draft Editor, bukan dari primary nav (Should Have, bukan titik masuk utama).
 - **Approval Workflow** — tidak ada; digantikan oleh visibilitas status (UXP-06).
 

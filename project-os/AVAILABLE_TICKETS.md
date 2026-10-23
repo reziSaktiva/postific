@@ -23,7 +23,7 @@ Phase dan blocker ada di [`PROJECT_STATE.md`](PROJECT_STATE.md). Known Issue yan
 | 🟡     | Sedang dikerjakan                                 |
 | 🚫     | Terhenti, menunggu King Rezi atau dependency luar |
 
-ID tiket global, tidak didaur ulang. Berikutnya: **T-148**. ID spec berikutnya: **S-001**.
+ID tiket global, tidak didaur ulang. Berikutnya: **T-158**. ID spec berikutnya: **S-001**.
 
 ---
 
@@ -45,12 +45,12 @@ ID tiket global, tidak didaur ulang. Berikutnya: **T-148**. ID spec berikutnya: 
 
 Masih ⏳, dikerjakan saat rilisnya aktif. Detail di file masing-masing.
 
-| Rilis | ID                                      | File                                   |
-| ----- | --------------------------------------- | -------------------------------------- |
-| v0.4  | T-055 Inbox assignment                  | [v04](tickets/v04-engagement-mvp.md)   |
-| v0.5  | T-060 – T-065                           | [v05](tickets/v05-ai-assistant-mvp.md) |
-| v0.6  | T-070 – T-074                           | [v06](tickets/v06-start-page-mvp.md)   |
-| v1.0  | T-080 – T-088, termasuk KI-028 di T-088 | [v10](tickets/v10-public-launch.md)    |
+| Rilis | ID                                      | File                                 |
+| ----- | --------------------------------------- | ------------------------------------ |
+| v0.4  | T-055 Inbox assignment                  | [v04](tickets/v04-engagement-mvp.md) |
+| v0.5  | T-148 – T-157 (MCP Server, ADR-138)     | [v05](tickets/v05-mcp-server-mvp.md) |
+| v0.6  | T-070 – T-074                           | [v06](tickets/v06-start-page-mvp.md) |
+| v1.0  | T-080 – T-088, termasuk KI-028 di T-088 | [v10](tickets/v10-public-launch.md)  |
 
 v0.3 dan v0.7 tidak punya tiket terbuka.
 
@@ -58,12 +58,12 @@ v0.3 dan v0.7 tidak punya tiket terbuka.
 
 ## Keputusan yang masih menunggu
 
-| Tiket | Yang belum diputuskan             | Menghambat       |
-| ----- | --------------------------------- | ---------------- |
-| T-060 | Provider dan model AI             | Seluruh v0.5     |
-| T-081 | Framework E2E                     | Golden path v1.0 |
-| T-086 | Tool observability                | Visibilitas job  |
-| —     | Billing belum masuk rilis manapun | Belum ada tiket  |
+| Tiket | Yang belum diputuskan                                                                      | Menghambat       |
+| ----- | ------------------------------------------------------------------------------------------ | ---------------- |
+| T-148 | Hasil spike: scope kustom dan `workspaceId` di plugin `mcp` Better Auth (ADR-139 Proposed) | Seluruh v0.5     |
+| T-081 | Framework E2E                                                                              | Golden path v1.0 |
+| T-086 | Tool observability                                                                         | Visibilitas job  |
+| —     | Billing belum masuk rilis manapun                                                          | Belum ada tiket  |
 
 ---
 
@@ -75,7 +75,7 @@ v0.3 dan v0.7 tidak punya tiket terbuka.
 | v0.2  | [tickets/v02-publishing-mvp.md](tickets/v02-publishing-mvp.md)                   |
 | v0.3  | [tickets/v03-analytics-mvp.md](tickets/v03-analytics-mvp.md)                     |
 | v0.4  | [tickets/v04-engagement-mvp.md](tickets/v04-engagement-mvp.md)                   |
-| v0.5  | [tickets/v05-ai-assistant-mvp.md](tickets/v05-ai-assistant-mvp.md)               |
+| v0.5  | [tickets/v05-mcp-server-mvp.md](tickets/v05-mcp-server-mvp.md)                   |
 | v0.6  | [tickets/v06-start-page-mvp.md](tickets/v06-start-page-mvp.md)                   |
 | v0.7  | [tickets/v07-astryx-shadcn-migration.md](tickets/v07-astryx-shadcn-migration.md) |
 | v1.0  | [tickets/v10-public-launch.md](tickets/v10-public-launch.md)                     |

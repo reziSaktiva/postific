@@ -149,25 +149,30 @@ Bukan berarti fitur tersebut tidak penting, tetapi bukan prioritas untuk mencapa
 
 ---
 
-## AI Assistant
+## MCP Server
 
 ### Must Have
 
-* Caption Generation
-* Caption Improvement
+* Koneksi OAuth per workspace dengan scope (`read`, `draft`, `schedule`)
+* Tool baca (akun, media, draft, antrean, history, analytics, komentar)
+* Tool draft (buat, edit, unggah media dari URL)
+* Tool jadwal (`schedule_posts`, batch)
+* Audit panggilan dan rate limit per workspace
+* Pencabutan koneksi klien AI
 
 ### Should Have
 
-* Tone Rewrite
+* Penanda "dibuat lewat MCP" di History dan Draft
 
 ### Could Have
 
-* AI Content Calendar
-* AI Performance Suggestions
-* Hashtag Suggestions
+* Publish Now lewat MCP (ditunda, ADR-138)
+* Balas komentar lewat MCP (ditunda, ADR-138)
 
 ### Won't Have
 
+* Aksi destruktif dan administratif lewat MCP (hapus, batalkan jadwal, kelola member/role, disconnect akun)
+* AI bawaan Postific (dicabut, ADR-138)
 * Autonomous AI Agent
 
 ---

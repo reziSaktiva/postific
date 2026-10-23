@@ -78,11 +78,22 @@ Direct Message, mention, dan webhook engagement tidak termasuk MVP (ADR-040).
 
 ---
 
-## AI Assistant
+## MCP Server
 
-* Membuat draft caption.
-* Memperbaiki caption.
-* Memberikan variasi gaya penulisan.
+Postific tidak membangun AI sendiri. AI milik pengguna bekerja di dalam
+aplikasi lewat MCP (ADR-138).
+
+* Menyambungkan klien AI lewat OAuth, terikat satu workspace per koneksi.
+* Scope izin: `read`, `draft`, `schedule`. Default: `read` + `draft`.
+* Membaca akun, media, draft, antrean, history, analytics, dan komentar.
+* Membuat dan mengedit draft, mengunggah media dari URL.
+* Menjadwalkan post (batch beberapa konten per panggilan).
+* Mencabut koneksi klien AI dari Settings.
+* Audit panggilan, penanda "dibuat lewat MCP", dan rate limit per workspace.
+
+Tidak termasuk MVP: Publish Now lewat MCP, balas komentar lewat MCP, dan
+aksi destruktif/administratif (hapus, batalkan jadwal, kelola member,
+disconnect akun).
 
 ---
 
@@ -102,7 +113,7 @@ Fitur yang memberikan nilai tambahan namun bukan syarat utama MVP.
 * Brand Assets.
 * Content Templates.
 * Saved Captions.
-* Tone Rewrite.
+* Tone Rewrite (dikerjakan AI klien lewat MCP, bukan fitur Postific).
 * Basic Notifications.
 * Workspace Branding.
 
@@ -112,11 +123,11 @@ Fitur yang memberikan nilai tambahan namun bukan syarat utama MVP.
 
 Fitur yang dapat dikembangkan apabila waktu dan sumber daya memungkinkan.
 
-* AI Content Calendar.
+* AI Content Calendar (dikerjakan AI klien lewat MCP, bukan fitur Postific).
 * Team Activity Feed.
 * Custom Reports.
 * AI Insights.
-* AI Performance Suggestions.
+* AI Performance Suggestions (dikerjakan AI klien lewat MCP, bukan fitur Postific).
 * Hashtag Suggestions.
 
 ---

@@ -51,7 +51,7 @@ Produk ini memberikan nilai melalui:
 * Satu dashboard untuk seluruh aktivitas media sosial.
 * Workflow publishing yang cepat dan mudah dipahami.
 * Analytics yang membantu pengambilan keputusan.
-* AI Assistant untuk membantu proses pembuatan konten.
+* Akses MCP agar AI pilihan pengguna dapat bekerja di dalam produk (ADR-138).
 * Pengalaman pengguna yang modern dan mudah digunakan.
 
 ---

@@ -74,7 +74,7 @@ ditetapkan di `application-layer.md`.
 ## Domain Errors per-BC
 
 Tiap 9 domain module (`identity`, `workspace`, `publishing`,
-`ai-assistant`, `engagement`, `analytics`, `start-page`, `media`,
+`mcp-access`, `engagement`, `analytics`, `start-page`, `media`,
 `notification`) punya `errors.ts` sendiri dengan `XxxDomainError extends
 Error` (**bukan** `extends AppError`) — contoh: `PublishingDomainError`,
 `WorkspaceDomainError`, `IdentityDomainError`.

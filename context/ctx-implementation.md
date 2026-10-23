@@ -29,7 +29,7 @@ apps/web/
 │   │   ├── identity/
 │   │   ├── workspace/
 │   │   ├── publishing/
-│   │   ├── ai-assistant/
+│   │   ├── mcp-access/
 │   │   ├── engagement/
 │   │   ├── analytics/
 │   │   ├── start-page/

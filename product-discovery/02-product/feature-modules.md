@@ -79,16 +79,17 @@ Direct Message, mention, dan webhook engagement bukan responsibility MVP modul i
 
 ---
 
-## AI Assistant
+## MCP Server
 
-Mengelola seluruh kemampuan berbasis AI.
+Mengekspos aksi produk ke AI milik pengguna lewat MCP (ADR-138). Tidak
+berisi AI sendiri.
 
 Responsibilities:
 
-* Caption Generation
-* Content Improvement
-* Rewrite
-* Suggestions
+* Otorisasi OAuth per workspace dan per scope
+* Tool baca, draft, dan jadwal yang membungkus Application Service
+* Audit panggilan dan penanda sumber MCP
+* Rate limit per workspace
 
 ---
 

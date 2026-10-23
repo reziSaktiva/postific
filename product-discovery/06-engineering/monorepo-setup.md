@@ -269,7 +269,7 @@ src/domains/
 ├── identity/           ← BC-01
 ├── workspace/          ← BC-02
 ├── publishing/         ← BC-03
-├── ai-assistant/       ← BC-04
+├── mcp-access/         ← BC-04 (ADR-138)
 ├── engagement/         ← BC-05
 ├── analytics/          ← BC-06
 ├── start-page/         ← BC-07
