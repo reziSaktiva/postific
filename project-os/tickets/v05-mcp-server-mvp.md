@@ -9,7 +9,7 @@
 
 **Kedalaman dokumen ini:** task-level saja (rolling wave). Subtask dirinci setelah spike T-148 selesai dan ADR-139 menjadi Accepted. Spec rilis ini: [`../specs/S-001.md`](../specs/S-001.md).
 
-**Titik awal:** domain `ai-assistant/` hanya stub kosong dan model `AiRequest`/`AiResult` ada di schema tanpa pemakai. Keduanya dihapus di T-149. `better-auth` 1.6.23 sudah membawa plugin `mcp`. `@modelcontextprotocol/sdk` belum terpasang.
+**Titik awal:** domain `ai-assistant/` hanya stub kosong dan model `AiRequest`/`AiResult` ada di schema tanpa pemakai. Keduanya dihapus di T-149. `better-auth` 1.6.23 membawa plugin `mcp` yang dibangun di atas `oidc-provider` (deprecated), jadi tidak dipakai. Gantinya `@better-auth/oauth-provider` (butuh `better-auth` `^1.6.33`) dan `@modelcontextprotocol/sdk`, keduanya belum terpasang (ADR-139, hasil spike T-148).
 
 **Aturan UI (`AGENTS.md` aturan 10):** T-151, T-156, dan T-157 menyentuh layar yang terlihat pengguna. Sebelum menulis kode UI, cek Claude Design. Kalau rancangannya belum ada, berhenti dan beri tahu King Rezi.
 
@@ -19,11 +19,13 @@
 
 ### T-148 · Spike: OAuth + scope kustom + binding workspace + transport MCP
 
-`⏳ Not Started` · **Domain** mcp-access · **ADR** ADR-138, ADR-139 · **Depends** —
+`🟡 In Progress` · **Domain** mcp-access · **ADR** ADR-138, ADR-139 · **Depends** —
 
 **Baca dulu:** `05-architecture/auth-architecture.md` · `06-engineering/dependency-strategy.md` · ADR-139
 
 Buktikan satu alur lengkap di staging, bukan membangun fitur. Hasilnya menjawab: (1) apakah plugin `mcp` Better Auth masih direkomendasikan dan mendukung scope kustom (`read`, `draft`, `schedule`) serta data `workspaceId` pada grant; (2) apakah klien MCP nyata (Claude.ai atau Claude Code) bisa menyelesaikan OAuth ke staging; (3) apakah transport SDK resmi berjalan di Route Handler Next.js 16 di Railway; (4) apakah satu tool `get_workspace` mengembalikan data dengan validasi member. Selesai dengan ADR-139 diamandemen menjadi Accepted atau direvisi.
+
+**Hasil (2026-10-23):** pertanyaan 1, 3, dan 4 terjawab di harness lokal, dan pertanyaan 2 terbukti sebagian dengan kode OAuth klien bawaan SDK MCP. Detail di `reports/T-148-spike-mcp-oauth.md`; ADR-139 sudah diperbarui (plugin `mcp` ditolak, pakai `@better-auth/oauth-provider`). **Sisa untuk menutup tiket:** uji Claude.ai atau Claude Code sungguhan ke URL HTTPS staging, dan uji interaksi plugin `jwt` dengan `dash` di `auth.ts`. Setelah itu ADR-139 menjadi Accepted atas keputusan King Rezi.
 
 ### T-149 · Skema dan skeleton domain `mcp-access`
 
@@ -39,7 +41,7 @@ Tabel `mcp_grants` dan `mcp_audit_logs`, repository Prisma, `McpAccessService` (
 
 **Baca dulu:** `05-architecture/application-layer.md` (McpAccessService, pemetaan tool) · `05-architecture/integration-layer.md`
 
-`apps/web/src/app/api/mcp/route.ts` (Streamable HTTP), bypass `proxy.ts` untuk `/api/mcp` dan `/.well-known/*`, validasi `Origin`, `withMcpAuth`, validasi ulang member dan role per panggilan. Delapan tool `read`: `get_workspace`, `list_accounts`, `list_media`, `list_drafts`, `list_scheduled_posts`, `list_published_posts`, `get_analytics`, `list_comments` (20 item per halaman, cursor). Isi komentar ditandai sebagai data tidak tepercaya. Route Handler tanpa business logic.
+`apps/web/src/app/api/mcp/route.ts` (Streamable HTTP), bypass `proxy.ts` untuk `/api/mcp` dan `/.well-known/*`, validasi `Origin`, `mcpHandler` dari `@better-auth/oauth-provider`, validasi ulang member dan role per panggilan. Delapan tool `read`: `get_workspace`, `list_accounts`, `list_media`, `list_drafts`, `list_scheduled_posts`, `list_published_posts`, `get_analytics`, `list_comments` (20 item per halaman, cursor). Isi komentar ditandai sebagai data tidak tepercaya. Route Handler tanpa business logic.
 
 ### T-151 · Layar persetujuan OAuth (pilih workspace dan scope)
 
