@@ -2804,7 +2804,7 @@ kecil (satu baris per post), terapkan di luar jam sibuk.
 
 | Field         | Value                                                                                                                                    |
 | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**    | ⏳ Belum dimulai                                                                                                                         |
+| **Status**    | 🟡 Kode selesai 2026-10-23, menunggu verifikasi King Rezi (T-146.4)                                                                      |
 | **Domain**    | publishing · UI                                                                                                                          |
 | **ADR**       | tidak ada; bila King Rezi memutuskan zona per workspace, butuh ADR baru                                                                  |
 | **Terkait**   | T-144 (asal temuan, review Ridwan temuan 2), ADR-136 (tidak disentuh)                                                                    |
@@ -2829,10 +2829,37 @@ dan constraint memakai WIB; label zona "WIB" di picker.
 Claude Design sebelum kode, atau minta konfirmasi King Rezi bahwa hanya
 penafsiran waktu yang berubah, bukan tampilan.
 
-- [ ] **T-146.1** Konfirmasi/cek desain (Claude Design atau konfirmasi King Rezi)
-- [ ] **T-146.2** Helper `wibLocalToUtc` + Modal + constraints
-- [ ] **T-146.3** Test
+- [x] **T-146.1** Konfirmasi King Rezi lewat AskUserQuestion: hanya penafsiran waktu yang berubah, tanpa label "WIB" baru dan tanpa perubahan Claude Design
+- [x] **T-146.2** Helper `wibLocalToUtc` di `apps/web/src/domains/publishing/wib-time.ts`, dipakai di `draft-editor/Modal.tsx` untuk validasi masa depan dan `scheduledAt`; `schedule-time-constraints.ts` tidak berubah karena memakai instan `Date`
+- [x] **T-146.3** 4 test baru di `wib-time.test.ts` (351 test domain publishing lulus, eslint dan tsc bersih)
 - [ ] **T-146.4** Verifikasi browser (oleh King Rezi)
+
+### T-147 · Zona waktu per pengguna (tampilan dan input mengikuti lokasi pengguna)
+
+| Field         | Value                                                                                                          |
+| ------------- | -------------------------------------------------------------------------------------------------------------- |
+| **Status**    | ⏳ Belum dimulai                                                                                               |
+| **Domain**    | publishing · UI · DB                                                                                           |
+| **ADR**       | butuh ADR baru (zona per pengguna vs per workspace belum diputuskan); belum dibuat                             |
+| **Terkait**   | T-144, T-145, T-146                                                                                            |
+| **Depends**   | T-146                                                                                                          |
+| **Baca dulu** | `apps/web/src/domains/publishing/wib-time.ts` · `draft-editor/Modal.tsx` · kolom `occurred_at` (migrasi T-145) |
+
+**Latar:** King Rezi ingin waktu mengikuti lokasi pengguna. Saat ini WIB tetap: T-144 (konstanta di `wib-time.ts`, dipakai server untuk kelompok tanggal History/Queue dan rentang Calendar), T-145 (kolom `occurred_at` di DB), T-146 (input jadwal ditafsirkan WIB).
+
+**Catatan:**
+
+- Butuh ADR baru: zona per pengguna atau per workspace belum diputuskan. Jangan tulis ADR sebelum King Rezi memutuskan.
+- Setelan zona harus tersimpan (DB), karena server tidak tahu zona browser.
+- UI setelan zona UI/UX-related: cek Claude Design dulu sebelum kode (aturan 10).
+
+- [ ] **T-147.1** Keputusan King Rezi (pengguna vs workspace) + ADR
+- [ ] **T-147.2** Desain: cek/buat rancangan UI setelan zona di Claude Design
+- [ ] **T-147.3** Model/setelan zona tersimpan (Prisma + migrasi)
+- [ ] **T-147.4** Refactor `wib-time` menjadi zona dinamis (tampilan, input, kelompok tanggal, rentang Calendar)
+- [ ] **T-147.5** Cek dampak `occurred_at` (kolom generated terkait zona atau tidak)
+- [ ] **T-147.6** Test
+- [ ] **T-147.7** Verifikasi King Rezi
 
 ---
 
