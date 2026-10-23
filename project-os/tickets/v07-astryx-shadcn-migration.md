@@ -10,7 +10,7 @@ shadcn/ui secara menyeluruh, sesuai **ADR-097** (reverse ADR-041).
 release lain (auth, onboarding, app shell, settings, publish, dashboard)
 tanpa mengubah business logic/domain sama sekali. Ditempatkan sebagai
 release tersendiri (bukan disisipkan ke v0.1–v0.6) karena skalanya besar
-(8 task, 26 subtask) — beda dari pola T-094 (1 task tooling kecil yang
+(8 task, 38 subtask pada T-095–T-102; T-103 dan T-105 menyusul di file ini) — beda dari pola T-094 (1 task tooling kecil yang
 cukup disisipkan ke `v01-foundation.md`).
 
 **Strategi migrasi (ADR-097 poin 2):** incremental per route-segment,
@@ -59,7 +59,7 @@ dulu** sebelum T-096 dimulai.
       fungsional** (isi `tailwindcss/index.css` upstream persis 3 baris
       itu digabung), urutan `@layer` tidak berubah karena cascade layer
       order ditentukan oleh deklarasi `@layer reset, theme, base,
-  astryx-base, astryx-theme, components, utilities;` di baris 1,
+astryx-base, astryx-theme, components, utilities;` di baris 1,
       bukan posisi fisik import. * `bunx shadcn@latest init` auto-edit `layout.tsx` (tambah font
       Figtree + import `cn` dari `@/lib/utils`) dan `globals.css`
       (append CSS variable tema shadcn default + `@layer base` baru) —

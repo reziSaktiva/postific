@@ -157,7 +157,7 @@ Supaya `PROJECT_STATE.md` tidak kembali membengkak, dicek sebagai bagian **Defin
 
 Teks lengkap aturan kolaborasi dengan AI ada di **`../AGENTS.md`**: baca
 dokumentasi dulu → section "Wajib di awal sesi"; tidak boleh ubah
-arsitektur/business rules tanpa ADR → rule 4; jaga konsistensi struktur →
+arsitektur/business rules tanpa ADR → rule 2; jaga konsistensi struktur →
 seluruh section "Aturan keras". Tidak disalin ulang di sini supaya tidak
 drift saat salah satu diupdate. Aturan "patuh klasifikasi dokumen" tidak
 perlu pointer keluar — itu section **Document Type Classification** di

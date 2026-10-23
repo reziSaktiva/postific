@@ -5,7 +5,7 @@
 **Tujuan rilis:** Memungkinkan pengguna membuat dan menjadwalkan konten.
 **Baseline rilis:** `product-discovery/02-product/release-roadmap.md` → v0.2
 
-**Rantai blocker rilis ini:** Real OutstandAdapter (T-025) belum ada → schedule hanya jalan lewat Fake · Connect account (T-013) belum ada → connected account harus di-seed · **job runner (T-027) sudah ✅ Done (2026-09-17)** — transisi status post terjadwal sekarang otomatis lewat job baru `publishing.scheduled_post.resolve_outcome` (JOB-07) begitu due, melengkapi webhook T-026 (✅ Done 2026-09-07) yang menangani transisi status pasca-publish/error/token-expired lewat inbound webhook Outstand. Provisioning Railway Cron project sungguhan masih blocked (KI-025) — job runner baru config-as-code (`railway.json`/`railway.cron.json`), belum ada service `cron` sungguhan live. Sisa rantai blocker rilis ini sekarang T-025 dan T-013.
+**Rantai blocker rilis ini (catatan historis saat rilis dibuka; Real OutstandAdapter T-025 ✅ Done dan Fake jalur produksi dihapus ADR-119):** Real OutstandAdapter (T-025) belum ada → schedule hanya jalan lewat Fake · Connect account (T-013) belum ada → connected account harus di-seed · **job runner (T-027) sudah ✅ Done (2026-09-17)** — transisi status post terjadwal sekarang otomatis lewat job baru `publishing.scheduled_post.resolve_outcome` (JOB-07) begitu due, melengkapi webhook T-026 (✅ Done 2026-09-07) yang menangani transisi status pasca-publish/error/token-expired lewat inbound webhook Outstand. Provisioning Railway Cron project sungguhan masih blocked (KI-025) — job runner baru config-as-code (`railway.json`/`railway.cron.json`), belum ada service `cron` sungguhan live. Sisa rantai blocker rilis ini (per 2026-10-23): hanya T-013.4 (operasional BYOK X); T-025 sudah ✅ Done.
 
 ---
 
@@ -2557,7 +2557,7 @@ jalan untuk semua network — perlu dibuktikan satu-satu.
 - [x] **T-133.2** Migrasi satu-kali: re-trigger import untuk `WorkspaceConnectedAccount` existing (Instagram, Facebook dulu) dengan `since` diperluas ke 1 tahun lalu — dijalankan sebagai script/job satu-off, BUKAN bagian job rutin, dedup existing (`upsertImportedPostsTx`) sudah aman dipakai ulang
 - [x] **T-133.3** Jalankan T-132.4 (use-case klasifikasi) secara retroaktif untuk 43 post Imported existing + post baru hasil T-133.2
 - [x] **T-133.4** Verifikasi end-to-end browser + DB nyata (pola sama addendum T-090/T-112) minimal untuk Instagram + Facebook; lanjut TikTok/Pinterest kalau T-133.1 konfirmasi didukung
-- [ ] **T-133.5** Update `PROJECT_STATE.md`/`AVAILABLE_TICKETS.md` setelah selesai (status final tiket ini saja, bukan detail task — ADR-062)
+- [x] **T-133.5** Update `PROJECT_STATE.md`/`AVAILABLE_TICKETS.md` setelah selesai (status final tiket ini saja, bukan detail task — ADR-062). Terpenuhi: T-133 ✅ Done (2026-10-23) tercatat di keduanya
 
 **Catatan status (2026-10-20):** T-133.1 tidak bisa diverifikasi — tidak ada
 akun test TikTok/Pinterest di workspace ini, dicatat sebagai keterbatasan
@@ -2605,7 +2605,7 @@ pengelompokan memakai waktu import, bukan `publishedAt`.
 
 **Blocking eksplisit (King Rezi, 2026-10-21):** jangan eksekusi T-133.2
 (re-trigger import dengan `since` diperluas) sebelum 4 tiket berikut tuntas —
-ketiganya lahir dari investigasi ketidaksesuaian data Supabase vs Outstand di
+keempatnya lahir dari investigasi ketidaksesuaian data Supabase vs Outstand di
 sesi yang sama, dan langsung mempengaruhi akurasi data yang mau di-backfill
 di sini (percuma backfill retroaktif kalau akun yang sudah disconnect masih
 ikut ketarik, atau window "bulanan" yang dipakai untuk verifikasi hasilnya

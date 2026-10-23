@@ -18,7 +18,7 @@
 | ------------ | ---------- |
 | Version      | 1.1.3      |
 | Status       | Active     |
-| Last Updated | 2026-10-21 |
+| Last Updated | 2026-10-23 |
 
 ---
 
@@ -194,12 +194,12 @@ seluruh daftar Known Issues.
 
 5 ADR terakhir. Daftar lengkap (indeks + link ke tiap ADR): lihat `DECISIONS.md`.
 
-- **ADR-136** — `totalPosts` Home pindah dari Outstand `posts_count` (tidak didukung untuk Facebook Page) ke status internal `PublishingPost`; window "bulanan" pindah dari rolling 30 hari ke kalender bulan; granularitas Home vs Analyze diterima berbeda; opsi Outstand `DELETE` saat disconnect ditolak (merusak reaktivasi ADR-127). Menutup substansi T-130/T-134/T-135/T-136 (KI-093/094/095/096) — verifikasi E2E browser masih tertunda.
+- **ADR-137** — Provider email transactional staging sementara pindah ke SMTP pribadi (adapter sibling Resend, dipilih lewat env `EMAIL_PROVIDER`), menunggu domain terverifikasi di Resend; menutup T-137 (KI-097).
+- **ADR-136** — `totalPosts` Home pindah dari Outstand `posts_count` (tidak didukung untuk Facebook Page) ke status internal `PublishingPost`; window "bulanan" pindah dari rolling 30 hari ke kalender bulan; granularitas Home vs Analyze diterima berbeda; opsi Outstand `DELETE` saat disconnect ditolak (merusak reaktivasi ADR-127). Menutup substansi T-130/T-134/T-135/T-136 (KI-093/094/095/096) — verifikasi E2E dengan akun real PASS 2026-10-22/23.
 - **ADR-135** — `FetchPostMetricsResult` diperluas 3 field opsional (`mediaProductType`/`isReel`/`storyExpired`) dari Outstand Analytics untuk klasifikasi `ContentFormat` (Post/Reel/Story) post hasil Import, menutup T-132.
 - **ADR-134** — Tiket yang lahir dari Known Issue pindah ke `tickets/known-issues.md`. Tiket rilis tetap di `tickets/vXX-*.md`.
 - **ADR-133** — `AGENTS.md` root jadi pintu tipis. Esai yang sudah punya rumah di `context/`, `.claude/agents/README.md`, `project-os-navigator/SKILL.md`, dan `apps/web/.claude/CLAUDE.md` jadi penunjuk satu baris.
 - **ADR-132** — Folder kerja menjadi `project-os/`. Rumah tiket menjadi `tickets/` dan `AVAILABLE_TICKETS.md`. Kode hanya berubah lewat tiket. Known Issue terbuka punya tiket. Urutan tulis dokumen: product-discovery → context → project-os.
-- **ADR-131** — Antrian kerja pindah ke file tiket yang belum selesai. `COMPLETE_TASK.md` dihapus. Deskripsi kerja: docs → spec → tiket → implement.
 
 ---
 

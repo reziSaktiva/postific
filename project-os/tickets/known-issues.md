@@ -393,10 +393,10 @@ sebagai Known Issue terbuka, bukan dikerjakan di sesi ini.
       "accepted as different"**, bukan lagi item terbuka — lihat catatan
       granularitas di "Implementasi" di bawah untuk detail teknis.
 - [x] Verifikasi browser dengan data real (angka Home akurat, tidak error,
-      sesuai definisi sumber data baru) — **tertunda**, butuh akun test
-      Outstand baru (workspace King Rezi kosong sejak pembersihan data T-134,
-      2026-10-21). Bukan item yang menunggu keputusan produk lagi — murni
-      menunggu lingkungan test tersedia.
+      sesuai definisi sumber data baru) — **selesai 2026-10-23** dengan akun
+      real "Cook It Real Good": Home menampilkan 12 post Oktober sesuai DB
+      (sebelumnya tertunda karena workspace King Rezi kosong sejak
+      pembersihan data T-134, 2026-10-21).
 
 **Prioritas dinaikkan (King Rezi, 2026-10-21):** bagian dari batch investigasi
 ketidaksesuaian data Supabase vs Outstand — dikerjakan bersamaan dengan
@@ -485,7 +485,7 @@ warning non-fatal "Pages directory cannot be found", tidak terkait
 perubahan ini). `DashboardHome.tsx:157` dicek langsung — label "Post
 terpublikasi" memang tidak berubah, hanya `value={summary.totalPosts}` yang
 sumbernya sudah diganti di backend — klaim T-136.2 "tanpa perubahan kode
-UI" terkonfirmasi akurat. T-130.292 (verifikasi browser Home vs Analyze)
+UI" terkonfirmasi akurat. item verifikasi browser T-130 (Home vs Analyze)
 dan T-136.3 **tetap belum bisa dieksekusi** — Outstand workspace King Rezi
 kosong (0 akun, 0 post) di sesi ini, jadi tidak ada data post real untuk
 dibandingkan; browser testing yang bisa dilakukan (Home render dengan 0
@@ -561,7 +561,7 @@ live-fetched): satu-satunya endpoint untuk "memutus" akun adalah
 undone... revokes access entirely... to reconnect, you will need to complete
 the full OAuth flow again." Ini **konflik langsung** dengan flow reaktivasi
 ADR-127 (`createConnectedAccounts` di
-[workspace.repository.ts:1136](../../apps/web/src/lib/repositories/workspace/workspace.repository.ts:1136))
+[workspace.repository.ts:1136](../../apps/web/src/lib/repositories/workspace/workspace.repository.ts#L1136))
 yang menghidupkan kembali row `disconnected`/`reconnect-required` TANPA OAuth
 ulang, dengan asumsi `outstandAccountId` lama masih valid di Outstand.
 
@@ -908,8 +908,10 @@ bukan "Post terpublikasi").
       dan/atau `AnalyticsService.getDashboardSummary`
 - [x] **T-136.3** Verifikasi browser: label dan angka konsisten secara makna
       (tidak ada lagi "Post terpublikasi" yang sebenarnya termasuk post dari
-      akun disconnected/native) — **belum dilakukan**, sama alasan dengan
-      T-130 (butuh workspace dengan data nyata)
+      akun disconnected/native) — **selesai 2026-10-23** bersama verifikasi
+      T-130 (akun real "Cook It Real Good": Home menampilkan 12 post
+      Oktober sesuai DB). Sebelumnya tertunda karena butuh workspace dengan
+      data nyata
 
 **Catatan implementasi (Prabowo Feature Engineer, 2026-10-21):**
 
@@ -979,7 +981,7 @@ besar. Status tetap 🚫, BELUM Done.
   status tiket ini kembali ke 🚫 Sebagian siap") belum terpenuhi secara
   literal karena keempat tiket ini belum berstatus ✅ Done (masih 🚫,
   menunggu akun test). Begitu akun test Outstand baru tersedia dan
-  T-130.292/T-134.4/T-135.4/T-136.3 lolos verifikasi browser, keempat tiket
+  item verifikasi browser T-130/T-134.4/T-135.4/T-136.3 lolos verifikasi browser, keempat tiket
   ini bisa langsung ditutup ✅ Done dan blocker T-133 dibuka tanpa perlu
   investigasi ulang — tidak ada pekerjaan kode tersisa.
 - Keputusan definisi produk dari King Rezi yang mengubah metric/window
@@ -1005,6 +1007,14 @@ interactive transaction timeout saat insert batch import besar) yang ikut
 menghambat. Blocker **T-133** karenanya TETAP tertutup — syarat "keempat
 tiket ✅ Done" baru terpenuhi separuh, lihat `AVAILABLE_TICKETS.md` § T-133
 untuk status terbaru.
+
+**Status final batch (update 2026-10-23):** **T-130 ✅ Done** dan
+**T-136 ✅ Done**. Verifikasi browser dengan akun real "Cook It Real Good"
+selesai: Home menampilkan 12 post Oktober sesuai DB (item verifikasi browser
+T-130 dan T-136.3 dicentang). Narasi "Status tetap 🚫, BELUM Done" di
+bagian T-130/T-136 di atas adalah catatan historis sesi 2026-10-21/22 dan
+sudah digantikan paragraf ini. Dengan keempat tiket batch ✅ Done, blocker
+T-133 terbuka (lihat `v02-publishing-mvp.md` § T-133).
 
 ### T-139 · Prisma interactive transaction timeout saat import post batch besar (KI-099)
 
