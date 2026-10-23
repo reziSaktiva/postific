@@ -1,6 +1,8 @@
 # v0.2 — Publishing MVP
 
 > Bagian dari backlog berjenjang. Antrian: [`../AVAILABLE_TICKETS.md`](../AVAILABLE_TICKETS.md). Tiket selesai tetap di file ini. Deskripsi baru: ADR-131. Nama folder: ADR-132.
+>
+> **Catatan historis (2026-10-23):** tiket Done di file ini mencatat kondisi saat dikerjakan. Sebutan "Fake adapter" sebagai jalur kerja sudah usang: Fake dihapus dari jalur produksi oleh ADR-119 (`OUTSTAND_API_KEY` wajib). Sebutan "Astryx" sudah digantikan shadcn/ui (ADR-097, T-102).
 
 **Tujuan rilis:** Memungkinkan pengguna membuat dan menjadwalkan konten.
 **Baseline rilis:** `product-discovery/02-product/release-roadmap.md` → v0.2
@@ -1239,13 +1241,13 @@ Berjalan **kontinu** selama rilis ini, bukan sekali selesai: setiap kali konvens
 
 ### T-090 · Import Posts dari Social Account (status `Imported`, read-only)
 
-| Field         | Value                                                                                                                                                                                                 |
-| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**    | ✅ Done (5/5 subtask, 2026-10-08)                                                                                                                                                                     |
-| **Domain**    | publishing                                                                                                                                                                                            |
-| **ADR**       | ADR-093                                                                                                                                                                                               |
-| **Depends**   | T-013 ✅ (Connect Account — trigger otomatis) · T-025 (real adapter, Fake dulu pola ADR-059) · T-034 (History, untuk tampilan lengkap — bagian Calendar bisa jalan duluan tanpa menunggu)             |
-| **Baca dulu** | `05-architecture/integration-layer.md` · `05-architecture/background-jobs.md` · `05-architecture/domain-model.md` · `decisions/ADR-093-import-posts-dari-social-account-status-imported-read-only.md` |
+| Field         | Value                                                                                                                                                                                                                    |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Status**    | ✅ Done (5/5 subtask, 2026-10-08)                                                                                                                                                                                        |
+| **Domain**    | publishing                                                                                                                                                                                                               |
+| **ADR**       | ADR-093                                                                                                                                                                                                                  |
+| **Depends**   | T-013.1–.3 ✅ (Connect Account — trigger otomatis; sisa T-013.4 operasional) · T-025 (real adapter, Fake dulu pola ADR-059) · T-034 (History, untuk tampilan lengkap — bagian Calendar bisa jalan duluan tanpa menunggu) |
+| **Baca dulu** | `05-architecture/integration-layer.md` · `05-architecture/background-jobs.md` · `05-architecture/domain-model.md` · `decisions/ADR-093-import-posts-dari-social-account-status-imported-read-only.md`                    |
 
 Outstand punya endpoint berbayar `POST /v1/social-accounts/{id}/imports` untuk menarik post yang dibuat langsung di platform sosial (bukan lewat tool kita) — ditemukan saat diskusi Realtime Calendar (2026-08-28), dikerjakan sebagai fitur terpisah (ADR-093). Tiga jalur trigger (otomatis saat connect, periodik cron harian, manual dari Settings) dengan pengaman biaya berlapis karena endpoint ini berbayar — lihat ADR-093 untuk detail lengkap tiap keputusan.
 
@@ -2431,7 +2433,7 @@ Known Issue terbuka, bukan subtask di tiket ini.
 | **Domain**    | publishing                                                                                                                                                                                                                                                                                                                                                                  |
 | **ADR**       | — (parameter tuning atas desain existing ADR-093 poin 5/7/9, bukan keputusan arsitektur baru)                                                                                                                                                                                                                                                                               |
 | **Terkait**   | T-090, T-112, T-115 (tiga entry point `ImportPostsTriggerUseCase` yang parameternya diubah di sini), T-132, T-133                                                                                                                                                                                                                                                           |
-| **Depends**   | T-115 ✅ (cron sudah wired ke job runner produksi; tiket ini murni mengubah nilai `since`/`until`/`limit` masing-masing trigger, bukan wiring baru)                                                                                                                                                                                                                         |
+| **Depends**   | T-115.1–.4 ✅ (sisa T-115.5 tidak memblokir; cron sudah wired ke job runner produksi; tiket ini murni mengubah nilai `since`/`until`/`limit` masing-masing trigger, bukan wiring baru)                                                                                                                                                                                      |
 | **Baca dulu** | `apps/web/src/domains/publishing/services/import-posts-trigger.use-case.ts` (`triggerAuto`, `triggerPeriodicForAccounts`, `executeQueuedPeriodicImport`, `triggerManual`, `periodicImportSince`, `defaultSince`, `DEFAULT_IMPORT_LOOKBACK_DAYS`, `DEFAULT_IMPORT_LIMIT`) · `decisions/ADR-093-import-posts-dari-social-account-status-imported-read-only.md` (poin 5, 7, 9) |
 
 **Konteks (diskusi King Rezi, 2026-10-20):** ketiga entry point Import Posts
@@ -2836,7 +2838,7 @@ penafsiran waktu yang berubah, bukan tampilan.
 
 ## Dari Known Issue
 
-T-121 (KI-050) ada di [`known-issues.md`](known-issues.md) (ADR-134).
+Tiket yang lahir sebagai pelacak Known Issue ada di [`known-issues.md`](known-issues.md) (ADR-134); daftar lengkapnya hanya di file itu, tidak disalin ke sini.
 
 ---
 

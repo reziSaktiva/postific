@@ -1,6 +1,8 @@
 # v0.1 — Foundation
 
 > Bagian dari backlog berjenjang. Antrian: [`../AVAILABLE_TICKETS.md`](../AVAILABLE_TICKETS.md). Tiket selesai tetap di file ini. Deskripsi baru: ADR-131. Nama folder: ADR-132.
+>
+> **Catatan historis (2026-10-23):** tiket Done di file ini mencatat kondisi saat dikerjakan. Sebutan "Fake adapter" sebagai jalur kerja sudah usang: Fake dihapus dari jalur produksi oleh ADR-119 (`OUTSTAND_API_KEY` wajib). Sebutan "Astryx" sudah digantikan shadcn/ui (ADR-097, T-102).
 
 **Tujuan rilis:** Membangun fondasi aplikasi.
 **Baseline rilis:** `product-discovery/02-product/release-roadmap.md` → v0.1
@@ -13,7 +15,7 @@
 
 `✅ Done` · **ADR** ADR-001, ADR-002, ADR-026, ADR-032, ADR-034, ADR-035
 
-Bun + Next.js 16 + Astryx, workspace `apps/web` + `packages/shared`, ESLint/Prettier, Lefthook + lint-staged, Vitest, GitHub Actions gates.
+Bun + Next.js 16 + Astryx (kemudian diganti shadcn/ui, ADR-097), workspace `apps/web` + `packages/shared`, ESLint/Prettier, Lefthook + lint-staged, Vitest, GitHub Actions gates.
 
 ### T-002 · Prisma schema + migrasi awal
 
@@ -281,7 +283,7 @@ OAuth flow dikelola Outstand; access token tidak disimpan di DB internal. Seed m
 | **Domain**    | workspace                                                                                                                                            |
 | **ADR**       | ADR-048, ADR-049                                                                                                                                     |
 | **Terkait**   | KI-058 (`PROJECT_STATE.md`, 2026-09-11 — UI tidak menyembunyikan aksi Connect/Disconnect/Reconnect untuk role Creator, gap sudah ada sejak task ini) |
-| **Depends**   | T-013                                                                                                                                                |
+| **Depends**   | T-013.1–.3 ✅                                                                                                                                        |
 | **Baca dulu** | `04-ux/key-screen-patterns.md` (KSP-08-F07)                                                                                                          |
 
 RBAC Owner/Admin — tidak ada perubahan RBAC, tinggal tambah gate konfirmasi sebelum memanggil service.
@@ -798,7 +800,7 @@ Navigator sudah melarang membaca `PROJECT_STATE` utuh, `COMPLETE_TASK`, dan selu
 
 ## Dari Known Issue
 
-Tiket yang lahir sebagai pelacak Known Issue (T-119, T-120, T-122, T-123, T-124) ada di [`known-issues.md`](known-issues.md) (ADR-134). KI-027 tetap di T-008 di file ini.
+Tiket yang lahir sebagai pelacak Known Issue ada di [`known-issues.md`](known-issues.md) (ADR-134); daftar lengkapnya hanya di file itu, tidak disalin ke sini. KI-027 tetap di T-008 di file ini.
 
 ---
 

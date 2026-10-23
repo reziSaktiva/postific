@@ -103,7 +103,7 @@ escaping baru yang memverifikasi payload berbahaya `<script>`, `&`, `"` benar-be
 ter-escape di output), typecheck & lint bersih, tidak ada regresi. Perubahan ada
 di branch `feature/t137-smtp-staging-email`, akan masuk PR #189.
 
-### T-119 · Isi env Google OAuth
+### T-119 · Isi env Google OAuth (KI-015)
 
 | Field       | Value                                                                |
 | ----------- | -------------------------------------------------------------------- |
@@ -120,7 +120,7 @@ di branch `feature/t137-smtp-staging-email`, akan masuk PR #189.
 
 **Blocked by:** rahasia Google OAuth dari King Rezi
 
-### T-120 · Hapus dua workspace sisa QA
+### T-120 · Hapus dua workspace sisa QA (KI-033)
 
 | Field       | Value                      |
 | ----------- | -------------------------- |
@@ -135,7 +135,7 @@ di branch `feature/t137-smtp-staging-email`, akan masuk PR #189.
 - [x] King Rezi mengonfirmasi (via `AskUserQuestion`) kedua nama itu boleh dihapus
 - [x] Keduanya terhapus — "Najwa QA Test Workspace" (`57f91193-17df-444b-b734-064b748d1d58`) dan "QA Queue Test" (`46b1941a-e991-43eb-88ba-6b198fda0d71`) — diverifikasi via query SQL (hasil kosong setelah `DELETE`), tidak ada workspace lain yang ikut terhapus
 
-### T-121 · Putuskan meta penulis di detail History
+### T-121 · Putuskan meta penulis di detail History (KI-050)
 
 | Field       | Value                                        |
 | ----------- | -------------------------------------------- |
@@ -153,7 +153,7 @@ di branch `feature/t137-smtp-staging-email`, akan masuk PR #189.
 
 **Catatan QA (Najwa):** PASS — golden path Published & Failed terverifikasi browser nyata, regresi aman, 832 test pass / 7 skip / 0 fail. Fallback "Diimpor dari platform" belum ada bukti visual karena data test tidak punya post berstatus Imported — keterbatasan data, bukan bug.
 
-### T-122 · Buktikan invite Copy Link tidak bisa diambil email lain
+### T-122 · Buktikan invite Copy Link tidak bisa diambil email lain (KI-053)
 
 | Field       | Value                      |
 | ----------- | -------------------------- |
@@ -170,7 +170,7 @@ di branch `feature/t137-smtp-staging-email`, akan masuk PR #189.
 
 **Blocked by:** tidak ada
 
-### T-123 · Konfirmasi lebar sidebar
+### T-123 · Konfirmasi lebar sidebar (KI-089, KI-084)
 
 | Field       | Value                                            |
 | ----------- | ------------------------------------------------ |
@@ -263,7 +263,7 @@ Workaround sebelumnya tidak cukup, dan dicatat supaya tidak diulang:
 
 Watermark kedua akun ter-update ke `2026-10-19 07:49:04` UTC. Error `Failed to deserialize column of type 'void'` tidak muncul. Service `cron` tetap image lama (2026-10-12); perannya hanya memanggil endpoint di `web`, dan kode lock jalan di `web`.
 
-### T-127 · Caption panjang bikin seluruh halaman scroll ke samping
+### T-127 · Caption panjang bikin seluruh halaman scroll ke samping (KI-092)
 
 | Field       | Value                               |
 | ----------- | ----------------------------------- |
@@ -325,7 +325,7 @@ Fix idealnya tetap SATU `min-w-0` di titik akar (bukan menambal `truncate`/
 rantai flex yang gagal men-declare minimum-width:0, bukan teks yang tidak
 di-wrap.
 
-### T-130 · `totalPosts` Home tidak akurat untuk akun yang `posts_count`-nya `null` di Outstand
+### T-130 · `totalPosts` Home tidak akurat untuk akun yang `posts_count`-nya `null` di Outstand (KI-093)
 
 | Field       | Value                                                                                   |
 | ----------- | --------------------------------------------------------------------------------------- |
@@ -774,15 +774,15 @@ terverifikasi end-to-end dengan akun real. Tiket ditutup **✅ Done**.
 
 ### T-135 · Definisi periode "bulanan" Home/Analyze beda dari kalender Outstand (KI-095)
 
-| Field       | Value                                                                                                        |
-| ----------- | ------------------------------------------------------------------------------------------------------------ |
-| **Status**  | ✅ Done (2026-10-22) — verifikasi browser (T-135.4) PASS, lihat catatan verifikasi dengan akun real di bawah |
-| **Domain**  | analytics                                                                                                    |
-| **ADR**     | — (kemungkinan perlu keputusan produk soal definisi window, bukan arsitektur — lihat T-135.1)                |
-| **Spec**    | tidak ada — single-issue                                                                                     |
-| **Docs**    | T-128/T-129 (default view Bulanan Home/Analyze)                                                              |
-| **Terkait** | T-134, T-136, T-130 (batch investigasi sama, 2026-10-21), T-133 (blocker)                                    |
-| **Depends** | —                                                                                                            |
+| Field       | Value                                                                                                   |
+| ----------- | ------------------------------------------------------------------------------------------------------- |
+| **Status**  | ✅ Done (2026-10-22) — verifikasi (T-135.4) PASS via query SQL dengan akun real, lihat catatan di bawah |
+| **Domain**  | analytics                                                                                               |
+| **ADR**     | — (kemungkinan perlu keputusan produk soal definisi window, bukan arsitektur — lihat T-135.1)           |
+| **Spec**    | tidak ada — single-issue                                                                                |
+| **Docs**    | T-128/T-129 (default view Bulanan Home/Analyze)                                                         |
+| **Terkait** | T-134, T-136, T-130 (batch investigasi sama, 2026-10-21), T-133 (blocker)                               |
+| **Depends** | —                                                                                                       |
 
 **Ditemukan (investigasi King Rezi, 2026-10-21):** snapshot "monthly" kita
 dihitung sebagai rolling 30 hari dari `now`
@@ -804,7 +804,7 @@ T-134 dan gap #2 T-130).
 - [x] **T-135.3** Test unit untuk window baru (termasuk edge case: hari
       pertama bulan, bulan dengan 28/29/30/31 hari kalau pindah ke kalender
       bulan)
-- [x] **T-135.4** Verifikasi browser: angka "bulan ini" Home/Analyze cocok
+- [x] **T-135.4** Verifikasi (via query SQL, bukan browser): angka "bulan ini" Home/Analyze cocok
       dengan ekspektasi window yang dipilih — **terverifikasi 2026-10-22**
       via query SQL langsung, lihat catatan verifikasi di bawah
 
