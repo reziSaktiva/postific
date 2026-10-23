@@ -23,20 +23,21 @@ Phase dan blocker ada di [`PROJECT_STATE.md`](PROJECT_STATE.md). Known Issue yan
 | 🟡     | Sedang dikerjakan                                 |
 | 🚫     | Terhenti, menunggu King Rezi atau dependency luar |
 
-ID tiket global, tidak didaur ulang. Berikutnya: **T-143**. ID spec berikutnya: **S-001**.
+ID tiket global, tidak didaur ulang. Berikutnya: **T-144**. ID spec berikutnya: **S-001**.
 
 ---
 
 ## Sekarang
 
-| ID    | Status | Judul                                                                                                                        | File                                  |
-| ----- | ------ | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| T-037 | 🟡     | Perkaya aturan coding di `context/ctx-development.md`                                                                        | [v0.2](tickets/v02-publishing-mvp.md) |
-| T-115 | 🟡     | Wiring cron harian Import Posts. Sisa: post native Facebook                                                                  | [v0.2](tickets/v02-publishing-mvp.md) |
-| T-013 | 🟡     | Connect account. Sisa: T-013.4 BYOK X                                                                                        | [v0.1](tickets/v01-foundation.md)     |
-| T-119 | 🚫     | Isi env Google OAuth. KI-015. King Rezi yang mengisi rahasianya                                                              | [KI](tickets/known-issues.md)         |
-| T-122 | ⏳     | Buktikan E2E invite Copy Link, email A vs email B. KI-053                                                                    | [KI](tickets/known-issues.md)         |
-| T-142 | 🚫     | Usulan: History post `Imported` memakai `publishedAt`. Bukan bug — menunggu keputusan produk King Rezi dan cek Claude Design | [v0.2](tickets/v02-publishing-mvp.md) |
+| ID    | Status | Judul                                                                                                                           | File                                  |
+| ----- | ------ | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| T-037 | 🟡     | Perkaya aturan coding di `context/ctx-development.md`                                                                           | [v0.2](tickets/v02-publishing-mvp.md) |
+| T-115 | 🟡     | Wiring cron harian Import Posts. Sisa: post native Facebook                                                                     | [v0.2](tickets/v02-publishing-mvp.md) |
+| T-013 | 🟡     | Connect account. Sisa: T-013.4 BYOK X                                                                                           | [v0.1](tickets/v01-foundation.md)     |
+| T-119 | 🚫     | Isi env Google OAuth. KI-015. King Rezi yang mengisi rahasianya                                                                 | [KI](tickets/known-issues.md)         |
+| T-122 | ⏳     | Buktikan E2E invite Copy Link, email A vs email B. KI-053                                                                       | [KI](tickets/known-issues.md)         |
+| T-142 | 🚫     | Usulan: History post `Imported` memakai `publishedAt`. Bukan bug — menunggu keputusan produk King Rezi dan cek Claude Design    | [v0.2](tickets/v02-publishing-mvp.md) |
+| T-143 | ⏳🔴   | Import periodik tidak mengejar riwayat akun baru (watermark null) + hasil terpotong 100 post. KI-102 — post TikTok 7 Okt hilang | [KI](tickets/known-issues.md)         |
 
 T-037 prioritas rendah dan tidak memblokir rilis. T-115 masih 🟡: job import dan watermark sudah terbukti di staging; sisa T-115.5 adalah post native Facebook yang muncul di Postific. T-124 selesai 2026-10-19 (error kolom void, KI-091). T-116 → T-117 → T-118 (token-agent) selesai 2026-10-16, lihat `tickets/v01-foundation.md`. T-131 dan T-132 selesai 2026-10-20 (revisi scope Import Posts dari King Rezi; T-132 klasifikasi `ContentFormat` via Outstand Analytics, ADR-135). **T-130, T-134, T-135, T-136 (🔴 prioritas tinggi)** lahir dari satu investigasi ketidaksesuaian data Supabase vs Outstand yang sama — implementasinya tuntas 2026-10-21 (review Ridwan PASS, QA Najwa PASS, ADR-136). Akun test real "Cook It Real Good" tersedia 2026-10-22: **T-134 dan T-135 ✅ Done**. 2026-10-23: **T-130, T-136, T-139 ✅ Done** (Home menampilkan 12 post Oktober sesuai DB; import Instagram 182 post tersimpan lewat chunk per transaksi) dan bug baru **T-141 ✅ Done** (pagination `GET /v1/posts`, limit maks 100). **T-133 ✅ Done (2026-10-23):** script T-133.2/.3 dieksekusi atas konfirmasi King Rezi (Facebook 184, Instagram 182 post, terklasifikasi), diverifikasi di Home/Analyze/History; TikTok terbukti didukung Import, Pinterest tetap keterbatasan eksplisit (tanpa akun test). **T-140 ✅ Done** (2026-10-22, KI-100) — bug produksi infinite redirect loop `/` ↔ `/login` saat session cookie stale/invalid di `proxy.ts`, ditemukan King Rezi saat `bun dev` lokal, diperbaiki sesi yang sama (hapus cookie session stale sebelum redirect, lihat `tickets/known-issues.md`).
 

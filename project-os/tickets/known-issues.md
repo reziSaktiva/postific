@@ -1201,3 +1201,67 @@ keterlambatan Outstand ("masih diproses setelah 25 detik").
 - [x] **T-141.3** Verifikasi akun real (2026-10-23): job Outstand
       `jpSt2` `completed`, 182 post terambil (2 halaman) tanpa HTTP 400,
       semua tersimpan, 12 di antaranya terbit Oktober 2026
+
+### T-143 · Import periodik tidak pernah mengejar riwayat akun baru; hasil terpotong di 100 post (KI-102)
+
+| Field       | Value                                                                                          |
+| ----------- | ---------------------------------------------------------------------------------------------- |
+| **Status**  | ⏳ Terkonfirmasi sebagian, belum ada perbaikan — menunggu persetujuan arah perbaikan King Rezi |
+| **Domain**  | publishing · integration                                                                       |
+| **Spec**    | tidak ada — single-issue                                                                       |
+| **Docs**    | T-131 (lookback per trigger), T-115 (cron import), T-141 (pagination `/v1/posts`)              |
+| **Terkait** | T-133, T-141, ditemukan King Rezi 2026-10-23 (post TikTok 7 Okt tidak muncul)                  |
+| **Depends** | —                                                                                              |
+
+**Ditemukan (King Rezi, 2026-10-23):** akun TikTok `cookitrealgood` baru
+terhubung, tetapi post tanggal 7 Okt 2026 tidak muncul. Outstand punya 118
+post TikTok (`list_posts`, `total: 118`); DB kita hanya 100 (14 Mar – 30 Mei
+2026), 18 terbaru tidak ada. Setelah import manual dengan limit 1000 (script
+`t139-verify-large-import.ts`) 18 post masuk, termasuk post 7 Okt.
+
+**Investigasi (2026-10-23):**
+
+1. Import saat connect (`auto`, since 1 tahun, limit 1000) untuk TikTok
+   berstatus `failed` — "masih diproses di Outstand setelah menunggu 25
+   detik" — dan tidak pernah dipoll ulang oleh kita.
+2. Cron periodik (`periodic`) memakai `since = periodicImportSince(...)`,
+   yaitu `min(lastImportedUntil ?? (now − 24 jam), now − 24 jam)` dan
+   `CRON_IMPORT_LIMIT = 100`. Untuk akun dengan watermark `null`, cron
+   hanya meminta 24 jam terakhir, jadi **tidak pernah mengejar riwayat 1
+   tahun** (itu tugas import connect/manual yang tadi gagal).
+3. Post yang tetap masuk (100 terlama) kemungkinan besar berasal dari job
+   Outstand connect yang akhirnya selesai di sisi Outstand, lalu diambil
+   lewat `GET /v1/posts` oleh job cron. `fetchImportJobStatus` memakai
+   `limit = imported + skipped`, atau **100 kalau keduanya 0**. `GET /v1/posts`
+   mengurut `createdAt` menurun, sehingga halaman pertama (100) berisi post
+   terlama (terbit Mar–Mei) dan 18 terbaru jatuh di luar. Ini sejalan dengan
+   data, tapi **angka `imported`/`skipped` job cron tidak tersimpan**, jadi
+   mekanisme tepatnya tidak bisa dibuktikan ulang.
+4. Dugaan awal "terpotong CRON_IMPORT_LIMIT saat watermark null" **benar
+   sebagian**: batas 100 ikut berperan lewat fallback `wanted = 100`, tapi
+   penyebab utamanya adalah cron tidak melakukan lookback penuh dan import
+   connect yang timeout tidak dipulihkan. `last_imported_until` TikTok masih
+   `null`.
+5. YouTube **bukan** kasus ini: Outstand mengembalikan 0 post untuk akun
+   `nNvkl`, jadi 0 di DB benar. (Satu job periodik YouTube 22 Okt gagal
+   "owner lookup kosong" lalu sukses 23 Okt.)
+
+**Usulan perbaikan (belum dieksekusi):**
+
+- [ ] **T-143.1** Periodik: kalau `lastImportedUntil === null` (belum pernah
+      sync sukses), pakai `defaultSince` (1 tahun) dan limit
+      `AUTO_MANUAL_IMPORT_LIMIT` (1000), bukan 24 jam / 100. Watermark
+      dimajukan hanya kalau batch tidak penuh (aturan yang sudah ada)
+- [ ] **T-143.2** `fetchImportJobStatus`: kalau `imported + skipped` 0, jangan
+      jatuh ke limit 100 — paginasi sampai `pagination.total` tercapai
+      (dibatasi `MAX_PAGES`), supaya hasil tidak terpotong
+- [ ] **T-143.3** Simpan `imported`/`skipped`/`failed` job di `lastError`/payload
+      job `import.sync` supaya kasus seperti ini bisa dibuktikan
+- [ ] **T-143.4** Test unit untuk watermark `null` (since 1 tahun, limit 1000)
+      dan fallback 0/0 dengan >100 post
+- [ ] **T-143.5** Verifikasi dengan akun real baru (connect TikTok/Instagram,
+      tunggu satu siklus cron)
+
+**Sementara:** untuk akun yang sudah terpotong, jalankan
+`bun --env-file=.env.local run scripts/t139-verify-large-import.ts <platform>`
+(dedup aman) — sudah dipakai untuk TikTok 2026-10-23.
