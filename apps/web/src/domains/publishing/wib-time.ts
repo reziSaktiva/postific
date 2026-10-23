@@ -70,7 +70,5 @@ export function startOfWibDay(date: Date): Date {
  * jadi pemanggil tetap memakai pola `Number.isNaN(getTime())`.
  */
 export function wibLocalToUtc(date: string, time: string): Date {
-  const offsetHours = WIB_OFFSET_MS / (60 * 60 * 1000);
-  const offset = `+${String(offsetHours).padStart(2, "0")}:00`;
-  return new Date(`${date}T${time}${offset}`);
+  return new Date(Date.parse(`${date}T${time}Z`) - WIB_OFFSET_MS);
 }
