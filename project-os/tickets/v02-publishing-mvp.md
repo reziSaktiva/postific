@@ -2804,7 +2804,7 @@ kecil (satu baris per post), terapkan di luar jam sibuk.
 
 | Field         | Value                                                                                                                                    |
 | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**    | 🟡 Kode selesai 2026-10-23, menunggu verifikasi King Rezi (T-146.4)                                                                      |
+| **Status**    | ✅ Done 2026-10-23 (atas pernyataan King Rezi setelah verifikasi browser)                                                                |
 | **Domain**    | publishing · UI                                                                                                                          |
 | **ADR**       | tidak ada; bila King Rezi memutuskan zona per workspace, butuh ADR baru                                                                  |
 | **Terkait**   | T-144 (asal temuan, review Ridwan temuan 2), ADR-136 (tidak disentuh)                                                                    |
@@ -2832,7 +2832,7 @@ penafsiran waktu yang berubah, bukan tampilan.
 - [x] **T-146.1** Konfirmasi King Rezi lewat AskUserQuestion: hanya penafsiran waktu yang berubah, tanpa label "WIB" baru dan tanpa perubahan Claude Design
 - [x] **T-146.2** Helper `wibLocalToUtc` di `apps/web/src/domains/publishing/wib-time.ts`, dipakai di `draft-editor/Modal.tsx` untuk validasi masa depan dan `scheduledAt`; `schedule-time-constraints.ts` tidak berubah karena memakai instan `Date`
 - [x] **T-146.3** 4 test baru di `wib-time.test.ts` (351 test domain publishing lulus, eslint dan tsc bersih)
-- [ ] **T-146.4** Verifikasi browser (oleh King Rezi)
+- [x] **T-146.4** Verifikasi browser (oleh King Rezi) — OK 2026-10-23, atas pernyataan King Rezi
 
 ### T-147 · Zona waktu per pengguna (tampilan dan input mengikuti lokasi pengguna)
 
