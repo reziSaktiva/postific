@@ -124,6 +124,9 @@ akhir):
 | `workspace`                            | Prabowo Feature Engineer    | Workspace, member, roles                                                        |
 | `publishing`                           | Prabowo Feature Engineer    | Draft, Schedule, Queue, Publish Now                                             |
 | `analytics`                            | Prabowo Feature Engineer    | Dashboard/metrics — logic; UI-nya lihat baris `UI`                              |
+| `mcp-access`                           | Prabowo Feature Engineer    | OAuth provider, grant, audit, tool MCP — logic domain seperti identity/publishing |
+| `engagement`                           | Prabowo Feature Engineer    | Inbox, reply, engagement — logic domain; sinkron Outstand lihat baris `integration` |
+| `start-page`                           | Prabowo Feature Engineer    | Start Page — logic domain; UI-nya lihat baris `UI`                              |
 | `integration`, `media`, `notification` | Elon Backend Engineer       | Outstand ACL, webhook, background jobs                                          |
 | `UI`                                   | Mark UI Engineer            | Komponen shadcn/ui, styling, layout (ADR-097)      |
 | `platform`, `DX`                       | — (biasanya tanpa subagent) | Tooling/config internal (CI, monorepo) — sering lebih cepat dikerjakan langsung |

@@ -24,7 +24,7 @@ Sebelum mengubah artifact yang sudah ada: `Artifact` action `read` dulu (versi t
 
 ## Wajib dibaca lainnya
 
-1. `AGENTS.md` (root) — aturan keras #10 dan #13.
+1. `AGENTS.md` (root) — aturan keras #10 dan #9.
 2. `context/ctx-design.md` — pointer UX (`product-discovery/04-ux/`) + artifact desain.
 3. Fidelitas nilai: setiap nilai visual (warna, radius, shadow, spacing, tipografi) dan setiap komponen disalin dari kode asli — `apps/web/src/app/globals.css` dan `apps/web/src/components/ui/` (shadcn/ui, style `radix-maia`, ADR-097) — bukan buatan tangan. Rujukan `@astryxdesign` pada instruksi lama sudah tidak berlaku (migrasi tuntas, ADR-097).
 
