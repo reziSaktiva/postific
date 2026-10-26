@@ -6,8 +6,9 @@ Dokumen ini adalah **Source of Truth visual tokens** untuk implementasi UI di
 Nilai token final berkembang **iteratif dan co-equal** antara dokumen ini dan
 artifact desain Postific (ADR-140, menggantikan ADR-056) — tidak ada lagi
 gerbang "menunggu designer masuk": project ini tidak akan merekrut designer
-eksternal, perannya digantikan permanen oleh King Rezi sendiri lewat Claude
-Design (ADR-057, amandemen ADR-038 & ADR-041). Implementasi feature memakai
+eksternal, perannya digantikan permanen oleh King Rezi sendiri lewat artifact
+desain Postific (ADR-140; ADR-057 tetap dasar peran desainer, amandemen
+ADR-038 & ADR-041). Implementasi feature memakai
 token Stone theme (ADR-087, dipetakan ke shadcn/ui sejak ADR-097) dan tidak
 menunggu token final.
 Screenshot bukan acuan nilai final; folder `design/` (paket handoff designer)
@@ -43,7 +44,7 @@ Pastikan hasil design selaras dengan UX Baseline (`../04-ux/`):
 * Primary nav: Home → Publish → Engage → Analyze → Start Page
 * Publish default: Calendar
 * Tidak ada Approval Workflow di MVP
-* AI hanya inline di Draft Editor
+* Tidak ada AI bawaan di UI (ADR-138)
 * 6 content status + `Failed` jelas terbaca
 
 Jika artifact desain mengubah alur/IA, **hentikan** — diskusikan dulu (perlu update UX + ADR). Jangan “mengunci token” dari desain yang bertentangan dengan UX. Sinkronisasi antara baseline ini dan artifact desain bersifat manual/on-request (ADR-140) — bukan otomatis.

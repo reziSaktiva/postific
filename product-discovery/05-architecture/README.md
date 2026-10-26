@@ -117,10 +117,10 @@ Keputusan architecture tidak otomatis mengubah Business, Product, atau UX Baseli
 
 ## Dari Product Baseline v1.0
 
-* 6 Core Module: Workspace, Publishing, Analytics, Engagement, MCP Access (ADR-138), Start Page.
+* 6 Core Module: Workspace, Publishing, Analytics, Engagement, MCP Server (ADR-138), Start Page.
 * 5 Supporting Module: Authentication, User Profile, Media Library, Notifications, Billing, Settings.
 * Infrastructure Module: API Integrations, Webhooks, Audit Logs, File Storage, Background Jobs, Monitoring.
-* MVP Must Have: Draft, Schedule, Queue, Calendar, Connected Accounts, Engagement Inbox, Analytics Snapshot, AI Caption.
+* MVP Must Have: Draft, Schedule, Queue, Calendar, Connected Accounts, Engagement Inbox, Analytics Snapshot, MCP Server (koneksi klien AI, tool baca/draft/jadwal).
 * 3 Roles (direvisi ADR-074): Account Owner, Admin, Creator — dengan set status konten kanonikal.
 
 ## Amandemen Kontrak Outstand (ADR-040)

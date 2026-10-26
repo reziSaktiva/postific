@@ -125,6 +125,11 @@ src/app/
 │   └── forgot-password/
 │       └── page.tsx
 │
+├── select-workspace/             ← Layar persetujuan OAuth MCP langkah 1: pilih workspace (di luar (app); T-151, ADR-139 Proposed)
+│   └── page.tsx
+├── consent/                      ← Layar persetujuan OAuth MCP langkah 2: scope dan persetujuan (di luar (app); T-151, ADR-139 Proposed)
+│   └── page.tsx
+│
 ├── (app)/                        ← Route group: aplikasi utama pasca-login (workspace context dari cookie)
 │   ├── layout.tsx                ← App layout (sidebar nav, resolve workspace context dari cookie)
 │   ├── page.tsx                  ← Home — Today's Schedule, Recent Activity, Snapshots (root aplikasi; ADR-046)
@@ -167,6 +172,8 @@ src/app/
 │           ├── page.tsx          ← Account → Profile — nama, foto, email (default tab, pola sama dengan Organization General)
 │           ├── notifications/
 │           │   └── page.tsx      ← Account → Preferensi notifikasi
+│           ├── <segmen ditetapkan di T-156>/
+│           │   └── page.tsx      ← Account → Klien AI: daftar dan cabut koneksi klien AI (T-156; nama segmen rute ditetapkan di T-156)
 │           └── preferences/
 │               └── page.tsx      ← Account → Preferensi tampilan personal
 │
@@ -179,9 +186,13 @@ src/app/
     ├── jobs/
     │   └── run/
     │       └── route.ts          ← Job runner (Railway Cron → X-Job-Secret)
+    ├── mcp/
+    │   └── route.ts              ← MCP Server endpoint, Streamable HTTP (ADR-139, Proposed); bypass proxy.ts
     └── webhooks/
         └── outstand/
             └── route.ts          ← raw body HMAC → durable receipt → ACK 2xx
+
+.well-known/                      ← Metadata OAuth MCP (/.well-known/*; ADR-139, Proposed); bypass proxy.ts
 ```
 
 **Aturan routing:**
@@ -189,6 +200,7 @@ src/app/
 - Route group `(auth)` tidak mewarisi layout `(app)` — render halaman kosong tanpa sidebar.
 - `api/` hanya untuk Route Handlers platform/eksternal: Better Auth (`/api/auth/*`), health check, job runner (`/api/jobs/run`), dan webhook. Mutations UI menggunakan Server Actions, bukan route API internal.
 - `/api/auth/*` dan `/api/jobs/*` di-bypass dari session Middleware/Proxy — auth sendiri dilindungi Better Auth; job runner dilindungi header `X-Job-Secret` (lihat `auth-architecture.md`, `deployment-infrastructure.md`).
+- `/api/mcp` dan `/.well-known/*` (MCP Server, ADR-139, Proposed) dikecualikan dari `src/proxy.ts`; validasi token dan member dilakukan di Route Handler, tanpa business logic (memanggil `McpAccessService`). Layar persetujuan OAuth `/select-workspace` lalu `/consent` berada di luar route group `(app)` (T-151).
 - `/api/webhooks/outstand` wajib membaca raw body sebelum parsing. Route memanggil WebhookIngestion Application Service untuk menulis `outstand_webhook_events` idempoten dan enqueue `outstand.webhook.process`; business processing tidak berjalan inline.
 - `billing/` ada di routing MVP tapi halaman menampilkan placeholder — implementasi Post-MVP.
 - **Settings terdiri dari dua grup dalam satu section**: grup **Organization** (General, Connected Accounts, Members, Roles, Billing) dan grup **Account** (Profile, Notifications, Preferences) — keduanya diakses via sidebar Settings yang sama, dengan entry point tunggal dari avatar/user menu.

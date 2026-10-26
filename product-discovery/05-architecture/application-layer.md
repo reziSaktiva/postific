@@ -205,7 +205,7 @@ Client Component (triggers action)
 - Menjadwalkan atau membatalkan post.
 - Mengelola anggota workspace (invite, remove, ubah role).
 - Reply engagement inbox.
-- Generate AI caption.
+- Cabut koneksi klien AI (`revokeGrant`).
 - Upload media.
 
 **Aturan:**
@@ -489,7 +489,7 @@ Tool MCP (ADR-138) adalah entry point Route Handler `/api/mcp` yang memanggil se
 |--------|---------|-----------|
 | `createGrant` | Layar persetujuan OAuth | Buat grant untuk satu workspace dan scope terpilih; RBAC: member workspace |
 | `revokeGrant` | Server Action (Settings) | Cabut koneksi klien AI (isi `revokedAt`) |
-| `listGrants` | Server Component (Settings) | Daftar klien AI yang tersambung di workspace |
+| `listGrants` | Server Component (Settings) | Daftar koneksi klien AI milik pengguna yang sedang login (lintas workspace) |
 | `authorizeCall` | Internal (Route Handler MCP) | Validasi grant, scope, member, role, dan rate limit per panggilan |
 | `recordAudit` | Internal (Route Handler MCP) | Tulis `McpAuditLog` satu baris per panggilan |
 | `purgeAudit` | Cron | Hapus audit yang lebih tua dari 90 hari |

@@ -629,7 +629,7 @@ Kolom `workspace_id` pada semua tabel multi-tenant wajib diindex untuk performa 
 CREATE INDEX ON {table_name}(workspace_id);
 ```
 
-Berlaku untuk: `workspace_members`, `workspace_connected_accounts`, `publishing_posts`, ~~`publishing_queue_slots`~~ (deprecated, ADR-083), `ai_requests`, `engagement_inbox_items`, `analytics_workspace_snapshots`, `media_items`, `notifications`, `start_page_pages`.
+Berlaku untuk: `workspace_members`, `workspace_connected_accounts`, `publishing_posts`, ~~`publishing_queue_slots`~~ (deprecated, ADR-083), `mcp_grants`, `mcp_audit_logs`, `engagement_inbox_items`, `analytics_workspace_snapshots`, `media_items`, `notifications`, `start_page_pages`.
 
 ## Index Query-Driven
 
