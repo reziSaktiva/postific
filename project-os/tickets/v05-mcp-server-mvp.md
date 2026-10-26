@@ -11,7 +11,7 @@
 
 **Titik awal:** domain `ai-assistant/` hanya stub kosong dan model `AiRequest`/`AiResult` ada di schema tanpa pemakai. Keduanya dihapus di T-149. `better-auth` 1.6.23 membawa plugin `mcp` yang dibangun di atas `oidc-provider` (deprecated), jadi tidak dipakai. Gantinya `@better-auth/oauth-provider` (butuh `better-auth` `^1.6.33`) dan `@modelcontextprotocol/sdk`, keduanya belum terpasang (ADR-139, hasil spike T-148).
 
-**Aturan UI (`AGENTS.md` aturan 10):** T-151, T-156, dan T-157 menyentuh layar yang terlihat pengguna. Sebelum menulis kode UI, cek Claude Design. Kalau rancangannya belum ada, berhenti dan beri tahu King Rezi.
+**Aturan UI (`AGENTS.md` aturan 10):** T-151, T-156, dan T-157 menyentuh layar yang terlihat pengguna. Sebelum menulis kode UI, cek artifact desain Postific (ADR-140). Ketiganya sudah punya rancangan yang dikonfirmasi King Rezi 2026-10-26 (lihat gate di tiap tiket); untuk layar baru yang belum ada rancangannya, berhenti dan beri tahu King Rezi.
 
 **Di luar rilis ini (ADR-138):** `publish` (Publish Now) dan `reply` (balas komentar) lewat MCP ditunda. Aksi destruktif dan administratif tidak diekspos. AI bawaan Postific dicabut.
 

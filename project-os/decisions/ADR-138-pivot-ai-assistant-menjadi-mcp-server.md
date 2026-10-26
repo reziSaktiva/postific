@@ -67,8 +67,8 @@ komentar dan metrik tidak diekspos karena sudah berjalan lewat cron.
 - **Baca:** 20 item per halaman, dengan cursor.
 - **Tulis, per konten:** target maksimum sama dengan jumlah akun terhubung di
   workspace (seperti Draft Editor, satu `Post` dengan banyak `PostTarget`).
-- **Tulis, per panggilan `schedule_posts`:** maksimum 10 konten (asumsi kerja,
-  konstanta konfigurasi, boleh diubah King Rezi).
+- **Tulis, per panggilan `schedule_posts`:** maksimum 10 konten (dikonfirmasi
+  King Rezi 2026-10-26; konstanta konfigurasi, boleh diubah).
 - `create_draft` dan `upload_media`: satu per panggilan.
 
 **5. Keamanan.**
@@ -126,7 +126,7 @@ workspace diputuskan di **ADR-139** (Proposed, menunggu spike T-148).
 - **Satu koneksi untuk semua workspace pengguna.** Ditolak: cakupan izin
   terlalu lebar.
 - **Batch tulis dibatasi satu konten per panggilan.** Ditolak King Rezi:
-  batch boleh banyak konten (angka 10 per panggilan adalah asumsi kerja).
+  batch boleh banyak konten (angka 10 per panggilan dikonfirmasi 2026-10-26).
 
 ### Related
 
