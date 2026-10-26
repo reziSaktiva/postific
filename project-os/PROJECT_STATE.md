@@ -17,9 +17,9 @@
 
 | Field        | Value      |
 | ------------ | ---------- |
-| Version      | 1.1.3      |
+| Version      | 1.1.4      |
 | Status       | Active     |
-| Last Updated | 2026-10-23 |
+| Last Updated | 2026-10-26 |
 
 ---
 
@@ -191,8 +191,11 @@ seluruh daftar Known Issues.
 
 ## Recent Decisions (Ringkasan)
 
-5 ADR terakhir. Daftar lengkap (indeks + link ke tiap ADR): lihat `DECISIONS.md`.
+ADR terbaru. Daftar lengkap (indeks + link ke tiap ADR): lihat `DECISIONS.md`.
 
+- **ADR-140** — Artifact Claude (artifact desain Postific + galeri Postific Design Review) menggantikan Claude Design standalone dan DesignSync sebagai referensi visual; menggantikan ADR-042 dan ADR-056. Project Claude Design lama hanya-baca dan dilepas sebelum 2026-12-14.
+- **ADR-139** — Proposed (menunggu penutupan T-148). Hosting dan auth MCP server: Route Handler Streamable HTTP + OAuth 2.1 lewat `@better-auth/oauth-provider`, satu workspace per koneksi.
+- **ADR-138** — Pivot AI Assistant bawaan menjadi MCP Server: AI milik pengguna bekerja di Postific lewat MCP dengan scope `read`/`draft`/`schedule`.
 - **ADR-137** — Provider email transactional staging sementara pindah ke SMTP pribadi (adapter sibling Resend, dipilih lewat env `EMAIL_PROVIDER`), menunggu domain terverifikasi di Resend; menutup T-137 (KI-097).
 - **ADR-136** — `totalPosts` Home pindah dari Outstand `posts_count` (tidak didukung untuk Facebook Page) ke status internal `PublishingPost`; window "bulanan" pindah dari rolling 30 hari ke kalender bulan; granularitas Home vs Analyze diterima berbeda; opsi Outstand `DELETE` saat disconnect ditolak (merusak reaktivasi ADR-127). Menutup substansi T-130/T-134/T-135/T-136 (KI-093/094/095/096) — verifikasi E2E dengan akun real PASS 2026-10-22/23.
 - **ADR-135** — `FetchPostMetricsResult` diperluas 3 field opsional (`mediaProductType`/`isReel`/`storyExpired`) dari Outstand Analytics untuk klasifikasi `ContentFormat` (Post/Reel/Story) post hasil Import, menutup T-132.

@@ -72,7 +72,7 @@ Fitur utama yang direncanakan pada MVP:
 - Publishing
 - Analytics
 - Engagement
-- AI Assistant
+- MCP Server (AI milik pengguna bekerja di Postific, ADR-138)
 - Start Page
 
 ---

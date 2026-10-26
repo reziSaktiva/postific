@@ -75,7 +75,7 @@ Satu panggilan memuat maksimum 10 konten (konstanta konfigurasi). Target per kon
 
 **Baca dulu:** `05-architecture/background-jobs.md` · `05-architecture/database-strategy.md`
 
-60 panggilan per menit, 30 aksi tulis per jam, 50 konten terjadwal per hari. Konfigurasi, bukan angka di kode. Error berisi kapan boleh mencoba lagi.
+60 panggilan per menit, 30 aksi tulis per jam, 50 konten terjadwal per hari (dihitung per konten, bukan per akun target atau per panggilan; dikonfirmasi King Rezi 2026-10-26). Konfigurasi, bukan angka di kode. Error berisi kapan boleh mencoba lagi.
 
 ### T-155 · Tool `upload_media` dari URL (proteksi SSRF)
 
@@ -93,9 +93,9 @@ Tiket sendiri karena butuh review keamanan terfokus. Hanya `https`, periksa IP s
 
 Daftar klien AI yang tersambung dan tombol cabut.
 
-**Gate Claude Design:** rancangan **sudah ada** di artifact Postific (https://claude.ai/artifact/FdRNU4gnxgAGY3zmBxNfR3), `templates/settings-ai-clients.html` (kartu `components/ScreenSettingsAiClients/preview.html`); **dikonfirmasi King Rezi 2026-10-26** setelah ditinjau lewat galeri review (https://claude.ai/artifact/4BJCWNsCwubLd7SFwRtree). Lokasi menu **sudah ditetapkan**: Settings → Account → Klien AI (IA-D08, KSP-10). Keputusan yang sudah dikunci: hanya koneksi milik sendiri tanpa kolom pemilik, Owner/Admin tidak melihat koneksi anggota lain (IA-D09); pola baris KSP-08 tanpa header kolom; Cabut membuka dialog Tier 2 (`AlertDialog`, ADR-049); empty state berisi langkah menyambungkan dan URL MCP dengan tombol Salin. Kolom "Terakhir dipakai" bergantung pada keputusan `lastUsedAt` di T-149.
+**Gate Claude Design:** rancangan **sudah ada** di artifact Postific (https://claude.ai/artifact/FdRNU4gnxgAGY3zmBxNfR3), kartu `components/ScreenSettingsAiClients/preview.html`; **dikonfirmasi King Rezi 2026-10-26** setelah ditinjau lewat galeri review (https://claude.ai/artifact/4BJCWNsCwubLd7SFwRtree). Lokasi menu **sudah ditetapkan**: Settings → Account → Klien AI (IA-D08, KSP-10). Keputusan yang sudah dikunci: hanya koneksi milik sendiri tanpa kolom pemilik, Owner/Admin tidak melihat koneksi anggota lain (IA-D09); pola baris KSP-08 tanpa header kolom; Cabut membuka dialog Tier 2 (`AlertDialog`, ADR-049); empty state berisi langkah menyambungkan dan URL MCP dengan tombol Salin. Kolom "Terakhir dipakai" bergantung pada keputusan `lastUsedAt` di T-149.
 
-### T-157 · Badge "dibuat lewat MCP" di History dan Draft
+### T-157 · Badge "dibuat lewat MCP" di History, Drafts, dan Queue
 
 `⏳ Not Started` · **Domain** mcp-access · UI · **ADR** ADR-138, ADR-097 · **Depends** T-152
 

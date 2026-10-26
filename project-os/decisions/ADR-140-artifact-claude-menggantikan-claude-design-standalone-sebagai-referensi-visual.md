@@ -51,6 +51,7 @@ Claude Design standalone (claude.ai/design) tutup pada **2026-12-14**. Tool `Des
 - Dokumen kerja yang menyebut Claude Design atau `DesignSync` diperbarui: `AGENTS.md` (aturan 10), `context/ctx-design.md`, subagent Neymar, Mark, Prabowo, Najwa, `.claude/agents/README.md`, skill `claude-design-scope-discipline` dan `project-os-navigator`, `project-os/DEVELOPER_WORKFLOW.md`, dan penunjuk di `context/` serta `design-tokens.md`.
 - ADR-042 dan ADR-056 berstatus Superseded. ADR-045 (folder `design/` dihapus) dan ADR-057 (tidak ada designer eksternal) tetap berlaku; yang berganti hanya alatnya.
 - Belum terbukti: apakah tool `Artifact` termuat di sesi subagent. Kalau tidak, pekerjaan desain dikerjakan di sesi utama dengan izin King Rezi, sama seperti pola lama untuk `DesignSync`.
+  **Update 2026-10-26:** terbukti. Neymar Product Designer dan Najwa QA Engineer sama-sama berhasil memanggil `Artifact` (read, dan list oleh Neymar) di sesi subagent; pesan fallback di atas tetap berlaku hanya sebagai penanganan bila kelak gagal. Catatan operasional diperbarui di `.claude/agents/README.md`.
 - Galeri review tidak sinkron otomatis dengan artifact Postific. Saat layar berubah, keduanya dipublish ulang.
 - Tugas yang tersisa: lepaskan project Claude Design lama sebelum 2026-12-14.
 

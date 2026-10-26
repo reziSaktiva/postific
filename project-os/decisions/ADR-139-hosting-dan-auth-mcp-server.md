@@ -48,9 +48,9 @@ beserta tombol cabut (mengisi `revokedAt`).
 ada Redis di stack dan penghitung di memori tidak akurat bila instance lebih
 dari satu.
 
-**UI baru (butuh rancangan Claude Design, `AGENTS.md` aturan 10):** layar
+**UI baru: rancangan sudah ada di artifact Postific (ADR-140) dan dikonfirmasi King Rezi 2026-10-26 (T-151, T-156, T-157).** Layar
 persetujuan OAuth, daftar dan pencabutan klien AI di Settings, badge sumber
-MCP di History/Draft (ADR-138).
+MCP di History, Drafts, dan Queue (ADR-138).
 
 ### Hasil Spike T-148 (2026-10-23)
 

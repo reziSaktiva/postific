@@ -59,9 +59,11 @@ social-media-management/
 │   ├── AVAILABLE_TICKETS.md    → antrian task yang belum selesai
 │   ├── tickets/              → tiket per rilis, termasuk yang sudah selesai
 │   ├── specs/                → spec untuk kerja multi-sesi
+│   ├── reports/              → laporan spike dan investigasi (mis. T-148)
 │   ├── DECISIONS.md          → indeks ringkas ADR (full text di decisions/)
 │   ├── decisions/            → satu file per ADR (ADR-XXX-slug.md)
 │   ├── DEVELOPER_WORKFLOW.md
+│   ├── QA_TEST_ACCOUNTS.md   → akun uji QA
 │   ├── CONVERSATIONS.md
 │   └── BRAINSTORM.md
 └── product-discovery/        → pengetahuan produk (business s/d engineering)
