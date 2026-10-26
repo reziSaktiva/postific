@@ -95,7 +95,7 @@ panggilan per menit, 30 aksi tulis per jam, 50 konten terjadwal per hari.
 Angka disimpan sebagai konfigurasi.
 
 **Di luar ADR ini:** hosting, transport, OAuth, dan pengikatan token ke
-workspace diputuskan di **ADR-139** (Proposed, menunggu spike T-148).
+workspace diputuskan di **ADR-139** (Accepted 2026-10-26).
 
 ### Reason
 

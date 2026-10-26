@@ -67,6 +67,14 @@ const BYPASS_PREFIXES = [
   "/api/health",
   "/api/v1",
   "/api/webhooks/outstand",
+  // T-148 (spike MCP, ADR-139): keamanan dipindah ke handler masing-masing
+  // (JWT untuk /api/mcp, session untuk halaman spike). Aktif hanya bila
+  // MCP_SPIKE_ENABLED=true; handlernya 404 kalau tidak.
+  "/api/mcp",
+  "/api/mcp-spike",
+  "/.well-known",
+  "/select-workspace",
+  "/consent",
   "/invite",
   "/verify-email",
 ];
