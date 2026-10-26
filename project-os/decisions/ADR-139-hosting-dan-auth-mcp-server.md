@@ -33,8 +33,9 @@ adalah dasar `mcp-handler` juga, sehingga pembungkus hanya menambah satu
 lapisan dependency yang dipelihara pihak lain; auth dan binding workspace
 kita sendiri, jadi pembungkus yang menyediakan auth tidak banyak membantu;
 kendali penuh atas transport dan tool schema sesuai aturan entry point
-tipis. Belum diverifikasi apakah SDK terbaru menyediakan transport berbasis
-Web Request/Response yang cocok dengan Next.js 16 (dicek di T-148).
+tipis. Terbukti di spike T-148: SDK 1.32.1 menyediakan
+`WebStandardStreamableHTTPServerTransport` (Web Request/Response) yang
+berjalan di Route Handler Next.js 16 (belum diuji di Railway).
 
 **3. Autentikasi.** OAuth 2.1 dengan PKCE dan dynamic client registration lewat **`@better-auth/oauth-provider`** (dengan plugin `jwt`), **bukan** plugin `mcp` bawaan `better-auth`. Hasil spike T-148: plugin `mcp` dibangun di atas `oidc-provider` yang deprecated dan akan dihapus di major berikutnya. `@better-auth/oauth-provider@1.6.33` mensyaratkan `better-auth` `^1.6.33` (naik dari `1.6.23`, patch dalam minor yang sama). Scope kustom di kabel: `mcp:read`, `mcp:draft`, `mcp:schedule` (ditambah `offline_access` untuk refresh); nama logis di ADR-138 tetap `read`, `draft`, `schedule`. Access token berupa JWT yang diverifikasi lewat JWKS (`mcpHandler` dari paket yang sama). Pendaftaran klien dinamis terbuka tanpa login (klien mendaftar sebelum login), sehingga perlu rate limit dan pembersihan klien yang tidak dipakai.
 
@@ -57,8 +58,9 @@ Detail dan bukti di [`../reports/T-148-spike-mcp-oauth.md`](../reports/T-148-spi
 
 ### Reason
 
-- Better Auth sudah menjadi identity provider (ADR sebelumnya) dan sudah
-  membawa plugin MCP, sehingga tidak perlu auth server terpisah.
+- Better Auth sudah menjadi identity provider (ADR sebelumnya) dan
+  `@better-auth/oauth-provider` menjadikannya authorization server OAuth 2.1
+  untuk klien MCP, sehingga tidak perlu auth server terpisah.
 - Route Handler di `apps/web` memakai Application Service yang sama dengan
   Server Action, menjaga satu jalur logic.
 - Spike lebih dulu karena asumsi terbesar (scope kustom dan `workspaceId`
