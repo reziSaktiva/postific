@@ -118,7 +118,7 @@ Bukan berarti fitur tersebut tidak penting, tetapi bukan prioritas untuk mencapa
 ### Could Have
 
 * Custom Reports
-* AI Insights
+* AI Insights (dikerjakan AI klien lewat MCP, bukan fitur Postific)
 
 ### Won't Have
 
@@ -159,18 +159,12 @@ Bukan berarti fitur tersebut tidak penting, tetapi bukan prioritas untuk mencapa
 * Tool jadwal (`schedule_posts`, batch)
 * Audit panggilan dan rate limit per workspace
 * Pencabutan koneksi klien AI
-
-### Should Have
-
-* Penanda "dibuat lewat MCP" di History dan Draft
-
-### Could Have
-
-* Publish Now lewat MCP (ditunda, ADR-138)
-* Balas komentar lewat MCP (ditunda, ADR-138)
+* Penanda sumber MCP ("dibuat lewat MCP"): badge dan filter sumber di History, Drafts, dan Queue (Calendar tanpa badge)
 
 ### Won't Have
 
+* Publish Now lewat MCP (ditunda, ADR-138)
+* Balas komentar lewat MCP (ditunda, ADR-138)
 * Aksi destruktif dan administratif lewat MCP (hapus, batalkan jadwal, kelola member/role, disconnect akun)
 * AI bawaan Postific (dicabut, ADR-138)
 * Autonomous AI Agent

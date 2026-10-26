@@ -42,16 +42,20 @@ Contoh:
 
 ## AI Expansion
 
-Perluasan kemampuan AI sebagai bagian dari workflow.
+Postific tidak membangun AI sendiri (ADR-138). Perluasan di sini adalah use case
+yang dimungkinkan oleh MCP Server dan dikerjakan oleh AI klien milik pengguna,
+bukan fitur bawaan Postific.
 
-Contoh:
+Contoh use case yang dimungkinkan MCP (dikerjakan AI klien):
 
-* AI Content Calendar
-* AI Performance Analysis
-* AI Content Strategy
-* AI Campaign Planning
-* AI Trend Recommendations
-* AI Agent Assistance
+* Perencanaan content calendar oleh AI klien
+* Analisis performa dari data analytics yang dibaca lewat tool MCP
+* Strategi konten dan perencanaan kampanye oleh AI klien
+* Rekomendasi tren oleh AI klien
+
+Postific hanya menyediakan tool MCP dan jejak kerja AI. Agent otonom yang
+mempublikasikan tanpa kendali pengguna tidak masuk roadmap (ditolak, lihat
+`feature-priority.md`).
 
 ---
 

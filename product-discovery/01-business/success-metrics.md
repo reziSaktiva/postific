@@ -120,7 +120,7 @@ Target kuantitatif akan ditentukan setelah produk memasuki tahap penggunaan nyat
 Beberapa metrik mungkin akan ditambahkan pada fase berikutnya:
 
 * Team Collaboration Metrics.
-* AI Usage Metrics.
+* Penggunaan MCP (grant aktif, panggilan tool per workspace, draft yang dibuat lewat MCP).
 * Workspace Growth.
 * Customer Expansion Rate.
 * Feature Engagement.

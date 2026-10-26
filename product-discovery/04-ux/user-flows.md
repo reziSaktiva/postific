@@ -256,7 +256,7 @@ Setiap flow memiliki struktur:
 
 * **UXP-01** — Engage adalah tahapan natural setelah Publish dalam satu siklus kerja — navigasi mencerminkan urutan ini.
 * **UXP-03** — Inbox yang terpusat menggantikan kebutuhan membuka multiple native apps; kesederhanaan ini adalah solusi inti, bukan fitur tambahan.
-* **UXP-05 (I-05)** — Engagement adalah retention layer produk; Inbox yang terkonsolidasi mendorong Raka tetap menggunakan produk setelah fase publishing.
+* **UXP-07 (I-05)** — Engagement adalah retention layer produk; Inbox yang terkonsolidasi mendorong Raka tetap menggunakan produk setelah fase publishing.
 
 **Batas MVP:** Flow ini hanya mencakup komentar dan reply. Direct Message, mention, dan webhook engagement tidak termasuk MVP. Data diperbarui melalui periodic pull 30 menit atau manual refresh (ADR-040).
 

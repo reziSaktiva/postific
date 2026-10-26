@@ -93,7 +93,6 @@ Komponen biaya utama meliputi:
 
 * Infrastruktur cloud.
 * Penyedia layanan pihak ketiga (misalnya integrasi media sosial).
-* Layanan AI.
 * Pengembangan produk.
 * Operasional dan dukungan pelanggan.
 

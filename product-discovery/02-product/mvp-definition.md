@@ -89,7 +89,8 @@ aplikasi lewat MCP (ADR-138).
 * Membuat dan mengedit draft, mengunggah media dari URL.
 * Menjadwalkan post (batch beberapa konten per panggilan).
 * Mencabut koneksi klien AI dari Settings.
-* Audit panggilan, penanda "dibuat lewat MCP", dan rate limit per workspace.
+* Audit panggilan, penanda sumber "dibuat lewat MCP" (badge dan filter di History,
+  Drafts, dan Queue), dan rate limit per workspace.
 
 Tidak termasuk MVP: Publish Now lewat MCP, balas komentar lewat MCP, dan
 aksi destruktif/administratif (hapus, batalkan jadwal, kelola member,
@@ -126,7 +127,7 @@ Fitur yang dapat dikembangkan apabila waktu dan sumber daya memungkinkan.
 * AI Content Calendar (dikerjakan AI klien lewat MCP, bukan fitur Postific).
 * Team Activity Feed.
 * Custom Reports.
-* AI Insights.
+* AI Insights (dikerjakan AI klien lewat MCP, bukan fitur Postific).
 * AI Performance Suggestions (dikerjakan AI klien lewat MCP, bukan fitur Postific).
 * Hashtag Suggestions.
 
