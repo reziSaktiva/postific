@@ -1,6 +1,7 @@
-import type {
-  IPublicStartPageRepository,
-  PublicStartPage,
+import {
+  parseStartPageTheme,
+  type IPublicStartPageRepository,
+  type PublicStartPage,
 } from "@/domains/start-page";
 import { prisma } from "@/lib/prisma/client";
 
@@ -38,7 +39,7 @@ export const publicStartPageRepository: IPublicStartPageRepository = {
       title: first.title,
       bio: first.bio,
       avatarUrl: first.avatar_url,
-      theme: first.theme,
+      theme: parseStartPageTheme(first.theme),
       links: rows.flatMap((row) =>
         row.link_id !== null && row.link_label !== null && row.link_url !== null
           ? [{ id: row.link_id, label: row.link_label, url: row.link_url }]

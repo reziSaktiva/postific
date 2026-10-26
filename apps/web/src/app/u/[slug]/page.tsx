@@ -1,17 +1,82 @@
+import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
+import { after } from "next/server";
+import { cache } from "react";
 
-import { GetPublicStartPageBySlug } from "@/domains/start-page";
-import { publicStartPageRepository } from "@/lib/repositories/start-page";
+import {
+  GetPublicStartPageBySlug,
+  RecordStartPageView,
+  buildMetaDescription,
+  buildPublicPagePath,
+} from "@/domains/start-page";
+import { StartPageProfile } from "@/components/start-page/StartPageProfile";
+import { getServerEnv } from "@/lib/env";
+import {
+  publicStartPageRepository,
+  startPageAnalyticsRepository,
+} from "@/lib/repositories/start-page";
+
+/**
+ * Lookup dibagi antara `generateMetadata` dan halaman dalam satu request
+ * (`cache` React) supaya tidak query dua kali.
+ */
+const getPublicPage = cache((slug: string) =>
+  new GetPublicStartPageBySlug(publicStartPageRepository).execute(slug),
+);
+
+/**
+ * Metadata SEO/sharing (T-071). Hanya halaman published yang ada; slug tak
+ * ada/draft -> `noindex` (halaman 404). `metadataBase` dari
+ * `BETTER_AUTH_URL` agar URL OG absolut.
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const page = await getPublicPage(slug);
+  if (!page) {
+    return { title: "Halaman tidak ditemukan", robots: { index: false } };
+  }
+
+  const description = buildMetaDescription(
+    page.bio,
+    `Tautan resmi ${page.title}`,
+  );
+  const path = buildPublicPagePath(page.slug);
+  const baseUrl = getServerEnv().BETTER_AUTH_URL;
+  return {
+    ...(baseUrl ? { metadataBase: new URL(baseUrl) } : {}),
+    title: page.title,
+    description,
+    alternates: { canonical: path },
+    robots: { index: true, follow: true },
+    openGraph: {
+      type: "profile",
+      title: page.title,
+      description,
+      url: path,
+      ...(page.avatarUrl ? { images: [{ url: page.avatarUrl }] } : {}),
+    },
+    twitter: {
+      card: "summary",
+      title: page.title,
+      description,
+      ...(page.avatarUrl ? { images: [page.avatarUrl] } : {}),
+    },
+  };
+}
 
 /**
  * Halaman publik Start Page (T-070.4, ADR-128) — di-bypass penuh dari auth
  * gate `proxy.ts`, jadi TIDAK ada session/workspace context di sini.
  *
- * Server Component tipis: hanya memanggil use-case lalu `notFound()`.
- * Markup di bawah SENGAJA minimal dan belum final — tampilan (Card Stack)
- * dibangun di T-071. Catatan untuk T-071: `url` tautan berasal dari input
- * workspace dan belum divalidasi skemanya di sini, jadi hanya ditampilkan
- * sebagai teks (bukan `href`) sampai validasi skema URL (http/https) ada.
+ * Server Component tipis: hanya memanggil use-case, mencatat view, lalu
+ * merender `StartPageProfile` (Card Stack, T-071). Data sudah disanitasi
+ * use-case (url tautan http/https, avatar https); `href` tautan selalu
+ * lewat redirect tracked, bukan URL tujuan.
  */
 export default async function PublicStartPage({
   params,
@@ -20,22 +85,24 @@ export default async function PublicStartPage({
 }) {
   const { slug } = await params;
 
-  const page = await new GetPublicStartPageBySlug(
-    publicStartPageRepository,
-  ).execute(slug);
+  const page = await getPublicPage(slug);
   if (!page) notFound();
 
-  return (
-    <main>
-      <h1>{page.title}</h1>
-      {page.bio ? <p>{page.bio}</p> : null}
-      <ul>
-        {page.links.map((link) => (
-          <li key={link.id}>
-            {link.label} — {link.url}
-          </li>
-        ))}
-      </ul>
-    </main>
-  );
+  // Hitung kunjungan SETELAH respons terkirim (T-074): best-effort, tidak
+  // menunda render dan kegagalan counter tidak boleh merusak halaman. Membaca
+  // `headers()` juga menjadikan route ini dinamis (tidak di-cache statis),
+  // jadi tiap request dihitung dan unpublish berlaku seketika.
+  const userAgent = (await headers()).get("user-agent");
+  after(async () => {
+    try {
+      await new RecordStartPageView(startPageAnalyticsRepository).execute({
+        slug: page.slug,
+        userAgent,
+      });
+    } catch (error) {
+      console.error("start-page: gagal mencatat view", error);
+    }
+  });
+
+  return <StartPageProfile page={page} />;
 }

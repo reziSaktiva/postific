@@ -20,6 +20,33 @@ const nextConfig: NextConfig = {
     // Pin workspace root so parent lockfiles outside the repo are ignored.
     root: monorepoRoot,
   },
+  async headers() {
+    // Header keamanan dasar untuk halaman publik Start Page (T-071) dan route
+    // redirect klik di bawahnya. CSP penuh sengaja belum dipasang (butuh
+    // nonce untuk inline script Next.js); `frame-ancestors` saja menutup
+    // clickjacking tanpa risiko merusak render.
+    return [
+      {
+        source: "/u/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "DENY" },
+          {
+            key: "Content-Security-Policy",
+            value: "frame-ancestors 'none'",
+          },
+          {
+            key: "Referrer-Policy",
+            value: "strict-origin-when-cross-origin",
+          },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=()",
+          },
+        ],
+      },
+    ];
+  },
   experimental: {
     serverActions: {
       // Diturunkan dari MAX_MEDIA_FILE_SIZE_BYTES (domains/media/validation.ts)

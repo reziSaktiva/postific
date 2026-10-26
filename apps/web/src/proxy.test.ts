@@ -289,6 +289,18 @@ describe("proxy (middleware)", () => {
       expect(getSessionMock).not.toHaveBeenCalled();
     });
 
+    it("lets the click-redirect route /u/[slug]/go/[linkId] through with no cookie (T-074)", async () => {
+      getSessionCookieMock.mockReturnValue(null);
+
+      const response = await proxy(
+        makeRequest("/u/raka/go/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"),
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("location")).toBeNull();
+      expect(getSessionMock).not.toHaveBeenCalled();
+    });
+
     it("does not redirect a logged-in visitor to / (bypass, not PUBLIC_AUTH_PATHS)", async () => {
       getSessionCookieMock.mockReturnValue("some-cookie-value");
 

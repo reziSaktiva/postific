@@ -24,7 +24,10 @@ function setup(result: PublicStartPage | null = PAGE) {
 describe("GetPublicStartPageBySlug", () => {
   it("returns the page without any session/workspace input", async () => {
     const { useCase, findPublishedBySlug } = setup();
-    await expect(useCase.execute("raka")).resolves.toEqual(PAGE);
+    await expect(useCase.execute("raka")).resolves.toEqual({
+      ...PAGE,
+      links: [{ id: "l1", label: "Shop", url: "https://example.com/" }],
+    });
     expect(findPublishedBySlug).toHaveBeenCalledWith("raka");
   });
 
@@ -47,6 +50,26 @@ describe("GetPublicStartPageBySlug", () => {
       expect(findPublishedBySlug).not.toHaveBeenCalled();
     },
   );
+
+  it("drops links with non-http(s) urls, nulls a non-https avatar, and falls back the theme", async () => {
+    const { useCase } = setup({
+      ...PAGE,
+      avatarUrl: "javascript:alert(1)",
+      theme: "evil" as never,
+      links: [
+        { id: "l1", label: "ok", url: "https://example.com" },
+        { id: "l2", label: "xss", url: "javascript:alert(1)" },
+        { id: "l3", label: "data", url: "data:text/html,x" },
+        { id: "l4", label: "creds", url: "https://u:p@example.com" },
+      ],
+    });
+    const result = await useCase.execute("raka");
+    expect(result?.links).toEqual([
+      { id: "l1", label: "ok", url: "https://example.com/" },
+    ]);
+    expect(result?.avatarUrl).toBeNull();
+    expect(result?.theme).toBe("default");
+  });
 
   it("propagates unexpected repository errors", async () => {
     const repository: IPublicStartPageRepository = {

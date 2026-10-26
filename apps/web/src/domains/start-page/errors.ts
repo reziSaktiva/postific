@@ -21,3 +21,19 @@ export class ReservedSlugError extends StartPageDomainError {
     this.name = "ReservedSlugError";
   }
 }
+
+/** Slug sudah dipakai halaman lain (unique violation `slug`). Dilempar repository. */
+export class StartPageSlugTakenError extends StartPageDomainError {
+  constructor(readonly slug: string) {
+    super(`Slug "${slug}" is already taken`);
+    this.name = "StartPageSlugTakenError";
+  }
+}
+
+/** Workspace sudah punya Start Page (satu halaman per workspace). Dilempar repository. */
+export class StartPageAlreadyExistsError extends StartPageDomainError {
+  constructor() {
+    super("This workspace already has a Start Page");
+    this.name = "StartPageAlreadyExistsError";
+  }
+}
