@@ -6,6 +6,8 @@
 > keputusan yang disetujui tetap harus dipindahkan ke baseline dan/atau ADR yang
 > relevan sebelum diimplementasikan.
 
+> Usang sebagian: lihat ADR-097 (migrasi shadcn/ui) dan ADR-138 (AI Assistant bawaan dicabut; AI pengguna lewat MCP). Isi di bawah tidak diperbarui.
+
 ---
 
 ## 1. Deployment Landing Page dan Aplikasi dengan Subdomain di Railway

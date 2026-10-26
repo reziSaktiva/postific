@@ -6,7 +6,7 @@ Claude Design — Kebijakan Fidelitas Astryx (foundations + component library)
 
 ### Status
 
-Accepted
+Superseded by ADR-097 dan ADR-140 (2026-10-26). Sebelumnya: Accepted
 
 ### Date
 

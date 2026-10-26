@@ -33,7 +33,7 @@ Buktikan satu alur lengkap di staging, bukan membangun fitur. Hasilnya menjawab:
 
 **Baca dulu:** `05-architecture/domain-model.md` (BC-04) · `05-architecture/database-strategy.md` (BC-04) · `database-orm.md`
 
-Tabel `mcp_grants` dan `mcp_audit_logs`, repository Prisma, `McpAccessService` (`createGrant`, `revokeGrant`, `listGrants`, `authorizeCall`, `recordAudit`, `purgeAudit`). Hapus stub `domains/ai-assistant/`, model `AiRequest`/`AiResult` beserta migrasinya, dan ID terkait di `packages/shared`. **Cek dulu** apakah ada baris di `ai_requests`/`ai_results` di staging sebelum menulis migrasi drop. Cron purge audit 90 hari.
+Tabel `mcp_grants` dan `mcp_audit_logs`, repository Prisma, `McpAccessService` (`createGrant`, `revokeGrant`, `listGrants`, `authorizeCall`, `recordAudit`, `purgeAudit`). Hapus stub `domains/ai-assistant/`, model `AiRequest`/`AiResult` beserta migrasinya, dan ID terkait di `packages/shared`. **Cek dulu** apakah ada baris di `ai_requests`/`ai_results` di staging sebelum menulis migrasi drop. Cron purge audit 90 hari sebagai job baru di registry `background-jobs.md` (JOB-08).
 
 ### T-150 · Endpoint MCP dan tool baca
 
@@ -41,7 +41,7 @@ Tabel `mcp_grants` dan `mcp_audit_logs`, repository Prisma, `McpAccessService` (
 
 **Baca dulu:** `05-architecture/application-layer.md` (McpAccessService, pemetaan tool) · `05-architecture/integration-layer.md`
 
-`apps/web/src/app/api/mcp/route.ts` (Streamable HTTP), bypass `proxy.ts` untuk `/api/mcp` dan `/.well-known/*`, validasi `Origin`, `mcpHandler` dari `@better-auth/oauth-provider`, validasi ulang member dan role per panggilan. Delapan tool `read`: `get_workspace`, `list_accounts`, `list_media`, `list_drafts`, `list_scheduled_posts`, `list_published_posts`, `get_analytics`, `list_comments` (20 item per halaman, cursor). Isi komentar ditandai sebagai data tidak tepercaya. Route Handler tanpa business logic.
+`apps/web/src/app/api/mcp/route.ts` (Streamable HTTP), bypass `proxy.ts` untuk `/api/mcp` dan `/.well-known/*`, validasi `Origin`, `mcpHandler` dari `@better-auth/oauth-provider`, validasi ulang member per panggilan. Delapan tool `read`: `get_workspace`, `list_accounts`, `list_media`, `list_drafts`, `list_scheduled_posts`, `list_published_posts`, `get_analytics`, `list_comments` (20 item per halaman, cursor). Isi komentar ditandai sebagai data tidak tepercaya. Route Handler tanpa business logic.
 
 ### T-151 · Layar persetujuan OAuth (pilih workspace dan scope)
 
@@ -51,7 +51,7 @@ Tabel `mcp_grants` dan `mcp_audit_logs`, repository Prisma, `McpAccessService` (
 
 Layar tempat pengguna memilih satu workspace dan scope. Default `read` + `draft`; `schedule` harus dicentang sengaja.
 
-**Gate Claude Design:** rancangan **sudah ada** di artifact Postific (https://claude.ai/artifact/FdRNU4gnxgAGY3zmBxNfR3), `components/ScreenOauthConsent/preview.html`; **dikonfirmasi King Rezi 2026-10-26** setelah ditinjau lewat galeri review (https://claude.ai/artifact/4BJCWNsCwubLd7SFwRtree). Pola di `product-discovery/04-ux/key-screen-patterns.md` § KSP-09. Keputusan yang sudah dikunci: (1) **dua langkah berurutan**, pilih workspace (`/select-workspace`) lalu persetujuan scope (`/consent`), sesuai hasil spike T-148; (2) scope yang tidak diizinkan role di workspace terpilih **tampil nonaktif beserta alasan**; (3) nama dan host klien selalu tampil karena semua klien mendaftar sendiri; (4) state: normal, tanpa workspace, scope dibatasi role, klien tanpa nama atau host tidak lazim, error, loading. `publish` dan `reply` tidak ditampilkan. Pemilih workspace memakai daftar radio (`RadioGroup`) dan scope memakai checkbox; belum dikunci King Rezi, tanyakan bila ragu sebelum menulis kode (`AGENTS.md` aturan 10).
+**Gate Claude Design:** rancangan **sudah ada** di artifact Postific (https://claude.ai/artifact/FdRNU4gnxgAGY3zmBxNfR3), `components/ScreenOauthConsent/preview.html`; **dikonfirmasi King Rezi 2026-10-26** setelah ditinjau lewat galeri review (https://claude.ai/artifact/4BJCWNsCwubLd7SFwRtree). Pola di `product-discovery/04-ux/key-screen-patterns.md` § KSP-09. Keputusan yang sudah dikunci: (1) **dua langkah berurutan**, pilih workspace (`/select-workspace`) lalu persetujuan scope (`/consent`), sesuai hasil spike T-148; (2) pada MVP **tidak ada pembatasan scope berdasarkan role** (Account Owner, Admin, dan Creator setara untuk read, draft, dan schedule), jadi semua scope tampil aktif; (3) nama dan host klien selalu tampil karena semua klien mendaftar sendiri; (4) state: normal, tanpa workspace, klien tanpa nama atau host tidak lazim, error, loading. `publish` dan `reply` tidak ditampilkan. Pemilih workspace memakai daftar radio (`RadioGroup`) dan scope memakai checkbox; belum dikunci King Rezi, tanyakan bila ragu sebelum menulis kode (`AGENTS.md` aturan 10).
 
 ### T-152 · Tool draft dan penanda sumber MCP
 
