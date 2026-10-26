@@ -20,14 +20,19 @@ export default async function ConsentPage({
   }
 
   const { client_id: clientId, scope } = await searchParams;
-  const requested = (scope ?? "")
-    .split(" ")
-    .filter((value) => value.startsWith("mcp:"));
+  const requestedAll = (scope ?? "").split(" ").filter(Boolean);
+  const requested = requestedAll.filter((value) => value.startsWith("mcp:"));
+  // `offline_access` (refresh token) dan `openid` bukan pilihan pengguna di layar
+  // ini, tetapi harus ikut dikirim agar tidak dibuang dari consent.
+  const passthrough = requestedAll.filter(
+    (value) => value === "offline_access" || value === "openid",
+  );
 
   return (
     <ConsentForm
       clientId={clientId ?? "(tanpa client_id)"}
       requested={requested}
+      passthrough={passthrough}
     />
   );
 }

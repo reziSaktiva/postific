@@ -32,26 +32,45 @@ function readClaims(jwt: JWTPayload): SpikeClaims | null {
   return { userId, workspaceId, clientId, scopes };
 }
 
-/** Member aktif dan grant (consent) masih ada. Dijalankan di setiap panggilan. */
-async function assertStillAuthorized(claims: SpikeClaims): Promise<void> {
-  const membership = await new WorkspaceService(
-    workspaceRepository,
-  ).getMembership(asWorkspaceId(claims.workspaceId), asUserId(claims.userId));
-  if (!membership || membership.status !== MemberStatus.Active) {
-    throw new Error("Bukan member aktif workspace ini.");
+const workspaceService = new WorkspaceService(workspaceRepository);
+
+/**
+ * Satu gerbang untuk semua tool: scope token, member aktif, dan grant (consent)
+ * yang masih ada dan memuat scope itu. Dijalankan di setiap panggilan. Mengembalikan
+ * pesan penolakan, atau null bila lolos. Scope diperiksa terhadap token DAN consent
+ * di DB supaya penyempitan scope berlaku pada token lama.
+ */
+async function authorize(
+  claims: SpikeClaims,
+  requiredScope: string,
+): Promise<string | null> {
+  const denied = `Scope ${requiredScope} tidak diberikan.`;
+  if (!claims.scopes.includes(requiredScope)) {
+    return denied;
   }
 
-  const grant = await prisma.oauthConsent.findFirst({
-    where: {
-      clientId: claims.clientId,
-      userId: claims.userId,
-      referenceId: claims.workspaceId,
-    },
-    select: { id: true },
-  });
-  if (!grant) {
-    throw new Error("Akses klien ini sudah dicabut.");
+  const [membership, grant] = await Promise.all([
+    workspaceService.getMembership(
+      asWorkspaceId(claims.workspaceId),
+      asUserId(claims.userId),
+    ),
+    prisma.oauthConsent.findFirst({
+      where: {
+        clientId: claims.clientId,
+        userId: claims.userId,
+        referenceId: claims.workspaceId,
+      },
+      orderBy: { createdAt: "desc" },
+      select: { scopes: true },
+    }),
+  ]);
+  if (!membership || membership.status !== MemberStatus.Active) {
+    return "Bukan member aktif workspace ini.";
   }
+  if (!grant) {
+    return "Akses klien ini sudah dicabut.";
+  }
+  return grant.scopes.includes(requiredScope) ? null : denied;
 }
 
 function textResult(payload: unknown) {
@@ -64,6 +83,17 @@ function errorResult(message: string) {
   return { isError: true, content: [{ type: "text" as const, text: message }] };
 }
 
+function guardedTool(
+  claims: SpikeClaims,
+  requiredScope: string,
+  run: () => Promise<unknown>,
+) {
+  return async () => {
+    const denied = await authorize(claims, requiredScope);
+    return denied ? errorResult(denied) : textResult(await run());
+  };
+}
+
 function buildServer(claims: SpikeClaims): McpServer {
   const server = new McpServer({ name: "postific-spike", version: "0.0.1" });
 
@@ -73,24 +103,16 @@ function buildServer(claims: SpikeClaims): McpServer {
       description:
         "Spike T-148: nama workspace yang terikat ke koneksi ini (scope mcp:read).",
     },
-    async () => {
-      if (!claims.scopes.includes("mcp:read")) {
-        return errorResult("Scope mcp:read tidak diberikan.");
-      }
-      try {
-        await assertStillAuthorized(claims);
-      } catch (error) {
-        return errorResult((error as Error).message);
-      }
-      const workspace = await new WorkspaceService(
-        workspaceRepository,
-      ).getWorkspaceById(asWorkspaceId(claims.workspaceId));
-      return textResult({
+    guardedTool(claims, "mcp:read", async () => {
+      const workspace = await workspaceService.getWorkspaceById(
+        asWorkspaceId(claims.workspaceId),
+      );
+      return {
         workspaceId: claims.workspaceId,
         name: workspace?.name ?? null,
         grantedScopes: claims.scopes,
-      });
-    },
+      };
+    }),
   );
 
   server.registerTool(
@@ -99,17 +121,10 @@ function buildServer(claims: SpikeClaims): McpServer {
       description:
         "Spike T-148: tidak menjadwalkan apa pun, hanya membuktikan gerbang scope mcp:schedule.",
     },
-    async () => {
-      if (!claims.scopes.includes("mcp:schedule")) {
-        return errorResult("Scope mcp:schedule tidak diberikan.");
-      }
-      try {
-        await assertStillAuthorized(claims);
-      } catch (error) {
-        return errorResult((error as Error).message);
-      }
-      return textResult({ ok: true, note: "scope schedule diterima" });
-    },
+    guardedTool(claims, "mcp:schedule", async () => ({
+      ok: true,
+      note: "scope schedule diterima",
+    })),
   );
 
   return server;

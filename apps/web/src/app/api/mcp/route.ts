@@ -48,4 +48,16 @@ async function handle(request: Request): Promise<Response> {
   )(request);
 }
 
-export { handle as GET, handle as POST, handle as DELETE };
+// Server stateless: GET membuka stream SSE standalone yang tidak pernah ditutup
+// dan DELETE tidak punya sesi untuk dihapus, jadi keduanya 405 (pola SDK).
+function methodNotAllowed(): Response {
+  if (!mcpSpikeEnabled()) {
+    return new Response("Not found", { status: 404 });
+  }
+  return new Response("Method not allowed", {
+    status: 405,
+    headers: { Allow: "POST" },
+  });
+}
+
+export { handle as POST, methodNotAllowed as GET, methodNotAllowed as DELETE };

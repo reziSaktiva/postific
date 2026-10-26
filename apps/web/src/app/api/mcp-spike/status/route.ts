@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { auth } from "@/lib/better-auth/auth";
+import { getCachedSession } from "@/lib/better-auth/session";
 import { mcpBaseUrl, mcpSpikeEnabled } from "@/lib/better-auth/mcp-spike";
 
 // T-148 (spike MCP) — bukti untuk dua pertanyaan yang tersisa: apakah plugin
@@ -11,6 +12,10 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   if (!mcpSpikeEnabled()) {
     return new NextResponse("Not found", { status: 404 });
+  }
+  // Butuh sesi login: respons membuka susunan plugin dan status dash.
+  if (!(await getCachedSession())) {
+    return new NextResponse("Unauthorized", { status: 401 });
   }
 
   const pluginIds = (auth.options.plugins ?? []).map((plugin) => plugin.id);

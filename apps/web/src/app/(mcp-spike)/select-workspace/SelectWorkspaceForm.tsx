@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -85,7 +86,11 @@ export function SelectWorkspaceForm({
               ))}
             </ItemGroup>
           </RadioGroup>
-          {error ? <p className="text-sm text-destructive">{error}</p> : null}
+          {error ? (
+            <Alert variant="destructive">
+              <AlertTitle>{error}</AlertTitle>
+            </Alert>
+          ) : null}
           <Button onClick={handleContinue} disabled={isSubmitting || !selected}>
             Lanjut
           </Button>

@@ -83,7 +83,9 @@ tunnel ngrok HTTPS, database staging, dan Claude Code sungguhan:
   ADR menyebut "pengujian nyata dilakukan di staging"; poin itu hanya
   terpenuhi sebagian.
 - Alur refresh token. Tidak ada refresh token tersimpan di semua percobaan, jadi
-  pencabutan refresh token dan perpanjangan akses belum teruji.
+  pencabutan refresh token dan perpanjangan akses belum teruji. Penyebabnya
+  ditemukan di code review PR 199: layar persetujuan harness membuang
+  `offline_access` dari scope yang dikirim. Sudah diperbaiki, belum diuji ulang.
 - Panggilan setelah member dikeluarkan dari workspace (pemeriksaan member ada di
   kode tetapi jalur penolakannya belum dijalankan oleh klien nyata).
 - Klien selain Claude Code (Claude.ai, Cursor). Hanya Claude Code yang diuji.

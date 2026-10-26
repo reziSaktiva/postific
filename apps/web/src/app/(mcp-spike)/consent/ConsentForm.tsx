@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -39,9 +40,11 @@ const SCOPE_COPY: Record<string, { title: string; description: string }> = {
 export function ConsentForm({
   clientId,
   requested,
+  passthrough,
 }: {
   clientId: string;
   requested: string[];
+  passthrough: string[];
 }) {
   const [granted, setGranted] = useState<string[]>(
     requested.filter((scope) => scope !== "mcp:schedule"),
@@ -60,7 +63,7 @@ export function ConsentForm({
     setIsSubmitting(true);
     const { error: consentError } = await authClient.oauth2.consent({
       accept,
-      scope: accept ? granted.join(" ") : undefined,
+      scope: accept ? [...granted, ...passthrough].join(" ") : undefined,
     });
     if (consentError) {
       setIsSubmitting(false);
@@ -102,7 +105,11 @@ export function ConsentForm({
               </Item>
             ))}
           </ItemGroup>
-          {error ? <p className="text-sm text-destructive">{error}</p> : null}
+          {error ? (
+            <Alert variant="destructive">
+              <AlertTitle>{error}</AlertTitle>
+            </Alert>
+          ) : null}
           {/* eslint-disable-next-line no-restricted-syntax -- T-148 spike: komposisi Tailwind shadcn (ADR-097), sementara sampai T-151 */}
           <div className="flex gap-2">
             <Button

@@ -1,4 +1,5 @@
 import { oauthProvider } from "@better-auth/oauth-provider";
+import { APIError } from "better-auth/api";
 import { jwt } from "better-auth/plugins";
 
 /**
@@ -15,8 +16,9 @@ const WORKSPACE_CHOICE_TTL_MS = 10 * 60 * 1000;
 type WorkspaceChoice = { workspaceId: string; at: number };
 
 // Pilihan workspace per ID sesi (consentReferenceId hanya menerima session,
-// bukan cookie). Di memori: cukup untuk satu proses spike, bukan untuk
-// multi-instance. T-149 memindahkannya ke tabel.
+// bukan cookie). Di memori: cukup untuk satu proses spike. Dengan lebih dari satu
+// instance, `/oauth2/continue` yang jatuh di instance lain tidak melihat pilihan
+// dan mengalihkan ulang ke /select-workspace. T-151 memindahkannya ke tabel.
 const globalForChoices = globalThis as unknown as {
   __mcpSpikeWorkspaceChoices?: Map<string, WorkspaceChoice>;
 };
@@ -76,7 +78,18 @@ export function mcpSpikePlugins() {
         page: "/select-workspace",
         shouldRedirect: ({ session }) =>
           currentWorkspaceChoice(session.id) === undefined,
-        consentReferenceId: ({ session }) => currentWorkspaceChoice(session.id),
+        consentReferenceId: ({ session }) => {
+          const workspaceId = currentWorkspaceChoice(session.id);
+          if (!workspaceId) {
+            // Gagal tegas: consent tanpa workspace menerbitkan token tanpa
+            // `workspace_id` yang ditolak 403 tanpa penjelasan.
+            throw new APIError("BAD_REQUEST", {
+              message:
+                "Pilihan workspace kedaluwarsa. Ulangi penyambungan dari klien AI.",
+            });
+          }
+          return workspaceId;
+        },
       },
       customAccessTokenClaims: ({ referenceId }) => ({
         workspace_id: referenceId,
