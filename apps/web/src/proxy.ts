@@ -61,6 +61,14 @@ import {
 // Better Auth bisa membuat session (`autoSignInAfterVerification`) sementara
 // user masih di halaman yang sama. `PUBLIC_AUTH_PATHS` akan mengarahkan
 // session itu ke "/" . Bypass membiarkan kedua keadaan membuka halaman ini.
+// `/u/[slug]` (T-070.4, ADR-128) — halaman publik Start Page, satu-satunya
+// halaman produk yang memang untuk audiens anonim (tanpa cookie session sama
+// sekali). Dibypass dengan alasan sama seperti `/invite` di atas, bukan
+// `PUBLIC_AUTH_PATHS`: daftar itu me-redirect user yang SUDAH login ke "/",
+// padahal halaman publik harus terbuka untuk siapa pun, login atau tidak.
+// Server Component-nya sendiri yang resolve data lewat use-case publik
+// `GetPublicStartPageBySlug` tanpa workspace context; header `x-workspace-*`
+// tetap di-strip oleh jalur bypass ini.
 const BYPASS_PREFIXES = [
   "/api/auth",
   "/api/jobs",
@@ -69,6 +77,7 @@ const BYPASS_PREFIXES = [
   "/api/webhooks/outstand",
   "/invite",
   "/verify-email",
+  "/u",
 ];
 
 const PUBLIC_AUTH_PATHS = [

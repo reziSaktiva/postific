@@ -277,4 +277,54 @@ describe("proxy (middleware)", () => {
     }
     expect(getSessionMock).not.toHaveBeenCalled();
   });
+  describe("/u/[slug] public Start Page (T-070.4/T-070.7, ADR-128)", () => {
+    it("does not redirect to /login with no cookie at all, and never validates a session", async () => {
+      getSessionCookieMock.mockReturnValue(null);
+
+      for (const pathname of ["/u/raka", "/u/raka/", "/u/some-slug-123"]) {
+        const response = await proxy(makeRequest(pathname));
+        expect(response.status).toBe(200);
+        expect(response.headers.get("location")).toBeNull();
+      }
+      expect(getSessionMock).not.toHaveBeenCalled();
+    });
+
+    it("does not redirect a logged-in visitor to / (bypass, not PUBLIC_AUTH_PATHS)", async () => {
+      getSessionCookieMock.mockReturnValue("some-cookie-value");
+
+      const response = await proxy(makeRequest("/u/raka", "x=y"));
+
+      expect(response.headers.get("location")).toBeNull();
+      expect(getSessionMock).not.toHaveBeenCalled();
+    });
+
+    it("strips client-forged x-workspace-* headers on the public route", async () => {
+      getSessionCookieMock.mockReturnValue(null);
+
+      const response = await proxy(
+        makeRequest("/u/raka", undefined, {
+          "x-workspace-id": "forged-workspace",
+          "x-workspace-role": "owner",
+        }),
+      );
+
+      expect(response.headers.get("x-middleware-request-x-workspace-id")).toBe(
+        null,
+      );
+      expect(
+        response.headers.get("x-middleware-request-x-workspace-role"),
+      ).toBe(null);
+    });
+
+    it("does not widen the bypass to look-alike prefixes (/user, /uploads)", async () => {
+      getSessionCookieMock.mockReturnValue(null);
+
+      for (const pathname of ["/user", "/uploads/x", "/u-raka"]) {
+        const response = await proxy(makeRequest(pathname));
+        expect(new URL(response.headers.get("location")!).pathname).toBe(
+          "/login",
+        );
+      }
+    });
+  });
 });

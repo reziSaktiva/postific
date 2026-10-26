@@ -181,11 +181,11 @@ seluruh daftar Known Issues.
 
 ## Completed (Ringkasan)
 
+- **T-070 ✅ Done — skeleton Start Page + route publik `/u/[slug]` (2026-10-26, ADR-141, belum di-commit)** — repository publik, service `GetPublicStartPageBySlug`, bypass `proxy.ts`, validasi slug, tes tanpa session (curl asli tidak redirect). Baca publik lewat fungsi `SECURITY DEFINER`, bukan RLS anon. Migrasi belum di-apply di staging.
 - **T-144 dan T-145 ✅ Done — tampilan Publish WIB dan `occurred_at` untuk urutan History (2026-10-23, PR 194)** — History/Calendar/Queue memakai Asia/Jakarta tetap (helper `wib-time.ts`); kolom `occurred_at` generated column + indeks `(workspace_id, occurred_at DESC)` menggantikan sort di JS. Diverifikasi lewat DB dan dev server lokal (bukan deploy Railway).
 - **T-143 ✅ Done — import periodik mengejar riwayat akun baru (2026-10-23, KI-102, PR 192)** — watermark `null` memakai lookback 1 tahun dan limit 1000, hasil job tersimpan di `payload.result`. Ditutup atas pernyataan King Rezi; bukti siklus cron 2026-10-24 belum terlihat di DB saat dicek.
 - **T-142 ✅ Done — History memakai `publishedAt` (2026-10-23, PR 193)** — grup, urutan, dan jam kartu mengikuti waktu terbit; diverifikasi King Rezi di browser.
 - **T-133 ✅ Done — backfill Import Posts 1 tahun (2026-10-23)** — Facebook 184 dan Instagram 182 post terimpor dan terklasifikasi; TikTok terbukti didukung Import, Pinterest tetap keterbatasan eksplisit (tanpa akun test).
-- **T-139 dan T-141 ✅ Done — import batch besar (2026-10-23, KI-099, KI-101)** — insert dipecah per transaksi (50 post) dan `GET /v1/posts` dipaginasi (limit maks 100); terverifikasi dengan akun real Instagram (182 post).
   Berikut 5 item terakhir yang diselesaikan. Tiket lengkapnya ada di `tickets/`. Riwayat sesi ada di git.
 
 ---
@@ -194,6 +194,7 @@ seluruh daftar Known Issues.
 
 ADR terbaru. Daftar lengkap (indeks + link ke tiap ADR): lihat `DECISIONS.md`.
 
+- **ADR-141** — Baca publik Start Page lewat fungsi `SECURITY DEFINER` `start_page_get_public_by_slug`, bukan RLS policy anon (menggantikan teks T-070.5); belum di-apply di staging.
 - **ADR-140** — Artifact Claude (artifact desain Postific + galeri Postific Design Review) menggantikan Claude Design standalone dan DesignSync sebagai referensi visual; menggantikan ADR-042 dan ADR-056. Project Claude Design lama hanya-baca dan dilepas sebelum 2026-12-14.
 - **ADR-139** — Proposed (menunggu penutupan T-148). Hosting dan auth MCP server: Route Handler Streamable HTTP + OAuth 2.1 lewat `@better-auth/oauth-provider`, satu workspace per koneksi.
 - **ADR-138** — Pivot AI Assistant bawaan menjadi MCP Server: AI milik pengguna bekerja di Postific lewat MCP dengan scope `read`/`draft`/`schedule`.
@@ -202,7 +203,6 @@ ADR terbaru. Daftar lengkap (indeks + link ke tiap ADR): lihat `DECISIONS.md`.
 - **ADR-135** — `FetchPostMetricsResult` diperluas 3 field opsional (`mediaProductType`/`isReel`/`storyExpired`) dari Outstand Analytics untuk klasifikasi `ContentFormat` (Post/Reel/Story) post hasil Import, menutup T-132.
 - **ADR-134** — Tiket yang lahir dari Known Issue pindah ke `tickets/known-issues.md`. Tiket rilis tetap di `tickets/vXX-*.md`.
 - **ADR-133** — `AGENTS.md` root jadi pintu tipis. Esai yang sudah punya rumah di `context/`, `.claude/agents/README.md`, `project-os-navigator/SKILL.md`, dan `apps/web/.claude/CLAUDE.md` jadi penunjuk satu baris.
-- **ADR-132** — Folder kerja menjadi `project-os/`. Rumah tiket menjadi `tickets/` dan `AVAILABLE_TICKETS.md`. Kode hanya berubah lewat tiket. Known Issue terbuka punya tiket. Urutan tulis dokumen: product-discovery → context → project-os.
 
 ---
 

@@ -15,7 +15,7 @@
 
 ### T-070 · Start Page domain skeleton + strategi route publik
 
-`⏳ Not Started` (subtask T-070.1, ADR strategi routing, sudah ✅ lewat ADR-128; implementasi kode belum dimulai) · **Domain** start-page · **ADR** ADR-017, ADR-024, ADR-031, ADR-128 · **Depends** T-002 ✅
+`✅ Done` (2026-10-26; kode di branch `feature/t-070-start-page-public-route`, belum di-commit. Ridwan PASS, Najwa QA PASS) · **Domain** start-page · **ADR** ADR-017, ADR-024, ADR-031, ADR-128, ADR-141 · **Depends** T-002 ✅
 **Baca dulu:** `05-architecture/auth-architecture.md` · `apps/web/src/proxy.ts` · `05-architecture/database-strategy.md` · ADR-128
 
 Service + repository, plus keputusan arsitektur: di mana route publik hidup, bagaimana ia melewati auth guard, bagaimana RLS diperlakukan untuk data yang memang publik, dan apakah pakai custom domain atau subpath. **Keputusan arsitektur sudah dikunci di ADR-128 (2026-10-16): subpath `/u/[slug]`, bukan custom domain** — subtask di bawah mengikuti keputusan itu.
@@ -25,38 +25,57 @@ Service + repository, plus keputusan arsitektur: di mana route publik hidup, bag
 - **T-070.1 — ADR strategi routing publik** · ✅ Done (ADR-128, 2026-10-16)
   Dokumentasikan keputusan subpath `/u/[slug]` vs custom domain.
 
-- **T-070.2 — Repository interface publik**
+- **T-070.2 — Repository interface publik** · ✅ Done
   `StartPagePageRepository` / `StartPageLinkRepository`: query by `slug`
   yang hanya mengembalikan field aman untuk audiens anonim (tanpa data
   internal workspace).
+  Deviasi: satu interface `IPublicStartPageRepository` (halaman + tautan lewat satu query), bukan dua.
 
-- **T-070.3 — Application Service `GetPublicStartPageBySlug`**
+- **T-070.3 — Application Service `GetPublicStartPageBySlug`** · ✅ Done
   Use-case murni tanpa dependency session/workspace context — dipanggil
   dari route publik, bukan dari area yang dijaga Middleware.
 
-- **T-070.4 — Bypass route `/u/[slug]` di `proxy.ts`**
+- **T-070.4 — Bypass route `/u/[slug]` di `proxy.ts`** · ✅ Done
   Tambah ke `BYPASS_PREFIXES` (pola sama `/invite/[token]`), bukan ke
   `PUBLIC_AUTH_PATHS` (supaya tidak redirect user yang sudah login ke `/`).
   Server Component halaman publik resolve data lewat T-070.3.
 
-- **T-070.5 — RLS policy akses anon**
-  Policy baca publik di `StartPagePage`/`StartPageLink` (hanya row
+- **T-070.5 — RLS policy akses anon** · ✅ Done (dengan deviasi, ADR-141)
+  Teks asli: policy baca publik di `StartPagePage`/`StartPageLink` (hanya row
   berstatus "published"), tetap application-enforced sebagai primary check
   (AU-D06) — RLS sebagai defense-in-depth.
+  **Deviasi (ADR-141):** bukan policy anon, melainkan fungsi `SECURITY DEFINER`
+  `public.start_page_get_public_by_slug(text)` (hanya kolom aman; REVOKE dari
+  PUBLIC; GRANT EXECUTE hanya `app_runtime`; `ORDER BY position, id`). Policy anon
+  membuka `workspace_id`/`view_count`/`click_count` lewat PostgREST (Ridwan F1 HIGH),
+  policy `app_runtime` melemahkan isolasi tenant (F2).
+  **Belum terverifikasi:** migrasi belum di-apply di Supabase staging/asli; SQL
+  hanya diuji di Postgres 16 lokal dengan role stub; tipe kolom hasil `$queryRaw`
+  di DB nyata belum dicek. Cek saat migrasi pertama kali di-apply di staging.
+  Catatan LOW: F3 tes integrasi DB belum ada; F4 opsional `REVOKE EXECUTE` dari
+  `anon`/`authenticated` (grant default Supabase).
 
-- **T-070.6 — Slug validation & reserved words**
+- **T-070.6 — Slug validation & reserved words** · ✅ Done
   Format slug, cek uniqueness, dan daftar reserved path (`/u/login`,
   `/u/api`, dst.) supaya tidak bentrok dengan route lain.
+  Deviasi: cek uniqueness tidak dibuat (slug sudah `@unique`; jalur tulis slug
+  masuk T-072). Yang dibuat: format + reserved words, panjang 3-40.
 
-- **T-070.7 — Test akses publik tanpa session**
+- **T-070.7 — Test akses publik tanpa session** · ✅ Done
   Verifikasi `/u/[slug]` bisa diakses tanpa cookie session sama sekali
   (curl langsung, bukan hanya browser login) — pola sama seperti bug
   webhook T-026 yang ditemukan lewat curl asli.
+  Hasil QA: 59 tes terkait lolos; curl tanpa cookie ke `/u/*` tidak redirect ke
+  `/login`, kontrol `/dashboard` 307; typecheck 0 error. Suite penuh: 5 tes + 6
+  file gagal, sama persis dengan baseline `origin/staging` (DB tidak terjangkau).
+  Route `/u/[slug]` saat ini markup placeholder tanpa styling; tampilan final = T-071.
 
 ### T-071 · Public profile page
 
 `⏳ Not Started` · **Domain** start-page · UI · **ADR** ADR-046, ADR-129 · **Depends** T-070
 **Baca dulu:** `04-ux/key-screen-patterns.md` · `04-ux/information-architecture.md` · ADR-129 · artifact Postific `project/templates/start-page-option-b-card-stack.html` (LOCKED PATTERN)
+
+**Prasyarat dari review T-070 (wajib):** validasi `link.url` dan `avatarUrl` dengan `new URL()` hanya http/https di sisi render; `rel="noopener noreferrer nofollow ugc"` + `target="_blank"`; allowlist `theme`; metadata/robots; header keamanan.
 
 **Must Have.** Halaman publik yang bisa dibagikan lewat media sosial. Perlu perhatian pada SEO/meta tag, caching, dan performa — ini satu-satunya halaman yang dilihat audiens, bukan pengguna produk.
 
@@ -73,6 +92,8 @@ Postific (ADR-140) sebelum menulis kode (gate T-103.3) — jangan menebak strukt
 
 `⏳ Not Started` · **Domain** start-page · UI · **ADR** ADR-130 · **Depends** T-070
 **Baca dulu:** `02-product/mvp-definition.md` · ADR-130 · artifact Postific `project/templates/start-page-editor.html` (LOCKED, App Prototype)
+
+**Prasyarat dari review T-070 (wajib):** batas panjang `title`/`bio`/`label`/`url` di jalur tulis; normalisasi slug (`parseSlug` lowercase); invariant uniqueness slug.
 
 **Must Have.** CRUD daftar tautan + urutan tampil. Pertimbangkan konfirmasi hapus tautan (ADR-049).
 
