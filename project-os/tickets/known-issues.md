@@ -1337,6 +1337,13 @@ Claude Design tutup **2026-12-14**.
       project lama (UUID di URL project di claude.ai/design) supaya AI bisa
       membaca `list_files` dan membandingkannya, hanya baca. Hasilnya daftar
       layar yang hanya ada di project lama (boleh kosong)
+      _Perbandingan awal AI 2026-10-26 (hanya baca, `DesignSync list_files`
+      memakai `projectId` dari `context/ctx-design.md`, tingkat nama file):
+      tidak ada layar yang hanya ada di project lama. Semua template lama
+      punya padanan kartu `Screen*` di artifact. `templates/oauth-consent.html`
+      lama adalah versi satu halaman (lima state) yang sudah digantikan kartu
+      `ScreenOauthConsent` dua langkah. Isi tiap file belum dibandingkan, jadi
+      T-158.1 masih menunggu King Rezi memastikan di galeri._
 - [ ] **T-158.2** Untuk tiap layar yang hanya ada di project lama dan masih
       dipakai: Neymar Product Designer memindahkannya ke artifact Postific,
       lalu King Rezi mengonfirmasinya lewat galeri review. Layar yang tidak
