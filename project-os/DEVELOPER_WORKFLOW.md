@@ -43,7 +43,7 @@ flowchart TD
   R --> H{Menyentuh UI?}
 
   H -->|Tidak| K
-  H -->|Ya| I{Rancangan ada di Claude Design<br/>dan polanya sudah terkunci?}
+  H -->|Ya| I{Rancangan ada di artifact desain Postific<br/>dan polanya sudah terkunci?}
   I -->|Belum ada, atau pola masih ambigu| STOP[Berhenti dan tanya King Rezi<br/>jangan menulis kode UI]
   I -->|Sudah| J[Baca apps/web/.claude/CLAUDE.md<br/>lalu CLI/MCP shadcn]
   J --> K[Kode domain, job, atau API]
@@ -162,4 +162,4 @@ disconnect (KSP-D09) — tetap menunggu di antrean sampai akun reconnect.
 - `../product-discovery/04-ux/user-flows.md` — flow lengkap (UF-01 s/d UF-06)
 - `../product-discovery/02-product/roles-permissions.md` — roles & content status
 - `../product-discovery/05-architecture/auth-architecture.md` — auth & session detail
-- `../context/ctx-design.md` — pointer Claude Design project (ADR-045)
+- `../context/ctx-design.md` — pointer artifact desain Postific (ADR-140; folder `design/` dihapus, ADR-045)

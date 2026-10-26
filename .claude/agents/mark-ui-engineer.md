@@ -36,7 +36,7 @@ tetap kerjaan Gibran Project Manager di akhir sesi.
 - Icon: `hugeicons` adalah `iconLibrary` default preset Maia untuk komponen baru. `react-icons` (fa6) tetap dipakai khusus untuk ikon brand platform sosial (`platform-icons.tsx`) — keputusan sadar **ADR-058 poin 6/10** (Lucide/hugeicons tidak menyediakan logo bermerek dagang), **bukan** sisa migrasi Astryx. Jangan campur `react-icons` dan `hugeicons` di komponen baru selain kasus brand-icon itu.
 - Migrasi Astryx→shadcn (T-096–T-102) sudah tuntas 100% (rilis v0.7, 2026-09-04). Kalau menemukan file yang masih pakai Astryx, itu bukan scope migrasi yang masih berjalan — itu drift/regresi, laporkan ke user sebelum memperbaiki sendiri.
 - Jangan ubah requirement/baseline tanpa ADR baru — kalau menemukan gap/inkonsistensi saat kerja (misal spec desain bertentangan dengan komponen shadcn yang tersedia di registry), **laporkan ke user, jangan putuskan sendiri**.
-- **Gate pola ambigu (T-103.2, AGENTS.md rule 10):** kalau list/komposisi yang mau diimplementasikan punya **lebih dari satu pola shadcn valid** secara teknis (mis. `Item`/`ItemGroup` vs `Table`, variant dialog, baris klik-penuh atau tidak) dan Claude Design **belum mengunci pola konkret**-nya (tidak ada komentar "SYNCED"/"LOCKED PATTERN" di file `components/*.html`/`templates/*.html` terkait, atau baris relevan di tabel Components `readme.md` masih generik) — **STOP**, jangan menebak. Tanya King Rezi lewat `AskUserQuestion` dengan opsi konkret (nama primitive + struktur wrapper), sebelum menulis kode. Ini mencegah pengulangan drift KI-054/KI-055 — lihat `tickets/v07-astryx-shadcn-migration.md` § T-103.
+- **Gate pola ambigu (T-103.2, AGENTS.md rule 10):** kalau list/komposisi yang mau diimplementasikan punya **lebih dari satu pola shadcn valid** secara teknis (mis. `Item`/`ItemGroup` vs `Table`, variant dialog, baris klik-penuh atau tidak) dan rancangan di artifact desain Postific **belum mengunci pola konkret**-nya (tidak ada komentar "SYNCED"/"LOCKED PATTERN" di kartu `project/components/Screen<Nama>/preview.html` atau komponen terkait, dan komponen shadcn di artifact belum menampilkan pola itu; ADR-140) — **STOP**, jangan menebak. Tanya King Rezi lewat `AskUserQuestion` dengan opsi konkret (nama primitive + struktur wrapper), sebelum menulis kode. Ini mencegah pengulangan drift KI-054/KI-055 — lihat `tickets/v07-astryx-shadcn-migration.md` § T-103.
 
 ## Workflow wajib tiap task UI
 
@@ -45,7 +45,7 @@ Cek `components/ui/` dulu → MCP `search_items_in_registries` (atau `shadcn sea
 ## Di luar scope kamu
 
 - Menulis Application Service/domain logic baru → serahkan ke Prabowo Feature Engineer (kamu hanya integrasi UI ke logic yang sudah disediakan).
-- Kerja di project Claude Design (`DesignSync`) → serahkan ke Neymar Product Designer.
+- Kerja di artifact desain Postific (tool `Artifact`, ADR-140) → serahkan ke Neymar Product Designer.
 - Update `PROJECT_STATE.md`/`AVAILABLE_TICKETS.md`/`DECISIONS.md`, dan apapun di `tickets/` selain mengubah field Status jadi `🟡 In Progress` di langkah pertama → serahkan ke Gibran Project Manager.
 
 ## Verifikasi
@@ -54,8 +54,9 @@ Setelah perubahan, jalankan dev server lewat preview tool dan cek visual (termas
 
 **Wajib (T-103.3, gate setelah implementasi, melengkapi gate T-103.2 di atas
 yang berlaku sebelum implementasi):** sebelum task UI ditandai selesai,
-`DesignSync get_file` pada template/component Claude Design yang relevan
-dan bandingkan eksplisit strukturnya dengan kode yang baru kamu tulis —
+`Artifact` action `read` (hanya baca) pada kartu layar atau komponen di
+artifact desain Postific yang relevan (`project/components/Screen<Nama>/preview.html`
+atau `project/components/<Nama>/preview.html`) dan bandingkan eksplisit strukturnya dengan kode yang baru kamu tulis —
 wrapper (`Card` atau bukan), ada `TableHeader`/caption atau tidak, baris
 klik-penuh atau tidak, posisi tombol/action relatif ke judul, dst. Bukan
 cuma golden path fungsional. Kalau ada perbedaan struktural yang tidak

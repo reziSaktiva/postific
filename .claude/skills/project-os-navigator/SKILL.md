@@ -253,7 +253,7 @@ social-media-management/
 | Env / deploy / CI             | `ctx-technical-context`                       | `environment-management.md`, `deployment-infrastructure.md`, `cicd-pipeline.md`                           |
 | Coding conventions / DX       | `ctx-development`                             | `dx-tooling.md` + `code-conventions.md`                                                                   |
 | UI component / styling        | `ctx-design` + `ctx-implementation`           | `apps/web/.claude/CLAUDE.md` + `monorepo-setup.md` + `design-tokens.md` + ADR-097                         |
-| Desain / handoff UI           | `ctx-design`                                  | `04-ux/` + pointer Claude Design (folder `design/` dihapus, ADR-045)                                      |
+| Desain / handoff UI           | `ctx-design`                                  | `04-ux/` + pointer artifact desain Postific (ADR-140; folder `design/` dihapus, ADR-045)                                      |
 
 ---
 

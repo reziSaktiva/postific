@@ -107,7 +107,7 @@ dan section tiketnya di `tickets/vXX-*.md` (ADR-131) — tidak diduplikasi di si
 
 Catatan non-task (bukan task, jadi memang layak di sini): template
 `design-tokens.md` berstatus Draft / TBD; nilai final berkembang iteratif
-co-equal dengan Claude Design (ADR-056) — tidak ada lagi gerbang "designer
+co-equal dengan artifact desain (ADR-140, menggantikan ADR-056) — tidak ada lagi gerbang "designer
 masuk", project ini tidak akan merekrut designer eksternal (ADR-057,
 amandemen ADR-038 & ADR-041).
 

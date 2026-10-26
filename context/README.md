@@ -26,7 +26,7 @@ context/
 ├── ctx-technical-context.md   ← Stack, env, Prisma, Better Auth, deploy/CI
 ├── ctx-development.md         ← DX, script, lint/test, konvensi coding
 ├── ctx-implementation.md      ← Pola implementasi di apps/web & domains/
-└── ctx-design.md              ← pointer UX (04-ux) + Claude Design (ADR-045)
+└── ctx-design.md              ← pointer UX (04-ux) + artifact desain Postific (ADR-140)
 ```
 
 ---
@@ -42,7 +42,7 @@ context/
 | `ctx-technical-context` | _Stack & infra_: Bun/Next, Prisma, Better Auth config, Railway, env, CI             | Pola folder domain, konvensi naming kode                |
 | `ctx-development`       | DX, perintah lokal/CI, lint/format/test, **aturan coding/konvensi**                 | Pola Application Service / di folder mana fitur ditaruh |
 | `ctx-implementation`    | _Cara menulis fitur_ di repo: entry → service → domain → repo, import rules         | Keputusan stack atau pricing bisnis                     |
-| `ctx-design`            | Pointer ke UX flows/IA (`04-ux/`) dan project Claude Design (ADR-045)               | Implementasi komponen React detail                      |
+| `ctx-design`            | Pointer ke UX flows/IA (`04-ux/`) dan artifact desain Postific (ADR-140)            | Implementasi komponen React detail                      |
 
 ---
 
@@ -69,4 +69,4 @@ context/
 - Pintu masuk agent: `../AGENTS.md`
 - Source of Truth produk: `../product-discovery/`
 - Project OS: `../project-os/`
-- Pointer desain (Claude Design + UX): `ctx-design.md`
+- Pointer desain (artifact desain + UX): `ctx-design.md`

@@ -17,7 +17,7 @@ Bukan tempat pola folder domain atau aturan gaya kode (itu `ctx-implementation` 
 | [`deployment-infrastructure.md`](../product-discovery/06-engineering/deployment-infrastructure.md) | Railway + Supabase SEA (ADR-028, ADR-029)                                                                                             |
 | [`cicd-pipeline.md`](../product-discovery/06-engineering/cicd-pipeline.md)                         | GitHub Actions gates, Railway CD (ADR-032)                                                                                            |
 | [`dependency-strategy.md`](../product-discovery/06-engineering/dependency-strategy.md)             | Caret default, lockfile, `@postific/shared` (ADR-035); pengecualian exact pin Astryx Beta superseded oleh migrasi shadcn/ui (ADR-097) |
-| [`design-tokens.md`](../product-discovery/06-engineering/design-tokens.md)                         | SoT visual tokens — co-equal dengan Claude Design, dikunci iteratif tanpa menunggu designer eksternal (ADR-038, ADR-056, ADR-057)     |
+| [`design-tokens.md`](../product-discovery/06-engineering/design-tokens.md)                         | SoT visual tokens — co-equal dengan artifact desain, dikunci iteratif tanpa menunggu designer eksternal (ADR-038, ADR-140, ADR-057)   |
 
 Implementasi di repo:
 
@@ -63,7 +63,7 @@ Implementasi di repo:
 5. CI wajib: install → prisma generate/validate → typecheck → lint → test.
 6. Email transactional memakai Resend (ADR-126, AS-D04). Jangan menambah provider lain. Katalog env ada di `environment-management.md` (T-005.2). Wiring Better Auth masih T-005.3–.5.
 7. Jangan ubah Engineering Baseline tanpa ADR.
-8. Design tokens: SoT di `design-tokens.md`, co-equal dengan Claude Design
+8. Design tokens: SoT di `design-tokens.md`, co-equal dengan artifact desain
    (folder `design/` sudah dihapus dan tidak dibuat ulang, ADR-045, ADR-057
    — tidak ada designer eksternal, permanen). Gunakan Stone theme (ADR-087)
    sebagai acuan nilai token, dipetakan ke CSS variable shadcn/ui

@@ -79,8 +79,8 @@ ACK; pemrosesan domain berjalan sesudah ACK melalui job internal.
   langsung dari lokasi hasil copy-nya.
 - Tailwind dipakai langsung sebagai styling utama komponen shadcn (bukan lagi
   layout-only seperti era Astryx dulu, ADR-097 poin 4).
-- Nilai final `design-tokens.md` (co-equal dengan Claude Design, tidak
-  menunggu designer eksternal — ADR-056, ADR-057) dipetakan ke CSS variable
+- Nilai final `design-tokens.md` (co-equal dengan artifact desain, tidak
+  menunggu designer eksternal — ADR-140, ADR-057) dipetakan ke CSS variable
   shadcn + Tailwind token bridge tanpa mengganti fondasi komponen.
 - Penamaan & peletakan file/folder komponen (PascalCase untuk file yang
   meng-export component, kebab-case untuk folder & helper, peletakan

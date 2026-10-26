@@ -17,6 +17,7 @@ dirujuk, dokumen yang dirujuk menang.
 | Aturan kerja & governance        | `project-os/PROJECT_RULES.md`         |
 | Keputusan (ADR)                  | `project-os/DECISIONS.md`             |
 | Produk & engineering             | `product-discovery/`                  |
+| Referensi visual (artifact)      | `context/ctx-design.md` (ADR-140)     |
 | Orientasi arsitektur (ringkas)   | `project-os/ARCHITECTURE_OVERVIEW.md` |
 | Alur kerja developer (mermaid)   | `project-os/DEVELOPER_WORKFLOW.md`    |
 | AI Context (ringkas, per domain) | `context/`                            |
@@ -56,19 +57,20 @@ dirujuk, dokumen yang dirujuk menang.
 10. **UI produk memakai shadcn/ui** (ADR-097). **Setiap task yang diperintahkan
     King Rezi wajib diklasifikasi dulu**: UI/UX-related (menyentuh screen,
     komponen visual, layout, style, atau flow yang terlihat user) atau bukan.
-    - Kalau **UI/UX-related**: sebelum menulis kode, cek dulu ke Claude
-      Design (project "Social Media Management", via `DesignSync`) apakah
+    - Kalau **UI/UX-related**: sebelum menulis kode, cek dulu ke artifact
+      desain Postific (artifact "Postific", pointer di `context/ctx-design.md`,
+      dibaca lewat tool `Artifact` action `read`; ADR-140) apakah
       screen/komponen yang relevan sudah ada rancangannya di sana. Kalau
-      **belum ada**: **STOP**, beri tahu King Rezi, tunggu rancangan dibuat/
-      dikonfirmasi sebelum lanjut. Kalau sudah ada tapi elemen yang mau
+      **belum ada**: **STOP**, beri tahu King Rezi, tunggu rancangan dibuat
+      dan dikonfirmasi di galeri "Postific Design Review" sebelum lanjut. Kalau sudah ada tapi elemen yang mau
       diimplementasikan **ambigu** (lebih dari satu pola shadcn/ui sama-sama
-      valid dan Claude Design belum mengunci pola konkretnya): **STOP**,
+      valid dan rancangan belum mengunci pola konkretnya): **STOP**,
       tanya King Rezi lewat `AskUserQuestion` dengan opsi konkret, jangan
       menebak (insiden KI-054/KI-055, lihat `tickets/v07-astryx-shadcn-migration.md` § T-103).
     - Kalau **bukan** UI/UX-related: lanjut seperti biasa.
     - Sebelum menulis/mengubah komponen UI, baca juga `apps/web/.claude/CLAUDE.md`
       dan jangan menebak nama komponen/props/pola styling. Sebelum mengubah
-      apapun di Claude Design atau menambah kontrol pembanding (toggle/switch
+      apapun di artifact desain atau menambah kontrol pembanding (toggle/switch
       antar variant), baca `.claude/skills/claude-design-scope-discipline/SKILL.md`
       dulu (insiden ADR-052).
 11. Untuk kapabilitas Outstand baru: **jangan** membangun Fake adapter di
