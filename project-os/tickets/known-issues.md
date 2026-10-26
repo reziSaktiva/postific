@@ -1297,3 +1297,56 @@ post TikTok (`list_posts`, `total: 118`); DB kita hanya 100 (14 Mar – 30 Mei
 **Sementara:** untuk akun yang sudah terpotong, jalankan
 `bun --env-file=.env.local run scripts/t139-verify-large-import.ts <platform>`
 (dedup aman) — sudah dipakai untuk TikTok 2026-10-23.
+
+---
+
+### T-158 · Project Claude Design lama belum dilepas dan isinya belum diverifikasi terhadap artifact (KI-103, ADR-140)
+
+| Field       | Value                                                        |
+| ----------- | ------------------------------------------------------------ |
+| **Status**  | 🚫 Menunggu King Rezi (langkah manual di akun Claude Design) |
+| **Domain**  | design (referensi visual)                                    |
+| **Spec**    | tidak ada — single-issue                                     |
+| **Docs**    | KI-103, ADR-140, `context/ctx-design.md`                     |
+| **Terkait** | ADR-042 dan ADR-056 (Superseded oleh ADR-140), T-156         |
+| **Depends** | —                                                            |
+
+**Ditemukan (2026-10-26):** ADR-140 memindahkan referensi visual ke artifact
+Postific dan galeri Postific Design Review. Alur kerja ke depan sudah memakai
+artifact dan terbukti dari sesi utama dan sesi subagent (read, list, publish).
+Yang belum selesai adalah pembersihan project Claude Design lama. Standalone
+Claude Design tutup **2026-12-14**.
+
+**Kenapa terbuka:**
+
+1. Project lama belum dilepas. Itu langkah manual di akun Claude Design King
+   Rezi dan tidak bisa dikerjakan dari sesi AI.
+2. Isi project lama belum dibandingkan dengan artifact. Pada 2026-10-26
+   `DesignSync list_projects` tidak menampilkan project Postific lama (hanya
+   project design-system yang bisa ditulis yang terdaftar), jadi AI tidak bisa
+   memeriksa isinya tanpa `projectId`. Satu celah sudah ketemu: T-156 dulu
+   merujuk `templates/settings-ai-clients.html` yang tidak ada di artifact
+   (rujukan itu sudah dihapus dari tiket; kartu `ScreenSettingsAiClients` ada).
+   Migrasi tidak terbukti mulus untuk setiap file, jadi rancangan yang hanya
+   hidup di project lama bisa hilang saat dilepas.
+
+**Yang harus dilakukan:**
+
+- [ ] **T-158.1** King Rezi membandingkan daftar layar project Claude Design
+      lama dengan galeri Postific Design Review, atau memberi `projectId`
+      project lama (UUID di URL project di claude.ai/design) supaya AI bisa
+      membaca `list_files` dan membandingkannya, hanya baca. Hasilnya daftar
+      layar yang hanya ada di project lama (boleh kosong)
+- [ ] **T-158.2** Untuk tiap layar yang hanya ada di project lama dan masih
+      dipakai: Neymar Product Designer memindahkannya ke artifact Postific,
+      lalu King Rezi mengonfirmasinya lewat galeri review. Layar yang tidak
+      dipakai dicatat sebagai tidak dimigrasi
+- [ ] **T-158.3** King Rezi melepas project Claude Design lama **sebelum
+      2026-12-14**
+- [ ] **T-158.4** Setelah dilepas: tambahkan addendum bertanggal di ADR-140
+      bahwa project lama sudah dilepas, lalu tutup tiket ini dan keluarkan
+      KI-103 dari tabel Known Issues di `PROJECT_STATE.md`
+
+**Bukan bagian tiket ini:** sebutan Claude Design di ADR lama dan tiket yang
+sudah selesai adalah riwayat. Label "Gate Claude Design" dan nama folder skill
+`claude-design-scope-discipline` sengaja dipertahankan (ADR-140).
