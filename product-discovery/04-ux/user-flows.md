@@ -71,7 +71,7 @@ Setiap flow memiliki struktur:
 
 **Trigger:** Raka memulai sesi kerja konten harian atau menerima brief baru.
 
-**Modul:** Publishing (Draft Editor, Account Selector, Content Format Selector, Schedule Picker), AI Assistant
+**Modul:** Publishing (Draft Editor, Account Selector, Content Format Selector, Schedule Picker). AI pengguna dapat membuat draft dan menjadwalkan lewat MCP (ADR-138)
 
 ---
 
@@ -81,7 +81,7 @@ Setiap flow memiliki struktur:
 2. **Draft Editor** terbuka — Caption Editor aktif sebagai fokus utama.
 3. Raka memilih:
    - **Menulis manual** — Raka mengetik caption langsung di Caption Editor.
-   - **Menggunakan AI Assist** (opsional) — Raka memicu AI inline di Caption Editor, memilih tone/intent singkat, AI menghasilkan beberapa opsi caption. Raka memilih satu dan mengeditnya seperlunya.
+   - **Menyunting draft dari AI pengguna** (opsional) — draft juga dapat disusun AI pengguna lewat MCP lalu disunting Raka di sini (ADR-138).
 4. Raka melampirkan media melalui **Media Attachment** — dari file lokal atau Media Library.
 5. Raka memilih satu atau beberapa akun tujuan via **Account Selector**.
 6. Per akun terpilih, Raka menetapkan **Content Format** sesuai platform (ADR-039): IG/FB → Post / Reel / Story; Pinterest → Pin (+ field pin bila perlu); TikTok & lainnya → Post.
@@ -111,7 +111,6 @@ Setiap flow memiliki struktur:
 
 * **UXP-01** — Flow ini mewakili tahapan Production → Scheduling dalam satu siklus kerja tanpa context switching ke tool lain.
 * **UXP-04** — Ringkasan konfirmasi (caption + akun + format + waktu) sebelum schedule membangun kepercayaan bahwa konten akan terbit ke tempat dan format yang benar.
-* **UXP-06 (I-06)** — AI Assist hadir di dalam Caption Editor sebagai aksi kontekstual, bukan modul terpisah yang memaksa Raka keluar dari flow.
 
 ---
 
@@ -257,7 +256,7 @@ Setiap flow memiliki struktur:
 
 * **UXP-01** — Engage adalah tahapan natural setelah Publish dalam satu siklus kerja — navigasi mencerminkan urutan ini.
 * **UXP-03** — Inbox yang terpusat menggantikan kebutuhan membuka multiple native apps; kesederhanaan ini adalah solusi inti, bukan fitur tambahan.
-* **UXP-05 (I-05)** — Engagement adalah retention layer produk; Inbox yang terkonsolidasi mendorong Raka tetap menggunakan produk setelah fase publishing.
+* **UXP-07 (I-05)** — Engagement adalah retention layer produk; Inbox yang terkonsolidasi mendorong Raka tetap menggunakan produk setelah fase publishing.
 
 **Batas MVP:** Flow ini hanya mencakup komentar dan reply. Direct Message, mention, dan webhook engagement tidak termasuk MVP. Data diperbarui melalui periodic pull 30 menit atau manual refresh (ADR-040).
 
@@ -405,7 +404,7 @@ Siklus ini mencerminkan **UXP-01**: Draft → Schedule → Publish → Engage �
 
 | ID | Keputusan | Prinsip | Dampak |
 | -- | --------- | ------- | ------ |
-| UXD-01 | AI Caption diakses dari dalam Caption Editor — bukan menu atau layar terpisah | UXP-06, I-06 | AI tidak menambah navigasi baru; ia mempercepat alur yang sudah ada |
+| UXD-01 | ~~AI Caption diakses dari dalam Caption Editor — bukan menu atau layar terpisah~~ — **Dicabut ADR-138** (AI bawaan dicabut; AI pengguna bekerja lewat MCP) | UXP-06, I-06 | ~~AI tidak menambah navigasi baru; ia mempercepat alur yang sudah ada~~ |
 | UXD-02 | Status `Failed` dan `Disconnected` terlihat di Calendar dan Queue — bukan hanya di Settings | UXP-04 | Masalah terdeteksi sebelum publish gagal |
 | UXD-03 | Empty state Analytics memberi dua tautan aksi, bukan hanya pesan informasi | UXP-03 | Pengguna tidak stuck; dead end dihilangkan |
 | UXD-04 | Maya dan Raka berbagi Calendar yang sama — bukan view terpisah | UXP-02 | Visibilitas tanpa overhead: satu Calendar melayani dua kebutuhan |
@@ -417,7 +416,7 @@ Siklus ini mencerminkan **UXP-01**: Draft → Schedule → Publish → Engage �
 | ID | Asumsi | Evaluasi |
 | -- | ------ | -------- |
 | A-05 | Publishing adalah pekerjaan inti | UF-01 dan UF-02 adalah flow terpanjang dan paling kompleks — mendukung asumsi ini |
-| A-07 | AI berguna jika masuk workflow | AI Assist di UF-01 adalah opsional in-flow, bukan titik masuk terpisah — selaras dengan I-06 |
+| A-07 | AI berguna jika masuk workflow | AI pengguna bekerja lewat MCP di luar alur penulisan Postific (ADR-138); UF-01 tetap berjalan tanpa AI bawaan, dan draft dari AI hanya perlu disunting Raka di Caption Editor |
 | A-02 | Buyer ≠ daily user | UF-03 dan UF-06 dirancang agar Maya mendapat value tanpa harus ikut flow Raka |
 
 ---

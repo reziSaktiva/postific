@@ -17,7 +17,7 @@ Bukan tempat pola folder domain atau aturan gaya kode (itu `ctx-implementation` 
 | [`deployment-infrastructure.md`](../product-discovery/06-engineering/deployment-infrastructure.md) | Railway + Supabase SEA (ADR-028, ADR-029)                                                                                             |
 | [`cicd-pipeline.md`](../product-discovery/06-engineering/cicd-pipeline.md)                         | GitHub Actions gates, Railway CD (ADR-032)                                                                                            |
 | [`dependency-strategy.md`](../product-discovery/06-engineering/dependency-strategy.md)             | Caret default, lockfile, `@postific/shared` (ADR-035); pengecualian exact pin Astryx Beta superseded oleh migrasi shadcn/ui (ADR-097) |
-| [`design-tokens.md`](../product-discovery/06-engineering/design-tokens.md)                         | SoT visual tokens — co-equal dengan Claude Design, dikunci iteratif tanpa menunggu designer eksternal (ADR-038, ADR-056, ADR-057)     |
+| [`design-tokens.md`](../product-discovery/06-engineering/design-tokens.md)                         | SoT visual tokens — co-equal dengan artifact desain, dikunci iteratif tanpa menunggu designer eksternal (ADR-038, ADR-140, ADR-057)   |
 
 Implementasi di repo:
 
@@ -63,7 +63,7 @@ Implementasi di repo:
 5. CI wajib: install → prisma generate/validate → typecheck → lint → test.
 6. Email transactional memakai Resend (ADR-126, AS-D04). Jangan menambah provider lain. Katalog env ada di `environment-management.md` (T-005.2). Wiring Better Auth masih T-005.3–.5.
 7. Jangan ubah Engineering Baseline tanpa ADR.
-8. Design tokens: SoT di `design-tokens.md`, co-equal dengan Claude Design
+8. Design tokens: SoT di `design-tokens.md`, co-equal dengan artifact desain
    (folder `design/` sudah dihapus dan tidak dibuat ulang, ADR-045, ADR-057
    — tidak ada designer eksternal, permanen). Gunakan Stone theme (ADR-087)
    sebagai acuan nilai token, dipetakan ke CSS variable shadcn/ui
@@ -87,14 +87,14 @@ Implementasi di repo:
 Project ini dikerjakan di **dua tool**: Claude Code (utama) dan Cursor.
 Sebagian aset agent terbaca di keduanya, sebagian tidak:
 
-| Aset                                   | Claude Code                                     | Cursor                                            |
-| -------------------------------------- | ----------------------------------------------- | ------------------------------------------------- |
-| `AGENTS.md` (pintu masuk + hard rules) | ✅ via `CLAUDE.md`                              | ✅ native                                         |
-| `.claude/skills/`                      | ✅ satu-satunya lokasi                          | ✅ compatibility path                             |
-| `.claude/agents/` (7 subagent kerja)   | ✅                                              | ✅ compatibility path                             |
-| Config MCP (`xds` Astryx)              | ✅ `.mcp.json`                                  | ⚠️ `.cursor/mcp.json` — **file terpisah**         |
-| Proteksi baca secret                   | ✅ `.claude/settings.json` (`permissions.deny`) | ⚠️ `.cursorignore` — **file terpisah**            |
-| `.claude/launch.json` (preview server) | ✅                                              | ❌ tidak ada padanan — jalankan dev server manual |
+| Aset                                                            | Claude Code                                     | Cursor                                            |
+| --------------------------------------------------------------- | ----------------------------------------------- | ------------------------------------------------- |
+| `AGENTS.md` (pintu masuk + hard rules)                          | ✅ via `CLAUDE.md`                              | ✅ native                                         |
+| `.claude/skills/`                                               | ✅ satu-satunya lokasi                          | ✅ compatibility path                             |
+| `.claude/agents/` (7 subagent kerja)                            | ✅                                              | ✅ compatibility path                             |
+| Config MCP (`xds`, `supabase`, `railway`, `shadcn`, `outstand`) | ✅ `.mcp.json`                                  | ⚠️ `.cursor/mcp.json` — **file terpisah**         |
+| Proteksi baca secret                                            | ✅ `.claude/settings.json` (`permissions.deny`) | ⚠️ `.cursorignore` — **file terpisah**            |
+| `.claude/launch.json` (preview server)                          | ✅                                              | ❌ tidak ada padanan — jalankan dev server manual |
 
 **Dua pasang file kembar yang WAJIB dijaga sinkron.** Config MCP dan proteksi
 secret tidak punya jalur kompatibilitas lintas tool — masing-masing tool

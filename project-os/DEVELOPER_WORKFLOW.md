@@ -43,7 +43,7 @@ flowchart TD
   R --> H{Menyentuh UI?}
 
   H -->|Tidak| K
-  H -->|Ya| I{Rancangan ada di Claude Design<br/>dan polanya sudah terkunci?}
+  H -->|Ya| I{Rancangan ada di artifact desain Postific<br/>dan polanya sudah terkunci?}
   I -->|Belum ada, atau pola masih ambigu| STOP[Berhenti dan tanya King Rezi<br/>jangan menulis kode UI]
   I -->|Sudah| J[Baca apps/web/.claude/CLAUDE.md<br/>lalu CLI/MCP shadcn]
   J --> K[Kode domain, job, atau API]
@@ -59,10 +59,10 @@ Perubahan dokumen tidak memakai aturan tiket. Known Issue yang masih terbuka
 menunjuk satu tiket; barisnya di `PROJECT_STATE.md` cukup menyebut ID dan
 tiket itu. Jejak sesi ada di git.
 
-**Rujukan:** `../AGENTS.md` (aturan 17, 20, 22), `specs/README.md`,
+**Rujukan:** `../AGENTS.md` (aturan 7, 10, 13, 14), `specs/README.md`,
 `context/README.md`, ADR-131, ADR-132. ADR-062 tetap berlaku untuk bentuk
 backlog per rilis pada bagian yang tidak diubah kedua ADR itu. Gerbang desain
-UI: ADR-042 dan ADR-056.
+UI: ADR-140 (menggantikan ADR-042 dan ADR-056); `../AGENTS.md` aturan 10.
 
 ---
 
@@ -98,7 +98,7 @@ flowchart TD
   K -->|Tidak / batal| H
 
   K2 --> M
-  M --> N[Tulis caption<br/>manual atau AI Assist inline opsional]
+  M --> N[Tulis caption<br/>manual; draft dari AI klien lewat MCP masuk ke Drafts]
   N --> O[Lampirkan media<br/>file lokal atau Media Library]
   O --> P[Account Selector<br/>pilih satu atau beberapa akun tujuan]
   P --> P2[Content Format per akun — ADR-039<br/>IG/FB: Post · Reel · Story<br/>Pinterest: Pin · lainnya: Post]
@@ -162,4 +162,4 @@ disconnect (KSP-D09) — tetap menunggu di antrean sampai akun reconnect.
 - `../product-discovery/04-ux/user-flows.md` — flow lengkap (UF-01 s/d UF-06)
 - `../product-discovery/02-product/roles-permissions.md` — roles & content status
 - `../product-discovery/05-architecture/auth-architecture.md` — auth & session detail
-- `../context/ctx-design.md` — pointer Claude Design project (ADR-045)
+- `../context/ctx-design.md` — pointer artifact desain Postific (ADR-140; folder `design/` dihapus, ADR-045)

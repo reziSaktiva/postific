@@ -176,7 +176,7 @@ Notifications Panel muncul sebagai overlay atau drawer — tidak menggantikan Ma
 ```
 User Avatar → User Menu (dropdown)
 ├── Settings → Organization  (General, Connected Accounts, Members, Roles & Permissions, Billing)
-├── Settings → Account       (Profile, Notifications, Preferences)
+├── Settings → Account       (Workspaces, Profile, Notifications, Preferences, Klien AI)
 └── Logout
 ```
 

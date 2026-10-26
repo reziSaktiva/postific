@@ -56,7 +56,7 @@ Service + repository, plus keputusan arsitektur: di mana route publik hidup, bag
 ### T-071 · Public profile page
 
 `⏳ Not Started` · **Domain** start-page · UI · **ADR** ADR-046, ADR-129 · **Depends** T-070
-**Baca dulu:** `04-ux/key-screen-patterns.md` · `04-ux/information-architecture.md` · ADR-129 · Claude Design `templates/start-page-option-b-card-stack.html` (LOCKED PATTERN)
+**Baca dulu:** `04-ux/key-screen-patterns.md` · `04-ux/information-architecture.md` · ADR-129 · artifact Postific `project/templates/start-page-option-b-card-stack.html` (LOCKED PATTERN)
 
 **Must Have.** Halaman publik yang bisa dibagikan lewat media sosial. Perlu perhatian pada SEO/meta tag, caching, dan performa — ini satu-satunya halaman yang dilihat audiens, bukan pengguna produk.
 
@@ -66,13 +66,13 @@ shadow) dengan leading icon + chevron, badge "Powered by Postific" di
 footer. Dipilih dari 4 opsi eksplorasi Claude Design (grup `Start Page
 (Exploration, T-071)`); 3 opsi lain (Classic Centered, Hero Banner, Minimal
 Dense) disimpan sebagai referensi, tidak dipakai. Mark UI Engineer **wajib**
-`DesignSync get_file` pada template terkunci ini sebelum menulis kode (gate
-T-103.3) — jangan menebak struktur dari deskripsi ADR saja.
+membaca template terkunci ini lewat tool `Artifact` action `read` pada artifact
+Postific (ADR-140) sebelum menulis kode (gate T-103.3) — jangan menebak struktur dari deskripsi ADR saja.
 
 ### T-072 · Link management
 
 `⏳ Not Started` · **Domain** start-page · UI · **ADR** ADR-130 · **Depends** T-070
-**Baca dulu:** `02-product/mvp-definition.md` · ADR-130 · Claude Design `templates/start-page-editor.html` (LOCKED, App Prototype)
+**Baca dulu:** `02-product/mvp-definition.md` · ADR-130 · artifact Postific `project/templates/start-page-editor.html` (LOCKED, App Prototype)
 
 **Must Have.** CRUD daftar tautan + urutan tampil. Pertimbangkan konfirmasi hapus tautan (ADR-049).
 
@@ -82,8 +82,9 @@ Table tanpa header** (bukan Item/ItemGroup atau card-per-item, dipilih King
 Rezi setelah Neymar menahan diri tidak menebak, gate T-103.2), Preview yang
 me-reuse struktur Opsi B Card Stack (ADR-129), dan Share (URL publik + toggle
 Published/Unpublished). Sudah disambungkan ke nav "Start Page" di App
-Prototype (7 template). Mark UI Engineer **wajib** `DesignSync get_file`
-pada layar ini sebelum menulis kode (gate T-103.3).
+Prototype (7 template). Mark UI Engineer **wajib** membaca
+layar ini lewat tool `Artifact` action `read` pada artifact Postific (ADR-140)
+sebelum menulis kode (gate T-103.3).
 
 ### T-073 · Theme configuration
 

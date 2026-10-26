@@ -6,7 +6,7 @@ Claude Design Menggantikan Figma sebagai Design Handoff Tool
 
 ### Status
 
-Accepted — Amended by ADR-045 (2026-07-28), ADR-056 (2026-07-31)
+Superseded by ADR-140 (2026-10-26). Sebelumnya: Accepted — Amended by ADR-045 (2026-07-28), ADR-056 (2026-07-31)
 
 ### Date
 

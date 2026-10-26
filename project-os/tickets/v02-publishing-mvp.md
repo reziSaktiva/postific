@@ -2851,10 +2851,10 @@ penafsiran waktu yang berubah, bukan tampilan.
 
 - Butuh ADR baru: zona per pengguna atau per workspace belum diputuskan. Jangan tulis ADR sebelum King Rezi memutuskan.
 - Setelan zona harus tersimpan (DB), karena server tidak tahu zona browser.
-- UI setelan zona UI/UX-related: cek Claude Design dulu sebelum kode (aturan 10).
+- UI setelan zona UI/UX-related: cek artifact Postific dan galeri Postific Design Review (ADR-140) dulu sebelum kode (aturan 10).
 
 - [ ] **T-147.1** Keputusan King Rezi (pengguna vs workspace) + ADR
-- [ ] **T-147.2** Desain: cek/buat rancangan UI setelan zona di Claude Design
+- [ ] **T-147.2** Desain: cek/buat rancangan UI setelan zona di artifact Postific
 - [ ] **T-147.3** Model/setelan zona tersimpan (Prisma + migrasi)
 - [ ] **T-147.4** Refactor `wib-time` menjadi zona dinamis (tampilan, input, kelompok tanggal, rentang Calendar)
 - [ ] **T-147.5** Cek dampak `occurred_at` (kolom generated terkait zona atau tidak)

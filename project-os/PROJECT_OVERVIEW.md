@@ -42,7 +42,7 @@ Membangun platform Social Media Management modern yang memungkinkan marketing te
 - Menjadi alternatif Buffer
 - Mendukung berbagai platform media sosial
 - Memiliki arsitektur yang scalable
-- Mendukung AI untuk membantu pembuatan konten
+- AI pengguna bekerja di dalam produk lewat MCP (ADR-138)
 - Mendukung kolaborasi tim dan workflow yang lebih kompleks
 
 ---
@@ -72,7 +72,7 @@ Fitur utama yang direncanakan pada MVP:
 - Publishing
 - Analytics
 - Engagement
-- AI Assistant
+- MCP Server (AI milik pengguna bekerja di Postific, ADR-138)
 - Start Page
 
 ---

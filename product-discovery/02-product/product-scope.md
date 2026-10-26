@@ -20,7 +20,7 @@ Seluruh ruang lingkup produk mengikuti prinsip berikut:
 
 * Simplicity First.
 * Team Collaboration First.
-* AI-Native Workflow.
+* AI-Native Workflow (AI pengguna bekerja di dalam produk lewat MCP, ADR-138).
 * Modern User Experience.
 * Scalable Architecture.
 * Modular Product Design.
@@ -87,16 +87,22 @@ Direct Message, mention, dan webhook engagement berada di luar scope MVP (ADR-04
 
 ---
 
-## AI Assistant
+## MCP Server
 
-Membantu proses kerja menggunakan AI.
+Memungkinkan pengguna bekerja di Postific melalui AI pilihannya sendiri
+(Claude, ChatGPT, Cursor, dan klien MCP lain). Postific tidak membangun AI
+sendiri (ADR-138).
 
 Mencakup:
 
-* Caption Assistance
-* Content Improvement
-* Content Suggestions
-* AI Workflow Assistance
+* Akses baca (akun, media, draft, antrean, history, analytics, komentar)
+* Pembuatan dan pengeditan draft, unggah media dari URL
+* Penjadwalan post
+* Otorisasi OAuth per workspace dan per scope
+* Audit akses dan batas pemakaian
+
+Publish Now dan balas komentar lewat MCP ditunda. Aksi destruktif dan
+administratif tidak diekspos.
 
 ---
 

@@ -37,7 +37,7 @@ Sistem membutuhkan dua kategori background job:
 | Kategori | Trigger | Contoh |
 |----------|---------|--------|
 | **Event-driven** | Dipicu oleh event domain tertentu | Pemrosesan receipt webhook, notifikasi publish |
-| **Periodic** | Dijadwalkan berulang pada interval tetap | Sinkronisasi engagement, sinkronisasi analytics |
+| **Periodic** | Dijadwalkan berulang pada interval tetap | Sinkronisasi engagement, sinkronisasi analytics, purge audit MCP |
 
 ---
 
@@ -47,7 +47,7 @@ Sistem membutuhkan dua kategori background job:
 
 Sistem menggunakan **PostgreSQL-backed job queue** dengan tabel `background_jobs` sebagai sumber kebenaran status job. Eksekusi job dipicu oleh:
 
-1. **Railway Cron** — memanggil Route Handler `/api/jobs/run` pada interval tertentu (setiap menit untuk event-driven jobs dan setiap 30 menit untuk JOB-03 Engagement sync; Analytics memiliki jadwal harian tersendiri).
+1. **Railway Cron** — memanggil Route Handler `/api/jobs/run` pada interval tertentu (setiap menit untuk event-driven jobs dan setiap 30 menit untuk JOB-03 Engagement sync; Analytics dan JOB-08 purge audit MCP memiliki jadwal harian tersendiri).
 2. **Ingestion/Application Service** — menulis job baru ke tabel `background_jobs` saat ada receipt webhook baru atau operasi async lain.
 
 ```
@@ -243,6 +243,30 @@ yang sama dipakai JOB-01/webhook T-026 — untuk resolve status per target
 
 **Retry:** Mengikuti retry generik job runner (lihat § Retry Strategy di
 bawah — 5m/15m/60m), bukan retry khusus terpisah.
+
+---
+
+## JOB-08 — Purge Audit MCP
+
+**Trigger:** Railway Cron (periodik, setiap 24 jam). Bukan hasil event domain.
+
+**Tipe:** `mcp.audit.purge`
+
+**Payload:**
+```
+{}
+```
+
+**Handler:** Memanggil `McpAccessService.purgeAudit()`, yang menghapus baris
+`McpAuditLog` yang lebih tua dari 90 hari (retensi audit MCP, ADR-138).
+Dikerjakan di T-149.
+
+**Idempotensi:** Aman dijalankan berulang — penghapusan berbasis batas waktu
+(`created_at` lebih tua dari 90 hari), sehingga run kedua tanpa baris
+kedaluwarsa tidak menghapus apa pun.
+
+**Retry:** Mengikuti retry generik job runner (lihat § Retry Strategy di
+bawah — 5m/15m/60m).
 
 ---
 

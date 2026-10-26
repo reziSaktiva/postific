@@ -4,10 +4,11 @@ Dokumen ini adalah **Source of Truth visual tokens** untuk implementasi UI di
 `apps/web` (CSS variable shadcn/ui + Tailwind token bridge, ADR-097).
 
 Nilai token final berkembang **iteratif dan co-equal** antara dokumen ini dan
-project Claude Design "Social Media Management" (ADR-056) — tidak ada lagi
+artifact desain Postific (ADR-140, menggantikan ADR-056) — tidak ada lagi
 gerbang "menunggu designer masuk": project ini tidak akan merekrut designer
-eksternal, perannya digantikan permanen oleh King Rezi sendiri lewat Claude
-Design (ADR-057, amandemen ADR-038 & ADR-041). Implementasi feature memakai
+eksternal, perannya digantikan permanen oleh King Rezi sendiri lewat artifact
+desain Postific (ADR-140; ADR-057 tetap dasar peran desainer, amandemen
+ADR-038 & ADR-041). Implementasi feature memakai
 token Stone theme (ADR-087, dipetakan ke shadcn/ui sejak ADR-097) dan tidak
 menunggu token final.
 Screenshot bukan acuan nilai final; folder `design/` (paket handoff designer)
@@ -15,27 +16,27 @@ sudah dihapus dan **tidak akan dibuat ulang** (ADR-045, ADR-057).
 
 | Field | Value |
 | ----- | ----- |
-| Lokasi SoT | Dokumen ini, co-equal dengan Claude Design untuk nilai token (ADR-038, ADR-056) — nilai berkembang iteratif, bukan sekali lock |
+| Lokasi SoT | Dokumen ini, co-equal dengan artifact desain Postific untuk nilai token (ADR-038, ADR-140) — nilai berkembang iteratif, bukan sekali lock |
 | Implementasi kode | `apps/web` (CSS variable shadcn/ui + Tailwind token bridge, ADR-097) |
 | UX / struktur layar | Tetap di `../04-ux/` — **tidak** diganti dokumen ini |
-| Peran desainer | Permanen digantikan King Rezi via Claude Design — tidak ada designer eksternal (ADR-057); pointer di `../../context/ctx-design.md` |
+| Peran desainer | Permanen digantikan King Rezi via artifact desain — tidak ada designer eksternal (ADR-057); pointer di `../../context/ctx-design.md` |
 
 ---
 
 # Panduan PM — mengunci satu set token
 
 Checklist lock ini dijalankan kapan pun King Rezi (berperan sebagai desainer
-via Claude Design) menganggap satu set token sudah stabil — **tidak ada**
+via artifact desain) menganggap satu set token sudah stabil — **tidak ada**
 gerbang "designer eksternal masuk" (ADR-057). Selama development feature,
 gunakan token Stone theme (ADR-087, dipetakan ke shadcn/ui sejak ADR-097);
 jangan mengisi nilai brand sementara atau memblokir implementasi layar
 karena tabel masih `TBD`.
 
-## Langkah 1 — Review & approve di Claude Design
+## Langkah 1 — Review & approve di artifact desain
 
-Claude Design menggantikan Figma sebagai design handoff tool (ADR-042) — project
-`Social Media Management` (projectId `84aded99-bb23-49b1-be9f-dd8f21c6873e`),
-diakses lewat tool `DesignSync` bawaan Claude Code. Lihat
+Artifact desain Postific menggantikan Figma sebagai design handoff tool (ADR-042, lalu
+dipindah dari Claude Design ke artifact oleh ADR-140) — artifact `Postific` dan galeri
+`Postific Design Review`, dibaca dan ditulis lewat tool `Artifact`. Lihat
 `../../context/ctx-design.md` untuk pointer lengkap.
 
 Pastikan hasil design selaras dengan UX Baseline (`../04-ux/`):
@@ -43,14 +44,14 @@ Pastikan hasil design selaras dengan UX Baseline (`../04-ux/`):
 * Primary nav: Home → Publish → Engage → Analyze → Start Page
 * Publish default: Calendar
 * Tidak ada Approval Workflow di MVP
-* AI hanya inline di Draft Editor
+* Tidak ada AI bawaan di UI (ADR-138)
 * 6 content status + `Failed` jelas terbaca
 
-Jika Claude Design mengubah alur/IA, **hentikan** — diskusikan dulu (perlu update UX + ADR). Jangan “mengunci token” dari desain yang bertentangan dengan UX. Sinkronisasi antara baseline ini dan project Claude Design bersifat manual/on-request (ADR-042) — bukan otomatis.
+Jika artifact desain mengubah alur/IA, **hentikan** — diskusikan dulu (perlu update UX + ADR). Jangan “mengunci token” dari desain yang bertentangan dengan UX. Sinkronisasi antara baseline ini dan artifact desain bersifat manual/on-request (ADR-140) — bukan otomatis.
 
 ## Langkah 2 — Isi tabel token di dokumen ini
 
-Salin nilai final dari Claude Design (theme.json / styles.css) atau style guide ke tabel di bawah:
+Salin nilai final dari artifact desain (`project/tokens.json` / `project/tokens.css`) atau style guide ke tabel di bawah:
 
 1. Typography (font display + UI)
 2. Color — brand (primary, secondary, …)
@@ -67,7 +68,7 @@ Ganti setiap `TBD` dengan nilai konkret (hex/HSL atau nama font). Isi kolom **Ca
 Di metadata atas:
 
 * Status → **Locked — siap implementasi**
-* Catat tanggal approve + link project Claude Design (opsional, di Related)
+* Catat tanggal approve + link artifact desain (opsional, di Related)
 
 ## Langkah 4 — Catat di Project OS
 
@@ -85,13 +86,13 @@ Engineering memetakan token → implementasi:
 | Skala type / spacing | CSS variable shadcn/ui + Tailwind token bridge |
 | Komponen UI | Komponen shadcn/ui dan wrapper selektif memakai semantic token yang sama |
 
-**Jangan** mengisi hex hanya di Claude Design atau hanya di screenshot tanpa update dokumen ini.
+**Jangan** mengisi hex hanya di artifact desain atau hanya di screenshot tanpa update dokumen ini.
 
 ## Yang tidak dilakukan
 
 * Menjadikan PDF brief atau dokumen desain lain sebagai SoT warna/font
 * Menempel banyak screenshot ke `04-ux/` sebagai pengganti token
-* Mengubah IA/nav di Claude Design lalu menganggap repo otomatis ikut
+* Mengubah IA/nav di artifact desain lalu menganggap repo otomatis ikut
 
 ---
 
@@ -100,7 +101,7 @@ Engineering memetakan token → implementasi:
 | ID | Topik | Keputusan |
 | ---- | ----- | --------- |
 | DT-D01 | Lokasi SoT token | `product-discovery/06-engineering/design-tokens.md` |
-| DT-D02 | Kapan diisi | Iteratif, co-equal dengan Claude Design (ADR-056); dikunci kapan pun King Rezi menganggap stabil — tidak ada gerbang "designer masuk" (ADR-057); gunakan token Stone theme (ADR-087) |
+| DT-D02 | Kapan diisi | Iteratif, co-equal dengan artifact desain (ADR-140); dikunci kapan pun King Rezi menganggap stabil — tidak ada gerbang "designer masuk" (ADR-057); gunakan token Stone theme (ADR-087) |
 | DT-D03 | Hubungan dengan handoff designer | Tidak ada designer eksternal, permanen (ADR-057); folder `design/` dihapus dan tidak dibuat ulang (ADR-045); token final tetap **wajib** masuk dokumen ini |
 | DT-D04 | Hubungan dengan UX Baseline | `04-ux/` mengatur alur & zona fungsi; dokumen ini hanya visual tokens |
 | DT-D05 | Stack implementasi | shadcn/ui untuk komponen/theme + Tailwind sebagai styling langsung (ADR-097, membalik ADR-041) |
@@ -116,7 +117,7 @@ Engineering memetakan token → implementasi:
 | `font/sans` | UI produk (nav, list, form, caption) | `TBD` | Prioritas keterbacaan; angka tabular untuk waktu/jadwal disarankan |
 | `font/mono` | Opsional — ID teknis | `TBD` atau tidak dipakai | Jangan untuk caption sosial |
 
-**Skala type (Claude Design → kode):** `xs · sm · md · lg · xl · 2xl` — nilai size/line-height konkret: `TBD` setelah design lock.
+**Skala type (artifact desain → kode):** `xs · sm · md · lg · xl · 2xl` — nilai size/line-height konkret: `TBD` setelah design lock.
 
 ---
 
@@ -286,7 +287,7 @@ Sebelum token Locked
         ↓
 Token Stone theme (ADR-087) + Tailwind sebagai styling langsung (ADR-097)
 
-Setelah design-tokens.md Locked (co-equal dengan Claude Design, ADR-056/057)
+Setelah design-tokens.md Locked (co-equal dengan artifact desain, ADR-140/057)
         ↓
 apps/web — CSS variable shadcn/ui + Tailwind token bridge
         ↓
@@ -400,4 +401,4 @@ perlu di-approve eksplisit (bukan bagian "migrasi tanpa ubah visual").
 * `../../project-os/PROJECT_OVERVIEW.md` — shadcn/ui + Tailwind langsung (ADR-097)
 * `../04-ux/` — UX Baseline (alur & layar)
 * `../02-product/roles-permissions.md` — status konten kanonikal
-* `../../context/ctx-design.md` — pointer Claude Design (folder `design/` dihapus, ADR-045)
+* `../../context/ctx-design.md` — pointer artifact desain (folder `design/` dihapus, ADR-045)

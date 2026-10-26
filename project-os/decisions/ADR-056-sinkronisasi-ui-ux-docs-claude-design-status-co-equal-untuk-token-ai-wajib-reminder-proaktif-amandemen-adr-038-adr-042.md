@@ -6,7 +6,7 @@ Sinkronisasi UI/UX Docs ↔ Claude Design — Status Co-equal untuk Token + AI W
 
 ### Status
 
-Accepted
+Superseded by ADR-140 (2026-10-26). Sebelumnya: Accepted
 
 ### Date
 

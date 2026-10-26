@@ -6,7 +6,7 @@
 | ------------ | ----------------------------------------------- |
 | Version      | 1.1.0                                           |
 | Status       | Active                                          |
-| Last Updated | 2026-07-23                                      |
+| Last Updated | 2026-10-26                                      |
 | Audience     | Blueprint visual (Figma) + orientasi arsitektur |
 
 ---
@@ -69,7 +69,8 @@ Menjawab: _siapa yang memakai sistem, dan sistem apa saja yang berbatasan dengan
 │                      Postific Platform                       │
 │                                                              │
 │  Platform web untuk draft, schedule, publish, engagement,    │
-│  analytics, AI caption, dan Start Page — satu workspace.     │
+│  analytics, akses MCP untuk AI milik pengguna, dan Start Page│
+│  — satu workspace.                                           │
 │                                                              │
 └──────────┬────────────────────────┬────────────────┬─────────┘
            │                        │                │
@@ -250,8 +251,8 @@ Letakkan sebagai grid di dalam area Domain Logic / Application Service (satu kar
 │                                                             │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌────────────┐ │
 │  │ BC-04    │  │ BC-05    │  │ BC-06    │  │ BC-07      │ │
-│  │ AI       │  │Engage-   │  │Analytics │  │ Start Page │ │
-│  │Assistant │  │ ment     │  │ Snapshot │  │ Links      │ │
+│  │ MCP      │  │Engage-   │  │Analytics │  │ Start Page │ │
+│  │ Access   │  │ ment     │  │ Snapshot │  │ Links      │ │
 │  └──────────┘  └──────────┘  └──────────┘  └────────────┘ │
 └─────────────────────────────────────────────────────────────┘
 
@@ -275,7 +276,7 @@ Letakkan sebagai grid di dalam area Domain Logic / Application Service (satu kar
 | BC-01 Identity     | `IdentityService`                                   |
 | BC-02 Workspace    | `WorkspaceService`                                  |
 | BC-03 Publishing   | `PublishingService`                                 |
-| BC-04 AI Assistant | `AIAssistantService`                                |
+| BC-04 MCP Access   | `McpAccessService`                                  |
 | BC-05 Engagement   | `EngagementService`                                 |
 | BC-06 Analytics    | `AnalyticsService`                                  |
 | BC-07 Start Page   | `StartPageService`                                  |
