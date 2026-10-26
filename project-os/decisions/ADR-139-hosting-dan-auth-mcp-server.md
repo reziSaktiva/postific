@@ -56,6 +56,71 @@ MCP di History, Drafts, dan Queue (ADR-138).
 
 Detail dan bukti di [`../reports/T-148-spike-mcp-oauth.md`](../reports/T-148-spike-mcp-oauth.md). Ringkas: pertanyaan 1 (plugin dan scope/`workspaceId`), 3 (transport di Next.js 16), dan 4 (`get_workspace` dengan validasi member) terjawab di harness lokal, termasuk dengan kode OAuth klien bawaan SDK MCP. Pertanyaan 2 (klien nyata ke staging Railway) belum terbukti, jadi **status tetap Proposed** sampai uji itu lolos. Interaksi plugin `jwt` dengan plugin `dash` di `auth.ts` juga belum diuji.
 
+### Usulan Amandemen: Proposed → Accepted (DRAF 2026-10-26, BELUM BERLAKU)
+
+> **Status ADR ini tetap Proposed.** Bagian ini hanya bahan keputusan King Rezi.
+> Tidak ada dokumen lain (indeks `DECISIONS.md`, tiket, `PROJECT_STATE.md`)
+> yang diubah berdasarkan draf ini sampai King Rezi memutuskan.
+
+**Yang terbukti (uji klien nyata, 2026-10-26).** Harness T-148 (commit `e17f2db`,
+di balik `MCP_SPIKE_ENABLED`) dijalankan lokal dengan `next start` di belakang
+tunnel ngrok HTTPS, database staging, dan Claude Code sungguhan:
+
+- Alur OAuth 2.1 penuh dengan klien nyata: discovery, pendaftaran klien dinamis,
+  login, pilih workspace, persetujuan scope, token, panggilan tool.
+- Scope kustom `mcp:read`/`mcp:draft`/`mcp:schedule`: token tanpa `mcp:schedule`
+  ditolak oleh `schedule_probe`; dengan `mcp:schedule` diterima.
+- Binding workspace: `workspace_id` ada di JWT dan `get_workspace` mengembalikan
+  workspace yang dipilih.
+- Pemeriksaan grant di DB per panggilan: setelah baris `identity_oauth_consent`
+  dihapus, access token yang masih berlaku ditolak ("Akses klien ini sudah dicabut").
+- Plugin `jwt` dan `dash` aktif bersamaan di `auth.ts` asli (`bearer`, `jwt`,
+  `oauth-provider`, `dash`; `dashEnabled: true`), JWKS menjawab 200 lewat URL publik.
+- Penyimpanan lewat Prisma ke tabel `identity_jwks`, `identity_oauth_client`,
+  `identity_oauth_refresh_token`, `identity_oauth_access_token`, `identity_oauth_consent`.
+
+**Yang belum terbukti (jangan dibaca sebagai terbukti).**
+
+- Perilaku di balik proxy Railway. Uji ini lewat ngrok, bukan deploy staging.
+  ADR menyebut "pengujian nyata dilakukan di staging"; poin itu hanya
+  terpenuhi sebagian.
+- Alur refresh token. Tidak ada refresh token tersimpan di semua percobaan, jadi
+  pencabutan refresh token dan perpanjangan akses belum teruji.
+- Panggilan setelah member dikeluarkan dari workspace (pemeriksaan member ada di
+  kode tetapi jalur penolakannya belum dijalankan oleh klien nyata).
+- Klien selain Claude Code (Claude.ai, Cursor). Hanya Claude Code yang diuji.
+- Beban, rate limit, dan pembersihan klien dinamis: setiap sambungan menambah satu
+  baris `identity_oauth_client` (empat baris dari empat percobaan).
+
+**Koreksi yang ditemukan spike dan harus masuk T-149.**
+
+- Role aplikasi `app_runtime` **tidak** melewati RLS. Tabel OAuth wajib punya
+  policy untuk `app_runtime`; tanpanya Better Auth gagal menulis (42501). Migrasi
+  `20261026130000_t148_oauth_tables_app_runtime_policy` adalah koreksi spike;
+  bentuk final ditentukan T-149.
+- Versi: `better-auth` dipatok `~1.6.33` (bukan `^1.6.33`, yang menarik 1.7.x) dan
+  `@better-auth/oauth-provider` `1.6.33`, `@modelcontextprotocol/sdk` `1.32.1`.
+- Pilihan workspace per sesi di harness disimpan di memori proses; T-149 memindahkannya
+  ke tabel.
+
+**Usulan teks status bila King Rezi menerima.** "Accepted (2026-MM-DD, atas keputusan
+King Rezi). Terbukti di HTTPS lewat tunnel dengan Claude Code; verifikasi lanjutan
+di deploy Railway, refresh token, dan klien lain menjadi bagian T-149 sampai T-153."
+
+**Langkah bila diterima (dikerjakan hanya setelah keputusan).**
+
+1. Ubah `### Status` di berkas ini dan baris ADR-139 di `DECISIONS.md`.
+2. Tutup T-148 (✅) di `tickets/v05-mcp-server-mvp.md`, hapus dari `AVAILABLE_TICKETS.md`
+   (tabel "Sekarang" dan "Keputusan yang masih menunggu"), perbarui Snapshot
+   `PROJECT_STATE.md`.
+3. T-149 boleh dimulai. Spike (commit `e17f2db`, `3df3fc5`) dibuang atau diganti
+   oleh T-149/T-150/T-151.
+4. Tambah verifikasi lanjutan ke T-150 (uji di Railway staging) agar tidak hilang.
+
+**Alternatif bila King Rezi belum yakin.** Tetap Proposed sampai harness di-deploy
+ke Railway staging dan satu putaran uji ulang lolos. Biayanya push branch, deploy,
+dan env staging (butuh persetujuan terpisah), dengan manfaat menutup butir proxy Railway.
+
 ### Reason
 
 - Better Auth sudah menjadi identity provider (ADR sebelumnya) dan
