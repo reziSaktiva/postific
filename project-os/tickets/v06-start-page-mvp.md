@@ -46,14 +46,15 @@ Service + repository, plus keputusan arsitektur: di mana route publik hidup, bag
   (AU-D06) — RLS sebagai defense-in-depth.
   **Deviasi (ADR-141):** bukan policy anon, melainkan fungsi `SECURITY DEFINER`
   `public.start_page_get_public_by_slug(text)` (hanya kolom aman; REVOKE dari
-  PUBLIC; GRANT EXECUTE hanya `app_runtime`; `ORDER BY position, id`). Policy anon
+  PUBLIC, `anon`, `authenticated`; GRANT EXECUTE hanya `app_runtime`; `ORDER BY position, id`). Policy anon
   membuka `workspace_id`/`view_count`/`click_count` lewat PostgREST (Ridwan F1 HIGH),
   policy `app_runtime` melemahkan isolasi tenant (F2).
   **Belum terverifikasi:** migrasi belum di-apply di Supabase staging/asli; SQL
   hanya diuji di Postgres 16 lokal dengan role stub; tipe kolom hasil `$queryRaw`
   di DB nyata belum dicek. Cek saat migrasi pertama kali di-apply di staging.
-  Catatan LOW: F3 tes integrasi DB belum ada; F4 opsional `REVOKE EXECUTE` dari
-  `anon`/`authenticated` (grant default Supabase).
+  Catatan LOW: F3 tes integrasi DB belum ada; F4 `REVOKE EXECUTE` dari
+  `anon`/`authenticated` sudah diterapkan (keputusan King Rezi 2026-10-26); efeknya
+  di Supabase asli baru terbukti saat apply di staging.
 
 - **T-070.6 — Slug validation & reserved words** · ✅ Done
   Format slug, cek uniqueness, dan daftar reserved path (`/u/login`,

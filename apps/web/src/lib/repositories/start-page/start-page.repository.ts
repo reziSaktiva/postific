@@ -20,7 +20,7 @@ interface PublicStartPageRow {
  * TIDAK memakai `withCurrentUser` (tidak ada user). Role `app_runtime`
  * tidak punya akses baca ke tabel start page tanpa membership, jadi lookup
  * lewat fungsi SECURITY DEFINER sempit `start_page_get_public_by_slug`
- * (migrasi `20261026120000_t070_start_page_public_read_rls`) yang hanya
+ * (migrasi `20261026120000_t070_start_page_public_read_function`) yang hanya
  * mengembalikan kolom aman anonim (tanpa `workspace_id`, `view_count`,
  * `click_count`), hanya halaman published, tautan aktif terurut `position`.
  * Parameter di-bind (tagged template), bukan interpolasi string. Primary

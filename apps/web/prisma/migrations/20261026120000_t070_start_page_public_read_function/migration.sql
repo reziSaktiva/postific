@@ -22,8 +22,10 @@
 -- per tautan aktif (kolom halaman berulang); halaman tanpa tautan aktif
 -- menghasilkan satu baris dengan kolom `link_*` NULL; slug tak ada/draft
 -- menghasilkan nol baris. SECURITY DEFINER + `SET search_path = public`;
--- EXECUTE dicabut dari PUBLIC dan hanya diberikan ke `app_runtime` (dicek
--- lewat pg_roles agar tidak gagal di shadow/local DB). RLS/fungsi ini hanya
+-- EXECUTE dicabut dari PUBLIC, `anon`, dan `authenticated` (grant default
+-- Supabase tidak tercabut oleh REVOKE FROM PUBLIC; review F4) dan hanya
+-- diberikan ke `app_runtime` (semua dicek lewat pg_roles agar tidak gagal
+-- di shadow/local DB). RLS/fungsi ini hanya
 -- defense-in-depth; primary check tetap di aplikasi.
 
 CREATE FUNCTION "public"."start_page_get_public_by_slug"(p_slug text)
@@ -64,6 +66,12 @@ REVOKE ALL ON FUNCTION "public"."start_page_get_public_by_slug"(text) FROM PUBLI
 
 DO $$
 BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
+    REVOKE ALL ON FUNCTION "public"."start_page_get_public_by_slug"(text) FROM "anon";
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+    REVOKE ALL ON FUNCTION "public"."start_page_get_public_by_slug"(text) FROM "authenticated";
+  END IF;
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app_runtime') THEN
     GRANT EXECUTE ON FUNCTION "public"."start_page_get_public_by_slug"(text) TO "app_runtime";
   END IF;
