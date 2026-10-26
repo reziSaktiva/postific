@@ -1,6 +1,8 @@
 import { EnqueueAnalyticsSyncUseCase } from "@/domains/analytics";
 import { ENGAGEMENT_SYNC_JOB_TYPE } from "@/domains/engagement";
 import {
+  BackfillOutstandPostIdsUseCase,
+  ClassifyImportedPostTargetsUseCase,
   ImportPostsProcessUseCase,
   ImportPostsTriggerUseCase,
 } from "@/domains/publishing";
@@ -25,13 +27,27 @@ import { seedSyncJobsOnAccountConnected } from "@/lib/workspace/seed-sync-jobs-o
  * `workspaceRepository` — bentuknya sudah cocok dengan
  * `ConnectedAccountWatermarkPort` di `ImportPostsTriggerUseCase`
  * (structural typing, tidak perlu wrapper tambahan).
+ *
+ * **T-114** — `BackfillOutstandPostIdsUseCase` adalah dependency WAJIB
+ * `ImportPostsTriggerUseCase` (code-review PR #170: dibuat required,
+ * bukan opsional, supaya lupa menyuplainya gagal di compile time, bukan
+ * no-op diam-diam di runtime).
+ *
+ * **T-132.4 (ADR-135)** — `ClassifyImportedPostTargetsUseCase` sama-sama
+ * dependency WAJIB (pola sama `BackfillOutstandPostIdsUseCase` di atas).
  */
 export function createImportPostsTriggerUseCase(): ImportPostsTriggerUseCase {
+  const outstandAdapter = getOutstandAdapter();
   return new ImportPostsTriggerUseCase(
     importJobRepository,
-    getOutstandAdapter(),
+    outstandAdapter,
     workspaceRepository,
     new ImportPostsProcessUseCase(publishingRepository),
+    new BackfillOutstandPostIdsUseCase(publishingRepository, outstandAdapter),
+    new ClassifyImportedPostTargetsUseCase(
+      publishingRepository,
+      outstandAdapter,
+    ),
   );
 }
 
@@ -60,7 +76,58 @@ export function createImportPostsTriggerUseCase(): ImportPostsTriggerUseCase {
  * manapun). `scheduledAt: now` — seed pertama harus segera dieksekusi oleh
  * job runner (bukan menunggu 30 menit), berbeda dari self-reschedule di
  * `EngagementSyncJobHandler` yang memang menunda `+30 menit`.
+ *
+ * **T-134 (KI-094)** — factory ini JUGA menyuplai `AnalyticsRecomputePort`
+ * (parameter ke-9, `WorkspaceService`) supaya `disconnectAccount` meng-enqueue
+ * job recompute `AnalyticsWorkspaceSnapshot` workspace itu SEGERA lewat
+ * `enqueueAnalyticsSync.enqueueWorkspaceSnapshot` (instance yang sama dipakai
+ * `onAccountConnected` di atas) — BUKAN memanggil Outstand sama sekali, lihat
+ * "Keputusan revisi scope" T-134 di `project-os/tickets/known-issues.md`.
  */
+/**
+ * Composition-root helper khusus `disconnectAccountAction` (T-134, KI-094,
+ * Temuan #1 review Ridwan Architecture Reviewer) — `disconnectAccount()` TIDAK
+ * PERNAH memakai `outstandAdapter`/`importPostsTrigger`/`engagementSyncSeeder`
+ * (lihat body method-nya), jadi factory ini sengaja TIDAK memanggil
+ * `getOutstandAdapter()` sama sekali. Sebelum ini, `disconnectAccountAction`
+ * memakai `createWorkspaceServiceWithOutstandAdapter()` yang throw
+ * `ExternalServiceError` (ADR-119) kalau `OUTSTAND_API_KEY` kosong/invalid —
+ * kontradiksi langsung dengan "Keputusan revisi scope" T-134 sendiri
+ * (`project-os/tickets/known-issues.md`) yang memutuskan disconnect harus
+ * tetap jalan walau Outstand bermasalah. Hanya menyuplai `AnalyticsRecomputePort`
+ * (parameter ke-9) lewat instance `EnqueueAnalyticsSyncUseCase` baru — port ini
+ * sendiri juga tidak bersentuhan dengan Outstand (lihat
+ * `createAnalyticsSyncJobsPort`).
+ */
+function createAnalyticsRecomputePort(
+  enqueueAnalyticsSync: EnqueueAnalyticsSyncUseCase,
+): { onAccountDisconnected: (workspaceId: string) => Promise<void> } {
+  return {
+    onAccountDisconnected: async (workspaceId) => {
+      await enqueueAnalyticsSync.enqueueWorkspaceSnapshot(workspaceId);
+    },
+  };
+}
+
+export function createWorkspaceServiceForDisconnect(): WorkspaceService {
+  const enqueueAnalyticsSync = new EnqueueAnalyticsSyncUseCase(
+    workspaceRepository,
+    createAnalyticsSyncJobsPort(),
+  );
+
+  return new WorkspaceService(
+    workspaceRepository,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    createAnalyticsRecomputePort(enqueueAnalyticsSync),
+  );
+}
+
 export function createWorkspaceServiceWithOutstandAdapter(): WorkspaceService {
   const importPostsTriggerUseCase = createImportPostsTriggerUseCase();
   const enqueueAnalyticsSync = new EnqueueAnalyticsSyncUseCase(
@@ -101,5 +168,7 @@ export function createWorkspaceServiceWithOutstandAdapter(): WorkspaceService {
     {
       triggerAuto: (input) => importPostsTriggerUseCase.triggerAuto(input),
     },
+    undefined,
+    createAnalyticsRecomputePort(enqueueAnalyticsSync),
   );
 }

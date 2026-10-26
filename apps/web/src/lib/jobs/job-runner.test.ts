@@ -42,7 +42,7 @@ describe("runPendingJobs", () => {
 
     const summary = await runPendingJobs(store, { "test.job": handler });
 
-    expect(handler).toHaveBeenCalledWith({ foo: "bar" });
+    expect(handler).toHaveBeenCalledWith({ foo: "bar" }, "job-1");
     expect(markDone).toHaveBeenCalledWith("job-1");
     expect(summary).toEqual({
       claimed: 1,
@@ -155,5 +155,38 @@ describe("runPendingJobs", () => {
       attempts: 3,
       error: "boom",
     });
+  });
+
+  it("starts the next claimed job while an earlier one is still running (BG-D04)", async () => {
+    const events: string[] = [];
+    let releaseFirst: () => void = () => undefined;
+    const firstBlocked = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
+    const store = createFakeStore({
+      claimPending: async () => [
+        job({ id: "job-a", type: "a" }),
+        job({ id: "job-b", type: "b" }),
+      ],
+    });
+    const handlers: Record<string, JobHandler> = {
+      a: async () => {
+        events.push("a-start");
+        await firstBlocked;
+        events.push("a-end");
+      },
+      b: async () => {
+        events.push("b-start");
+      },
+    };
+
+    const pending = runPendingJobs(store, handlers);
+    await vi.waitFor(() => {
+      expect(events).toEqual(["a-start", "b-start"]);
+    });
+    releaseFirst();
+    await pending;
+
+    expect(events).toEqual(["a-start", "b-start", "a-end"]);
   });
 });

@@ -9,7 +9,7 @@ Jika isi file di sini bentrok dengan baseline atau ADR → **baseline + ADR mena
 ## Tujuan
 
 - Memberi pintu masuk ringkas per domain kerja (project, bisnis/produk, domain, arsitektur, teknis, development, implementasi, desain).
-- Menunjuk dokumen baseline yang wajib dibaca — bukan menyalin ulang `product-discovery/` atau `project-manager/`.
+- Menunjuk dokumen baseline yang wajib dibaca — bukan menyalin ulang `product-discovery/` atau `project-os/`.
 - Menegakkan batas antar file agar agent tidak salah menaruh aturan (mis. coding rules vs pola fitur).
 
 ---
@@ -26,7 +26,7 @@ context/
 ├── ctx-technical-context.md   ← Stack, env, Prisma, Better Auth, deploy/CI
 ├── ctx-development.md         ← DX, script, lint/test, konvensi coding
 ├── ctx-implementation.md      ← Pola implementasi di apps/web & domains/
-└── ctx-design.md              ← pointer UX (04-ux) + Claude Design (ADR-045)
+└── ctx-design.md              ← pointer UX (04-ux) + artifact desain Postific (ADR-140)
 ```
 
 ---
@@ -42,16 +42,16 @@ context/
 | `ctx-technical-context` | _Stack & infra_: Bun/Next, Prisma, Better Auth config, Railway, env, CI             | Pola folder domain, konvensi naming kode                |
 | `ctx-development`       | DX, perintah lokal/CI, lint/format/test, **aturan coding/konvensi**                 | Pola Application Service / di folder mana fitur ditaruh |
 | `ctx-implementation`    | _Cara menulis fitur_ di repo: entry → service → domain → repo, import rules         | Keputusan stack atau pricing bisnis                     |
-| `ctx-design`            | Pointer ke UX flows/IA (`04-ux/`) dan project Claude Design (ADR-045)               | Implementasi komponen React detail                      |
+| `ctx-design`            | Pointer ke UX flows/IA (`04-ux/`) dan artifact desain Postific (ADR-140)            | Implementasi komponen React detail                      |
 
 ---
 
 ## Cara pakai (agent)
 
-1. Baca `../AGENTS.md` dan Snapshot `../project-manager/PROJECT_STATE.md` dulu. Kalau akan mengerjakan task: lanjut ke `../project-manager/TASKS.md` (indeks backlog), lalu **hanya** file `tasks/vXX-*.md` yang memuat task itu.
-2. Buka **satu atau dua** file `ctx-*` yang relevan dengan task (lihat tabel mapping di `AGENTS.md`).
+1. Baca `../AGENTS.md` dan Snapshot `../project-os/PROJECT_STATE.md` dulu. Kalau akan mengerjakan task: lanjut ke `../project-os/AVAILABLE_TICKETS.md` dan berhenti di situ untuk memilih ID, lalu buka hanya section tiket itu di `tickets/vXX-*.md`.
+2. Buka **satu atau dua** file `ctx-*` yang relevan dengan task (lihat tabel mapping di `.claude/skills/project-os-navigator/SKILL.md`).
 3. Ikuti link ke baseline; baca dokumen sumber sebelum mengubah kode atau keputusan material.
-4. Jangan menduplikasi status progress (% / ✅ / phase) di file `context/` — itu hanya di `PROJECT_STATE.md`, kecuali status per-task/subtask yang tempatnya di `TASKS.md` + `tasks/` (ADR-062).
+4. Jangan menduplikasi status progress (% / ✅ / phase) di file `context/` — itu hanya di `PROJECT_STATE.md`, kecuali status task yang tempatnya di `AVAILABLE_TICKETS.md` + `tickets/` (ADR-062, ADR-131).
 
 ---
 
@@ -60,7 +60,7 @@ context/
 - Ringkas: indeks, checklist, dan aturan operasional.
 - Pointer wajib pakai path relatif ke repo (contoh: `../product-discovery/05-architecture/domain-model.md`).
 - Jangan salin paragraf panjang dari baseline.
-- Perubahan material (arsitektur, scope, stack) → ADR di `../project-manager/DECISIONS.md`, lalu update pointer di sini bila perlu.
+- Perubahan material (arsitektur, scope, stack) → ADR di `../project-os/DECISIONS.md`, lalu update pointer di sini bila perlu.
 
 ---
 
@@ -68,5 +68,5 @@ context/
 
 - Pintu masuk agent: `../AGENTS.md`
 - Source of Truth produk: `../product-discovery/`
-- Project OS: `../project-manager/`
-- Pointer desain (Claude Design + UX): `ctx-design.md`
+- Project OS: `../project-os/`
+- Pointer desain (artifact desain + UX): `ctx-design.md`

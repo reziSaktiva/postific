@@ -6,6 +6,8 @@
 > keputusan yang disetujui tetap harus dipindahkan ke baseline dan/atau ADR yang
 > relevan sebelum diimplementasikan.
 
+> Usang sebagian: lihat ADR-097 (migrasi shadcn/ui) dan ADR-138 (AI Assistant bawaan dicabut; AI pengguna lewat MCP). Isi di bawah tidak diperbarui.
+
 ---
 
 ## 1. Deployment Landing Page dan Aplikasi dengan Subdomain di Railway
@@ -1287,7 +1289,7 @@ menyempurnakan visual system di atas fondasi yang sama.
 Penggantian shadcn/ui dengan Astryx merupakan perubahan Engineering Baseline dan
 perlu ADR baru. Dokumen/area yang terdampak antara lain:
 
-- `project-manager/PROJECT_OVERVIEW.md`;
+- `project-os/PROJECT_OVERVIEW.md`;
 - `product-discovery/06-engineering/monorepo-setup.md`;
 - `product-discovery/06-engineering/design-tokens.md`;
 - `product-discovery/06-engineering/dependency-strategy.md`;
@@ -1754,7 +1756,7 @@ bukan diasumsikan otomatis:
 - `auth-architecture.md` — perjelas baris Post-MVP "API key untuk
   programmatic access" (beda dari Bearer user-login mobile); Decision Log
   AU-D11.
-- `project-manager/DECISIONS.md` — ADR-043.
+- `project-os/DECISIONS.md` — ADR-043.
 - `PROJECT_STATE.md` — Recent Decisions.
 
 ### Kesimpulan Final

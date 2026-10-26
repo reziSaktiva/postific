@@ -23,7 +23,7 @@ Menjadi platform Social Media Management modern yang membantu pengguna mengelola
 * Menyederhanakan proses pengelolaan media sosial.
 * Menghemat waktu melalui otomatisasi dan penjadwalan konten.
 * Membantu pengguna mengambil keputusan berdasarkan data.
-* Menggunakan AI untuk meningkatkan produktivitas dalam pembuatan konten.
+* Membuka akses MCP agar AI pilihan pengguna mempercepat pekerjaan konten (ADR-138).
 * Menyediakan pengalaman pengguna yang sederhana namun powerful.
 
 ---
@@ -51,7 +51,7 @@ Produk ini memberikan nilai melalui:
 * Satu dashboard untuk seluruh aktivitas media sosial.
 * Workflow publishing yang cepat dan mudah dipahami.
 * Analytics yang membantu pengambilan keputusan.
-* AI Assistant untuk membantu proses pembuatan konten.
+* Akses MCP agar AI pilihan pengguna dapat bekerja di dalam produk (ADR-138).
 * Pengalaman pengguna yang modern dan mudah digunakan.
 
 ---
@@ -77,7 +77,7 @@ Produk diposisikan sebagai alternatif modern untuk platform Social Media Managem
 
 * Kemudahan penggunaan.
 * Pengalaman pengguna yang lebih baik.
-* Integrasi AI.
+* Integrasi AI pengguna lewat MCP.
 * Arsitektur yang modern dan mudah dikembangkan.
 
 ---
@@ -114,5 +114,5 @@ Product Vision dianggap berhasil apabila seluruh keputusan mengenai bisnis, fitu
 * `problem-statement.md`
 * `target-market.md`
 * `../02-product/`
-* `../../project-manager/PROJECT_OVERVIEW.md`
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/PROJECT_OVERVIEW.md`
+* `../../project-os/DECISIONS.md`

@@ -66,6 +66,26 @@ export interface AnalyticsSyncOwnerLookupPort {
     connectedAccountId: string;
     ownerUserId: UserId;
   } | null>;
+
+  /**
+   * T-134 (KI-094) gap kritis — fallback resolve acting user untuk
+   * workspace yang SUDAH TIDAK PUNYA akun aktif sama sekali (disconnect
+   * akun terakhir). `findAccountOwnerByOutstandAccountId` di atas sengaja
+   * return `null` untuk akun yang statusnya bukan `active` (lihat
+   * implementasi Prisma), jadi loop `syncWorkspace` tidak bisa menemukan
+   * acting user lewat akun begitu `workspaceAccounts` kosong — tanpa
+   * fallback ini, `syncWorkspace` tidak pernah bisa menulis snapshot nol
+   * untuk workspace yang baru kehilangan akun terakhirnya, membuat tujuan
+   * T-134 (recompute snapshot segera saat disconnect) gagal tercapai justru
+   * untuk kasus paling umum (disconnect satu-satunya akun). Dibaca langsung
+   * dari `Workspace.ownerId` — kolom itu TIDAK RLS-protected (migration
+   * `20260813045625_t017_add_rls_policies`, § "Tables intentionally WITHOUT
+   * workspace-isolation RLS"), jadi aman dipanggil tanpa sesi, sama
+   * alasannya dengan `findAccountOwnerByOutstandAccountId`/
+   * `markAccountReconnectRequired`. Returns `null` kalau workspace itu
+   * sendiri tidak ditemukan (anomali — payload job tidak valid).
+   */
+  findWorkspaceOwnerUserId(workspaceId: string): Promise<UserId | null>;
 }
 
 /** Post published yang sudah punya `outstandPostId` untuk satu akun. */
@@ -143,14 +163,29 @@ function parsePayload(payload: unknown): ParsedAnalyticsSyncPayload {
  * `periodStart` di-bucket ke tengah malam UTC supaya dua jalan di hari
  * yang sama menimpa baris unique `[workspaceId, period, periodStart]`
  * (T-041.5), bukan menambah snapshot baru tiap milidetik.
+ *
+ * `weekly` tetap rolling 7 hari dari `now`. `monthly` memakai kalender
+ * bulan (tanggal 1 jam 00:00:00 UTC bulan berjalan s.d. `now`) sejak
+ * T-135.2 — sebelumnya rolling 30 hari, yang tidak bisa dibandingkan
+ * apple-to-apple dengan dashboard native Outstand (KI-095). `periodEnd`
+ * sengaja tetap `now`, bukan akhir bulan: kalau bulan belum selesai,
+ * window berakhir di saat job jalan, bukan dimajukan ke tanggal yang
+ * belum terjadi.
  */
 export function resolveAnalyticsSnapshotWindow(
   period: SnapshotPeriod,
   now: Date,
 ): { periodStart: Date; periodEnd: Date } {
-  const days = period === "weekly" ? 7 : 30;
   const periodEnd = now;
-  const periodStart = new Date(now.getTime() - days * MS_PER_DAY);
+
+  if (period === "monthly") {
+    const periodStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0),
+    );
+    return { periodStart, periodEnd };
+  }
+
+  const periodStart = new Date(now.getTime() - 7 * MS_PER_DAY);
   periodStart.setUTCHours(0, 0, 0, 0);
   return { periodStart, periodEnd };
 }
@@ -245,11 +280,6 @@ export class AnalyticsSyncJobHandler {
     const workspaceAccounts = activeAccounts.filter(
       (account) => account.workspaceId === workspaceId,
     );
-    if (workspaceAccounts.length === 0) {
-      throw new Error(
-        `AnalyticsSyncJobHandler: workspaceId=${workspaceId} tidak punya akun aktif untuk snapshot.`,
-      );
-    }
 
     let actingUserId: UserId | null = null;
     for (const account of workspaceAccounts) {
@@ -261,6 +291,25 @@ export class AnalyticsSyncJobHandler {
         break;
       }
     }
+
+    // T-134 (KI-094) gap kritis — `workspaceAccounts` kosong BUKAN selalu
+    // anomali: disconnect akun TERAKHIR di satu workspace membuat
+    // `listActiveConnectedAccountsForSync` tidak lagi mengembalikan akun
+    // apa pun untuk workspace ini (by design — fungsi itu memang hanya
+    // mengembalikan akun `active`). Snapshot HARUS tetap di-upsert NOL di
+    // bawah (bukan throw/skip diam-diam), supaya Home/Analyze tidak terus
+    // menampilkan angka akun yang baru di-disconnect sampai siklus fan-out
+    // harian berikutnya. Loop di atas tidak bisa menemukan acting user lewat
+    // akun (tidak ada akun aktif tersisa untuk di-lookup), jadi fallback ke
+    // `Workspace.ownerId` lewat `findWorkspaceOwnerUserId` — HANYA untuk
+    // kasus 0-akun ini; kalau `workspaceAccounts` TIDAK kosong tapi loop di
+    // atas tetap gagal menemukan owner (race/anomali data), behavior lama
+    // (throw di bawah) tetap berlaku apa adanya.
+    if (!actingUserId && workspaceAccounts.length === 0) {
+      actingUserId =
+        await this.ownerLookup.findWorkspaceOwnerUserId(workspaceId);
+    }
+
     if (!actingUserId) {
       throw new Error(
         `AnalyticsSyncJobHandler: owner workspaceId=${workspaceId} tidak ditemukan atau tidak aktif.`,

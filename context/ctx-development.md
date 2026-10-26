@@ -56,7 +56,7 @@ Aturan di bawah melengkapi hard rules di [`../AGENTS.md`](../AGENTS.md). Detail 
 
 6. shadcn/ui adalah fondasi komponen permanen (ADR-097, membalik ADR-041).
    Migrasi dari Astryx ke shadcn/ui selesai (ADR-097); detail status lihat
-   `PROJECT_STATE.md` / `../project-manager/tasks/v07-astryx-shadcn-migration.md`.
+   `PROJECT_STATE.md` / `../project-os/tickets/v07-astryx-shadcn-migration.md`.
 7. Tailwind dipakai langsung sebagai styling komponen shadcn (bukan lagi
    layout-only seperti era Astryx).
 8. Wrapper selektif tetap dipakai untuk komponen kritis/dipakai luas.
@@ -154,9 +154,9 @@ Aturan di bawah melengkapi hard rules di [`../AGENTS.md`](../AGENTS.md). Detail 
 - [ ] Test relevan hijau (jika ada)
 - [ ] Jika menambah/mengubah komponen shadcn: smoke test UI + dark mode +
       Tailwind cascade layer + Next.js production build hijau
-- [ ] Status task diupdate di `TASKS.md` **dan** `tasks/vXX-*.md` (ADR-062),
-      `PROJECT_STATE.md` diupdate bila phase/milestone/Known Issues berubah,
-      lalu entri baru di `COMPLETE_TASK.md` (ADR-061)
+- [ ] Status tiket diupdate di `tickets/vXX-*.md`, dan barisnya di
+      `AVAILABLE_TICKETS.md` dikeluarkan kalau sudah ✅ (ADR-131).
+      `PROJECT_STATE.md` diupdate bila phase/milestone/Known Issues berubah
 
 ---
 

@@ -197,5 +197,5 @@ Analisis kompetitor dianggap selesai apabila:
 * `problem-statement.md`
 * `target-market.md`
 * `business-model.md`
-* `../../project-manager/PROJECT_OVERVIEW.md`
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/PROJECT_OVERVIEW.md`
+* `../../project-os/DECISIONS.md`

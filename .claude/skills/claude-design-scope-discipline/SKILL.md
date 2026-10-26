@@ -1,20 +1,20 @@
 ---
 name: claude-design-scope-discipline
-description: Mencegah AI mengubah default/state yang sudah disetujui user sebagai efek samping saat mengimplementasikan perubahan di Claude Design (toggle, switch, variant pembanding, dsb). Gunakan skill ini SEBELUM melakukan perubahan apapun di project Claude Design lewat tool DesignSync — terutama saat diminta menambah kontrol pembanding antar dua tampilan/variant, atau saat permintaan user berpotensi diartikan lebih dari satu cara.
+description: Mencegah AI mengubah default/state yang sudah disetujui user sebagai efek samping saat mengimplementasikan perubahan di artifact desain Postific (toggle, switch, variant pembanding, dsb). Gunakan skill ini SEBELUM melakukan perubahan apapun di artifact desain lewat tool Artifact (ADR-140) — terutama saat diminta menambah kontrol pembanding antar dua tampilan/variant, atau saat permintaan user berpotensi diartikan lebih dari satu cara.
 ---
 
-# Claude Design — Scope Discipline
+# Artifact Desain — Scope Discipline
 
-Skill ini mengunci satu prinsip: **implementasi fitur baru tidak boleh diam-diam mengubah state/tampilan yang sudah disetujui user.** Ditulis setelah insiden nyata di ADR-052 (lihat `project-manager/DECISIONS.md`).
+Skill ini mengunci satu prinsip: **implementasi fitur baru tidak boleh diam-diam mengubah state/tampilan yang sudah disetujui user.** Ditulis setelah insiden nyata di ADR-052 (lihat `project-os/DECISIONS.md`).
 
 ---
 
 ## Kapan Wajib Pakai Skill Ini
 
-- Sebelum melakukan perubahan apapun di project Claude Design (via tool `DesignSync`).
+- Sebelum melakukan perubahan apapun di artifact desain Postific atau galeri Postific Design Review (via tool `Artifact`, ADR-140).
 - Khususnya saat user meminta **kontrol pembanding** antar dua tampilan/variant — toggle, switch, A/B, dsb.
 - Saat permintaan user bisa diartikan lebih dari satu cara (ambigu antara "tambahkan alat bantu" vs "ganti tampilan aktif").
-- Berlaku juga untuk implementasi kode di `apps/web` yang menyentuh state/default UI yang sudah pernah di-approve — bukan cuma khusus Claude Design.
+- Berlaku juga untuk implementasi kode di `apps/web` yang menyentuh state/default UI yang sudah pernah di-approve — bukan cuma khusus artifact desain.
 
 ---
 
@@ -47,21 +47,23 @@ Kronologi singkat (detail lengkap: `DECISIONS.md` ADR-052, addendum "Variant Dia
 
 5. **Kalau terlanjur mengubah sesuatu di luar scope** (sengaja atau tidak sengaja), sebutkan secara eksplisit ke user sebagai bagian dari laporan — jangan diamkan, walau perubahannya terlihat kecil atau "lebih baik". User yang berhak memutuskan apakah perubahan tambahan itu diterima atau di-revert.
 
-6. **Selalu verifikasi remote sebelum push wholesale** — King Rezi mengedit
-   Claude Design langsung di luar sesi Claude, jadi versi remote sering lebih
-   baru dari scratchpad/rencana mana pun yang ditulis sesi sebelumnya. Sebelum
-   `DesignSync` write apa pun: (1) baca file target dari remote dulu, (2) diff
-   terhadap yang akan di-push, (3) kalau remote lebih maju, batalkan rencana
-   "push utuh" dan terapkan perubahan **minimal** di atas isi remote —
-   susun file gabungan lewat script, bukan diketik ulang manual (file ini
-   sering berisi path SVG inline panjang yang typo-nya tidak kelihatan saat
-   review), pertahankan indentasi remote apa adanya supaya diff hanya berisi
-   perubahan yang dimaksud, lalu baca ulang remote setelah menulis untuk
-   verifikasi. Kasus nyata (T-010.3, 2026-08-04): task backlog bilang
-   `components/navigation.html` "tinggal push dari scratchpad", tapi remote
-   ternyata sudah punya 5 baris Channels (TikTok + Pinterest ditambahkan
-   King Rezi sendiri) sementara scratchpad cuma punya 3 — push tanpa
-   verifikasi akan menghapus kerja King Rezi.
+6. **Selalu baca versi terbaru sebelum publish ulang** — King Rezi dan sesi
+   lain bisa mengubah artifact langsung, jadi isi di artifact sering lebih
+   baru dari salinan lokal atau rencana mana pun. Sebelum `Artifact` publish
+   apa pun: (1) `read` file target (dan indeks `project/design-system.json`)
+   dari artifact dulu, (2) bandingkan dengan yang akan dipublish, (3) kalau
+   artifact lebih maju, batalkan rencana "kirim ulang utuh" dan terapkan
+   perubahan **minimal** di atas isi terbaru — susun file gabungan lewat
+   script, bukan diketik ulang manual (file sering berisi path SVG inline
+   panjang yang typo-nya tidak kelihatan saat review), pertahankan
+   indentasi apa adanya supaya diff hanya berisi perubahan yang dimaksud,
+   lalu baca ulang artifact setelah publish untuk verifikasi. Tool menolak
+   publish bila versi yang dibaca sudah tertinggal; ikuti penolakannya, jangan
+   memakai `force`. Kasus asal aturan ini (T-010.3, 2026-08-04, saat masih
+   Claude Design): task backlog bilang `components/navigation.html` "tinggal
+   push dari scratchpad", tapi remote sudah punya 5 baris Channels yang
+   ditambahkan King Rezi sendiri — push tanpa verifikasi akan menghapus
+   kerja King Rezi.
 
 ---
 
@@ -83,7 +85,8 @@ Kronologi singkat (detail lengkap: `DECISIONS.md` ADR-052, addendum "Variant Dia
 
 ## Related
 
-- `project-manager/DECISIONS.md` — ADR-052 (insiden asal + kronologi lengkap).
-- `context/ctx-design.md` — Aturan operasional Claude Design (pointer ke skill ini).
+- `project-os/DECISIONS.md` — ADR-052 (insiden asal + kronologi lengkap).
+- `context/ctx-design.md` — Aturan operasional artifact desain (pointer ke skill ini).
 - `.claude/skills/proactive-clarification/SKILL.md` — cara bertanya saat ada fork keputusan/ambiguitas.
 - `AGENTS.md` — Aturan keras project.
+- `project-os/DECISIONS.md` — ADR-140 (alat desain pindah dari Claude Design ke artifact; aturan skill ini tetap berlaku).

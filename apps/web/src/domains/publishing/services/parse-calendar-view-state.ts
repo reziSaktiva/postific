@@ -21,7 +21,7 @@ import type { ConnectedAccountId } from "@postific/shared";
  * itu sendiri.
  */
 
-/** Dua mode tampilan Calendar (KSP-02-F05) — default `"week"`. */
+/** Dua mode tampilan Calendar (KSP-02-F05) — default `"month"` (T-125). */
 export type CalendarViewMode = "week" | "month";
 
 export interface CalendarViewState {
@@ -33,7 +33,7 @@ export interface CalendarViewState {
   connectedAccountIds: ConnectedAccountId[];
 }
 
-export const DEFAULT_CALENDAR_VIEW: CalendarViewMode = "week";
+export const DEFAULT_CALENDAR_VIEW: CalendarViewMode = "month";
 
 const VALID_STATUSES = new Set<string>(Object.values(ContentStatus));
 
@@ -53,9 +53,9 @@ export type CalendarViewSearchParams = Record<
  * Parse & validasi `view`/`date`/`status`/`accounts` dari query param URL
  * Calendar.
  *
- * - `view`: valid hanya kalau nilainya persis `"month"` (case-sensitive,
- *   sesuai literal kontrak `?view=week|month`) — apa pun selain itu
- *   (`"week"`, hilang, typo, casing lain) jatuh ke default `"week"`.
+ * - `view`: valid hanya kalau nilainya persis `"week"` atau `"month"`
+ *   (case-sensitive, sesuai literal kontrak `?view=week|month`) — apa pun
+ *   selain itu (hilang, typo, casing lain) jatuh ke default `"month"`.
  * - `date`: diperlakukan sebagai epoch milliseconds (`Number(raw)`). Hilang,
  *   string kosong/whitespace, non-numeric, atau menghasilkan `Date` tidak
  *   valid (`NaN`/non-finite) jatuh ke default hari ini (jam server saat
@@ -99,7 +99,9 @@ function firstValue(value: string | string[] | undefined): string | undefined {
 }
 
 function parseViewMode(raw: string | undefined): CalendarViewMode {
-  return raw === "month" ? "month" : DEFAULT_CALENDAR_VIEW;
+  if (raw === "week") return "week";
+  if (raw === "month") return "month";
+  return DEFAULT_CALENDAR_VIEW;
 }
 
 function parseAnchorDate(raw: string | undefined): Date {

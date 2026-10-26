@@ -1,3 +1,5 @@
+import { WIB_TIME_ZONE } from "@/domains/publishing/wib-time";
+
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
@@ -26,6 +28,7 @@ export function formatRelativeTime(date: Date, now: Date = new Date()): string {
   }
 
   return date.toLocaleDateString("id-ID", {
+    timeZone: WIB_TIME_ZONE,
     day: "numeric",
     month: "short",
     year: "numeric",

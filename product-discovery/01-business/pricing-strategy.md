@@ -119,11 +119,11 @@ Selama fase MVP:
 
 Perubahan terhadap strategi monetisasi harus dicatat pada:
 
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/DECISIONS.md`
 
 Perubahan status dokumen harus diperbarui pada:
 
-* `../../project-manager/PROJECT_STATE.md`
+* `../../project-os/PROJECT_STATE.md`
 
 ---
 
@@ -132,6 +132,6 @@ Perubahan status dokumen harus diperbarui pada:
 * `README.md`
 * `business-model.md`
 * `success-metrics.md`
-* `../../project-manager/PROJECT_OVERVIEW.md`
-* `../../project-manager/PROJECT_STATE.md`
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/PROJECT_OVERVIEW.md`
+* `../../project-os/PROJECT_STATE.md`
+* `../../project-os/DECISIONS.md`

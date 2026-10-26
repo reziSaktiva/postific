@@ -176,7 +176,7 @@ Notifications Panel muncul sebagai overlay atau drawer — tidak menggantikan Ma
 ```
 User Avatar → User Menu (dropdown)
 ├── Settings → Organization  (General, Connected Accounts, Members, Roles & Permissions, Billing)
-├── Settings → Account       (Profile, Notifications, Preferences)
+├── Settings → Account       (Workspaces, Profile, Notifications, Preferences, Klien AI)
 └── Logout
 ```
 
@@ -496,5 +496,5 @@ Navigation Patterns dianggap selesai apabila:
 * `../03-user/user-personas.md`
 * `../03-user/user-journey.md`
 * `../03-user/insights.md`
-* `../../project-manager/PROJECT_STATE.md`
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/PROJECT_STATE.md`
+* `../../project-os/DECISIONS.md`

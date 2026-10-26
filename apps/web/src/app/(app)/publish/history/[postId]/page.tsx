@@ -4,11 +4,14 @@ import { notFound, redirect } from "next/navigation";
 import { AnalyticsService } from "@/domains/analytics";
 import { PublishingService } from "@/domains/publishing";
 import type { HistoryDetailItem } from "@/domains/publishing";
+import { IdentityService } from "@/domains/identity";
 import { MediaService } from "@/domains/media";
 import { getCachedSession } from "@/lib/better-auth/session";
 import { getWorkspaceContext } from "@/lib/workspace/workspace-context";
 import { analyticsRepository } from "@/lib/repositories/analytics";
 import { publishingRepository } from "@/lib/repositories/publishing";
+import { identityRepository } from "@/lib/repositories/identity";
+import { supabaseAvatarStorageAdapter } from "@/lib/adapters/avatar-storage";
 import { mediaRepository } from "@/lib/repositories/media";
 import { supabaseMediaStorageAdapter } from "@/lib/adapters/media-storage/supabase-media-storage-adapter";
 import { NotFoundError } from "@/lib/utils/errors";
@@ -32,6 +35,13 @@ import { HistoryDetail } from "./components/HistoryDetail";
  * (`publish/calendar/actions.ts`, T-033.2): cross-domain `publishing` →
  * `analytics` HANYA lewat public API barrel (`@/domains/analytics`),
  * bukan import internal repository domain lain (AGENTS.md #7).
+ *
+ * `AuthorPort` (T-121, menutup KI-050) disuplai lewat `IdentityService`
+ * (bukan `identityRepository` langsung, fix review Ridwan Architecture
+ * Reviewer 2026-10-19) — dibungkus adapter tipis `{ findById }` karena
+ * `AuthorPort.findById` dan `IdentityService.getProfile` beda nama method;
+ * pola sama `PostMetricsPort` (lewat `AnalyticsService`) di atas: cross-domain
+ * SELALU lewat Application Service domain lain, bukan repository mentahnya.
  */
 export default async function Page({
   params,
@@ -47,9 +57,16 @@ export default async function Page({
   }
   const userId = asUserId(session.user.id);
 
+  const identityService = new IdentityService(
+    identityRepository,
+    supabaseAvatarStorageAdapter,
+  );
+
   const publishingService = new PublishingService(
     publishingRepository,
     new AnalyticsService(analyticsRepository),
+    undefined,
+    { findById: (userId) => identityService.getProfile(userId) },
   );
 
   let item: HistoryDetailItem;

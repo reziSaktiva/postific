@@ -761,6 +761,248 @@ describe("RealOutstandAdapter analytics (fetchPostMetrics/fetchWorkspaceMetrics,
     expect(result.engagementRate).toBe(0);
   });
 
+  describe("fetchPostMetrics classification signals (ADR-135, T-132 — payload nyata lewat MCP mcp.outstand.so, 2026-10-20)", () => {
+    it("reads Instagram media_product_type FEED from metrics_by_account[0] (real payload, post MAnO3)", async () => {
+      const fetchImpl = vi.fn().mockResolvedValue(
+        jsonResponse(200, {
+          success: true,
+          post: {
+            id: "MAnO3",
+            publishedAt: "2026-09-26T04:47:13.603Z",
+            createdAt: "2026-09-26T04:46:52.999Z",
+          },
+          metrics_by_account: [
+            {
+              social_account: {
+                id: "eH82r",
+                nickname: "turanilkerl",
+                network: "instagram",
+                username: "turanilkerl",
+              },
+              platform_post_id: "18108984935619405",
+              platform_post_url: "https://www.instagram.com/p/DdvNcuNDBkr/",
+              published_at: "2026-09-26T04:47:13.550Z",
+              metrics: {
+                platform_specific: {
+                  reach: 1,
+                  saved: 0,
+                  likes: 0,
+                  comments: 1,
+                  shares: 0,
+                  views: 8,
+                  media_product_type: "FEED",
+                },
+                reach: 1,
+                likes: 0,
+                comments: 1,
+                saves: 0,
+                shares: 0,
+                views: 8,
+                media_product_type: "FEED",
+                engagement_rate: 100,
+              },
+            },
+          ],
+          aggregated_metrics: {
+            total_likes: 0,
+            total_comments: 1,
+            total_shares: 0,
+            total_views: 8,
+            total_impressions: 0,
+            total_reach: 1,
+            average_engagement_rate: 100,
+          },
+        }),
+      );
+      const adapter = buildAdapter(fetchImpl);
+
+      const result = await adapter.fetchPostMetrics("MAnO3");
+
+      expect(result.mediaProductType).toBe("FEED");
+      expect(result.isReel).toBeUndefined();
+      expect(result.storyExpired).toBeUndefined();
+    });
+
+    it("reads Facebook platform_specific.video.is_reel from metrics_by_account[0] (real payload, post LGyF6 — bug proof: stored as contentFormat 'post' despite being a Reel)", async () => {
+      const fetchImpl = vi.fn().mockResolvedValue(
+        jsonResponse(200, {
+          success: true,
+          post: {
+            id: "LGyF6",
+            publishedAt: "2026-10-15T09:46:28.000Z",
+            createdAt: "2026-10-19T02:28:21.849Z",
+          },
+          metrics_by_account: [
+            {
+              social_account: {
+                id: "Kav29",
+                nickname: "Cook It Real Good",
+                network: "facebook",
+                username: "Cook It Real Good",
+              },
+              platform_post_id: "748994198575173_1745439427587984",
+              platform_post_url:
+                "https://facebook.com/748994198575173_1745439427587984",
+              published_at: "2026-10-15T09:46:28.000Z",
+              metrics: {
+                likes: 2,
+                comments: 0,
+                shares: 1,
+                impressions: 383,
+                reach: 0,
+                engagement_rate: null,
+                platform_specific: {
+                  likes: 2,
+                  comments: 0,
+                  shares: 1,
+                  video: {
+                    video_id: "2386688518787210",
+                    is_reel: true,
+                  },
+                },
+              },
+            },
+          ],
+          aggregated_metrics: {
+            total_likes: 2,
+            total_comments: 0,
+            total_shares: 1,
+            total_views: 356,
+            total_impressions: 383,
+            total_reach: 0,
+            average_engagement_rate: 0,
+          },
+        }),
+      );
+      const adapter = buildAdapter(fetchImpl);
+
+      const result = await adapter.fetchPostMetrics("LGyF6");
+
+      expect(result.isReel).toBe(true);
+      expect(result.mediaProductType).toBeUndefined();
+      expect(result.storyExpired).toBeUndefined();
+    });
+
+    it("reads Facebook platform_specific.video.is_reel === false explicitly (non-Reel Facebook video post)", async () => {
+      const fetchImpl = vi.fn().mockResolvedValue(
+        jsonResponse(200, {
+          success: true,
+          post: { id: "post-fb-nonreel" },
+          metrics_by_account: [
+            {
+              social_account: { id: "acc-1", network: "facebook" },
+              metrics: {
+                likes: 0,
+                comments: 0,
+                shares: 0,
+                platform_specific: {
+                  video: { video_id: "v1", is_reel: false },
+                },
+              },
+            },
+          ],
+          aggregated_metrics: {},
+        }),
+      );
+      const adapter = buildAdapter(fetchImpl);
+
+      const result = await adapter.fetchPostMetrics("post-fb-nonreel");
+
+      expect(result.isReel).toBe(false);
+    });
+
+    it("marks storyExpired when metrics is null with metrics_error.code 'metrics_expired' (real payload, Instagram Story post l21bW, published >24h ago) — NOT an HTTP error, response stays success:true", async () => {
+      const fetchImpl = vi.fn().mockResolvedValue(
+        jsonResponse(200, {
+          success: true,
+          post: {
+            id: "l21bW",
+            publishedAt: "2026-09-26T06:13:46.139Z",
+            createdAt: "2026-09-26T06:13:25.995Z",
+          },
+          metrics_by_account: [
+            {
+              social_account: {
+                id: "eH82r",
+                nickname: "turanilkerl",
+                network: "instagram",
+                username: "turanilkerl",
+              },
+              platform_post_id: "17957025843015475",
+              platform_post_url:
+                "https://www.instagram.com/stories/turanilkerl/3994514109600922311",
+              published_at: "2026-09-26T06:13:46.088Z",
+              metrics: null,
+              metrics_error: {
+                code: "metrics_expired",
+                message:
+                  "Insights for media 17957025843015475 are no longer available - the story has likely expired",
+              },
+            },
+          ],
+          aggregated_metrics: {
+            total_likes: 0,
+            total_comments: 0,
+            total_shares: 0,
+            total_views: 0,
+            total_impressions: 0,
+            total_reach: 0,
+            average_engagement_rate: 0,
+          },
+        }),
+      );
+      const adapter = buildAdapter(fetchImpl);
+
+      const result = await adapter.fetchPostMetrics("l21bW");
+
+      expect(result.storyExpired).toBe(true);
+      expect(result.mediaProductType).toBeUndefined();
+      expect(result.isReel).toBeUndefined();
+    });
+
+    it("returns all three classification fields undefined when metrics_by_account is empty (platform without this analytics signal, e.g. TikTok/Pinterest)", async () => {
+      const fetchImpl = vi.fn().mockResolvedValue(
+        jsonResponse(200, {
+          success: true,
+          post: { id: "post-no-signal" },
+          metrics_by_account: [],
+          aggregated_metrics: {},
+        }),
+      );
+      const adapter = buildAdapter(fetchImpl);
+
+      const result = await adapter.fetchPostMetrics("post-no-signal");
+
+      expect(result.mediaProductType).toBeUndefined();
+      expect(result.isReel).toBeUndefined();
+      expect(result.storyExpired).toBeUndefined();
+    });
+
+    it("returns metadata fields undefined for null metrics without a metrics_expired error code (unrecognized failure shape — not mistaken for story expiry)", async () => {
+      const fetchImpl = vi.fn().mockResolvedValue(
+        jsonResponse(200, {
+          success: true,
+          post: { id: "post-weird" },
+          metrics_by_account: [
+            {
+              social_account: { id: "acc-1", network: "instagram" },
+              metrics: null,
+              metrics_error: { code: "some_other_error", message: "..." },
+            },
+          ],
+          aggregated_metrics: {},
+        }),
+      );
+      const adapter = buildAdapter(fetchImpl);
+
+      const result = await adapter.fetchPostMetrics("post-weird");
+
+      expect(result.storyExpired).toBeUndefined();
+      expect(result.mediaProductType).toBeUndefined();
+      expect(result.isReel).toBeUndefined();
+    });
+  });
+
   it("fetchWorkspaceMetrics passes since/until as Unix timestamps to /v1/social-accounts/{id}/metrics and maps the best-effort shape", async () => {
     const fetchImpl = vi.fn().mockResolvedValue(
       jsonResponse(200, {
@@ -1566,7 +1808,12 @@ describe("RealOutstandAdapter.importPosts / fetchImportJobStatus (T-112)", () =>
       "import-job-1",
     );
 
-    expect(result).toEqual({ status: "pending", posts: [], error: null });
+    expect(result).toEqual({
+      status: "pending",
+      posts: [],
+      error: null,
+      counts: { imported: 0, skipped: 0, failed: 0 },
+    });
     expect(fetchImpl).toHaveBeenCalledTimes(1);
     const [url] = fetchImpl.mock.calls[0];
     expect(url).toBe(
@@ -1599,6 +1846,7 @@ describe("RealOutstandAdapter.importPosts / fetchImportJobStatus (T-112)", () =>
       status: "failed",
       posts: [],
       error: "Outstand rate limited",
+      counts: expect.any(Object),
     });
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
@@ -1678,6 +1926,9 @@ describe("RealOutstandAdapter.importPosts / fetchImportJobStatus (T-112)", () =>
       posts: [
         {
           platformPostId: "ig-post-1",
+          // T-113/KI-090 — `rawPost.id` (id internal Outstand, LEVEL POST)
+          // harus ikut terpetakan supaya comment-nya bisa ter-sync nanti.
+          outstandPostId: "post-1",
           caption: "Hello from Instagram",
           publishedAt: new Date("2026-08-01T00:05:00.000Z"),
           platformPostUrl: "https://instagram.com/p/ig-post-1",
@@ -1685,6 +1936,7 @@ describe("RealOutstandAdapter.importPosts / fetchImportJobStatus (T-112)", () =>
         },
       ],
       error: null,
+      counts: { imported: 1, skipped: 0, failed: 0 },
     });
     expect(fetchImpl).toHaveBeenCalledTimes(2);
     const [secondUrl] = fetchImpl.mock.calls[1];
@@ -1693,10 +1945,188 @@ describe("RealOutstandAdapter.importPosts / fetchImportJobStatus (T-112)", () =>
     // hanya `social_account_id`+`limit` seperti sebelumnya), supaya hasil
     // tidak match post lain di akun yang sama di luar rentang job ini.
     expect(secondUrl).toBe(
-      "https://api.outstand.so/v1/posts?social_account_id=acc-ig-1&limit=1" +
+      "https://api.outstand.so/v1/posts?social_account_id=acc-ig-1&limit=100&offset=0" +
         "&created_after=2026-07-10T00%3A00%3A00.000Z" +
         "&created_before=2026-10-08T00%3A00%3A00.000Z",
     );
+  });
+
+  it("fetchImportJobStatus paginates GET /v1/posts in pages of max 100 when the job reports more than 100 posts (T-141/KI-101)", async () => {
+    const buildPosts = (from: number, count: number) =>
+      Array.from({ length: count }, (_, index) => ({
+        id: `post-${from + index}`,
+        containers: [{ id: `c-${from + index}`, content: "x", media: [] }],
+        socialAccounts: [
+          {
+            id: "acc-ig-1",
+            status: "published",
+            platformPostId: `ig-post-${from + index}`,
+            platformPostUrl: null,
+            publishedAt: "2026-08-01T00:05:00.000Z",
+          },
+        ],
+      }));
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse(200, {
+          success: true,
+          data: {
+            id: "import-job-1",
+            status: "completed",
+            since: "2026-07-10T00:00:00.000Z",
+            until: "2026-10-08T00:00:00.000Z",
+            imported: 200,
+            skipped: 30,
+            failed: 0,
+            error: null,
+          },
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse(200, {
+          success: true,
+          data: buildPosts(0, 100),
+          pagination: { limit: 100, offset: 0, total: 230, count: 100 },
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse(200, {
+          success: true,
+          data: buildPosts(100, 100),
+          pagination: { limit: 100, offset: 100, total: 230, count: 100 },
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse(200, {
+          success: true,
+          data: buildPosts(200, 30),
+          pagination: { limit: 30, offset: 200, total: 230, count: 30 },
+        }),
+      );
+    const adapter = buildAdapter(fetchImpl);
+
+    const result = await adapter.fetchImportJobStatus(
+      "acc-ig-1",
+      "import-job-1",
+    );
+
+    expect(result.status).toBe("completed");
+    expect(result.posts).toHaveLength(230);
+    expect(result.posts[229]?.platformPostId).toBe("ig-post-229");
+    expect(fetchImpl).toHaveBeenCalledTimes(4);
+    const range =
+      "&created_after=2026-07-10T00%3A00%3A00.000Z" +
+      "&created_before=2026-10-08T00%3A00%3A00.000Z";
+    expect(fetchImpl.mock.calls[1][0]).toBe(
+      `https://api.outstand.so/v1/posts?social_account_id=acc-ig-1&limit=100&offset=0${range}`,
+    );
+    expect(fetchImpl.mock.calls[2][0]).toBe(
+      `https://api.outstand.so/v1/posts?social_account_id=acc-ig-1&limit=100&offset=100${range}`,
+    );
+    expect(fetchImpl.mock.calls[3][0]).toBe(
+      `https://api.outstand.so/v1/posts?social_account_id=acc-ig-1&limit=100&offset=200${range}`,
+    );
+  });
+
+  it("fetchImportJobStatus paginates until pagination.total even when job imported+skipped is 0 (T-143.2, no fallback limit 100)", async () => {
+    const buildPosts = (start: number, count: number) =>
+      Array.from({ length: count }, (_, i) => ({
+        id: `post-${start + i}`,
+        containers: [{ content: "x", media: [] }],
+        socialAccounts: [
+          {
+            id: "acc-ig-1",
+            status: "published",
+            platformPostId: `ig-post-${start + i}`,
+            platformPostUrl: null,
+            publishedAt: "2026-08-01T00:05:00.000Z",
+          },
+        ],
+      }));
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse(200, {
+          success: true,
+          data: {
+            id: "import-job-1",
+            status: "completed",
+            since: "2025-10-23T00:00:00.000Z",
+            until: "2026-10-23T00:00:00.000Z",
+            imported: 0,
+            skipped: 0,
+            failed: 0,
+            error: null,
+          },
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse(200, {
+          success: true,
+          data: buildPosts(0, 100),
+          pagination: { limit: 100, offset: 0, total: 118, count: 100 },
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse(200, {
+          success: true,
+          data: buildPosts(100, 18),
+          pagination: { limit: 100, offset: 100, total: 118, count: 18 },
+        }),
+      );
+    const adapter = buildAdapter(fetchImpl);
+
+    const result = await adapter.fetchImportJobStatus(
+      "acc-ig-1",
+      "import-job-1",
+    );
+
+    expect(result.status).toBe("completed");
+    expect(result.posts).toHaveLength(118);
+    expect(result.counts).toEqual({ imported: 0, skipped: 0, failed: 0 });
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+  });
+
+  it("fetchImportJobStatus reports counts and fetchedPosts when GET /v1/posts hits MAX_PAGES (T-143.3)", async () => {
+    const jobResponse = () =>
+      jsonResponse(200, {
+        success: true,
+        data: {
+          id: "import-job-1",
+          status: "completed",
+          since: "2025-10-23T00:00:00.000Z",
+          until: "2026-10-23T00:00:00.000Z",
+          imported: 7,
+          skipped: 3,
+          failed: 1,
+          error: null,
+        },
+      });
+    const postsResponse = () =>
+      jsonResponse(200, {
+        success: true,
+        data: [{ id: "post-forever", socialAccounts: [] }],
+        pagination: { limit: 100, offset: 0, total: 10_000_000, count: 100 },
+      });
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(jobResponse())
+      .mockImplementation(() => Promise.resolve(postsResponse()));
+    const adapter = buildAdapter(fetchImpl);
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const result = await adapter.fetchImportJobStatus(
+      "acc-ig-1",
+      "import-job-1",
+    );
+
+    expect(result.status).toBe("failed");
+    expect(result.posts).toEqual([]);
+    expect(result.counts).toEqual({ imported: 7, skipped: 3, failed: 1 });
+    expect(result.fetchedPosts).toBe(500);
+
+    warnSpy.mockRestore();
   });
 
   it("fetchImportJobStatus maps partial to completed WITH posts + a summarized error message", async () => {
@@ -1752,6 +2182,57 @@ describe("RealOutstandAdapter.importPosts / fetchImportJobStatus (T-112)", () =>
     expect(result.error).toBe("2 dari 3 post gagal diimport.");
   });
 
+  it("fetchImportJobStatus maps outstandPostId to null when GET /v1/posts item has no valid id (T-113/KI-090, defensif)", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse(200, {
+          success: true,
+          data: {
+            id: "import-job-1",
+            status: "completed",
+            since: "2026-07-10T00:00:00.000Z",
+            until: "2026-10-08T00:00:00.000Z",
+            imported: 1,
+            skipped: 0,
+            failed: 0,
+            error: null,
+          },
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse(200, {
+          success: true,
+          data: [
+            {
+              // `id` sengaja hilang — respons Outstand yang tidak lengkap.
+              containers: [{ id: "c1", content: "No post id", media: [] }],
+              socialAccounts: [
+                {
+                  id: "acc-ig-1",
+                  status: "published",
+                  platformPostId: "ig-post-no-id",
+                  platformPostUrl: null,
+                  publishedAt: null,
+                },
+              ],
+            },
+          ],
+        }),
+      );
+    const adapter = buildAdapter(fetchImpl);
+
+    const result = await adapter.fetchImportJobStatus(
+      "acc-ig-1",
+      "import-job-1",
+    );
+
+    expect(result.status).toBe("completed");
+    expect(result.posts).toHaveLength(1);
+    expect(result.posts[0]?.platformPostId).toBe("ig-post-no-id");
+    expect(result.posts[0]?.outstandPostId).toBeNull();
+  });
+
   it("fetchImportJobStatus throws OutstandIntegrationError for an unrecognized status value (throw-loud, ADR-059)", async () => {
     const fetchImpl = vi.fn().mockResolvedValue(
       jsonResponse(200, {
@@ -1765,5 +2246,224 @@ describe("RealOutstandAdapter.importPosts / fetchImportJobStatus (T-112)", () =>
       adapter.fetchImportJobStatus("acc-ig-1", "import-job-1"),
     ).rejects.toBeInstanceOf(OutstandIntegrationError);
     expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("RealOutstandAdapter.fetchAllPostIdMappings (T-114, backfill outstandPostId)", () => {
+  it("calls GET /v1/posts WITHOUT created_after/created_before (full history, not a date-bounded window)", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        success: true,
+        data: [],
+        pagination: { limit: 100, offset: 0, total: 0, count: 0 },
+      }),
+    );
+    const adapter = buildAdapter(fetchImpl);
+
+    await adapter.fetchAllPostIdMappings("acc-ig-1");
+
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    const calledUrl = new URL(String(fetchImpl.mock.calls[0]?.[0]));
+    expect(calledUrl.pathname).toBe("/v1/posts");
+    expect(calledUrl.searchParams.get("social_account_id")).toBe("acc-ig-1");
+    expect(calledUrl.searchParams.get("limit")).toBe("100");
+    expect(calledUrl.searchParams.get("offset")).toBe("0");
+    expect(calledUrl.searchParams.has("created_after")).toBe(false);
+    expect(calledUrl.searchParams.has("created_before")).toBe(false);
+  });
+
+  it("maps matched socialAccounts entries to {platformPostId, outstandPostId}, skipping posts targeting a different account", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        success: true,
+        data: [
+          {
+            id: "post-1",
+            socialAccounts: [
+              {
+                id: "acc-ig-1",
+                status: "published",
+                platformPostId: "ig-post-1",
+              },
+            ],
+          },
+          {
+            // Different account — must be skipped.
+            id: "post-2",
+            socialAccounts: [
+              {
+                id: "acc-other",
+                status: "published",
+                platformPostId: "other-1",
+              },
+            ],
+          },
+          {
+            // Not published at this account yet — must be skipped.
+            id: "post-3",
+            socialAccounts: [
+              { id: "acc-ig-1", status: "pending", platformPostId: null },
+            ],
+          },
+        ],
+        pagination: { limit: 100, offset: 0, total: 3, count: 3 },
+      }),
+    );
+    const adapter = buildAdapter(fetchImpl);
+
+    const result = await adapter.fetchAllPostIdMappings("acc-ig-1");
+
+    expect(result).toEqual({
+      mappings: [{ platformPostId: "ig-post-1", outstandPostId: "post-1" }],
+      complete: true,
+      shapeDrift: false,
+    });
+  });
+
+  it("pages through GET /v1/posts using pagination.total/count until exhausted", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse(200, {
+          success: true,
+          data: [
+            {
+              id: "post-1",
+              socialAccounts: [
+                {
+                  id: "acc-ig-1",
+                  status: "published",
+                  platformPostId: "ig-post-1",
+                },
+              ],
+            },
+          ],
+          pagination: { limit: 1, offset: 0, total: 2, count: 1 },
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse(200, {
+          success: true,
+          data: [
+            {
+              id: "post-2",
+              socialAccounts: [
+                {
+                  id: "acc-ig-1",
+                  status: "published",
+                  platformPostId: "ig-post-2",
+                },
+              ],
+            },
+          ],
+          pagination: { limit: 1, offset: 1, total: 2, count: 1 },
+        }),
+      );
+    const adapter = buildAdapter(fetchImpl);
+
+    const result = await adapter.fetchAllPostIdMappings("acc-ig-1");
+
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    const firstUrl = new URL(String(fetchImpl.mock.calls[0]?.[0]));
+    const secondUrl = new URL(String(fetchImpl.mock.calls[1]?.[0]));
+    expect(firstUrl.searchParams.get("offset")).toBe("0");
+    expect(secondUrl.searchParams.get("offset")).toBe("1");
+    expect(result).toEqual({
+      mappings: [
+        { platformPostId: "ig-post-1", outstandPostId: "post-1" },
+        { platformPostId: "ig-post-2", outstandPostId: "post-2" },
+      ],
+      complete: true,
+      shapeDrift: false,
+    });
+  });
+
+  it("stops after one page when the page comes back empty, even without a pagination object (defensive)", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(jsonResponse(200, { success: true, data: [] }));
+    const adapter = buildAdapter(fetchImpl);
+
+    const result = await adapter.fetchAllPostIdMappings("acc-ig-1");
+
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({
+      mappings: [],
+      complete: true,
+      shapeDrift: false,
+    });
+  });
+
+  it("flags shapeDrift when a raw post has no socialAccounts array, and still maps the posts that do", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        success: true,
+        data: [
+          { id: "post-drift" },
+          {
+            id: "post-ok",
+            socialAccounts: [
+              {
+                id: "acc-ig-1",
+                status: "published",
+                platformPostId: "ig-post-ok",
+              },
+            ],
+          },
+        ],
+        pagination: { limit: 100, offset: 0, total: 2, count: 2 },
+      }),
+    );
+    const adapter = buildAdapter(fetchImpl);
+
+    const result = await adapter.fetchAllPostIdMappings("acc-ig-1");
+
+    expect(result).toEqual({
+      mappings: [{ platformPostId: "ig-post-ok", outstandPostId: "post-ok" }],
+      complete: true,
+      shapeDrift: true,
+    });
+  });
+
+  it("stops at MAX_PAGES and returns complete: false with a console.warn when the API claims more pages forever", async () => {
+    // `mockImplementation` (bukan `mockResolvedValue` dengan satu objek
+    // `Response` yang sama) — body sebuah `Response` hanya bisa dibaca
+    // sekali, jadi tiap pemanggilan butuh instance baru meski isinya
+    // identik untuk setiap halaman (satu definisi mock, bukan 500
+    // `mockResolvedValueOnce` manual).
+    const fetchImpl = vi.fn().mockImplementation(() =>
+      Promise.resolve(
+        jsonResponse(200, {
+          success: true,
+          data: [
+            {
+              id: "post-forever",
+              socialAccounts: [
+                {
+                  id: "acc-ig-1",
+                  status: "published",
+                  platformPostId: "ig-post-forever",
+                },
+              ],
+            },
+          ],
+          // `total` sangat besar dan tidak pernah berkurang — `hasMore` akan
+          // selalu true sehingga loop hanya bisa berhenti lewat safety net
+          // `MAX_PAGES`, bukan lewat kondisi `hasMore` wajar.
+          pagination: { limit: 100, offset: 0, total: 10_000_000, count: 100 },
+        }),
+      ),
+    );
+    const adapter = buildAdapter(fetchImpl);
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const result = await adapter.fetchAllPostIdMappings("acc-ig-1");
+
+    expect(fetchImpl).toHaveBeenCalledTimes(500);
+    expect(result.complete).toBe(false);
+    expect(result.mappings).toHaveLength(500);
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("acc-ig-1"));
+
+    warnSpy.mockRestore();
   });
 });

@@ -32,6 +32,15 @@ model User {
   sessions      Session[]
   accounts      Account[]
 
+  // T-016.4: preferensi notifikasi email, 3 kolom boolean terpisah (bukan
+  // JSON) — konsisten dengan pola kolom boolean flat yang sudah ada di
+  // schema ini (mis. `emailVerified` di model yang sama). Default
+  // mengikuti rancangan Claude Design (`templates/settings-notifications.html`):
+  // Balasan & Mention + Jadwal Publish default ON, Laporan Analytics default OFF.
+  notifyRepliesAndMentions Boolean @default(true)
+  notifyPublishSchedule    Boolean @default(true)
+  notifyAnalyticsReport    Boolean @default(false)
+
   @@unique([email])
   @@map("identity_user")
 }
@@ -163,8 +172,22 @@ model WorkspaceInvitation {
   verificationCodeExpiresAt DateTime? @map("verification_code_expires_at") @db.Timestamptz(6)
   /** Reset ke 0 tiap kode baru diminta (`setInvitationVerificationCode`); increment tiap kode salah (anti brute-force, maks 5 percobaan). */
   verificationAttempts      Int       @default(0) @map("verification_attempts")
-  /** Diisi sekali (single-use) saat kode OTP dikonfirmasi benar — dipakai `WorkspaceService.acceptInvite` sebagai guard server-side (bukan klaim dari client). */
+  /** Diisi saat kode OTP dikonfirmasi benar — dipakai `WorkspaceService.acceptInvite` sebagai guard server-side. Tidak di-clear oleh hook Better Auth. */
   emailVerifiedAt           DateTime? @map("email_verified_at") @db.Timestamptz(6)
+  /**
+   * T-005.5 — single-use untuk `databaseHooks.user.create.before`.
+   * Terpisah dari `emailVerifiedAt` supaya `acceptInvite` (setelah sign-up)
+   * masih melihat bukti OTP. Di-reset ke null tiap OTP baru dikonfirmasi,
+   * lalu diisi sekali saat sign-up berhasil mengonsumsi sinyal.
+   */
+  betterAuthEmailVerifiedConsumedAt DateTime? @map("better_auth_email_verified_consumed_at") @db.Timestamptz(6)
+  /**
+   * T-005.5 — sha256 dari rahasia yang hanya diberikan ke browser yang
+   * baru saja mengonfirmasi OTP (cookie httpOnly). Sign-up tanpa rahasia
+   * ini tidak boleh ditandai `emailVerified`, walaupun email-nya cocok.
+   * Di-clear saat kode baru diminta atau saat sinyal berhasil dikonsumsi.
+   */
+  betterAuthEmailProofHash String? @map("better_auth_email_proof_hash")
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -285,15 +308,32 @@ model PublishingPost {
   // lapis kedua: guard runtime di
   // `PublishingRepository.findPostTargetsByOutstandPostId`.
   outstandPostId String?   @map("outstand_post_id")
+  // T-114 review — post Imported yang sudah dibandingkan dengan riwayat
+  // Outstand tetapi `outstandPostId`-nya tidak bisa diisi (id sudah dipakai
+  // post lain, atau `platformPostId` tidak ada di riwayat). Existence check
+  // backfill mengabaikan baris ini supaya sync berikutnya tidak mengunduh
+  // ulang seluruh riwayat akun. Bukan pengganti `outstandPostId`.
+  outstandIdBackfillSkippedAt DateTime? @map("outstand_id_backfill_skipped_at") @db.Timestamptz(6)
   deletedAt      DateTime? @map("deleted_at") @db.Timestamptz(6)
   createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  // T-145 — waktu bisnis History, GENERATED ALWAYS ... STORED di Postgres
+  // (migration `20261023120000_t145_publishing_posts_occurred_at`):
+  // `status = 'failed'` -> `COALESCE(failed_at, updated_at)`, selain itu
+  // `COALESCE(published_at, updated_at)`. Semantik identik
+  // `historyItemOccurredAt` (T-142). READ-ONLY: jangan pernah diisi dari
+  // aplikasi (Postgres menolak INSERT/UPDATE eksplisit ke generated column).
+  // `dbgenerated()` tanpa argumen = default tidak diketahui Prisma, sehingga
+  // kolom ini tidak ikut `data` pada create/createMany.
+  occurredAt     DateTime  @default(dbgenerated()) @map("occurred_at") @db.Timestamptz(6)
 
   workspace Workspace              @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   targets   PublishingPostTarget[]
 
   @@index([workspaceId])
   @@index([workspaceId, status])
+  // T-145 — `listHistory` `orderBy occurredAt desc` (+ pagination kelak).
+  @@index([workspaceId, occurredAt(sort: Desc)])
   // `listHistory`'s `publishedAtRange` filter (T-045/T-046/T-047, /analyze)
   // butuh `publishedAt` ikut ter-index bareng `workspaceId`+`status` supaya
   // Postgres tidak scan seluruh riwayat per-status sebelum menyaring rentang

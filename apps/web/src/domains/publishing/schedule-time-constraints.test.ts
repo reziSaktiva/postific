@@ -5,6 +5,7 @@ import {
   assertScheduledAtNotInPast,
   scheduleTimeConstraintMessage,
 } from "./schedule-time-constraints";
+import { wibLocalToUtc } from "./wib-time";
 
 const NOW = new Date("2026-09-28T11:48:00.000Z");
 
@@ -57,5 +58,20 @@ describe("assertScheduledAtNotInPast", () => {
     expect(() =>
       assertScheduledAtNotInPast(new Date("2026-09-28T08:00:00.000Z"), NOW),
     ).toThrow(PublishingDomainError);
+  });
+});
+
+describe("scheduleTimeConstraintMessage dengan input picker WIB (T-146)", () => {
+  // NOW = 11:48Z = 18:48 WIB.
+  it("menolak 18:00 WIB hari itu (sudah lewat di WIB)", () => {
+    expect(
+      scheduleTimeConstraintMessage(wibLocalToUtc("2026-09-28", "18:00"), NOW),
+    ).toBe(SCHEDULE_TIME_IN_PAST_MESSAGE);
+  });
+
+  it("menerima 19:00 WIB hari itu (masa depan di WIB, 12:00Z)", () => {
+    expect(
+      scheduleTimeConstraintMessage(wibLocalToUtc("2026-09-28", "19:00"), NOW),
+    ).toBeNull();
   });
 });

@@ -118,7 +118,7 @@ Bukan berarti fitur tersebut tidak penting, tetapi bukan prioritas untuk mencapa
 ### Could Have
 
 * Custom Reports
-* AI Insights
+* AI Insights (dikerjakan AI klien lewat MCP, bukan fitur Postific)
 
 ### Won't Have
 
@@ -149,25 +149,24 @@ Bukan berarti fitur tersebut tidak penting, tetapi bukan prioritas untuk mencapa
 
 ---
 
-## AI Assistant
+## MCP Server
 
 ### Must Have
 
-* Caption Generation
-* Caption Improvement
-
-### Should Have
-
-* Tone Rewrite
-
-### Could Have
-
-* AI Content Calendar
-* AI Performance Suggestions
-* Hashtag Suggestions
+* Koneksi OAuth per workspace dengan scope (`read`, `draft`, `schedule`)
+* Tool baca (akun, media, draft, antrean, history, analytics, komentar)
+* Tool draft (buat, edit, unggah media dari URL)
+* Tool jadwal (`schedule_posts`, batch)
+* Audit panggilan dan rate limit per workspace
+* Pencabutan koneksi klien AI
+* Penanda sumber MCP ("dibuat lewat MCP"): badge dan filter sumber di History, Drafts, dan Queue (Calendar tanpa badge)
 
 ### Won't Have
 
+* Publish Now lewat MCP (ditunda, ADR-138)
+* Balas komentar lewat MCP (ditunda, ADR-138)
+* Aksi destruktif dan administratif lewat MCP (hapus, batalkan jadwal, kelola member/role, disconnect akun)
+* AI bawaan Postific (dicabut, ADR-138)
 * Autonomous AI Agent
 
 ---
@@ -237,5 +236,5 @@ Feature Priority dianggap selesai apabila:
 * `feature-modules.md`
 * `release-roadmap.md`
 * `future-roadmap.md`
-* `../../project-manager/PROJECT_OVERVIEW.md`
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/PROJECT_OVERVIEW.md`
+* `../../project-os/DECISIONS.md`

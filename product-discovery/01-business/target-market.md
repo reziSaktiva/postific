@@ -171,5 +171,5 @@ Target Market dianggap berhasil didefinisikan apabila:
 * `problem-statement.md`
 * `competitor-analysis.md`
 * `../02-product/`
-* `../../project-manager/PROJECT_OVERVIEW.md`
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/PROJECT_OVERVIEW.md`
+* `../../project-os/DECISIONS.md`

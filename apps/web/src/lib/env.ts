@@ -67,6 +67,30 @@ export type ServerEnv = {
   RESEND_API_KEY?: string;
   /** Wajib bersamaan dengan RESEND_API_KEY — alamat pengirim email Resend. */
   RESEND_FROM_EMAIL?: string;
+  /**
+   * T-137 (KI-097, ADR-137, amendemen terbatas ADR-126 khusus staging) —
+   * `"smtp"` → factory `getAuthEmailSender()`/`getInviteEmailSender()`
+   * memakai adapter SMTP (`smtp-*-email-sender.ts`) alih-alih Resend.
+   * Default/kosong/nilai lain → tetap Resend seperti sekarang. Khusus
+   * staging; production tidak diisi (tetap Resend sesuai ADR-126).
+   */
+  EMAIL_PROVIDER?: string;
+  /**
+   * Wajib bersamaan dengan `SMTP_PORT`/`SMTP_USER`/`SMTP_PASSWORD`/
+   * `SMTP_FROM_EMAIL` hanya ketika `EMAIL_PROVIDER=smtp` (T-137) — kosong
+   * membuat adapter SMTP throw, pola sama `RESEND_API_KEY` (ADR-119, tidak
+   * ada fallback Fake di produksi). King Rezi yang mengisi nilainya
+   * langsung di Railway staging (agent tidak pernah memegang kredensial).
+   */
+  SMTP_HOST?: string;
+  /** Wajib bersamaan dengan `SMTP_HOST` — port server SMTP (umumnya 465/587). */
+  SMTP_PORT?: string;
+  /** Wajib bersamaan dengan `SMTP_HOST` — username/mailbox SMTP. */
+  SMTP_USER?: string;
+  /** Wajib bersamaan dengan `SMTP_HOST` — password/app password SMTP. */
+  SMTP_PASSWORD?: string;
+  /** Wajib bersamaan dengan `SMTP_HOST` — alamat pengirim email SMTP. */
+  SMTP_FROM_EMAIL?: string;
   NEXT_PUBLIC_SUPABASE_URL?: string;
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?: string;
 };
@@ -116,6 +140,12 @@ export function getServerEnv(): ServerEnv {
     JOB_SECRET: process.env.JOB_SECRET,
     RESEND_API_KEY: process.env.RESEND_API_KEY,
     RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL,
+    EMAIL_PROVIDER: process.env.EMAIL_PROVIDER,
+    SMTP_HOST: process.env.SMTP_HOST,
+    SMTP_PORT: process.env.SMTP_PORT,
+    SMTP_USER: process.env.SMTP_USER,
+    SMTP_PASSWORD: process.env.SMTP_PASSWORD,
+    SMTP_FROM_EMAIL: process.env.SMTP_FROM_EMAIL,
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
       process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
@@ -132,4 +162,31 @@ export function googleOAuthEnabled(): boolean {
   return Boolean(
     process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET,
   );
+}
+
+/**
+ * T-005.5 (AS-D04) — single source of truth untuk `emailAndPassword.
+ * requireEmailVerification` di `lib/better-auth/auth.ts` DAN untuk redirect
+ * kondisional `RegisterForm` ke `/verify-email`. Sengaja satu fungsi yang
+ * dipakai di dua tempat supaya keduanya tidak pernah drift satu sama lain.
+ *
+ * `true` sejak 2026-10-14, setelah King Rezi menyetujui (via
+ * `AskUserQuestion`) DUA mitigasi yang sebelumnya menahan flag ini (lihat
+ * `tickets/v01-foundation.md` § T-005.5 untuk detail lengkap):
+ *
+ * 1. **Backfill akun existing** — migrasi
+ *    `20261014160000_t005_5_bind_signup_proof_and_backfill_email_verified`
+ *    mengisi `emailVerified = true` untuk baris yang sudah ada saat
+ *    migrasi itu jalan. Akun yang mendaftar sesudahnya tetap wajib
+ *    verifikasi.
+ * 2. **Accept-invite skip** — `databaseHooks.user.create.before` di
+ *    `lib/better-auth/auth.ts` menandai user hasil accept-invite (T-110)
+ *    `emailVerified: true` SAAT DIBUAT, hanya kalau cookie
+ *    `invite-email-proof` cocok dengan hash yang disimpan saat OTP
+ *    dikonfirmasi. `AcceptInviteForm.tsx` memanggil `signIn.email()`
+ *    segera setelah `signUp.email()` kalau response-nya tidak membawa
+ *    `token`.
+ */
+export function requireEmailVerificationEnabled(): boolean {
+  return true;
 }

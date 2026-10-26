@@ -12,6 +12,7 @@ import {
   type ReplyToCommentResult,
 } from "@postific/shared";
 import { describe, expect, it, vi } from "vitest";
+import { noopFetchAllPostIdMappings } from "@/lib/testing/outstand-post-id-backfill-stubs";
 import {
   ConflictError,
   NotFoundError,
@@ -130,6 +131,7 @@ function createFakeAdapter(
       posts: [],
       error: null,
     }),
+    fetchAllPostIdMappings: noopFetchAllPostIdMappings,
     ...overrides,
   };
 }

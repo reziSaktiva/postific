@@ -413,6 +413,42 @@ export interface FetchPostMetricsResult {
   shares: number;
   clicks: number | null;
   engagementRate: number;
+  /**
+   * Klasifikasi jenis konten (ADR-135, T-132) — dibaca dari entri PERTAMA
+   * `metrics_by_account[]` response asli `get-post-analytics` (lihat
+   * docstring `aggregated`/`metrics_by_account` di atas). Instagram-only
+   * (`media_product_type`, dikonfirmasi lewat MCP resmi Outstand terhadap
+   * post nyata `MAnO3`, 2026-10-20): `"FEED"` (post biasa), `"REELS"`,
+   * atau `"STORY"`. `undefined` kalau akun pertama di response bukan
+   * Instagram, atau field ini tidak ada di response (termasuk kasus
+   * `storyExpired`, lihat di bawah). Pemetaan ke `ContentFormat` internal
+   * ada di `ClassifyImportedPostTargetsUseCase.mapFetchPostMetricsToContentFormat`,
+   * BUKAN di adapter ini (ACL tidak boleh tahu `ContentFormat`, AGENTS.md #2).
+   */
+  mediaProductType?: "FEED" | "REELS" | "STORY";
+  /**
+   * Klasifikasi jenis konten (ADR-135, T-132) — Facebook-only
+   * (`platform_specific.video.is_reel`, dikonfirmasi lewat MCP resmi
+   * Outstand terhadap post nyata `LGyF6`, 2026-10-20 — post itu tersimpan
+   * `contentFormat: 'post'` hardcode di DB kita padahal aslinya Reel, bukti
+   * nyata bug yang ditutup ADR-135). `undefined` kalau akun pertama bukan
+   * Facebook, atau post itu tidak punya media video sama sekali (field
+   * `video` tidak ada di `platform_specific`).
+   */
+  isReel?: boolean;
+  /**
+   * Klasifikasi jenis konten (ADR-135, T-132) — `true` kalau entri akun
+   * pertama punya `metrics: null` DAN `metrics_error.code === "metrics_expired"`
+   * (dikonfirmasi lewat MCP resmi Outstand terhadap Instagram Story asli
+   * yang sudah >24 jam, post `l21bW`, 2026-10-20: response TETAP
+   * `success: true`, bukan HTTP error — bentuk sukses-tapi-kosong).
+   * Berlaku lintas platform (field generik, bukan Instagram-only), walau
+   * baru dikonfirmasi untuk Instagram. Jenis konten TIDAK BISA diketahui
+   * lagi lewat jalur ini kalau field ini `true` — caller WAJIB fallback
+   * eksplisit (biarkan `ContentFormat` default, jangan menebak), lihat
+   * ADR-135 poin 4.
+   */
+  storyExpired?: boolean;
 }
 
 export interface FetchWorkspaceMetricsResult {
@@ -517,6 +553,18 @@ export type ImportJobStatus = "pending" | "completed" | "failed";
  */
 export interface ImportedPostData {
   platformPostId: string;
+  /**
+   * Id internal Outstand untuk post ini (field `id` di tiap item
+   * `GET /v1/posts`, SAMA dengan path param `GET /v1/posts/{id}` yang
+   * dipakai `fetchPostOutcome`/`fetchComments`) — T-113/KI-090: dibutuhkan
+   * supaya post hasil Import juga punya `PublishingPost.outstandPostId`
+   * terisi, syarat `listSyncablePostsByConnectedAccount` (dipakai
+   * `SyncCommentsUseCase`) untuk menarik comment post ini ke Engage Inbox.
+   * `null` kalau respons Outstand tidak membawa `id` yang valid (defensif,
+   * tidak menghalangi import post itu sendiri — hanya comment sync-nya
+   * yang tidak akan jalan untuk post ini).
+   */
+  outstandPostId: string | null;
   caption: string;
   publishedAt: Date;
   platformPostUrl: string | null;
@@ -553,6 +601,46 @@ export interface ImportJobOutcome {
   status: ImportJobStatus;
   posts: ImportedPostData[];
   error: string | null;
+  /**
+   * T-143.3 — angka ringkasan job dari Outstand (`imported`/`skipped`/
+   * `failed` di `GET .../imports/{id}`). Opsional: hanya diisi adapter
+   * nyata saat status sudah final. Disimpan di payload job `import.sync`
+   * supaya kasus "hasil terpotong" bisa dibuktikan ulang.
+   */
+  counts?: { imported: number; skipped: number; failed: number };
+  /**
+   * T-143.3 — jumlah post mentah yang sempat diambil dari `GET /v1/posts`
+   * saat `posts` dikosongkan (hasil terpotong `POSTS_MAX_PAGES`). Kalau
+   * kosong, pemanggil memakai `posts.length`.
+   */
+  fetchedPosts?: number;
+}
+
+/**
+ * Satu pasangan `platformPostId` (per-akun, kunci dedup
+ * `PublishingPostTarget.platformPostId` yang sudah ada) → `outstandPostId`
+ * (id internal Outstand level-post, field `id` di tiap item `GET
+ * /v1/posts`) — hasil `fetchAllPostIdMappings` (T-114, backfill otomatis).
+ * Beda dari `ImportedPostData`: tidak membawa caption/media/publishedAt
+ * sama sekali — backfill hanya butuh mengisi SATU kolom
+ * (`PublishingPost.outstandPostId`) untuk baris yang sudah ada, bukan
+ * membuat/mengubah konten post.
+ */
+export interface OutstandPostIdMapping {
+  platformPostId: string;
+  outstandPostId: string;
+}
+
+/**
+ * Hasil `fetchAllPostIdMappings` (T-114). `complete` false kalau scan
+ * berhenti di batas halaman sebelum riwayat habis. `shapeDrift` true kalau
+ * ada item yang tidak punya `socialAccounts` array — caller tidak boleh
+ * menganggap baris lokal yang tidak ketemu sebagai "memang tidak ada".
+ */
+export interface FetchAllPostIdMappingsResult {
+  mappings: OutstandPostIdMapping[];
+  complete: boolean;
+  shapeDrift: boolean;
 }
 
 /**
@@ -854,4 +942,39 @@ export interface IOutstandAdapter {
     outstandAccountId: string,
     importJobId: string,
   ): Promise<ImportJobOutcome>;
+
+  /**
+   * Backfill `outstandPostId` untuk post Imported LAMA (T-114, perluasan
+   * T-113/KI-090) — **diverifikasi terhadap OpenAPI spec resmi Outstand**
+   * (`GET /v1/posts`, dicek ulang 2026-10-15 lewat WebFetch
+   * `api.outstand.so/v1/posts/openapi.json`, BUKAN diasumsikan dari
+   * `fetchImportJobStatus`/ADR-123): `created_after`/`created_before`
+   * TIDAK wajib — memanggil tanpa keduanya mengembalikan SELURUH riwayat
+   * post organisasi (difilter `social_account_id`), bukan dibatasi window
+   * waktu. Pagination murni `limit`/`offset` (keduanya string di wire,
+   * default `"50"`/`"0"`) — TIDAK ada cursor. Response membawa objek
+   * `pagination: { limit, offset, total, count }` di level sama dengan
+   * `data` (dikonfirmasi lewat `real-outstand-adapter.ts` yang sudah
+   * membaca field ini sejak T-112/ADR-123, hanya belum pernah dipakai
+   * untuk loop pagination — "TIDAK ada pagination loop (YAGNI)" di
+   * `fetchImportJobStatus` SENGAJA tetap begitu, method ini yang baru
+   * benar-benar paging sampai habis).
+   *
+   * Dipanggil HANYA kalau caller (`BackfillOutstandPostIdsUseCase`) sudah
+   * mengonfirmasi lewat query DB murah (`IPublishingRepository.
+   * hasImportedPostsMissingOutstandId`) bahwa akun ini MASIH punya baris
+   * `PublishingPost` Imported dengan `outstandPostId` kosong — supaya sync
+   * normal (yang sudah tidak punya gap) tidak pernah kena biaya panggilan
+   * tambahan ini.
+   *
+   * Mapping per item SAMA PERSIS dengan logika `fetchImportJobStatus`
+   * (cari entri `socialAccounts[]` yang `id` cocok `outstandAccountId` DAN
+   * `status === "published"` DAN `platformPostId` terisi; post tanpa
+   * entri cocok di-skip) — tapi hasilnya hanya pasangan id (BUKAN
+   * `ImportedPostData` penuh, tidak butuh caption/media/publishedAt untuk
+   * backfill satu kolom).
+   */
+  fetchAllPostIdMappings(
+    outstandAccountId: string,
+  ): Promise<FetchAllPostIdMappingsResult>;
 }

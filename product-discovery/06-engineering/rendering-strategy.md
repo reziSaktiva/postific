@@ -30,8 +30,8 @@ diikuti tanpa ambiguitas, dan melengkapi `monorepo-setup.md` (lokasi file
 | Topik | Keputusan | Sumber |
 |-------|-----------|--------|
 | Entry point split | Server Actions untuk mutation, Route Handlers untuk eksternal (webhook/OAuth), Middleware untuk auth guard | ADR-016 |
-| Application Service per BC, entry point tipis tanpa business logic | `application-layer.md`, AGENTS.md rule 5 |
-| Domain logic tidak boleh import Prisma/Supabase/HTTP client | AGENTS.md rule 6, `ctx-implementation.md` |
+| Application Service per BC, entry point tipis tanpa business logic | `application-layer.md`, AGENTS.md rule 3 |
+| Domain logic tidak boleh import Prisma/Supabase/HTTP client | AGENTS.md rule 4, `ctx-implementation.md` |
 | Workspace context via cookie `active-workspace-id`, divalidasi ulang tiap request | ADR-076, `auth-architecture.md` |
 | Realtime dibatasi tabel spesifik (`notifications`, `publishing_posts`) — bukan strategi rendering halaman | ADR-023, ADR-094, `realtime-strategy.md` |
 
@@ -117,12 +117,12 @@ bawahnya. Ini pola yang harus diikuti untuk **semua page baru**.
 **Pola yang menyimpang (known exception, jangan ditiru):**
 `app/(app)/page.tsx` (dashboard) memanggil Server Action
 (`getDashboardSummaryAction`) untuk pure read — dicatat sebagai technical
-debt (lihat Known Issue terkait di `PROJECT_STATE.md`, dan task cleanup di
-`TASKS.md`). **Bukan pola yang benar untuk dicontoh di fitur baru.**
+debt (lihat Known Issue terkait di `PROJECT_STATE.md`, dan tiket cleanup di
+`tickets/`). **Bukan pola yang benar untuk dicontoh di fitur baru.**
 
 **Alasan aturan ini:** Server Action membawa overhead POST + serialisasi
 yang tidak perlu untuk read; Server Component sudah punya akses langsung ke
-Application Service tanpa lapisan tambahan itu — selaras AGENTS.md rule 5.
+Application Service tanpa lapisan tambahan itu — selaras AGENTS.md rule 3.
 
 ---
 
@@ -160,9 +160,9 @@ ini. Ini status quo eksplisit, bukan lupa dikonfigurasi.
 
 **Pengecualian terbuka:** Start Page / rute publik (v0.6, **T-070**).
 Strategi rendering-nya (SSG/ISR/dynamic) **belum diputuskan** — jangan
-diasumsikan dari dokumen ini. Keputusan itu menunggu T-070 dikerjakan
-(termasuk keputusan terbuka "Strategi route publik tanpa auth" di
-`TASKS.md`), dan akan mendapat ADR sendiri saat diputuskan.
+diasumsikan dari dokumen ini. URL publik sudah dikunci di ADR-128
+(`/u/[slug]`). Strategi SSG/ISR/dynamic masih terbuka dan akan mendapat
+ADR sendiri saat diputuskan.
 
 ---
 
@@ -186,7 +186,7 @@ tidak diduplikasi di sini:
 | ID | Keputusan | Alasan | Alternatif |
 |----|-----------|--------|-----------|
 | RS-D01 | Server Actions eksklusif mutation | Mencegah drift seperti kasus dashboard terulang di fitur baru | Membolehkan Server Action untuk read juga (ditolak — overhead POST tidak perlu) |
-| RS-D02 | Data fetching page.tsx via Application Service langsung | Selaras AGENTS.md rule 5, sudah terbukti di `calendar/page.tsx` | Tetap lewat Server Action seperti dashboard (ditolak — pola menyimpang, tidak direplikasi) |
+| RS-D02 | Data fetching page.tsx via Application Service langsung | Selaras AGENTS.md rule 3, sudah terbukti di `calendar/page.tsx` | Tetap lewat Server Action seperti dashboard (ditolak — pola menyimpang, tidak direplikasi) |
 | RS-D04 | Streaming/Suspense belum diaktifkan | Kesederhanaan MVP, belum ada kebutuhan nyata | Aktifkan proaktif di semua page (ditolak — kompleksitas tanpa manfaat terukur saat ini) |
 | RS-D05 | 100% dynamic, SSG/ISR di luar scope | Seluruh route personalized per-request di balik auth | Kunci strategi rute publik sekarang (ditolak — T-070 belum diputuskan) |
 
@@ -198,5 +198,5 @@ tidak diduplikasi di sini:
 * `code-conventions.md` — kontrak error handling Server Action (CC-D02)
 * `monorepo-setup.md` — struktur `app/`, penamaan file
 * `../../context/ctx-implementation.md` — alur implementasi fitur
-* `../../project-manager/decisions/ADR-016-application-layer-next-js-entry-point-strategy.md`
-* `../../project-manager/decisions/ADR-095-*.md` (dokumen ini ditetapkan sebagai baseline)
+* `../../project-os/decisions/ADR-016-application-layer-next-js-entry-point-strategy.md`
+* `../../project-os/decisions/ADR-095-*.md` (dokumen ini ditetapkan sebagai baseline)

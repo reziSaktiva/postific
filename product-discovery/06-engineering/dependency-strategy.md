@@ -237,4 +237,4 @@ production build di branch terpisah, lalu uji di staging sebelum promosi.
 * `cicd-pipeline.md` — `bun install --frozen-lockfile` (CI-D02)
 * `dx-tooling.md` — dependency tooling monorepo di root
 * `deployment-infrastructure.md` — install dari root saat build Railway
-* `../../project-manager/DECISIONS.md` — ADR-002, ADR-026, ADR-032, ADR-035, ADR-041
+* `../../project-os/DECISIONS.md` — ADR-002, ADR-026, ADR-032, ADR-035, ADR-041

@@ -22,7 +22,7 @@ import {
 
 import type { SnapshotPeriod } from "@/domains/analytics";
 
-const INITIAL_PERIOD: SnapshotPeriod = "weekly";
+const INITIAL_PERIOD: SnapshotPeriod = "monthly";
 
 export default async function Page() {
   // Satu `now` dibagikan ke kelima action (T-045/T-046/T-047 clock-sharing)

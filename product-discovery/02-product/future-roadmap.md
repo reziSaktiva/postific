@@ -42,16 +42,20 @@ Contoh:
 
 ## AI Expansion
 
-Perluasan kemampuan AI sebagai bagian dari workflow.
+Postific tidak membangun AI sendiri (ADR-138). Perluasan di sini adalah use case
+yang dimungkinkan oleh MCP Server dan dikerjakan oleh AI klien milik pengguna,
+bukan fitur bawaan Postific.
 
-Contoh:
+Contoh use case yang dimungkinkan MCP (dikerjakan AI klien):
 
-* AI Content Calendar
-* AI Performance Analysis
-* AI Content Strategy
-* AI Campaign Planning
-* AI Trend Recommendations
-* AI Agent Assistance
+* Perencanaan content calendar oleh AI klien
+* Analisis performa dari data analytics yang dibaca lewat tool MCP
+* Strategi konten dan perencanaan kampanye oleh AI klien
+* Rekomendasi tren oleh AI klien
+
+Postific hanya menyediakan tool MCP dan jejak kerja AI. Agent otonom yang
+mempublikasikan tanpa kendali pengguna tidak masuk roadmap (ditolak, lihat
+`feature-priority.md`).
 
 ---
 
@@ -207,11 +211,11 @@ Penambahan atau penghapusan arah pengembangan harus didasarkan pada:
 
 Perubahan penting harus dicatat pada:
 
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/DECISIONS.md`
 
 Perubahan status roadmap harus diperbarui pada:
 
-* `../../project-manager/PROJECT_STATE.md`
+* `../../project-os/PROJECT_STATE.md`
 
 ---
 
@@ -223,6 +227,6 @@ Perubahan status roadmap harus diperbarui pada:
 * `feature-priority.md`
 * `release-roadmap.md`
 * `../01-business/product-vision.md`
-* `../../project-manager/PROJECT_OVERVIEW.md`
-* `../../project-manager/PROJECT_STATE.md`
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/PROJECT_OVERVIEW.md`
+* `../../project-os/PROJECT_STATE.md`
+* `../../project-os/DECISIONS.md`

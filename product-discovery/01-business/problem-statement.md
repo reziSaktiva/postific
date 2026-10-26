@@ -147,5 +147,5 @@ Topik tersebut akan dibahas pada dokumen Product, UX, dan Architecture.
 * `product-vision.md`
 * `target-market.md`
 * `competitor-analysis.md`
-* `../../project-manager/PROJECT_OVERVIEW.md`
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/PROJECT_OVERVIEW.md`
+* `../../project-os/DECISIONS.md`

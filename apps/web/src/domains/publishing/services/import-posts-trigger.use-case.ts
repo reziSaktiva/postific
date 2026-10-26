@@ -1,4 +1,5 @@
 import type {
+  AccountOwnerLookupResult,
   ConnectedAccountId,
   ImportJobOutcome,
   IOutstandAdapter,
@@ -8,15 +9,42 @@ import type {
   WorkspaceId,
 } from "@postific/shared";
 import { ConflictError } from "@/lib/utils/errors";
+import { resolveVerifiedAccountOwner } from "@/lib/jobs/account-owner-resolution";
+import { IMPORT_SYNC_JOB_TYPE } from "./import-sync-job-handler";
 import { assertActorCanTriggerManualImportSync } from "../rbac";
 import type {
   IImportJobRepository,
+  ImportSyncJobRecord,
+  ImportSyncJobResult,
   ImportSyncTrigger,
 } from "../repositories/import-job.repository";
+import type { BackfillOutstandPostIdsUseCase } from "./backfill-outstand-post-ids.use-case";
+import type { ClassifyImportedPostTargetsUseCase } from "./classify-imported-post-targets.use-case";
 import type { ImportPostsProcessUseCase } from "./import-posts-process.use-case";
 
-const DEFAULT_IMPORT_LOOKBACK_DAYS = 90;
-const DEFAULT_IMPORT_LIMIT = 100;
+/**
+ * T-131 — sebelum tiket ini, `DEFAULT_IMPORT_LOOKBACK_DAYS`/`DEFAULT_IMPORT_LIMIT`
+ * satu konstanta dipakai ketiga trigger (auto/manual/periodik) sekaligus.
+ * King Rezi (AskUserQuestion, 2026-10-20) minta ketiganya benar-benar beda
+ * kebijakan — dipecah jadi dua pasang konstanta di bawah, bukan lagi satu:
+ * - Auto (on-connect) & manual ("Sync Now"): lookback 1 tahun, limit 1000.
+ * - Periodik (cron harian + antrian T-115): akun BER-watermark limit 100;
+ *   lookback-nya BUKAN angka hari tetap lagi — lihat `periodicImportSince`
+ *   (anti-gap, pakai `CRON_LOOKBACK_MS` sebagai salah satu dari dua kandidat
+ *   `since`). Akun TANPA watermark (`lastImportedUntil === null`, T-143)
+ *   mengejar riwayat penuh: `PERIODIC_FIRST_SYNC_*` di bawah.
+ */
+const AUTO_MANUAL_LOOKBACK_DAYS = 365;
+const AUTO_MANUAL_IMPORT_LIMIT = 1000;
+const CRON_IMPORT_LIMIT = 100;
+/**
+ * T-143.1 — kebijakan periodik untuk akun yang belum pernah sync sukses.
+ * Sengaja konstanta sendiri (nilainya sama dengan auto/manual hari ini) supaya
+ * mengubah kebijakan auto/manual tidak diam-diam mengubah catch-up periodik.
+ */
+const PERIODIC_FIRST_SYNC_LOOKBACK_DAYS = 365;
+const PERIODIC_FIRST_SYNC_LIMIT = 1000;
+const CRON_LOOKBACK_MS = 24 * 60 * 60 * 1000;
 const MANUAL_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 const MANUAL_CAP_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -52,10 +80,110 @@ export type SleepFn = (ms: number) => Promise<void>;
 const defaultSleep: SleepFn = (ms) =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
+/** `since` default untuk trigger auto (on-connect) & manual ("Sync Now") — 1 tahun ke belakang (T-131.1/T-131.2). */
 function defaultSince(now: Date): Date {
   return new Date(
-    now.getTime() - DEFAULT_IMPORT_LOOKBACK_DAYS * 24 * 60 * 60 * 1000,
+    now.getTime() - AUTO_MANUAL_LOOKBACK_DAYS * 24 * 60 * 60 * 1000,
   );
+}
+
+/**
+ * `since` periodik (cron harian T-115 + antrian `executeQueuedPeriodicImport`)
+ * — T-131.3, pengaman anti-gap. BUKAN sekadar watermark atau sekadar 24 jam
+ * lalu: ambil yang LEBIH JAUH ke belakang (lebih tua) di antara keduanya,
+ * `since = min(lastImportedUntil ?? (now - 24 jam), now - 24 jam)`. Kalau
+ * cron sempat gagal/terlewat beberapa hari, watermark lebih tua dari 24 jam
+ * lalu akan tetap dipakai (mengejar gap), BUKAN terpotong jadi cuma 24 jam
+ * terakhir seperti sebelum tiket ini.
+ */
+function periodicImportSince(lastImportedUntil: Date | null, now: Date): Date {
+  const twentyFourHoursAgo = new Date(now.getTime() - CRON_LOOKBACK_MS);
+  const candidate = lastImportedUntil ?? twentyFourHoursAgo;
+  return candidate.getTime() < twentyFourHoursAgo.getTime()
+    ? candidate
+    : twentyFourHoursAgo;
+}
+
+/**
+ * T-143.1 — rencana `since`/`limit` untuk import periodik. Akun yang belum
+ * pernah sync sukses (`lastImportedUntil === null`) harus mengejar riwayat
+ * penuh seperti import connect/manual (1 tahun, limit 1000); kalau tidak,
+ * cron cuma meminta 24 jam terakhir dan import connect yang gagal/timeout
+ * tidak pernah dipulihkan (KI-102). Akun dengan watermark memakai
+ * `periodicImportSince` + `CRON_IMPORT_LIMIT` (tidak berubah dari T-131.3).
+ * Watermark dimajukan hanya kalau job tidak terpotong (`isImportTruncated`).
+ * `since` yang dipakai di sini dihitung saat EKSEKUSI; `since` di payload
+ * enqueue (T-115) hanya placeholder — nilai sebenarnya dicatat di
+ * `payload.result.since`.
+ */
+function periodicImportPlan(
+  lastImportedUntil: Date | null,
+  now: Date,
+): { since: Date; limit: number } {
+  if (lastImportedUntil === null) {
+    return {
+      since: new Date(
+        now.getTime() - PERIODIC_FIRST_SYNC_LOOKBACK_DAYS * 24 * 60 * 60 * 1000,
+      ),
+      limit: PERIODIC_FIRST_SYNC_LIMIT,
+    };
+  }
+  return {
+    since: periodicImportSince(lastImportedUntil, now),
+    limit: CRON_IMPORT_LIMIT,
+  };
+}
+
+/**
+ * T-143.3 — ringkasan hasil job untuk disimpan di payload `import.sync`.
+ * Hanya field yang tersedia yang diisi (adapter nyata saja yang membawa
+ * `counts`).
+ */
+function buildImportJobResult(
+  input: { limit: number; since: Date },
+  outcome?: ImportJobOutcome,
+  processed?: { insertedCount: number; skippedDuplicateCount: number },
+): ImportSyncJobResult {
+  return {
+    limit: input.limit,
+    since: input.since.toISOString(),
+    ...(outcome
+      ? { fetchedPosts: outcome.fetchedPosts ?? outcome.posts.length }
+      : {}),
+    ...(outcome?.counts
+      ? {
+          outstandImported: outcome.counts.imported,
+          outstandSkipped: outcome.counts.skipped,
+          outstandFailed: outcome.counts.failed,
+        }
+      : {}),
+    ...(processed
+      ? {
+          insertedCount: processed.insertedCount,
+          skippedDuplicateCount: processed.skippedDuplicateCount,
+        }
+      : {}),
+  };
+}
+
+/**
+ * Apakah import ini mungkin terpotong (sisa post di rentang `since`-`until`
+ * belum terambil) — menentukan apakah watermark boleh dimajukan.
+ *
+ * `GET /v1/posts` sudah dipaginasi penuh (T-141), jadi jumlah post yang
+ * terambil tidak lagi membuktikan pemotongan. Pembatas sebenarnya adalah
+ * `limit` job import di sisi Outstand: kalau Outstand melaporkan
+ * `imported + skipped + failed` mencapai `limit`, mungkin masih ada sisa.
+ * Tanpa `counts` (adapter lain/double), jatuh ke heuristik lama
+ * `posts.length >= limit`. Akun yang benar-benar punya >= `limit` post dalam
+ * rentang tetap tidak memajukan watermark (butuh cursor Outstand).
+ */
+function isImportTruncated(outcome: ImportJobOutcome, limit: number): boolean {
+  if (outcome.counts) {
+    const { imported, skipped, failed } = outcome.counts;
+    return imported + skipped + failed >= limit;
+  }
+  return outcome.posts.length >= limit;
 }
 
 /**
@@ -82,6 +210,36 @@ interface ConnectedAccountWatermarkPort {
      */
     actingUserId: UserId;
   }): Promise<void>;
+
+  /**
+   * Resolusi `actingUserId` untuk jalur periodik (KI-088, resolved
+   * 2026-10-15) — pola yang sama persis dengan `AnalyticsSyncOwnerLookupPort`
+   * (`analytics-sync-job-handler.ts`, JOB-04) dan `EngagementSyncJobHandler`
+   * (JOB-03): Railway Cron tidak punya sesi user, jadi `actingUserId`
+   * di-resolve lewat Owner workspace dari akun itu sendiri (bukan
+   * `Workspace.ownerId` langsung — kandidat yang disebut di versi sebelumnya
+   * docstring ini, dibuang setelah King Rezi memilih reuse pola JOB-04/JOB-03
+   * yang sudah teruji produksi). Structural-typing cocok dengan
+   * `IWorkspaceRepository.findAccountOwnerByOutstandAccountId` — composition
+   * root (`createImportPostsTriggerUseCase`) tidak perlu menyuplai dependency
+   * baru, `workspaceRepository` yang sudah dipakai untuk `connectedAccounts`
+   * sudah mengimplementasikan method ini juga. `null` kalau akun tidak
+   * ditemukan/tidak aktif. Return shape `AccountOwnerLookupResult`
+   * (`@postific/shared`, AGENTS.md #8) — satu deklarasi dipakai bersama port
+   * lokal manapun yang butuh lookup ini, bukan di-retype per domain.
+   */
+  findAccountOwnerByOutstandAccountId(
+    outstandAccountId: string,
+  ): Promise<AccountOwnerLookupResult | null>;
+
+  /**
+   * Watermark saat eksekusi job antrian (T-115). `null` kalau akun tidak
+   * terlihat oleh `actingUserId` (RLS).
+   */
+  getImportWatermark(input: {
+    connectedAccountId: ConnectedAccountId;
+    actingUserId: UserId;
+  }): Promise<{ lastImportedUntil: Date | null } | null>;
 }
 
 export type ImportSyncTriggerOutcome =
@@ -96,6 +254,14 @@ export interface ImportSyncTriggerResult {
   message?: string;
   importedCount?: number;
   skippedDuplicateCount?: number;
+  /**
+   * T-114 — jumlah `PublishingPost` Imported lama yang baru saja
+   * ter-backfill `outstandPostId`-nya pada sync ini. `undefined` kalau
+   * backfill tidak dijalankan sama sekali (tidak ada gap untuk akun ini,
+   * ATAU `backfillUseCase` tidak diinjeksi — lihat `attemptBackfill`) atau
+   * gagal (best-effort, tidak pernah menggagalkan `outcome` di atas).
+   */
+  backfillUpdatedCount?: number;
 }
 
 interface RunImportSyncInput {
@@ -105,6 +271,14 @@ interface RunImportSyncInput {
   outstandAccountId: string;
   platform: SocialPlatform;
   since: Date;
+  /**
+   * T-131 — `limit` sekarang per-trigger (bukan satu `DEFAULT_IMPORT_LIMIT`
+   * untuk ketiganya): 1000 untuk auto/manual, 100 untuk periodik. Dipakai
+   * baik sebagai body request `importPosts` maupun sebagai ambang
+   * `isPossiblyTruncated` di `runImportJob` — HARUS angka yang SAMA dengan
+   * yang benar-benar dikirim ke Outstand untuk trigger ini.
+   */
+  limit: number;
   /** RLS acting user — lihat catatan `IPublishingRepository.upsertImportedPosts` untuk kenapa ini boleh bukan "pemilik" post (post Imported tidak punya pemilik). */
   actingUserId: UserId;
 }
@@ -124,18 +298,6 @@ export interface TriggerPeriodicAccountInput {
   outstandAccountId: string;
   platform: SocialPlatform;
   lastImportedUntil: Date | null;
-  /**
-   * **Gap diketahui (dilaporkan ke King Rezi, bukan diputuskan sepihak):**
-   * trigger periodik (Railway Cron) tidak punya sesi/user manusia — RLS
-   * `publishing_posts_workspace_isolation` tetap butuh `app.current_user_id`
-   * berupa member AKTIF workspace itu. Caller (handler cron, belum
-   * diwiring — di luar scope T-090) wajib me-resolve user ini sendiri
-   * (kandidat paling sederhana: Account Owner workspace) SEBELUM memanggil
-   * `triggerPeriodicForAccounts`; use-case ini tidak membuat keputusan itu
-   * sendiri karena butuh akses domain `workspace` (cross-domain, AGENTS.md
-   * #7).
-   */
-  actingUserId: UserId;
 }
 
 export interface TriggerManualInput {
@@ -154,9 +316,14 @@ export interface TriggerManualInput {
  * `background-jobs.md`). Tiga entry point berbagi satu core
  * (`runImportSync`): otomatis on-connect (`triggerAuto`, dipanggil lewat
  * port dari `WorkspaceService.completeAccountConnection`), periodik
- * (`triggerPeriodicForAccounts`, menerima list akun `active` — caller yang
- * meresolve daftarnya, TIDAK ada Railway Cron wiring asli di sini, lihat
- * catatan T-090 di `tasks/v02-publishing-mvp.md`), dan manual
+ * (`triggerPeriodicForAccounts`, batch inline — tetap dipakai test dan
+ * pemanggil yang sudah memegang daftar akun; fan-out produksi T-115 tidak
+ * memanggil method ini, karena itu akan menyisipkan baris job kedua.
+ * Antrian harian: `EnqueueImportSyncUseCase` + `executeQueuedPeriodicImport`.
+ * `actingUserId` per akun
+ * di-resolve SENDIRI oleh method ini lewat `ConnectedAccountWatermarkPort.
+ * findAccountOwnerByOutstandAccountId` — KI-088, resolved 2026-10-15, lihat
+ * docstring port tsb.), dan manual
  * (`triggerManual`, dipanggil Server Action "Sync Now").
  *
  * **Penyesuaian pragmatis (dicatat eksplisit, sama pola T-027 di
@@ -167,7 +334,9 @@ export interface TriggerManualInput {
  * runner asli (`/api/jobs/run`) belum dibangun (T-027 belum dikerjakan).
  * Baris `background_jobs` TETAP di-insert (audit log + cap-counting,
  * ADR-093 poin 7, 9) — hanya CARA ia diproses yang sinkron, bukan
- * keberadaannya.
+ * keberadaannya. Baris antrian harian (T-115) adalah pengecualian:
+ * status awal `pending`, dieksekusi runner lewat
+ * `executeQueuedPeriodicImport`, bukan lewat `runImportSync`.
  *
  * **Amandemen ADR-119 (2026-10-08, rebase branch `claude/t-090-e6bb6d`
  * ke `staging`):** `FakeOutstandAdapter` sudah dihapus total dari jalur
@@ -195,6 +364,21 @@ export class ImportPostsTriggerUseCase {
     private readonly outstandAdapter: IOutstandAdapter,
     private readonly connectedAccounts: ConnectedAccountWatermarkPort,
     private readonly processUseCase: ImportPostsProcessUseCase,
+    /**
+     * T-114 — WAJIB (bukan opsional lagi, code-review PR #170): diposisikan
+     * SEBELUM `sleep` supaya TypeScript menolak kompilasi kalau composition
+     * root mana pun lupa menyuplainya, alih-alih silently no-op di
+     * `attemptBackfill` seperti sebelumnya.
+     */
+    private readonly backfillUseCase: BackfillOutstandPostIdsUseCase,
+    /**
+     * T-132.4 (ADR-135) — WAJIB (bukan opsional), pola sama `backfillUseCase`
+     * di atas (code-review PR #170 untuk alasan "required, bukan diam-diam
+     * no-op"): klasifikasi `ContentFormat` post hasil Import dipanggil
+     * SETIAP sync yang benar-benar memproses post baru, lihat
+     * `attemptClassification` di bawah.
+     */
+    private readonly classifyUseCase: ClassifyImportedPostTargetsUseCase,
     /** Injectable sleep (test memakai versi instan) — lihat `SleepFn`/`IMPORT_STATUS_POLL_*` di atas. */
     private readonly sleep: SleepFn = defaultSleep,
   ) {}
@@ -233,7 +417,7 @@ export class ImportPostsTriggerUseCase {
     return outcome;
   }
 
-  /** Otomatis on-connect (ADR-093 poin 7) — `since` SELALU 90 hari ke belakang (`lastImportedUntil` dijamin kosong, akun baru dibuat). */
+  /** Otomatis on-connect (ADR-093 poin 7, T-131.1) — `since` SELALU 1 tahun ke belakang (`lastImportedUntil` dijamin kosong, akun baru dibuat), `limit` 1000. */
   async triggerAuto(input: TriggerAutoInput): Promise<ImportSyncTriggerResult> {
     return this.runImportSync({
       trigger: "auto",
@@ -242,6 +426,7 @@ export class ImportPostsTriggerUseCase {
       outstandAccountId: input.outstandAccountId,
       platform: input.platform,
       since: defaultSince(new Date()),
+      limit: AUTO_MANUAL_IMPORT_LIMIT,
       actingUserId: input.actingUserId,
     });
   }
@@ -253,6 +438,14 @@ export class ImportPostsTriggerUseCase {
    * menghentikan akun lain dalam batch (`Promise.allSettled`-style,
    * manual try/catch per akun) — konsisten semangat JOB-03/JOB-04
    * (`background-jobs.md`: satu job per `ConnectedAccount`, independen).
+   *
+   * **`actingUserId` (KI-088, resolved 2026-10-15)** — jalur ini TIDAK
+   * punya sesi/user manusia (Railway Cron), jadi di-resolve DI SINI per akun
+   * lewat `resolveVerifiedAccountOwner` (`@/lib/jobs/account-owner-resolution`
+   * — rationale lengkap di docstring `ConnectedAccountWatermarkPort.
+   * findAccountOwnerByOutstandAccountId` di atas). Lookup gagal/akun tidak
+   * aktif/mismatch ditangani sama seperti kegagalan lain di batch ini —
+   * masuk `catch`, tidak menghentikan akun lain.
    */
   async triggerPeriodicForAccounts(
     accounts: TriggerPeriodicAccountInput[],
@@ -261,14 +454,26 @@ export class ImportPostsTriggerUseCase {
 
     for (const account of accounts) {
       try {
+        const owner = await resolveVerifiedAccountOwner(
+          this.connectedAccounts,
+          account.outstandAccountId,
+          {
+            workspaceId: account.workspaceId,
+            connectedAccountId: account.connectedAccountId,
+          },
+          "triggerPeriodicForAccounts",
+        );
+
+        const plan = periodicImportPlan(account.lastImportedUntil, new Date());
         const result = await this.runImportSync({
           trigger: "periodic",
           workspaceId: account.workspaceId,
           connectedAccountId: account.connectedAccountId,
           outstandAccountId: account.outstandAccountId,
           platform: account.platform,
-          since: account.lastImportedUntil ?? defaultSince(new Date()),
-          actingUserId: account.actingUserId,
+          since: plan.since,
+          limit: plan.limit,
+          actingUserId: owner.ownerUserId,
         });
         results.set(account.connectedAccountId, result);
       } catch (error) {
@@ -333,9 +538,94 @@ export class ImportPostsTriggerUseCase {
       connectedAccountId: input.connectedAccountId,
       outstandAccountId: input.outstandAccountId,
       platform: input.platform,
+      // T-131.2 — tetap watermark kalau ada; default 1 tahun (bukan 90 hari
+      // lagi) kalau akun belum pernah sukses diimpor, konsisten T-131.1.
       since: input.lastImportedUntil ?? defaultSince(now),
+      limit: AUTO_MANUAL_IMPORT_LIMIT,
       actingUserId: input.actingUserId,
     });
+  }
+
+  /**
+   * Eksekusi baris antrian `import.sync` yang SUDAH ada (T-115) — job yang
+   * baru diklaim runner (`status: running`, `payload.queued: true`).
+   *
+   * Tidak memanggil `runImportSync` / `triggerPeriodicForAccounts`: keduanya
+   * menyisipkan baris baru dan menabrak unique index akun ini. Guard
+   * concurrent tetap berlaku untuk job aktif LAIN; baris yang sedang
+   * di-handle adalah job itu sendiri, jadi tidak ditolak.
+   *
+   * `since` dihitung saat eksekusi dari watermark (`periodicImportSince`),
+   * bukan dari placeholder payload enqueue. Kegagalan dilempar supaya
+   * runner retry/dead-letter — tidak ditelan seperti batch inline.
+   */
+  async executeQueuedPeriodicImport(input: {
+    jobId: string;
+    workspaceId: WorkspaceId;
+    connectedAccountId: ConnectedAccountId;
+    outstandAccountId: string;
+    platform: SocialPlatform;
+  }): Promise<void> {
+    const owner = await resolveVerifiedAccountOwner(
+      this.connectedAccounts,
+      input.outstandAccountId,
+      {
+        workspaceId: input.workspaceId,
+        connectedAccountId: input.connectedAccountId,
+      },
+      "executeQueuedPeriodicImport",
+    );
+
+    const watermark = await this.connectedAccounts.getImportWatermark({
+      connectedAccountId: input.connectedAccountId,
+      actingUserId: owner.ownerUserId,
+    });
+    if (!watermark) {
+      throw new Error(
+        `executeQueuedPeriodicImport: watermark akun ${input.connectedAccountId} tidak ditemukan.`,
+      );
+    }
+
+    // `jobId` datang dari `JobHandler`/`job-runner.ts` (baris yang BENAR-BENAR
+    // diklaim runner) — bukan di-derive dari `connectedAccountId`, supaya
+    // tidak salah ambil baris lain kalau suatu saat ada lebih dari satu job
+    // `running` untuk akun ini.
+    const job = await this.importJobs.findImportSyncJobById(input.jobId);
+    if (
+      !job ||
+      job.payload.queued !== true ||
+      job.payload.trigger !== "periodic" ||
+      job.payload.connectedAccountId !== input.connectedAccountId
+    ) {
+      throw new Error(
+        `executeQueuedPeriodicImport: tidak menemukan job ${IMPORT_SYNC_JOB_TYPE} running queued periodic jobId=${input.jobId} untuk connectedAccountId=${input.connectedAccountId}.`,
+      );
+    }
+
+    const until = new Date();
+    const plan = periodicImportPlan(watermark.lastImportedUntil, until);
+    const runInput: RunImportSyncInput = {
+      trigger: "periodic",
+      workspaceId: input.workspaceId,
+      connectedAccountId: input.connectedAccountId,
+      outstandAccountId: input.outstandAccountId,
+      platform: input.platform,
+      since: plan.since,
+      limit: plan.limit,
+      actingUserId: owner.ownerUserId,
+    };
+
+    await this.connectedAccounts.updateImportWatermark({
+      connectedAccountId: input.connectedAccountId,
+      lastImportRequestedAt: until,
+      actingUserId: owner.ownerUserId,
+    });
+
+    const result = await this.runImportJob(runInput, job, until);
+    await this.attemptBackfill(runInput);
+    if (result.outcome === "failed") {
+      throw new Error(result.message ?? "Import periodik antrian gagal.");
+    }
   }
 
   private async runImportSync(
@@ -381,6 +671,12 @@ export class ImportPostsTriggerUseCase {
       throw error;
     }
 
+    // T-115 — `running` sebelum network call. Cron hanya mengklaim
+    // `pending` (atau `running` yang stale > 30 detik). Job inline yang
+    // dibiarkan `pending` selama polling Outstand (sampai 25 detik) bisa
+    // diambil runner dan dead-letter karena bukan payload queued.
+    await this.importJobs.markImportSyncJobStatus(job.id, "running");
+
     // `lastImportRequestedAt` di-update SETIAP KALI import direquest, dari
     // jalur manapun (ADR-093 poin 6) — SEBELUM network call, konsisten
     // "persist dulu, network call sesudah".
@@ -390,12 +686,47 @@ export class ImportPostsTriggerUseCase {
       actingUserId: input.actingUserId,
     });
 
+    const result = await this.runImportJob(input, job, until);
+
+    // T-114 — backfill otomatis `outstandPostId` post Imported lama,
+    // dipanggil SETIAP sync (manual/periodik) yang benar-benar berjalan
+    // (lolos guard concurrency di atas, sampai titik ini) — INDEPENDEN dari
+    // sukses/gagalnya job import utama di atas (`result.outcome` bisa
+    // `"triggered"` ATAU `"failed"`, backfill tetap dicoba: gap lama tidak
+    // ada hubungannya dengan apakah import post BARU kali ini berhasil).
+    // Best-effort (lihat `attemptBackfill`) — tidak pernah melempar atau
+    // menimpa `result.outcome`/`message` di atas, hanya menambahkan
+    // `backfillUpdatedCount` kalau backfill benar-benar berjalan.
+    const backfillUpdatedCount = await this.attemptBackfill(input);
+    return backfillUpdatedCount === undefined
+      ? result
+      : { ...result, backfillUpdatedCount };
+  }
+
+  /**
+   * Eksekusi inti JOB-05+JOB-06 (`importPosts` → poll `fetchImportJobStatus`
+   * → `ImportPostsProcessUseCase.process` → watermark/job bookkeeping) —
+   * diekstrak dari `runImportSync` (T-114) supaya backfill T-114 bisa
+   * dijalankan SETELAH method ini selesai apa pun hasilnya (sukses atau
+   * `catch` di bawah), tanpa menduplikasi logika backfill di dua tempat.
+   * Perilaku method ini sendiri TIDAK berubah dari sebelum T-114.
+   */
+  private async runImportJob(
+    input: RunImportSyncInput,
+    job: ImportSyncJobRecord,
+    until: Date,
+  ): Promise<ImportSyncTriggerResult> {
+    // Dipertahankan di luar `try` supaya jalur `catch` tetap bisa menyimpan
+    // angka yang sudah terkumpul (mis. penulisan status `done` gagal).
+    let jobOutcome: ImportJobOutcome | undefined;
+    let processed:
+      { insertedCount: number; skippedDuplicateCount: number } | undefined;
     try {
       const handle = await this.outstandAdapter.importPosts(
         input.outstandAccountId,
-        { since: input.since, until, limit: DEFAULT_IMPORT_LIMIT },
+        { since: input.since, until, limit: input.limit },
       );
-      const jobOutcome = await this.pollImportJobStatus(
+      jobOutcome = await this.pollImportJobStatus(
         input.outstandAccountId,
         handle.importJobId,
       );
@@ -422,17 +753,27 @@ export class ImportPostsTriggerUseCase {
           job.id,
           "failed",
           message,
+          buildImportJobResult(input, jobOutcome),
         );
         return { outcome: "failed", message };
       }
 
-      const processed = await this.processUseCase.process({
+      processed = await this.processUseCase.process({
         workspaceId: input.workspaceId,
         connectedAccountId: input.connectedAccountId,
         platform: input.platform,
         posts: jobOutcome.posts,
         actingUserId: input.actingUserId,
       });
+
+      // T-132.4 (ADR-135) — klasifikasi `ContentFormat` (Post/Reel/Story)
+      // untuk SEMUA post pada batch sync ini (`jobOutcome.posts`, BUKAN
+      // seluruh riwayat Imported akun), dipanggil SETELAH process() di atas
+      // selesai (apa pun hasilnya — `processed` tetap valid walau sebagian
+      // post di batch ini duplikat/sudah ada). Best-effort, lihat
+      // `attemptClassification` — gagal di sini tidak pernah menggagalkan
+      // import yang sudah berhasil di atas.
+      await this.attemptClassification(input, jobOutcome.posts);
 
       // Code review PR #149 — `jobOutcome.error` di titik ini (status
       // SUDAH `"completed"`) hanya terisi untuk kasus real API `partial`
@@ -447,15 +788,18 @@ export class ImportPostsTriggerUseCase {
 
       // Code review PR #148 (finding #5) — `IOutstandAdapter.importPosts`
       // tidak punya cursor/next-page (kontrak `packages/shared`), jadi
-      // kalau hasil batch ini PAS sejumlah `DEFAULT_IMPORT_LIMIT`, mungkin
-      // masih ada post lain dalam rentang `since`-`until` yang belum
-      // terambil. Watermark HANYA dimajukan ke `until` kalau batch ini
-      // TIDAK penuh (berarti seluruh rentang sudah habis) — kalau penuh,
-      // watermark dibiarkan apa adanya supaya trigger berikutnya mengulang
-      // rentang yang sama (aman berkat dedup `upsertImportedPosts`)
-      // daripada diam-diam melompati sisa post yang belum terambil.
-      const isPossiblyTruncated =
-        jobOutcome.posts.length >= DEFAULT_IMPORT_LIMIT;
+      // kalau job ini mencapai `input.limit` (T-131 — limit kini per-trigger,
+      // bukan satu `DEFAULT_IMPORT_LIMIT` lagi), mungkin masih ada post lain
+      // dalam rentang `since`-`until` yang belum terambil.
+      // Watermark HANYA dimajukan ke `until` kalau job ini TIDAK penuh
+      // (berarti seluruh rentang sudah habis) — kalau penuh, watermark
+      // dibiarkan apa adanya supaya trigger berikutnya mengulang rentang
+      // yang sama (aman berkat dedup `upsertImportedPosts`) daripada diam-
+      // diam melompati sisa post yang belum terambil.
+      // T-143: sinyal pemotongan = angka job Outstand vs `limit`, lihat
+      // `isImportTruncated` (jumlah post terambil tidak lagi relevan karena
+      // `GET /v1/posts` sudah dipaginasi penuh).
+      const isPossiblyTruncated = isImportTruncated(jobOutcome, input.limit);
       if (!isPossiblyTruncated) {
         // `lastImportedUntil` ke nilai `until` yang DIPAKAI job ini (ADR-093
         // poin 7) — BUKAN publishedAt post terbaru, supaya trigger berikutnya
@@ -472,6 +816,7 @@ export class ImportPostsTriggerUseCase {
         job.id,
         "done",
         partialWarning,
+        buildImportJobResult(input, jobOutcome, processed),
       );
 
       return {
@@ -487,6 +832,10 @@ export class ImportPostsTriggerUseCase {
           job.id,
           "failed",
           message,
+          // T-143.3 — job yang gagal lewat exception tetap mencatat limit/
+          // since dan angka yang sudah terkumpul (outcome fetch / hasil
+          // process) supaya kasus terpotong bisa dibuktikan ulang.
+          buildImportJobResult(input, jobOutcome, processed),
         );
       } catch {
         // Code review PR #148 (finding #4) — kalau PENULISAN status gagal
@@ -498,6 +847,67 @@ export class ImportPostsTriggerUseCase {
         // selamanya.
       }
       return { outcome: "failed", message };
+    }
+  }
+
+  /**
+   * T-114 — attempt backfill `outstandPostId` post Imported lama untuk akun
+   * ini. `undefined` kalau tidak ada gap untuk akun ini (cek existence
+   * murah di `BackfillOutstandPostIdsUseCase.backfillIfNeeded`), atau
+   * backfill gagal — kegagalan DITANGKAP di sini (best-effort, pola sama
+   * `completeAccountConnection`/`syncNowAction` menangani kegagalan
+   * `runImportSync` itu sendiri): backfill murni perbaikan data lama, satu
+   * kali gagal (mis. Outstand rate-limit sesaat) tidak boleh menggagalkan
+   * sync utama yang sudah berhasil, cukup dicoba lagi di sync berikutnya
+   * (existence check tetap `true` sampai benar-benar berhasil).
+   */
+  private async attemptBackfill(
+    input: RunImportSyncInput,
+  ): Promise<number | undefined> {
+    try {
+      const outcome = await this.backfillUseCase.backfillIfNeeded({
+        workspaceId: input.workspaceId,
+        connectedAccountId: input.connectedAccountId,
+        outstandAccountId: input.outstandAccountId,
+        actingUserId: input.actingUserId,
+      });
+      return outcome.backfilled ? outcome.updatedCount : undefined;
+    } catch (error) {
+      console.warn(
+        `[ImportPostsTriggerUseCase] T-114 backfill outstandPostId gagal untuk akun ${input.connectedAccountId}: ${error instanceof Error ? error.message : String(error)} — best-effort, tidak menggagalkan sync utama.`,
+      );
+      return undefined;
+    }
+  }
+
+  /**
+   * T-132.4 (ADR-135) — klasifikasi `ContentFormat` untuk batch post yang
+   * baru diproses `ImportPostsProcessUseCase.process` pada sync ini.
+   * Kegagalan (network Outstand, atau kegagalan tak terduga lain) DITANGKAP
+   * di sini — best-effort, pola sama `attemptBackfill`: klasifikasi murni
+   * perbaikan data, gagal sekali (mis. Outstand rate-limit sesaat) tidak
+   * boleh menggagalkan sync import yang sudah berhasil. Beda dari
+   * `attemptBackfill`, TIDAK ada existence check terpisah — method ini
+   * SELALU dipanggil setiap `runImportJob` berhasil sampai titik ini
+   * (`jobOutcome.posts` adalah daftar post YANG BARU diproses, bisa kosong).
+   */
+  private async attemptClassification(
+    input: RunImportSyncInput,
+    posts: ImportJobOutcome["posts"],
+  ): Promise<void> {
+    if (posts.length === 0) return;
+    try {
+      await this.classifyUseCase.classifyBatch({
+        workspaceId: input.workspaceId,
+        connectedAccountId: input.connectedAccountId,
+        platform: input.platform,
+        posts,
+        actingUserId: input.actingUserId,
+      });
+    } catch (error) {
+      console.warn(
+        `[ImportPostsTriggerUseCase] T-132.4 klasifikasi ContentFormat gagal untuk akun ${input.connectedAccountId}: ${error instanceof Error ? error.message : String(error)} — best-effort, tidak menggagalkan sync utama.`,
+      );
     }
   }
 }

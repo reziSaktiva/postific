@@ -2,8 +2,8 @@
 
 import { useMemo } from "react";
 
-import type { ConnectedAccountId } from "@postific/shared";
-import type { CalendarPostItem } from "@/domains/publishing";
+import type { ConnectedAccountId, PostId } from "@postific/shared";
+import { WIB_TIME_ZONE, type CalendarPostItem } from "@/domains/publishing";
 
 import { Badge } from "@/components/ui/badge";
 import { Text } from "@/components/ui/text";
@@ -21,7 +21,7 @@ import {
   CONTENT_FORMAT_LABEL,
   flattenCalendarItemsToEntries,
   formatCalendarHour,
-  toUtcDateKey,
+  toWibDateKey,
 } from "./calendar-grid-shared";
 
 /** "Rabu, 16 Jul" — beda dari `formatGroupDateHeading` (`QueueList.tsx`,
@@ -32,7 +32,7 @@ const AGENDA_DATE_HEADING_FORMATTER = new Intl.DateTimeFormat("id-ID", {
   weekday: "long",
   day: "numeric",
   month: "short",
-  timeZone: "UTC",
+  timeZone: WIB_TIME_ZONE,
 });
 
 /** Parse UTC-safe dipusatkan di `formatUtcDateKeyHeading` (`@/lib/utils`,
@@ -50,6 +50,8 @@ export interface CalendarAgendaListProps {
   items: CalendarPostItem[];
   /** Filter Channels aktif (T-033.6) — array kosong = tanpa filter, sama seperti grid. */
   connectedAccountIds?: ConnectedAccountId[];
+  /** T-030.3 — diteruskan ke `CalendarPostPopover` tiap kartu. Opsional. */
+  onCancelSchedule?: (postId: PostId) => void;
 }
 
 /**
@@ -71,8 +73,9 @@ export interface CalendarAgendaListProps {
 export function CalendarAgendaList({
   items,
   connectedAccountIds = [],
+  onCancelSchedule,
 }: CalendarAgendaListProps) {
-  const todayKey = toUtcDateKey(new Date());
+  const todayKey = toWibDateKey(new Date());
 
   const connectedAccountIdsKey = connectedAccountIds.join(",");
   const groups = useMemo(() => {
@@ -129,7 +132,11 @@ export function CalendarAgendaList({
             {group.entries.map((entry) => {
               const PlatformGlyph = PLATFORM_ICON[entry.platform].Icon;
               return (
-                <CalendarPostPopover key={entry.key} entry={entry}>
+                <CalendarPostPopover
+                  key={entry.key}
+                  entry={entry}
+                  onCancelSchedule={onCancelSchedule}
+                >
                   <button
                     type="button"
                     aria-label={`${entry.accountHandle} — ${

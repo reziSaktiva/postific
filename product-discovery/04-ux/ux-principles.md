@@ -86,14 +86,14 @@ Pengguna harus percaya bahwa konten akan terbit ke akun yang benar, pada waktu y
 
 ## UXP-05 — AI Menempel pada Pekerjaan, Bukan Berdiri Sendiri
 
-**Turunan dari:** I-06 (AI in the Draft Job), O-07
+**Turunan dari:** I-06 (AI in the Draft Job), O-07 — **Ditafsirkan ulang (ADR-138):** prinsip tetap berlaku, tetapi AI bawaan Postific dicabut; yang menempel pada pekerjaan adalah AI milik pengguna lewat MCP.
 
-AI dianggap berguna ketika hadir di momen yang tepat: saat pengguna sedang mengerjakan caption. AI kehilangan relevansinya jika ditempatkan sebagai modul terpisah yang harus dinavigasi secara sengaja.
+AI dianggap berguna ketika bekerja di dalam pekerjaan yang sama dengan manusia: Drafts dan Queue. AI kehilangan relevansinya jika menjadi modul atau permukaan terpisah yang harus dinavigasi secara sengaja. Pada Postific, AI pengguna (Claude, ChatGPT, dsb.) bekerja lewat tool MCP yang membungkus Application Service yang sama dengan UI, sehingga hasil kerjanya muncul di daftar kerja yang sudah dikenal pengguna, bukan di layar AI khusus.
 
 **Implikasi desain:**
-- AI caption assistance berada di dalam draft editor, bukan di halaman terpisah.
-- Tidak ada "AI Hub" atau menu AI di navigasi utama.
-- Trigger AI harus kontekstual (misalnya: "Improve this caption" muncul saat draft terbuka), bukan sebagai entry point yang harus dicari.
+- AI pengguna bekerja di Drafts dan Queue lewat tool MCP; tidak ada UI AI bawaan di dalam Postific.
+- Jejak kerja AI terlihat lewat badge sumber (nama klien AI) dan filter sumber di History, Drafts, dan Queue — pengguna tahu mana yang dibuat AI tanpa membuka item.
+- Tidak ada "AI Hub" atau menu AI di navigasi utama; satu-satunya titik masuk MCP di UI adalah layar persetujuan OAuth dan Settings → Account → Klien AI.
 
 ---
 
@@ -160,9 +160,8 @@ Pengguna tidak perlu mengakses semuanya sejak hari pertama. Produk harus membiar
 Jika prinsip UX perlu diubah karena keputusan produk baru:
 
 1. Identifikasi prinsip mana yang terdampak.
-2. Dokumentasikan alasan perubahan pada `../../project-manager/DECISIONS.md`.
+2. Dokumentasikan alasan perubahan pada `../../project-os/DECISIONS.md`.
 3. Update dokumen UX yang merujuk prinsip tersebut.
-4. Catat perubahan pada `../../project-manager/COMPLETE_TASK.md` (ADR-061).
 
 ---
 
@@ -199,5 +198,5 @@ UX Principles dianggap selesai apabila:
 * `../03-user/user-journey.md`
 * `../02-product/mvp-definition.md`
 * `../02-product/feature-priority.md`
-* `../../project-manager/DECISIONS.md`
-* `../../project-manager/PROJECT_STATE.md`
+* `../../project-os/DECISIONS.md`
+* `../../project-os/PROJECT_STATE.md`

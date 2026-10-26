@@ -260,6 +260,72 @@ export interface IWorkspaceRepository {
   ): Promise<WorkspaceInvitationRecord | null>;
 
   /**
+   * T-005.5 — fix CRITICAL finding (Ridwan Architecture Reviewer,
+   * 2026-10-14): versi awal (`hasVerifiedPendingInvitationForEmail`, SELECT
+   * murni) membiarkan sinyal "OTP sudah dikonfirmasi" (`emailVerifiedAt`)
+   * dipakai ulang kapan saja sebelum invitation itu sendiri expired (sampai
+   * 7 hari) — kalau Alice konfirmasi OTP lalu tab-nya crash SEBELUM
+   * `signUp.email()` selesai, siapa pun yang tahu/menebak emailnya bisa
+   * memanggil `/api/auth/sign-up/email` langsung (bypass UI+OTP total) dan
+   * ikut lolos ditandai `emailVerified: true` dari sinyal milik Alice —
+   * identity takeover penuh. Ada juga TOCTOU race lebih sempit: baca
+   * (SELECT) dan pakai sinyal itu dua operasi terpisah, tidak atomic.
+   *
+   * Fix (dua lapis, method ini MENGGANTI `hasVerifiedPendingInvitationForEmail`
+   * total — bukan ditambah di sampingnya):
+   * 1. **Single-use** — SATU statement UPDATE yang membaca DAN langsung
+   *    menandai `betterAuthEmailVerifiedConsumedAt` baris yang cocok,
+   *    bukan SELECT lalu UPDATE terpisah. Percobaan kedua (replay, atau 2
+   *    request konkuren) untuk email yang sama tidak akan pernah
+   *    menemukan sinyal itu lagi — row-level locking Postgres di dalam
+   *    satu UPDATE membuat ini aman di bawah concurrency juga (tidak ada
+   *    jeda check-then-act untuk di-race). **Field yang ditandai SENGAJA
+   *    bukan `emailVerifiedAt` sendiri** — fix regresi yang ditemukan
+   *    lewat verifikasi end-to-end browser (bukan dugaan): `emailVerifiedAt`
+   *    juga dibaca `WorkspaceService.acceptInvite` (jalan SETELAH
+   *    signUp/signIn) sebagai bukti OTP sudah dikonfirmasi untuk token ini
+   *    — kalau method ini meng-clear kolom yang sama, `acceptInvite` yang
+   *    jalan belakangan salah simpul OTP belum pernah dikonfirmasi. Lihat
+   *    migrasi `20261014150000_t005_5_separate_better_auth_consume_signal`
+   *    dan doc comment kolom di `schema.prisma`.
+   * 2. **TTL pendek independen dari `expiresAt` invitation** — 5 menit,
+   *    dikunci DI DALAM RLS policy itu sendiri (migrasi
+   *    `20261014130000_t005_5_accept_invite_signal_single_use_ttl`) — RLS
+   *    adalah enforcement boundary yang SEBENARNYA; query Prisma di
+   *    implementasi method ini menduplikasi angka yang sama persis sebagai
+   *    defense-in-depth kedua, BUKAN constant yang di-share lintas layer
+   *    (lihat komentar di implementasi Prisma-nya). Alur UI nyata
+   *    (`AcceptInviteForm.tsx`) memanggil `signUp.email()` SEGERA setelah
+   *    `confirmAcceptInviteVerificationAction` resolve (selisih beberapa
+   *    round-trip network, bukan menit), jadi 5 menit longgar untuk jalur
+   *    sah tapi menutup nyaris total jendela "OTP terkonfirmasi, tab
+   *    ditinggal berjam-jam/berhari-hari".
+   *
+   * Dipakai Better Auth `databaseHooks.user.create.before`
+   * (`lib/better-auth/auth.ts`). Anonim (tidak ada `app.current_user_id` —
+   * hook berjalan sebelum user dibuat, pola sama
+   * `findInvitationByToken`/`findUserByEmail` di atas), RLS
+   * `workspace_invitations` digeser pakai GUC `app.invite_lookup_email`
+   * (`setInviteLookupEmail`) — BUKAN flag boolean dari body request client,
+   * yang bisa dipalsukan siapa pun yang memanggil `/api/auth/sign-up/email`
+   * langsung. Return `true` HANYA kalau baris benar-benar berhasil
+   * di-consume (UPDATE match ≥1 baris) — panggilan kedua untuk email yang
+   * sama SELALU `false` sampai ada konfirmasi OTP baru yang menerbitkan
+   * `emailVerifiedAt` baru DAN hash rahasia baru. Konfirmasi OTP ulang
+   * mengosongkan `betterAuthEmailVerifiedConsumedAt`, jadi sinyal yang
+   * sempat terpakai (sign-up gagal setelah consume) bisa dipakai lagi
+   * hanya oleh browser yang memegang rahasia baru.
+   *
+   * `proofHash` wajib. Kosong → `false` tanpa menulis. Hash itu harus
+   * sama dengan `betterAuthEmailProofHash` yang disimpan saat OTP
+   * dikonfirmasi. Mengetahui email saja tidak cukup.
+   */
+  consumeVerifiedPendingInvitationForEmail(
+    email: string,
+    proofHash: string,
+  ): Promise<boolean>;
+
+  /**
    * Lookup Better Auth `User` by email (T-093.1) — dipakai untuk auto-detect
    * `isExistingUser` di halaman accept-invite (`/invite/[token]`): kalau
    * email invitation sudah punya akun, tampilkan form "Masuk"; kalau belum,
@@ -322,7 +388,7 @@ export interface IWorkspaceRepository {
    * SETELAH kode dicocokkan benar. Compare-and-swap sama seperti
    * `setInvitationVerificationCode`.
    */
-  markInvitationEmailVerified(token: string): Promise<void>;
+  markInvitationEmailVerified(token: string, proofHash: string): Promise<void>;
 
   /**
    * Reservasi SATU slot percobaan verifikasi kode secara atomic, capped di
@@ -516,6 +582,21 @@ export interface IWorkspaceRepository {
   } | null>;
 
   /**
+   * T-134 (KI-094) gap kritis — resolve `Workspace.ownerId` langsung tanpa
+   * lewat `ConnectedAccount` sama sekali. Dibutuhkan `AnalyticsSyncJobHandler.syncWorkspace`
+   * sebagai fallback acting user untuk workspace yang baru kehilangan
+   * SATU-SATUNYA akun aktifnya (disconnect) — `findAccountOwnerByOutstandAccountId`
+   * tidak bisa dipakai lagi karena tidak ada akun `active` tersisa untuk
+   * di-lookup sama sekali. `workspaces` BUKAN tabel RLS-protected (migration
+   * `20260813045625_t017_add_rls_policies`, § "Tables intentionally WITHOUT
+   * workspace-isolation RLS"), jadi baca `ownerId` di sini aman tanpa sesi —
+   * pola read plain yang sama dengan `findById`. Returns `null` kalau
+   * `workspaceId` itu sendiri tidak ditemukan (anomali — payload job tidak
+   * valid).
+   */
+  findWorkspaceOwnerUserId(workspaceId: WorkspaceId): Promise<UserId | null>;
+
+  /**
    * Fan-out JOB-04 (T-048) — seluruh ConnectedAccount `active` yang tidak
    * `reconnectRequired`, lintas workspace. Tidak butuh acting user: query
    * lewat SECURITY DEFINER `analytics_list_active_connected_accounts`
@@ -527,6 +608,22 @@ export interface IWorkspaceRepository {
       workspaceId: WorkspaceId;
       connectedAccountId: ConnectedAccountId;
       outstandAccountId: string;
+    }[]
+  >;
+
+  /**
+   * Fan-out JOB-05 (T-115) — ConnectedAccount `active` yang tidak
+   * `reconnectRequired`, plus `platform`. Tidak butuh acting user: query
+   * lewat SECURITY DEFINER `import_list_accounts_for_periodic_sync` karena
+   * cron tidak punya sesi. Signature fungsi analytics tidak dipakai di
+   * sini (fungsi itu tidak mengembalikan platform).
+   */
+  listAccountsForPeriodicImportSync(): Promise<
+    {
+      workspaceId: WorkspaceId;
+      connectedAccountId: ConnectedAccountId;
+      outstandAccountId: string;
+      platform: SocialPlatform;
     }[]
   >;
 
@@ -631,10 +728,17 @@ export interface IWorkspaceRepository {
   }): Promise<ConnectedAccountRecord>;
 
   /**
-   * CREATE beberapa `WorkspaceConnectedAccount` dalam SATU transaksi.
-   * Akun yang `outstandAccountId`-nya sudah ada di workspace ini di-skip
-   * (idempoten). Kegagalan di tengah membatalkan seluruh batch, bukan
-   * menyisakan sebagian Page.
+   * CREATE beberapa `WorkspaceConnectedAccount` dalam SATU transaksi. Akun
+   * yang `outstandAccountId`-nya sudah ada di workspace ini DAN statusnya
+   * `active` di-skip (idempoten). Akun existing yang statusnya
+   * `disconnected`/`reconnect-required` DIREAKTIVASI (UPDATE: `status`
+   * jadi `active`, `reconnectRequired` jadi `false`, `handle` SELALU
+   * di-refresh, `avatarUrl` HANYA di-refresh kalau ada nilai baru — avatar
+   * lama dipertahankan kalau tidak) — bukan di-skip — supaya reconnect
+   * Facebook lewat jalur ini genuinely berfungsi (ADR-127, amandemen
+   * ADR-115 poin 8, menutup KI-086). Return value berisi Page yang baru
+   * dibuat DAN yang direaktivasi. Kegagalan di tengah membatalkan seluruh
+   * batch, bukan menyisakan sebagian Page.
    */
   createConnectedAccounts(input: {
     workspaceId: WorkspaceId;
@@ -699,9 +803,10 @@ export interface IWorkspaceRepository {
    * jadi non-fungsional). Implementasi Prisma WAJIB `withCurrentUser`, sama
    * pola `reconnectAccount` di atas. Semua caller (`triggerAuto`/
    * `triggerPeriodicForAccounts`/`triggerManual`) sudah punya `actingUserId`
-   * di input masing-masing — termasuk jalur periodik (cron), yang caller-nya
-   * (belum diwiring, di luar scope T-090) wajib me-resolve acting user
-   * (kandidat: Account Owner workspace) sebelum memanggil.
+   * di input masing-masing — termasuk jalur periodik (cron, KI-088 resolved
+   * 2026-10-15), yang me-resolve-nya SENDIRI lewat
+   * `findAccountOwnerByOutstandAccountId` di bawah (pola sama JOB-04/JOB-03),
+   * BUKAN `Workspace.ownerId` langsung.
    *
    * Silent no-op kalau `connectedAccountId` tidak ditemukan ATAU acting user
    * bukan member aktif workspace tersebut (best effort, sama pola
@@ -714,4 +819,16 @@ export interface IWorkspaceRepository {
     lastImportRequestedAt?: Date;
     actingUserId: UserId;
   }): Promise<void>;
+
+  /**
+   * Baca watermark import saat job antrian benar-benar jalan (T-115).
+   * `since` periodik tidak disimpan di payload enqueue — dihitung di sini
+   * dari `lastImportedUntil`. `actingUserId` wajib (RLS, sama
+   * `updateImportWatermark`). `null` kalau akun tidak terlihat oleh acting
+   * user itu.
+   */
+  getImportWatermark(input: {
+    connectedAccountId: ConnectedAccountId;
+    actingUserId: UserId;
+  }): Promise<{ lastImportedUntil: Date | null } | null>;
 }

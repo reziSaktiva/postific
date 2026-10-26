@@ -28,7 +28,7 @@ secara otomatis — lihat `eslint.config.mjs`).
 |-------|-----------|--------|
 | Domain module layout & public API via `index.ts` | `monorepo-setup.md`, ADR-026 |
 | Naming komponen PascalCase / folder-helper kebab-case / peletakan `components/` via LCA | ADR-069 |
-| Persona & role canonical names (Raka, Maya, Sinta, Dimas, Lara / Account Owner, Admin, Creator) | ADR-074, AGENTS.md rule 11 |
+| Persona & role canonical names (Raka, Maya, Sinta, Dimas, Lara / Account Owner, Admin, Creator) | ADR-074, AGENTS.md rule 8 |
 | Port lokal + composition root untuk komunikasi cross-domain tanpa import konkret | ADR-078 |
 
 ---
@@ -74,7 +74,7 @@ ditetapkan di `application-layer.md`.
 ## Domain Errors per-BC
 
 Tiap 9 domain module (`identity`, `workspace`, `publishing`,
-`ai-assistant`, `engagement`, `analytics`, `start-page`, `media`,
+`mcp-access`, `engagement`, `analytics`, `start-page`, `media`,
 `notification`) punya `errors.ts` sendiri dengan `XxxDomainError extends
 Error` (**bukan** `extends AppError`) — contoh: `PublishingDomainError`,
 `WorkspaceDomainError`, `IdentityDomainError`.
@@ -189,5 +189,5 @@ database/network ditulis sebagai pure function terpisah dari service class
 * `../05-architecture/application-layer.md` — kontrak error handling per layer (rujukan asli komentar `errors.ts`)
 * `rendering-strategy.md` — Server Action error boundary (RS-D01)
 * `monorepo-setup.md`, ADR-069 — file/folder naming lengkap
-* `../../project-manager/decisions/ADR-078-amandemen-adr-018-port-lokal-composition-root-scheduled-counts.md`
-* `../../project-manager/decisions/ADR-095-*.md` (dokumen ini ditetapkan sebagai baseline)
+* `../../project-os/decisions/ADR-078-amandemen-adr-018-port-lokal-composition-root-scheduled-counts.md`
+* `../../project-os/decisions/ADR-095-*.md` (dokumen ini ditetapkan sebagai baseline)

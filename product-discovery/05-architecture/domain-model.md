@@ -27,7 +27,7 @@ Dokumen ini menjadi fondasi seluruh dokumen architecture berikutnya dan berfungs
 | BC-01 | Identity | Core Domain | ✅ MVP |
 | BC-02 | Workspace | Core Domain | ✅ MVP |
 | BC-03 | Publishing | Core Domain | ✅ MVP |
-| BC-04 | AI Assistant | Core Domain | ✅ MVP |
+| BC-04 | MCP Access | Supporting Domain | ✅ MVP (ADR-138) |
 | BC-05 | Engagement | Core Domain | ✅ MVP |
 | BC-06 | Analytics | Core Domain | ✅ MVP |
 | BC-07 | Start Page | Core Domain | ✅ MVP |
@@ -59,23 +59,23 @@ Dokumen ini menjadi fondasi seluruh dokumen architecture berikutnya dan berfungs
 │  │  BC-02 Workspace                                                   │    │
 │  │  Workspace · Member · ConnectedAccount · BrandSettings             │    │
 │  └─────────────────────────────────────────────────────────────────-─┘    │
-│                     │           │           │           │                  │
-│  ┌──────────────────▼──┐  ┌────▼──────┐  ┌▼─────────┐ ┌▼───────────┐   │
-│  │ BC-04 AI Assistant  │  │ BC-05     │  │ BC-06    │ │ BC-07      │   │
-│  │ AIRequest           │  │ Engagement│  │Analytics │ │ Start Page │   │
-│  │ AIResult            │  │ InboxItem │  │ Metrics  │ │ StartPage  │   │
-│  │                     │  │ Reply     │  │ Snapshot │ │ PageLink   │   │
-│  └─────────────────────┘  └───────────┘  └──────────┘ └────────────┘   │
+│             │                       │                       │            │
+│  ┌──────────▼─────────┐  ┌──────────▼─────────┐  ┌──────────▼─────────┐  │
+│  │ BC-05 Engagement   │  │ BC-06 Analytics    │  │ BC-07 Start Page   │  │
+│  │ InboxItem          │  │ Metrics            │  │ StartPage          │  │
+│  │ Reply              │  │ Snapshot           │  │ PageLink           │  │
+│  └────────────────────┘  └────────────────────┘  └────────────────────┘  │
 └──────────────────────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────────────────┐
 │                    SUPPORTING DOMAINS                                     │
 │                                                                           │
-│  ┌─────────────────┐   ┌───────────────────┐   ┌─────────────────────┐  │
-│  │ BC-08 Media     │   │ BC-09 Notification │   │ BC-10 Billing       │  │
-│  │ MediaItem       │   │ Notification       │   │ Subscription        │  │
-│  │                 │   │                    │   │ Invoice             │  │
-│  └─────────────────┘   └───────────────────┘   └─────────────────────┘  │
+│  ┌────────────┐  ┌────────────┐  ┌───────────────────┐  ┌──────────────┐ │
+│  │ BC-04 MCP  │  │ BC-08 Media│  │ BC-09 Notification│  │ BC-10 Billing│ │
+│  │ Access     │  │ MediaItem  │  │ Notification      │  │ Subscription │ │
+│  │ McpGrant   │  │            │  │                   │  │ Invoice      │ │
+│  │ McpAuditLog│  │            │  │                   │  │              │ │
+│  └────────────┘  └────────────┘  └───────────────────┘  └──────────────┘ │
 └──────────────────────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────────────────┐
@@ -293,43 +293,44 @@ dikerjakan, bukan dibiarkan jadi sumber kebenaran kedua yang membingungkan.
 
 ---
 
-## BC-04 — AI Assistant
+## BC-04 — MCP Access
 
 ### Responsibility
 
-Mengelola permintaan AI untuk pembuatan dan perbaikan caption. AI Assistant dirancang sebagai kemampuan **in-workflow** — menempel pada konteks draft post, bukan sebagai destinasi terpisah (I-06: AI menempel pada draft job).
+Mengelola akses AI pengguna ke produk lewat MCP (ADR-138, ADR-139): grant OAuth per workspace dan scope, audit panggilan tool, dan rate limit. BC ini **tidak berisi AI** dan **tidak berisi business logic produk**. Tool MCP adalah entry point yang membungkus Application Service BC lain (Publishing, Analytics, Engagement, Media, Workspace); BC-04 hanya memegang izin, jejak audit, dan batas pemakaian.
 
 ### Core Entities
 
 | Entitas | Tipe | Deskripsi |
 |---------|------|-----------|
-| `AIRequest` | Aggregate Root | Permintaan AI untuk generate/improve caption |
-| `AIResult` | Entity | Hasil yang dihasilkan oleh AI |
+| `McpGrant` | Aggregate Root | Izin yang diberikan pengguna kepada satu klien AI untuk satu workspace |
+| `McpAuditLog` | Entity | Satu baris per panggilan tool |
 
-### Key Attributes
+### Key Attributes (indikatif, final di spec dan T-149)
 
-**AIRequest**
-- `id: AIRequestId`
-- `workspaceId: WorkspaceId`
-- `userId: UserId`
-- `postId: PostId?` — optional, jika permintaan terikat ke post tertentu
-- `type: AIRequestType` — `generate | improve | rewrite | variation`
-- `prompt: string` — input dari pengguna atau sistem
-- `context: string?` — teks caption yang sudah ada (untuk improve/rewrite)
-- `createdAt: Date`
+**McpGrant**
+- `id: McpGrantId`
+- `workspaceId: WorkspaceId` — satu workspace per koneksi
+- `userId: UserId` — pengguna yang menyambungkan; role-nya yang berlaku
+- `clientId: string` — klien AI (hasil dynamic client registration)
+- `scopes: McpScope[]` — `read | draft | schedule` (MVP)
+- `createdAt: Date`, `revokedAt: Date?`
 
-**AIResult**
-- `id: AIResultId`
-- `requestId: AIRequestId`
-- `content: string` — hasil teks yang dihasilkan
-- `variantIndex: number` — urutan varian (untuk variation request)
-- `createdAt: Date`
+**McpAuditLog**
+- `id: McpAuditLogId`
+- `workspaceId`, `userId`, `grantId`, `clientId`
+- `toolName: string`, `scope: McpScope`
+- `inputSummary: string` — ringkasan yang disamarkan (tanpa caption penuh dan tanpa URL berparameter rahasia)
+- `status: success | denied | error`, `errorCode: string?`, `durationMs: number`
+- `targetId: string?` — ID hasil aksi, misalnya `PostId`
+- `createdAt: Date` — retensi 90 hari
 
 ### Catatan
 
-- AI Assistant tidak menyimpan state konten — hanya menyimpan request dan result sebagai log.
-- Pengguna mengambil hasil dari `AIResult` dan memilih untuk menerapkannya ke `Post.caption` di Publishing BC secara terpisah.
-- Provider AI (misalnya OpenAI) adalah external dependency yang diakses melalui service layer — tidak dikodekan langsung di domain.
+- Setiap panggilan memvalidasi ulang bahwa pengguna masih member workspace dan role-nya mencukupi (ADR-074); grant yang `revokedAt`-nya terisi ditolak.
+- Post yang dibuat lewat MCP membawa penanda sumber di BC-03 (`createdVia = mcp` beserta klien); penanda itu milik Publishing, bukan BC-04.
+- Isi komentar yang dikembalikan tool baca ditandai sebagai data tidak tepercaya.
+- Rate limit per workspace berbasis Postgres (60 panggilan per menit, 30 aksi tulis per jam, 50 konten terjadwal per hari; konfigurasi).
 
 ---
 
@@ -613,9 +614,9 @@ Context Map mendokumentasikan bagaimana bounded context saling berinteraksi. Dal
       (shared)                        (soft ref)
            │
      ┌─────▼─────┐
-     │ BC-04     │◄──── PostId (optional) ──── Publishing
-     │ AI        │
-     │ Assistant │
+     │ BC-04     │◄──── entry point MCP (membungkus service BC lain)
+     │ MCP       │
+     │ Access    │
      └───────────┘
 
      MediaId (shared type)
@@ -638,7 +639,7 @@ Context Map mendokumentasikan bagaimana bounded context saling berinteraksi. Dal
 | Workspace | Identity | Downstream | `UserId` (referensi Member) |
 | Publishing | Workspace | Downstream | `WorkspaceId`, `ConnectedAccountId` |
 | Publishing | Media | Downstream | `MediaId[]` (referensi attachment) |
-| AI Assistant | Publishing | Downstream (soft) | `PostId` (optional context) |
+| MCP Access | Workspace | Downstream | `WorkspaceId`, `UserId` (grant dan validasi member) |
 | Engagement | Workspace | Downstream | `WorkspaceId`, `ConnectedAccountId` |
 | Engagement | Publishing | Downstream (soft) | `PostId` (komentar terkait post) |
 | Analytics | Publishing | Downstream (soft) | `PostId` (metrics per post) |
@@ -672,8 +673,8 @@ type PostTargetId = string & { readonly _brand: 'PostTargetId' };
 type MediaId = string & { readonly _brand: 'MediaId' };
 type InboxItemId = string & { readonly _brand: 'InboxItemId' };
 type ReplyId = string & { readonly _brand: 'ReplyId' };
-type AIRequestId = string & { readonly _brand: 'AIRequestId' };
-type AIResultId = string & { readonly _brand: 'AIResultId' };
+type McpGrantId = string & { readonly _brand: 'McpGrantId' };
+type McpAuditLogId = string & { readonly _brand: 'McpAuditLogId' };
 type PostMetricsId = string & { readonly _brand: 'PostMetricsId' };
 type WorkspaceSnapshotId = string & { readonly _brand: 'WorkspaceSnapshotId' };
 type StartPageId = string & { readonly _brand: 'StartPageId' };
@@ -815,7 +816,7 @@ apps/
             │   └── index.ts
             ├── publishing/
             │   └── index.ts
-            ├── ai-assistant/
+            ├── mcp-access/
             │   └── index.ts
             ├── engagement/
             │   └── index.ts
@@ -850,7 +851,7 @@ Tabel berikut memetakan Bounded Context ke modul yang didefinisikan di Product B
 | BC-02 Workspace | Workspace | Core Module |
 | BC-02 Workspace | User Profile (partial) | Supporting Module |
 | BC-03 Publishing | Publishing | Core Module |
-| BC-04 AI Assistant | AI Assistant | Core Module |
+| BC-04 MCP Access | MCP Server | Core Module |
 | BC-05 Engagement | Engagement | Core Module |
 | BC-06 Analytics | Analytics | Core Module |
 | BC-07 Start Page | Start Page | Core Module |
@@ -860,6 +861,7 @@ Tabel berikut memetakan Bounded Context ke modul yang didefinisikan di Product B
 | — | Settings | Supporting Module (distributed: Workspace + User Profile BC) |
 
 **Catatan:**
+- Klasifikasi bounded context dan klasifikasi modul produk memang berbeda untuk BC-04: BC-04 MCP Access adalah Supporting Domain (hanya memegang grant, audit, dan rate limit), sedangkan modul produk "MCP Server" di `feature-modules.md` adalah Core Module karena mengekspos aksi produk ke AI pengguna lewat service domain lain (ADR-138).
 - Module **Settings** dari Product Baseline tidak menjadi bounded context tersendiri — setting workspace dikelola di BC-02 Workspace, setting user dikelola di BC-01 Identity/User Profile.
 - Module **Infrastructure** (API Integrations, Webhooks, Audit Logs, Background Jobs) adalah cross-cutting concerns yang tidak menjadi bounded context — dibahas di dokumen arsitektur berikutnya.
 
@@ -871,7 +873,7 @@ Tabel berikut memetakan Bounded Context ke modul yang didefinisikan di Product B
 |---------|-------------------------------|-----------------|
 | I-01 — Workflow Consolidation | BC-03 Publishing, BC-05 Engagement, BC-06 Analytics | Ketiga BC harus dapat "membaca" dari satu workspace context tanpa context switch |
 | I-04 — Publishing Trust | BC-03 Publishing | `Post` dan `PostTarget` harus memodelkan status dengan granularitas tinggi — `outstandPostId` (post-level, amandemen ADR-092) dan `PostTargetStatus`/`platformPostId` per account |
-| I-06 — AI in-workflow | BC-04 AI Assistant | `AIRequest.postId` adalah optional field yang memungkinkan AI bekerja dalam konteks post tertentu |
+| I-06 — AI in-workflow | BC-04 MCP Access | Diganti ADR-138: AI pengguna menempel pada pekerjaan di Postific lewat tool MCP yang membungkus Application Service yang sama dengan UI, tanpa UI AI bawaan; BC-04 (Supporting Domain) hanya memegang grant, audit, dan rate limit |
 | I-08 — Lightweight Collaboration | BC-03 Publishing | `ContentStatus` memodelkan handoff ringan (`In Review`, `Ready to Schedule`) tanpa membangun approval workflow berlapis |
 
 ---
@@ -908,4 +910,4 @@ Tabel berikut memetakan Bounded Context ke modul yang didefinisikan di Product B
 * `../02-product/roles-permissions.md` — Product Baseline: roles dan content status kanonikal
 * `../03-user/insights.md` — User Discovery: insights I-01, I-04, I-06, I-08
 * `../04-ux/key-screen-patterns.md` — UX Baseline: screen patterns sebagai referensi entitas
-* `../../project-manager/DECISIONS.md` — ADR-004 (Modular Monolith + DDD), pra-architecture decisions
+* `../../project-os/DECISIONS.md` — ADR-004 (Modular Monolith + DDD), pra-architecture decisions

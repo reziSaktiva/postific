@@ -282,4 +282,4 @@ Detail lengkap penamaan, sumber, dan pengelolaan secret didefinisikan di `enviro
 * `cicd-pipeline.md` — GitHub Actions gates, migrate on release (ADR-032)
 * `../../product-discovery/05-architecture/background-jobs.md` — Railway Cron sebagai trigger job (ADR-022)
 * `../../product-discovery/05-architecture/database-strategy.md` — Supabase PostgreSQL, Storage
-* `../../project-manager/DECISIONS.md` — ADR-028, ADR-029
+* `../../project-os/DECISIONS.md` — ADR-028, ADR-029

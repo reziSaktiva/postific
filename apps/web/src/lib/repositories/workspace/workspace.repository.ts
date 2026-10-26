@@ -7,8 +7,8 @@ import {
   InvitationStatus,
   MemberRole,
   MemberStatus,
+  SocialPlatform,
   type ConnectedAccountId,
-  type SocialPlatform,
   type UserId,
   type WorkspaceId,
 } from "@postific/shared";
@@ -28,6 +28,8 @@ import {
 import { prisma } from "@/lib/prisma/client";
 import {
   setCurrentUserId,
+  setInviteEmailProofHash,
+  setInviteLookupEmail,
   setInviteLookupToken,
   withCurrentUser,
 } from "@/lib/prisma/with-current-user";
@@ -70,6 +72,27 @@ function isConnectedAccountConflict(error: unknown): boolean {
     error.code === "P2002" &&
     error.meta?.modelName === "WorkspaceConnectedAccount"
   );
+}
+
+/**
+ * Field bersama untuk mereaktivasi `WorkspaceConnectedAccount` yang
+ * `disconnected`/`reconnect-required` — dipakai `createConnectedAccounts`
+ * (batch Facebook Pages, KI-086/ADR-127) dan `reconnectAccount` (single
+ * platform lain, ADR-105/ADR-112), supaya definisi "apa artinya reaktivasi"
+ * tidak diduplikasi dan bisa drift (code review PR #173). `avatarUrl` HANYA
+ * ditulis kalau ada nilai baru — `fetchSocialAccountAvatarUrl`/re-fetch
+ * Facebook best-effort mengembalikan `null` untuk DUA kasus beda (akun
+ * genuinely tidak punya foto, ATAU fetch gagal transient), jadi tulis-selalu
+ * bisa menghapus avatar yang sudah benar tersimpan hanya karena satu request
+ * avatar gagal.
+ */
+function buildReactivationData(handle: string, avatarUrl?: string | null) {
+  return {
+    handle,
+    ...(avatarUrl ? { avatarUrl } : {}),
+    status: "active" as const,
+    reconnectRequired: false,
+  };
 }
 
 /** Shared mapper — dipakai `listConnectedAccounts`, `findConnectedAccountById`, `createConnectedAccount`, `reconnectAccount`. */
@@ -470,6 +493,61 @@ export const workspaceRepository: IWorkspaceRepository = {
     return invitation ? toInvitationRecord(invitation) : null;
   },
 
+  /**
+   * T-005.5 — fix CRITICAL finding (Ridwan Architecture Reviewer,
+   * 2026-10-14, lihat catatan lengkap di interface). SATU `updateMany`
+   * atomic yang membaca DAN menandai `betterAuthEmailVerifiedConsumedAt`
+   * sekaligus (bukan `findFirst` lalu `update` terpisah seperti versi
+   * awal) — ini yang membuat sinyal single-use: begitu baris ini di-match
+   * sekali, baris yang sama tidak akan pernah match lagi untuk percobaan
+   * berikutnya (dan 2 request konkuren untuk email yang sama di-serialize
+   * oleh row lock Postgres di dalam statement `UPDATE` ini, bukan di-race).
+   *
+   * **Field yang di-consume SENGAJA `betterAuthEmailVerifiedConsumedAt`,
+   * BUKAN `emailVerifiedAt`** — fix regresi (ditemukan verifikasi browser
+   * end-to-end, bukan dugaan): versi awal meng-clear `emailVerifiedAt`
+   * langsung, tapi `WorkspaceService.acceptInvite` (jalan SETELAH
+   * signUp/signIn) membaca kolom YANG SAMA sebagai bukti OTP sudah
+   * dikonfirmasi — begitu hook ini jalan duluan dan meng-clear-nya,
+   * `acceptInvite` salah simpul "OTP belum pernah dikonfirmasi" dan
+   * menolak golden path yang sah. Lihat doc comment kolom di
+   * `schema.prisma` dan migrasi
+   * `20261014150000_t005_5_separate_better_auth_consume_signal`.
+   *
+   * Angka `5` menit di sini HARUS sama dengan `interval '5 minutes'` di
+   * policy RLS dan dengan `INVITE_EMAIL_PROOF_MAX_AGE_SECONDS`.
+   * `proofHash` ikut di WHERE dan di GUC. Tanpa hash yang cocok, UPDATE
+   * tidak menyentuh baris.
+   */
+  async consumeVerifiedPendingInvitationForEmail(email, proofHash) {
+    if (!proofHash) {
+      return false;
+    }
+
+    const freshnessThreshold = new Date(Date.now() - 5 * 60 * 1000);
+
+    const consumed = await prisma.$transaction(async (tx) => {
+      await setInviteLookupEmail(tx, email);
+      await setInviteEmailProofHash(tx, proofHash);
+      return tx.workspaceInvitation.updateMany({
+        where: {
+          email,
+          status: InvitationStatus.Pending,
+          expiresAt: { gt: new Date() },
+          emailVerifiedAt: { not: null, gt: freshnessThreshold },
+          betterAuthEmailVerifiedConsumedAt: null,
+          betterAuthEmailProofHash: proofHash,
+        },
+        data: {
+          betterAuthEmailVerifiedConsumedAt: new Date(),
+          betterAuthEmailProofHash: null,
+        },
+      });
+    });
+
+    return consumed.count > 0;
+  },
+
   /** Sama pola tanpa `withCurrentUser` seperti `findInvitationByToken` (lihat catatan interface). */
   async findUserByEmail(email) {
     const user = await prisma.user.findUnique({
@@ -497,6 +575,7 @@ export const workspaceRepository: IWorkspaceRepository = {
           verificationCodeHash: codeHash,
           verificationCodeExpiresAt: expiresAt,
           verificationAttempts: 0,
+          betterAuthEmailProofHash: null,
         },
       });
       if (updated.count === 0) {
@@ -507,8 +586,13 @@ export const workspaceRepository: IWorkspaceRepository = {
     });
   },
 
-  /** T-110.3 — single-use: clear hash+expiry sekaligus set `emailVerifiedAt`. Pola compare-and-swap sama `setInvitationVerificationCode`. */
-  async markInvitationEmailVerified(token) {
+  /**
+   * T-110.3 — clear hash kode sekaligus set `emailVerifiedAt`.
+   * T-005.5 — simpan hash rahasia sign-up dan kosongkan
+   * `betterAuthEmailVerifiedConsumedAt` supaya OTP yang baru
+   * dikonfirmasi mengisi ulang sinyal yang sempat terpakai.
+   */
+  async markInvitationEmailVerified(token, proofHash) {
     await prisma.$transaction(async (tx) => {
       await setInviteLookupToken(tx, token);
       const updated = await tx.workspaceInvitation.updateMany({
@@ -517,6 +601,8 @@ export const workspaceRepository: IWorkspaceRepository = {
           emailVerifiedAt: new Date(),
           verificationCodeHash: null,
           verificationCodeExpiresAt: null,
+          betterAuthEmailVerifiedConsumedAt: null,
+          betterAuthEmailProofHash: proofHash,
         },
       });
       if (updated.count === 0) {
@@ -887,6 +973,21 @@ export const workspaceRepository: IWorkspaceRepository = {
     };
   },
 
+  /**
+   * T-134 (KI-094) gap kritis — lihat docstring interface
+   * `findWorkspaceOwnerUserId` untuk alasan lengkap. Plain
+   * `prisma.workspace.findUnique` tanpa `withCurrentUser` — pola yang sama
+   * dengan `findById` di atas (`workspaces` bukan tabel RLS-protected).
+   */
+  async findWorkspaceOwnerUserId(workspaceId) {
+    const workspace = await prisma.workspace.findUnique({
+      where: { id: workspaceId },
+      select: { ownerId: true },
+    });
+
+    return workspace ? asUserId(workspace.ownerId) : null;
+  },
+
   async listActiveConnectedAccountsForSync() {
     const rows = await prisma.$queryRaw<
       {
@@ -901,6 +1002,48 @@ export const workspaceRepository: IWorkspaceRepository = {
       connectedAccountId: asConnectedAccountId(row.connected_account_id),
       outstandAccountId: row.outstand_account_id,
     }));
+  },
+
+  async listAccountsForPeriodicImportSync() {
+    const rows = await prisma.$queryRaw<
+      {
+        workspace_id: string;
+        connected_account_id: string;
+        outstand_account_id: string;
+        platform: string;
+      }[]
+    >`SELECT * FROM "public"."import_list_accounts_for_periodic_sync"()`;
+
+    const accounts: {
+      workspaceId: WorkspaceId;
+      connectedAccountId: ConnectedAccountId;
+      outstandAccountId: string;
+      platform: SocialPlatform;
+    }[] = [];
+
+    for (const row of rows) {
+      // Satu baris dengan platform di luar enum (data stale, rename enum,
+      // dsb.) TIDAK boleh menggagalkan fan-out akun lain — lewati baris itu
+      // saja (log untuk investigasi) daripada throw yang menghentikan
+      // seluruh batch lintas workspace.
+      if (
+        !Object.values(SocialPlatform).includes(row.platform as SocialPlatform)
+      ) {
+        console.error(
+          `import_list_accounts_for_periodic_sync: platform tidak dikenal "${row.platform}" untuk connected_account_id=${row.connected_account_id}, baris dilewati.`,
+        );
+        continue;
+      }
+
+      accounts.push({
+        workspaceId: asWorkspaceId(row.workspace_id),
+        connectedAccountId: asConnectedAccountId(row.connected_account_id),
+        outstandAccountId: row.outstand_account_id,
+        platform: row.platform as SocialPlatform,
+      });
+    }
+
+    return accounts;
   },
 
   async disconnectAccount(workspaceId, connectedAccountId, actingUserId) {
@@ -1006,6 +1149,11 @@ export const workspaceRepository: IWorkspaceRepository = {
   },
 
   async createConnectedAccounts({ workspaceId, actingUserId, accounts }) {
+    // KI-086/ADR-127 — lookup existing JUGA ambil `id`+`status` (sebelumnya
+    // hanya `outstandAccountId`), supaya row yang statusnya BUKAN `active`
+    // (`disconnected`/`reconnect-required`) bisa direaktivasi, bukan di-skip
+    // diam-diam seperti row yang memang sudah `active`. Row `active` tetap
+    // di-skip (tidak ada yang berubah untuk kasus itu).
     return withCurrentUser(actingUserId, async (tx) => {
       const existing = await tx.workspaceConnectedAccount.findMany({
         where: {
@@ -1014,15 +1162,47 @@ export const workspaceRepository: IWorkspaceRepository = {
             in: accounts.map((account) => account.outstandAccountId),
           },
         },
-        select: { outstandAccountId: true },
+        select: { id: true, outstandAccountId: true, status: true },
       });
-      const existingIds = new Set(
-        existing.map((account) => account.outstandAccountId),
+      const existingByOutstandId = new Map(
+        existing.map((row) => [row.outstandAccountId, row]),
       );
 
       const created = [];
       for (const account of accounts) {
-        if (existingIds.has(account.outstandAccountId)) continue;
+        const match = existingByOutstandId.get(account.outstandAccountId);
+        if (match?.status === "active") continue;
+
+        if (match) {
+          // Reaktivasi. Beda dari `reconnectAccount` di bawah (yang pakai
+          // `updateMany` + guard `{id, workspaceId}` eksplisit karena
+          // `connectedAccountId`-nya datang dari input client): `match.id`
+          // di sini sudah dijamin milik `workspaceId` ini oleh `findMany`
+          // di atas (query yang sama, transaksi yang sama), dan RLS
+          // `workspace_connected_accounts` (`FOR ALL`) tetap jadi
+          // defense-in-depth independen — jadi `update` by id langsung
+          // sudah aman tanpa guard eksplisit tambahan. Review Ridwan
+          // Architecture Reviewer (ADR-127) mengonfirmasi ini bukan gap
+          // keamanan, hanya perbedaan pola yang disengaja.
+          const row = await tx.workspaceConnectedAccount.update({
+            where: { id: match.id },
+            data: buildReactivationData(account.handle, account.avatarUrl),
+          });
+          created.push(toConnectedAccountRecord(row));
+          // Code review PR #173 — `existingByOutstandId` dibangun SEKALI
+          // sebelum loop ini mulai. Kalau `accounts` (input batch) kebetulan
+          // berisi `outstandAccountId` yang sama dua kali (mis. Outstand
+          // mengembalikan baris duplikat), iterasi berikutnya untuk id yang
+          // sama HARUS melihat row ini sudah `active` — update entry Map di
+          // tempat supaya iterasi berikutnya kena skip di `match?.status ===
+          // "active"` di atas, bukan mereaktivasi+push duplikat lagi.
+          existingByOutstandId.set(account.outstandAccountId, {
+            ...match,
+            status: "active",
+          });
+          continue;
+        }
+
         const row = await tx.workspaceConnectedAccount.create({
           data: {
             workspaceId,
@@ -1060,19 +1240,7 @@ export const workspaceRepository: IWorkspaceRepository = {
           where: { id: connectedAccountId, workspaceId },
           data: {
             outstandAccountId,
-            handle,
-            // `avatarUrl` HANYA ditulis kalau fetch-nya berhasil dapat nilai
-            // (bukan `null`/`undefined`) — `fetchSocialAccountAvatarUrl`
-            // best-effort mengembalikan `null` untuk DUA kasus yang beda
-            // (akun genuinely tidak punya foto, ATAU fetch gagal transient),
-            // jadi tulis-selalu di sini bisa menghapus avatar yang sudah
-            // benar tersimpan hanya karena satu request avatar gagal saat
-            // reconnect. Konsekuensi: avatar lama tetap tampil kalau user
-            // BENAR-BENAR menghapus foto profilnya di platform asli — trade-off
-            // yang lebih aman daripada silent data loss pada kegagalan network.
-            ...(avatarUrl ? { avatarUrl } : {}),
-            status: "active",
-            reconnectRequired: false,
+            ...buildReactivationData(handle, avatarUrl),
           },
         });
       } catch (error) {
@@ -1147,6 +1315,21 @@ export const workspaceRepository: IWorkspaceRepository = {
         },
       }),
     );
+  },
+
+  async getImportWatermark({ connectedAccountId, actingUserId }) {
+    const account = await withCurrentUser(actingUserId, (tx) =>
+      tx.workspaceConnectedAccount.findFirst({
+        where: { id: connectedAccountId },
+        select: { lastImportedUntil: true },
+      }),
+    );
+
+    if (!account) {
+      return null;
+    }
+
+    return { lastImportedUntil: account.lastImportedUntil };
   },
 };
 

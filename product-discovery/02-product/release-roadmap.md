@@ -118,21 +118,23 @@ Direct Message, mention, dan webhook engagement tidak termasuk rilis MVP ini (AD
 
 ---
 
-## v0.5 — AI Assistant MVP
+## v0.5 — MCP Server MVP
 
 Tujuan:
 
-Meningkatkan produktivitas melalui AI.
+Memungkinkan pengguna bekerja di Postific melalui AI pilihannya sendiri
+(ADR-138). Postific tidak membangun AI sendiri.
 
 Fokus:
 
-* Caption Generation
-* Caption Improvement
-* Content Suggestions
+* Koneksi klien AI lewat OAuth (satu workspace per koneksi)
+* Tool baca, draft, dan jadwal
+* Audit, rate limit, dan pencabutan koneksi
 
 Outcome:
 
-AI menjadi bagian dari workflow pembuatan konten.
+AI pengguna dapat membaca, menyusun draft, dan menjadwalkan konten di
+Postific. Publish Now dan balas komentar lewat MCP ditunda.
 
 ---
 
@@ -205,11 +207,11 @@ Roadmap dianggap berhasil apabila:
 
 Perubahan terhadap urutan release atau ruang lingkup setiap release harus dicatat pada:
 
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/DECISIONS.md`
 
 Perubahan progress roadmap harus diperbarui pada:
 
-* `../../project-manager/PROJECT_STATE.md`
+* `../../project-os/PROJECT_STATE.md`
 
 ---
 
@@ -219,5 +221,5 @@ Perubahan progress roadmap harus diperbarui pada:
 * `mvp-definition.md`
 * `feature-priority.md`
 * `future-roadmap.md`
-* `../../project-manager/PROJECT_STATE.md`
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/PROJECT_STATE.md`
+* `../../project-os/DECISIONS.md`

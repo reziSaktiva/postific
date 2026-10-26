@@ -280,6 +280,8 @@ Middleware matchers:
 ├── /onboarding     → Protected route (wajib session, tanpa workspace context — lihat "Onboarding Flow")
 ├── /api/webhooks/* → Webhook routes (bypass auth — protected via HMAC signature)
 ├── /api/jobs/*     → Job runner routes (bypass auth — protected via X-Job-Secret)
+├── /api/mcp        → MCP Server endpoint (bypass proxy — token divalidasi di Route Handler via `mcpHandler`) (ADR-139, Proposed)
+├── /.well-known/*  → Metadata OAuth MCP (bypass proxy) (ADR-139, Proposed)
 └── (app)/*         → Protected routes (wajib session + workspace context dari cookie)
     └── Home, Publish, Engage, Analyze, Start Page, Settings — semua wajib workspace membership check
 ```
@@ -443,4 +445,4 @@ Login berhasil / Middleware redirect ke /onboarding (cookie active-workspace-id 
 * `../../02-product/roles-permissions.md` — Permission matrix lengkap per role
 * `realtime-strategy.md` — Session diperlukan sebelum Supabase Realtime subscription
 * `../06-engineering/auth-strategy.md` — konfigurasi Better Auth Bearer plugin untuk mobile (AS-D06)
-* `../../project-manager/DECISIONS.md` — ADR-024, ADR-043
+* `../../project-os/DECISIONS.md` — ADR-024, ADR-043

@@ -216,4 +216,4 @@ User Goals dianggap selesai apabila:
 * `../01-business/target-market.md`
 * `../02-product/product-scope.md`
 * `../02-product/mvp-definition.md`
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/DECISIONS.md`

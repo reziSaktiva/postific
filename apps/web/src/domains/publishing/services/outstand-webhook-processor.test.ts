@@ -8,6 +8,12 @@ import {
   NotificationType,
 } from "@postific/shared";
 import { describe, expect, it, vi } from "vitest";
+import {
+  noopBackfillRepositoryStubs,
+  noopClassifyRepositoryStub,
+  noopTerminalPostsRepositoryStub,
+  noopFetchAllPostIdMappings,
+} from "@/lib/testing/outstand-post-id-backfill-stubs";
 import type {
   IOutstandAdapter,
   PostTargetOutcome,
@@ -68,6 +74,7 @@ function createFakeRepository(
     }),
     listDrafts: async () => [],
     findDraftById: async () => null,
+    findPostStatusById: async () => null,
     updateDraftCaption: async () => null,
     schedulePost: async () => null,
     publishNow: async () => null,
@@ -96,6 +103,9 @@ function createFakeRepository(
       insertedCount: 0,
       skippedDuplicateCount: 0,
     }),
+    ...noopBackfillRepositoryStubs,
+    ...noopClassifyRepositoryStub,
+    ...noopTerminalPostsRepositoryStub,
     ...overrides,
   } satisfies IPublishingRepository;
 }
@@ -166,6 +176,7 @@ function createFakeAdapter(
       posts: [],
       error: null,
     }),
+    fetchAllPostIdMappings: noopFetchAllPostIdMappings,
   };
 }
 

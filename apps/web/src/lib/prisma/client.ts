@@ -19,6 +19,8 @@ function createPrismaClient() {
     );
   }
 
+  // Query pada satu koneksi diantri oleh patches/@prisma+adapter-pg@7.8.0.patch
+  // (KI-091, prisma/orm#29979) sampai perbaikan itu ada di rilis Prisma.
   const adapter = new PrismaPg({ connectionString });
   return new PrismaClient({
     adapter,

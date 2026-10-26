@@ -2,6 +2,7 @@ import type {
   ConnectedAccountId,
   ContentFormat,
   MediaId,
+  OutstandPostIdMapping,
   PostId,
   PostTargetId,
   SocialPlatform,
@@ -224,8 +225,9 @@ export interface HistoryItemTargetRecord extends QueueItemTargetRecord {
  * outcome final per akun untuk UI daftar (T-034.2) dan detail (T-034.3).
  *
  * `updatedAt` disertakan (beda dari `CalendarItemRecord`/`QueueItemRecord`)
- * karena dipakai sebagai proksi "waktu selesai" untuk pengurutan — lihat
- * catatan gap `failedAt`/`failureReason` di `IPublishingRepository.listHistory`.
+ * hanya sebagai fallback "waktu selesai" (T-142): urutan, grup tanggal, dan
+ * jam kartu memakai `historyItemOccurredAt` (`publishedAt`/`failedAt` lebih
+ * dulu, lalu `updatedAt`).
  */
 export interface HistoryItemRecord {
   id: PostId;
@@ -233,10 +235,28 @@ export interface HistoryItemRecord {
   status: ContentStatus;
   scheduledAt: Date | null;
   publishedAt: Date | null;
+  /** Waktu gagal (T-142) — kunci waktu bisnis item `Failed` di History (`failedAt ?? updatedAt`). */
+  failedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
   /** Media post asli (KI-082) — satu set per post (ADR-107, sama `PublishingPostRecord.mediaIds`), dipakai untuk resolve thumbnail "Hasil per Akun" di History Detail (`HistoryDetail.tsx`). */
   mediaIds: MediaId[];
+  /**
+   * Penulis post (T-121, menutup KI-050) — `PublishingPost.authorId` apa
+   * adanya. `null` HANYA untuk post berstatus `Imported` (ditarik langsung
+   * dari platform sosial, memang tidak punya penulis internal secara
+   * desain, ADR-093) — field lain di History (`Published`/`Failed`) selalu
+   * punya `authorId` terisi karena hanya post yang sempat melalui
+   * draft→schedule/publish yang bisa mencapai status terminal itu.
+   *
+   * Nama penulis SENGAJA TIDAK di-resolve di sini — repository ini murni
+   * proyeksi `publishing`, tidak boleh tahu domain `identity` (konsisten
+   * precedent `HistoryDetailItem.metrics`/`CalendarPostItem.metrics`,
+   * Ridwan Architecture Reviewer 2026-09-18, Temuan 2). Join nama dilakukan
+   * di `PublishingService.getHistoryById` lewat `AuthorPort` lokal →
+   * `HistoryDetailItem.authorName`.
+   */
+  authorId: UserId | null;
   targets: HistoryItemTargetRecord[];
 }
 
@@ -287,6 +307,16 @@ export interface ImportedPostTargetInput {
   platform: SocialPlatform;
   platformPostId: string;
   platformPostUrl: string | null;
+  /**
+   * Id internal Outstand untuk post ini (T-113/KI-090, dari
+   * `ImportedPostData.outstandPostId`) — disimpan ke
+   * `PublishingPost.outstandPostId` supaya
+   * `listSyncablePostsByConnectedAccount` (dipakai `SyncCommentsUseCase`)
+   * ikut menyertakan post Imported ini. `null` kalau Outstand tidak
+   * membawa `id` valid untuk post ini — import tetap jalan, hanya comment
+   * sync untuk post ini yang tidak akan terjadi sampai field ini terisi.
+   */
+  outstandPostId: string | null;
   caption: string;
   publishedAt: Date;
   /** Media eksternal — disimpan di `PublishingPostTarget.platformOptions` (lihat catatan `ImportedPostData.mediaUrls`), bukan kolom baru. */
@@ -348,6 +378,22 @@ export interface IPublishingRepository {
     input: { workspaceId: WorkspaceId; postId: PostId },
     userId: UserId,
   ): Promise<PublishingPostRecord | null>;
+
+  /**
+   * Code review PR #163 — lean status-only lookup. `findDraftById` di atas
+   * memetakan hasilnya lewat `mapPost`, yang melempar `Error` mentah (bukan
+   * `ApplicationError`) untuk post berstatus `Imported` (`authorId` null,
+   * ADR-093) — tidak aman dipakai cuma untuk baca `.status` (mis. guard
+   * read-only T-091.1), karena `Imported` justru salah satu status yang
+   * guard itu harus tangani. Method ini TIDAK melalui `mapPost` dan TIDAK
+   * men-join `targets`, jadi aman untuk semua status termasuk `Imported`.
+   *
+   * `userId` (RLS, KI-026 follow-up) — acting user for `withCurrentUser`.
+   */
+  findPostStatusById(
+    input: { workspaceId: WorkspaceId; postId: PostId },
+    userId: UserId,
+  ): Promise<{ status: ContentStatus } | null>;
 
   /**
    * Returns null when no matching draft exists in this workspace. `userId`
@@ -562,12 +608,12 @@ export interface IPublishingRepository {
   ): Promise<CalendarItemRecord | null>;
 
   /**
-   * History (T-034.1, KSP-D10) — post berstatus `Published`/`Failed`
-   * (percobaan publish sudah selesai, KSP-03) milik workspace, diurutkan
-   * `updatedAt` descending (paling baru berubah status duluan — proksi
-   * "waktu selesai" dipertahankan APA ADANYA meski `PublishingPost.failedAt`
-   * sekarang diisi T-107 — lihat catatan update di bawah kenapa sorting
-   * TIDAK ikut diubah ke `failedAt`/`publishedAt`).
+   * History (T-034.1, KSP-D10) — post berstatus `Published`/`Failed`/
+   * `Imported` (T-126; "selesai", KSP-03 — `Imported` ikut dihitung selesai
+   * karena memang tidak pernah berupa percobaan publish dari tool ini)
+   * milik workspace, diurutkan descending menurut waktu terbit
+   * (`historyItemOccurredAt`, T-142: `publishedAt ?? updatedAt`, Failed
+   * `failedAt ?? updatedAt`), bukan waktu baris diubah/diimpor.
    *
    * `statuses` — caller (`PublishingService.listHistory`) WAJIB sudah
    * mempersempitnya ke subset `HISTORY_TERMINAL_STATUSES` sebelum
@@ -576,18 +622,8 @@ export interface IPublishingRepository {
    * terfilter, sama pola dengan `listCalendarPosts`/`listQueue`.
    * `connectedAccountIds` opsional, sama pola dengan `listCalendarPosts`.
    *
-   * **Update T-107 (koreksi KI-049/KI-063):** `PublishingPost.failedAt`/
-   * `.failureReason` SEKARANG diisi oleh `markPostFailed` (sebelumnya
-   * tidak pernah ditulis sama sekali) — tapi TETAP SENGAJA tidak
-   * dimasukkan ke `HistoryItemRecord` di sini (keputusan review Ridwan
-   * Architecture Reviewer dipertahankan, bukan di-superscede diam-diam):
-   * `updatedAt` tetap dipakai sebagai proksi "waktu selesai" untuk
-   * `orderBy` supaya scope T-107 murni bug-fix data layer, tidak
-   * mengubah kontrak `HistoryItemRecord`/sorting History (itu perubahan
-   * terpisah yang perlu keputusan produk sendiri kalau memang diinginkan
-   * nanti). Pesan error final per akun tetap tersedia lewat
-   * `HistoryItemTargetRecord.error` (diisi `updateTargetOutcome`) — TIDAK
-   * berubah oleh T-107.
+   * **T-142:** `failedAt` kini ikut di `HistoryItemRecord`. `updatedAt`
+   * (kolom audit) tidak lagi jadi kunci urutan, hanya fallback.
    *
    * `userId` (RLS, KI-026 follow-up) — acting user for `withCurrentUser`.
    */
@@ -605,6 +641,39 @@ export interface IPublishingRepository {
     },
     userId: UserId,
   ): Promise<HistoryItemRecord[]>;
+
+  /**
+   * T-130/KI-093 — jumlah `PublishingPost` berstatus terminal
+   * (`HISTORY_TERMINAL_STATUSES`: `Published`/`Failed`/`Imported`) milik
+   * `workspaceId`, dengan `publishedAt` jatuh di rentang `[since, until)`
+   * (half-open, konsisten `listHistory.publishedAtRange`/
+   * `getPostPerformance` — review finding 2026-09-22 soal rentang
+   * bersebelahan tidak boleh overlap).
+   *
+   * Dipakai `AnalyticsIngestionUseCase.syncWorkspaceSnapshot` (lewat port
+   * lokal `TerminalPostsCountPort`, pola sama `ActiveAccountsPort`) sebagai
+   * pengganti `IOutstandAdapter.fetchWorkspaceMetrics().totalPosts` —
+   * field `posts_count` Outstand terbukti `null` untuk akun Facebook Page
+   * (tidak didokumentasikan Outstand untuk platform ini), jadi `totalPosts`
+   * Home/snapshot sekarang dihitung dari status internal kita sendiri,
+   * bukan dari Outstand.
+   *
+   * **Catatan granularitas:** ini menghitung baris `PublishingPost`
+   * (distinct post), BUKAN baris post × target seperti
+   * `PublishingService.getAnalyzeSummary.totalPosts` (yang menghitung
+   * target berstatus `published` per post) — definisi "jumlah post" di
+   * Home sengaja literal "berapa post", bukan granularitas Analyze. Post
+   * `Failed` yang `publishedAt`-nya di-null-kan (`markPostFailed`, KI-081)
+   * otomatis tidak masuk rentang manapun — perilaku ini SAMA dengan
+   * `getPostPerformance` (post tanpa `publishedAt` sudah lama tidak pernah
+   * muncul di hitungan ber-periode), bukan regresi baru dari perubahan ini.
+   *
+   * `userId` (RLS, KI-026 follow-up) — acting user untuk `withCurrentUser`.
+   */
+  countTerminalPosts(
+    input: { workspaceId: WorkspaceId; since: Date; until: Date },
+    userId: UserId,
+  ): Promise<number>;
 
   /**
    * Detail satu History item (T-034.1) — mendukung route
@@ -1034,15 +1103,64 @@ export interface IPublishingRepository {
    * memanggil ulang dengan batch yang sama (mis. retry setelah network
    * error parsial) aman, tidak pernah menggandakan baris.
    *
+   * **Cross-post guard (T-113 follow-up, temuan Ridwan Architecture
+   * Reviewer):** Import selalu per akun tunggal, tapi SATU post Outstand
+   * (satu `outstandPostId`) bisa saja sudah di-cross-post ke beberapa
+   * `connectedAccountId` berbeda di workspace yang sama — Import untuk akun
+   * kedua akan menerima `outstandPostId` yang SAMA dengan post yang sudah
+   * dibuat dari Import akun pertama. Dedup `(connectedAccountId,
+   * platformPostId)` di atas TIDAK menangkap ini (akun berbeda = key
+   * berbeda), dan `PublishingPost.outstandPostId` punya partial unique
+   * index GLOBAL (migration `20260907130000_t026_unique_outstand_post_id`)
+   * yang akan menolak `PublishingPost` kedua dengan `outstandPostId` sama.
+   * Sebelum insert, implementasi mengecek `outstandPostId` non-null
+   * terhadap `PublishingPost` yang sudah ada (di-scope `workspaceId`) —
+   * kalau cocok, post KEDUA ini TIDAK membuat `PublishingPost` baru,
+   * melainkan menambahkan `PublishingPostTarget` baru ke
+   * `PublishingPost` yang sudah ada (konsisten semantik
+   * `schedulePost`/`publishNow`: satu `outstandPostId` = satu
+   * `PublishingPost`, multi target untuk multi akun) — supaya akun kedua
+   * itu tetap terlihat di Engage/History sebagai target post yang sama,
+   * bukan di-skip diam-diam.
+   *
+   * **Advisory lock per workspace (T-113 follow-up, ronde 2 review
+   * Ridwan):** guard di atas (SELECT dulu, baru INSERT) atomik DALAM satu
+   * transaksi, tapi TIDAK atomik ANTAR transaksi/invocation berbeda — 2
+   * akun di workspace yang sama di-Import lewat 2 transaksi konkuren
+   * (mis. "Sync Now" 2 tab hampir bersamaan) yang kebetulan membawa
+   * `outstandPostId` yang sama bisa sama-sama lolos SELECT sebelum salah
+   * satu commit, lalu transaksi kedua tetap menabrak unique index.
+   * Implementasi mengambil `pg_advisory_xact_lock(hashtext(workspaceId))`
+   * sebagai statement PERTAMA (pola sama
+   * `EngagementRepository.upsertInboxItem`, `engagement.repository.ts`,
+   * lock scope per `connectedAccountId` di sana) — menyerialkan ANTAR
+   * invocation `upsertImportedPostsTx` untuk workspace yang sama,
+   * dilepas otomatis saat transaksi commit/rollback.
+   *
+   * **Review follow-up PR #169:**
+   * - Import ulang pada target yang sudah ada mengisi
+   *   `PublishingPost.outstandPostId` kalau nilainya masih `null` dan id
+   *   itu belum dipakai post lain. Id yang sudah terisi tidak ditimpa.
+   * - Kalau `outstandPostId` sudah dimiliki workspace LAIN (index-nya
+   *   global, RLS menyembunyikan baris itu dari `findMany`), post tetap
+   *   diimpor dengan `outstandPostId: null` supaya batch tidak batal.
+   *   Kepemilikan global dibaca lewat
+   *   `webhook_find_post_targets_by_outstand_post_id` (ADR-099), setelah
+   *   `pg_advisory_xact_lock` per id (key-space terpisah dari lock
+   *   workspace).
+   * - Kalau post di workspace ini sudah punya target untuk
+   *   `connectedAccountId` yang sama, target kedua tidak dibuat. Kalau
+   *   `platformPostId` target itu masih null, nilainya diisi dari import.
+   *
    * **Acting user untuk RLS (bukan `authorId` post — itu tetap `null`):**
    * `actingUserId` HANYA dipakai untuk `withCurrentUser` (RLS di-scope ke
    * MEMBERSHIP WORKSPACE, bukan `authorId` — lihat kebijakan
    * `publishing_posts_workspace_isolation`, migration T-017), jadi boleh
    * berupa user mana pun yang aktif di `workspaceId` ini. Caller (auto:
    * user yang connect akun; manual: user yang klik Sync Now; periodik:
-   * BELUM ada acting user alami karena dipicu cron tanpa sesi — lihat
-   * catatan gap di `ImportPostsTriggerUseCase.triggerPeriodicForAccounts`)
-   * yang menentukan nilainya.
+   * dipicu cron tanpa sesi, jadi di-resolve lewat Owner workspace akun itu —
+   * KI-088 resolved 2026-10-15, lihat `ImportPostsTriggerUseCase.
+   * triggerPeriodicForAccounts`) yang menentukan nilainya.
    */
   upsertImportedPosts(
     input: {
@@ -1051,6 +1169,125 @@ export interface IPublishingRepository {
     },
     actingUserId: UserId,
   ): Promise<UpsertImportedPostsResult>;
+
+  /**
+   * Backfill `outstandPostId` post Imported lama (T-114, perluasan
+   * T-113/KI-090) — cek existence MURAH (satu query, bukan `COUNT` penuh)
+   * apakah `connectedAccountId` ini masih punya `PublishingPost` berstatus
+   * `Imported` dengan `outstandPostId` kosong, `platformPostId` terisi, dan
+   * belum ditandai `outstandIdBackfillSkippedAt`. Dipanggil SETIAP
+   * `runImportSync` (manual/periodik) SEBELUM method `backfillImportedPostOutstandIds`
+   * di bawah — kalau `false`, caller (`BackfillOutstandPostIdsUseCase`)
+   * TIDAK memanggil `IOutstandAdapter.fetchAllPostIdMappings` sama sekali
+   * (hemat biaya panggilan Outstand untuk akun yang sudah pernah
+   * di-backfill, atau tidak pernah punya gap). Baris yang tidak bisa
+   * diisi (id sudah dipakai post lain, atau tidak ada di riwayat Outstand)
+   * ditandai skipped oleh method di bawah, jadi tidak membuat cek ini
+   * tetap `true` selamanya. Target tanpa `platformPostId` juga tidak
+   * dihitung — tidak ada kunci pencocokan.
+   *
+   * `userId` (RLS, KI-026 follow-up) — acting user for `withCurrentUser`.
+   */
+  hasImportedPostsMissingOutstandId(
+    input: { workspaceId: WorkspaceId; connectedAccountId: ConnectedAccountId },
+    userId: UserId,
+  ): Promise<boolean>;
+
+  /**
+   * Backfill `outstandPostId` post Imported lama (T-114, perluasan
+   * T-113/KI-090) — cocokkan `mappings` (hasil `IOutstandAdapter.
+   * fetchAllPostIdMappings`, keyed `platformPostId`) ke
+   * `PublishingPostTarget.platformPostId` milik `connectedAccountId` ini
+   * yang post induknya masih `Imported` + `outstandPostId` kosong + belum
+   * ditandai skipped, lalu `UPDATE` kolom itu untuk baris yang cocok.
+   * Baris yang TIDAK cocok (mapping tidak membawa `platformPostId` itu,
+   * `platformPostId` kosong, atau id sudah dimiliki post lain — termasuk
+   * workspace lain lewat `webhook_find_post_targets_by_outstand_post_id`)
+   * TIDAK ditulis dan TIDAK melempar unique violation. Baris itu ditandai
+   * `outstandIdBackfillSkippedAt` supaya existence check berikutnya tidak
+   * mengunduh ulang seluruh riwayat. Satu tabrakan tidak membatalkan
+   * baris lain dalam batch yang sama.
+   *
+   * **Guard concurrency (T-114.3, pertimbangan sama T-113 follow-up ronde
+   * 2):** implementasi mengambil `pg_advisory_xact_lock(hashtext(workspaceId))`
+   * SEBELUM SELECT/UPDATE apa pun — NAMESPACE LOCK YANG SAMA dengan
+   * `upsertImportedPostsTx` (`upsert-imported-posts.ts`), lalu lock per
+   * `outstandPostId` di key-space yang sama (`hashtext('publishing.outstand_post_id')`,
+   * urut) sebelum menulis id itu. Setiap `UPDATE` individu juga menyertakan
+   * `WHERE outstandPostId IS NULL` (bukan hanya filter di SELECT
+   * sebelumnya) sebagai lapis idempoten kedua — aman dipanggil ulang/
+   * tumpang-tindih dengan import baru yang kebetulan sudah mengisi baris
+   * yang sama di antara SELECT dan UPDATE ini.
+   *
+   * `actingUserId` (RLS, KI-026 follow-up) — acting user for `withCurrentUser`,
+   * sama pola `upsertImportedPosts` (boleh user mana pun yang aktif di
+   * `workspaceId` ini, bukan "pemilik" post).
+   */
+  backfillImportedPostOutstandIds(
+    input: {
+      workspaceId: WorkspaceId;
+      connectedAccountId: ConnectedAccountId;
+      mappings: OutstandPostIdMapping[];
+      /**
+       * `true` kalau riwayat Outstand terbaca sampai habis dan shape-nya
+       * dikenali. Baris yang tidak ada di `mappings` ditandai skipped.
+       * `false` (scan terpotong atau shape drift) — baris yang tidak ada
+       * di peta ini TIDAK ditandai, supaya sync berikutnya bisa mencoba lagi.
+       */
+      settleUnmatched: boolean;
+    },
+    actingUserId: UserId,
+  ): Promise<BackfillImportedPostOutstandIdsResult>;
+
+  /**
+   * Klasifikasi `ContentFormat` post hasil Import (ADR-135, T-132.4) —
+   * dipanggil `ClassifyImportedPostTargetsUseCase` SETELAH sinyal analytics
+   * (`IOutstandAdapter.fetchPostMetrics`) sudah di-resolve caller (repository
+   * TIDAK boleh tahu `IOutstandAdapter`, AGENTS.md #6 — pola sama
+   * `upsertImportedPosts`). `UPDATE` `PublishingPostTarget.contentFormat`
+   * untuk baris yang cocok `connectedAccountId` + `platformPostId` di
+   * `updates` DAN masih milik post `workspaceId` ini (belum soft-deleted) —
+   * TIDAK di-scope ke status `Imported` secara khusus (beda dari
+   * `backfillImportedPostOutstandIds`) supaya method yang sama bisa dipakai
+   * T-133.3 (backfill retroaktif post Imported lama) tanpa perlu query
+   * terpisah. Baris yang `platformPostId`-nya tidak ditemukan untuk
+   * `connectedAccountId` ini dilewati diam-diam (tidak melempar) — konsisten
+   * sifat best-effort use-case pemanggilnya; TIDAK ada unique constraint
+   * `(connectedAccountId, platformPostId)` di level DB yang berisiko
+   * dilanggar operasi ini (murni `UPDATE` kolom, bukan `INSERT`), jadi TIDAK
+   * butuh advisory lock seperti `upsertImportedPostsTx`/
+   * `backfillImportedPostOutstandIdsTx`.
+   *
+   * `actingUserId` (RLS) — acting user for `withCurrentUser`, pola sama
+   * `upsertImportedPosts`/`backfillImportedPostOutstandIds` (boleh user mana
+   * pun yang aktif di `workspaceId` ini).
+   */
+  classifyImportedPostTargets(
+    input: {
+      workspaceId: WorkspaceId;
+      connectedAccountId: ConnectedAccountId;
+      updates: ClassifyImportedPostTargetUpdate[];
+    },
+    actingUserId: UserId,
+  ): Promise<ClassifyImportedPostTargetsRepositoryResult>;
+}
+
+/** Satu baris hasil klasifikasi (ADR-135, T-132.4) siap di-`UPDATE` — pola sama `OutstandPostIdMapping`. */
+export interface ClassifyImportedPostTargetUpdate {
+  platformPostId: string;
+  contentFormat: ContentFormat;
+}
+
+/** Hasil `classifyImportedPostTargets` (T-132.4) — ringkas, sama pola `UpsertImportedPostsResult`. */
+export interface ClassifyImportedPostTargetsRepositoryResult {
+  updatedCount: number;
+}
+
+/** Hasil `backfillImportedPostOutstandIds` (T-114) — ringkas, sama pola `UpsertImportedPostsResult`. */
+export interface BackfillImportedPostOutstandIdsResult {
+  updatedCount: number;
+  /** Baris yang ditandai `outstandIdBackfillSkippedAt` pada pemanggilan ini. */
+  skippedCount: number;
 }
 
 /**

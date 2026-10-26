@@ -35,13 +35,13 @@ Topik yang termasuk dalam scope:
   migrasi dari Astryx sudah tuntas (rilis v0.7, T-102).
 * **Design Tokens** — Source of Truth font, warna semantic, neutral, status,
   spacing untuk implementasi UI (ADR-038, ADR-041); nilai final berkembang
-  iteratif co-equal dengan Claude Design, tidak menunggu designer eksternal
-  (ADR-056, ADR-057).
+  iteratif co-equal dengan artifact desain Postific (ADR-140), tidak menunggu
+  designer eksternal (ADR-056, ADR-057, ADR-140).
 
 Topik berikut **tidak dibahas** pada folder ini:
 
 * Wireframe detail, eksplorasi visual, dan brief handoff designer — folder
-  `design/` sudah dihapus (ADR-045), pointer Claude Design ada di
+  `design/` sudah dihapus (ADR-045), pointer artifact desain Postific (ADR-140) ada di
   `../../context/ctx-design.md`
 * Product Scope dan Feature Priority (sudah di 02-product)
 * System Architecture high-level (ada di 05-architecture)
@@ -65,8 +65,8 @@ Topik berikut **tidak dibahas** pada folder ini:
 * `design-tokens.md` — SoT visual tokens (font,
   brand/neutral/status/feedback colors, spacing); token Stone theme (ADR-087)
   dipetakan ke shadcn/ui (ADR-097), nilai final di-lock iteratif co-equal
-  dengan Claude Design, tanpa menunggu designer eksternal (ADR-038, ADR-056,
-  ADR-057).
+  dengan artifact desain Postific (ADR-140), tanpa menunggu designer eksternal
+  (ADR-038, ADR-056, ADR-057, ADR-140).
 
 ---
 
@@ -96,7 +96,7 @@ Engineering Planning Baseline v1.0 (ADR-036)
 Repository & Bootstrap (M7)
 ```
 
-Setiap keputusan teknis yang signifikan harus dicatat sebagai ADR di `../../project-manager/DECISIONS.md`.
+Setiap keputusan teknis yang signifikan harus dicatat sebagai ADR di `../../project-os/DECISIONS.md`.
 
 ---
 
@@ -131,7 +131,7 @@ Setiap keputusan teknis yang signifikan harus dicatat sebagai ADR di `../../proj
 
 ## Dari Product Baseline v1.0
 
-* Domain prioritas MVP: Publishing, Workspace, Engagement, Analytics, AI Assistant.
+* Domain prioritas MVP: Publishing, Workspace, Engagement, Analytics, MCP Server (ADR-138).
 * Skala awal: tim kecil (Marketing Team), bukan enterprise.
 
 ## Dari UX Planning
@@ -226,7 +226,7 @@ Engineering Planning dianggap selesai apabila:
 
 # Decision Rules
 
-Keputusan teknis berikut **wajib** masuk ke `../../project-manager/DECISIONS.md`:
+Keputusan teknis berikut **wajib** masuk ke `../../project-os/DECISIONS.md`:
 
 * Perubahan atau konfirmasi deployment platform
 * Perubahan atau konfirmasi authentication library
@@ -239,16 +239,16 @@ Keputusan teknis berikut **wajib** masuk ke `../../project-manager/DECISIONS.md`
 
 Perubahan progress Engineering Planning harus diperbarui pada:
 
-* `../../project-manager/PROJECT_STATE.md`
+* `../../project-os/PROJECT_STATE.md`
 
 ---
 
 # Related Documents
 
-* `../../project-manager/PROJECT_OVERVIEW.md`
-* `../../project-manager/PROJECT_RULES.md`
-* `../../project-manager/PROJECT_STATE.md`
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/PROJECT_OVERVIEW.md`
+* `../../project-os/PROJECT_RULES.md`
+* `../../project-os/PROJECT_STATE.md`
+* `../../project-os/DECISIONS.md`
 * `../README.md`
 * `../01-business/README.md`
 * `../02-product/README.md`

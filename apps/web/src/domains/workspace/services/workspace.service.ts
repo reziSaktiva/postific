@@ -191,6 +191,27 @@ interface EngagementSyncSeederPort {
 }
 
 /**
+ * Port lokal untuk cross-domain `workspace` → `analytics` (T-134, KI-094,
+ * AGENTS.md #7) — pola sama `EngagementSyncSeederPort` di atas.
+ * `WorkspaceService` hanya tahu "akun di workspace ini baru di-disconnect,
+ * panggil hook ini" — TIDAK tahu apa pun soal `EnqueueAnalyticsSyncUseCase`,
+ * `IJobScheduler`, maupun tipe job `analytics.sync`. Composition root
+ * (`createWorkspaceServiceWithOutstandAdapter`) menyuplai implementasi
+ * konkret yang meng-enqueue job recompute snapshot workspace lewat
+ * `EnqueueAnalyticsSyncUseCase.enqueueWorkspaceSnapshot` — reuse
+ * infrastruktur JOB-04 yang sudah ada, BUKAN memanggil Outstand sama sekali
+ * (lihat "Keputusan revisi scope" tiket T-134 di
+ * `project-os/tickets/known-issues.md`: opsi panggil `DELETE` Outstand saat
+ * disconnect ditolak eksplisit King Rezi karena merusak flow reaktivasi
+ * ADR-127). Opsional (`undefined` di test/caller lama) — kalau tidak
+ * disuplai, recompute di-skip diam-diam (pola sama `EngagementSyncSeederPort`),
+ * bukan throw.
+ */
+interface AnalyticsRecomputePort {
+  onAccountDisconnected(workspaceId: WorkspaceId): Promise<void>;
+}
+
+/**
  * Port lokal untuk cross-domain/infra `workspace` → email transactional
  * (T-110, KI-053, AGENTS.md #6) — `WorkspaceService` TIDAK BOLEH mengimpor
  * Resend SDK/HTTP client langsung. Implementasi konkret ada di
@@ -240,6 +261,11 @@ function generateInviteVerificationCode(): string {
  */
 export function hashInviteVerificationCode(code: string): string {
   return createHash("sha256").update(code).digest("hex");
+}
+
+/** T-005.5 — sha256 dari rahasia cookie accept-invite. Jangan simpan plaintext-nya. */
+export function hashInviteEmailProof(proof: string): string {
+  return createHash("sha256").update(proof).digest("hex");
 }
 
 /**
@@ -304,6 +330,15 @@ export class WorkspaceService {
      * mengirim href ke host lain.
      */
     private readonly inviteLinkBaseUrl?: string,
+    /**
+     * Recompute `AnalyticsWorkspaceSnapshot` SEGERA setelah disconnect
+     * (T-134, KI-094) — lihat docstring `AnalyticsRecomputePort`. Opsional
+     * (`undefined` di caller/test lama) — composition root produksi
+     * (`createWorkspaceServiceWithOutstandAdapter`) WAJIB menyuplainya
+     * supaya `disconnectAccount` benar-benar memicu recompute segera,
+     * bukan menunggu fan-out harian JOB-04.
+     */
+    private readonly analyticsRecompute?: AnalyticsRecomputePort,
   ) {}
 
   async createWorkspace(input: {
@@ -1128,7 +1163,7 @@ export class WorkspaceService {
   async confirmInviteEmailVerification(
     token: string,
     code: string,
-  ): Promise<void> {
+  ): Promise<string> {
     const invitation = await this.repository.findInvitationByToken(token);
     if (!invitation || invitation.status !== InvitationStatus.Pending) {
       throw new NotFoundError(
@@ -1188,7 +1223,53 @@ export class WorkspaceService {
       );
     }
 
-    await this.repository.markInvitationEmailVerified(token);
+    const proof = randomBytes(32).toString("base64url");
+    await this.repository.markInvitationEmailVerified(
+      token,
+      hashInviteEmailProof(proof),
+    );
+    return proof;
+  }
+
+  /**
+   * T-005.5 — dipanggil Better Auth `databaseHooks.user.create.before`
+   * (`lib/better-auth/auth.ts`, composition root) untuk memutuskan apakah
+   * user yang baru dibuat lewat `signUp.email()` boleh ditandai
+   * `emailVerified: true` langsung (skip gate verifikasi native Better
+   * Auth kedua kalinya) karena sudah membuktikan kepemilikan inbox lewat
+   * kode OTP accept-invite T-110 SEBELUM `signUp.email()` ini dipanggil
+   * (`AcceptInviteForm.tsx`: confirm kode → baru signUp). Normalisasi email
+   * (lowercase/trim) sebelum lookup — `WorkspaceInvitation.email` selalu
+   * disimpan lowercase (lihat `requestInviteEmailVerification`/`inviteMember`),
+   * Better Auth sendiri juga menormalisasi email jadi lowercase sebelum
+   * `createUser` (`sign-up.mjs`), tapi disiplin sendiri di sini supaya
+   * method ini tidak implisit bergantung urutan pemanggilan.
+   *
+   * **Fix CRITICAL finding (Ridwan Architecture Reviewer, 2026-10-14)** —
+   * nama method & kontrak diganti dari `hasVerifiedPendingInvitationForEmail`
+   * (SELECT murni, sinyal bisa dipakai ulang kapan saja sebelum invitation
+   * expired sampai 7 hari, celah identity-takeover kalau tab user crash
+   * sebelum `signUp.email()` selesai — detail lengkap di doc comment
+   * interface repository). Nama method ini SENGAJA "consume" (bukan "has")
+   * supaya pemanggil di `auth.ts` tidak salah kira ini murni cek tanpa efek
+   * samping. Satu rahasia hanya lolos sekali. OTP baru menerbitkan rahasia
+   * baru dan mengosongkan tanda consume, jadi sign-up yang gagal sesudah
+   * consume bisa diulang. Mengetahui email saja tidak cukup: `proof` harus
+   * sama dengan rahasia yang baru diserahkan ke browser lewat cookie.
+   */
+  async consumeVerifiedPendingInvitationForEmail(
+    email: string,
+    proof: string,
+  ): Promise<boolean> {
+    const normalizedProof = proof.trim();
+    if (!normalizedProof) {
+      return false;
+    }
+
+    return this.repository.consumeVerifiedPendingInvitationForEmail(
+      email.trim().toLowerCase(),
+      hashInviteEmailProof(normalizedProof),
+    );
   }
 
   /**
@@ -1528,6 +1609,21 @@ export class WorkspaceService {
       connectedAccountId,
       actorUserId,
     );
+
+    // T-134 (KI-094) — recompute snapshot analytics workspace ini SEGERA
+    // (bukan menunggu fan-out harian JOB-04) supaya Home/Analyze tidak terus
+    // menampilkan angka akun yang baru di-disconnect. Best-effort: disconnect
+    // di DB di atas sudah sukses — kegagalan enqueue job background TIDAK
+    // boleh membatalkan aksi disconnect utama (pola sama best-effort
+    // `importPostsTrigger` di `createConnectedAccount`), cukup dicatat.
+    try {
+      await this.analyticsRecompute?.onAccountDisconnected(workspaceId);
+    } catch (error) {
+      console.error(
+        "[WorkspaceService.disconnectAccount] gagal enqueue recompute analytics snapshot",
+        error,
+      );
+    }
   }
 
   /**
@@ -1931,16 +2027,29 @@ export class WorkspaceService {
    * SEMUA Page yang dipilih (bukan N panggilan — bentuk endpoint Outstand
    * sendiri, ADR-115 poin 8). Hasilnya disimpan lewat
    * `createConnectedAccounts` dalam SATU transaksi — Page yang sudah
-   * terhubung (`outstandAccountId` sama) di-skip, kegagalan di tengah
-   * membatalkan seluruh batch. Return value HANYA berisi Page yang
-   * BENAR-BENAR baru dibuat.
+   * `active` (`outstandAccountId` sama) di-skip, kegagalan di tengah
+   * membatalkan seluruh batch. Return value berisi Page yang BENAR-BENAR
+   * baru dibuat **DAN** Page yang direaktivasi (lihat poin reconnect di
+   * bawah).
    *
    * JOB-03 engagement sync seeding (`engagementSyncSeeder?.onAccountConnected`,
    * Temuan #1 Ridwan, pola sama `completeAccountConnection`) dipanggil
-   * SEKALI PER Page yang berhasil dibuat.
+   * SEKALI PER Page yang berhasil dibuat ATAU direaktivasi — konsisten
+   * dengan titik seed "created/activated" di `completeAccountConnection`.
    *
-   * **Reconnect Facebook Page tunggal — DI LUAR SCOPE** (ADR-115 poin 8):
-   * method ini SELALU CREATE, tidak menerima `redirectAccountId`.
+   * **Reconnect Facebook Page via flow ini — ADR-127 (amandemen ADR-115
+   * poin 8, menutup KI-086):** method ini tetap tidak menerima
+   * `redirectAccountId` eksplisit (tidak ada single-page OAuth untuk
+   * Facebook, lihat `RealOutstandAdapter.connectAccount`/
+   * `resolveConnectCallback` yang throw untuk platform ini) — tapi
+   * `createConnectedAccounts` sekarang mendeteksi row existing yang
+   * `disconnected`/`reconnect-required` lewat `outstandAccountId` yang
+   * cocok dan MEREAKTIVASI row itu (bukan create baru, bukan skip diam-diam
+   * seperti sebelumnya). Jalur reconnect Facebook karena itu adalah
+   * "Connect Account" biasa → pilih ulang Page yang sama di
+   * `FacebookPagesPickerDialog` — tombol `ReconnectButton`
+   * (`ConnectedAccountsList.tsx`) TETAP disembunyikan untuk Facebook,
+   * itu sudah benar (lihat docstring `ConnectedAccountAction`).
    *
    * **`avatarUrl` join balik (menutup KI-076, ADR-120)** —
    * `IOutstandAdapter.confirmFacebookPagesConnection` (endpoint

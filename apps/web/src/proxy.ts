@@ -4,6 +4,7 @@ import { getSessionCookie } from "better-auth/cookies";
 import { asUserId, asWorkspaceId, MemberStatus } from "@postific/shared";
 
 import { auth } from "@/lib/better-auth/auth";
+import { expireSessionCookie } from "@/lib/better-auth/session-cookie-name";
 import { WorkspaceService } from "@/domains/workspace";
 import { getServerEnv } from "@/lib/env";
 import { workspaceRepository } from "@/lib/repositories/workspace";
@@ -53,6 +54,13 @@ import {
 // Bug 1). Discope ke provider spesifik (bukan seluruh `/api/webhooks`)
 // supaya route webhook provider lain yang ditambahkan nanti TIDAK otomatis
 // mewarisi bypass ini tanpa verifikasi signature-nya sendiri direview.
+// `/verify-email` (T-005.4, AS-D04) dibypass dengan alasan sama seperti
+// `/invite` di atas, bukan ditambahkan ke `PUBLIC_AUTH_PATHS`.
+// `requireEmailVerification` sudah `true`, jadi sign-up biasa belum punya
+// session saat membuka halaman ini. Setelah tautan verifikasi diklik,
+// Better Auth bisa membuat session (`autoSignInAfterVerification`) sementara
+// user masih di halaman yang sama. `PUBLIC_AUTH_PATHS` akan mengarahkan
+// session itu ke "/" . Bypass membiarkan kedua keadaan membuka halaman ini.
 const BYPASS_PREFIXES = [
   "/api/auth",
   "/api/jobs",
@@ -60,6 +68,7 @@ const BYPASS_PREFIXES = [
   "/api/v1",
   "/api/webhooks/outstand",
   "/invite",
+  "/verify-email",
 ];
 
 const PUBLIC_AUTH_PATHS = [
@@ -83,6 +92,22 @@ function isUnderPath(pathname: string, base: string): boolean {
  */
 function redirectTo(path: string): NextResponse {
   return NextResponse.redirect(new URL(path, getServerEnv().BETTER_AUTH_URL));
+}
+
+/**
+ * T-140/KI-100 — dipakai SATU-SATUNYA tempat cookie ADA tapi
+ * `auth.api.getSession()` resolve `null` (session sudah invalid/kedaluwarsa
+ * di DB, tapi cookie fisiknya belum hilang dari browser). Tanpa menghapus
+ * cookie di sini, request berikutnya ke `/login` masih melihat
+ * `hasSessionCookie` true → redirect balik ke `/` → infinite loop
+ * (ERR_TOO_MANY_REDIRECTS, ditemukan King Rezi 2026-10-22). Beda dari
+ * `redirectTo("/login")` biasa (dipakai saat cookie memang tidak ada sama
+ * sekali — tidak ada yang perlu dihapus).
+ */
+function redirectToLoginClearingStaleSession(): NextResponse {
+  const response = redirectTo("/login");
+  expireSessionCookie(response);
+  return response;
 }
 
 /**
@@ -143,7 +168,7 @@ export async function proxy(request: NextRequest) {
 
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return redirectTo("/login");
+    return redirectToLoginClearingStaleSession();
   }
 
   const workspaceIdFromCookie = request.cookies.get(

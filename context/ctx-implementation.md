@@ -29,7 +29,7 @@ apps/web/
 │   │   ├── identity/
 │   │   ├── workspace/
 │   │   ├── publishing/
-│   │   ├── ai-assistant/
+│   │   ├── mcp-access/
 │   │   ├── engagement/
 │   │   ├── analytics/
 │   │   ├── start-page/
@@ -38,6 +38,8 @@ apps/web/
 │   └── lib/                 ← prisma, better-auth, env, supabase stubs
 packages/shared/             ← ID, enum, VO — tanpa business logic
 ```
+
+Catatan: `mcp-access/` dibuat di T-149; sampai itu stub `ai-assistant/` masih ada di kode (ADR-138).
 
 Setiap domain module punya public surface via `index.ts` (dan types/errors sesuai scaffold M7).
 
@@ -65,7 +67,7 @@ ACK; pemrosesan domain berjalan sesudah ACK melalui job internal.
 
 - **shadcn/ui adalah fondasi component system permanen** (ADR-097, membalik
   ADR-041). Migrasi dari Astryx ke shadcn/ui selesai (ADR-097); detail status
-  lihat `PROJECT_STATE.md` / `../project-manager/tasks/v07-astryx-shadcn-migration.md`
+  lihat `PROJECT_STATE.md` / `../project-os/tickets/v07-astryx-shadcn-migration.md`
   § T-102; feature tidak menunggu design tokens final. Light/Dark Mode Toggle
   (ADR-055, diamandemen ADR-097) tetap
   fitur resmi — mekanismenya lewat Tailwind `dark:` + shadcn theme provider,
@@ -79,8 +81,8 @@ ACK; pemrosesan domain berjalan sesudah ACK melalui job internal.
   langsung dari lokasi hasil copy-nya.
 - Tailwind dipakai langsung sebagai styling utama komponen shadcn (bukan lagi
   layout-only seperti era Astryx dulu, ADR-097 poin 4).
-- Nilai final `design-tokens.md` (co-equal dengan Claude Design, tidak
-  menunggu designer eksternal — ADR-056, ADR-057) dipetakan ke CSS variable
+- Nilai final `design-tokens.md` (co-equal dengan artifact desain, tidak
+  menunggu designer eksternal — ADR-140, ADR-057) dipetakan ke CSS variable
   shadcn + Tailwind token bridge tanpa mengganti fondasi komponen.
 - Penamaan & peletakan file/folder komponen (PascalCase untuk file yang
   meng-export component, kebab-case untuk folder & helper, peletakan

@@ -117,10 +117,10 @@ Keputusan architecture tidak otomatis mengubah Business, Product, atau UX Baseli
 
 ## Dari Product Baseline v1.0
 
-* 6 Core Module: Workspace, Publishing, Analytics, Engagement, AI Assistant, Start Page.
+* 6 Core Module: Workspace, Publishing, Analytics, Engagement, MCP Server (ADR-138), Start Page.
 * 5 Supporting Module: Authentication, User Profile, Media Library, Notifications, Billing, Settings.
 * Infrastructure Module: API Integrations, Webhooks, Audit Logs, File Storage, Background Jobs, Monitoring.
-* MVP Must Have: Draft, Schedule, Queue, Calendar, Connected Accounts, Engagement Inbox, Analytics Snapshot, AI Caption.
+* MVP Must Have: Draft, Schedule, Queue, Calendar, Connected Accounts, Engagement Inbox, Analytics Snapshot, MCP Server (koneksi klien AI, tool baca/draft/jadwal).
 * 3 Roles (direvisi ADR-074): Account Owner, Admin, Creator — dengan set status konten kanonikal.
 
 ## Amandemen Kontrak Outstand (ADR-040)
@@ -182,11 +182,11 @@ Keputusan architecture yang berdampak pada:
 
 harus didokumentasikan pada:
 
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/DECISIONS.md`
 
 Perubahan progress Architecture Planning harus diperbarui pada:
 
-* `../../project-manager/PROJECT_STATE.md`
+* `../../project-os/PROJECT_STATE.md`
 
 Untuk penyelarasan ADR-040, batas edit sesi dapat mengecualikan pembaruan living/append-only document; Decision Log masing-masing dokumen Architecture tetap harus menandai amandemen tersebut.
 
@@ -204,7 +204,7 @@ Untuk penyelarasan ADR-040, batas edit sesi dapat mengecualikan pembaruan living
 * `../04-ux/information-architecture.md`
 * `../04-ux/key-screen-patterns.md`
 * `../06-engineering/README.md`
-* `../../project-manager/PROJECT_OVERVIEW.md`
-* `../../project-manager/PROJECT_RULES.md`
-* `../../project-manager/PROJECT_STATE.md`
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/PROJECT_OVERVIEW.md`
+* `../../project-os/PROJECT_RULES.md`
+* `../../project-os/PROJECT_STATE.md`
+* `../../project-os/DECISIONS.md`

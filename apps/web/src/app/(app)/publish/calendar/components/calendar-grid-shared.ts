@@ -12,18 +12,25 @@ import { ContentFormat, ContentStatus } from "@postific/shared";
 import type { PostMetricsRecord } from "@/domains/analytics";
 import {
   effectiveCalendarDate,
+  getWibDateParts,
+  getWibHour,
+  MS_PER_DAY,
+  toWibDateKey,
+  wibMidnightUtc,
   type CalendarPostItem,
 } from "@/domains/publishing";
 
 /**
  * Util bersama untuk grid Week (T-033.3) & Month (T-033.4) — acuan visual
- * `templates/publish-calendar.html` (Claude Design). Kalender **UTC**
- * (`toUtcDateKey`/`addDays` pakai `Date.UTC`/epoch ms), konsisten dengan
+ * `templates/publish-calendar.html` (Claude Design). Kalender **WIB /
+ * Asia/Jakarta** (T-144; `toWibDateKey`/`addDays` epoch ms, tanpa DST), konsisten dengan
  * `getWeekRange`/`getMonthRange` (`@/domains/publishing`) dan pola
  * `formatGroupDateHeading` di `QueueList.tsx`.
  */
 
-export const MS_PER_DAY = 24 * 60 * 60 * 1000;
+export { toWibDateKey };
+
+export { MS_PER_DAY };
 
 /**
  * Jumlah kolom hari grid Week & Month — 7 kolom sama lebar, responsive
@@ -124,7 +131,7 @@ export const DAY_LABELS = [
 
 /**
  * 24 label baris jam grid Week (revisi kedua T-033 — satu baris PER JAM,
- * bukan lagi di-bucket per 2 jam). Index = jam UTC 0-23 (`entry.hour`
+ * bukan lagi di-bucket per 2 jam). Index = jam WIB 0-23 (`entry.hour`
  * langsung, tanpa `Math.floor(hour / 2)`). Label teks cuma diisi di index
  * genap (jam genap); index ganjil string kosong `""` — barisnya tetap
  * render (bukan dihilangkan), cuma kolom label waktunya kosong, supaya
@@ -195,13 +202,9 @@ export function columnDividerClassName(
     : "border-r border-border";
 }
 
-/** Format jam LOKAL browser (0-23) jadi label "HH:00" (mis. 7 → "07:00") — dipakai kartu Month (poin M2). */
+/** Format jam (0-23) jadi label "HH:00" (mis. 7 → "07:00") — dipakai kartu Month (poin M2). */
 export function formatCalendarHour(hour: number): string {
   return `${String(hour).padStart(2, "0")}:00`;
-}
-
-export function toUtcDateKey(date: Date): string {
-  return date.toISOString().slice(0, 10);
 }
 
 export function addDays(date: Date, days: number): Date {
@@ -209,17 +212,16 @@ export function addDays(date: Date, days: number): Date {
 }
 
 /**
- * Geser `date` sejumlah bulan kalender UTC, dipatok ke tanggal 1 (bukan
- * mempertahankan `date.getUTCDate()`) supaya aman dari overflow bulan
+ * Geser `date` sejumlah bulan kalender WIB, dipatok ke tanggal 1 (bukan
+ * mempertahankan tanggal-di-bulan) supaya aman dari overflow bulan
  * pendek — 31 Jan + 1 bulan via `Date.UTC` day-preserving akan lompat ke
  * 3 Maret, bukan akhir Februari. Anchor Calendar hanya perlu jatuh di
  * bulan yang benar (`getMonthRange`/`getWeekRange` yang menghitung rentang
  * sebenarnya), jadi tanggal-di-dalam-bulan tidak relevan di sini.
  */
 export function addMonths(date: Date, months: number): Date {
-  return new Date(
-    Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + months, 1),
-  );
+  const { year, month } = getWibDateParts(date);
+  return wibMidnightUtc(year, month + months, 1);
 }
 
 /**
@@ -237,9 +239,9 @@ export interface CalendarCardEntry {
   /** Post/Reel/Story/Pin (revisi ketiga T-033) — label lewat `CONTENT_FORMAT_LABEL`. */
   contentFormat: ContentFormat;
   accountHandle: string;
-  /** Kalender UTC "YYYY-MM-DD" dari tanggal efektif (`scheduledAt ?? publishedAt`). */
+  /** Kalender WIB "YYYY-MM-DD" dari tanggal efektif (`scheduledAt ?? publishedAt`). */
   dateKey: string;
-  /** Jam LOKAL browser (0-23) dari tanggal efektif — dipakai grid Week untuk bucket per jam. */
+  /** Jam WIB (0-23) dari tanggal efektif — dipakai grid Week untuk bucket per jam. */
   hour: number;
   /**
    * Metrik untuk TARGET INI SAJA (T-033.8, Popover KSP-02-F08) — dicocokkan
@@ -278,12 +280,10 @@ export function flattenCalendarItemsToEntries(
 
   for (const item of items) {
     const effectiveDate = effectiveCalendarDate(item);
-    const dateKey = toUtcDateKey(effectiveDate);
-    // Jam LOKAL browser (bukan UTC) — jadwal diinput sebagai waktu lokal lalu
-    // dikonversi ke UTC saat disimpan (`draft-editor/Modal.tsx`), jadi jam
-    // yang ditampilkan ke user harus dikonversi balik ke lokal supaya cocok
-    // dengan yang mereka ketik.
-    const hour = effectiveDate.getHours();
+    const dateKey = toWibDateKey(effectiveDate);
+    // Jam WIB (T-144), bukan jam lokal browser — tanggal dan jam kartu satu
+    // zona dengan kunci grup supaya tidak pernah beda hari.
+    const hour = getWibHour(effectiveDate);
 
     for (const target of item.targets) {
       if (

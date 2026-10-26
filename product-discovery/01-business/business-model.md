@@ -93,7 +93,6 @@ Komponen biaya utama meliputi:
 
 * Infrastruktur cloud.
 * Penyedia layanan pihak ketiga (misalnya integrasi media sosial).
-* Layanan AI.
 * Pengembangan produk.
 * Operasional dan dukungan pelanggan.
 
@@ -159,5 +158,5 @@ Business Model dianggap berhasil apabila:
 * `competitor-analysis.md`
 * `pricing-strategy.md`
 * `success-metrics.md`
-* `../../project-manager/PROJECT_OVERVIEW.md`
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/PROJECT_OVERVIEW.md`
+* `../../project-os/DECISIONS.md`

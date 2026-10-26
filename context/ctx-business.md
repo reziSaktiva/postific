@@ -53,7 +53,7 @@ Opsi A: Product + User digabung di file ini (bukan file `ctx-*` terpisah).
 
 ## MVP (ingat cepat)
 
-Modul inti: Workspace, Publishing, Analytics, Engagement, AI Assistant, Start Page (+ Identity, Media, Notification sebagai pendukung).
+Modul inti: Workspace, Publishing, Analytics, Engagement, MCP Access (ADR-138), Start Page (+ Identity, Media, Notification sebagai pendukung).
 
 Billing (BC-10) = **Post-MVP**.
 

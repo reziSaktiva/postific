@@ -131,7 +131,7 @@ export default async function Layout({
             sudah dimigrasi ke komposisi Tailwind shadcn (ADR-097 poin 4),
             bukan lagi AppShell Astryx — <div> layout langsung, bukan
             VStack/HStack. */}
-        <div className="relative flex min-h-0 flex-1 flex-col">
+        <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
           <MobileTopBar workspaceName={workspace.name} />
           {/* KI-066 follow-up (mismatch #4): Claude Design `.main` pakai
               `--color-background-body` (token BODY), bukan token SIDEBAR —

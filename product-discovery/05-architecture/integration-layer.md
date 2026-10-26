@@ -92,7 +92,7 @@ Anti-Corruption Layer (ACL) adalah layer terjemahan yang:
 (ADR-059), tapi Analytics BC (metric ingestion) juga butuh mengimplementasikan
 method yang sama (`fetchPostMetrics`, `fetchWorkspaceMetrics`). File lokasi
 lama di domain `publishing` dipertahankan sebagai re-export barrel. Ini
-pengecualian baru pada aturan `packages/shared` (AGENTS.md rule 8): port/ACL
+pengecualian baru pada aturan `packages/shared` (AGENTS.md rule 5): port/ACL
 contract kini termasuk kategori yang boleh hidup di sana, selain shared types.
 
 **(amandemen ADR-092)** `schedulePost`/`publishNow` menerima SEMUA target
@@ -483,4 +483,4 @@ Domain internal **tidak pernah** melihat HTTP error code Outstand secara langsun
 * `application-layer.md` — Route Handler sebagai entry point webhook; Application Service sebagai pemanggil OutstandAdapter
 * `background-jobs.md` — strategi retry webhook event dan jadwal polling analytics
 * `auth-architecture.md` — workspace membership check pada setiap operasi ConnectedAccount
-* `../../project-manager/DECISIONS.md` — ADR-005, ADR-016, ADR-018, ADR-019, ADR-020, ADR-021, ADR-079, ADR-092
+* `../../project-os/DECISIONS.md` — ADR-005, ADR-016, ADR-018, ADR-019, ADR-020, ADR-021, ADR-079, ADR-092

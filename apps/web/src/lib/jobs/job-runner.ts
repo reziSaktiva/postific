@@ -20,7 +20,7 @@ import type { ClaimedBackgroundJob } from "./background-job-store";
  * domain) — tetap dijaga supaya reusable dan gampang di-unit-test.
  */
 
-export type JobHandler = (payload: unknown) => Promise<void>;
+export type JobHandler = (payload: unknown, jobId: string) => Promise<void>;
 
 export interface JobRunnerStore {
   claimPending(limit: number): Promise<ClaimedBackgroundJob[]>;
@@ -56,10 +56,13 @@ export const DEFAULT_JOB_BATCH_LIMIT = 10;
  * Eksekusi SATU job yang sudah diklaim (status `running`) — tidak pernah
  * throw (semua error ditangkap di sini dan dipetakan ke
  * `scheduleRetry`/`markFailed`), supaya `Promise.all` di `runPendingJobs`
- * aman menjalankan seluruh batch PARALEL tanpa satu job gagal
- * menggagalkan job lain di batch yang sama (beda job = independen
- * sepenuhnya, tidak ada alasan menjalankannya sekuensial — penting untuk
- * batas waktu Railway 30 detik per request, BG-D05).
+ * aman menjalankan seluruh batch paralel tanpa satu job gagal
+ * menggagalkan job lain di batch yang sama. Job-job itu independen.
+ * Batch paralel menjaga batas waktu Railway 30 detik per request (BG-D05).
+ * `claimPending` mengisi `startedAt` untuk seluruh batch sekaligus;
+ * reclaim BG-D04 menganggap job `running` macet setelah 30 detik.
+ * Menjalankan batch satu per satu membuat job yang masih mengantri
+ * terlihat macet, lalu cron berikutnya mengklaimnya lagi.
  */
 async function runOne(
   store: JobRunnerStore,
@@ -79,7 +82,7 @@ async function runOne(
   }
 
   try {
-    await handler(job.payload);
+    await handler(job.payload, job.id);
     await store.markDone(job.id);
     return { id: job.id, type: job.type, outcome: "done" };
   } catch (rawError) {
@@ -103,6 +106,12 @@ async function runOne(
  * T-027.1 — klaim batch job due, eksekusi via handler registry, update
  * status masing-masing (done/retry/dead-letter). Dipanggil oleh
  * `POST /api/jobs/run` SETELAH otentikasi `X-Job-Secret` (T-027.2) sukses.
+ *
+ * Batch dijalankan paralel (`Promise.all`), batasnya
+ * `DEFAULT_JOB_BATCH_LIMIT` (BG-D05). Percobaan KI-091 untuk mengantri
+ * job satu per satu dicabut: antrian itu menabrak reclaim 30 detik
+ * (BG-D04). Error deserialize kolom `void` ditutup di
+ * `lockOutstandPostIds` lewat `$executeRaw`.
  */
 export async function runPendingJobs(
   store: JobRunnerStore,

@@ -10,8 +10,14 @@ import {
   MemberRole,
   type PostId,
   SocialPlatform,
+  type UserId,
 } from "@postific/shared";
 import { describe, expect, it } from "vitest";
+import {
+  noopBackfillRepositoryStubs,
+  noopClassifyRepositoryStub,
+  noopTerminalPostsRepositoryStub,
+} from "@/lib/testing/outstand-post-id-backfill-stubs";
 import type { PostMetricsRecord } from "@/domains/analytics";
 import {
   AuthorizationError,
@@ -25,6 +31,7 @@ import type {
   PublishingPostRecord,
   QueueItemRecord,
 } from "../repositories/publishing.repository";
+import { READONLY_TERMINAL_CONFLICT_MESSAGE } from "../readonly-terminal-status";
 import { PublishingService } from "./publishing.service";
 
 const WORKSPACE_ID = asWorkspaceId("workspace-1");
@@ -49,6 +56,7 @@ function createFakeRepository(
     }),
     listDrafts: async () => [],
     findDraftById: async () => null,
+    findPostStatusById: async () => null,
     updateDraftCaption: async () => null,
     schedulePost: async () => null,
     publishNow: async () => null,
@@ -77,6 +85,9 @@ function createFakeRepository(
       insertedCount: 0,
       skippedDuplicateCount: 0,
     }),
+    ...noopBackfillRepositoryStubs,
+    ...noopClassifyRepositoryStub,
+    ...noopTerminalPostsRepositoryStub,
     ...overrides,
   };
 }
@@ -229,6 +240,7 @@ describe("PublishingService.updateDraft", () => {
       Parameters<IPublishingRepository["updateDraftCaption"]>[0] | null = null;
     const service = new PublishingService(
       createFakeRepository({
+        findPostStatusById: async () => ({ status: ContentStatus.Draft }),
         updateDraftCaption: async (input) => {
           received = input;
           return {
@@ -265,6 +277,7 @@ describe("PublishingService.updateDraft", () => {
       Parameters<IPublishingRepository["updateDraftCaption"]>[0] | null = null;
     const service = new PublishingService(
       createFakeRepository({
+        findPostStatusById: async () => ({ status: ContentStatus.Draft }),
         updateDraftCaption: async (input) => {
           received = input;
           return {
@@ -305,7 +318,7 @@ describe("PublishingService.updateDraft", () => {
     );
   });
 
-  it("throws NotFoundError when the repository returns null", async () => {
+  it("throws ConflictError when the repository returns null (race: status berubah antara guard dan write)", async () => {
     const service = new PublishingService(createFakeRepository());
 
     await expect(
@@ -317,8 +330,46 @@ describe("PublishingService.updateDraft", () => {
         },
         AUTHOR_ID,
       ),
-    ).rejects.toThrow(NotFoundError);
+    ).rejects.toThrow(ConflictError);
   });
+
+  it.each([
+    ContentStatus.Published,
+    ContentStatus.Failed,
+    ContentStatus.Imported,
+  ])(
+    "T-091.1: post berstatus %s read-only — ConflictError, updateDraftCaption tidak dipanggil",
+    async (status) => {
+      let updateCalls = 0;
+      const service = new PublishingService(
+        createFakeRepository({
+          findPostStatusById: async () => ({ status }),
+          updateDraftCaption: async () => {
+            updateCalls += 1;
+            return null;
+          },
+        }),
+      );
+
+      const error = await service
+        .updateDraft(
+          {
+            workspaceId: WORKSPACE_ID,
+            postId: asPostId("post-1"),
+            caption: "Hello",
+          },
+          AUTHOR_ID,
+        )
+        .then(
+          () => null,
+          (caught: unknown) => caught,
+        );
+
+      expect(error).toBeInstanceOf(ConflictError);
+      expect((error as Error).message).toBe(READONLY_TERMINAL_CONFLICT_MESSAGE);
+      expect(updateCalls).toBe(0);
+    },
+  );
 });
 
 describe("PublishingService.countScheduledByAccount", () => {
@@ -500,7 +551,7 @@ describe("PublishingService.listCalendarPosts", () => {
     ).resolves.toEqual([]);
   });
 
-  it("meneruskan input apa adanya ke repository saat caller tidak eksplisit memfilter statuses (T-090, rancangan Imported sudah dikunci — tidak lagi exclude Imported dari default, lihat tasks/v02-publishing-mvp.md § T-090)", async () => {
+  it("meneruskan input apa adanya ke repository saat caller tidak eksplisit memfilter statuses (T-090, rancangan Imported sudah dikunci — tidak lagi exclude Imported dari default, lihat tickets/v02-publishing-mvp.md § T-090)", async () => {
     let received:
       Parameters<IPublishingRepository["listCalendarPosts"]>[0] | null = null;
     const service = new PublishingService(
@@ -782,7 +833,7 @@ describe("PublishingService.getCalendarPostById", () => {
     expect(result).toEqual({ ...published, metrics: [] });
   });
 
-  it("mengembalikan post berstatus Imported apa adanya (T-090, rancangan Imported sudah dikunci — jalur Realtime-patch sekarang konsisten dengan listCalendarPosts yang juga tidak lagi exclude Imported, lihat tasks/v02-publishing-mvp.md § T-090)", async () => {
+  it("mengembalikan post berstatus Imported apa adanya (T-090, rancangan Imported sudah dikunci — jalur Realtime-patch sekarang konsisten dengan listCalendarPosts yang juga tidak lagi exclude Imported, lihat tickets/v02-publishing-mvp.md § T-090)", async () => {
     const imported = createCalendarItem({
       id: asPostId("post-imported"),
       status: ContentStatus.Imported,
@@ -812,9 +863,11 @@ function createHistoryItem(
     status: ContentStatus.Published,
     scheduledAt: null,
     publishedAt: new Date("2026-07-14T10:00:00Z"),
+    failedAt: null,
     createdAt: new Date("2026-07-13T00:00:00Z"),
     updatedAt: new Date("2026-07-14T10:00:00Z"),
     mediaIds: [],
+    authorId: AUTHOR_ID,
     targets: [
       {
         id: asPostTargetId("target-1"),
@@ -842,7 +895,7 @@ describe("PublishingService.listHistory", () => {
     ).resolves.toEqual([]);
   });
 
-  it("default statuses ke [Published, Failed] kalau tidak diisi caller", async () => {
+  it("default statuses ke [Published, Failed, Imported] kalau tidak diisi caller (T-126)", async () => {
     let received: Parameters<IPublishingRepository["listHistory"]>[0] | null =
       null;
     const service = new PublishingService(
@@ -858,7 +911,11 @@ describe("PublishingService.listHistory", () => {
 
     expect(received).toEqual({
       workspaceId: WORKSPACE_ID,
-      statuses: [ContentStatus.Published, ContentStatus.Failed],
+      statuses: [
+        ContentStatus.Published,
+        ContentStatus.Failed,
+        ContentStatus.Imported,
+      ],
     });
   });
 
@@ -883,11 +940,15 @@ describe("PublishingService.listHistory", () => {
     expect(received).toEqual({
       workspaceId: WORKSPACE_ID,
       connectedAccountIds,
-      statuses: [ContentStatus.Published, ContentStatus.Failed],
+      statuses: [
+        ContentStatus.Published,
+        ContentStatus.Failed,
+        ContentStatus.Imported,
+      ],
     });
   });
 
-  it("meng-clamp statuses ke subset terminal (Published/Failed) sebelum memanggil repository", async () => {
+  it("meng-clamp statuses ke subset terminal (Published/Failed/Imported) sebelum memanggil repository", async () => {
     let received: Parameters<IPublishingRepository["listHistory"]>[0] | null =
       null;
     const service = new PublishingService(
@@ -969,7 +1030,7 @@ describe("PublishingService.getHistoryById", () => {
 
     await expect(
       service.getHistoryById(WORKSPACE_ID, asPostId("post-1"), AUTHOR_ID),
-    ).resolves.toEqual({ ...item, metrics: null });
+    ).resolves.toEqual({ ...item, metrics: null, authorName: null });
   });
 
   // T-043.3 — reuse semantik `PostMetricsPort` yang sama dengan
@@ -995,7 +1056,7 @@ describe("PublishingService.getHistoryById", () => {
       AUTHOR_ID,
     );
 
-    expect(result).toEqual({ ...failed, metrics: null });
+    expect(result).toEqual({ ...failed, metrics: null, authorName: null });
     expect(calls).toBe(0);
   });
 
@@ -1011,7 +1072,7 @@ describe("PublishingService.getHistoryById", () => {
       AUTHOR_ID,
     );
 
-    expect(result).toEqual({ ...published, metrics: [] });
+    expect(result).toEqual({ ...published, metrics: [], authorName: null });
   });
 
   it("metrics diisi dari PostMetricsPort untuk post Published", async () => {
@@ -1048,7 +1109,83 @@ describe("PublishingService.getHistoryById", () => {
     );
 
     expect(receivedPostIds).toEqual([published.id]);
-    expect(result).toEqual({ ...published, metrics: [metric] });
+    expect(result).toEqual({
+      ...published,
+      metrics: [metric],
+      authorName: null,
+    });
+  });
+
+  // T-121, menutup KI-050.
+  it("authorName null kalau authorId post null (status Imported), AuthorPort tidak pernah dipanggil", async () => {
+    const imported = createHistoryItem({
+      status: ContentStatus.Imported,
+      authorId: null,
+    });
+    let calls = 0;
+    const service = new PublishingService(
+      createFakeRepository({ getHistoryById: async () => imported }),
+      undefined,
+      undefined,
+      {
+        findById: async () => {
+          calls += 1;
+          return { name: "Should not be called" };
+        },
+      },
+    );
+
+    const result = await service.getHistoryById(
+      WORKSPACE_ID,
+      imported.id,
+      AUTHOR_ID,
+    );
+
+    expect(result.authorName).toBeNull();
+    expect(calls).toBe(0);
+  });
+
+  it("authorName diisi dari AuthorPort kalau authorId ada", async () => {
+    const item = createHistoryItem({ status: ContentStatus.Failed });
+    let receivedAuthorId: UserId | null = null;
+    const service = new PublishingService(
+      createFakeRepository({ getHistoryById: async () => item }),
+      undefined,
+      undefined,
+      {
+        findById: async (userId) => {
+          receivedAuthorId = userId;
+          return { name: "Raka" };
+        },
+      },
+    );
+
+    const result = await service.getHistoryById(
+      WORKSPACE_ID,
+      item.id,
+      AUTHOR_ID,
+    );
+
+    expect(receivedAuthorId).toBe(AUTHOR_ID);
+    expect(result.authorName).toBe("Raka");
+  });
+
+  it("authorName null kalau AuthorPort tidak menemukan user (data korup)", async () => {
+    const item = createHistoryItem({ status: ContentStatus.Failed });
+    const service = new PublishingService(
+      createFakeRepository({ getHistoryById: async () => item }),
+      undefined,
+      undefined,
+      { findById: async () => null },
+    );
+
+    const result = await service.getHistoryById(
+      WORKSPACE_ID,
+      item.id,
+      AUTHOR_ID,
+    );
+
+    expect(result.authorName).toBeNull();
   });
 });
 
@@ -1097,6 +1234,55 @@ describe("PublishingService.getPostPerformance", () => {
     await expect(
       service.getPostPerformance(WORKSPACE_ID, "weekly", AUTHOR_ID),
     ).resolves.toEqual([]);
+  });
+
+  it("ikut menghitung post Imported di Post Performance (T-129.1, sebelumnya dikecualikan di T-126/PR 183)", async () => {
+    // Wrapper object, bukan `let` langsung — TS tidak bisa menyimpulkan
+    // closure `listHistory` di bawah benar-benar jalan sebelum `expect`,
+    // jadi `let received: X | null` akan ter-narrow jadi literal `null`
+    // di titik baca (lihat `received.input?.statuses` di bawah: field pada
+    // objek `const` tidak kena masalah narrowing yang sama).
+    const received: {
+      input: Parameters<IPublishingRepository["listHistory"]>[0] | null;
+    } = { input: null };
+    const published = createHistoryItem({
+      id: asPostId("post-published"),
+      publishedAt: WITHIN_WEEK,
+    });
+    const imported = createHistoryItem({
+      id: asPostId("post-imported"),
+      status: ContentStatus.Imported,
+      authorId: null,
+      publishedAt: WITHIN_WEEK,
+    });
+    const service = new PublishingService(
+      createFakeRepository({
+        listHistory: async (input) => {
+          received.input = input;
+          const statuses = input.statuses ?? [];
+          return [published, imported].filter((item) =>
+            statuses.includes(item.status),
+          );
+        },
+      }),
+      { getPostMetricsByPosts: async () => new Map() },
+    );
+
+    const result = await service.getPostPerformance(
+      WORKSPACE_ID,
+      "weekly",
+      AUTHOR_ID,
+    );
+
+    expect(received.input?.statuses).toEqual([
+      ContentStatus.Published,
+      ContentStatus.Failed,
+      ContentStatus.Imported,
+    ]);
+    expect(result.map((row) => row.postId)).toEqual([
+      published.id,
+      imported.id,
+    ]);
   });
 
   it("maps caption + accountHandle with reach/engagementRate per post and account, sorted by reach descending", async () => {
@@ -2463,8 +2649,6 @@ describe("PublishingService.deletePost", () => {
     ContentStatus.InReview,
     ContentStatus.ReadyToSchedule,
     ContentStatus.Scheduled,
-    ContentStatus.Published,
-    ContentStatus.Failed,
   ])(
     // Koreksi 2026-09-10: entry point Delete Post HANYA ada di Drafts —
     // King Rezi mengonfirmasi post Scheduled harus di-Cancel Schedule dulu
@@ -2483,16 +2667,60 @@ describe("PublishingService.deletePost", () => {
         }),
       );
 
-      await expect(
-        service.deletePost(
+      const error = await service
+        .deletePost(
           {
             workspaceId: WORKSPACE_ID,
             postId: asPostId("post-1"),
             actorRole: MemberRole.Owner,
           },
           AUTHOR_ID,
-        ),
-      ).rejects.toThrow(ConflictError);
+        )
+        .then(
+          () => null,
+          (caught: unknown) => caught,
+        );
+
+      expect(error).toBeInstanceOf(ConflictError);
+      expect((error as Error).message).toMatch(/Hanya post berstatus Draft/);
+      expect(softDeleteCalls).toBe(0);
+    },
+  );
+
+  it.each([
+    ContentStatus.Published,
+    ContentStatus.Failed,
+    ContentStatus.Imported,
+  ])(
+    "T-091.1: post berstatus %s read-only — ConflictError eksplisit, TANPA memanggil softDeletePost",
+    async (status) => {
+      let softDeleteCalls = 0;
+      const service = new PublishingService(
+        createFakeRepository({
+          findDraftById: async () => draftRecord({ status }),
+          softDeletePost: async () => {
+            softDeleteCalls += 1;
+            return null;
+          },
+        }),
+      );
+
+      const error = await service
+        .deletePost(
+          {
+            workspaceId: WORKSPACE_ID,
+            postId: asPostId("post-1"),
+            actorRole: MemberRole.Owner,
+          },
+          AUTHOR_ID,
+        )
+        .then(
+          () => null,
+          (caught: unknown) => caught,
+        );
+
+      expect(error).toBeInstanceOf(ConflictError);
+      expect((error as Error).message).toBe(READONLY_TERMINAL_CONFLICT_MESSAGE);
       expect(softDeleteCalls).toBe(0);
     },
   );

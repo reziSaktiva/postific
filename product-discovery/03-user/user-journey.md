@@ -298,4 +298,4 @@ User Journey dianggap selesai apabila:
 * `insights.md`
 * `../01-business/problem-statement.md`
 * `../02-product/mvp-definition.md`
-* `../../project-manager/DECISIONS.md`
+* `../../project-os/DECISIONS.md`

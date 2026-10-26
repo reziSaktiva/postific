@@ -22,7 +22,7 @@ Sumber utama: Architecture Baseline — domain model.
 | BC-01 | Identity     | Ya       |
 | BC-02 | Workspace    | Ya       |
 | BC-03 | Publishing   | Ya       |
-| BC-04 | AI Assistant | Ya       |
+| BC-04 | MCP Access   | Ya       |
 | BC-05 | Engagement   | Ya       |
 | BC-06 | Analytics    | Ya       |
 | BC-07 | Start Page   | Ya       |

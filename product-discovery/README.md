@@ -58,8 +58,8 @@ product-discovery/
 
 Folder ringkasan operasional untuk tim designer (`design/`) sudah dihapus dan
 **tidak akan dibuat ulang** — project ini tidak akan merekrut designer
-eksternal, perannya digantikan permanen oleh King Rezi sendiri lewat project
-Claude Design (ADR-045, ADR-057). Pointer Claude Design ada di
+eksternal, perannya digantikan permanen oleh King Rezi sendiri lewat artifact
+desain Postific (ADR-140; sebelumnya ADR-045, ADR-057). Pointer artifact desain ada di
 `../context/ctx-design.md`.
 
 ---
@@ -164,7 +164,7 @@ Contoh pembahasan:
 
 Selama fase Product Discovery:
 
-* Setiap keputusan penting harus dicatat pada `../project-manager/PROJECT_STATE.md` dan `../project-manager/DECISIONS.md` sesuai kebutuhan.
+* Setiap keputusan penting harus dicatat pada `../project-os/PROJECT_STATE.md` dan `../project-os/DECISIONS.md` sesuai kebutuhan.
 * Hindari implementasi kode sebelum dokumentasi utama selesai.
 * Semua perubahan harus melalui diskusi dan keputusan yang jelas.
 * Dokumentasi menjadi sumber kebenaran (Source of Truth) sebelum implementasi dimulai.
@@ -204,9 +204,9 @@ Pada fase tersebut akan dilakukan:
 
 # Related Documents
 
-* `../project-manager/README.md`
-* `../project-manager/PROJECT_OVERVIEW.md`
-* `../project-manager/PROJECT_RULES.md`
-* `../project-manager/PROJECT_STATE.md`
-* `../project-manager/DECISIONS.md`
-* `../project-manager/CHANGELOG.md`
+* `../project-os/README.md`
+* `../project-os/PROJECT_OVERVIEW.md`
+* `../project-os/PROJECT_RULES.md`
+* `../project-os/PROJECT_STATE.md`
+* `../project-os/DECISIONS.md`
+* `../project-os/CHANGELOG.md`

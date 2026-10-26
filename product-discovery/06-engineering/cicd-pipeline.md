@@ -238,4 +238,4 @@ Saat Repository & Bootstrap:
 * `environment-management.md` — katalog env vars & secrets (ADR-033)
 * `dx-tooling.md` — perintah lint/format/test konkret (ADR-034)
 * `monorepo-setup.md` — scripts root workspace
-* `../../project-manager/DECISIONS.md` — ADR-029, ADR-032
+* `../../project-os/DECISIONS.md` — ADR-029, ADR-032

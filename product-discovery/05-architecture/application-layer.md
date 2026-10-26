@@ -83,7 +83,7 @@ Jantung dari setiap Bounded Context. Service layer mengatur alur operasi: valida
 | BC-01 Identity | `IdentityService` |
 | BC-02 Workspace | `WorkspaceService` |
 | BC-03 Publishing | `PublishingService` |
-| BC-04 AI Assistant | `AIAssistantService` |
+| BC-04 MCP Access | `McpAccessService` |
 | BC-05 Engagement | `EngagementService` |
 | BC-06 Analytics | `AnalyticsService` |
 | BC-07 Start Page | `StartPageService` |
@@ -147,7 +147,7 @@ PrismaPostRepository implements IPostRepository
 | `Workspace` | `IWorkspaceRepository` |
 | `Member` | `IMemberRepository` |
 | `ConnectedAccount` | `IConnectedAccountRepository` |
-| `AIRequest` | `IAIRequestRepository` |
+| `McpGrant`, `McpAuditLog` | `IMcpAccessRepository` |
 | `InboxItem` | `IInboxItemRepository` |
 | `PostMetrics` | `IPostMetricsRepository` |
 | `WorkspaceSnapshot` | `IWorkspaceSnapshotRepository` |
@@ -205,7 +205,7 @@ Client Component (triggers action)
 - Menjadwalkan atau membatalkan post.
 - Mengelola anggota workspace (invite, remove, ubah role).
 - Reply engagement inbox.
-- Generate AI caption.
+- Cabut koneksi klien AI (`revokeGrant`).
 - Upload media.
 
 **Aturan:**
@@ -317,8 +317,8 @@ BC-03 Publishing ──→ BC-02 Workspace (verifikasi ConnectedAccount)
                 ──→ BC-08 Media (attach MediaItem ke post)
                 ──→ BC-06 Analytics (metrik post per target akun, via PostMetricsPort — KI-064)
 
-BC-04 AI Assistant ──→ BC-02 Workspace (brand settings sebagai context)
-                   (postId dari BC-03 hanya sebagai optional context data — bukan service call)
+BC-04 MCP Access ──→ BC-02 Workspace (verifikasi member dan role per panggilan)
+                 (tool MCP adalah entry point yang memanggil service BC-02/03/05/06/08; BC-04 sendiri hanya memegang grant, audit, rate limit)
 
 BC-05 Engagement ──→ BC-02 Workspace (filter per ConnectedAccount)
 
@@ -333,7 +333,7 @@ BC-09 Notification ──→ semua BC (dikonsumsi oleh BC lain untuk kirim notif
 
 **Dependency yang dilarang (circular):**
 - BC-02 tidak boleh memanggil BC-03, BC-04, BC-05, BC-06, BC-07, BC-08
-- BC-04 AI Assistant tidak boleh memanggil BC-03 Publishing — `postId` hanya context data, bukan service call. Hasil AI diterapkan ke draft melalui aksi terpisah oleh user via `PublishingService.updateDraft`, bukan oleh `AIAssistantService`.
+- `McpAccessService` (BC-04) tidak boleh memanggil BC-03/05/06/08. Pemanggilan service domain dilakukan oleh handler tool MCP (entry point), bukan oleh `McpAccessService`.
 - BC-08 tidak boleh memanggil BC-03
 
 ---
@@ -481,12 +481,35 @@ Berikut adalah kontrak tingkat tinggi (method signature arsitektural) per servic
 | `applyTargetOutcomes` | JOB-01 internal | Setelah `post.published`/`post.error`, baca outcome Outstand per akun lalu update setiap `PostTarget` secara independen; notifikasi internal boleh `post_published`/`post_failed` |
 | `listQueue` | Server Component | Load daftar Queue (KSP-03) — `Post`/`PostTarget` status `Scheduled`, grouped by tanggal, urutan murni ascending `scheduledAt`. Bukan entity `QueueSlot` terpisah, tidak ada reorder manual (amandemen ADR-083) |
 
-## AIAssistantService
+## McpAccessService
+
+Tool MCP (ADR-138) adalah entry point Route Handler `/api/mcp` yang memanggil service BC lain; tabel ini hanya memuat service milik BC-04.
 
 | Method | Trigger | Keterangan |
 |--------|---------|-----------|
-| `generateCaption` | Server Action | Generate caption dari prompt + brand settings |
-| `getAIRequestHistory` | Server Component | Load riwayat AI request untuk draft |
+| `createGrant` | Layar persetujuan OAuth | Buat grant untuk satu workspace dan scope terpilih; RBAC: member workspace |
+| `revokeGrant` | Server Action (Settings) | Cabut koneksi klien AI (isi `revokedAt`) |
+| `listGrants` | Server Component (Settings) | Daftar koneksi klien AI milik pengguna yang sedang login (lintas workspace) |
+| `authorizeCall` | Internal (Route Handler MCP) | Validasi grant, scope, member, role, dan rate limit per panggilan |
+| `recordAudit` | Internal (Route Handler MCP) | Tulis `McpAuditLog` satu baris per panggilan |
+| `purgeAudit` | Cron (JOB-08) | Hapus audit yang lebih tua dari 90 hari |
+
+Pemetaan tool MCP ke service yang dibungkus:
+
+| Scope | Tool | Service yang dipanggil |
+|-------|------|------------------------|
+| `read` | `get_workspace` | `WorkspaceService.getWorkspace` |
+| `read` | `list_accounts` | `IConnectedAccountRepository` via Workspace |
+| `read` | `list_media` | `MediaService.getMediaLibrary` |
+| `read` | `list_drafts` | `PublishingService.getDraftPosts` |
+| `read` | `list_scheduled_posts` | `PublishingService.getScheduledPosts` / `listQueue` |
+| `read` | `list_published_posts` | `PublishingService` History |
+| `read` | `get_analytics` | `AnalyticsService.getWorkspaceSnapshot` / `getPostMetrics` |
+| `read` | `list_comments` | `EngagementService.getInboxItems` |
+| `draft` | `create_draft` | `PublishingService.createDraft` |
+| `draft` | `update_draft` | `PublishingService.updateDraft` |
+| `draft` | `upload_media` | `MediaService.uploadMedia` (unduh dari URL dengan proteksi SSRF) |
+| `schedule` | `schedule_posts` | `PublishingService.schedulePosts` |
 
 ## EngagementService
 
@@ -565,5 +588,5 @@ Untuk MVP, tidak semua service method di atas diimplementasikan. Prioritas imple
 * `auth-architecture.md` — Better Auth dan otorisasi granular dalam Application Service
 * `../02-product/mvp-definition.md` — scope MVP yang menentukan method mana yang diimplementasikan
 * `../02-product/roles-permissions.md` — role dan permission yang menjadi constraint authorization
-* `../../project-manager/DECISIONS.md` — ADR-001 s/d ADR-015, AL-D01 s/d AL-D04, ADR-043 (AL-D08)
+* `../../project-os/DECISIONS.md` — ADR-001 s/d ADR-015, AL-D01 s/d AL-D04, ADR-043 (AL-D08)
 * `../06-engineering/auth-strategy.md` — Better Auth Bearer plugin, konfigurasi auth mobile (AS-D06)

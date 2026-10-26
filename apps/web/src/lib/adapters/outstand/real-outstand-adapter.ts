@@ -20,6 +20,8 @@ import {
   type ImportJobHandle,
   type IOutstandAdapter,
   type OutstandMetricsPeriod,
+  type FetchAllPostIdMappingsResult,
+  type OutstandPostIdMapping,
   type OutstandPostMediaInput,
   type OutstandPostTargetInput,
   type OutstandPostTargetStatus,
@@ -197,6 +199,86 @@ function clampEngagementRate(value: number): number {
   if (!Number.isFinite(value) || value < 0) return 0;
   const MAX_ENGAGEMENT_RATE = 9.9999;
   return Number(Math.min(value, MAX_ENGAGEMENT_RATE).toFixed(4));
+}
+
+/**
+ * Hasil ekstraksi 3 field klasifikasi (ADR-135, T-132) dari entri PERTAMA
+ * `metrics_by_account[]` — lihat `extractClassificationSignals` di bawah.
+ */
+interface ClassificationSignals {
+  mediaProductType?: "FEED" | "REELS" | "STORY";
+  isReel?: boolean;
+  storyExpired?: boolean;
+}
+
+/**
+ * ADR-135 (T-132) — baca sinyal klasifikasi jenis konten dari entri PERTAMA
+ * `metrics_by_account[]` response `get-post-analytics`. Bentuk response
+ * DIVERIFIKASI LANGSUNG lewat MCP resmi `mcp.outstand.so`
+ * (`get_post_analytics`, 2026-10-20) terhadap 3 post nyata:
+ *
+ * - Instagram FEED (`MAnO3`): `metrics_by_account[0].metrics.media_product_type === "FEED"`.
+ * - Facebook Reel (`LGyF6`): `metrics_by_account[0].metrics.platform_specific.video.is_reel === true`.
+ * - Instagram Story expired (`l21bW`, >24 jam): `metrics_by_account[0]` punya
+ *   `metrics: null` DAN `metrics_error: { code: "metrics_expired", message: "..." }`
+ *   — response TETAP `{ success: true }`, BUKAN HTTP error.
+ *
+ * Hanya entri PERTAMA yang dibaca (lihat ADR-135 poin 1 untuk batas scope
+ * multi-akun). Entri array kosong, atau bentuk yang tidak dikenali, selalu
+ * menghasilkan ketiga field `undefined` (fallback aman, BUKAN throw —
+ * caller `ClassifyImportedPostTargetsUseCase` memperlakukan `undefined`
+ * sebagai "tidak ada sinyal", bukan error).
+ */
+function extractClassificationSignals(
+  response: Record<string, unknown>,
+): ClassificationSignals {
+  const accounts = Array.isArray(response.metrics_by_account)
+    ? (response.metrics_by_account as Record<string, unknown>[])
+    : [];
+  const firstAccount = accounts[0];
+  if (!firstAccount) return {};
+
+  const metrics =
+    typeof firstAccount.metrics === "object" && firstAccount.metrics !== null
+      ? (firstAccount.metrics as Record<string, unknown>)
+      : null;
+
+  const metricsError =
+    typeof firstAccount.metrics_error === "object" &&
+    firstAccount.metrics_error !== null
+      ? (firstAccount.metrics_error as Record<string, unknown>)
+      : null;
+
+  // Story expired — `metrics` null DISERTAI `metrics_error.code` spesifik
+  // (bukan null generik: timeout/field hilang lain tidak boleh disalahartikan
+  // sebagai story expired).
+  if (metrics === null && metricsError?.code === "metrics_expired") {
+    return { storyExpired: true };
+  }
+  if (metrics === null) return {};
+
+  const rawMediaProductType = metrics.media_product_type;
+  const mediaProductType =
+    rawMediaProductType === "FEED" ||
+    rawMediaProductType === "REELS" ||
+    rawMediaProductType === "STORY"
+      ? rawMediaProductType
+      : undefined;
+
+  const platformSpecific =
+    typeof metrics.platform_specific === "object" &&
+    metrics.platform_specific !== null
+      ? (metrics.platform_specific as Record<string, unknown>)
+      : undefined;
+  const video =
+    typeof platformSpecific?.video === "object" &&
+    platformSpecific.video !== null
+      ? (platformSpecific.video as Record<string, unknown>)
+      : undefined;
+  const isReel =
+    typeof video?.is_reel === "boolean" ? video.is_reel : undefined;
+
+  return { mediaProductType, isReel };
 }
 
 /**
@@ -414,6 +496,72 @@ function assertSinglePinterestTargetWithBoard(
       retryable: false,
     });
   }
+}
+
+/**
+ * `GET /v1/posts` membatasi `limit` maksimum 100 per halaman (HTTP 400 kalau
+ * lebih) dan memakai pagination `limit`/`offset` murni. Dipakai bersama oleh
+ * `fetchImportJobStatus` dan `fetchAllPostIdMappings`.
+ *
+ * Berhenti saat halaman kosong, `pagination.total` tercapai, atau (tanpa
+ * `total` yang valid) halaman tidak penuh. Offset dimajukan dari baris yang
+ * BENAR-BENAR diterima, bukan `pagination.count`. `MAX_PAGES` murni safety
+ * net (500 halaman = 50.000 post): kalau tercapai, `complete=false` dan
+ * di-log — pemanggil WAJIB memperlakukan hasil sebagai terpotong.
+ */
+const POSTS_PAGE_LIMIT = 100;
+const POSTS_MAX_PAGES = 500;
+
+async function fetchAllPostsPages(
+  client: OutstandHttpClient,
+  outstandAccountId: string,
+  range: Record<string, string>,
+  label: string,
+): Promise<{ rows: Record<string, unknown>[]; complete: boolean }> {
+  const rows: Record<string, unknown>[] = [];
+  let complete = true;
+
+  for (let page = 0; page < POSTS_MAX_PAGES; page++) {
+    const response = await client.request<Record<string, unknown>>(
+      "/v1/posts",
+      {
+        method: "GET",
+        query: {
+          social_account_id: outstandAccountId,
+          limit: String(POSTS_PAGE_LIMIT),
+          offset: String(rows.length),
+          ...range,
+        },
+      },
+    );
+
+    const pageRows = Array.isArray(response.data)
+      ? (response.data as Record<string, unknown>[])
+      : [];
+    if (pageRows.length === 0) break;
+    rows.push(...pageRows);
+
+    const pagination =
+      typeof response.pagination === "object" && response.pagination !== null
+        ? (response.pagination as Record<string, unknown>)
+        : null;
+    const total = pagination ? toNumber(pagination.total, -1) : -1;
+
+    // Tanpa `pagination`/`total` yang valid (drift shape API), fallback ke
+    // heuristik "halaman penuh = mungkin masih ada lagi".
+    const hasMore =
+      total >= 0 ? rows.length < total : pageRows.length === POSTS_PAGE_LIMIT;
+    if (!hasMore) break;
+
+    if (page === POSTS_MAX_PAGES - 1) {
+      complete = false;
+      console.warn(
+        `[RealOutstandAdapter] ${label} melebihi batas ${POSTS_MAX_PAGES} halaman (${POSTS_MAX_PAGES * POSTS_PAGE_LIMIT} post) — berhenti paksa, kemungkinan field "pagination" tidak sesuai ekspektasi.`,
+      );
+    }
+  }
+
+  return { rows, complete };
 }
 
 export function createRealOutstandAdapter(
@@ -1162,6 +1310,11 @@ export function createRealOutstandAdapter(
      * "clicks" agregat sama sekali → selalu `null`. Revisi penuh kontrak
      * (array per-akun + aggregate) tetap follow-up T-041, di luar scope
      * T-025 sesuai catatan ADR-092.
+     *
+     * **ADR-135 (T-132)** — `mediaProductType`/`isReel`/`storyExpired`
+     * ditambahkan di sini, dibaca dari entri PERTAMA `metrics_by_account[]`
+     * (lihat `extractClassificationSignals`) — sebelumnya field ini DIBUANG
+     * begitu saja saat mapping ke shape flat.
      */
     async fetchPostMetrics(
       outstandPostId: string,
@@ -1191,6 +1344,7 @@ export function createRealOutstandAdapter(
         shares,
         reach,
       );
+      const classification = extractClassificationSignals(response);
 
       return {
         impressions: toNumber(aggregated.total_impressions),
@@ -1201,6 +1355,7 @@ export function createRealOutstandAdapter(
         // Outstand tidak mengekspos metrik "clicks" agregat di endpoint ini.
         clicks: null,
         engagementRate,
+        ...classification,
       };
     },
 
@@ -1474,9 +1629,11 @@ export function createRealOutstandAdapter(
      *    risiko dibanding tanpa filter waktu sama sekali (lihat code
      *    review PR #149: sebelumnya HANYA `social_account_id` + `limit`,
      *    beresiko match post lain di akun yang sama kalau ada aktivitas di
-     *    luar rentang job ini). Limit diset ke `imported + skipped` job ini
-     *    (atau 100 kalau nol/tidak ada) — TIDAK ada pagination loop (YAGNI,
-     *    sama semantik `limit` yang dipakai `importPosts` membuat job ini).
+     *    luar rentang job ini). Hasil dipaginasi (T-141/T-143.2, limit 100
+     *    per halaman) sampai `pagination.total` tercapai — BUKAN lagi
+     *    dibatasi `imported + skipped` job (angka itu bisa 0/0 dan dulu
+     *    jatuh ke 100, memotong hasil). Angka `imported`/`skipped`/`failed`
+     *    dikembalikan di `counts` (T-143.3).
      *
      * **Pemetaan status (ADR-123, keputusan King Rezi 2026-10-08):**
      * `queued|running` → `"pending"` (posts kosong, tidak fetch /posts
@@ -1511,7 +1668,11 @@ export function createRealOutstandAdapter(
      * `publishedAt` diambil dari field PER-akun (`socialAccounts[].
      * publishedAt`), fallback ke `since`/`until` job (lalu `new Date()`)
      * kalau null — konsisten pola `toDateOrNull` fallback di
-     * `fetchComments`.
+     * `fetchComments`. `outstandPostId` = `rawPost.id` (id internal
+     * Outstand di LEVEL POST, bukan per-akun — field yang sama dipakai
+     * path param `GET /v1/posts/{id}` di `fetchPostOutcome`/
+     * `fetchComments`) — T-113/KI-090, dibutuhkan supaya
+     * `SyncCommentsUseCase` bisa menarik comment post Imported ini.
      */
     async fetchImportJobStatus(
       outstandAccountId: string,
@@ -1533,8 +1694,13 @@ export function createRealOutstandAdapter(
       const failed = toNumber(job.failed);
       const jobError = toStringOrNull(job.error);
 
+      const counts = { imported, skipped, failed };
+
+      // T-143.3 — angka job ikut dilaporkan walau masih `queued`/`running`,
+      // supaya job lokal yang timeout polling tetap menyimpan angka Outstand
+      // terakhir yang terlihat.
       if (rawStatus === "queued" || rawStatus === "running") {
-        return { status: "pending", posts: [], error: null };
+        return { status: "pending", posts: [], error: null, counts };
       }
 
       if (rawStatus === "failed") {
@@ -1542,6 +1708,7 @@ export function createRealOutstandAdapter(
           status: "failed",
           posts: [],
           error: jobError ?? "Import job gagal di sisi Outstand.",
+          counts,
         };
       }
 
@@ -1560,25 +1727,34 @@ export function createRealOutstandAdapter(
       const until = toDateOrNull(job.until);
       const fallbackPublishedAt = until ?? since ?? new Date();
 
-      const postsResponse = await client.request<Record<string, unknown>>(
-        "/v1/posts",
+      // T-141/KI-101 — paginasi lewat `fetchAllPostsPages` (limit maks 100
+      // per halaman). Batas berhenti adalah `pagination.total` (post di
+      // rentang job ini), BUKAN `imported + skipped` dari job.
+      const { rows: rawPosts, complete } = await fetchAllPostsPages(
+        client,
+        outstandAccountId,
+        // Code review PR #149 — persempit hasil ke rentang waktu job
+        // ini (lihat catatan "jujur" di docstring method ini), bukan
+        // hanya mengandalkan `social_account_id`.
         {
-          method: "GET",
-          query: {
-            social_account_id: outstandAccountId,
-            limit: String(imported + skipped > 0 ? imported + skipped : 100),
-            // Code review PR #149 — persempit hasil ke rentang waktu job
-            // ini (lihat catatan "jujur" di docstring method ini), bukan
-            // hanya mengandalkan `social_account_id` + `limit`.
-            ...(since ? { created_after: since.toISOString() } : {}),
-            ...(until ? { created_before: until.toISOString() } : {}),
-          },
+          ...(since ? { created_after: since.toISOString() } : {}),
+          ...(until ? { created_before: until.toISOString() } : {}),
         },
+        `fetchImportJobStatus: job "${importJobId}" (akun ${outstandAccountId})`,
       );
 
-      const rawPosts = Array.isArray(postsResponse.data)
-        ? (postsResponse.data as Record<string, unknown>[])
-        : [];
+      // Hasil terpotong (MAX_PAGES tercapai) TIDAK boleh dilaporkan
+      // "completed" — pemanggil akan memajukan watermark dan sisa post tidak
+      // pernah diimpor ulang. Lapor "failed" supaya job di-retry.
+      if (!complete) {
+        return {
+          status: "failed",
+          posts: [],
+          error: `GET /v1/posts melebihi ${POSTS_MAX_PAGES} halaman — hasil import terpotong.`,
+          counts,
+          fetchedPosts: rawPosts.length,
+        };
+      }
 
       const posts: ImportedPostData[] = [];
       for (const rawPost of rawPosts) {
@@ -1617,6 +1793,11 @@ export function createRealOutstandAdapter(
 
         posts.push({
           platformPostId: matchedAccount.platformPostId as string,
+          // T-113/KI-090 — `rawPost.id` (id internal Outstand, field yang
+          // sama dipakai path param `GET /v1/posts/{id}` di
+          // `fetchPostOutcome`/`fetchComments`) sudah ada di tiap item
+          // `GET /v1/posts`, cuma belum pernah dibaca sebelum ini.
+          outstandPostId: toStringOrNull(rawPost.id),
           caption,
           publishedAt:
             toDateOrNull(matchedAccount.publishedAt) ??
@@ -1647,10 +1828,75 @@ export function createRealOutstandAdapter(
           status: "completed",
           posts,
           error: `${failed} dari ${total} post gagal diimport.`,
+          counts,
         };
       }
 
-      return { status: "completed", posts, error: null };
+      return { status: "completed", posts, error: null, counts };
+    },
+
+    /**
+     * Backfill `outstandPostId` post Imported lama (T-114) — **diverifikasi
+     * terhadap OpenAPI spec resmi Outstand, 2026-10-15** (WebFetch
+     * `api.outstand.so/v1/posts/openapi.json`, dicek ULANG khusus untuk
+     * method ini, bukan diasumsikan dari `fetchImportJobStatus` di atas):
+     * `GET /v1/posts` TIDAK mewajibkan `created_after`/`created_before` —
+     * tanpa keduanya, endpoint mengembalikan seluruh riwayat post organisasi
+     * (disaring `social_account_id`). Pagination `limit`/`offset` murni
+     * (tidak ada cursor); response membawa `pagination: { limit, offset,
+     * total, count }` di level yang sama dengan `data`. Docstring lengkap +
+     * keputusan desain ada di `IOutstandAdapter.fetchAllPostIdMappings`
+     * (`packages/shared`).
+     *
+     * `PAGE_LIMIT=100` (maksimum yang didukung spec). `MAX_PAGES` murni
+     * safety net (bukan batas bisnis) — kalau benar-benar tercapai, akun
+     * itu punya >50.000 post, yang hampir pasti berarti `pagination` tidak
+     * sesuai ekspektasi (field hilang/berubah bentuk) sehingga loop tidak
+     * pernah berhenti wajar; di-log sebagai warning (pola sama baris
+     * `imported > 0 && posts.length === 0` di `fetchImportJobStatus` di
+     * atas — visibility, bukan exception) alih-alih menggantung selamanya.
+     */
+    async fetchAllPostIdMappings(
+      outstandAccountId: string,
+    ): Promise<FetchAllPostIdMappingsResult> {
+      const mappings: OutstandPostIdMapping[] = [];
+      let shapeDrift = false;
+
+      const { rows: rawPosts, complete } = await fetchAllPostsPages(
+        client,
+        outstandAccountId,
+        {},
+        `fetchAllPostIdMappings: akun ${outstandAccountId}`,
+      );
+
+      for (const rawPost of rawPosts) {
+        if (!Array.isArray(rawPost.socialAccounts)) {
+          shapeDrift = true;
+          continue;
+        }
+        const socialAccounts = rawPost.socialAccounts as Record<
+          string,
+          unknown
+        >[];
+        const matchedAccount = socialAccounts.find(
+          (account) =>
+            account.id === outstandAccountId &&
+            normalizeTargetStatus(account.status) === "published" &&
+            typeof account.platformPostId === "string" &&
+            account.platformPostId.length > 0,
+        );
+        if (!matchedAccount) continue;
+
+        const outstandPostId = toStringOrNull(rawPost.id);
+        if (!outstandPostId) continue;
+
+        mappings.push({
+          platformPostId: matchedAccount.platformPostId as string,
+          outstandPostId,
+        });
+      }
+
+      return { mappings, complete, shapeDrift };
     },
   };
 }

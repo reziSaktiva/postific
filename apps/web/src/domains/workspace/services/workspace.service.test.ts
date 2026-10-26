@@ -11,6 +11,7 @@ import {
 } from "@postific/shared";
 import type { IOutstandAdapter, MemberId, UserId } from "@postific/shared";
 import { describe, expect, it, vi } from "vitest";
+import { noopFetchAllPostIdMappings } from "@/lib/testing/outstand-post-id-backfill-stubs";
 import {
   AlreadyConnectedError,
   AuthorizationError,
@@ -27,6 +28,7 @@ import type {
   WorkspaceRecord,
 } from "../repositories/workspace.repository";
 import {
+  hashInviteEmailProof,
   hashInviteVerificationCode,
   WorkspaceService,
 } from "./workspace.service";
@@ -66,7 +68,9 @@ function createFakeRepository(
     acceptOwnershipTransfer: async () => undefined,
     markAccountReconnectRequired: async () => null,
     findAccountOwnerByOutstandAccountId: async () => null,
+    findWorkspaceOwnerUserId: async () => null,
     listActiveConnectedAccountsForSync: async () => [],
+    listAccountsForPeriodicImportSync: async () => [],
     disconnectAccount: async () => undefined,
     findConnectedAccountById: async () => null,
     findConnectedAccountByOutstandId: async () => null,
@@ -263,6 +267,7 @@ function createFakeRepository(
       });
     },
     findUserByEmail: async () => null,
+    consumeVerifiedPendingInvitationForEmail: async () => false,
     acceptInvitation: async ({ workspaceId, invitationId, userId, role }) => {
       const entry = [...invitations.entries()].find(
         ([, invitation]) => invitation.id === invitationId,
@@ -295,6 +300,7 @@ function createFakeRepository(
       return newMember;
     },
     updateImportWatermark: async () => undefined,
+    getImportWatermark: async () => null,
     ...overrides,
     createConnectedAccounts: async (input) => {
       const current = holder.repo;
@@ -315,8 +321,31 @@ function createFakeRepository(
             }),
           );
         } catch (error) {
-          if (error instanceof ConflictError) continue;
-          throw error;
+          if (!(error instanceof ConflictError)) throw error;
+          // KI-086/ADR-127 (code review PR #173) — jangan skip diam-diam
+          // kalau row existing-nya BUKAN `active` (pola lama, sebelum fix
+          // ini selalu skip identik dengan row `active`). Test yang ingin
+          // menguji reaktivasi meng-override `createConnectedAccount` (throw
+          // ConflictError) DAN `findConnectedAccountByOutstandId` (return row
+          // disconnected/reconnect-required miliknya) secara konsisten —
+          // sama seperti real repository, row `active` tetap di-skip.
+          const existing = await current.findConnectedAccountByOutstandId(
+            input.workspaceId,
+            account.outstandAccountId,
+            input.actingUserId,
+          );
+          if (existing && existing.status !== "active") {
+            created.push(
+              await current.reconnectAccount({
+                workspaceId: input.workspaceId,
+                connectedAccountId: existing.id,
+                outstandAccountId: account.outstandAccountId,
+                handle: account.handle,
+                avatarUrl: account.avatarUrl,
+                actingUserId: input.actingUserId,
+              }),
+            );
+          }
         }
       }
       return created;
@@ -898,6 +927,74 @@ describe("WorkspaceService.disconnectAccount", () => {
       service.disconnectAccount(WORKSPACE_ID, OWNER_USER, CONNECTED_ACCOUNT_ID),
     ).rejects.toThrow(ConflictError);
   });
+
+  it("T-134 (KI-094): calls analyticsRecompute.onAccountDisconnected with the workspaceId after a successful disconnect", async () => {
+    const disconnectAccount = vi.fn(async () => undefined);
+    const onAccountDisconnected = vi.fn(async () => undefined);
+    const service = new WorkspaceService(
+      createFakeRepository({
+        ...seedMembers(baseSeed()),
+        disconnectAccount,
+      }),
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      { onAccountDisconnected },
+    );
+
+    await service.disconnectAccount(
+      WORKSPACE_ID,
+      OWNER_USER,
+      CONNECTED_ACCOUNT_ID,
+    );
+
+    expect(onAccountDisconnected).toHaveBeenCalledWith(WORKSPACE_ID);
+  });
+
+  it("T-134 (KI-094): disconnect still succeeds (DB update already committed) when analyticsRecompute.onAccountDisconnected throws", async () => {
+    const disconnectAccount = vi.fn(async () => undefined);
+    const onAccountDisconnected = vi.fn(async () => {
+      throw new Error("job scheduler down");
+    });
+    const service = new WorkspaceService(
+      createFakeRepository({
+        ...seedMembers(baseSeed()),
+        disconnectAccount,
+      }),
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      { onAccountDisconnected },
+    );
+
+    await expect(
+      service.disconnectAccount(WORKSPACE_ID, OWNER_USER, CONNECTED_ACCOUNT_ID),
+    ).resolves.toBeUndefined();
+    expect(disconnectAccount).toHaveBeenCalledOnce();
+    expect(onAccountDisconnected).toHaveBeenCalledOnce();
+  });
+
+  it("does not throw when analyticsRecompute is not supplied (optional port)", async () => {
+    const disconnectAccount = vi.fn(async () => undefined);
+    const service = new WorkspaceService(
+      createFakeRepository({
+        ...seedMembers(baseSeed()),
+        disconnectAccount,
+      }),
+    );
+
+    await expect(
+      service.disconnectAccount(WORKSPACE_ID, OWNER_USER, CONNECTED_ACCOUNT_ID),
+    ).resolves.toBeUndefined();
+  });
 });
 
 /** Fake `IOutstandAdapter` minimal — hanya `connectAccount`/`resolveConnectCallback`/`listPendingFacebookPages`/`confirmFacebookPagesConnection`/`listPinterestBoards` dipakai test-test terkait Connect Account/Facebook Pages/Pinterest boards di file ini, method lain sengaja tidak dipanggil (mock, bukan dipakai). */
@@ -967,6 +1064,7 @@ function fakeOutstandAdapter(
       posts: [],
       error: null,
     }),
+    fetchAllPostIdMappings: noopFetchAllPostIdMappings,
     ...overrides,
   };
 }
@@ -3405,8 +3503,8 @@ describe("WorkspaceService.confirmInviteEmailVerification (T-110.3, KI-053)", ()
     ).rejects.toThrow(ValidationError);
   });
 
-  it("marks the email as verified (single-use) when the correct code is confirmed", async () => {
-    let markedVerified = false;
+  it("marks the email as verified and returns a proof whose hash is what the repository stores", async () => {
+    let storedProofHash: string | null = null;
     const service = new WorkspaceService(
       createFakeRepository({
         findInvitationByToken: async () =>
@@ -3415,20 +3513,21 @@ describe("WorkspaceService.confirmInviteEmailVerification (T-110.3, KI-053)", ()
             verificationCodeExpiresAt: new Date(Date.now() + 60_000),
             verificationAttempts: 2,
           }),
-        // Code-review PR #142 fix — reservasi atomic sekarang SELALU
-        // dipanggil sebelum membandingkan kode (lihat
-        // confirmInviteEmailVerification), termasuk saat kodenya benar.
-        // Double lokal: naikkan attempts persis seperti repository
-        // Prisma sungguhan untuk kasus "masih di bawah cap" (3 <= 5).
         incrementInvitationVerificationAttempts: async () => 3,
-        markInvitationEmailVerified: async () => {
-          markedVerified = true;
+        markInvitationEmailVerified: async (_token, proofHash) => {
+          storedProofHash = proofHash;
         },
       }),
     );
 
-    await service.confirmInviteEmailVerification("token", "111111");
-    expect(markedVerified).toBe(true);
+    const proof = await service.confirmInviteEmailVerification(
+      "token",
+      "111111",
+    );
+
+    expect(proof.length).toBeGreaterThan(20);
+    expect(storedProofHash).toBe(hashInviteEmailProof(proof));
+    expect(storedProofHash).not.toBe(proof);
   });
 
   it("code-review PR #142: rejects WITHOUT verifying when the atomic reservation reports the cap already reached (race-condition fix)", async () => {
@@ -3462,6 +3561,87 @@ describe("WorkspaceService.confirmInviteEmailVerification (T-110.3, KI-053)", ()
       service.confirmInviteEmailVerification("token", "111111"),
     ).rejects.toThrow(ValidationError);
     expect(markedVerified).toBe(false);
+  });
+});
+
+describe("WorkspaceService.consumeVerifiedPendingInvitationForEmail (T-005.5)", () => {
+  it("passes the lowercased email and the sha256 of the proof, not the raw secret", async () => {
+    let received: { email: string; proofHash: string } | null = null;
+    const service = new WorkspaceService(
+      createFakeRepository({
+        consumeVerifiedPendingInvitationForEmail: async (email, proofHash) => {
+          received = { email, proofHash };
+          return true;
+        },
+      }),
+    );
+
+    const result = await service.consumeVerifiedPendingInvitationForEmail(
+      "  Raka@Example.com  ",
+      "  raw-proof  ",
+    );
+
+    expect(result).toBe(true);
+    expect(received).toEqual({
+      email: "raka@example.com",
+      proofHash: hashInviteEmailProof("raw-proof"),
+    });
+  });
+
+  it("returns false without calling the repository when the proof is blank", async () => {
+    let called = false;
+    const service = new WorkspaceService(
+      createFakeRepository({
+        consumeVerifiedPendingInvitationForEmail: async () => {
+          called = true;
+          return true;
+        },
+      }),
+    );
+
+    await expect(
+      service.consumeVerifiedPendingInvitationForEmail(
+        "nobody@example.com",
+        "   ",
+      ),
+    ).resolves.toBe(false);
+    expect(called).toBe(false);
+  });
+
+  it("accepts one proof once, then accepts a new proof after the signal is re-armed", async () => {
+    const armedHashes = new Set<string>();
+    const service = new WorkspaceService(
+      createFakeRepository({
+        consumeVerifiedPendingInvitationForEmail: async (_email, proofHash) => {
+          if (!armedHashes.has(proofHash)) return false;
+          armedHashes.delete(proofHash);
+          return true;
+        },
+      }),
+    );
+
+    armedHashes.add(hashInviteEmailProof("first-proof"));
+
+    await expect(
+      service.consumeVerifiedPendingInvitationForEmail(
+        "alice@acme.com",
+        "first-proof",
+      ),
+    ).resolves.toBe(true);
+    await expect(
+      service.consumeVerifiedPendingInvitationForEmail(
+        "alice@acme.com",
+        "first-proof",
+      ),
+    ).resolves.toBe(false);
+
+    armedHashes.add(hashInviteEmailProof("second-proof"));
+    await expect(
+      service.consumeVerifiedPendingInvitationForEmail(
+        "Alice@Acme.com",
+        "second-proof",
+      ),
+    ).resolves.toBe(true);
   });
 });
 

@@ -22,6 +22,7 @@ function buildImportedPostData(
 ): ImportedPostData {
   return {
     platformPostId: "platform-post-1",
+    outstandPostId: "outstand-post-1",
     caption: "Halo dunia",
     publishedAt: new Date("2026-09-01T00:00:00Z"),
     platformPostUrl: "https://instagram.com/p/xyz",
@@ -55,9 +56,13 @@ describe("ImportPostsProcessUseCase (T-090.4, ADR-093 poin 3-4, 7)", () => {
     const useCase = new ImportPostsProcessUseCase(repository);
 
     const posts = [
-      buildImportedPostData({ platformPostId: "p-1" }),
+      buildImportedPostData({
+        platformPostId: "p-1",
+        outstandPostId: "outstand-p-1",
+      }),
       buildImportedPostData({
         platformPostId: "p-2",
+        outstandPostId: null,
         mediaUrls: ["https://x/1.jpg"],
       }),
     ];
@@ -79,6 +84,11 @@ describe("ImportPostsProcessUseCase (T-090.4, ADR-093 poin 3-4, 7)", () => {
       expect(target.platform).toBe(SocialPlatform.Instagram);
     }
     expect(received!.posts[1]!.mediaUrls).toEqual(["https://x/1.jpg"]);
+    // T-113/KI-090 — `outstandPostId` harus diteruskan apa adanya
+    // (termasuk null) dari `ImportedPostData` ke `ImportedPostTargetInput`,
+    // supaya repository bisa mengisi `PublishingPost.outstandPostId`.
+    expect(received!.posts[0]!.outstandPostId).toBe("outstand-p-1");
+    expect(received!.posts[1]!.outstandPostId).toBeNull();
 
     expect(repository.upsertImportedPosts).toHaveBeenCalledWith(
       expect.anything(),

@@ -7,7 +7,11 @@ import { ArrowLeft01Icon, ArrowRight01Icon } from "@hugeicons/core-free-icons";
 import { ContentStatus } from "@postific/shared";
 import type { ConnectedAccountId } from "@postific/shared";
 import type { ConnectedAccountRecord } from "@/domains/workspace";
-import { getWeekRange } from "@/domains/publishing";
+import {
+  getWeekRange,
+  getWibDateParts,
+  WIB_TIME_ZONE,
+} from "@/domains/publishing";
 import type { CalendarViewMode } from "@/domains/publishing";
 
 import { Button } from "@/components/ui/button";
@@ -48,18 +52,18 @@ const STATUS_OPTIONS = [
 /** Format tanggal-saja ("14") — dipakai sisi awal label Week saat masih dalam bulan yang sama. */
 const DAY_ONLY_FORMATTER = new Intl.DateTimeFormat("id-ID", {
   day: "numeric",
-  timeZone: "UTC",
+  timeZone: WIB_TIME_ZONE,
 });
 /** Format tanggal + bulan singkat ("20 Jul") — sisi akhir label Week, dan kedua sisi saat lintas bulan. */
 const DAY_MONTH_FORMATTER = new Intl.DateTimeFormat("id-ID", {
   day: "numeric",
   month: "short",
-  timeZone: "UTC",
+  timeZone: WIB_TIME_ZONE,
 });
 const MONTH_YEAR_FORMATTER = new Intl.DateTimeFormat("id-ID", {
   month: "long",
   year: "numeric",
-  timeZone: "UTC",
+  timeZone: WIB_TIME_ZONE,
 });
 
 /**
@@ -71,9 +75,10 @@ const MONTH_YEAR_FORMATTER = new Intl.DateTimeFormat("id-ID", {
  */
 function formatWeekPeriodLabel(date: Date): string {
   const { from, to } = getWeekRange(date);
+  const fromParts = getWibDateParts(from);
+  const toParts = getWibDateParts(to);
   const sameMonth =
-    from.getUTCMonth() === to.getUTCMonth() &&
-    from.getUTCFullYear() === to.getUTCFullYear();
+    fromParts.month === toParts.month && fromParts.year === toParts.year;
 
   if (sameMonth) {
     return `${DAY_ONLY_FORMATTER.format(from)}–${DAY_MONTH_FORMATTER.format(to)}`;

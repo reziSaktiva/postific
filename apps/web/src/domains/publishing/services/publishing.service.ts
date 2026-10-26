@@ -11,6 +11,11 @@ import type {
 import type { PostMetricsRecord, SnapshotPeriod } from "@/domains/analytics";
 import { resolveConnectionDisplayStatus } from "@/domains/workspace";
 import { ConflictError, NotFoundError } from "@/lib/utils/errors";
+import {
+  assertPostMutable,
+  isReadonlyTerminalStatus,
+  READONLY_TERMINAL_CONFLICT_MESSAGE,
+} from "../readonly-terminal-status";
 import { assertActorCanDeletePost } from "../rbac";
 import type {
   CalendarItemRecord,
@@ -67,6 +72,29 @@ interface ConnectedAccountsPort {
 }
 
 /**
+ * Port lokal untuk cross-domain `publishing` → `identity` (T-121, menutup
+ * KI-050) — pola sama `PostMetricsPort`/`ConnectedAccountsPort`: `identity`
+ * konkret TIDAK boleh diimport ke file ini; composition root
+ * (`/publish/history/[postId]/page.tsx`) menyuplai instance lewat
+ * constructor. Opsional — kalau tidak disuplai, `getHistoryById` tetap
+ * jalan tapi `authorName` selalu `null` (bukan error), supaya test/caller
+ * lama yang tidak butuh nama penulis tidak wajib berubah.
+ *
+ * Composition root menyuplai lewat `IdentityService.getProfile` (dibungkus
+ * adapter tipis `{ findById }`), BUKAN `identityRepository` langsung —
+ * review Ridwan Architecture Reviewer (2026-10-19) menandai penyuplaian
+ * repository mentah sebagai jendela belakang yang melompati Application
+ * Service `identity`, berbeda dengan `PostMetricsPort`/`ConnectedAccountsPort`
+ * di file yang sama yang keduanya lewat Service. Dalih awal "konsisten
+ * `IWorkspaceRepository.findUsersByIds`" tidak tepat: preseden itu domain
+ * `workspace` query lewat REPOSITORY MILIKNYA SENDIRI, bukan menyuntikkan
+ * repository domain lain langsung ke service domain lain.
+ */
+interface AuthorPort {
+  findById(userId: UserId): Promise<{ name: string } | null>;
+}
+
+/**
  * Satu item Calendar hasil `PublishingService.listCalendarPosts` —
  * `CalendarItemRecord` mentah dari repository + `metrics`. `metrics`
  * bermakna dua kondisi berbeda by design (KSP-02-F08 — metrik hanya
@@ -93,9 +121,20 @@ export interface CalendarPostItem extends CalendarItemRecord {
  * untuk post non-Published (tidak pernah di-fetch), `[]` untuk post
  * Published yang belum punya baris `PostMetrics` ter-ingest, array berisi
  * kalau sudah ada.
+ *
+ * `authorName` (T-121, menutup KI-050) — sama alasan `metrics`: field
+ * cross-domain `publishing` → `identity` ditambahkan DI SINI, bukan di
+ * `HistoryItemRecord` (yang hanya membawa `authorId` mentah). `null` dalam
+ * dua kondisi berbeda: post `Imported` (`authorId` memang `null`, by
+ * design — UI menampilkan "Diimpor dari platform" untuk kondisi ini, BUKAN
+ * kosong/error), atau `authorId` ada tapi `AuthorPort` tidak disuplai ke
+ * constructor ATAU user-nya sudah tidak ditemukan (data korup/terhapus) —
+ * diperlakukan sama seperti `listMembersWithUser` (`WorkspaceService`):
+ * lewati diam-diam, bukan throw.
  */
 export interface HistoryDetailItem extends HistoryItemRecord {
   metrics: PostMetricsRecord[] | null;
+  authorName: string | null;
 }
 
 /**
@@ -316,17 +355,42 @@ export interface ComparativeReport {
  * `PublishingService.listHistory` (clamp filter caller) dan implementasi
  * Prisma `getHistoryById` (guard invariant post tunggal) — lihat
  * `IPublishingRepository.listHistory`.
+ *
+ * `Imported` ditambahkan di T-126 (2026-10-19) — sejak T-090/ADR-093 nilai
+ * ini sengaja dikecualikan (T-090 poin 6) sampai pola tampilannya dikunci;
+ * King Rezi mengonfirmasi (`AskUserQuestion`) reuse badge `outline`/
+ * "Imported" yang sudah LOCKED di Calendar (T-090.5), tanpa entri baru di
+ * filter dropdown status History (`STATUS_OPTIONS`, `HistoryList.tsx`).
+ *
+ * Analyze (`getPostPerformance` dan pemakai turunannya) memakai daftar yang
+ * sama persis sejak T-129.1 (2026-10-19) — sebelumnya (T-126/koreksi PR 183)
+ * caller itu mengunci `[Published, Failed]` supaya post impor tidak ikut
+ * mengubah angka performa; King Rezi membalik keputusan itu supaya Imported
+ * ikut dihitung di Analyze juga, konsisten dengan History.
  */
 export const HISTORY_TERMINAL_STATUSES: readonly ContentStatus[] = [
   ContentStatus.Published,
   ContentStatus.Failed,
+  ContentStatus.Imported,
 ];
+
+const DELETE_NON_DRAFT_CONFLICT_MESSAGE =
+  "Hanya post berstatus Draft yang bisa dihapus. Batalkan jadwal (Cancel Schedule) dulu untuk post yang sudah dijadwalkan, baru bisa dihapus dari Drafts.";
+
+/** T-091.1 — pesan read-only untuk status terminal; status non-Draft lain tetap pesan Draft-only. */
+function deleteConflictMessage(status: ContentStatus): string {
+  if (isReadonlyTerminalStatus(status)) {
+    return READONLY_TERMINAL_CONFLICT_MESSAGE;
+  }
+  return DELETE_NON_DRAFT_CONFLICT_MESSAGE;
+}
 
 export class PublishingService {
   constructor(
     private readonly repository: IPublishingRepository,
     private readonly postMetrics?: PostMetricsPort,
     private readonly connectedAccounts?: ConnectedAccountsPort,
+    private readonly authorPort?: AuthorPort,
   ) {}
 
   async saveDraft(input: {
@@ -397,6 +461,14 @@ export class PublishingService {
     },
     userId: UserId,
   ): Promise<PublishingPostRecord> {
+    // T-091.1 — tolak post terminal sebelum write. Repository tetap
+    // membatasi update ke Draft sebagai safety net.
+    await assertPostMutable(
+      this.repository,
+      { workspaceId: input.workspaceId, postId: input.postId },
+      userId,
+    );
+
     const post = await this.repository.updateDraftCaption(
       {
         workspaceId: input.workspaceId,
@@ -408,7 +480,15 @@ export class PublishingService {
       userId,
     );
     if (!post) {
-      throw new NotFoundError("Draft tidak ditemukan.");
+      // Code review PR #163 — balapan status antara guard di atas dan
+      // write ini (post masih Draft saat dibaca, berubah sebelum
+      // `updateMany`-nya commit): sebelumnya NotFoundError, padahal
+      // post-nya tetap ada (cuma sudah ganti status) — konsisten dengan
+      // cancelSchedule/schedulePost/publishNow yang melempar ConflictError
+      // untuk balapan serupa.
+      throw new ConflictError(
+        "Draft tidak bisa diperbarui — post tidak ditemukan atau statusnya bukan Draft.",
+      );
     }
     return post;
   }
@@ -463,9 +543,7 @@ export class PublishingService {
       throw new NotFoundError("Post tidak ditemukan.");
     }
     if (existing.status !== ContentStatus.Draft) {
-      throw new ConflictError(
-        "Hanya post berstatus Draft yang bisa dihapus. Batalkan jadwal (Cancel Schedule) dulu untuk post yang sudah dijadwalkan, baru bisa dihapus dari Drafts.",
-      );
+      throw new ConflictError(deleteConflictMessage(existing.status));
     }
 
     const post = await this.repository.softDeletePost(
@@ -482,9 +560,7 @@ export class PublishingService {
         userId,
       );
       if (recheck && recheck.status !== ContentStatus.Draft) {
-        throw new ConflictError(
-          "Hanya post berstatus Draft yang bisa dihapus. Batalkan jadwal (Cancel Schedule) dulu untuk post yang sudah dijadwalkan, baru bisa dihapus dari Drafts.",
-        );
+        throw new ConflictError(deleteConflictMessage(recheck.status));
       }
       throw new NotFoundError(
         "Post tidak ditemukan atau sudah dihapus sebelumnya.",
@@ -597,7 +673,7 @@ export class PublishingService {
    * menunggu rancangan Claude Design untuk kartu `Imported` (AGENTS.md rule
    * 17, T-090.5 waktu itu masih **blocked**). Rancangan sudah dikunci &
    * diimplementasikan (badge `Imported`, popover read-only, lihat
-   * `tasks/v02-publishing-mvp.md` § T-090 update 2026-10-08) — jalur
+   * `tickets/v02-publishing-mvp.md` § T-090 update 2026-10-08) — jalur
    * Realtime-patch ini sekarang konsisten dengan `listCalendarPosts`
    * (juga sudah tidak exclude `Imported` dari default statuses), supaya
    * post `Imported` yang baru ter-INSERT (auto-trigger on-connect ATAU klik
@@ -634,8 +710,8 @@ export class PublishingService {
   /**
    * History (T-034.1, KSP-D10) — post yang percobaan publish-nya sudah
    * selesai (`Published`/`Failed`), beserta status/error per target,
-   * diurutkan repository descending oleh `updatedAt` (proksi waktu
-   * selesai, lihat catatan gap di `IPublishingRepository.listHistory`).
+   * diurutkan repository descending menurut waktu terbit
+   * (`historyItemOccurredAt`, T-142; lihat `IPublishingRepository.listHistory`).
    *
    * `statuses` input **di-clamp** ke `HISTORY_TERMINAL_STATUSES` di sini
    * (bukan dipercaya mentah seperti `listCalendarPosts`) — invariant
@@ -695,6 +771,12 @@ export class PublishingService {
    * `IPublishingRepository.getHistoryById` (proyeksi data murni yang tidak
    * boleh tahu soal `analytics`). Lihat catatan `HistoryDetailItem`.
    *
+   * **T-121 (menutup KI-050)** — `authorName` diisi lewat `AuthorPort`,
+   * pola sama `metrics`/`PostMetricsPort` di atas; semantik null-nya lihat
+   * catatan `HistoryDetailItem.authorName`, tidak diulang di sini. Kedua
+   * lookup (`postMetrics`/`authorPort`) independen satu sama lain —
+   * dijalankan lewat `Promise.all` di bawah, bukan sequential.
+   *
    * `userId` (RLS, KI-026 follow-up) — acting user untuk `withCurrentUser`.
    */
   async getHistoryById(
@@ -710,16 +792,20 @@ export class PublishingService {
       throw new NotFoundError("Riwayat post tidak ditemukan.");
     }
 
-    const metrics =
+    const [metrics, authorName] = await Promise.all([
       post.status === ContentStatus.Published && this.postMetrics
-        ? ((
-            await this.postMetrics.getPostMetricsByPosts([post.id], userId)
-          ).get(post.id) ?? [])
-        : post.status === ContentStatus.Published
-          ? []
-          : null;
+        ? this.postMetrics
+            .getPostMetricsByPosts([post.id], userId)
+            .then((byPostId) => byPostId.get(post.id) ?? [])
+        : Promise.resolve(post.status === ContentStatus.Published ? [] : null),
+      post.authorId && this.authorPort
+        ? this.authorPort
+            .findById(post.authorId)
+            .then((author) => author?.name ?? null)
+        : Promise.resolve(null),
+    ]);
 
-    return { ...post, metrics };
+    return { ...post, metrics, authorName };
   }
 
   /**
@@ -794,8 +880,21 @@ export class PublishingService {
     // difilter di sini) — filter JS di bawah tetap dipertahankan sebagai
     // guard null-safety (`publishedAt` nullable di tipe), bukan lagi
     // pekerjaan utama penyaringan rentang tanggal.
+    //
+    // T-129.1 (2026-10-19): `Imported` ikut dihitung di sini, sama seperti
+    // default History (`HISTORY_TERMINAL_STATUSES`) — `statuses` sengaja
+    // TIDAK diisi di bawah supaya `listHistory` jatuh ke default itu
+    // sendiri. Sebelumnya (T-126, koreksi PR 183) caller ini sengaja
+    // mengunci ke `[Published, Failed]` supaya post impor tidak ikut angka
+    // Analyze — King Rezi membalik keputusan itu (2026-10-19): post impor
+    // punya `publishedAt` dan target `published` sungguhan, jadi
+    // SEHARUSNYA ikut Post Performance, Account Overview, Summary,
+    // Engagement Summary, dan Reports.
     const historyItems = await this.listHistory(
-      { workspaceId, publishedAtRange: { from, to } },
+      {
+        workspaceId,
+        publishedAtRange: { from, to },
+      },
       userId,
     );
     // Half-open `[from, to)` — bukan `<= toMs` (review finding 2026-09-22):

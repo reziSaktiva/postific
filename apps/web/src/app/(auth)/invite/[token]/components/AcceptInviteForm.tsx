@@ -153,15 +153,40 @@ export function AcceptInviteForm({
         return;
       }
 
-      const { error: signUpError } = await authClient.signUp.email({
-        name,
-        email,
-        password,
-      });
+      const { data: signUpData, error: signUpError } =
+        await authClient.signUp.email({
+          name,
+          email,
+          password,
+        });
       if (signUpError) {
         setIsSubmitting(false);
         setError(signUpError.message ?? "Gagal membuat akun. Coba lagi.");
         return;
+      }
+
+      // T-005.5 — begitu `requireEmailVerificationEnabled()` di-flip
+      // `true`, `signUp.email()` Better Auth TIDAK LAGI auto-create session
+      // (`token: null` di response) walau kode OTP T-110 di atas sudah
+      // memverifikasi kepemilikan inbox. `databaseHooks.user.create.before`
+      // (`lib/better-auth/auth.ts`) sudah menandai user ini
+      // `emailVerified: true` SAAT DIBUAT (lookup server-side ke
+      // `WorkspaceInvitation.emailVerifiedAt`, bukan klaim client) — jadi
+      // `signIn.email()` di bawah ini TIDAK akan kena gate
+      // `EMAIL_NOT_VERIFIED`, murni untuk mendapatkan session yang
+      // `signUp.email()` sendiri tidak buat lagi.
+      if (!signUpData?.token) {
+        const { error: signInError } = await authClient.signIn.email({
+          email,
+          password,
+        });
+        if (signInError) {
+          setIsSubmitting(false);
+          setError(
+            signInError.message ?? "Gagal masuk ke akun baru. Coba lagi.",
+          );
+          return;
+        }
       }
 
       await finalizeMembership();

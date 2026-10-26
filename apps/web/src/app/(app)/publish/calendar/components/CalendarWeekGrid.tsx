@@ -2,9 +2,9 @@
 
 import { useMemo } from "react";
 
-import type { ConnectedAccountId } from "@postific/shared";
+import type { ConnectedAccountId, PostId } from "@postific/shared";
 import type { CalendarPostItem } from "@/domains/publishing";
-import { getWeekRange } from "@/domains/publishing";
+import { getWeekRange, getWibDateParts } from "@/domains/publishing";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -25,7 +25,7 @@ import {
   DAY_LABELS,
   flattenCalendarItemsToEntries,
   MAX_VISIBLE_PER_CELL,
-  toUtcDateKey,
+  toWibDateKey,
   useExpandableKeys,
   WEEK_HOUR_LABELS,
 } from "./calendar-grid-shared";
@@ -46,6 +46,8 @@ export interface CalendarWeekGridProps {
   items: CalendarPostItem[];
   /** Filter Channels aktif (T-033.6) — array kosong = tanpa filter. */
   connectedAccountIds?: ConnectedAccountId[];
+  /** T-030.3 — diteruskan ke `CalendarPostPopover` tiap kartu. Opsional. */
+  onCancelSchedule?: (postId: PostId) => void;
 }
 
 /**
@@ -63,6 +65,7 @@ export function CalendarWeekGrid({
   date,
   items,
   connectedAccountIds = [],
+  onCancelSchedule,
 }: CalendarWeekGridProps) {
   const { expandedKeys: expandedCellKeys, toggle: toggleExpanded } =
     useExpandableKeys();
@@ -71,8 +74,8 @@ export function CalendarWeekGrid({
     const { from: weekStart } = getWeekRange(date);
     return Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
   }, [date]);
-  const dayKeys = useMemo(() => days.map(toUtcDateKey), [days]);
-  const todayKey = toUtcDateKey(new Date());
+  const dayKeys = useMemo(() => days.map(toWibDateKey), [days]);
+  const todayKey = toWibDateKey(new Date());
 
   const connectedAccountIdsKey = connectedAccountIds.join(",");
   const cellEntries = useMemo(() => {
@@ -131,7 +134,7 @@ export function CalendarWeekGrid({
                       isToday ? "font-bold text-primary" : "font-normal",
                     )}
                   >
-                    {day.getUTCDate()}
+                    {getWibDateParts(day).day}
                   </Text>
                 </div>
               );
@@ -189,7 +192,11 @@ export function CalendarWeekGrid({
                           const PlatformGlyph =
                             PLATFORM_ICON[entry.platform].Icon;
                           return (
-                            <CalendarPostPopover key={entry.key} entry={entry}>
+                            <CalendarPostPopover
+                              key={entry.key}
+                              entry={entry}
+                              onCancelSchedule={onCancelSchedule}
+                            >
                               <button
                                 type="button"
                                 aria-label={`${entry.accountHandle} — ${
