@@ -53,7 +53,7 @@ Menggantikan project Claude Design standalone dan tool `DesignSync` (standalone 
 6. Status konten & roles visual harus selaras `roles-permissions.md` (lihat `ctx-business.md`).
 7. Persona di UI copy / contoh: Raka, Maya, Sinta, Dimas, Lara.
 8. Jangan mengarang IA, flow, atau pola navigasi baru yang bertentangan dengan `04-ux/` tanpa ADR / update baseline.
-9. Sinkronisasi antara baseline (`04-ux/`, `design-tokens.md`) dan artifact desain bersifat **manual/on-request** — dijalankan saat diminta eksplisit, bukan checklist wajib di setiap sesi kerja UI (beda dengan workflow shadcn CLI/MCP di `AGENTS.md` yang wajib tiap task). Push saat UX baseline berubah berarti; review sebelum menerima perubahan dari sisi artifact desain (baseline + ADR tetap menang, lihat butir 1).
+9. Sinkronisasi antara baseline (`04-ux/`, `design-tokens.md`) dan artifact desain bersifat **manual/on-request** — dijalankan saat diminta eksplisit, bukan checklist wajib di setiap sesi kerja UI (beda dengan workflow shadcn CLI/MCP di `AGENTS.md` yang wajib tiap task). Publish ulang artifact saat UX baseline berubah berarti; review sebelum menerima perubahan dari sisi artifact desain (baseline + ADR tetap menang, lihat butir 1).
    9a. **Wajib reminder proaktif (ADR-056, dipertahankan ADR-140):** setiap kali ada perubahan yang
    berhubungan dengan UI/UX — baik di dokumen (`04-ux/`, `design-tokens.md`)
    maupun di artifact desain (via tool `Artifact`) — AI **wajib** secara

@@ -87,14 +87,14 @@ Implementasi di repo:
 Project ini dikerjakan di **dua tool**: Claude Code (utama) dan Cursor.
 Sebagian aset agent terbaca di keduanya, sebagian tidak:
 
-| Aset                                   | Claude Code                                     | Cursor                                            |
-| -------------------------------------- | ----------------------------------------------- | ------------------------------------------------- |
-| `AGENTS.md` (pintu masuk + hard rules) | ✅ via `CLAUDE.md`                              | ✅ native                                         |
-| `.claude/skills/`                      | ✅ satu-satunya lokasi                          | ✅ compatibility path                             |
-| `.claude/agents/` (7 subagent kerja)   | ✅                                              | ✅ compatibility path                             |
-| Config MCP (`xds` Astryx)              | ✅ `.mcp.json`                                  | ⚠️ `.cursor/mcp.json` — **file terpisah**         |
-| Proteksi baca secret                   | ✅ `.claude/settings.json` (`permissions.deny`) | ⚠️ `.cursorignore` — **file terpisah**            |
-| `.claude/launch.json` (preview server) | ✅                                              | ❌ tidak ada padanan — jalankan dev server manual |
+| Aset                                                            | Claude Code                                     | Cursor                                            |
+| --------------------------------------------------------------- | ----------------------------------------------- | ------------------------------------------------- |
+| `AGENTS.md` (pintu masuk + hard rules)                          | ✅ via `CLAUDE.md`                              | ✅ native                                         |
+| `.claude/skills/`                                               | ✅ satu-satunya lokasi                          | ✅ compatibility path                             |
+| `.claude/agents/` (7 subagent kerja)                            | ✅                                              | ✅ compatibility path                             |
+| Config MCP (`xds`, `supabase`, `railway`, `shadcn`, `outstand`) | ✅ `.mcp.json`                                  | ⚠️ `.cursor/mcp.json` — **file terpisah**         |
+| Proteksi baca secret                                            | ✅ `.claude/settings.json` (`permissions.deny`) | ⚠️ `.cursorignore` — **file terpisah**            |
+| `.claude/launch.json` (preview server)                          | ✅                                              | ❌ tidak ada padanan — jalankan dev server manual |
 
 **Dua pasang file kembar yang WAJIB dijaga sinkron.** Config MCP dan proteksi
 secret tidak punya jalur kompatibilitas lintas tool — masing-masing tool

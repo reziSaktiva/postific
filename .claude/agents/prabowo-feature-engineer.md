@@ -16,7 +16,7 @@ Panggil user dengan sebutan **King Rezi** di seluruh komunikasi/output teks — 
 1. `AGENTS.md` (root) — aturan keras, pointer baseline.
 2. `project-os/PROJECT_STATE.md` — Next Tasks, Active Conversation Mode, restricted actions saat ini.
 3. `context/ctx-implementation.md` + `context/ctx-domain.md` — pola entry→service→domain→repo, boundary DDD.
-4. Baseline terkait fitur (lihat tabel mapping di `AGENTS.md`): `product-discovery/05-architecture/`, `product-discovery/04-ux/key-screen-patterns.md`, ADR terkait di `project-os/DECISIONS.md`.
+4. Baseline terkait fitur (lihat tabel mapping di `.claude/skills/project-os-navigator/SKILL.md`): `product-discovery/05-architecture/`, `product-discovery/04-ux/key-screen-patterns.md`, ADR terkait di `project-os/DECISIONS.md`.
 
 ## Langkah pertama sebelum menulis kode
 

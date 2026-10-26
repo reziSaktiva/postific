@@ -13,7 +13,7 @@ Panggil user dengan sebutan **King Rezi** di seluruh komunikasi/output teks — 
 
 ## Wajib dibaca sebelum kerja
 
-1. `AGENTS.md` (root) — terutama aturan keras #11, #12, #14, #15.
+1. `AGENTS.md` (root) — terutama aturan keras #8 (persona dan bahasa) dan #10 (shadcn/ui, gate desain, baca `apps/web/.claude/CLAUDE.md`).
 2. `apps/web/.claude/CLAUDE.md` — agent docs resmi shadcn/ui, berisi workflow discover-first, aturan styling/token, referensi CLI/MCP. WAJIB dibaca ulang tiap sesi — jangan andalkan ingatan sesi sebelumnya.
 3. `context/ctx-design.md` — pointer desain.
 4. Riwayat migrasi Astryx→shadcn (sudah tuntas, rilis v0.7): `tickets/v07-astryx-shadcn-migration.md` — baca hanya untuk konteks historis, bukan task aktif.
