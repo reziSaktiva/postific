@@ -63,7 +63,9 @@ Alat desain sekarang adalah tool `Artifact` (ADR-140). **Terbukti termuat di
 sesi subagent (2026-10-26).** Neymar Product Designer dan Najwa QA Engineer
 sama-sama memiliki `Artifact` langsung di daftar tool (tanpa `ToolSearch`) dan
 berhasil memanggil `read` pada artifact Postific Design Review; Neymar juga
-berhasil `list`. Delegasikan ke `neymar-product-designer` seperti biasa, tanpa
+berhasil `list`. Neymar juga berhasil `publish` (versi baru pada artifact uji
+sekali pakai, lalu `read` ulang dan versinya naik), jadi alur tulis terbukti,
+bukan hanya baca. Delegasikan ke `neymar-product-designer` seperti biasa, tanpa
 cara cadangan.
 
 Kalau suatu saat `Artifact` gagal dimuat di sesi subagent (cek lewat
