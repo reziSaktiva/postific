@@ -59,23 +59,23 @@ Dokumen ini menjadi fondasi seluruh dokumen architecture berikutnya dan berfungs
 │  │  BC-02 Workspace                                                   │    │
 │  │  Workspace · Member · ConnectedAccount · BrandSettings             │    │
 │  └─────────────────────────────────────────────────────────────────-─┘    │
-│                     │           │           │           │                  │
-│  ┌──────────────────▼──┐  ┌────▼──────┐  ┌▼─────────┐ ┌▼───────────┐   │
-│  │ BC-04 MCP Access    │  │ BC-05     │  │ BC-06    │ │ BC-07      │   │
-│  │ McpGrant            │  │ Engagement│  │Analytics │ │ Start Page │   │
-│  │ McpAuditLog         │  │ InboxItem │  │ Metrics  │ │ StartPage  │   │
-│  │                     │  │ Reply     │  │ Snapshot │ │ PageLink   │   │
-│  └─────────────────────┘  └───────────┘  └──────────┘ └────────────┘   │
+│             │                       │                       │            │
+│  ┌──────────▼─────────┐  ┌──────────▼─────────┐  ┌──────────▼─────────┐  │
+│  │ BC-05 Engagement   │  │ BC-06 Analytics    │  │ BC-07 Start Page   │  │
+│  │ InboxItem          │  │ Metrics            │  │ StartPage          │  │
+│  │ Reply              │  │ Snapshot           │  │ PageLink           │  │
+│  └────────────────────┘  └────────────────────┘  └────────────────────┘  │
 └──────────────────────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────────────────┐
 │                    SUPPORTING DOMAINS                                     │
 │                                                                           │
-│  ┌─────────────────┐   ┌───────────────────┐   ┌─────────────────────┐  │
-│  │ BC-08 Media     │   │ BC-09 Notification │   │ BC-10 Billing       │  │
-│  │ MediaItem       │   │ Notification       │   │ Subscription        │  │
-│  │                 │   │                    │   │ Invoice             │  │
-│  └─────────────────┘   └───────────────────┘   └─────────────────────┘  │
+│  ┌────────────┐  ┌────────────┐  ┌───────────────────┐  ┌──────────────┐ │
+│  │ BC-04 MCP  │  │ BC-08 Media│  │ BC-09 Notification│  │ BC-10 Billing│ │
+│  │ Access     │  │ MediaItem  │  │ Notification      │  │ Subscription │ │
+│  │ McpGrant   │  │            │  │                   │  │ Invoice      │ │
+│  │ McpAuditLog│  │            │  │                   │  │              │ │
+│  └────────────┘  └────────────┘  └───────────────────┘  └──────────────┘ │
 └──────────────────────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────────────────┐
@@ -851,7 +851,7 @@ Tabel berikut memetakan Bounded Context ke modul yang didefinisikan di Product B
 | BC-02 Workspace | Workspace | Core Module |
 | BC-02 Workspace | User Profile (partial) | Supporting Module |
 | BC-03 Publishing | Publishing | Core Module |
-| BC-04 MCP Access | MCP Access | Supporting Module |
+| BC-04 MCP Access | MCP Server | Core Module |
 | BC-05 Engagement | Engagement | Core Module |
 | BC-06 Analytics | Analytics | Core Module |
 | BC-07 Start Page | Start Page | Core Module |
@@ -861,6 +861,7 @@ Tabel berikut memetakan Bounded Context ke modul yang didefinisikan di Product B
 | — | Settings | Supporting Module (distributed: Workspace + User Profile BC) |
 
 **Catatan:**
+- Klasifikasi bounded context dan klasifikasi modul produk memang berbeda untuk BC-04: BC-04 MCP Access adalah Supporting Domain (hanya memegang grant, audit, dan rate limit), sedangkan modul produk "MCP Server" di `feature-modules.md` adalah Core Module karena mengekspos aksi produk ke AI pengguna lewat service domain lain (ADR-138).
 - Module **Settings** dari Product Baseline tidak menjadi bounded context tersendiri — setting workspace dikelola di BC-02 Workspace, setting user dikelola di BC-01 Identity/User Profile.
 - Module **Infrastructure** (API Integrations, Webhooks, Audit Logs, Background Jobs) adalah cross-cutting concerns yang tidak menjadi bounded context — dibahas di dokumen arsitektur berikutnya.
 
@@ -872,7 +873,7 @@ Tabel berikut memetakan Bounded Context ke modul yang didefinisikan di Product B
 |---------|-------------------------------|-----------------|
 | I-01 — Workflow Consolidation | BC-03 Publishing, BC-05 Engagement, BC-06 Analytics | Ketiga BC harus dapat "membaca" dari satu workspace context tanpa context switch |
 | I-04 — Publishing Trust | BC-03 Publishing | `Post` dan `PostTarget` harus memodelkan status dengan granularitas tinggi — `outstandPostId` (post-level, amandemen ADR-092) dan `PostTargetStatus`/`platformPostId` per account |
-| I-06 — AI in-workflow | BC-04 MCP Access | Diganti ADR-138: AI pengguna bekerja di dalam produk lewat tool MCP yang membungkus Application Service yang sama dengan UI; BC-04 hanya memegang grant, audit, dan rate limit |
+| I-06 — AI in-workflow | BC-04 MCP Access | Diganti ADR-138: AI pengguna menempel pada pekerjaan di Postific lewat tool MCP yang membungkus Application Service yang sama dengan UI, tanpa UI AI bawaan; BC-04 (Supporting Domain) hanya memegang grant, audit, dan rate limit |
 | I-08 — Lightweight Collaboration | BC-03 Publishing | `ContentStatus` memodelkan handoff ringan (`In Review`, `Ready to Schedule`) tanpa membangun approval workflow berlapis |
 
 ---

@@ -172,8 +172,8 @@ src/app/
 │           ├── page.tsx          ← Account → Profile — nama, foto, email (default tab, pola sama dengan Organization General)
 │           ├── notifications/
 │           │   └── page.tsx      ← Account → Preferensi notifikasi
-│           ├── <segmen ditetapkan di T-156>/
-│           │   └── page.tsx      ← Account → Klien AI: daftar dan cabut koneksi klien AI (T-156; nama segmen rute ditetapkan di T-156)
+│           ├── ai-clients/
+│           │   └── page.tsx      ← Account → Klien AI: daftar dan cabut koneksi klien AI (T-156)
 │           └── preferences/
 │               └── page.tsx      ← Account → Preferensi tampilan personal
 │
