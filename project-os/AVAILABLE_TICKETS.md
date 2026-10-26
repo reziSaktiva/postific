@@ -31,7 +31,6 @@ ID tiket global, tidak didaur ulang. Berikutnya: **T-159**. ID spec berikutnya: 
 
 | ID    | Status | Judul                                                                                                                          | File                                  |
 | ----- | ------ | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------- |
-| T-148 | 🟡     | Spike MCP: OAuth, scope kustom, binding workspace. Sisa: uji klien nyata di staging                                            | [v0.5](tickets/v05-mcp-server-mvp.md) |
 | T-037 | 🟡     | Perkaya aturan coding di `context/ctx-development.md`                                                                          | [v0.2](tickets/v02-publishing-mvp.md) |
 | T-115 | 🟡     | Wiring cron harian Import Posts. Sisa: post native Facebook                                                                    | [v0.2](tickets/v02-publishing-mvp.md) |
 | T-013 | 🟡     | Connect account. Sisa: T-013.4 BYOK X                                                                                          | [v0.1](tickets/v01-foundation.md)     |
@@ -60,12 +59,11 @@ v0.3 dan v0.7 tidak punya tiket terbuka.
 
 ## Keputusan yang masih menunggu
 
-| Tiket | Yang belum diputuskan                                                                                                             | Menghambat       |
-| ----- | --------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
-| T-148 | Hasil spike: scope kustom dan `workspaceId` di `@better-auth/oauth-provider` (ADR-139 Proposed, uji klien nyata di staging belum) | Seluruh v0.5     |
-| T-081 | Framework E2E                                                                                                                     | Golden path v1.0 |
-| T-086 | Tool observability                                                                                                                | Visibilitas job  |
-| —     | Billing belum masuk rilis manapun                                                                                                 | Belum ada tiket  |
+| Tiket | Yang belum diputuskan             | Menghambat       |
+| ----- | --------------------------------- | ---------------- |
+| T-081 | Framework E2E                     | Golden path v1.0 |
+| T-086 | Tool observability                | Visibilitas job  |
+| —     | Billing belum masuk rilis manapun | Belum ada tiket  |
 
 ---
 

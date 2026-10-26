@@ -7,7 +7,7 @@ Lewat Better Auth, Terikat Satu Workspace
 
 ### Status
 
-Proposed
+Accepted (2026-10-26, atas keputusan King Rezi). Terbukti di HTTPS lewat tunnel dengan Claude Code; verifikasi lanjutan di deploy Railway, refresh token, dan klien lain menjadi bagian T-150 sampai T-153 (lihat Amandemen di bawah).
 
 ### Date
 
@@ -15,9 +15,8 @@ Proposed
 
 ### Decision
 
-Status **Proposed** sampai spike **T-148** membuktikan alur lengkap di
-staging. Setelah spike, ADR ini diamandemen dan diubah menjadi Accepted
-(atau direvisi bila hasil spike menolak asumsi di bawah).
+Semula Proposed sampai spike **T-148** membuktikan alur lengkap. Spike selesai
+dan ADR ini **Accepted pada 2026-10-26** (lihat "Amandemen: Proposed → Accepted").
 
 **1. Hosting.** Satu endpoint `apps/web/src/app/api/mcp/route.ts` dengan
 transport Streamable HTTP, stateless, di deploy Railway yang sama. Tanpa
@@ -54,13 +53,12 @@ MCP di History, Drafts, dan Queue (ADR-138).
 
 ### Hasil Spike T-148 (2026-10-23)
 
-Detail dan bukti di [`../reports/T-148-spike-mcp-oauth.md`](../reports/T-148-spike-mcp-oauth.md). Ringkas: pertanyaan 1 (plugin dan scope/`workspaceId`), 3 (transport di Next.js 16), dan 4 (`get_workspace` dengan validasi member) terjawab di harness lokal, termasuk dengan kode OAuth klien bawaan SDK MCP. Pertanyaan 2 (klien nyata ke staging Railway) belum terbukti, jadi **status tetap Proposed** sampai uji itu lolos. Interaksi plugin `jwt` dengan plugin `dash` di `auth.ts` juga belum diuji.
+Detail dan bukti di [`../reports/T-148-spike-mcp-oauth.md`](../reports/T-148-spike-mcp-oauth.md). Ringkas: pertanyaan 1 (plugin dan scope/`workspaceId`), 3 (transport di Next.js 16), dan 4 (`get_workspace` dengan validasi member) terjawab di harness lokal, termasuk dengan kode OAuth klien bawaan SDK MCP. Pertanyaan 2 (klien nyata ke staging Railway) belum terbukti, jadi status saat itu tetap Proposed. Interaksi plugin `jwt` dengan plugin `dash` di `auth.ts` juga belum diuji. **Diperbarui 2026-10-26:** keduanya sudah diuji (klien nyata lewat tunnel HTTPS; `jwt` dan `dash` aktif bersamaan); lihat Amandemen di bawah.
 
-### Usulan Amandemen: Proposed → Accepted (DRAF 2026-10-26, BELUM BERLAKU)
+### Amandemen: Proposed → Accepted (2026-10-26, DITERIMA King Rezi)
 
-> **Status ADR ini tetap Proposed.** Bagian ini hanya bahan keputusan King Rezi.
-> Tidak ada dokumen lain (indeks `DECISIONS.md`, tiket, `PROJECT_STATE.md`)
-> yang diubah berdasarkan draf ini sampai King Rezi memutuskan.
+> Draf ini diterima King Rezi pada 2026-10-26 dan sudah diterapkan ke `DECISIONS.md`,
+> tiket T-148/T-150, `AVAILABLE_TICKETS.md`, dan `PROJECT_STATE.md`.
 
 **Yang terbukti (uji klien nyata, 2026-10-26).** Harness T-148 (commit `e17f2db`,
 di balik `MCP_SPIKE_ENABLED`) dijalankan lokal dengan `next start` di belakang
@@ -103,11 +101,9 @@ tunnel ngrok HTTPS, database staging, dan Claude Code sungguhan:
 - Pilihan workspace per sesi di harness disimpan di memori proses; T-149 memindahkannya
   ke tabel.
 
-**Usulan teks status bila King Rezi menerima.** "Accepted (2026-MM-DD, atas keputusan
-King Rezi). Terbukti di HTTPS lewat tunnel dengan Claude Code; verifikasi lanjutan
-di deploy Railway, refresh token, dan klien lain menjadi bagian T-149 sampai T-153."
+**Teks status yang berlaku.** Lihat `### Status` di atas.
 
-**Langkah bila diterima (dikerjakan hanya setelah keputusan).**
+**Langkah yang diterapkan.**
 
 1. Ubah `### Status` di berkas ini dan baris ADR-139 di `DECISIONS.md`.
 2. Tutup T-148 (✅) di `tickets/v05-mcp-server-mvp.md`, hapus dari `AVAILABLE_TICKETS.md`
@@ -117,7 +113,7 @@ di deploy Railway, refresh token, dan klien lain menjadi bagian T-149 sampai T-1
    oleh T-149/T-150/T-151.
 4. Tambah verifikasi lanjutan ke T-150 (uji di Railway staging) agar tidak hilang.
 
-**Alternatif bila King Rezi belum yakin.** Tetap Proposed sampai harness di-deploy
+**Alternatif yang tidak dipilih.** Tetap Proposed sampai harness di-deploy
 ke Railway staging dan satu putaran uji ulang lolos. Biayanya push branch, deploy,
 dan env staging (butuh persetujuan terpisah), dengan manfaat menutup butir proxy Railway.
 
