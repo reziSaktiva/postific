@@ -59,13 +59,17 @@ gagal dimuat di sesi subagent sebanyak sembilan kali (Neymar Product Designer
 delapan kali, Najwa QA Engineer sekali; 2026-07-31 sampai 2026-09-28), padahal
 berhasil di sesi utama. Catatan itu tidak berlaku lagi karena alatnya diganti.
 
-Alat desain sekarang adalah tool `Artifact` (ADR-140). **Belum terbukti** apakah
-tool ini termuat di sesi subagent. Selama belum terbukti: delegasikan ke
-`neymar-product-designer` seperti biasa dulu; kalau `Artifact` gagal dimuat di
-sesi itu (cek lewat `ToolSearch`), minta izin eksplisit King Rezi untuk
-mengerjakannya langsung di sesi utama, verifikasi `Artifact` termuat di sana,
-lalu lanjut. Begitu ada bukti `Artifact` berhasil di sesi subagent, update
-catatan ini alih-alih mengasumsikan keterbatasan berlaku selamanya.
+Alat desain sekarang adalah tool `Artifact` (ADR-140). **Terbukti termuat di
+sesi subagent (2026-10-26).** Neymar Product Designer dan Najwa QA Engineer
+sama-sama memiliki `Artifact` langsung di daftar tool (tanpa `ToolSearch`) dan
+berhasil memanggil `read` pada artifact Postific Design Review; Neymar juga
+berhasil `list`. Delegasikan ke `neymar-product-designer` seperti biasa, tanpa
+cara cadangan.
+
+Kalau suatu saat `Artifact` gagal dimuat di sesi subagent (cek lewat
+`ToolSearch`), jangan mengasumsikan itu normal: catat kejadiannya di sini,
+minta izin eksplisit King Rezi untuk mengerjakannya langsung di sesi utama,
+verifikasi `Artifact` termuat di sana, lalu lanjut.
 
 ---
 
