@@ -83,7 +83,7 @@ Secondary navigation diakses melalui elemen tetap di luar primary nav — tidak 
 
 | Label | Akses Via | Isi |
 | ----- | --------- | --- |
-| Settings | Avatar / user menu | Grup **Organization** (anggota tim, akun terhubung, izin, branding, billing) dan grup **Account** (workspace user + switch/create workspace, profil pengguna, notifikasi, preferensi — ADR-088). Begitu masuk, primary nav (sidebar workspace) **digantikan total** oleh sidebar khusus Settings di slot yang sama — bukan tampil berdampingan — dengan header back-navigation di atasnya (ADR-077) |
+| Settings | Avatar / user menu | Grup **Organization** (anggota tim, akun terhubung, izin, branding, billing) dan grup **Account** (workspace user + switch/create workspace, profil pengguna, notifikasi, preferensi, klien AI (MCP) — ADR-088, ADR-139). Begitu masuk, primary nav (sidebar workspace) **digantikan total** oleh sidebar khusus Settings di slot yang sama — bukan tampil berdampingan — dengan header back-navigation di atasnya (ADR-077) |
 | Notifications | Icon notifikasi | Notifikasi in-app |
 
 ---
@@ -92,7 +92,7 @@ Secondary navigation diakses melalui elemen tetap di luar primary nav — tidak 
 
 Berdasarkan UXP-05 dan UXP-03, beberapa elemen sengaja **tidak** menjadi item navigasi:
 
-- **AI Assistant** — dicabut (ADR-138); tidak ada AI bawaan dan tidak ada menu atau kontrol AI di Draft Editor. AI pengguna bekerja lewat MCP. Lokasi layar persetujuan OAuth, daftar dan pencabutan klien AI, serta badge sumber MCP di History/Draft **belum ditetapkan** dan menunggu rancangan Claude Design (ADR-139).
+- **AI Assistant** — dicabut (ADR-138); tidak ada AI bawaan dan tidak ada menu atau kontrol AI di Draft Editor. AI pengguna bekerja lewat MCP. Titik masuk MCP di UI: layar persetujuan OAuth (muncul setelah login lewat klien AI, di luar app shell), daftar dan pencabutan klien di **Settings → Account → Klien AI**, serta badge dan filter sumber MCP di History, Drafts, dan Queue (ADR-139, keputusan 2026-10-23).
 - **Media Library** — diakses dari dalam Draft Editor, bukan dari primary nav (Should Have, bukan titik masuk utama).
 - **Approval Workflow** — tidak ada; digantikan oleh visibilitas status (UXP-06).
 
@@ -216,8 +216,11 @@ Settings
     ├── Workspaces                — daftar workspace user, switch workspace aktif, buat workspace baru (ADR-088)
     ├── Profile                   — nama, foto, email
     ├── Notifications             — preferensi notifikasi email dan in-app
-    └── Preferences               — pengaturan tampilan personal
+    ├── Preferences               — pengaturan tampilan personal
+    └── Klien AI                  — klien AI (MCP) yang tersambung milik pengguna sendiri, plus tombol cabut (ADR-139)
 ```
+
+**Klien AI** ada di grup **Account** karena setiap koneksi adalah grant milik satu pengguna (pengguna + klien + workspace + scope). Pengguna hanya melihat dan mencabut koneksi miliknya sendiri; Owner/Admin tidak melihat koneksi anggota lain.
 
 ---
 
@@ -232,6 +235,8 @@ Tabel berikut memetakan fitur MVP (Must Have) ke layar spesifik dalam IA.
 | Team Members | Settings → Organization → Members |
 | Roles & Permissions | Settings → Organization → Roles & Permissions |
 | Social Account Connection | Settings → Organization → Connected Accounts |
+| Koneksi klien AI (MCP, ADR-139) | Persetujuan: layar OAuth dua langkah di luar app shell (Pilih Workspace → Persetujuan Scope); kelola dan cabut: Settings → Account → Klien AI |
+| Penanda sumber MCP (ADR-138) | Publish → History, Drafts, Queue (badge dan filter sumber); Calendar tidak diberi badge |
 | Content Draft | Publish → Drafts → Draft Editor |
 | Content Format Selection (ADR-039) | Publish → Draft Editor → Content Format per akun |
 | Schedule Post | Publish → Draft Editor → Schedule Picker |
@@ -290,6 +295,10 @@ Keputusan struktural yang dibuat dalam dokumen ini.
 | IA-D05 | Settings (grup Organization + Account) di luar primary nav, diakses via avatar/user menu | Bukan akses harian — jangan memenuhi slot navigasi utama | UXP-03 |
 | IA-D06 | Kedalaman navigasi maksimal dua level | Lebih dari dua level menambah cognitive load tanpa nilai | UXP-03 |
 | IA-D07 | Media Library tidak di primary nav | Diakses dari Draft Editor (Should Have) — bukan entry point utama | UXP-03 |
+| IA-D08 | Klien AI (MCP) berada di Settings → Account → Klien AI, bukan di Organization (ADR-139) | Grant bersifat personal: satu pengguna, satu klien, satu workspace, satu set scope. Menu sudah ada dan tidak menambah slot navigasi | UXP-03 |
+| IA-D09 | Pengguna hanya melihat dan mencabut koneksi klien AI miliknya sendiri; Owner/Admin tidak melihat koneksi anggota lain | Menjaga layar sederhana (tanpa kolom pemilik) dan sesuai sifat personal grant; keputusan King Rezi 2026-10-23 | UXP-03 |
+| IA-D10 | Layar persetujuan OAuth berdiri di luar app shell dan berjalan dua langkah: pilih workspace, lalu persetujuan scope (ADR-139) | Workspace harus ditetapkan sebelum consent (hasil spike T-148); layar ini muncul dari klien AI eksternal, bukan dari navigasi aplikasi | UXP-04 |
+| IA-D11 | Badge dan filter sumber MCP muncul di History, Drafts, dan Queue; Calendar tidak diberi badge | Tiga layar daftar itu yang dipakai pengguna meninjau hasil kerja AI; Calendar yang sudah terkunci tidak disentuh (keputusan King Rezi 2026-10-23) | UXP-04, UXP-06 |
 
 ---
 

@@ -23,6 +23,8 @@ Dokumen ini mencakup 8 layar kritis yang menjadi inti interaksi pengguna:
 
 Layar yang tidak tercantum (History, Start Page, Settings → Account) bukan layar kritis harian — polanya lebih sederhana dan tidak memerlukan dokumentasi mendalam di fase ini.
 
+**Tambahan v0.5 (MCP, ADR-138, ADR-139):** dua layar baru (KSP-09 Persetujuan OAuth, KSP-10 Settings → Account → Klien AI) dan satu pola lintas layar (Badge dan Filter Sumber MCP) dicatat di bagian *Layar dan Pola MCP* setelah KSP-08. Daftar 8 layar kritis di atas tidak berubah.
+
 ---
 
 # Cara Membaca Dokumen Ini
@@ -237,6 +239,7 @@ Queue menampilkan konten yang **sudah terjadwal** (status `Scheduled`), dikelomp
 | KSP-03-F05 | ~~Reorder Item~~ — **Dioverride oleh F01 (ADR-083, 2026-08-19)**, tanpa ID pengganti baru. Alasan asli: urutan dianggap perlu bisa disusun manual, independen dari waktu. Diputuskan urutan murni `scheduledAt` ascending (F01) sudah cukup; memindahkan jadwal berarti mengedit `scheduledAt` lewat Draft Editor (F04), bukan menyusun ulang urutan tampilan | — |
 | KSP-03-F06 | New Post dari Queue | CTA New Post tersedia langsung dari Queue — sejajar judul halaman (`justify-between` dengan title/subtitle), bukan di baris filter | UXP-01 |
 | KSP-03-F07 | Aksi eksplisit per item (ADR-083) | 3 tombol icon per card: **Publish Now** (reuse KSP-05-F12), **Edit** (buka Draft Editor, sama dengan F04), **Cancel Schedule** (icon merah, dialog konfirmasi Tier 2 — T-030, ADR-049) — menggantikan kombinasi badge status + klik generik | UXP-01, UXP-04 |
+| KSP-03-F08 | Filter Sumber dan Badge MCP | Filter sumber (Semua / Dibuat manual / Lewat MCP, bawaan Semua) di samping filter akun; item yang dibuat lewat MCP menampilkan badge nama klien AI di baris meta. Detail: *Pola: Badge dan Filter Sumber MCP* | UXP-04, UXP-06 |
 
 ---
 
@@ -267,7 +270,7 @@ Queue menampilkan konten yang **sudah terjadwal** (status `Scheduled`), dikelomp
 
 **Zona judul:** Title + subtitle "Antrean linear berdasarkan waktu publish" di kiri, New Post di kanan (`justify-between`).
 
-**Zona filter:** Baris terpisah di bawah tab, filter akun kecil rata kanan — bukan menyatu dengan CTA New Post.
+**Zona filter:** Baris terpisah di bawah tab, filter akun kecil rata kanan (disusul filter sumber MCP, F08) — bukan menyatu dengan CTA New Post.
 
 **Zona list:** Dikelompokkan per tanggal (heading), lalu per jam di dalamnya. Setiap item = 1 `Card` sendiri (bukan satu card menaungi seluruh list), berisi waktu, platform + nama akun, potongan caption, dan 3 tombol aksi (F07). Tidak ada badge status.
 
@@ -280,6 +283,7 @@ Queue menampilkan konten yang **sudah terjadwal** (status `Scheduled`), dikelomp
 | Ada konten terjadwal | Card per item, dikelompokkan per tanggal |
 | Queue kosong | _"Tidak ada konten terjadwal"_ + CTA New Post |
 | Filter aktif — tidak ada item | _"Tidak ada konten untuk akun ini"_ |
+| Filter sumber "Lewat MCP" — tidak ada item | _"Belum ada konten dari klien AI"_ + tombol Tampilkan Semua |
 
 Item `Failed` **tidak muncul** di state manapun pada layar ini (amandemen ADR-083) — lihat History (T-034) untuk state kegagalan publish.
 
@@ -313,6 +317,7 @@ Drafts adalah tempat Raka menyimpan dan mengakses konten yang belum terjadwal �
 | KSP-04-F03 | Klik Item → Draft Editor | Klik item membuka Draft Editor untuk melanjutkan pengerjaan | UXP-01 |
 | KSP-04-F04 | New Post | CTA untuk membuat draft baru, langsung membuka Draft Editor kosong | UXP-01 |
 | KSP-04-F05 | Filter / Sort | Pengguna dapat memfilter atau mengurutkan draft (opsional untuk MVP) | UXP-03 |
+| KSP-04-F06 | Filter Sumber dan Badge MCP | Filter sumber (Semua / Dibuat manual / Lewat MCP, bawaan Semua) di atas daftar — kontrol filter pertama di layar ini; draft yang dibuat lewat MCP menampilkan badge nama klien AI di baris meta. Detail: *Pola: Badge dan Filter Sumber MCP* | UXP-04, UXP-06 |
 
 ---
 
@@ -347,6 +352,7 @@ Drafts adalah tempat Raka menyimpan dan mengakses konten yang belum terjadwal �
 | ----- | -------- |
 | Ada draft | Daftar item berurutan waktu edit |
 | Tidak ada draft | _"Belum ada draft"_ + CTA New Post |
+| Filter sumber "Lewat MCP" — tidak ada item | _"Belum ada konten dari klien AI"_ + tombol Tampilkan Semua |
 
 ---
 
@@ -842,6 +848,123 @@ Post terjadwal **tidak otomatis dibatalkan** ketika akun disconnect. Mereka teta
 
 ---
 
+# Layar dan Pola MCP (ADR-138, ADR-139)
+
+Ditambahkan 2026-10-23 setelah rancangan Claude Design dibuat. Rancangan visual ada di artifact Postific: `components/ScreenOauthConsent/preview.html` (KSP-09), `components/ScreenSettingsAiClients/preview.html` (KSP-10), `components/McpSourceBadge/preview.html` (pola badge dan filter). Tidak termasuk 8 layar kritis harian; pengguna menyentuhnya sesekali.
+
+---
+
+## KSP-09 — Persetujuan OAuth Klien AI
+
+### Identitas
+
+| Field | Value |
+| ----- | ----- |
+| Path IA | Di luar app shell (tanpa sidebar), halaman berdiri sendiri: Pilih Workspace → Persetujuan Scope |
+| Pengguna Utama | Raka atau Maya |
+| Entry Points | Redirect dari klien AI setelah pengguna login ke Postific (alur OAuth ADR-139) |
+| UX Principles | UXP-03, UXP-04 |
+
+### Tujuan
+
+Pengguna memutuskan dengan sadar klien AI mana yang boleh bekerja di satu workspace, dengan izin apa. Satu persetujuan menghasilkan satu grant: pengguna + klien + workspace + scope.
+
+---
+
+### Critical Functions
+
+| ID | Fungsi | Deskripsi | Prinsip |
+| -- | ------ | --------- | ------- |
+| KSP-09-F01 | Langkah 1 — Pilih Workspace | Daftar radio satu pilihan, hanya workspace tempat pengguna menjadi anggota aktif; menampilkan role dan jumlah akun terhubung. Tombol Lanjut dan Batal | UXP-03 |
+| KSP-09-F02 | Langkah 2 — Persetujuan Scope | Workspace terpilih tampil di atas (dengan tautan Ubah), lalu daftar scope dan tombol Izinkan dan Tolak | UXP-04 |
+| KSP-09-F03 | Identitas Klien | Nama klien dan host asalnya selalu tampil, dengan catatan bahwa klien mendaftar sendiri dan namanya diberikan klien itu sendiri (dynamic client registration) | UXP-04 |
+| KSP-09-F04 | Scope dan Dampaknya | `read` dan `draft` tercentang bawaan; `schedule` kosong, diberi penanda "Berdampak", harus dicentang sengaja. Tiap scope disertai penjelasan dampak. `publish` dan `reply` tidak ditampilkan (ditunda, ADR-138) | UXP-04 |
+| KSP-09-F05 | Scope Dibatasi Role | Scope yang tidak boleh dipakai oleh role pengguna di workspace terpilih tampil nonaktif beserta alasannya (mis. "Role Creator tidak punya izin menjadwalkan post di workspace ini"); server tetap menolak panggilan di luar role (S-001) | UXP-04 |
+
+---
+
+### State Handling
+
+| State | Tampilan |
+| ----- | -------- |
+| Langkah 1 normal | Daftar workspace, satu terpilih, Lanjut aktif |
+| Pengguna tanpa workspace | Empty state: belum menjadi anggota workspace mana pun + CTA Buat Workspace; Lanjut nonaktif |
+| Langkah 1 memuat | Skeleton kartu |
+| Langkah 2 normal | Identitas klien, workspace terpilih, daftar scope, Tolak dan Izinkan |
+| Scope dibatasi role | Scope terkait nonaktif dengan alasan (F05) |
+| Klien tanpa nama atau host tidak lazim (mis. localhost) | Peringatan keras; Tolak menjadi tombol utama dan Izinkan berlabel "Saya paham, izinkan" |
+| Error simpan | Banner error, tidak ada akses diberikan, tombol Coba Lagi; pilihan workspace dan scope tetap |
+| Menyimpan | Semua kontrol terkunci, tombol Izinkan menampilkan spinner "Menyimpan…" |
+
+---
+
+## KSP-10 — Settings — Account — Klien AI
+
+### Identitas
+
+| Field | Value |
+| ----- | ----- |
+| Path IA | `Settings → Account → Klien AI` |
+| Pengguna Utama | Raka atau Maya |
+| Entry Points | User Avatar → user menu → Settings → Account → Klien AI |
+| UX Principles | UXP-03, UXP-04 |
+
+### Tujuan
+
+Pengguna melihat klien AI mana yang tersambung atas nama dirinya dan dapat mencabut aksesnya kapan saja. Pencabutan berlaku seketika: setiap panggilan MCP memeriksa grant di database (hasil spike T-148).
+
+---
+
+### Critical Functions
+
+| ID | Fungsi | Deskripsi | Prinsip |
+| -- | ------ | --------- | ------- |
+| KSP-10-F01 | Daftar Koneksi Milik Sendiri | Satu baris per grant (klien + workspace): nama klien, workspace, scope sebagai chip, tanggal tersambung, terakhir dipakai (atau "Belum pernah dipakai"). Tanpa kolom pemilik; Owner/Admin tidak melihat koneksi anggota lain (IA-D09) | UXP-03, UXP-06 |
+| KSP-10-F02 | Cabut | Tombol Cabut per baris membuka dialog konfirmasi Tier 2 (AlertDialog, ADR-049) yang menyebut klien dan workspace, bahwa klien langsung tidak bisa lagi mengakses data, dan bahwa draft atau post yang sudah dibuat atau dijadwalkan tetap ada | UXP-04 |
+| KSP-10-F03 | Cara Menyambungkan | Tidak ada tombol Connect di layar ini; koneksi dimulai dari klien AI. Empty state menjelaskan langkahnya dan menampilkan URL MCP dengan tombol Salin | UXP-03 |
+
+---
+
+### Pola: Cabut Akses
+
+```
+[Cabut] diklik
+    ↓
+Dialog Tier 2:
+
+  Cabut akses <klien>?
+
+  <Klien> tidak bisa lagi membaca atau mengubah data workspace <workspace>.
+  Draft dan post yang sudah dibuat atau dijadwalkan lewat klien ini tetap ada.
+  Anda bisa menyambungkan lagi kapan saja.
+
+  [Batal]   [Cabut Akses]
+    ↓
+Grant ditandai dicabut; baris hilang dari daftar
+```
+
+---
+
+### State Handling
+
+| State | Tampilan |
+| ----- | -------- |
+| Ada koneksi | Daftar baris dalam wadah `rounded-xl border` (pola KSP-08, tanpa header kolom) |
+| Tidak ada koneksi | Empty state: langkah menyambungkan + URL MCP dengan tombol Salin |
+
+---
+
+## Pola: Badge dan Filter Sumber MCP
+
+Berlaku untuk **History, Drafts, dan Queue** (KSP-03, KSP-04, dan daftar History). **Calendar tidak diberi badge.**
+
+* **Badge:** komponen kecil bergaya outline (bukan fill, agar tidak bersaing dengan chip status) berisi ikon dan nama klien AI, ditaruh di **baris meta** di bawah judul sehingga kolom status dan aksi di kanan tidak bergeser. Nama dipotong dengan ellipsis; bila klien sudah dicabut atau dihapus, badge tetap tampil dengan nama terakhir yang tersimpan. Item yang dibuat manual tidak menampilkan badge dan tampil persis seperti sebelumnya.
+* **Filter sumber:** pilihan satu dari tiga — Semua / Dibuat manual / Lewat MCP — memakai kontrol `select` yang sama dengan filter yang sudah ada. **Bawaan selalu Semua.** Di History ditambahkan sebagai select ketiga di samping Status dan Akun; di Queue di samping filter Akun; di Drafts menjadi kontrol filter pertama di atas daftar.
+* **Tidak mengubah tampilan default:** tanpa filter aktif, setiap layar tampil seperti sebelum fitur ini ada, selain badge pada item MCP (`.claude/skills/claude-design-scope-discipline/SKILL.md`).
+* **State kosong filter:** "Belum ada konten dari klien AI" + tombol Tampilkan Semua.
+
+---
+
 # Pola Lintas Layar — Safety Check / Double Confirmation (ADR-049)
 
 Kebijakan ini berlaku di seluruh produk, tidak terikat ke satu KSP tertentu. Disusun dari audit menyeluruh (2026-07-29) atas setiap aksi yang ada di baseline — dipicu diskusi Publish Now (ADR-047) dan Disconnect Account (ADR-048) — untuk menentukan aksi mana yang wajib melalui dialog konfirmasi sebelum eksekusi.
@@ -916,6 +1039,11 @@ Keputusan desain yang dibuat dalam dokumen ini.
 | KSP-D13 | Engage Inbox hanya memuat komentar/reply dan menampilkan last sync + Manual Refresh | Kontrak resmi Outstand mendukung comment pull/reply, bukan unified DM/mention atau webhook engagement; periodic pull 30 menit perlu ekspektasi freshness yang terlihat (ADR-040) | UXP-03, UXP-06 |
 | KSP-D14 | Disconnect Account wajib melalui dialog konfirmasi ringkas (bukan Confirmation Summary KSP-05-F06), bukan eksekusi langsung (ADR-048) | Ditemukan saat audit dokumentasi bahwa Disconnect tidak punya spesifikasi konfirmasi sama sekali padahal berdampak (post terjadwal tetap jalan tanpa akun aktif); level konfirmasi cukup peringatan + dua tombol karena bukan aksi publish konten | UXP-04 |
 | KSP-D15 | Setelah Save as Draft / Schedule / Publish Now, modal ditutup dan pengguna diarahkan ke sub-screen **tujuan** (Drafts / Queue / History-sementara-Calendar) — bukan kembali ke sub-screen asal seperti tombol Close (KSP-05-F10) (ADR-054) | Sidebar kini punya CTA New Post yang bisa dibuka dari section manapun (ADR-053) — pengguna perlu langsung melihat hasil aksinya di section Publish yang relevan, bukan tertinggal di section asal yang sudah tidak berkaitan dengan konten yang baru dibuat | UXP-04 |
+| KSP-D16 | Layar persetujuan OAuth dua langkah (pilih workspace, lalu scope), bukan satu layar (KSP-09, ADR-139) | Hasil spike T-148: workspace harus ditetapkan sebelum consent; dua langkah mengikuti dua halaman backend dan membuat pilihan workspace terlihat di langkah scope | UXP-04 |
+| KSP-D17 | Scope yang tidak diizinkan role tampil nonaktif beserta alasan, bukan disembunyikan (KSP-09-F05) | Pengguna perlu tahu mengapa `schedule` tidak bisa dipilih; penolakan server tetap berlaku sebagai lapisan kedua | UXP-04 |
+| KSP-D18 | Nama dan host klien selalu ditampilkan di layar persetujuan, dengan catatan nama diberikan klien sendiri (KSP-09-F03) | Semua klien mendaftar sendiri tanpa verifikasi (dynamic client registration); pengguna harus bisa menilai asal klien | UXP-04 |
+| KSP-D19 | Klien AI dikelola di Settings → Account, hanya koneksi milik sendiri, dan pencabutan lewat dialog Tier 2 (KSP-10) | Grant bersifat personal; pencabutan memutus akses seketika sehingga perlu konfirmasi (ADR-049) | UXP-03, UXP-04 |
+| KSP-D20 | Badge dan filter sumber MCP di History, Drafts, Queue; filter bawaan Semua; Calendar tidak diberi badge | Memberi jejak hasil kerja AI tanpa mengubah tampilan default yang sudah disetujui (ADR-052 scope discipline) | UXP-04, UXP-06 |
 
 ---
 
@@ -931,6 +1059,8 @@ Keputusan desain yang dibuat dalam dokumen ini.
 | KSP-06 Inbox | Master-detail + sync status + Manual Refresh | Badge setelah sync, refresh gagal, Inbox kosong |
 | KSP-07 Dashboard | Summary Row + Account Overview + Post Performance | Empty state (belum ada data) |
 | KSP-08 Connected Accounts | Daftar akun + status + aksi kontekstual | Disconnected → Reconnect |
+| KSP-09 Persetujuan OAuth | Dua langkah (workspace, scope) di luar app shell | Tanpa workspace, scope dibatasi role, klien tanpa nama, error, menyimpan |
+| KSP-10 Klien AI | Daftar grant milik sendiri + Cabut (Tier 2) | Tidak ada koneksi (langkah + URL MCP) |
 
 ---
 
@@ -941,7 +1071,7 @@ Keputusan desain yang dibuat dalam dokumen ini.
 | UXP-01 — Satu Siklus | KSP-02, KSP-03, KSP-04, KSP-05, KSP-06 |
 | UXP-02 — Dua Mode Kerja | KSP-01, KSP-02, KSP-07 |
 | UXP-03 — Simplisitas Quality Bar | KSP-01, KSP-03, KSP-04, KSP-05, KSP-06, KSP-07, KSP-08 |
-| UXP-04 — Publishing Trust | KSP-02, KSP-03, KSP-05, KSP-08 |
+| UXP-04 — Publishing Trust | KSP-02, KSP-03, KSP-05, KSP-08, KSP-09, KSP-10 |
 | UXP-05 — AI Menempel pada Pekerjaan | KSP-05 |
 | UXP-06 — Status Jelas, Proses Ringan | KSP-02, KSP-03, KSP-04, KSP-05, KSP-06, KSP-08 |
 | UXP-07 — Nilai Bertambah Seiring Siklus | KSP-01, KSP-07 |

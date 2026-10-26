@@ -49,7 +49,9 @@ Tabel `mcp_grants` dan `mcp_audit_logs`, repository Prisma, `McpAccessService` (
 
 **Baca dulu:** `apps/web/.claude/CLAUDE.md` · `.claude/skills/claude-design-scope-discipline/SKILL.md` · ADR-139
 
-Layar tempat pengguna memilih satu workspace dan scope. Default `read` + `draft`; `schedule` harus dicentang sengaja. **Gate Claude Design:** rancangan belum dicek.
+Layar tempat pengguna memilih satu workspace dan scope. Default `read` + `draft`; `schedule` harus dicentang sengaja.
+
+**Gate Claude Design:** rancangan **sudah ada** di artifact Postific (https://claude.ai/artifact/FdRNU4gnxgAGY3zmBxNfR3), `components/ScreenOauthConsent/preview.html`; menunggu konfirmasi King Rezi setelah ditinjau di claude.ai. Pola di `product-discovery/04-ux/key-screen-patterns.md` § KSP-09. Keputusan yang sudah dikunci: (1) **dua langkah berurutan**, pilih workspace (`/select-workspace`) lalu persetujuan scope (`/consent`), sesuai hasil spike T-148; (2) scope yang tidak diizinkan role di workspace terpilih **tampil nonaktif beserta alasan**; (3) nama dan host klien selalu tampil karena semua klien mendaftar sendiri; (4) state: normal, tanpa workspace, scope dibatasi role, klien tanpa nama atau host tidak lazim, error, loading. `publish` dan `reply` tidak ditampilkan. Pemilih workspace memakai daftar radio (`RadioGroup`) dan scope memakai checkbox; belum dikunci King Rezi, tanyakan bila ragu sebelum menulis kode (`AGENTS.md` aturan 10).
 
 ### T-152 · Tool draft dan penanda sumber MCP
 
@@ -89,7 +91,9 @@ Tiket sendiri karena butuh review keamanan terfokus. Hanya `https`, periksa IP s
 
 **Baca dulu:** `04-ux/information-architecture.md` · `apps/web/.claude/CLAUDE.md`
 
-Daftar klien AI yang tersambung dan tombol cabut. Lokasi menu belum ditetapkan di IA. **Gate Claude Design:** rancangan belum dicek.
+Daftar klien AI yang tersambung dan tombol cabut.
+
+**Gate Claude Design:** rancangan **sudah ada** di artifact Postific (https://claude.ai/artifact/FdRNU4gnxgAGY3zmBxNfR3), `templates/settings-ai-clients.html` (kartu `components/ScreenSettingsAiClients/preview.html`); menunggu konfirmasi King Rezi setelah ditinjau di claude.ai. Lokasi menu **sudah ditetapkan**: Settings → Account → Klien AI (IA-D08, KSP-10). Keputusan yang sudah dikunci: hanya koneksi milik sendiri tanpa kolom pemilik, Owner/Admin tidak melihat koneksi anggota lain (IA-D09); pola baris KSP-08 tanpa header kolom; Cabut membuka dialog Tier 2 (`AlertDialog`, ADR-049); empty state berisi langkah menyambungkan dan URL MCP dengan tombol Salin. Kolom "Terakhir dipakai" bergantung pada keputusan `lastUsedAt` di T-149.
 
 ### T-157 · Badge "dibuat lewat MCP" di History dan Draft
 
@@ -97,7 +101,9 @@ Daftar klien AI yang tersambung dan tombol cabut. Lokasi menu belum ditetapkan d
 
 **Baca dulu:** `04-ux/key-screen-patterns.md` · `.claude/skills/claude-design-scope-discipline/SKILL.md`
 
-Badge dan filter berdasarkan `created_via`. **Gate Claude Design:** rancangan belum dicek.
+Badge dan filter berdasarkan `created_via`.
+
+**Gate Claude Design:** rancangan **sudah ada** di artifact Postific (https://claude.ai/artifact/FdRNU4gnxgAGY3zmBxNfR3), `components/McpSourceBadge/preview.html`; menunggu konfirmasi King Rezi setelah ditinjau di claude.ai. Pola di `product-discovery/04-ux/key-screen-patterns.md` § Pola: Badge dan Filter Sumber MCP. Keputusan yang sudah dikunci: cakupan **History, Drafts, dan Queue**, Calendar tidak diberi badge (IA-D11); badge outline berisi ikon dan nama klien di baris meta; filter sumber Semua / Dibuat manual / Lewat MCP dengan **bawaan Semua**; tampilan default setiap layar tidak berubah selain badge pada item MCP. Filter di Drafts adalah kontrol baru karena Drafts belum punya filter.
 
 ---
 
