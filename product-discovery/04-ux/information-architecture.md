@@ -131,7 +131,7 @@ Publish
 │   └── Draft Item            — buka item dari queue → masuk ke Draft Editor
 ├── Drafts                    — semua draft yang belum dijadwalkan
 │   └── Draft Editor          — buat / edit konten
-│       ├── Caption Editor    — area tulis caption, dengan AI inline
+│       ├── Caption Editor    — area tulis caption
 │       ├── Media Attachment  — lampirkan gambar / video
 │       ├── Account Selector  — pilih akun tujuan
 │       ├── Content Format    — Post / Reel / Story / Pin per akun (ADR-039)
@@ -143,7 +143,7 @@ Publish
 ```
 
 **Pengguna utama:** Raka (eksekusi publishing harian).
-**Catatan:** AI Caption Assistance berada di dalam Draft Editor — bukan layar terpisah. Content Format Selector mengikuti matriks platform (IG/FB: Post·Reel·Story; Pinterest: Pin; TikTok & lainnya: Post). Publish Now tersedia berdampingan dengan Schedule Picker untuk semua role — Account Owner, Admin, dan Creator (ADR-047, ADR-074, `roles-permissions.md`).
+**Catatan:** Tidak ada AI bawaan (ADR-138); AI pengguna membuat draft lewat MCP. Content Format Selector mengikuti matriks platform (IG/FB: Post·Reel·Story; Pinterest: Pin; TikTok & lainnya: Post). Publish Now tersedia berdampingan dengan Schedule Picker untuk semua role — Account Owner, Admin, dan Creator (ADR-047, ADR-074, `roles-permissions.md`).
 
 ---
 
@@ -244,8 +244,6 @@ Tabel berikut memetakan fitur MVP (Must Have) ke layar spesifik dalam IA.
 | Calendar View | Publish → Calendar |
 | Queue Management | Publish → Queue |
 | Publishing History | Publish → History |
-| AI Caption Generation | Publish → Draft Editor → AI inline |
-| AI Caption Improvement | Publish → Draft Editor → AI inline |
 | Comments (view + reply) | Engage → Inbox → Comment Thread |
 | Inbox | Engage → Inbox |
 | Analytics Dashboard | Analyze → Dashboard |
@@ -289,7 +287,7 @@ Keputusan struktural yang dibuat dalam dokumen ini.
 | ID | Keputusan | Alasan | Prinsip |
 | -- | --------- | ------ | ------- |
 | IA-D01 | Navigasi utama: Home, Publish, Engage, Analyze, Start Page | Mencerminkan siklus nilai produk, bukan daftar fitur | UXP-01, UXP-07 |
-| IA-D02 | AI tidak menjadi item navigasi | AI contextual, bukan destinasi. Tempatkan di Draft Editor | UXP-05 |
+| IA-D02 | AI tidak menjadi item navigasi | AI bawaan dicabut (ADR-138); tidak ada menu atau item navigasi AI. AI pengguna masuk lewat MCP (Settings → Account → Klien AI, IA-D08) | UXP-05 |
 | IA-D03 | Home sebagai layar orientasi, bukan dashboard kerja | Melayani Maya tanpa mengganggu alur Raka | UXP-02 |
 | IA-D04 | Calendar sebagai tampilan default di Publish | Calendar memberikan overview status konten yang terbaik | UXP-02, UXP-04 |
 | IA-D05 | Settings (grup Organization + Account) di luar primary nav, diakses via avatar/user menu | Bukan akses harian — jangan memenuhi slot navigasi utama | UXP-03 |

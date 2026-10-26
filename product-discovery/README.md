@@ -58,8 +58,8 @@ product-discovery/
 
 Folder ringkasan operasional untuk tim designer (`design/`) sudah dihapus dan
 **tidak akan dibuat ulang** — project ini tidak akan merekrut designer
-eksternal, perannya digantikan permanen oleh King Rezi sendiri lewat project
-Claude Design (ADR-045, ADR-057). Pointer Claude Design ada di
+eksternal, perannya digantikan permanen oleh King Rezi sendiri lewat artifact
+desain Postific (ADR-140; sebelumnya ADR-045, ADR-057). Pointer artifact desain ada di
 `../context/ctx-design.md`.
 
 ---

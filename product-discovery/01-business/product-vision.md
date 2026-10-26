@@ -23,7 +23,7 @@ Menjadi platform Social Media Management modern yang membantu pengguna mengelola
 * Menyederhanakan proses pengelolaan media sosial.
 * Menghemat waktu melalui otomatisasi dan penjadwalan konten.
 * Membantu pengguna mengambil keputusan berdasarkan data.
-* Menggunakan AI untuk meningkatkan produktivitas dalam pembuatan konten.
+* Membuka akses MCP agar AI pilihan pengguna mempercepat pekerjaan konten (ADR-138).
 * Menyediakan pengalaman pengguna yang sederhana namun powerful.
 
 ---
@@ -77,7 +77,7 @@ Produk diposisikan sebagai alternatif modern untuk platform Social Media Managem
 
 * Kemudahan penggunaan.
 * Pengalaman pengguna yang lebih baik.
-* Integrasi AI.
+* Integrasi AI pengguna lewat MCP.
 * Arsitektur yang modern dan mudah dikembangkan.
 
 ---

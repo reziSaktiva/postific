@@ -388,7 +388,7 @@ Tidak dipersist antar sesi (session-only), sama seperti pola Light/Dark Mode Tog
 | ID | Fungsi | Deskripsi | Prinsip |
 | -- | ------ | --------- | ------- |
 | KSP-05-F01 | Caption Editor | Area tulis utama untuk caption konten — menjadi fokus saat layar terbuka | UXP-01, UXP-03 |
-| KSP-05-F02 | AI Caption Assist | Trigger AI inline di Caption Editor — menghasilkan opsi caption; aksi kontekstual, bukan navigasi terpisah | UXP-05 |
+| KSP-05-F02 | ~~AI Caption Assist~~ — **Dicabut ADR-138**. AI bawaan Postific dicabut; AI pengguna membuat draft lewat MCP, bukan lewat trigger di Caption Editor. ID tidak dipakai ulang | — |
 | KSP-05-F03 | Media Attachment | Lampirkan gambar atau video dari perangkat lokal atau Media Library | UXP-01 |
 | KSP-05-F04 | Account Selector | Pilih satu atau beberapa akun tujuan — dengan indikator status koneksi tiap akun | UXP-04 |
 | KSP-05-F05 | Schedule Picker | Tentukan tanggal dan waktu publish | UXP-04 |
@@ -417,7 +417,7 @@ Layout di bawah ini kini dirender di dalam modal (ADR-052, default `variant="sta
 │                            │                            │
 │  [Tulis caption di sini...]│  Account Selector          │
 │                            │  ☐ Instagram @brand        │
-│  [AI Assist ✨]            │    ○ Post  ○ Reel  ○ Story │
+│                            │    ○ Post  ○ Reel  ○ Story │
 │                            │  ☐ Facebook @brand         │
 │  MEDIA ATTACHMENT          │    ○ Post  ○ Reel  ○ Story │
 │  [+ Tambah Media]          │  ☐ TikTok @brand           │
@@ -432,7 +432,7 @@ Layout di bawah ini kini dirender di dalam modal (ADR-052, default `variant="sta
 └────────────────────────────┴────────────────────────────┘
 ```
 
-**Zona kiri — Caption Editor:** Area utama yang menjadi fokus saat layar terbuka. Caption Editor besar, bisa expand. AI Assist trigger tampil di dalam atau di dekat Caption Editor.
+**Zona kiri — Caption Editor:** Area utama yang menjadi fokus saat layar terbuka. Caption Editor besar, bisa expand.
 
 **Zona kiri — Media Attachment:** Di bawah Caption Editor. Preview media yang dilampirkan. Syarat media menyesuaikan format terpilih (mis. Story/Reel biasanya butuh media vertikal).
 
@@ -444,22 +444,7 @@ Layout di bawah ini kini dirender di dalam modal (ADR-052, default `variant="sta
 
 ---
 
-### Pola: AI Caption Assist
-
-AI Assist bukan layar terpisah — ia hadir sebagai aksi kontekstual di dalam Caption Editor.
-
-```
-Caption Editor kosong atau terfokus
-    → trigger muncul: tombol / ikon "Generate with AI" atau "Improve Caption"
-    → [klik trigger]
-    → Panel AI muncul inline atau sebagai drawer:
-        - Input singkat: tone, topik, atau instruksi (opsional)
-        - AI menghasilkan 2-3 opsi caption
-    → Raka memilih satu opsi → caption masuk ke Caption Editor
-    → Raka mengedit seperlunya
-```
-
-Panel AI tidak membawa Raka keluar dari Draft Editor — tetap muncul inline/drawer di dalam modal yang sama. Catatan (ADR-052/ADR-065): pengguna bisa berpindah antara dua variant lewat toggle resmi di header modal (fitur produk, bukan lagi alat banding sementara). Pada variant `standard` (**default sejak ADR-065**), sidebar dan layar di belakang tetap terlihat, redup di balik backdrop. Pada variant `fullscreen` (alternatif, dipilih lewat toggle), sidebar navigasi **tertutup total** selama modal terbuka (trade-off yang disadari, lihat NP-D11) — berbeda dari versi sebelumnya di mana sidebar tetap terlihat. Pilihan toggle tidak dipersist — reset ke Standard setiap modal dibuka ulang. (UXP-05)
+Catatan (ADR-052/ADR-065): pengguna bisa berpindah antara dua variant lewat toggle resmi di header modal (fitur produk, bukan lagi alat banding sementara). Pada variant `standard` (**default sejak ADR-065**), sidebar dan layar di belakang tetap terlihat, redup di balik backdrop. Pada variant `fullscreen` (alternatif, dipilih lewat toggle), sidebar navigasi **tertutup total** selama modal terbuka (trade-off yang disadari, lihat NP-D11) — berbeda dari versi sebelumnya di mana sidebar tetap terlihat. Pilihan toggle tidak dipersist — reset ke Standard setiap modal dibuka ulang.
 
 ---
 
@@ -850,7 +835,7 @@ Post terjadwal **tidak otomatis dibatalkan** ketika akun disconnect. Mereka teta
 
 # Layar dan Pola MCP (ADR-138, ADR-139)
 
-Ditambahkan 2026-10-23 setelah rancangan Claude Design dibuat. Rancangan visual ada di artifact Postific: `components/ScreenOauthConsent/preview.html` (KSP-09), `components/ScreenSettingsAiClients/preview.html` (KSP-10), `components/McpSourceBadge/preview.html` (pola badge dan filter). Tidak termasuk 8 layar kritis harian; pengguna menyentuhnya sesekali.
+Ditambahkan 2026-10-23 setelah rancangan di artifact desain Postific dibuat (ADR-140). Rancangan visual ada di artifact Postific: `project/components/ScreenOauthConsent/preview.html` (KSP-09), `project/components/ScreenSettingsAiClients/preview.html` (KSP-10), `project/components/McpSourceBadge/preview.html` (pola badge dan filter). Tidak termasuk 8 layar kritis harian; pengguna menyentuhnya sesekali.
 
 ---
 
@@ -1026,7 +1011,7 @@ Keputusan desain yang dibuat dalam dokumen ini.
 | -- | --------- | ------ | ------- |
 | KSP-D01 | Home adalah layar orientasi, bukan dashboard kerja — tidak ada aksi berat yang diselesaikan di sini | Home melayani kebutuhan visibility Maya tanpa memaksa Raka melewatinya (IA-D03) | UXP-02, UXP-03 |
 | KSP-D02 | Draft Editor memiliki dua zona: kiri (Caption + Media) dan kanan (Account, Schedule, Actions) | Pemisahan ini memungkinkan Raka fokus menulis di kiri sambil konfigurasi publish di kanan — alur linear dari kiri ke kanan | UXP-01, UXP-03 |
-| KSP-D03 | AI Assist tampil sebagai trigger di dalam Caption Editor, bukan panel terpisah yang dibuka secara sengaja | AI paling berguna saat muncul tepat di momen penulisan, bukan sebagai destinasi navigasi (UXP-05, I-06) | UXP-05 |
+| KSP-D03 | ~~AI Assist tampil sebagai trigger di dalam Caption Editor, bukan panel terpisah yang dibuka secara sengaja~~ — **Dicabut ADR-138**. AI bawaan dicabut; tidak ada trigger AI di Caption Editor | ~~AI paling berguna saat muncul tepat di momen penulisan, bukan sebagai destinasi navigasi (UXP-05, I-06)~~ | UXP-05 |
 | KSP-D04 | Account Selector menampilkan akun Disconnected — tidak disembunyikan | Pengguna harus melihat masalah di titik keputusan, bukan setelah post gagal | UXP-04 |
 | KSP-D05 | Confirmation summary muncul sebelum tombol Schedule **atau Publish Now** dieksekusi (ADR-047) | Membangun kepercayaan bahwa konten akan terbit ke akun dan waktu yang benar (UXP-04) | UXP-04 |
 | KSP-D06 | Engage Inbox menggunakan master-detail (thread list + thread detail di panel kanan) | Volume triage tinggi; pengguna perlu berpindah thread tanpa full-page navigation (NP-D03) | UXP-03 |
@@ -1055,7 +1040,7 @@ Keputusan desain yang dibuat dalam dokumen ini.
 | KSP-02 Calendar | Grid per hari × waktu + klik → Editor | Item Failed, Disconnected warning |
 | KSP-03 Queue | Daftar linear berurutan (grouped by tanggal) + 1 card per item + filter | Queue kosong, filter tidak ada hasil (Item Failed pindah ke History) |
 | KSP-04 Drafts | Daftar draft + CTA New Post | Drafts kosong |
-| KSP-05 Draft Editor | Dua zona (Caption / Konfigurasi) + AI inline + Confirmation Summary | Akun Disconnected, Status Failed |
+| KSP-05 Draft Editor | Dua zona (Caption / Konfigurasi) + Confirmation Summary | Akun Disconnected, Status Failed |
 | KSP-06 Inbox | Master-detail + sync status + Manual Refresh | Badge setelah sync, refresh gagal, Inbox kosong |
 | KSP-07 Dashboard | Summary Row + Account Overview + Post Performance | Empty state (belum ada data) |
 | KSP-08 Connected Accounts | Daftar akun + status + aksi kontekstual | Disconnected → Reconnect |

@@ -104,8 +104,8 @@ UX Planning dibangun di atas fondasi berikut.
 
 ## Dari Product Baseline v1.0
 
-* Domain prioritas MVP: Publishing, Workspace, Engagement, Analytics, MCP Access (ADR-138).
-* Must Have: Draft, Schedule, Queue, Calendar, Connected Accounts, Engagement Comments Inbox + reply, Analytics Snapshot, AI Caption.
+* Domain prioritas MVP: Publishing, Workspace, Engagement, Analytics, MCP Server (ADR-138).
+* Must Have: Draft, Schedule, Queue, Calendar, Connected Accounts, Engagement Comments Inbox + reply, Analytics Snapshot, MCP Server (koneksi klien AI, tool baca/draft/jadwal).
 * Engagement MVP memakai periodic pull 30 menit + manual refresh; Direct Message, mention, dan webhook engagement tidak termasuk MVP (ADR-040).
 * Fokus persona: Raka (P0 daily user), Maya (P0 buyer).
 
@@ -165,7 +165,7 @@ Perubahan progress UX Planning harus diperbarui pada:
 
 # Related Documents
 
-* `../../context/ctx-design.md` — pointer Claude Design project (folder `design/` dihapus, ADR-045)
+* `../../context/ctx-design.md` — pointer artifact desain Postific (ADR-140; folder `design/` dihapus, ADR-045)
 * `../README.md`
 * `../01-business/README.md`
 * `../01-business/product-vision.md`
