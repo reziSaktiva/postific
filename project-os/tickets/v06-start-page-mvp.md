@@ -225,7 +225,7 @@ Neymar menghapus blok DRAFT lama (75 baris, Aksen hijau/`accent-bronze`) dari `p
 
 ### T-164 · Verifikasi staging Start Page: apply migrasi dan uji publik end-to-end
 
-`⏳ Not Started` · **Domain** start-page · infra · **ADR** ADR-142, ADR-143, ADR-144 · **Depends** PR #200 di-merge ke `staging`
+`🟡 In Progress` (T-164.1 sampai .5 ✅ 2026-10-28; sisa T-164.6) · **Domain** start-page · infra · **ADR** ADR-142, ADR-143, ADR-144 · **Depends** PR #200 ✅ (sudah di `staging`)
 **Baca dulu:** ADR-142 § Consequences · ADR-143 § Consequences · T-072 (prasyarat F6)
 
 Tiket ini mencatat verifikasi yang belum dilakukan; tanpanya definisi selesai rilis ("pengguna dapat membagikan halaman publik") belum terbukti.
