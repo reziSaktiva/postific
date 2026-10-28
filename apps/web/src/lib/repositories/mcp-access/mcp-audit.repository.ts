@@ -6,6 +6,12 @@ import { toMcpAuditEntry } from "./mappers";
 export const MCP_AUDIT_PURGE_BATCH_SIZE = 5000;
 
 /**
+ * Batas batch per run supaya satu request cron tidak berputar tanpa ujung saat
+ * backlog besar; sisanya dilanjutkan run berikutnya (idempoten).
+ */
+export const MCP_AUDIT_PURGE_MAX_BATCHES = 100;
+
+/**
  * Repository `mcp_audit_logs` (BC-04, T-149.6). RLS hanya policy
  * `app_runtime` (ADR-141), tanpa `withCurrentUser`: baris audit ditulis
  * jalur token OAuth dan dihapus jalur sistem (JOB-08) yang tidak punya
@@ -42,7 +48,7 @@ export const mcpAuditRepository: IMcpAuditRepository = {
    */
   async deleteOlderThan(cutoff) {
     let total = 0;
-    for (;;) {
+    for (let batch = 0; batch < MCP_AUDIT_PURGE_MAX_BATCHES; batch++) {
       const deleted = await prisma.$executeRaw`
         DELETE FROM "mcp_audit_logs"
         WHERE "id" IN (
@@ -53,8 +59,9 @@ export const mcpAuditRepository: IMcpAuditRepository = {
       `;
       total += deleted;
       if (deleted < MCP_AUDIT_PURGE_BATCH_SIZE) {
-        return total;
+        break;
       }
     }
+    return total;
   },
 };

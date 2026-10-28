@@ -15,6 +15,7 @@ vi.mock("@/lib/prisma/client", () => ({
 
 import {
   MCP_AUDIT_PURGE_BATCH_SIZE,
+  MCP_AUDIT_PURGE_MAX_BATCHES,
   mcpAuditRepository,
 } from "./mcp-audit.repository";
 
@@ -145,6 +146,17 @@ describe("mcpAuditRepository", () => {
 
       expect(executeRaw).toHaveBeenCalledTimes(3);
       expect(total).toBe(2 * MCP_AUDIT_PURGE_BATCH_SIZE + 42);
+    });
+
+    it("stops after the max number of batches per run even when every batch is full", async () => {
+      executeRaw.mockResolvedValue(MCP_AUDIT_PURGE_BATCH_SIZE);
+
+      const total = await mcpAuditRepository.deleteOlderThan(cutoff);
+
+      expect(executeRaw).toHaveBeenCalledTimes(MCP_AUDIT_PURGE_MAX_BATCHES);
+      expect(total).toBe(
+        MCP_AUDIT_PURGE_MAX_BATCHES * MCP_AUDIT_PURGE_BATCH_SIZE,
+      );
     });
   });
 });

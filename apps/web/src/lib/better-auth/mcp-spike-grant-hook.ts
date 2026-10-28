@@ -51,13 +51,29 @@ export type McpSpikeGrantPluginOptions = {
   }) => string | undefined | Promise<string | undefined>;
 };
 
-type ConsentRow = {
+export type ConsentRow = {
   id: string;
   clientId: string;
   userId?: string | null;
   referenceId?: string | null;
   scopes: string[];
+  createdAt?: Date | string | null;
+  updatedAt?: Date | string | null;
 };
+
+function consentTime(row: ConsentRow): number {
+  const value = row.updatedAt ?? row.createdAt;
+  return value ? new Date(value).getTime() : 0;
+}
+
+/** Baris consent terbaru (`updatedAt`, lalu `createdAt`); seri memilih yang terakhir. */
+export function newestConsent(rows: ConsentRow[]): ConsentRow | undefined {
+  return rows.reduce<ConsentRow | undefined>(
+    (newest, row) =>
+      !newest || consentTime(row) >= consentTime(newest) ? row : newest,
+    undefined,
+  );
+}
 
 export function mcpSpikeGrantPlugin(
   options: McpSpikeGrantPluginOptions,
@@ -140,7 +156,9 @@ export function mcpSpikeGrantPlugin(
               throw serverError("Persetujuan tanpa workspace.");
             }
 
-            const consent = await ctx.context.adapter.findOne<ConsentRow>({
+            // Tabel consent tidak punya constraint unik: ambil baris TERBARU
+            // supaya baris lama yang lebih lebar tidak menjadi scope grant.
+            const consents = await ctx.context.adapter.findMany<ConsentRow>({
               model: "oauthConsent",
               where: [
                 { field: "clientId", value: clientId },
@@ -148,6 +166,7 @@ export function mcpSpikeGrantPlugin(
                 { field: "referenceId", value: workspaceId },
               ],
             });
+            const consent = newestConsent(consents);
             if (!consent) {
               // Jalur `prompt=login` yang belum terpenuhi: plugin mengalihkan ke
               // login tanpa menulis consent. Tidak ada yang disetujui.

@@ -57,9 +57,7 @@ describe("summarizeToolInput", () => {
       url: "https://user:pass@cdn.example.com/media/a.jpg?X-Amz-Signature=abc123&token=secret#frag",
     });
 
-    expect(summary).toBe(
-      "url=https://cdn.example.com/media/a.jpg?[disamarkan]",
-    );
+    expect(summary).toBe("url=https://cdn.example.com/[disamarkan]");
     expect(summary).not.toContain("abc123");
     expect(summary).not.toContain("secret");
     expect(summary).not.toContain("user:pass");
@@ -71,7 +69,9 @@ describe("summarizeToolInput", () => {
       cache: "redis://:s3cr3t@cache.local:6379/0",
     });
 
-    expect(summary).toBe("cache=redis://cache.local:6379/0, target=ftp://h/f");
+    expect(summary).toBe(
+      "cache=redis://cache.local:6379/[disamarkan], target=ftp://h/[disamarkan]",
+    );
     expect(summary).not.toContain("user");
     expect(summary).not.toContain("pass");
     expect(summary).not.toContain("s3cr3t");
@@ -79,19 +79,27 @@ describe("summarizeToolInput", () => {
 
   it("redacts a non-http(s) URL with credentials embedded in a short string", () => {
     const summary = summarizeToolInput({ ref: "at ftp://u:p@h/f?x=1" });
-    expect(summary).toBe('ref="at ftp://h/f?[disamarkan]"');
+    expect(summary).toBe('ref="at ftp://h/[disamarkan]"');
   });
 
-  it("keeps a plain URL without parameters", () => {
-    expect(summarizeToolInput({ url: "https://cdn.example.com/a.jpg" })).toBe(
-      "url=https://cdn.example.com/a.jpg",
+  it("drops the path of a URL (secrets can live in path segments)", () => {
+    const summary = summarizeToolInput({
+      url: "https://hooks.example.com/services/T000/B000/SECRETTOKEN",
+    });
+    expect(summary).toBe("url=https://hooks.example.com/[disamarkan]");
+    expect(summary).not.toContain("SECRETTOKEN");
+  });
+
+  it("keeps a bare origin URL as is", () => {
+    expect(summarizeToolInput({ url: "https://cdn.example.com" })).toBe(
+      "url=https://cdn.example.com",
     );
   });
 
   it("redacts a URL embedded in a short string", () => {
     const summary = summarizeToolInput({ ref: "see http://a.co/?k=v" });
     expect(summary).not.toContain("k=v");
-    expect(summary).toContain("http://a.co/?[disamarkan]");
+    expect(summary).toContain("http://a.co/[disamarkan]");
   });
 
   it("masks values of sensitive keys whatever their type", () => {
@@ -202,10 +210,8 @@ describe("summarizeToolInput", () => {
 
 describe("redactUrl", () => {
   it("strips parameters and returns [url] for non-URLs", () => {
-    expect(redactUrl("https://a.com/p?q=1")).toBe(
-      "https://a.com/p?[disamarkan]",
-    );
-    expect(redactUrl("ftp://user:pass@h/f")).toBe("ftp://h/f");
+    expect(redactUrl("https://a.com/p?q=1")).toBe("https://a.com/[disamarkan]");
+    expect(redactUrl("ftp://user:pass@h/f")).toBe("ftp://h/[disamarkan]");
     expect(redactUrl("not a url")).toBe("[url]");
     expect(redactUrl("javascript:alert(1)")).toBe("[url]");
   });

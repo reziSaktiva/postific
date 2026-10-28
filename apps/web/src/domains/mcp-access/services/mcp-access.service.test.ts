@@ -518,7 +518,7 @@ describe("McpAccessService.createGrant and ensureGrantFromConsent", () => {
     const grant = await h.service.createGrant({
       workspaceId: WS_A,
       userId: USER_1,
-      clientId: ` ${CLIENT} `,
+      clientId: CLIENT,
       clientName: "  Claude Code ",
       scopes: ["draft", "read", "draft"],
     });
@@ -852,7 +852,7 @@ describe("McpAccessService.recordAudit", () => {
     expect(h.audit.rows).toHaveLength(1);
     const row = h.audit.rows[0];
     expect(row.inputSummary).toBe(
-      `accountIds=[2 item], caption=[teks ${caption.length} karakter], mediaUrl=https://cdn.example.com/a.jpg?[disamarkan]`,
+      `accountIds=[2 item], caption=[teks ${caption.length} karakter], mediaUrl=https://cdn.example.com/[disamarkan]`,
     );
     expect(JSON.stringify(row)).not.toContain("rahasia");
     expect(JSON.stringify(row)).not.toContain("topsecret");

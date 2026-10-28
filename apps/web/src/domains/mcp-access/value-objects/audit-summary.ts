@@ -15,9 +15,10 @@
  *    comment, description, note, prompt) -> `[teks N karakter]`; isi tidak
  *    pernah dicatat, berapa pun panjangnya.
  * 3. String yang seluruhnya URL berskema (`skema://...`, http(s) maupun
- *    ftp, redis, dst.) -> hanya `skema://host/path`; user info, query, dan
- *    fragment dibuang. Bila ada query atau fragment, ditulis
- *    `?[disamarkan]` supaya jelas ada yang dibuang.
+ *    ftp, redis, dst.) -> hanya `skema://host`; user info, path, query, dan
+ *    fragment dibuang (rahasia bisa ada di segmen path). Bila ada path,
+ *    query, atau fragment, ditulis `/[disamarkan]` supaya jelas ada yang
+ *    dibuang.
  * 4. String lain lebih panjang dari `PLAIN_STRING_MAX_LENGTH` -> `[teks N
  *    karakter]` (jaring pengaman: caption di kunci yang namanya tidak
  *    terduga tetap tidak tercatat). String pendek dicatat apa adanya,
@@ -29,7 +30,6 @@
 export const MCP_AUDIT_SUMMARY_MAX_LENGTH = 300;
 
 const PLAIN_STRING_MAX_LENGTH = 40;
-const URL_PATH_MAX_LENGTH = 60;
 const KEY_MAX_LENGTH = 40;
 const REDACTED = "[disamarkan]";
 
@@ -90,12 +90,10 @@ function parseSchemeUrl(value: string): URL | null {
 }
 
 function sanitizeUrl(url: URL): string {
-  const path =
-    url.pathname.length > URL_PATH_MAX_LENGTH
-      ? `${url.pathname.slice(0, URL_PATH_MAX_LENGTH)}…`
-      : url.pathname;
-  const hadParams = url.search !== "" || url.hash !== "";
-  return `${url.protocol}//${url.host}${path}${hadParams ? `?${REDACTED}` : ""}`;
+  // Path ikut disamarkan: rahasia bisa berada di segmen path (URL webhook).
+  const hadPathOrParams =
+    url.pathname !== "/" || url.search !== "" || url.hash !== "";
+  return `${url.protocol}//${url.host}${hadPathOrParams ? `/${REDACTED}` : ""}`;
 }
 
 /**

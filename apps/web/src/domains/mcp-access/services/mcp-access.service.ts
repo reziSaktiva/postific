@@ -98,8 +98,10 @@ export class McpAccessService {
    * tidak bermakna dan fail closed lebih aman).
    */
   async createGrant(input: CreateMcpGrantInput): Promise<McpGrant> {
-    const clientId = input.clientId.trim();
-    if (clientId === "") {
+    // Disimpan apa adanya (tanpa trim): `authorizeCall` mencari dengan `azp`
+    // token mentah, jadi kedua sisi harus memakai nilai yang sama.
+    const clientId = input.clientId;
+    if (clientId.trim() === "") {
       throw new McpInvalidGrantInputError("clientId grant tidak boleh kosong");
     }
     const scopes = normalizeMcpScopes(input.scopes);
@@ -214,7 +216,12 @@ export class McpAccessService {
       workspaceId: input.workspaceId,
     };
 
-    const grant = await this.grants.findActiveByConnection(key);
+    // Grant dan keanggotaan independen: dibaca paralel, tetapi keputusan tetap
+    // berurutan di bawah (grant dulu) supaya alasan penolakan tidak berubah.
+    const [grant, membership] = await Promise.all([
+      this.grants.findActiveByConnection(key),
+      this.memberships.getMembership(input.workspaceId, input.userId),
+    ]);
     if (
       !grant ||
       !isMcpGrantActive(grant) ||
@@ -230,10 +237,6 @@ export class McpAccessService {
       throw new McpAccessDeniedError("grant_scope_insufficient", grant.id);
     }
 
-    const membership = await this.memberships.getMembership(
-      input.workspaceId,
-      input.userId,
-    );
     if (!membership || membership.status !== MemberStatus.Active) {
       throw new McpAccessDeniedError("not_workspace_member", grant.id);
     }

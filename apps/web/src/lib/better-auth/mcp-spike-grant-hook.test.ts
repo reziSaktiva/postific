@@ -17,6 +17,7 @@ import {
   type SpikeGrantStore,
 } from "@/lib/mcp-spike/grant-store";
 
+import { newestConsent } from "./mcp-spike-grant-hook";
 import { createMcpSpikePlugins, rememberWorkspaceChoice } from "./mcp-spike";
 
 /**
@@ -666,5 +667,52 @@ describe("T-149.2 titik kait grant (opsi A: hooks.after /oauth2/consent)", () =>
         /dicabut/,
       );
     });
+  });
+});
+
+describe("newestConsent (consent tanpa constraint unik)", () => {
+  const row = (
+    id: string,
+    scopes: string[],
+    at?: string,
+    updated?: string,
+  ) => ({
+    id,
+    clientId: "c",
+    userId: "u",
+    referenceId: "ws_A",
+    scopes,
+    createdAt: at ?? null,
+    updatedAt: updated ?? null,
+  });
+
+  it("memilih baris terbaru walau baris lama yang lebar terdaftar lebih dulu", () => {
+    const stale = row(
+      "old",
+      ["mcp:read", "mcp:schedule"],
+      "2026-10-01T00:00:00Z",
+    );
+    const fresh = row("new", ["mcp:read"], "2026-10-02T00:00:00Z");
+    expect(newestConsent([stale, fresh])?.id).toBe("new");
+    expect(newestConsent([fresh, stale])?.id).toBe("new");
+  });
+
+  it("updatedAt mengalahkan createdAt", () => {
+    const edited = row(
+      "edited",
+      ["mcp:read"],
+      "2026-10-01T00:00:00Z",
+      "2026-10-05T00:00:00Z",
+    );
+    const created = row(
+      "created",
+      ["mcp:read", "mcp:draft"],
+      "2026-10-03T00:00:00Z",
+    );
+    expect(newestConsent([created, edited])?.id).toBe("edited");
+  });
+
+  it("daftar kosong menghasilkan undefined", () => {
+    expect(newestConsent([])).toBeUndefined();
   });
 });
