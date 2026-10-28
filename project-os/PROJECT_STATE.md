@@ -181,7 +181,7 @@ seluruh daftar Known Issues.
 
 ## Completed (Ringkasan)
 
-- **T-149 ✅ Done — skema dan domain `mcp-access` (2026-10-26, ADR-141)** — tabel `mcp_grants` dan `mcp_audit_logs` (RLS policy `app_runtime`) dimigrasi ke staging, tabel dan domain AI lama dihapus, `McpAccessService`, repository Prisma, dan JOB-08 `mcp.audit.purge` selesai (review Ridwan lolos, QA Najwa PASS). SQL repository dan JOB-08 belum diuji di Postgres staging; dibawa ke T-150.
+- **T-149 ✅ Done — skema dan domain `mcp-access` (2026-10-26, ADR-141)** — tabel `mcp_grants` dan `mcp_audit_logs` (RLS policy `app_runtime`) dimigrasi ke staging, tabel dan domain AI lama dihapus, `McpAccessService`, repository Prisma, dan JOB-08 `mcp.audit.purge` selesai (review Ridwan lolos, QA Najwa PASS). SQL repository dan JOB-08 belum diuji di Postgres staging; dibawa ke T-150. PR 201 (review 2026-10-28): 6 temuan diperbaiki, 3 dilewati atas keputusan King Rezi (rinci di T-149.8).
 - **T-144 dan T-145 ✅ Done — tampilan Publish WIB dan `occurred_at` untuk urutan History (2026-10-23, PR 194)** — History/Calendar/Queue memakai Asia/Jakarta tetap (helper `wib-time.ts`); kolom `occurred_at` generated column + indeks `(workspace_id, occurred_at DESC)` menggantikan sort di JS. Diverifikasi lewat DB dan dev server lokal (bukan deploy Railway).
 - **T-143 ✅ Done — import periodik mengejar riwayat akun baru (2026-10-23, KI-102, PR 192)** — watermark `null` memakai lookback 1 tahun dan limit 1000, hasil job tersimpan di `payload.result`. Ditutup atas pernyataan King Rezi; bukti siklus cron 2026-10-24 belum terlihat di DB saat dicek.
 - **T-142 ✅ Done — History memakai `publishedAt` (2026-10-23, PR 193)** — grup, urutan, dan jam kartu mengikuti waktu terbit; diverifikasi King Rezi di browser.
