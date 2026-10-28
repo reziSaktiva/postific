@@ -7,6 +7,8 @@
  * `Intl.DateTimeFormat` supaya DST ikut benar.
  */
 
+import { isValidTimeZone } from "@/lib/time/is-valid-time-zone";
+
 const EXTRA_TIME_ZONES = ["UTC"] as const;
 
 let cachedZones: string[] | null = null;
@@ -70,15 +72,6 @@ export function normalizeDetectedTimeZone(
 ): string | null {
   if (!timeZone) return null;
   return canonicalizeTimeZone(timeZone);
-}
-
-function isValidRuntimeZone(timeZone: string): boolean {
-  try {
-    new Intl.DateTimeFormat("en-US", { timeZone });
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 /** Nama wilayah (segmen pertama IANA); "UTC" berdiri sendiri. */
@@ -166,7 +159,7 @@ export function buildTimeZoneOptionGroups(
   }
   const zones = getSupportedTimeZones();
   const allZones =
-    ensure && !zones.includes(ensure) && isValidRuntimeZone(ensure)
+    ensure && !zones.includes(ensure) && isValidTimeZone(ensure)
       ? [...zones, ensure]
       : zones;
   for (const timeZone of allZones) {

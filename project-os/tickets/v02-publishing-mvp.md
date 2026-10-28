@@ -2859,6 +2859,7 @@ penafsiran waktu yang berubah, bukan tampilan.
 - [x] **T-147.4** Refactor `wib-time` menjadi zona dinamis (tampilan, input, kelompok tanggal, rentang Calendar)
 - [x] **T-147.5** Cek dampak `occurred_at`: kolom generated hanya memakai kolom timestamptz (UTC) dan tidak terkait zona, jadi tidak perlu migrasi; pengelompokan tanggal dihitung di aplikasi dengan zona pengguna
 - [x] **T-147.6** Test (1505 lulus, tsc/eslint/prettier bersih; review Ridwan: 1 bug ProfileForm basi + 1 callsite `formatConnectedDate` diperbaiki)
+- [x] **T-147.8** Perbaikan `/code-review` PR #204: query zona di layout ikut `Promise.all` + `getCachedSession`; opsi zona tidak dihitung ulang tiap pilihan; migrasi `20261028140000_t147_user_time_zone_source_check` (CHECK `time_zone_source`, belum diterapkan) + validasi saat baca; `isValidTimeZone` satu sumber di `lib/time`; tes `detectTimeZoneAction`. Tidak dikerjakan: memindah helper `wib-time` ke `lib/time` dengan nama netral (refactor lintas ~20 file); tes komponen `TimeZoneAutoDetect`/`ProfileForm` (vitest berlingkungan node, tanpa jsdom)
 - [x] **T-147.7** Verifikasi King Rezi: "sudah sesuai" di browser (2026-10-28)
 
 Tindak lanjut: MCP (`lib/mcp/format.ts` `toWibIso` + read-tools) masih WIB tetap, dicatat sebagai **T-168** (ADR-146 § 6).

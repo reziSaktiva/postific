@@ -1,11 +1,11 @@
 import { asUserId } from "@postific/shared";
-import { cookies, headers } from "next/headers";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { NotificationService } from "@/domains/notification";
 import { PublishingService } from "@/domains/publishing";
 import { WorkspaceService } from "@/domains/workspace";
-import { auth } from "@/lib/better-auth/auth";
+import { getCachedSession } from "@/lib/better-auth/session";
 import { getCachedUserTimeZoneState } from "@/lib/better-auth/user-time-zone";
 import { UserTimeZoneProvider } from "@/lib/time/user-time-zone-context";
 import { notificationRepository } from "@/lib/repositories/notification";
@@ -26,7 +26,7 @@ export default async function Layout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getCachedSession();
   if (!session) {
     redirect("/login");
   }
@@ -43,10 +43,6 @@ export default async function Layout({
   const defaultSidebarOpen = sidebarStateCookie !== "false";
 
   const { workspaceId } = await getWorkspaceContext();
-  // T-147 (ADR-146): zona waktu pengguna dibaca sekali di sini lalu dioper
-  // ke komponen client lewat `UserTimeZoneProvider`.
-  const { timeZone, source: timeZoneSource } =
-    await getCachedUserTimeZoneState();
 
   // Composition root untuk cross-domain publishing -> workspace (T-012.2,
   // AGENTS.md #7) — satu-satunya tempat `PublishingService` konkret di-wire
@@ -65,7 +61,13 @@ export default async function Layout({
   // yang sudah diketahui (bukan hasil satu sama lain) — dijalankan paralel
   // lewat Promise.all, bukan sequential, supaya tidak menumpuk 4 round-trip
   // DB berurutan di render path yang blocking ini (Ridwan review, KI-066).
-  const [workspace, channels, notifications, unreadCount] = await Promise.all([
+  const [
+    workspace,
+    channels,
+    notifications,
+    unreadCount,
+    { timeZone, source: timeZoneSource },
+  ] = await Promise.all([
     // Defensif: proxy.ts (ADR-076) seharusnya sudah menjamin workspace
     // context valid sebelum request mencapai sini, tapi tetap di-gate di
     // sini kalau diakses tanpa melalui proxy (mis. route belum ke-cover
@@ -84,6 +86,9 @@ export default async function Layout({
     // badge unread di bell tidak under-count begitu user punya >50
     // notifikasi belum dibaca.
     notificationService.countUnread(asUserId(session.user.id)),
+    // T-147 (ADR-146): zona waktu pengguna dibaca di sini lalu dioper ke
+    // komponen client lewat `UserTimeZoneProvider`; paralel dengan query lain.
+    getCachedUserTimeZoneState(),
   ]);
   if (!workspace) {
     redirect("/onboarding");

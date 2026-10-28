@@ -98,8 +98,8 @@ export function ProfileForm({ profile }: { profile: UserProfileRecord }) {
   const mounted = useSyncExternalStore(subscribeNever, getTrue, getFalse);
   // Label offset/singkatan dihitung klien (DST ikut), hanya setelah mount.
   const timeZoneGroups = useMemo(
-    () => (mounted ? buildTimeZoneOptionGroups(new Date(), timeZone) : []),
-    [mounted, timeZone],
+    () => (mounted ? buildTimeZoneOptionGroups(new Date(), savedTimeZone) : []),
+    [mounted, savedTimeZone],
   );
   const showDetectedNote =
     savedTimeZoneSource === "detected" && timeZone === savedTimeZone;

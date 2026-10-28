@@ -1,5 +1,9 @@
 import { asUserId } from "@postific/shared";
-import type { IIdentityRepository, TimeZoneSource } from "@/domains/identity";
+import {
+  TIME_ZONE_SOURCES,
+  type IIdentityRepository,
+  type TimeZoneSource,
+} from "@/domains/identity";
 import { prisma } from "@/lib/prisma/client";
 
 const PROFILE_SELECT = {
@@ -20,6 +24,13 @@ type ProfileRow = {
   timeZoneSource: string;
 };
 
+/** Nilai di luar daftar (ditulis lewat jalur lain) diperlakukan "legacy": tidak dideteksi ulang dan tidak menimpa zona tersimpan. */
+function toTimeZoneSource(value: string): TimeZoneSource {
+  return (TIME_ZONE_SOURCES as readonly string[]).includes(value)
+    ? (value as TimeZoneSource)
+    : "legacy";
+}
+
 function toProfileRecord(user: ProfileRow) {
   return {
     id: asUserId(user.id),
@@ -27,8 +38,7 @@ function toProfileRecord(user: ProfileRow) {
     email: user.email,
     image: user.image,
     timeZone: user.timeZone,
-    // Kolom String di DB; nilai selalu ditulis lewat service (tervalidasi).
-    timeZoneSource: user.timeZoneSource as TimeZoneSource,
+    timeZoneSource: toTimeZoneSource(user.timeZoneSource),
   };
 }
 

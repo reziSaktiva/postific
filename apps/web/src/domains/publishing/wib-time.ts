@@ -52,18 +52,7 @@ function getFormatter(timeZone: string): Intl.DateTimeFormat {
   return formatter;
 }
 
-/** `true` bila `timeZone` dikenali runtime sebagai nama zona IANA. */
-export function isValidTimeZone(timeZone: string): boolean {
-  if (typeof timeZone !== "string" || timeZone.length === 0) {
-    return false;
-  }
-  try {
-    getFormatter(timeZone);
-    return true;
-  } catch {
-    return false;
-  }
-}
+export { isValidTimeZone } from "@/lib/time/is-valid-time-zone";
 
 interface WallClock {
   year: number;
