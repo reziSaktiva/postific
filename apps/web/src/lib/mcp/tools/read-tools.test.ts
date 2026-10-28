@@ -414,7 +414,10 @@ describe("list_scheduled_posts", () => {
         },
       ],
     });
-    expect(calls).toEqual([{ method: "listQueue", args: [WORKSPACE, USER] }]);
+    // MCP sengaja tetap WIB, bukan zona pengguna (ADR-146 tindak lanjut).
+    expect(calls).toEqual([
+      { method: "listQueue", args: [WORKSPACE, USER, "Asia/Jakarta"] },
+    ]);
   });
 });
 

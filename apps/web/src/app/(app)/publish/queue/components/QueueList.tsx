@@ -10,7 +10,8 @@ import {
 } from "@hugeicons/core-free-icons";
 
 import type { ConnectedAccountId, PostId } from "@postific/shared";
-import { WIB_TIME_ZONE, type QueueGroup } from "@/domains/publishing";
+import type { QueueGroup } from "@/domains/publishing";
+import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
 import { formatRelativeTime } from "@/lib/utils/format-relative-time";
 import { formatUtcDateKeyHeading } from "@/lib/utils";
 
@@ -44,10 +45,12 @@ const DATE_HEADING_FORMATTER = new Intl.DateTimeFormat("id-ID", {
   weekday: "long",
   day: "numeric",
   month: "long",
-  timeZone: WIB_TIME_ZONE,
+  // `dateKey` diparse sebagai UTC midnight (kalender zona pengguna, T-147),
+  // jadi formatter berzona "UTC" — zona pengguna menggeser hari untuk offset negatif.
+  timeZone: "UTC",
 });
 
-/** `group.date` adalah kalender WIB (Asia/Jakarta, T-144) "YYYY-MM-DD" — format tampilan lengkap
+/** `group.date` adalah kalender zona pengguna (T-147) "YYYY-MM-DD" — format tampilan lengkap
  * (mis. "Senin, 14 Juli", mengikuti mockup Claude Design KSP-03) adalah
  * tanggung jawab UI (T-032.3). Parse UTC-safe dipusatkan di
  * `formatUtcDateKeyHeading` (`@/lib/utils`, code review PR #105). */
@@ -55,11 +58,11 @@ function formatGroupDateHeading(dateKey: string): string {
   return formatUtcDateKeyHeading(dateKey, DATE_HEADING_FORMATTER);
 }
 
-function formatScheduledTime(date: Date): string {
+function formatScheduledTime(date: Date, timeZone: string): string {
   return date.toLocaleTimeString("id-ID", {
     hour: "2-digit",
     minute: "2-digit",
-    timeZone: WIB_TIME_ZONE,
+    timeZone,
   });
 }
 
@@ -126,6 +129,7 @@ export interface QueueListProps {
  * T-101.1).
  */
 export function QueueList({ groups, onCancelSchedule }: QueueListProps) {
+  const timeZone = useUserTimeZone();
   const { openEditDraft } = useDraftEditor();
   const [accountFilter, setAccountFilter] = useState<string>(
     ALL_ACCOUNTS_FILTER_VALUE,
@@ -240,7 +244,10 @@ export function QueueList({ groups, onCancelSchedule }: QueueListProps) {
                                 as="span"
                                 className="text-xs"
                               >
-                                {formatScheduledTime(item.scheduledAt)}
+                                {formatScheduledTime(
+                                  item.scheduledAt,
+                                  timeZone,
+                                )}
                               </Text>
                             </div>
                           </div>
@@ -298,7 +305,7 @@ export function QueueList({ groups, onCancelSchedule }: QueueListProps) {
                         </div>
 
                         <Text variant="muted" as="span" className="text-xs">
-                          Dibuat {formatRelativeTime(item.createdAt)}
+                          Dibuat {formatRelativeTime(item.createdAt, timeZone)}
                         </Text>
                       </div>
                     </CardContent>

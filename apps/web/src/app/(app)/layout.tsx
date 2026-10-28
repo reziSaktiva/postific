@@ -1,11 +1,13 @@
 import { asUserId } from "@postific/shared";
-import { cookies, headers } from "next/headers";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { NotificationService } from "@/domains/notification";
 import { PublishingService } from "@/domains/publishing";
 import { WorkspaceService } from "@/domains/workspace";
-import { auth } from "@/lib/better-auth/auth";
+import { getCachedSession } from "@/lib/better-auth/session";
+import { getCachedUserTimeZoneState } from "@/lib/better-auth/user-time-zone";
+import { UserTimeZoneProvider } from "@/lib/time/user-time-zone-context";
 import { notificationRepository } from "@/lib/repositories/notification";
 import { publishingRepository } from "@/lib/repositories/publishing";
 import { workspaceRepository } from "@/lib/repositories/workspace";
@@ -14,6 +16,7 @@ import { getWorkspaceContext } from "@/lib/workspace/workspace-context";
 import { AppShell } from "./components/AppShell";
 import { AppSideNav } from "./components/AppSideNav";
 import { AppToaster } from "./components/AppToaster";
+import { TimeZoneAutoDetect } from "./components/TimeZoneAutoDetect";
 import { DraftEditorProvider } from "./components/draft-editor/Context";
 import { DraftEditorMount } from "./components/draft-editor/Mount";
 import { MobileTopBar } from "./components/MobileTopBar";
@@ -23,7 +26,7 @@ export default async function Layout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getCachedSession();
   if (!session) {
     redirect("/login");
   }
@@ -58,7 +61,13 @@ export default async function Layout({
   // yang sudah diketahui (bukan hasil satu sama lain) — dijalankan paralel
   // lewat Promise.all, bukan sequential, supaya tidak menumpuk 4 round-trip
   // DB berurutan di render path yang blocking ini (Ridwan review, KI-066).
-  const [workspace, channels, notifications, unreadCount] = await Promise.all([
+  const [
+    workspace,
+    channels,
+    notifications,
+    unreadCount,
+    { timeZone, source: timeZoneSource },
+  ] = await Promise.all([
     // Defensif: proxy.ts (ADR-076) seharusnya sudah menjamin workspace
     // context valid sebelum request mencapai sini, tapi tetap di-gate di
     // sini kalau diakses tanpa melalui proxy (mis. route belum ke-cover
@@ -77,6 +86,9 @@ export default async function Layout({
     // badge unread di bell tidak under-count begitu user punya >50
     // notifikasi belum dibaca.
     notificationService.countUnread(asUserId(session.user.id)),
+    // T-147 (ADR-146): zona waktu pengguna dibaca di sini lalu dioper ke
+    // komponen client lewat `UserTimeZoneProvider`; paralel dengan query lain.
+    getCachedUserTimeZoneState(),
   ]);
   if (!workspace) {
     redirect("/onboarding");
@@ -114,27 +126,28 @@ export default async function Layout({
   // ulang) diteruskan ke `AppShell` supaya preferensi collapse/expand
   // persisten lintas full page reload — bukan reset ke expanded tiap mount.
   return (
-    <DraftEditorProvider workspaceId={workspaceId}>
-      <AppShell
-        className="h-dvh bg-background text-foreground"
-        defaultOpen={defaultSidebarOpen}
-      >
-        <AppSideNav
-          workspaceName={workspace.name}
-          userName={session.user.name}
-          userEmail={session.user.email}
-          channels={channels}
-          initialNotifications={notifications}
-          initialUnreadCount={unreadCount}
-          userId={session.user.id}
-        />
-        {/* eslint-disable-next-line no-restricted-syntax -- T-105.3: file ini
+    <UserTimeZoneProvider timeZone={timeZone}>
+      <DraftEditorProvider workspaceId={workspaceId}>
+        <AppShell
+          className="h-dvh bg-background text-foreground"
+          defaultOpen={defaultSidebarOpen}
+        >
+          <AppSideNav
+            workspaceName={workspace.name}
+            userName={session.user.name}
+            userEmail={session.user.email}
+            channels={channels}
+            initialNotifications={notifications}
+            initialUnreadCount={unreadCount}
+            userId={session.user.id}
+          />
+          {/* eslint-disable-next-line no-restricted-syntax -- T-105.3: file ini
             sudah dimigrasi ke komposisi Tailwind shadcn (ADR-097 poin 4),
             bukan lagi AppShell Astryx — <div> layout langsung, bukan
             VStack/HStack. */}
-        <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
-          <MobileTopBar workspaceName={workspace.name} />
-          {/* KI-066 follow-up (mismatch #4): Claude Design `.main` pakai
+          <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
+            <MobileTopBar workspaceName={workspace.name} />
+            {/* KI-066 follow-up (mismatch #4): Claude Design `.main` pakai
               `--color-background-body` (token BODY), bukan token SIDEBAR —
               `bg-background` di globals.css sudah match hex-nya persis.
               Deviasi sadar dari riwayat ADR-084 (swap warna, era Astryx,
@@ -142,13 +155,15 @@ export default async function Layout({
               Astryx yang sudah tidak ada lagi pasca migrasi shadcn (T-102);
               ini instruksi terbaru King Rezi + Claude Design SYNCED saat
               ini, bukan regresi. */}
-          <main className="relative min-w-0 flex-1 overflow-y-auto rounded-tl-3xl bg-background p-4">
-            {children}
-          </main>
-        </div>
-      </AppShell>
-      <DraftEditorMount />
-      <AppToaster />
-    </DraftEditorProvider>
+            <main className="relative min-w-0 flex-1 overflow-y-auto rounded-tl-3xl bg-background p-4">
+              {children}
+            </main>
+          </div>
+        </AppShell>
+        <DraftEditorMount />
+        <AppToaster />
+        <TimeZoneAutoDetect pending={timeZoneSource === "pending"} />
+      </DraftEditorProvider>
+    </UserTimeZoneProvider>
   );
 }

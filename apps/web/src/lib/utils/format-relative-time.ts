@@ -1,11 +1,17 @@
-import { WIB_TIME_ZONE } from "@/domains/publishing/wib-time";
-
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
 
-/** Formats a past date as Indonesian relative time (e.g. "2 jam lalu"). */
-export function formatRelativeTime(date: Date, now: Date = new Date()): string {
+/**
+ * Formats a past date as Indonesian relative time (e.g. "2 jam lalu").
+ * `timeZone` (zona IANA pengguna, T-147) dipakai untuk tanggal absolut
+ * (≥ 7 hari) dan selalu eksplisit.
+ */
+export function formatRelativeTime(
+  date: Date,
+  timeZone: string,
+  now: Date = new Date(),
+): string {
   const diffMs = now.getTime() - date.getTime();
 
   if (diffMs < MINUTE) {
@@ -28,7 +34,7 @@ export function formatRelativeTime(date: Date, now: Date = new Date()): string {
   }
 
   return date.toLocaleDateString("id-ID", {
-    timeZone: WIB_TIME_ZONE,
+    timeZone,
     day: "numeric",
     month: "short",
     year: "numeric",

@@ -176,6 +176,18 @@ Badge dan filter berdasarkan `created_via`.
 
 **Gate Claude Design:** rancangan **sudah ada** di artifact Postific (https://claude.ai/artifact/FdRNU4gnxgAGY3zmBxNfR3), `components/McpSourceBadge/preview.html`; **dikonfirmasi King Rezi 2026-10-26** setelah ditinjau lewat galeri review (https://claude.ai/artifact/4BJCWNsCwubLd7SFwRtree). Pola di `product-discovery/04-ux/key-screen-patterns.md` § Pola: Badge dan Filter Sumber MCP. Keputusan yang sudah dikunci: cakupan **History, Drafts, dan Queue**, Calendar tidak diberi badge (IA-D11); badge outline berisi ikon dan nama klien di baris meta; filter sumber Semua / Dibuat manual / Lewat MCP dengan **bawaan Semua**; tampilan default setiap layar tidak berubah selain badge pada item MCP. Filter di Drafts adalah kontrol baru karena Drafts belum punya filter.
 
+### T-168 · MCP mengikuti zona waktu pengguna (tindak lanjut T-147)
+
+`⏳ Not Started` · **Domain** mcp-access · **ADR** ADR-146, ADR-138 · **Terkait** T-147 · **Depends** T-147 (✅), T-150
+
+**Baca dulu:** `apps/web/src/lib/mcp/format.ts` · read-tools MCP · `apps/web/src/domains/publishing/wib-time.ts`
+
+Lahir dari T-147 (ADR-146 § 6): MCP sengaja dibiarkan WIB tetap. `toWibIso` di `format.ts` dan read-tools masih memakai Asia/Jakarta, padahal tampilan dan input di UI sudah mengikuti `User.timeZone`.
+
+- [ ] **T-168.1** Putuskan perilaku: output waktu MCP dan tafsir input jadwal tool (mis. `schedule_posts`, `create_draft`) memakai `User.timeZone` pemilik koneksi, termasuk offset di ISO.
+- [ ] **T-168.2** Ganti `toWibIso` dan pemakaian di read-tools agar menerima zona pengguna; selaraskan dengan `wib-time.ts` dinamis.
+- [ ] **T-168.3** Test dan verifikasi King Rezi.
+
 ---
 
 ## Tiket lama yang dibatalkan (ADR-138)

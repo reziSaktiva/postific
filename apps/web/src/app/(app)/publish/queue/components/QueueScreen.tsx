@@ -24,6 +24,7 @@ import {
   type QueueGroup,
   type QueueItemRecord,
 } from "@/domains/publishing";
+import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
 import { useConfirmAction } from "@/lib/hooks/use-confirm-action";
 import { usePublishingPostsRealtime } from "@/lib/hooks/use-publishing-posts-realtime";
 import { useSyncedState } from "@/lib/hooks/use-synced-state";
@@ -104,6 +105,7 @@ export function QueueScreen({
    * untuk fetch data apa pun langsung di komponen ini (AGENTS.md #5). */
   workspaceId: string;
 }) {
+  const timeZone = useUserTimeZone();
   const cancelConfirm = useConfirmAction<PostId>(cancelScheduleAction, () =>
     toast("Jadwal dibatalkan — post kembali ke Drafts"),
   );
@@ -145,11 +147,12 @@ export function QueueScreen({
             [...flatItems, queueItem].sort(
               (a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime(),
             ),
+            timeZone,
           );
         });
       })();
     },
-    [setLocalGroups],
+    [setLocalGroups, timeZone],
   );
 
   usePublishingPostsRealtime(workspaceId, {

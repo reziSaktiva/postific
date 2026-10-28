@@ -217,7 +217,7 @@ Settings
 │   └── Billing                   — langganan dan pembayaran
 └── Account
     ├── Workspaces                — daftar workspace user, switch workspace aktif, buat workspace baru (ADR-088)
-    ├── Profile                   — nama, foto, email
+    ├── Profile                   — nama, foto, email, zona waktu (per pengguna, ADR-146)
     ├── Notifications             — preferensi notifikasi email dan in-app
     ├── Preferences               — pengaturan tampilan personal
     └── Klien AI                  — klien AI (MCP) yang tersambung milik pengguna sendiri, plus tombol cabut (ADR-139)

@@ -7,12 +7,11 @@ import { ArrowLeft01Icon, ArrowRight01Icon } from "@hugeicons/core-free-icons";
 import { ContentStatus } from "@postific/shared";
 import type { ConnectedAccountId } from "@postific/shared";
 import type { ConnectedAccountRecord } from "@/domains/workspace";
-import {
-  getWeekRange,
-  getWibDateParts,
-  WIB_TIME_ZONE,
-} from "@/domains/publishing";
+import { getWeekRange, getDateParts } from "@/domains/publishing";
 import type { CalendarViewMode } from "@/domains/publishing";
+
+import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
+import { getZonedFormatter } from "@/lib/time/zoned-formatter";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -49,22 +48,15 @@ const STATUS_OPTIONS = [
   })),
 ];
 
+// Formatter berzona pengguna (T-147), ter-cache per zona.
 /** Format tanggal-saja ("14") — dipakai sisi awal label Week saat masih dalam bulan yang sama. */
-const DAY_ONLY_FORMATTER = new Intl.DateTimeFormat("id-ID", {
-  day: "numeric",
-  timeZone: WIB_TIME_ZONE,
-});
+const dayOnlyFormatter = (timeZone: string) =>
+  getZonedFormatter("id-ID", { day: "numeric" }, timeZone);
 /** Format tanggal + bulan singkat ("20 Jul") — sisi akhir label Week, dan kedua sisi saat lintas bulan. */
-const DAY_MONTH_FORMATTER = new Intl.DateTimeFormat("id-ID", {
-  day: "numeric",
-  month: "short",
-  timeZone: WIB_TIME_ZONE,
-});
-const MONTH_YEAR_FORMATTER = new Intl.DateTimeFormat("id-ID", {
-  month: "long",
-  year: "numeric",
-  timeZone: WIB_TIME_ZONE,
-});
+const dayMonthFormatter = (timeZone: string) =>
+  getZonedFormatter("id-ID", { day: "numeric", month: "short" }, timeZone);
+const monthYearFormatter = (timeZone: string) =>
+  getZonedFormatter("id-ID", { month: "long", year: "numeric" }, timeZone);
 
 /**
  * Label periode Week (T-033.5) — "14–20 Jul" kalau 7 hari jatuh di bulan
@@ -73,21 +65,23 @@ const MONTH_YEAR_FORMATTER = new Intl.DateTimeFormat("id-ID", {
  * bulan, format lintas-bulan mengikuti konvensi umum kalender: kedua sisi
  * tampilkan nama bulan supaya tidak ambigu).
  */
-function formatWeekPeriodLabel(date: Date): string {
-  const { from, to } = getWeekRange(date);
-  const fromParts = getWibDateParts(from);
-  const toParts = getWibDateParts(to);
+function formatWeekPeriodLabel(date: Date, timeZone: string): string {
+  const { from, to } = getWeekRange(date, timeZone);
+  const fromParts = getDateParts(from, timeZone);
+  const toParts = getDateParts(to, timeZone);
+  const dayOnly = dayOnlyFormatter(timeZone);
+  const dayMonth = dayMonthFormatter(timeZone);
   const sameMonth =
     fromParts.month === toParts.month && fromParts.year === toParts.year;
 
   if (sameMonth) {
-    return `${DAY_ONLY_FORMATTER.format(from)}–${DAY_MONTH_FORMATTER.format(to)}`;
+    return `${dayOnly.format(from)}–${dayMonth.format(to)}`;
   }
-  return `${DAY_MONTH_FORMATTER.format(from)} – ${DAY_MONTH_FORMATTER.format(to)}`;
+  return `${dayMonth.format(from)} – ${dayMonth.format(to)}`;
 }
 
-function formatMonthPeriodLabel(date: Date): string {
-  return MONTH_YEAR_FORMATTER.format(date);
+function formatMonthPeriodLabel(date: Date, timeZone: string): string {
+  return monthYearFormatter(timeZone).format(date);
 }
 
 export interface CalendarToolbarProps {
@@ -114,11 +108,12 @@ export interface CalendarToolbarProps {
 export function CalendarToolbar({ accounts }: CalendarToolbarProps) {
   const { view, date, statuses, connectedAccountIds, setPeriod } =
     useCalendarPeriodState();
+  const timeZone = useUserTimeZone();
 
   const periodLabel =
     view === "month"
-      ? formatMonthPeriodLabel(date)
-      : formatWeekPeriodLabel(date);
+      ? formatMonthPeriodLabel(date, timeZone)
+      : formatWeekPeriodLabel(date, timeZone);
 
   const accountOptions = useMemo(
     () => [
@@ -137,13 +132,19 @@ export function CalendarToolbar({ accounts }: CalendarToolbarProps) {
 
   function goPrev() {
     setPeriod({
-      date: view === "month" ? addMonths(date, -1) : addDays(date, -7),
+      date:
+        view === "month"
+          ? addMonths(date, -1, timeZone)
+          : addDays(date, -7, timeZone),
     });
   }
 
   function goNext() {
     setPeriod({
-      date: view === "month" ? addMonths(date, 1) : addDays(date, 7),
+      date:
+        view === "month"
+          ? addMonths(date, 1, timeZone)
+          : addDays(date, 7, timeZone),
     });
   }
 

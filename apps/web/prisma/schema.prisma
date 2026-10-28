@@ -41,6 +41,16 @@ model User {
   notifyPublishSchedule    Boolean @default(true)
   notifyAnalyticsReport    Boolean @default(false)
 
+  // T-147 (ADR-146): zona waktu per pengguna (nama IANA) untuk tampilan dan
+  // input jadwal. DB tetap UTC; kolom ini hanya menentukan cara waktu
+  // dihitung/ditampilkan. `timeZoneSource` = penanda asal nilai supaya
+  // auto-deteksi browser hanya jalan SEKALI dan tidak menimpa pilihan manual:
+  // "pending" (pengguna baru, belum terdeteksi), "legacy" (pengguna lama
+  // sebelum T-147, default WIB tanpa deteksi), "detected" (hasil deteksi
+  // browser), "manual" (dipilih sendiri di Settings → Profile).
+  timeZone       String @default("Asia/Jakarta") @map("time_zone")
+  timeZoneSource String @default("pending") @map("time_zone_source")
+
   @@unique([email])
   @@map("identity_user")
 }

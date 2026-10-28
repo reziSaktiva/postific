@@ -15,6 +15,7 @@ import type {
   EngagementInboxItemRecord,
   InboxItemStatus,
 } from "@/domains/engagement";
+import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
 import { formatRelativeTime } from "@/lib/utils/format-relative-time";
 import { cn } from "@/lib/utils";
 
@@ -218,12 +219,14 @@ const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: "done", label: "Done" },
 ];
 
-function formatUpdatedAtLabel(date: Date): string {
-  return `${date.toLocaleTimeString("id-ID", {
+/** Jam + singkatan zona pengguna dari Intl ("10.30 WIB", "05.30 GMT-4") — T-147. */
+function formatUpdatedAtLabel(date: Date, timeZone: string): string {
+  return date.toLocaleTimeString("id-ID", {
     hour: "2-digit",
     minute: "2-digit",
-    timeZone: "Asia/Jakarta",
-  })} WIB`;
+    timeZone,
+    timeZoneName: "short",
+  });
 }
 
 export interface EngageInboxViewProps {
@@ -279,6 +282,7 @@ export function EngageInboxView({
   initialItems,
   accounts,
 }: EngageInboxViewProps) {
+  const timeZone = useUserTimeZone();
   const [items, setItems] = useState(initialItems);
   const [accountFilter, setAccountFilter] = useState(ALL_ACCOUNTS_FILTER_VALUE);
   const [platformFilter, setPlatformFilter] = useState(
@@ -512,8 +516,8 @@ export function EngageInboxView({
             Engage
           </h1>
           <Text variant="muted">
-            Diperbarui {formatUpdatedAtLabel(lastUpdatedAt)} · sinkronisasi tiap
-            30 menit
+            Diperbarui {formatUpdatedAtLabel(lastUpdatedAt, timeZone)} ·
+            sinkronisasi tiap 30 menit
           </Text>
         </div>
         <Button
@@ -647,7 +651,7 @@ export function EngageInboxView({
                         </ItemTitle>
                         <Text variant="muted" as="span" className="text-xs">
                           {PLATFORM_ICON[item.platform].label} ·{" "}
-                          {formatRelativeTime(item.receivedAt)}
+                          {formatRelativeTime(item.receivedAt, timeZone)}
                           {isDone ? " · Done" : ""}
                         </Text>
                       </ItemContent>
@@ -735,7 +739,8 @@ export function EngageInboxView({
                         className="ml-4 flex flex-col gap-0.5 rounded-lg bg-muted p-3"
                       >
                         <Text variant="muted" as="span" className="text-xs">
-                          Balasan tim · {formatRelativeTime(reply.sentAt)}
+                          Balasan tim ·{" "}
+                          {formatRelativeTime(reply.sentAt, timeZone)}
                         </Text>
                         <Text as="p" className="text-sm text-foreground">
                           {reply.content}

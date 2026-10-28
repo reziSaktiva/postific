@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import type { QueueItemRecord } from "../repositories/publishing.repository";
 import { groupQueueItemsByDate } from "./group-queue-items";
 
+const WIB = "Asia/Jakarta";
+
 function createQueueItem(
   overrides: Partial<QueueItemRecord> = {},
 ): QueueItemRecord {
@@ -18,7 +20,7 @@ function createQueueItem(
 
 describe("groupQueueItemsByDate", () => {
   it("mengembalikan array kosong kalau tidak ada item", () => {
-    expect(groupQueueItemsByDate([])).toEqual([]);
+    expect(groupQueueItemsByDate([], WIB)).toEqual([]);
   });
 
   it("mengelompokkan beberapa item dalam satu tanggal yang sama ke satu grup", () => {
@@ -31,7 +33,7 @@ describe("groupQueueItemsByDate", () => {
       scheduledAt: new Date("2026-07-14T15:00:00Z"),
     });
 
-    const groups = groupQueueItemsByDate([itemA, itemB]);
+    const groups = groupQueueItemsByDate([itemA, itemB], WIB);
 
     expect(groups).toEqual([
       {
@@ -51,7 +53,7 @@ describe("groupQueueItemsByDate", () => {
       scheduledAt: new Date("2026-07-15T09:00:00Z"),
     });
 
-    const groups = groupQueueItemsByDate([itemDay1, itemDay2]);
+    const groups = groupQueueItemsByDate([itemDay1, itemDay2], WIB);
 
     expect(groups).toEqual([
       { date: "2026-07-14", items: [itemDay1] },
@@ -73,7 +75,10 @@ describe("groupQueueItemsByDate", () => {
       scheduledAt: new Date("2026-07-15T08:00:00Z"),
     });
 
-    const groups = groupQueueItemsByDate([earliest, middle, latestNextDay]);
+    const groups = groupQueueItemsByDate(
+      [earliest, middle, latestNextDay],
+      WIB,
+    );
 
     expect(groups.map((group) => group.date)).toEqual([
       "2026-07-14",
@@ -93,9 +98,32 @@ describe("groupQueueItemsByDate", () => {
       scheduledAt: new Date("2026-09-01T17:59:00Z"),
     });
 
-    expect(groupQueueItemsByDate([beforeMidnight, afterMidnight])).toEqual([
-      { date: "2026-09-01", items: [beforeMidnight] },
-      { date: "2026-09-02", items: [afterMidnight] },
+    expect(groupQueueItemsByDate([beforeMidnight, afterMidnight], WIB)).toEqual(
+      [
+        { date: "2026-09-01", items: [beforeMidnight] },
+        { date: "2026-09-02", items: [afterMidnight] },
+      ],
+    );
+  });
+
+  it("zona pengguna menentukan kunci grup (T-147): sama instan, tanggal beda per zona", () => {
+    const a = createQueueItem({
+      id: asPostId("a"),
+      scheduledAt: new Date("2026-09-02T03:30:00Z"),
+    });
+    const b = createQueueItem({
+      id: asPostId("b"),
+      scheduledAt: new Date("2026-09-02T05:00:00Z"),
+    });
+
+    // New_York (EDT): 23:30 1 Sep dan 01:00 2 Sep -> dua grup
+    expect(groupQueueItemsByDate([a, b], "America/New_York")).toEqual([
+      { date: "2026-09-01", items: [a] },
+      { date: "2026-09-02", items: [b] },
+    ]);
+    // WIB: keduanya 2 Sep -> satu grup
+    expect(groupQueueItemsByDate([a, b], WIB)).toEqual([
+      { date: "2026-09-02", items: [a, b] },
     ]);
   });
 });

@@ -1,16 +1,14 @@
 import type { IStartPageAvatarStorage } from "@/domains/start-page";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { ExternalServiceError } from "@/lib/utils/errors";
+import { avatarsBucket, uploadToAvatarsBucket } from "./avatars-bucket";
 
 /**
- * Bucket `avatars` (publik). Path Start Page:
+ * Bucket `avatars` (lihat `avatars-bucket.ts`). Path Start Page:
  * `avatars/{workspace_id}/avatar-{id}.{ext}` — terpisah dari
  * `avatars/users/{user_id}/avatar.{ext}` (ADR-071). Nama unik per unggahan:
  * berkas lama tetap utuh sampai DB menyimpan URL baru, dan URL baru tidak
  * perlu cache-bust.
  */
-const AVATARS_BUCKET = "avatars";
-
 /** Hanya berkas yang dibuat `uploadAvatar`; berkas lain di folder workspace tidak disentuh. */
 const START_PAGE_AVATAR_FILE_PATTERN = /^avatar-[0-9a-f-]{36}\.(jpg|png)$/;
 const LIST_LIMIT = 1000;
@@ -22,34 +20,26 @@ const MIN_STALE_AGE_MS = 10 * 60 * 1000;
 
 export const supabaseStartPageAvatarStorage: IStartPageAvatarStorage = {
   async uploadAvatar({ workspaceId, fileBuffer, contentType, extension }) {
-    const supabase = createServerSupabaseClient();
     const fileName = `avatar-${crypto.randomUUID()}.${extension}`;
-    const path = `${workspaceId}/${fileName}`;
-
-    const { error } = await supabase.storage
-      .from(AVATARS_BUCKET)
-      .upload(path, fileBuffer, { contentType });
-
-    if (error) {
-      throw new ExternalServiceError("Gagal upload avatar.", { cause: error });
-    }
-
-    const { data } = supabase.storage.from(AVATARS_BUCKET).getPublicUrl(path);
-    return { url: data.publicUrl, fileName };
+    const url = await uploadToAvatarsBucket(
+      `${workspaceId}/${fileName}`,
+      fileBuffer,
+      { contentType },
+    );
+    return { url, fileName };
   },
 
   async deleteAvatar({ workspaceId, fileName }) {
-    const supabase = createServerSupabaseClient();
-    const { error } = await supabase.storage
-      .from(AVATARS_BUCKET)
-      .remove([`${workspaceId}/${fileName}`]);
+    const { error } = await avatarsBucket().remove([
+      `${workspaceId}/${fileName}`,
+    ]);
     if (error) {
       throw new ExternalServiceError("Gagal hapus avatar.", { cause: error });
     }
   },
 
   async deleteOtherAvatars({ workspaceId, keepFileName }) {
-    const storage = createServerSupabaseClient().storage.from(AVATARS_BUCKET);
+    const storage = avatarsBucket();
     const { data, error } = await storage.list(workspaceId, {
       limit: LIST_LIMIT,
     });
