@@ -1491,9 +1491,16 @@ tanpa batas.
 
 ### T-165 · Selaraskan ADR-068 (`react-icons` ikon tunggal) dengan `apps/web/.claude/CLAUDE.md` (`hugeicons`)
 
-`⏳ Not Started` · **Domain** UI, dokumentasi (lintas produk) · **ADR** ADR-058 poin 6, ADR-068, ADR-097, ADR-144 · **Depends** keputusan King Rezi
+`✅ Done` (2026-10-28; ADR-148 menggantikan ADR-068; migrasi sisa ikon generik di T-169) · **Domain** UI, dokumentasi (lintas produk) · **ADR** ADR-058 poin 6, ADR-068, ADR-097, ADR-144 · **Depends** keputusan King Rezi
 **Baca dulu:** ADR-068 · ADR-144 poin 15 · `apps/web/.claude/CLAUDE.md` § Icons
 
-Dua sumber bertentangan: ADR-068 menetapkan `react-icons` sebagai library ikon tunggal untuk seluruh UI, sedangkan `apps/web/.claude/CLAUDE.md` memakai `hugeicons` (preset Maia, dikonfirmasi King Rezi 2026-09-01 di T-095) untuk komponen shadcn baru dan menyisakan `react-icons` hanya untuk kode yang belum dimigrasi. Start Page (ADR-144) sudah memakai `hugeicons` untuk ikon platform. Hasil tiket: ADR baru yang menyatakan kebijakan ikon yang berlaku (siapa menggantikan siapa, bagaimana ikon brand), amandemen status ADR-068 dan ADR-058 poin 6, lalu penyelarasan `CLAUDE.md` bila perlu. Tidak ada perubahan kode di tiket ini kecuali King Rezi memutuskan migrasi sisa `react-icons`, yang dibuka sebagai tiket terpisah.
+Dua sumber bertentangan: ADR-068 menetapkan `react-icons` sebagai library ikon tunggal untuk seluruh UI, sedangkan `apps/web/.claude/CLAUDE.md` memakai `hugeicons` (preset Maia, dikonfirmasi King Rezi 2026-09-01 di T-095) untuk komponen shadcn baru dan menyisakan `react-icons` hanya untuk kode yang belum dimigrasi. Start Page (ADR-144) sudah memakai `hugeicons` untuk ikon platform. Hasil: ADR-148 menyatakan `hugeicons` sebagai library ikon UI dan `react-icons/fa6` hanya untuk logo brand berwarna; ADR-068 Superseded, ADR-058 poin 6 diamandemen, `apps/web/.claude/CLAUDE.md` diselaraskan. Tidak ada perubahan kode; migrasi sisa ikon generik dibuka sebagai T-169.
 
 **Kenapa di file v07:** keputusan `hugeicons` lahir di migrasi shadcn (T-095), dan tiket ini lintas rilis, bukan lanjutan Start Page. Bukan Known Issue, jadi bukan `known-issues.md` (ADR-134).
+
+### T-169 · Migrasi sisa ikon generik `react-icons` ke `hugeicons` (ADR-148)
+
+`⏳ Not Started` · **Domain** UI · **ADR** ADR-148 · **Depends** T-165 ✅
+**Baca dulu:** ADR-148 · `apps/web/.claude/CLAUDE.md` § Icons
+
+Ganti ikon generik yang masih memakai `react-icons/fa6` di `apps/web/src/app/(app)/publish/calendar/components/calendar-grid-shared.ts` (`FaFilm`, `FaRegClock`, `FaRegImage`, `FaThumbtack`) dengan padanan `hugeicons`. Logo brand berwarna di `platform-icons.tsx` tetap `react-icons`. Sekalian perbarui komentar kode yang masih mengutip ADR-058/068 sebagai kebijakan berlaku (`ConnectPlatformMenu.tsx`, `QueueList.tsx`, `CalendarToolbar.tsx`, `start-page-link-icons.ts`) agar merujuk ADR-148. Perubahan ikon butuh pengecekan visual di artifact desain (aturan UI #10).
