@@ -1,3 +1,4 @@
+import { MAX_AVATAR_BYTES } from "@/domains/identity";
 import { ValidationError } from "@/lib/utils/errors";
 import { StartPageDomainError } from "./errors";
 import {
@@ -69,6 +70,13 @@ export {
   ALLOWED_AVATAR_MIME_TYPES as START_PAGE_AVATAR_MIME_TYPES,
   ALLOWED_AVATAR_ACCEPT as START_PAGE_AVATAR_ACCEPT,
 } from "@/domains/identity";
+
+/** Satu sumber aturan ukuran foto profil untuk entry point dan service. */
+export function assertAvatarSizeWithinLimit(sizeBytes: number): void {
+  if (sizeBytes > MAX_AVATAR_BYTES) {
+    throw new ValidationError("Ukuran avatar maksimal 2MB.");
+  }
+}
 
 const IMAGE_SIGNATURES: Record<string, number[]> = {
   "image/jpeg": [0xff, 0xd8, 0xff],

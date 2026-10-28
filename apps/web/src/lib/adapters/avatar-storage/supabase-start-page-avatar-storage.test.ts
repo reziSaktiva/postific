@@ -97,17 +97,26 @@ describe("supabaseStartPageAvatarStorage", () => {
     ).rejects.toThrow(ExternalServiceError);
   });
 
-  it("removes every other file in the workspace folder", async () => {
+  it("removes only old start-page avatar files other than the kept one", async () => {
+    const uuid = (n: number) =>
+      `${String(n).repeat(8)}-1111-1111-1111-111111111111`;
+    const old = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const fresh = new Date().toISOString();
     list.mockResolvedValue({
-      data: [{ name: "avatar-keep.jpg" }, { name: "avatar-old.png" }],
+      data: [
+        { name: `avatar-${uuid(1)}.jpg`, created_at: old },
+        { name: `avatar-${uuid(2)}.png`, created_at: old },
+        { name: `avatar-${uuid(3)}.png`, created_at: fresh },
+        { name: "avatar.png", created_at: old },
+      ],
       error: null,
     });
     remove.mockResolvedValue({ error: null });
     await supabaseStartPageAvatarStorage.deleteOtherAvatars({
       workspaceId: WS,
-      keepFileName: "avatar-keep.jpg",
+      keepFileName: `avatar-${uuid(1)}.jpg`,
     });
-    expect(list).toHaveBeenCalledWith(WS);
-    expect(remove).toHaveBeenCalledWith([`${WS}/avatar-old.png`]);
+    expect(list).toHaveBeenCalledWith(WS, { limit: 1000 });
+    expect(remove).toHaveBeenCalledWith([`${WS}/avatar-${uuid(2)}.png`]);
   });
 });
