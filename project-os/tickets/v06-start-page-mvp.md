@@ -257,6 +257,16 @@ Lahir dari `/code-review` PR #200 (branch `feature/t-070-start-page-public-route
 - [ ] **T-167.4** Klik dihitung di fungsi SQL `start_page_record_click_and_get_url` sebelum URL divalidasi ulang oleh `sanitizeLinkUrl`. URL seperti `https://user:pw@host/` lolos regex SQL tapi ditolak aplikasi, sehingga klik terhitung lalu 404. Hanya mungkin untuk baris manual/lama. Selaraskan validasi SQL dengan `sanitizeLinkUrl` atau terima (terkait F4 di T-162).
 - [ ] **T-167.5** Tes interaksi komponen (keyboard reorder `LinkListCard`, timer `ShareCard`): `StartPageEditor.test.tsx` hanya memakai `renderToStaticMarkup`. Butuh setup testing interaksi (mis. `@testing-library`) bila diinginkan.
 
+### T-170 · Toast tidak menutupi tombol aksi di `/start-page`
+
+`✅ Done` (2026-10-28; keputusan King Rezi: `top-center`) · **Domain** UI (`AppToaster`, seluruh area `(app)`) · **ADR** ADR-097 · **Depends** keputusan King Rezi (pola posisi toast)
+**Baca dulu:** `apps/web/src/components/ui/sonner.tsx` · `apps/web/src/app/(app)/components/AppToaster.tsx` · artifact Postific `project/components/Toaster`
+
+Lahir dari T-164.6 (QA `next dev`, 2026-10-28): toast sonner default (kanan-bawah) menutupi tombol Publish/Unpublish di kartu Share `/start-page` pada viewport 1290px. Toast juga tidak hilang selama kursor di atasnya (sonner berhenti menghitung saat hover), sehingga klik pertama mengenai toast, bukan tombol. Rancangan artifact hanya mengunci komponen Toaster, tidak posisinya. **Gate UI (aturan #10):** pola posisi/penanganan belum dikunci; ditanyakan ke King Rezi sebelum kode.
+
+- [x] **T-170.1** Pola dipilih King Rezi: `top-center` (opsi lain: kanan-bawah + tutup saat klik, kanan-atas).
+- [x] **T-170.2** `AppToaster` memakai `position="top-center"` (satu properti; `sonner.tsx` tetap generik). Diverifikasi di `next dev` + browser: toast "Halaman di-unpublish." di x 382–738, y 24–77, tombol Publish/Unpublish (y 1213) tidak tertutup dan bisa diklik langsung. `tsc` bersih. Tanpa tes unit baru (satu properti presentasi, tidak ada logika). Rancangan artifact tidak mengunci posisi, jadi tidak ada perubahan artifact.
+
 ### Perbaikan code-review PR #200 (sudah dikerjakan)
 
 Tiga perbaikan dari `/code-review` PR #200 sudah dikerjakan di branch yang sama (2026-10-28), dicatat di sini tanpa ID baru karena merupakan penyempurnaan kode T-070 sampai T-074 dan T-162 yang masih dalam PR yang sama (ADR-132 terpenuhi lewat tiket-tiket itu):

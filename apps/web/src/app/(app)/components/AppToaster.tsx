@@ -8,9 +8,11 @@ import { Toaster } from "@/components/ui/sonner";
  * T-160). Seluruh pemakai `toast()` ada di `(app)`; rute publik `/u/*` tidak
  * memuatnya karena sonner menyuntik `<style>` runtime yang melanggar CSP
  * nonce. `theme` memakai `mode` context (`components/ui/sonner.tsx` sengaja
- * tanpa `next-themes`).
+ * tanpa `next-themes`). `position="top-center"` (T-170, keputusan King Rezi):
+ * posisi default kanan-bawah menutupi tombol aksi di kartu (mis. Publish di
+ * `/start-page`).
  */
 export function AppToaster() {
   const { mode } = useThemeMode();
-  return <Toaster theme={mode} />;
+  return <Toaster theme={mode} position="top-center" />;
 }

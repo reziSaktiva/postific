@@ -23,7 +23,7 @@ Phase dan blocker ada di [`PROJECT_STATE.md`](PROJECT_STATE.md). Known Issue yan
 | 🟡     | Sedang dikerjakan                                 |
 | 🚫     | Terhenti, menunggu King Rezi atau dependency luar |
 
-ID tiket global, tidak didaur ulang. Berikutnya: **T-170**. ID spec berikutnya: **S-002**.
+ID tiket global, tidak didaur ulang. Berikutnya: **T-171**. ID spec berikutnya: **S-002**.
 
 ---
 
