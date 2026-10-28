@@ -165,6 +165,7 @@ Ganti input URL https dengan upload. Supabase JS client hanya untuk Storage (AGE
 
 **Terverifikasi:** `next build` + `next start` + `curl` + Chromium: 0 pelanggaran di `/u/<slug valid>`. **Belum:** `next dev`, Railway/staging (T-164), Firefox/Safari, toast di halaman `(app)` nyata lewat session.
 **Batasan (diterima King Rezi):** 404 bawaan Next di `/u/<slug tak ada>` menyuntik `<style>` tanpa nonce, 1 pelanggaran `style-src-elem` (kosmetik, tanpa risiko keamanan). Lanjutan: T-166.
+**Temuan code-review dibantah (PR #200):** "script tema inline tidak ber-nonce" dibantah Najwa lewat uji empiris: bootstrap Next ber-nonce, elemen dibuat chunk ber-nonce lalu lolos `'strict-dynamic'`, 0 pelanggaran, class `dark` terpasang sebelum hydration. Batasan: browser tanpa `strict-dynamic` (Safari <15.4) hanya mendapat kilas tema light.
 
 ### T-161 · Bersihkan blok DRAFT lama di `project/styles.css` artifact Postific
 
@@ -214,10 +215,33 @@ Tiket ini mencatat verifikasi yang belum dilakukan; tanpanya definisi selesai ri
 
 404 bawaan Next di `/u/<slug tak ada>` menyuntik `<style>` tanpa nonce (1 pelanggaran `style-src-elem`, kosmetik). Buat `app/u/[slug]/not-found.tsx` tanpa inline style. **Gate UI (aturan #10):** butuh rancangan di artifact Postific dan konfirmasi King Rezi sebelum kode.
 
+### T-167 · Hardening repository dan tes Start Page (lanjutan code-review PR #200, prioritas rendah)
+
+`⏳ Not Started` · **Domain** start-page · **ADR** ADR-144 · **Depends** PR #200 di-merge
+**Baca dulu:** `apps/web/src/lib/repositories/start-page/start-page-write.repository.ts` · T-162.2 · T-162.3
+
+Lahir dari `/code-review` PR #200 (branch `feature/t-070-start-page-public-route`). Tidak ada Critical/High; semuanya hardening, tidak memblokir merge.
+
+- [ ] **T-167.1** `addLink` (`start-page-write.repository.ts`): `position` dari `MAX+1` dan batas 50 tautan dicek tanpa lock. Dua tambah bersamaan bisa menghasilkan posisi kembar atau 51 tautan sehingga reorder gagal. Perbaikan: hitung dan insert dalam satu transaksi dengan `SELECT ... FOR UPDATE` pada baris halaman; sekaligus kunci race `deleteLink`/`reorderLinks` (T-162.2 menerima race ini sebagai LOW).
+- [ ] **T-167.2** `addLink` di service memuat seluruh halaman dan tautan lewat `findByWorkspace` hanya untuk hitung/cek. Ganti dengan count/exists di repository dalam transaksi yang sama (digabung T-167.1).
+- [ ] **T-167.3** `reorderLinks` dan pemadatan `deleteLink` melakukan sampai 50 `UPDATE` berurutan. Jadikan satu query (`UPDATE ... FROM unnest/VALUES`).
+- [ ] **T-167.4** Klik dihitung di fungsi SQL `start_page_record_click_and_get_url` sebelum URL divalidasi ulang oleh `sanitizeLinkUrl`. URL seperti `https://user:pw@host/` lolos regex SQL tapi ditolak aplikasi, sehingga klik terhitung lalu 404. Hanya mungkin untuk baris manual/lama. Selaraskan validasi SQL dengan `sanitizeLinkUrl` atau terima (terkait F4 di T-162).
+- [ ] **T-167.5** Tes interaksi komponen (keyboard reorder `LinkListCard`, timer `ShareCard`): `StartPageEditor.test.tsx` hanya memakai `renderToStaticMarkup`. Butuh setup testing interaksi (mis. `@testing-library`) bila diinginkan.
+
+### Perbaikan code-review PR #200 (sudah dikerjakan)
+
+Tiga perbaikan dari `/code-review` PR #200 sudah dikerjakan di branch yang sama (2026-10-28), dicatat di sini tanpa ID baru karena merupakan penyempurnaan kode T-070 sampai T-074 dan T-162 yang masih dalam PR yang sama (ADR-132 terpenuhi lewat tiket-tiket itu):
+
+- [x] Fokus keyboard `LinkListCard`: `focusAfterMove` tidak dibersihkan sehingga fokus bisa melompat; kini dibersihkan.
+- [x] Komentar `deleteLink` di service diperbaiki agar sesuai perilaku (pemadatan `position` dalam satu transaksi, T-162.2).
+- [x] Timer `ShareCard` diperbaiki.
+
+Temuan lain dari review yang tidak diperbaiki di PR ini ada di T-167.
+
 ---
 
 ## Catatan Rilis
 
-- T-075–T-079 sengaja dikosongkan sebagai ruang penambahan task v0.6. Lanjutan memakai ID global berikutnya (T-159 sampai T-166), bukan ID dalam rentang ini.
+- T-075–T-079 sengaja dikosongkan sebagai ruang penambahan task v0.6. Lanjutan memakai ID global berikutnya (T-159 sampai T-167), bukan ID dalam rentang ini.
 - **Definition of Done rilis ini:** pengguna dapat membagikan halaman publik melalui media sosial.
 - **Yang sengaja di luar rilis ini (`feature-priority.md`):** E-commerce Widgets (Won't Have).
