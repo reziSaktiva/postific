@@ -231,11 +231,11 @@ Neymar menghapus blok DRAFT lama (75 baris, Aksen hijau/`accent-bronze`) dari `p
 Tiket ini mencatat verifikasi yang belum dilakukan; tanpanya definisi selesai rilis ("pengguna dapat membagikan halaman publik") belum terbukti.
 
 - [x] **T-164.1** (2026-10-28) Query duplikat `start_page_pages` per `workspace_id`: 0 baris. Keempat migrasi (T-070, T-072, T-074, T-162.3) sudah tercatat selesai di `_prisma_migrations` project staging `ndcrkzqgqukqfmekgoze` (ADR-081) sejak 2026-10-28 04:18 UTC, jadi tidak ada yang perlu di-apply ulang. Tabel `start_page_pages` masih kosong (belum ada halaman uji di staging).
-- [~] **T-164.2** (2026-10-28) Grant: ketiga fungsi `start_page_*` (`get_public_by_slug`, `record_view`, `record_click_and_get_url`) `SECURITY DEFINER`, `EXECUTE` untuk `anon`, `authenticated`, dan `public` semuanya `false` (terverifikasi lewat `has_function_privilege`). **Belum:** tipe kolom hasil `$queryRaw` (butuh halaman uji, lihat T-164.5)
-- [ ] **T-164.3** `curl` tanpa cookie ke `/u/<slug>` dan `/u/<slug>/go/<linkId>` di staging: tidak redirect ke `/login`, redirect 302, `Cache-Control` sesuai
-- [ ] **T-164.4** Uji `next build` dan jalur `P2025` (selama ini hanya mock)
-- [ ] **T-164.5** Browser: buat halaman, tambah tautan, publish, buka sebagai anonim, klik tautan, cek counter di Page Editor
-- [ ] **T-164.6** CSP di staging (Railway): 0 pelanggaran di `/u/<slug>` (Chromium, idealnya Firefox/Safari), `next dev` lokal, toast di halaman `(app)`. Pantau rasio `view_count` terhadap `click_count` setelah rilis: bila view jauh di bawah klik, filter Fetch Metadata (T-162.1) terlalu ketat
+- [x] **T-164.2** (2026-10-28) Grant: ketiga fungsi `start_page_*` (`get_public_by_slug`, `record_view`, `record_click_and_get_url`) `SECURITY DEFINER`, `EXECUTE` untuk `anon`, `authenticated`, dan `public` semuanya `false` (`has_function_privilege`). Tipe hasil `$queryRaw` terbukti benar lewat halaman publik yang tampil dan counter yang naik di staging.
+- [x] **T-164.3** (2026-10-28) `curl` tanpa cookie ke `https://web-staging-60d7.up.railway.app`: `/u/<slug>` 200 tanpa redirect ke `/login`, `Cache-Control: private, no-cache, no-store`, CSP bernonce; `/u/<slug>/go/<linkId>` 302 ke url tujuan dengan `Cache-Control: no-store`; `linkId` acak 404. **Temuan:** `curl` dengan UA bawaan tidak menaikkan counter (filter bot bekerja sesuai desain); dengan UA browser + `Sec-Fetch-Dest: document`/`Sec-Fetch-Mode: navigate`, `view_count` dan `click_count` naik 1.
+- [ ] **T-164.4** Uji `next build` dan jalur `P2025` (selama ini hanya mock). Belum dikerjakan.
+- [x] **T-164.5** (2026-10-28) Staging: halaman `cook-it-real-good` dibuat King Rezi, satu tautan uji ditambah dan dipublish lewat UI, dibuka anonim (`curl`) dan di browser, klik terhitung; Page Editor menampilkan 2 kunjungan dan "1 klik" pada tautan. Data uji ini sengaja dibiarkan di staging.
+- [~] **T-164.6** (2026-10-28) CSP di staging: 0 pelanggaran di konsol Chromium (browser pane) pada `/u/<slug>` dan `/start-page`. **Belum:** Firefox/Safari, `next dev` lokal, toast di halaman `(app)`. Rasio view terhadap klik dipantau setelah rilis (saat ini 2 view : 1 klik dari uji manual, belum bermakna).
 
 ### T-166 · 404 publik kustom untuk `/u/[slug]` tanpa inline style
 
