@@ -190,11 +190,14 @@ Area manajemen halaman publik (link-in-bio).
 ```
 Start Page
 ├── Page Editor               — susun tampilan halaman publik
-│   ├── Link List             — tambah / edit / hapus tautan
-│   └── Theme Selector        — pilih tema tampilan (Should Have)
-├── Preview                   — lihat tampilan halaman sebelum publish
-└── Share                     — salin URL halaman publik
+│   ├── Profil                — judul, slug, bio, foto (URL https), tombol Simpan
+│   ├── Link List             — tambah / edit (Dialog) / hapus / urutkan tautan
+│   └── Theme Selector        — ToggleGroup 3 preset: Default, Dark, Aksen
+├── Preview                   — lihat tampilan halaman sesuai draft sebelum disimpan
+└── Share                     — salin URL halaman publik + Publish/Unpublish
 ```
+
+Analytics dasar (total kunjungan di page-head, klik per tautan di Link List) hanya tampil di Page Editor, bukan di halaman publik. Angka penuh (id-ID) di bawah 10.000, ringkas mulai 10.000; tanpa data tampil `0` + petunjuk. Pilihan UI dan hak akses: ADR-144; sumber angka: ADR-143.
 
 **Pengguna utama:** Raka / siapapun yang mengelola profil publik brand.
 

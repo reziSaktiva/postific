@@ -493,13 +493,15 @@ Diputuskan King Rezi 2026-10-26 dan dicatat di ADR-141 (pengecualian DB-D05). Po
 | `title` | `text NOT NULL` | Judul halaman |
 | `bio` | `text` | Deskripsi singkat |
 | `avatar_url` | `text` | URL avatar halaman |
-| `theme` | `text NOT NULL DEFAULT 'default'` | `default \| minimal \| bold` |
+| `theme` | `text NOT NULL DEFAULT 'default'` | `default \| dark \| accent` (allowlist `START_PAGE_THEMES`, ADR-144; sebelumnya tertulis `default \| minimal \| bold`) |
 | `is_published` | `boolean NOT NULL DEFAULT false` | |
-| `view_count` | `bigint NOT NULL DEFAULT 0` | Basic analytics |
+| `view_count` | `bigint NOT NULL DEFAULT 0` | Counter kunjungan, hanya naik lewat `start_page_record_view` (ADR-143) |
 | `created_at` | `timestamptz NOT NULL DEFAULT now()` | |
 | `updated_at` | `timestamptz NOT NULL DEFAULT now()` | |
 
-**Catatan:** Satu workspace hanya memiliki satu Start Page. Enforce di application layer; dapat ditambahkan `UNIQUE(workspace_id)` constraint jika diperlukan.
+**Catatan:** Satu workspace hanya memiliki satu Start Page, dijaga constraint `UNIQUE(workspace_id)` (migrasi `20261026130000_t072_start_page_unique_workspace`, ADR-144) selain di application layer.
+
+**Akses anonim (halaman publik `/u/[slug]`):** tabel ini **tidak** punya policy RLS untuk `anon` maupun `app_runtime` dan tidak dibuka lewat PostgREST. Baca dan counter lewat tiga fungsi Postgres `SECURITY DEFINER` dengan kolom terbatas: `start_page_get_public_by_slug` (baca, hanya halaman published, ADR-142), `start_page_record_view` dan `start_page_record_click_and_get_url` (counter, ADR-143). Ketiganya `REVOKE` dari `PUBLIC`/`anon`/`authenticated`, `GRANT EXECUTE` hanya ke `app_runtime`.
 
 ### `start_page_links`
 
@@ -511,7 +513,7 @@ Diputuskan King Rezi 2026-10-26 dan dicatat di ADR-141 (pengecualian DB-D05). Po
 | `url` | `text NOT NULL` | Target URL |
 | `position` | `integer NOT NULL` | Urutan tampil |
 | `is_active` | `boolean NOT NULL DEFAULT true` | |
-| `click_count` | `bigint NOT NULL DEFAULT 0` | Basic analytics |
+| `click_count` | `bigint NOT NULL DEFAULT 0` | Counter klik, hanya naik lewat `start_page_record_click_and_get_url` (ADR-143) |
 | `created_at` | `timestamptz NOT NULL DEFAULT now()` | |
 | `updated_at` | `timestamptz NOT NULL DEFAULT now()` | |
 
@@ -789,6 +791,7 @@ Detail implementasi migrasi didefinisikan di Engineering Planning (M6). Poin ars
 | DB-D07 | `outstand_webhook_events` sebagai durable idempotent receipt | Menjamin event tersimpan sebelum ACK dan memisahkan delivery vendor dari processing internal | ACK sebelum persist; payload hanya di job queue |
 | DB-D08 | Engagement schema MVP hanya komentar/reply | Selaras kontrak Outstand dan sumber JOB-03/manual sync | Menyimpan DM/mention yang tidak dapat disinkronkan |
 | DB-D09 | ADR-040 | DB-D07–D08 serta metadata working copy media mengamandemen skema konseptual lama | — |
+| DB-D10 | Akses anonim Start Page lewat fungsi `SECURITY DEFINER` (baca dan counter), bukan policy RLS `anon` | RLS tidak bisa membatasi kolom (`workspace_id`, counter bocor lewat PostgREST); policy `app_runtime` melemahkan isolasi tenant | Policy `anon`/`app_runtime` langsung di tabel; view kolom terbatas (ADR-142, ADR-143) |
 
 ---
 

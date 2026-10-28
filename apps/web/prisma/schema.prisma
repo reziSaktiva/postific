@@ -680,7 +680,7 @@ model StartPagePage {
   workspace Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   links     StartPageLink[]
 
-  @@index([workspaceId])
+  @@unique([workspaceId])
   @@map("start_page_pages")
 }
 

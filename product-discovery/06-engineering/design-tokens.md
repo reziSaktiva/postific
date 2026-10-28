@@ -394,6 +394,20 @@ perlu di-approve eksplisit (bukan bagian "migrasi tanpa ubah visual").
 
 ---
 
+# Tema Start Page (ADR-144)
+
+Halaman publik Start Page punya tema yang bisa dipilih pengguna, tetapi **bukan** set token sendiri: setiap preset adalah turunan token produk yang sudah ada (§ Engineering Mapping), tanpa token baru dan tanpa warna bebas dari pengguna. Enum allowlist `default | dark | accent` (`START_PAGE_THEMES`); nilai di luar daftar jatuh ke `default`.
+
+| Preset | Perilaku |
+| ------ | -------- |
+| `default` | Ikut tema aplikasi (light atau dark) |
+| `dark` | Scope token dark dipaksa |
+| `accent` | Aksen **netral tanpa hue**: inversi `--primary` Stone (latar `--primary`, teks `--primary-foreground`) |
+
+Rancangan dikunci di artifact Postific (King Rezi, 2026-10-26). Kalau tema baru atau warna bebas diminta, itu keputusan baru (ADR), bukan penambahan nilai di sini.
+
+---
+
 # Related Documents
 
 * `README.md` (folder Engineering)
