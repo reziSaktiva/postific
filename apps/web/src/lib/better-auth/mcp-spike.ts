@@ -2,18 +2,19 @@ import { oauthProvider } from "@better-auth/oauth-provider";
 import { APIError } from "better-auth/api";
 import { jwt } from "better-auth/plugins";
 
-import {
-  getSpikeGrantStore,
-  type SpikeGrantStore,
-} from "@/lib/mcp-spike/grant-store";
+import { getMcpAccessService } from "@/lib/mcp-access/get-mcp-access-service";
+import { isMcpEnabled, mcpBaseUrl } from "@/lib/mcp/config";
 
-import { mcpSpikeGrantPlugin } from "./mcp-spike-grant-hook";
+import { mcpGrantPlugin, type McpGrantAccess } from "./mcp-grant-hook";
 
 /**
- * T-148 (spike MCP, ADR-139) — SEMENTARA. Dipakai untuk membuktikan alur OAuth
- * klien MCP nyata ke HTTPS dan interaksi plugin `jwt` dengan `dash`. Mati
- * kecuali `MCP_SPIKE_ENABLED=true`, jadi deploy tanpa env itu tidak berubah.
- * T-149/T-150/T-151 menggantikan file ini; jangan dikembangkan di sini.
+ * Plugin OAuth untuk MCP (ADR-139). Layar consent dan pilihan workspace di
+ * file ini masih bentuk harness T-148 (pilihan workspace di memori) dan
+ * digantikan T-151; jangan dikembangkan di sini. Grant tidak lagi di store
+ * memori: plugin grant permanen (`mcp-grant-hook.ts`, T-150.4) memanggil
+ * `McpAccessService`. Nyala/mati dikendalikan `isMcpEnabled()`
+ * (`lib/mcp/config.ts`), flag yang sama dengan route `/api/mcp`, jadi route
+ * dan OAuth tidak bisa menyala terpisah.
  */
 
 export const MCP_SCOPES = ["mcp:read", "mcp:draft", "mcp:schedule"] as const;
@@ -32,17 +33,12 @@ const globalForChoices = globalThis as unknown as {
 const workspaceChoices = (globalForChoices.__mcpSpikeWorkspaceChoices ??=
   new Map());
 
+/** Nama lama dipertahankan untuk halaman/route harness; isinya `isMcpEnabled()`. */
 export function mcpSpikeEnabled(): boolean {
-  return process.env.MCP_SPIKE_ENABLED === "true";
+  return isMcpEnabled();
 }
 
-export function mcpBaseUrl(): string {
-  return (process.env.BETTER_AUTH_URL ?? "").replace(/\/+$/, "");
-}
-
-export function mcpResourceUrl(): string {
-  return `${mcpBaseUrl()}/api/mcp`;
-}
+export { mcpBaseUrl, mcpResourceUrl } from "@/lib/mcp/config";
 
 export function rememberWorkspaceChoice(
   sessionId: string,
@@ -61,18 +57,19 @@ function currentWorkspaceChoice(sessionId: string): string | undefined {
 
 export type McpSpikePluginOptions = {
   baseUrl: string;
-  grantStore: SpikeGrantStore;
+  /** Pabrik `McpAccessService` untuk plugin grant; produksi: `getMcpAccessService`. */
+  getAccess: () => McpGrantAccess;
 };
 
 /**
- * Susunan plugin spike, tanpa pemeriksaan flag supaya tes (T-149.2) bisa
- * memakai konfigurasi yang persis sama dengan harness. `jwt()` wajib oleh
- * `oauthProvider`; keduanya diuji berdampingan dengan `dash`. Plugin grant
- * (T-149.2) menyalin consent menjadi grant lewat `hooks.after`.
+ * Susunan plugin OAuth MCP, tanpa pemeriksaan flag supaya tes memakai
+ * konfigurasi yang persis sama. `jwt()` wajib oleh `oauthProvider`; keduanya
+ * diuji berdampingan dengan `dash`. Plugin grant menyalin consent menjadi
+ * grant lewat `hooks.after`.
  */
 export function createMcpSpikePlugins({
   baseUrl,
-  grantStore,
+  getAccess,
 }: McpSpikePluginOptions) {
   const resourceUrl = `${baseUrl}/api/mcp`;
 
@@ -114,23 +111,19 @@ export function createMcpSpikePlugins({
         workspace_id: referenceId,
       }),
     }),
-    mcpSpikeGrantPlugin({
-      store: grantStore,
-      toolScopes: MCP_SCOPES,
-      consentReferenceId,
-    }),
+    mcpGrantPlugin({ getAccess, consentReferenceId }),
   ];
 }
 
 /**
- * Plugin yang ditambahkan ke `auth.ts` hanya saat spike aktif.
+ * Plugin yang ditambahkan ke `auth.ts` hanya saat `isMcpEnabled()`.
  */
 export function mcpSpikePlugins() {
-  if (!mcpSpikeEnabled()) {
+  if (!isMcpEnabled()) {
     return [];
   }
   return createMcpSpikePlugins({
     baseUrl: mcpBaseUrl(),
-    grantStore: getSpikeGrantStore(),
+    getAccess: getMcpAccessService,
   });
 }
