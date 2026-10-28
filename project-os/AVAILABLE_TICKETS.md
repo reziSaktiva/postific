@@ -46,12 +46,12 @@ ID tiket global, tidak didaur ulang. Berikutnya: **T-159**. ID spec berikutnya: 
 
 Masih ⏳, dikerjakan saat rilisnya aktif. Detail di file masing-masing.
 
-| Rilis | ID                                      | File                                 |
-| ----- | --------------------------------------- | ------------------------------------ |
-| v0.4  | T-055 Inbox assignment                  | [v04](tickets/v04-engagement-mvp.md) |
-| v0.5  | T-149 – T-157 (MCP Server, ADR-138)     | [v05](tickets/v05-mcp-server-mvp.md) |
-| v0.6  | T-070 – T-074                           | [v06](tickets/v06-start-page-mvp.md) |
-| v1.0  | T-080 – T-088, termasuk KI-028 di T-088 | [v10](tickets/v10-public-launch.md)  |
+| Rilis | ID                                                                         | File                                 |
+| ----- | -------------------------------------------------------------------------- | ------------------------------------ |
+| v0.4  | T-055 Inbox assignment                                                     | [v04](tickets/v04-engagement-mvp.md) |
+| v0.5  | T-150 – T-157 (MCP Server, ADR-138; T-149 ✅ 2026-10-26, T-150 berikutnya) | [v05](tickets/v05-mcp-server-mvp.md) |
+| v0.6  | T-070 – T-074                                                              | [v06](tickets/v06-start-page-mvp.md) |
+| v1.0  | T-080 – T-088, termasuk KI-028 di T-088                                    | [v10](tickets/v10-public-launch.md)  |
 
 v0.3 dan v0.7 tidak punya tiket terbuka.
 

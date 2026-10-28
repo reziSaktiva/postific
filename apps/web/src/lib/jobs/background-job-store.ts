@@ -126,6 +126,34 @@ export const backgroundJobStore = {
   },
 
   /**
+   * Varian `hasJobMatchingPayloadKey` untuk job tanpa kunci payload (mis.
+   * JOB-08 `mcp.audit.purge`, payload `{}`): kalau `createdSince` diisi, job
+   * dihitung sudah ada bila dibuat sejak waktu itu (status apa pun) atau
+   * masih `pending`/`running`. Tanpa `createdSince`, hanya `pending`/`running`.
+   */
+  async hasJobOfType(input: {
+    type: string;
+    createdSince?: Date;
+  }): Promise<boolean> {
+    const existing = await prisma.backgroundJob.findFirst({
+      where: {
+        type: input.type,
+        ...(input.createdSince
+          ? {
+              OR: [
+                { createdAt: { gte: input.createdSince } },
+                { status: { in: ["pending", "running"] } },
+              ],
+            }
+          : { status: { in: ["pending", "running"] } }),
+      },
+      select: { id: true },
+    });
+
+    return existing !== null;
+  },
+
+  /**
    * T-027.1 — klaim batch job `pending` yang sudah due
    * (`scheduled_at <= now()`), locking aman untuk eksekusi paralel via
    * `SELECT ... FOR UPDATE SKIP LOCKED` (BG-D03, `background-jobs.md` §

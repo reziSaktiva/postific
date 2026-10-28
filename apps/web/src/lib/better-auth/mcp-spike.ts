@@ -2,6 +2,13 @@ import { oauthProvider } from "@better-auth/oauth-provider";
 import { APIError } from "better-auth/api";
 import { jwt } from "better-auth/plugins";
 
+import {
+  getSpikeGrantStore,
+  type SpikeGrantStore,
+} from "@/lib/mcp-spike/grant-store";
+
+import { mcpSpikeGrantPlugin } from "./mcp-spike-grant-hook";
+
 /**
  * T-148 (spike MCP, ADR-139) — SEMENTARA. Dipakai untuk membuktikan alur OAuth
  * klien MCP nyata ke HTTPS dan interaksi plugin `jwt` dengan `dash`. Mati
@@ -52,24 +59,47 @@ function currentWorkspaceChoice(sessionId: string): string | undefined {
   return choice.workspaceId;
 }
 
+export type McpSpikePluginOptions = {
+  baseUrl: string;
+  grantStore: SpikeGrantStore;
+};
+
 /**
- * Plugin yang ditambahkan ke `auth.ts` hanya saat spike aktif. `jwt()` wajib
- * oleh `oauthProvider`; keduanya diuji berdampingan dengan `dash`.
+ * Susunan plugin spike, tanpa pemeriksaan flag supaya tes (T-149.2) bisa
+ * memakai konfigurasi yang persis sama dengan harness. `jwt()` wajib oleh
+ * `oauthProvider`; keduanya diuji berdampingan dengan `dash`. Plugin grant
+ * (T-149.2) menyalin consent menjadi grant lewat `hooks.after`.
  */
-export function mcpSpikePlugins() {
-  if (!mcpSpikeEnabled()) {
-    return [];
+export function createMcpSpikePlugins({
+  baseUrl,
+  grantStore,
+}: McpSpikePluginOptions) {
+  const resourceUrl = `${baseUrl}/api/mcp`;
+
+  function consentReferenceId({
+    session,
+  }: {
+    session: { id: string };
+  }): string {
+    const workspaceId = currentWorkspaceChoice(session.id);
+    if (!workspaceId) {
+      // Gagal tegas: consent tanpa workspace menerbitkan token tanpa
+      // `workspace_id` yang ditolak 403 tanpa penjelasan.
+      throw new APIError("BAD_REQUEST", {
+        message:
+          "Pilihan workspace kedaluwarsa. Ulangi penyambungan dari klien AI.",
+      });
+    }
+    return workspaceId;
   }
 
-  const base = mcpBaseUrl();
-
   return [
-    jwt({ jwt: { issuer: base, audience: mcpResourceUrl() } }),
+    jwt({ jwt: { issuer: baseUrl, audience: resourceUrl } }),
     oauthProvider({
       loginPage: "/login",
       consentPage: "/consent",
       scopes: ["openid", "offline_access", ...MCP_SCOPES],
-      validAudiences: [mcpResourceUrl()],
+      validAudiences: [resourceUrl],
       allowDynamicClientRegistration: true,
       allowUnauthenticatedClientRegistration: true,
       clientRegistrationDefaultScopes: ["mcp:read", "mcp:draft"],
@@ -78,22 +108,29 @@ export function mcpSpikePlugins() {
         page: "/select-workspace",
         shouldRedirect: ({ session }) =>
           currentWorkspaceChoice(session.id) === undefined,
-        consentReferenceId: ({ session }) => {
-          const workspaceId = currentWorkspaceChoice(session.id);
-          if (!workspaceId) {
-            // Gagal tegas: consent tanpa workspace menerbitkan token tanpa
-            // `workspace_id` yang ditolak 403 tanpa penjelasan.
-            throw new APIError("BAD_REQUEST", {
-              message:
-                "Pilihan workspace kedaluwarsa. Ulangi penyambungan dari klien AI.",
-            });
-          }
-          return workspaceId;
-        },
+        consentReferenceId,
       },
       customAccessTokenClaims: ({ referenceId }) => ({
         workspace_id: referenceId,
       }),
     }),
+    mcpSpikeGrantPlugin({
+      store: grantStore,
+      toolScopes: MCP_SCOPES,
+      consentReferenceId,
+    }),
   ];
+}
+
+/**
+ * Plugin yang ditambahkan ke `auth.ts` hanya saat spike aktif.
+ */
+export function mcpSpikePlugins() {
+  if (!mcpSpikeEnabled()) {
+    return [];
+  }
+  return createMcpSpikePlugins({
+    baseUrl: mcpBaseUrl(),
+    grantStore: getSpikeGrantStore(),
+  });
 }

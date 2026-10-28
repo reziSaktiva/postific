@@ -39,7 +39,7 @@ apps/web/
 packages/shared/             ← ID, enum, VO — tanpa business logic
 ```
 
-Catatan: `mcp-access/` dibuat di T-149; sampai itu stub `ai-assistant/` masih ada di kode (ADR-138).
+Catatan: domain `mcp-access/` dibuat di T-149 dan stub `ai-assistant/` sudah dihapus (ADR-138).
 
 Setiap domain module punya public surface via `index.ts` (dan types/errors sesuai scaffold M7).
 

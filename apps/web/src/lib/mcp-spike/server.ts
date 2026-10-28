@@ -1,11 +1,18 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import type { JWTPayload } from "jose";
-import { asUserId, asWorkspaceId, MemberStatus } from "@postific/shared";
+import { asUserId, asWorkspaceId } from "@postific/shared";
 
 import { WorkspaceService } from "@/domains/workspace";
-import { prisma } from "@/lib/prisma/client";
 import { workspaceRepository } from "@/lib/repositories/workspace";
+
+import {
+  authorizeSpikeCall,
+  readClaims,
+  type SpikeAuthorizeDeps,
+  type SpikeClaims,
+} from "./authorize";
+import { getSpikeGrantStore } from "./grant-store";
 
 /**
  * T-148 (spike MCP) — SEMENTARA, dibuang oleh T-149/T-150. Membuktikan tiga
@@ -13,64 +20,24 @@ import { workspaceRepository } from "@/lib/repositories/workspace";
  * grant di DB tiap panggilan, dan scope kustom benar-benar membatasi tool.
  */
 
-type SpikeClaims = {
-  userId: string;
-  workspaceId: string;
-  clientId: string;
-  scopes: string[];
-};
-
-function readClaims(jwt: JWTPayload): SpikeClaims | null {
-  const userId = typeof jwt.sub === "string" ? jwt.sub : undefined;
-  const clientId = typeof jwt.azp === "string" ? jwt.azp : undefined;
-  const workspaceId =
-    typeof jwt.workspace_id === "string" ? jwt.workspace_id : undefined;
-  if (!userId || !clientId || !workspaceId) {
-    return null;
-  }
-  const scopes = typeof jwt.scope === "string" ? jwt.scope.split(" ") : [];
-  return { userId, workspaceId, clientId, scopes };
-}
-
 const workspaceService = new WorkspaceService(workspaceRepository);
 
-/**
- * Satu gerbang untuk semua tool: scope token, member aktif, dan grant (consent)
- * yang masih ada dan memuat scope itu. Dijalankan di setiap panggilan. Mengembalikan
- * pesan penolakan, atau null bila lolos. Scope diperiksa terhadap token DAN consent
- * di DB supaya penyempitan scope berlaku pada token lama.
- */
-async function authorize(
+// T-149.2: grant (bukan consent plugin) adalah sumber otorisasi. Store di
+// memori sementara menggantikan tabel `mcp_grants` (T-149.3).
+const authorizeDeps: SpikeAuthorizeDeps = {
+  getMembership: (workspaceId, userId) =>
+    workspaceService.getMembership(
+      asWorkspaceId(workspaceId),
+      asUserId(userId),
+    ),
+  findActiveGrant: (key) => getSpikeGrantStore().findActive(key),
+};
+
+function authorize(
   claims: SpikeClaims,
   requiredScope: string,
 ): Promise<string | null> {
-  const denied = `Scope ${requiredScope} tidak diberikan.`;
-  if (!claims.scopes.includes(requiredScope)) {
-    return denied;
-  }
-
-  const [membership, grant] = await Promise.all([
-    workspaceService.getMembership(
-      asWorkspaceId(claims.workspaceId),
-      asUserId(claims.userId),
-    ),
-    prisma.oauthConsent.findFirst({
-      where: {
-        clientId: claims.clientId,
-        userId: claims.userId,
-        referenceId: claims.workspaceId,
-      },
-      orderBy: { createdAt: "desc" },
-      select: { scopes: true },
-    }),
-  ]);
-  if (!membership || membership.status !== MemberStatus.Active) {
-    return "Bukan member aktif workspace ini.";
-  }
-  if (!grant) {
-    return "Akses klien ini sudah dicabut.";
-  }
-  return grant.scopes.includes(requiredScope) ? null : denied;
+  return authorizeSpikeCall(authorizeDeps, claims, requiredScope);
 }
 
 function textResult(payload: unknown) {
