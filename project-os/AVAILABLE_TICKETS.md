@@ -23,7 +23,7 @@ Phase dan blocker ada di [`PROJECT_STATE.md`](PROJECT_STATE.md). Known Issue yan
 | 🟡     | Sedang dikerjakan                                 |
 | 🚫     | Terhenti, menunggu King Rezi atau dependency luar |
 
-ID tiket global, tidak didaur ulang. Berikutnya: **T-171**. ID spec berikutnya: **S-002**.
+ID tiket global, tidak didaur ulang. Berikutnya: **T-172**. ID spec berikutnya: **S-002**.
 
 ---
 
@@ -36,9 +36,9 @@ ID tiket global, tidak didaur ulang. Berikutnya: **T-171**. ID spec berikutnya: 
 | T-013 | 🟡     | Connect account. Sisa: T-013.4 BYOK X                                                                                                              | [v0.1](tickets/v01-foundation.md)     |
 | T-119 | 🚫     | Isi env Google OAuth. KI-015. King Rezi yang mengisi rahasianya                                                                                    | [KI](tickets/known-issues.md)         |
 | T-158 | 🚫     | Lepas project Claude Design lama dan verifikasi isinya terhadap artifact. KI-103. Sebelum 2026-12-14. Langkah manual King Rezi                     | [KI](tickets/known-issues.md)         |
-| T-164 | 🟡     | Verifikasi staging Start Page. Sisa: T-164.6 (Firefox/Safari, `next dev`, toast `(app)`, pantau rasio view/klik)                                   | [v0.6](tickets/v06-start-page-mvp.md) |
 | T-166 | ⏳     | 404 publik kustom `app/u/[slug]/not-found.tsx` tanpa inline style. Butuh rancangan artifact dulu (aturan UI #10)                                   | [v0.6](tickets/v06-start-page-mvp.md) |
 | T-167 | ⏳     | Hardening repository dan tes Start Page (lanjutan code-review PR #200, prioritas rendah): lock `addLink`, UPDATE reorder satu query, tes interaksi | [v0.6](tickets/v06-start-page-mvp.md) |
+| T-171 | ⏳     | Pantau rasio view/klik Start Page setelah rilis dan cek Safari asli (sisa T-164.6). Butuh trafik nyata dan perangkat Apple                         | [v0.6](tickets/v06-start-page-mvp.md) |
 
 **T-146 ✅ Done (2026-10-23, atas pernyataan King Rezi setelah verifikasi browser).** **T-122 ✅ Done (2026-10-23, atas pernyataan King Rezi setelah uji manual; tanpa bukti otomatis, KI-053).** **T-143 ✅ Done (2026-10-23, atas pernyataan King Rezi; bukti cron belum terlihat di DB, lihat catatan T-143.5).** **T-144 dan T-145 ✅ Done (2026-10-23, PR 194):** tampilan Publish WIB dan `occurred_at` generated column untuk urutan History; terverifikasi di dev server lokal ke DB yang sama (bukan deploy Railway), sisa catatan review ada di tiket T-145. T-037 prioritas rendah dan tidak memblokir rilis. T-115 masih 🟡: job import dan watermark sudah terbukti di staging; sisa T-115.5 adalah post native Facebook yang muncul di Postific. T-142 selesai 2026-10-23 (PR 193): History memakai `publishedAt` untuk grup, urutan, dan jam kartu; diverifikasi King Rezi di browser. T-124 selesai 2026-10-19 (error kolom void, KI-091). T-116 → T-117 → T-118 (token-agent) selesai 2026-10-16, lihat `tickets/v01-foundation.md`. T-131 dan T-132 selesai 2026-10-20 (revisi scope Import Posts dari King Rezi; T-132 klasifikasi `ContentFormat` via Outstand Analytics, ADR-135). **T-130, T-134, T-135, T-136 (🔴 prioritas tinggi)** lahir dari satu investigasi ketidaksesuaian data Supabase vs Outstand yang sama — implementasinya tuntas 2026-10-21 (review Ridwan PASS, QA Najwa PASS, ADR-136). Akun test real "Cook It Real Good" tersedia 2026-10-22: **T-134 dan T-135 ✅ Done**. 2026-10-23: **T-130, T-136, T-139 ✅ Done** (Home menampilkan 12 post Oktober sesuai DB; import Instagram 182 post tersimpan lewat chunk per transaksi) dan bug baru **T-141 ✅ Done** (pagination `GET /v1/posts`, limit maks 100). **T-133 ✅ Done (2026-10-23):** script T-133.2/.3 dieksekusi atas konfirmasi King Rezi (Facebook 184, Instagram 182 post, terklasifikasi), diverifikasi di Home/Analyze/History; TikTok terbukti didukung Import, Pinterest tetap keterbatasan eksplisit (tanpa akun test). **T-140 ✅ Done** (2026-10-22, KI-100) — bug produksi infinite redirect loop `/` ↔ `/login` saat session cookie stale/invalid di `proxy.ts`, ditemukan King Rezi saat `bun dev` lokal, diperbaiki sesi yang sama (hapus cookie session stale sebelum redirect, lihat `tickets/known-issues.md`).
 
@@ -54,7 +54,7 @@ Masih ⏳, dikerjakan saat rilisnya aktif. Detail di file masing-masing.
 | v0.5  | T-150 – T-157, T-168 (MCP Server, ADR-138; T-149 ✅ 2026-10-26; T-150 🟡 In Progress, T-150.1–.6 selesai, sisa .7–.9) | [v05](tickets/v05-mcp-server-mvp.md) |
 | v1.0  | T-080 – T-088, termasuk KI-028 di T-088                                                                               | [v10](tickets/v10-public-launch.md)  |
 
-v0.3 tidak punya tiket terbuka. v0.7 tidak punya tiket terbuka (T-165, T-169 ✅). v0.6 selesai (T-070 – T-074 ✅, T-159 ✅, T-163 ✅); sisanya hanya lanjutan T-164, T-166, T-167 di tabel Sekarang.
+v0.3 tidak punya tiket terbuka. v0.7 tidak punya tiket terbuka (T-165, T-169 ✅). v0.6 selesai (T-070 – T-074 ✅, T-159 ✅, T-163 ✅); sisanya hanya lanjutan T-166, T-167, T-171 di tabel Sekarang.
 
 ---
 

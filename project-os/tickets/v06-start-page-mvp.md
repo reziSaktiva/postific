@@ -225,7 +225,7 @@ Neymar menghapus blok DRAFT lama (75 baris, Aksen hijau/`accent-bronze`) dari `p
 
 ### T-164 · Verifikasi staging Start Page: apply migrasi dan uji publik end-to-end
 
-`🟡 In Progress` (T-164.1 sampai .5 ✅ 2026-10-28; sisa T-164.6) · **Domain** start-page · infra · **ADR** ADR-142, ADR-143, ADR-144 · **Depends** PR #200 ✅ (sudah di `staging`)
+`✅ Done` (2026-10-28; T-164.1 sampai .6 diverifikasi di staging. Dua sisa yang butuh Safari asli dan trafik nyata dipindah ke T-171) · **Domain** start-page · infra · **ADR** ADR-142, ADR-143, ADR-144 · **Depends** PR #200 ✅ (sudah di `staging`)
 **Baca dulu:** ADR-142 § Consequences · ADR-143 § Consequences · T-072 (prasyarat F6)
 
 Tiket ini mencatat verifikasi yang belum dilakukan; tanpanya definisi selesai rilis ("pengguna dapat membagikan halaman publik") belum terbukti.
@@ -235,7 +235,17 @@ Tiket ini mencatat verifikasi yang belum dilakukan; tanpanya definisi selesai ri
 - [x] **T-164.3** (2026-10-28) `curl` tanpa cookie ke `https://web-staging-60d7.up.railway.app`: `/u/<slug>` 200 tanpa redirect ke `/login`, `Cache-Control: private, no-cache, no-store`, CSP bernonce; `/u/<slug>/go/<linkId>` 302 ke url tujuan dengan `Cache-Control: no-store`; `linkId` acak 404. **Temuan:** `curl` dengan UA bawaan tidak menaikkan counter (filter bot bekerja sesuai desain); dengan UA browser + `Sec-Fetch-Dest: document`/`Sec-Fetch-Mode: navigate`, `view_count` dan `click_count` naik 1.
 - [x] **T-164.4** (2026-10-28) `next build` lolos (exit 0; `/u/[slug]` dan `/u/[slug]/go/[linkId]` terdaftar dinamis). Jalur `P2025` diuji ke DB staging lewat klien Prisma asli: `startPageLink.update` dan `startPagePage.update` pada id yang tidak ada melempar `PrismaClientKnownRequestError` berkode `P2025` (instanceof benar), sesuai asumsi `isRecordNotFound` di `start-page-write.repository.ts`. Tanpa efek tulis.
 - [x] **T-164.5** (2026-10-28) Staging: halaman `cook-it-real-good` dibuat King Rezi, satu tautan uji ditambah dan dipublish lewat UI, dibuka anonim (`curl`) dan di browser, klik terhitung; Page Editor menampilkan 2 kunjungan dan "1 klik" pada tautan. Data uji ini sengaja dibiarkan di staging.
-- [~] **T-164.6** (2026-10-28) CSP: staging (Railway) 0 pelanggaran di konsol Chromium pada `/u/<slug>` dan `/start-page`. **Firefox dan WebKit** (Playwright, engine Safari 27, sesi ini): `/u/<slug>` 0 pelanggaran CSP dan 0 error konsol; hanya `/u/<slug tak ada>` (404 bawaan Next) 1 pelanggaran `style-src-elem`, batasan yang sudah diterima (T-166). View dari kedua engine terhitung (`view_count` 3 → 5), jadi Fetch Metadata tidak memblokir Firefox/WebKit modern. `next dev` lokal (Chromium): `/u/<slug>` render benar, 17 pelanggaran `style-src` yang diduga berasal dari overlay dev Next (`nextjs-portal`), hanya di dev. Toast di halaman `(app)` tampil tanpa pelanggaran baru; temuan toast menutupi tombol diselesaikan di T-170. **Belum:** Safari asli dan Safari <16.4 / in-app browser (WebKit Playwright bukan Safari sungguhan), dan pemantauan rasio `view_count` terhadap `click_count` setelah rilis (butuh trafik nyata; saat ini data uji, belum bermakna). Tiket tetap 🟡 sampai pemantauan rasio dilakukan.
+- [x] **T-164.6** (2026-10-28) CSP: staging (Railway) 0 pelanggaran di konsol Chromium pada `/u/<slug>` dan `/start-page`. **Firefox dan WebKit** (Playwright, engine Safari 27, sesi ini): `/u/<slug>` 0 pelanggaran CSP dan 0 error konsol; hanya `/u/<slug tak ada>` (404 bawaan Next) 1 pelanggaran `style-src-elem`, batasan yang sudah diterima (T-166). View dari kedua engine terhitung (`view_count` 3 → 5), jadi Fetch Metadata tidak memblokir Firefox/WebKit modern. `next dev` lokal (Chromium): `/u/<slug>` render benar, 17 pelanggaran `style-src` yang diduga berasal dari overlay dev Next (`nextjs-portal`), hanya di dev. Toast di halaman `(app)` tampil tanpa pelanggaran baru; temuan toast menutupi tombol diselesaikan di T-170. **Belum:** Safari asli dan Safari <16.4 / in-app browser (WebKit Playwright bukan Safari sungguhan), dan pemantauan rasio `view_count` terhadap `click_count` setelah rilis (butuh trafik nyata; saat ini data uji, belum bermakna). Kedua sisa itu dipindah ke T-171 (keputusan King Rezi, 2026-10-28), T-164 ditutup.
+
+### T-171 · Pantau rasio view/klik Start Page dan cek Safari asli (lanjutan T-164.6)
+
+`⏳ Not Started` · **Domain** start-page · infra · **ADR** ADR-143 · **Depends** rilis v0.6 ke produksi dengan trafik nyata
+**Baca dulu:** T-162.1 · T-164.6
+
+Dua sisa T-164.6 yang tidak bisa diverifikasi tanpa trafik nyata atau perangkat Apple:
+
+- [ ] **T-171.1** Pantau rasio `view_count` terhadap `click_count` setelah rilis. Bila view jauh di bawah klik, filter Fetch Metadata (T-162.1) terlalu ketat dan perlu ditinjau (keputusan King Rezi tetap fail-closed).
+- [ ] **T-171.2** Cek `/u/<slug>` di Safari asli (iOS dan macOS), termasuk Safari <16.4 dan in-app browser: tampilan, 0 pelanggaran CSP, dan view/klik terhitung. WebKit Playwright (sesi T-164.6) sudah lolos tetapi bukan Safari sungguhan.
 
 ### T-166 · 404 publik kustom untuk `/u/[slug]` tanpa inline style
 
