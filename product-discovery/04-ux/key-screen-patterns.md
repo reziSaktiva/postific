@@ -992,7 +992,7 @@ Aksi yang reversibel, low-stakes, atau berfrekuensi tinggi (bagian dari alur ker
 | Reply/Kirim komentar (Engage) | Tidak wajib | Frekuensi tinggi — bagian dari alur kerja inti harian (UXP-03) |
 | Connect Account | Tidak wajib | Sudah ada consent OAuth dari provider |
 | Reconnect | Tidak wajib | Sudah ada consent OAuth dari provider |
-| Remove Link (Start Page) | Tidak wajib | Dampak kecil, gampang ditambah balik |
+| Remove Link (Start Page) | Tier 2 | Hitungan klik tautan ikut hilang dan tidak bisa dipulihkan; dialog "Hapus link?" (ADR-049, ADR-143) |
 
 ## Catatan Implementasi
 
@@ -1019,7 +1019,7 @@ Keputusan desain yang dibuat dalam dokumen ini.
 | KSP-D08 | Empty state Analytics menampilkan dua CTA, bukan angka nol atau grafik kosong | Angka nol atau grafik tanpa data misleading dan tidak membantu; CTA mengarahkan ke aksi yang bermakna (UXD-03) | UXP-03 |
 | KSP-D09 | Post terjadwal tidak dibatalkan otomatis saat akun disconnect | Pembatalan otomatis lebih merusak daripada membiarkan post dalam antrean dan menunggu reconnect | UXP-04 |
 | KSP-D10 | Publish History tidak masuk daftar 8 layar kritis | History adalah layar review passif — polanya sederhana (daftar + detail) dan tidak memerlukan dokumentasi mendalam di fase ini | UXP-03 |
-| KSP-D11 | Start Page tidak masuk daftar 8 layar kritis | Start Page bukan bagian dari siklus kerja harian (UXP-01: Draft → Schedule → Publish → Engage → Review). Start Page adalah fitur konfigurasi yang diakses sesekali — bukan setiap sesi kerja. Polanya sederhana: form pengaturan + preview publik. Tidak ada pola koordinasi tim atau alur multi-langkah yang perlu didokumentasikan mendalam di fase ini. | UXP-01, UXP-03 |
+| KSP-D11 | Start Page tidak masuk daftar 8 layar kritis | Start Page bukan bagian dari siklus kerja harian (UXP-01: Draft → Schedule → Publish → Engage → Review). Start Page adalah fitur konfigurasi yang diakses sesekali — bukan setiap sesi kerja. Polanya sederhana: form pengaturan + preview publik. Tidak ada pola koordinasi tim atau alur multi-langkah yang perlu didokumentasikan mendalam di fase ini. Isi layar Page Editor (Dialog tautan, tombol Simpan, selector tema, analytics dasar) dirinci di `information-architecture.md` § Start Page (ADR-143). | UXP-01, UXP-03 |
 | KSP-D12 | Content Format Selector per akun di Draft Editor (bukan satu toggle global) | Format bergantung platform (IG/FB vs TikTok vs Pinterest); multi-account posting membutuhkan format independen per `PostTarget` (ADR-039) | UXP-01, UXP-03 |
 | KSP-D13 | Engage Inbox hanya memuat komentar/reply dan menampilkan last sync + Manual Refresh | Kontrak resmi Outstand mendukung comment pull/reply, bukan unified DM/mention atau webhook engagement; periodic pull 30 menit perlu ekspektasi freshness yang terlihat (ADR-040) | UXP-03, UXP-06 |
 | KSP-D14 | Disconnect Account wajib melalui dialog konfirmasi ringkas (bukan Confirmation Summary KSP-05-F06), bukan eksekusi langsung (ADR-048) | Ditemukan saat audit dokumentasi bahwa Disconnect tidak punya spesifikasi konfirmasi sama sekali padahal berdampak (post terjadwal tetap jalan tanpa akun aktif); level konfirmasi cukup peringatan + dua tombol karena bukan aksi publish konten | UXP-04 |

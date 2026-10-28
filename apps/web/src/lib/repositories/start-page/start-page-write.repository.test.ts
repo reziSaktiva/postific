@@ -40,6 +40,13 @@ import { startPageRepository } from "./start-page-write.repository";
 const WS = asWorkspaceId("11111111-1111-4111-8111-111111111111");
 const USER = asUserId("user-1");
 
+function p2025() {
+  return new Prisma.PrismaClientKnownRequestError("not found", {
+    code: "P2025",
+    clientVersion: "test",
+  });
+}
+
 function p2002() {
   return new Prisma.PrismaClientKnownRequestError("unique", {
     code: "P2002",
@@ -278,5 +285,45 @@ describe("startPageRepository", () => {
       ),
     ).resolves.toBe(false);
     expect(txMock.startPageLink.update).not.toHaveBeenCalled();
+  });
+
+  it("reorderLinks turns P2025 (link deleted mid-transaction) into false, other errors propagate", async () => {
+    txMock.startPagePage.findFirst.mockResolvedValue({ id: "p1" });
+    txMock.startPageLink.findMany.mockResolvedValue([{ id: "a" }, { id: "b" }]);
+    txMock.startPageLink.update.mockRejectedValueOnce(p2025());
+    await expect(
+      startPageRepository.reorderLinks(
+        { workspaceId: WS, orderedLinkIds: ["b", "a"] },
+        USER,
+      ),
+    ).resolves.toBe(false);
+
+    txMock.startPageLink.update.mockRejectedValueOnce(new Error("db down"));
+    await expect(
+      startPageRepository.reorderLinks(
+        { workspaceId: WS, orderedLinkIds: ["b", "a"] },
+        USER,
+      ),
+    ).rejects.toThrow("db down");
+  });
+
+  it("updateLink and update turn P2025 into null (not found)", async () => {
+    txMock.startPageLink.findFirst.mockResolvedValue({ id: "l1" });
+    txMock.startPageLink.update.mockRejectedValue(p2025());
+    await expect(
+      startPageRepository.updateLink(
+        { workspaceId: WS, linkId: "l1", data: { label: "x" } },
+        USER,
+      ),
+    ).resolves.toBeNull();
+
+    txMock.startPagePage.findFirst.mockResolvedValue({ id: "p1" });
+    txMock.startPagePage.update.mockRejectedValue(p2025());
+    await expect(
+      startPageRepository.update(
+        { workspaceId: WS, data: { title: "x" } },
+        USER,
+      ),
+    ).resolves.toBeNull();
   });
 });

@@ -6,7 +6,7 @@ Baca Publik Start Page Lewat Fungsi `SECURITY DEFINER`, Bukan RLS Policy Anon (M
 
 ### Status
 
-Accepted
+Accepted — Amended by ADR-142 (2026-10-28)
 
 ### Date
 

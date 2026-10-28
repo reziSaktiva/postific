@@ -17,7 +17,7 @@ export class InvalidSlugError extends StartPageDomainError {
 /** Slug valid secara format tapi bentrok dengan path/route yang dicadangkan. */
 export class ReservedSlugError extends StartPageDomainError {
   constructor(readonly slug: string) {
-    super(`Slug "${slug}" is reserved and cannot be used`);
+    super(`Slug "${slug}" dicadangkan dan tidak dapat dipakai.`);
     this.name = "ReservedSlugError";
   }
 }
@@ -25,7 +25,7 @@ export class ReservedSlugError extends StartPageDomainError {
 /** Slug sudah dipakai halaman lain (unique violation `slug`). Dilempar repository. */
 export class StartPageSlugTakenError extends StartPageDomainError {
   constructor(readonly slug: string) {
-    super(`Slug "${slug}" is already taken`);
+    super(`Slug "${slug}" sudah dipakai.`);
     this.name = "StartPageSlugTakenError";
   }
 }
@@ -33,7 +33,7 @@ export class StartPageSlugTakenError extends StartPageDomainError {
 /** Workspace sudah punya Start Page (satu halaman per workspace). Dilempar repository. */
 export class StartPageAlreadyExistsError extends StartPageDomainError {
   constructor() {
-    super("This workspace already has a Start Page");
+    super("Workspace ini sudah memiliki Start Page.");
     this.name = "StartPageAlreadyExistsError";
   }
 }

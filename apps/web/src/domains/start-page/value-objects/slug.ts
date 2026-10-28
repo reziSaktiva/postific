@@ -93,12 +93,12 @@ export function normalizeSlug(input: string): string {
 export function parseSlug(input: string): StartPageSlug {
   if (input.length < SLUG_MIN_LENGTH || input.length > SLUG_MAX_LENGTH) {
     throw new InvalidSlugError(
-      `Slug must be ${SLUG_MIN_LENGTH}-${SLUG_MAX_LENGTH} characters`,
+      `Slug harus ${SLUG_MIN_LENGTH}-${SLUG_MAX_LENGTH} karakter.`,
     );
   }
   if (!SLUG_PATTERN.test(input)) {
     throw new InvalidSlugError(
-      "Slug may only contain lowercase letters, numbers, and single hyphens (not at the start or end)",
+      "Slug hanya boleh berisi huruf kecil, angka, dan tanda hubung tunggal (tidak di awal atau akhir).",
     );
   }
   if (isReservedSlug(input)) {

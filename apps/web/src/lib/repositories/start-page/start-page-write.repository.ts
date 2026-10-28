@@ -58,6 +58,18 @@ function isPageUniqueViolation(error: unknown): boolean {
 }
 
 /**
+ * P2025 ("record to update not found"): baris hilang di antara cek dan
+ * write (mis. tautan dihapus dari tab lain). Diterjemahkan jadi hasil
+ * "tidak ditemukan"/gagal biasa, bukan error mentah ke pengguna.
+ */
+function isRecordNotFound(error: unknown): boolean {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2025"
+  );
+}
+
+/**
  * Implementasi Prisma `IStartPageRepository` (T-072). Semua query lewat
  * `withCurrentUser` (RLS `start_page_*_workspace_isolation`); `workspaceId`
  * selalu ikut WHERE (anti-IDOR) dan tautan diverifikasi milik halaman
@@ -109,6 +121,7 @@ export const startPageRepository: IStartPageRepository = {
       });
       return page ? toRecord(page) : null;
     } catch (error) {
+      if (isRecordNotFound(error)) return null;
       if (isPageUniqueViolation(error) && data.slug !== undefined) {
         throw new StartPageSlugTakenError(data.slug);
       }
@@ -139,15 +152,20 @@ export const startPageRepository: IStartPageRepository = {
   },
 
   async updateLink({ workspaceId, linkId, data }, userId) {
-    const link = await withCurrentUser(userId, async (tx) => {
-      const owned = await tx.startPageLink.findFirst({
-        where: { id: linkId, startPage: { workspaceId } },
-        select: { id: true },
+    try {
+      const link = await withCurrentUser(userId, async (tx) => {
+        const owned = await tx.startPageLink.findFirst({
+          where: { id: linkId, startPage: { workspaceId } },
+          select: { id: true },
+        });
+        if (!owned) return null;
+        return tx.startPageLink.update({ where: { id: owned.id }, data });
       });
-      if (!owned) return null;
-      return tx.startPageLink.update({ where: { id: owned.id }, data });
-    });
-    return link ? toLinkRecord(link) : null;
+      return link ? toLinkRecord(link) : null;
+    } catch (error) {
+      if (isRecordNotFound(error)) return null;
+      throw error;
+    }
   },
 
   async deleteLink({ workspaceId, linkId }, userId) {
@@ -160,27 +178,34 @@ export const startPageRepository: IStartPageRepository = {
   },
 
   async reorderLinks({ workspaceId, orderedLinkIds }, userId) {
-    return withCurrentUser(userId, async (tx) => {
-      const page = await tx.startPagePage.findFirst({
-        where: { workspaceId },
-        select: { id: true },
+    try {
+      return await withCurrentUser(userId, async (tx) => {
+        const page = await tx.startPagePage.findFirst({
+          where: { workspaceId },
+          select: { id: true },
+        });
+        if (!page) return false;
+        const current = await tx.startPageLink.findMany({
+          where: { startPageId: page.id },
+          select: { id: true },
+        });
+        const currentIds = new Set(current.map((l) => l.id));
+        if (
+          currentIds.size !== orderedLinkIds.length ||
+          !orderedLinkIds.every((id) => currentIds.has(id))
+        ) {
+          return false;
+        }
+        for (const [position, id] of orderedLinkIds.entries()) {
+          await tx.startPageLink.update({ where: { id }, data: { position } });
+        }
+        return true;
       });
-      if (!page) return false;
-      const current = await tx.startPageLink.findMany({
-        where: { startPageId: page.id },
-        select: { id: true },
-      });
-      const currentIds = new Set(current.map((l) => l.id));
-      if (
-        currentIds.size !== orderedLinkIds.length ||
-        !orderedLinkIds.every((id) => currentIds.has(id))
-      ) {
-        return false;
-      }
-      for (const [position, id] of orderedLinkIds.entries()) {
-        await tx.startPageLink.update({ where: { id }, data: { position } });
-      }
-      return true;
-    });
+    } catch (error) {
+      // Tautan terhapus di tengah transaksi (tab lain): transaksi sudah
+      // rollback, laporkan sebagai daftar yang berubah (Conflict di service).
+      if (isRecordNotFound(error)) return false;
+      throw error;
+    }
   },
 };

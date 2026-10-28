@@ -142,8 +142,8 @@ describe("createStartPage", () => {
   it.each([
     [{ title: "", slug: "raka" }, /Judul wajib/],
     [{ title: "x".repeat(81), slug: "raka" }, /Judul maksimal/],
-    [{ title: "x", slug: "login" }, /reserved/],
-    [{ title: "x", slug: "ab" }, /Slug must be/],
+    [{ title: "x", slug: "login" }, /dicadangkan/],
+    [{ title: "x", slug: "ab" }, /Slug harus 3-40 karakter/],
     [{ title: "x", slug: "raka", bio: "b".repeat(281) }, /Bio maksimal/],
     [
       { title: "x", slug: "raka", avatarUrl: "http://a.test/x.png" },

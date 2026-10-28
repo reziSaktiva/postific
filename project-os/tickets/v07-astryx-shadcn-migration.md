@@ -1484,3 +1484,16 @@ header`, disengaja); **(3)** section Channels disembunyikan total
 konsistensi/tech-debt sesuai keputusan King Rezi untuk tetap dikerjakan,
 bukan bug) — tidak mendesak/blocking M8, tapi juga tidak boleh mandek
 tanpa batas.
+
+---
+
+## Lanjutan
+
+### T-165 · Selaraskan ADR-068 (`react-icons` ikon tunggal) dengan `apps/web/.claude/CLAUDE.md` (`hugeicons`)
+
+`⏳ Not Started` · **Domain** UI, dokumentasi (lintas produk) · **ADR** ADR-058 poin 6, ADR-068, ADR-097, ADR-143 · **Depends** keputusan King Rezi
+**Baca dulu:** ADR-068 · ADR-143 poin 15 · `apps/web/.claude/CLAUDE.md` § Icons
+
+Dua sumber bertentangan: ADR-068 menetapkan `react-icons` sebagai library ikon tunggal untuk seluruh UI, sedangkan `apps/web/.claude/CLAUDE.md` memakai `hugeicons` (preset Maia, dikonfirmasi King Rezi 2026-09-01 di T-095) untuk komponen shadcn baru dan menyisakan `react-icons` hanya untuk kode yang belum dimigrasi. Start Page (ADR-143) sudah memakai `hugeicons` untuk ikon platform. Hasil tiket: ADR baru yang menyatakan kebijakan ikon yang berlaku (siapa menggantikan siapa, bagaimana ikon brand), amandemen status ADR-068 dan ADR-058 poin 6, lalu penyelarasan `CLAUDE.md` bila perlu. Tidak ada perubahan kode di tiket ini kecuali King Rezi memutuskan migrasi sisa `react-icons`, yang dibuka sebagai tiket terpisah.
+
+**Kenapa di file v07:** keputusan `hugeicons` lahir di migrasi shadcn (T-095), dan tiket ini lintas rilis, bukan lanjutan Start Page. Bukan Known Issue, jadi bukan `known-issues.md` (ADR-134).

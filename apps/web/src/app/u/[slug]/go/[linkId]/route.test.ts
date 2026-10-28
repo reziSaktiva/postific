@@ -44,6 +44,7 @@ describe("GET /u/[slug]/go/[linkId]", () => {
     expect(res.status).toBe(302);
     expect(res.headers.get("location")).toBe("https://example.com/shop");
     expect(res.headers.get("x-robots-tag")).toContain("noindex");
+    expect(res.headers.get("cache-control")).toBe("no-store");
     expect(recordClickMock).toHaveBeenCalledWith("raka", LINK);
   });
 
@@ -52,6 +53,7 @@ describe("GET /u/[slug]/go/[linkId]", () => {
     const res = await call(GET, "raka", LINK);
     expect(res.status).toBe(404);
     expect(res.headers.get("location")).toBeNull();
+    expect(res.headers.get("cache-control")).toBe("no-store");
   });
 
   it.each(["javascript:alert(1)", "data:text/html,x", "file:///etc/passwd"])(

@@ -14,7 +14,12 @@ import {
  * 301) supaya tidak di-cache permanen — tautan bisa diubah/dinonaktifkan
  * dan klik harus tetap terhitung. Tidak valid -> 404 tanpa membedakan sebab.
  */
-const NOT_INDEXED = { "X-Robots-Tag": "noindex, nofollow" } as const;
+const NOT_INDEXED = {
+  "X-Robots-Tag": "noindex, nofollow",
+  // Jangan pernah di-cache (browser/CDN/proxy): cache akan melewatkan counter
+  // klik dan mempertahankan redirect ke tautan yang sudah diubah/dinonaktifkan.
+  "Cache-Control": "no-store",
+} as const;
 
 type RouteContext = { params: Promise<{ slug: string; linkId: string }> };
 

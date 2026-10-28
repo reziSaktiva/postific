@@ -45,10 +45,10 @@ diikuti tanpa ambiguitas, dan melengkapi `monorepo-setup.md` (lokasi file
 | RS-D02 | Reads di Server Component | Data fetching pada render page **wajib** panggil Application Service langsung (pola `calendar/page.tsx`), bukan Server Action |
 | RS-D03 | Client Components | Hanya untuk state/interactivity/hooks/browser API; boundary sedalam mungkin (leaf component), bukan membungkus page |
 | RS-D04 | Streaming/Suspense | Belum dipakai hari ini (keputusan sadar MVP); kriteria kapan wajib mulai dipertimbangkan |
-| RS-D05 | SSR/SSG/ISR | 100% dynamic/SSR hari ini; SSG/ISR eksplisit di luar scope sampai ada rute publik nyata (T-070) |
+| RS-D05 | SSR/SSG/ISR | 100% dynamic/SSR, termasuk rute publik `/u/[slug]` (RS-D08); SSG/ISR di luar scope |
 | RS-D06 | Revalidation | `revalidatePath()` dipakai setelah mutation Server Action sukses; `revalidateTag`/`unstable_cache` belum dibutuhkan (bukan dilarang selamanya) |
 | RS-D07 | Request-level de-dup | `React.cache()` untuk lookup non-fetch yang dipanggil berulang dalam satu render (preseden `getCachedSession()`) |
-| RS-D08 | Rendering strategy rute publik | Tetap **terbuka** — pointer eksplisit ke T-070 (Start Page); jangan diasumsikan dari dokumen ini |
+| RS-D08 | Rendering strategy rute publik | `/u/[slug]` dirender **dinamis** per request (counter kunjungan, ADR-142); SSG/ISR tidak dipakai. Header keamanan di `next.config.ts` (`X-Frame-Options`, `frame-ancestors 'none'`, `Referrer-Policy`); CSP penuh dengan nonce belum (ADR-143) |
 
 ---
 
@@ -158,11 +158,10 @@ experimental flag apapun (tidak ada PPR/`dynamicIO`/`cacheComponents`).
 personalized per-request) — SSG/ISR tidak applicable untuk app shell saat
 ini. Ini status quo eksplisit, bukan lupa dikonfigurasi.
 
-**Pengecualian terbuka:** Start Page / rute publik (v0.6, **T-070**).
-Strategi rendering-nya (SSG/ISR/dynamic) **belum diputuskan** — jangan
-diasumsikan dari dokumen ini. URL publik sudah dikunci di ADR-128
-(`/u/[slug]`). Strategi SSG/ISR/dynamic masih terbuka dan akan mendapat
-ADR sendiri saat diputuskan.
+**Pengecualian:** Start Page / rute publik (v0.6). URL publik dikunci di
+ADR-128 (`/u/[slug]`). Rute ini dirender dinamis per request, karena
+tiap kunjungan menaikkan counter (ADR-142, ADR-143).
+SSG/ISR tetap tidak dipakai.
 
 ---
 
@@ -188,7 +187,7 @@ tidak diduplikasi di sini:
 | RS-D01 | Server Actions eksklusif mutation | Mencegah drift seperti kasus dashboard terulang di fitur baru | Membolehkan Server Action untuk read juga (ditolak — overhead POST tidak perlu) |
 | RS-D02 | Data fetching page.tsx via Application Service langsung | Selaras AGENTS.md rule 3, sudah terbukti di `calendar/page.tsx` | Tetap lewat Server Action seperti dashboard (ditolak — pola menyimpang, tidak direplikasi) |
 | RS-D04 | Streaming/Suspense belum diaktifkan | Kesederhanaan MVP, belum ada kebutuhan nyata | Aktifkan proaktif di semua page (ditolak — kompleksitas tanpa manfaat terukur saat ini) |
-| RS-D05 | 100% dynamic, SSG/ISR di luar scope | Seluruh route personalized per-request di balik auth | Kunci strategi rute publik sekarang (ditolak — T-070 belum diputuskan) |
+| RS-D05 | 100% dynamic, SSG/ISR di luar scope | Seluruh route personalized per-request di balik auth; rute publik `/u/[slug]` juga dinamis (RS-D08) | SSG/ISR untuk rute publik (ditolak — counter kunjungan butuh render per request) |
 
 ---
 
