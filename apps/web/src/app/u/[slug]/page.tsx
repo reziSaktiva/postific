@@ -92,12 +92,20 @@ export default async function PublicStartPage({
   // menunda render dan kegagalan counter tidak boleh merusak halaman. Membaca
   // `headers()` juga menjadikan route ini dinamis (tidak di-cache statis),
   // jadi tiap request dihitung dan unpublish berlaku seketika.
-  const userAgent = (await headers()).get("user-agent");
+  // Next.js merender `HEAD` sebagai `GET` dan tidak mengekspos metodenya ke
+  // page, jadi header Fetch Metadata diteruskan ke use-case yang menyaring
+  // hanya navigasi dokumen browser (T-162.1).
+  const requestHeaders = await headers();
+  const userAgent = requestHeaders.get("user-agent");
+  const fetchDest = requestHeaders.get("sec-fetch-dest");
+  const fetchMode = requestHeaders.get("sec-fetch-mode");
   after(async () => {
     try {
       await new RecordStartPageView(startPageAnalyticsRepository).execute({
         slug: page.slug,
         userAgent,
+        fetchDest,
+        fetchMode,
       });
     } catch (error) {
       console.error("start-page: gagal mencatat view", error);

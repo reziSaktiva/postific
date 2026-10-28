@@ -14,6 +14,7 @@ const { txMock, withCurrentUserMock } = vi.hoisted(() => {
       aggregate: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn(),
       deleteMany: vi.fn(),
     },
   };
@@ -240,18 +241,71 @@ describe("startPageRepository", () => {
     });
     expect(txMock.startPageLink.update).not.toHaveBeenCalled();
 
+    txMock.startPagePage.findFirst.mockResolvedValue({ id: "p1" });
     txMock.startPageLink.deleteMany.mockResolvedValue({ count: 0 });
     await expect(
       startPageRepository.deleteLink({ workspaceId: WS, linkId: "l1" }, USER),
     ).resolves.toBe(false);
+    expect(txMock.startPagePage.findFirst.mock.calls.at(-1)![0].where).toEqual({
+      workspaceId: WS,
+    });
     expect(txMock.startPageLink.deleteMany.mock.calls[0]![0].where).toEqual({
       id: "l1",
       startPage: { workspaceId: WS },
     });
-    txMock.startPageLink.deleteMany.mockResolvedValue({ count: 1 });
+    // Tidak ada yang terhapus: tidak ada pemadatan.
+    expect(txMock.startPageLink.findMany).not.toHaveBeenCalled();
+    expect(txMock.startPageLink.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("deleteLink returns false without a page and never deletes", async () => {
+    txMock.startPagePage.findFirst.mockResolvedValue(null);
     await expect(
       startPageRepository.deleteLink({ workspaceId: WS, linkId: "l1" }, USER),
+    ).resolves.toBe(false);
+    expect(txMock.startPageLink.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it("deleteLink compacts remaining positions to 0..n-1 in the same transaction (T-162.2)", async () => {
+    txMock.startPagePage.findFirst.mockResolvedValue({ id: "p1" });
+    txMock.startPageLink.deleteMany.mockResolvedValue({ count: 1 });
+    // Posisi 1 dihapus: sisa 0, 2, 3 -> harus jadi 0, 1, 2 (urutan dijaga).
+    txMock.startPageLink.findMany.mockResolvedValue([
+      { id: "a", position: 0 },
+      { id: "c", position: 2 },
+      { id: "d", position: 3 },
+    ]);
+    txMock.startPageLink.updateMany.mockResolvedValue({ count: 1 });
+    await expect(
+      startPageRepository.deleteLink({ workspaceId: WS, linkId: "b" }, USER),
     ).resolves.toBe(true);
+
+    expect(withCurrentUserMock).toHaveBeenCalledTimes(1);
+    expect(txMock.startPageLink.findMany.mock.calls[0]![0]).toMatchObject({
+      where: { startPageId: "p1" },
+      orderBy: [{ position: "asc" }, { id: "asc" }],
+    });
+    // Baris yang sudah benar (a: 0) tidak ditulis ulang; sisanya dipadatkan
+    // dan di-scope ke halaman workspace.
+    expect(txMock.startPageLink.updateMany.mock.calls.map((c) => c[0])).toEqual(
+      [
+        { where: { id: "c", startPageId: "p1" }, data: { position: 1 } },
+        { where: { id: "d", startPageId: "p1" }, data: { position: 2 } },
+      ],
+    );
+  });
+
+  it("deleteLink does not rewrite positions that are already dense", async () => {
+    txMock.startPagePage.findFirst.mockResolvedValue({ id: "p1" });
+    txMock.startPageLink.deleteMany.mockResolvedValue({ count: 1 });
+    txMock.startPageLink.findMany.mockResolvedValue([
+      { id: "a", position: 0 },
+      { id: "b", position: 1 },
+    ]);
+    await expect(
+      startPageRepository.deleteLink({ workspaceId: WS, linkId: "c" }, USER),
+    ).resolves.toBe(true);
+    expect(txMock.startPageLink.updateMany).not.toHaveBeenCalled();
   });
 
   it("reorderLinks applies positions 0..n-1 only for the exact link set", async () => {

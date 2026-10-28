@@ -169,12 +169,34 @@ export const startPageRepository: IStartPageRepository = {
   },
 
   async deleteLink({ workspaceId, linkId }, userId) {
-    const { count } = await withCurrentUser(userId, (tx) =>
-      tx.startPageLink.deleteMany({
+    // Hapus + padatkan `position` sisa tautan (0..n-1, urutan relatif
+    // dipertahankan) dalam SATU transaksi, tetap workspace-scoped (T-162.2).
+    return withCurrentUser(userId, async (tx) => {
+      const page = await tx.startPagePage.findFirst({
+        where: { workspaceId },
+        select: { id: true },
+      });
+      if (!page) return false;
+      const { count } = await tx.startPageLink.deleteMany({
         where: { id: linkId, startPage: { workspaceId } },
-      }),
-    );
-    return count > 0;
+      });
+      if (count === 0) return false;
+      const remaining = await tx.startPageLink.findMany({
+        where: { startPageId: page.id },
+        orderBy: [...LINKS_ORDER],
+        select: { id: true, position: true },
+      });
+      for (const [position, link] of remaining.entries()) {
+        if (link.position === position) continue;
+        // `updateMany` (bukan `update`): tautan yang hilang karena tab lain
+        // tidak melempar P2025 dan membatalkan penghapusan ini.
+        await tx.startPageLink.updateMany({
+          where: { id: link.id, startPageId: page.id },
+          data: { position },
+        });
+      }
+      return true;
+    });
   },
 
   async reorderLinks({ workspaceId, orderedLinkIds }, userId) {

@@ -10,6 +10,7 @@ export * from "./value-objects/limits";
 export * from "./value-objects/link-path";
 export * from "./value-objects/meta-description";
 export * from "./value-objects/bot-detection";
+export * from "./value-objects/document-navigation";
 export * from "./repositories/start-page.repository";
 export * from "./repositories/start-page-write.repository";
 export * from "./repositories/start-page-analytics.repository";

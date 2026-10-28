@@ -76,7 +76,11 @@ export interface IStartPageRepository {
     userId: UserId,
   ): Promise<StartPageLinkRecord | null>;
 
-  /** `false` bila tautan tidak ada / bukan milik workspace ini. */
+  /**
+   * Hapus tautan lalu padatkan `position` sisanya ke 0..n-1 (urutan relatif
+   * tetap) dalam satu transaksi (T-162.2). `false` bila tautan tidak ada /
+   * bukan milik workspace ini.
+   */
   deleteLink(
     input: { workspaceId: WorkspaceId; linkId: string },
     userId: UserId,
