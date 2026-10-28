@@ -101,19 +101,32 @@ export function ProfileCard({
     }
   }, [draft.avatarFile]);
 
+  /** Samakan draft dengan input file yang dikosongkan. */
+  function clearAvatarFile() {
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (draft.avatarFile) {
+      handleDraftChange({ avatarFile: null, avatarObjectUrl: null });
+    }
+  }
+
   function handleAvatarChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0] ?? null;
-    if (!file) return;
+    if (!file) {
+      // Dialog dibatalkan: input kosong, jadi buang juga berkas di draft.
+      clearAvatarFile();
+      return;
+    }
     if (!START_PAGE_AVATAR_MIME_TYPES[file.type]) {
-      event.target.value = "";
+      clearAvatarFile();
       setError("Format avatar harus JPG atau PNG.");
       return;
     }
     if (file.size > START_PAGE_AVATAR_MAX_BYTES) {
-      event.target.value = "";
+      clearAvatarFile();
       setError("Ukuran avatar maksimal 2MB.");
       return;
     }
+    setError(null);
     handleDraftChange({
       avatarFile: file,
       avatarObjectUrl: URL.createObjectURL(file),

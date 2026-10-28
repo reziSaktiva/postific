@@ -163,6 +163,17 @@ Ganti input URL https dengan unggah file. Supabase JS client hanya untuk Storage
 
 **Belum:** unggah sungguhan ke Storage lewat browser (butuh sesi login). Belum di-merge dan belum di staging.
 
+**Lanjutan T-159.1 · Perbaikan hasil `/code-review` PR #203** (2026-10-28; branch `fix/pr203-code-review-findings`; PR #203 sudah merged ke `staging`) · **ADR** ADR-145 (poin 2 dan 5 diperjelas)
+
+- [x] Pembersihan berkas lama tidak lagi menghapus berkas yang baru dibuat: hanya berkas lebih tua dari 10 menit yang dihapus, supaya simpan serentak tidak saling menghapus unggahan
+- [x] `deleteOtherAvatars` hanya menyentuh berkas berpola `avatar-<uuid>.(jpg|png)` (avatar workspace atau berkas lain di folder tidak ikut terhapus) dan membaca sampai 1000 entri
+- [x] `ProfileCard`: berkas tidak valid atau dialog dibatalkan ikut mengosongkan draft; pesan error dibersihkan saat pilihan valid diterima
+- [x] Storage tak terpasang menjadi `ExternalServiceError` (dilog di action) dan dicek paling awal
+- [x] Aturan ukuran avatar satu sumber: `assertAvatarSizeWithinLimit` (domain) dipakai Server Action dan service
+- [x] Adapter mengimpor port lewat barrel `@/domains/start-page`
+- Sengaja tidak dikerjakan: cleanup Storage tetap sinkron (butuh `after()` atau job terjadwal, bukan edit kecil); duplikasi pola adapter dengan `supabase-avatar-storage-adapter.ts` belum digabung
+- **Terverifikasi:** `tsc`, eslint, prettier bersih; vitest area start-page dan adapter avatar 194 lulus
+
 ### T-160 · CSP penuh dengan nonce untuk `/u/*`
 
 `✅ Done` (2026-10-28; PR #200, belum di-merge) · **Domain** start-page · infra (`proxy.ts`, `lib/security/public-csp.ts`) · **ADR** ADR-144 · **Depends** T-071 ✅

@@ -27,8 +27,9 @@ Review PR 203 menemukan dua masalah pada path tetap:
 2. Urutan: unggah berkas baru, tulis `avatarUrl` ke database, lalu hapus berkas lain di folder workspace. Bila tulis database gagal, hanya berkas baru yang dihapus. Menghapus foto (`avatarUrl: null`) menghapus semua berkas di folder.
 3. Cache-bust `?v=` tidak dipakai lagi; URL baru otomatis berbeda.
 4. Validasi di server: JPG/PNG, maksimal 2MB (konstanta dibagi dengan domain `identity`), dan byte awal berkas dicocokkan dengan tipe yang diklaim. Ukuran dicek sebelum berkas dibaca ke memori.
-5. Kegagalan hapus berkas bersifat best-effort: dicatat ke log, tidak menggagalkan simpan profil. Berkas yatim tetap mungkin tertinggal dan dibersihkan pada simpan berikutnya.
-6. Domain `start-page` tidak memanggil Supabase: port `IStartPageAvatarStorage` (`uploadAvatar`, `deleteAvatar`, `deleteOtherAvatars`), implementasi di `apps/web/src/lib/adapters/avatar-storage/`.
+5. Pembersihan hanya menyentuh berkas berpola `avatar-{uuid}.{jpg|png}` di folder workspace dan hanya yang lebih tua dari 10 menit (menghindari saling hapus pada simpan serentak dan berkas non-Start-Page, diperjelas 2026-10-28 dari hasil code-review PR 203).
+6. Kegagalan hapus berkas bersifat best-effort: dicatat ke log, tidak menggagalkan simpan profil. Berkas yatim tetap mungkin tertinggal dan dibersihkan pada simpan berikutnya.
+7. Domain `start-page` tidak memanggil Supabase: port `IStartPageAvatarStorage` (`uploadAvatar`, `deleteAvatar`, `deleteOtherAvatars`), implementasi di `apps/web/src/lib/adapters/avatar-storage/`.
 
 ### Reason
 
