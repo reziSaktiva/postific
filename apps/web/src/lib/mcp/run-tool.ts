@@ -23,6 +23,9 @@ import type { McpReadServices, McpToolDefinition } from "./tool-types";
  *   (fail closed) sebagai `internal_error`.
  */
 
+/** Batas tunggu audit di jalur respons; audit tidak boleh menahan hasil tool. */
+const AUDIT_TIMEOUT_MS = 2000;
+
 export interface McpGateDeps {
   access: Pick<McpAccessService, "authorizeCall" | "recordAudit">;
   services: McpReadServices;
@@ -91,8 +94,9 @@ export async function runMcpTool(
     errorCode?: string;
     targetId?: string;
   }): Promise<void> => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
     try {
-      await deps.access.recordAudit({
+      const write = deps.access.recordAudit({
         workspaceId: claims.workspaceId,
         userId: claims.userId,
         grantId: entry.grantId ?? null,
@@ -105,12 +109,27 @@ export async function runMcpTool(
         durationMs: now() - startedAt,
         targetId: entry.targetId ?? null,
       });
+      write.catch(() => undefined);
+      await Promise.race([
+        write,
+        new Promise<void>((resolve) => {
+          timer = setTimeout(() => {
+            logger.error("[mcp] audit melewati batas waktu", {
+              tool: tool.name,
+              workspaceId: claims.workspaceId,
+            });
+            resolve();
+          }, AUDIT_TIMEOUT_MS);
+        }),
+      ]);
     } catch (auditError) {
       logger.error("[mcp] audit gagal ditulis", {
         tool: tool.name,
         workspaceId: claims.workspaceId,
         error: auditError,
       });
+    } finally {
+      clearTimeout(timer);
     }
   };
 

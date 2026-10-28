@@ -28,8 +28,8 @@ import { MCP_READ_TOOLS } from "./read-tools";
 
 const WORKSPACE = asWorkspaceId("ws-1");
 const USER = asUserId("user-1");
-const ACCOUNT = asConnectedAccountId("acc-1");
-const POST = asPostId("post-1");
+const ACCOUNT = asConnectedAccountId("11111111-1111-4111-8111-111111111111");
+const POST = asPostId("22222222-2222-4222-8222-222222222222");
 
 const accountRecord = {
   id: ACCOUNT,
@@ -397,7 +397,7 @@ describe("list_scheduled_posts", () => {
   it("flattens queue groups in order and renders scheduledAt in WIB", async () => {
     const { data, calls } = await run("list_scheduled_posts");
     expect(data.items.map((item: { id: string }) => item.id)).toEqual([
-      "post-1",
+      POST,
       "post-2",
     ]);
     expect(data.items[0]).toEqual({
@@ -489,13 +489,13 @@ describe("get_analytics", () => {
 
   it("returns per-account metrics for one post, scoped to the workspace, without author name", async () => {
     const { data, output, calls } = await run("get_analytics", {
-      postId: "post-1",
+      postId: POST,
       period: "monthly",
     });
     expect(calls).toEqual([
       { method: "getHistoryById", args: [WORKSPACE, POST, USER] },
     ]);
-    expect(output.targetId).toBe("post-1");
+    expect(output.targetId).toBe(POST);
     expect(data).toEqual({
       scope: "post",
       postId: POST,
@@ -528,8 +528,27 @@ describe("get_analytics", () => {
       },
     });
     await expect(
-      tool("get_analytics").handler(context(services), { postId: "other" }),
+      tool("get_analytics").handler(context(services), {
+        postId: "33333333-3333-4333-8333-333333333333",
+      }),
     ).rejects.toThrow(NotFoundError);
+  });
+});
+
+describe("input validation", () => {
+  it("rejects a non-UUID postId or accountId as invalid input", async () => {
+    const { services } = fakeServices();
+    await expect(
+      tool("get_analytics").handler(context(services), { postId: "abc" }),
+    ).rejects.toThrow(McpToolInputError);
+    await expect(
+      tool("list_comments").handler(context(services), { accountId: "x" }),
+    ).rejects.toThrow(McpToolInputError);
+  });
+
+  it("treats an empty cursor as the first page", async () => {
+    const { data } = await run("list_drafts", { cursor: "" });
+    expect(Array.isArray(data.items)).toBe(true);
   });
 });
 
@@ -549,7 +568,7 @@ describe("list_comments", () => {
   it("filters by status and account, scoped to the workspace and user", async () => {
     const { calls } = await run("list_comments", {
       status: "unread",
-      accountId: "acc-1",
+      accountId: ACCOUNT,
     });
     expect(calls).toEqual([
       {

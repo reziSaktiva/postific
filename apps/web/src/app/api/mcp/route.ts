@@ -24,6 +24,12 @@ async function handle(request: Request): Promise<Response> {
   }
 
   const base = mcpBaseUrl();
+  if (!base) {
+    console.error(
+      "[mcp] BETTER_AUTH_URL kosong; endpoint MCP tidak dapat memverifikasi token",
+    );
+    return new Response("MCP belum dikonfigurasi", { status: 503 });
+  }
   return mcpHandler(
     {
       jwksUrl: `${base}/api/auth/jwks`,

@@ -18,6 +18,7 @@ import {
   assertKnownArgs,
   readOptionalEnum,
   readOptionalString,
+  readOptionalUuid,
 } from "../tool-input";
 import type { McpJsonSchema, McpToolDefinition } from "../tool-types";
 
@@ -60,7 +61,8 @@ const COMMENT_STATUSES = [
 ] as const satisfies readonly InboxItemStatus[];
 
 function cursorOf(args: Record<string, unknown>): string | undefined {
-  return readOptionalString(args, "cursor");
+  // Cursor kosong = halaman pertama (deskripsi skema: "Kosongkan untuk halaman pertama").
+  return args.cursor === "" ? undefined : readOptionalString(args, "cursor");
 }
 
 const getWorkspace: McpToolDefinition = {
@@ -279,7 +281,7 @@ const getAnalytics: McpToolDefinition = {
   async handler(context, args) {
     assertKnownArgs(args, ["period", "postId"]);
     const period = readOptionalEnum(args, "period", ANALYTICS_PERIODS);
-    const postId = readOptionalString(args, "postId");
+    const postId = readOptionalUuid(args, "postId");
 
     if (postId !== undefined) {
       const post = await context.services.publishing.getHistoryById(
@@ -339,7 +341,7 @@ const listComments: McpToolDefinition = {
     assertKnownArgs(args, ["cursor", "status", "accountId"]);
     const cursor = cursorOf(args);
     const status = readOptionalEnum(args, "status", COMMENT_STATUSES);
-    const accountId = readOptionalString(args, "accountId");
+    const accountId = readOptionalUuid(args, "accountId");
 
     const inbox = await context.services.engagement.listInbox(
       {

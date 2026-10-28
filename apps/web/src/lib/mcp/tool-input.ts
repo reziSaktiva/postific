@@ -55,3 +55,18 @@ export function readOptionalEnum<T extends string>(
   }
   return value as T;
 }
+
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Argumen ID opsional; harus UUID supaya filter kolom `@db.Uuid` tidak melempar error DB. */
+export function readOptionalUuid(
+  args: Record<string, unknown>,
+  key: string,
+): string | undefined {
+  const value = readOptionalString(args, key);
+  if (value !== undefined && !UUID_PATTERN.test(value)) {
+    throw new McpToolInputError(`Argumen "${key}" harus berupa UUID.`);
+  }
+  return value;
+}
