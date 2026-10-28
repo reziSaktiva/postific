@@ -214,8 +214,8 @@ export class StartPageService {
 
   /**
    * Hapus tautan. Konfirmasi (ADR-049) ditangani UI; service langsung
-   * menghapus. Celah `position` tidak dipadatkan (urutan tampil memakai
-   * `ORDER BY position, id`, celah tidak berpengaruh).
+   * menghapus. Repository memadatkan `position` tautan sisa ke 0..n-1 dalam
+   * satu transaksi (T-162.2, lihat `IStartPageWriteRepository.deleteLink`).
    */
   async deleteLink(ctx: StartPageActorContext, linkId: string): Promise<void> {
     assertActorCanManageStartPage(ctx.actorRole);

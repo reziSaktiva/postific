@@ -221,8 +221,13 @@ export function LinkListCard({
   }
 
   function handleMove(index: number, delta: -1 | 1) {
+    const next = moveItem(links, index, index + delta);
+    // Ref fokus hanya diisi bila urutan benar-benar berubah dan commit tidak
+    // return awal (reorder pending); kalau tidak, effect [links] berikutnya
+    // akan mencuri fokus.
+    if (next === links || isReordering) return;
     focusAfterMove.current = links[index].id;
-    commitOrder(moveItem(links, index, index + delta), links[index]);
+    commitOrder(next, links[index]);
   }
 
   function handleDragStart(id: string) {
