@@ -277,4 +277,17 @@ describe("proxy (middleware)", () => {
     }
     expect(getSessionMock).not.toHaveBeenCalled();
   });
+
+  it("bypasses the session gate for /api/mcp and /.well-known/* (T-150: OAuth discovery + Bearer, tanpa cookie)", async () => {
+    for (const pathname of [
+      "/api/mcp",
+      "/.well-known/oauth-protected-resource/api/mcp",
+      "/.well-known/oauth-authorization-server",
+    ]) {
+      getSessionCookieMock.mockReturnValue(null);
+      const response = await proxy(makeRequest(pathname));
+      expect(response.headers.get("location")).toBeNull();
+    }
+    expect(getSessionMock).not.toHaveBeenCalled();
+  });
 });

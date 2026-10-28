@@ -1,57 +1,48 @@
 import { mcpHandler } from "@better-auth/oauth-provider";
 
 import {
+  isMcpEnabled,
+  isMcpOriginAllowed,
   mcpBaseUrl,
   mcpResourceUrl,
-  mcpSpikeEnabled,
-} from "@/lib/better-auth/mcp-spike";
-import { handleSpikeMcpRequest } from "@/lib/mcp-spike/server";
+} from "@/lib/mcp/config";
+import { handleMcpRequest } from "@/lib/mcp/handle-request";
 
-// T-148 (spike MCP) — SEMENTARA. Route Handler tipis: validasi Origin, verifikasi
-// JWT, lalu serahkan ke lib/mcp-spike. Digantikan T-150.
+// Endpoint MCP produksi (T-150, ADR-138/139). Route Handler tipis: flag,
+// validasi Origin, verifikasi JWT lewat `mcpHandler`, lalu serahkan ke
+// `lib/mcp`. Otorisasi per panggilan (grant, scope, member) dan audit ada di
+// `McpAccessService` yang dipanggil `lib/mcp/run-tool.ts`.
 export const dynamic = "force-dynamic";
 
-const DEFAULT_ALLOWED_ORIGINS = [
-  "https://claude.ai",
-  "https://www.claude.ai",
-  "https://claude.com",
-];
-
-function isOriginAllowed(request: Request): boolean {
-  const origin = request.headers.get("origin");
-  if (!origin) {
-    return true; // klien non-browser (Claude Code, SDK) tidak mengirim Origin
-  }
-  const extra = process.env.MCP_SPIKE_ALLOWED_ORIGINS?.split(",") ?? [];
-  const allowed = [...DEFAULT_ALLOWED_ORIGINS, mcpBaseUrl(), ...extra]
-    .map((value) => value.trim())
-    .filter(Boolean);
-  return allowed.includes(origin);
-}
-
 async function handle(request: Request): Promise<Response> {
-  if (!mcpSpikeEnabled()) {
+  if (!isMcpEnabled()) {
     return new Response("Not found", { status: 404 });
   }
-  if (!isOriginAllowed(request)) {
-    console.warn("[mcp-spike] Origin ditolak", request.headers.get("origin"));
+  if (!isMcpOriginAllowed(request.headers.get("origin"))) {
+    console.warn("[mcp] Origin ditolak", request.headers.get("origin"));
     return new Response("Origin tidak diizinkan", { status: 403 });
   }
 
   const base = mcpBaseUrl();
+  if (!base) {
+    console.error(
+      "[mcp] BETTER_AUTH_URL kosong; endpoint MCP tidak dapat memverifikasi token",
+    );
+    return new Response("MCP belum dikonfigurasi", { status: 503 });
+  }
   return mcpHandler(
     {
       jwksUrl: `${base}/api/auth/jwks`,
       verifyOptions: { issuer: base, audience: mcpResourceUrl() },
     },
-    handleSpikeMcpRequest,
+    handleMcpRequest,
   )(request);
 }
 
 // Server stateless: GET membuka stream SSE standalone yang tidak pernah ditutup
 // dan DELETE tidak punya sesi untuk dihapus, jadi keduanya 405 (pola SDK).
 function methodNotAllowed(): Response {
-  if (!mcpSpikeEnabled()) {
+  if (!isMcpEnabled()) {
     return new Response("Not found", { status: 404 });
   }
   return new Response("Method not allowed", {

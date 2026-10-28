@@ -180,7 +180,8 @@ export const auth = betterAuth({
   // never need a breaking retrofit later.
   plugins: [
     bearer(),
-    // T-148 (spike MCP) — kosong kecuali MCP_SPIKE_ENABLED=true.
+    // OAuth MCP (ADR-139) — kosong kecuali isMcpEnabled() (MCP_ENABLED atau
+    // MCP_SPIKE_ENABLED lama, lib/mcp/config.ts).
     ...mcpSpikePlugins(),
     ...(betterAuthApiKey
       ? [

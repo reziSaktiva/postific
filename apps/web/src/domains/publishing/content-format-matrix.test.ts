@@ -5,6 +5,7 @@ import {
   assertContentFormatAllowed,
   assertMediaCountMeetsMinimum,
   assertMediaCountWithinLimit,
+  getAllowedContentFormats,
   maxMediaCountForFormat,
   maxMediaCountForFormats,
   minMediaCountConstraintMessage,
@@ -23,6 +24,30 @@ describe("assertContentFormatAllowed", () => {
     expect(() =>
       assertContentFormatAllowed(SocialPlatform.Pinterest, ContentFormat.Reel),
     ).toThrow(PublishingDomainError);
+  });
+});
+
+describe("getAllowedContentFormats", () => {
+  it("returns the ADR-039 formats per platform", () => {
+    expect(getAllowedContentFormats(SocialPlatform.Instagram)).toEqual([
+      ContentFormat.Post,
+      ContentFormat.Reel,
+      ContentFormat.Story,
+    ]);
+    expect(getAllowedContentFormats(SocialPlatform.Pinterest)).toEqual([
+      ContentFormat.Pin,
+    ]);
+  });
+
+  it("falls back to Post for platforms outside the matrix", () => {
+    expect(getAllowedContentFormats(SocialPlatform.Twitter)).toEqual([
+      ContentFormat.Post,
+    ]);
+  });
+
+  it("returns a copy so callers cannot mutate the matrix", () => {
+    getAllowedContentFormats(SocialPlatform.Instagram).pop();
+    expect(getAllowedContentFormats(SocialPlatform.Instagram)).toHaveLength(3);
   });
 });
 
