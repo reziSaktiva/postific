@@ -1,3 +1,5 @@
+import { HugeiconsIcon } from "@hugeicons/react";
+
 import { Badge } from "@/components/ui/badge";
 
 import {
@@ -43,11 +45,13 @@ export function CalendarEntryFooter({ entry }: CalendarEntryFooterProps) {
           aria-label={CONTENT_STATUS_LABEL[entry.status]}
           title={CONTENT_STATUS_LABEL[entry.status]}
         />
-        <FormatIcon
-          className="size-3 shrink-0 text-muted-foreground"
-          aria-label={CONTENT_FORMAT_LABEL[entry.contentFormat]}
-          title={CONTENT_FORMAT_LABEL[entry.contentFormat]}
-        />
+        <span title={CONTENT_FORMAT_LABEL[entry.contentFormat]}>
+          <HugeiconsIcon
+            icon={FormatIcon}
+            className="size-3 shrink-0 text-muted-foreground"
+            aria-label={CONTENT_FORMAT_LABEL[entry.contentFormat]}
+          />
+        </span>
       </div>
       {/* eslint-disable-next-line no-restricted-syntax -- T-102: layout-only, murni Tailwind flex. */}
       <div className="hidden flex-wrap items-center gap-1 md:flex">
