@@ -702,7 +702,7 @@ Media file disimpan di **Supabase Storage** (keputusan pra-architecture). Supaba
 
 Contoh:
 media/abc-123-workspace/2026/07/f47ac10b-58cc-4372-a567-0e02b2c3d479.jpg
-avatars/abc-123-workspace/avatar.jpg
+avatars/abc-123-workspace/avatar-{uuid}.jpg   (Start Page, ADR-145)
 avatars/users/{user_id}/avatar.{ext}
 ```
 

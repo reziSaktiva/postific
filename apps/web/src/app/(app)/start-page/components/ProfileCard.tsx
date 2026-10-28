@@ -86,6 +86,15 @@ export function ProfileCard({
     }
   }, [draft.avatarObjectUrl]);
 
+  useEffect(
+    () => () => {
+      if (previousObjectUrl.current) {
+        URL.revokeObjectURL(previousObjectUrl.current);
+      }
+    },
+    [],
+  );
+
   useEffect(() => {
     if (!draft.avatarFile && fileInputRef.current) {
       fileInputRef.current.value = "";

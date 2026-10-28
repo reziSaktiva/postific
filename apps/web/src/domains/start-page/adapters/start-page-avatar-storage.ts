@@ -9,25 +9,36 @@ export interface UploadStartPageAvatarInput {
 }
 
 export interface UploadStartPageAvatarResult {
-  /** URL publik bucket `avatars` (sudah cache-bust). */
+  /** URL publik bucket `avatars`. */
   url: string;
+  /** Nama berkas unik di folder workspace; tiap unggahan berkas baru. */
+  fileName: string;
 }
 
 export interface DeleteStartPageAvatarInput {
   workspaceId: WorkspaceId;
-  extension: string;
+  fileName: string;
+}
+
+export interface DeleteOtherStartPageAvatarsInput {
+  workspaceId: WorkspaceId;
+  /** Berkas yang dipertahankan; kosong = hapus semua foto workspace. */
+  keepFileName?: string;
 }
 
 /**
  * Port penyimpanan file foto profil Start Page. Implementasi Supabase
  * Storage ada di `src/lib/adapters/avatar-storage`. Bukan bagian repository
  * karena ini file, bukan baris domain — pola sama `IAvatarStorageAdapter`.
- * Path: `avatars/{workspace_id}/avatar.{ext}` (`database-strategy.md`).
+ * Path: `avatars/{workspace_id}/avatar-{id}.{ext}`; nama unik per unggahan
+ * supaya berkas lama tidak tertimpa sebelum DB tersimpan.
  */
 export interface IStartPageAvatarStorage {
   uploadAvatar(
     input: UploadStartPageAvatarInput,
   ): Promise<UploadStartPageAvatarResult>;
-  /** Best-effort. Dipakai saat tulis DB gagal sesudah upload, atau saat foto dihapus. */
+  /** Hapus satu berkas; dipakai saat tulis DB gagal sesudah upload. */
   deleteAvatar(input: DeleteStartPageAvatarInput): Promise<void>;
+  /** Hapus berkas foto lain di folder workspace; dipakai sesudah DB tersimpan. */
+  deleteOtherAvatars(input: DeleteOtherStartPageAvatarsInput): Promise<void>;
 }

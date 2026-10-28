@@ -23,6 +23,7 @@ import {
   isUuid,
   START_PAGE_AVATAR_MAX_BYTES,
   START_PAGE_AVATAR_MIME_TYPES,
+  matchesImageSignature,
   validateAvatarUrlInput,
   validateBioInput,
   validateLinkLabelInput,
@@ -148,9 +149,9 @@ export class StartPageService {
     if (input.bio !== undefined) data.bio = validateBioInput(input.bio);
     if (input.theme !== undefined) data.theme = validateThemeInput(input.theme);
 
-    let uploadedExtension: string | undefined;
+    let uploadedFileName: string | undefined;
     if (avatarFile) {
-      uploadedExtension = await this.uploadAvatar(ctx, avatarFile, data);
+      uploadedFileName = await this.uploadAvatar(ctx, avatarFile, data);
     } else if (input.avatarUrl !== undefined) {
       data.avatarUrl = validateAvatarUrlInput(input.avatarUrl);
     }
@@ -161,19 +162,15 @@ export class StartPageService {
 
     try {
       const page = await this.applyPageUpdate(ctx, data);
-      if (uploadedExtension) {
-        await this.deleteAvatarQuietly(
-          ctx,
-          uploadedExtension === "jpg" ? "png" : "jpg",
-        );
+      if (uploadedFileName) {
+        await this.deleteOtherAvatarsQuietly(ctx, uploadedFileName);
       } else if (data.avatarUrl === null) {
-        await this.deleteAvatarQuietly(ctx, "jpg");
-        await this.deleteAvatarQuietly(ctx, "png");
+        await this.deleteOtherAvatarsQuietly(ctx);
       }
       return page;
     } catch (error) {
-      if (uploadedExtension) {
-        await this.deleteAvatarQuietly(ctx, uploadedExtension);
+      if (uploadedFileName) {
+        await this.deleteAvatarQuietly(ctx, uploadedFileName);
       }
       throw error;
     }
@@ -314,6 +311,9 @@ export class StartPageService {
     if (avatarFile.buffer.byteLength > START_PAGE_AVATAR_MAX_BYTES) {
       throw new ValidationError("Ukuran avatar maksimal 2MB.");
     }
+    if (!matchesImageSignature(avatarFile.contentType, avatarFile.buffer)) {
+      throw new ValidationError("Isi berkas bukan gambar JPG atau PNG.");
+    }
     if (!this.avatarStorage) {
       throw new ValidationError("Penyimpanan avatar tidak tersedia.");
     }
@@ -325,23 +325,37 @@ export class StartPageService {
     });
     const avatarUrl = validateAvatarUrlInput(uploaded.url);
     if (!avatarUrl) {
-      await this.deleteAvatarQuietly(ctx, extension);
+      await this.deleteAvatarQuietly(ctx, uploaded.fileName);
       throw new ValidationError(
         "URL avatar harus berupa tautan https yang valid.",
       );
     }
     data.avatarUrl = avatarUrl;
-    return extension;
+    return uploaded.fileName;
   }
 
   private async deleteAvatarQuietly(
     ctx: StartPageActorContext,
-    extension: string,
+    fileName: string,
   ): Promise<void> {
     if (!this.avatarStorage) return;
     await this.avatarStorage
-      .deleteAvatar({ workspaceId: ctx.workspaceId, extension })
-      .catch(() => {});
+      .deleteAvatar({ workspaceId: ctx.workspaceId, fileName })
+      .catch((error) =>
+        console.error("[StartPageService] gagal hapus avatar:", error),
+      );
+  }
+
+  private async deleteOtherAvatarsQuietly(
+    ctx: StartPageActorContext,
+    keepFileName?: string,
+  ): Promise<void> {
+    if (!this.avatarStorage) return;
+    await this.avatarStorage
+      .deleteOtherAvatars({ workspaceId: ctx.workspaceId, keepFileName })
+      .catch((error) =>
+        console.error("[StartPageService] gagal bersihkan avatar:", error),
+      );
   }
 
   private async applyPageUpdate(

@@ -13,12 +13,17 @@ import {
   type StartPageRecord,
   type UpdateStartPageLinkInput,
   type StartPageAvatarFile,
+  START_PAGE_AVATAR_MAX_BYTES,
   type UpdateStartPageProfileInput,
 } from "@/domains/start-page";
 import { getCachedSession } from "@/lib/better-auth/session";
 import { supabaseStartPageAvatarStorage } from "@/lib/adapters/avatar-storage";
 import { startPageRepository } from "@/lib/repositories/start-page";
-import { ExternalServiceError, toActionError } from "@/lib/utils/errors";
+import {
+  ExternalServiceError,
+  ValidationError,
+  toActionError,
+} from "@/lib/utils/errors";
 import { getWorkspaceContext } from "@/lib/workspace/workspace-context";
 
 /**
@@ -59,6 +64,9 @@ async function run<T>(
     if (options.revalidate) revalidatePath("/start-page");
     return { data };
   } catch (error) {
+    if (error instanceof ExternalServiceError) {
+      console.error("[start-page actions] layanan eksternal gagal:", error);
+    }
     return toActionError(error);
   }
 }
@@ -82,26 +90,13 @@ export async function updateStartPageProfileAction(
   input: UpdateStartPageProfileInput,
   avatarFormData?: FormData,
 ): Promise<StartPageActionResult<StartPageRecord>> {
-  const ctx = await resolveActor();
-  const avatar = avatarFormData ? avatarFormData.get("avatar") : null;
-  const avatarFile = await readAvatarFile(avatar);
-  try {
-    const data = await new StartPageService(
-      startPageRepository,
-      supabaseStartPageAvatarStorage,
-    ).updateProfile(ctx, input, avatarFile);
-    revalidatePath("/start-page");
-    return { data };
-  } catch (error) {
-    if (error instanceof ExternalServiceError) {
-      console.error(
-        "[updateStartPageProfileAction] gagal upload avatar:",
-        error,
-      );
-      return { error: "Gagal menyimpan profil. Coba lagi." };
-    }
-    return toActionError(error);
-  }
+  return run(async (service, ctx) =>
+    service.updateProfile(
+      ctx,
+      input,
+      await readAvatarFile(avatarFormData?.get("avatar") ?? null),
+    ),
+  );
 }
 
 /** File kosong atau bukan `File` berarti tidak ada unggahan baru. */
@@ -109,6 +104,9 @@ async function readAvatarFile(
   avatar: FormDataEntryValue | null,
 ): Promise<StartPageAvatarFile | null> {
   if (!(avatar instanceof File) || avatar.size === 0) return null;
+  if (avatar.size > START_PAGE_AVATAR_MAX_BYTES) {
+    throw new ValidationError("Ukuran avatar maksimal 2MB.");
+  }
   return {
     buffer: Buffer.from(await avatar.arrayBuffer()),
     contentType: avatar.type,

@@ -148,7 +148,7 @@ Tiket di bawah lahir dari temuan review Ridwan, QA Najwa, dan Mark. Semuanya di 
 
 ### T-159 · Upload foto profil Start Page lewat Storage/Media
 
-`✅ Done` (2026-10-28; branch `feature/t-159-start-page-avatar-upload`, belum di-merge) · **Domain** start-page, media · UI · **ADR** ADR-144, ADR-071 · **Depends** T-072 ✅
+`✅ Done` (2026-10-28; branch `feature/t-159-start-page-avatar-upload`, belum di-merge) · **Domain** start-page, media · UI · **ADR** ADR-144, ADR-071, ADR-145 · **Depends** T-072 ✅
 **Baca dulu:** `05-architecture/database-strategy.md` § Storage (bucket `avatars`) · ADR-071 · artifact Postific `project/templates/start-page-editor.html` (rancangan memakai upload)
 
 Ganti input URL https dengan unggah file. Supabase JS client hanya untuk Storage. Validasi `avatarUrl` https di sisi render tetap ada.
@@ -158,7 +158,7 @@ Ganti input URL https dengan unggah file. Supabase JS client hanya untuk Storage
 **Hasil:**
 
 - Page Editor: label "Foto Profil", JPG/PNG maks 2MB, pratinjau, tombol "Hapus foto" (halaman kembali ke inisial). File baru tampil di Preview sebelum Simpan. Tersimpan bersama "Simpan Perubahan".
-- Berkas masuk bucket publik `avatars` di path `avatars/{workspace_id}/avatar.{ext}` (ADR-071). URL https hasil unggah (dengan cache-bust) disimpan di `avatarUrl`.
+- Berkas masuk bucket publik `avatars` di folder `avatars/{workspace_id}/` (ADR-071) dengan nama unik per unggahan, `avatar-{uuid}.{ext}`, tanpa `upsert`. Berkas lama tidak tertimpa sebelum database tersimpan, jadi tidak perlu cache-bust. URL https hasil unggah disimpan di `avatarUrl`; berkas lain di folder dihapus sesudah simpan berhasil. Isi berkas dicocokkan dengan byte awal JPEG/PNG dan ukuran dicek sebelum dibaca ke memori.
 - Domain tidak memanggil Supabase: port `IStartPageAvatarStorage`, implementasi di `lib/adapters/avatar-storage`. Kalau simpan database gagal sesudah unggah, berkas baru dihapus (best-effort).
 
 **Belum:** unggah sungguhan ke Storage lewat browser (butuh sesi login). Belum di-merge dan belum di staging.

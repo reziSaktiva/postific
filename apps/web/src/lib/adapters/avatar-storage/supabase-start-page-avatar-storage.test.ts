@@ -1,16 +1,24 @@
 import { asWorkspaceId } from "@postific/shared";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { upload, getPublicUrl, remove, from, createServerSupabaseClient } =
+const { upload, getPublicUrl, remove, list, from, createServerSupabaseClient } =
   vi.hoisted(() => {
     const upload = vi.fn();
     const getPublicUrl = vi.fn();
     const remove = vi.fn();
-    const from = vi.fn(() => ({ upload, getPublicUrl, remove }));
+    const list = vi.fn();
+    const from = vi.fn(() => ({ upload, getPublicUrl, remove, list }));
     const createServerSupabaseClient = vi.fn(() => ({
       storage: { from },
     }));
-    return { upload, getPublicUrl, remove, from, createServerSupabaseClient };
+    return {
+      upload,
+      getPublicUrl,
+      remove,
+      list,
+      from,
+      createServerSupabaseClient,
+    };
   });
 
 vi.mock("@/lib/supabase/server", () => ({ createServerSupabaseClient }));
@@ -25,20 +33,16 @@ describe("supabaseStartPageAvatarStorage", () => {
     upload.mockReset();
     getPublicUrl.mockReset();
     remove.mockReset();
+    list.mockReset();
     from.mockClear();
     createServerSupabaseClient.mockClear();
-    vi.useRealTimers();
   });
 
-  it("uploads to avatars/{workspaceId}/avatar.{ext} and returns a cache-busted public URL", async () => {
+  it("uploads to a unique avatars/{workspaceId}/avatar-{id}.{ext} path", async () => {
     upload.mockResolvedValue({ error: null });
-    getPublicUrl.mockReturnValue({
-      data: {
-        publicUrl: `https://cdn.example/avatars/${WS}/avatar.jpg`,
-      },
-    });
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-10-28T00:00:00Z"));
+    getPublicUrl.mockImplementation((path: string) => ({
+      data: { publicUrl: `https://cdn.example/avatars/${path}` },
+    }));
 
     const result = await supabaseStartPageAvatarStorage.uploadAvatar({
       workspaceId: WS,
@@ -48,47 +52,62 @@ describe("supabaseStartPageAvatarStorage", () => {
     });
 
     expect(from).toHaveBeenCalledWith("avatars");
+    expect(result.fileName).toMatch(/^avatar-[0-9a-f-]{36}\.jpg$/);
     expect(upload).toHaveBeenCalledWith(
-      `${WS}/avatar.jpg`,
+      `${WS}/${result.fileName}`,
       expect.any(Buffer),
-      { contentType: "image/jpeg", upsert: true },
+      { contentType: "image/jpeg" },
     );
     expect(result.url).toBe(
-      `https://cdn.example/avatars/${WS}/avatar.jpg?v=${Date.now()}`,
+      `https://cdn.example/avatars/${WS}/${result.fileName}`,
     );
   });
 
   it("throws ExternalServiceError without the provider message", async () => {
     upload.mockResolvedValue({ error: { message: "bucket not found" } });
-
+    const input = {
+      workspaceId: WS,
+      fileBuffer: Buffer.from("fake-bytes"),
+      contentType: "image/png",
+      extension: "png",
+    };
     await expect(
-      supabaseStartPageAvatarStorage.uploadAvatar({
-        workspaceId: WS,
-        fileBuffer: Buffer.from("fake-bytes"),
-        contentType: "image/png",
-        extension: "png",
-      }),
+      supabaseStartPageAvatarStorage.uploadAvatar(input),
     ).rejects.toThrow(ExternalServiceError);
     await expect(
-      supabaseStartPageAvatarStorage.uploadAvatar({
-        workspaceId: WS,
-        fileBuffer: Buffer.from("fake-bytes"),
-        contentType: "image/png",
-        extension: "png",
-      }),
+      supabaseStartPageAvatarStorage.uploadAvatar(input),
     ).rejects.toThrow("Gagal upload avatar.");
     expect(getPublicUrl).not.toHaveBeenCalled();
   });
 
-  it("removes avatars/{workspaceId}/avatar.{ext} and ignores storage errors", async () => {
-    remove.mockResolvedValue({ error: { message: "not found" } });
+  it("removes one file and surfaces storage errors", async () => {
+    remove.mockResolvedValue({ error: null });
+    await supabaseStartPageAvatarStorage.deleteAvatar({
+      workspaceId: WS,
+      fileName: "avatar-1.png",
+    });
+    expect(remove).toHaveBeenCalledWith([`${WS}/avatar-1.png`]);
 
+    remove.mockResolvedValue({ error: { message: "denied" } });
     await expect(
       supabaseStartPageAvatarStorage.deleteAvatar({
         workspaceId: WS,
-        extension: "png",
+        fileName: "avatar-1.png",
       }),
-    ).resolves.toBeUndefined();
-    expect(remove).toHaveBeenCalledWith([`${WS}/avatar.png`]);
+    ).rejects.toThrow(ExternalServiceError);
+  });
+
+  it("removes every other file in the workspace folder", async () => {
+    list.mockResolvedValue({
+      data: [{ name: "avatar-keep.jpg" }, { name: "avatar-old.png" }],
+      error: null,
+    });
+    remove.mockResolvedValue({ error: null });
+    await supabaseStartPageAvatarStorage.deleteOtherAvatars({
+      workspaceId: WS,
+      keepFileName: "avatar-keep.jpg",
+    });
+    expect(list).toHaveBeenCalledWith(WS);
+    expect(remove).toHaveBeenCalledWith([`${WS}/avatar-old.png`]);
   });
 });

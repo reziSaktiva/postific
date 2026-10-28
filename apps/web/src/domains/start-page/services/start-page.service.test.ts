@@ -58,14 +58,19 @@ function page(overrides: Partial<StartPageRecord> = {}): StartPageRecord {
   };
 }
 
+const JPG = Buffer.from([0xff, 0xd8, 0xff, 0xe0]);
+const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+
 function fakeStorage(
   overrides: Partial<IStartPageAvatarStorage> = {},
 ): IStartPageAvatarStorage {
   return {
-    uploadAvatar: vi.fn().mockResolvedValue({
-      url: "https://cdn.example/avatars/ws/avatar.jpg?v=1",
-    }),
+    uploadAvatar: vi.fn().mockImplementation(async ({ extension }) => ({
+      url: `https://cdn.example/avatars/ws/avatar-1.${extension}`,
+      fileName: `avatar-1.${extension}`,
+    })),
     deleteAvatar: vi.fn().mockResolvedValue(undefined),
+    deleteOtherAvatars: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }
@@ -203,17 +208,17 @@ describe("updateProfile / setPublished", () => {
     );
   });
 
-  it("uploads a jpg and stores the https url, then drops the other extension", async () => {
+  it("uploads a jpg, stores the https url, then drops the other files", async () => {
     const avatarStorage = fakeStorage();
     const { service, repository } = setup({}, avatarStorage);
     await service.updateProfile(
       ctx,
       { title: "Raka" },
-      { buffer: Buffer.from("img"), contentType: "image/jpeg" },
+      { buffer: JPG, contentType: "image/jpeg" },
     );
     expect(avatarStorage.uploadAvatar).toHaveBeenCalledWith({
       workspaceId: WS,
-      fileBuffer: expect.any(Buffer),
+      fileBuffer: JPG,
       contentType: "image/jpeg",
       extension: "jpg",
     });
@@ -222,41 +227,42 @@ describe("updateProfile / setPublished", () => {
         workspaceId: WS,
         data: {
           title: "Raka",
-          avatarUrl: "https://cdn.example/avatars/ws/avatar.jpg?v=1",
+          avatarUrl: "https://cdn.example/avatars/ws/avatar-1.jpg",
         },
       },
       ctx.actingUserId,
     );
-    expect(avatarStorage.deleteAvatar).toHaveBeenCalledTimes(1);
-    expect(avatarStorage.deleteAvatar).toHaveBeenCalledWith({
+    expect(avatarStorage.deleteOtherAvatars).toHaveBeenCalledWith({
       workspaceId: WS,
-      extension: "png",
+      keepFileName: "avatar-1.jpg",
     });
+    expect(avatarStorage.deleteAvatar).not.toHaveBeenCalled();
   });
 
-  it("rejects a non-image and an oversized file before upload", async () => {
+  it("rejects a non-image, an oversized file and a spoofed type before upload", async () => {
     const avatarStorage = fakeStorage();
     const { service, repository } = setup({}, avatarStorage);
     await expect(
       service.updateProfile(
         ctx,
         {},
-        {
-          buffer: Buffer.from("x"),
-          contentType: "image/gif",
-        },
+        { buffer: Buffer.from("x"), contentType: "image/gif" },
       ),
     ).rejects.toThrow(/JPG atau PNG/);
     await expect(
       service.updateProfile(
         ctx,
         {},
-        {
-          buffer: Buffer.alloc(2 * 1024 * 1024 + 1),
-          contentType: "image/png",
-        },
+        { buffer: Buffer.alloc(2 * 1024 * 1024 + 1), contentType: "image/png" },
       ),
     ).rejects.toThrow(/2MB/);
+    await expect(
+      service.updateProfile(
+        ctx,
+        {},
+        { buffer: Buffer.from("<html></html>"), contentType: "image/png" },
+      ),
+    ).rejects.toThrow(/bukan gambar/);
     expect(avatarStorage.uploadAvatar).not.toHaveBeenCalled();
     expect(repository.update).not.toHaveBeenCalled();
   });
@@ -264,52 +270,48 @@ describe("updateProfile / setPublished", () => {
   it("rejects an upload when storage is not wired", async () => {
     const { service } = setup();
     await expect(
-      service.updateProfile(
-        ctx,
-        {},
-        {
-          buffer: Buffer.from("x"),
-          contentType: "image/png",
-        },
-      ),
+      service.updateProfile(ctx, {}, { buffer: PNG, contentType: "image/png" }),
     ).rejects.toThrow(/tidak tersedia/);
   });
 
-  it("deletes the uploaded file when the page update fails", async () => {
+  it("deletes only the new file when the page update fails", async () => {
     const avatarStorage = fakeStorage();
     const { service } = setup(
       { update: vi.fn().mockRejectedValue(new Error("DB write failed")) },
       avatarStorage,
     );
     await expect(
-      service.updateProfile(
-        ctx,
-        {},
-        {
-          buffer: Buffer.from("x"),
-          contentType: "image/png",
-        },
-      ),
+      service.updateProfile(ctx, {}, { buffer: PNG, contentType: "image/png" }),
     ).rejects.toThrow("DB write failed");
     expect(avatarStorage.deleteAvatar).toHaveBeenCalledWith({
       workspaceId: WS,
-      extension: "png",
+      fileName: "avatar-1.png",
     });
+    expect(avatarStorage.deleteOtherAvatars).not.toHaveBeenCalled();
   });
 
-  it("removes stored jpg and png when the avatar is cleared", async () => {
+  it("removes all stored files when the avatar is cleared", async () => {
     const avatarStorage = fakeStorage();
     const { service } = setup({}, avatarStorage);
     await service.updateProfile(ctx, { avatarUrl: null });
     expect(avatarStorage.uploadAvatar).not.toHaveBeenCalled();
-    expect(avatarStorage.deleteAvatar).toHaveBeenCalledWith({
+    expect(avatarStorage.deleteOtherAvatars).toHaveBeenCalledWith({
       workspaceId: WS,
-      extension: "jpg",
+      keepFileName: undefined,
     });
-    expect(avatarStorage.deleteAvatar).toHaveBeenCalledWith({
-      workspaceId: WS,
-      extension: "png",
+  });
+
+  it("logs and ignores a storage cleanup failure", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const avatarStorage = fakeStorage({
+      deleteOtherAvatars: vi.fn().mockRejectedValue(new Error("boom")),
     });
+    const { service } = setup({}, avatarStorage);
+    await expect(
+      service.updateProfile(ctx, { avatarUrl: null }),
+    ).resolves.toBeDefined();
+    expect(error).toHaveBeenCalled();
+    error.mockRestore();
   });
 
   it("maps slug collision on update to ConflictError", async () => {
