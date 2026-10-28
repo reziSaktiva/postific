@@ -20,7 +20,7 @@ ADR-068 menetapkan `react-icons` sebagai library ikon tunggal untuk seluruh UI. 
 
 1. `hugeicons` (`@hugeicons/react` + `@hugeicons/core-free-icons`) adalah library ikon untuk seluruh UI, termasuk ikon platform monokrom.
 2. `react-icons` (`react-icons/fa6`) hanya untuk logo brand berwarna per platform (`platform-icons.tsx`), karena `hugeicons` tidak menyediakannya dengan warna brand.
-3. Ikon generik yang masih memakai `react-icons` (`calendar-grid-shared.ts`) dimigrasi ke `hugeicons` lewat tiket terpisah. Tiket ini tidak mengubah kode.
+3. Ikon generik yang masih memakai `react-icons` (`calendar-grid-shared.ts`) dimigrasi ke `hugeicons` lewat T-169. T-165 tidak mengubah kode.
 4. Satu komponen baru tidak mencampur kedua library untuk ikon generik.
 
 ### Reason
