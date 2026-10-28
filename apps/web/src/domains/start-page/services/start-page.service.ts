@@ -1,5 +1,6 @@
 import {
   ConflictError,
+  ExternalServiceError,
   NotFoundError,
   ValidationError,
 } from "@/lib/utils/errors";
@@ -21,7 +22,7 @@ import type {
 } from "../types";
 import {
   isUuid,
-  START_PAGE_AVATAR_MAX_BYTES,
+  assertAvatarSizeWithinLimit,
   START_PAGE_AVATAR_MIME_TYPES,
   matchesImageSignature,
   validateAvatarUrlInput,
@@ -304,18 +305,16 @@ export class StartPageService {
     avatarFile: StartPageAvatarFile,
     data: UpdateStartPageData,
   ): Promise<string> {
+    if (!this.avatarStorage) {
+      throw new ExternalServiceError("Penyimpanan avatar tidak tersedia.");
+    }
     const extension = START_PAGE_AVATAR_MIME_TYPES[avatarFile.contentType];
     if (!extension) {
       throw new ValidationError("Format avatar harus JPG atau PNG.");
     }
-    if (avatarFile.buffer.byteLength > START_PAGE_AVATAR_MAX_BYTES) {
-      throw new ValidationError("Ukuran avatar maksimal 2MB.");
-    }
+    assertAvatarSizeWithinLimit(avatarFile.buffer.byteLength);
     if (!matchesImageSignature(avatarFile.contentType, avatarFile.buffer)) {
       throw new ValidationError("Isi berkas bukan gambar JPG atau PNG.");
-    }
-    if (!this.avatarStorage) {
-      throw new ValidationError("Penyimpanan avatar tidak tersedia.");
     }
     const uploaded = await this.avatarStorage.uploadAvatar({
       workspaceId: ctx.workspaceId,
