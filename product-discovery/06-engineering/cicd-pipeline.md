@@ -38,7 +38,8 @@ Dokumen ini menkonkretkan trigger deploy dari `deployment-infrastructure.md` (DI
 | CI-D03 | Branch & promosi | `feature/*` → PR ke `staging` → verifikasi → PR `staging` ke `main` |
 | CI-D04 | CD (deploy) | Tetap **Railway auto-deploy** dari branch (bukan deploy dari GitHub Actions) |
 | CI-D05 | Migrasi DB | `prisma migrate deploy` di **Railway release/pre-start** per environment (`DIRECT_URL`) — bukan di job PR |
-| CI-D06 | Secrets di CI | PR CI **tidak** membutuhkan secret produksi; secret DB/migrate hanya di Railway (dan opsional mirror staging di GitHub Secrets jika nanti ada job migrate terpisah) |
+| CI-D06 | Secrets di CI | PR CI **tidak** membutuhkan secret produksi; secret DB/migrate hanya di Railway (dan opsional mirror staging di GitHub Secrets jika nanti ada job migrate terpisah). **Amandemen ADR-149:** job E2E (CI-D07) memakai GitHub Secrets akun test staging, hanya pada `push` ke `staging` |
+| CI-D07 | Gerbang E2E *(ADR-149)* | Playwright (Chrome) terhadap **staging setelah deploy** pada `push` ke `staging`; hijau menjadi required check untuk PR `staging` → `main`. PR `feature/*` → `staging` tidak diblokir E2E di CI; penulis tiket menjalankan suite di local dan melaporkannya di PR. Spec: S-002 |
 
 ---
 
@@ -90,7 +91,7 @@ Satu workflow utama (mis. `ci.yml`) dengan steps berurutan:
 | Test | `bun run test` — unit/domain tests; boleh suite minimal di awal M8 | ya |
 
 **Di luar scope MVP CI:**
-- E2E browser (Playwright/Cypress) — post-MVP atau ditambah saat fitur kritis stabil.
+- E2E browser di job PR (`pull_request`). E2E berjalan sebagai gerbang terpisah terhadap staging (CI-D07, ADR-149).
 - Deploy preview Railway per-PR — ditolak di ADR-029.
 - `prisma migrate deploy` terhadap staging/prod dari job PR — terlalu berbahaya dan tidak perlu (CI-D05).
 

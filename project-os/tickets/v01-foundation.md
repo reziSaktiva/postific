@@ -798,6 +798,53 @@ Navigator sudah melarang membaca `PROJECT_STATE` utuh, `COMPLETE_TASK`, dan selu
 
 ---
 
+### T-172 · Pasang Playwright (Chrome) di `apps/web`
+
+`⏳ Not Started` · **Domain** QA, tooling · **ADR** ADR-149 · **Spec** S-002 · **Depends** —
+**Baca dulu:** `project-os/specs/S-002.md` · `product-discovery/06-engineering/dx-tooling.md`
+
+- [ ] **T-172.1** Tambah `@playwright/test` ke `apps/web`, `playwright.config.ts` (Chrome `channel: "chrome"`, `E2E_BASE_URL`, trace/screenshot saat gagal), folder `apps/web/e2e/`
+- [ ] **T-172.2** Skrip `test:e2e` di `apps/web` dan root; variabel baru di `.env.example` (placeholder, tanpa secret); ESLint/Vitest tidak ikut memuat `e2e/`
+- [ ] **T-172.3** Catatan cara menjalankan di `context/` atau `dx-tooling.md` (rujukan, bukan salinan)
+
+### T-173 · Akun test dan setup sesi E2E
+
+`⏳ Not Started` · **Domain** QA · **ADR** ADR-149 · **Spec** S-002 · **Depends** T-172, akun test dari King Rezi
+**Baca dulu:** `product-discovery/06-engineering/environment-management.md` (ADR-081)
+
+- [ ] **T-173.1** King Rezi menyiapkan akun test khusus; kredensial hanya di `apps/web/.env.local` dan GitHub Secrets (tidak pernah di repo, log, atau chat)
+- [ ] **T-173.2** Proyek setup Playwright: login sekali, simpan `storageState` (gitignored)
+- [ ] **T-173.3** Konvensi isolasi data: awalan `e2e-`, pembersihan di akhir tes, larangan memublikasikan ke Outstand nyata
+
+### T-174 · Tes E2E pertama: Start Page golden path dan regresi
+
+`⏳ Not Started` · **Domain** start-page, QA · **ADR** ADR-149 · **Spec** S-002 · **Depends** T-172, T-173
+**Baca dulu:** `tickets/v06-start-page-mvp.md` § T-164
+
+- [ ] **T-174.1** Buat halaman, tambah tautan, publish, buka `/u/<slug>` tanpa cookie (200, tanpa redirect `/login`), klik tautan (302), counter di Page Editor naik (gunakan UA browser; filter bot, T-162.1)
+- [ ] **T-174.2** Cek CSP: 0 pelanggaran di `/u/<slug>`; toast tidak menutupi tombol Publish (T-170)
+- [ ] **T-174.3** Bersihkan data `e2e-*` di akhir; jalan di `local` dan `staging`
+
+### T-175 · Workflow CI E2E terhadap staging dan gerbang promosi ke `main`
+
+`⏳ Not Started` · **Domain** CI/CD · **ADR** ADR-149, CI-D07 · **Spec** S-002 · **Depends** T-172, T-173, T-174
+**Baca dulu:** `product-discovery/06-engineering/cicd-pipeline.md` · `.github/workflows/ci.yml`
+
+- [ ] **T-175.1** Putuskan pemicu "setelah deploy Railway selesai" (event deployment atau polling ke staging); catat di tiket ini
+- [ ] **T-175.2** `.github/workflows/e2e-staging.yml`: `push` ke `staging`, Chrome, GitHub Secrets akun test, artifact trace
+- [ ] **T-175.3** Jadikan hasil hijau required check untuk PR `staging` → `main` (pengaturan GitHub: King Rezi atau atas izin eksplisit)
+
+### T-176 · Aturan kerja: E2E Playwright masuk definisi "tiket selesai"
+
+`⏳ Not Started` · **Domain** project-os, agen · **ADR** ADR-149 · **Spec** S-002 · **Depends** T-172
+**Baca dulu:** `.claude/skills/project-os-navigator/SKILL.md` · `.claude/agents/README.md` · `.claude/agents/najwa-qa-engineer.md`
+
+- [ ] **T-176.1** Navigator/aturan kerja: tiket fitur selesai bila ada tes E2E golden path dan suite hijau di local; hasil dilaporkan di deskripsi PR
+- [ ] **T-176.2** Perbarui definisi Najwa memakai Playwright. `.claude/agents/*.md` adalah Static Reference: hanya diubah atas permintaan eksplisit King Rezi, jadi minta konfirmasi saat tiket ini dikerjakan
+- [ ] **T-176.3** `AGENTS.md`: cukup satu penunjuk (ADR-133), tanpa menyalin aturan
+
+---
+
 ## Dari Known Issue
 
 Tiket yang lahir sebagai pelacak Known Issue ada di [`known-issues.md`](known-issues.md) (ADR-134); daftar lengkapnya hanya di file itu, tidak disalin ke sini. KI-027 tetap di T-008 di file ini.
