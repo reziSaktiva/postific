@@ -230,8 +230,8 @@ Neymar menghapus blok DRAFT lama (75 baris, Aksen hijau/`accent-bronze`) dari `p
 
 Tiket ini mencatat verifikasi yang belum dilakukan; tanpanya definisi selesai rilis ("pengguna dapat membagikan halaman publik") belum terbukti.
 
-- [ ] **T-164.1** Jalankan query duplikat `start_page_pages` (T-072, F6), lalu apply empat migrasi (T-070, T-072, T-074, T-162.3) di Supabase staging
-- [ ] **T-164.2** Cek tipe kolom hasil `$queryRaw` dan grant `anon`/`authenticated` Supabase asli (harus tidak bisa memanggil fungsi `start_page_*`)
+- [x] **T-164.1** (2026-10-28) Query duplikat `start_page_pages` per `workspace_id`: 0 baris. Keempat migrasi (T-070, T-072, T-074, T-162.3) sudah tercatat selesai di `_prisma_migrations` project staging `ndcrkzqgqukqfmekgoze` (ADR-081) sejak 2026-10-28 04:18 UTC, jadi tidak ada yang perlu di-apply ulang. Tabel `start_page_pages` masih kosong (belum ada halaman uji di staging).
+- [~] **T-164.2** (2026-10-28) Grant: ketiga fungsi `start_page_*` (`get_public_by_slug`, `record_view`, `record_click_and_get_url`) `SECURITY DEFINER`, `EXECUTE` untuk `anon`, `authenticated`, dan `public` semuanya `false` (terverifikasi lewat `has_function_privilege`). **Belum:** tipe kolom hasil `$queryRaw` (butuh halaman uji, lihat T-164.5)
 - [ ] **T-164.3** `curl` tanpa cookie ke `/u/<slug>` dan `/u/<slug>/go/<linkId>` di staging: tidak redirect ke `/login`, redirect 302, `Cache-Control` sesuai
 - [ ] **T-164.4** Uji `next build` dan jalur `P2025` (selama ini hanya mock)
 - [ ] **T-164.5** Browser: buat halaman, tambah tautan, publish, buka sebagai anonim, klik tautan, cek counter di Page Editor
