@@ -40,7 +40,7 @@ Keputusan King Rezi selama implementasi T-071 sampai T-074, dikumpulkan di satu 
 **Halaman publik (T-071)**
 
 13. Tautan memakai `<a>` di dalam `Card` (komponen `card.tsx` tidak punya `asChild`). Href = `/u/[slug]/go/[linkId]` (ADR-143). `rel="noopener noreferrer nofollow ugc"`, `target="_blank"`.
-14. **Render dinamis** per request (tanpa SSG/ISR). Header keamanan di `next.config.ts`: `X-Frame-Options: DENY`, `Content-Security-Policy: frame-ancestors 'none'`, `Referrer-Policy`. **CSP penuh dengan nonce belum ada** (T-160).
+14. **Render dinamis** per request (tanpa SSG/ISR). Header keamanan di `next.config.ts`: `X-Frame-Options: DENY`, `Content-Security-Policy: frame-ancestors 'none'`, `Referrer-Policy`. CSP nonce per request untuk `/u/*` ditambahkan di `proxy.ts` oleh T-160 (2026-10-28); header CSP statis dihapus dari `next.config.ts`.
 15. **Ikon platform memakai `hugeicons` monokrom** (`currentColor`, tile netral sesuai rancangan Opsi B), bukan ikon brand berwarna dari `react-icons`. Ini **deviasi sadar** dari ADR-058 poin 6 (`react-icons` untuk logo brand), yang sudah dilebarkan ADR-068 (`react-icons` jadi library ikon tunggal). Praktik komponen shadcn baru di `apps/web/.claude/CLAUDE.md` memakai `hugeicons`. ADR ini tidak mengamandemen ADR-058 maupun ADR-068; deviasi hanya berlaku untuk ikon platform Start Page. Konflik ADR-068 dengan `apps/web/.claude/CLAUDE.md` diselesaikan nanti di tiket terpisah (T-165, butuh ADR baru; keputusan King Rezi 2026-10-28), bukan di PR #200.
 
 ### Reason
@@ -66,9 +66,9 @@ Keputusan King Rezi selama implementasi T-071 sampai T-074, dikumpulkan di satu 
 
 - **Kontras:** token bersama `muted-foreground` mode light hanya 3,4 sampai 3,8:1 (di bawah AA 4,5:1). Ini token produk, bukan hanya Start Page; butuh keputusan token (T-163).
 - Rancangan terkunci di artifact belum mencakup: slug, tombol Simpan, state "Buat Halaman", dan avatar via URL (rancangan memakai upload). Dicatat sebagai deviasi desain minor.
-- Posisi tautan tidak dipadatkan setelah hapus (QA Najwa M4) dan fungsi baca publik tidak menyaring skema url (M3; aplikasi menyaring). Keduanya di T-162.
+- Posisi tautan tidak dipadatkan setelah hapus (QA Najwa M4) dan fungsi baca publik tidak menyaring skema url (M3; aplikasi menyaring). Keduanya diperbaiki di T-162.2 dan T-162.3 (2026-10-28).
 - Sebelum migrasi UNIQUE di-apply ke staging, cek duplikat: `SELECT workspace_id, count(*) FROM start_page_pages GROUP BY 1 HAVING count(*) > 1` (Ridwan F6).
-- **Belum terverifikasi di staging:** migrasi T-070, T-072, T-074 belum di-apply di Supabase; `P2025` hanya diuji lewat mock; `next build` belum dijalankan.
+- **Belum terverifikasi di staging:** migrasi T-070, T-072, T-074 belum di-apply di Supabase; `P2025` hanya diuji lewat mock; jalur CSP baru terverifikasi lewat `next build` + `next start` lokal, bukan staging (T-164.6).
 - Pesan error domain Start Page sekarang berbahasa Indonesia.
 
 ### Related

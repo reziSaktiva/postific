@@ -5,7 +5,7 @@
 **Tujuan rilis:** Menyediakan halaman publik untuk kebutuhan bio link.
 **Baseline rilis:** `product-discovery/02-product/release-roadmap.md` → v0.6
 
-**Status rilis (2026-10-28):** T-070 sampai T-074 ✅ Done, kode dalam satu PR #200 (branch `feature/t-070-start-page-public-route`, belum di-merge). Review Ridwan PASS, QA Najwa PASS. **Belum terverifikasi di staging:** migrasi T-070, T-072, T-074 belum di-apply di Supabase; lihat T-164. Keputusan: ADR-142, ADR-143, ADR-144. Tiket lanjutan (T-159 sampai T-164) ada di bagian **Lanjutan** di bawah.
+**Status rilis (2026-10-28):** T-070 sampai T-074 ✅ Done, kode dalam satu PR #200 (branch `feature/t-070-start-page-public-route`, belum di-merge). Review Ridwan PASS, QA Najwa PASS. **Belum terverifikasi di staging:** migrasi T-070, T-072, T-074 belum di-apply di Supabase; lihat T-164. Keputusan: ADR-142, ADR-143, ADR-144. Tiket lanjutan (T-159 sampai T-166) ada di bagian **Lanjutan** di bawah.
 
 **Kedalaman dokumen ini:** T-070 sampai T-074 dicatat per hasil (retrospektif, bukan rencana). ID task dikunci agar bisa dirujuk.
 
@@ -84,7 +84,7 @@ Service + repository, plus keputusan arsitektur: di mana route publik hidup, bag
 
 - Halaman `/u/[slug]` (`components/start-page/StartPageProfile.tsx`), render dinamis per request, tema lewat preset (T-073).
 - Metadata, Open Graph, canonical, dan robots (halaman tidak ada atau draft menjadi 404 `noindex`).
-- Header keamanan di `next.config.ts` (`X-Frame-Options: DENY`, `frame-ancestors 'none'`, `Referrer-Policy`). **CSP penuh belum**: T-160.
+- Header keamanan di `next.config.ts` (`X-Frame-Options: DENY`, `frame-ancestors 'none'`, `Referrer-Policy`). CSP nonce untuk `/u/*` kini ada di `proxy.ts` (T-160 ✅); header CSP statis dihapus dari `next.config.ts`.
 - Prasyarat dari review T-070 terpenuhi: `link.url` dan `avatarUrl` divalidasi `new URL()` hanya http/https, `rel="noopener noreferrer nofollow ugc"` + `target="_blank"`, allowlist `theme`.
 - Href tautan = `/u/[slug]/go/[linkId]` (redirect hitung klik, T-074).
 
@@ -107,7 +107,7 @@ Service + repository, plus keputusan arsitektur: di mana route publik hidup, bag
 
 **Prasyarat apply migrasi UNIQUE di staging (Ridwan F6):** jalankan dulu `SELECT workspace_id, count(*) FROM start_page_pages GROUP BY 1 HAVING count(*) > 1`; bila ada baris, bereskan duplikat sebelum apply.
 
-**Deviasi desain minor:** rancangan terkunci memakai upload avatar (implementasi: URL https); slug, tombol Simpan, dan state "Buat Halaman" belum punya rancangan terkunci di artifact. **Catatan minor QA (M4):** posisi tautan tidak dipadatkan setelah hapus (T-162). **Belum terverifikasi:** `P2025` hanya lewat mock; migrasi belum di-apply di staging. Keputusan: ADR-144.
+**Deviasi desain minor:** rancangan terkunci memakai upload avatar (implementasi: URL https); slug, tombol Simpan, dan state "Buat Halaman" belum punya rancangan terkunci di artifact. **Catatan minor QA (M4):** posisi tautan tidak dipadatkan setelah hapus (diperbaiki di T-162.2). **Belum terverifikasi:** `P2025` hanya lewat mock; migrasi belum di-apply di staging. Keputusan: ADR-144.
 
 ### T-073 · Theme configuration
 
@@ -123,7 +123,7 @@ Berstatus **Should Have** di `feature-priority.md`. Pertanyaan tiket (token yang
 - `default` ikut tema aplikasi; `dark` memaksa scope dark; `accent` netral tanpa hue (inversi primary Stone). **Tanpa token baru.** Rancangan LOCKED di artifact Postific (King Rezi, 2026-10-26).
 - Kontras diuji di `start-page-theme.test.ts`.
 
-**Catatan:** token bersama `muted-foreground` mode light hanya 3,4 sampai 3,8:1 (di bawah AA 4,5:1), jadi teks sekunder di tema light belum memenuhi AA: T-163 (butuh keputusan token). `project/styles.css` artifact Postific masih memuat blok DRAFT lama (Aksen hijau) di atas blok netral sehingga galeri menampilkan Aksen hijau: T-161.
+**Catatan:** token bersama `muted-foreground` mode light hanya 3,4 sampai 3,8:1 (di bawah AA 4,5:1), jadi teks sekunder di tema light belum memenuhi AA: T-163 (butuh keputusan token). Blok DRAFT lama (Aksen hijau) di `project/styles.css` artifact sudah dihapus (T-161 ✅).
 
 ### T-074 · Basic analytics Start Page
 
@@ -138,7 +138,7 @@ Berstatus **Could Have** — hitungan kunjungan + klik per tautan. **Deviasi dar
 - Klik lewat route redirect 302 `/u/[slug]/go/[linkId]` (`Cache-Control: no-store`, `X-Robots-Tag: noindex`); bot dan `HEAD` pada route klik tidak dihitung (heuristik user-agent); tanpa dedup dan rate limit.
 - Tampil hanya di Page Editor: kunjungan di page-head, klik per tautan di meta Link List. Format id-ID penuh di bawah 10.000, ringkas mulai 10.000; tanpa data tampil `0` + petunjuk.
 
-**Catatan LOW (Ridwan):** F3 counter tanpa rate limit; F4 klik terhitung tapi bisa 404; F8 `search_path` tanpa `pg_temp` (konsisten dengan migrasi lain). **Catatan minor QA:** M1 `HEAD` ke `/u/<slug>` dengan UA browser menaikkan `view_count` (Next merender `HEAD` sebagai `GET`); M3 fungsi baca publik tidak menyaring skema url (aplikasi menyaring). Perbaikannya opsional: T-162. **Belum terverifikasi:** migrasi belum di-apply di Supabase; grant default `anon`/`authenticated` Supabase asli belum diuji; tidak ada tes integrasi DB di CI. QA lokal (Postgres 16, role stub, `app_runtime` non-BYPASSRLS) membuktikan RLS dan fungsi.
+**Catatan LOW (Ridwan):** F3 counter tanpa rate limit; F4 klik terhitung tapi bisa 404; F8 `search_path` tanpa `pg_temp` (konsisten dengan migrasi lain). **Catatan minor QA:** M1 (`HEAD` menaikkan `view_count`) dan M3 (fungsi baca publik tidak menyaring skema url) sudah diperbaiki di T-162.1 dan T-162.3. **Belum terverifikasi:** migrasi belum di-apply di Supabase; grant default `anon`/`authenticated` Supabase asli belum diuji; tidak ada tes integrasi DB di CI. QA lokal (Postgres 16, role stub, `app_runtime` non-BYPASSRLS) membuktikan RLS dan fungsi.
 
 ---
 
@@ -155,31 +155,36 @@ Ganti input URL https dengan upload. Supabase JS client hanya untuk Storage (AGE
 
 ### T-160 · CSP penuh dengan nonce untuk `/u/*`
 
-`⏳ Not Started` · **Domain** start-page · infra (`next.config.ts`, `proxy.ts`) · **ADR** ADR-144 · **Depends** T-071 ✅
+`✅ Done` (2026-10-28; PR #200, belum di-merge) · **Domain** start-page · infra (`proxy.ts`, `lib/security/public-csp.ts`) · **ADR** ADR-144 · **Depends** T-071 ✅
 **Baca dulu:** `06-engineering/rendering-strategy.md` § RS-D08
 
-Saat ini hanya `frame-ancestors 'none'` + `X-Frame-Options` + `Referrer-Policy`. Tambah CSP penuh berbasis nonce per request untuk rute publik (nonce untuk inline script Next.js), tanpa merusak render dinamis. Uji dengan `next build` dan browser nyata.
+- [x] CSP nonce per request untuk `/u/*` di `proxy.ts`: `script-src 'self' 'nonce-…' 'strict-dynamic'`, `style-src 'self' 'nonce-…'` (tanpa `unsafe-inline`), `frame-ancestors 'none'`, `object-src 'none'`, `base-uri 'self'`, `img-src https:` (avatar https bebas).
+- [x] `upgrade-insecure-requests` sengaja tidak dipasang: memecah `next start` di http localhost; TLS dijamin Railway.
+- [x] Header CSP statis di `next.config.ts` dihapus; `X-Frame-Options` dan header lain tetap.
+- [x] `Toaster` sonner dipindah dari `Providers` root ke `(app)/layout` lewat `AppToaster` (halaman auth, onboarding, dan publik tidak punya Toaster; semua pemakai `toast()` ada di `(app)`).
+
+**Terverifikasi:** `next build` + `next start` + `curl` + Chromium: 0 pelanggaran di `/u/<slug valid>`. **Belum:** `next dev`, Railway/staging (T-164), Firefox/Safari, toast di halaman `(app)` nyata lewat session.
+**Batasan (diterima King Rezi):** 404 bawaan Next di `/u/<slug tak ada>` menyuntik `<style>` tanpa nonce, 1 pelanggaran `style-src-elem` (kosmetik, tanpa risiko keamanan). Lanjutan: T-166.
 
 ### T-161 · Bersihkan blok DRAFT lama di `project/styles.css` artifact Postific
 
-`⏳ Not Started` · **Domain** design (artifact desain) · **ADR** ADR-140, ADR-144 · **Depends** T-073 ✅
+`✅ Done` (2026-10-28) · **Domain** design (artifact desain) · **ADR** ADR-140, ADR-144 · **Depends** T-073 ✅
 **Baca dulu:** `.claude/skills/claude-design-scope-discipline/SKILL.md` · `context/ctx-design.md`
 
-Blok DRAFT lama (Aksen hijau dari trio success) masih ada di atas blok netral, sehingga galeri menampilkan Aksen hijau padahal rancangan LOCKED menyebut netral. Dikerjakan Neymar Product Designer, hanya menghapus blok lama, tanpa mengubah rancangan terkunci dan tanpa kontrol pembanding baru.
+Neymar menghapus blok DRAFT lama (75 baris, Aksen hijau/`accent-bronze`) dari `project/styles.css` artifact Postific (kini v18). Galeri tidak diubah (sudah bersih).
+**Sisa kecil (untuk King Rezi/Neymar, belum diubah):** label "DRAFT T-073" di `s/start-page-theme-presets.html` galeri dan komentar header "STATUS: DRAFT" di blok CSS baru masih lama.
 
 ### T-162 · Perbaikan kecil counter dan data Start Page (opsional, prioritas rendah)
 
-`⏳ Not Started` · **Domain** start-page · **ADR** ADR-143, ADR-144 · **Depends** T-074 ✅
+`✅ Done` (T-162.1 sampai .3, 2026-10-28; PR #200, belum di-merge; Ridwan tanpa Critical/High, Najwa QA lulus). **T-162.4 tidak dikerjakan** (butuh ADR) · **Domain** start-page · **ADR** ADR-143, ADR-144 · **Depends** T-074 ✅
 **Baca dulu:** ADR-143 § Consequences
 
-Pilih sebagian atau semua; masing-masing berdiri sendiri:
+- [x] **T-162.1** `HEAD` tidak dihitung lewat Fetch Metadata (`Sec-Fetch-Dest: document` + `Sec-Fetch-Mode: navigate`, fail-closed; value object `document-navigation.ts`). Next 16 merender `HEAD` sebagai `GET` sehingga method tak bisa dicek. Batasan: Safari <16.4, http non-secure selain localhost, dan sebagian in-app browser tidak terhitung; header bisa dipalsukan (heuristik). Keputusan King Rezi: tetap fail-closed, rasio view terhadap klik dipantau setelah rilis (T-164.6).
+- [x] **T-162.2** `deleteLink` memadatkan `position` dalam satu transaksi. Risiko race LOW diterima; diuji hanya lewat mock dan QA DB lokal.
+- [x] **T-162.3** Migrasi `20261028120000_t162_3_start_page_public_read_http_only_urls`: fungsi baca publik menyaring url `^https?://`. Perlu di-apply di staging (T-164).
+- [ ] **T-162.4** Rate limit atau dedup counter (Ridwan F3). Menyimpan identifier menyentuh PII, jadi butuh ADR baru sebelum dikerjakan. Tetap terbuka, tanpa tiket sendiri sampai ADR ada.
 
-- [ ] **T-162.1** `HEAD` ke `/u/<slug>` tidak menghitung view (QA M1).
-- [ ] **T-162.2** Padatkan `position` tautan setelah hapus (QA M4).
-- [ ] **T-162.3** Fungsi baca publik `start_page_get_public_by_slug` menyaring skema url (QA M3); butuh migrasi baru.
-- [ ] **T-162.4** Rate limit atau dedup counter (Ridwan F3). Menyimpan identifier menyentuh PII, jadi butuh ADR baru sebelum dikerjakan.
-
-Tidak dikerjakan di sini: F4 (klik terhitung tapi bisa 404) dan F8 (`pg_temp`) diterima sebagai LOW.
+**Catatan LOW (Ridwan):** `search_path` tanpa `pg_temp` (konsisten dengan fungsi lain; perbaiki semua fungsi `start_page_*` di migrasi tersendiri nanti); belum ada tes integrasi DB untuk fungsi baru. **QA:** 6 file integrasi DB timeout sudah gagal di baseline (pooler Supabase tak terjangkau dari sandbox). F4 (klik terhitung tapi bisa 404) diterima sebagai LOW.
 
 ### T-163 · Token `muted-foreground` mode light memenuhi kontras AA
 
@@ -195,16 +200,24 @@ Tidak dikerjakan di sini: F4 (klik terhitung tapi bisa 404) dan F8 (`pg_temp`) d
 
 Tiket ini mencatat verifikasi yang belum dilakukan; tanpanya definisi selesai rilis ("pengguna dapat membagikan halaman publik") belum terbukti.
 
-- [ ] **T-164.1** Jalankan query duplikat `start_page_pages` (T-072, F6), lalu apply tiga migrasi (T-070, T-072, T-074) di Supabase staging
-- [ ] **T-164.2** Cek tipe kolom hasil `$queryRaw` dan grant `anon`/`authenticated` Supabase asli (harus tidak bisa memanggil ketiga fungsi)
+- [ ] **T-164.1** Jalankan query duplikat `start_page_pages` (T-072, F6), lalu apply empat migrasi (T-070, T-072, T-074, T-162.3) di Supabase staging
+- [ ] **T-164.2** Cek tipe kolom hasil `$queryRaw` dan grant `anon`/`authenticated` Supabase asli (harus tidak bisa memanggil fungsi `start_page_*`)
 - [ ] **T-164.3** `curl` tanpa cookie ke `/u/<slug>` dan `/u/<slug>/go/<linkId>` di staging: tidak redirect ke `/login`, redirect 302, `Cache-Control` sesuai
 - [ ] **T-164.4** Uji `next build` dan jalur `P2025` (selama ini hanya mock)
 - [ ] **T-164.5** Browser: buat halaman, tambah tautan, publish, buka sebagai anonim, klik tautan, cek counter di Page Editor
+- [ ] **T-164.6** CSP di staging (Railway): 0 pelanggaran di `/u/<slug>` (Chromium, idealnya Firefox/Safari), `next dev` lokal, toast di halaman `(app)`. Pantau rasio `view_count` terhadap `click_count` setelah rilis: bila view jauh di bawah klik, filter Fetch Metadata (T-162.1) terlalu ketat
+
+### T-166 · 404 publik kustom untuk `/u/[slug]` tanpa inline style
+
+`⏳ Not Started` · **Domain** start-page · UI · **ADR** ADR-144 · **Depends** T-160 ✅, rancangan artifact
+**Baca dulu:** `06-engineering/rendering-strategy.md` § RS-D08 · `context/ctx-design.md`
+
+404 bawaan Next di `/u/<slug tak ada>` menyuntik `<style>` tanpa nonce (1 pelanggaran `style-src-elem`, kosmetik). Buat `app/u/[slug]/not-found.tsx` tanpa inline style. **Gate UI (aturan #10):** butuh rancangan di artifact Postific dan konfirmasi King Rezi sebelum kode.
 
 ---
 
 ## Catatan Rilis
 
-- T-075–T-079 sengaja dikosongkan sebagai ruang penambahan task v0.6. Lanjutan memakai ID global berikutnya (T-159 sampai T-164), bukan ID dalam rentang ini.
+- T-075–T-079 sengaja dikosongkan sebagai ruang penambahan task v0.6. Lanjutan memakai ID global berikutnya (T-159 sampai T-166), bukan ID dalam rentang ini.
 - **Definition of Done rilis ini:** pengguna dapat membagikan halaman publik melalui media sosial.
 - **Yang sengaja di luar rilis ini (`feature-priority.md`):** E-commerce Widgets (Won't Have).

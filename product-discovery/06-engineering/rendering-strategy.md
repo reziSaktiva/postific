@@ -48,7 +48,7 @@ diikuti tanpa ambiguitas, dan melengkapi `monorepo-setup.md` (lokasi file
 | RS-D05 | SSR/SSG/ISR | 100% dynamic/SSR, termasuk rute publik `/u/[slug]` (RS-D08); SSG/ISR di luar scope |
 | RS-D06 | Revalidation | `revalidatePath()` dipakai setelah mutation Server Action sukses; `revalidateTag`/`unstable_cache` belum dibutuhkan (bukan dilarang selamanya) |
 | RS-D07 | Request-level de-dup | `React.cache()` untuk lookup non-fetch yang dipanggil berulang dalam satu render (preseden `getCachedSession()`) |
-| RS-D08 | Rendering strategy rute publik | `/u/[slug]` dirender **dinamis** per request (counter kunjungan, ADR-143); SSG/ISR tidak dipakai. Header keamanan di `next.config.ts` (`X-Frame-Options`, `frame-ancestors 'none'`, `Referrer-Policy`); CSP penuh dengan nonce belum (ADR-144) |
+| RS-D08 | Rendering strategy rute publik | `/u/[slug]` dirender **dinamis** per request (counter kunjungan, ADR-143); SSG/ISR tidak dipakai. Header keamanan statis di `next.config.ts` (`X-Frame-Options`, `Referrer-Policy`); CSP dengan nonce per request untuk `/u/*` dipasang di `proxy.ts` (`script-src 'self' 'nonce-…' 'strict-dynamic'`, `style-src 'self' 'nonce-…'`, `frame-ancestors 'none'`, `object-src 'none'`, `base-uri 'self'`, `img-src https:`; tanpa `upgrade-insecure-requests`, TLS dijamin Railway; ADR-144). Konsekuensinya `Toaster` hanya ada di layout `(app)`. Batasan: 404 bawaan Next menyuntik `<style>` tanpa nonce (T-166) |
 
 ---
 
