@@ -800,12 +800,12 @@ Navigator sudah melarang membaca `PROJECT_STATE` utuh, `COMPLETE_TASK`, dan selu
 
 ### T-172 · Pasang Playwright (Chrome) di `apps/web`
 
-`⏳ Not Started` · **Domain** QA, tooling · **ADR** ADR-149 · **Spec** S-002 · **Depends** —
+`✅ Done` (2026-10-28; PR 209) · **Domain** QA, tooling · **ADR** ADR-149 · **Spec** S-002 · **Depends** —
 **Baca dulu:** `project-os/specs/S-002.md` · `product-discovery/06-engineering/dx-tooling.md`
 
-- [ ] **T-172.1** Tambah `@playwright/test` ke `apps/web`, `playwright.config.ts` (Chrome `channel: "chrome"`, `E2E_BASE_URL`, trace/screenshot saat gagal), folder `apps/web/e2e/`
-- [ ] **T-172.2** Skrip `test:e2e` di `apps/web` dan root; variabel baru di `.env.example` (placeholder, tanpa secret); ESLint/Vitest tidak ikut memuat `e2e/`
-- [ ] **T-172.3** Catatan cara menjalankan di `context/` atau `dx-tooling.md` (rujukan, bukan salinan)
+- [x] **T-172.1** Tambah `@playwright/test` ke `apps/web`, `playwright.config.ts` (Chrome `channel: "chrome"`, `E2E_BASE_URL`, trace/screenshot saat gagal), folder `apps/web/e2e/`
+- [x] **T-172.2** Skrip `test:e2e` di `apps/web` dan root; variabel baru di `.env.example` (placeholder, tanpa secret); ESLint/Vitest tidak ikut memuat `e2e/`
+- [x] **T-172.3** Catatan cara menjalankan di `dx-tooling.md` (DX-D08). Hasil: `@playwright/test` 1.64.1 di `apps/web`, `playwright.config.ts` (Chrome), `e2e/smoke.e2e.ts` (2 tes tanpa login). `vitest.config.ts` mengecualikan `apps/web/e2e/**`. **Terverifikasi:** staging 2/2 lulus di Chrome; `typecheck`, `lint`, dan 1510 tes unit hijau. **Belum:** run di local, karena server `next dev` di port 3000 dari sesi lain tidak merespons saat uji (bukan config Playwright); diulang begitu server sehat.
 
 ### T-173 · Akun test dan setup sesi E2E
 

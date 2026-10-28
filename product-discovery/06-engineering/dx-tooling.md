@@ -39,6 +39,7 @@ Dokumen ini menkonkretkan perintah yang disebut di `cicd-pipeline.md` (`bun run 
 | DX-D05 | Editor | Format on save Prettier + ESLint fix disarankan; bukan wajib di CI selain perintah eksplisit |
 | DX-D06 | Vitest config | `vitest.config.ts` di **root** |
 | DX-D07 | Lefthook install | Script root `prepare` → `lefthook install` |
+| DX-D08 | Test E2E *(ADR-149)* | **Playwright** (Chrome terpasang) — `bun run test:e2e`; config `apps/web/playwright.config.ts`, tes `apps/web/e2e/*.e2e.ts`; Vitest tidak memuat `e2e/` |
 
 ---
 
@@ -135,6 +136,15 @@ Solo developer tetap diuntungkan: mencegah commit format/lint yang akan gagal di
 * Suite boleh minimal di awal M8 — yang penting perintah `bun run test` ada dan hijau di CI.
 
 Konfigurasi: `vitest.config.ts` di **root** monorepo (M7) — alias `@postific/shared` dan `@/` di-resolve dari satu tempat; suite mencakup `apps/web` dan `packages/shared`.
+
+---
+
+## Tes E2E (DX-D08, ADR-149, S-002)
+
+* Perintah: `bun run test:e2e` dari root. Target dipilih lewat `E2E_BASE_URL`: kosong = local (`http://localhost:3000`, `next dev` dijalankan bila belum ada); isi URL staging untuk menguji staging.
+* Memakai Google Chrome yang terpasang (`channel: "chrome"`), tidak mengunduh browser. Hasil run (`test-results/`, `playwright-report/`) dan sesi login (`e2e/.auth/`) di-gitignore.
+* Local dan staging berbagi satu DB (ADR-081): tes hanya menyentuh data milik akun test. Akun test dan konvensi data ada di T-173.
+* Berkas tes bernama `*.e2e.ts` (bukan `*.spec.ts`) agar tidak tertangkap Vitest.
 
 ---
 
