@@ -2,6 +2,7 @@
 
 import { asUserId } from "@postific/shared";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { redirect } from "next/navigation";
 
 import {
@@ -54,7 +55,11 @@ async function run<T>(
   const ctx = await resolveActor();
   try {
     const data = await work(
-      new StartPageService(startPageRepository, supabaseStartPageAvatarStorage),
+      new StartPageService(
+        startPageRepository,
+        supabaseStartPageAvatarStorage,
+        (task) => after(task),
+      ),
       ctx,
     );
     if (options.revalidate) revalidatePath("/start-page");

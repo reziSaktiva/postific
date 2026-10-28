@@ -171,8 +171,16 @@ Ganti input URL https dengan unggah file. Supabase JS client hanya untuk Storage
 - [x] Storage tak terpasang menjadi `ExternalServiceError` (dilog di action) dan dicek paling awal
 - [x] Aturan ukuran avatar satu sumber: `assertAvatarSizeWithinLimit` (domain) dipakai Server Action dan service
 - [x] Adapter mengimpor port lewat barrel `@/domains/start-page`
-- Sengaja tidak dikerjakan: cleanup Storage tetap sinkron (butuh `after()` atau job terjadwal, bukan edit kecil); duplikasi pola adapter dengan `supabase-avatar-storage-adapter.ts` belum digabung
+- Dua sisanya dikerjakan di T-159.2 di bawah (cleanup Storage sinkron; duplikasi pola adapter)
 - **Terverifikasi:** `tsc`, eslint, prettier bersih; vitest area start-page dan adapter avatar 194 lulus
+
+**Lanjutan T-159.2 · Dua sisa code-review PR #203** (2026-10-28; branch `feature/t-159-2-avatar-cleanup-and-adapter`) · **ADR** ADR-145 (poin 5)
+
+- [x] Cleanup berkas lama tidak lagi menahan respons simpan: `StartPageService` menerima `runAfterResponse` (default: jalankan langsung tanpa menunggu), Server Action memasok `after()` dari `next/server`. Pembersihan berjalan sesudah DB tersimpan, dan kegagalan tetap best-effort (dilog)
+- [x] `updateProfile`: rollback berkas baru hanya membungkus tulis DB; penjadwalan cleanup di luar `try` supaya tidak ikut menghapus berkas baru
+- [x] Pola adapter digabung: `lib/adapters/avatar-storage/avatars-bucket.ts` (`AVATARS_BUCKET`, `avatarsBucket()`, `uploadToAvatarsBucket`) dipakai adapter avatar user dan Start Page; perilaku tiap adapter tidak berubah (user: upsert + cache-bust + hapus senyap; Start Page: nama unik + hapus melempar)
+- [x] Tes baru: cleanup dijadwalkan lewat `runAfterResponse` dan tidak ditunggu
+- **Terverifikasi:** `tsc`, eslint, prettier bersih; vitest 1444 lulus. **Belum:** `after()` di server nyata dan unggah foto lewat browser
 
 ### T-160 · CSP penuh dengan nonce untuk `/u/*`
 

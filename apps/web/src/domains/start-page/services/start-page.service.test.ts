@@ -239,6 +239,27 @@ describe("updateProfile / setPublished", () => {
     expect(avatarStorage.deleteAvatar).not.toHaveBeenCalled();
   });
 
+  it("schedules the old-file cleanup through runAfterResponse instead of awaiting it", async () => {
+    const avatarStorage = fakeStorage();
+    const { repository } = setup({}, avatarStorage);
+    const tasks: Array<() => Promise<void>> = [];
+    const service = new StartPageService(repository, avatarStorage, (task) => {
+      tasks.push(task);
+    });
+    await service.updateProfile(
+      ctx,
+      { title: "Raka" },
+      { buffer: JPG, contentType: "image/jpeg" },
+    );
+    expect(avatarStorage.deleteOtherAvatars).not.toHaveBeenCalled();
+    expect(tasks).toHaveLength(1);
+    await tasks[0]();
+    expect(avatarStorage.deleteOtherAvatars).toHaveBeenCalledWith({
+      workspaceId: WS,
+      keepFileName: "avatar-1.jpg",
+    });
+  });
+
   it("rejects a non-image, an oversized file and a spoofed type before upload", async () => {
     const avatarStorage = fakeStorage();
     const { service, repository } = setup({}, avatarStorage);
