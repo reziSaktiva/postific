@@ -22,19 +22,15 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     // Header keamanan dasar untuk halaman publik Start Page (T-071) dan route
-    // redirect klik di bawahnya. CSP penuh sengaja belum dipasang (butuh
-    // nonce untuk inline script Next.js); `frame-ancestors` saja menutup
-    // clickjacking tanpa risiko merusak render.
+    // redirect klik di bawahnya. `Content-Security-Policy` TIDAK di sini:
+    // CSP penuh berbasis nonce per request dipasang di `proxy.ts` untuk
+    // `/u/*` (T-160, `lib/security/public-csp.ts`) — nonce tidak bisa statis.
     return [
       {
         source: "/u/:path*",
         headers: [
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "X-Frame-Options", value: "DENY" },
-          {
-            key: "Content-Security-Policy",
-            value: "frame-ancestors 'none'",
-          },
           {
             key: "Referrer-Policy",
             value: "strict-origin-when-cross-origin",

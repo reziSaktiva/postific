@@ -24,12 +24,10 @@ import {
 // (T-098) dan ConnectPlatformMenu/tombol disabled Danger Zone (T-099)
 // setelah migrasi dari `IconButton tooltip=...` Astryx.
 import { TooltipProvider } from "@/components/ui/tooltip";
-// T-102.6: `Toaster` sonner dipasang sekali di root supaya `toast()` bisa
-// dipanggil dari mana saja (mis. `QueueScreen.tsx` Cancel Schedule), sama
-// seperti pola `TooltipProvider` di atas. `theme` di-pass dari `mode`
-// context ini sendiri karena `components/ui/sonner.tsx` sengaja tidak
-// pakai `next-themes` (project sudah punya mekanisme tema sendiri).
-import { Toaster } from "@/components/ui/sonner";
+// T-160: `Toaster` sonner TIDAK dipasang di sini lagi. Sonner menyuntik
+// `<style>` lewat JS saat runtime tanpa nonce, sehingga CSP nonce `/u/*`
+// akan melanggar. Toaster dipasang di layout `(app)` lewat
+// `app/(app)/components/AppToaster.tsx` (satu-satunya pemakai `toast()`).
 
 type ThemeModeContextValue = {
   mode: ThemeMode;
@@ -140,7 +138,6 @@ export function Providers({
   return (
     <ThemeModeContext.Provider value={themeModeValue}>
       <TooltipProvider>{children}</TooltipProvider>
-      <Toaster theme={mode} />
     </ThemeModeContext.Provider>
   );
 }

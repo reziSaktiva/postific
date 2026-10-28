@@ -13,6 +13,7 @@ import { getWorkspaceContext } from "@/lib/workspace/workspace-context";
 
 import { AppShell } from "./components/AppShell";
 import { AppSideNav } from "./components/AppSideNav";
+import { AppToaster } from "./components/AppToaster";
 import { DraftEditorProvider } from "./components/draft-editor/Context";
 import { DraftEditorMount } from "./components/draft-editor/Mount";
 import { MobileTopBar } from "./components/MobileTopBar";
@@ -147,6 +148,7 @@ export default async function Layout({
         </div>
       </AppShell>
       <DraftEditorMount />
+      <AppToaster />
     </DraftEditorProvider>
   );
 }

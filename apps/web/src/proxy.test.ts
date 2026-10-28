@@ -328,6 +328,51 @@ describe("proxy (middleware)", () => {
       ).toBe(null);
     });
 
+    it("sets a per-request nonce CSP on /u/* (request + response header, T-160)", async () => {
+      getSessionCookieMock.mockReturnValue(null);
+
+      const first = await proxy(makeRequest("/u/raka"));
+      const second = await proxy(makeRequest("/u/raka/go/abc"));
+
+      const nonceOf = (response: Response) =>
+        response.headers.get("x-middleware-request-x-nonce")!;
+      const csp = first.headers.get("content-security-policy")!;
+      expect(nonceOf(first)).toBeTruthy();
+      expect(nonceOf(first)).not.toBe(nonceOf(second));
+      expect(csp).toContain(`'nonce-${nonceOf(first)}'`);
+      expect(csp).toContain("frame-ancestors 'none'");
+      expect(
+        first.headers.get("x-middleware-request-content-security-policy"),
+      ).toBe(csp);
+    });
+
+    it("overwrites a client-forged x-nonce on /u/*", async () => {
+      getSessionCookieMock.mockReturnValue(null);
+
+      const response = await proxy(
+        makeRequest("/u/raka", undefined, { "x-nonce": "forged" }),
+      );
+
+      expect(response.headers.get("x-middleware-request-x-nonce")).not.toBe(
+        "forged",
+      );
+    });
+
+    it("does not add the public CSP to any other route (auth/app/bypass)", async () => {
+      getSessionCookieMock.mockReturnValue(null);
+
+      for (const pathname of [
+        "/login",
+        "/invite/abc",
+        "/verify-email",
+        "/api/health",
+      ]) {
+        const response = await proxy(makeRequest(pathname));
+        expect(response.headers.get("content-security-policy")).toBeNull();
+        expect(response.headers.get("x-middleware-request-x-nonce")).toBeNull();
+      }
+    });
+
     it("does not widen the bypass to look-alike prefixes (/user, /uploads)", async () => {
       getSessionCookieMock.mockReturnValue(null);
 
