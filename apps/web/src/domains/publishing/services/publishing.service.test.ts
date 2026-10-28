@@ -456,9 +456,9 @@ describe("PublishingService.listQueue", () => {
       createFakeRepository({ listQueue: async () => [] }),
     );
 
-    await expect(service.listQueue(WORKSPACE_ID, AUTHOR_ID)).resolves.toEqual(
-      [],
-    );
+    await expect(
+      service.listQueue(WORKSPACE_ID, AUTHOR_ID, "Asia/Jakarta"),
+    ).resolves.toEqual([]);
   });
 
   it("mengelompokkan beberapa item dalam satu tanggal ke satu grup", async () => {
@@ -474,7 +474,11 @@ describe("PublishingService.listQueue", () => {
       createFakeRepository({ listQueue: async () => [itemA, itemB] }),
     );
 
-    const groups = await service.listQueue(WORKSPACE_ID, AUTHOR_ID);
+    const groups = await service.listQueue(
+      WORKSPACE_ID,
+      AUTHOR_ID,
+      "Asia/Jakarta",
+    );
 
     expect(groups).toEqual([{ date: "2026-07-14", items: [itemA, itemB] }]);
   });
@@ -499,7 +503,11 @@ describe("PublishingService.listQueue", () => {
       }),
     );
 
-    const groups = await service.listQueue(WORKSPACE_ID, AUTHOR_ID);
+    const groups = await service.listQueue(
+      WORKSPACE_ID,
+      AUTHOR_ID,
+      "Asia/Jakarta",
+    );
 
     expect(groups).toEqual([
       { date: "2026-07-14", items: [itemDay1] },

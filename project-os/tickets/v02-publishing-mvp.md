@@ -2836,14 +2836,14 @@ penafsiran waktu yang berubah, bukan tampilan.
 
 ### T-147 · Zona waktu per pengguna (tampilan dan input mengikuti lokasi pengguna)
 
-| Field         | Value                                                                                                          |
-| ------------- | -------------------------------------------------------------------------------------------------------------- |
-| **Status**    | ⏳ Belum dimulai                                                                                               |
-| **Domain**    | publishing · UI · DB                                                                                           |
-| **ADR**       | butuh ADR baru (zona per pengguna vs per workspace belum diputuskan); belum dibuat                             |
-| **Terkait**   | T-144, T-145, T-146                                                                                            |
-| **Depends**   | T-146                                                                                                          |
-| **Baca dulu** | `apps/web/src/domains/publishing/wib-time.ts` · `draft-editor/Modal.tsx` · kolom `occurred_at` (migrasi T-145) |
+| Field         | Value                                                                                                                  |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| **Status**    | ✅ Done (2026-10-28)                                                                                                   |
+| **Domain**    | publishing · UI · DB                                                                                                   |
+| **ADR**       | [ADR-146](../decisions/ADR-146-zona-waktu-per-pengguna-tersimpan-di-db-dan-dipakai-untuk-tampilan-dan-input-jadwal.md) |
+| **Terkait**   | T-144, T-145, T-146, T-168                                                                                             |
+| **Depends**   | T-146                                                                                                                  |
+| **Baca dulu** | `apps/web/src/domains/publishing/wib-time.ts` · `draft-editor/Modal.tsx` · kolom `occurred_at` (migrasi T-145)         |
 
 **Latar:** King Rezi ingin waktu mengikuti lokasi pengguna. Saat ini WIB tetap: T-144 (konstanta di `wib-time.ts`, dipakai server untuk kelompok tanggal History/Queue dan rentang Calendar), T-145 (kolom `occurred_at` di DB), T-146 (input jadwal ditafsirkan WIB).
 
@@ -2853,13 +2853,15 @@ penafsiran waktu yang berubah, bukan tampilan.
 - Setelan zona harus tersimpan (DB), karena server tidak tahu zona browser.
 - UI setelan zona UI/UX-related: cek artifact Postific dan galeri Postific Design Review (ADR-140) dulu sebelum kode (aturan 10).
 
-- [ ] **T-147.1** Keputusan King Rezi (pengguna vs workspace) + ADR
-- [ ] **T-147.2** Desain: cek/buat rancangan UI setelan zona di artifact Postific
-- [ ] **T-147.3** Model/setelan zona tersimpan (Prisma + migrasi)
-- [ ] **T-147.4** Refactor `wib-time` menjadi zona dinamis (tampilan, input, kelompok tanggal, rentang Calendar)
-- [ ] **T-147.5** Cek dampak `occurred_at` (kolom generated terkait zona atau tidak)
-- [ ] **T-147.6** Test
-- [ ] **T-147.7** Verifikasi King Rezi
+- [x] **T-147.1** Keputusan King Rezi (pengguna vs workspace) + ADR
+- [x] **T-147.2** Desain: rancangan field Zona waktu di Settings → Profile dibuat Neymar dan dikonfirmasi King Rezi di galeri Postific Design Review (2026-10-28). Pola terkunci: `Select` shadcn berkelompok per wilayah di dalam `Field` (bukan Combobox, tanpa pencarian), item "Asia/Jakarta (WIB, UTC+7)", simpan lewat tombol Simpan Perubahan yang ada
+- [x] **T-147.3** Model/setelan zona tersimpan: `User.timeZone` + `User.timeZoneSource` (`pending|legacy|detected|manual`), migrasi `20261028130000_t147_user_time_zone` (diterapkan ke DB dev 2026-10-28)
+- [x] **T-147.4** Refactor `wib-time` menjadi zona dinamis (tampilan, input, kelompok tanggal, rentang Calendar)
+- [x] **T-147.5** Cek dampak `occurred_at`: kolom generated hanya memakai kolom timestamptz (UTC) dan tidak terkait zona, jadi tidak perlu migrasi; pengelompokan tanggal dihitung di aplikasi dengan zona pengguna
+- [x] **T-147.6** Test (1505 lulus, tsc/eslint/prettier bersih; review Ridwan: 1 bug ProfileForm basi + 1 callsite `formatConnectedDate` diperbaiki)
+- [x] **T-147.7** Verifikasi King Rezi: "sudah sesuai" di browser (2026-10-28)
+
+Tindak lanjut: MCP (`lib/mcp/format.ts` `toWibIso` + read-tools) masih WIB tetap, dicatat sebagai **T-168** (ADR-146 § 6).
 
 ---
 

@@ -207,7 +207,7 @@ Tabel BC-01 Identity dikelola sepenuhnya oleh **Better Auth**. Better Auth dikon
 
 | Tabel | Dikelola Oleh | Keterangan |
 |-------|--------------|------------|
-| `identity_user` | Better Auth | Data pengguna terdaftar |
+| `identity_user` | Better Auth | Data pengguna terdaftar; zona waktu per pengguna di `time_zone` (IANA, default `Asia/Jakarta`) dan `time_zone_source` (`pending\|legacy\|detected\|manual`), ADR-146 |
 | `identity_session` | Better Auth | Sesi aktif pengguna |
 | `identity_account` | Better Auth | OAuth accounts yang terhubung ke user |
 | `identity_verification` | Better Auth | Token verifikasi email / reset password |

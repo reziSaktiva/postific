@@ -595,13 +595,15 @@ export class PublishingService {
    * `scheduledAt`, murni urutan ascending waktu publish (tanpa reorder
    * manual, tanpa status chip — cakupan Queue seragam Scheduled saja).
    * `userId` (RLS, KI-026 follow-up) — acting user untuk `withCurrentUser`.
+   * `timeZone` (T-147) — zona IANA untuk kunci tanggal grup.
    */
   async listQueue(
     workspaceId: WorkspaceId,
     userId: UserId,
+    timeZone: string,
   ): Promise<QueueGroup[]> {
     const items = await this.repository.listQueue({ workspaceId }, userId);
-    return groupQueueItemsByDate(items);
+    return groupQueueItemsByDate(items, timeZone);
   }
 
   /**

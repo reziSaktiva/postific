@@ -1,5 +1,6 @@
 import { ValidationError } from "@/lib/utils/errors";
 
+import { canonicalizeTimeZone } from "./time-zones";
 import type { NotificationPreferencesRecord } from "./types";
 
 /**
@@ -19,6 +20,21 @@ export const ALLOWED_AVATAR_MIME_TYPES: Record<string, string> = {
 export const ALLOWED_AVATAR_ACCEPT = Object.keys(
   ALLOWED_AVATAR_MIME_TYPES,
 ).join(",");
+
+/**
+ * T-147 (ADR-146): zona dari klien hanya diterima bila nama IANA yang
+ * dikenal runtime (`Intl.supportedValuesOf("timeZone")` + "UTC"); alias
+ * IANA yang ditulis persis disimpan dalam bentuk kanonik runtime. Selain itu
+ * ditolak, bukan disimpan.
+ */
+export function parseTimeZone(input: unknown): string {
+  const canonical =
+    typeof input === "string" ? canonicalizeTimeZone(input) : null;
+  if (canonical === null) {
+    throw new ValidationError("Zona waktu tidak valid.");
+  }
+  return canonical;
+}
 
 const NOTIFICATION_PREFERENCE_KEYS = [
   "notifyRepliesAndMentions",

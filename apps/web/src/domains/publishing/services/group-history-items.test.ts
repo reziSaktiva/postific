@@ -7,6 +7,8 @@ import {
   historyItemOccurredAt,
 } from "./group-history-items";
 
+const WIB = "Asia/Jakarta";
+
 function createHistoryItem(
   overrides: Partial<HistoryItemRecord> = {},
 ): HistoryItemRecord {
@@ -29,7 +31,7 @@ function createHistoryItem(
 
 describe("groupHistoryItemsByDate", () => {
   it("mengembalikan array kosong kalau tidak ada item", () => {
-    expect(groupHistoryItemsByDate([])).toEqual([]);
+    expect(groupHistoryItemsByDate([], WIB)).toEqual([]);
   });
 
   it("mengelompokkan beberapa item dalam satu tanggal updatedAt yang sama ke satu grup", () => {
@@ -42,7 +44,7 @@ describe("groupHistoryItemsByDate", () => {
       updatedAt: new Date("2026-07-14T15:00:00Z"),
     });
 
-    const groups = groupHistoryItemsByDate([itemA, itemB]);
+    const groups = groupHistoryItemsByDate([itemA, itemB], WIB);
 
     expect(groups).toEqual([
       {
@@ -62,7 +64,7 @@ describe("groupHistoryItemsByDate", () => {
       updatedAt: new Date("2026-07-15T09:00:00Z"),
     });
 
-    const groups = groupHistoryItemsByDate([itemDay1, itemDay2]);
+    const groups = groupHistoryItemsByDate([itemDay1, itemDay2], WIB);
 
     expect(groups).toEqual([
       { date: "2026-07-14", items: [itemDay1] },
@@ -85,7 +87,7 @@ describe("groupHistoryItemsByDate", () => {
     });
 
     // Urutan input meniru kontrak repository: descending `updatedAt`.
-    const groups = groupHistoryItemsByDate([latest, middle, earliest]);
+    const groups = groupHistoryItemsByDate([latest, middle, earliest], WIB);
 
     expect(groups.map((group) => group.date)).toEqual([
       "2026-07-15",
@@ -104,7 +106,7 @@ describe("groupHistoryItemsByDate", () => {
       updatedAt: new Date("2026-07-16T09:00:00Z"),
     });
 
-    expect(groupHistoryItemsByDate([failed])).toEqual([
+    expect(groupHistoryItemsByDate([failed], WIB)).toEqual([
       { date: "2026-07-10", items: [failed] },
     ]);
   });
@@ -126,7 +128,7 @@ describe("groupHistoryItemsByDate", () => {
       updatedAt: importAt,
     });
 
-    expect(groupHistoryItemsByDate([a, b])).toEqual([
+    expect(groupHistoryItemsByDate([a, b], WIB)).toEqual([
       { date: "2026-09-02", items: [a] },
       { date: "2026-08-15", items: [b] },
     ]);
@@ -137,7 +139,7 @@ describe("groupHistoryItemsByDate", () => {
       publishedAt: null,
       updatedAt: new Date("2026-07-20T09:00:00Z"),
     });
-    expect(groupHistoryItemsByDate([item])[0]?.date).toBe("2026-07-20");
+    expect(groupHistoryItemsByDate([item], WIB)[0]?.date).toBe("2026-07-20");
   });
 
   it("Failed tanpa failedAt jatuh ke updatedAt", () => {
@@ -175,7 +177,7 @@ describe("groupHistoryItemsByDate", () => {
     const sorted = [published, imported, failed].sort(compareHistoryItemsDesc);
 
     expect(sorted.map((i) => i.id)).toEqual(["imp", "fail", "pub"]);
-    expect(groupHistoryItemsByDate(sorted).map((g) => g.date)).toEqual([
+    expect(groupHistoryItemsByDate(sorted, WIB).map((g) => g.date)).toEqual([
       "2026-10-12",
       "2026-10-11",
       "2026-10-10",
@@ -216,9 +218,32 @@ describe("groupHistoryItemsByDate", () => {
       publishedAt: new Date("2026-09-01T16:59:00Z"),
     });
 
-    expect(groupHistoryItemsByDate([afterMidnight, beforeMidnight])).toEqual([
+    expect(
+      groupHistoryItemsByDate([afterMidnight, beforeMidnight], WIB),
+    ).toEqual([
       { date: "2026-09-02", items: [afterMidnight] },
       { date: "2026-09-01", items: [beforeMidnight] },
+    ]);
+  });
+
+  it("zona pengguna menentukan kunci grup (T-147)", () => {
+    const late = createHistoryItem({
+      id: asPostId("late"),
+      publishedAt: new Date("2026-09-02T05:00:00Z"),
+    });
+    const early = createHistoryItem({
+      id: asPostId("early"),
+      publishedAt: new Date("2026-09-02T03:30:00Z"),
+    });
+
+    // New_York (EDT): 01:00 2 Sep dan 23:30 1 Sep
+    expect(groupHistoryItemsByDate([late, early], "America/New_York")).toEqual([
+      { date: "2026-09-02", items: [late] },
+      { date: "2026-09-01", items: [early] },
+    ]);
+    // Kolkata (UTC+5:30): 10:30 dan 09:00, sama-sama 2 Sep
+    expect(groupHistoryItemsByDate([late, early], "Asia/Kolkata")).toEqual([
+      { date: "2026-09-02", items: [late, early] },
     ]);
   });
 });

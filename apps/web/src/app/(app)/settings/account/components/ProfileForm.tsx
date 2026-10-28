@@ -4,6 +4,7 @@ import {
   useEffect,
   useMemo,
   useState,
+  useSyncExternalStore,
   type ChangeEvent,
   type FormEvent,
 } from "react";
@@ -19,12 +20,23 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 
 import {
   ALLOWED_AVATAR_ACCEPT,
   MAX_AVATAR_BYTES,
+  buildTimeZoneOptionGroups,
   MAX_NAME_LENGTH,
+  normalizeDetectedTimeZone,
   type UserProfileRecord,
 } from "@/domains/identity";
 import { getInitials } from "@/lib/utils";
@@ -42,10 +54,57 @@ import { updateProfileAction } from "../actions";
 // yang selalu merender description-nya sendiri, sudah tidak relevan di sini.
 const AVATAR_HINT_TEXT = "JPG/PNG, maks 2MB";
 
+// T-147 (ADR-146), rancangan terkunci artifact Postific (ScreenSettingsProfile).
+const TIME_ZONE_HINT_TEXT =
+  "Jadwal dan riwayat posting ditampilkan di zona waktu ini. Waktu tetap disimpan dalam UTC.";
+const TIME_ZONE_DETECTED_TEXT = "Terdeteksi otomatis dari browser Anda.";
+
+// Zona browser hanya ada di client: `getServerSnapshot` null supaya render
+// server dan hidrasi pertama identik, lalu nilai browser muncul setelahnya.
+const subscribeNever = () => () => {};
+const getBrowserTimeZone = () =>
+  normalizeDetectedTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone);
+const getNullSnapshot = () => null;
+const getTrue = () => true;
+const getFalse = () => false;
+
 export function ProfileForm({ profile }: { profile: UserProfileRecord }) {
   const [name, setName] = useState(profile.name);
   const [image, setImage] = useState(profile.image);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  // Zona tersimpan (server) vs pilihan saat ini (belum disimpan, T-147).
+  const [savedTimeZone, setSavedTimeZone] = useState(profile.timeZone);
+  const [savedTimeZoneSource, setSavedTimeZoneSource] = useState(
+    profile.timeZoneSource,
+  );
+  const [timeZone, setTimeZone] = useState(profile.timeZone);
+  const [usedBrowserZone, setUsedBrowserZone] = useState(false);
+  // Auto-deteksi (layout) bisa mengubah zona tersimpan sesudah form dirender;
+  // sinkronkan state zona dari prop tanpa mereset field lain.
+  const profileZoneKey = `${profile.timeZone}|${profile.timeZoneSource}`;
+  const [syncedZoneKey, setSyncedZoneKey] = useState(profileZoneKey);
+  if (syncedZoneKey !== profileZoneKey) {
+    setSyncedZoneKey(profileZoneKey);
+    setSavedTimeZone(profile.timeZone);
+    setSavedTimeZoneSource(profile.timeZoneSource);
+    setTimeZone(profile.timeZone);
+    setUsedBrowserZone(false);
+  }
+  const browserTimeZone = useSyncExternalStore(
+    subscribeNever,
+    getBrowserTimeZone,
+    getNullSnapshot,
+  );
+  const mounted = useSyncExternalStore(subscribeNever, getTrue, getFalse);
+  // Label offset/singkatan dihitung klien (DST ikut), hanya setelah mount.
+  const timeZoneGroups = useMemo(
+    () => (mounted ? buildTimeZoneOptionGroups(new Date(), timeZone) : []),
+    [mounted, timeZone],
+  );
+  const showDetectedNote =
+    savedTimeZoneSource === "detected" && timeZone === savedTimeZone;
+  const showUseBrowserZone =
+    browserTimeZone !== null && timeZone !== browserTimeZone;
   const [error, setError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -103,6 +162,13 @@ export function ProfileForm({ profile }: { profile: UserProfileRecord }) {
     if (avatarFile) {
       formData.set("avatar", avatarFile);
     }
+    if (timeZone !== savedTimeZone) {
+      formData.set("timeZone", timeZone);
+      formData.set(
+        "timeZoneSource",
+        usedBrowserZone && timeZone === browserTimeZone ? "detected" : "manual",
+      );
+    }
 
     try {
       const result = await updateProfileAction(formData);
@@ -115,6 +181,10 @@ export function ProfileForm({ profile }: { profile: UserProfileRecord }) {
       setName(result.name);
       setImage(result.image);
       setAvatarFile(null);
+      setSavedTimeZone(result.timeZone);
+      setSavedTimeZoneSource(result.timeZoneSource);
+      setTimeZone(result.timeZone);
+      setUsedBrowserZone(false);
       setIsSuccess(true);
     } catch {
       setError("Gagal menyimpan profil. Coba lagi.");
@@ -200,6 +270,57 @@ export function ProfileForm({ profile }: { profile: UserProfileRecord }) {
                 <FieldDescription>
                   Email tidak dapat diubah di sini
                 </FieldDescription>
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="profile-time-zone">Zona waktu</FieldLabel>
+                <Select
+                  value={timeZone}
+                  onValueChange={(value) => {
+                    setTimeZone(value);
+                    setUsedBrowserZone(false);
+                    setIsSuccess(false);
+                  }}
+                >
+                  <SelectTrigger id="profile-time-zone" className="w-full">
+                    {mounted ? (
+                      <SelectValue />
+                    ) : (
+                      <SelectValue>{timeZone}</SelectValue>
+                    )}
+                  </SelectTrigger>
+                  <SelectContent>
+                    {timeZoneGroups.map((group) => (
+                      <SelectGroup key={group.region}>
+                        <SelectLabel>{group.region}</SelectLabel>
+                        {group.options.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FieldDescription>{TIME_ZONE_HINT_TEXT}</FieldDescription>
+                {showDetectedNote ? (
+                  <FieldDescription>{TIME_ZONE_DETECTED_TEXT}</FieldDescription>
+                ) : null}
+                {showUseBrowserZone ? (
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    className="self-start"
+                    onClick={() => {
+                      setTimeZone(browserTimeZone);
+                      setUsedBrowserZone(true);
+                      setIsSuccess(false);
+                    }}
+                  >
+                    Pakai zona waktu browser ({browserTimeZone})
+                  </Button>
+                ) : null}
               </Field>
 
               <Field>

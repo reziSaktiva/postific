@@ -21,8 +21,12 @@ describe("relative now History", () => {
     const hydratedNow = new Date(serverRelativeNowMs(renderedAt));
 
     expect(serverRelativeNowMs(renderedAt)).toBe(Date.parse(renderedAt));
-    expect(formatRelativeTime(publishedAt, hydratedNow)).toBe("30 menit lalu");
-    expect(formatRelativeTime(publishedAt, new Date())).toBe("1 jam lalu");
+    expect(formatRelativeTime(publishedAt, "Asia/Jakarta", hydratedNow)).toBe(
+      "30 menit lalu",
+    );
+    expect(formatRelativeTime(publishedAt, "Asia/Jakarta", new Date())).toBe(
+      "1 jam lalu",
+    );
   });
 
   it("jam klien tetap sampai diberi tahu, lalu listener ikut maju", () => {

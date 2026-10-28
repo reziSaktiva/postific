@@ -3,7 +3,7 @@ import {
   asConnectedAccountId,
   asPostId,
 } from "@postific/shared";
-import { getAllowedContentFormats } from "@/domains/publishing";
+import { getAllowedContentFormats, WIB_TIME_ZONE } from "@/domains/publishing";
 import type { InboxItemStatus } from "@/domains/engagement";
 import { NotFoundError } from "@/lib/utils/errors";
 
@@ -191,6 +191,8 @@ const listScheduledPosts: McpToolDefinition = {
     const groups = await context.services.publishing.listQueue(
       context.workspaceId,
       context.userId,
+      // MCP sengaja tetap WIB (ADR-146 tindak lanjut), bukan zona pengguna.
+      WIB_TIME_ZONE,
     );
     const page = paginate(
       groups.flatMap((group) => group.items),

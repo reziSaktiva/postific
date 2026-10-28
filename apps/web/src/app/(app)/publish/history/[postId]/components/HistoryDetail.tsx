@@ -9,8 +9,9 @@ import type {
   HistoryDetailItem,
   HistoryItemRecord,
 } from "@/domains/publishing";
-import { WIB_TIME_ZONE } from "@/domains/publishing";
 import type { MediaThumbnailDto } from "@/domains/media";
+import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
+import { getZonedFormatter } from "@/lib/time/zoned-formatter";
 import { formatRelativeTime } from "@/lib/utils/format-relative-time";
 import { linkifyCaption } from "@/lib/linkify";
 
@@ -47,14 +48,19 @@ import {
 } from "../../history-status";
 import { RetryTargetButton } from "./RetryTargetButton";
 
-const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("id-ID", {
-  day: "numeric",
-  month: "long",
-  year: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-  timeZone: WIB_TIME_ZONE,
-});
+/** Formatter tanggal+jam berzona pengguna (T-147), ter-cache per zona. */
+const dateTimeFormatter = (timeZone: string) =>
+  getZonedFormatter(
+    "id-ID",
+    {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    },
+    timeZone,
+  );
 
 /**
  * Label judul Dialog (T-111.1 LOCKED PATTERN) — Published pakai
@@ -63,7 +69,8 @@ const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("id-ID", {
  * gagal, tidak pernah punya `scheduledAt` — lihat
  * `IPublishingRepository.publishNow`).
  */
-function formatWhenLabel(item: HistoryItemRecord): string {
+function formatWhenLabel(item: HistoryItemRecord, timeZone: string): string {
+  const formatter = dateTimeFormatter(timeZone);
   // T-126: `Imported` disamakan dengan `Published` di sini — keduanya
   // selalu punya `publishedAt` terisi dan sama-sama terminal-sukses, bukan
   // percobaan publish dari tool ini. Tanpa ini label salah jatuh ke
@@ -73,12 +80,12 @@ function formatWhenLabel(item: HistoryItemRecord): string {
     item.status === ContentStatus.Imported
   ) {
     const date = item.publishedAt ?? item.updatedAt;
-    return `Dipublikasikan ${DATE_TIME_FORMATTER.format(date)}`;
+    return `Dipublikasikan ${formatter.format(date)}`;
   }
   if (item.scheduledAt) {
-    return `Dijadwalkan ${DATE_TIME_FORMATTER.format(item.scheduledAt)}`;
+    return `Dijadwalkan ${formatter.format(item.scheduledAt)}`;
   }
-  return `Percobaan publish ${DATE_TIME_FORMATTER.format(item.updatedAt)}`;
+  return `Percobaan publish ${formatter.format(item.updatedAt)}`;
 }
 
 /**
@@ -204,6 +211,7 @@ export interface HistoryDetailProps {
  * profil asli memang wajib tampil di sini.
  */
 export function HistoryDetail({ item, thumbnail }: HistoryDetailProps) {
+  const timeZone = useUserTimeZone();
   const router = useRouter();
   // `isOpen` lokal (bukan `open` literal) supaya Escape/klik overlay
   // langsung menutup Dialog secara visual, tanpa menunggu navigasi
@@ -227,7 +235,7 @@ export function HistoryDetail({ item, thumbnail }: HistoryDetailProps) {
         <DialogHeader className="shrink-0 gap-0 border-b border-border px-6 py-4">
           {/* eslint-disable-next-line no-restricted-syntax -- layout-only, konsisten pola shadcn+Tailwind lain di publish/ */}
           <div className="flex items-center justify-between gap-3 pr-8">
-            <DialogTitle>{formatWhenLabel(item)}</DialogTitle>
+            <DialogTitle>{formatWhenLabel(item, timeZone)}</DialogTitle>
             <Badge variant={HISTORY_STATUS_BADGE_VARIANT[item.status]}>
               {HISTORY_STATUS_LABEL[item.status]}
             </Badge>
@@ -248,7 +256,7 @@ export function HistoryDetail({ item, thumbnail }: HistoryDetailProps) {
               {item.caption ? linkifyCaption(item.caption) : "(Tanpa caption)"}
             </Text>
             <Text variant="muted" as="span" className="text-xs">
-              Dibuat {formatRelativeTime(item.createdAt)}
+              Dibuat {formatRelativeTime(item.createdAt, timeZone)}
             </Text>
             {authorLabel ? (
               <Text variant="muted" as="span" className="text-xs">

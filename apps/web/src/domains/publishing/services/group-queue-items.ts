@@ -1,4 +1,4 @@
-import { toWibDateKey } from "../wib-time";
+import { toDateKey } from "../wib-time";
 import type { QueueItemRecord } from "../repositories/publishing.repository";
 
 /**
@@ -9,7 +9,7 @@ import type { QueueItemRecord } from "../repositories/publishing.repository";
 export interface QueueGroup {
   /**
    * Kunci pengelompokan, format ISO calendar date "YYYY-MM-DD" (kalender
-   * WIB / Asia/Jakarta, T-144 — belum ada timezone per workspace). Bukan untuk ditampilkan langsung; format tanggal lokal
+   * di zona waktu pengguna, T-147/ADR-146). Bukan untuk ditampilkan langsung; format tanggal lokal
    * ("14 Juli") adalah tanggung jawab UI (T-032.3).
    */
   date: string;
@@ -28,12 +28,15 @@ export interface QueueGroup {
  * Pure function (tanpa I/O) supaya bisa diuji tanpa fake repository —
  * lihat `group-queue-items.test.ts`.
  */
-export function groupQueueItemsByDate(items: QueueItemRecord[]): QueueGroup[] {
+export function groupQueueItemsByDate(
+  items: QueueItemRecord[],
+  timeZone: string,
+): QueueGroup[] {
   const groups: QueueGroup[] = [];
   const groupByDate = new Map<string, QueueGroup>();
 
   for (const item of items) {
-    const date = toWibDateKey(item.scheduledAt);
+    const date = toDateKey(item.scheduledAt, timeZone);
     let group = groupByDate.get(date);
     if (!group) {
       group = { date, items: [] };
