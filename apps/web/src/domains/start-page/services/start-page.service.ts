@@ -53,6 +53,9 @@ export interface UpdateStartPageProfileInput {
   theme?: string;
 }
 
+/** Pekerjaan latar sesudah respons; tugasnya sendiri tidak boleh melempar. */
+export type AfterResponseRunner = (task: () => Promise<void>) => void;
+
 /** Berkas foto profil yang diunggah bersama simpan profil (T-159). */
 export interface StartPageAvatarFile {
   buffer: Buffer;
@@ -85,6 +88,13 @@ export class StartPageService {
   constructor(
     private readonly repository: IStartPageRepository,
     private readonly avatarStorage: IStartPageAvatarStorage | null = null,
+    /**
+     * Menjadwalkan pekerjaan best-effort sesudah respons dikirim (entry point
+     * memasok `after()` Next.js). Default: jalankan langsung, tanpa menunggu.
+     */
+    private readonly runAfterResponse: AfterResponseRunner = (task) => {
+      void task();
+    },
   ) {}
 
   /** Data Page Editor; `null` bila halaman belum dibuat (UI tampilkan state "buat halaman"). */
@@ -161,20 +171,24 @@ export class StartPageService {
       throw new ValidationError("Tidak ada perubahan yang dikirim.");
     }
 
+    let page: StartPageRecord;
     try {
-      const page = await this.applyPageUpdate(ctx, data);
-      if (uploadedFileName) {
-        await this.deleteOtherAvatarsQuietly(ctx, uploadedFileName);
-      } else if (data.avatarUrl === null) {
-        await this.deleteOtherAvatarsQuietly(ctx);
-      }
-      return page;
+      page = await this.applyPageUpdate(ctx, data);
     } catch (error) {
       if (uploadedFileName) {
         await this.deleteAvatarQuietly(ctx, uploadedFileName);
       }
       throw error;
     }
+    // Sesudah DB tersimpan: berkas lama best-effort, tidak menahan respons.
+    if (uploadedFileName) {
+      this.runAfterResponse(() =>
+        this.deleteOtherAvatarsQuietly(ctx, uploadedFileName),
+      );
+    } else if (data.avatarUrl === null) {
+      this.runAfterResponse(() => this.deleteOtherAvatarsQuietly(ctx));
+    }
+    return page;
   }
 
   /** Toggle Published/Unpublished. Halaman tanpa tautan aktif tetap boleh dipublikasikan. */
