@@ -278,11 +278,11 @@ Middleware matchers:
 ├── /login          → Public route (bypass auth)
 ├── /register       → Public route (bypass auth)  
 ├── /onboarding     → Protected route (wajib session, tanpa workspace context — lihat "Onboarding Flow")
-├── /u/*            → Halaman publik Start Page (bypass proxy, tanpa session; data lewat fungsi `SECURITY DEFINER`) (ADR-128, ADR-141, ADR-142)
+├── /u/*            → Halaman publik Start Page (bypass proxy, tanpa session; data lewat fungsi `SECURITY DEFINER`) (ADR-128, ADR-142, ADR-143)
 ├── /api/webhooks/* → Webhook routes (bypass auth — protected via HMAC signature)
 ├── /api/jobs/*     → Job runner routes (bypass auth — protected via X-Job-Secret)
-├── /api/mcp        → MCP Server endpoint (bypass proxy — token divalidasi di Route Handler via `mcpHandler`) (ADR-139, Proposed)
-├── /.well-known/*  → Metadata OAuth MCP (bypass proxy) (ADR-139, Proposed)
+├── /api/mcp        → MCP Server endpoint (bypass proxy — token divalidasi di Route Handler via `mcpHandler`) (ADR-139)
+├── /.well-known/*  → Metadata OAuth MCP (bypass proxy) (ADR-139)
 └── (app)/*         → Protected routes (wajib session + workspace context dari cookie)
     └── Home, Publish, Engage, Analyze, Start Page, Settings — semua wajib workspace membership check
 ```

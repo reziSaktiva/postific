@@ -1,7 +1,7 @@
 /**
  * Port analytics publik Start Page (T-074). Jalur ANONIM seperti
  * `IPublicStartPageRepository` (tanpa session/workspace), diimplementasi
- * lewat fungsi SECURITY DEFINER sempit (pola ADR-141) — hanya menaikkan
+ * lewat fungsi SECURITY DEFINER sempit (pola ADR-142) — hanya menaikkan
  * counter, tanpa PII, tanpa tabel event.
  */
 export interface IStartPageAnalyticsRepository {

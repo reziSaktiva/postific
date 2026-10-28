@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma/client";
  * Implementasi Prisma `IStartPageAnalyticsRepository` (T-074). Jalur anonim
  * seperti `publicStartPageRepository`: tanpa `withCurrentUser`, lewat dua
  * fungsi SECURITY DEFINER sempit (migrasi
- * `20261026133000_t074_start_page_analytics_functions`, pola ADR-141) yang
+ * `20261026133000_t074_start_page_analytics_functions`, pola ADR-142) yang
  * hanya menaikkan counter pada halaman published. Parameter di-bind
  * (tagged template); `::uuid` eksplisit karena Prisma mengirim string.
  * Fungsi view mengembalikan boolean (bukan void) karena `$queryRaw` tidak

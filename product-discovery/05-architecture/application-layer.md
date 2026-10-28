@@ -147,7 +147,8 @@ PrismaPostRepository implements IPostRepository
 | `Workspace` | `IWorkspaceRepository` |
 | `Member` | `IMemberRepository` |
 | `ConnectedAccount` | `IConnectedAccountRepository` |
-| `McpGrant`, `McpAuditLog` | `IMcpAccessRepository` |
+| `McpGrant` | `IMcpGrantRepository` (pencabutan atomik lewat port `IMcpGrantRevocationPort`) |
+| `McpAuditLog` (entity, BC-04) | `IMcpAuditRepository` |
 | `InboxItem` | `IInboxItemRepository` |
 | `PostMetrics` | `IPostMetricsRepository` |
 | `WorkspaceSnapshot` | `IWorkspaceSnapshotRepository` |
@@ -317,7 +318,7 @@ BC-03 Publishing ──→ BC-02 Workspace (verifikasi ConnectedAccount)
                 ──→ BC-08 Media (attach MediaItem ke post)
                 ──→ BC-06 Analytics (metrik post per target akun, via PostMetricsPort — KI-064)
 
-BC-04 MCP Access ──→ BC-02 Workspace (verifikasi member dan role per panggilan)
+BC-04 MCP Access ──→ BC-02 Workspace (verifikasi member aktif per panggilan)
                  (tool MCP adalah entry point yang memanggil service BC-02/03/05/06/08; BC-04 sendiri hanya memegang grant, audit, rate limit)
 
 BC-05 Engagement ──→ BC-02 Workspace (filter per ConnectedAccount)
@@ -487,12 +488,28 @@ Tool MCP (ADR-138) adalah entry point Route Handler `/api/mcp` yang memanggil se
 
 | Method | Trigger | Keterangan |
 |--------|---------|-----------|
-| `createGrant` | Layar persetujuan OAuth | Buat grant untuk satu workspace dan scope terpilih; RBAC: member workspace |
-| `revokeGrant` | Server Action (Settings) | Cabut koneksi klien AI (isi `revokedAt`) |
-| `listGrants` | Server Component (Settings) | Daftar koneksi klien AI milik pengguna yang sedang login (lintas workspace) |
-| `authorizeCall` | Internal (Route Handler MCP) | Validasi grant, scope, member, role, dan rate limit per panggilan |
+| `createGrant` | Persetujuan OAuth (titik kait diputuskan di T-149.2) | Buat grant untuk satu workspace dan scope terpilih, atau perbarui `scopes` grant aktif yang sudah ada (satu grant aktif per pengguna, klien, workspace); RBAC: member aktif workspace |
+| `revokeGrant` | Server Action (Settings) | Cabut koneksi klien AI; transaksi tunggal, lihat § Aturan otorisasi |
+| `listGrants` | Server Component (Settings) | Daftar grant aktif milik pengguna yang sedang login (lintas workspace) |
+| `authorizeCall` | Internal (Route Handler MCP) | Validasi grant, scope, dan member per panggilan, lalu rate limit (T-154); lihat § Aturan otorisasi |
 | `recordAudit` | Internal (Route Handler MCP) | Tulis `McpAuditLog` satu baris per panggilan |
 | `purgeAudit` | Cron (JOB-08) | Hapus audit yang lebih tua dari 90 hari |
+
+### Aturan otorisasi dan pencabutan (T-149.1, ADR-139 poin 4)
+
+Access token OAuth berupa JWT stateless: tetap diterima sampai kedaluwarsa (1 jam) walau consent dan refresh token sudah dihapus (terbukti di spike T-148). Karena itu token saja tidak pernah cukup. **`mcp_grants` adalah sumber otorisasi** (keputusan King Rezi 2026-10-26); baris `identity_oauth_consent` dan `identity_oauth_refresh_token` milik plugin hanya mekanik OAuth.
+
+`authorizeCall` memeriksa setiap panggilan, dalam urutan ini, dan menolak (fail closed, dengan error yang jelas, bukan data kosong) pada kegagalan pertama:
+
+1. Token valid (tanda tangan, `iss`, `aud`, kedaluwarsa); dikerjakan `mcpHandler`, sebelum service dipanggil.
+2. Grant aktif ada untuk (`sub` token, `azp` token, `workspace_id` token) dengan `revoked_at` kosong. Tanpa grant: ditolak.
+3. Scope yang dibutuhkan tool tercakup oleh scope token **dan** scope grant di DB. Scope di token tidak boleh melampaui grant; mencabut atau menyempitkan grant langsung berlaku tanpa menunggu token baru.
+4. Pengguna masih member aktif workspace itu. Pada MVP tidak ada pembatasan scope berdasarkan role (Account Owner, Admin, Creator setara untuk read, draft, dan schedule; ADR-139 poin 4, S-001). Member yang dikeluarkan ditolak, grant-nya tidak dihapus otomatis.
+5. Titik sambung rate limit (diisi T-154). `last_used_at` diperbarui hanya setelah panggilan lolos, paling cepat sekali per menit.
+
+Panggilan yang ditolak tetap dicatat lewat `recordAudit` (`status = denied`).
+
+`revokeGrant` menjalankan **satu transaksi**: menandai `mcp_grants.revoked_at` dan menghapus baris `identity_oauth_consent` serta `identity_oauth_refresh_token` milik (klien, pengguna, workspace) grant itu (`referenceId` plugin = `workspace_id`). Transaksi dijalankan oleh adapter di lapisan repository lewat port yang dipanggil service; domain tidak mengimpor Prisma. Tabel plugin tidak diubah bentuknya dan tidak diberi FK baru. Mencabut grant yang sudah dicabut tidak error (idempoten). Access token yang masih berlaku ditolak pada panggilan berikutnya oleh aturan 2, bukan oleh kedaluwarsa.
 
 Pemetaan tool MCP ke service yang dibungkus:
 

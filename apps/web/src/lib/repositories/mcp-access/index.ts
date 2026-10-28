@@ -1,0 +1,3 @@
+export { mcpAuditRepository } from "./mcp-audit.repository";
+export { mcpGrantRepository } from "./mcp-grant.repository";
+export { mcpGrantRevocationAdapter } from "./mcp-grant-revocation.adapter";

@@ -48,7 +48,7 @@ diikuti tanpa ambiguitas, dan melengkapi `monorepo-setup.md` (lokasi file
 | RS-D05 | SSR/SSG/ISR | 100% dynamic/SSR, termasuk rute publik `/u/[slug]` (RS-D08); SSG/ISR di luar scope |
 | RS-D06 | Revalidation | `revalidatePath()` dipakai setelah mutation Server Action sukses; `revalidateTag`/`unstable_cache` belum dibutuhkan (bukan dilarang selamanya) |
 | RS-D07 | Request-level de-dup | `React.cache()` untuk lookup non-fetch yang dipanggil berulang dalam satu render (preseden `getCachedSession()`) |
-| RS-D08 | Rendering strategy rute publik | `/u/[slug]` dirender **dinamis** per request (counter kunjungan, ADR-142); SSG/ISR tidak dipakai. Header keamanan di `next.config.ts` (`X-Frame-Options`, `frame-ancestors 'none'`, `Referrer-Policy`); CSP penuh dengan nonce belum (ADR-143) |
+| RS-D08 | Rendering strategy rute publik | `/u/[slug]` dirender **dinamis** per request (counter kunjungan, ADR-143); SSG/ISR tidak dipakai. Header keamanan di `next.config.ts` (`X-Frame-Options`, `frame-ancestors 'none'`, `Referrer-Policy`); CSP penuh dengan nonce belum (ADR-144) |
 
 ---
 
@@ -160,7 +160,7 @@ ini. Ini status quo eksplisit, bukan lupa dikonfigurasi.
 
 **Pengecualian:** Start Page / rute publik (v0.6). URL publik dikunci di
 ADR-128 (`/u/[slug]`). Rute ini dirender dinamis per request, karena
-tiap kunjungan menaikkan counter (ADR-142, ADR-143).
+tiap kunjungan menaikkan counter (ADR-143, ADR-144).
 SSG/ISR tetap tidak dipakai.
 
 ---

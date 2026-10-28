@@ -7,7 +7,7 @@ import {
 } from "@/lib/repositories/start-page";
 
 /**
- * Redirect klik tautan Start Page (T-074, ADR-128/ADR-141). Publik tanpa
+ * Redirect klik tautan Start Page (T-074, ADR-128/ADR-142). Publik tanpa
  * session (di bawah bypass `/u` di `proxy.ts`). Route Handler tipis: seluruh
  * logika (validasi slug/linkId, hitung klik, validasi ulang http/https,
  * abaikan bot) ada di `ResolveStartPageLinkRedirect`. Redirect 302 (bukan

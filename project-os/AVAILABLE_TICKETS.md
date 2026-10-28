@@ -31,7 +31,6 @@ ID tiket global, tidak didaur ulang. Berikutnya: **T-166**. ID spec berikutnya: 
 
 | ID    | Status | Judul                                                                                                                          | File                                           |
 | ----- | ------ | ------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------- |
-| T-148 | 🟡     | Spike MCP: OAuth, scope kustom, binding workspace. Sisa: uji klien nyata di staging                                            | [v0.5](tickets/v05-mcp-server-mvp.md)          |
 | T-037 | 🟡     | Perkaya aturan coding di `context/ctx-development.md`                                                                          | [v0.2](tickets/v02-publishing-mvp.md)          |
 | T-115 | 🟡     | Wiring cron harian Import Posts. Sisa: post native Facebook                                                                    | [v0.2](tickets/v02-publishing-mvp.md)          |
 | T-013 | 🟡     | Connect account. Sisa: T-013.4 BYOK X                                                                                          | [v0.1](tickets/v01-foundation.md)              |
@@ -54,11 +53,11 @@ ID tiket global, tidak didaur ulang. Berikutnya: **T-166**. ID spec berikutnya: 
 
 Masih ⏳, dikerjakan saat rilisnya aktif. Detail di file masing-masing.
 
-| Rilis | ID                                      | File                                 |
-| ----- | --------------------------------------- | ------------------------------------ |
-| v0.4  | T-055 Inbox assignment                  | [v04](tickets/v04-engagement-mvp.md) |
-| v0.5  | T-149 – T-157 (MCP Server, ADR-138)     | [v05](tickets/v05-mcp-server-mvp.md) |
-| v1.0  | T-080 – T-088, termasuk KI-028 di T-088 | [v10](tickets/v10-public-launch.md)  |
+| Rilis | ID                                                                         | File                                 |
+| ----- | -------------------------------------------------------------------------- | ------------------------------------ |
+| v0.4  | T-055 Inbox assignment                                                     | [v04](tickets/v04-engagement-mvp.md) |
+| v0.5  | T-150 – T-157 (MCP Server, ADR-138; T-149 ✅ 2026-10-26, T-150 berikutnya) | [v05](tickets/v05-mcp-server-mvp.md) |
+| v1.0  | T-080 – T-088, termasuk KI-028 di T-088                                    | [v10](tickets/v10-public-launch.md)  |
 
 v0.3 tidak punya tiket terbuka. v0.7 hanya punya lanjutan T-165 di tabel Sekarang. v0.6 selesai (T-070 – T-074 ✅); sisanya hanya lanjutan T-159 – T-164 di tabel Sekarang.
 
@@ -66,13 +65,12 @@ v0.3 tidak punya tiket terbuka. v0.7 hanya punya lanjutan T-165 di tabel Sekaran
 
 ## Keputusan yang masih menunggu
 
-| Tiket | Yang belum diputuskan                                                                                                             | Menghambat                           |
-| ----- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| T-148 | Hasil spike: scope kustom dan `workspaceId` di `@better-auth/oauth-provider` (ADR-139 Proposed, uji klien nyata di staging belum) | Seluruh v0.5                         |
-| T-081 | Framework E2E                                                                                                                     | Golden path v1.0                     |
-| T-086 | Tool observability                                                                                                                | Visibilitas job                      |
-| T-163 | Nilai `muted-foreground` light yang memenuhi AA (menyimpang dari pemetaan Stone, ADR-087); kemungkinan perlu ADR                  | Kontras teks sekunder seluruh produk |
-| —     | Billing belum masuk rilis manapun                                                                                                 | Belum ada tiket                      |
+| Tiket | Yang belum diputuskan                                                                                            | Menghambat                           |
+| ----- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| T-081 | Framework E2E                                                                                                    | Golden path v1.0                     |
+| T-086 | Tool observability                                                                                               | Visibilitas job                      |
+| T-163 | Nilai `muted-foreground` light yang memenuhi AA (menyimpang dari pemetaan Stone, ADR-087); kemungkinan perlu ADR | Kontras teks sekunder seluruh produk |
+| —     | Billing belum masuk rilis manapun                                                                                | Belum ada tiket                      |
 
 ---
 

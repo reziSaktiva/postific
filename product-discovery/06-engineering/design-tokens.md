@@ -394,7 +394,7 @@ perlu di-approve eksplisit (bukan bagian "migrasi tanpa ubah visual").
 
 ---
 
-# Tema Start Page (ADR-143)
+# Tema Start Page (ADR-144)
 
 Halaman publik Start Page punya tema yang bisa dipilih pengguna, tetapi **bukan** set token sendiri: setiap preset adalah turunan token produk yang sudah ada (§ Engineering Mapping), tanpa token baru dan tanpa warna bebas dari pengguna. Enum allowlist `default | dark | accent` (`START_PAGE_THEMES`); nilai di luar daftar jatuh ke `default`.
 

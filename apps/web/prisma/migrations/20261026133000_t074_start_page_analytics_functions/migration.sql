@@ -1,5 +1,5 @@
 -- T-074 — Analytics dasar Start Page lewat fungsi SECURITY DEFINER sempit
--- (pola ADR-141 / t070). Halaman publik dan route klik diakses TANPA session,
+-- (pola ADR-142 / t070). Halaman publik dan route klik diakses TANPA session,
 -- jadi tidak ada `app.current_user_id` untuk RLS `workspace_isolation`.
 -- Hanya counter: tanpa PII, tanpa tabel event. `updated_at` sengaja TIDAK
 -- disentuh (counter bukan perubahan konten). Tidak ada policy baru.

@@ -235,7 +235,7 @@ Analyze
 
 Start Page tidak memiliki sub-navigasi; Page Editor, Preview, dan Share adalah elemen dalam satu layar yang sama.
 
-Isi layar (Profil, Link List, selector tema, analytics dasar) dirinci di `information-architecture.md` § Start Page (ADR-143).
+Isi layar (Profil, Link List, selector tema, analytics dasar) dirinci di `information-architecture.md` § Start Page (ADR-144).
 
 ---
 

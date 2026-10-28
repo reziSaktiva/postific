@@ -2,7 +2,7 @@ import { MemberRole } from "@postific/shared";
 import { AuthorizationError } from "@/lib/utils/errors";
 
 /**
- * RBAC Start Page (T-072). Keputusan King Rezi (ADR-143, tercatat di
+ * RBAC Start Page (T-072). Keputusan King Rezi (ADR-144, tercatat di
  * `roles-permissions.md`): Account Owner, Admin, dan Creator boleh melihat
  * dan menyunting. Satu tempat untuk diubah bila kelak dibatasi ke
  * Owner/Admin (ganti ke `OWNER_OR_ADMIN_ROLES` dari `@postific/shared`).

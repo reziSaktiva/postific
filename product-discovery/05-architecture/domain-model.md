@@ -306,19 +306,21 @@ Mengelola akses AI pengguna ke produk lewat MCP (ADR-138, ADR-139): grant OAuth 
 | `McpGrant` | Aggregate Root | Izin yang diberikan pengguna kepada satu klien AI untuk satu workspace |
 | `McpAuditLog` | Entity | Satu baris per panggilan tool |
 
-### Key Attributes (indikatif, final di spec dan T-149)
+### Key Attributes (final; kolom dan tipe di `database-strategy.md` § BC-04)
 
 **McpGrant**
 - `id: McpGrantId`
 - `workspaceId: WorkspaceId` — satu workspace per koneksi
-- `userId: UserId` — pengguna yang menyambungkan; role-nya yang berlaku
+- `userId: UserId` — pengguna yang menyambungkan; keanggotaannya di workspace yang berlaku
 - `clientId: string` — klien AI (hasil dynamic client registration)
+- `clientName: string?` — salinan nama klien saat persetujuan (untuk layar daftar klien AI)
 - `scopes: McpScope[]` — `read | draft | schedule` (MVP)
-- `createdAt: Date`, `revokedAt: Date?`
+- `createdAt: Date`, `lastUsedAt: Date?`, `revokedAt: Date?`
+- Invarian: paling banyak satu grant aktif (`revokedAt` kosong) per `userId` + `clientId` + `workspaceId`.
 
 **McpAuditLog**
 - `id: McpAuditLogId`
-- `workspaceId`, `userId`, `grantId`, `clientId`
+- `workspaceId`, `userId`, `grantId?` (kosong bila ditolak karena tidak ada grant), `clientId`
 - `toolName: string`, `scope: McpScope`
 - `inputSummary: string` — ringkasan yang disamarkan (tanpa caption penuh dan tanpa URL berparameter rahasia)
 - `status: success | denied | error`, `errorCode: string?`, `durationMs: number`
@@ -327,7 +329,7 @@ Mengelola akses AI pengguna ke produk lewat MCP (ADR-138, ADR-139): grant OAuth 
 
 ### Catatan
 
-- Setiap panggilan memvalidasi ulang bahwa pengguna masih member workspace dan role-nya mencukupi (ADR-074); grant yang `revokedAt`-nya terisi ditolak.
+- `McpGrant` adalah sumber otorisasi panggilan MCP; aturan pemeriksaan per panggilan dan pencabutan ada di `application-layer.md` § McpAccessService.
 - Post yang dibuat lewat MCP membawa penanda sumber di BC-03 (`createdVia = mcp` beserta klien); penanda itu milik Publishing, bukan BC-04.
 - Isi komentar yang dikembalikan tool baca ditandai sebagai data tidak tepercaya.
 - Rate limit per workspace berbasis Postgres (60 panggilan per menit, 30 aksi tulis per jam, 50 konten terjadwal per hari; konfigurasi).

@@ -197,7 +197,7 @@ Start Page
 └── Share                     — salin URL halaman publik + Publish/Unpublish
 ```
 
-Analytics dasar (total kunjungan di page-head, klik per tautan di Link List) hanya tampil di Page Editor, bukan di halaman publik. Angka penuh (id-ID) di bawah 10.000, ringkas mulai 10.000; tanpa data tampil `0` + petunjuk. Pilihan UI dan hak akses: ADR-143; sumber angka: ADR-142.
+Analytics dasar (total kunjungan di page-head, klik per tautan di Link List) hanya tampil di Page Editor, bukan di halaman publik. Angka penuh (id-ID) di bawah 10.000, ringkas mulai 10.000; tanpa data tampil `0` + petunjuk. Pilihan UI dan hak akses: ADR-144; sumber angka: ADR-143.
 
 **Pengguna utama:** Raka / siapapun yang mengelola profil publik brand.
 

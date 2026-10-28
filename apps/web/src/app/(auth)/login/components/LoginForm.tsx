@@ -28,7 +28,7 @@ export function LoginForm({ isGoogleEnabled }: { isGoogleEnabled: boolean }) {
     setError(null);
     setIsSubmitting(true);
 
-    const { error: signInError } = await authClient.signIn.email({
+    const { data, error: signInError } = await authClient.signIn.email({
       email,
       password,
     });
@@ -40,6 +40,12 @@ export function LoginForm({ isGoogleEnabled }: { isGoogleEnabled: boolean }) {
         signInError.message ??
           "Email atau password salah. Coba lagi atau reset password Anda.",
       );
+      return;
+    }
+
+    // Di tengah alur OAuth klien AI (T-148) server membalas `redirect: true`
+    // dan plugin klien yang menavigasi; push("/") akan menimpanya.
+    if (data && "redirect" in data && data.redirect) {
       return;
     }
 
