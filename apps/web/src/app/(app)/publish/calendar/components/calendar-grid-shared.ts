@@ -1,6 +1,11 @@
 import { useCallback, useState } from "react";
-import type { IconType } from "react-icons";
-import { FaFilm, FaRegClock, FaRegImage, FaThumbtack } from "react-icons/fa6";
+import {
+  Clock01Icon,
+  Film01Icon,
+  Image01Icon,
+  PinIcon,
+} from "@hugeicons/core-free-icons";
+import type { IconSvgElement } from "@hugeicons/react";
 
 import type {
   ConnectedAccountId,
@@ -80,16 +85,14 @@ export const CONTENT_FORMAT_LABEL: Record<ContentFormat, string> = {
  * layar ≤768px (revisi keempat T-033 poin 3, dipertahankan T-102 cleanup)
  * — 2 `Badge` teks penuh (`CalendarEntryFooter`) overflow di kolom grid
  * Month/Week yang sempit (~50-90px per hari), jadi diganti icon+dot compact
- * di bawah breakpoint itu. Set icon dari `react-icons/fa6`, mengikuti pola
- * `PLATFORM_ICON` (`../../../components/platform-icons.tsx`) — bukan
- * dependency baru, dirender langsung (bukan dibungkus komponen `Icon`,
- * shadcn tidak punya padanan primitive itu).
+ * di bawah breakpoint itu. Set icon dari `hugeicons` (ADR-148, T-169), dirender lewat
+ * `HugeiconsIcon`.
  */
-export const CONTENT_FORMAT_ICON: Record<ContentFormat, IconType> = {
-  [ContentFormat.Post]: FaRegImage,
-  [ContentFormat.Reel]: FaFilm,
-  [ContentFormat.Story]: FaRegClock,
-  [ContentFormat.Pin]: FaThumbtack,
+export const CONTENT_FORMAT_ICON: Record<ContentFormat, IconSvgElement> = {
+  [ContentFormat.Post]: Image01Icon,
+  [ContentFormat.Reel]: Film01Icon,
+  [ContentFormat.Story]: Clock01Icon,
+  [ContentFormat.Pin]: PinIcon,
 };
 
 /**

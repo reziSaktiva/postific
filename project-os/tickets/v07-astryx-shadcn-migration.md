@@ -1500,7 +1500,7 @@ Dua sumber bertentangan: ADR-068 menetapkan `react-icons` sebagai library ikon t
 
 ### T-169 · Migrasi sisa ikon generik `react-icons` ke `hugeicons` (ADR-148)
 
-`⏳ Not Started` · **Domain** UI · **ADR** ADR-148 · **Depends** T-165 ✅
+`✅ Done` (2026-10-28; `CONTENT_FORMAT_ICON` dan `CalendarEntryFooter` memakai `hugeicons`; tsc, eslint, dan 51 tes kalender lolos. Komentar yang mengutip ADR-058 untuk logo brand tetap benar, tidak diubah) · **Domain** UI · **ADR** ADR-148 · **Depends** T-165 ✅
 **Baca dulu:** ADR-148 · `apps/web/.claude/CLAUDE.md` § Icons
 
 Ganti ikon generik yang masih memakai `react-icons/fa6` di `apps/web/src/app/(app)/publish/calendar/components/calendar-grid-shared.ts` (`FaFilm`, `FaRegClock`, `FaRegImage`, `FaThumbtack`) dengan padanan `hugeicons`. Logo brand berwarna di `platform-icons.tsx` tetap `react-icons`. Sekalian perbarui komentar kode yang masih mengutip ADR-058/068 sebagai kebijakan berlaku (`ConnectPlatformMenu.tsx`, `QueueList.tsx`, `CalendarToolbar.tsx`, `start-page-link-icons.ts`) agar merujuk ADR-148. Perubahan ikon butuh pengecekan visual di artifact desain (aturan UI #10).

@@ -218,10 +218,10 @@ Neymar menghapus blok DRAFT lama (75 baris, Aksen hijau/`accent-bronze`) dari `p
 
 ### T-163 · Token `muted-foreground` mode light memenuhi kontras AA
 
-`🟡 In Progress` (2026-10-28; nilai `#5c5c63` dipilih, ADR-147; `globals.css` dan `design-tokens.md` selesai. Sisa: Neymar menyinkronkan artifact desain Postific ke nilai baru) · **Domain** design tokens, UI (seluruh produk) · **ADR** ADR-087, ADR-144 · **Depends** keputusan King Rezi
+`✅ Done` (2026-10-28; nilai `#5c5c63`, ADR-147; `globals.css`, `design-tokens.md`, dan token `--muted-foreground` di artifact desain Postific (v21) sudah sama. Catatan: `color-text-secondary` di `tokens.json` artifact masih `#83838a`, menunggu keputusan King Rezi) · **Domain** design tokens, UI (seluruh produk) · **ADR** ADR-087, ADR-144 · **Depends** keputusan King Rezi
 **Baca dulu:** `06-engineering/design-tokens.md` § Engineering Mapping (DT-D06)
 
-`--muted-foreground` light (`#83838a`, dipetakan 1:1 dari Stone, ADR-087) hanya 3,4 sampai 3,8:1 di atas latar yang dipakai, di bawah AA 4,5:1. Efeknya seluruh produk, bukan hanya Start Page. **Hasil:** nilai baru `#5c5c63` (6,63:1 card, 5,99:1 background, 5,14:1 fill `--muted`), keputusan di ADR-147. `design-tokens.md` dan `globals.css` sudah diubah; **sisa:** Neymar memperbarui token di artifact desain Postific (ADR-140) supaya sama dengan `globals.css`.
+`--muted-foreground` light (`#83838a`, dipetakan 1:1 dari Stone, ADR-087) hanya 3,4 sampai 3,8:1 di atas latar yang dipakai, di bawah AA 4,5:1. Efeknya seluruh produk, bukan hanya Start Page. **Hasil:** nilai baru `#5c5c63` (6,63:1 card, 5,99:1 background, 5,14:1 fill `--muted`), keputusan di ADR-147. `design-tokens.md` dan `globals.css` sudah diubah; Token `--muted-foreground` di artifact desain Postific (ADR-140) juga sudah diperbarui (Neymar, versi 21).
 
 ### T-164 · Verifikasi staging Start Page: apply migrasi dan uji publik end-to-end
 
