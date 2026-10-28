@@ -23,7 +23,7 @@ RULES:
 - Tokens for every value — use the CSS variables defined in `src/app/globals.css` (`bg-background`, `text-foreground`, `border-border`, etc.) via their Tailwind utility form. No raw hex/px, no arbitrary values (`bg-[#fff]`, `p-[13px]`) unless the token genuinely doesn't exist yet.
 - `cn()` from `@/lib/utils` (clsx + tailwind-merge) for conditional/merged class names — every generated component already uses it, keep using it rather than template-string concatenation.
 - Variant props (`variant`, `size`, …) are `class-variance-authority` (`cva`) definitions inside the component file itself — read the component's `cva(...)` block to see what variants actually exist instead of guessing from the Astryx equivalent's prop names.
-- Icons: `hugeicons` (`@hugeicons/react` + `@hugeicons/core-free-icons`) is the configured `iconLibrary` for new shadcn components — `react-icons` (Astryx-era) stays in the tree only for code not yet migrated; don't mix the two within a single newly-written component.
+- Icons: `hugeicons` (`@hugeicons/react` + `@hugeicons/core-free-icons`) is the library for all UI icons (ADR-148, supersedes ADR-068) — `react-icons/fa6` is only for colored brand logos (`platform-icons.tsx`); leftover generic `react-icons` usage awaits migration; don't mix the two for generic icons within a single newly-written component.
 - SELF-CHECK before you finish: re-read the file and replace any inline `style={{…}}`, raw hardcoded color/spacing values, or a hand-rolled variant of something the registry already provides. If unsure a component/prop exists, search/view it — don't hand-roll markup that duplicates an installable component.
 
 MORE CLI / MCP:

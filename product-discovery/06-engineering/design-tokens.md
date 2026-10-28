@@ -330,7 +330,7 @@ di T-096. Sumber: `@astryxdesign/theme-stone/dist/theme.css` (versi
 | `--secondary` | `#e2e2e8` | `#3b3b3f` | `--color-background-muted` | |
 | `--secondary-foreground` | `#25252a` | `#f3f3f5` | `--color-text-primary` | |
 | `--muted` | `#e2e2e8` | `#3b3b3f` | `--color-background-muted` | Sama dengan `--secondary` — konsisten dgn pola default shadcn (kedua value identik di preset bawaan) |
-| `--muted-foreground` | `#83838a` | `#9d9da3` | `--color-text-secondary` | |
+| `--muted-foreground` | `#6b6b72` | `#9d9da3` | `--color-text-secondary` | **Menyimpang dari Stone** (`#83838a`, hanya 3,4–3,8:1) agar lolos AA 4,5:1 di atas `--card` (5,29:1) dan `--background` (4,77:1); di atas fill `--muted` 4,10:1. Mode dark tidak berubah. ADR-147 (T-163) |
 | `--accent` | `#e2e2e8` | `#3b3b3f` | `--color-background-muted` | Sama dengan `--muted`/`--secondary` — Stone tidak punya token hover-state solid terpisah yang cukup pekat (`--color-overlay-hover`/`--color-neutral` transparan, tidak cocok jadi bg solid) |
 | `--accent-foreground` | `#25252a` | `#f3f3f5` | `--color-text-primary` | |
 | `--destructive` | `#58413e` | `#dcc0bc` | `--color-error` | Dipakai sebagai warna teks/icon (lihat pola `button.tsx` — `bg-destructive/10 text-destructive`), bukan fill solid; `--color-error` lebih cocok dari `--color-background-red` untuk peran ini |

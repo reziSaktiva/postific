@@ -29,18 +29,16 @@ ID tiket global, tidak didaur ulang. Berikutnya: **T-169**. ID spec berikutnya: 
 
 ## Sekarang
 
-| ID    | Status | Judul                                                                                                                                                 | File                                           |
-| ----- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| T-037 | 🟡     | Perkaya aturan coding di `context/ctx-development.md`                                                                                                 | [v0.2](tickets/v02-publishing-mvp.md)          |
-| T-115 | 🟡     | Wiring cron harian Import Posts. Sisa: post native Facebook                                                                                           | [v0.2](tickets/v02-publishing-mvp.md)          |
-| T-013 | 🟡     | Connect account. Sisa: T-013.4 BYOK X                                                                                                                 | [v0.1](tickets/v01-foundation.md)              |
-| T-119 | 🚫     | Isi env Google OAuth. KI-015. King Rezi yang mengisi rahasianya                                                                                       | [KI](tickets/known-issues.md)                  |
-| T-158 | 🚫     | Lepas project Claude Design lama dan verifikasi isinya terhadap artifact. KI-103. Sebelum 2026-12-14. Langkah manual King Rezi                        | [KI](tickets/known-issues.md)                  |
-| T-163 | ⏳     | Token `muted-foreground` light memenuhi kontras AA 4,5:1. Butuh keputusan King Rezi                                                                   | [v0.6](tickets/v06-start-page-mvp.md)          |
-| T-164 | ⏳     | Verifikasi staging Start Page: apply 4 migrasi (cek duplikat dulu), uji `/u/[slug]` end-to-end, CSP, pantau rasio view/klik. Depends PR #200 di-merge | [v0.6](tickets/v06-start-page-mvp.md)          |
-| T-166 | ⏳     | 404 publik kustom `app/u/[slug]/not-found.tsx` tanpa inline style. Butuh rancangan artifact dulu (aturan UI #10)                                      | [v0.6](tickets/v06-start-page-mvp.md)          |
-| T-167 | ⏳     | Hardening repository dan tes Start Page (lanjutan code-review PR #200, prioritas rendah): lock `addLink`, UPDATE reorder satu query, tes interaksi    | [v0.6](tickets/v06-start-page-mvp.md)          |
-| T-165 | ⏳     | Selaraskan ADR-068 (`react-icons` ikon tunggal) dengan `apps/web/.claude/CLAUDE.md` (`hugeicons`). Butuh ADR baru                                     | [v0.7](tickets/v07-astryx-shadcn-migration.md) |
+| ID    | Status | Judul                                                                                                                                                 | File                                  |
+| ----- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| T-037 | 🟡     | Perkaya aturan coding di `context/ctx-development.md`                                                                                                 | [v0.2](tickets/v02-publishing-mvp.md) |
+| T-115 | 🟡     | Wiring cron harian Import Posts. Sisa: post native Facebook                                                                                           | [v0.2](tickets/v02-publishing-mvp.md) |
+| T-013 | 🟡     | Connect account. Sisa: T-013.4 BYOK X                                                                                                                 | [v0.1](tickets/v01-foundation.md)     |
+| T-119 | 🚫     | Isi env Google OAuth. KI-015. King Rezi yang mengisi rahasianya                                                                                       | [KI](tickets/known-issues.md)         |
+| T-158 | 🚫     | Lepas project Claude Design lama dan verifikasi isinya terhadap artifact. KI-103. Sebelum 2026-12-14. Langkah manual King Rezi                        | [KI](tickets/known-issues.md)         |
+| T-164 | ⏳     | Verifikasi staging Start Page: apply 4 migrasi (cek duplikat dulu), uji `/u/[slug]` end-to-end, CSP, pantau rasio view/klik. Depends PR #200 di-merge | [v0.6](tickets/v06-start-page-mvp.md) |
+| T-166 | ⏳     | 404 publik kustom `app/u/[slug]/not-found.tsx` tanpa inline style. Butuh rancangan artifact dulu (aturan UI #10)                                      | [v0.6](tickets/v06-start-page-mvp.md) |
+| T-167 | ⏳     | Hardening repository dan tes Start Page (lanjutan code-review PR #200, prioritas rendah): lock `addLink`, UPDATE reorder satu query, tes interaksi    | [v0.6](tickets/v06-start-page-mvp.md) |
 
 **T-146 ✅ Done (2026-10-23, atas pernyataan King Rezi setelah verifikasi browser).** **T-122 ✅ Done (2026-10-23, atas pernyataan King Rezi setelah uji manual; tanpa bukti otomatis, KI-053).** **T-143 ✅ Done (2026-10-23, atas pernyataan King Rezi; bukti cron belum terlihat di DB, lihat catatan T-143.5).** **T-144 dan T-145 ✅ Done (2026-10-23, PR 194):** tampilan Publish WIB dan `occurred_at` generated column untuk urutan History; terverifikasi di dev server lokal ke DB yang sama (bukan deploy Railway), sisa catatan review ada di tiket T-145. T-037 prioritas rendah dan tidak memblokir rilis. T-115 masih 🟡: job import dan watermark sudah terbukti di staging; sisa T-115.5 adalah post native Facebook yang muncul di Postific. T-142 selesai 2026-10-23 (PR 193): History memakai `publishedAt` untuk grup, urutan, dan jam kartu; diverifikasi King Rezi di browser. T-124 selesai 2026-10-19 (error kolom void, KI-091). T-116 → T-117 → T-118 (token-agent) selesai 2026-10-16, lihat `tickets/v01-foundation.md`. T-131 dan T-132 selesai 2026-10-20 (revisi scope Import Posts dari King Rezi; T-132 klasifikasi `ContentFormat` via Outstand Analytics, ADR-135). **T-130, T-134, T-135, T-136 (🔴 prioritas tinggi)** lahir dari satu investigasi ketidaksesuaian data Supabase vs Outstand yang sama — implementasinya tuntas 2026-10-21 (review Ridwan PASS, QA Najwa PASS, ADR-136). Akun test real "Cook It Real Good" tersedia 2026-10-22: **T-134 dan T-135 ✅ Done**. 2026-10-23: **T-130, T-136, T-139 ✅ Done** (Home menampilkan 12 post Oktober sesuai DB; import Instagram 182 post tersimpan lewat chunk per transaksi) dan bug baru **T-141 ✅ Done** (pagination `GET /v1/posts`, limit maks 100). **T-133 ✅ Done (2026-10-23):** script T-133.2/.3 dieksekusi atas konfirmasi King Rezi (Facebook 184, Instagram 182 post, terklasifikasi), diverifikasi di Home/Analyze/History; TikTok terbukti didukung Import, Pinterest tetap keterbatasan eksplisit (tanpa akun test). **T-140 ✅ Done** (2026-10-22, KI-100) — bug produksi infinite redirect loop `/` ↔ `/login` saat session cookie stale/invalid di `proxy.ts`, ditemukan King Rezi saat `bun dev` lokal, diperbaiki sesi yang sama (hapus cookie session stale sebelum redirect, lihat `tickets/known-issues.md`).
 
@@ -56,18 +54,17 @@ Masih ⏳, dikerjakan saat rilisnya aktif. Detail di file masing-masing.
 | v0.5  | T-150 – T-157, T-168 (MCP Server, ADR-138; T-149 ✅ 2026-10-26; T-150 🟡 In Progress, T-150.1–.6 selesai, sisa .7–.9) | [v05](tickets/v05-mcp-server-mvp.md) |
 | v1.0  | T-080 – T-088, termasuk KI-028 di T-088                                                                               | [v10](tickets/v10-public-launch.md)  |
 
-v0.3 tidak punya tiket terbuka. v0.7 hanya punya lanjutan T-165 di tabel Sekarang. v0.6 selesai (T-070 – T-074 ✅, T-159 ✅); sisanya hanya lanjutan T-163, T-164, T-166, T-167 di tabel Sekarang.
+v0.3 tidak punya tiket terbuka. v0.7 tidak punya tiket terbuka (T-165 ✅). v0.6 selesai (T-070 – T-074 ✅, T-159 ✅, T-163 ✅); sisanya hanya lanjutan T-164, T-166, T-167 di tabel Sekarang.
 
 ---
 
 ## Keputusan yang masih menunggu
 
-| Tiket | Yang belum diputuskan                                                                                            | Menghambat                           |
-| ----- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| T-081 | Framework E2E                                                                                                    | Golden path v1.0                     |
-| T-086 | Tool observability                                                                                               | Visibilitas job                      |
-| T-163 | Nilai `muted-foreground` light yang memenuhi AA (menyimpang dari pemetaan Stone, ADR-087); kemungkinan perlu ADR | Kontras teks sekunder seluruh produk |
-| —     | Billing belum masuk rilis manapun                                                                                | Belum ada tiket                      |
+| Tiket | Yang belum diputuskan             | Menghambat       |
+| ----- | --------------------------------- | ---------------- |
+| T-081 | Framework E2E                     | Golden path v1.0 |
+| T-086 | Tool observability                | Visibilitas job  |
+| —     | Billing belum masuk rilis manapun | Belum ada tiket  |
 
 ---
 

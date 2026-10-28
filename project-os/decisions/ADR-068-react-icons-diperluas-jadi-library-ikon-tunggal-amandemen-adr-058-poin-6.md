@@ -6,7 +6,7 @@
 
 ### Status
 
-Accepted
+Superseded by ADR-148 (2026-10-28)
 
 ### Date
 

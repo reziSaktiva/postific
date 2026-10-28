@@ -218,7 +218,7 @@ Neymar menghapus blok DRAFT lama (75 baris, Aksen hijau/`accent-bronze`) dari `p
 
 ### T-163 · Token `muted-foreground` mode light memenuhi kontras AA
 
-`⏳ Not Started` · **Domain** design tokens, UI (seluruh produk) · **ADR** ADR-087, ADR-144 · **Depends** keputusan King Rezi
+`✅ Done` (2026-10-28; nilai `#6b6b72` dipilih King Rezi, ADR-147; `globals.css` dan `design-tokens.md` diperbarui; artifact desain belum disinkronkan) · **Domain** design tokens, UI (seluruh produk) · **ADR** ADR-087, ADR-144 · **Depends** keputusan King Rezi
 **Baca dulu:** `06-engineering/design-tokens.md` § Engineering Mapping (DT-D06)
 
 `--muted-foreground` light (`#83838a`, dipetakan 1:1 dari Stone, ADR-087) hanya 3,4 sampai 3,8:1 di atas latar yang dipakai, di bawah AA 4,5:1. Efeknya seluruh produk, bukan hanya Start Page. **Butuh keputusan King Rezi** untuk nilai baru (menyimpang dari pemetaan Stone, kemungkinan perlu ADR). Urutan: Neymar mengusulkan nilai di artifact, King Rezi mengonfirmasi, update `design-tokens.md`, lalu Mark mengubah `globals.css`.

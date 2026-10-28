@@ -6,7 +6,7 @@ Sidebar mendapat section "Channels" — quick-glance daftar akun media sosial te
 
 ### Status
 
-Accepted — Amended by ADR-068 (2026-08-05)
+Accepted — Amended by ADR-068 (2026-08-05) dan ADR-148 (2026-10-28)
 
 ### Date
 
