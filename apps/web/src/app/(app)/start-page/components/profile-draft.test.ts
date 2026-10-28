@@ -59,7 +59,7 @@ describe("profile draft helpers", () => {
     });
   });
 
-  it("sends null to clear bio/avatar and ignores whitespace-only changes", () => {
+  it("sends null to clear bio and ignores whitespace-only title changes", () => {
     const base = toProfileDraft(PAGE);
     expect(buildProfilePatch(PAGE, { ...base, bio: "   " })).toEqual({
       bio: null,
@@ -67,8 +67,23 @@ describe("profile draft helpers", () => {
     expect(
       buildProfilePatch(PAGE, {
         ...base,
-        avatarUrl: "  ",
         title: "  Kopi Selasar ",
+      }),
+    ).toEqual({});
+  });
+
+  it("clears a stored avatar and keeps a pending file out of the JSON patch", () => {
+    const stored = { ...PAGE, avatarUrl: "https://cdn.test/a.png" };
+    const base = toProfileDraft(stored);
+    expect(buildProfilePatch(stored, { ...base, removeAvatar: true })).toEqual({
+      avatarUrl: null,
+    });
+    const file = new File(["x"], "foto.png", { type: "image/png" });
+    expect(
+      buildProfilePatch(stored, {
+        ...base,
+        avatarFile: file,
+        removeAvatar: true,
       }),
     ).toEqual({});
   });
@@ -108,6 +123,19 @@ describe("profile draft helpers", () => {
       toPreviewPage(PAGE, { ...draft, avatarUrl: "https://a.test/x.png" })
         .avatarUrl,
     ).toBe("https://a.test/x.png");
+    expect(
+      toPreviewPage(PAGE, {
+        ...draft,
+        avatarObjectUrl: "blob:http://localhost/preview",
+      }).avatarUrl,
+    ).toBe("blob:http://localhost/preview");
+    expect(
+      toPreviewPage(PAGE, {
+        ...draft,
+        avatarUrl: "https://a.test/x.png",
+        removeAvatar: true,
+      }).avatarUrl,
+    ).toBeNull();
   });
 
   it("detects the zero-data state", () => {

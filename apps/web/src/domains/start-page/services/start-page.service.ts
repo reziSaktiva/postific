@@ -3,6 +3,7 @@ import {
   NotFoundError,
   ValidationError,
 } from "@/lib/utils/errors";
+import type { IStartPageAvatarStorage } from "../adapters/start-page-avatar-storage";
 import {
   StartPageAlreadyExistsError,
   StartPageSlugTakenError,
@@ -20,6 +21,8 @@ import type {
 } from "../types";
 import {
   isUuid,
+  START_PAGE_AVATAR_MAX_BYTES,
+  START_PAGE_AVATAR_MIME_TYPES,
   validateAvatarUrlInput,
   validateBioInput,
   validateLinkLabelInput,
@@ -48,6 +51,12 @@ export interface UpdateStartPageProfileInput {
   theme?: string;
 }
 
+/** Berkas foto profil yang diunggah bersama simpan profil (T-159). */
+export interface StartPageAvatarFile {
+  buffer: Buffer;
+  contentType: string;
+}
+
 export interface AddStartPageLinkInput {
   label: string;
   url: string;
@@ -71,7 +80,10 @@ const NO_PAGE_MESSAGE = "Start Page belum dibuat untuk workspace ini.";
  * dilempar sebagai `ApplicationError` (`toActionError` di entry point).
  */
 export class StartPageService {
-  constructor(private readonly repository: IStartPageRepository) {}
+  constructor(
+    private readonly repository: IStartPageRepository,
+    private readonly avatarStorage: IStartPageAvatarStorage | null = null,
+  ) {}
 
   /** Data Page Editor; `null` bila halaman belum dibuat (UI tampilkan state "buat halaman"). */
   async getStartPage(
@@ -118,23 +130,53 @@ export class StartPageService {
     }
   }
 
+  /**
+   * `avatarFile` menang atas `input.avatarUrl`: berkas diunggah ke Storage,
+   * lalu URL https hasilnya disimpan. `avatarUrl: null` tanpa berkas
+   * menghapus foto (halaman kembali ke inisial) dan membersihkan berkas
+   * di bucket.
+   */
   async updateProfile(
     ctx: StartPageActorContext,
     input: UpdateStartPageProfileInput,
+    avatarFile?: StartPageAvatarFile | null,
   ): Promise<StartPageRecord> {
     assertActorCanManageStartPage(ctx.actorRole);
     const data: UpdateStartPageData = {};
     if (input.title !== undefined) data.title = validateTitleInput(input.title);
     if (input.slug !== undefined) data.slug = validateSlugInput(input.slug);
     if (input.bio !== undefined) data.bio = validateBioInput(input.bio);
-    if (input.avatarUrl !== undefined) {
+    if (input.theme !== undefined) data.theme = validateThemeInput(input.theme);
+
+    let uploadedExtension: string | undefined;
+    if (avatarFile) {
+      uploadedExtension = await this.uploadAvatar(ctx, avatarFile, data);
+    } else if (input.avatarUrl !== undefined) {
       data.avatarUrl = validateAvatarUrlInput(input.avatarUrl);
     }
-    if (input.theme !== undefined) data.theme = validateThemeInput(input.theme);
+
     if (Object.keys(data).length === 0) {
       throw new ValidationError("Tidak ada perubahan yang dikirim.");
     }
-    return this.applyPageUpdate(ctx, data);
+
+    try {
+      const page = await this.applyPageUpdate(ctx, data);
+      if (uploadedExtension) {
+        await this.deleteAvatarQuietly(
+          ctx,
+          uploadedExtension === "jpg" ? "png" : "jpg",
+        );
+      } else if (data.avatarUrl === null) {
+        await this.deleteAvatarQuietly(ctx, "jpg");
+        await this.deleteAvatarQuietly(ctx, "png");
+      }
+      return page;
+    } catch (error) {
+      if (uploadedExtension) {
+        await this.deleteAvatarQuietly(ctx, uploadedExtension);
+      }
+      throw error;
+    }
   }
 
   /** Toggle Published/Unpublished. Halaman tanpa tautan aktif tetap boleh dipublikasikan. */
@@ -258,6 +300,48 @@ export class StartPageService {
 
   private assertLinkId(linkId: string): void {
     if (!isUuid(linkId)) throw new NotFoundError("Tautan tidak ditemukan.");
+  }
+
+  private async uploadAvatar(
+    ctx: StartPageActorContext,
+    avatarFile: StartPageAvatarFile,
+    data: UpdateStartPageData,
+  ): Promise<string> {
+    const extension = START_PAGE_AVATAR_MIME_TYPES[avatarFile.contentType];
+    if (!extension) {
+      throw new ValidationError("Format avatar harus JPG atau PNG.");
+    }
+    if (avatarFile.buffer.byteLength > START_PAGE_AVATAR_MAX_BYTES) {
+      throw new ValidationError("Ukuran avatar maksimal 2MB.");
+    }
+    if (!this.avatarStorage) {
+      throw new ValidationError("Penyimpanan avatar tidak tersedia.");
+    }
+    const uploaded = await this.avatarStorage.uploadAvatar({
+      workspaceId: ctx.workspaceId,
+      fileBuffer: avatarFile.buffer,
+      contentType: avatarFile.contentType,
+      extension,
+    });
+    const avatarUrl = validateAvatarUrlInput(uploaded.url);
+    if (!avatarUrl) {
+      await this.deleteAvatarQuietly(ctx, extension);
+      throw new ValidationError(
+        "URL avatar harus berupa tautan https yang valid.",
+      );
+    }
+    data.avatarUrl = avatarUrl;
+    return extension;
+  }
+
+  private async deleteAvatarQuietly(
+    ctx: StartPageActorContext,
+    extension: string,
+  ): Promise<void> {
+    if (!this.avatarStorage) return;
+    await this.avatarStorage
+      .deleteAvatar({ workspaceId: ctx.workspaceId, extension })
+      .catch(() => {});
   }
 
   private async applyPageUpdate(

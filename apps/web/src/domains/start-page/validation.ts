@@ -60,6 +60,21 @@ export function validateBioInput(raw: unknown): string | null {
   return bio;
 }
 
+/**
+ * Batas foto profil Start Page, sama dengan foto profil akun (T-016.2):
+ * JPG/PNG, 2MB. Bucket `avatars` juga menolak di atas 2MB.
+ */
+export const START_PAGE_AVATAR_MAX_BYTES = 2 * 1024 * 1024;
+
+export const START_PAGE_AVATAR_MIME_TYPES: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+};
+
+export const START_PAGE_AVATAR_ACCEPT = Object.keys(
+  START_PAGE_AVATAR_MIME_TYPES,
+).join(",");
+
 /** Avatar opsional: kosong/null -> `null`; selain itu wajib URL https valid. */
 export function validateAvatarUrlInput(raw: unknown): string | null {
   if (raw === null || raw === undefined) return null;

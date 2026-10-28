@@ -10,6 +10,7 @@ import {
   StartPageAlreadyExistsError,
   StartPageSlugTakenError,
 } from "../errors";
+import type { IStartPageAvatarStorage } from "../adapters/start-page-avatar-storage";
 import type { IStartPageRepository } from "../repositories/start-page-write.repository";
 import type {
   StartPageActorContext,
@@ -57,7 +58,22 @@ function page(overrides: Partial<StartPageRecord> = {}): StartPageRecord {
   };
 }
 
-function setup(overrides: Partial<IStartPageRepository> = {}) {
+function fakeStorage(
+  overrides: Partial<IStartPageAvatarStorage> = {},
+): IStartPageAvatarStorage {
+  return {
+    uploadAvatar: vi.fn().mockResolvedValue({
+      url: "https://cdn.example/avatars/ws/avatar.jpg?v=1",
+    }),
+    deleteAvatar: vi.fn().mockResolvedValue(undefined),
+    ...overrides,
+  };
+}
+
+function setup(
+  overrides: Partial<IStartPageRepository> = {},
+  avatarStorage: IStartPageAvatarStorage | null = null,
+) {
   const repository = {
     findByWorkspace: vi.fn().mockResolvedValue(page()),
     create: vi.fn().mockResolvedValue(page()),
@@ -68,7 +84,11 @@ function setup(overrides: Partial<IStartPageRepository> = {}) {
     reorderLinks: vi.fn().mockResolvedValue(true),
     ...overrides,
   } satisfies IStartPageRepository;
-  return { service: new StartPageService(repository), repository };
+  return {
+    service: new StartPageService(repository, avatarStorage),
+    repository,
+    avatarStorage,
+  };
 }
 
 describe("StartPageService RBAC", () => {
@@ -181,6 +201,115 @@ describe("updateProfile / setPublished", () => {
     await expect(service.updateProfile(ctx, {})).rejects.toThrow(
       /Tidak ada perubahan/,
     );
+  });
+
+  it("uploads a jpg and stores the https url, then drops the other extension", async () => {
+    const avatarStorage = fakeStorage();
+    const { service, repository } = setup({}, avatarStorage);
+    await service.updateProfile(
+      ctx,
+      { title: "Raka" },
+      { buffer: Buffer.from("img"), contentType: "image/jpeg" },
+    );
+    expect(avatarStorage.uploadAvatar).toHaveBeenCalledWith({
+      workspaceId: WS,
+      fileBuffer: expect.any(Buffer),
+      contentType: "image/jpeg",
+      extension: "jpg",
+    });
+    expect(repository.update).toHaveBeenCalledWith(
+      {
+        workspaceId: WS,
+        data: {
+          title: "Raka",
+          avatarUrl: "https://cdn.example/avatars/ws/avatar.jpg?v=1",
+        },
+      },
+      ctx.actingUserId,
+    );
+    expect(avatarStorage.deleteAvatar).toHaveBeenCalledTimes(1);
+    expect(avatarStorage.deleteAvatar).toHaveBeenCalledWith({
+      workspaceId: WS,
+      extension: "png",
+    });
+  });
+
+  it("rejects a non-image and an oversized file before upload", async () => {
+    const avatarStorage = fakeStorage();
+    const { service, repository } = setup({}, avatarStorage);
+    await expect(
+      service.updateProfile(
+        ctx,
+        {},
+        {
+          buffer: Buffer.from("x"),
+          contentType: "image/gif",
+        },
+      ),
+    ).rejects.toThrow(/JPG atau PNG/);
+    await expect(
+      service.updateProfile(
+        ctx,
+        {},
+        {
+          buffer: Buffer.alloc(2 * 1024 * 1024 + 1),
+          contentType: "image/png",
+        },
+      ),
+    ).rejects.toThrow(/2MB/);
+    expect(avatarStorage.uploadAvatar).not.toHaveBeenCalled();
+    expect(repository.update).not.toHaveBeenCalled();
+  });
+
+  it("rejects an upload when storage is not wired", async () => {
+    const { service } = setup();
+    await expect(
+      service.updateProfile(
+        ctx,
+        {},
+        {
+          buffer: Buffer.from("x"),
+          contentType: "image/png",
+        },
+      ),
+    ).rejects.toThrow(/tidak tersedia/);
+  });
+
+  it("deletes the uploaded file when the page update fails", async () => {
+    const avatarStorage = fakeStorage();
+    const { service } = setup(
+      { update: vi.fn().mockRejectedValue(new Error("DB write failed")) },
+      avatarStorage,
+    );
+    await expect(
+      service.updateProfile(
+        ctx,
+        {},
+        {
+          buffer: Buffer.from("x"),
+          contentType: "image/png",
+        },
+      ),
+    ).rejects.toThrow("DB write failed");
+    expect(avatarStorage.deleteAvatar).toHaveBeenCalledWith({
+      workspaceId: WS,
+      extension: "png",
+    });
+  });
+
+  it("removes stored jpg and png when the avatar is cleared", async () => {
+    const avatarStorage = fakeStorage();
+    const { service } = setup({}, avatarStorage);
+    await service.updateProfile(ctx, { avatarUrl: null });
+    expect(avatarStorage.uploadAvatar).not.toHaveBeenCalled();
+    expect(avatarStorage.deleteAvatar).toHaveBeenCalledWith({
+      workspaceId: WS,
+      extension: "jpg",
+    });
+    expect(avatarStorage.deleteAvatar).toHaveBeenCalledWith({
+      workspaceId: WS,
+      extension: "png",
+    });
   });
 
   it("maps slug collision on update to ConflictError", async () => {
