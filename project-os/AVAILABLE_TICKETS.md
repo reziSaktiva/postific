@@ -37,7 +37,6 @@ ID tiket global, tidak didaur ulang. Berikutnya: **T-168**. ID spec berikutnya: 
 | T-119 | 🚫     | Isi env Google OAuth. KI-015. King Rezi yang mengisi rahasianya                                                                                       | [KI](tickets/known-issues.md)                  |
 | T-158 | 🚫     | Lepas project Claude Design lama dan verifikasi isinya terhadap artifact. KI-103. Sebelum 2026-12-14. Langkah manual King Rezi                        | [KI](tickets/known-issues.md)                  |
 | T-147 | ⏳     | Zona waktu per pengguna (tampilan dan input mengikuti lokasi). Butuh ADR. Depends T-146 (terpenuhi)                                                   | [v0.2](tickets/v02-publishing-mvp.md)          |
-| T-159 | ⏳     | Upload foto profil Start Page lewat Storage/Media (ganti input URL)                                                                                   | [v0.6](tickets/v06-start-page-mvp.md)          |
 | T-163 | ⏳     | Token `muted-foreground` light memenuhi kontras AA 4,5:1. Butuh keputusan King Rezi                                                                   | [v0.6](tickets/v06-start-page-mvp.md)          |
 | T-164 | ⏳     | Verifikasi staging Start Page: apply 4 migrasi (cek duplikat dulu), uji `/u/[slug]` end-to-end, CSP, pantau rasio view/klik. Depends PR #200 di-merge | [v0.6](tickets/v06-start-page-mvp.md)          |
 | T-166 | ⏳     | 404 publik kustom `app/u/[slug]/not-found.tsx` tanpa inline style. Butuh rancangan artifact dulu (aturan UI #10)                                      | [v0.6](tickets/v06-start-page-mvp.md)          |
@@ -58,7 +57,7 @@ Masih ⏳, dikerjakan saat rilisnya aktif. Detail di file masing-masing.
 | v0.5  | T-150 – T-157 (MCP Server, ADR-138; T-149 ✅ 2026-10-26; T-150 🟡 In Progress, T-150.1–.6 selesai, sisa .7–.9) | [v05](tickets/v05-mcp-server-mvp.md) |
 | v1.0  | T-080 – T-088, termasuk KI-028 di T-088                                                                        | [v10](tickets/v10-public-launch.md)  |
 
-v0.3 tidak punya tiket terbuka. v0.7 hanya punya lanjutan T-165 di tabel Sekarang. v0.6 selesai (T-070 – T-074 ✅); sisanya hanya lanjutan T-159, T-163, T-164, T-166, T-167 di tabel Sekarang.
+v0.3 tidak punya tiket terbuka. v0.7 hanya punya lanjutan T-165 di tabel Sekarang. v0.6 selesai (T-070 – T-074 ✅, T-159 ✅); sisanya hanya lanjutan T-163, T-164, T-166, T-167 di tabel Sekarang.
 
 ---
 

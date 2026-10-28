@@ -60,6 +60,33 @@ export function validateBioInput(raw: unknown): string | null {
   return bio;
 }
 
+/**
+ * Batas foto profil Start Page = foto profil akun (identity, T-016.2):
+ * satu sumber supaya batas tidak berbeda antara Settings dan Start Page.
+ */
+export {
+  MAX_AVATAR_BYTES as START_PAGE_AVATAR_MAX_BYTES,
+  ALLOWED_AVATAR_MIME_TYPES as START_PAGE_AVATAR_MIME_TYPES,
+  ALLOWED_AVATAR_ACCEPT as START_PAGE_AVATAR_ACCEPT,
+} from "@/domains/identity";
+
+const IMAGE_SIGNATURES: Record<string, number[]> = {
+  "image/jpeg": [0xff, 0xd8, 0xff],
+  "image/png": [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
+};
+
+/** `File.type` berasal dari klien; cocokkan dengan byte awal berkas. */
+export function matchesImageSignature(
+  contentType: string,
+  buffer: Uint8Array,
+): boolean {
+  const signature = IMAGE_SIGNATURES[contentType];
+  return (
+    signature !== undefined &&
+    signature.every((byte, index) => buffer[index] === byte)
+  );
+}
+
 /** Avatar opsional: kosong/null -> `null`; selain itu wajib URL https valid. */
 export function validateAvatarUrlInput(raw: unknown): string | null {
   if (raw === null || raw === undefined) return null;

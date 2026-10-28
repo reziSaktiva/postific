@@ -126,6 +126,20 @@ describe("StartPageEditor — struktur terkunci (T-072)", () => {
     expect(draft).toContain(">Publish<");
   });
 
+  it("profile photo is a file input, not a URL field", () => {
+    expect(html).toContain("Foto Profil");
+    expect(html).toContain('type="file"');
+    expect(html).toContain("JPG/PNG, maks 2MB");
+    expect(html).not.toContain("URL Avatar");
+    expect(html).not.toContain(">Hapus foto<");
+  });
+
+  it("offers remove when a photo is already stored", () => {
+    expect(render(makePage({ avatarUrl: "https://cdn.test/a.png" }))).toContain(
+      ">Hapus foto<",
+    );
+  });
+
   it("theme selector is a single ToggleGroup with 3 dotted items", () => {
     expect(html).toContain('data-slot="toggle-group"');
     expect(html.match(/data-slot="toggle-group-item"/g)).toHaveLength(3);

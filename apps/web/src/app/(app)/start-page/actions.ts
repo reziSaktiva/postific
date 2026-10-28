@@ -12,11 +12,18 @@ import {
   type StartPageLinkRecord,
   type StartPageRecord,
   type UpdateStartPageLinkInput,
+  type StartPageAvatarFile,
+  START_PAGE_AVATAR_MAX_BYTES,
   type UpdateStartPageProfileInput,
 } from "@/domains/start-page";
 import { getCachedSession } from "@/lib/better-auth/session";
+import { supabaseStartPageAvatarStorage } from "@/lib/adapters/avatar-storage";
 import { startPageRepository } from "@/lib/repositories/start-page";
-import { toActionError } from "@/lib/utils/errors";
+import {
+  ExternalServiceError,
+  ValidationError,
+  toActionError,
+} from "@/lib/utils/errors";
 import { getWorkspaceContext } from "@/lib/workspace/workspace-context";
 
 /**
@@ -50,10 +57,16 @@ async function run<T>(
 ): Promise<StartPageActionResult<T>> {
   const ctx = await resolveActor();
   try {
-    const data = await work(new StartPageService(startPageRepository), ctx);
+    const data = await work(
+      new StartPageService(startPageRepository, supabaseStartPageAvatarStorage),
+      ctx,
+    );
     if (options.revalidate) revalidatePath("/start-page");
     return { data };
   } catch (error) {
+    if (error instanceof ExternalServiceError) {
+      console.error("[start-page actions] layanan eksternal gagal:", error);
+    }
     return toActionError(error);
   }
 }
@@ -75,8 +88,29 @@ export async function createStartPageAction(
 
 export async function updateStartPageProfileAction(
   input: UpdateStartPageProfileInput,
+  avatarFormData?: FormData,
 ): Promise<StartPageActionResult<StartPageRecord>> {
-  return run((service, ctx) => service.updateProfile(ctx, input));
+  return run(async (service, ctx) =>
+    service.updateProfile(
+      ctx,
+      input,
+      await readAvatarFile(avatarFormData?.get("avatar") ?? null),
+    ),
+  );
+}
+
+/** File kosong atau bukan `File` berarti tidak ada unggahan baru. */
+async function readAvatarFile(
+  avatar: FormDataEntryValue | null,
+): Promise<StartPageAvatarFile | null> {
+  if (!(avatar instanceof File) || avatar.size === 0) return null;
+  if (avatar.size > START_PAGE_AVATAR_MAX_BYTES) {
+    throw new ValidationError("Ukuran avatar maksimal 2MB.");
+  }
+  return {
+    buffer: Buffer.from(await avatar.arrayBuffer()),
+    contentType: avatar.type,
+  };
 }
 
 export async function setStartPagePublishedAction(

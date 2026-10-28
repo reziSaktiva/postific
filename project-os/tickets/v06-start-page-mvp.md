@@ -5,7 +5,7 @@
 **Tujuan rilis:** Menyediakan halaman publik untuk kebutuhan bio link.
 **Baseline rilis:** `product-discovery/02-product/release-roadmap.md` → v0.6
 
-**Status rilis (2026-10-28):** T-070 sampai T-074 ✅ Done, kode dalam satu PR #200 (branch `feature/t-070-start-page-public-route`, belum di-merge). Review Ridwan PASS, QA Najwa PASS. **Belum terverifikasi di staging:** migrasi T-070, T-072, T-074 belum di-apply di Supabase; lihat T-164. Keputusan: ADR-142, ADR-143, ADR-144. Tiket lanjutan (T-159 sampai T-166) ada di bagian **Lanjutan** di bawah.
+**Status rilis (2026-10-28):** T-070 sampai T-074 ✅ Done, kode dalam satu PR #200 (branch `feature/t-070-start-page-public-route`, belum di-merge). T-159 ✅ Done di branch `feature/t-159-start-page-avatar-upload` (belum di-merge). Review Ridwan PASS, QA Najwa PASS untuk T-070–T-074. **Belum terverifikasi di staging:** migrasi T-070, T-072, T-074 belum di-apply di Supabase; lihat T-164. Keputusan: ADR-142, ADR-143, ADR-144. Tiket lanjutan yang masih terbuka: T-163, T-164, T-166, T-167 (T-162.4 butuh ADR).
 
 **Kedalaman dokumen ini:** T-070 sampai T-074 dicatat per hasil (retrospektif, bukan rencana). ID task dikunci agar bisa dirujuk.
 
@@ -148,10 +148,20 @@ Tiket di bawah lahir dari temuan review Ridwan, QA Najwa, dan Mark. Semuanya di 
 
 ### T-159 · Upload foto profil Start Page lewat Storage/Media
 
-`⏳ Not Started` · **Domain** start-page, media · UI · **ADR** ADR-144, ADR-071 · **Depends** T-072 ✅
+`✅ Done` (2026-10-28; branch `feature/t-159-start-page-avatar-upload`, belum di-merge) · **Domain** start-page, media · UI · **ADR** ADR-144, ADR-071, ADR-145 · **Depends** T-072 ✅
 **Baca dulu:** `05-architecture/database-strategy.md` § Storage (bucket `avatars`) · ADR-071 · artifact Postific `project/templates/start-page-editor.html` (rancangan memakai upload)
 
-Ganti input URL https dengan upload. Supabase JS client hanya untuk Storage (AGENTS.md aturan 6). Pertahankan validasi `avatarUrl` https di sisi render. Gate UI: baca artifact sebelum kode; bila pola upload yang dirancang belum cukup konkret, hentikan dan tanya King Rezi.
+Ganti input URL https dengan unggah file. Supabase JS client hanya untuk Storage. Validasi `avatarUrl` https di sisi render tetap ada.
+
+**Keputusan King Rezi (2026-10-28):** kontrolnya sama dengan Settings → Akun — avatar + `Input type="file"`, bukan dropzone dan bukan klik-avatar. Artifact tidak bisa dibaca dari sesi ini, jadi pola dikunci lewat pertanyaan itu.
+
+**Hasil:**
+
+- Page Editor: label "Foto Profil", JPG/PNG maks 2MB, pratinjau, tombol "Hapus foto" (halaman kembali ke inisial). File baru tampil di Preview sebelum Simpan. Tersimpan bersama "Simpan Perubahan".
+- Berkas masuk bucket publik `avatars` di folder `avatars/{workspace_id}/` (ADR-071) dengan nama unik per unggahan, `avatar-{uuid}.{ext}`, tanpa `upsert`. Berkas lama tidak tertimpa sebelum database tersimpan, jadi tidak perlu cache-bust. URL https hasil unggah disimpan di `avatarUrl`; berkas lain di folder dihapus sesudah simpan berhasil. Isi berkas dicocokkan dengan byte awal JPEG/PNG dan ukuran dicek sebelum dibaca ke memori.
+- Domain tidak memanggil Supabase: port `IStartPageAvatarStorage`, implementasi di `lib/adapters/avatar-storage`. Kalau simpan database gagal sesudah unggah, berkas baru dihapus (best-effort).
+
+**Belum:** unggah sungguhan ke Storage lewat browser (butuh sesi login). Belum di-merge dan belum di staging.
 
 ### T-160 · CSP penuh dengan nonce untuk `/u/*`
 

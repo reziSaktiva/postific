@@ -1,5 +1,6 @@
 /** Public API for start-page domain — import only from this barrel. */
 export * from "./types";
+export * from "./adapters/start-page-avatar-storage";
 export * from "./errors";
 export * from "./rbac";
 export * from "./validation";

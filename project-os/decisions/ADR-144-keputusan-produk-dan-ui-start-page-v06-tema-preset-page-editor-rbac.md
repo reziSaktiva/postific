@@ -6,7 +6,7 @@ Keputusan Produk dan UI Start Page v0.6: Tema Preset Terbatas, Page Editor (Dial
 
 ### Status
 
-Accepted
+Accepted — Amended by ADR-145 (2026-10-28)
 
 ### Date
 
