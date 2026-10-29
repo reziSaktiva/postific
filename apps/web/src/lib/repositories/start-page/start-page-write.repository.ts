@@ -72,6 +72,9 @@ function isRecordNotFound(error: unknown): boolean {
   );
 }
 
+/** Dilempar di dalam transaksi reorder agar UPDATE parsial di-rollback. */
+class ReorderSetMismatch extends Error {}
+
 /**
  * Kunci baris halaman workspace (`FOR UPDATE`) sampai transaksi selesai
  * (T-167.1). Semua operasi yang membaca lalu menulis `position`/jumlah tautan
@@ -217,32 +220,32 @@ export const startPageRepository: IStartPageRepository = {
   },
 
   async reorderLinks({ workspaceId, orderedLinkIds }, userId) {
-    return withCurrentUser(userId, async (tx) => {
-      const pageId = await lockPage(tx, workspaceId);
-      if (!pageId) return false;
-      const current = await tx.startPageLink.findMany({
-        where: { startPageId: pageId },
-        select: { id: true },
-      });
-      const currentIds = new Set(current.map((l) => l.id));
-      if (
-        currentIds.size !== orderedLinkIds.length ||
-        !orderedLinkIds.every((id) => currentIds.has(id))
-      ) {
-        return false;
-      }
-      if (orderedLinkIds.length === 0) return true;
-      // Satu UPDATE untuk semua posisi (T-167.3). Himpunan tautan sudah
-      // dipastikan sama persis dan tidak bisa berubah selama kunci dipegang.
-      const positions = orderedLinkIds.map((_, index) => index);
-      await tx.$executeRaw`
+    try {
+      return await withCurrentUser(userId, async (tx) => {
+        const pageId = await lockPage(tx, workspaceId);
+        if (!pageId) return false;
+        // Satu UPDATE untuk semua posisi (T-167.3), hanya berlaku bila jumlah
+        // tautan halaman sama dengan daftar yang dikirim. Id asing atau basi
+        // bisa membuat UPDATE parsial (sebagian baris sudah tertulis), jadi
+        // jumlah baris terpengaruh yang kurang dari daftar melempar error agar
+        // transaksi rollback (id unik sudah dijamin service).
+        const positions = orderedLinkIds.map((_, index) => index);
+        const total = orderedLinkIds.length;
+        const updated = await tx.$executeRaw`
         UPDATE "start_page_links" AS l
            SET "position" = v."position", "updated_at" = now()
           FROM unnest(${orderedLinkIds}::uuid[], ${positions}::int[])
                AS v("id", "position")
          WHERE l."id" = v."id"
-           AND l."start_page_id" = ${pageId}::uuid`;
-      return true;
-    });
+           AND l."start_page_id" = ${pageId}::uuid
+           AND (SELECT count(*) FROM "start_page_links"
+                 WHERE "start_page_id" = ${pageId}::uuid) = ${total}::int`;
+        if (updated !== total) throw new ReorderSetMismatch();
+        return true;
+      });
+    } catch (error) {
+      if (error instanceof ReorderSetMismatch) return false;
+      throw error;
+    }
   },
 };

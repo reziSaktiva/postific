@@ -21,8 +21,9 @@ import {
  * `StartPageProfile` (`main` > `article`, footer badge Opsi B). Tanpa tautan
  * atau tombol ke beranda.
  *
- * `EmptyTitle` merender `div`, jadi dibuat heading level 1 lewat
- * `role="heading"` + `aria-level` (saran a11y di rancangan).
+ * `EmptyTitle` merender `div`, jadi judul dibungkus `h1` asli (preflight
+ * Tailwind membuatnya mewarisi style) agar heading level 1 semantik (saran
+ * a11y di rancangan).
  */
 export default function StartPageNotFound() {
   return (
@@ -37,8 +38,8 @@ export default function StartPageNotFound() {
                 aria-hidden="true"
               />
             </EmptyMedia>
-            <EmptyTitle role="heading" aria-level={1}>
-              Halaman tidak ditemukan
+            <EmptyTitle>
+              <h1>Halaman tidak ditemukan</h1>
             </EmptyTitle>
             <EmptyDescription>
               Alamat ini tidak mengarah ke halaman yang tersedia. Periksa

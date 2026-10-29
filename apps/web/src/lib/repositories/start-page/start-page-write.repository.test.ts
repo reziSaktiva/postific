@@ -297,7 +297,6 @@ describe("startPageRepository", () => {
 
   it("reorderLinks applies positions 0..n-1 with ONE statement only for the exact link set (T-167.3)", async () => {
     txMock.$queryRaw.mockResolvedValue([{ id: "p1" }]);
-    txMock.startPageLink.findMany.mockResolvedValue([{ id: "a" }, { id: "b" }]);
     txMock.$executeRaw.mockResolvedValue(2);
     await expect(
       startPageRepository.reorderLinks(
@@ -308,26 +307,48 @@ describe("startPageRepository", () => {
     expect(txMock.$executeRaw).toHaveBeenCalledTimes(1);
     const [strings, ...values] = txMock.$executeRaw.mock.calls[0]!;
     expect(strings.join("?")).toContain("unnest(");
-    expect(values).toEqual([["b", "a"], [0, 1], "p1"]);
+    expect(values).toEqual([["b", "a"], [0, 1], "p1", "p1", 2]);
+    expect(txMock.startPageLink.findMany).not.toHaveBeenCalled();
     expect(txMock.startPageLink.update).not.toHaveBeenCalled();
   });
 
-  it("reorderLinks refuses foreign or stale sets without writing", async () => {
+  it("reorderLinks returns false when the UPDATE touched fewer rows than the list (foreign or stale set)", async () => {
     txMock.$queryRaw.mockResolvedValue([{ id: "p1" }]);
-    txMock.startPageLink.findMany.mockResolvedValue([{ id: "a" }, { id: "b" }]);
+    txMock.$executeRaw.mockResolvedValue(0);
     await expect(
       startPageRepository.reorderLinks(
         { workspaceId: WS, orderedLinkIds: ["a", "foreign"] },
         USER,
       ),
     ).resolves.toBe(false);
+    // Daftar lebih pendek dari jumlah tautan halaman: tidak ada baris cocok.
     await expect(
       startPageRepository.reorderLinks(
         { workspaceId: WS, orderedLinkIds: ["a"] },
         USER,
       ),
     ).resolves.toBe(false);
-    expect(txMock.$executeRaw).not.toHaveBeenCalled();
+  });
+
+  it("reorderLinks rolls back (throws inside the transaction) on a partial UPDATE", async () => {
+    txMock.$queryRaw.mockResolvedValue([{ id: "p1" }]);
+    txMock.$executeRaw.mockResolvedValue(1);
+    let thrown: unknown;
+    withCurrentUserMock.mockImplementationOnce(async (_user, fn) => {
+      try {
+        return await fn(txMock);
+      } catch (error) {
+        thrown = error;
+        throw error;
+      }
+    });
+    await expect(
+      startPageRepository.reorderLinks(
+        { workspaceId: WS, orderedLinkIds: ["a", "foreign"] },
+        USER,
+      ),
+    ).resolves.toBe(false);
+    expect(thrown).toBeInstanceOf(Error);
   });
 
   it("reorderLinks returns false without a page and propagates db errors", async () => {
@@ -340,7 +361,6 @@ describe("startPageRepository", () => {
     ).resolves.toBe(false);
 
     txMock.$queryRaw.mockResolvedValue([{ id: "p1" }]);
-    txMock.startPageLink.findMany.mockResolvedValue([{ id: "a" }, { id: "b" }]);
     txMock.$executeRaw.mockRejectedValueOnce(new Error("db down"));
     await expect(
       startPageRepository.reorderLinks(
