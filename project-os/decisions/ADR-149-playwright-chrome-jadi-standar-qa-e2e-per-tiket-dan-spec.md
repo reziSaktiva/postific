@@ -6,7 +6,7 @@ Playwright (Chrome) Jadi Standar QA End-to-End untuk Setiap Tiket dan Spec yang 
 
 ### Status
 
-Accepted
+Accepted. Poin 6 dan 8 (pemicu `push` ke `staging`) diamandemen oleh ADR-150: pemicu menjadi `pull_request` ke `main`.
 
 ### Date
 
