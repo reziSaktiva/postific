@@ -17,7 +17,7 @@ Stack & env → `ctx-technical-context.md`.
 | [`monorepo-setup.md`](../product-discovery/06-engineering/monorepo-setup.md)                                             | Layout workspace & TypeScript                                                         |
 | [`../README.md`](../README.md)                                                                                           | Setup cepat root                                                                      |
 
-Config di repo: `eslint.config.*`, `prettier.config.*`, `lefthook.yml`, `vitest.config.ts` (root).
+Config di repo: `eslint.config.*`, `prettier.config.*`, `lefthook.yml`, `vitest.config.ts` (root), `apps/web/playwright.config.ts` (E2E, ADR-149).
 
 ---
 
@@ -85,7 +85,7 @@ Aturan di bawah melengkapi hard rules di [`../AGENTS.md`](../AGENTS.md). Detail 
 
 ### Testing
 
-15. Unit/domain test: **Vitest** (`bun run test`).
+15. Unit/domain test: **Vitest** (`bun run test`). Tes E2E: **Playwright** Chrome (`bun run test:e2e`), detail di `dx-tooling.md` DX-D08 (ADR-149).
 16. Test yang ditambah harus relevan dengan behavior yang diubah; jangan stub berlebihan tanpa nilai.
 17. Service/use-case diuji dengan **fake repository** — bukan mock Prisma
     dan bukan DB nyata. Pola: factory function `createFakeRepository()`

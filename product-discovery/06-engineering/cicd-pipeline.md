@@ -72,6 +72,7 @@ Dokumen ini menkonkretkan trigger deploy dari `deployment-infrastructure.md` (DI
 |-------|---------------|--------|
 | `pull_request` | `staging`, `main` | Quality gates sebelum merge |
 | `push` (opsional) | `staging`, `main` | Re-run gates setelah merge (visibility); **bukan** pengganti Railway deploy |
+| `push` | `staging` | Workflow E2E Playwright terhadap staging setelah deploy (CI-D07, ADR-149, S-002); hijau menjadi required check untuk PR `staging` → `main` |
 
 Deploy aplikasi **tidak** dipicu dari GitHub Actions (CI-D04).
 
@@ -227,7 +228,8 @@ Saat Repository & Bootstrap:
 | CI-D03 | Promosi feature → staging → main | Staging sebagai mirror uji (DI-D02) sebelum production | Langsung feature → main (mengorbankan tempat uji aman) |
 | CI-D04 | CD tetap di Railway auto-deploy | Sudah dikunci DI-D05; hindari dua sistem deploy | Deploy dari GitHub Actions ke Railway API (duplikasi kontrol) |
 | CI-D05 | `migrate deploy` di Railway release/pre-start | Migrate terikat environment yang sama dengan kode yang di-deploy; staging dulu lalu prod | Migrate di GitHub Actions (perlu secret DB di GitHub); migrate manual |
-| CI-D06 | Secret sensitif tidak di PR CI | Minimalkan blast radius; Railway sudah punya env per environment | Mirror semua secret ke GitHub Secrets sejak MVP |
+| CI-D06 | Secret sensitif tidak di PR CI | Minimalkan blast radius; Railway sudah punya env per environment. *Amandemen ADR-149:* secret akun test staging hanya dipakai job E2E pada `push` ke `staging` | Mirror semua secret ke GitHub Secrets sejak MVP |
+| CI-D07 | Gerbang E2E Playwright terhadap staging setelah deploy (ADR-149) | Local dan staging berbagi satu DB (ADR-081), Outstand butuh API key asli (ADR-119), dan tidak ada preview per-PR (ADR-029); menguji staging adalah cara menjalankan kode yang benar-benar ter-deploy tanpa secret di PR CI | E2E di setiap PR (secret di PR CI, DB bersama tercemar); Postgres service container (fitur Supabase/Outstand tak bisa diuji, fake adapter dilarang) |
 
 ---
 

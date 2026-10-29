@@ -5,7 +5,7 @@
 **Tujuan rilis:** Menyediakan halaman publik untuk kebutuhan bio link.
 **Baseline rilis:** `product-discovery/02-product/release-roadmap.md` → v0.6
 
-**Status rilis (2026-10-28):** T-070 sampai T-074 ✅ Done, kode dalam satu PR #200 (branch `feature/t-070-start-page-public-route`, belum di-merge). T-159 ✅ Done di branch `feature/t-159-start-page-avatar-upload` (belum di-merge). Review Ridwan PASS, QA Najwa PASS untuk T-070–T-074. **Belum terverifikasi di staging:** migrasi T-070, T-072, T-074 belum di-apply di Supabase; lihat T-164. Keputusan: ADR-142, ADR-143, ADR-144. Tiket lanjutan yang masih terbuka: T-163, T-164, T-166, T-167 (T-162.4 butuh ADR).
+**Status rilis (2026-10-28):** T-070 sampai T-074 ✅ Done, kode di PR #200 (ter-merge ke `staging`). T-159 ✅ Done (PR #203, ter-merge). Review Ridwan PASS, QA Najwa PASS untuk T-070–T-074. **Terverifikasi di staging** (T-164 ✅, 2026-10-28): keempat migrasi sudah ter-apply di Supabase. Keputusan: ADR-142, ADR-143, ADR-144. Tiket lanjutan yang masih terbuka: T-166, T-167, T-171 (T-162.4 butuh ADR).
 
 **Kedalaman dokumen ini:** T-070 sampai T-074 dicatat per hasil (retrospektif, bukan rencana). ID task dikunci agar bisa dirujuk.
 
@@ -53,7 +53,7 @@ Service + repository, plus keputusan arsitektur: di mana route publik hidup, bag
   policy `app_runtime` melemahkan isolasi tenant (F2).
   **Belum terverifikasi:** migrasi belum di-apply di Supabase staging/asli; SQL
   hanya diuji di Postgres 16 lokal dengan role stub; tipe kolom hasil `$queryRaw`
-  di DB nyata belum dicek. Cek saat migrasi pertama kali di-apply di staging.
+  di DB nyata belum dicek. Cek saat migrasi pertama kali di-apply di staging. _(Terjawab di T-164, 2026-10-28: migrasi ter-apply dan tipe hasil `$queryRaw` terbukti benar.)_
   Catatan LOW: F3 tes integrasi DB belum ada; F4 `REVOKE EXECUTE` dari
   `anon`/`authenticated` sudah diterapkan (keputusan King Rezi 2026-10-26); efeknya
   di Supabase asli baru terbukti saat apply di staging.
@@ -192,7 +192,7 @@ Ganti input URL https dengan unggah file. Supabase JS client hanya untuk Storage
 - [x] Header CSP statis di `next.config.ts` dihapus; `X-Frame-Options` dan header lain tetap.
 - [x] `Toaster` sonner dipindah dari `Providers` root ke `(app)/layout` lewat `AppToaster` (halaman auth, onboarding, dan publik tidak punya Toaster; semua pemakai `toast()` ada di `(app)`).
 
-**Terverifikasi:** `next build` + `next start` + `curl` + Chromium: 0 pelanggaran di `/u/<slug valid>`. **Belum:** `next dev`, Railway/staging (T-164), Firefox/Safari, toast di halaman `(app)` nyata lewat session.
+**Terverifikasi:** `next build` + `next start` + `curl` + Chromium: 0 pelanggaran di `/u/<slug valid>`. **Belum:** `next dev`, Railway/staging (T-164), Firefox/Safari, toast di halaman `(app)` nyata lewat session. _(Semuanya sudah dikerjakan di T-164.6, 2026-10-28; sisa Safari asli dan pemantauan rasio di T-171.)_
 **Batasan (diterima King Rezi):** 404 bawaan Next di `/u/<slug tak ada>` menyuntik `<style>` tanpa nonce, 1 pelanggaran `style-src-elem` (kosmetik, tanpa risiko keamanan). Lanjutan: T-166.
 **Temuan code-review dibantah (PR #200):** "script tema inline tidak ber-nonce" dibantah Najwa lewat uji empiris: bootstrap Next ber-nonce, elemen dibuat chunk ber-nonce lalu lolos `'strict-dynamic'`, 0 pelanggaran, class `dark` terpasang sebelum hydration. Batasan: browser tanpa `strict-dynamic` (Safari <15.4) hanya mendapat kilas tema light.
 
@@ -211,7 +211,7 @@ Neymar menghapus blok DRAFT lama (75 baris, Aksen hijau/`accent-bronze`) dari `p
 
 - [x] **T-162.1** `HEAD` tidak dihitung lewat Fetch Metadata (`Sec-Fetch-Dest: document` + `Sec-Fetch-Mode: navigate`, fail-closed; value object `document-navigation.ts`). Next 16 merender `HEAD` sebagai `GET` sehingga method tak bisa dicek. Batasan: Safari <16.4, http non-secure selain localhost, dan sebagian in-app browser tidak terhitung; header bisa dipalsukan (heuristik). Keputusan King Rezi: tetap fail-closed, rasio view terhadap klik dipantau setelah rilis (T-164.6).
 - [x] **T-162.2** `deleteLink` memadatkan `position` dalam satu transaksi. Risiko race LOW diterima; diuji hanya lewat mock dan QA DB lokal.
-- [x] **T-162.3** Migrasi `20261028120000_t162_3_start_page_public_read_http_only_urls`: fungsi baca publik menyaring url `^https?://`. Perlu di-apply di staging (T-164).
+- [x] **T-162.3** Migrasi `20261028120000_t162_3_start_page_public_read_http_only_urls`: fungsi baca publik menyaring url `^https?://`. Perlu di-apply di staging (T-164). _(Sudah ter-apply, 2026-10-28.)_
 - [ ] **T-162.4** Rate limit atau dedup counter (Ridwan F3). Menyimpan identifier menyentuh PII, jadi butuh ADR baru sebelum dikerjakan. Tetap terbuka, tanpa tiket sendiri sampai ADR ada.
 
 **Catatan LOW (Ridwan):** `search_path` tanpa `pg_temp` (konsisten dengan fungsi lain; perbaiki semua fungsi `start_page_*` di migrasi tersendiri nanti); belum ada tes integrasi DB untuk fungsi baru. **QA:** 6 file integrasi DB timeout sudah gagal di baseline (pooler Supabase tak terjangkau dari sandbox). F4 (klik terhitung tapi bisa 404) diterima sebagai LOW.

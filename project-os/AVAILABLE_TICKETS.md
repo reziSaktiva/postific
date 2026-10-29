@@ -64,11 +64,10 @@ v0.3 tidak punya tiket terbuka. v0.7 tidak punya tiket terbuka (T-165, T-169 ✅
 
 ## Keputusan yang masih menunggu
 
-| Tiket | Yang belum diputuskan             | Menghambat       |
-| ----- | --------------------------------- | ---------------- |
-| T-081 | Framework E2E                     | Golden path v1.0 |
-| T-086 | Tool observability                | Visibilitas job  |
-| —     | Billing belum masuk rilis manapun | Belum ada tiket  |
+| Tiket | Yang belum diputuskan             | Menghambat      |
+| ----- | --------------------------------- | --------------- |
+| T-086 | Tool observability                | Visibilitas job |
+| —     | Billing belum masuk rilis manapun | Belum ada tiket |
 
 ---
 

@@ -22,10 +22,10 @@ Saat ini test hanya menutup service domain (`publishing`, `workspace`, `slugify`
 
 ### T-081 · E2E test suite
 
-`⏳ Not Started` · **Domain** platform · **ADR** ADR-034 — **berpotensi butuh ADR baru** (framework E2E belum ditetapkan) · **Depends** — (T-018 ⏸️ Deferred sejak ADR-070, tidak lagi memblokir)
+`⏳ Not Started` · **Domain** platform · **ADR** ADR-034, ADR-149 (Playwright dengan Chrome ditetapkan 2026-10-28) · **Depends** T-172 ✅, T-173, T-174 (fondasi E2E) · T-018 ⏸️ Deferred sejak ADR-070, tidak lagi memblokir
 **Baca dulu:** `06-engineering/dx-tooling.md` · `06-engineering/cicd-pipeline.md`
 
-Belum ada Playwright/Cypress dan belum ada test komponen React (tidak ada testing-library). Framework E2E belum pernah diputuskan di ADR. Golongkan minimal golden path MVP: connect account → buat draft → schedule → lihat hasil.
+Framework E2E sudah ditetapkan: Playwright dengan Chrome (ADR-149, spec S-002); fondasinya dibangun di T-172 sampai T-176 (`tickets/v01-foundation.md`). Tiket ini tetap menjadi suite golden path MVP lintas fitur di atas fondasi itu: connect account → buat draft → schedule → lihat hasil. Belum ada test komponen React (tidak ada testing-library).
 
 > Catatan historis: tiket ini dulu bergantung pada T-018 (hydration lewat tunnel). T-018 ⏸️ Deferred sejak ADR-070, jadi tidak lagi memblokir.
 
