@@ -249,7 +249,7 @@ Dua sisa T-164.6 yang tidak bisa diverifikasi tanpa trafik nyata atau perangkat 
 
 ### T-166 · 404 publik kustom untuk `/u/[slug]` tanpa inline style
 
-`🟡 In Progress` (2026-10-29; rancangan dikonfirmasi King Rezi, implementasi berjalan di branch `fix/t-166-start-page-404`) · **Domain** start-page · UI · **ADR** ADR-144 · **Depends** T-160 ✅, rancangan artifact ✅
+`✅ Done` (2026-10-29; rancangan dikonfirmasi King Rezi, kode di PR 217 `fix/start-page-mvp-completion`; sisa verifikasi: halaman draft/slug published, Firefox/WebKit/Safari, staging) · **Domain** start-page · UI · **ADR** ADR-144 · **Depends** T-160 ✅, rancangan artifact ✅
 **Baca dulu:** `06-engineering/rendering-strategy.md` § RS-D08 · `context/ctx-design.md`
 
 404 bawaan Next di `/u/<slug tak ada>` menyuntik `<style>` tanpa nonce (1 pelanggaran `style-src-elem`, kosmetik). Buat `app/u/[slug]/not-found.tsx` tanpa inline style. **Gate UI (aturan #10):** butuh rancangan di artifact Postific dan konfirmasi King Rezi sebelum kode.
@@ -258,7 +258,7 @@ Dua sisa T-164.6 yang tidak bisa diverifikasi tanpa trafik nyata atau perangkat 
 - [x] **T-166.2** (2026-10-29) **Dikonfirmasi King Rezi apa adanya:** struktur meniru `StartPageProfile` (`main` > `article`) dengan footer badge "Powered by Postific" seperti Opsi B; komponen `Empty` shadcn dengan ikon pencarian `Search01Icon`; judul "Halaman tidak ditemukan"; deskripsi "Alamat ini tidak mengarah ke halaman yang tersedia. Periksa kembali tautannya, atau hubungi orang yang membagikannya."; **tanpa tautan atau tombol ke beranda**; satu rancangan tanpa toggle. Copy sama untuk slug tidak ada dan halaman belum di-publish (status draft tidak boleh bocor). Catatan a11y: `EmptyTitle` merender `div`, jadi `not-found.tsx` perlu satu `h1` dan landmark `main`.
 - [x] **T-166.3** (2026-10-29) Implementasi `app/u/[slug]/not-found.tsx` tanpa inline style (Mark UI Engineer), dipanggil lewat `notFound()` dari rute publik.
 - [x] **T-166.4** (2026-10-29) Verifikasi di browser: 0 pelanggaran CSP `style-src-elem` pada `/u/<slug tak ada>`, tampilan 375px dan desktop, mode terang dan gelap, status HTTP tetap 404. **Hasil:** `not-found.tsx` dan `not-found.test.tsx` (4 tes) ditambah oleh Mark. Build produksi lokal (`next build` + `next start`): `/u/<slug tak ada>` 404 dengan 0 pelanggaran CSP dan tanpa tag `<style>`; `next dev` 18 pelanggaran `style-src` dari overlay dev Next (sama seperti T-164.6). Tampilan 375px dan desktop, terang dan gelap, dicek di dev. **Catatan:** heading memakai `role="heading" aria-level={1}` pada `EmptyTitle` (tidak ada tag `<h1>` karena `EmptyTitle` merender `div`). **Belum diverifikasi:** halaman draft dan slug published di browser, Firefox/WebKit/Safari, staging Railway. T-166 tetap 🟡 sampai T-166.5 (sinkron `04-ux/`) diputuskan.
-- [ ] **T-166.5** Sinkronisasi `product-discovery/04-ux/` untuk layar 404 publik (manual/on-request, ADR-140): belum dikerjakan.
+- [x] **T-166.5** (2026-10-29) Sinkronisasi `product-discovery/04-ux/` untuk layar 404 publik (manual/on-request, ADR-140): `information-architecture.md` § 5 Start Page (paragraf "Halaman publik tidak tersedia"), baris pemetaan fitur, dan keputusan **IA-D12**. `key-screen-patterns.md` tidak diubah (KSP-D11: Start Page bukan layar kritis). Tidak ada nilai token yang berubah, jadi `design-tokens.md` tidak disentuh.
 
 ### T-167 · Hardening repository dan tes Start Page (lanjutan code-review PR #200, prioritas rendah)
 
