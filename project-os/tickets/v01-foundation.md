@@ -805,7 +805,7 @@ Navigator sudah melarang membaca `PROJECT_STATE` utuh, `COMPLETE_TASK`, dan selu
 
 - [x] **T-172.1** Tambah `@playwright/test` ke `apps/web`, `playwright.config.ts` (Chrome `channel: "chrome"`, `E2E_BASE_URL`, trace/screenshot saat gagal), folder `apps/web/e2e/`
 - [x] **T-172.2** Skrip `test:e2e` di `apps/web` dan root; variabel baru di `.env.example` (placeholder, tanpa secret); ESLint/Vitest tidak ikut memuat `e2e/`
-- [x] **T-172.3** Catatan cara menjalankan di `dx-tooling.md` (DX-D08). Hasil: `@playwright/test` 1.64.1 di `apps/web`, `playwright.config.ts` (Chrome), `e2e/smoke.e2e.ts` (2 tes tanpa login). `vitest.config.ts` mengecualikan `apps/web/e2e/**`. **Terverifikasi:** staging 2/2 lulus di Chrome; `typecheck`, `lint`, dan 1510 tes unit hijau. **Belum:** run di local, karena server `next dev` di port 3000 dari sesi lain tidak merespons saat uji (bukan config Playwright); diulang begitu server sehat.
+- [x] **T-172.3** Catatan cara menjalankan di `dx-tooling.md` (DX-D08). Hasil: `@playwright/test` 1.64.1 di `apps/web`, `playwright.config.ts` (Chrome), `e2e/smoke.e2e.ts` (2 tes tanpa login). `vitest.config.ts` mengecualikan `apps/web/e2e/**`. **Terverifikasi:** staging 2/2 lulus di Chrome; `typecheck`, `lint`, dan 1510 tes unit hijau. Local juga 2/2 lulus (2026-10-29; Playwright menyalakan `next dev` sendiri lewat `webServer`). Catatan: pada uji pertama, server `next dev` dari sesi lain di port 3000 tidak merespons dan sudah berhenti sendiri sebelum sempat dimatikan.
 
 ### T-173 · Akun test dan setup sesi E2E
 
