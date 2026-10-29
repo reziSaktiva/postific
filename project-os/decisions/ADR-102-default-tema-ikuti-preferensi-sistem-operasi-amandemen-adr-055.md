@@ -29,10 +29,24 @@ cookie, bukan reset ke Light tiap reload).
 
 Mekanisme teknis (tetap menjaga prinsip "no flash" dari ADR-055):
 
+> **Amendemen mekanisme (2026-10-29, T-177, KI-104):** butir 1 di bawah
+> ditulis dengan `<Script strategy="beforeInteractive">`. Ternyata di App
+> Router `next/script` `beforeInteractive` TIDAK menjadi `<script>` inline yang
+> berjalan saat HTML di-parse: Next mengantrekannya ke `self.__next_s`, yang
+> baru dieksekusi (`loadScriptsInSequence`, `next/dist/client/app-bootstrap.js`)
+> setelah chunk framework dimuat, sehingga halaman sempat dilukis terang
+> dulu. Mekanisme yang berlaku sekarang: `<script>` inline biasa di `<head>`
+> (`dangerouslySetInnerHTML`, isi dari `SYSTEM_DARK_CLASS_SCRIPT` di
+> `lib/theme/theme-cookie.ts`), dengan `nonce` dari header `x-nonce` di `/u/*`
+> (CSP `strict-dynamic`, T-160). Keputusan produknya (default ikuti OS,
+> cookie eksplisit menang, prinsip "no flash") TIDAK berubah; hanya cara
+> pemasangan skripnya. Jangan kembalikan ke `next/script`.
+
 1. `apps/web/src/app/layout.tsx` — kalau cookie `theme` tidak ada di
-   request, RSC merender `<Script id="theme-system-default"
-strategy="beforeInteractive">` yang langsung menambahkan class `dark`
-   ke `<html>` di client SEBELUM React hydrate (kalau
+   request, RSC merender `<script>` inline sinkron di `<head>` (semula
+   `<Script id="theme-system-default" strategy="beforeInteractive">`, lihat
+   amendemen di atas) yang langsung menambahkan class `dark`
+   ke `<html>` SEBELUM `<body>` dilukis (kalau
    `matchMedia("(prefers-color-scheme: dark)").matches`), plus
    `suppressHydrationWarning` di `<html>`.
 2. `apps/web/src/components/Providers.tsx` — state `mode` React tetap
@@ -64,8 +78,9 @@ environment yang tidak mendukung `prefers-color-scheme`), bukan dihapus.
 - Prinsip "no flash" dari ADR-055/ADR-097 harus tetap terjaga — solusi
   React `useEffect` biasa (jalan setelah paint) akan menyebabkan flash
   tema salah selama sepersekian detik; `useLayoutEffect` + inline
-  `<Script beforeInteractive>` di server dipilih spesifik untuk mencegah
-  ini.
+  skrip inline di server dipilih spesifik untuk mencegah ini (semula
+  `<Script beforeInteractive>`, diganti `<script>` inline sinkron pada
+  T-177, lihat amendemen mekanisme di atas).
 
 ### Alternatives Considered
 

@@ -86,7 +86,7 @@ export function Providers({
 
   // T-039 (amendemen ADR-055): kalau belum ada cookie `theme` (user belum
   // pernah pilih eksplisit), koreksi `mode` ke preferensi OS sebelum paint
-  // pertama. Konsisten dengan script `beforeInteractive` di
+  // pertama. Konsisten dengan `<script>` inline sinkron di
   // `app/layout.tsx` yang sudah menerapkan class `dark` ke `<html>`
   // langsung by DOM manipulation (di luar React) untuk kasus yang sama —
   // ubah keduanya bersamaan kalau logic ini berubah. Sengaja jalan sekali
@@ -106,8 +106,8 @@ export function Providers({
   // shadcn/ui pakai strategi class `dark` di elemen root (`@custom-variant
   // dark (&:is(.dark *))`, globals.css) — bukan lagi provider `Theme`
   // Astryx. `<html>` sudah dapat class yang benar di render pertama dari
-  // RootLayout (Server Component, baca cookie yang sama) + script
-  // `beforeInteractive` (untuk kasus belum ada cookie, ikut sistem), jadi
+  // RootLayout (Server Component, baca cookie yang sama) + script inline
+  // sinkron (untuk kasus belum ada cookie, ikut sistem), jadi
   // baris ini hanya menjaga class tetap sinkron — saat koreksi OS di atas
   // (mount pertama) maupun saat `toggleMode()` dipanggil di client tanpa
   // reload (ADR-097 poin 9, mengamendemen ADR-055 — mekanisme toggle tetap
