@@ -9,7 +9,10 @@ import {
 } from "@/domains/start-page";
 import { Prisma } from "@/generated/prisma/client";
 import type { StartPageLink, StartPagePage } from "@/generated/prisma/client";
-import { withCurrentUser } from "@/lib/prisma/with-current-user";
+import {
+  withCurrentUser,
+  type PrismaTransactionClient,
+} from "@/lib/prisma/with-current-user";
 
 const LINKS_ORDER = [{ position: "asc" }, { id: "asc" }] as const;
 
@@ -67,6 +70,24 @@ function isRecordNotFound(error: unknown): boolean {
     error instanceof Prisma.PrismaClientKnownRequestError &&
     error.code === "P2025"
   );
+}
+
+/**
+ * Kunci baris halaman workspace (`FOR UPDATE`) sampai transaksi selesai
+ * (T-167.1). Semua operasi yang membaca lalu menulis `position`/jumlah tautan
+ * (`addLink`, `deleteLink`, `reorderLinks`) mengambil kunci ini lebih dulu,
+ * jadi berjalan serial per halaman. Mengembalikan id halaman, atau `null`
+ * bila workspace belum punya halaman (RLS ikut berlaku lewat `withCurrentUser`).
+ */
+async function lockPage(
+  tx: PrismaTransactionClient,
+  workspaceId: string,
+): Promise<string | null> {
+  const rows = await tx.$queryRaw<{ id: string }[]>`
+    SELECT "id" FROM "start_page_pages"
+    WHERE "workspace_id" = ${workspaceId}::uuid
+    FOR UPDATE`;
+  return rows[0]?.id ?? null;
 }
 
 /**
@@ -129,26 +150,27 @@ export const startPageRepository: IStartPageRepository = {
     }
   },
 
-  async addLink({ workspaceId, data }, userId) {
-    const link = await withCurrentUser(userId, async (tx) => {
-      const page = await tx.startPagePage.findFirst({
-        where: { workspaceId },
-        select: { id: true },
-      });
-      if (!page) return null;
-      const last = await tx.startPageLink.aggregate({
-        where: { startPageId: page.id },
+  async addLink({ workspaceId, maxLinks, data }, userId) {
+    return withCurrentUser(userId, async (tx) => {
+      const pageId = await lockPage(tx, workspaceId);
+      if (!pageId) return { status: "no_page" as const };
+      const stats = await tx.startPageLink.aggregate({
+        where: { startPageId: pageId },
         _max: { position: true },
+        _count: { _all: true },
       });
-      return tx.startPageLink.create({
+      if (stats._count._all >= maxLinks) {
+        return { status: "limit_reached" as const };
+      }
+      const link = await tx.startPageLink.create({
         data: {
-          startPageId: page.id,
-          position: (last._max.position ?? -1) + 1,
+          startPageId: pageId,
+          position: (stats._max.position ?? -1) + 1,
           ...data,
         },
       });
+      return { status: "added" as const, link: toLinkRecord(link) };
     });
-    return link ? toLinkRecord(link) : null;
   },
 
   async updateLink({ workspaceId, linkId, data }, userId) {
@@ -171,63 +193,56 @@ export const startPageRepository: IStartPageRepository = {
   async deleteLink({ workspaceId, linkId }, userId) {
     // Hapus + padatkan `position` sisa tautan (0..n-1, urutan relatif
     // dipertahankan) dalam SATU transaksi, tetap workspace-scoped (T-162.2).
+    // Halaman dikunci dulu (T-167.1) dan pemadatan satu UPDATE (T-167.3).
     return withCurrentUser(userId, async (tx) => {
-      const page = await tx.startPagePage.findFirst({
-        where: { workspaceId },
-        select: { id: true },
-      });
-      if (!page) return false;
+      const pageId = await lockPage(tx, workspaceId);
+      if (!pageId) return false;
       const { count } = await tx.startPageLink.deleteMany({
         where: { id: linkId, startPage: { workspaceId } },
       });
       if (count === 0) return false;
-      const remaining = await tx.startPageLink.findMany({
-        where: { startPageId: page.id },
-        orderBy: [...LINKS_ORDER],
-        select: { id: true, position: true },
-      });
-      for (const [position, link] of remaining.entries()) {
-        if (link.position === position) continue;
-        // `updateMany` (bukan `update`): tautan yang hilang karena tab lain
-        // tidak melempar P2025 dan membatalkan penghapusan ini.
-        await tx.startPageLink.updateMany({
-          where: { id: link.id, startPageId: page.id },
-          data: { position },
-        });
-      }
+      // Hanya baris yang posisinya berubah yang ditulis.
+      await tx.$executeRaw`
+        UPDATE "start_page_links" AS l
+           SET "position" = r."rn" - 1, "updated_at" = now()
+          FROM (
+            SELECT "id", row_number() OVER (ORDER BY "position", "id") AS "rn"
+              FROM "start_page_links"
+             WHERE "start_page_id" = ${pageId}::uuid
+          ) AS r
+         WHERE l."id" = r."id"
+           AND l."position" <> r."rn" - 1`;
       return true;
     });
   },
 
   async reorderLinks({ workspaceId, orderedLinkIds }, userId) {
-    try {
-      return await withCurrentUser(userId, async (tx) => {
-        const page = await tx.startPagePage.findFirst({
-          where: { workspaceId },
-          select: { id: true },
-        });
-        if (!page) return false;
-        const current = await tx.startPageLink.findMany({
-          where: { startPageId: page.id },
-          select: { id: true },
-        });
-        const currentIds = new Set(current.map((l) => l.id));
-        if (
-          currentIds.size !== orderedLinkIds.length ||
-          !orderedLinkIds.every((id) => currentIds.has(id))
-        ) {
-          return false;
-        }
-        for (const [position, id] of orderedLinkIds.entries()) {
-          await tx.startPageLink.update({ where: { id }, data: { position } });
-        }
-        return true;
+    return withCurrentUser(userId, async (tx) => {
+      const pageId = await lockPage(tx, workspaceId);
+      if (!pageId) return false;
+      const current = await tx.startPageLink.findMany({
+        where: { startPageId: pageId },
+        select: { id: true },
       });
-    } catch (error) {
-      // Tautan terhapus di tengah transaksi (tab lain): transaksi sudah
-      // rollback, laporkan sebagai daftar yang berubah (Conflict di service).
-      if (isRecordNotFound(error)) return false;
-      throw error;
-    }
+      const currentIds = new Set(current.map((l) => l.id));
+      if (
+        currentIds.size !== orderedLinkIds.length ||
+        !orderedLinkIds.every((id) => currentIds.has(id))
+      ) {
+        return false;
+      }
+      if (orderedLinkIds.length === 0) return true;
+      // Satu UPDATE untuk semua posisi (T-167.3). Himpunan tautan sudah
+      // dipastikan sama persis dan tidak bisa berubah selama kunci dipegang.
+      const positions = orderedLinkIds.map((_, index) => index);
+      await tx.$executeRaw`
+        UPDATE "start_page_links" AS l
+           SET "position" = v."position", "updated_at" = now()
+          FROM unnest(${orderedLinkIds}::uuid[], ${positions}::int[])
+               AS v("id", "position")
+         WHERE l."id" = v."id"
+           AND l."start_page_id" = ${pageId}::uuid`;
+      return true;
+    });
   },
 };
