@@ -39,7 +39,6 @@ ID tiket global, tidak didaur ulang. Berikutnya: **T-177**. ID spec berikutnya: 
 | T-166 | ⏳     | 404 publik kustom `app/u/[slug]/not-found.tsx` tanpa inline style. Butuh rancangan artifact dulu (aturan UI #10)                                   | [v0.6](tickets/v06-start-page-mvp.md) |
 | T-167 | ⏳     | Hardening repository dan tes Start Page (lanjutan code-review PR #200, prioritas rendah): lock `addLink`, UPDATE reorder satu query, tes interaksi | [v0.6](tickets/v06-start-page-mvp.md) |
 | T-171 | ⏳     | Pantau rasio view/klik Start Page setelah rilis dan cek Safari asli (sisa T-164.6). Butuh trafik nyata dan perangkat Apple                         | [v0.6](tickets/v06-start-page-mvp.md) |
-| T-174 | ⏳     | Tes E2E pertama: Start Page golden path dan regresi, local dan staging. Depends T-172, T-173                                                       | [v0.1](tickets/v01-foundation.md)     |
 | T-175 | ⏳     | Workflow CI E2E terhadap staging; hijau jadi syarat PR `staging` → `main`. Depends T-172–T-174                                                     | [v0.1](tickets/v01-foundation.md)     |
 | T-176 | ⏳     | Aturan kerja: E2E Playwright masuk definisi tiket selesai; perbarui Najwa (atas izin eksplisit). Depends T-172                                     | [v0.1](tickets/v01-foundation.md)     |
 

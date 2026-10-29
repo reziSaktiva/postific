@@ -818,12 +818,14 @@ Navigator sudah melarang membaca `PROJECT_STATE` utuh, `COMPLETE_TASK`, dan selu
 
 ### T-174 · Tes E2E pertama: Start Page golden path dan regresi
 
-`⏳ Not Started` · **Domain** start-page, QA · **ADR** ADR-149 · **Spec** S-002 · **Depends** T-172, T-173
+`✅ Done` (2026-10-29) · **Domain** start-page, QA · **ADR** ADR-149 · **Spec** S-002 · **Depends** T-172, T-173
 **Baca dulu:** `tickets/v06-start-page-mvp.md` § T-164
 
-- [ ] **T-174.1** Buat halaman, tambah tautan, publish, buka `/u/<slug>` tanpa cookie (200, tanpa redirect `/login`), klik tautan (302), counter di Page Editor naik (gunakan UA browser; filter bot, T-162.1)
-- [ ] **T-174.2** Cek CSP: 0 pelanggaran di `/u/<slug>`; toast tidak menutupi tombol Publish (T-170)
-- [ ] **T-174.3** Bersihkan data `e2e-*` di akhir; jalan di `local` dan `staging`
+- [x] **T-174.1** Buat halaman, tambah tautan, publish, buka `/u/<slug>` tanpa cookie (200, tanpa redirect `/login`), klik tautan (302), counter di Page Editor naik (gunakan UA browser; filter bot, T-162.1)
+- [x] **T-174.2** Cek CSP: 0 pelanggaran di `/u/<slug>`; toast tidak menutupi tombol Publish (T-170)
+- [x] **T-174.3** Bersihkan data `e2e-*` di akhir; jalan di `local` dan `staging`
+
+Hasil: `e2e/start-page.e2e.ts` (3 tes serial). Berjalan di workspace khusus **E2E Sandbox** (akun test juga anggota Cook It Real Good yang punya Start Page asli, dan aplikasi tidak punya fitur hapus halaman): halaman `e2e-start-page` dipakai ulang antar run, hanya tautan `e2e-link-*` yang dibuat dan dihapus tiap run (termasuk sisa run gagal). `auth.setup.ts` membuat/mengaktifkan workspace itu dan memakai ulang sesi tersimpan (sign-in dibatasi 5/60 detik). Catatan: tautan publik berupa `target=_blank`, jadi klik dipantau di level konteks; pengecekan CSP dilewati di `next dev` (overlay dev melanggar `style-src`, T-164.6) dan berlaku di staging; cek toast mobile memakai tombol "Buka menu" setelah animasi sonner selesai. **Terverifikasi:** 8/8 lulus di staging dan 8/8 di local; `typecheck` dan `lint` bersih. `E2E_SLOWMO=700 bun run test:e2e --headed` untuk menonton tes berjalan.
 
 ### T-175 · Workflow CI E2E terhadap staging dan gerbang promosi ke `main`
 

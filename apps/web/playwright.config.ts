@@ -35,6 +35,8 @@ export default defineConfig({
     baseURL,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
+    // `E2E_SLOWMO=600 bun run test:e2e --headed` untuk menonton tes berjalan.
+    launchOptions: { slowMo: Number(process.env.E2E_SLOWMO) || 0 },
   },
   projects: [
     // Login sekali, simpan sesi (T-173.2).
