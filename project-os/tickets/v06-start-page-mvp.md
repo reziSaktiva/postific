@@ -346,6 +346,34 @@ Uji dijalankan di staging (`https://web-staging-60d7.up.railway.app`) pada halam
 
 **Tertunda sampai PR 217 ter-deploy ke staging:** langkah 6 (404 kustom `/u/<slug tak ada>`: layar 404 kustom, status 404, 0 pelanggaran CSP). **Tertunda sampai ada trafik produksi:** T-171.1.
 
+##### Hasil uji otomatis Playwright di staging (2026-10-29)
+
+**Label: uji otomatis, bukan Safari asli.** Dijalankan lewat skrip sementara (sudah dihapus, tidak ada di repo) terhadap `https://web-staging-60d7.up.railway.app`, halaman `e2e-start-page` di workspace E2E Sandbox (akun test E2E), tanpa cookie (tamu) dan dengan UA bawaan tiap browser. Tautan uji dihapus di akhir tiap run; counter halaman itu naik beberapa angka. Staging belum memuat PR 217, jadi 404 yang diuji masih 404 bawaan Next.
+
+| Mesin (versi)                          | 200 + tautan tampil | CSP `/u/<slug>` (desktop / 375px gelap) | Scroll horizontal | Klik → tujuan                                                                | View (2 muat) | Klik | 404 |
+| -------------------------------------- | ------------------- | --------------------------------------- | ----------------- | ---------------------------------------------------------------------------- | ------------- | ---- | --- |
+| Chromium (Chrome 156)                  | ✅                  | 0 / 0                                   | tidak ada         | ✅ 302 dari `/go/` ke tujuan                                                 | +2            | +1   | 404 |
+| Firefox 157                            | ✅                  | 0 / 0                                   | tidak ada         | ✅ 302                                                                       | +2            | +1   | 404 |
+| WebKit 27.2 (Playwright, bukan Safari) | ✅                  | 0 / 0                                   | tidak ada         | ✅ berujung di tujuan; status 302 tidak teramati (batasan alat, lihat bawah) | +2            | +1   | 404 |
+
+**Yang terbukti:** view dan klik terhitung di Chromium, Firefox, dan WebKit modern, jadi header Fetch Metadata (T-162.1) terkirim oleh ketiganya dan filter tidak terlalu ketat untuk mesin-mesin itu. Halaman tampil benar tanpa scroll horizontal pada desktop dan 375px. 0 pelanggaran CSP pada halaman publik.
+
+**Batasan alat (jangan dibaca sebagai bug aplikasi):**
+
+- Screenshot Playwright WebKit menyuntik `<style>` yang diblokir CSP (`style-src-elem`, `sample` kosong). Terbukti terpisah: tanpa screenshot 0 pelanggaran, dengan screenshot 1, hanya di WebKit; Chromium dan Firefox 0 dengan atau tanpa screenshot. Baca CSP sebelum screenshot.
+- Playwright WebKit tidak memunculkan status `/go/` (302) maupun rantai redirect, baik di tab baru maupun tab yang sama. Redirect terbukti dari hasil akhirnya (tab mendarat di tujuan, klik terhitung), bukan dari status 302 itu sendiri.
+- 404 bawaan Next masih menimbulkan pelanggaran CSP `style-src-elem` (1 sampai 2 entri per muat, cara hitung berbeda antar browser). Itu yang diperbaiki T-166 di PR 217; belum ada di staging.
+
+**Temuan baru (perlu keputusan King Rezi): kedipan terang di mode gelap.** Pengunjung dengan OS mode gelap dan tanpa cookie `theme` (hampir semua pengunjung halaman publik) melihat halaman dilukis **terang dulu**, lalu kelas `dark` pada `<html>` baru ditambahkan, lalu kartu dan lencana (`transition-colors`) memudar dari putih ke gelap. Latar `body` berganti seketika, jadi sesaat ada kartu putih di atas latar gelap, dan teks putih "Postific" di lencana putih nyaris tak terbaca. Diukur per frame di tiga mesin:
+
+| Mesin    | Kelas `dark` terpasang                                       | Pemudaran lencana putih → gelap |
+| -------- | ------------------------------------------------------------ | ------------------------------- |
+| Chromium | ±283 ms setelah load                                         | ±283 sampai 431 ms              |
+| Firefox  | ±890 ms (jaringan staging lebih lambat)                      | ±890 sampai 1036 ms             |
+| WebKit   | sudah gelap di sampel pertama (±217 ms), lencana masih putih | ±217 sampai 353 ms              |
+
+Mode terang tidak terpengaruh (1 keadaan, tanpa perubahan). Ini bertentangan dengan catatan di `app/layout.tsx` ("tidak ada flash tema salah", ADR-055, amendemen T-039) untuk pengunjung tanpa cookie, karena skrip `theme-system-default` (`beforeInteractive`) tampaknya berjalan setelah lukisan pertama. Penyebab pastinya **belum diselidiki**; yang terukur hanya urutan dan waktunya. Kemungkinan sudah ada sejak sebelum PR 217 dan berlaku di seluruh aplikasi, bukan hanya halaman publik (belum diukur di halaman `(app)`). Dicatat sebagai **KI-104** dengan tiket **T-177** di `known-issues.md` (2026-10-29, atas keputusan King Rezi); belum diperbaiki. Cek di Safari asli (iOS gelap) tetap diperlukan: amati kedipan ini saat memuat `/u/<slug>`.
+
 **Kriteria lulus:** tampilan benar, 0 pelanggaran CSP, klik terhitung di semua perangkat; view terhitung di Safari >= 16.4. **Bila gagal:** temuan baru dicatat sebagai Known Issue di `known-issues.md` dengan tiketnya (ADR-134), bukan di tiket ini; jangan melonggarkan CSP atau filter Fetch Metadata tanpa ADR baru.
 
 **Tidak bisa dikerjakan dari sesi AI:** mesin pengembangan hanya punya Command Line Tools (tanpa Xcode dan Simulator iOS) dan browser bawaan sesi berbasis Chromium, jadi Safari sungguhan hanya bisa diuji King Rezi. WebKit Playwright (T-164.6) sudah lolos tetapi bukan Safari sungguhan.

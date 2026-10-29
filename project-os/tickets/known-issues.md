@@ -1357,3 +1357,70 @@ Claude Design tutup **2026-12-14**.
 **Bukan bagian tiket ini:** sebutan Claude Design di ADR lama dan tiket yang
 sudah selesai adalah riwayat. Label "Gate Claude Design" dan nama folder skill
 `claude-design-scope-discipline` sengaja dipertahankan (ADR-140).
+
+---
+
+### T-177 · Kedipan terang saat memuat halaman dalam mode gelap untuk pengunjung tanpa cookie `theme` (KI-104, ADR-055)
+
+| Field       | Value                                                                         |
+| ----------- | ----------------------------------------------------------------------------- |
+| **Status**  | ⏳ Not Started                                                                |
+| **Domain**  | UI (tema), halaman publik Start Page; kemungkinan berlaku di seluruh aplikasi |
+| **Spec**    | tidak ada — single-issue                                                      |
+| **Docs**    | KI-104, ADR-055 (amendemen T-039), ADR-097 poin 9, T-171, `app/layout.tsx`    |
+| **Terkait** | T-171 (ditemukan di uji otomatis T-171.2), T-039                              |
+| **Depends** | keputusan King Rezi soal pendekatan perbaikan                                 |
+
+**Ditemukan (2026-10-29):** uji Playwright lintas browser di staging untuk T-171.2
+(Chromium, Firefox, WebKit). Dengan OS mode gelap dan tanpa cookie `theme`,
+halaman `/u/<slug>` dilukis **terang dulu**. Kelas `dark` pada `<html>` baru
+terpasang setelah lukisan pertama, lalu kartu dan lencana (`transition-colors`)
+memudar dari putih ke gelap. Latar `body` berganti seketika, jadi sesaat ada
+kartu putih di atas latar gelap, dan teks putih "Postific" di lencana putih
+nyaris tak terbaca. Mode terang tidak terpengaruh.
+
+**Bukti terukur** (per frame, `colorScheme: dark`, staging Railway, halaman publik
+`e2e-start-page`; angka lengkap di `v06-start-page-mvp.md` § T-171):
+
+| Mesin    | Kelas `dark` terpasang                  | Pemudaran lencana putih → gelap |
+| -------- | --------------------------------------- | ------------------------------- |
+| Chromium | ±283 ms setelah load                    | ±283 sampai 431 ms              |
+| Firefox  | ±890 ms (jaringan staging lebih lambat) | ±890 sampai 1036 ms             |
+| WebKit   | sudah gelap di sampel pertama (±217 ms) | ±217 sampai 353 ms              |
+
+**Kenapa ini masalah:** `app/layout.tsx` menyatakan "tidak ada flash tema salah"
+(ADR-055) dan memasang skrip `theme-system-default` (`beforeInteractive`) justru
+untuk kasus ini: cookie `theme` belum ada, jadi mode mengikuti OS. Pengunjung
+halaman publik hampir selalu anonim tanpa cookie itu, dan banyak yang memakai OS
+mode gelap, jadi ini kasus utama halaman publik, bukan kasus pinggir.
+
+**Belum diketahui (jangan diasumsikan):**
+
+- Penyebab pastinya. Yang terukur hanya urutan dan waktunya; skrip
+  `beforeInteractive` tampaknya berjalan setelah lukisan pertama. Belum diperiksa
+  bagaimana Next menyuntikkan skrip itu pada build produksi.
+- Apakah ada sebelum PR 217 dan apakah berlaku di halaman `(app)` (belum diukur;
+  hanya halaman publik yang diukur).
+- Apakah Safari asli (iOS dan macOS) menunjukkan hal yang sama. WebKit Playwright
+  menunjukkannya, tetapi bukan Safari sungguhan.
+
+**Yang harus dilakukan:**
+
+- [ ] **T-177.1** Selidiki penyebab di build produksi: urutan eksekusi skrip
+      `theme-system-default` terhadap lukisan pertama, di halaman publik dan di
+      halaman `(app)`; bandingkan dengan pengguna ber-cookie `theme` eksplisit.
+      Hasilnya penyebab terbukti dan cakupannya, tanpa mengubah kode
+- [ ] **T-177.2** King Rezi memutuskan pendekatan perbaikan setelah penyebab
+      jelas. Catat di tiket ini (atau ADR bila mengubah keputusan ADR-055).
+      Karena tampilan yang terlihat pengguna berubah, ini **UI/UX-related**:
+      cek artifact Postific lebih dulu (aturan UI #10) sebelum kode
+- [ ] **T-177.3** Perbaiki dan tambahkan tes E2E Playwright: dengan
+      `colorScheme: dark` dan tanpa cookie, kelas `dark` sudah terpasang pada
+      lukisan pertama dan warna kartu/lencana tidak berubah selama 1 detik
+      pertama (definisi tiket selesai ADR-149). Baca CSP sebelum screenshot
+      (screenshot Playwright WebKit menyuntik `<style>`, lihat T-171)
+- [ ] **T-177.4** Verifikasi di Safari asli (iOS gelap dan macOS gelap) dan
+      catat di tabel hasil T-171.2
+
+**Bukan bagian tiket ini:** perubahan tampilan tema selain kedipan ini, dan
+pilihan tema Light/Dark eksplisit pengguna (cookie `theme` sudah benar).
