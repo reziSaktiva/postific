@@ -1,4 +1,8 @@
+import path from "node:path";
+
 import { defineConfig, devices } from "@playwright/test";
+
+import { AUTH_FILE } from "./e2e/support/auth";
 
 /**
  * QA end-to-end (ADR-149, S-002). Chrome terpasang di mesin (`channel`), tidak
@@ -7,6 +11,12 @@ import { defineConfig, devices } from "@playwright/test";
  * isi dengan URL staging untuk menguji staging. Local dan staging berbagi satu
  * DB (ADR-081), jadi tes hanya boleh menyentuh data milik akun test.
  */
+// Muat `.env.local` apps/web walau dijalankan dari root (`bun run test:e2e`);
+// env yang sudah ada (CI, shell) tidak ditimpa. Berkas tidak wajib ada.
+try {
+  process.loadEnvFile(path.join(__dirname, ".env.local"));
+} catch {}
+
 // `||` (bukan `??`): secret CI yang belum dibuat berisi string kosong.
 const baseURL = process.env.E2E_BASE_URL || "http://localhost:3000";
 const { hostname, port } = new URL(baseURL);
@@ -27,9 +37,20 @@ export default defineConfig({
     screenshot: "only-on-failure",
   },
   projects: [
+    // Login sekali, simpan sesi (T-173.2).
+    {
+      name: "setup",
+      testMatch: "**/*.setup.ts",
+      use: { ...devices["Desktop Chrome"], channel: "chrome" },
+    },
     {
       name: "chrome",
-      use: { ...devices["Desktop Chrome"], channel: "chrome" },
+      dependencies: ["setup"],
+      use: {
+        ...devices["Desktop Chrome"],
+        channel: "chrome",
+        storageState: AUTH_FILE,
+      },
     },
   ],
   webServer: isLocal

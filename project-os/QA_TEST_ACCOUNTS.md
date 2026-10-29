@@ -73,6 +73,29 @@ sebelumnya terhambat karena tidak ada ≥2 akun nyata di satu workspace.
 
 ---
 
+## Akun test E2E Playwright (T-173)
+
+Akun khusus untuk suite E2E Playwright (ADR-149, S-002, T-173), dibuat King
+Rezi pada 2026-10-29. Berbeda dari akun Raka/Maya/Sinta di atas.
+
+| Field | Value                       |
+| ----- | --------------------------- |
+| Email | `rezisaktiva.dev@gmail.com` |
+
+**Kebijakan password: TIDAK ditulis di repo** (T-173.1). Ini sengaja berbeda
+dari akun Raka/Maya/Sinta di atas yang password-nya tercatat. Kredensial
+hanya ada di `apps/web/.env.local` dan GitHub Secrets, lewat variabel
+`E2E_USER_EMAIL` dan `E2E_USER_PASSWORD`.
+
+**Aturan pemakaian** (King Rezi, 2026-10-29):
+
+- Boleh melakukan semua aksi dengan akun ini, **kecuali memublikasikan post**
+  (publish now maupun jadwal yang akan terpublish) di workspace
+  **"Cook It Real Good"**.
+- Data yang dibuat oleh tes memakai awalan `e2e-` (T-173.3).
+
+---
+
 ## Update dokumen ini
 
 Saat akun test baru ditambahkan (mis. Manager/Creator setelah fitur invite

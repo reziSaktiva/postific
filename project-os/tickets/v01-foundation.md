@@ -809,12 +809,12 @@ Navigator sudah melarang membaca `PROJECT_STATE` utuh, `COMPLETE_TASK`, dan selu
 
 ### T-173 · Akun test dan setup sesi E2E
 
-`⏳ Not Started` · **Domain** QA · **ADR** ADR-149 · **Spec** S-002 · **Depends** T-172, akun test dari King Rezi
+`✅ Done` (2026-10-29) · **Domain** QA · **ADR** ADR-149 · **Spec** S-002 · **Depends** T-172, akun test dari King Rezi
 **Baca dulu:** `product-discovery/06-engineering/environment-management.md` (ADR-081)
 
-- [ ] **T-173.1** King Rezi menyiapkan akun test khusus; kredensial hanya di `apps/web/.env.local` dan GitHub Secrets (tidak pernah di repo, log, atau chat)
-- [ ] **T-173.2** Proyek setup Playwright: login sekali, simpan `storageState` (gitignored)
-- [ ] **T-173.3** Konvensi isolasi data: awalan `e2e-`, pembersihan di akhir tes, larangan memublikasikan ke Outstand nyata
+- [x] **T-173.1** King Rezi menyiapkan akun test khusus; kredensial hanya di `apps/web/.env.local` dan GitHub Secrets (tidak pernah di repo, log, atau chat). Catatan: akun sudah dibuat King Rezi (2026-10-29), email tercatat di `QA_TEST_ACCOUNTS.md`; `.env.local` sudah diisi King Rezi dan terbukti terbaca (login setup lulus). GitHub Secrets dipakai CI dan diverifikasi saat T-175.2. Aturan larangan publish di "Cook It Real Good" masuk T-173.3
+- [x] **T-173.2** Proyek setup Playwright: login sekali, simpan `storageState` (gitignored). → `e2e/auth.setup.ts` (proyek `setup`, `chrome` bergantung padanya), sesi di `e2e/.auth/user.json`; `playwright.config.ts` memuat `.env.local` walau dijalankan dari root; `smoke.e2e.ts` mengosongkan sesi agar tetap jadi tamu; `session.e2e.ts` membuktikan sesi berlaku. Terverifikasi di staging: 4/4 lulus, `typecheck` dan `lint` bersih
+- [x] **T-173.3** Konvensi isolasi data: awalan `e2e-`, pembersihan di akhir tes, larangan memublikasikan ke Outstand nyata. Larangan eksplisit (King Rezi, 2026-10-29): akun E2E TIDAK boleh memublikasikan post (publish now maupun jadwal yang akan terpublish) di workspace "Cook It Real Good"; aksi lain boleh. → konvensi dan larangan ada di `e2e/support/e2e-data.ts` (`E2E_PREFIX`, `e2eName`); pembersihan data dilakukan per tes di T-174.3
 
 ### T-174 · Tes E2E pertama: Start Page golden path dan regresi
 
