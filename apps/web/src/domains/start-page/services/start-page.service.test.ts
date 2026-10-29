@@ -83,7 +83,7 @@ function setup(
     findByWorkspace: vi.fn().mockResolvedValue(page()),
     create: vi.fn().mockResolvedValue(page()),
     update: vi.fn().mockResolvedValue(page()),
-    addLink: vi.fn().mockResolvedValue(link(LINK_A)),
+    addLink: vi.fn().mockResolvedValue({ status: "added", link: link(LINK_A) }),
     updateLink: vi.fn().mockResolvedValue(link(LINK_A)),
     deleteLink: vi.fn().mockResolvedValue(true),
     reorderLinks: vi.fn().mockResolvedValue(true),
@@ -371,6 +371,7 @@ describe("addLink", () => {
     expect(repository.addLink).toHaveBeenCalledWith(
       {
         workspaceId: WS,
+        maxLinks: 50,
         data: { label: "Shop", url: "https://example.com/", isActive: true },
       },
       ctx.actingUserId,
@@ -401,22 +402,31 @@ describe("addLink", () => {
     ).rejects.toThrow(/Label wajib/);
   });
 
-  it("enforces the max link count", async () => {
-    const links = Array.from({ length: 50 }, (_, i) =>
-      link(`00000000-0000-4000-8000-${String(i).padStart(12, "0")}`, i),
-    );
-    const { service, repository } = setup({
-      findByWorkspace: vi.fn().mockResolvedValue(page({ links })),
+  it("returns the added link", async () => {
+    const { service } = setup();
+    await expect(
+      service.addLink(ctx, { label: "x", url: "https://a.test" }),
+    ).resolves.toEqual(link(LINK_A));
+  });
+
+  it("maps limit_reached from the repository to a ValidationError", async () => {
+    const { service } = setup({
+      addLink: vi.fn().mockResolvedValue({ status: "limit_reached" }),
     });
     await expect(
       service.addLink(ctx, { label: "x", url: "https://a.test" }),
     ).rejects.toThrow(/Maksimal 50/);
-    expect(repository.addLink).not.toHaveBeenCalled();
+  });
+
+  it("does not load the whole page just to count links (T-167.2)", async () => {
+    const { service, repository } = setup();
+    await service.addLink(ctx, { label: "x", url: "https://a.test" });
+    expect(repository.findByWorkspace).not.toHaveBeenCalled();
   });
 
   it("throws NotFoundError when the workspace has no page", async () => {
     const { service } = setup({
-      findByWorkspace: vi.fn().mockResolvedValue(null),
+      addLink: vi.fn().mockResolvedValue({ status: "no_page" }),
     });
     await expect(
       service.addLink(ctx, { label: "x", url: "https://a.test" }),

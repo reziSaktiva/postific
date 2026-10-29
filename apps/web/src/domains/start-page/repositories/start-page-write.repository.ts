@@ -26,6 +26,12 @@ export interface UpdateStartPageLinkData {
   isActive?: boolean;
 }
 
+/** Hasil `addLink`: halaman tidak ada, batas tautan tercapai, atau tautan tertambah. */
+export type AddStartPageLinkResult =
+  | { status: "no_page" }
+  | { status: "limit_reached" }
+  | { status: "added"; link: StartPageLinkRecord };
+
 /**
  * Port baca/tulis Start Page workspace-scoped (T-072). Implementasi Prisma
  * di `lib/repositories/start-page/` lewat `withCurrentUser` (RLS
@@ -57,14 +63,20 @@ export interface IStartPageRepository {
     userId: UserId,
   ): Promise<StartPageRecord | null>;
 
-  /** Tambah tautan di posisi terakhir. `null` bila workspace belum punya halaman. */
+  /**
+   * Tambah tautan di posisi terakhir. Baris halaman dikunci (`FOR UPDATE`)
+   * lalu jumlah tautan dicek terhadap `maxLinks` dalam transaksi yang sama,
+   * jadi dua tambah bersamaan tidak bisa melewati batas atau menghasilkan
+   * `position` kembar (T-167.1).
+   */
   addLink(
     input: {
       workspaceId: WorkspaceId;
+      maxLinks: number;
       data: { label: string; url: string; isActive: boolean };
     },
     userId: UserId,
-  ): Promise<StartPageLinkRecord | null>;
+  ): Promise<AddStartPageLinkResult>;
 
   /** `null` bila tautan tidak ada / bukan milik halaman workspace ini. */
   updateLink(

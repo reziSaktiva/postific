@@ -217,23 +217,21 @@ export class StartPageService {
       throw new ValidationError("Status aktif tidak valid.");
     }
 
-    const page = await this.repository.findByWorkspace(
-      { workspaceId: ctx.workspaceId },
+    const result = await this.repository.addLink(
+      {
+        workspaceId: ctx.workspaceId,
+        maxLinks: START_PAGE_MAX_LINKS,
+        data,
+      },
       ctx.actingUserId,
     );
-    if (!page) throw new NotFoundError(NO_PAGE_MESSAGE);
-    if (page.links.length >= START_PAGE_MAX_LINKS) {
+    if (result.status === "no_page") throw new NotFoundError(NO_PAGE_MESSAGE);
+    if (result.status === "limit_reached") {
       throw new ValidationError(
         `Maksimal ${START_PAGE_MAX_LINKS} tautan per halaman.`,
       );
     }
-
-    const link = await this.repository.addLink(
-      { workspaceId: ctx.workspaceId, data },
-      ctx.actingUserId,
-    );
-    if (!link) throw new NotFoundError(NO_PAGE_MESSAGE);
-    return link;
+    return result.link;
   }
 
   async updateLink(

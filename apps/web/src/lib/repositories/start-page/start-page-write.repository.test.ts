@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { txMock, withCurrentUserMock } = vi.hoisted(() => {
   const txMock = {
+    $queryRaw: vi.fn(),
+    $executeRaw: vi.fn(),
     startPagePage: {
       findFirst: vi.fn(),
       create: vi.fn(),
@@ -183,16 +185,24 @@ describe("startPageRepository", () => {
     ).rejects.toThrow("db down");
   });
 
-  it("addLink appends after the max position", async () => {
-    txMock.startPagePage.findFirst.mockResolvedValue({ id: "p1" });
-    txMock.startPageLink.aggregate.mockResolvedValue({ _max: { position: 4 } });
+  const ADD_INPUT = {
+    workspaceId: WS,
+    maxLinks: 50,
+    data: { label: "Shop", url: "https://a.test/", isActive: true },
+  };
+
+  it("addLink locks the page row, then appends after the max position", async () => {
+    txMock.$queryRaw.mockResolvedValue([{ id: "p1" }]);
+    txMock.startPageLink.aggregate.mockResolvedValue({
+      _max: { position: 4 },
+      _count: { _all: 5 },
+    });
     txMock.startPageLink.create.mockResolvedValue(ROW.links[0]);
-    await startPageRepository.addLink(
-      {
-        workspaceId: WS,
-        data: { label: "Shop", url: "https://a.test/", isActive: true },
-      },
-      USER,
+    const result = await startPageRepository.addLink(ADD_INPUT, USER);
+    expect(result).toMatchObject({ status: "added" });
+    expect(txMock.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(String(txMock.$queryRaw.mock.calls[0]![0].join(" "))).toContain(
+      "FOR UPDATE",
     );
     expect(txMock.startPageLink.create.mock.calls[0]![0].data).toMatchObject({
       startPageId: "p1",
@@ -200,31 +210,33 @@ describe("startPageRepository", () => {
     });
   });
 
-  it("addLink starts at 0 on an empty page and returns null without a page", async () => {
-    txMock.startPagePage.findFirst.mockResolvedValueOnce({ id: "p1" });
+  it("addLink starts at 0 on an empty page and reports no_page without a page", async () => {
+    txMock.$queryRaw.mockResolvedValueOnce([{ id: "p1" }]);
     txMock.startPageLink.aggregate.mockResolvedValue({
       _max: { position: null },
+      _count: { _all: 0 },
     });
     txMock.startPageLink.create.mockResolvedValue(ROW.links[0]);
-    await startPageRepository.addLink(
-      {
-        workspaceId: WS,
-        data: { label: "Shop", url: "https://a.test/", isActive: true },
-      },
-      USER,
-    );
+    await startPageRepository.addLink(ADD_INPUT, USER);
     expect(txMock.startPageLink.create.mock.calls[0]![0].data.position).toBe(0);
 
-    txMock.startPagePage.findFirst.mockResolvedValueOnce(null);
-    await expect(
-      startPageRepository.addLink(
-        {
-          workspaceId: WS,
-          data: { label: "x", url: "https://a.test/", isActive: true },
-        },
-        USER,
-      ),
-    ).resolves.toBeNull();
+    txMock.$queryRaw.mockResolvedValueOnce([]);
+    await expect(startPageRepository.addLink(ADD_INPUT, USER)).resolves.toEqual(
+      { status: "no_page" },
+    );
+  });
+
+  it("addLink refuses at the limit inside the same transaction without inserting (T-167.1/.2)", async () => {
+    txMock.$queryRaw.mockResolvedValue([{ id: "p1" }]);
+    txMock.startPageLink.aggregate.mockResolvedValue({
+      _max: { position: 49 },
+      _count: { _all: 50 },
+    });
+    await expect(startPageRepository.addLink(ADD_INPUT, USER)).resolves.toEqual(
+      { status: "limit_reached" },
+    );
+    expect(txMock.startPageLink.create).not.toHaveBeenCalled();
+    expect(withCurrentUserMock).toHaveBeenCalledTimes(1);
   });
 
   it("updateLink/deleteLink scope by the owning page's workspace (anti-IDOR)", async () => {
@@ -241,90 +253,67 @@ describe("startPageRepository", () => {
     });
     expect(txMock.startPageLink.update).not.toHaveBeenCalled();
 
-    txMock.startPagePage.findFirst.mockResolvedValue({ id: "p1" });
+    txMock.$queryRaw.mockResolvedValue([{ id: "p1" }]);
     txMock.startPageLink.deleteMany.mockResolvedValue({ count: 0 });
     await expect(
       startPageRepository.deleteLink({ workspaceId: WS, linkId: "l1" }, USER),
     ).resolves.toBe(false);
-    expect(txMock.startPagePage.findFirst.mock.calls.at(-1)![0].where).toEqual({
-      workspaceId: WS,
-    });
     expect(txMock.startPageLink.deleteMany.mock.calls[0]![0].where).toEqual({
       id: "l1",
       startPage: { workspaceId: WS },
     });
     // Tidak ada yang terhapus: tidak ada pemadatan.
-    expect(txMock.startPageLink.findMany).not.toHaveBeenCalled();
-    expect(txMock.startPageLink.updateMany).not.toHaveBeenCalled();
+    expect(txMock.$executeRaw).not.toHaveBeenCalled();
   });
 
   it("deleteLink returns false without a page and never deletes", async () => {
-    txMock.startPagePage.findFirst.mockResolvedValue(null);
+    txMock.$queryRaw.mockResolvedValue([]);
     await expect(
       startPageRepository.deleteLink({ workspaceId: WS, linkId: "l1" }, USER),
     ).resolves.toBe(false);
     expect(txMock.startPageLink.deleteMany).not.toHaveBeenCalled();
   });
 
-  it("deleteLink compacts remaining positions to 0..n-1 in the same transaction (T-162.2)", async () => {
-    txMock.startPagePage.findFirst.mockResolvedValue({ id: "p1" });
+  it("deleteLink locks the page, deletes, and compacts positions with ONE statement in the same transaction (T-162.2, T-167.3)", async () => {
+    txMock.$queryRaw.mockResolvedValue([{ id: "p1" }]);
     txMock.startPageLink.deleteMany.mockResolvedValue({ count: 1 });
-    // Posisi 1 dihapus: sisa 0, 2, 3 -> harus jadi 0, 1, 2 (urutan dijaga).
-    txMock.startPageLink.findMany.mockResolvedValue([
-      { id: "a", position: 0 },
-      { id: "c", position: 2 },
-      { id: "d", position: 3 },
-    ]);
-    txMock.startPageLink.updateMany.mockResolvedValue({ count: 1 });
+    txMock.$executeRaw.mockResolvedValue(2);
     await expect(
       startPageRepository.deleteLink({ workspaceId: WS, linkId: "b" }, USER),
     ).resolves.toBe(true);
 
     expect(withCurrentUserMock).toHaveBeenCalledTimes(1);
-    expect(txMock.startPageLink.findMany.mock.calls[0]![0]).toMatchObject({
-      where: { startPageId: "p1" },
-      orderBy: [{ position: "asc" }, { id: "asc" }],
-    });
-    // Baris yang sudah benar (a: 0) tidak ditulis ulang; sisanya dipadatkan
-    // dan di-scope ke halaman workspace.
-    expect(txMock.startPageLink.updateMany.mock.calls.map((c) => c[0])).toEqual(
-      [
-        { where: { id: "c", startPageId: "p1" }, data: { position: 1 } },
-        { where: { id: "d", startPageId: "p1" }, data: { position: 2 } },
-      ],
-    );
-  });
-
-  it("deleteLink does not rewrite positions that are already dense", async () => {
-    txMock.startPagePage.findFirst.mockResolvedValue({ id: "p1" });
-    txMock.startPageLink.deleteMany.mockResolvedValue({ count: 1 });
-    txMock.startPageLink.findMany.mockResolvedValue([
-      { id: "a", position: 0 },
-      { id: "b", position: 1 },
-    ]);
-    await expect(
-      startPageRepository.deleteLink({ workspaceId: WS, linkId: "c" }, USER),
-    ).resolves.toBe(true);
+    expect(txMock.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(txMock.$executeRaw).toHaveBeenCalledTimes(1);
+    const [strings, ...values] = txMock.$executeRaw.mock.calls[0]!;
+    const sql = strings.join("?");
+    expect(sql).toContain('row_number() OVER (ORDER BY "position", "id")');
+    // Hanya baris yang berubah yang ditulis, dan di-scope ke halaman itu.
+    expect(sql).toContain('l."position" <> r."rn" - 1');
+    expect(values).toEqual(["p1"]);
+    expect(txMock.startPageLink.findMany).not.toHaveBeenCalled();
     expect(txMock.startPageLink.updateMany).not.toHaveBeenCalled();
   });
 
-  it("reorderLinks applies positions 0..n-1 only for the exact link set", async () => {
-    txMock.startPagePage.findFirst.mockResolvedValue({ id: "p1" });
+  it("reorderLinks applies positions 0..n-1 with ONE statement only for the exact link set (T-167.3)", async () => {
+    txMock.$queryRaw.mockResolvedValue([{ id: "p1" }]);
     txMock.startPageLink.findMany.mockResolvedValue([{ id: "a" }, { id: "b" }]);
+    txMock.$executeRaw.mockResolvedValue(2);
     await expect(
       startPageRepository.reorderLinks(
         { workspaceId: WS, orderedLinkIds: ["b", "a"] },
         USER,
       ),
     ).resolves.toBe(true);
-    expect(txMock.startPageLink.update.mock.calls.map((c) => c[0])).toEqual([
-      { where: { id: "b" }, data: { position: 0 } },
-      { where: { id: "a" }, data: { position: 1 } },
-    ]);
+    expect(txMock.$executeRaw).toHaveBeenCalledTimes(1);
+    const [strings, ...values] = txMock.$executeRaw.mock.calls[0]!;
+    expect(strings.join("?")).toContain("unnest(");
+    expect(values).toEqual([["b", "a"], [0, 1], "p1"]);
+    expect(txMock.startPageLink.update).not.toHaveBeenCalled();
   });
 
   it("reorderLinks refuses foreign or stale sets without writing", async () => {
-    txMock.startPagePage.findFirst.mockResolvedValue({ id: "p1" });
+    txMock.$queryRaw.mockResolvedValue([{ id: "p1" }]);
     txMock.startPageLink.findMany.mockResolvedValue([{ id: "a" }, { id: "b" }]);
     await expect(
       startPageRepository.reorderLinks(
@@ -338,21 +327,21 @@ describe("startPageRepository", () => {
         USER,
       ),
     ).resolves.toBe(false);
-    expect(txMock.startPageLink.update).not.toHaveBeenCalled();
+    expect(txMock.$executeRaw).not.toHaveBeenCalled();
   });
 
-  it("reorderLinks turns P2025 (link deleted mid-transaction) into false, other errors propagate", async () => {
-    txMock.startPagePage.findFirst.mockResolvedValue({ id: "p1" });
-    txMock.startPageLink.findMany.mockResolvedValue([{ id: "a" }, { id: "b" }]);
-    txMock.startPageLink.update.mockRejectedValueOnce(p2025());
+  it("reorderLinks returns false without a page and propagates db errors", async () => {
+    txMock.$queryRaw.mockResolvedValueOnce([]);
     await expect(
       startPageRepository.reorderLinks(
-        { workspaceId: WS, orderedLinkIds: ["b", "a"] },
+        { workspaceId: WS, orderedLinkIds: ["a"] },
         USER,
       ),
     ).resolves.toBe(false);
 
-    txMock.startPageLink.update.mockRejectedValueOnce(new Error("db down"));
+    txMock.$queryRaw.mockResolvedValue([{ id: "p1" }]);
+    txMock.startPageLink.findMany.mockResolvedValue([{ id: "a" }, { id: "b" }]);
+    txMock.$executeRaw.mockRejectedValueOnce(new Error("db down"));
     await expect(
       startPageRepository.reorderLinks(
         { workspaceId: WS, orderedLinkIds: ["b", "a"] },
