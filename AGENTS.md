@@ -30,6 +30,7 @@ dirujuk, dokumen yang dirujuk menang.
 4. Ikuti skill project: `.claude/skills/project-os-navigator/SKILL.md` — cascade baca, mapping task → dokumen, higiene sesi, dan housekeeping skill/subagent ada di sana.
 5. Untuk keputusan yang belum ada di baseline: ikuti `.claude/skills/proactive-clarification/SKILL.md`.
 6. Setelah pekerjaan selesai: ikuti `.claude/skills/work-report-simple/SKILL.md`.
+   Definisi tiket fitur selesai (termasuk E2E, ADR-149): lihat navigator § Pekerjaan Baru.
 7. Untuk konteks teknis per domain: buka file `context/ctx-*.md` yang relevan — peta lengkap dan batas antar file ada di `context/README.md`.
 
 ## Aturan keras (jangan dilanggar)
