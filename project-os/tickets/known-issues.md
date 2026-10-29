@@ -1455,8 +1455,20 @@ mode gelap, jadi ini kasus utama halaman publik, bukan kasus pinggir.
       lukisan pertama dan warna kartu/lencana tidak berubah selama 1 detik
       pertama (definisi tiket selesai ADR-149). Baca CSP sebelum screenshot
       (screenshot Playwright WebKit menyuntik `<style>`, lihat T-171)
-- [ ] **T-177.4** Verifikasi di Safari asli (iOS gelap dan macOS gelap) dan
-      catat di tabel hasil T-171.2
+- [x] **T-177.4** (2026-10-29, diuji King Rezi) Verifikasi di Safari asli (iOS gelap dan macOS gelap) dan
+      catat di tabel hasil T-171.2. **Hasil:** build lokal yang sudah diperbaiki
+      (`next start`, dibuka lewat tunnel ngrok sementara, halaman
+      `/u/e2e-start-page`, tab/jendela privat, OS gelap): Safari iPhone (iOS 18) dan
+      Safari macOS tampil gelap dan **tidak ada kilas terang** menurut pengamatan
+      King Rezi (versi macOS/Safari dan model iPhone tidak dicatat). **Penting:**
+      di **build lama di staging** (halaman `cook-it-real-good`) King Rezi juga
+      **tidak melihat kilas terang** di kedua perangkat. Jadi uji mata di Safari asli
+      **tidak membedakan build lama dan baru**: kedipan KI-104 hanya terukur per
+      frame di Playwright (Chromium, Firefox, WebKit) dan tidak terlihat oleh mata
+      di Safari asli; bukti bahwa perbaikan bekerja adalah tes E2E (gagal di build
+      lama, lolos di build baru, T-177.3), bukan uji mata ini. Tunnel dan server
+      lokal sudah dimatikan. Perbaikan belum ter-deploy ke staging; status T-177
+      tetap 🟡 sampai ter-merge dan ter-deploy
 
 **Bukan bagian tiket ini:** perubahan tampilan tema selain kedipan ini, dan
 pilihan tema Light/Dark eksplisit pengguna (cookie `theme` sudah benar).
