@@ -35,7 +35,7 @@ QA end-to-end selama ini dilakukan manual lewat browser pane oleh Najwa atau age
 
 ### Reason
 
-- Playwright memberi uji yang bisa diulang dan merekam trace, dan sudah terbukti bisa mengendalikan Chrome terpasang di mesin King Rezi tanpa unduhan browser.
+- Playwright memberi uji yang bisa diulang dan merekam trace, dan memakai Chrome yang sudah terpasang di mesin King Rezi tanpa unduhan browser (diverifikasi lewat smoke test T-172).
 - Menguji staging setelah deploy adalah satu-satunya pilihan yang menjalankan kode yang benar-benar di-deploy tanpa melanggar ADR-081, ADR-119, dan CI-D04.
 - Syarat di PR promosi ke `main` memberi gerbang otomatis di titik yang paling mahal bila rusak, tanpa menambah secret ke PR CI.
 

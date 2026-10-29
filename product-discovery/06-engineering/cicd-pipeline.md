@@ -34,7 +34,7 @@ Dokumen ini menkonkretkan trigger deploy dari `deployment-infrastructure.md` (DI
 | ID | Topik | Keputusan |
 |----|-------|-----------|
 | CI-D01 | CI tooling | **GitHub Actions** — workflow di `.github/workflows/` |
-| CI-D02 | Quality gates (PR) | Wajib lulus sebelum merge: **install → prisma generate → prisma validate → typecheck → lint → test** |
+| CI-D02 | Quality gates (PR) | Wajib lulus sebelum merge: **install → prisma generate → prisma validate → typecheck → lint → test**. Gerbang E2E untuk promosi ke `main` ada di CI-D07 (ADR-149) |
 | CI-D03 | Branch & promosi | `feature/*` → PR ke `staging` → verifikasi → PR `staging` ke `main` |
 | CI-D04 | CD (deploy) | Tetap **Railway auto-deploy** dari branch (bukan deploy dari GitHub Actions) |
 | CI-D05 | Migrasi DB | `prisma migrate deploy` di **Railway release/pre-start** per environment (`DIRECT_URL`) — bukan di job PR |
