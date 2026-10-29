@@ -836,12 +836,12 @@ Navigator sudah melarang membaca `PROJECT_STATE` utuh, `COMPLETE_TASK`, dan selu
 
 ### T-176 · Aturan kerja: E2E Playwright masuk definisi "tiket selesai"
 
-`⏳ Not Started` · **Domain** project-os, agen · **ADR** ADR-149 · **Spec** S-002 · **Depends** T-172
+`✅ Done` (2026-10-29) · **Domain** project-os, agen · **ADR** ADR-149 · **Spec** S-002 · **Depends** T-172
 **Baca dulu:** `.claude/skills/project-os-navigator/SKILL.md` · `.claude/agents/README.md` · `.claude/agents/najwa-qa-engineer.md`
 
-- [ ] **T-176.1** Navigator/aturan kerja: tiket fitur selesai bila ada tes E2E golden path dan suite hijau di local; hasil dilaporkan di deskripsi PR
-- [ ] **T-176.2** Perbarui definisi Najwa memakai Playwright. `.claude/agents/*.md` adalah Static Reference: hanya diubah atas permintaan eksplisit King Rezi, jadi minta konfirmasi saat tiket ini dikerjakan
-- [ ] **T-176.3** `AGENTS.md`: cukup satu penunjuk (ADR-133), tanpa menyalin aturan
+- [x] **T-176.1** Navigator/aturan kerja: tiket fitur selesai bila ada tes E2E golden path dan suite hijau di local; hasil dilaporkan di deskripsi PR. → ditambahkan di navigator § Pekerjaan Baru, dengan pengecualian dokumentasi, perubahan sepele, dan tooling
+- [x] **T-176.2** Perbarui definisi Najwa memakai Playwright. `.claude/agents/*.md` adalah Static Reference: hanya diubah atas permintaan eksplisit King Rezi, jadi minta konfirmasi saat tiket ini dikerjakan. → King Rezi mengizinkan (2026-10-29); langkah E2E ditambahkan, bagian lain tidak diubah
+- [x] **T-176.3** `AGENTS.md`: cukup satu penunjuk (ADR-133), tanpa menyalin aturan
 
 ---
 
