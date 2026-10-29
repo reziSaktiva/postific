@@ -829,11 +829,11 @@ Hasil: `e2e/start-page.e2e.ts` (3 tes serial). Berjalan di workspace khusus **E2
 
 ### T-175 · Workflow CI E2E terhadap staging dan gerbang promosi ke `main`
 
-`⏳ Not Started` · **Domain** CI/CD · **ADR** ADR-149, CI-D07 · **Spec** S-002 · **Depends** T-172, T-173, T-174
+`🟡 In Progress` · **Domain** CI/CD · **ADR** ADR-149, CI-D07 · **Spec** S-002 · **Depends** T-172, T-173 ✅, T-174 ✅
 **Baca dulu:** `product-discovery/06-engineering/cicd-pipeline.md` · `.github/workflows/ci.yml`
 
-- [ ] **T-175.1** Putuskan pemicu "setelah deploy Railway selesai" (event deployment atau polling ke staging); catat di tiket ini
-- [ ] **T-175.2** `.github/workflows/e2e-staging.yml`: `push` ke `staging`, Chrome, GitHub Secrets akun test, artifact trace
+- [x] **T-175.1** Putuskan pemicu "setelah deploy Railway selesai" (event deployment atau polling ke staging); catat di tiket ini. → **Keputusan (2026-10-29): `push` ke `staging` + polling status deployment GitHub.** Railway sudah mengirim deployment `Postific / staging` per SHA (diverifikasi lewat `gh api`, status `in_progress` → `success`). `scripts/wait-railway-deploy.sh` menunggu status `success` untuk SHA commit itu (gagal bila deploy gagal, tidak muncul dalam 5 menit, atau belum selesai dalam 20 menit). `deployment_status` tidak dipilih: event itu hanya jalan bila berkas workflow ada di branch default (`main`), jadi tidak bisa dipakai sebelum promosi pertama
+- [x] **T-175.2** `.github/workflows/e2e-staging.yml`: `push` ke `staging`, Chrome, GitHub Secrets akun test, artifact trace. → dibuat; secret `E2E_USER_EMAIL` dan `E2E_USER_PASSWORD` (variable opsional `E2E_BASE_URL`), artifact `playwright-report` (laporan + trace) 14 hari. Skrip tunggu diuji lokal (SHA sukses → exit 0, SHA tak dikenal → exit 1); YAML lolos Prettier. **Belum terbukti:** run nyata di GitHub, baru terjadi setelah branch ini ter-merge ke `staging` dan secret diisi
 - [ ] **T-175.3** Jadikan hasil hijau required check untuk PR `staging` → `main` (pengaturan GitHub: King Rezi atau atas izin eksplisit)
 
 ### T-176 · Aturan kerja: E2E Playwright masuk definisi "tiket selesai"
