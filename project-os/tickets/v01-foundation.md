@@ -829,12 +829,12 @@ Hasil: `e2e/start-page.e2e.ts` (3 tes serial). Berjalan di workspace khusus **E2
 
 ### T-175 · Workflow CI E2E terhadap staging dan gerbang promosi ke `main`
 
-`🟡 In Progress` · **Domain** CI/CD · **ADR** ADR-149, CI-D07 · **Spec** S-002 · **Depends** T-172, T-173 ✅, T-174 ✅
+`✅ Done` (2026-10-29; T-175.3 ditunda atas keputusan King Rezi sampai `main`/production aktif, dilacak di T-088) · **Domain** CI/CD · **ADR** ADR-149, CI-D07 · **Spec** S-002 · **Depends** T-172, T-173 ✅, T-174 ✅
 **Baca dulu:** `product-discovery/06-engineering/cicd-pipeline.md` · `.github/workflows/ci.yml`
 
 - [x] **T-175.1** Putuskan pemicu "setelah deploy Railway selesai" (event deployment atau polling ke staging); catat di tiket ini. → **Keputusan (2026-10-29): polling status deployment GitHub.** Pemicu awal `push` ke `staging` buntu (Railway "Wait for CI" menahan deploy sampai workflow E2E selesai, sedangkan E2E menunggu deploy; deploy PR 211 `WAITING` 20 menit) dan **direvisi ke `pull_request` ke `main` (head `staging`), ADR-150**. Railway sudah mengirim deployment `Postific / staging` per SHA (diverifikasi lewat `gh api`, status `in_progress` → `success`). `scripts/wait-railway-deploy.sh` menunggu status `success` untuk SHA commit itu (gagal bila deploy gagal, tidak muncul dalam 5 menit, atau belum selesai dalam 20 menit). `deployment_status` tidak dipilih: event itu hanya jalan bila berkas workflow ada di branch default (`main`), jadi tidak bisa dipakai sebelum promosi pertama
-- [x] **T-175.2** `.github/workflows/e2e-staging.yml`: `push` ke `staging`, Chrome, GitHub Secrets akun test, artifact trace. → dibuat; secret `E2E_USER_EMAIL` dan `E2E_USER_PASSWORD` (variable opsional `E2E_BASE_URL`), artifact `playwright-report` (laporan + trace) 14 hari. Skrip tunggu diuji lokal (SHA sukses → exit 0, SHA tak dikenal → exit 1); YAML lolos Prettier. **Belum terbukti:** run nyata di GitHub, baru terjadi setelah branch ini ter-merge ke `staging` dan secret diisi
-- [ ] **T-175.3** Jadikan hasil hijau required check untuk PR `staging` → `main` (pengaturan GitHub: King Rezi atau atas izin eksplisit)
+- [x] **T-175.2** `.github/workflows/e2e-staging.yml`: `push` ke `staging`, Chrome, GitHub Secrets akun test, artifact trace. → dibuat; secret `E2E_USER_EMAIL` dan `E2E_USER_PASSWORD` (variable opsional `E2E_BASE_URL`), artifact `playwright-report` (laporan + trace) 14 hari. Skrip tunggu diuji lokal (SHA sukses → exit 0, SHA tak dikenal → exit 1); YAML lolos Prettier. **Terbukti:** run pertama di PR 213 (`staging` → `main`, dibuka hanya untuk uji) lulus penuh: tunggu deploy, Chrome, tes, artifact (run 40820128077)
+- [ ] **T-175.3** Jadikan hasil hijau required check untuk PR `staging` → `main` (pengaturan GitHub: King Rezi atau atas izin eksplisit). **Ditunda (2026-10-29, keputusan King Rezi):** `main`/production belum dipakai. Dikerjakan saat MVP public launch lewat checklist T-088; AI wajib mengingatkan King Rezi saat fase itu mulai. Saat ini `main` hanya mewajibkan check "Quality gates"; tambahkan check "E2E staging"
 
 ### T-176 · Aturan kerja: E2E Playwright masuk definisi "tiket selesai"
 

@@ -90,6 +90,8 @@ Dokumentasi yang dibaca **pengguna produk**, terpisah dari dokumentasi internal 
 
 Verifikasi jalur staging → production: migrate-on-release, env var lengkap di kedua tier, rollback plan, backup DB, dan domain/DNS. Termasuk KI-028: environment Railway `production` dan project Supabase production belum ada.
 
+- [ ] **T-088.1** (dari T-175.3, ditunda 2026-10-29) Jadikan check **E2E staging** required check untuk PR `staging` → `main` (Settings → Branches → rule `main`, di samping "Quality gates"). Workflow sudah terbukti jalan (T-175). **AI wajib mengingatkan King Rezi tentang ini saat v1.0 / MVP public launch dimulai.**
+
 ---
 
 ## Catatan Rilis
