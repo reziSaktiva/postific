@@ -344,11 +344,11 @@ Uji dijalankan di staging (`https://web-staging-60d7.up.railway.app`) pada halam
 - **Klik:** `click_count` tautan yang diketuk, sebelum dan sesudah (contoh `2 → 3`). Cek juga tombol Kembali tidak memutar ulang (tanpa loop).
 - **Sumber angka:** Page Editor di `/start-page` (kunjungan di kepala halaman, klik per tautan di Link List).
 
-**Tertunda sampai PR 217 ter-deploy ke staging:** langkah 6 (404 kustom `/u/<slug tak ada>`: layar 404 kustom, status 404, 0 pelanggaran CSP). **Tertunda sampai ada trafik produksi:** T-171.1.
+**Langkah 6 (404 kustom) sudah diuji otomatis, lihat bagian berikutnya.** Yang tertunda: uji di perangkat Apple (tabel di atas) dan T-171.1 sampai ada trafik produksi.
 
 ##### Hasil uji otomatis Playwright di staging (2026-10-29)
 
-**Label: uji otomatis, bukan Safari asli.** Dijalankan lewat skrip sementara (sudah dihapus, tidak ada di repo) terhadap `https://web-staging-60d7.up.railway.app`, halaman `e2e-start-page` di workspace E2E Sandbox (akun test E2E), tanpa cookie (tamu) dan dengan UA bawaan tiap browser. Tautan uji dihapus di akhir tiap run; counter halaman itu naik beberapa angka. Staging belum memuat PR 217, jadi 404 yang diuji masih 404 bawaan Next.
+**Label: uji otomatis, bukan Safari asli.** Dijalankan lewat skrip sementara (sudah dihapus, tidak ada di repo) terhadap `https://web-staging-60d7.up.railway.app`, halaman `e2e-start-page` di workspace E2E Sandbox (akun test E2E), tanpa cookie (tamu) dan dengan UA bawaan tiap browser. Tautan uji dihapus di akhir tiap run; counter halaman itu naik beberapa angka. Run di atas dilakukan **sebelum** PR 217 ter-deploy, jadi 404 yang diuji saat itu masih 404 bawaan Next; 404 kustom diuji ulang di bagian berikutnya.
 
 | Mesin (versi)                          | 200 + tautan tampil | CSP `/u/<slug>` (desktop / 375px gelap) | Scroll horizontal | Klik → tujuan                                                                | View (2 muat) | Klik | 404 |
 | -------------------------------------- | ------------------- | --------------------------------------- | ----------------- | ---------------------------------------------------------------------------- | ------------- | ---- | --- |
@@ -374,13 +374,23 @@ Uji dijalankan di staging (`https://web-staging-60d7.up.railway.app`) pada halam
 
 Mode terang tidak terpengaruh (1 keadaan, tanpa perubahan). Ini bertentangan dengan catatan di `app/layout.tsx` ("tidak ada flash tema salah", ADR-055, amendemen T-039) untuk pengunjung tanpa cookie, karena skrip `theme-system-default` (`beforeInteractive`) tampaknya berjalan setelah lukisan pertama. Penyebab pastinya **belum diselidiki**; yang terukur hanya urutan dan waktunya. Kemungkinan sudah ada sejak sebelum PR 217 dan berlaku di seluruh aplikasi, bukan hanya halaman publik (belum diukur di halaman `(app)`). Dicatat sebagai **KI-104** dengan tiket **T-177** di `known-issues.md` (2026-10-29, atas keputusan King Rezi); belum diperbaiki. Cek di Safari asli (iOS gelap) tetap diperlukan: amati kedipan ini saat memuat `/u/<slug>`.
 
+##### Hasil uji otomatis setelah PR 217 ter-deploy (2026-10-29)
+
+**Label: uji otomatis, bukan Safari asli.** PR 217 sudah ter-merge ke `staging` (`0fe430b`), migrasi T-167.4 diterapkan ke DB staging, lalu diuji ulang dengan Playwright.
+
+- **Migrasi:** `prisma migrate status` menunjukkan hanya `20261029100000_t167_4_start_page_url_userinfo` yang belum terpasang (63 ditemukan); setelah `db:deploy` tercatat selesai di `_prisma_migrations`. Dicek di DB: kedua fungsi (`start_page_record_click_and_get_url`, `start_page_get_public_by_slug`) memuat filter URL berkredensial, tetap `SECURITY DEFINER`, `anon` dan `authenticated` tanpa hak eksekusi, `app_runtime` tetap punya. `start_page_record_view` tidak berubah (sesuai rencana).
+- **T-171.2 langkah 6, 404 kustom** (`/u/<slug tak ada>`): Chromium, Firefox, dan WebKit: status 404, 0 pelanggaran CSP, satu `h1` "Halaman tidak ditemukan" di dalam `main`, tanpa tautan, tombol, maupun atribut `style`, tanpa scroll horizontal di desktop dan 375px (mode gelap), judul dokumen sesuai. **Halaman draft** (`/u/e2e-start-page` saat di-unpublish): status 404 dan teks halaman **identik** dengan slug yang tidak ada, jadi status draft tidak bocor (dicek di Chromium; halaman dipulihkan ke published setelahnya).
+- **Catatan run pertama:** Chromium sempat menerima 404 bawaan Next (h1 "404", 1 pelanggaran CSP) pada run pertama, sementara Firefox dan WebKit beberapa detik kemudian sudah kustom; 10 permintaan berikutnya dan run ulang Chromium semuanya kustom. Konsisten dengan deploy Railway yang masih bergulir, tetapi tidak dibuktikan langsung.
+- **Suite E2E resmi di staging** (`bun run test:e2e`, Chrome): 8 dari 8 lolos (sesi, workspace E2E, smoke, buat halaman + tautan + publish, halaman publik + CSP + 302 + counter, bersihkan + toast mobile).
+- **Uji sementara reorder dan pemadatan lewat UI** (tidak ada di suite E2E, skrip sudah dihapus): tiga tautan, dua reorder keyboard berturut-turut bertahan setelah muat ulang (B, C, A), 0 toast error dan 0 error konsol; hapus tautan tengah menyisakan urutan benar; reorder setelah pemadatan tetap diterima (tidak `Conflict`). Itu membuktikan `UPDATE ... unnest(uuid[], int[])` dan jumlah-baris-sama versi baru berjalan lewat Prisma terhadap Postgres sungguhan dan RLS. Kunci `FOR UPDATE` terhadap dua permintaan bersamaan masih tidak diuji. **Saran:** jadikan skenario reorder ini tes E2E permanen (butuh tiket; ADR-132).
+
 **Kriteria lulus:** tampilan benar, 0 pelanggaran CSP, klik terhitung di semua perangkat; view terhitung di Safari >= 16.4. **Bila gagal:** temuan baru dicatat sebagai Known Issue di `known-issues.md` dengan tiketnya (ADR-134), bukan di tiket ini; jangan melonggarkan CSP atau filter Fetch Metadata tanpa ADR baru.
 
 **Tidak bisa dikerjakan dari sesi AI:** mesin pengembangan hanya punya Command Line Tools (tanpa Xcode dan Simulator iOS) dan browser bawaan sesi berbasis Chromium, jadi Safari sungguhan hanya bisa diuji King Rezi. WebKit Playwright (T-164.6) sudah lolos tetapi bukan Safari sungguhan.
 
 ### T-166 · 404 publik kustom untuk `/u/[slug]` tanpa inline style
 
-`✅ Done` (2026-10-29; rancangan dikonfirmasi King Rezi, kode di PR 217 `fix/start-page-mvp-completion`; sisa verifikasi: halaman draft/slug published, Firefox/WebKit/Safari, staging) · **Domain** start-page · UI · **ADR** ADR-144 · **Depends** T-160 ✅, rancangan artifact ✅
+`✅ Done` (2026-10-29; rancangan dikonfirmasi King Rezi, kode di PR 217 `fix/start-page-mvp-completion`; terverifikasi di staging 2026-10-29: slug tak ada, halaman draft, Chromium/Firefox/WebKit; sisa: Safari asli) · **Domain** start-page · UI · **ADR** ADR-144 · **Depends** T-160 ✅, rancangan artifact ✅
 **Baca dulu:** `06-engineering/rendering-strategy.md` § RS-D08 · `context/ctx-design.md`
 
 404 bawaan Next di `/u/<slug tak ada>` menyuntik `<style>` tanpa nonce (1 pelanggaran `style-src-elem`, kosmetik). Buat `app/u/[slug]/not-found.tsx` tanpa inline style. **Gate UI (aturan #10):** butuh rancangan di artifact Postific dan konfirmasi King Rezi sebelum kode.
@@ -393,7 +403,7 @@ Mode terang tidak terpengaruh (1 keadaan, tanpa perubahan). Ini bertentangan den
 
 ### T-167 · Hardening repository dan tes Start Page (lanjutan code-review PR #200, prioritas rendah)
 
-`✅ Done` (2026-10-29; T-167.1 sampai .5 selesai di kode dan tes, branch `fix/t-167-start-page-hardening`; SQL mentah T-167.1/.3/.4 terbukti di Postgres asli (PGlite WASM, 18 pemeriksaan lolos, 2026-10-29), migrasi belum diterapkan ke DB staging/dev dan RLS serta kunci antar-transaksi belum teruji) · **Domain** start-page · **ADR** ADR-144 · **Depends** PR #200 di-merge
+`✅ Done` (2026-10-29; T-167.1 sampai .5 selesai di kode dan tes, branch `fix/t-167-start-page-hardening`; SQL mentah T-167.1/.3/.4 terbukti di Postgres asli (PGlite WASM, 18 pemeriksaan lolos, 2026-10-29), migrasi diterapkan ke DB staging 2026-10-29; E2E di staging lolos 8/8, plus uji sementara reorder dan pemadatan lewat UI terhadap DB sungguhan; yang belum teruji hanya kunci `FOR UPDATE` antar-transaksi bersamaan) · **Domain** start-page · **ADR** ADR-144 · **Depends** PR #200 di-merge
 **Baca dulu:** `apps/web/src/lib/repositories/start-page/start-page-write.repository.ts` · T-162.2 · T-162.3
 
 Lahir dari `/code-review` PR #200 (branch `feature/t-070-start-page-public-route`). Tidak ada Critical/High; semuanya hardening, tidak memblokir merge.
