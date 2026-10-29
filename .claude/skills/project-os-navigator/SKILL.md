@@ -127,9 +127,15 @@ Lihat `project-os/PROJECT_RULES.md` bagian **Document Type Classification** untu
 perilaku produk (`apps/`, `packages/`) baru boleh `✅` bila ada tes E2E
 Playwright golden path untuk fiturnya dan seluruh suite hijau di `local`
 (`bun run test:e2e`). Hasilnya dilaporkan di deskripsi PR `feature/*` →
-`staging`. Pengecualian: tiket dokumentasi, perubahan sepele tanpa perilaku
-yang terlihat user, dan tiket tooling. Gerbang CI terhadap staging untuk PR
-`staging` → `main` diatur di CI-D07, bukan di sini.
+`staging`. Berlaku di semua mode, termasuk tiket dari Known Issue
+(`known-issues.md`, ADR-134) yang mengubah `apps/` atau `packages/`.
+**Berlaku efektif setelah T-174 ✅** (akun test T-173 dan tes E2E pertama
+sudah ada); sebelum itu tiket fitur tidak diblok oleh gerbang ini.
+Pengecualian: tiket dokumentasi, perubahan sepele tanpa perilaku yang
+terlihat user, dan tiket tooling. Backend/API/cron/migrasi tanpa perubahan
+UI **bukan** pengecualian otomatis; King Rezi yang memutuskan setiap
+pengecualian, dan agen mencatat alasannya di tiket. Gerbang CI terhadap
+staging untuk PR `staging` → `main` diatur di CI-D07, bukan di sini.
 
 Jejak sesi adalah commit git. Tidak ada file changelog terpisah (ADR-131).
 
