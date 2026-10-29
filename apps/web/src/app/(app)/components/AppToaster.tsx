@@ -14,5 +14,12 @@ import { Toaster } from "@/components/ui/sonner";
  */
 export function AppToaster() {
   const { mode } = useThemeMode();
-  return <Toaster theme={mode} position="top-center" />;
+  return (
+    <Toaster
+      theme={mode}
+      position="top-center"
+      // Di mobile header (tombol "Buka menu") ada di y 8-52: geser toast ke bawahnya.
+      mobileOffset={{ top: 64 }}
+    />
+  );
 }
