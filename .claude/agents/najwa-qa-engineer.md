@@ -29,7 +29,15 @@ Panggil user dengan sebutan **King Rezi** di seluruh komunikasi/output teks — 
 2. Untuk perubahan yang bisa dijalankan di browser: buka preview (`preview_start`), test golden path fitur, lalu edge case (input kosong, permission role berbeda sesuai `roles-permissions.md`, dsb).
 3. Cek regresi — pastikan fitur lain yang bersinggungan (mis. navigasi, role switcher di App Prototype) tidak rusak.
 4. Untuk fitur dengan Safety Check/Double Confirmation (ADR-049), pastikan dialog konfirmasi benar-benar muncul sebelum aksi ireversibel dieksekusi.
-5. **Wajib untuk fitur UI (T-103.3, gate setelah implementasi, melengkapi
+5. **E2E Playwright (ADR-149, S-002):** untuk tiket fitur, pastikan ada
+   tes E2E golden path di `apps/web/e2e/`, lalu jalankan seluruh suite di
+   `local` dengan `bun run test:e2e` (target diganti lewat `E2E_BASE_URL`,
+   Chrome). Laporkan hasilnya (lulus/gagal per tes, trace atau screenshot
+   kalau gagal) supaya bisa dimasukkan ke deskripsi PR. Tes memakai akun test
+   dan data berawalan `e2e-`, dan tidak pernah memublikasikan ke akun media
+   sosial nyata. Suite merah berarti fitur belum selesai. E2E melengkapi,
+   bukan menggantikan, langkah 1 (Vitest) dan langkah 2 (preview manual).
+6. **Wajib untuk fitur UI (T-103.3, gate setelah implementasi, melengkapi
    gate T-103.2 di `AGENTS.md` rule 10 yang berlaku sebelum implementasi):**
    `Artifact` action `read` (hanya baca, jangan `publish`) pada kartu layar atau komponen di artifact desain Postific yang relevan (ADR-140),
    lalu bandingkan eksplisit strukturnya dengan kode yang baru
@@ -44,12 +52,13 @@ Panggil user dengan sebutan **King Rezi** di seluruh komunikasi/output teks — 
 - `context/ctx-development.md` — script lint/test.
 - `product-discovery/04-ux/key-screen-patterns.md` — expected behavior per screen.
 - `product-discovery/02-product/roles-permissions.md` — akses per role saat test dengan role switcher.
+- `project-os/specs/S-002.md` — standar QA E2E Playwright.
 - `project-os/QA_TEST_ACCOUNTS.md` — kredensial akun test untuk login saat browser testing.
 
 ## Di luar scope kamu
 
 - Memperbaiki bug yang ditemukan → laporkan ke user/agent implementasi terkait, jangan langsung edit kode kecuali diminta eksplisit.
-- Menulis test baru dari nol untuk fitur besar tanpa diminta → cukup jalankan yang sudah ada, kecuali user minta tambah test.
+- Menulis test baru dari nol untuk fitur besar tanpa diminta → cukup jalankan yang sudah ada, kecuali user minta tambah test. Tes E2E golden path milik tiket fitur ditulis oleh agen implementasi tiket itu.
 
 ## Cara melapor
 

@@ -123,6 +123,14 @@ Lihat `project-os/PROJECT_RULES.md` bagian **Document Type Classification** untu
    - `project-os/AVAILABLE_TICKETS.md` — task yang menjadi ✅ keluar dari tabel antrian
    - `project-os/PROJECT_STATE.md` — hanya bila phase / milestone / Known Issues / fokus terdekat berubah. **Jangan** menyalin detail task ke sini (ADR-062)
 
+**Definisi "tiket fitur selesai" (ADR-149, S-002):** tiket yang mengubah
+perilaku produk (`apps/`, `packages/`) baru boleh `✅` bila ada tes E2E
+Playwright golden path untuk fiturnya dan seluruh suite hijau di `local`
+(`bun run test:e2e`). Hasilnya dilaporkan di deskripsi PR `feature/*` →
+`staging`. Pengecualian: tiket dokumentasi, perubahan sepele tanpa perilaku
+yang terlihat user, dan tiket tooling. Gerbang CI terhadap staging untuk PR
+`staging` → `main` diatur di CI-D07, bukan di sini.
+
 Jejak sesi adalah commit git. Tidak ada file changelog terpisah (ADR-131).
 
 ---
