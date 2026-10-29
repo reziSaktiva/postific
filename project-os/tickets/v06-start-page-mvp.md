@@ -328,6 +328,24 @@ SELECT count(*) AS halaman_published,
 6. **404.** Buka `/u/<slug-yang-pasti-tidak-ada>`: layar 404 kustom (ikon pencarian, "Halaman tidak ditemukan"), tab Network menunjukkan status 404, konsol 0 pelanggaran CSP.
 7. **Catat hasil** di matriks, lengkap dengan versi OS dan Safari.
 
+##### Hasil uji staging, langkah 1 sampai 5 (diisi King Rezi, dicatat AI)
+
+Uji dijalankan di staging (`https://web-staging-60d7.up.railway.app`) pada halaman published `cook-it-real-good`, **sebelum PR 217 di-merge**, jadi **langkah 6 (404 kustom) belum bisa diuji** dan tercatat di bawah sebagai tertunda. Isi satu baris per perangkat. Penanda: ✅ sesuai harapan, ❌ tidak sesuai (jelaskan di Catatan), `n/a` tidak diuji.
+
+| Tanggal | Perangkat dan OS | Safari/aplikasi (versi) | 2 Tampilan (terang/gelap) | 3 Konsol: pelanggaran CSP | 4 View (awal → akhir) | 5 Klik (awal → akhir) | Catatan |
+| ------- | ---------------- | ----------------------- | ------------------------- | ------------------------- | --------------------- | --------------------- | ------- |
+| -       | -                | -                       | -                         | -                         | -                     | -                     | -       |
+
+**Cara mengisi**
+
+- **Tampilan:** ✅ bila avatar, judul, bio, semua tautan aktif, dan footer "Powered by Postific" tampil benar, tanpa scroll horizontal.
+- **Konsol:** tulis jumlah pesan pelanggaran CSP (`Refused to apply inline style`, `Refused to execute inline script`, `Content Security Policy`); harapan 0. Bila tidak bisa membuka Web Inspector (mis. in-app browser), tulis `n/a`.
+- **View:** `view_count` sebelum dan sesudah satu kali muat halaman (contoh `5 → 6`). Safari < 16.4 dan sebagian in-app browser memang boleh `+0` (T-162.1).
+- **Klik:** `click_count` tautan yang diketuk, sebelum dan sesudah (contoh `2 → 3`). Cek juga tombol Kembali tidak memutar ulang (tanpa loop).
+- **Sumber angka:** Page Editor di `/start-page` (kunjungan di kepala halaman, klik per tautan di Link List).
+
+**Tertunda sampai PR 217 ter-deploy ke staging:** langkah 6 (404 kustom `/u/<slug tak ada>`: layar 404 kustom, status 404, 0 pelanggaran CSP). **Tertunda sampai ada trafik produksi:** T-171.1.
+
 **Kriteria lulus:** tampilan benar, 0 pelanggaran CSP, klik terhitung di semua perangkat; view terhitung di Safari >= 16.4. **Bila gagal:** temuan baru dicatat sebagai Known Issue di `known-issues.md` dengan tiketnya (ADR-134), bukan di tiket ini; jangan melonggarkan CSP atau filter Fetch Metadata tanpa ADR baru.
 
 **Tidak bisa dikerjakan dari sesi AI:** mesin pengembangan hanya punya Command Line Tools (tanpa Xcode dan Simulator iOS) dan browser bawaan sesi berbasis Chromium, jadi Safari sungguhan hanya bisa diuji King Rezi. WebKit Playwright (T-164.6) sudah lolos tetapi bukan Safari sungguhan.
