@@ -239,13 +239,13 @@ Tiket ini mencatat verifikasi yang belum dilakukan; tanpanya definisi selesai ri
 
 ### T-171 · Pantau rasio view/klik Start Page dan cek Safari asli (lanjutan T-164.6)
 
-`⏳ Not Started` (2026-10-29: persiapan selesai, yaitu runbook dan query di bawah; **eksekusi menunggu rilis dan perangkat Apple, langkah King Rezi**) · **Domain** start-page · infra · **ADR** ADR-143 · **Depends** rilis v0.6 ke produksi dengan trafik nyata
+`🟡 In Progress` (2026-10-29: **T-171.2 ✅ ditutup** dengan hasil iPhone Safari iOS 18; **T-171.1 masih terbuka, menunggu rilis produksi dan trafik nyata**) · **Domain** start-page · infra · **ADR** ADR-143 · **Depends** rilis v0.6 ke produksi dengan trafik nyata
 **Baca dulu:** T-162.1 · T-164.6
 
 Dua sisa T-164.6 yang tidak bisa diverifikasi tanpa trafik nyata atau perangkat Apple:
 
 - [ ] **T-171.1** Pantau rasio `view_count` terhadap `click_count` setelah rilis. Bila view jauh di bawah klik, filter Fetch Metadata (T-162.1) terlalu ketat dan perlu ditinjau (keputusan King Rezi tetap fail-closed).
-- [ ] **T-171.2** Cek `/u/<slug>` di Safari asli (iOS dan macOS), termasuk Safari <16.4 dan in-app browser: tampilan, 0 pelanggaran CSP, dan view/klik terhitung. WebKit Playwright (sesi T-164.6) sudah lolos tetapi bukan Safari sungguhan.
+- [x] **T-171.2** (2026-10-29, ditutup atas keputusan King Rezi dengan hasil iPhone saja) Cek `/u/<slug>` di Safari asli (iOS dan macOS), termasuk Safari <16.4 dan in-app browser: tampilan, 0 pelanggaran CSP, dan view/klik terhitung. WebKit Playwright (sesi T-164.6) sudah lolos tetapi bukan Safari sungguhan. **Hasil:** Safari iOS 18 di iPhone: tampilan gelap, view +1 (`4 → 5`), klik dan redirect `/go/`, tombol Kembali tanpa loop, dan 404 kustom semuanya sesuai (sebagian laporan lisan, lihat tabel hasil). **Tidak diuji (diterima King Rezi):** konsol CSP di Safari (iPhone tidak disambung ke Mac), mode terang, kedipan KI-104 di iOS, Safari macOS, Safari <16.4, dan in-app browser.
 
 #### Persiapan (2026-10-29)
 
@@ -311,12 +311,12 @@ SELECT count(*) AS halaman_published,
 
 **Matriks perangkat** (isi kolom hasil setelah diuji):
 
-| Perangkat                                              | Yang diharapkan                                                                                                        | Hasil |
-| ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- | ----- |
-| Safari macOS (terbaru)                                 | Tampil benar, 0 pelanggaran CSP, view +1 per muat, klik +1                                                             | -     |
-| Safari iOS (iPhone, terbaru)                           | Sama seperti macOS; cek juga mode gelap iOS                                                                            | -     |
-| Safari < 16.4 (perangkat lama, mis. iOS 15/16.3)       | Tampil benar dan klik terhitung; **view +0 itu perilaku yang diterima** (tidak ada Fetch Metadata, T-162.1), bukan bug | -     |
-| In-app browser (Instagram, Facebook, TikTok, WhatsApp) | Tampil benar dan klik terhitung; view bisa +0 (sebagian tidak mengirim Fetch Metadata). Catat per aplikasi             | -     |
+| Perangkat                                              | Yang diharapkan                                                                                                        | Hasil                                                                                                                                                                                                       |
+| ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Safari macOS (terbaru)                                 | Tampil benar, 0 pelanggaran CSP, view +1 per muat, klik +1                                                             | -                                                                                                                                                                                                           |
+| Safari iOS (iPhone, terbaru)                           | Sama seperti macOS; cek juga mode gelap iOS                                                                            | Sebagian (2026-10-29, iOS 18, laporan King Rezi): tampilan mode gelap, view +1, klik dan redirect, Kembali, dan 404 kustom ✅. Belum: konsol CSP (`n/a`), mode terang, kedipan KI-104; lihat tabel di bawah |
+| Safari < 16.4 (perangkat lama, mis. iOS 15/16.3)       | Tampil benar dan klik terhitung; **view +0 itu perilaku yang diterima** (tidak ada Fetch Metadata, T-162.1), bukan bug | -                                                                                                                                                                                                           |
+| In-app browser (Instagram, Facebook, TikTok, WhatsApp) | Tampil benar dan klik terhitung; view bisa +0 (sebagian tidak mengirim Fetch Metadata). Catat per aplikasi             | -                                                                                                                                                                                                           |
 
 **Langkah per perangkat:**
 
@@ -332,9 +332,9 @@ SELECT count(*) AS halaman_published,
 
 Uji dijalankan di staging (`https://web-staging-60d7.up.railway.app`) pada halaman published `cook-it-real-good`, **sebelum PR 217 di-merge**, jadi **langkah 6 (404 kustom) belum bisa diuji** dan tercatat di bawah sebagai tertunda. Isi satu baris per perangkat. Penanda: ✅ sesuai harapan, ❌ tidak sesuai (jelaskan di Catatan), `n/a` tidak diuji.
 
-| Tanggal | Perangkat dan OS | Safari/aplikasi (versi) | 2 Tampilan (terang/gelap) | 3 Konsol: pelanggaran CSP | 4 View (awal → akhir) | 5 Klik (awal → akhir) | Catatan |
-| ------- | ---------------- | ----------------------- | ------------------------- | ------------------------- | --------------------- | --------------------- | ------- |
-| -       | -                | -                       | -                         | -                         | -                     | -                     | -       |
+| Tanggal    | Perangkat dan OS                     | Safari/aplikasi (versi)                   | 2 Tampilan (terang/gelap)                | 3 Konsol: pelanggaran CSP    | 4 View (awal → akhir)                                                                                                                                                                   | 5 Klik (awal → akhir)                                                                                                                       | Catatan                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ---------- | ------------------------------------ | ----------------------------------------- | ---------------------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-10-29 | iPhone (model tidak dicatat), iOS 18 | Safari iOS 18 (versi minor tidak dicatat) | ✅ gelap (dari screenshot); terang `n/a` | n/a (tidak disambung ke Mac) | `4 → 5` (laporan lisan King Rezi pada uji pertama di iPhone: view +1, tanpa screenshot angka awal; angka kemudian terlihat 8 di Page Editor, selisih dari kunjungan lain tidak dirinci) | ✅ sesuai (laporan lisan; angka awal dan akhir tidak dicatat). Redirect `/go/` ke URL tujuan tautan benar, tombol Kembali normal tanpa loop | Uji pertama hanya membuka halaman (King Rezi). Screenshot: `web-staging-60d7.up.railway.app`, avatar "CG", judul "Cook It Real Good", satu tautan "Uji T-164", footer "Powered by Postific", semua tampil benar di mode gelap. 404 kustom (`/u/<slug tak ada>`) ✅ sesuai (laporan lisan, tanpa screenshot). Kedipan terang saat memuat (KI-104) dan scroll horizontal tidak diamati. Jalur URL tidak terlihat di screenshot |
 
 **Cara mengisi**
 
