@@ -72,7 +72,7 @@ Dokumen ini menkonkretkan trigger deploy dari `deployment-infrastructure.md` (DI
 |-------|---------------|--------|
 | `pull_request` | `staging`, `main` | Quality gates sebelum merge |
 | `push` (opsional) | `staging`, `main` | Re-run gates setelah merge (visibility); **bukan** pengganti Railway deploy |
-| `push` | `staging` | Workflow E2E Playwright terhadap staging setelah deploy (CI-D07, ADR-149, S-002); hijau menjadi required check untuk PR `staging` → `main` |
+| `push` | `staging` | Workflow E2E Playwright terhadap staging setelah deploy (CI-D07, ADR-149, S-002); hijau menjadi required check untuk PR `staging` → `main`. "Setelah deploy" = workflow menunggu status deployment GitHub `Postific / staging` (dari Railway) untuk SHA commit itu berstatus `success` |
 
 Deploy aplikasi **tidak** dipicu dari GitHub Actions (CI-D04).
 

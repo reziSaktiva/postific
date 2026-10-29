@@ -809,29 +809,31 @@ Navigator sudah melarang membaca `PROJECT_STATE` utuh, `COMPLETE_TASK`, dan selu
 
 ### T-173 · Akun test dan setup sesi E2E
 
-`⏳ Not Started` · **Domain** QA · **ADR** ADR-149 · **Spec** S-002 · **Depends** T-172, akun test dari King Rezi
+`✅ Done` (2026-10-29) · **Domain** QA · **ADR** ADR-149 · **Spec** S-002 · **Depends** T-172, akun test dari King Rezi
 **Baca dulu:** `product-discovery/06-engineering/environment-management.md` (ADR-081)
 
-- [ ] **T-173.1** King Rezi menyiapkan akun test khusus; kredensial hanya di `apps/web/.env.local` dan GitHub Secrets (tidak pernah di repo, log, atau chat)
-- [ ] **T-173.2** Proyek setup Playwright: login sekali, simpan `storageState` (gitignored)
-- [ ] **T-173.3** Konvensi isolasi data: awalan `e2e-`, pembersihan di akhir tes, larangan memublikasikan ke Outstand nyata
+- [x] **T-173.1** King Rezi menyiapkan akun test khusus; kredensial hanya di `apps/web/.env.local` dan GitHub Secrets (tidak pernah di repo, log, atau chat). Catatan: akun sudah dibuat King Rezi (2026-10-29), email tercatat di `QA_TEST_ACCOUNTS.md`; `.env.local` sudah diisi King Rezi dan terbukti terbaca (login setup lulus). GitHub Secrets dipakai CI dan diverifikasi saat T-175.2. Aturan larangan publish di "Cook It Real Good" masuk T-173.3
+- [x] **T-173.2** Proyek setup Playwright: login sekali, simpan `storageState` (gitignored). → `e2e/auth.setup.ts` (proyek `setup`, `chrome` bergantung padanya), sesi di `e2e/.auth/user.json`; `playwright.config.ts` memuat `.env.local` walau dijalankan dari root; `smoke.e2e.ts` mengosongkan sesi agar tetap jadi tamu; `session.e2e.ts` membuktikan sesi berlaku. Terverifikasi di staging: 4/4 lulus, `typecheck` dan `lint` bersih
+- [x] **T-173.3** Konvensi isolasi data: awalan `e2e-`, pembersihan di akhir tes, larangan memublikasikan ke Outstand nyata. Larangan eksplisit (King Rezi, 2026-10-29): akun E2E TIDAK boleh memublikasikan post (publish now maupun jadwal yang akan terpublish) di workspace "Cook It Real Good"; aksi lain boleh. → konvensi dan larangan ada di `e2e/support/e2e-data.ts` (`E2E_PREFIX`, `e2eName`); pembersihan data dilakukan per tes di T-174.3
 
 ### T-174 · Tes E2E pertama: Start Page golden path dan regresi
 
-`⏳ Not Started` · **Domain** start-page, QA · **ADR** ADR-149 · **Spec** S-002 · **Depends** T-172, T-173
+`✅ Done` (2026-10-29) · **Domain** start-page, QA · **ADR** ADR-149 · **Spec** S-002 · **Depends** T-172, T-173
 **Baca dulu:** `tickets/v06-start-page-mvp.md` § T-164
 
-- [ ] **T-174.1** Buat halaman, tambah tautan, publish, buka `/u/<slug>` tanpa cookie (200, tanpa redirect `/login`), klik tautan (302), counter di Page Editor naik (gunakan UA browser; filter bot, T-162.1)
-- [ ] **T-174.2** Cek CSP: 0 pelanggaran di `/u/<slug>`; toast tidak menutupi tombol Publish (T-170)
-- [ ] **T-174.3** Bersihkan data `e2e-*` di akhir; jalan di `local` dan `staging`
+- [x] **T-174.1** Buat halaman, tambah tautan, publish, buka `/u/<slug>` tanpa cookie (200, tanpa redirect `/login`), klik tautan (302), counter di Page Editor naik (gunakan UA browser; filter bot, T-162.1)
+- [x] **T-174.2** Cek CSP: 0 pelanggaran di `/u/<slug>`; toast tidak menutupi tombol Publish (T-170)
+- [x] **T-174.3** Bersihkan data `e2e-*` di akhir; jalan di `local` dan `staging`
+
+Hasil: `e2e/start-page.e2e.ts` (3 tes serial). Berjalan di workspace khusus **E2E Sandbox** (akun test juga anggota Cook It Real Good yang punya Start Page asli, dan aplikasi tidak punya fitur hapus halaman): halaman `e2e-start-page` dipakai ulang antar run, hanya tautan `e2e-link-*` yang dibuat dan dihapus tiap run (termasuk sisa run gagal). `auth.setup.ts` membuat/mengaktifkan workspace itu dan memakai ulang sesi tersimpan (sign-in dibatasi 5/60 detik). Catatan: tautan publik berupa `target=_blank`, jadi klik dipantau di level konteks; pengecekan CSP dilewati di `next dev` (overlay dev melanggar `style-src`, T-164.6) dan berlaku di staging; cek toast mobile memakai tombol "Buka menu" setelah animasi sonner selesai. **Terverifikasi:** 8/8 lulus di staging dan 8/8 di local; `typecheck` dan `lint` bersih. `E2E_SLOWMO=700 bun run test:e2e --headed` untuk menonton tes berjalan.
 
 ### T-175 · Workflow CI E2E terhadap staging dan gerbang promosi ke `main`
 
-`⏳ Not Started` · **Domain** CI/CD · **ADR** ADR-149, CI-D07 · **Spec** S-002 · **Depends** T-172, T-173, T-174
+`🟡 In Progress` · **Domain** CI/CD · **ADR** ADR-149, CI-D07 · **Spec** S-002 · **Depends** T-172, T-173 ✅, T-174 ✅
 **Baca dulu:** `product-discovery/06-engineering/cicd-pipeline.md` · `.github/workflows/ci.yml`
 
-- [ ] **T-175.1** Putuskan pemicu "setelah deploy Railway selesai" (event deployment atau polling ke staging); catat di tiket ini
-- [ ] **T-175.2** `.github/workflows/e2e-staging.yml`: `push` ke `staging`, Chrome, GitHub Secrets akun test, artifact trace
+- [x] **T-175.1** Putuskan pemicu "setelah deploy Railway selesai" (event deployment atau polling ke staging); catat di tiket ini. → **Keputusan (2026-10-29): `push` ke `staging` + polling status deployment GitHub.** Railway sudah mengirim deployment `Postific / staging` per SHA (diverifikasi lewat `gh api`, status `in_progress` → `success`). `scripts/wait-railway-deploy.sh` menunggu status `success` untuk SHA commit itu (gagal bila deploy gagal, tidak muncul dalam 5 menit, atau belum selesai dalam 20 menit). `deployment_status` tidak dipilih: event itu hanya jalan bila berkas workflow ada di branch default (`main`), jadi tidak bisa dipakai sebelum promosi pertama
+- [x] **T-175.2** `.github/workflows/e2e-staging.yml`: `push` ke `staging`, Chrome, GitHub Secrets akun test, artifact trace. → dibuat; secret `E2E_USER_EMAIL` dan `E2E_USER_PASSWORD` (variable opsional `E2E_BASE_URL`), artifact `playwright-report` (laporan + trace) 14 hari. Skrip tunggu diuji lokal (SHA sukses → exit 0, SHA tak dikenal → exit 1); YAML lolos Prettier. **Belum terbukti:** run nyata di GitHub, baru terjadi setelah branch ini ter-merge ke `staging` dan secret diisi
 - [ ] **T-175.3** Jadikan hasil hijau required check untuk PR `staging` → `main` (pengaturan GitHub: King Rezi atau atas izin eksplisit)
 
 ### T-176 · Aturan kerja: E2E Playwright masuk definisi "tiket selesai"

@@ -1,0 +1,75 @@
+# Gerbang E2E — CI-D07 (cicd-pipeline.md), ADR-149, S-002.
+# push → staging: tunggu Railway selesai deploy commit ini, lalu jalankan
+# Playwright (Chrome) terhadap staging. Hijau = required check untuk PR
+# staging → main. Deploy tetap dilakukan Railway (CI-D04), bukan workflow ini.
+#
+# Pemicu "setelah deploy selesai" (T-175.1): `push` + polling status
+# deployment GitHub yang dikirim Railway (environment "Postific / staging").
+# `deployment_status` tidak dipakai karena hanya berjalan bila berkasnya sudah
+# ada di branch default (main), jadi tidak bisa dipakai sebelum promosi pertama.
+#
+# Secrets (GitHub → Settings → Secrets): E2E_USER_EMAIL, E2E_USER_PASSWORD.
+# Opsional (Variables): E2E_BASE_URL (default URL staging di bawah).
+
+name: E2E staging
+
+on:
+  push:
+    branches: [staging]
+
+concurrency:
+  group: e2e-staging
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  deployments: read
+
+jobs:
+  e2e:
+    name: E2E staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    env:
+      E2E_BASE_URL: ${{ vars.E2E_BASE_URL || 'https://web-staging-60d7.up.railway.app' }}
+      E2E_USER_EMAIL: ${{ secrets.E2E_USER_EMAIL }}
+      E2E_USER_PASSWORD: ${{ secrets.E2E_USER_PASSWORD }}
+      SKIP_ENV_VALIDATION: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Tunggu deploy Railway untuk commit ini
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: bash scripts/wait-railway-deploy.sh
+
+      - name: Install Chrome
+        working-directory: apps/web
+        run: bunx playwright install --with-deps chrome
+
+      - name: E2E (Playwright, Chrome)
+        run: bun run test:e2e
+
+      - name: Unggah laporan dan trace
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            apps/web/playwright-report/
+            apps/web/test-results/
+          if-no-files-found: ignore
+          retention-days: 14
