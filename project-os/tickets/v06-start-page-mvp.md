@@ -256,7 +256,7 @@ Dua sisa T-164.6 yang tidak bisa diverifikasi tanpa trafik nyata atau perangkat 
 
 ### T-167 · Hardening repository dan tes Start Page (lanjutan code-review PR #200, prioritas rendah)
 
-`✅ Done` (2026-10-29; T-167.1 sampai .5 selesai di kode dan tes, branch `fix/t-167-start-page-hardening`; SQL mentah T-167.1/.3/.4 belum diuji ke Postgres sungguhan dan migrasi belum diterapkan) · **Domain** start-page · **ADR** ADR-144 · **Depends** PR #200 di-merge
+`✅ Done` (2026-10-29; T-167.1 sampai .5 selesai di kode dan tes, branch `fix/t-167-start-page-hardening`; SQL mentah T-167.1/.3/.4 terbukti di Postgres asli (PGlite WASM, 18 pemeriksaan lolos, 2026-10-29), migrasi belum diterapkan ke DB staging/dev dan RLS serta kunci antar-transaksi belum teruji) · **Domain** start-page · **ADR** ADR-144 · **Depends** PR #200 di-merge
 **Baca dulu:** `apps/web/src/lib/repositories/start-page/start-page-write.repository.ts` · T-162.2 · T-162.3
 
 Lahir dari `/code-review` PR #200 (branch `feature/t-070-start-page-public-route`). Tidak ada Critical/High; semuanya hardening, tidak memblokir merge.
