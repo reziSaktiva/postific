@@ -137,6 +137,27 @@ UI **bukan** pengecualian otomatis; King Rezi yang memutuskan setiap
 pengecualian, dan agen mencatat alasannya di tiket. Gerbang CI terhadap
 staging untuk PR `staging` → `main` diatur di CI-D07, bukan di sini.
 
+**Aturan verifikasi: otomatis dulu, manual untuk sisanya.** Sebelum
+menyerahkan verifikasi ke King Rezi sebagai langkah manual, atau menulis
+"tidak bisa dari sesi AI":
+
+1. **Inventarisasi tooling yang ada**, jangan menyimpulkan dari ingatan:
+   setup Playwright (`apps/web/playwright.config.ts`, `apps/web/e2e/`),
+   browser preview, Supabase MCP read-only, Postgres lokal sementara
+   (PGlite) untuk SQL, dan skrip di scratchpad.
+2. **Pecah verifikasi** jadi bagian yang bisa diotomatisasi dan bagian yang
+   benar-benar hanya manual (perangkat fisik, Safari asli, akun atau data
+   produksi). Jalankan bagian otomatis lebih dulu; jangan menunggu manual
+   untuk bagian yang bisa dibuktikan sekarang.
+3. **Aksi yang butuh izin** (menulis ke staging, mengunduh browser,
+   menyentuh DB bersama) tetap ditanyakan ke King Rezi dengan rincian apa
+   yang akan dijalankan. Butuh izin bukan alasan untuk melewati langkahnya.
+4. **Laporkan jujur:** tulis apa yang sudah diotomatisasi, apa hasilnya,
+   alat apa yang dicek dan kenapa tidak cukup untuk sisanya. Uji otomatis
+   berlabel sebagai uji otomatis, bukan pengganti perangkat asli (mis.
+   WebKit Playwright bukan Safari asli). Sisa manual ditulis sebagai
+   runbook dengan tabel hasil di tiketnya.
+
 Jejak sesi adalah commit git. Tidak ada file changelog terpisah (ADR-131).
 
 ---

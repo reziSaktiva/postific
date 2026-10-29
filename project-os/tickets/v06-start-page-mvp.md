@@ -239,7 +239,7 @@ Tiket ini mencatat verifikasi yang belum dilakukan; tanpanya definisi selesai ri
 
 ### T-171 · Pantau rasio view/klik Start Page dan cek Safari asli (lanjutan T-164.6)
 
-`⏳ Not Started` · **Domain** start-page · infra · **ADR** ADR-143 · **Depends** rilis v0.6 ke produksi dengan trafik nyata
+`⏳ Not Started` (2026-10-29: persiapan selesai, yaitu runbook dan query di bawah; **eksekusi menunggu rilis dan perangkat Apple, langkah King Rezi**) · **Domain** start-page · infra · **ADR** ADR-143 · **Depends** rilis v0.6 ke produksi dengan trafik nyata
 **Baca dulu:** T-162.1 · T-164.6
 
 Dua sisa T-164.6 yang tidak bisa diverifikasi tanpa trafik nyata atau perangkat Apple:
@@ -247,25 +247,162 @@ Dua sisa T-164.6 yang tidak bisa diverifikasi tanpa trafik nyata atau perangkat 
 - [ ] **T-171.1** Pantau rasio `view_count` terhadap `click_count` setelah rilis. Bila view jauh di bawah klik, filter Fetch Metadata (T-162.1) terlalu ketat dan perlu ditinjau (keputusan King Rezi tetap fail-closed).
 - [ ] **T-171.2** Cek `/u/<slug>` di Safari asli (iOS dan macOS), termasuk Safari <16.4 dan in-app browser: tampilan, 0 pelanggaran CSP, dan view/klik terhitung. WebKit Playwright (sesi T-164.6) sudah lolos tetapi bukan Safari sungguhan.
 
+#### Persiapan (2026-10-29)
+
+Hanya dokumentasi. Tidak ada query yang dijalankan ke staging; query di bawah divalidasi di Postgres lokal sementara (PGlite) dengan data tiruan, termasuk di dalam `BEGIN READ ONLY`. Data di staging hanya data uji (beberapa kunjungan), jadi rasionya belum bermakna; jalankan query di produksi setelah ada trafik nyata.
+
+##### T-171.1 · Metode hitung rasio view/klik
+
+Counter bersifat kumulatif (tanpa deret waktu, dan tanpa dedup atau rate limit karena T-162.4 belum dikerjakan), jadi ada dua cara baca: **snapshot** (angka total sekarang) dan **delta** (selisih dua snapshot).
+
+**Aturan baca.** Klik hampir selalu didahului view, karena pengunjung harus membuka `/u/<slug>` untuk melihat tautan. Jadi `klik > view` pada halaman yang cukup ramai berarti view kurang terhitung, yaitu filter Fetch Metadata (T-162.1) terlalu ketat. Rasio klik per view yang wajar untuk link-in-bio jauh di bawah 1.
+
+| Kondisi (halaman dengan klik >= N)          | Arti                                                                               | Tindakan                                                                                        |
+| ------------------------------------------- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `clicks_per_view` < 1                       | Normal                                                                             | Tidak ada                                                                                       |
+| `clicks_per_view` > 1 pada beberapa halaman | View kurang terhitung (filter terlalu ketat) atau tautan `/go/` dibagikan langsung | Cek delta dan jenis perangkat pengunjung; tinjau T-162.1. Keputusan King Rezi tetap fail-closed |
+| Banyak halaman dengan `total_clicks` = 0    | Belum ada klik, bukan masalah filter                                               | Tunggu trafik                                                                                   |
+
+**Yang menunggu keputusan King Rezi:** nilai ambang `N` (jumlah klik minimum sebelum rasio dianggap bermakna). Query di bawah memakai **N = 30 sebagai usulan** (ubah di klausa `FILTER`).
+
+**Batasan data:** menghapus tautan ikut menghapus hitungan kliknya (jadi `total_clicks` bisa turun); kunjungan pemilik halaman sendiri ikut terhitung; klik dari tautan `/go/` yang dibagikan langsung tanpa membuka halaman bisa membuat klik > view secara sah. Karena itu satu angka tidak cukup: bandingkan beberapa halaman dan beberapa snapshot sebelum menyimpulkan.
+
+Query 1, per halaman (read-only, jalankan di `psql` atau `execute_sql` pada DB produksi dengan persetujuan King Rezi):
+
+```sql
+SELECT sp.slug,
+       sp.view_count,
+       COALESCE(SUM(l.click_count), 0)::bigint AS total_clicks,
+       CASE WHEN COALESCE(SUM(l.click_count), 0) > 0
+            THEN round(COALESCE(SUM(l.click_count), 0)::numeric / NULLIF(sp.view_count, 0), 2)
+       END AS clicks_per_view
+  FROM start_page_pages sp
+  LEFT JOIN start_page_links l ON l.start_page_id = sp.id
+ WHERE sp.is_published = true
+ GROUP BY sp.id, sp.slug, sp.view_count
+ ORDER BY total_clicks DESC;
+```
+
+Query 2, ringkasan semua halaman published:
+
+```sql
+SELECT count(*) AS halaman_published,
+       SUM(v.view_count)::bigint AS total_views,
+       SUM(v.total_clicks)::bigint AS total_clicks,
+       round(SUM(v.total_clicks)::numeric / NULLIF(SUM(v.view_count), 0), 2) AS clicks_per_view,
+       count(*) FILTER (WHERE v.total_clicks >= 30 AND v.total_clicks > v.view_count) AS halaman_dicurigai
+  FROM (
+    SELECT sp.id, sp.view_count,
+           COALESCE((SELECT SUM(l.click_count) FROM start_page_links l WHERE l.start_page_id = sp.id), 0) AS total_clicks
+      FROM start_page_pages sp
+     WHERE sp.is_published = true
+  ) v;
+```
+
+**Delta:** jalankan Query 1 pada dua waktu (mis. 7 hari berselang), catat hasilnya di tiket ini, lalu bandingkan `selisih view` dengan `selisih klik` per halaman. Tabel catatan:
+
+| Tanggal | slug | view_count | total_clicks | clicks_per_view | Catatan |
+| ------- | ---- | ---------- | ------------ | --------------- | ------- |
+| -       | -    | -          | -            | -               | -       |
+
+##### T-171.2 · Runbook cek Safari asli
+
+**Prasyarat:** PR 217 sudah di-merge dan ter-deploy ke staging (agar 404 kustom T-166 ada); migrasi T-167.4 sudah diterapkan; ada halaman published untuk uji (staging: `cook-it-real-good`, data uji sengaja dibiarkan, T-164.5). Base URL staging: `https://web-staging-60d7.up.railway.app`.
+
+**Matriks perangkat** (isi kolom hasil setelah diuji):
+
+| Perangkat                                              | Yang diharapkan                                                                                                        | Hasil |
+| ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- | ----- |
+| Safari macOS (terbaru)                                 | Tampil benar, 0 pelanggaran CSP, view +1 per muat, klik +1                                                             | -     |
+| Safari iOS (iPhone, terbaru)                           | Sama seperti macOS; cek juga mode gelap iOS                                                                            | -     |
+| Safari < 16.4 (perangkat lama, mis. iOS 15/16.3)       | Tampil benar dan klik terhitung; **view +0 itu perilaku yang diterima** (tidak ada Fetch Metadata, T-162.1), bukan bug | -     |
+| In-app browser (Instagram, Facebook, TikTok, WhatsApp) | Tampil benar dan klik terhitung; view bisa +0 (sebagian tidak mengirim Fetch Metadata). Catat per aplikasi             | -     |
+
+**Langkah per perangkat:**
+
+1. **Snapshot awal.** Catat `view_count` halaman dan `click_count` tautan uji (Page Editor di `/start-page` menampilkan kunjungan dan klik per tautan; atau Query 1 bila diizinkan).
+2. **Buka `/u/<slug>`** di tab baru/privat. Cek tampilan: avatar, judul, bio, semua tautan aktif, footer "Powered by Postific", tidak ada scroll horizontal, tema sesuai preset. Ulangi dengan mode gelap perangkat.
+3. **Konsol.** macOS: menu Develop > Show Web Inspector (aktifkan Develop di Settings > Advanced). iOS: sambungkan ke Mac, Safari macOS > Develop > nama perangkat > halaman. Harapan: 0 pesan `Refused to apply inline style` / `Refused to execute inline script` / `Content Security Policy`.
+4. **View.** Muat ulang sekali lalu cek Page Editor: `view_count` naik 1 per muat (Safari < 16.4 dan sebagian in-app browser: tidak naik, itu diterima).
+5. **Klik.** Ketuk satu tautan: berpindah ke tujuan lewat `/u/<slug>/go/<linkId>` (302), tombol Kembali kembali ke halaman tanpa loop, `click_count` tautan itu naik 1.
+6. **404.** Buka `/u/<slug-yang-pasti-tidak-ada>`: layar 404 kustom (ikon pencarian, "Halaman tidak ditemukan"), tab Network menunjukkan status 404, konsol 0 pelanggaran CSP.
+7. **Catat hasil** di matriks, lengkap dengan versi OS dan Safari.
+
+##### Hasil uji staging, langkah 1 sampai 5 (diisi King Rezi, dicatat AI)
+
+Uji dijalankan di staging (`https://web-staging-60d7.up.railway.app`) pada halaman published `cook-it-real-good`, **sebelum PR 217 di-merge**, jadi **langkah 6 (404 kustom) belum bisa diuji** dan tercatat di bawah sebagai tertunda. Isi satu baris per perangkat. Penanda: ✅ sesuai harapan, ❌ tidak sesuai (jelaskan di Catatan), `n/a` tidak diuji.
+
+| Tanggal | Perangkat dan OS | Safari/aplikasi (versi) | 2 Tampilan (terang/gelap) | 3 Konsol: pelanggaran CSP | 4 View (awal → akhir) | 5 Klik (awal → akhir) | Catatan |
+| ------- | ---------------- | ----------------------- | ------------------------- | ------------------------- | --------------------- | --------------------- | ------- |
+| -       | -                | -                       | -                         | -                         | -                     | -                     | -       |
+
+**Cara mengisi**
+
+- **Tampilan:** ✅ bila avatar, judul, bio, semua tautan aktif, dan footer "Powered by Postific" tampil benar, tanpa scroll horizontal.
+- **Konsol:** tulis jumlah pesan pelanggaran CSP (`Refused to apply inline style`, `Refused to execute inline script`, `Content Security Policy`); harapan 0. Bila tidak bisa membuka Web Inspector (mis. in-app browser), tulis `n/a`.
+- **View:** `view_count` sebelum dan sesudah satu kali muat halaman (contoh `5 → 6`). Safari < 16.4 dan sebagian in-app browser memang boleh `+0` (T-162.1).
+- **Klik:** `click_count` tautan yang diketuk, sebelum dan sesudah (contoh `2 → 3`). Cek juga tombol Kembali tidak memutar ulang (tanpa loop).
+- **Sumber angka:** Page Editor di `/start-page` (kunjungan di kepala halaman, klik per tautan di Link List).
+
+**Tertunda sampai PR 217 ter-deploy ke staging:** langkah 6 (404 kustom `/u/<slug tak ada>`: layar 404 kustom, status 404, 0 pelanggaran CSP). **Tertunda sampai ada trafik produksi:** T-171.1.
+
+##### Hasil uji otomatis Playwright di staging (2026-10-29)
+
+**Label: uji otomatis, bukan Safari asli.** Dijalankan lewat skrip sementara (sudah dihapus, tidak ada di repo) terhadap `https://web-staging-60d7.up.railway.app`, halaman `e2e-start-page` di workspace E2E Sandbox (akun test E2E), tanpa cookie (tamu) dan dengan UA bawaan tiap browser. Tautan uji dihapus di akhir tiap run; counter halaman itu naik beberapa angka. Staging belum memuat PR 217, jadi 404 yang diuji masih 404 bawaan Next.
+
+| Mesin (versi)                          | 200 + tautan tampil | CSP `/u/<slug>` (desktop / 375px gelap) | Scroll horizontal | Klik → tujuan                                                                | View (2 muat) | Klik | 404 |
+| -------------------------------------- | ------------------- | --------------------------------------- | ----------------- | ---------------------------------------------------------------------------- | ------------- | ---- | --- |
+| Chromium (Chrome 156)                  | ✅                  | 0 / 0                                   | tidak ada         | ✅ 302 dari `/go/` ke tujuan                                                 | +2            | +1   | 404 |
+| Firefox 157                            | ✅                  | 0 / 0                                   | tidak ada         | ✅ 302                                                                       | +2            | +1   | 404 |
+| WebKit 27.2 (Playwright, bukan Safari) | ✅                  | 0 / 0                                   | tidak ada         | ✅ berujung di tujuan; status 302 tidak teramati (batasan alat, lihat bawah) | +2            | +1   | 404 |
+
+**Yang terbukti:** view dan klik terhitung di Chromium, Firefox, dan WebKit modern, jadi header Fetch Metadata (T-162.1) terkirim oleh ketiganya dan filter tidak terlalu ketat untuk mesin-mesin itu. Halaman tampil benar tanpa scroll horizontal pada desktop dan 375px. 0 pelanggaran CSP pada halaman publik.
+
+**Batasan alat (jangan dibaca sebagai bug aplikasi):**
+
+- Screenshot Playwright WebKit menyuntik `<style>` yang diblokir CSP (`style-src-elem`, `sample` kosong). Terbukti terpisah: tanpa screenshot 0 pelanggaran, dengan screenshot 1, hanya di WebKit; Chromium dan Firefox 0 dengan atau tanpa screenshot. Baca CSP sebelum screenshot.
+- Playwright WebKit tidak memunculkan status `/go/` (302) maupun rantai redirect, baik di tab baru maupun tab yang sama. Redirect terbukti dari hasil akhirnya (tab mendarat di tujuan, klik terhitung), bukan dari status 302 itu sendiri.
+- 404 bawaan Next masih menimbulkan pelanggaran CSP `style-src-elem` (1 sampai 2 entri per muat, cara hitung berbeda antar browser). Itu yang diperbaiki T-166 di PR 217; belum ada di staging.
+
+**Temuan baru (perlu keputusan King Rezi): kedipan terang di mode gelap.** Pengunjung dengan OS mode gelap dan tanpa cookie `theme` (hampir semua pengunjung halaman publik) melihat halaman dilukis **terang dulu**, lalu kelas `dark` pada `<html>` baru ditambahkan, lalu kartu dan lencana (`transition-colors`) memudar dari putih ke gelap. Latar `body` berganti seketika, jadi sesaat ada kartu putih di atas latar gelap, dan teks putih "Postific" di lencana putih nyaris tak terbaca. Diukur per frame di tiga mesin:
+
+| Mesin    | Kelas `dark` terpasang                                       | Pemudaran lencana putih → gelap |
+| -------- | ------------------------------------------------------------ | ------------------------------- |
+| Chromium | ±283 ms setelah load                                         | ±283 sampai 431 ms              |
+| Firefox  | ±890 ms (jaringan staging lebih lambat)                      | ±890 sampai 1036 ms             |
+| WebKit   | sudah gelap di sampel pertama (±217 ms), lencana masih putih | ±217 sampai 353 ms              |
+
+Mode terang tidak terpengaruh (1 keadaan, tanpa perubahan). Ini bertentangan dengan catatan di `app/layout.tsx` ("tidak ada flash tema salah", ADR-055, amendemen T-039) untuk pengunjung tanpa cookie, karena skrip `theme-system-default` (`beforeInteractive`) tampaknya berjalan setelah lukisan pertama. Penyebab pastinya **belum diselidiki**; yang terukur hanya urutan dan waktunya. Kemungkinan sudah ada sejak sebelum PR 217 dan berlaku di seluruh aplikasi, bukan hanya halaman publik (belum diukur di halaman `(app)`). Dicatat sebagai **KI-104** dengan tiket **T-177** di `known-issues.md` (2026-10-29, atas keputusan King Rezi); belum diperbaiki. Cek di Safari asli (iOS gelap) tetap diperlukan: amati kedipan ini saat memuat `/u/<slug>`.
+
+**Kriteria lulus:** tampilan benar, 0 pelanggaran CSP, klik terhitung di semua perangkat; view terhitung di Safari >= 16.4. **Bila gagal:** temuan baru dicatat sebagai Known Issue di `known-issues.md` dengan tiketnya (ADR-134), bukan di tiket ini; jangan melonggarkan CSP atau filter Fetch Metadata tanpa ADR baru.
+
+**Tidak bisa dikerjakan dari sesi AI:** mesin pengembangan hanya punya Command Line Tools (tanpa Xcode dan Simulator iOS) dan browser bawaan sesi berbasis Chromium, jadi Safari sungguhan hanya bisa diuji King Rezi. WebKit Playwright (T-164.6) sudah lolos tetapi bukan Safari sungguhan.
+
 ### T-166 · 404 publik kustom untuk `/u/[slug]` tanpa inline style
 
-`⏳ Not Started` · **Domain** start-page · UI · **ADR** ADR-144 · **Depends** T-160 ✅, rancangan artifact
+`✅ Done` (2026-10-29; rancangan dikonfirmasi King Rezi, kode di PR 217 `fix/start-page-mvp-completion`; sisa verifikasi: halaman draft/slug published, Firefox/WebKit/Safari, staging) · **Domain** start-page · UI · **ADR** ADR-144 · **Depends** T-160 ✅, rancangan artifact ✅
 **Baca dulu:** `06-engineering/rendering-strategy.md` § RS-D08 · `context/ctx-design.md`
 
 404 bawaan Next di `/u/<slug tak ada>` menyuntik `<style>` tanpa nonce (1 pelanggaran `style-src-elem`, kosmetik). Buat `app/u/[slug]/not-found.tsx` tanpa inline style. **Gate UI (aturan #10):** butuh rancangan di artifact Postific dan konfirmasi King Rezi sebelum kode.
 
+- [x] **T-166.1** (2026-10-29) Rancangan dibuat Neymar: layar `ScreenStartPageNotFound` di artifact Postific (versi 25; kartu `project/components/ScreenStartPageNotFound/preview.html`, template `project/templates/start-page-not-found.html`) dan entri "Start Page: 404 publik (T-166)" di galeri Postific Design Review (versi 7).
+- [x] **T-166.2** (2026-10-29) **Dikonfirmasi King Rezi apa adanya:** struktur meniru `StartPageProfile` (`main` > `article`) dengan footer badge "Powered by Postific" seperti Opsi B; komponen `Empty` shadcn dengan ikon pencarian `Search01Icon`; judul "Halaman tidak ditemukan"; deskripsi "Alamat ini tidak mengarah ke halaman yang tersedia. Periksa kembali tautannya, atau hubungi orang yang membagikannya."; **tanpa tautan atau tombol ke beranda**; satu rancangan tanpa toggle. Copy sama untuk slug tidak ada dan halaman belum di-publish (status draft tidak boleh bocor). Catatan a11y: `EmptyTitle` merender `div`, jadi `not-found.tsx` perlu satu `h1` dan landmark `main`.
+- [x] **T-166.3** (2026-10-29) Implementasi `app/u/[slug]/not-found.tsx` tanpa inline style (Mark UI Engineer), dipanggil lewat `notFound()` dari rute publik.
+- [x] **T-166.4** (2026-10-29) Verifikasi di browser: 0 pelanggaran CSP `style-src-elem` pada `/u/<slug tak ada>`, tampilan 375px dan desktop, mode terang dan gelap, status HTTP tetap 404. **Hasil:** `not-found.tsx` dan `not-found.test.tsx` (4 tes) ditambah oleh Mark. Build produksi lokal (`next build` + `next start`): `/u/<slug tak ada>` 404 dengan 0 pelanggaran CSP dan tanpa tag `<style>`; `next dev` 18 pelanggaran `style-src` dari overlay dev Next (sama seperti T-164.6). Tampilan 375px dan desktop, terang dan gelap, dicek di dev. **Catatan:** heading memakai `role="heading" aria-level={1}` pada `EmptyTitle` (tidak ada tag `<h1>` karena `EmptyTitle` merender `div`). **Belum diverifikasi:** halaman draft dan slug published di browser, Firefox/WebKit/Safari, staging Railway. T-166 tetap 🟡 sampai T-166.5 (sinkron `04-ux/`) diputuskan.
+- [x] **T-166.5** (2026-10-29) Sinkronisasi `product-discovery/04-ux/` untuk layar 404 publik (manual/on-request, ADR-140): `information-architecture.md` § 5 Start Page (paragraf "Halaman publik tidak tersedia"), baris pemetaan fitur, dan keputusan **IA-D12**. `key-screen-patterns.md` tidak diubah (KSP-D11: Start Page bukan layar kritis). Tidak ada nilai token yang berubah, jadi `design-tokens.md` tidak disentuh.
+
 ### T-167 · Hardening repository dan tes Start Page (lanjutan code-review PR #200, prioritas rendah)
 
-`⏳ Not Started` · **Domain** start-page · **ADR** ADR-144 · **Depends** PR #200 di-merge
+`✅ Done` (2026-10-29; T-167.1 sampai .5 selesai di kode dan tes, branch `fix/t-167-start-page-hardening`; SQL mentah T-167.1/.3/.4 terbukti di Postgres asli (PGlite WASM, 18 pemeriksaan lolos, 2026-10-29), migrasi belum diterapkan ke DB staging/dev dan RLS serta kunci antar-transaksi belum teruji) · **Domain** start-page · **ADR** ADR-144 · **Depends** PR #200 di-merge
 **Baca dulu:** `apps/web/src/lib/repositories/start-page/start-page-write.repository.ts` · T-162.2 · T-162.3
 
 Lahir dari `/code-review` PR #200 (branch `feature/t-070-start-page-public-route`). Tidak ada Critical/High; semuanya hardening, tidak memblokir merge.
 
-- [ ] **T-167.1** `addLink` (`start-page-write.repository.ts`): `position` dari `MAX+1` dan batas 50 tautan dicek tanpa lock. Dua tambah bersamaan bisa menghasilkan posisi kembar atau 51 tautan sehingga reorder gagal. Perbaikan: hitung dan insert dalam satu transaksi dengan `SELECT ... FOR UPDATE` pada baris halaman; sekaligus kunci race `deleteLink`/`reorderLinks` (T-162.2 menerima race ini sebagai LOW).
-- [ ] **T-167.2** `addLink` di service memuat seluruh halaman dan tautan lewat `findByWorkspace` hanya untuk hitung/cek. Ganti dengan count/exists di repository dalam transaksi yang sama (digabung T-167.1).
-- [ ] **T-167.3** `reorderLinks` dan pemadatan `deleteLink` melakukan sampai 50 `UPDATE` berurutan. Jadikan satu query (`UPDATE ... FROM unnest/VALUES`).
-- [ ] **T-167.4** Klik dihitung di fungsi SQL `start_page_record_click_and_get_url` sebelum URL divalidasi ulang oleh `sanitizeLinkUrl`. URL seperti `https://user:pw@host/` lolos regex SQL tapi ditolak aplikasi, sehingga klik terhitung lalu 404. Hanya mungkin untuk baris manual/lama. Selaraskan validasi SQL dengan `sanitizeLinkUrl` atau terima (terkait F4 di T-162).
-- [ ] **T-167.5** Tes interaksi komponen (keyboard reorder `LinkListCard`, timer `ShareCard`): `StartPageEditor.test.tsx` hanya memakai `renderToStaticMarkup`. Butuh setup testing interaksi (mis. `@testing-library`) bila diinginkan.
+- [x] **T-167.1** (2026-10-29) `addLink` (`start-page-write.repository.ts`): `position` dari `MAX+1` dan batas 50 tautan dicek tanpa lock. Dua tambah bersamaan bisa menghasilkan posisi kembar atau 51 tautan sehingga reorder gagal. Perbaikan: hitung dan insert dalam satu transaksi dengan `SELECT ... FOR UPDATE` pada baris halaman; sekaligus kunci race `deleteLink`/`reorderLinks` (T-162.2 menerima race ini sebagai LOW). **Hasil:** helper `lockPage` (`SELECT ... FOR UPDATE` pada baris halaman) dipakai ketiganya dalam satu transaksi.
+- [x] **T-167.2** (2026-10-29) `addLink` di service memuat seluruh halaman dan tautan lewat `findByWorkspace` hanya untuk hitung/cek. Ganti dengan count/exists di repository dalam transaksi yang sama (digabung T-167.1). **Hasil:** `addLink` repository menerima `maxLinks` dan mengembalikan `{status: "added" | "no_page" | "limit_reached"}`; service tidak lagi memanggil `findByWorkspace`.
+- [x] **T-167.3** (2026-10-29) `reorderLinks` dan pemadatan `deleteLink` melakukan sampai 50 `UPDATE` berurutan. Jadikan satu query (`UPDATE ... FROM unnest/VALUES`). **Hasil:** `reorderLinks` memakai satu `UPDATE ... FROM unnest(uuid[], int[])`; pemadatan `deleteLink` satu `UPDATE ... row_number()` yang hanya menulis baris berubah.
+- [x] **T-167.4** (2026-10-29) Klik dihitung di fungsi SQL `start_page_record_click_and_get_url` sebelum URL divalidasi ulang oleh `sanitizeLinkUrl`. URL seperti `https://user:pw@host/` lolos regex SQL tapi ditolak aplikasi, sehingga klik terhitung lalu 404. Hanya mungkin untuk baris manual/lama. Selaraskan validasi SQL dengan `sanitizeLinkUrl` atau terima (terkait F4 di T-162). **Hasil:** migrasi baru `20261029100000_t167_4_start_page_url_userinfo` menambah `!~* '^https?://[^/?#]*@'` di fungsi klik dan fungsi baca publik. **Belum diterapkan ke DB manapun** (staging/dev), ikuti alur migrasi ADR-081.
+- [x] **T-167.5** (2026-10-29) Tes interaksi komponen (keyboard reorder `LinkListCard`, timer `ShareCard`): `StartPageEditor.test.tsx` hanya memakai `renderToStaticMarkup`. Butuh setup testing interaksi (mis. `@testing-library`) bila diinginkan. **Hasil:** `@testing-library/react`, `@testing-library/dom`, `@testing-library/user-event`, dan `jsdom` dipasang sebagai devDependencies root (keputusan King Rezi, 2026-10-29). Environment vitest tetap `node`; tes komponen memilih jsdom lewat docblock `// @vitest-environment jsdom`. Tes baru: `LinkListCard.test.tsx` (reorder keyboard, fokus kembali ke handle, pengumuman a11y, batas atas/bawah, revert saat gagal, drag-and-drop) dan `ShareCard.test.tsx` (timer "Disalin!" 2 detik, restart timer, bersih saat unmount, fallback origin, clipboard gagal, toggle publish). Diuji mutasi: menghapus cleanup timer dan menghapus `focus()` sama-sama membuat tes gagal.
 
 ### T-170 · Toast tidak menutupi tombol aksi di `/start-page`
 

@@ -125,11 +125,12 @@ daftar/detail task di sini** (ADR-062, ADR-131).
 
 > **ID `KI-XXX`** (ADR-066, ADR-067, ADR-131, ADR-132). ID tidak didaur ulang. Setiap KI yang masih terbuka punya tiket. Baris di sini hanya menunjuk tiket itu. KI keluar dari daftar ini saat tiket penutupnya selesai.
 
-| KI     | Status                                                                                             | Tiket                                 |
-| ------ | -------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| KI-015 | Sebagian Resolved — sisa: env Google OAuth belum diisi                                             | [T-119](tickets/known-issues.md)      |
-| KI-028 | Open — environment production belum ada                                                            | [T-088](tickets/v10-public-launch.md) |
-| KI-103 | Open — project Claude Design lama belum dilepas dan isinya belum diverifikasi (tenggat 2026-12-14) | [T-158](tickets/known-issues.md)      |
+| KI     | Status                                                                                                                                | Tiket                                 |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| KI-015 | Sebagian Resolved — sisa: env Google OAuth belum diisi                                                                                | [T-119](tickets/known-issues.md)      |
+| KI-028 | Open — environment production belum ada                                                                                               | [T-088](tickets/v10-public-launch.md) |
+| KI-103 | Open — project Claude Design lama belum dilepas dan isinya belum diverifikasi (tenggat 2026-12-14)                                    | [T-158](tickets/known-issues.md)      |
+| KI-104 | Open — halaman dilukis terang dulu lalu memudar ke gelap untuk pengunjung mode gelap tanpa cookie `theme` (penyebab belum diselidiki) | [T-177](tickets/known-issues.md)      |
 
 KI yang tiketnya sudah selesai dikeluarkan dari daftar ini pada 2026-10-16 (ADR-132): KI-044 (T-108), KI-046 (T-007.7), KI-049 dan KI-063 (T-107), KI-058 (T-109), KI-086 (ADR-127), KI-088 (T-090), KI-090 (T-113). Pada 2026-10-19: KI-027 (T-008), KI-033 (T-120), KI-050 (T-121), KI-089 (T-123), KI-091 (T-124). Pada 2026-10-21: KI-098 (T-138, Resolved — fix escape HTML diimplementasikan + review + QA PASS). Pada 2026-10-22: KI-097 (T-137, Resolved — adapter SMTP staging selesai, env Railway staging diisi King Rezi & verifikasi e2e PASS); KI-094 (T-134, Resolved — verifikasi E2E disconnect→recompute PASS dengan akun real, YouTube `@cookitrealgood` sengaja dibiarkan disconnected); KI-095 (T-135, Resolved — verifikasi window kalender bulan PASS via query SQL dengan akun real). Pada 2026-10-23 (tiket Done): KI-084 (T-123, ikut KI-089), KI-092 (T-127), KI-093 (T-130), KI-096 (T-136), KI-099 (T-139), KI-100 (T-140), KI-101 (T-141). Pada 2026-10-23: KI-102 (T-143, Resolved atas pernyataan King Rezi; bukti siklus cron 2026-10-24 belum terlihat di DB saat dicek, buka ulang bila hasilnya berbeda). Pada 2026-10-23: KI-053 (T-122, Resolved atas pernyataan King Rezi setelah uji manual email A vs email B; tidak ada bukti otomatis yang diverifikasi).
 
