@@ -9,3 +9,5 @@ project-manager
 .claude
 apps/web/next-env.d.ts
 apps/web/src/generated/**
+apps/web/test-results
+apps/web/playwright-report

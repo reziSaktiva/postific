@@ -19,6 +19,7 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "bun run --cwd apps/web test:e2e",
     "db:generate": "bun run --cwd apps/web db:generate",
     "db:migrate": "bun run --cwd apps/web db:migrate",
     "db:deploy": "bun run --cwd apps/web db:deploy",

@@ -35,10 +35,11 @@ Dokumen ini menkonkretkan perintah yang disebut di `cicd-pipeline.md` (`bun run 
 | DX-D01 | Lint + format | **ESLint** (lint) + **Prettier** (format) — config monorepo di root |
 | DX-D02 | Pre-commit | **Lefthook** + **lint-staged** — jalankan lint/format hanya pada file staged |
 | DX-D03 | Test runner | **Vitest** — unit/domain tests; dipanggil via `bun run test` |
-| DX-D04 | Script root | Seragam: `dev`, `build`, `typecheck`, `lint`, `lint:fix`, `format`, `format:check`, `test`, `test:watch`, `db:generate`, `db:migrate`, `db:deploy` |
+| DX-D04 | Script root | Seragam: `dev`, `build`, `typecheck`, `lint`, `lint:fix`, `format`, `format:check`, `test`, `test:watch`, `test:e2e`, `db:generate`, `db:migrate`, `db:deploy` |
 | DX-D05 | Editor | Format on save Prettier + ESLint fix disarankan; bukan wajib di CI selain perintah eksplisit |
 | DX-D06 | Vitest config | `vitest.config.ts` di **root** |
 | DX-D07 | Lefthook install | Script root `prepare` → `lefthook install` |
+| DX-D08 | Test E2E *(ADR-149)* | **Playwright** (Chrome terpasang) — `bun run test:e2e`; config `apps/web/playwright.config.ts`, tes `apps/web/e2e/*.e2e.ts`; Vitest tidak memuat `e2e/` |
 
 ---
 
@@ -138,6 +139,15 @@ Konfigurasi: `vitest.config.ts` di **root** monorepo (M7) — alias `@postific/s
 
 ---
 
+## Tes E2E (DX-D08, ADR-149, S-002)
+
+* Perintah: `bun run test:e2e` dari root. Target dipilih lewat `E2E_BASE_URL`: kosong = local (`http://localhost:3000`, `next dev` dijalankan bila belum ada); isi URL staging untuk menguji staging.
+* Memakai Google Chrome yang terpasang (`channel: "chrome"`), tidak mengunduh browser. Hasil run (`test-results/`, `playwright-report/`) dan sesi login (`e2e/.auth/`) di-gitignore.
+* Local dan staging berbagi satu DB (ADR-081): tes hanya menyentuh data milik akun test. Akun test dan konvensi data ada di T-173.
+* Berkas tes bernama `*.e2e.ts` (bukan `*.spec.ts`) agar tidak tertangkap Vitest.
+
+---
+
 # Workspace Scripts (DX-D04)
 
 Acuan root `package.json` (melengkapi `monorepo-setup.md`):
@@ -154,6 +164,7 @@ Acuan root `package.json` (melengkapi `monorepo-setup.md`):
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "bun run --cwd apps/web test:e2e",
     "db:generate": "bun run --cwd apps/web db:generate",
     "db:migrate": "bun run --cwd apps/web db:migrate",
     "db:deploy": "bun run --cwd apps/web db:deploy"
@@ -227,6 +238,7 @@ Jangan arahkan `.env.local` ke project staging/prod (EM-D02, EM-D06).
 | DX-D05 | Editor format-on-save disarankan, bukan digate ketat di awal | DX lokal tanpa memblokir bootstrap | Wajib `format:check` di setiap PR sejak hari pertama |
 | DX-D06 | `vitest.config.ts` di root | Alias monorepo (`@postific/shared`, `@/`) satu sumber; CI memanggil `bun run test` dari root | Config hanya di `apps/web` |
 | DX-D07 | Lefthook via `prepare` di root | Hook terpasang otomatis setelah `bun install` | Hanya dokumentasikan `bunx lefthook install` manual |
+| DX-D08 | Playwright (Chrome terpasang) untuk E2E (ADR-149) | Tes bisa diulang, merekam trace, memakai Chrome yang sudah ada tanpa unduhan browser; berkas `*.e2e.ts` terpisah dari Vitest | Cypress (ekosistem terpisah); tetap manual lewat browser pane (tidak bisa diulang, bukan gerbang) |
 
 ---
 

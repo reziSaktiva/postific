@@ -5,7 +5,7 @@
 **Tujuan rilis:** Menyediakan halaman publik untuk kebutuhan bio link.
 **Baseline rilis:** `product-discovery/02-product/release-roadmap.md` → v0.6
 
-**Status rilis (2026-10-28):** T-070 sampai T-074 ✅ Done, kode dalam satu PR #200 (branch `feature/t-070-start-page-public-route`, belum di-merge). T-159 ✅ Done di branch `feature/t-159-start-page-avatar-upload` (belum di-merge). Review Ridwan PASS, QA Najwa PASS untuk T-070–T-074. **Belum terverifikasi di staging:** migrasi T-070, T-072, T-074 belum di-apply di Supabase; lihat T-164. Keputusan: ADR-142, ADR-143, ADR-144. Tiket lanjutan yang masih terbuka: T-163, T-164, T-166, T-167 (T-162.4 butuh ADR).
+**Status rilis (2026-10-28):** T-070 sampai T-074 ✅ Done, kode di PR #200 (ter-merge ke `staging`). T-159 ✅ Done (PR #203, ter-merge). Review Ridwan PASS, QA Najwa PASS untuk T-070–T-074. **Terverifikasi di staging** (T-164 ✅, 2026-10-28): keempat migrasi sudah ter-apply di Supabase. Keputusan: ADR-142, ADR-143, ADR-144. Tiket lanjutan yang masih terbuka: T-166, T-167, T-171 (T-162.4 butuh ADR).
 
 **Kedalaman dokumen ini:** T-070 sampai T-074 dicatat per hasil (retrospektif, bukan rencana). ID task dikunci agar bisa dirujuk.
 
@@ -53,7 +53,7 @@ Service + repository, plus keputusan arsitektur: di mana route publik hidup, bag
   policy `app_runtime` melemahkan isolasi tenant (F2).
   **Belum terverifikasi:** migrasi belum di-apply di Supabase staging/asli; SQL
   hanya diuji di Postgres 16 lokal dengan role stub; tipe kolom hasil `$queryRaw`
-  di DB nyata belum dicek. Cek saat migrasi pertama kali di-apply di staging.
+  di DB nyata belum dicek. Cek saat migrasi pertama kali di-apply di staging. _(Terjawab di T-164, 2026-10-28: migrasi ter-apply dan tipe hasil `$queryRaw` terbukti benar.)_
   Catatan LOW: F3 tes integrasi DB belum ada; F4 `REVOKE EXECUTE` dari
   `anon`/`authenticated` sudah diterapkan (keputusan King Rezi 2026-10-26); efeknya
   di Supabase asli baru terbukti saat apply di staging.
@@ -192,7 +192,7 @@ Ganti input URL https dengan unggah file. Supabase JS client hanya untuk Storage
 - [x] Header CSP statis di `next.config.ts` dihapus; `X-Frame-Options` dan header lain tetap.
 - [x] `Toaster` sonner dipindah dari `Providers` root ke `(app)/layout` lewat `AppToaster` (halaman auth, onboarding, dan publik tidak punya Toaster; semua pemakai `toast()` ada di `(app)`).
 
-**Terverifikasi:** `next build` + `next start` + `curl` + Chromium: 0 pelanggaran di `/u/<slug valid>`. **Belum:** `next dev`, Railway/staging (T-164), Firefox/Safari, toast di halaman `(app)` nyata lewat session.
+**Terverifikasi:** `next build` + `next start` + `curl` + Chromium: 0 pelanggaran di `/u/<slug valid>`. **Belum:** `next dev`, Railway/staging (T-164), Firefox/Safari, toast di halaman `(app)` nyata lewat session. _(Semuanya sudah dikerjakan di T-164.6, 2026-10-28; sisa Safari asli dan pemantauan rasio di T-171.)_
 **Batasan (diterima King Rezi):** 404 bawaan Next di `/u/<slug tak ada>` menyuntik `<style>` tanpa nonce, 1 pelanggaran `style-src-elem` (kosmetik, tanpa risiko keamanan). Lanjutan: T-166.
 **Temuan code-review dibantah (PR #200):** "script tema inline tidak ber-nonce" dibantah Najwa lewat uji empiris: bootstrap Next ber-nonce, elemen dibuat chunk ber-nonce lalu lolos `'strict-dynamic'`, 0 pelanggaran, class `dark` terpasang sebelum hydration. Batasan: browser tanpa `strict-dynamic` (Safari <15.4) hanya mendapat kilas tema light.
 
@@ -211,7 +211,7 @@ Neymar menghapus blok DRAFT lama (75 baris, Aksen hijau/`accent-bronze`) dari `p
 
 - [x] **T-162.1** `HEAD` tidak dihitung lewat Fetch Metadata (`Sec-Fetch-Dest: document` + `Sec-Fetch-Mode: navigate`, fail-closed; value object `document-navigation.ts`). Next 16 merender `HEAD` sebagai `GET` sehingga method tak bisa dicek. Batasan: Safari <16.4, http non-secure selain localhost, dan sebagian in-app browser tidak terhitung; header bisa dipalsukan (heuristik). Keputusan King Rezi: tetap fail-closed, rasio view terhadap klik dipantau setelah rilis (T-164.6).
 - [x] **T-162.2** `deleteLink` memadatkan `position` dalam satu transaksi. Risiko race LOW diterima; diuji hanya lewat mock dan QA DB lokal.
-- [x] **T-162.3** Migrasi `20261028120000_t162_3_start_page_public_read_http_only_urls`: fungsi baca publik menyaring url `^https?://`. Perlu di-apply di staging (T-164).
+- [x] **T-162.3** Migrasi `20261028120000_t162_3_start_page_public_read_http_only_urls`: fungsi baca publik menyaring url `^https?://`. Perlu di-apply di staging (T-164). _(Sudah ter-apply, 2026-10-28.)_
 - [ ] **T-162.4** Rate limit atau dedup counter (Ridwan F3). Menyimpan identifier menyentuh PII, jadi butuh ADR baru sebelum dikerjakan. Tetap terbuka, tanpa tiket sendiri sampai ADR ada.
 
 **Catatan LOW (Ridwan):** `search_path` tanpa `pg_temp` (konsisten dengan fungsi lain; perbaiki semua fungsi `start_page_*` di migrasi tersendiri nanti); belum ada tes integrasi DB untuk fungsi baru. **QA:** 6 file integrasi DB timeout sudah gagal di baseline (pooler Supabase tak terjangkau dari sandbox). F4 (klik terhitung tapi bisa 404) diterima sebagai LOW.
@@ -225,17 +225,27 @@ Neymar menghapus blok DRAFT lama (75 baris, Aksen hijau/`accent-bronze`) dari `p
 
 ### T-164 · Verifikasi staging Start Page: apply migrasi dan uji publik end-to-end
 
-`⏳ Not Started` · **Domain** start-page · infra · **ADR** ADR-142, ADR-143, ADR-144 · **Depends** PR #200 di-merge ke `staging`
+`✅ Done` (2026-10-28; T-164.1 sampai .6 diverifikasi di staging. Dua sisa yang butuh Safari asli dan trafik nyata dipindah ke T-171) · **Domain** start-page · infra · **ADR** ADR-142, ADR-143, ADR-144 · **Depends** PR #200 ✅ (sudah di `staging`)
 **Baca dulu:** ADR-142 § Consequences · ADR-143 § Consequences · T-072 (prasyarat F6)
 
 Tiket ini mencatat verifikasi yang belum dilakukan; tanpanya definisi selesai rilis ("pengguna dapat membagikan halaman publik") belum terbukti.
 
-- [ ] **T-164.1** Jalankan query duplikat `start_page_pages` (T-072, F6), lalu apply empat migrasi (T-070, T-072, T-074, T-162.3) di Supabase staging
-- [ ] **T-164.2** Cek tipe kolom hasil `$queryRaw` dan grant `anon`/`authenticated` Supabase asli (harus tidak bisa memanggil fungsi `start_page_*`)
-- [ ] **T-164.3** `curl` tanpa cookie ke `/u/<slug>` dan `/u/<slug>/go/<linkId>` di staging: tidak redirect ke `/login`, redirect 302, `Cache-Control` sesuai
-- [ ] **T-164.4** Uji `next build` dan jalur `P2025` (selama ini hanya mock)
-- [ ] **T-164.5** Browser: buat halaman, tambah tautan, publish, buka sebagai anonim, klik tautan, cek counter di Page Editor
-- [ ] **T-164.6** CSP di staging (Railway): 0 pelanggaran di `/u/<slug>` (Chromium, idealnya Firefox/Safari), `next dev` lokal, toast di halaman `(app)`. Pantau rasio `view_count` terhadap `click_count` setelah rilis: bila view jauh di bawah klik, filter Fetch Metadata (T-162.1) terlalu ketat
+- [x] **T-164.1** (2026-10-28) Query duplikat `start_page_pages` per `workspace_id`: 0 baris. Keempat migrasi (T-070, T-072, T-074, T-162.3) sudah tercatat selesai di `_prisma_migrations` project staging `ndcrkzqgqukqfmekgoze` (ADR-081) sejak 2026-10-28 04:18 UTC, jadi tidak ada yang perlu di-apply ulang. Tabel `start_page_pages` masih kosong (belum ada halaman uji di staging).
+- [x] **T-164.2** (2026-10-28) Grant: ketiga fungsi `start_page_*` (`get_public_by_slug`, `record_view`, `record_click_and_get_url`) `SECURITY DEFINER`, `EXECUTE` untuk `anon`, `authenticated`, dan `public` semuanya `false` (`has_function_privilege`). Tipe hasil `$queryRaw` terbukti benar lewat halaman publik yang tampil dan counter yang naik di staging.
+- [x] **T-164.3** (2026-10-28) `curl` tanpa cookie ke `https://web-staging-60d7.up.railway.app`: `/u/<slug>` 200 tanpa redirect ke `/login`, `Cache-Control: private, no-cache, no-store`, CSP bernonce; `/u/<slug>/go/<linkId>` 302 ke url tujuan dengan `Cache-Control: no-store`; `linkId` acak 404. **Temuan:** `curl` dengan UA bawaan tidak menaikkan counter (filter bot bekerja sesuai desain); dengan UA browser + `Sec-Fetch-Dest: document`/`Sec-Fetch-Mode: navigate`, `view_count` dan `click_count` naik 1.
+- [x] **T-164.4** (2026-10-28) `next build` lolos (exit 0; `/u/[slug]` dan `/u/[slug]/go/[linkId]` terdaftar dinamis). Jalur `P2025` diuji ke DB staging lewat klien Prisma asli: `startPageLink.update` dan `startPagePage.update` pada id yang tidak ada melempar `PrismaClientKnownRequestError` berkode `P2025` (instanceof benar), sesuai asumsi `isRecordNotFound` di `start-page-write.repository.ts`. Tanpa efek tulis.
+- [x] **T-164.5** (2026-10-28) Staging: halaman `cook-it-real-good` dibuat King Rezi, satu tautan uji ditambah dan dipublish lewat UI, dibuka anonim (`curl`) dan di browser, klik terhitung; Page Editor menampilkan 2 kunjungan dan "1 klik" pada tautan. Data uji ini sengaja dibiarkan di staging.
+- [x] **T-164.6** (2026-10-28) CSP: staging (Railway) 0 pelanggaran di konsol Chromium pada `/u/<slug>` dan `/start-page`. **Firefox dan WebKit** (Playwright, engine Safari 27, sesi ini): `/u/<slug>` 0 pelanggaran CSP dan 0 error konsol; hanya `/u/<slug tak ada>` (404 bawaan Next) 1 pelanggaran `style-src-elem`, batasan yang sudah diterima (T-166). View dari kedua engine terhitung (`view_count` 3 → 5), jadi Fetch Metadata tidak memblokir Firefox/WebKit modern. `next dev` lokal (Chromium): `/u/<slug>` render benar, 17 pelanggaran `style-src` yang diduga berasal dari overlay dev Next (`nextjs-portal`), hanya di dev. Toast di halaman `(app)` tampil tanpa pelanggaran baru; temuan toast menutupi tombol diselesaikan di T-170. **Belum:** Safari asli dan Safari <16.4 / in-app browser (WebKit Playwright bukan Safari sungguhan), dan pemantauan rasio `view_count` terhadap `click_count` setelah rilis (butuh trafik nyata; saat ini data uji, belum bermakna). Kedua sisa itu dipindah ke T-171 (keputusan King Rezi, 2026-10-28), T-164 ditutup.
+
+### T-171 · Pantau rasio view/klik Start Page dan cek Safari asli (lanjutan T-164.6)
+
+`⏳ Not Started` · **Domain** start-page · infra · **ADR** ADR-143 · **Depends** rilis v0.6 ke produksi dengan trafik nyata
+**Baca dulu:** T-162.1 · T-164.6
+
+Dua sisa T-164.6 yang tidak bisa diverifikasi tanpa trafik nyata atau perangkat Apple:
+
+- [ ] **T-171.1** Pantau rasio `view_count` terhadap `click_count` setelah rilis. Bila view jauh di bawah klik, filter Fetch Metadata (T-162.1) terlalu ketat dan perlu ditinjau (keputusan King Rezi tetap fail-closed).
+- [ ] **T-171.2** Cek `/u/<slug>` di Safari asli (iOS dan macOS), termasuk Safari <16.4 dan in-app browser: tampilan, 0 pelanggaran CSP, dan view/klik terhitung. WebKit Playwright (sesi T-164.6) sudah lolos tetapi bukan Safari sungguhan.
 
 ### T-166 · 404 publik kustom untuk `/u/[slug]` tanpa inline style
 
@@ -256,6 +266,16 @@ Lahir dari `/code-review` PR #200 (branch `feature/t-070-start-page-public-route
 - [ ] **T-167.3** `reorderLinks` dan pemadatan `deleteLink` melakukan sampai 50 `UPDATE` berurutan. Jadikan satu query (`UPDATE ... FROM unnest/VALUES`).
 - [ ] **T-167.4** Klik dihitung di fungsi SQL `start_page_record_click_and_get_url` sebelum URL divalidasi ulang oleh `sanitizeLinkUrl`. URL seperti `https://user:pw@host/` lolos regex SQL tapi ditolak aplikasi, sehingga klik terhitung lalu 404. Hanya mungkin untuk baris manual/lama. Selaraskan validasi SQL dengan `sanitizeLinkUrl` atau terima (terkait F4 di T-162).
 - [ ] **T-167.5** Tes interaksi komponen (keyboard reorder `LinkListCard`, timer `ShareCard`): `StartPageEditor.test.tsx` hanya memakai `renderToStaticMarkup`. Butuh setup testing interaksi (mis. `@testing-library`) bila diinginkan.
+
+### T-170 · Toast tidak menutupi tombol aksi di `/start-page`
+
+`✅ Done` (2026-10-28; keputusan King Rezi: `top-center`) · **Domain** UI (`AppToaster`, seluruh area `(app)`) · **ADR** ADR-097 · **Depends** keputusan King Rezi (pola posisi toast)
+**Baca dulu:** `apps/web/src/components/ui/sonner.tsx` · `apps/web/src/app/(app)/components/AppToaster.tsx` · artifact Postific `project/components/Toaster`
+
+Lahir dari T-164.6 (QA `next dev`, 2026-10-28): toast sonner default (kanan-bawah) menutupi tombol Publish/Unpublish di kartu Share `/start-page` pada viewport 1290px. Toast juga tidak hilang selama kursor di atasnya (sonner berhenti menghitung saat hover), sehingga klik pertama mengenai toast, bukan tombol. Rancangan artifact hanya mengunci komponen Toaster, tidak posisinya. **Gate UI (aturan #10):** pola posisi/penanganan belum dikunci; ditanyakan ke King Rezi sebelum kode.
+
+- [x] **T-170.1** Pola dipilih King Rezi: `top-center` (opsi lain: kanan-bawah + tutup saat klik, kanan-atas).
+- [x] **T-170.2** `AppToaster` memakai `position="top-center"` (satu properti; `sonner.tsx` tetap generik). Diverifikasi di `next dev` + browser: toast "Halaman di-unpublish." di x 382–738, y 24–77, tombol Publish/Unpublish (y 1213) tidak tertutup dan bisa diklik langsung. `tsc` bersih. Tanpa tes unit baru (satu properti presentasi, tidak ada logika). Rancangan artifact tidak mengunci posisi. **Artifact diselaraskan** (Neymar, artifact Postific versi 24, 2026-10-29): `project/components/Toaster/preview.html` memakai `position="top-center"` dan README Toaster mencatat bahwa `AppToaster` memakai top-center; preview belum dirender, tetapi penerusan prop `position` di `bundle.js` sudah dicek (wrapper Toaster meneruskan `...props` ke sonner). **Uji layar lain (2026-10-29):** desktop 1120px, zona toast (y 24-77) tidak menutup kontrol di `/`, `/publish`, `/engage`, `/analyze`, `/settings`, `/start-page` (kontrol terdekat di y 88-100, aman untuk satu toast; tumpukan beberapa toast bisa sesaat menyentuhnya). **Mobile 375px:** toast di y 14-67 menutupi tombol "Buka menu" (y 8-44), diperbaiki dengan `mobileOffset={{ top: 64 }}` di `AppToaster`; terverifikasi ulang (toast y 64-118, tidak ada kontrol tertutup). README artifact belum menyebut `mobileOffset`.
 
 ### Perbaikan code-review PR #200 (sudah dikerjakan)
 

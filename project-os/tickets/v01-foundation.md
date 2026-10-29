@@ -798,6 +798,53 @@ Navigator sudah melarang membaca `PROJECT_STATE` utuh, `COMPLETE_TASK`, dan selu
 
 ---
 
+### T-172 · Pasang Playwright (Chrome) di `apps/web`
+
+`✅ Done` (2026-10-28; PR 209) · **Domain** QA, tooling · **ADR** ADR-149 · **Spec** S-002 · **Depends** —
+**Baca dulu:** `project-os/specs/S-002.md` · `product-discovery/06-engineering/dx-tooling.md`
+
+- [x] **T-172.1** Tambah `@playwright/test` ke `apps/web`, `playwright.config.ts` (Chrome `channel: "chrome"`, `E2E_BASE_URL`, trace/screenshot saat gagal), folder `apps/web/e2e/`
+- [x] **T-172.2** Skrip `test:e2e` di `apps/web` dan root; variabel baru di `.env.example` (placeholder, tanpa secret); ESLint/Vitest tidak ikut memuat `e2e/`
+- [x] **T-172.3** Catatan cara menjalankan di `dx-tooling.md` (DX-D08). Hasil: `@playwright/test` 1.64.1 di `apps/web`, `playwright.config.ts` (Chrome), `e2e/smoke.e2e.ts` (2 tes tanpa login). `vitest.config.ts` mengecualikan `apps/web/e2e/**`. **Terverifikasi:** staging 2/2 lulus di Chrome; `typecheck`, `lint`, dan 1510 tes unit hijau. Local juga 2/2 lulus (2026-10-29; Playwright menyalakan `next dev` sendiri lewat `webServer`). Catatan: pada uji pertama, server `next dev` dari sesi lain di port 3000 tidak merespons dan sudah berhenti sendiri sebelum sempat dimatikan.
+
+### T-173 · Akun test dan setup sesi E2E
+
+`⏳ Not Started` · **Domain** QA · **ADR** ADR-149 · **Spec** S-002 · **Depends** T-172, akun test dari King Rezi
+**Baca dulu:** `product-discovery/06-engineering/environment-management.md` (ADR-081)
+
+- [ ] **T-173.1** King Rezi menyiapkan akun test khusus; kredensial hanya di `apps/web/.env.local` dan GitHub Secrets (tidak pernah di repo, log, atau chat)
+- [ ] **T-173.2** Proyek setup Playwright: login sekali, simpan `storageState` (gitignored)
+- [ ] **T-173.3** Konvensi isolasi data: awalan `e2e-`, pembersihan di akhir tes, larangan memublikasikan ke Outstand nyata
+
+### T-174 · Tes E2E pertama: Start Page golden path dan regresi
+
+`⏳ Not Started` · **Domain** start-page, QA · **ADR** ADR-149 · **Spec** S-002 · **Depends** T-172, T-173
+**Baca dulu:** `tickets/v06-start-page-mvp.md` § T-164
+
+- [ ] **T-174.1** Buat halaman, tambah tautan, publish, buka `/u/<slug>` tanpa cookie (200, tanpa redirect `/login`), klik tautan (302), counter di Page Editor naik (gunakan UA browser; filter bot, T-162.1)
+- [ ] **T-174.2** Cek CSP: 0 pelanggaran di `/u/<slug>`; toast tidak menutupi tombol Publish (T-170)
+- [ ] **T-174.3** Bersihkan data `e2e-*` di akhir; jalan di `local` dan `staging`
+
+### T-175 · Workflow CI E2E terhadap staging dan gerbang promosi ke `main`
+
+`⏳ Not Started` · **Domain** CI/CD · **ADR** ADR-149, CI-D07 · **Spec** S-002 · **Depends** T-172, T-173, T-174
+**Baca dulu:** `product-discovery/06-engineering/cicd-pipeline.md` · `.github/workflows/ci.yml`
+
+- [ ] **T-175.1** Putuskan pemicu "setelah deploy Railway selesai" (event deployment atau polling ke staging); catat di tiket ini
+- [ ] **T-175.2** `.github/workflows/e2e-staging.yml`: `push` ke `staging`, Chrome, GitHub Secrets akun test, artifact trace
+- [ ] **T-175.3** Jadikan hasil hijau required check untuk PR `staging` → `main` (pengaturan GitHub: King Rezi atau atas izin eksplisit)
+
+### T-176 · Aturan kerja: E2E Playwright masuk definisi "tiket selesai"
+
+`⏳ Not Started` · **Domain** project-os, agen · **ADR** ADR-149 · **Spec** S-002 · **Depends** T-172
+**Baca dulu:** `.claude/skills/project-os-navigator/SKILL.md` · `.claude/agents/README.md` · `.claude/agents/najwa-qa-engineer.md`
+
+- [ ] **T-176.1** Navigator/aturan kerja: tiket fitur selesai bila ada tes E2E golden path dan suite hijau di local; hasil dilaporkan di deskripsi PR
+- [ ] **T-176.2** Perbarui definisi Najwa memakai Playwright. `.claude/agents/*.md` adalah Static Reference: hanya diubah atas permintaan eksplisit King Rezi, jadi minta konfirmasi saat tiket ini dikerjakan
+- [ ] **T-176.3** `AGENTS.md`: cukup satu penunjuk (ADR-133), tanpa menyalin aturan
+
+---
+
 ## Dari Known Issue
 
 Tiket yang lahir sebagai pelacak Known Issue ada di [`known-issues.md`](known-issues.md) (ADR-134); daftar lengkapnya hanya di file itu, tidak disalin ke sini. KI-027 tetap di T-008 di file ini.
@@ -807,6 +854,7 @@ Tiket yang lahir sebagai pelacak Known Issue ada di [`known-issues.md`](known-is
 ## Catatan Rilis
 
 - Nomor kosong v0.1 sudah terpakai semua (T-019 diisi task API mobile). Task v0.1 baru berikutnya memakai nomor global berikutnya yang belum pernah dipakai — jangan menggeser ID yang sudah ada. **T-039** (Migrasi Routing & Settings, ADR-076) memakai nomor ini: ID global berikutnya yang belum pernah dipakai, dipinjam dari ruang kosong yang sebelumnya dicadangkan untuk pertumbuhan v0.2 (lihat Catatan Rilis `tickets/v02-publishing-mvp.md`) — task tetap ditempatkan di file v0.1 karena scope-nya (Workspace/Settings routing) sejalan dengan T-009/T-016, bukan v0.2 Publishing. **T-089** (Workspace Switcher, ADR-088, 2026-08-24) juga memakai pola yang sama: ID global berikutnya yang belum pernah dipakai sama sekali (bukan dipinjam dari cadangan release manapun, karena seluruh rentang T-080–T-088 v1.0 sudah terisi) — ditempatkan di file v0.1 karena lahir sebagai amandemen ADR-076/T-039 (Workspace context & Settings), bukan task baru terpisah dari rumpun ini. **T-093** (Accept Invite page, 2026-08-28) memakai pola yang sama lagi — ID global berikutnya setelah T-092 (v0.2, ADR-094) — menutup gap yang sudah dicatat sejak ADR-080 (2026-08-14, halaman `/invite/[token]` belum pernah dibuat) tapi baru diberi nomor sekarang, saat King Rezi mengoreksi rantai dependency Realtime Calendar (invite-to-membership harus utuh dulu sebelum T-036/T-092 bisa diverifikasi dengan ≥2 akun nyata). **T-109**/**T-110** (ditambah 2026-09-28, promosi dari Known Issues KI-058/KI-053 setelah audit aplikasi menyeluruh dan keputusan mitigasi King Rezi) memakai ID global berikutnya setelah T-108 (v0.2, `tickets/v02-publishing-mvp.md`) — ditempatkan di file ini karena domain `workspace`/`identity`, masing-masing kelanjutan langsung T-015 dan T-093. **T-116**/**T-117**/**T-118** (ditambah 2026-10-16, diskusi biaya token agent) memakai ID global berikutnya setelah T-115 — ditempatkan di file ini karena domain `platform/tooling`, bukan fitur rilis produk. Urutan wajib: T-116 → T-117 → T-118. **T-124** (ditambah 2026-10-19, bug upstream Prisma ditemukan saat verifikasi staging T-115.5, KI-091) memakai ID global berikutnya setelah T-123 — ditempatkan di file ini karena domain `platform/jobs` (infra job runner lintas domain), bukan fitur rilis produk. Pada 2026-10-19 (ADR-134) T-119, T-120, T-122, T-123, dan T-124 pindah ke `tickets/known-issues.md`.
+- **Tiket QA/tooling lintas rilis (2026-10-29, keputusan King Rezi):** T-172 sampai T-176 (Playwright E2E, ADR-149, S-002) tinggal di rilis ini seperti tooling lain (T-037, T-116) dan tidak memperluas definisi "Foundation selesai" di bawah; statusnya dilacak di antrian.
 - **Definisi "Foundation selesai":** semua task di rilis ini `✅ Done` **kecuali** yang secara sadar ditunda dengan alasan tercatat — dan **kecuali task yang menunggu v0.2 (kini tinggal T-013)** (lihat di bawah). **T-012** (Sidebar Channels) sebelumnya termasuk daftar ini tapi sudah ✅ Done (2026-08-12) — T-012.2 (scheduled count) ternyata tidak perlu menunggu real Outstand adapter, cukup data `PublishingPost`/`PublishingPostTarget` yang sudah ada sejak T-028.
 - **Task v0.1 yang tidak bisa ditutup sebelum v0.2 berjalan** (dependency lintas rilis, disengaja dan diketahui):
   - **T-013** Connect account — sisa T-013.4 (operasional BYOK X) murni operasional, bukan dependency v0.2. T-013.1/2/3 sudah selesai (2026-09-11), diselesaikan lewat Fake adapter (ADR-105, ADR-059 pattern) tanpa menunggu T-025 (Real OutstandAdapter, v0.2, kredensial belum ada).

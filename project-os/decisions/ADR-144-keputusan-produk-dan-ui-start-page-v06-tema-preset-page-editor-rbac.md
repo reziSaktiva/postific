@@ -68,7 +68,7 @@ Keputusan King Rezi selama implementasi T-071 sampai T-074, dikumpulkan di satu 
 - Rancangan terkunci di artifact belum mencakup: slug, tombol Simpan, state "Buat Halaman", dan avatar via URL (rancangan memakai upload). Dicatat sebagai deviasi desain minor.
 - Posisi tautan tidak dipadatkan setelah hapus (QA Najwa M4) dan fungsi baca publik tidak menyaring skema url (M3; aplikasi menyaring). Keduanya diperbaiki di T-162.2 dan T-162.3 (2026-10-28).
 - Sebelum migrasi UNIQUE di-apply ke staging, cek duplikat: `SELECT workspace_id, count(*) FROM start_page_pages GROUP BY 1 HAVING count(*) > 1` (Ridwan F6).
-- **Belum terverifikasi di staging:** migrasi T-070, T-072, T-074 belum di-apply di Supabase; `P2025` hanya diuji lewat mock; jalur CSP baru terverifikasi lewat `next build` + `next start` lokal, bukan staging (T-164.6).
+- **Belum terverifikasi di staging:** migrasi T-070, T-072, T-074 belum di-apply di Supabase; `P2025` hanya diuji lewat mock; jalur CSP baru terverifikasi lewat `next build` + `next start` lokal, bukan staging (T-164.6). _Pembaruan 2026-10-28: migrasi sudah ter-apply, `P2025` terbukti ke DB nyata, dan CSP terverifikasi di staging (T-164 ✅). Sisa Safari asli dan pemantauan rasio view/klik di T-171._
 - Pesan error domain Start Page sekarang berbahasa Indonesia.
 
 ### Related

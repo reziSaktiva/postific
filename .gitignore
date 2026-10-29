@@ -39,3 +39,8 @@ yarn-error.log*
 
 # Prisma generated client (Prisma 7 output)
 apps/web/src/generated/prisma/
+
+# Playwright E2E (ADR-149): hasil run dan sesi login tersimpan
+apps/web/test-results/
+apps/web/playwright-report/
+apps/web/e2e/.auth/
