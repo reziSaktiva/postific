@@ -6,7 +6,7 @@ import { Providers } from "@/components/Providers";
 import { NONCE_HEADER } from "@/lib/security/public-csp";
 
 import {
-  PREFERS_DARK_MEDIA_QUERY,
+  SYSTEM_DARK_CLASS_SCRIPT,
   THEME_COOKIE_NAME,
   isExplicitThemeCookieValue,
   parseThemeMode,
@@ -44,8 +44,14 @@ export default async function RootLayout({
 }>) {
   const cookieStore = await cookies();
   const initialMode = parseThemeMode(cookieStore.get(THEME_COOKIE_NAME)?.value);
+  const hasExplicitTheme = isExplicitThemeCookieValue(
+    cookieStore.get(THEME_COOKIE_NAME)?.value,
+  );
   // Nonce CSP hanya ada di `/u/*` (proxy.ts, T-160); rute lain `undefined`.
-  const nonce = (await headers()).get(NONCE_HEADER) ?? undefined;
+  // Hanya dibaca saat skrip tema dirender (cookie `theme` belum ada).
+  const nonce = hasExplicitTheme
+    ? undefined
+    : ((await headers()).get(NONCE_HEADER) ?? undefined);
 
   return (
     <html
@@ -73,9 +79,7 @@ export default async function RootLayout({
       )}
     >
       <head>
-        {isExplicitThemeCookieValue(
-          cookieStore.get(THEME_COOKIE_NAME)?.value,
-        ) ? null : (
+        {hasExplicitTheme ? null : (
           // Cookie belum ada (user belum pernah pilih Light/Dark eksplisit)
           // — default ikut sistem operasi (T-039, amendemen ADR-055).
           // `<script>` inline biasa (bukan `next/script`) supaya berjalan
@@ -86,11 +90,12 @@ export default async function RootLayout({
           // `nonce` wajib di `/u/*` (CSP `strict-dynamic`, T-160).
           // Konsisten dengan `resolveInitialMode()` di
           // `components/Providers.tsx` — ubah keduanya bersamaan.
+          // `suppressHydrationWarning`: browser menyembunyikan nilai `nonce`
+          // di DOM (`nonce=""`), jadi React dev memperingatkan mismatch.
           <script
             nonce={nonce}
-            dangerouslySetInnerHTML={{
-              __html: `(function(){try{if(window.matchMedia(${JSON.stringify(PREFERS_DARK_MEDIA_QUERY)}).matches){document.documentElement.classList.add("dark");}}catch(e){}})();`,
-            }}
+            suppressHydrationWarning
+            dangerouslySetInnerHTML={{ __html: SYSTEM_DARK_CLASS_SCRIPT }}
           />
         )}
       </head>

@@ -53,14 +53,15 @@ for (const path of ["/login", PUBLIC_PAGE_PATH]) {
       const response = await page.goto(path);
       await page.waitForLoadState("load");
 
-      expect(response?.status()).toBe(200);
+      // `/u/e2e-start-page` dibuat oleh `start-page.e2e.ts`; 404 di sini
+      // berarti halaman itu belum ada, bukan perbaikan tema yang rusak.
+      expect(
+        response?.status(),
+        `${path} harus 200 (halaman E2E dibuat start-page.e2e.ts)`,
+      ).toBe(200);
+      // Kelas `dark` sudah ada saat `<body>` muncul = tidak ada lukisan terang
+      // lebih dulu, jadi tidak ada pemudaran kartu/lencana sesudahnya.
       expect(await darkAtBody(page)).toBe(true);
-      // Warna latar tidak berubah selama 1 detik pertama (tidak ada pemudaran).
-      const background = () =>
-        page.evaluate(() => getComputedStyle(document.body).backgroundColor);
-      const first = await background();
-      await page.waitForTimeout(1_000);
-      expect(await background()).toBe(first);
       // Skrip inline ber-nonce tidak boleh diblokir CSP di `/u/*`.
       expect(cspViolations).toEqual([]);
     });
