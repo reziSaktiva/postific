@@ -239,13 +239,98 @@ Tiket ini mencatat verifikasi yang belum dilakukan; tanpanya definisi selesai ri
 
 ### T-171 · Pantau rasio view/klik Start Page dan cek Safari asli (lanjutan T-164.6)
 
-`⏳ Not Started` · **Domain** start-page · infra · **ADR** ADR-143 · **Depends** rilis v0.6 ke produksi dengan trafik nyata
+`⏳ Not Started` (2026-10-29: persiapan selesai, yaitu runbook dan query di bawah; **eksekusi menunggu rilis dan perangkat Apple, langkah King Rezi**) · **Domain** start-page · infra · **ADR** ADR-143 · **Depends** rilis v0.6 ke produksi dengan trafik nyata
 **Baca dulu:** T-162.1 · T-164.6
 
 Dua sisa T-164.6 yang tidak bisa diverifikasi tanpa trafik nyata atau perangkat Apple:
 
 - [ ] **T-171.1** Pantau rasio `view_count` terhadap `click_count` setelah rilis. Bila view jauh di bawah klik, filter Fetch Metadata (T-162.1) terlalu ketat dan perlu ditinjau (keputusan King Rezi tetap fail-closed).
 - [ ] **T-171.2** Cek `/u/<slug>` di Safari asli (iOS dan macOS), termasuk Safari <16.4 dan in-app browser: tampilan, 0 pelanggaran CSP, dan view/klik terhitung. WebKit Playwright (sesi T-164.6) sudah lolos tetapi bukan Safari sungguhan.
+
+#### Persiapan (2026-10-29)
+
+Hanya dokumentasi. Tidak ada query yang dijalankan ke staging; query di bawah divalidasi di Postgres lokal sementara (PGlite) dengan data tiruan, termasuk di dalam `BEGIN READ ONLY`. Data di staging hanya data uji (beberapa kunjungan), jadi rasionya belum bermakna; jalankan query di produksi setelah ada trafik nyata.
+
+##### T-171.1 · Metode hitung rasio view/klik
+
+Counter bersifat kumulatif (tanpa deret waktu, dan tanpa dedup atau rate limit karena T-162.4 belum dikerjakan), jadi ada dua cara baca: **snapshot** (angka total sekarang) dan **delta** (selisih dua snapshot).
+
+**Aturan baca.** Klik hampir selalu didahului view, karena pengunjung harus membuka `/u/<slug>` untuk melihat tautan. Jadi `klik > view` pada halaman yang cukup ramai berarti view kurang terhitung, yaitu filter Fetch Metadata (T-162.1) terlalu ketat. Rasio klik per view yang wajar untuk link-in-bio jauh di bawah 1.
+
+| Kondisi (halaman dengan klik >= N)          | Arti                                                                               | Tindakan                                                                                        |
+| ------------------------------------------- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `clicks_per_view` < 1                       | Normal                                                                             | Tidak ada                                                                                       |
+| `clicks_per_view` > 1 pada beberapa halaman | View kurang terhitung (filter terlalu ketat) atau tautan `/go/` dibagikan langsung | Cek delta dan jenis perangkat pengunjung; tinjau T-162.1. Keputusan King Rezi tetap fail-closed |
+| Banyak halaman dengan `total_clicks` = 0    | Belum ada klik, bukan masalah filter                                               | Tunggu trafik                                                                                   |
+
+**Yang menunggu keputusan King Rezi:** nilai ambang `N` (jumlah klik minimum sebelum rasio dianggap bermakna). Query di bawah memakai **N = 30 sebagai usulan** (ubah di klausa `FILTER`).
+
+**Batasan data:** menghapus tautan ikut menghapus hitungan kliknya (jadi `total_clicks` bisa turun); kunjungan pemilik halaman sendiri ikut terhitung; klik dari tautan `/go/` yang dibagikan langsung tanpa membuka halaman bisa membuat klik > view secara sah. Karena itu satu angka tidak cukup: bandingkan beberapa halaman dan beberapa snapshot sebelum menyimpulkan.
+
+Query 1, per halaman (read-only, jalankan di `psql` atau `execute_sql` pada DB produksi dengan persetujuan King Rezi):
+
+```sql
+SELECT sp.slug,
+       sp.view_count,
+       COALESCE(SUM(l.click_count), 0)::bigint AS total_clicks,
+       CASE WHEN COALESCE(SUM(l.click_count), 0) > 0
+            THEN round(COALESCE(SUM(l.click_count), 0)::numeric / NULLIF(sp.view_count, 0), 2)
+       END AS clicks_per_view
+  FROM start_page_pages sp
+  LEFT JOIN start_page_links l ON l.start_page_id = sp.id
+ WHERE sp.is_published = true
+ GROUP BY sp.id, sp.slug, sp.view_count
+ ORDER BY total_clicks DESC;
+```
+
+Query 2, ringkasan semua halaman published:
+
+```sql
+SELECT count(*) AS halaman_published,
+       SUM(v.view_count)::bigint AS total_views,
+       SUM(v.total_clicks)::bigint AS total_clicks,
+       round(SUM(v.total_clicks)::numeric / NULLIF(SUM(v.view_count), 0), 2) AS clicks_per_view,
+       count(*) FILTER (WHERE v.total_clicks >= 30 AND v.total_clicks > v.view_count) AS halaman_dicurigai
+  FROM (
+    SELECT sp.id, sp.view_count,
+           COALESCE((SELECT SUM(l.click_count) FROM start_page_links l WHERE l.start_page_id = sp.id), 0) AS total_clicks
+      FROM start_page_pages sp
+     WHERE sp.is_published = true
+  ) v;
+```
+
+**Delta:** jalankan Query 1 pada dua waktu (mis. 7 hari berselang), catat hasilnya di tiket ini, lalu bandingkan `selisih view` dengan `selisih klik` per halaman. Tabel catatan:
+
+| Tanggal | slug | view_count | total_clicks | clicks_per_view | Catatan |
+| ------- | ---- | ---------- | ------------ | --------------- | ------- |
+| -       | -    | -          | -            | -               | -       |
+
+##### T-171.2 · Runbook cek Safari asli
+
+**Prasyarat:** PR 217 sudah di-merge dan ter-deploy ke staging (agar 404 kustom T-166 ada); migrasi T-167.4 sudah diterapkan; ada halaman published untuk uji (staging: `cook-it-real-good`, data uji sengaja dibiarkan, T-164.5). Base URL staging: `https://web-staging-60d7.up.railway.app`.
+
+**Matriks perangkat** (isi kolom hasil setelah diuji):
+
+| Perangkat                                              | Yang diharapkan                                                                                                        | Hasil |
+| ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- | ----- |
+| Safari macOS (terbaru)                                 | Tampil benar, 0 pelanggaran CSP, view +1 per muat, klik +1                                                             | -     |
+| Safari iOS (iPhone, terbaru)                           | Sama seperti macOS; cek juga mode gelap iOS                                                                            | -     |
+| Safari < 16.4 (perangkat lama, mis. iOS 15/16.3)       | Tampil benar dan klik terhitung; **view +0 itu perilaku yang diterima** (tidak ada Fetch Metadata, T-162.1), bukan bug | -     |
+| In-app browser (Instagram, Facebook, TikTok, WhatsApp) | Tampil benar dan klik terhitung; view bisa +0 (sebagian tidak mengirim Fetch Metadata). Catat per aplikasi             | -     |
+
+**Langkah per perangkat:**
+
+1. **Snapshot awal.** Catat `view_count` halaman dan `click_count` tautan uji (Page Editor di `/start-page` menampilkan kunjungan dan klik per tautan; atau Query 1 bila diizinkan).
+2. **Buka `/u/<slug>`** di tab baru/privat. Cek tampilan: avatar, judul, bio, semua tautan aktif, footer "Powered by Postific", tidak ada scroll horizontal, tema sesuai preset. Ulangi dengan mode gelap perangkat.
+3. **Konsol.** macOS: menu Develop > Show Web Inspector (aktifkan Develop di Settings > Advanced). iOS: sambungkan ke Mac, Safari macOS > Develop > nama perangkat > halaman. Harapan: 0 pesan `Refused to apply inline style` / `Refused to execute inline script` / `Content Security Policy`.
+4. **View.** Muat ulang sekali lalu cek Page Editor: `view_count` naik 1 per muat (Safari < 16.4 dan sebagian in-app browser: tidak naik, itu diterima).
+5. **Klik.** Ketuk satu tautan: berpindah ke tujuan lewat `/u/<slug>/go/<linkId>` (302), tombol Kembali kembali ke halaman tanpa loop, `click_count` tautan itu naik 1.
+6. **404.** Buka `/u/<slug-yang-pasti-tidak-ada>`: layar 404 kustom (ikon pencarian, "Halaman tidak ditemukan"), tab Network menunjukkan status 404, konsol 0 pelanggaran CSP.
+7. **Catat hasil** di matriks, lengkap dengan versi OS dan Safari.
+
+**Kriteria lulus:** tampilan benar, 0 pelanggaran CSP, klik terhitung di semua perangkat; view terhitung di Safari >= 16.4. **Bila gagal:** temuan baru dicatat sebagai Known Issue di `known-issues.md` dengan tiketnya (ADR-134), bukan di tiket ini; jangan melonggarkan CSP atau filter Fetch Metadata tanpa ADR baru.
+
+**Tidak bisa dikerjakan dari sesi AI:** mesin pengembangan hanya punya Command Line Tools (tanpa Xcode dan Simulator iOS) dan browser bawaan sesi berbasis Chromium, jadi Safari sungguhan hanya bisa diuji King Rezi. WebKit Playwright (T-164.6) sudah lolos tetapi bukan Safari sungguhan.
 
 ### T-166 · 404 publik kustom untuk `/u/[slug]` tanpa inline style
 
