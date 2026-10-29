@@ -1,12 +1,19 @@
 # Gerbang E2E — CI-D07 (cicd-pipeline.md), ADR-149, S-002.
-# push → staging: tunggu Railway selesai deploy commit ini, lalu jalankan
-# Playwright (Chrome) terhadap staging. Hijau = required check untuk PR
-# staging → main. Deploy tetap dilakukan Railway (CI-D04), bukan workflow ini.
+# PR staging → main: tunggu Railway selesai deploy commit staging terbaru,
+# lalu jalankan Playwright (Chrome) terhadap staging. Hijau = required check
+# untuk PR staging → main. Deploy tetap dilakukan Railway (CI-D04), bukan
+# workflow ini.
 #
-# Pemicu "setelah deploy selesai" (T-175.1): `push` + polling status
-# deployment GitHub yang dikirim Railway (environment "Postific / staging").
+# Pemicu (T-175.1, direvisi 2026-10-29): `pull_request` ke `main`, bukan
+# `push` ke `staging`. Percobaan pertama memakai `push`, tetapi Railway
+# ("Wait for CI") menahan deploy sampai semua workflow di push itu selesai,
+# sedangkan workflow ini menunggu deploy: saling tunggu (deploy tertahan
+# `WAITING`). Event PR tidak ditunggu Railway, dan check-nya menempel di SHA
+# ujung `staging` (= head PR), tepat yang dibaca required check.
 # `deployment_status` tidak dipakai karena hanya berjalan bila berkasnya sudah
-# ada di branch default (main), jadi tidak bisa dipakai sebelum promosi pertama.
+# ada di branch default (main). `workflow_dispatch` tersedia untuk run manual.
+# Tunggu deploy: polling status deployment GitHub dari Railway (environment
+# "Postific / staging") untuk SHA ujung staging.
 #
 # Secrets (GitHub → Settings → Secrets): E2E_USER_EMAIL, E2E_USER_PASSWORD.
 # Opsional (Variables): E2E_BASE_URL (default URL staging di bawah).
@@ -14,11 +21,12 @@
 name: E2E staging
 
 on:
-  push:
-    branches: [staging]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
 
 concurrency:
-  group: e2e-staging
+  group: e2e-staging-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -28,6 +36,9 @@ permissions:
 jobs:
   e2e:
     name: E2E staging
+    # Hanya PR promosi staging → main (PR hotfix dari branch lain tidak punya
+    # deployment staging untuk ditunggu).
+    if: ${{ github.event_name != 'pull_request' || github.head_ref == 'staging' }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
 
@@ -53,7 +64,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
-          SHA: ${{ github.sha }}
+          # Pada PR, github.sha adalah merge commit; yang di-deploy Railway = head PR.
+          SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: bash scripts/wait-railway-deploy.sh
 
       - name: Install Chrome
