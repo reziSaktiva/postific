@@ -1362,14 +1362,14 @@ sudah selesai adalah riwayat. Label "Gate Claude Design" dan nama folder skill
 
 ### T-177 · Kedipan terang saat memuat halaman dalam mode gelap untuk pengunjung tanpa cookie `theme` (KI-104, ADR-055)
 
-| Field       | Value                                                                         |
-| ----------- | ----------------------------------------------------------------------------- |
-| **Status**  | ⏳ Not Started                                                                |
-| **Domain**  | UI (tema), halaman publik Start Page; kemungkinan berlaku di seluruh aplikasi |
-| **Spec**    | tidak ada — single-issue                                                      |
-| **Docs**    | KI-104, ADR-055 (amendemen T-039), ADR-097 poin 9, T-171, `app/layout.tsx`    |
-| **Terkait** | T-171 (ditemukan di uji otomatis T-171.2), T-039                              |
-| **Depends** | keputusan King Rezi soal pendekatan perbaikan                                 |
+| Field       | Value                                                                                       |
+| ----------- | ------------------------------------------------------------------------------------------- |
+| **Status**  | 🟡 In Progress (2026-10-29: kode dan tes selesai di branch, belum ter-deploy; sisa T-177.4) |
+| **Domain**  | UI (tema), halaman publik Start Page; kemungkinan berlaku di seluruh aplikasi               |
+| **Spec**    | tidak ada — single-issue                                                                    |
+| **Docs**    | KI-104, ADR-055 (amendemen T-039), ADR-097 poin 9, T-171, `app/layout.tsx`                  |
+| **Terkait** | T-171 (ditemukan di uji otomatis T-171.2), T-039                                            |
+| **Depends** | keputusan King Rezi soal pendekatan perbaikan                                               |
 
 **Ditemukan (2026-10-29):** uji Playwright lintas browser di staging untuk T-171.2
 (Chromium, Firefox, WebKit). Dengan OS mode gelap dan tanpa cookie `theme`,
@@ -1406,15 +1406,51 @@ mode gelap, jadi ini kasus utama halaman publik, bukan kasus pinggir.
 
 **Yang harus dilakukan:**
 
-- [ ] **T-177.1** Selidiki penyebab di build produksi: urutan eksekusi skrip
+- [x] **T-177.1** (2026-10-29) Selidiki penyebab di build produksi: urutan eksekusi skrip
       `theme-system-default` terhadap lukisan pertama, di halaman publik dan di
       halaman `(app)`; bandingkan dengan pengguna ber-cookie `theme` eksplisit.
-      Hasilnya penyebab terbukti dan cakupannya, tanpa mengubah kode
-- [ ] **T-177.2** King Rezi memutuskan pendekatan perbaikan setelah penyebab
+      Hasilnya penyebab terbukti dan cakupannya, tanpa mengubah kode.
+      **Penyebab (terbukti dari HTML staging dan kode Next 16.2.10):** di App
+      Router, `next/script` dengan `strategy="beforeInteractive"` **tidak** menjadi
+      `<script>` inline yang berjalan saat HTML di-parse. Next mengubahnya jadi
+      antrean `(self.__next_s=self.__next_s||[]).push([0,{"children":"(function(){...classList.add(\"dark\")...})();","id":"theme-system-default"}])`
+      (HTML `/u/cook-it-real-good` dan `/login` di staging). Antrean itu hanya
+      dieksekusi oleh `loadScriptsInSequence()` di `next/dist/client/app-bootstrap.js`,
+      yaitu setelah chunk JS framework dimuat dan tepat sebelum hydration. Sementara
+      itu HTML sudah diterima, stylesheet sudah ada di `<head>`, dan `body` sudah
+      bisa dilukis dengan kelas `dark` yang belum terpasang (RSC selalu merender
+      "light" bila cookie kosong). Itu sesuai urutan terukur di atas
+      (kelas `dark` ±217 sampai 890 ms setelah load). **Cakupan:** `app/layout.tsx`
+      adalah root layout, jadi mekanisme yang sama ada di semua rute, bukan hanya
+      `/u/*` (pola antrean yang sama terbukti ada di HTML `/login`; kedipan visual di
+      halaman `(app)` belum diukur). Pengguna ber-cookie `theme` eksplisit tidak
+      terpengaruh: kelas `dark` dirender server-side dan skrip tidak dipasang.
+      **Batasan perbaikan:** pada `/u/*`, CSP berbasis nonce dengan
+      `'strict-dynamic'` (T-160, ADR-144) memblokir `<script>` inline tanpa nonce,
+      jadi skrip inline sungguhan di `<head>` perlu nonce dari header `x-nonce`
+      (hanya ada di `/u/*`)
+- [x] **T-177.2** (2026-10-29, King Rezi memilih skrip inline sinkron; tanpa
+      perubahan tampilan sehingga tidak butuh rancangan baru, ADR-055 tidak
+      berubah) King Rezi memutuskan pendekatan perbaikan setelah penyebab
       jelas. Catat di tiket ini (atau ADR bila mengubah keputusan ADR-055).
       Karena tampilan yang terlihat pengguna berubah, ini **UI/UX-related**:
       cek artifact Postific lebih dulu (aturan UI #10) sebelum kode
-- [ ] **T-177.3** Perbaiki dan tambahkan tes E2E Playwright: dengan
+- [x] **T-177.3** (2026-10-29) Perbaiki dan tambahkan tes E2E Playwright.
+      **Hasil:** `app/layout.tsx` memakai `<script>` inline biasa di `<head>`
+      (bukan `next/script`), dengan `nonce` dari header `x-nonce` (ada di `/u/*`).
+      Tes baru `apps/web/e2e/theme.e2e.ts` (5 tes: OS gelap, OS terang, cookie
+      `theme=light`, di `/login` dan `/u/e2e-start-page`). **Terverifikasi:** build
+      produksi lokal (`next build` + `next start`): HTML memuat skrip inline di
+      `<head>` (bukan antrean `__next_s`), 5 dari 5 lolos, 0 pesan konsol
+      (tanpa pelanggaran CSP dan tanpa peringatan hydration); build lama di staging
+      **gagal** pada tes OS gelap di kedua rute (kelas `dark` belum ada saat body
+      muncul), jadi tes terbukti menangkap bug. Typecheck, eslint, dan `bun run test`
+      (1532 lolos) hijau. **Batasan:** 404 `/u/<slug tak ada>` memakai shell error
+      yang dirender di client (tanpa skrip tema di HTML awal), jadi tidak
+      diuji dan tidak diubah di sini; belum diukur apakah itu kedipan nyata (body
+      shell kosong). Tes dijalankan di Chrome saja (config E2E), kedipan di Firefox
+      dan WebKit tidak diukur ulang setelah perbaikan. Tes asli:
+      dengan
       `colorScheme: dark` dan tanpa cookie, kelas `dark` sudah terpasang pada
       lukisan pertama dan warna kartu/lencana tidak berubah selama 1 detik
       pertama (definisi tiket selesai ADR-149). Baca CSP sebelum screenshot
