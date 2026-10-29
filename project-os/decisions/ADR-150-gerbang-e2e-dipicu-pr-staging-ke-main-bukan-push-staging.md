@@ -26,7 +26,7 @@ Fakta yang membatasi:
 
 1. Workflow E2E dipicu oleh `pull_request` ke `main` (job hanya berjalan bila head PR adalah branch `staging`) dan `workflow_dispatch` untuk run manual. Pemicu `push` ke `staging` dihapus.
 2. Workflow tetap menunggu deployment Railway (status deployment GitHub `Postific / staging`) untuk SHA head PR berstatus `success` sebelum menjalankan Playwright terhadap staging.
-3. Hijau tetap menjadi required check untuk PR `staging` → `main`. PR dari branch lain ke `main` (hotfix) melewati job ini.
+3. Hijau tetap menjadi required check untuk PR `staging` → `main`. _(Catatan: penerapannya ditunda sampai MVP public launch oleh ADR-151.)_ PR dari branch lain ke `main` (hotfix) melewati job ini.
 4. Secret akun test dipakai pada PR dari branch `staging` di repo yang sama (event `pull_request` dari fork tidak menerima secret). CI-D06 diamandemen sesuai itu.
 5. Semua keputusan lain ADR-149 tidak berubah (Chrome, akun test, isolasi data, tanpa gerbang E2E untuk PR `feature/*` → `staging`).
 
