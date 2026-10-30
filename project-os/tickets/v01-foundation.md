@@ -845,6 +845,92 @@ Hasil: `e2e/start-page.e2e.ts` (3 tes serial). Berjalan di workspace khusus **E2
 - [x] **T-176.2** Perbarui definisi Najwa memakai Playwright. `.claude/agents/*.md` adalah Static Reference: hanya diubah atas permintaan eksplisit King Rezi, jadi minta konfirmasi saat tiket ini dikerjakan. → King Rezi mengizinkan (2026-10-29); langkah E2E ditambahkan, bagian lain tidak diubah
 - [x] **T-176.3** `AGENTS.md`: cukup satu penunjuk (ADR-133), tanpa menyalin aturan
 
+### T-181 · Draft ADR-153: Done (code) and Verified (staging) status ladder
+
+`⏳ Not Started` · **Domain** project-os, agen · **ADR** ADR-153 (Proposed), ADR-149 · **Spec** S-003 · **Depends** —
+**Baca dulu:** `project-os/specs/S-003.md` § Perilaku 1 · `.claude/skills/project-os-navigator/SKILL.md` § Pekerjaan Baru
+
+Memisahkan "kode selesai" dari "terbukti di staging" (keputusan King Rezi 2026-10-30). Mengubah definisi selesai, jadi butuh ADR baru (AGENTS.md aturan 2).
+
+- [ ] **T-181.1** Tulis ADR-153 (Proposed) di `DECISIONS.md`: tiket boleh ✅ saat Done (code); Verified (staging) menjadi satu verifikasi per gelombang; bagian "Belum terbukti" wajib sampai verifikasinya lulus. Mengamandemen konvensi tutup-setelah-staging di tiket MCP (T-150.7, T-178). Catat koreksi: definisi di ADR-149 sudah berbasis `local`.
+- [ ] **T-181.2** King Rezi menyetujui ADR-153 (Proposed menjadi Accepted).
+
+### T-182 · Apply the status ladder to project docs
+
+`⏳ Not Started` · **Domain** project-os, agen · **ADR** ADR-153 · **Spec** S-003 · **Depends** T-181 (Accepted)
+**Baca dulu:** `project-os/specs/S-003.md` · `project-os/AVAILABLE_TICKETS.md` · `project-os/specs/README.md`
+
+Pemilik: Gibran (dokumen proyek), sekuensial di akhir.
+
+- [ ] **T-182.1** Navigator § Pekerjaan Baru: tambahkan definisi Done (code) dan Verified (staging) di samping definisi ADR-149; satu sumber, tanpa menyalin paragraf ke dokumen lain (ADR-133).
+- [ ] **T-182.2** `AVAILABLE_TICKETS.md` dan bentuk tiket di `specs/README.md`: legenda dan penanda untuk Done (code) versus Verified (staging).
+- [ ] **T-182.3** Pindahkan tiket MCP yang kini 🟡 hanya karena menunggu staging ke tangga baru, dengan butir verifikasi gelombang yang eksplisit; jangan menghapus bagian "Belum terbukti".
+- [ ] **T-182.4** `AGENTS.md`: cukup satu penunjuk ke definisi di navigator (ADR-133).
+- [ ] **T-182.5** Bentuk tiket: tambahkan penanda AFK (agen mandiri) atau HITL (butuh keputusan King Rezi) di field tiket; hanya tiket AFK yang boleh menjadi jalur paralel gelombang.
+- [ ] **T-182.6** Jalankan `docs-consistency-audit` dengan topik "status ladder" dan perbaiki temuan.
+
+### T-183 · Skill `wave-orchestration`
+
+`⏳ Not Started` · **Domain** project-os, agen · **ADR** ADR-153, ADR-063 · **Spec** S-003 · **Depends** T-181
+**Baca dulu:** `project-os/specs/S-003.md` § Perilaku 2 dan tabel pola · `.claude/skills/project-os-navigator/SKILL.md` § Skills & subagent housekeeping · `.claude/agents/README.md`
+
+Skill pengerjaan bergelombang: alur gelombang seperti yang dijalankan di gelombang A MCP, ditambah pola yang diadopsi dari Matt Pocock (branch integrasi lebih dulu, graf tiket, template PR). Semua nama dalam bahasa Inggris.
+
+- [ ] **T-183.1** Tulis `.claude/skills/wave-orchestration/SKILL.md` (frontmatter dengan deskripsi pemicu, isi ringkas; detail panjang dipindah ke berkas pendamping).
+- [ ] **T-183.2** Berkas pendamping: `lane-brief-template.md` (brief per jalur) dan `integration-pr-template.md` (Summary, Evidence, Merge Danger).
+- [ ] **T-183.4** Langkah review dua sumbu di skill: sumbu Standards (aturan repo, arsitektur) dan sumbu Spec (acceptance tiket dan spec), tanpa digabung, label pelanggaran keras atau pertimbangan; daftar anti-pola tes (terikat implementasi, tautologis) di template brief jalur.
+- [ ] **T-183.3** Satu penunjuk di navigator (housekeeping skill) dan satu penunjuk di `.claude/agents/README.md` (orkestrasi); tanpa menyalin isi skill (ADR-133). `.claude/agents/*.md` tidak diubah.
+
+### T-184 · Wave handoff and retro references
+
+`⏳ Not Started` · **Domain** project-os, agen · **ADR** ADR-153 · **Spec** S-003 · **Depends** T-183
+**Baca dulu:** `project-os/specs/S-003.md` § Perilaku 2 poin 11 dan § 3
+
+- [ ] **T-184.1** `handoff.md` di folder skill: bentuk dokumen handoff (penunjuk, bukan salinan; tanpa rahasia; disimpan di scratchpad sesi).
+- [ ] **T-184.2** `retro.md`: kategori saran (navigasi, pengecekan otomatis, ekonomi tool, instruksi yang tidak berpengaruh, akses informasi), diurutkan menurut keparahan, hanya saran. Isi awal dari pelajaran gelombang A: `bun install` di worktree baru agar hook jalan, `typecheck` menangkap konflik semantik, izin relay ditolak, laporan terpotong, satu deploy per gelombang.
+- [ ] **T-184.3** Kaitkan keduanya dari `SKILL.md` (langkah handoff dan retro) tanpa menyalin isinya.
+
+### T-185 · Dry-run `wave-orchestration` on the next real wave
+
+`⏳ Not Started` · **Domain** project-os, agen · **ADR** ADR-153 · **Spec** S-003 · **Depends** T-183, T-184
+**Baca dulu:** `project-os/specs/S-003.md` § Jahitan tes
+
+- [ ] **T-185.1** King Rezi memilih gelombang untuk dry-run (kandidat: gelombang B MCP, T-153 dan T-168, setelah keputusan T-152.4 dan T-154.5).
+- [ ] **T-185.2** Jalankan gelombang itu mengikuti skill; catat setiap penyimpangan dan langkah yang tidak jelas.
+- [ ] **T-185.3** Revisi skill dan berkas pendamping berdasarkan catatan; jalankan retro gelombang itu.
+
+### T-186 · Docs locator and link check script
+
+`⏳ Not Started` · **Domain** project-os, tooling · **ADR** ADR-133 · **Spec** S-003 · **Depends** —
+**Baca dulu:** `project-os/specs/S-003.md` § Ekonomi token · `AGENTS.md` aturan 12
+
+Pencari lokasi dokumen saat dijalankan (bukan berkas indeks yang di-commit, karena nomor baris cepat usang) dan pemeriksa tautan, dalam satu keluarga skrip dengan parser yang sama. Nol token saat dijalankan.
+
+- [ ] **T-186.1** Periksa keseragaman format ID di dokumen (tiket `### T-xxx ·`, baris ADR di tabel, S-, KI-, KSP-, CI-D) sebelum merancang parser; laporkan yang tidak seragam.
+- [ ] **T-186.2** `bun run docs:where <query>`: kembalikan `path:baris` dan judul untuk ID dan kata kunci judul, sehingga bagian tiket dibaca dengan `offset` dan `limit`.
+- [ ] **T-186.3** `bun run docs:check`: penunjuk path valid, ID yang dirujuk ada, penghitung "Berikutnya" di `AVAILABLE_TICKETS.md` sama dengan ID maksimum ditambah satu, pasangan kembaran aturan 12 tidak menyimpang, dan nama folder skill dan judul tiket baru lolos pola penamaan bahasa Inggris. Putuskan pemicunya (pre-commit pada berkas Markdown yang diubah dan/atau CI).
+- [ ] **T-186.4** `AGENTS.md`: satu baris penunjuk ke skrip, tanpa menyalin aturan (ADR-133).
+
+### T-187 · Update `proactive-clarification` with round-based questioning
+
+`⏳ Not Started` · **Domain** project-os, agen · **ADR** — · **Spec** S-003 · **Depends** S-003 disahkan
+**Baca dulu:** `.claude/skills/proactive-clarification/SKILL.md` · `project-os/specs/S-003.md` tabel pola (`grilling`)
+
+- [ ] **T-187.1** Bandingkan skill yang ada (143 baris) dengan `grilling` dari sumber; catat selisihnya, termasuk apa yang sudah kita punya.
+- [ ] **T-187.2** Terapkan yang belum ada: pertanyaan per ronde mencakup seluruh frontier keputusan, rekomendasi di depan, fakta dicari sendiri dan hanya keputusan yang ditanyakan, selesai bila frontier kosong, tidak bertindak sebelum King Rezi mengonfirmasi pemahaman bersama.
+- [ ] **T-187.3** Uji pada klarifikasi nyata berikutnya dan revisi bila perlu.
+
+### T-188 · Prune always-loaded orchestration context
+
+`⏳ Not Started` · **Domain** project-os, agen · **ADR** ADR-133 · **Spec** S-003 · **Depends** —
+**Baca dulu:** `project-os/specs/S-003.md` § Ekonomi token · tabel pola (`writing-for-agents`)
+
+Setiap perubahan isi aturan ditinjau King Rezi per berkas; `.claude/agents/*.md` tidak diubah tanpa permintaan eksplisit.
+
+- [ ] **T-188.1** Ukur apa yang selalu dimuat per sesi (`AGENTS.md` 142 baris, navigator 345 baris, README agen, deskripsi skill) dan ukur pemakaian token (skill `explain-usage` atau `get_usage`) sebagai titik awal.
+- [ ] **T-188.2** Terapkan prinsip: penunjuk dengan pemicu, hapus instruksi yang tidak berpengaruh, satu makna di satu tempat, instruksi positif bila aman; tanpa mengubah arti aturan.
+- [ ] **T-188.3** Ukur ulang dan laporkan selisihnya.
+
 ---
 
 ## Dari Known Issue
@@ -857,6 +943,7 @@ Tiket yang lahir sebagai pelacak Known Issue ada di [`known-issues.md`](known-is
 
 - Nomor kosong v0.1 sudah terpakai semua (T-019 diisi task API mobile). Task v0.1 baru berikutnya memakai nomor global berikutnya yang belum pernah dipakai — jangan menggeser ID yang sudah ada. **T-039** (Migrasi Routing & Settings, ADR-076) memakai nomor ini: ID global berikutnya yang belum pernah dipakai, dipinjam dari ruang kosong yang sebelumnya dicadangkan untuk pertumbuhan v0.2 (lihat Catatan Rilis `tickets/v02-publishing-mvp.md`) — task tetap ditempatkan di file v0.1 karena scope-nya (Workspace/Settings routing) sejalan dengan T-009/T-016, bukan v0.2 Publishing. **T-089** (Workspace Switcher, ADR-088, 2026-08-24) juga memakai pola yang sama: ID global berikutnya yang belum pernah dipakai sama sekali (bukan dipinjam dari cadangan release manapun, karena seluruh rentang T-080–T-088 v1.0 sudah terisi) — ditempatkan di file v0.1 karena lahir sebagai amandemen ADR-076/T-039 (Workspace context & Settings), bukan task baru terpisah dari rumpun ini. **T-093** (Accept Invite page, 2026-08-28) memakai pola yang sama lagi — ID global berikutnya setelah T-092 (v0.2, ADR-094) — menutup gap yang sudah dicatat sejak ADR-080 (2026-08-14, halaman `/invite/[token]` belum pernah dibuat) tapi baru diberi nomor sekarang, saat King Rezi mengoreksi rantai dependency Realtime Calendar (invite-to-membership harus utuh dulu sebelum T-036/T-092 bisa diverifikasi dengan ≥2 akun nyata). **T-109**/**T-110** (ditambah 2026-09-28, promosi dari Known Issues KI-058/KI-053 setelah audit aplikasi menyeluruh dan keputusan mitigasi King Rezi) memakai ID global berikutnya setelah T-108 (v0.2, `tickets/v02-publishing-mvp.md`) — ditempatkan di file ini karena domain `workspace`/`identity`, masing-masing kelanjutan langsung T-015 dan T-093. **T-116**/**T-117**/**T-118** (ditambah 2026-10-16, diskusi biaya token agent) memakai ID global berikutnya setelah T-115 — ditempatkan di file ini karena domain `platform/tooling`, bukan fitur rilis produk. Urutan wajib: T-116 → T-117 → T-118. **T-124** (ditambah 2026-10-19, bug upstream Prisma ditemukan saat verifikasi staging T-115.5, KI-091) memakai ID global berikutnya setelah T-123 — ditempatkan di file ini karena domain `platform/jobs` (infra job runner lintas domain), bukan fitur rilis produk. Pada 2026-10-19 (ADR-134) T-119, T-120, T-122, T-123, dan T-124 pindah ke `tickets/known-issues.md`.
 - **Tiket QA/tooling lintas rilis (2026-10-29, keputusan King Rezi):** T-172 sampai T-176 (Playwright E2E, ADR-149, S-002) tinggal di rilis ini seperti tooling lain (T-037, T-116) dan tidak memperluas definisi "Foundation selesai" di bawah; statusnya dilacak di antrian.
+- **Tiket aturan kerja AI lintas rilis (2026-10-30, keputusan King Rezi):** T-181 sampai T-185 (orkestrasi bergelombang, S-003, ADR-153) tinggal di rilis ini seperti tiket tooling lain dan tidak memperluas definisi "Foundation selesai"; statusnya dilacak di `AVAILABLE_TICKETS.md`.
 - **Definisi "Foundation selesai":** semua task di rilis ini `✅ Done` **kecuali** yang secara sadar ditunda dengan alasan tercatat — dan **kecuali task yang menunggu v0.2 (kini tinggal T-013)** (lihat di bawah). **T-012** (Sidebar Channels) sebelumnya termasuk daftar ini tapi sudah ✅ Done (2026-08-12) — T-012.2 (scheduled count) ternyata tidak perlu menunggu real Outstand adapter, cukup data `PublishingPost`/`PublishingPostTarget` yang sudah ada sejak T-028.
 - **Task v0.1 yang tidak bisa ditutup sebelum v0.2 berjalan** (dependency lintas rilis, disengaja dan diketahui):
   - **T-013** Connect account — sisa T-013.4 (operasional BYOK X) murni operasional, bukan dependency v0.2. T-013.1/2/3 sudah selesai (2026-09-11), diselesaikan lewat Fake adapter (ADR-105, ADR-059 pattern) tanpa menunggu T-025 (Real OutstandAdapter, v0.2, kredensial belum ada).
