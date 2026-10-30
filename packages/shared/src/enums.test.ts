@@ -4,6 +4,7 @@ import {
   ContentStatus,
   MemberRole,
   MemberStatus,
+  PostCreatedVia,
 } from "./enums";
 
 describe("@postific/shared enums", () => {
@@ -28,5 +29,10 @@ describe("@postific/shared enums", () => {
     expect(ContentFormat.Reel).toBe("reel");
     expect(ContentFormat.Story).toBe("story");
     expect(ContentFormat.Pin).toBe("pin");
+  });
+
+  it("exposes the post creation source (T-152)", () => {
+    expect(PostCreatedVia.App).toBe("app");
+    expect(PostCreatedVia.Mcp).toBe("mcp");
   });
 });
