@@ -77,12 +77,17 @@ export function ConsentForm({
   const [pending, setPending] = useState<"allow" | "deny" | null>(null);
   const isSubmitting = pending !== null;
   const allowButtonRef = useRef<HTMLButtonElement>(null);
+  const denyButtonRef = useRef<HTMLButtonElement>(null);
+  const lastActionRef = useRef<"allow" | "deny">("allow");
 
-  // Tombol Izinkan dinonaktifkan selama menyimpan, sehingga fokus keyboard
-  // jatuh ke `body`; setelah gagal, kembalikan ke tombol "Coba Lagi" (T-180.3).
+  // Tombol dinonaktifkan selama menyimpan, sehingga fokus keyboard jatuh ke
+  // `body`; setelah gagal, kembalikan ke tombol yang baru ditekan (T-180.3).
   useEffect(() => {
     if (failed && pending === null) {
-      allowButtonRef.current?.focus();
+      (lastActionRef.current === "allow"
+        ? allowButtonRef
+        : denyButtonRef
+      ).current?.focus();
     }
   }, [failed, pending]);
 
@@ -106,6 +111,7 @@ export function ConsentForm({
 
   async function respond(accept: boolean) {
     setFailed(false);
+    lastActionRef.current = accept ? "allow" : "deny";
     setPending(accept ? "allow" : "deny");
 
     try {
@@ -157,6 +163,7 @@ export function ConsentForm({
   );
   const denyButton = (
     <Button
+      ref={denyButtonRef}
       type="button"
       variant={client.isUnusual ? "default" : "outline"}
       className="flex-1"

@@ -203,6 +203,18 @@ describe("ConsentForm (T-151, KSP-09 langkah 2)", () => {
     expect(checkbox("mcp:schedule").getAttribute("aria-checked")).toBe("true");
   });
 
+  it("returns focus to Tolak, not Izinkan, when denying fails", async () => {
+    consent.mockResolvedValue({ error: { message: "boom" } });
+    renderForm();
+
+    const deny = screen.getByRole("button", { name: "Tolak" });
+    await act(async () => {
+      fireEvent.click(deny);
+    });
+
+    expect(document.activeElement).toBe(deny);
+  });
+
   it("treats a thrown Server Action as a failed save (no access granted)", async () => {
     chooseWorkspace.mockRejectedValue(new Error("network"));
     renderForm();

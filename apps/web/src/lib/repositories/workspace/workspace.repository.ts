@@ -151,6 +151,18 @@ function toInvitationRecord(
   };
 }
 
+function toMembershipSummary(membership: {
+  role: string;
+  workspace: { id: string; name: string; slug: string };
+}): WorkspaceMembershipSummary {
+  return {
+    workspaceId: asWorkspaceId(membership.workspace.id),
+    name: membership.workspace.name,
+    slug: membership.workspace.slug,
+    role: membership.role as MemberRole,
+  };
+}
+
 export const workspaceRepository: IWorkspaceRepository = {
   async createWithOwner({ name, slug, ownerId }) {
     try {
@@ -241,12 +253,7 @@ export const workspaceRepository: IWorkspaceRepository = {
       }),
     );
 
-    return memberships.map((membership) => ({
-      workspaceId: asWorkspaceId(membership.workspace.id),
-      name: membership.workspace.name,
-      slug: membership.workspace.slug,
-      role: membership.role as MemberRole,
-    }));
+    return memberships.map(toMembershipSummary);
   },
 
   async findWorkspaceForUser(workspaceId, userId) {
@@ -259,14 +266,7 @@ export const workspaceRepository: IWorkspaceRepository = {
       }),
     );
 
-    return membership
-      ? {
-          workspaceId: asWorkspaceId(membership.workspace.id),
-          name: membership.workspace.name,
-          slug: membership.workspace.slug,
-          role: membership.role as MemberRole,
-        }
-      : null;
+    return membership ? toMembershipSummary(membership) : null;
   },
 
   async findById(workspaceId) {
