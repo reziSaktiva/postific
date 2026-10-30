@@ -8,6 +8,7 @@ import { getWorkspaceContext } from "@/lib/workspace/workspace-context";
 import { publishingRepository } from "@/lib/repositories/publishing";
 
 import { QueueScreen } from "./components/QueueScreen";
+import { getMcpClientNamePort } from "@/lib/mcp-access/get-mcp-client-name-port";
 
 export default async function Page() {
   const { workspaceId } = await getWorkspaceContext();
@@ -16,7 +17,13 @@ export default async function Page() {
     redirect("/login");
   }
 
-  const publishingService = new PublishingService(publishingRepository);
+  const publishingService = new PublishingService(
+    publishingRepository,
+    undefined,
+    undefined,
+    undefined,
+    getMcpClientNamePort(),
+  );
   const groups = await publishingService.listQueue(
     workspaceId,
     asUserId(session.user.id),

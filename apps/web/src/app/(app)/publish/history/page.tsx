@@ -9,6 +9,7 @@ import { publishingRepository } from "@/lib/repositories/publishing";
 import { workspaceRepository } from "@/lib/repositories/workspace";
 
 import { HistoryList } from "./components/HistoryList";
+import { getMcpClientNamePort } from "@/lib/mcp-access/get-mcp-client-name-port";
 
 /**
  * `/publish/history` (T-034.2, KSP-D10) — entry point tipis: fetch
@@ -41,7 +42,13 @@ export default async function Page() {
   }
   const userId = asUserId(session.user.id);
 
-  const publishingService = new PublishingService(publishingRepository);
+  const publishingService = new PublishingService(
+    publishingRepository,
+    undefined,
+    undefined,
+    undefined,
+    getMcpClientNamePort(),
+  );
   const workspaceService = new WorkspaceService(workspaceRepository);
 
   const [items, accounts] = await Promise.all([

@@ -1,4 +1,4 @@
-import { asPostId } from "@postific/shared";
+import { asPostId, PostCreatedVia } from "@postific/shared";
 import { describe, expect, it } from "vitest";
 import type { QueueItemRecord } from "../repositories/publishing.repository";
 import { groupQueueItemsByDate } from "./group-queue-items";
@@ -14,6 +14,9 @@ function createQueueItem(
     scheduledAt: new Date("2026-07-14T10:00:00Z"),
     createdAt: new Date("2026-07-13T00:00:00Z"),
     targets: [],
+    createdVia: PostCreatedVia.App,
+    createdViaClientId: null,
+    createdViaClientName: null,
     ...overrides,
   };
 }

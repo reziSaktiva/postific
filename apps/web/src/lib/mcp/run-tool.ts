@@ -257,6 +257,7 @@ export async function runMcpTool(
         workspaceId: authorized.workspaceId,
         userId: authorized.userId,
         clientId: authorized.clientId,
+        clientName: authorized.clientName ?? null,
         grantScopes: authorized.grantScopes,
         services: deps.services,
       },

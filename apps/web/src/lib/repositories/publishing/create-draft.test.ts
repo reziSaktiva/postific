@@ -29,6 +29,7 @@ function row(overrides: Record<string, unknown> = {}) {
     mediaIds: [],
     createdVia: "app",
     createdViaClientId: null,
+    createdViaClientName: null,
     createdAt: new Date(0),
     updatedAt: new Date(0),
     ...overrides,
@@ -59,9 +60,50 @@ describe("publishingRepository.createDraft creation source (T-152)", () => {
       caption: "c",
       createdVia: "mcp",
       createdViaClientId: "client-1",
+      createdViaClientName: null,
     });
     expect(post.createdVia).toBe(PostCreatedVia.Mcp);
     expect(post.createdViaClientId).toBe("client-1");
+  });
+
+  it("freezes the client name on the post when the MCP source carries one", async () => {
+    create.mockResolvedValue(
+      row({
+        createdVia: "mcp",
+        createdViaClientId: "client-1",
+        createdViaClientName: "Claude Code",
+      }),
+    );
+
+    const post = await publishingRepository.createDraft({
+      workspaceId: WORKSPACE,
+      authorId: AUTHOR,
+      caption: "c",
+      source: {
+        createdVia: PostCreatedVia.Mcp,
+        clientId: "client-1",
+        clientName: "Claude Code",
+      },
+    });
+
+    expect(create.mock.calls[0]?.[0].data).toMatchObject({
+      createdViaClientId: "client-1",
+      createdViaClientName: "Claude Code",
+    });
+    expect(post.createdViaClientName).toBe("Claude Code");
+  });
+
+  it("stores a null client name when the MCP source has none", async () => {
+    create.mockResolvedValue(
+      row({ createdVia: "mcp", createdViaClientId: "client-1" }),
+    );
+    await publishingRepository.createDraft({
+      workspaceId: WORKSPACE,
+      authorId: AUTHOR,
+      caption: "c",
+      source: { createdVia: PostCreatedVia.Mcp, clientId: "client-1" },
+    });
+    expect(create.mock.calls[0]?.[0].data.createdViaClientName).toBeNull();
   });
 
   it("leaves the source columns to the DB default for a manual draft (existing callers unchanged)", async () => {

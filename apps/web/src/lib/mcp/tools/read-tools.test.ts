@@ -233,6 +233,7 @@ function context(services: McpToolServices): McpToolContext {
     workspaceId: WORKSPACE,
     userId: USER,
     clientId: "client-1",
+    clientName: "Claude",
     grantScopes: ["read"],
     services,
   };
@@ -386,6 +387,8 @@ describe("list_drafts", () => {
         caption: "Draft caption",
         status: "draft",
         mediaIds: [],
+        createdVia: "app",
+        createdViaClientId: null,
         createdAt: "2026-10-03T07:00:00+07:00",
         updatedAt: "2026-10-04T07:00:00+07:00",
       },

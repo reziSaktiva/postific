@@ -69,4 +69,17 @@ export interface IMcpGrantRepository {
     key: McpConnectionKey,
     usedAt: Date,
   ): Promise<void>;
+
+  /**
+   * Nama klien (`client_name`) untuk `clientIds` di SATU workspace (T-157),
+   * grant aktif MAUPUN yang sudah dicabut (post lama tetap menampilkan nama).
+   * Per `clientId`: grant terbaru (`created_at` desc) yang `client_name`-nya
+   * tidak null. Klien tanpa nama tidak muncul di peta. Wajib memfilter
+   * `workspace_id` DAN `client_id` (tanpa RLS, ADR-141); `clientIds` kosong
+   * -> peta kosong tanpa query.
+   */
+  findClientNames(
+    workspaceId: WorkspaceId,
+    clientIds: string[],
+  ): Promise<Map<string, string>>;
 }

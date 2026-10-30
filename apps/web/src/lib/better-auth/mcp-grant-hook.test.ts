@@ -122,6 +122,9 @@ function createFakeGrantRepository() {
       return { ...created };
     },
     async touchLastUsed() {},
+    async findClientNames() {
+      return new Map<string, string>();
+    },
   };
 
   return { repo, rows };

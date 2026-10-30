@@ -16,6 +16,7 @@ import { getWorkspaceContext } from "@/lib/workspace/workspace-context";
 import { getOutstandAdapter } from "@/lib/adapters/outstand";
 import { analyticsRepository } from "@/lib/repositories/analytics";
 import { publishingRepository } from "@/lib/repositories/publishing";
+import { getMcpClientNamePort } from "@/lib/mcp-access/get-mcp-client-name-port";
 
 /**
  * Cancel Schedule (T-030, T-032.4) — dipanggil dari dialog konfirmasi Tier 2
@@ -91,6 +92,9 @@ export async function getQueuePostAction(
   const publishingService = new PublishingService(
     publishingRepository,
     new AnalyticsService(analyticsRepository),
+    undefined,
+    undefined,
+    getMcpClientNamePort(),
   );
 
   return publishingService.getCalendarPostById(

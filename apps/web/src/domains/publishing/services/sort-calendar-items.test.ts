@@ -1,4 +1,4 @@
-import { asPostId, ContentStatus } from "@postific/shared";
+import { asPostId, ContentStatus, PostCreatedVia } from "@postific/shared";
 import { describe, expect, it } from "vitest";
 import type { CalendarItemRecord } from "../repositories/publishing.repository";
 import { sortCalendarItemsByEffectiveDate } from "./sort-calendar-items";
@@ -15,6 +15,9 @@ function createCalendarItem(
     createdAt: new Date("2026-07-13T00:00:00Z"),
     updatedAt: new Date("2026-07-13T00:00:00Z"),
     targets: [],
+    createdVia: PostCreatedVia.App,
+    createdViaClientId: null,
+    createdViaClientName: null,
     ...overrides,
   };
 }

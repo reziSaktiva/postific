@@ -135,7 +135,11 @@ const createDraft: McpToolDefinition = {
       workspaceId: context.workspaceId,
       authorId: context.userId,
       caption,
-      source: { createdVia: PostCreatedVia.Mcp, clientId: context.clientId },
+      source: {
+        createdVia: PostCreatedVia.Mcp,
+        clientId: context.clientId,
+        clientName: context.clientName,
+      },
       ...(mediaIds !== undefined ? { mediaIds } : {}),
       ...(targets !== undefined ? { targets } : {}),
     });

@@ -71,6 +71,23 @@ class FakeGrantRepository implements IMcpGrantRepository {
     return grant;
   }
 
+  async findClientNames(workspaceId: WorkspaceId, clientIds: string[]) {
+    const names = new Map<string, string>();
+    for (const g of [...this.grants].sort(
+      (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+    )) {
+      if (
+        g.workspaceId === workspaceId &&
+        clientIds.includes(g.clientId) &&
+        g.clientName &&
+        !names.has(g.clientId)
+      ) {
+        names.set(g.clientId, g.clientName);
+      }
+    }
+    return names;
+  }
+
   /** Meniru kontrak: filter `id` DAN `userId`; milik pengguna lain = `null`. */
   async findById(id: McpGrantId, userId: UserId) {
     this.findByIdCalls.push({ id, userId });
@@ -1075,5 +1092,32 @@ describe("McpAccessService.purgeAudit", () => {
     expect((await h.service.purgeAudit()).deleted).toBe(1);
     expect((await h.service.purgeAudit()).deleted).toBe(0);
     expect(h.audit.rows).toHaveLength(0);
+  });
+});
+
+describe("McpAccessService.getClientNames (T-157)", () => {
+  it("mengambil nama terbaru per klien, termasuk grant dicabut, hanya di workspace diminta", async () => {
+    const { service, grants } = createHarness();
+    grants.seed({
+      clientId: "c1",
+      clientName: "Lama",
+      createdAt: new Date("2026-10-01T00:00:00Z"),
+      revokedAt: new Date("2026-10-02T00:00:00Z"),
+    });
+    grants.seed({
+      clientId: "c1",
+      clientName: "Baru",
+      createdAt: new Date("2026-10-10T00:00:00Z"),
+    });
+    grants.seed({
+      clientId: "c1",
+      clientName: "Workspace Lain",
+      workspaceId: WS_B,
+    });
+    grants.seed({ clientId: "c2", clientName: null });
+
+    const names = await service.getClientNames(WS_A, ["c1", "c2", "c1"]);
+
+    expect(names).toEqual(new Map([["c1", "Baru"]]));
   });
 });
