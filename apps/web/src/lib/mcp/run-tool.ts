@@ -4,12 +4,17 @@ import {
   type McpAccessService,
   type McpAuditStatus,
 } from "@/domains/mcp-access";
-import { NotFoundError } from "@/lib/utils/errors";
+import { PublishingDomainError } from "@/domains/publishing";
+import {
+  ConflictError,
+  NotFoundError,
+  ValidationError,
+} from "@/lib/utils/errors";
 
 import type { McpClaims } from "./claims";
 import { McpInvalidCursorError } from "./cursor";
 import { McpToolInputError } from "./tool-input";
-import type { McpReadServices, McpToolDefinition } from "./tool-types";
+import type { McpToolServices, McpToolDefinition } from "./tool-types";
 
 /**
  * Gerbang satu panggilan tool MCP (T-150.2): `authorizeCall` -> handler ->
@@ -28,7 +33,7 @@ const AUDIT_TIMEOUT_MS = 2000;
 
 export interface McpGateDeps {
   access: Pick<McpAccessService, "authorizeCall" | "recordAudit">;
-  services: McpReadServices;
+  services: McpToolServices;
   now?: () => number;
   logger?: Pick<Console, "error">;
 }
@@ -41,6 +46,7 @@ export type McpErrorCode =
   | "invalid_input"
   | "invalid_cursor"
   | "not_found"
+  | "conflict"
   | "internal_error";
 
 function jsonResult(payload: unknown): CallToolResult {
@@ -74,6 +80,18 @@ function classify(error: unknown): Failure | null {
   }
   if (error instanceof NotFoundError) {
     return { code: "not_found", message: error.message, status: "error" };
+  }
+  // Aturan domain tulis (T-152): input tidak valid menurut matriks format,
+  // batas media, kepemilikan akun/media, dsb. Pesannya aman dan memang untuk
+  // ditampilkan ke AI klien supaya bisa memperbaiki panggilannya.
+  if (
+    error instanceof ValidationError ||
+    error instanceof PublishingDomainError
+  ) {
+    return { code: "invalid_input", message: error.message, status: "error" };
+  }
+  if (error instanceof ConflictError) {
+    return { code: "conflict", message: error.message, status: "error" };
   }
   return null;
 }
@@ -167,6 +185,7 @@ export async function runMcpTool(
       {
         workspaceId: authorized.workspaceId,
         userId: authorized.userId,
+        clientId: authorized.clientId,
         grantScopes: authorized.grantScopes,
         services: deps.services,
       },

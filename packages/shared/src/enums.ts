@@ -68,6 +68,18 @@ export enum SocialPlatform {
   Pinterest = "pinterest",
 }
 
+/**
+ * Sumber pembuatan `PublishingPost` (T-152, ADR-138 poin 6). Disimpan mentah
+ * sebagai `String` di kolom `publishing_posts.created_via` (dijaga CHECK),
+ * konsisten pola `status`/`ContentStatus`. `app` = dibuat manusia lewat
+ * aplikasi (default, termasuk seluruh baris lama dan post hasil import);
+ * `mcp` = dibuat AI klien lewat tool MCP, selalu bersama `created_via_client_id`.
+ */
+export enum PostCreatedVia {
+  App = "app",
+  Mcp = "mcp",
+}
+
 export enum WorkspacePlan {
   Free = "free",
   Pro = "pro",

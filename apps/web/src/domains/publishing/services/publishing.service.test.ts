@@ -8,6 +8,7 @@ import {
   ContentFormat,
   ContentStatus,
   MemberRole,
+  PostCreatedVia,
   type PostId,
   SocialPlatform,
   type UserId,
@@ -166,6 +167,43 @@ describe("PublishingService.saveDraft", () => {
         targets,
       }),
     );
+  });
+
+  it("forwards the creation source to the repository only when given (T-152)", async () => {
+    const received: Parameters<IPublishingRepository["createDraft"]>[0][] = [];
+    const service = new PublishingService(
+      createFakeRepository({
+        createDraft: async (input) => {
+          received.push(input);
+          return {
+            id: asPostId("post-1"),
+            workspaceId: input.workspaceId,
+            authorId: input.authorId,
+            caption: input.caption,
+            status: ContentStatus.Draft,
+            createdAt: new Date(0),
+            updatedAt: new Date(0),
+          };
+        },
+      }),
+    );
+    const base = {
+      workspaceId: WORKSPACE_ID,
+      authorId: AUTHOR_ID,
+      caption: "x",
+    };
+
+    await service.saveDraft(base);
+    await service.saveDraft({
+      ...base,
+      source: { createdVia: PostCreatedVia.Mcp, clientId: "client-1" },
+    });
+
+    expect(received[0]).not.toHaveProperty("source");
+    expect(received[1]?.source).toEqual({
+      createdVia: PostCreatedVia.Mcp,
+      clientId: "client-1",
+    });
   });
 
   it("allows an empty caption", async () => {

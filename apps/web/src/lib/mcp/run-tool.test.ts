@@ -15,7 +15,12 @@ import {
   type McpGrant,
   type McpScope,
 } from "@/domains/mcp-access";
-import { NotFoundError } from "@/lib/utils/errors";
+import { PublishingDomainError } from "@/domains/publishing";
+import {
+  ConflictError,
+  NotFoundError,
+  ValidationError,
+} from "@/lib/utils/errors";
 
 import type { McpClaims } from "./claims";
 import { McpInvalidCursorError } from "./cursor";
@@ -108,6 +113,7 @@ describe("runMcpTool (scripted access)", () => {
       expect.objectContaining({
         workspaceId: WS_A,
         userId: USER,
+        clientId: CLIENT,
         grantScopes: ["read", "draft"],
       }),
       { cursor: "c" },
@@ -219,6 +225,21 @@ describe("runMcpTool (scripted access)", () => {
       new NotFoundError("Post tidak ditemukan."),
       "not_found",
       "Post tidak ditemukan.",
+    ],
+    [
+      new ValidationError("Salah satu akun tidak ditemukan."),
+      "invalid_input",
+      "Salah satu akun tidak ditemukan.",
+    ],
+    [
+      new PublishingDomainError('Content format "reel" tidak diizinkan.'),
+      "invalid_input",
+      'Content format "reel" tidak diizinkan.',
+    ],
+    [
+      new ConflictError("Post ini sudah dijadwalkan."),
+      "conflict",
+      "Post ini sudah dijadwalkan.",
     ],
   ])("maps %s to %s and audits error", async (error, code, message) => {
     const { deps, access } = scriptedDeps(async () => authorizedCall);

@@ -446,6 +446,16 @@ model PublishingPost {
   // `dbgenerated()` tanpa argumen = default tidak diketahui Prisma, sehingga
   // kolom ini tidak ikut `data` pada create/createMany.
   occurredAt     DateTime  @default(dbgenerated()) @map("occurred_at") @db.Timestamptz(6)
+  // T-152 (ADR-138 poin 6) — penanda sumber pembuatan post. `app` (default,
+  // seluruh baris lama dan post hasil import) = dibuat manusia di aplikasi;
+  // `mcp` = dibuat AI klien lewat tool MCP. `createdViaClientId` = `clientId`
+  // OAuth klien AI (sama dengan `mcp_grants.client_id`, tanpa FK karena tabel
+  // plugin tidak diubah bentuknya) dan WAJIB terisi bila dan hanya bila
+  // `createdVia = 'mcp'`. Kedua invariant dijaga CHECK constraint di migrasi
+  // `20261030100000_t152_publishing_posts_created_via` (Prisma DSL tidak
+  // merepresentasikan CHECK).
+  createdVia         String  @default("app") @map("created_via")
+  createdViaClientId String? @map("created_via_client_id")
 
   workspace Workspace              @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   targets   PublishingPostTarget[]

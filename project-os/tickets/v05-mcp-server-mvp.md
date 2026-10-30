@@ -134,7 +134,7 @@ Layar tempat pengguna memilih satu workspace dan scope. Default `read` + `draft`
 
 ### T-152 · Tool draft dan penanda sumber MCP
 
-`⏳ Not Started` · **Domain** mcp-access · publishing · **ADR** ADR-138, ADR-039 · **Depends** T-150
+`🟡 In Progress` · **Domain** mcp-access · publishing · **ADR** ADR-138, ADR-039 · **Depends** T-150
 
 **Baca dulu:** `05-architecture/application-layer.md` · `05-architecture/database-strategy.md`
 

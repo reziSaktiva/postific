@@ -21,6 +21,7 @@ import type {
   CalendarItemRecord,
   HistoryItemRecord,
   IPublishingRepository,
+  PostCreationSource,
   PublishingPostRecord,
   SchedulePostTargetInput,
 } from "../repositories/publishing.repository";
@@ -401,6 +402,8 @@ export class PublishingService {
     mediaIds?: MediaId[];
     /** KI-060 — akun tujuan. `undefined` = tidak diubah di repository. */
     targets?: SchedulePostTargetInput[];
+    /** T-152 — sumber pembuatan (tool MCP mengisi `mcp`). `undefined` = dibuat di aplikasi. */
+    source?: PostCreationSource;
   }): Promise<PublishingPostRecord> {
     return this.repository.createDraft({
       workspaceId: input.workspaceId,
@@ -408,6 +411,7 @@ export class PublishingService {
       caption: input.caption.trim(),
       ...(input.mediaIds !== undefined ? { mediaIds: input.mediaIds } : {}),
       ...(input.targets !== undefined ? { targets: input.targets } : {}),
+      ...(input.source !== undefined ? { source: input.source } : {}),
     });
   }
 
