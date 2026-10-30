@@ -25,6 +25,9 @@ const isLocal = ["localhost", "127.0.0.1", "[::1]"].includes(hostname);
 export default defineConfig({
   testDir: "./e2e",
   testMatch: "**/*.e2e.ts",
+  // Pulihkan member E2E yang tertinggal `removed` SEBELUM proyek `setup` (T-178);
+  // tidak melakukan apa pun tanpa target staging dan koneksi DB.
+  globalSetup: "./e2e/support/heal-member.global.ts",
   fullyParallel: false,
   // Satu akun test dan satu DB dipakai bersama (ADR-081): jangan paralel antar berkas.
   workers: 1,

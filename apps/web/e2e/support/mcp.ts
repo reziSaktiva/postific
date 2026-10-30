@@ -9,6 +9,7 @@ import {
 } from "@playwright/test";
 
 import { e2eName, isE2eData } from "./e2e-data";
+import { sleep } from "./sleep";
 import { E2E_WORKSPACE_NAME } from "./workspace";
 
 /**
@@ -28,15 +29,21 @@ export const ALL_REQUESTED_SCOPES = "mcp:read mcp:draft offline_access";
 // Guard staging-only
 // ---------------------------------------------------------------------------
 
-/** Akhiran host staging Railway yang diizinkan (selain `E2E_STAGING_HOST`). */
-const STAGING_HOST_SUFFIX = ".up.railway.app";
+/**
+ * Host staging Postific (Railway, `PROJECT_STATE.md`): satu-satunya target
+ * bawaan. Bisa diganti lewat `E2E_STAGING_HOST` (hostname, tanpa skema), mis.
+ * bila domain staging berubah.
+ */
+const DEFAULT_STAGING_HOST = "web-staging-60d7.up.railway.app";
 
 /**
  * Alasan berkas MCP E2E harus di-skip, atau `null` bila boleh jalan.
  *
- * ALLOWLIST, bukan denylist: hanya `https:` dengan host berakhiran
- * `.up.railway.app` atau sama dengan `E2E_STAGING_HOST` (hostname, tanpa
- * skema) yang lolos. Alasannya: `DATABASE_URL` lokal menunjuk DB staging yang
+ * ALLOWLIST host persis, bukan denylist dan bukan akhiran domain: hanya
+ * `https:` dengan host sama dengan `E2E_STAGING_HOST` (bawaan
+ * `DEFAULT_STAGING_HOST`) yang lolos. Akhiran `.up.railway.app` terlalu longgar:
+ * itu hosting bersama, jadi layanan produksi proyek ini atau aplikasi pihak
+ * lain ikut lolos. Alasannya: `DATABASE_URL` lokal menunjuk DB staging yang
  * sama (ADR-081) dan flag MCP di server lokal bisa menulis kunci
  * `identity_jwks` yang dienkripsi dengan secret lokal, yang merusak staging
  * (temuan T-150.7, `/select-workspace` 500); selain itu tes ini menulis
@@ -63,14 +70,13 @@ export function mcpSkipReason(
     return `E2E_BASE_URL harus https: (dapat ${url.protocol}). ${onlyStaging}`;
   }
   const host = url.hostname.toLowerCase();
-  const allowedHost = stagingHost?.trim().toLowerCase();
-  if (
-    host.endsWith(STAGING_HOST_SUFFIX) ||
-    (allowedHost && host === allowedHost)
-  ) {
+  const allowedHost = (
+    stagingHost?.trim() || DEFAULT_STAGING_HOST
+  ).toLowerCase();
+  if (host === allowedHost) {
     return null;
   }
-  return `Host ${host} tidak ada di allowlist (*${STAGING_HOST_SUFFIX} atau E2E_STAGING_HOST). ${onlyStaging}`;
+  return `Host ${host} bukan host staging yang diizinkan (${allowedHost}; ganti lewat E2E_STAGING_HOST). ${onlyStaging}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -238,9 +244,7 @@ export async function registerClient(
     // Register dibatasi 5 permintaan/60 detik per IP (default plugin
     // oauth-provider); run beruntun menghabiskannya. Tunggu jendelanya lalu ulangi.
     const retryAfter = Number(response.headers()["x-retry-after"]) || 60;
-    await new Promise((resolve) =>
-      setTimeout(resolve, (Math.min(retryAfter, 65) + 1) * 1_000),
-    );
+    await sleep((Math.min(retryAfter, 65) + 1) * 1_000);
     response = await send();
   }
   // Staging membalas 200 (RFC 7591 menyebut 201); terima keduanya.
@@ -580,7 +584,17 @@ export async function callTool(
   const result = response.body?.result;
   expect(result, `tools/call ${name}: tanpa result`).toBeTruthy();
   const content = (result?.content ?? []) as { type: string; text: string }[];
-  const payload: unknown = content[0] ? JSON.parse(content[0].text) : undefined;
+  // Teks non-JSON (mis. galat SDK "Unknown tool") tidak boleh menjadi
+  // SyntaxError buram: simpan apa adanya (disamarkan) supaya pesan asersi
+  // memperlihatkan jawaban server yang sebenarnya.
+  let payload: unknown;
+  if (content[0]) {
+    try {
+      payload = JSON.parse(content[0].text);
+    } catch {
+      payload = { rawText: scrub(content[0].text).slice(0, 300) };
+    }
+  }
   const isError = result?.isError === true;
   const errorCode = isError
     ? (payload as { error?: { code?: string } } | undefined)?.error?.code
@@ -640,20 +654,33 @@ export async function findConsentFor(
   );
 }
 
+/** Nama klien tidak berubah: satu GET per klien per proses cukup. */
+const clientNames = new Map<string, string | undefined>();
+
 async function clientNameOf(
   sessionApi: APIRequestContext,
   clientId: string,
 ): Promise<string | undefined> {
+  if (clientNames.has(clientId)) return clientNames.get(clientId);
   const response = await guarded("public-client", () =>
     sessionApi.get(
       `/api/auth/oauth2/public-client?client_id=${encodeURIComponent(clientId)}`,
     ),
   );
-  if (response.status() !== 200) return undefined;
+  if (response.status() === 404) {
+    clientNames.set(clientId, undefined);
+    return undefined;
+  }
+  // Status lain (429, 5xx) TIDAK boleh dibaca sebagai "bukan klien e2e": sapuan
+  // dan asersi "tanpa sisa" memakai predikat yang sama, jadi consent e2e-* sisa
+  // akan lolos diam-diam. Gagal keras supaya terlihat.
+  expect(response.status(), `public-client ${clientId}`).toBe(200);
   const body = await readJson<{ client_name?: string; name?: string }>(
     response,
   ).catch(() => undefined);
-  return body?.client_name ?? body?.name;
+  const name = body?.client_name ?? body?.name;
+  clientNames.set(clientId, name);
+  return name;
 }
 
 /** Klien milik tes ini, atau klien lain yang namanya berawalan `E2E_PREFIX`. */
@@ -677,10 +704,8 @@ export async function cleanupE2eConsents(
   sessionApi: APIRequestContext,
   baseURL: string,
 ): Promise<{ targeted: number; revoked: number }> {
-  const targeted: string[] = [];
-  for (const consent of await listConsents(sessionApi)) {
-    if (!(await isE2eClient(sessionApi, consent.clientId))) continue;
-    targeted.push(consent.id);
+  const targeted = await listE2eConsents(sessionApi);
+  for (const consent of targeted) {
     await deleteConsent(sessionApi, baseURL, consent.id);
   }
   const stillThere = new Set(
@@ -688,7 +713,7 @@ export async function cleanupE2eConsents(
   );
   return {
     targeted: targeted.length,
-    revoked: targeted.filter((id) => !stillThere.has(id)).length,
+    revoked: targeted.filter((consent) => !stillThere.has(consent.id)).length,
   };
 }
 
@@ -696,9 +721,16 @@ export async function cleanupE2eConsents(
 export async function remainingE2eConsents(
   sessionApi: APIRequestContext,
 ): Promise<ConsentRow[]> {
-  const rows: ConsentRow[] = [];
-  for (const consent of await listConsents(sessionApi)) {
-    if (await isE2eClient(sessionApi, consent.clientId)) rows.push(consent);
-  }
-  return rows;
+  return listE2eConsents(sessionApi);
+}
+
+/** Consent milik klien `e2e-*`; pencarian nama klien berjalan paralel. */
+async function listE2eConsents(
+  sessionApi: APIRequestContext,
+): Promise<ConsentRow[]> {
+  const consents = await listConsents(sessionApi);
+  const flags = await Promise.all(
+    consents.map((consent) => isE2eClient(sessionApi, consent.clientId)),
+  );
+  return consents.filter((_, index) => flags[index]);
 }

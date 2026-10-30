@@ -24,7 +24,7 @@ import {
 } from "./support/mcp";
 import {
   assertWorkspaceId,
-  hasDatabaseUrl,
+  hasDbConnection,
   probeSandboxMember,
   readMemberStatus,
   restoreMemberActive,
@@ -41,8 +41,8 @@ import { E2E_WORKSPACE_NAME } from "./support/workspace";
  * diubah hanya klien `e2e-*` dan, di skenario (f), baris member akun test di
  * E2E Sandbox.
  *
- * Hanya staging (`mcpSkipReason`, allowlist: `https:` + `*.up.railway.app`
- * atau `E2E_STAGING_HOST`). Baris `identity_oauth_client` hasil pendaftaran
+ * Hanya staging (`mcpSkipReason`, allowlist host persis: `https:` + host
+ * staging bawaan atau `E2E_STAGING_HOST`). Baris `identity_oauth_client` hasil pendaftaran
  * dinamis tidak bisa dihapus (klien tanpa pemilik; ditangani T-150.9): tes
  * hanya mencabut consent dan grant miliknya, klien `e2e-*` tersisa dan itu
  * diterima.
@@ -61,10 +61,15 @@ import { E2E_WORKSPACE_NAME } from "./support/workspace";
  *   bila E2E Sandbox punya member `active` lain; kalau tidak, (f) di-skip.
  *   `DIRECT_URL` (superuser) hanya dengan opt-in `E2E_ALLOW_DIRECT_URL=1`.
  *   Detail, RUNBOOK pemulihan manual, dan peringatan workspace "E2E Sandbox"
- *   ganda ada di `support/member-db.ts`.
+ *   ganda ada di `support/member-db.ts`. Member yang tertinggal `removed`
+ *   dipulihkan di `globalSetup` (`support/heal-member.global.ts`), sebelum
+ *   proyek `setup`, bukan di berkas ini.
  * - Tracing Playwright dimatikan untuk berkas ini: trace merekam header
- *   `Authorization` dan body token. (Belum dibuktikan bahwa pengaturan ini
- *   berlaku pada konteks yang dibuat manual di `beforeAll`.)
+ *   `Authorization` dan body token. Terbukti berlaku juga untuk konteks yang
+ *   dibuat manual di `beforeAll` (2026-10-30): dengan `--trace on` dipaksa,
+ *   `test-results/` hanya berisi trace proyek `setup`, tidak ada untuk tes ini.
+ *   Cek ulang dengan `bun run test:e2e -- e2e/mcp.e2e.ts --trace on` bila
+ *   versi Playwright berubah.
  */
 
 test.use({ trace: "off" });
@@ -86,31 +91,6 @@ const READ_TOOLS = [
   "list_comments",
 ];
 
-/**
- * Penyembuhan otomatis: bila SATU-SATUNYA baris member akun test di workspace
- * "E2E Sandbox" berstatus `removed` (sisa run (f) yang terhenti), pulihkan ke
- * `active`. Baris dijamin tepat satu dan milik workspace itu oleh
- * `probeSandboxMember`; koneksi yang dipakai sudah lolos dry-run. Kegagalan
- * hanya dicatat: skenario (f) akan melaporkan alasan skip yang sama.
- */
-async function healLeftoverRemovedMember(): Promise<void> {
-  const email = process.env.E2E_USER_EMAIL;
-  if (!hasDatabaseUrl() || !email) return;
-  try {
-    const probe = await probeSandboxMember(email);
-    if (!probe.ok || probe.ref.status !== "removed") return;
-    console.warn(
-      `[mcp.e2e] member E2E tertinggal "removed" (sisa run terhenti); memulihkan ke active lewat ${probe.ref.connectionVar}`,
-    );
-    await restoreMemberActive(probe.ref);
-    console.warn("[mcp.e2e] member E2E dipulihkan ke active");
-  } catch (error) {
-    console.warn(
-      `[mcp.e2e] penyembuhan member dilewati: ${error instanceof Error ? scrub(error.message) : "galat tak dikenal"}`,
-    );
-  }
-}
-
 test.describe("MCP server di staging", () => {
   test.skip(SKIP_REASON !== null, SKIP_REASON ?? "");
   test.describe.configure({ mode: "serial", timeout: 120_000 });
@@ -127,10 +107,6 @@ test.describe("MCP server di staging", () => {
   let memberToRestore: SandboxMemberRef | undefined;
 
   test.beforeAll(async ({ browser, playwright }) => {
-    // Pemulihan sisa run yang terhenti lebih dulu: member `removed` membuat
-    // semua skenario lain gagal.
-    await healLeftoverRemovedMember();
-
     api = await playwright.request.newContext({
       baseURL: BASE_URL,
       // Kosongkan eksplisit: klien MCP sungguhan tidak membawa cookie sesi web.
@@ -320,6 +296,23 @@ test.describe("MCP server di staging", () => {
     expect((outcome.payload as { workspaceId: string }).workspaceId).toBe(
       sandboxWorkspaceId,
     );
+
+    // Rotasi berarti refresh token lama tidak boleh bisa dipakai lagi (replay).
+    // Dicoba setelah pemeriksaan di atas supaya tidak mengganggunya.
+    if (rotated) {
+      const replay = await refreshExpectingFailure(
+        api,
+        BASE_URL,
+        clientA,
+        clientA.refreshToken as string,
+      );
+      expect(replay.status, "refresh dengan token lama setelah rotasi").toBe(
+        400,
+      );
+      expect(replay.error, "refresh dengan token lama setelah rotasi").toBe(
+        "invalid_grant",
+      );
+    }
   });
 
   test("(e) pencabutan: delete-consent memutus grant, token, dan refresh", async () => {
@@ -379,19 +372,19 @@ test.describe("MCP server di staging", () => {
       console.log(
         `[mcp.e2e] (e) refresh setelah pencabutan: ${attempt.status} ${attempt.error ?? ""}`,
       );
-      expect(
-        attempt.status,
-        "refresh setelah pencabutan",
-      ).toBeGreaterThanOrEqual(400);
-      expect(attempt.status, "refresh setelah pencabutan").toBeLessThan(500);
+      // Persis 400 `invalid_grant` (bukti staging T-150.7): 429, 5xx, atau
+      // `invalid_request` tidak membuktikan refresh token sudah dihapus.
+      expect(attempt.status, "refresh setelah pencabutan").toBe(400);
+      expect(attempt.error, "refresh setelah pencabutan").toBe("invalid_grant");
     }
   });
 
   test("(f) member dikeluarkan: not_workspace_member, lalu pulih", async () => {
     const noDbReason =
-      "DATABASE_URL tidak tersedia di lingkungan tes: skenario (f) butuh tulis DB langsung (status workspace_members) dan sengaja di-skip.";
-    if (!hasDatabaseUrl()) console.warn(`[mcp.e2e] (f) DI-SKIP: ${noDbReason}`);
-    test.skip(!hasDatabaseUrl(), noDbReason);
+      "Tidak ada koneksi DB yang boleh dipakai (DATABASE_URL, atau DIRECT_URL dengan opt-in E2E_ALLOW_DIRECT_URL=1): skenario (f) butuh tulis DB langsung (status workspace_members) dan sengaja di-skip.";
+    if (!hasDbConnection())
+      console.warn(`[mcp.e2e] (f) DI-SKIP: ${noDbReason}`);
+    test.skip(!hasDbConnection(), noDbReason);
     const email = process.env.E2E_USER_EMAIL;
     expect(email, "E2E_USER_EMAIL").toBeTruthy();
 

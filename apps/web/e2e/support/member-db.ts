@@ -1,5 +1,6 @@
 import { Client } from "pg";
 
+import { sleep } from "./sleep";
 import { E2E_WORKSPACE_NAME } from "./workspace";
 
 /**
@@ -44,8 +45,9 @@ import { E2E_WORKSPACE_NAME } from "./workspace";
  * hanya punya satu member, jadi dengan `app_runtime` saja (f) di-skip.
  *
  * RUNBOOK pemulihan manual (bila run terhenti dan member tertinggal
- * `removed`; `afterAll` dan awal run berikutnya mencoba memulihkan otomatis
- * hanya bila koneksi bypass RLS tersedia):
+ * `removed`; `afterAll` dan `globalSetup` run berikutnya
+ * (`heal-member.global.ts`, berjalan SEBELUM proyek `setup`) mencoba
+ * memulihkan otomatis hanya bila koneksi bypass RLS tersedia):
  *   UPDATE workspace_members SET status = 'active', updated_at = now()
  *    WHERE status = 'removed'
  *      AND workspace_id = (SELECT id FROM workspaces WHERE name = 'E2E Sandbox')
@@ -81,22 +83,36 @@ export interface SandboxMemberRef {
 }
 
 export type ProbeResult =
-  { ok: true; ref: SandboxMemberRef } | { ok: false; reason: string };
+  | { ok: true; ref: SandboxMemberRef }
+  | {
+      ok: false;
+      reason: string;
+      /**
+       * Jumlah baris member akun test di E2E Sandbox bila pencarian sempat
+       * berjalan: 0 = tidak terlihat (mis. tertinggal `removed` di bawah RLS),
+       * 2+ = workspace "E2E Sandbox" ganda.
+       */
+      memberRows?: number;
+    };
 
 const STATEMENT_TIMEOUT_MS = 10_000;
 
-export function hasDatabaseUrl(): boolean {
-  return Boolean(process.env.DATABASE_URL);
+/**
+ * Apakah ada variabel koneksi DB yang BOLEH dipakai (gerbang skenario (f) dan
+ * penyembuhan member), searah dengan `probeSandboxMember`: `DATABASE_URL`, atau
+ * `DIRECT_URL` (superuser) hanya dengan opt-in `E2E_ALLOW_DIRECT_URL=1`.
+ */
+export function hasDbConnection(): boolean {
+  return Boolean(
+    process.env.DATABASE_URL ||
+    (process.env.DIRECT_URL && process.env.E2E_ALLOW_DIRECT_URL === "1"),
+  );
 }
 
 function dbErrorCode(error: unknown): string {
   const code = (error as { code?: unknown } | null)?.code;
   if (typeof code === "string") return code;
   return error instanceof Error ? error.name : "tidak diketahui";
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function withClient<T>(
@@ -146,9 +162,7 @@ async function inTransaction<T>(
 ): Promise<T> {
   await client.query("BEGIN");
   try {
-    await client.query("SELECT set_config('app.current_user_id', $1, true)", [
-      actorId,
-    ]);
+    await setActor(client, actorId);
     await client.query(`SET LOCAL statement_timeout = ${STATEMENT_TIMEOUT_MS}`);
     await client.query(`SET LOCAL lock_timeout = ${STATEMENT_TIMEOUT_MS}`);
     const result = await fn();
@@ -177,6 +191,7 @@ const UPDATE_STATUS_SQL = `UPDATE workspace_members SET status = $1, updated_at 
  */
 export async function probeSandboxMember(email: string): Promise<ProbeResult> {
   const reasons: string[] = [];
+  let memberRows: number | undefined;
   const candidates: ConnectionVar[] = [];
   if (process.env.DATABASE_URL) candidates.push("DATABASE_URL");
   if (process.env.DIRECT_URL) {
@@ -193,6 +208,7 @@ export async function probeSandboxMember(email: string): Promise<ProbeResult> {
     try {
       const result = await probeWith(connectionVar, email);
       if (result.ok) return result;
+      memberRows ??= result.memberRows;
       reasons.push(`${connectionVar}: ${result.reason}`);
     } catch (error) {
       reasons.push(
@@ -205,6 +221,7 @@ export async function probeSandboxMember(email: string): Promise<ProbeResult> {
   return {
     ok: false,
     reason: reasons.join("; ") || "tidak ada variabel koneksi DB",
+    memberRows,
   };
 }
 
@@ -247,6 +264,7 @@ async function probeWith(
         return {
           kind: "fail" as const,
           reason: `baris member di "${E2E_WORKSPACE_NAME}" tidak tepat satu (${members.rows.length}); role ${role}, bypass RLS ${bypassRls}`,
+          memberRows: members.rows.length,
         };
       }
       const member = members.rows[0];
@@ -264,7 +282,11 @@ async function probeWith(
       return { kind: "ok" as const, member, restoreActorId };
     });
     if (found.kind === "fail") {
-      return { ok: false as const, reason: found.reason };
+      return {
+        ok: false as const,
+        reason: found.reason,
+        memberRows: found.memberRows,
+      };
     }
     const { member, restoreActorId } = found;
 
