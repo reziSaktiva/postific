@@ -199,11 +199,23 @@ Satu panggilan memuat maksimum 10 konten (konstanta konfigurasi). Target per kon
 
 ### T-155 · Tool `upload_media` dari URL (proteksi SSRF)
 
-`⏳ Not Started` · **Domain** mcp-access · media · **ADR** ADR-138 · **Depends** T-152
+`🟡 In Progress (2026-10-30)` · **Domain** mcp-access · media · **ADR** ADR-138 · **Depends** T-152
 
 **Baca dulu:** `05-architecture/integration-layer.md` · `05-architecture/application-layer.md` (`uploadMedia`)
 
 Tiket sendiri karena butuh review keamanan terfokus. Hanya `https`, periksa IP setelah DNS resolve (tolak privat/loopback/link-local), periksa ulang tiap redirect, batas ukuran dan waktu, validasi tipe dari isi file. Simpan lewat alur `uploadMedia` yang ada.
+
+- [x] **T-155.1** Kode: `lib/net/ip-classify.ts`, `safe-fetch.ts`, `node-transport.ts` (+ tes, `test-tls-fixture.ts` dengan PEM dirakit saat runtime), `domains/media/detect-media-type.ts`, `lib/mcp/tools/media-tools.ts`; diubah `tool-types.ts`, `get-mcp-tool-services.ts`, `server.ts`. Tool `upload_media` scope `draft` (kini 11 tool). Review Ridwan tanpa blocker; temuan F1 (titik di akhir host), F2 (memori/konkurensi), F3 (import domain), F4 (karakter bidi di filename) sudah diperbaiki. QA Najwa: `typecheck`, `lint`, `bun run test` hijau (161 file, 1897 tes).
+- [x] **T-155.2** Tes unit proteksi SSRF: skema `https` saja, tanpa userinfo, port default saja, IP literal ditolak; semua alamat hasil DNS harus lolos allow-list (IPv4 publik; IPv6 hanya `2000::/3` dengan unwrap mapped/NAT64/6to4); koneksi di-pin lewat lookup custom dengan SNI/Host/sertifikat tetap hostname asli (dibuktikan dengan server TLS lokal); redirect manual maksimum 3 dengan validasi ulang tiap hop; timeout total 15 detik; batas 50 MB (Content-Length dan hitung stream); `accept-encoding: identity`; maksimum 3 unduhan serentak per proses.
+- [x] **T-155.3** Tes unit tipe file dari magic bytes (jpeg, png, gif, webp, mp4, mov); `Content-Type` server diabaikan. Simpan lewat `UploadMediaUseCase`. Kuota `write_actions` sudah dihitung otomatis oleh `authorizeCall` untuk scope `draft`, jadi tidak ada `consumeQuota` eksplisit (agar tidak dobel).
+- [ ] **T-155.4** Uji di staging/Railway dengan unduhan nyata: DNS, TLS dengan CA sistem, redirect CDN, dan perilaku lookup custom di runtime Railway (bila dijalankan dengan `bun --bun`, tes ulang).
+- [ ] **T-155.5** Uji dengan klien MCP nyata: `upload_media` lalu `create_draft`, termasuk upload ke Supabase Storage dan record `MediaItem` lewat grant MCP.
+- [ ] **T-155.6** Uji file mendekati 50 MB nyata (memori, kecepatan) dan konkurensi lebih dari 3 unduhan.
+- [ ] **T-155.7** (Opsional) Tes E2E di `e2e/mcp.e2e.ts`.
+
+**Hasil kode (2026-10-30):** tool `upload_media` (scope `draft`) mengunduh file dari URL lalu menyimpannya lewat `UploadMediaUseCase`. Desain: `https` saja, tanpa userinfo, port default saja, IP literal ditolak. DNS di-resolve sekali per hop dan semua alamat harus lolos allow-list (IPv4 publik; IPv6 hanya `2000::/3` dengan unwrap mapped/NAT64/6to4). Koneksi di-pin ke alamat hasil resolve lewat lookup custom, sementara SNI, Host, dan validasi sertifikat tetap memakai hostname asli (terbukti dengan server TLS lokal di tes). Redirect manual maksimum 3 hop, tiap hop divalidasi ulang. Timeout total 15 detik, batas 50 MB (Content-Length dan hitung stream), `accept-encoding: identity`, maksimum 3 unduhan serentak per proses (kelebihan dijawab `busy`). Tipe file ditentukan dari magic bytes (jpeg/png/gif/webp/mp4/mov), `Content-Type` server diabaikan. Tidak ada migrasi dan tidak ada perubahan DB.
+
+**Belum terbukti:** unduhan nyata di staging/Railway (DNS, TLS dengan CA sistem, redirect CDN); perilaku lookup custom di runtime Railway (dugaan Node; bila dijalankan dengan `bun --bun` harus dites ulang); upload ke Supabase Storage dan pembuatan record `MediaItem` lewat grant MCP; file 50 MB nyata dan pemakaian memori (puncak sekitar 2-3x ukuran file, semaphore hanya per proses); klien MCP nyata dan alur `upload_media` lalu `create_draft`; tes E2E (belum ada). Keterbatasan yang diketahui: batas 15 detik butuh sekitar 27 Mbps untuk file 50 MB; validasi hanya pada header file, bukan integritas isi; pesan `busy` muncul bila lebih dari 3 unduhan serentak; unduhan yang gagal tetap memakai 1 kuota `write_actions`. Ditutup ✅ hanya setelah T-155.4 sampai T-155.6 terbukti.
 
 ### T-156 · Settings: daftar dan cabut klien AI
 

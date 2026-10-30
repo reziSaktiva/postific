@@ -1,8 +1,15 @@
 import { AnalyticsService } from "@/domains/analytics";
 import { EngagementService } from "@/domains/engagement";
-import { MediaService } from "@/domains/media";
+import {
+  MAX_MEDIA_FILE_SIZE_BYTES,
+  MediaService,
+  UploadMediaUseCase,
+} from "@/domains/media";
 import { ComposeDraftUseCase, PublishingService } from "@/domains/publishing";
 import { WorkspaceService } from "@/domains/workspace";
+import { supabaseMediaStorageAdapter } from "@/lib/adapters/media-storage/supabase-media-storage-adapter";
+import { nodeSafeFetchDeps } from "@/lib/net/node-transport";
+import { safeFetch } from "@/lib/net/safe-fetch";
 import { getOutstandAdapter } from "@/lib/adapters/outstand";
 import { analyticsRepository } from "@/lib/repositories/analytics";
 import { engagementRepository } from "@/lib/repositories/engagement";
@@ -42,6 +49,16 @@ export function getMcpToolServices(): McpToolServices {
     publishing,
     analytics,
     drafts,
+    mediaUpload: new UploadMediaUseCase(
+      mediaRepository,
+      supabaseMediaStorageAdapter,
+    ),
+    remoteMedia: {
+      download: (url) =>
+        safeFetch(url, nodeSafeFetchDeps, {
+          maxBytes: MAX_MEDIA_FILE_SIZE_BYTES,
+        }),
+    },
     get engagement() {
       engagement ??= new EngagementService(
         engagementRepository,

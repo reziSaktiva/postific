@@ -7,3 +7,4 @@ export * from "./repositories/media.repository";
 export * from "./services/media.service";
 export * from "./services/upload-media.use-case";
 export * from "./services/delete-media.use-case";
+export * from "./detect-media-type";

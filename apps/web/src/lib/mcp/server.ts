@@ -7,6 +7,7 @@ import {
 import type { McpClaims } from "./claims";
 import { mcpErrorResult, runMcpTool, type McpGateDeps } from "./run-tool";
 import { MCP_DRAFT_TOOLS } from "./tools/draft-tools";
+import { MCP_MEDIA_TOOLS } from "./tools/media-tools";
 import { MCP_READ_TOOLS } from "./tools/read-tools";
 import type { McpToolDefinition } from "./tool-types";
 
@@ -24,12 +25,13 @@ export const MCP_SERVER_NAME = "postific";
 export const MCP_SERVER_VERSION = "0.1.0";
 
 /**
- * Tool yang diekspos `tools/list`: baca (T-150) lalu draft (T-152). Tool
- * berikutnya (`upload_media`, `schedule_posts`) ditambah di sini.
+ * Tool yang diekspos `tools/list`: baca (T-150) lalu draft (T-152) dan
+ * `upload_media` (T-155). Tool berikutnya (`schedule_posts`) ditambah di sini.
  */
 export const MCP_TOOLS: readonly McpToolDefinition[] = [
   ...MCP_READ_TOOLS,
   ...MCP_DRAFT_TOOLS,
+  ...MCP_MEDIA_TOOLS,
 ];
 
 export function createMcpServer(
