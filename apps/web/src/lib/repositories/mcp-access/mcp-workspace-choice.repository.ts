@@ -15,8 +15,10 @@ export const mcpWorkspaceChoiceRepository: IMcpWorkspaceChoiceRepository = {
       where: { sessionId },
       create: { sessionId, userId, workspaceId, expiresAt, createdAt },
       // Pilihan baru menimpa yang lama; `createdAt` ikut diperbarui supaya
-      // baris mencerminkan pilihan terakhir.
-      update: { userId, workspaceId, expiresAt, createdAt },
+      // baris mencerminkan pilihan terakhir. `userId` sengaja TIDAK ikut
+      // diperbarui: pemilik baris ditetapkan saat dibuat, jadi sesi tidak bisa
+      // "diambil alih" pengguna lain lewat `session_id` yang sama.
+      update: { workspaceId, expiresAt, createdAt },
     });
     return {
       sessionId: row.sessionId,

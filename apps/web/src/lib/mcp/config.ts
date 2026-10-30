@@ -7,7 +7,10 @@
  * semua env dimigrasi.
  */
 
-import type { McpRateLimitConfig } from "@/domains/mcp-access";
+import {
+  MCP_RATE_LIMIT_MAX_VALUE,
+  type McpRateLimitConfig,
+} from "@/domains/mcp-access";
 
 const DEFAULT_ALLOWED_ORIGINS = [
   "https://claude.ai",
@@ -50,8 +53,9 @@ const RATE_LIMIT_ENV_KEYS: Record<keyof McpRateLimitConfig, string> = {
 
 /**
  * Batas efektif: default di atas, dapat ditimpa per env. Nilai env yang bukan
- * bilangan bulat positif diabaikan (kembali ke default) supaya salah ketik
- * tidak mematikan atau memperlonggar batas diam-diam.
+ * bilangan bulat positif, atau melebihi `int4` Postgres (penghitung disimpan
+ * sebagai `int4`), diabaikan (kembali ke default) supaya salah ketik tidak
+ * mematikan atau memperlonggar batas diam-diam.
  */
 export function getMcpRateLimitConfig(
   env: Env = process.env,
@@ -63,7 +67,11 @@ export function getMcpRateLimitConfig(
     const raw = env[RATE_LIMIT_ENV_KEYS[kind]]?.trim();
     if (raw && /^\d+$/.test(raw)) {
       const value = Number(raw);
-      if (Number.isSafeInteger(value) && value > 0) {
+      if (
+        Number.isSafeInteger(value) &&
+        value > 0 &&
+        value <= MCP_RATE_LIMIT_MAX_VALUE
+      ) {
         resolved[kind] = value;
       }
     }

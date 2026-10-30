@@ -35,7 +35,7 @@ export function ClientHeader({
   const initial = client.name ? client.name.charAt(0).toUpperCase() : "?";
   return (
     // eslint-disable-next-line no-restricted-syntax -- T-151: komposisi Tailwind shadcn (ADR-097), pola layout kepala kartu auth
-    <div className="flex items-center gap-3">
+    <div className="flex min-w-0 items-center gap-3">
       <Avatar
         size="lg"
         className={cn(client.name === null && "after:border-dashed")}
@@ -47,7 +47,7 @@ export function ClientHeader({
       {/* eslint-disable-next-line no-restricted-syntax -- T-151, sama seperti di atas */}
       <div className="flex min-w-0 flex-col gap-0.5">
         <CardTitle className="truncate">{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
+        <CardDescription className="break-words">{description}</CardDescription>
       </div>
     </div>
   );

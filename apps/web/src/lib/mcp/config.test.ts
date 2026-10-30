@@ -43,6 +43,17 @@ describe("getMcpRateLimitConfig", () => {
     ).toEqual({ calls: 120, write_actions: 10, scheduled_contents: 5 });
   });
 
+  it("accepts the int4 maximum but rejects anything above it (counter is int4)", () => {
+    expect(
+      getMcpRateLimitConfig({ MCP_RATE_LIMIT_CALLS_PER_MINUTE: "2147483647" })
+        .calls,
+    ).toBe(2147483647);
+    expect(
+      getMcpRateLimitConfig({ MCP_RATE_LIMIT_CALLS_PER_MINUTE: "2147483648" })
+        .calls,
+    ).toBe(60);
+  });
+
   it.each(["0", "-5", "abc", "1.5", "", "1e3", "99999999999999999999"])(
     "ignores invalid env value %j and keeps the default",
     (bad) => {

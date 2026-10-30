@@ -53,7 +53,6 @@ describe("mcpWorkspaceChoiceRepository", () => {
           createdAt: NOW,
         },
         update: {
-          userId: USER,
           workspaceId: WORKSPACE,
           expiresAt: EXPIRES,
           createdAt: NOW,

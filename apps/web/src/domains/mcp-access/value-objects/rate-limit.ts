@@ -72,13 +72,23 @@ export function secondsUntilWindowEnd(
   return Math.max(1, Math.ceil((window.end.getTime() - now.getTime()) / 1000));
 }
 
-/** Validasi konfigurasi: setiap batas bilangan bulat positif. Melempar `Error` bila tidak. */
+/**
+ * Batas atas satu batas rate limit: penghitung disimpan sebagai `int4` di
+ * Postgres, jadi nilai di atas ini membuat setiap panggilan tool gagal.
+ */
+export const MCP_RATE_LIMIT_MAX_VALUE = 2_147_483_647;
+
+/** Validasi konfigurasi: setiap batas bilangan bulat positif, maksimum `int4`. Melempar `Error` bila tidak. */
 export function assertValidRateLimitConfig(config: McpRateLimitConfig): void {
   for (const kind of MCP_QUOTA_KINDS) {
     const limit = config[kind];
-    if (!Number.isInteger(limit) || limit <= 0) {
+    if (
+      !Number.isInteger(limit) ||
+      limit <= 0 ||
+      limit > MCP_RATE_LIMIT_MAX_VALUE
+    ) {
       throw new Error(
-        `Batas rate limit MCP "${kind}" harus bilangan bulat positif`,
+        `Batas rate limit MCP "${kind}" harus bilangan bulat positif sampai ${MCP_RATE_LIMIT_MAX_VALUE}`,
       );
     }
   }
