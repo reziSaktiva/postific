@@ -5,8 +5,8 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/mcp-access/get-mcp-access-service", () => ({
   getMcpAccessService: () => ({}),
 }));
-vi.mock("./get-mcp-read-services", () => ({
-  getMcpReadServices: () => ({}),
+vi.mock("./get-mcp-tool-services", () => ({
+  getMcpToolServices: () => ({}),
 }));
 
 import { handleMcpRequest } from "./handle-request";
@@ -39,6 +39,6 @@ describe("handleMcpRequest", () => {
     );
     expect(response.status).toBe(200);
     const body = (await response.json()) as { result: { tools: unknown[] } };
-    expect(body.result.tools).toHaveLength(8);
+    expect(body.result.tools).toHaveLength(10);
   });
 });

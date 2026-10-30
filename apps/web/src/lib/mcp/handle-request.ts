@@ -4,7 +4,7 @@ import type { JWTPayload } from "jose";
 import { getMcpAccessService } from "@/lib/mcp-access/get-mcp-access-service";
 
 import { readMcpClaims } from "./claims";
-import { getMcpReadServices } from "./get-mcp-read-services";
+import { getMcpToolServices } from "./get-mcp-tool-services";
 import { createMcpServer } from "./server";
 
 /**
@@ -25,7 +25,7 @@ export async function handleMcpRequest(
 
   const server = createMcpServer(claims, {
     access: getMcpAccessService(),
-    services: getMcpReadServices(),
+    services: getMcpToolServices(),
   });
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: undefined,

@@ -1,4 +1,5 @@
 import type { McpGrantId } from "@postific/shared";
+import { MCP_QUOTA_LABEL, type McpQuotaKind } from "./value-objects/rate-limit";
 
 /** Domain error classes for mcp-access. */
 export class McpAccessDomainError extends Error {
@@ -87,5 +88,48 @@ export class McpInvalidGrantInputError extends McpAccessDomainError {
   constructor(message: string) {
     super(message);
     this.name = "McpInvalidGrantInputError";
+  }
+}
+
+/**
+ * Kuota rate limit workspace terlampaui (T-154). Bukan penolakan otorisasi:
+ * grant, scope, dan member sudah lolos. `retryAfterSeconds` = detik sampai
+ * jendela kuota berikutnya mulai (minimal 1); klien boleh mencoba lagi setelah
+ * itu. `grantId` terisi bila dilempar dari `authorizeCall` (untuk audit).
+ */
+export class McpRateLimitExceededError extends McpAccessDomainError {
+  readonly quota: McpQuotaKind;
+  readonly limit: number;
+  readonly retryAfterSeconds: number;
+  readonly grantId: McpGrantId | null;
+
+  constructor(input: {
+    quota: McpQuotaKind;
+    limit: number;
+    retryAfterSeconds: number;
+    grantId?: McpGrantId | null;
+  }) {
+    const label = MCP_QUOTA_LABEL[input.quota];
+    super(
+      `Batas ${label.name} workspace tercapai (${input.limit} per ${label.per}). Coba lagi dalam ${input.retryAfterSeconds} detik.`,
+    );
+    this.name = "McpRateLimitExceededError";
+    this.quota = input.quota;
+    this.limit = input.limit;
+    this.retryAfterSeconds = input.retryAfterSeconds;
+    this.grantId = input.grantId ?? null;
+  }
+
+  /** Kode untuk `mcp_audit_logs.error_code` dan error MCP. */
+  get code(): "rate_limited" {
+    return "rate_limited";
+  }
+}
+
+/** Permintaan kuota tidak valid (jumlah bukan bilangan bulat positif, atau melebihi seluruh batas). */
+export class McpInvalidRateLimitInputError extends McpAccessDomainError {
+  constructor(message: string) {
+    super(message);
+    this.name = "McpInvalidRateLimitInputError";
   }
 }

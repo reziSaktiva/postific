@@ -524,18 +524,24 @@ Pemetaan tool MCP ke service yang dibungkus (nama method sudah dicocokkan dengan
 | `read` | `get_analytics` (workspace) | `AnalyticsService.getDashboardSummary` |
 | `read` | `get_analytics` (satu post) | `PublishingService.getHistoryById` (field `metrics` per akun; `authorName` tidak dipakai) |
 | `read` | `list_comments` | `EngagementService.listInbox` |
-| `draft` | `create_draft` | `PublishingService.createDraft` (nama method dicocokkan di T-152) |
-| `draft` | `update_draft` | `PublishingService.updateDraft` |
+| `draft` | `create_draft` | `ComposeDraftUseCase` (domain `publishing`; membuat draft dengan penanda sumber `created_via = 'mcp'` dan `created_via_client_id` dari grant; T-152) |
+| `draft` | `update_draft` | `ComposeDraftUseCase` (hanya draft berstatus Draft; tidak mengubah penanda sumber; T-152) |
 | `draft` | `upload_media` | `MediaService.uploadMedia` (unduh dari URL dengan proteksi SSRF) |
 | `schedule` | `schedule_posts` | `PublishingService.schedulePosts` (nama method dicocokkan di T-153) |
 
 Semua service di atas menerima `workspaceId` dan `userId` dari grant yang lolos `authorizeCall` (bukan dari argumen tool), jadi isolasi workspace dan RLS per pengguna (KI-026) tetap berlaku seperti di UI. Tool tidak punya parameter `workspaceId`.
 
+### Tool draft dan rate limit (T-152, T-154; ADR-152 Proposed)
+
+**`create_draft` dan `update_draft`** (scope `draft`). Caption maksimum 5000 karakter dan media maksimum 10 per draft. `update_draft` hanya untuk draft berstatus Draft; post Scheduled ditolak dengan `conflict` ("Batalkan jadwal di aplikasi dulu") dan penanda sumber tidak berubah. `platformOptions` (mis. board Pinterest) tidak bisa diatur lewat MCP. `list_drafts` belum mengembalikan penanda sumber.
+
+**Rate limit per workspace.** `McpAccessService.consumeQuota(workspaceId, quota, amount)` memakai fixed window Postgres (tabel `mcp_rate_limit_windows`, `database-strategy.md` BC-04): `calls` per menit, `write_actions` per jam, `scheduled_contents` per hari; batas bawaan 60, 30, dan 50, dapat diubah lewat env. Penolakan dikembalikan sebagai error `rate_limited` di hasil tool dengan `retryAfterSeconds`, `quota`, dan `limit`, bukan header HTTP `Retry-After` (respons HTTP selalu 200 untuk JSON-RPC). Fail-closed bila penghitung gagal. Pemakaian oleh tool `schedule_posts` ditetapkan di T-153.
+
 ### Kontrak output tool baca (T-150.1)
 
 Berlaku untuk delapan tool `read`. Handler hanya memetakan record service ke bentuk di bawah; tanpa business logic.
 
-**Bungkus hasil.** Satu blok `text` berisi JSON. Penolakan dan kegagalan memakai `isError: true` dengan blok `text` berisi `{"error":{"code","message"}}`, tidak pernah daftar kosong. `code`: `no_active_grant`, `token_scope_insufficient`, `grant_scope_insufficient`, `not_workspace_member` (`McpDenialReason`), `invalid_input`, `invalid_cursor`, `not_found`, `internal_error` (pesan generik; detail hanya di log server).
+**Bungkus hasil.** Satu blok `text` berisi JSON. Penolakan dan kegagalan memakai `isError: true` dengan blok `text` berisi `{"error":{"code","message"}}`, tidak pernah daftar kosong. `code`: `no_active_grant`, `token_scope_insufficient`, `grant_scope_insufficient`, `not_workspace_member` (`McpDenialReason`), `invalid_input` (juga untuk `ValidationError` dan `PublishingDomainError` dari service), `invalid_cursor`, `not_found`, `conflict` (tool tulis, mis. `update_draft` pada post yang sudah dijadwalkan), `rate_limited` (kuota per workspace habis; ADR-152, lihat di bawah), `internal_error` (pesan generik; detail hanya di log server).
 
 **Waktu.** Semua tanggal dan jam berupa string ISO 8601 dengan offset WIB tetap, mis. `2026-10-28T14:30:00+07:00` (T-144/T-146; belum ada zona waktu per workspace). Tanggal tanpa nilai diberi `null`. Tool tidak menerima input waktu pada tool baca.
 

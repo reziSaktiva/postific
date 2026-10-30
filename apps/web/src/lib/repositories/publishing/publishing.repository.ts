@@ -8,6 +8,7 @@ import {
   type ConnectedAccountId,
   ContentFormat,
   ContentStatus,
+  PostCreatedVia,
   type SocialPlatform,
 } from "@postific/shared";
 import {
@@ -128,6 +129,8 @@ function mapPost(
     status: post.status as ContentStatus,
     mediaIds: post.mediaIds.map((id) => asMediaId(id)),
     ...(post.targets ? { draftTargets: mapDraftTargets(post.targets) } : {}),
+    createdVia: post.createdVia as PostCreatedVia,
+    createdViaClientId: post.createdViaClientId,
     createdAt: post.createdAt,
     updatedAt: post.updatedAt,
   };
@@ -206,7 +209,14 @@ function mapHistoryItem(post: QueuePostWithTargets): HistoryItemRecord {
 }
 
 export const publishingRepository: IPublishingRepository = {
-  async createDraft({ workspaceId, authorId, caption, mediaIds, targets }) {
+  async createDraft({
+    workspaceId,
+    authorId,
+    caption,
+    mediaIds,
+    targets,
+    source,
+  }) {
     const post = await withCurrentUser(authorId, async (tx) => {
       const created = await tx.publishingPost.create({
         data: {
@@ -214,6 +224,13 @@ export const publishingRepository: IPublishingRepository = {
           authorId,
           caption,
           ...(mediaIds !== undefined ? { mediaIds } : {}),
+          // T-152 — `undefined` = default kolom DB (`app`, tanpa klien).
+          ...(source?.createdVia === PostCreatedVia.Mcp
+            ? {
+                createdVia: PostCreatedVia.Mcp,
+                createdViaClientId: source.clientId,
+              }
+            : {}),
         },
       });
       if (targets !== undefined) {

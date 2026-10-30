@@ -24,6 +24,106 @@ describe("McpAuditPurgeJobHandler", () => {
     expect(purgeAudit).toHaveBeenCalledTimes(2);
   });
 
+  it("also purges expired rate limit windows in the same job (T-154, no new cron)", async () => {
+    const purgeAudit = vi.fn(async () => ({ deleted: 0, cutoff: NOW }));
+    const purgeRateLimitWindows = vi.fn(async () => ({ deleted: 4 }));
+    const handler = new McpAuditPurgeJobHandler({
+      purgeAudit,
+      purgeRateLimitWindows,
+    });
+
+    await handler.handle();
+
+    expect(purgeAudit).toHaveBeenCalledTimes(1);
+    expect(purgeRateLimitWindows).toHaveBeenCalledTimes(1);
+  });
+
+  it("still purges rate limit windows when the audit purge fails, then rethrows", async () => {
+    const purgeRateLimitWindows = vi.fn(async () => ({ deleted: 1 }));
+    const handler = new McpAuditPurgeJobHandler({
+      purgeAudit: async () => {
+        throw new Error("audit down");
+      },
+      purgeRateLimitWindows,
+    });
+
+    await expect(handler.handle()).rejects.toThrow("audit down");
+    expect(purgeRateLimitWindows).toHaveBeenCalledTimes(1);
+  });
+
+  it("still purges audit when the rate limit purge fails, then rethrows", async () => {
+    const purgeAudit = vi.fn(async () => ({ deleted: 0, cutoff: NOW }));
+    const handler = new McpAuditPurgeJobHandler({
+      purgeAudit,
+      purgeRateLimitWindows: async () => {
+        throw new Error("counters down");
+      },
+    });
+
+    await expect(handler.handle()).rejects.toThrow("counters down");
+    expect(purgeAudit).toHaveBeenCalledTimes(1);
+  });
+
+  it("also purges expired OAuth workspace choices when a purger is supplied (T-151)", async () => {
+    const order: string[] = [];
+    const purgeAudit = vi.fn(async () => {
+      order.push("audit");
+      return { deleted: 0, cutoff: NOW };
+    });
+    const purgeExpiredWorkspaceChoices = vi.fn(async () => {
+      order.push("choices");
+      return 2;
+    });
+    const handler = new McpAuditPurgeJobHandler(
+      { purgeAudit },
+      { purgeExpiredWorkspaceChoices },
+    );
+
+    await handler.handle();
+
+    expect(order).toEqual(["audit", "choices"]);
+  });
+
+  it("propagates a workspace choice purge failure so the job is retried", async () => {
+    const handler = new McpAuditPurgeJobHandler(
+      { purgeAudit: async () => ({ deleted: 0, cutoff: NOW }) },
+      {
+        purgeExpiredWorkspaceChoices: async () => {
+          throw new Error("db down");
+        },
+      },
+    );
+
+    await expect(handler.handle()).rejects.toThrow("db down");
+  });
+
+  it("surfaces every failure (AggregateError) when more than one purge fails", async () => {
+    const handler = new McpAuditPurgeJobHandler(
+      {
+        purgeAudit: async () => {
+          throw new Error("audit down");
+        },
+        purgeRateLimitWindows: async () => {
+          throw new Error("counters down");
+        },
+      },
+      {
+        purgeExpiredWorkspaceChoices: async () => {
+          throw new Error("choices down");
+        },
+      },
+    );
+
+    const error = await handler.handle().then(
+      () => null,
+      (e: unknown) => e,
+    );
+    expect(error).toBeInstanceOf(AggregateError);
+    expect(
+      (error as AggregateError).errors.map((e: Error) => e.message),
+    ).toEqual(["audit down", "counters down", "choices down"]);
+  });
+
   it("propagates errors so the job runner applies the generic retry", async () => {
     const handler = new McpAuditPurgeJobHandler({
       purgeAudit: async () => {

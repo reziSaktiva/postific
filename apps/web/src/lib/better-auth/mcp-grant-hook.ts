@@ -56,6 +56,14 @@ export type McpGrantPluginOptions = {
     session: { id: string };
     scopes: string[];
   }) => string | undefined | Promise<string | undefined>;
+  /**
+   * Dipanggil setelah grant berhasil dibuat dari consent (T-151: hapus
+   * pilihan workspace sesi). Gagal tidak membatalkan consent; hanya dicatat.
+   */
+  onConsentGranted?: (info: {
+    user: { id: string };
+    session: { id: string };
+  }) => Promise<void>;
 };
 
 export type ConsentRow = {
@@ -85,7 +93,7 @@ export function newestConsent(rows: ConsentRow[]): ConsentRow | undefined {
 export function mcpGrantPlugin(
   options: McpGrantPluginOptions,
 ): BetterAuthPlugin {
-  const { getAccess, consentReferenceId } = options;
+  const { getAccess, consentReferenceId, onConsentGranted } = options;
 
   return {
     id: "mcp-grant",
@@ -237,6 +245,18 @@ export function mcpGrantPlugin(
                 consentId: consent.id,
               });
               throw serverError("Koneksi tidak dapat disimpan. Coba lagi.");
+            }
+
+            try {
+              await onConsentGranted?.({
+                user: session.user,
+                session: session.session,
+              });
+            } catch (error) {
+              ctx.context.logger.error(
+                "[mcp-grant] pembersihan pilihan workspace gagal (diabaikan, kedaluwarsa 10 menit)",
+                error,
+              );
             }
           }),
         },

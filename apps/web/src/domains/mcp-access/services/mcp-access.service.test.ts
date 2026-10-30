@@ -200,6 +200,8 @@ function createHarness(
           assertWithinLimit: async (ctx) => {
             rateLimitCalls.push(ctx);
           },
+          consumeQuota: async () => undefined,
+          purgeExpired: async () => 0,
         }
       : undefined,
   );
@@ -436,11 +438,53 @@ describe("McpAccessService.authorizeCall", () => {
         assertWithinLimit: async () => {
           throw limitError;
         },
+        consumeQuota: async () => undefined,
+        purgeExpired: async () => 0,
       },
     );
 
     await expect(service.authorizeCall(callInput)).rejects.toBe(limitError);
     expect(grants.touches).toHaveLength(0);
+  });
+
+  it("delegates consumeQuota and purgeRateLimitWindows to the rate limiter (T-154)", async () => {
+    const grants = new FakeGrantRepository();
+    const consumed: unknown[][] = [];
+    const service = new McpAccessService(
+      grants,
+      new FakeAuditRepository(),
+      new FakeRevocationPort(grants),
+      { getMembership: async () => ({ status: MemberStatus.Active }) },
+      () => T0,
+      {
+        assertWithinLimit: async () => undefined,
+        consumeQuota: async (...args) => {
+          consumed.push(args);
+        },
+        purgeExpired: async () => 7,
+      },
+    );
+
+    await service.consumeQuota(WS_A, "scheduled_contents", 3);
+    await service.consumeQuota(WS_A, "scheduled_contents");
+    expect(consumed).toEqual([
+      [WS_A, "scheduled_contents", 3],
+      [WS_A, "scheduled_contents", 1],
+    ]);
+    await expect(service.purgeRateLimitWindows()).resolves.toEqual({
+      deleted: 7,
+    });
+  });
+
+  it("consumeQuota and purgeRateLimitWindows are no-ops without a rate limiter", async () => {
+    const h = createHarness();
+
+    await expect(
+      h.service.consumeQuota(WS_A, "scheduled_contents", 99),
+    ).resolves.toBeUndefined();
+    await expect(h.service.purgeRateLimitWindows()).resolves.toEqual({
+      deleted: 0,
+    });
   });
 
   it("works without a rate limit hook (no-op)", async () => {

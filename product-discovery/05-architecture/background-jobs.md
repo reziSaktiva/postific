@@ -259,7 +259,9 @@ bawah — 5m/15m/60m), bukan retry khusus terpisah.
 
 **Handler:** Memanggil `McpAccessService.purgeAudit()`, yang menghapus baris
 `McpAuditLog` yang lebih tua dari 90 hari (retensi audit MCP, ADR-138).
-Dikerjakan di T-149.
+Dikerjakan di T-149. Sejak gelombang 1 v0.5 (T-151, T-154; ADR-152) job yang
+sama juga membersihkan baris `mcp_rate_limit_windows` dan
+`mcp_workspace_choices` yang sudah kedaluwarsa (tiga pembersihan).
 
 **Idempotensi:** Aman dijalankan berulang — penghapusan berbasis batas waktu
 (`created_at` lebih tua dari 90 hari), sehingga run kedua tanpa baris

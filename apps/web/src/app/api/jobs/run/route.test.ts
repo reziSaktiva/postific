@@ -7,6 +7,7 @@ const {
   hasJobMatchingPayloadKey,
   hasJobOfType,
   purgeAudit,
+  purgeExpiredWorkspaceChoices,
   scheduleJob,
   executeImportSync,
   executeImportSyncIfDue,
@@ -24,6 +25,7 @@ const {
   hasJobMatchingPayloadKey: vi.fn<(input: unknown) => Promise<boolean>>(),
   hasJobOfType: vi.fn<(input: unknown) => Promise<boolean>>(),
   purgeAudit: vi.fn(async () => ({ deleted: 0, cutoff: new Date(0) })),
+  purgeExpiredWorkspaceChoices: vi.fn(async () => 0),
   scheduleJob: vi.fn<(input: unknown) => Promise<void>>(),
   executeImportSync: vi.fn(async () => ({ enqueued: 0 })),
   executeImportSyncIfDue: vi.fn(async () => ({ enqueued: 0, skipped: true })),
@@ -95,6 +97,9 @@ vi.mock("@/lib/jobs/background-job-store", () => ({
 }));
 vi.mock("@/lib/mcp-access/get-mcp-access-service", () => ({
   getMcpAccessService: () => ({ purgeAudit }),
+}));
+vi.mock("@/lib/mcp-access/get-mcp-consent-service", () => ({
+  getMcpConsentService: () => ({ purgeExpiredWorkspaceChoices }),
 }));
 
 const SECRET = "test-job-secret";
@@ -425,6 +430,19 @@ describe("POST /api/jobs/run (T-027.1/.2)", () => {
       expect(typeof handlers["mcp.audit.purge"]).toBe("function");
       await handlers["mcp.audit.purge"]?.({}, "job-1");
       expect(purgeAudit).toHaveBeenCalledTimes(1);
+    });
+
+    it("also purges expired OAuth workspace choices in the same job (T-151)", async () => {
+      const { POST } = await import("./route");
+
+      await POST(buildRequest(SECRET));
+
+      const handlers = runPendingJobs.mock.calls[0]?.[1] as Record<
+        string,
+        (payload: unknown, jobId: string) => Promise<void>
+      >;
+      await handlers["mcp.audit.purge"]?.({}, "job-1");
+      expect(purgeExpiredWorkspaceChoices).toHaveBeenCalledTimes(1);
     });
   });
 });

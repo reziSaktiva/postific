@@ -3,6 +3,7 @@ import type {
   ContentFormat,
   MediaId,
   OutstandPostIdMapping,
+  PostCreatedVia,
   PostId,
   PostTargetId,
   SocialPlatform,
@@ -34,9 +35,28 @@ export interface PublishingPostRecord {
    * bentrok dengan `PublishingScheduleRecord.targets`.
    */
   draftTargets?: DraftTargetRecord[];
+  /**
+   * T-152 — sumber pembuatan post. Opsional di level tipe dengan alasan sama
+   * seperti `mediaIds` (fake repository di tes lain tidak wajib diubah);
+   * repository Prisma selalu mengisinya. `undefined` diperlakukan sebagai
+   * `PostCreatedVia.App` oleh seluruh caller.
+   */
+  createdVia?: PostCreatedVia;
+  /** T-152 — `clientId` OAuth klien AI; hanya terisi bila `createdVia = mcp`. */
+  createdViaClientId?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
+
+/**
+ * T-152 (ADR-138 poin 6) — sumber pembuatan post saat `createDraft`.
+ * Union terdiskriminasi supaya pasangan (`mcp` + klien) tidak bisa tidak
+ * konsisten di level tipe; DB menegakkan hal yang sama lewat CHECK
+ * `publishing_posts_created_via_check`.
+ */
+export type PostCreationSource =
+  | { createdVia: PostCreatedVia.App }
+  | { createdVia: PostCreatedVia.Mcp; clientId: string };
 
 /** Akun tujuan sebuah draft/post, cukup untuk mengisi ulang Account Selector. */
 export interface DraftTargetRecord {
@@ -342,6 +362,8 @@ export interface IPublishingRepository {
      * Array (termasuk kosong) = ganti seluruh target draft ini.
      */
     targets?: SchedulePostTargetInput[];
+    /** T-152 — `undefined` = `PostCreatedVia.App` (default kolom DB). */
+    source?: PostCreationSource;
   }): Promise<PublishingPostRecord>;
 
   /**

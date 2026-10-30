@@ -56,7 +56,8 @@ export function readOptionalEnum<T extends string>(
   return value as T;
 }
 
-const UUID_PATTERN =
+/** Dipakai bersama layar OAuth (`app/(auth)/_mcp-oauth`) supaya aturan UUID satu tempat. */
+export const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Argumen ID opsional; harus UUID supaya filter kolom `@db.Uuid` tidak melempar error DB. */
@@ -69,4 +70,134 @@ export function readOptionalUuid(
     throw new McpToolInputError(`Argumen "${key}" harus berupa UUID.`);
   }
   return value;
+}
+
+/** Argumen ID wajib; harus UUID (lihat `readOptionalUuid`). */
+export function readRequiredUuid(
+  args: Record<string, unknown>,
+  key: string,
+): string {
+  const value = readOptionalUuid(args, key);
+  if (value === undefined) {
+    throw new McpToolInputError(`Argumen "${key}" wajib diisi.`);
+  }
+  return value;
+}
+
+/**
+ * Teks yang BOLEH kosong (mis. caption draft; Draft Editor juga mengizinkan
+ * caption kosong). Beda dari `readOptionalString` yang menolak teks kosong.
+ * Panjang tidak dibatasi di sini; batasnya aturan domain
+ * (`DRAFT_CAPTION_MAX_LENGTH`).
+ */
+export function readOptionalText(
+  args: Record<string, unknown>,
+  key: string,
+): string | undefined {
+  const value = args[key];
+  if (value === undefined) {
+    return undefined;
+  }
+  if (typeof value !== "string") {
+    throw new McpToolInputError(`Argumen "${key}" harus berupa teks.`);
+  }
+  return value;
+}
+
+export function readRequiredText(
+  args: Record<string, unknown>,
+  key: string,
+): string {
+  const value = readOptionalText(args, key);
+  if (value === undefined) {
+    throw new McpToolInputError(`Argumen "${key}" wajib diisi.`);
+  }
+  return value;
+}
+
+/** Batas ukuran array yang ditegakkan runtime sebelum elemen diproses (skema JSON saja tidak cukup). */
+export const MAX_UUID_ARRAY_ITEMS = 10;
+export const MAX_DRAFT_TARGET_ITEMS = 50;
+
+/** Array UUID opsional (mis. `mediaIds`); `[]` sah dan berarti "kosongkan". Maksimum `maxItems` elemen. */
+export function readOptionalUuidArray(
+  args: Record<string, unknown>,
+  key: string,
+  maxItems: number = MAX_UUID_ARRAY_ITEMS,
+): string[] | undefined {
+  const value = args[key];
+  if (value === undefined) {
+    return undefined;
+  }
+  if (!Array.isArray(value)) {
+    throw new McpToolInputError(`Argumen "${key}" harus berupa daftar UUID.`);
+  }
+  if (value.length > maxItems) {
+    throw new McpToolInputError(
+      `Argumen "${key}" maksimum ${maxItems} item (dapat ${value.length}).`,
+    );
+  }
+  return value.map((item, index) => {
+    if (typeof item !== "string" || !UUID_PATTERN.test(item)) {
+      throw new McpToolInputError(
+        `Argumen "${key}" item ke-${index + 1} harus berupa UUID.`,
+      );
+    }
+    return item;
+  });
+}
+
+export interface ParsedDraftTarget {
+  connectedAccountId: string;
+  contentFormat: string;
+}
+
+/**
+ * Daftar target draft `[{ accountId, contentFormat }]` opsional; `[]` sah dan
+ * berarti "hapus semua target". Hanya bentuk yang divalidasi di sini; nilai
+ * `contentFormat` dan kepemilikan akun diperiksa aturan domain (ADR-039).
+ */
+export function readOptionalDraftTargets(
+  args: Record<string, unknown>,
+  key: string,
+): ParsedDraftTarget[] | undefined {
+  const value = args[key];
+  if (value === undefined) {
+    return undefined;
+  }
+  if (!Array.isArray(value)) {
+    throw new McpToolInputError(
+      `Argumen "${key}" harus berupa daftar { accountId, contentFormat }.`,
+    );
+  }
+  if (value.length > MAX_DRAFT_TARGET_ITEMS) {
+    throw new McpToolInputError(
+      `Argumen "${key}" maksimum ${MAX_DRAFT_TARGET_ITEMS} item (dapat ${value.length}).`,
+    );
+  }
+  return value.map((item, index) => {
+    const label = `Argumen "${key}" item ke-${index + 1}`;
+    if (item === null || typeof item !== "object" || Array.isArray(item)) {
+      throw new McpToolInputError(
+        `${label} harus berupa objek { accountId, contentFormat }.`,
+      );
+    }
+    const record = item as Record<string, unknown>;
+    for (const field of Object.keys(record)) {
+      if (field !== "accountId" && field !== "contentFormat") {
+        throw new McpToolInputError(
+          `${label}: kolom "${field}" tidak dikenal.`,
+        );
+      }
+    }
+    const accountId = record.accountId;
+    if (typeof accountId !== "string" || !UUID_PATTERN.test(accountId)) {
+      throw new McpToolInputError(`${label}: accountId harus berupa UUID.`);
+    }
+    const contentFormat = record.contentFormat;
+    if (typeof contentFormat !== "string" || contentFormat === "") {
+      throw new McpToolInputError(`${label}: contentFormat wajib diisi.`);
+    }
+    return { connectedAccountId: accountId, contentFormat };
+  });
 }

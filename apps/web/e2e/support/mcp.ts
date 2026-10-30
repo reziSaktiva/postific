@@ -84,31 +84,38 @@ export function mcpSkipReason(
 // ---------------------------------------------------------------------------
 
 /**
- * Selektor layar `/select-workspace` dan `/consent`.
+ * Selektor layar `/select-workspace` (langkah 1) dan `/consent` (langkah 2),
+ * layar final T-151 (kartu desain ScreenOauthConsent). Semua selektor tes ada
+ * di objek ini. Alurnya sendiri (pilih workspace lalu setujui scope) adalah
+ * kontrak produk; teks judul memuat nama klien sehingga tidak dipakai sebagai
+ * selektor, melainkan label bagian yang tetap.
  *
- * KETERGANTUNGAN: kedua layar ini masih bentuk harness spike T-148
- * (`apps/web/src/app/(mcp-spike)/`) dan AKAN DIGANTI di T-151 (kartu desain
- * ScreenOauthConsent). Semua selektor tes ada di objek ini, jadi setelah
- * T-151 cukup memperbarui satu tempat ini. Alurnya sendiri (pilih workspace
- * lalu setujui scope) adalah kontrak produk, selektornya bukan.
+ * Klien uji mendaftar dengan redirect `http://127.0.0.1:...`, jadi layar
+ * persetujuan memakai varian "host tidak lazim" dan tombol izinnya berlabel
+ * "Saya paham, izinkan" (bukan "Izinkan"); selektor menerima keduanya.
  */
 export const harnessScreens = {
   /** Scope MCP yang bisa dicentang di layar consent (id checkbox = nama scope). */
   scopes: ["mcp:read", "mcp:draft", "mcp:schedule"] as const,
+  /** Daftar radio workspace (langkah 1). */
   workspaceHeading: (page: Page) =>
-    page.getByText("Pilih workspace", { exact: true }),
+    page.getByRole("radiogroup", { name: "Workspace" }),
   workspaceOption: (page: Page, workspaceName: string) =>
     page.getByRole("radio", {
       name: new RegExp(workspaceName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
     }),
   workspaceContinue: (page: Page) =>
     page.getByRole("button", { name: "Lanjut", exact: true }),
+  /** Label bagian daftar scope (langkah 2). */
   consentHeading: (page: Page) =>
-    page.getByText("Izinkan klien AI?", { exact: true }),
+    page.getByText("Izin yang diminta", { exact: true }),
   /** Checkbox scope; `id` = nama scope kabel (mis. `mcp:read`). */
   scopeCheckbox: (page: Page, scope: string) => page.locator(`[id="${scope}"]`),
   consentAllow: (page: Page) =>
-    page.getByRole("button", { name: "Izinkan", exact: true }),
+    page.getByRole("button", { name: /^(Izinkan|Saya paham, izinkan)$/ }),
+  /** Tombol yang menggantikan Izinkan setelah persetujuan gagal disimpan. */
+  consentRetry: (page: Page) =>
+    page.getByRole("button", { name: "Coba Lagi", exact: true }),
   /** Teks galat bila persetujuan gagal disimpan (untuk diagnosis). */
   alert: (page: Page) => page.getByRole("alert"),
 };
@@ -272,7 +279,8 @@ export function resourceUrl(baseURL: string): string {
  * `/select-workspace` (bila muncul) dan `/consent`, lalu tangkap `code`.
  *
  * `/select-workspace` muncul hanya bila sesi belum punya pilihan workspace
- * di memori server (harness T-148), jadi layar itu opsional di sini;
+ * yang berlaku di tabel `mcp_workspace_choices` (T-151, berlaku 10 menit),
+ * jadi layar itu opsional di sini;
  * `/consent` muncul selama belum ada consent untuk klien baru ini.
  *
  * @param grantScopes scope MCP yang dicentang di layar consent
@@ -315,6 +323,7 @@ export async function authorizeInBrowser(
 
     let pickedWorkspace = false;
     let consented = false;
+    let consentRetries = 0;
     const deadline = Date.now() + 60_000;
     while (!callbackUrl) {
       if (Date.now() > deadline) {
@@ -348,6 +357,25 @@ export async function authorizeInBrowser(
           if (wanted !== checked) await box.click();
         }
         await harnessScreens.consentAllow(page).click();
+      } else if (
+        consented &&
+        (await harnessScreens.consentRetry(page).isVisible())
+      ) {
+        // Simpan gagal sesaat: tombol berubah jadi "Coba Lagi". Ulangi dua kali,
+        // lalu gagal dengan alasan yang jelas (bukan menunggu timeout).
+        if (consentRetries >= 2) {
+          const reason = await harnessScreens
+            .alert(page)
+            .innerText({ timeout: 2_000 })
+            .catch(() => "(tidak terbaca)");
+          throw new Error(
+            scrub(
+              `Consent gagal disimpan setelah ${consentRetries} percobaan ulang: ${reason.slice(0, 300)}`,
+            ),
+          );
+        }
+        consentRetries += 1;
+        await harnessScreens.consentRetry(page).click();
       }
       await page.waitForTimeout(250);
     }

@@ -62,7 +62,7 @@ function deps(overrides: Partial<McpGateDeps["access"]> = {}) {
 }
 
 describe("createMcpServer over Streamable HTTP", () => {
-  it("lists the eight read tools with JSON Schema inputs", async () => {
+  it("lists the eight read tools and the two draft tools with JSON Schema inputs", async () => {
     const { value } = deps();
     const body = await rpc(value, {
       jsonrpc: "2.0",
@@ -79,9 +79,16 @@ describe("createMcpServer over Streamable HTTP", () => {
       "list_published_posts",
       "get_analytics",
       "list_comments",
+      "create_draft",
+      "update_draft",
     ]);
     expect(body.result.tools[0].inputSchema.type).toBe("object");
     expect(body.result.tools[0].annotations.readOnlyHint).toBe(true);
+    const createDraft = body.result.tools.find(
+      (tool: { name: string }) => tool.name === "create_draft",
+    );
+    expect(createDraft.annotations.readOnlyHint).toBe(false);
+    expect(createDraft.inputSchema.required).toEqual(["caption"]);
   });
 
   it("calls get_workspace end to end, with the workspace taken from the claims", async () => {

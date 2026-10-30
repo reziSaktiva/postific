@@ -124,7 +124,7 @@ Urutan: .1 dulu; .2 dan .3 berurutan (Prabowo); .4 sebelum .5 (SQL staging diset
 
 ### T-151 · Layar persetujuan OAuth (pilih workspace dan scope)
 
-`⏳ Not Started` · **Domain** mcp-access · UI · **ADR** ADR-139, ADR-097 · **Depends** T-148, T-149
+`🟡 In Progress (2026-10-30)` · **Domain** mcp-access · UI · **ADR** ADR-139, ADR-097, ADR-152 (Proposed) · **Terkait** T-178 · **Depends** T-148, T-149
 
 **Baca dulu:** `apps/web/.claude/CLAUDE.md` · `.claude/skills/claude-design-scope-discipline/SKILL.md` · ADR-139
 
@@ -132,13 +132,40 @@ Layar tempat pengguna memilih satu workspace dan scope. Default `read` + `draft`
 
 **Gate Claude Design:** rancangan **sudah ada** di artifact Postific (https://claude.ai/artifact/FdRNU4gnxgAGY3zmBxNfR3), `components/ScreenOauthConsent/preview.html`; **dikonfirmasi King Rezi 2026-10-26** setelah ditinjau lewat galeri review (https://claude.ai/artifact/4BJCWNsCwubLd7SFwRtree). Pola di `product-discovery/04-ux/key-screen-patterns.md` § KSP-09. Keputusan yang sudah dikunci: (1) **dua langkah berurutan**, pilih workspace (`/select-workspace`) lalu persetujuan scope (`/consent`), sesuai hasil spike T-148; (2) pada MVP **tidak ada pembatasan scope berdasarkan role** (Account Owner, Admin, dan Creator setara untuk read, draft, dan schedule), jadi semua scope tampil aktif; (3) nama dan host klien selalu tampil karena semua klien mendaftar sendiri; (4) state: normal, tanpa workspace, klien tanpa nama atau host tidak lazim, error, loading. `publish` dan `reply` tidak ditampilkan. **Pola komponen dikunci King Rezi 2026-10-26:** pemilih workspace memakai `RadioGroup` dengan tiap baris `Item` variant `outline` yang berisi `RadioGroupItem`, nama workspace, role, dan jumlah akun; daftar scope memakai `Checkbox` di `ItemMedia`, mengikuti pola `FacebookPagesPickerDialog`. Bukan `Select`, bukan choice card `FieldLabel`.
 
+**Subtask** (gelombang 1, 2026-10-30)
+
+- [x] **T-151.1** Kode: layar `/select-workspace` dan `/consent` dipindah dari `(mcp-spike)` ke grup `(auth)`; tabel `mcp_workspace_choices` (migrasi `20261030120000_t151_mcp_workspace_choices`) menggantikan `Map` memori; hook consent permanen diganti memakai tabel pilihan. Review Ridwan (arsitektur dan keamanan): tanpa pelanggaran. QA Najwa UI di Browser pane: PASS; satu temuan layout sudah diperbaiki dan sedang diverifikasi ulang.
+- [ ] **T-151.2** Terapkan migrasi `20261030120000_t151_mcp_workspace_choices` ke staging (SQL ditunjukkan ke King Rezi dulu) dan verifikasi RLS `app_runtime` pada `mcp_workspace_choices` (tulis, baca, hapus sebagai `app_runtime`; `anon` ditolak). **Hasil (2026-10-30):** migrasi diterapkan ke DB bersama (`migrate deploy`, atas izin King Rezi; staging = local). RLS aktif dengan satu policy `mcp_workspace_choices_app_runtime`; baris uji yang diinsert dalam transaksi (di-rollback) tidak terlihat oleh role `anon` maupun `authenticated`. Tes integrasi `mcp-draft-quota-consent.integration.test.ts` (34 lulus, termasuk `McpConsentService`: hanya member aktif, isolasi per sesi dan pengguna, kedaluwarsa tepat 10 menit, purge, dan `upsert` menolak pengguna lain pada `session_id` yang sama). **Masih terbuka:** perilaku sebagai role `app_runtime` itu sendiri tidak diuji langsung (`set role` ditolak dari konsol SQL); polanya sama dengan `mcp_grants` (T-150.5).
+- [ ] **T-151.3** Verifikasi alur OAuth nyata di staging: dua langkah (pilih workspace, lalu persetujuan), pilihan workspace tersimpan di DB (bukan memori), dan grant terbentuk dari consent oleh hook permanen. Lewat klien nyata (Claude Code atau Cursor) dan/atau `mcp.e2e.ts`. **Hasil (2026-10-30):** percobaan di server lokal (flag MCP aktif) GAGAL di login sebelum satu skenario pun jalan: `BetterAuthError: Failed to decrypt private key` karena `identity_jwks` (dibuat Railway) tidak bisa didekripsi dengan `BETTER_AUTH_SECRET` lokal, dan plugin `jwt` membuat seluruh halaman login lokal ikut 500 (bukan hanya `/select-workspace`). Tidak ada yang rusak: `identity_jwks` tetap 1 baris (`createdAt` 2026-10-29 09:16:18.959) dan MCP Railway tetap sehat. Uji ini hanya bisa jalan di Railway staging setelah PR 222 ter-merge dan ter-deploy (T-179.4).
+- [ ] **T-151.4** Perbarui selektor `harnessScreens` di `apps/web/e2e/support/mcp.ts` ke layar baru (syarat dari T-178, batas bukti 3) dan jalankan `mcp.e2e.ts` terhadap staging.
+- [ ] **T-151.5** Tindak lanjut desain (Neymar, **bukan** diedit di sesi ini): kartu `ScreenOauthConsent` di artifact Postific masih memuat state 2B "scope dibatasi role" yang tidak berlaku di MVP (KSP-09-F05) dan beberapa kalimat catatan desain di `consent-foot`; perlu dirapikan.
+
+**Hasil kode (2026-10-30):** scope `read` dan `draft` tercentang bawaan, `schedule` tidak; `publish` dan `reply` tidak tampil. Pilihan workspace berlaku 10 menit (`session_id`, `user_id`, `workspace_id`, `expires_at`; tanpa FK; RLS `app_runtime`, ADR-152) dan **tidak dihapus setelah grant** (kedaluwarsa sendiri; saran Ridwan #5 "hapus setelah consent sukses" belum dikerjakan, masuk T-180). Klien dengan host tidak lazim (localhost, IP, `http`, atau tanpa nama) memicu peringatan keras; klien CLI dengan redirect localhost akan sering melihatnya.
+
+**Deviasi kecil dari rancangan (wajar, minta konfirmasi King Rezi):** `Item` outline terpisah per baris (pola yang dikunci) vs satu kotak di kartu rancangan; label role "Account Owner" vs "Owner" di rancangan.
+
+**Temuan LOW Najwa (belum dikerjakan, masuk T-180):** fokus keyboard jatuh ke `body` setelah error pada tombol Izinkan; catatan "Izin Jadwalkan tidak aktif secara bawaan" tetap tampil setelah dicentang; error langkah 1 tanpa ikon.
+
+**Belum terbukti:** migrasi belum diterapkan ke DB mana pun, alur OAuth nyata di staging (consent dua langkah, hook consent permanen diganti tabel pilihan), dan RLS pada tabel baru. Ditutup ✅ hanya setelah T-151.2 sampai T-151.4 terbukti (konvensi T-150.7/T-178).
+
 ### T-152 · Tool draft dan penanda sumber MCP
 
-`⏳ Not Started` · **Domain** mcp-access · publishing · **ADR** ADR-138, ADR-039 · **Depends** T-150
+`🟡 In Progress (2026-10-30)` · **Domain** mcp-access · publishing · **ADR** ADR-138, ADR-039, ADR-152 (Proposed) · **Depends** T-150
 
 **Baca dulu:** `05-architecture/application-layer.md` · `05-architecture/database-strategy.md`
 
-`create_draft` dan `update_draft` (hanya draft, tidak menyentuh post yang sudah dijadwalkan). Kolom penanda sumber di `publishing_posts` (`created_via`, `created_via_client_id`), diputuskan final di tiket ini.
+`create_draft` dan `update_draft` (hanya draft, tidak menyentuh post yang sudah dijadwalkan). Kolom penanda sumber di `publishing_posts` (`created_via`, `created_via_client_id`), diputuskan final di tiket ini (usulan di ADR-152, menunggu persetujuan King Rezi).
+
+**Subtask** (gelombang 1, 2026-10-30)
+
+- [x] **T-152.1** Kode: tool `create_draft` dan `update_draft` (scope `draft`), `ComposeDraftUseCase` di publishing, migrasi `20261030100000_t152_publishing_posts_created_via`. Review Ridwan tanpa pelanggaran; `typecheck`, `lint`, 1742 tes unit hijau.
+- [x] **T-152.2** Terapkan migrasi `20261030100000_t152_publishing_posts_created_via` ke staging (SQL ditunjukkan ke King Rezi dulu); verifikasi kolom, CHECK pasangan, dan baris lama berisi `app`. **Hasil (2026-10-30):** migrasi diterapkan ke DB bersama; kolom `created_via` (`text NOT NULL DEFAULT 'app'`) dan `created_via_client_id` (`text NULL`) ada, CHECK `publishing_posts_created_via_check` terpasang dan menolak mcp tanpa client id, app dengan client id, nilai di luar `app`/`mcp`, serta UPDATE yang menghapus client id (kode 23514, tes integrasi).
+- [ ] **T-152.3** Verifikasi `create_draft` dan `update_draft` lewat klien MCP nyata di staging dan/atau `mcp.e2e.ts` (draft tercipta dengan `created_via='mcp'` dan `created_via_client_id` terisi; draft yang sudah Scheduled ditolak; scope `read` saja ditolak). **Hasil (2026-10-30):** jalur DB sudah terbukti lewat `ComposeDraftUseCase` dengan repository nyata (draft `mcp` tersimpan dengan `created_via_client_id`; `update_draft` hanya mengubah Draft, post Scheduled ditolak `ConflictError`, `created_via` tidak berubah; akun workspace lain ditolak). **Masih terbuka:** panggilan lewat klien MCP nyata (OAuth, token, `tools/call`) belum terbukti.
+- [ ] **T-152.4** Keputusan King Rezi: (a) batas caption 5000 karakter (angka pilihan agen, bukan dari baseline); (b) draft buatan manusia (`app`) yang diedit AI tetap berlabel `app`, jejak hanya di audit log (saran Ridwan #6), sesuai ADR-138 poin 6 atau tidak.
+
+**Hasil kode (2026-10-30):** `publishing_posts.created_via TEXT NOT NULL DEFAULT 'app'` (`app | mcp`) dan `created_via_client_id TEXT NULL` (`clientId` OAuth, tanpa FK); CHECK menjaga pasangan (`app` tanpa client id, `mcp` dengan client id). `update_draft` hanya untuk status Draft (Scheduled ditolak dengan pesan "Batalkan jadwal di aplikasi dulu") dan tidak mengubah penanda sumber. Batas input: caption maksimum 5000 karakter, maksimum 10 media. `platformOptions` (board Pinterest) tidak bisa lewat MCP. Kode error MCP baru `conflict`; `ValidationError` dan `PublishingDomainError` dipetakan ke `invalid_input`. Tidak ada indeks pada `created_via`; T-157 mungkin butuh `(workspace_id, created_via)`. `list_drafts` belum mengembalikan `createdVia` (T-157).
+
+**Belum terbukti:** migrasi belum diterapkan ke DB mana pun, dan tool draft belum dicoba lewat klien MCP nyata. Ditutup ✅ hanya setelah T-152.2 dan T-152.3 terbukti.
 
 ### T-153 · Tool `schedule_posts` (batch)
 
@@ -146,15 +173,29 @@ Layar tempat pengguna memilih satu workspace dan scope. Default `read` + `draft`
 
 **Baca dulu:** `05-architecture/application-layer.md` (`schedulePosts`) · `02-product/mvp-definition.md`
 
+**Catatan dari T-154 (2026-10-30):** kuota dipakai lewat `McpAccessService.consumeQuota(workspaceId, quota, amount)` (all-or-nothing, belum ada refund bila langkah sesudahnya gagal). `McpToolContext` belum memuat `McpAccessService`, jadi T-153 harus menyuntikkannya.
+
 Satu panggilan memuat maksimum 10 konten (konstanta konfigurasi). Target per konten maksimum sejumlah akun terhubung. Waktu diterima sebagai WIB (T-146). Validasi matriks `ContentFormat` dan Safety Check di server. Hasil dilaporkan per item (sebagian berhasil boleh).
 
 ### T-154 · Rate limit per workspace (Postgres)
 
-`⏳ Not Started` · **Domain** mcp-access · **ADR** ADR-138 · **Depends** T-150
+`🟡 In Progress (2026-10-30)` · **Domain** mcp-access · **ADR** ADR-138, ADR-152 (Proposed) · **Terkait** T-153 · **Depends** T-150
 
 **Baca dulu:** `05-architecture/background-jobs.md` · `05-architecture/database-strategy.md`
 
 60 panggilan per menit, 30 aksi tulis per jam, 50 konten terjadwal per hari (dihitung per konten, bukan per akun target atau per panggilan; dikonfirmasi King Rezi 2026-10-26). Konfigurasi, bukan angka di kode. Error berisi kapan boleh mencoba lagi.
+
+**Subtask** (gelombang 1, 2026-10-30)
+
+- [x] **T-154.1** Kode: tabel `mcp_rate_limit_windows`, repository, `McpAccessService.consumeQuota`, gerbang per panggilan, pembersihan di JOB-08, migrasi `20261030110000_t154_mcp_rate_limit_windows`. Review Ridwan tanpa pelanggaran; `typecheck`, `lint`, 1742 tes unit hijau.
+- [x] **T-154.2** Terapkan migrasi `20261030110000_t154_mcp_rate_limit_windows` ke staging (SQL ditunjukkan ke King Rezi dulu). **Hasil (2026-10-30):** migrasi diterapkan ke DB bersama (atas izin King Rezi).
+- [x] **T-154.3** Jalankan tes integrasi DB (opt-in) `mcp-rate-limit.repository.integration.test.ts` terhadap Postgres yang boleh dipakai (hati-hati: `DATABASE_URL` lokal menunjuk staging, ADR-081; atas persetujuan King Rezi). Belum pernah dijalankan. **Hasil (2026-10-30):** `MCP_RATE_LIMIT_DB_TEST=1` lulus di Postgres nyata (konkurensi dan purge); ditambah tes integrasi `mcp-draft-quota-consent.integration.test.ts`: `consumeQuota` all-or-nothing, `retryAfterSeconds` tepat, isolasi antar workspace, 20 `consumeQuota` paralel meloloskan tepat 4, `authorizeCall` dengan limiter nyata (panggilan ke-6 ditolak tanpa menaikkan penghitung, penolakan otorisasi tidak mengonsumsi kuota).
+- [ ] **T-154.4** Uji RLS `app_runtime` pada `mcp_rate_limit_windows` (upsert atomik, penolakan tidak menaikkan penghitung, `anon` ditolak) di staging, dan verifikasi limit lewat klien nyata atau `mcp.e2e.ts` (panggilan ke-61 dalam satu menit ditolak `rate_limited`). **Hasil (2026-10-30):** upsert atomik dan penolakan tidak menaikkan penghitung terbukti di DB nyata; `anon` dan `authenticated` tidak melihat baris di `mcp_rate_limit_windows` (uji transaksi, rollback). **Masih terbuka:** perilaku sebagai role `app_runtime` itu sendiri, dan limit lewat klien MCP nyata (panggilan ke-61).
+- [ ] **T-154.5** Konfirmasi King Rezi: error `rate_limited` di hasil tool (`retryAfterSeconds`, quota, limit) **tanpa** header HTTP `Retry-After` (HTTP 200 JSON-RPC), dan fixed window (kuota harian reset 00:00 UTC = 07:00 WIB; dua jendela bersebelahan bisa memuat sampai 2x batas).
+
+**Hasil kode (2026-10-30):** tabel `mcp_rate_limit_windows` (PK `workspace_id`+`quota`+`window_start`, FK ke `workspaces` cascade, indeks `expires_at`, CHECK `count >= 0` dan `expires_at > window_start`, RLS policy `app_runtime`). Fixed window 60 detik / 1 jam / 1 hari, kelipatan epoch UTC. Upsert atomik satu statement `INSERT ... ON CONFLICT DO UPDATE ... WHERE count+n <= limit`; penolakan tidak menaikkan penghitung. Batas bawaan lewat `MCP_RATE_LIMIT_DEFAULTS` (60 calls/menit, 30 write_actions/jam, 50 scheduled_contents/hari), dapat diubah lewat env `MCP_RATE_LIMIT_CALLS_PER_MINUTE`, `MCP_RATE_LIMIT_WRITES_PER_HOUR`, `MCP_RATE_LIMIT_SCHEDULED_CONTENTS_PER_DAY` (maksimum int4; di atasnya kembali ke default). Error `rate_limited` berisi `retryAfterSeconds`, quota, dan limit. Fail-closed. JOB-08 (`mcp.audit.purge`) kini tiga pembersihan: audit, jendela rate limit kedaluwarsa, pilihan workspace kedaluwarsa. API untuk T-153: `McpAccessService.consumeQuota(workspaceId, quota, amount)`, all-or-nothing, belum ada refund.
+
+**Belum terbukti:** migrasi belum diterapkan ke DB mana pun, tes integrasi DB belum pernah dijalankan, RLS `app_runtime` pada tabel baru belum diuji, dan limit belum dicoba lewat klien nyata. Ditutup ✅ hanya setelah T-154.2 sampai T-154.4 terbukti.
 
 ### T-155 · Tool `upload_media` dari URL (proteksi SSRF)
 
@@ -180,7 +221,7 @@ Daftar klien AI yang tersambung dan tombol cabut.
 
 **Baca dulu:** `04-ux/key-screen-patterns.md` · `.claude/skills/claude-design-scope-discipline/SKILL.md`
 
-Badge dan filter berdasarkan `created_via`.
+Badge dan filter berdasarkan `created_via`. Dari T-152 (2026-10-30): `list_drafts` belum mengembalikan `createdVia`, dan tidak ada indeks pada `created_via`; putuskan indeks `(workspace_id, created_via)` di sini bila filter sumber memang butuh.
 
 **Gate Claude Design:** rancangan **sudah ada** di artifact Postific (https://claude.ai/artifact/FdRNU4gnxgAGY3zmBxNfR3), `components/McpSourceBadge/preview.html`; **dikonfirmasi King Rezi 2026-10-26** setelah ditinjau lewat galeri review (https://claude.ai/artifact/4BJCWNsCwubLd7SFwRtree). Pola di `product-discovery/04-ux/key-screen-patterns.md` § Pola: Badge dan Filter Sumber MCP. Keputusan yang sudah dikunci: cakupan **History, Drafts, dan Queue**, Calendar tidak diberi badge (IA-D11); badge outline berisi ikon dan nama klien di baris meta; filter sumber Semua / Dibuat manual / Lewat MCP dengan **bawaan Semua**; tampilan default setiap layar tidak berubah selain badge pada item MCP. Filter di Drafts adalah kontrol baru karena Drafts belum punya filter.
 
@@ -251,10 +292,25 @@ Menampung temuan T-150.7 yang tadinya hanya tercatat sebagai prosa. Detail bukti
 - [ ] **T-179.1** Selidiki `POST /api/mcp` 400 yang mendahului `initialize` pada setiap sambungan; putuskan itu probe klien yang wajar atau bug.
 - [ ] **T-179.2** Putuskan dan (bila disetujui) ubah pesan `token_scope_insufficient` agar menyebut scope yang kurang.
 - [ ] **T-179.3** Putuskan perilaku `/oauth2/delete-consent`: balasan 404 `no consent` padahal pencabutan berhasil (transaksi pencabutan menghapus consent lebih dulu).
-- [ ] **T-179.4** Cegah `bun dev` lokal dengan flag MCP menulis `identity_jwks` ke DB staging memakai `BETTER_AUTH_SECRET` lokal (risiko 500 "Failed to decrypt private key" di `/select-workspace`).
+- [ ] **T-179.4** Cegah `bun dev` lokal dengan flag MCP menulis `identity_jwks` ke DB staging memakai `BETTER_AUTH_SECRET` lokal (risiko 500 "Failed to decrypt private key" di `/select-workspace`). **Bukti baru (2026-10-30):** `bun run dev` lokal dengan `MCP_ENABLED=true` terhadap DB bersama membuat seluruh halaman setelah login (bukan hanya `/select-workspace` dan token) 500 "Failed to decrypt private key", karena plugin `jwt` membaca `identity_jwks` di setiap pemeriksaan sesi; `identity_jwks` tidak ditulis ulang.
 - [ ] **T-179.5** JOB-08: jalankan `?type=mcp-audit-purge` di staging dan buktikan penghapusan baris kedaluwarsa (butuh baris `mcp_audit_logs` lewat batas retensi); atau King Rezi memutuskan eksplisit bahwa bukti cron cukup.
 - [ ] **T-179.6** Bersihkan sisa uji di staging: grant `postific-staging-2` (scope `draft`), dan putuskan apakah `MCP_ENABLED=true` tetap menyala di `web` staging.
 - [ ] **T-179.7** Uji konektor web Claude.ai ke staging (sisa T-150.8, ditunda 2026-10-30 karena akun King Rezi bukan owner organisasi): Settings → Connectors → Add custom connector, URL `https://web-staging-60d7.up.railway.app/api/mcp`, scope `read`+`draft`, ketika ada akun yang boleh menambah konektor (owner organisasi atau akun individu). Bukti yang dicari: klien dengan redirect `https://claude.ai/api/mcp/auth_callback`, grant `read`+`draft`, dua baris `success` di `mcp_audit_logs`, request dari IP Anthropic, dan `Origin` claude.ai tidak ditolak 403.
+
+### T-180 · Tindak lanjut temuan non-blocking gelombang 1 MCP (T-151, T-152, T-154)
+
+`⏳ Not Started` · **Domain** mcp-access · publishing · UI · **ADR** ADR-138, ADR-152 (Proposed) · **Terkait** T-151, T-152, T-154, T-157 · **Depends** T-151, T-152, T-154 (kode selesai, 2026-10-30)
+
+**Baca dulu:** tiket T-151, T-152, T-154 di file ini (bagian hasil kode)
+
+Menampung temuan review Ridwan, QA Najwa, dan catatan penulis gelombang 1 yang tidak memblokir tiket tetapi belum dikerjakan. Dikerjakan setelah gelombang 1 terverifikasi di staging, atau dilipat ke tiket yang sedang menyentuh berkas terkait.
+
+- [ ] **T-180.1** (saran Ridwan #5) Hapus baris `mcp_workspace_choices` setelah consent sukses; sekarang baris habis sendiri setelah 10 menit.
+- [ ] **T-180.2** (saran Ridwan #7, kerapian) `isMcpQuotaKind` tidak terpakai; `normalizeClientName` duplikat dengan perilaku berbeda; `UUID_PATTERN` duplikat; `maxItems: 10` pada input media draft tidak ditegakkan runtime (hanya di skema tool); JOB-08 hanya melempar error pertama bila lebih dari satu pembersihan gagal.
+- [ ] **T-180.3** (temuan LOW Najwa, T-151) Fokus keyboard jatuh ke `body` setelah error pada tombol Izinkan; catatan "Izin Jadwalkan tidak aktif secara bawaan" tetap tampil setelah dicentang; error langkah 1 tanpa ikon.
+- [ ] **T-180.4** (T-152/T-157) Indeks `(workspace_id, created_via)` pada `publishing_posts` bila T-157 membutuhkannya; `list_drafts` mengembalikan `createdVia`.
+- [ ] **T-180.6** (code-review PR 222, efisiensi) `McpConsentService.listSelectableWorkspaces` memanggil `countActiveConnectedAccounts` sekali per workspace (N+1) dan `getSelectedWorkspace` memuat seluruh daftar workspace untuk satu id. Perlu metode batch/lookup per id di domain `workspace` (port, service, repository dengan RLS, fake tes); ditunda karena di luar PR ini.
+- [ ] **T-180.5** (tindak lanjut desain, T-151.5) Neymar merapikan kartu `ScreenOauthConsent` di artifact Postific (hapus state 2B "scope dibatasi role", rapikan kalimat catatan desain di `consent-foot`). Bukan edit kode; artifact tidak diedit tanpa permintaan King Rezi.
 
 ---
 

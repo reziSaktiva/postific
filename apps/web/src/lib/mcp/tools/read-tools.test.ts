@@ -15,7 +15,7 @@ import { describe, expect, it, vi } from "vitest";
 import { NotFoundError } from "@/lib/utils/errors";
 
 import { UNTRUSTED_CLOSE, UNTRUSTED_OPEN } from "../format";
-import type { McpReadServices, McpToolContext } from "../tool-types";
+import type { McpToolServices, McpToolContext } from "../tool-types";
 import { McpInvalidCursorError } from "../cursor";
 import { McpToolInputError } from "../tool-input";
 import { MCP_READ_TOOLS } from "./read-tools";
@@ -52,7 +52,7 @@ const queueTarget = {
   accountHandle: "@brand",
 };
 
-function fakeServices(overrides: Partial<McpReadServices> = {}) {
+function fakeServices(overrides: Partial<McpToolServices> = {}) {
   const calls: { method: string; args: unknown[] }[] = [];
   const record =
     <T>(method: string, result: T) =>
@@ -223,15 +223,16 @@ function fakeServices(overrides: Partial<McpReadServices> = {}) {
       ),
     },
     ...overrides,
-  } as unknown as McpReadServices;
+  } as unknown as McpToolServices;
 
   return { services, calls };
 }
 
-function context(services: McpReadServices): McpToolContext {
+function context(services: McpToolServices): McpToolContext {
   return {
     workspaceId: WORKSPACE,
     userId: USER,
+    clientId: "client-1",
     grantScopes: ["read"],
     services,
   };

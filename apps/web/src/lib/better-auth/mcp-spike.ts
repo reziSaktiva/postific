@@ -1,37 +1,28 @@
 import { oauthProvider } from "@better-auth/oauth-provider";
 import { APIError } from "better-auth/api";
 import { jwt } from "better-auth/plugins";
+import { asUserId } from "@postific/shared";
 
+import type { McpConsentService } from "@/domains/mcp-access";
 import { getMcpAccessService } from "@/lib/mcp-access/get-mcp-access-service";
+import { getMcpConsentService } from "@/lib/mcp-access/get-mcp-consent-service";
 import { isMcpEnabled, mcpBaseUrl } from "@/lib/mcp/config";
 
 import { mcpGrantPlugin, type McpGrantAccess } from "./mcp-grant-hook";
 
 /**
- * Plugin OAuth untuk MCP (ADR-139). Layar consent dan pilihan workspace di
- * file ini masih bentuk harness T-148 (pilihan workspace di memori) dan
- * digantikan T-151; jangan dikembangkan di sini. Grant tidak lagi di store
- * memori: plugin grant permanen (`mcp-grant-hook.ts`, T-150.4) memanggil
- * `McpAccessService`. Nyala/mati dikendalikan `isMcpEnabled()`
- * (`lib/mcp/config.ts`), flag yang sama dengan route `/api/mcp`, jadi route
- * dan OAuth tidak bisa menyala terpisah.
+ * Plugin OAuth untuk MCP (ADR-139). Layar pilih workspace dan consent
+ * (`app/(auth)/select-workspace`, `app/(auth)/consent`, T-151) menulis
+ * pilihan workspace lewat `McpConsentService` ke tabel
+ * `mcp_workspace_choices` (per ID sesi, tahan multi-instance dan restart);
+ * `postLogin` di bawah hanya membacanya. Grant tidak di store memori: plugin
+ * grant permanen (`mcp-grant-hook.ts`, T-150.4) memanggil `McpAccessService`.
+ * Nyala/mati dikendalikan `isMcpEnabled()` (`lib/mcp/config.ts`), flag yang
+ * sama dengan route `/api/mcp`, jadi route dan OAuth tidak bisa menyala
+ * terpisah. Nama file `mcp-spike` dipertahankan agar impor tidak berubah.
  */
 
 export const MCP_SCOPES = ["mcp:read", "mcp:draft", "mcp:schedule"] as const;
-
-const WORKSPACE_CHOICE_TTL_MS = 10 * 60 * 1000;
-
-type WorkspaceChoice = { workspaceId: string; at: number };
-
-// Pilihan workspace per ID sesi (consentReferenceId hanya menerima session,
-// bukan cookie). Di memori: cukup untuk satu proses spike. Dengan lebih dari satu
-// instance, `/oauth2/continue` yang jatuh di instance lain tidak melihat pilihan
-// dan mengalihkan ulang ke /select-workspace. T-151 memindahkannya ke tabel.
-const globalForChoices = globalThis as unknown as {
-  __mcpSpikeWorkspaceChoices?: Map<string, WorkspaceChoice>;
-};
-const workspaceChoices = (globalForChoices.__mcpSpikeWorkspaceChoices ??=
-  new Map());
 
 /** Nama lama dipertahankan untuk halaman/route harness; isinya `isMcpEnabled()`. */
 export function mcpSpikeEnabled(): boolean {
@@ -40,25 +31,18 @@ export function mcpSpikeEnabled(): boolean {
 
 export { mcpBaseUrl, mcpResourceUrl } from "@/lib/mcp/config";
 
-export function rememberWorkspaceChoice(
-  sessionId: string,
-  workspaceId: string,
-): void {
-  workspaceChoices.set(sessionId, { workspaceId, at: Date.now() });
-}
-
-function currentWorkspaceChoice(sessionId: string): string | undefined {
-  const choice = workspaceChoices.get(sessionId);
-  if (!choice || Date.now() - choice.at > WORKSPACE_CHOICE_TTL_MS) {
-    return undefined;
-  }
-  return choice.workspaceId;
-}
+/** Bagian `McpConsentService` yang dibaca plugin OAuth. */
+export type McpWorkspaceChoiceAccess = Pick<
+  McpConsentService,
+  "getActiveWorkspaceId" | "clearWorkspaceChoice"
+>;
 
 export type McpSpikePluginOptions = {
   baseUrl: string;
   /** Pabrik `McpAccessService` untuk plugin grant; produksi: `getMcpAccessService`. */
   getAccess: () => McpGrantAccess;
+  /** Pabrik pembaca pilihan workspace; produksi: `getMcpConsentService`. */
+  getChoices: () => McpWorkspaceChoiceAccess;
 };
 
 /**
@@ -70,15 +54,30 @@ export type McpSpikePluginOptions = {
 export function createMcpSpikePlugins({
   baseUrl,
   getAccess,
+  getChoices,
 }: McpSpikePluginOptions) {
   const resourceUrl = `${baseUrl}/api/mcp`;
 
-  function consentReferenceId({
+  async function activeWorkspaceId({
+    user,
     session,
   }: {
+    user: { id: string };
     session: { id: string };
-  }): string {
-    const workspaceId = currentWorkspaceChoice(session.id);
+  }): Promise<string | undefined> {
+    return (
+      (await getChoices().getActiveWorkspaceId(
+        session.id,
+        asUserId(user.id),
+      )) ?? undefined
+    );
+  }
+
+  async function consentReferenceId(info: {
+    user: { id: string };
+    session: { id: string };
+  }): Promise<string> {
+    const workspaceId = await activeWorkspaceId(info);
     if (!workspaceId) {
       // Gagal tegas: consent tanpa workspace menerbitkan token tanpa
       // `workspace_id` yang ditolak 403 tanpa penjelasan.
@@ -103,15 +102,20 @@ export function createMcpSpikePlugins({
       clientRegistrationAllowedScopes: ["mcp:schedule", "offline_access"],
       postLogin: {
         page: "/select-workspace",
-        shouldRedirect: ({ session }) =>
-          currentWorkspaceChoice(session.id) === undefined,
+        shouldRedirect: async (info) =>
+          (await activeWorkspaceId(info)) === undefined,
         consentReferenceId,
       },
       customAccessTokenClaims: ({ referenceId }) => ({
         workspace_id: referenceId,
       }),
     }),
-    mcpGrantPlugin({ getAccess, consentReferenceId }),
+    mcpGrantPlugin({
+      getAccess,
+      consentReferenceId,
+      onConsentGranted: ({ user, session }) =>
+        getChoices().clearWorkspaceChoice(session.id, asUserId(user.id)),
+    }),
   ];
 }
 
@@ -125,5 +129,6 @@ export function mcpSpikePlugins() {
   return createMcpSpikePlugins({
     baseUrl: mcpBaseUrl(),
     getAccess: getMcpAccessService,
+    getChoices: getMcpConsentService,
   });
 }

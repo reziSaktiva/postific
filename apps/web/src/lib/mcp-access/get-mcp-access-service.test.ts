@@ -22,6 +22,10 @@ vi.mock("@/lib/repositories/mcp-access", () => ({
   },
   mcpAuditRepository: {},
   mcpGrantRevocationAdapter: {},
+  mcpRateLimitRepository: {
+    consume: async () => ({ allowed: true, used: 1 }),
+    deleteExpired: async () => 0,
+  },
 }));
 
 import { getMcpAccessService } from "./get-mcp-access-service";

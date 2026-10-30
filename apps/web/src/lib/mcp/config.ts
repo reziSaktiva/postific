@@ -7,6 +7,11 @@
  * semua env dimigrasi.
  */
 
+import {
+  MCP_RATE_LIMIT_MAX_VALUE,
+  type McpRateLimitConfig,
+} from "@/domains/mcp-access";
+
 const DEFAULT_ALLOWED_ORIGINS = [
   "https://claude.ai",
   "https://www.claude.ai",
@@ -26,6 +31,52 @@ export function mcpBaseUrl(env: Env = process.env): string {
 /** Resource server = audience token; sama dengan `validAudiences` plugin OAuth. */
 export function mcpResourceUrl(env: Env = process.env): string {
   return `${mcpBaseUrl(env)}/api/mcp`;
+}
+
+/**
+ * Batas rate limit MCP per workspace (T-154, ADR-138 poin 7): 60 panggilan per
+ * menit, 30 aksi tulis per jam, 50 konten terjadwal per hari (dikonfirmasi King
+ * Rezi 2026-10-26). Ini satu-satunya tempat angkanya; domain menerima
+ * konfigurasi lewat konstruktor. Panjang jendela tetap (bagian arti kuota).
+ */
+export const MCP_RATE_LIMIT_DEFAULTS: McpRateLimitConfig = {
+  calls: 60,
+  write_actions: 30,
+  scheduled_contents: 50,
+};
+
+const RATE_LIMIT_ENV_KEYS: Record<keyof McpRateLimitConfig, string> = {
+  calls: "MCP_RATE_LIMIT_CALLS_PER_MINUTE",
+  write_actions: "MCP_RATE_LIMIT_WRITES_PER_HOUR",
+  scheduled_contents: "MCP_RATE_LIMIT_SCHEDULED_CONTENTS_PER_DAY",
+};
+
+/**
+ * Batas efektif: default di atas, dapat ditimpa per env. Nilai env yang bukan
+ * bilangan bulat positif, atau melebihi `int4` Postgres (penghitung disimpan
+ * sebagai `int4`), diabaikan (kembali ke default) supaya salah ketik tidak
+ * mematikan atau memperlonggar batas diam-diam.
+ */
+export function getMcpRateLimitConfig(
+  env: Env = process.env,
+): McpRateLimitConfig {
+  const resolved = { ...MCP_RATE_LIMIT_DEFAULTS };
+  for (const kind of Object.keys(RATE_LIMIT_ENV_KEYS) as Array<
+    keyof McpRateLimitConfig
+  >) {
+    const raw = env[RATE_LIMIT_ENV_KEYS[kind]]?.trim();
+    if (raw && /^\d+$/.test(raw)) {
+      const value = Number(raw);
+      if (
+        Number.isSafeInteger(value) &&
+        value > 0 &&
+        value <= MCP_RATE_LIMIT_MAX_VALUE
+      ) {
+        resolved[kind] = value;
+      }
+    }
+  }
+  return resolved;
 }
 
 function splitList(value: string | undefined): string[] {

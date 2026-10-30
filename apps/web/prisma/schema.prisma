@@ -238,6 +238,7 @@ model Workspace {
   posts              PublishingPost[]
   mcpGrants          McpGrant[]
   mcpAuditLogs       McpAuditLog[]
+  mcpRateLimits      McpRateLimitWindow[]
   inboxItems         EngagementInboxItem[]
   analyticsSnapshots AnalyticsWorkspaceSnapshot[]
   startPages         StartPagePage[]
@@ -446,6 +447,16 @@ model PublishingPost {
   // `dbgenerated()` tanpa argumen = default tidak diketahui Prisma, sehingga
   // kolom ini tidak ikut `data` pada create/createMany.
   occurredAt     DateTime  @default(dbgenerated()) @map("occurred_at") @db.Timestamptz(6)
+  // T-152 (ADR-138 poin 6) — penanda sumber pembuatan post. `app` (default,
+  // seluruh baris lama dan post hasil import) = dibuat manusia di aplikasi;
+  // `mcp` = dibuat AI klien lewat tool MCP. `createdViaClientId` = `clientId`
+  // OAuth klien AI (sama dengan `mcp_grants.client_id`, tanpa FK karena tabel
+  // plugin tidak diubah bentuknya) dan WAJIB terisi bila dan hanya bila
+  // `createdVia = 'mcp'`. Kedua invariant dijaga CHECK constraint di migrasi
+  // `20261030100000_t152_publishing_posts_created_via` (Prisma DSL tidak
+  // merepresentasikan CHECK).
+  createdVia         String  @default("app") @map("created_via")
+  createdViaClientId String? @map("created_via_client_id")
 
   workspace Workspace              @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   targets   PublishingPostTarget[]
@@ -572,6 +583,49 @@ model McpAuditLog {
   @@index([workspaceId, createdAt])
   @@index([createdAt])
   @@map("mcp_audit_logs")
+}
+
+// Penghitung rate limit MCP per workspace (T-154, ADR-138 poin 7): fixed window,
+// satu baris per (workspace, kuota, jendela). Hanya diakses lewat SQL mentah
+// (`INSERT ... ON CONFLICT DO UPDATE ... WHERE count + n <= limit`) supaya
+// kenaikan penghitung atomik; model ini ada agar Prisma mengenal tabelnya (tanpa
+// drift migrasi), bukan untuk CRUD. `expiresAt` = akhir jendela; baris
+// kedaluwarsa dihapus JOB-08. RLS: satu policy `app_runtime` (ADR-141), di migrasi.
+model McpRateLimitWindow {
+  workspaceId String   @map("workspace_id") @db.Uuid
+  quota       String
+  windowStart DateTime @map("window_start") @db.Timestamptz(6)
+  expiresAt   DateTime @map("expires_at") @db.Timestamptz(6)
+  count       Int
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@id([workspaceId, quota, windowStart])
+  @@index([expiresAt])
+  @@map("mcp_rate_limit_windows")
+}
+
+// Pilihan workspace per sesi login pada alur OAuth klien AI (T-151, ADR-139):
+// langkah 1 (`/select-workspace`) menulis, `postLogin.consentReferenceId` dan
+// layar consent membaca. Menggantikan `Map` di memori harness spike T-148
+// (tidak tahan multi-instance dan restart). Satu baris per sesi login
+// (`session_id` = `identity_session.id`, kunci utama); pilihan baru menimpa
+// yang lama. Sementara: `expires_at` (10 menit) dan JOB-08 yang membuang
+// baris kedaluwarsa. Sengaja TANPA FK: `session_id` dan `user_id` milik tabel
+// identitas plugin (preseden `mcp_grants.user_id`), dan `workspace_id` tidak
+// diberi FK supaya model `Workspace` tidak berubah; keanggotaan aktif
+// divalidasi saat menulis dan sekali lagi saat grant dibuat (`mcp_grants`
+// punya FK ke `workspaces`). RLS: aktif dengan satu policy `app_runtime`
+// (ADR-141, DB-D05), di migrasi `t151_mcp_workspace_choices`.
+model McpWorkspaceChoice {
+  sessionId   String   @id @map("session_id")
+  userId      String   @map("user_id")
+  workspaceId String   @map("workspace_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  expiresAt   DateTime @map("expires_at") @db.Timestamptz(6)
+
+  @@index([expiresAt])
+  @@map("mcp_workspace_choices")
 }
 
 // ─────────────────────────────────────────────
