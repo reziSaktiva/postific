@@ -412,10 +412,11 @@ export class PublishingService {
   ) {}
 
   /**
-   * T-157 — overlay `createdViaClientName` pada item yang punya
-   * `createdViaClientId`. Satu query batch per panggilan (hanya bila ada
-   * client id). Tanpa port, atau nama tak ditemukan -> `null` (UI fallback
-   * "Klien AI"); tidak pernah string kosong.
+   * T-157 — lengkapi `createdViaClientName` hanya untuk item yang punya
+   * `createdViaClientId` tetapi namanya belum terisi (nama beku di post
+   * menang). Satu query batch per panggilan. Tanpa port, atau nama tak
+   * ditemukan -> `null` (UI fallback "Klien AI"); tidak pernah string kosong.
+   * Tanpa yang perlu di-resolve, `items` dikembalikan apa adanya.
    */
   private async withClientNames<
     T extends {
@@ -423,22 +424,31 @@ export class PublishingService {
       createdViaClientName?: string | null;
     },
   >(workspaceId: WorkspaceId, items: T[]): Promise<T[]> {
+    if (!this.mcpClientNames) {
+      return items;
+    }
     const clientIds = [
       ...new Set(
         items
+          .filter((item) => !item.createdViaClientName)
           .map((item) => item.createdViaClientId)
           .filter((id): id is string => Boolean(id)),
       ),
     ];
-    const names =
-      this.mcpClientNames && clientIds.length > 0
-        ? await this.mcpClientNames.getClientNames(workspaceId, clientIds)
-        : new Map<string, string>();
+    if (clientIds.length === 0) {
+      return items;
+    }
+    const names = await this.mcpClientNames.getClientNames(
+      workspaceId,
+      clientIds,
+    );
 
     return items.map((item) => ({
       ...item,
       createdViaClientName:
-        (item.createdViaClientId && names.get(item.createdViaClientId)) || null,
+        item.createdViaClientName ||
+        (item.createdViaClientId && names.get(item.createdViaClientId)) ||
+        null,
     }));
   }
 

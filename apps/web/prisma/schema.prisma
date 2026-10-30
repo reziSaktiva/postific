@@ -457,6 +457,10 @@ model PublishingPost {
   // merepresentasikan CHECK).
   createdVia         String  @default("app") @map("created_via")
   createdViaClientId String? @map("created_via_client_id")
+  // T-157 — nama klien AI dibekukan saat post dibuat (migrasi
+  // `20261030130000_t157_publishing_posts_created_via_client_name`); nullable,
+  // null untuk post `app`/lama (fallback lookup `mcp_grants`).
+  createdViaClientName String? @map("created_via_client_name")
 
   workspace Workspace              @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   targets   PublishingPostTarget[]

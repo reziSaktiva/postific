@@ -39,3 +39,41 @@ export function filterBySource<T extends { createdVia?: PostCreatedVia }>(
 ): T[] {
   return items.filter((item) => matchesSourceFilter(item, filter));
 }
+
+/** Jenis state kosong: `base` = teks kosong asli layar. */
+export type FilteredEmptyKind = "base" | "mcp" | "manual" | "generic";
+
+/**
+ * Putuskan state kosong saat daftar terfilter kosong (T-157).
+ * - `mcp`: filter Lewat MCP, filter lain di posisi Semua.
+ * - `manual`: filter Dibuat Manual, filter lain Semua, dan ada item MCP.
+ * - `generic`: ada filter aktif tetapi sumber data tidak kosong.
+ * - `base`: data memang kosong (atau tidak ada filter aktif).
+ */
+export function resolveFilteredEmptyKind(input: {
+  sourceFilter: SourceFilterValue;
+  /** True bila semua filter selain sumber (Status/Akun) di posisi Semua. */
+  otherFiltersAtDefault: boolean;
+  /** Jumlah item sebelum filter apa pun. */
+  totalItems: number;
+  hasMcpItems: boolean;
+}): FilteredEmptyKind {
+  const { sourceFilter, otherFiltersAtDefault, totalItems, hasMcpItems } =
+    input;
+  if (sourceFilter === SourceFilter.Mcp && otherFiltersAtDefault) {
+    return "mcp";
+  }
+  if (totalItems === 0) {
+    return "base";
+  }
+  if (
+    sourceFilter === SourceFilter.Manual &&
+    otherFiltersAtDefault &&
+    hasMcpItems
+  ) {
+    return "manual";
+  }
+  const anyFilterActive =
+    sourceFilter !== SourceFilter.All || !otherFiltersAtDefault;
+  return anyFilterActive ? "generic" : "base";
+}

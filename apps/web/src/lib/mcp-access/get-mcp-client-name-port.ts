@@ -1,4 +1,4 @@
-import type { WorkspaceId } from "@postific/shared";
+import type { McpClientNamePort } from "@/domains/publishing";
 import { getMcpAccessService } from "./get-mcp-access-service";
 
 /**
@@ -6,12 +6,7 @@ import { getMcpAccessService } from "./get-mcp-access-service";
  * `McpAccessService.getClientNames` — satu tempat supaya composition root
  * halaman/action Drafts, Queue, dan History tidak menduplikasi.
  */
-export function getMcpClientNamePort(): {
-  getClientNames(
-    workspaceId: WorkspaceId,
-    clientIds: string[],
-  ): Promise<Map<string, string>>;
-} {
+export function getMcpClientNamePort(): McpClientNamePort {
   const service = getMcpAccessService();
   return {
     getClientNames: (workspaceId, clientIds) =>

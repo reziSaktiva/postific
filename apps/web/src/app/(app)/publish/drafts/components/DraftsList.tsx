@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Delete02Icon } from "@hugeicons/core-free-icons";
 
-import { ContentStatus } from "@postific/shared";
+import { ContentStatus, PostCreatedVia } from "@postific/shared";
 import type {
   CalendarPostItem,
   PublishingPostRecord,
@@ -17,11 +17,12 @@ import { useConfirmAction } from "@/lib/hooks/use-confirm-action";
 import { usePublishingPostsRealtime } from "@/lib/hooks/use-publishing-posts-realtime";
 import { useSyncedState } from "@/lib/hooks/use-synced-state";
 
-import { McpEmpty } from "@/components/shared/McpEmpty";
+import { SourceFilterEmpty } from "@/components/shared/SourceFilterEmpty";
 import { McpSourceBadge } from "@/components/shared/McpSourceBadge";
 import { SourceFilterSelect } from "@/components/shared/SourceFilterSelect";
 import {
-  matchesSourceFilter,
+  filterBySource,
+  resolveFilteredEmptyKind,
   SourceFilter,
   type SourceFilterValue,
 } from "@/components/shared/source-filter";
@@ -160,9 +161,15 @@ export function DraftsList({
   const [sourceFilter, setSourceFilter] = useState<SourceFilterValue>(
     SourceFilter.All,
   );
-  const visibleDrafts = localDrafts.filter((draft) =>
-    matchesSourceFilter(draft, sourceFilter),
-  );
+  const visibleDrafts = filterBySource(localDrafts, sourceFilter);
+  const emptyKind = resolveFilteredEmptyKind({
+    sourceFilter,
+    otherFiltersAtDefault: true,
+    totalItems: localDrafts.length,
+    hasMcpItems: localDrafts.some(
+      (draft) => draft.createdVia === PostCreatedVia.Mcp,
+    ),
+  });
   const requestSeqRef = useRef<Map<string, number>>(new Map());
 
   const handlePublishingPostChange = useCallback(
@@ -222,8 +229,11 @@ export function DraftsList({
           visibleDrafts.length === 0 ? "p-6" : "py-2",
         )}
       >
-        {visibleDrafts.length === 0 && sourceFilter === SourceFilter.Mcp ? (
-          <McpEmpty onShowAll={() => setSourceFilter(SourceFilter.All)} />
+        {visibleDrafts.length === 0 && emptyKind !== "base" ? (
+          <SourceFilterEmpty
+            kind={emptyKind}
+            onShowAll={() => setSourceFilter(SourceFilter.All)}
+          />
         ) : visibleDrafts.length === 0 ? (
           <Empty>
             <EmptyHeader>

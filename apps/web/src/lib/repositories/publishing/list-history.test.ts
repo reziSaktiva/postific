@@ -67,11 +67,21 @@ describe("publishingRepository.listHistory ordering (T-142, T-145)", () => {
 describe("publishingRepository.listHistory sumber pembuatan (T-157)", () => {
   beforeEach(() => findMany.mockReset());
 
-  it("memetakan createdVia dan createdViaClientId; nama klien diisi service (null di sini)", async () => {
+  it("memetakan createdVia, createdViaClientId, dan nama klien beku (null bila belum terisi)", async () => {
     const at = new Date("2026-10-19T07:49:00Z");
     findMany.mockResolvedValue([
-      { ...row("m", at, at), createdVia: "mcp", createdViaClientId: "c1" },
-      { ...row("a", at, at), createdVia: "app", createdViaClientId: null },
+      {
+        ...row("m", at, at),
+        createdVia: "mcp",
+        createdViaClientId: "c1",
+        createdViaClientName: "Beku",
+      },
+      {
+        ...row("a", at, at),
+        createdVia: "app",
+        createdViaClientId: null,
+        createdViaClientName: null,
+      },
     ]);
 
     const items = await publishingRepository.listHistory(
@@ -86,7 +96,7 @@ describe("publishingRepository.listHistory sumber pembuatan (T-157)", () => {
         i.createdViaClientName,
       ]),
     ).toEqual([
-      ["mcp", "c1", null],
+      ["mcp", "c1", "Beku"],
       ["app", null, null],
     ]);
   });

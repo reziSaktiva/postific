@@ -132,6 +132,7 @@ function mapPost(
     ...(post.targets ? { draftTargets: mapDraftTargets(post.targets) } : {}),
     createdVia: post.createdVia as PostCreatedVia,
     createdViaClientId: post.createdViaClientId,
+    createdViaClientName: post.createdViaClientName,
     createdAt: post.createdAt,
     updatedAt: post.updatedAt,
   };
@@ -147,7 +148,7 @@ function mapSource(post: PublishingPost): PostSourceFields {
   return {
     createdVia: post.createdVia as PostCreatedVia,
     createdViaClientId: post.createdViaClientId,
-    createdViaClientName: null,
+    createdViaClientName: post.createdViaClientName,
   };
 }
 
@@ -241,6 +242,7 @@ export const publishingRepository: IPublishingRepository = {
             ? {
                 createdVia: PostCreatedVia.Mcp,
                 createdViaClientId: source.clientId,
+                createdViaClientName: source.clientName ?? null,
               }
             : {}),
         },

@@ -38,6 +38,8 @@ export interface McpToolContext {
   userId: UserId;
   /** `clientId` OAuth klien AI dari grant yang lolos; dipakai penanda sumber post (`created_via_client_id`). */
   clientId: string;
+  /** Nama klien dari grant (sudah dirapikan); dibekukan di post saat `create_draft`. */
+  clientName: string | null;
   grantScopes: readonly McpScope[];
   services: McpToolServices;
 }

@@ -10,7 +10,7 @@ import {
 } from "react";
 import Link from "next/link";
 
-import { ContentStatus } from "@postific/shared";
+import { ContentStatus, PostCreatedVia } from "@postific/shared";
 import {
   compareHistoryItemsDesc,
   groupHistoryItemsByDate,
@@ -33,11 +33,12 @@ import {
   subscribeRelativeNow,
 } from "./relative-now";
 
-import { McpEmpty } from "@/components/shared/McpEmpty";
+import { SourceFilterEmpty } from "@/components/shared/SourceFilterEmpty";
 import { McpSourceBadge } from "@/components/shared/McpSourceBadge";
 import { SourceFilterSelect } from "@/components/shared/SourceFilterSelect";
 import {
   matchesSourceFilter,
+  resolveFilteredEmptyKind,
   SourceFilter,
   type SourceFilterValue,
 } from "@/components/shared/source-filter";
@@ -288,6 +289,24 @@ export function HistoryList({
       .filter((group) => group.items.length > 0);
   }, [groups, statusFilter, accountFilter, sourceFilter]);
 
+  const emptyKind = resolveFilteredEmptyKind({
+    sourceFilter,
+    otherFiltersAtDefault:
+      statusFilter === ALL_STATUS_FILTER_VALUE &&
+      accountFilter === ALL_ACCOUNTS_FILTER_VALUE,
+    totalItems: localItems.length,
+    hasMcpItems: localItems.some(
+      (item) => item.createdVia === PostCreatedVia.Mcp,
+    ),
+  });
+
+  function resetAllFilters() {
+    bumpClientNowMs(renderedAt);
+    setStatusFilter(ALL_STATUS_FILTER_VALUE);
+    setAccountFilter(ALL_ACCOUNTS_FILTER_VALUE);
+    setSourceFilter(SourceFilter.All);
+  }
+
   return (
     // eslint-disable-next-line no-restricted-syntax -- layout-only, konsisten QueueList/DraftsList
     <div className="flex flex-col gap-4">
@@ -341,15 +360,8 @@ export function HistoryList({
       {filteredGroups.length === 0 ? (
         <Card>
           <CardContent>
-            {sourceFilter === SourceFilter.Mcp &&
-            statusFilter === ALL_STATUS_FILTER_VALUE &&
-            accountFilter === ALL_ACCOUNTS_FILTER_VALUE ? (
-              <McpEmpty
-                onShowAll={() => {
-                  bumpClientNowMs(renderedAt);
-                  setSourceFilter(SourceFilter.All);
-                }}
-              />
+            {emptyKind !== "base" ? (
+              <SourceFilterEmpty kind={emptyKind} onShowAll={resetAllFilters} />
             ) : (
               <Empty>
                 <EmptyHeader>

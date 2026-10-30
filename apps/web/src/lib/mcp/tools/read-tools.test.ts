@@ -233,6 +233,7 @@ function context(services: McpToolServices): McpToolContext {
     workspaceId: WORKSPACE,
     userId: USER,
     clientId: "client-1",
+    clientName: "Claude",
     grantScopes: ["read"],
     services,
   };

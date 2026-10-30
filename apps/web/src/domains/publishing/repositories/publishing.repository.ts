@@ -45,10 +45,10 @@ export interface PublishingPostRecord {
   /** T-152 — `clientId` OAuth klien AI; hanya terisi bila `createdVia = mcp`. */
   createdViaClientId?: string | null;
   /**
-   * T-157 — nama klien AI (dari `mcp_grants.client_name`), diisi SERVICE
-   * lewat `McpClientNamePort`; repository tidak mengisinya. `null`/`undefined`
-   * untuk post `app`, atau post `mcp` yang namanya tak ditemukan (UI fallback
-   * "Klien AI").
+   * T-157 — nama klien AI: nilai beku kolom `created_via_client_name`
+   * (diisi saat create_draft); bila null, SERVICE melengkapi lewat
+   * `McpClientNamePort` (post lama). `null`/`undefined` untuk post `app`,
+   * atau post `mcp` yang namanya tak ditemukan (UI fallback "Klien AI").
    */
   createdViaClientName?: string | null;
   createdAt: Date;
@@ -57,8 +57,8 @@ export interface PublishingPostRecord {
 
 /**
  * T-157 — penanda sumber pembuatan pada record daftar (Queue/History/
- * Calendar). `createdViaClientId` diisi repository; `createdViaClientName`
- * selalu `null` dari repository dan di-overlay oleh `PublishingService`
+ * Calendar). `createdViaClientId` dan `createdViaClientName` (beku, bisa
+ * null) diisi repository; bila null di-overlay oleh `PublishingService`
  * (pola sama `metrics`/`authorName`).
  */
 export interface PostSourceFields {
@@ -75,7 +75,12 @@ export interface PostSourceFields {
  */
 export type PostCreationSource =
   | { createdVia: PostCreatedVia.App }
-  | { createdVia: PostCreatedVia.Mcp; clientId: string };
+  | {
+      createdVia: PostCreatedVia.Mcp;
+      clientId: string;
+      /** Nama klien dibekukan di post; `null`/kosong = tampil via lookup grant. */
+      clientName?: string | null;
+    };
 
 /** Akun tujuan sebuah draft/post, cukup untuk mengisi ulang Account Selector. */
 export interface DraftTargetRecord {

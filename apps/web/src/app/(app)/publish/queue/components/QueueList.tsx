@@ -9,17 +9,22 @@ import {
   SentIcon,
 } from "@hugeicons/core-free-icons";
 
-import type { ConnectedAccountId, PostId } from "@postific/shared";
+import {
+  PostCreatedVia,
+  type ConnectedAccountId,
+  type PostId,
+} from "@postific/shared";
 import type { QueueGroup } from "@/domains/publishing";
 import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
 import { formatRelativeTime } from "@/lib/utils/format-relative-time";
 import { formatUtcDateKeyHeading } from "@/lib/utils";
 
-import { McpEmpty } from "@/components/shared/McpEmpty";
+import { SourceFilterEmpty } from "@/components/shared/SourceFilterEmpty";
 import { McpSourceBadge } from "@/components/shared/McpSourceBadge";
 import { SourceFilterSelect } from "@/components/shared/SourceFilterSelect";
 import {
   matchesSourceFilter,
+  resolveFilteredEmptyKind,
   SourceFilter,
   type SourceFilterValue,
 } from "@/components/shared/source-filter";
@@ -186,6 +191,21 @@ export function QueueList({ groups, onCancelSchedule }: QueueListProps) {
       .filter((group) => group.items.length > 0);
   }, [groups, accountFilter, sourceFilter]);
 
+  const allItems = groups.flatMap((group) => group.items);
+  const emptyKind = resolveFilteredEmptyKind({
+    sourceFilter,
+    otherFiltersAtDefault: accountFilter === ALL_ACCOUNTS_FILTER_VALUE,
+    totalItems: allItems.length,
+    hasMcpItems: allItems.some(
+      (item) => item.createdVia === PostCreatedVia.Mcp,
+    ),
+  });
+
+  function resetAllFilters() {
+    setAccountFilter(ALL_ACCOUNTS_FILTER_VALUE);
+    setSourceFilter(SourceFilter.All);
+  }
+
   return (
     // eslint-disable-next-line no-restricted-syntax -- T-101.2: layout-only, file sudah dimigrasi shadcn
     <div className="flex flex-col gap-4">
@@ -215,8 +235,8 @@ export function QueueList({ groups, onCancelSchedule }: QueueListProps) {
       {filteredGroups.length === 0 ? (
         <Card>
           <CardContent>
-            {sourceFilter === SourceFilter.Mcp ? (
-              <McpEmpty onShowAll={() => setSourceFilter(SourceFilter.All)} />
+            {emptyKind !== "base" ? (
+              <SourceFilterEmpty kind={emptyKind} onShowAll={resetAllFilters} />
             ) : (
               <Empty>
                 <EmptyHeader>

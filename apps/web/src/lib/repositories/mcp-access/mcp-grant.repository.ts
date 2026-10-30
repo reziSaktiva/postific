@@ -132,6 +132,8 @@ export const mcpGrantRepository: IMcpGrantRepository = {
         clientId: { in: clientIds },
         clientName: { not: null },
       },
+      // distinct + orderBy: satu baris terbaru per clientId, tanpa memuat semua grant.
+      distinct: ["clientId"],
       orderBy: { createdAt: "desc" },
       select: { clientId: true, clientName: true },
     });

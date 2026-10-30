@@ -13,9 +13,22 @@ describe("normalizeClientName", () => {
     expect(normalizeClientName("  Claude \n  Code  ")).toBe("Claude Code");
   });
 
+  it("strips control characters, newlines, and invisible format characters", () => {
+    expect(normalizeClientName("Claude\u0000\u001b[31m\nCode")).toBe(
+      "Claude [31m Code",
+    );
+    expect(normalizeClientName("Cl\u200baude\u202eX")).toBe("Cl aude X");
+    expect(normalizeClientName("\u0007\u200b \u2028")).toBeNull();
+  });
+
+  it("collapses repeated spaces and keeps names at exactly 64 chars intact", () => {
+    expect(normalizeClientName("A    B")).toBe("A B");
+    expect(normalizeClientName("A".repeat(64))).toBe("A".repeat(64));
+  });
+
   it("truncates very long self-asserted names with an ellipsis", () => {
     const result = normalizeClientName("A".repeat(200));
-    expect(result).toHaveLength(80);
+    expect(result).toHaveLength(64);
     expect(result?.endsWith("…")).toBe(true);
   });
 });

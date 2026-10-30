@@ -286,6 +286,7 @@ describe("mcpGrantRepository", () => {
           clientId: { in: ["c1", "c2"] },
           clientName: { not: null },
         },
+        distinct: ["clientId"],
         orderBy: { createdAt: "desc" },
         select: { clientId: true, clientName: true },
       });
