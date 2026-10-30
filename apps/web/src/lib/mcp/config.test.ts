@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { isMcpEnabled, isMcpOriginAllowed, mcpResourceUrl } from "./config";
+import {
+  getMcpRateLimitConfig,
+  isMcpEnabled,
+  isMcpOriginAllowed,
+  MCP_RATE_LIMIT_DEFAULTS,
+  mcpResourceUrl,
+} from "./config";
 
 describe("isMcpEnabled", () => {
   it("is off by default", () => {
@@ -15,6 +21,36 @@ describe("isMcpEnabled", () => {
   it("still accepts the harness flag MCP_SPIKE_ENABLED so OAuth plugin and route stay paired", () => {
     expect(isMcpEnabled({ MCP_SPIKE_ENABLED: "true" })).toBe(true);
   });
+});
+
+describe("getMcpRateLimitConfig", () => {
+  it("defaults to 60 calls/min, 30 writes/hour, 50 scheduled contents/day", () => {
+    expect(getMcpRateLimitConfig({})).toEqual({
+      calls: 60,
+      write_actions: 30,
+      scheduled_contents: 50,
+    });
+    expect(MCP_RATE_LIMIT_DEFAULTS).toEqual(getMcpRateLimitConfig({}));
+  });
+
+  it("lets env override each limit", () => {
+    expect(
+      getMcpRateLimitConfig({
+        MCP_RATE_LIMIT_CALLS_PER_MINUTE: "120",
+        MCP_RATE_LIMIT_WRITES_PER_HOUR: " 10 ",
+        MCP_RATE_LIMIT_SCHEDULED_CONTENTS_PER_DAY: "5",
+      }),
+    ).toEqual({ calls: 120, write_actions: 10, scheduled_contents: 5 });
+  });
+
+  it.each(["0", "-5", "abc", "1.5", "", "1e3", "99999999999999999999"])(
+    "ignores invalid env value %j and keeps the default",
+    (bad) => {
+      expect(
+        getMcpRateLimitConfig({ MCP_RATE_LIMIT_CALLS_PER_MINUTE: bad }).calls,
+      ).toBe(60);
+    },
+  );
 });
 
 describe("mcpResourceUrl", () => {

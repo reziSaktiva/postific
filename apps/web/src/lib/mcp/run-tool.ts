@@ -1,6 +1,7 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import {
   McpAccessDeniedError,
+  McpRateLimitExceededError,
   type McpAccessService,
   type McpAuditStatus,
 } from "@/domains/mcp-access";
@@ -47,7 +48,15 @@ export type McpErrorCode =
   | "invalid_cursor"
   | "not_found"
   | "conflict"
+  | "rate_limited"
   | "internal_error";
+
+/** Rincian tambahan error `rate_limited` (T-154); klien memakai `retryAfterSeconds`. */
+export interface McpRateLimitedDetails {
+  retryAfterSeconds: number;
+  quota: string;
+  limit: number;
+}
 
 function jsonResult(payload: unknown): CallToolResult {
   return { content: [{ type: "text", text: JSON.stringify(payload) }] };
@@ -56,11 +65,15 @@ function jsonResult(payload: unknown): CallToolResult {
 export function mcpErrorResult(
   code: McpErrorCode,
   message: string,
+  details?: McpRateLimitedDetails,
 ): CallToolResult {
   return {
     isError: true,
     content: [
-      { type: "text", text: JSON.stringify({ error: { code, message } }) },
+      {
+        type: "text",
+        text: JSON.stringify({ error: { code, message, ...details } }),
+      },
     ],
   };
 }
@@ -69,9 +82,26 @@ interface Failure {
   code: McpErrorCode;
   message: string;
   status: McpAuditStatus;
+  details?: McpRateLimitedDetails;
+}
+
+function rateLimitFailure(error: McpRateLimitExceededError): Failure {
+  return {
+    code: "rate_limited",
+    message: error.message,
+    status: "denied",
+    details: {
+      retryAfterSeconds: error.retryAfterSeconds,
+      quota: error.quota,
+      limit: error.limit,
+    },
+  };
 }
 
 function classify(error: unknown): Failure | null {
+  if (error instanceof McpRateLimitExceededError) {
+    return rateLimitFailure(error);
+  }
   if (error instanceof McpToolInputError) {
     return { code: "invalid_input", message: error.message, status: "error" };
   }
@@ -169,6 +199,15 @@ export async function runMcpTool(
       });
       return mcpErrorResult(error.code, error.message);
     }
+    if (error instanceof McpRateLimitExceededError) {
+      const failure = rateLimitFailure(error);
+      await audit({
+        grantId: error.grantId,
+        status: failure.status,
+        errorCode: failure.code,
+      });
+      return mcpErrorResult(failure.code, failure.message, failure.details);
+    }
     logger.error("[mcp] otorisasi gagal (ditolak, fail closed)", {
       tool: tool.name,
       error,
@@ -205,7 +244,7 @@ export async function runMcpTool(
         status: failure.status,
         errorCode: failure.code,
       });
-      return mcpErrorResult(failure.code, failure.message);
+      return mcpErrorResult(failure.code, failure.message, failure.details);
     }
     logger.error("[mcp] tool gagal", { tool: tool.name, error });
     await audit({

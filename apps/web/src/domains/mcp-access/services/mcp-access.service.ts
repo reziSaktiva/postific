@@ -25,11 +25,12 @@ import type {
   EnsureGrantFromConsentInput,
   McpAuthorizedCall,
   McpClock,
-  McpRateLimitHook,
+  McpRateLimiter,
   PurgeMcpAuditResult,
   RecordMcpAuditInput,
 } from "../types";
 import { summarizeToolInput } from "../value-objects/audit-summary";
+import type { McpQuotaKind } from "../value-objects/rate-limit";
 import {
   isMcpScope,
   normalizeMcpScopes,
@@ -84,7 +85,7 @@ export class McpAccessService {
     private readonly revocation: IMcpGrantRevocationPort,
     private readonly memberships: WorkspaceMembershipPort,
     private readonly clock: McpClock = () => new Date(),
-    private readonly rateLimit?: McpRateLimitHook,
+    private readonly rateLimit?: McpRateLimiter,
   ) {}
 
   /**
@@ -200,7 +201,10 @@ export class McpAccessService {
    *    di scope grant di DB -> `grant_scope_insufficient`.
    * 3. Pengguna member aktif workspace -> `not_workspace_member`. Tanpa
    *    pembatasan role di MVP.
-   * 4. Hook rate limit (kosong sampai T-154).
+   * 4. Rate limit workspace (T-154): `McpRateLimitExceededError` bila kuota
+   *    `calls` (dan `write_actions` untuk scope tulis) terlampaui. Hanya
+   *    panggilan yang sudah lolos 1-3 yang dihitung, jadi klien yang dicabut
+   *    atau tanpa scope tidak menghabiskan kuota workspace.
    *
    * `last_used_at` diperbarui hanya setelah semuanya lolos, paling cepat
    * sekali per menit. Penolakan TIDAK dicatat di sini: handler memanggil
@@ -329,6 +333,28 @@ export class McpAccessService {
     );
     const deleted = await this.audit.deleteOlderThan(cutoff);
     return { deleted, cutoff };
+  }
+
+  /**
+   * Konsumsi kuota workspace dari tool (T-153: `scheduled_contents` per
+   * konten yang dijadwalkan). All-or-nothing; melempar
+   * `McpRateLimitExceededError` (dengan `retryAfterSeconds`) bila melebihi
+   * batas. Tanpa rate limiter terpasang, tidak membatasi (sama seperti hook).
+   */
+  async consumeQuota(
+    workspaceId: WorkspaceId,
+    quota: McpQuotaKind,
+    amount = 1,
+  ): Promise<void> {
+    await this.rateLimit?.consumeQuota(workspaceId, quota, amount);
+  }
+
+  /**
+   * Hapus jendela rate limit kedaluwarsa (bagian JOB-08, bersama
+   * `purgeAudit`; tanpa cron baru). Idempoten.
+   */
+  async purgeRateLimitWindows(): Promise<{ deleted: number }> {
+    return { deleted: (await this.rateLimit?.purgeExpired()) ?? 0 };
   }
 
   private async revokeIfActive(grant: McpGrant): Promise<void> {

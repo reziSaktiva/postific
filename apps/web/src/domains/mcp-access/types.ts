@@ -3,6 +3,7 @@
 import type { McpGrantId, UserId, WorkspaceId } from "@postific/shared";
 import type { McpAuditStatus } from "./entities/mcp-audit-entry";
 import type { McpScope } from "./value-objects/mcp-scope";
+import type { McpQuotaKind } from "./value-objects/rate-limit";
 
 /** Jam yang diinjeksi ke service supaya perilaku berbasis waktu bisa dites. */
 export type McpClock = () => Date;
@@ -28,6 +29,25 @@ export interface McpRateLimitContext {
  */
 export interface McpRateLimitHook {
   assertWithinLimit(context: McpRateLimitContext): Promise<void>;
+}
+
+/**
+ * Rate limiter lengkap (T-154): hook per panggilan ditambah API kuota untuk
+ * tool (mis. `schedule_posts` mengonsumsi `scheduled_contents`) dan pembersihan
+ * baris kedaluwarsa untuk JOB-08.
+ */
+export interface McpRateLimiter extends McpRateLimitHook {
+  /**
+   * Konsumsi `amount` (default 1) dari kuota workspace, all-or-nothing.
+   * Melempar `McpRateLimitExceededError` bila melebihi batas.
+   */
+  consumeQuota(
+    workspaceId: WorkspaceId,
+    quota: McpQuotaKind,
+    amount?: number,
+  ): Promise<void>;
+  /** Hapus jendela kuota kedaluwarsa; mengembalikan jumlah baris terhapus. */
+  purgeExpired(): Promise<number>;
 }
 
 /** Input `authorizeCall`; nilai diturunkan handler dari klaim token (`sub`, `azp`, workspace). */

@@ -238,6 +238,7 @@ model Workspace {
   posts              PublishingPost[]
   mcpGrants          McpGrant[]
   mcpAuditLogs       McpAuditLog[]
+  mcpRateLimits      McpRateLimitWindow[]
   inboxItems         EngagementInboxItem[]
   analyticsSnapshots AnalyticsWorkspaceSnapshot[]
   startPages         StartPagePage[]
@@ -582,6 +583,26 @@ model McpAuditLog {
   @@index([workspaceId, createdAt])
   @@index([createdAt])
   @@map("mcp_audit_logs")
+}
+
+// Penghitung rate limit MCP per workspace (T-154, ADR-138 poin 7): fixed window,
+// satu baris per (workspace, kuota, jendela). Hanya diakses lewat SQL mentah
+// (`INSERT ... ON CONFLICT DO UPDATE ... WHERE count + n <= limit`) supaya
+// kenaikan penghitung atomik; model ini ada agar Prisma mengenal tabelnya (tanpa
+// drift migrasi), bukan untuk CRUD. `expiresAt` = akhir jendela; baris
+// kedaluwarsa dihapus JOB-08. RLS: satu policy `app_runtime` (ADR-141), di migrasi.
+model McpRateLimitWindow {
+  workspaceId String   @map("workspace_id") @db.Uuid
+  quota       String
+  windowStart DateTime @map("window_start") @db.Timestamptz(6)
+  expiresAt   DateTime @map("expires_at") @db.Timestamptz(6)
+  count       Int
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@id([workspaceId, quota, windowStart])
+  @@index([expiresAt])
+  @@map("mcp_rate_limit_windows")
 }
 
 // ─────────────────────────────────────────────
