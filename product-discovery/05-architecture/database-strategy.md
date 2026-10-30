@@ -381,13 +381,41 @@ Sumber otorisasi panggilan MCP. Satu baris per persetujuan: pengguna + klien + w
 - `(workspace_id, created_at)` untuk query audit per workspace; awalan `workspace_id` sudah memenuhi Index Wajib, jadi tidak perlu indeks `(workspace_id)` terpisah.
 - `(created_at)` untuk purge global JOB-08 (menghapus per `created_at` lintas workspace, yang tidak dilayani indeks di atas). Ditambahkan di T-149.3 atas persetujuan King Rezi.
 
-Penanda sumber MCP di BC-03: `publishing_posts` mendapat kolom `created_via` (`app | mcp`) dan `created_via_client_id` (nullable), diputuskan final di T-152. Penghitung rate limit per workspace juga berbasis Postgres (ADR-138 poin 7), bentuk tabelnya diputuskan di T-154.
+### `mcp_rate_limit_windows`
+
+Penghitung rate limit per workspace berbasis Postgres (ADR-138 poin 7; T-154; ADR-152). Fixed window kelipatan epoch UTC: 60 detik (`calls`), 1 jam (`write_actions`), 1 hari (`scheduled_contents`). Aturan pemakaian ada di `application-layer.md` § McpAccessService.
+
+| Kolom | Tipe | Keterangan |
+|-------|------|-----------|
+| `workspace_id` | `uuid NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE` | |
+| `quota` | `text NOT NULL` | Jenis kuota |
+| `window_start` | `timestamptz NOT NULL` | Awal jendela |
+| `expires_at` | `timestamptz NOT NULL` | Akhir jendela; `CHECK (expires_at > window_start)` |
+| `count` | `integer NOT NULL` | Penghitung; `CHECK (count >= 0)` |
+
+PK `(workspace_id, quota, window_start)`; indeks `(expires_at)` untuk pembersihan. Penghitungan memakai satu statement `INSERT ... ON CONFLICT DO UPDATE ... WHERE count + n <= limit` (atomik; penolakan tidak menaikkan penghitung). Baris kedaluwarsa dibersihkan JOB-08.
+
+### `mcp_workspace_choices`
+
+Pilihan workspace per sesi login pada alur persetujuan OAuth (T-151; ADR-152), menggantikan `Map` di memori server.
+
+| Kolom | Tipe | Keterangan |
+|-------|------|-----------|
+| `session_id` | `text PK` | Sesi login Better Auth |
+| `user_id` | `text NOT NULL` | `identity_user.id`, tanpa FK |
+| `workspace_id` | `uuid NOT NULL` | Workspace yang dipilih; tanpa FK |
+| `created_at` | `timestamptz NOT NULL DEFAULT now()` | |
+| `expires_at` | `timestamptz NOT NULL` | Berlaku 10 menit; indeks `(expires_at)` untuk pembersihan JOB-08 |
+
+### Penanda sumber di `publishing_posts` (BC-03)
+
+Kolom `created_via TEXT NOT NULL DEFAULT 'app'` (`app | mcp`) dan `created_via_client_id TEXT NULL` (`clientId` OAuth klien AI, tanpa FK; T-152, ADR-152). CHECK `publishing_posts_created_via_check`: `app` wajib tanpa client id, `mcp` wajib dengan client id. Nilainya `app`, bukan `manual`. `update_draft` lewat MCP tidak mengubah penanda. Belum ada indeks pada `created_via`; ditentukan bersama filter sumber di T-157.
 
 ### Kebijakan RLS BC-04 (final, ADR-141)
 
 Diputuskan King Rezi 2026-10-26 dan dicatat di ADR-141 (pengecualian DB-D05). Pola isolasi per-workspace di § RLS Policy Pattern (DB-D05) bergantung pada `app.current_user_id` yang di-set `withCurrentUser` dari sesi Better Auth. Jalur BC-04 tidak punya konteks itu: panggilan tool diautentikasi lewat JWT bearer (bukan sesi), pembuatan grant berjalan di dalam alur consent plugin OAuth, dan purge audit (JOB-08) berjalan tanpa pengguna. Maka kebijakannya:
 
-- `ENABLE ROW LEVEL SECURITY` pada `mcp_grants` dan `mcp_audit_logs`.
+- `ENABLE ROW LEVEL SECURITY` pada `mcp_grants` dan `mcp_audit_logs`; pola yang sama berlaku untuk `mcp_rate_limit_windows` dan `mcp_workspace_choices` (cakupan diperluas oleh ADR-152).
 - Satu policy per tabel `FOR ALL TO "app_runtime" USING (true) WITH CHECK (true)`, dijaga `IF EXISTS` pada `pg_roles` (shadow DB tidak punya role itu), dengan bentuk sama seperti migrasi `20261026130000_t148_oauth_tables_app_runtime_policy`.
 - `anon` dan `authenticated` tidak punya policy, jadi tertolak (default-deny). Tabel ini tidak boleh terbaca lewat PostgREST atau Realtime anon key.
 - Role `app_runtime` **tidak** melewati RLS: tabel dengan RLS aktif tanpa policy untuk role itu menolak semua tulis (kesalahan `42501`). Karena itu policy `app_runtime` wajib ada di migrasi yang sama dengan `ENABLE ROW LEVEL SECURITY`.
@@ -762,6 +790,8 @@ Detail implementasi migrasi didefinisikan di Engineering Planning (M6). Poin ars
 | ~~`QueueSlot`~~ | ~~`publishing_queue_slots`~~ | BC-03 — **deprecated (ADR-083, 2026-08-19):** entity dihapus dari `domain-model.md`, Queue jadi computed view atas `Post`/`PostTarget`. Tabel fisik masih ada di DB (nol referensi kode), dijadwalkan dihapus lewat migration saat T-032.5 dikerjakan |
 | `McpGrant` | `mcp_grants` | BC-04 |
 | `McpAuditLog` | `mcp_audit_logs` | BC-04 |
+| `McpRateLimitWindow` | `mcp_rate_limit_windows` | BC-04 |
+| `McpWorkspaceChoice` | `mcp_workspace_choices` | BC-04 |
 | `InboxItem` | `engagement_inbox_items` | BC-05 |
 | `Reply` | `engagement_replies` | BC-05 |
 | `PostMetrics` | `analytics_post_metrics` | BC-06 |
@@ -786,7 +816,7 @@ Detail implementasi migrasi didefinisikan di Engineering Planning (M6). Poin ars
 | DB-D03 | Hard delete by default; soft delete hanya pada `publishing_posts` | Simplicity dan privacy by default; Posts memerlukan soft delete karena relasi dan historical data | Soft delete semua tabel (kompleksitas query meningkat); hard delete semua (data loss risk untuk Posts) |
 | DB-D04 | Better Auth menggunakan prefix `identity_` | Konsisten dengan naming convention domain; mudah dibedakan dari tabel aplikasi | Tanpa prefix (nama tabel generik seperti `user`, `session` — mudah konflik) |
 | DB-D05 | Application-enforced auth + RLS sebagai safety net | Better Auth tidak terintegrasi native dengan Supabase JWT; semua akses sudah server-side | Custom JWT claim untuk Supabase RLS (lebih kompleks setup untuk MVP) |
-| DB-D05a | Pengecualian DB-D05 untuk tabel BC-04 (`mcp_grants`, `mcp_audit_logs`): RLS aktif dengan satu policy `app_runtime` (`USING (true) WITH CHECK (true)`), tanpa isolasi per-workspace/pengguna di level DB (ADR-141) | Pemanggil memakai token OAuth tanpa `app.current_user_id`, dan jalur sistem (purge JOB-08, hook consent) tidak punya pengguna; isolasi ada di application layer | Policy per `user_id` lewat `withCurrentUser(sub)` + fungsi `SECURITY DEFINER` (kerja dan risiko tambahan, safety net tidak sebanding) |
+| DB-D05a | Pengecualian DB-D05 untuk tabel BC-04 (`mcp_grants`, `mcp_audit_logs`; `mcp_rate_limit_windows` dan `mcp_workspace_choices` ditambahkan lewat ADR-152): RLS aktif dengan satu policy `app_runtime` (`USING (true) WITH CHECK (true)`), tanpa isolasi per-workspace/pengguna di level DB (ADR-141) | Pemanggil memakai token OAuth tanpa `app.current_user_id`, dan jalur sistem (purge JOB-08, hook consent) tidak punya pengguna; isolasi ada di application layer | Policy per `user_id` lewat `withCurrentUser(sub)` + fungsi `SECURITY DEFINER` (kerja dan risiko tambahan, safety net tidak sebanding) |
 | DB-D06 | `created_at` dan `updated_at` di semua tabel | Standar audit trail minimal; diperlukan untuk sync, debugging, dan pagination cursor | Hanya `created_at` (kehilangan kemampuan track update waktu) |
 | DB-D07 | `outstand_webhook_events` sebagai durable idempotent receipt | Menjamin event tersimpan sebelum ACK dan memisahkan delivery vendor dari processing internal | ACK sebelum persist; payload hanya di job queue |
 | DB-D08 | Engagement schema MVP hanya komentar/reply | Selaras kontrak Outstand dan sumber JOB-03/manual sync | Menyimpan DM/mention yang tidak dapat disinkronkan |
