@@ -29,7 +29,7 @@ import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { Text } from "@/components/ui/text";
-import { formatConnectedDate } from "@/lib/utils/format-date";
+import { formatShortDate } from "@/lib/utils/format-date";
 import { formatRelativeTime } from "@/lib/utils/format-relative-time";
 import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
 
@@ -52,7 +52,8 @@ export interface AiClientItem {
 
 interface Props {
   clients: AiClientItem[];
-  mcpUrl: string;
+  /** Null bila base URL belum dikonfigurasi (URL relatif tidak berguna). */
+  mcpUrl: string | null;
 }
 
 const FALLBACK_CLIENT_NAME = "Klien AI";
@@ -77,7 +78,7 @@ function ClientRow({
     : "Belum pernah dipakai";
   const meta = [
     client.workspaceName ?? FALLBACK_WORKSPACE_NAME,
-    `Tersambung ${formatConnectedDate(new Date(client.connectedAt), timeZone)}`,
+    `Tersambung ${formatShortDate(new Date(client.connectedAt), timeZone)}`,
     lastUsed,
   ].join(" · ");
 
@@ -121,8 +122,9 @@ function ClientRow({
   );
 }
 
-function EmptyState({ mcpUrl }: { mcpUrl: string }) {
+function EmptyState({ mcpUrl }: { mcpUrl: string | null }) {
   async function handleCopy() {
+    if (!mcpUrl) return;
     try {
       await navigator.clipboard.writeText(mcpUrl);
       toast("URL MCP disalin");
@@ -148,19 +150,27 @@ function EmptyState({ mcpUrl }: { mcpUrl: string }) {
           layar persetujuan.
         </li>
       </ol>
-      {/* eslint-disable-next-line no-restricted-syntax -- file ini komposisi Tailwind shadcn (ADR-097) */}
-      <div className="flex w-full max-w-md gap-2">
-        <Input
-          readOnly
-          value={mcpUrl}
-          aria-label="URL MCP Postific"
-          className="font-mono text-sm"
-        />
-        <Button type="button" variant="outline" onClick={handleCopy}>
-          <HugeiconsIcon icon={Copy01Icon} strokeWidth={2} />
-          Salin
-        </Button>
-      </div>
+      {mcpUrl ? (
+        <>
+          {/* eslint-disable-next-line no-restricted-syntax -- file ini komposisi Tailwind shadcn (ADR-097) */}
+          <div className="flex w-full max-w-md gap-2">
+            <Input
+              readOnly
+              value={mcpUrl}
+              aria-label="URL MCP Postific"
+              className="font-mono text-sm"
+            />
+            <Button type="button" variant="outline" onClick={handleCopy}>
+              <HugeiconsIcon icon={Copy01Icon} strokeWidth={2} />
+              Salin
+            </Button>
+          </div>
+        </>
+      ) : (
+        <Text variant="muted">
+          URL MCP belum dikonfigurasi di server ini. Hubungi admin.
+        </Text>
+      )}
     </Empty>
   );
 }
@@ -176,13 +186,13 @@ export function AiClientsView({ clients, mcpUrl }: Props) {
   const timeZone = useUserTimeZone();
   const [isPending, startTransition] = useTransition();
   const [target, setTarget] = useState<AiClientItem | null>(null);
-  const [lastTarget, setLastTarget] = useState<AiClientItem | null>(null);
+  const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function requestRevoke(client: AiClientItem) {
     setError(null);
     setTarget(client);
-    setLastTarget(client);
+    setOpen(true);
   }
 
   function handleRevoke() {
@@ -195,14 +205,14 @@ export function AiClientsView({ clients, mcpUrl }: Props) {
       } else {
         toast("Akses klien AI dicabut");
       }
-      setTarget(null);
+      setOpen(false);
     });
   }
 
-  const dialogClient = target ?? lastTarget;
-  const dialogName = dialogClient ? displayName(dialogClient) : "";
-  const dialogWorkspace =
-    dialogClient?.workspaceName ?? FALLBACK_WORKSPACE_NAME;
+  const dialogName = target ? displayName(target) : "";
+  const dialogWorkspaceText = target?.workspaceName
+    ? `workspace ${target.workspaceName}`
+    : "workspace ini";
 
   return (
     // eslint-disable-next-line no-restricted-syntax -- file ini komposisi Tailwind shadcn (ADR-097)
@@ -250,16 +260,16 @@ export function AiClientsView({ clients, mcpUrl }: Props) {
       )}
 
       <AlertDialog
-        open={target !== null}
-        onOpenChange={(open) => {
-          if (!open && !isPending) setTarget(null);
+        open={open}
+        onOpenChange={(next) => {
+          if (!next && !isPending) setOpen(false);
         }}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{`Cabut akses ${dialogName}?`}</AlertDialogTitle>
             <AlertDialogDescription>
-              {`${dialogName} tidak bisa lagi membaca atau mengubah data workspace ${dialogWorkspace}. Draft dan post yang sudah dibuat atau dijadwalkan lewat klien ini tetap ada. Anda bisa menyambungkan lagi kapan saja.`}
+              {`${dialogName} tidak bisa lagi membaca atau mengubah data ${dialogWorkspaceText}. Draft dan post yang sudah dibuat atau dijadwalkan lewat klien ini tetap ada. Anda bisa menyambungkan lagi kapan saja.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { WorkspaceService } from "@/domains/workspace";
 import { getCachedSession } from "@/lib/better-auth/session";
 import { getMcpAccessService } from "@/lib/mcp-access/get-mcp-access-service";
-import { mcpResourceUrl } from "@/lib/mcp/config";
+import { mcpBaseUrl, mcpResourceUrl } from "@/lib/mcp/config";
 import { workspaceRepository } from "@/lib/repositories/workspace";
 
 import { AiClientsView, type AiClientItem } from "./components/AiClientsView";
@@ -39,5 +39,10 @@ export default async function Page() {
       lastUsedAt: grant.lastUsedAt?.toISOString() ?? null,
     }));
 
-  return <AiClientsView clients={clients} mcpUrl={mcpResourceUrl()} />;
+  return (
+    <AiClientsView
+      clients={clients}
+      mcpUrl={mcpBaseUrl() ? mcpResourceUrl() : null}
+    />
+  );
 }

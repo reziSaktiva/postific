@@ -62,6 +62,41 @@ describe("AiClientsView", () => {
     expect(screen.getByText(/Workspace tidak tersedia/)).toBeTruthy();
   });
 
+  it("menampilkan 'Terakhir dipakai' relatif dan tanggal singkat", () => {
+    const lastUsedAt = new Date(Date.now() - 3 * 3600_000).toISOString();
+    render(
+      <AiClientsView clients={[client({ lastUsedAt })]} mcpUrl={MCP_URL} />,
+    );
+    expect(screen.getByText(/Terakhir dipakai 3 jam lalu/)).toBeTruthy();
+    expect(screen.getByText(/Tersambung 2 Okt 2026/)).toBeTruthy();
+  });
+
+  it("dialog untuk workspace tak tersedia memakai 'workspace ini'", async () => {
+    render(
+      <AiClientsView
+        clients={[client({ workspaceName: null })]}
+        mcpUrl={MCP_URL}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Cabut" }));
+    expect(await screen.findByText(/data workspace ini\./)).toBeTruthy();
+  });
+
+  it("tombol Salin menulis URL ke clipboard", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, { clipboard: { writeText } });
+    render(<AiClientsView clients={[]} mcpUrl={MCP_URL} />);
+    fireEvent.click(screen.getByRole("button", { name: /Salin/ }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(MCP_URL));
+  });
+
+  it("tanpa URL MCP: tidak ada input/tombol Salin, ada pesan", () => {
+    render(<AiClientsView clients={[]} mcpUrl={null} />);
+    expect(screen.queryByLabelText("URL MCP Postific")).toBeNull();
+    expect(screen.queryByRole("button", { name: /Salin/ })).toBeNull();
+    expect(screen.getByText(/URL MCP belum dikonfigurasi/)).toBeTruthy();
+  });
+
   it("empty state menampilkan URL MCP", () => {
     render(<AiClientsView clients={[]} mcpUrl={MCP_URL} />);
     expect(screen.getByText("Belum ada klien AI tersambung")).toBeTruthy();
