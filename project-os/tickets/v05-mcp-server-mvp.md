@@ -207,13 +207,18 @@ Tiket sendiri karena butuh review keamanan terfokus. Hanya `https`, periksa IP s
 
 ### T-156 · Settings: daftar dan cabut klien AI
 
-`⏳ Not Started` · **Domain** mcp-access · UI · **ADR** ADR-139, ADR-097 · **Depends** T-149, T-151
+`🔄 In Progress (kode selesai, menunggu verifikasi King Rezi)` · **Domain** mcp-access · UI · **ADR** ADR-139, ADR-097 · **Depends** T-149, T-151
 
 **Baca dulu:** `04-ux/information-architecture.md` · `apps/web/.claude/CLAUDE.md`
 
 Daftar klien AI yang tersambung dan tombol cabut.
 
 **Gate Claude Design:** rancangan **sudah ada** di artifact Postific (https://claude.ai/artifact/FdRNU4gnxgAGY3zmBxNfR3), kartu `components/ScreenSettingsAiClients/preview.html`; **dikonfirmasi King Rezi 2026-10-26** setelah ditinjau lewat galeri review (https://claude.ai/artifact/4BJCWNsCwubLd7SFwRtree). Lokasi menu **sudah ditetapkan**: Settings → Account → Klien AI (IA-D08, KSP-10). Keputusan yang sudah dikunci: hanya koneksi milik sendiri tanpa kolom pemilik, Owner/Admin tidak melihat koneksi anggota lain (IA-D09); pola baris KSP-08 tanpa header kolom; Cabut membuka dialog Tier 2 (`AlertDialog`, ADR-049); empty state berisi langkah menyambungkan dan URL MCP dengan tombol Salin. Kolom "Terakhir dipakai" bergantung pada keputusan `lastUsedAt` di T-149.
+
+- [x] **T-156.1** Server Action `revokeAiClientAction` (`settings/account/ai-clients/actions.ts`): sesi → `McpAccessService.revokeGrant`; `McpGrantNotFoundError` → pesan ramah + revalidate. Tes unit (4 kasus) hijau.
+- [x] **T-156.2** Halaman RSC `settings/account/ai-clients/page.tsx` (`listGrants` hanya milik sendiri, nama workspace dari `WorkspaceService`, URL MCP dari `mcpResourceUrl()`), view `AiClientsView` (baris KSP-08, scope sebagai Badge outline, AlertDialog Tier 2, empty state dengan Salin), entri nav "Klien AI" di grup Account. Tes komponen (6 kasus) hijau.
+- [ ] **T-156.3** BELUM terbukti: uji visual/interaksi di browser dengan data grant sungguhan (belum dijalankan; perlu login dan grant di DB staging=lokal, ADR-081). `typecheck`, `lint`, `bun run test` hijau.
+- [ ] **T-156.4** Verifikasi King Rezi. Catatan jujur: grant lama tanpa `client_name` tampil sebagai "Klien AI"; workspace yang pengguna sudah bukan member-nya tampil "Workspace tidak tersedia".
 
 ### T-157 · Badge "dibuat lewat MCP" di History, Drafts, dan Queue
 
