@@ -14,7 +14,7 @@ Gelombang 1 MCP: Penanda Sumber `created_via` pada `publishing_posts`, Pengecual
 
 ### Context
 
-Gelombang 1 v0.5 (T-151, T-152, T-154) menambah tiga migrasi dan keputusan yang menyentuh baseline (`database-strategy.md` BC-03/BC-04, ADR-141), jadi butuh ADR (`AGENTS.md` aturan 2). Kode dan migrasi sudah ditulis di branch `feature/mcp-v05-gelombang-1`, tetapi **belum diterapkan ke DB mana pun**; ADR ini dibuka lebih dulu supaya keputusannya bisa ditolak atau diubah sebelum `db:deploy` ke staging.
+Gelombang 1 v0.5 (T-151, T-152, T-154) menambah tiga migrasi dan keputusan yang menyentuh baseline (`database-strategy.md` BC-03/BC-04, ADR-141), jadi butuh ADR (`AGENTS.md` aturan 2). Kode dan migrasi sudah ditulis di branch `feature/mcp-v05-gelombang-1`, dan **sudah diterapkan ke DB bersama (staging = local) pada 2026-10-30 atas instruksi King Rezi** untuk menjalankan verifikasi DB; status ADR ini tetap Proposed sampai King Rezi menyetujuinya secara eksplisit.
 
 ### Decision
 
