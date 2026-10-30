@@ -17,13 +17,27 @@ export interface McpAuditPurger {
 }
 
 /**
+ * Port lokal pembersihan pilihan workspace OAuth yang kedaluwarsa (T-151).
+ * `McpConsentService` cocok secara struktural.
+ */
+export interface McpWorkspaceChoicePurger {
+  purgeExpiredWorkspaceChoices(): Promise<number>;
+}
+
+/**
  * Handler JOB-08. Tidak berisi logic selain delegasi ke
- * `McpAccessService.purgeAudit()` (retensi 90 hari ada di service). Idempoten:
- * run kedua tanpa baris kedaluwarsa menghapus 0 dan tidak error. Kegagalan
- * dilempar apa adanya supaya job runner memakai retry generik (5m/15m/60m).
+ * `McpAccessService.purgeAudit()` (retensi 90 hari ada di service) dan, bila
+ * disuplai, `McpConsentService.purgeExpiredWorkspaceChoices()` (T-151: baris
+ * pilihan workspace per sesi OAuth berumur 10 menit, jadi pembersihan harian
+ * cukup; kedaluwarsa sudah diabaikan saat dibaca). Idempoten: run kedua tanpa
+ * baris kedaluwarsa menghapus 0 dan tidak error. Kegagalan dilempar apa adanya
+ * supaya job runner memakai retry generik (5m/15m/60m).
  */
 export class McpAuditPurgeJobHandler {
-  constructor(private readonly purger: McpAuditPurger) {}
+  constructor(
+    private readonly purger: McpAuditPurger,
+    private readonly workspaceChoicePurger?: McpWorkspaceChoicePurger,
+  ) {}
 
   /**
    * Tanpa parameter: payload JOB-08 kosong (`{}`) dan sengaja tidak
@@ -31,5 +45,6 @@ export class McpAuditPurgeJobHandler {
    */
   async handle(): Promise<void> {
     await this.purger.purgeAudit();
+    await this.workspaceChoicePurger?.purgeExpiredWorkspaceChoices();
   }
 }

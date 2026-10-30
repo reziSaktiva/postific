@@ -48,11 +48,10 @@ import { E2E_WORKSPACE_NAME } from "./support/workspace";
  * diterima.
  *
  * Asumsi dan batas:
- * - SATU instance Railway. Pilihan workspace di harness `/select-workspace`
- *   disimpan di memori server per ID sesi (`mcp-spike.ts`); dengan lebih dari
- *   satu instance, `/oauth2/continue` bisa jatuh di instance lain dan tes
- *   macet di layar pilih workspace. Pegangan: klaim `workspace_id` token dicocokkan
- *   dengan workspace E2E Sandbox di (c).
+ * - Pilihan workspace di `/select-workspace` disimpan di tabel
+ *   `mcp_workspace_choices` per ID sesi (T-151), bukan lagi di memori server,
+ *   jadi tes tidak lagi bergantung pada satu instance Railway. Pegangan:
+ *   klaim `workspace_id` token dicocokkan dengan workspace E2E Sandbox di (c).
  * - Batas 120 detik per tes. Pendaftaran klien dibatasi 5 permintaan per 60
  *   detik per IP; tes memakai 3 per run, jadi run beruntun < 60 detik
  *   membuat `registerClient` menunggu jendela itu (hingga ~66 detik) dan

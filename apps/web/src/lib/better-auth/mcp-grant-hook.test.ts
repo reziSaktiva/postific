@@ -28,12 +28,21 @@ import {
   newestConsent,
   type McpGrantAccess,
 } from "./mcp-grant-hook";
-import { createMcpSpikePlugins, rememberWorkspaceChoice } from "./mcp-spike";
+import {
+  createMcpSpikePlugins,
+  type McpWorkspaceChoiceAccess,
+} from "./mcp-spike";
 
 // `mcp-spike.ts` mengimpor composition root produksi (Prisma). Tes memakai
-// service rakitan lokal dengan repository palsu, jadi pabrik produksi di-mock.
+// service dan pembaca pilihan workspace rakitan lokal, jadi kedua pabrik
+// produksi di-mock.
 vi.mock("@/lib/mcp-access/get-mcp-access-service", () => ({
   getMcpAccessService: vi.fn(() => {
+    throw new Error("tes tidak boleh memakai composition root produksi");
+  }),
+}));
+vi.mock("@/lib/mcp-access/get-mcp-consent-service", () => ({
+  getMcpConsentService: vi.fn(() => {
     throw new Error("tes tidak boleh memakai composition root produksi");
   }),
 }));
@@ -192,11 +201,27 @@ function createWorld(options: WorldOptions = {}) {
     },
   );
 
+  // Pilihan workspace per ID sesi: pengganti `McpConsentService` produksi
+  // (T-151, tabel `mcp_workspace_choices`) dengan kontrak baca yang sama.
+  const workspaceChoices = new Map<string, string>();
+  const choiceLookups: { sessionId: string; userId: string }[] = [];
+  const choices: McpWorkspaceChoiceAccess = {
+    async getActiveWorkspaceId(sessionId, userId) {
+      choiceLookups.push({ sessionId, userId });
+      const workspaceId = workspaceChoices.get(sessionId);
+      return workspaceId ? asWorkspaceId(workspaceId) : null;
+    },
+  };
+  const remember = (sessionId: string, workspaceId: string) => {
+    workspaceChoices.set(sessionId, workspaceId);
+  };
+
   const authOptions = {
     ...pluginOptions,
     plugins: createMcpSpikePlugins({
       baseUrl: BASE,
       getAccess: () => options.access?.(service) ?? service,
+      getChoices: () => choices,
     }),
   } satisfies BetterAuthOptions;
 
@@ -208,7 +233,16 @@ function createWorld(options: WorldOptions = {}) {
   const auth = betterAuth({ ...authOptions, database: memoryAdapter(db) });
   ref.adapter = async () => (await auth.$context).adapter as DbAdapter;
 
-  return { auth, service, memberships, grantRows, grantRepo, revocationCalls };
+  return {
+    auth,
+    service,
+    memberships,
+    grantRows,
+    grantRepo,
+    revocationCalls,
+    remember,
+    choiceLookups,
+  };
 }
 
 function member(world: World, workspaceId: string, userId: string) {
@@ -330,7 +364,7 @@ async function connect(
   clientId: string,
   opts: { workspaceId: string; requested?: string; granted?: string },
 ): Promise<Connect | { authorizeRedirect: string }> {
-  rememberWorkspaceChoice(who.sessionId, opts.workspaceId);
+  world.remember(who.sessionId, opts.workspaceId);
   const { verifier, challenge } = pkce();
   const params = new URLSearchParams({
     response_type: "code",
@@ -472,7 +506,7 @@ describe("T-150.4 plugin grant permanen (hooks.after /oauth2/consent)", () => {
       // Consent sudah ada dan mencakup scope yang diminta, jadi authorize
       // melompati layar consent; paksa lewat prompt=consent seperti klien
       // yang meminta persetujuan ulang.
-      rememberWorkspaceChoice(who.sessionId, "ws_A");
+      world.remember(who.sessionId, "ws_A");
       const { challenge } = pkce();
       const params = new URLSearchParams({
         response_type: "code",
@@ -690,7 +724,7 @@ describe("T-150.4 plugin grant permanen (hooks.after /oauth2/consent)", () => {
       });
 
       // authorize langsung memberi kode (tanpa layar consent), jadi token terbit.
-      rememberWorkspaceChoice(who.sessionId, "ws_A");
+      world.remember(who.sessionId, "ws_A");
       const { verifier, challenge } = pkce();
       const authorize = await world.auth.handler(
         new Request(
@@ -750,11 +784,77 @@ describe("T-150.4 plugin grant permanen (hooks.after /oauth2/consent)", () => {
     });
   });
 
+  describe("pilihan workspace per sesi (T-151, tabel mcp_workspace_choices)", () => {
+    function authorizeRequest(clientId: string, cookie: string) {
+      const { challenge } = pkce();
+      return world.auth.handler(
+        new Request(
+          `${BASE}/api/auth/oauth2/authorize?${new URLSearchParams({
+            response_type: "code",
+            client_id: clientId,
+            redirect_uri: REDIRECT,
+            scope: "mcp:read",
+            state: "sw1",
+            code_challenge: challenge,
+            code_challenge_method: "S256",
+            resource: MCP,
+          })}`,
+          { headers: { cookie, accept: "text/html" } },
+        ),
+      );
+    }
+
+    it("belum ada pilihan: authorize mengalihkan ke /select-workspace (langkah 1)", async () => {
+      const who = await signUp(world, "sw1@example.com");
+      const clientId = await registerClient(world);
+
+      const authorize = await authorizeRequest(clientId, who.cookie);
+
+      const location = authorize.headers.get("location") ?? "";
+      expect(new URL(location, BASE).pathname).toBe("/select-workspace");
+    });
+
+    it("sudah ada pilihan: authorize menuju /consent (langkah 2), bukan memilih ulang", async () => {
+      const who = await signUp(world, "sw2@example.com");
+      const clientId = await registerClient(world);
+      world.remember(who.sessionId, "ws_A");
+
+      const authorize = await authorizeRequest(clientId, who.cookie);
+
+      const location = authorize.headers.get("location") ?? "";
+      expect(new URL(location, BASE).pathname).toBe("/consent");
+    });
+
+    it("membaca pilihan dengan ID sesi DAN ID pengguna sesi itu", async () => {
+      const who = await signUp(world, "sw3@example.com");
+      const clientId = await registerClient(world);
+
+      await authorizeRequest(clientId, who.cookie);
+
+      expect(world.choiceLookups).toContainEqual({
+        sessionId: who.sessionId,
+        userId: who.userId,
+      });
+    });
+
+    it("pilihan sesi lain tidak terbaca: pengguna kedua tetap diminta memilih", async () => {
+      const first = await signUp(world, "sw4@example.com");
+      const second = await signUp(world, "sw5@example.com");
+      const clientId = await registerClient(world);
+      world.remember(first.sessionId, "ws_A");
+
+      const authorize = await authorizeRequest(clientId, second.cookie);
+
+      const location = authorize.headers.get("location") ?? "";
+      expect(new URL(location, BASE).pathname).toBe("/select-workspace");
+    });
+  });
+
   describe("titik kait lain yang dibuka plugin", () => {
     it("pengguna menolak (accept=false): tidak ada consent dan tidak ada grant", async () => {
       const who = await signUp(world, "h@example.com");
       const clientId = await registerClient(world);
-      rememberWorkspaceChoice(who.sessionId, "ws_A");
+      world.remember(who.sessionId, "ws_A");
       const { challenge } = pkce();
       const authorize = await world.auth.handler(
         new Request(

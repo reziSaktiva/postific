@@ -24,6 +24,39 @@ describe("McpAuditPurgeJobHandler", () => {
     expect(purgeAudit).toHaveBeenCalledTimes(2);
   });
 
+  it("also purges expired OAuth workspace choices when a purger is supplied (T-151)", async () => {
+    const order: string[] = [];
+    const purgeAudit = vi.fn(async () => {
+      order.push("audit");
+      return { deleted: 0, cutoff: NOW };
+    });
+    const purgeExpiredWorkspaceChoices = vi.fn(async () => {
+      order.push("choices");
+      return 2;
+    });
+    const handler = new McpAuditPurgeJobHandler(
+      { purgeAudit },
+      { purgeExpiredWorkspaceChoices },
+    );
+
+    await handler.handle();
+
+    expect(order).toEqual(["audit", "choices"]);
+  });
+
+  it("propagates a workspace choice purge failure so the job is retried", async () => {
+    const handler = new McpAuditPurgeJobHandler(
+      { purgeAudit: async () => ({ deleted: 0, cutoff: NOW }) },
+      {
+        purgeExpiredWorkspaceChoices: async () => {
+          throw new Error("db down");
+        },
+      },
+    );
+
+    await expect(handler.handle()).rejects.toThrow("db down");
+  });
+
   it("propagates errors so the job runner applies the generic retry", async () => {
     const handler = new McpAuditPurgeJobHandler({
       purgeAudit: async () => {
