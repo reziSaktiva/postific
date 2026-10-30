@@ -6,16 +6,26 @@ import {
   asWorkspaceId,
 } from "@postific/shared";
 
-const { getMember, listWorkspacesForUser, upsert, findFirstChoice } =
-  vi.hoisted(() => ({
-    getMember: vi.fn(),
-    listWorkspacesForUser: vi.fn(),
-    upsert: vi.fn(),
-    findFirstChoice: vi.fn(),
-  }));
+const {
+  getMember,
+  listWorkspacesForUser,
+  countByWorkspace,
+  upsert,
+  findFirstChoice,
+} = vi.hoisted(() => ({
+  getMember: vi.fn(),
+  listWorkspacesForUser: vi.fn(),
+  countByWorkspace: vi.fn(),
+  upsert: vi.fn(),
+  findFirstChoice: vi.fn(),
+}));
 
 vi.mock("@/lib/repositories/workspace", () => ({
-  workspaceRepository: { getMember, listWorkspacesForUser },
+  workspaceRepository: {
+    getMember,
+    listWorkspacesForUser,
+    countActiveConnectedAccountsByWorkspace: countByWorkspace,
+  },
 }));
 
 vi.mock("@/lib/repositories/mcp-access", () => ({
@@ -65,6 +75,7 @@ describe("getMcpConsentService (composition root)", () => {
 
   it("lists selectable workspaces from the workspace repository", async () => {
     listWorkspacesForUser.mockResolvedValue([]);
+    countByWorkspace.mockResolvedValue(new Map());
 
     await expect(
       getMcpConsentService().listSelectableWorkspaces(USER),

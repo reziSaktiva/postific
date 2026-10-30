@@ -244,6 +244,7 @@ function createWorld(options: WorldOptions = {}) {
     grantRepo,
     revocationCalls,
     remember,
+    hasChoice: (sessionId: string) => workspaceChoices.has(sessionId),
     choiceLookups,
   };
 }
@@ -491,6 +492,22 @@ describe("T-150.4 plugin grant permanen (hooks.after /oauth2/consent)", () => {
       );
     });
 
+    it("consent sukses menghapus pilihan workspace sesi (T-180.1)", async () => {
+      const who = await signUp(world, "clear@example.com");
+      member(world, "ws_A", who.userId);
+      const clientId = await registerClient(world);
+
+      const c = asConnect(
+        await connect(world, who, clientId, {
+          workspaceId: "ws_A",
+          granted: "mcp:read",
+        }),
+      );
+
+      expect(c.consentResponse.status).toBe(200);
+      expect(world.hasChoice(who.sessionId)).toBe(false);
+    });
+
     it("re-consent yang menyempit menyempitkan grant dan berlaku pada token lama", async () => {
       const who = await signUp(world, "b@example.com");
       member(world, "ws_A", who.userId);
@@ -634,6 +651,8 @@ describe("T-150.4 plugin grant permanen (hooks.after /oauth2/consent)", () => {
       // Consent dikompensasi: tidak ada consent tanpa grant.
       expect(await consentRows(world)).toHaveLength(0);
       expect(activeGrant(world, who.userId, "ws_A")).toBeUndefined();
+      // Gagal: pilihan dipertahankan supaya percobaan ulang tidak mulai dari langkah 1.
+      expect(world.hasChoice(who.sessionId)).toBe(true);
 
       // Gerbang per panggilan menolak walau klaim token seolah sah.
       expect(

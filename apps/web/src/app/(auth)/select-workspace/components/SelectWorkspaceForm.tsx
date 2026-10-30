@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Alert02Icon } from "@hugeicons/core-free-icons";
 
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -126,6 +128,7 @@ export function SelectWorkspaceForm({
       <CardContent className="flex flex-col gap-4">
         {error ? (
           <Alert variant="destructive">
+            <HugeiconsIcon icon={Alert02Icon} strokeWidth={2} />
             <AlertTitle>{error}</AlertTitle>
           </Alert>
         ) : null}

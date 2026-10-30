@@ -151,6 +151,18 @@ function toInvitationRecord(
   };
 }
 
+function toMembershipSummary(membership: {
+  role: string;
+  workspace: { id: string; name: string; slug: string };
+}): WorkspaceMembershipSummary {
+  return {
+    workspaceId: asWorkspaceId(membership.workspace.id),
+    name: membership.workspace.name,
+    slug: membership.workspace.slug,
+    role: membership.role as MemberRole,
+  };
+}
+
 export const workspaceRepository: IWorkspaceRepository = {
   async createWithOwner({ name, slug, ownerId }) {
     try {
@@ -241,12 +253,20 @@ export const workspaceRepository: IWorkspaceRepository = {
       }),
     );
 
-    return memberships.map((membership) => ({
-      workspaceId: asWorkspaceId(membership.workspace.id),
-      name: membership.workspace.name,
-      slug: membership.workspace.slug,
-      role: membership.role as MemberRole,
-    }));
+    return memberships.map(toMembershipSummary);
+  },
+
+  async findWorkspaceForUser(workspaceId, userId) {
+    const membership = await withCurrentUser(userId, (tx) =>
+      tx.workspaceMember.findFirst({
+        where: { workspaceId, userId, status: MemberStatus.Active },
+        include: {
+          workspace: { select: { id: true, name: true, slug: true } },
+        },
+      }),
+    );
+
+    return membership ? toMembershipSummary(membership) : null;
   },
 
   async findById(workspaceId) {
@@ -291,6 +311,24 @@ export const workspaceRepository: IWorkspaceRepository = {
         where: { workspaceId, status: "active" },
       }),
     );
+  },
+
+  async countActiveConnectedAccountsByWorkspace(workspaceIds, userId) {
+    const counts = new Map(workspaceIds.map((id) => [id, 0]));
+    if (workspaceIds.length === 0) {
+      return counts;
+    }
+    const groups = await withCurrentUser(userId, (tx) =>
+      tx.workspaceConnectedAccount.groupBy({
+        by: ["workspaceId"],
+        where: { workspaceId: { in: workspaceIds }, status: "active" },
+        _count: { _all: true },
+      }),
+    );
+    for (const group of groups) {
+      counts.set(asWorkspaceId(group.workspaceId), group._count._all);
+    }
+    return counts;
   },
 
   async listMembers(workspaceId, actingUserId) {

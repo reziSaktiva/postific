@@ -79,8 +79,20 @@ function createService(
           MemberStatus.Active,
       ),
     ),
-    countActiveConnectedAccounts: vi.fn(async (workspaceId: typeof WS_A) =>
-      workspaceId === WS_A ? 3 : 2,
+    findWorkspaceForUser: vi.fn(
+      async (workspaceId: typeof WS_A, userId: typeof USER) =>
+        [
+          { workspaceId: WS_A, name: "Kopi Selasar", role: MemberRole.Owner },
+          { workspaceId: WS_B, name: "Roti Selasar", role: MemberRole.Admin },
+        ].find(
+          (workspace) =>
+            workspace.workspaceId === workspaceId &&
+            memberships[`${workspaceId}:${userId}`] === MemberStatus.Active,
+        ) ?? null,
+    ),
+    countActiveConnectedAccountsByWorkspace: vi.fn(
+      async (workspaceIds: (typeof WS_A)[]) =>
+        new Map(workspaceIds.map((id) => [id, id === WS_A ? 3 : 2])),
     ),
     getMembership: vi.fn(
       async (workspaceId: typeof WS_A, userId: typeof USER) => {
@@ -120,10 +132,13 @@ describe("McpConsentService", () => {
           connectedAccountCount: 2,
         },
       ]);
-      expect(workspaces.countActiveConnectedAccounts).toHaveBeenCalledWith(
-        WS_A,
-        USER,
-      );
+      // Satu panggilan batch, bukan satu per workspace (T-180.6).
+      expect(
+        workspaces.countActiveConnectedAccountsByWorkspace,
+      ).toHaveBeenCalledTimes(1);
+      expect(
+        workspaces.countActiveConnectedAccountsByWorkspace,
+      ).toHaveBeenCalledWith([WS_A, WS_B], USER);
     });
 
     it("returns an empty list for a user without any workspace", async () => {
@@ -266,7 +281,8 @@ describe("McpConsentService", () => {
         { findRegistration: vi.fn() },
         {
           listWorkspacesForUser: vi.fn(),
-          countActiveConnectedAccounts: vi.fn(),
+          findWorkspaceForUser: vi.fn(),
+          countActiveConnectedAccountsByWorkspace: vi.fn(),
           getMembership: vi.fn(),
         },
         () => NOW,
@@ -280,7 +296,7 @@ describe("McpConsentService", () => {
 
   describe("getSelectedWorkspace", () => {
     it("returns name and role of the chosen workspace", async () => {
-      const { service } = createService();
+      const { service, workspaces } = createService();
       await service.chooseWorkspace({
         sessionId: "sess-1",
         userId: USER,
@@ -294,6 +310,9 @@ describe("McpConsentService", () => {
         name: "Roti Selasar",
         role: MemberRole.Admin,
       });
+      // Lookup per id, bukan memuat seluruh daftar workspace (T-180.6).
+      expect(workspaces.findWorkspaceForUser).toHaveBeenCalledWith(WS_B, USER);
+      expect(workspaces.listWorkspacesForUser).not.toHaveBeenCalled();
     });
 
     it("returns null when there is no active choice", async () => {

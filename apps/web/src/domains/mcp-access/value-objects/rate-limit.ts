@@ -19,13 +19,6 @@ export const MCP_QUOTA_KINDS: readonly McpQuotaKind[] = [
   "scheduled_contents",
 ];
 
-export function isMcpQuotaKind(value: unknown): value is McpQuotaKind {
-  return (
-    typeof value === "string" &&
-    (MCP_QUOTA_KINDS as readonly string[]).includes(value)
-  );
-}
-
 /** Panjang jendela per kuota, dalam detik. */
 export const MCP_QUOTA_WINDOW_SECONDS: Readonly<Record<McpQuotaKind, number>> =
   {

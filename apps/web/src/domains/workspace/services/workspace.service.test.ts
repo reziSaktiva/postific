@@ -55,9 +55,12 @@ function createFakeRepository(
     }),
     findDefaultWorkspaceForUser: async () => null,
     listWorkspacesForUser: async () => [],
+    findWorkspaceForUser: async () => null,
     findById: async () => null,
     listConnectedAccounts: async () => [],
     countActiveConnectedAccounts: async () => 0,
+    countActiveConnectedAccountsByWorkspace: async (workspaceIds) =>
+      new Map(workspaceIds.map((id) => [id, 0])),
     listMembers: async () => [],
     findUsersByIds: async () => [],
     saveChannelOrder: async () => undefined,
@@ -4158,6 +4161,41 @@ describe("WorkspaceService.acceptOwnershipTransfer", () => {
     await expect(
       service.acceptOwnershipTransfer(WORKSPACE_ID, ADMIN_USER),
     ).rejects.toThrow(NotFoundError);
+  });
+});
+
+describe("WorkspaceService.findWorkspaceForUser / countActiveConnectedAccountsByWorkspace (T-180.6)", () => {
+  it("delegates the per-id lookup to the repository", async () => {
+    const summary = {
+      workspaceId: WORKSPACE_ID,
+      name: "Acme",
+      slug: "acme",
+      role: MemberRole.Owner,
+    };
+    const findWorkspaceForUser = vi.fn(async () => summary);
+    const service = new WorkspaceService(
+      createFakeRepository({ findWorkspaceForUser }),
+    );
+
+    await expect(
+      service.findWorkspaceForUser(WORKSPACE_ID, USER_ID),
+    ).resolves.toBe(summary);
+    expect(findWorkspaceForUser).toHaveBeenCalledWith(WORKSPACE_ID, USER_ID);
+  });
+
+  it("delegates the batch count to the repository", async () => {
+    const counts = new Map([[WORKSPACE_ID, 4]]);
+    const byWorkspace = vi.fn(async () => counts);
+    const service = new WorkspaceService(
+      createFakeRepository({
+        countActiveConnectedAccountsByWorkspace: byWorkspace,
+      }),
+    );
+
+    await expect(
+      service.countActiveConnectedAccountsByWorkspace([WORKSPACE_ID], USER_ID),
+    ).resolves.toBe(counts);
+    expect(byWorkspace).toHaveBeenCalledWith([WORKSPACE_ID], USER_ID);
   });
 });
 
