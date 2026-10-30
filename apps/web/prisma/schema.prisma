@@ -41,6 +41,16 @@ model User {
   notifyPublishSchedule    Boolean @default(true)
   notifyAnalyticsReport    Boolean @default(false)
 
+  // T-147 (ADR-146): zona waktu per pengguna (nama IANA) untuk tampilan dan
+  // input jadwal. DB tetap UTC; kolom ini hanya menentukan cara waktu
+  // dihitung/ditampilkan. `timeZoneSource` = penanda asal nilai supaya
+  // auto-deteksi browser hanya jalan SEKALI dan tidak menimpa pilihan manual:
+  // "pending" (pengguna baru, belum terdeteksi), "legacy" (pengguna lama
+  // sebelum T-147, default WIB tanpa deteksi), "detected" (hasil deteksi
+  // browser), "manual" (dipilih sendiri di Settings → Profile).
+  timeZone       String @default("Asia/Jakarta") @map("time_zone")
+  timeZoneSource String @default("pending") @map("time_zone_source")
+
   @@unique([email])
   @@map("identity_user")
 }
@@ -94,6 +104,115 @@ model Verification {
 }
 
 // ─────────────────────────────────────────────
+// T-148 (spike MCP, ADR-139) — tabel plugin `jwt` + `@better-auth/oauth-provider`.
+// SEMENTARA: skema ini hanya untuk membuktikan Better Auth + Prisma + staging.
+// T-149 yang memutuskan bentuk akhir (nama tabel, FK, kolom `McpGrant`).
+// Tanpa relasi Prisma ke User/Session (hanya skalar + index) supaya model
+// identitas yang ada tidak berubah.
+// ─────────────────────────────────────────────
+
+model Jwks {
+  id         String    @id @default(cuid())
+  publicKey  String
+  privateKey String
+  createdAt  DateTime  @default(now())
+  expiresAt  DateTime?
+
+  @@map("identity_jwks")
+}
+
+model OauthClient {
+  id                      String    @id @default(cuid())
+  clientId                String
+  clientSecret            String?
+  disabled                Boolean?  @default(false)
+  skipConsent             Boolean?
+  enableEndSession        Boolean?
+  subjectType             String?
+  scopes                  String[]
+  userId                  String?
+  createdAt               DateTime?
+  updatedAt               DateTime?
+  name                    String?
+  uri                     String?
+  icon                    String?
+  contacts                String[]
+  tos                     String?
+  policy                  String?
+  softwareId              String?
+  softwareVersion         String?
+  softwareStatement       String?
+  redirectUris            String[]
+  postLogoutRedirectUris  String[]
+  tokenEndpointAuthMethod String?
+  grantTypes              String[]
+  responseTypes           String[]
+  public                  Boolean?
+  type                    String?
+  requirePKCE             Boolean?
+  referenceId             String?
+  metadata                Json?
+
+  @@unique([clientId])
+  @@index([userId])
+  @@map("identity_oauth_client")
+}
+
+model OauthRefreshToken {
+  id          String    @id @default(cuid())
+  token       String
+  clientId    String
+  sessionId   String?
+  userId      String
+  referenceId String?
+  expiresAt   DateTime?
+  createdAt   DateTime?
+  revoked     DateTime?
+  authTime    DateTime?
+  scopes      String[]
+
+  @@unique([token])
+  @@index([clientId])
+  @@index([sessionId])
+  @@index([userId])
+  @@map("identity_oauth_refresh_token")
+}
+
+model OauthAccessToken {
+  id          String    @id @default(cuid())
+  token       String?
+  clientId    String
+  sessionId   String?
+  userId      String?
+  referenceId String?
+  refreshId   String?
+  expiresAt   DateTime?
+  createdAt   DateTime?
+  scopes      String[]
+
+  @@unique([token])
+  @@index([clientId])
+  @@index([sessionId])
+  @@index([userId])
+  @@index([refreshId])
+  @@map("identity_oauth_access_token")
+}
+
+model OauthConsent {
+  id          String    @id @default(cuid())
+  clientId    String
+  userId      String?
+  referenceId String?
+  scopes      String[]
+  createdAt   DateTime?
+  updatedAt   DateTime?
+
+  @@index([clientId])
+  @@index([userId])
+  @@map("identity_oauth_consent")
+}
+
+// ─────────────────────────────────────────────
 // BC-02 — Workspace
 // ─────────────────────────────────────────────
 
@@ -117,7 +236,8 @@ model Workspace {
   invitations        WorkspaceInvitation[]
   connectedAccounts  WorkspaceConnectedAccount[]
   posts              PublishingPost[]
-  aiRequests         AiRequest[]
+  mcpGrants          McpGrant[]
+  mcpAuditLogs       McpAuditLog[]
   inboxItems         EngagementInboxItem[]
   analyticsSnapshots AnalyticsWorkspaceSnapshot[]
   startPages         StartPagePage[]
@@ -392,36 +512,66 @@ model PublishingPostTarget {
 // mapping note.
 
 // ─────────────────────────────────────────────
-// BC-04 — AI Assistant
+// BC-04 — MCP Access (ADR-138, ADR-139, ADR-141)
+// Kolom/indeks final: database-strategy.md § BC-04.
 // ─────────────────────────────────────────────
 
-model AiRequest {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  workspaceId String   @map("workspace_id") @db.Uuid
-  userId      String   @map("user_id")
-  postId      String?  @map("post_id") @db.Uuid
-  type        String
-  prompt      String
-  context     String?
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+// Sumber otorisasi panggilan MCP: satu baris per persetujuan
+// (pengguna + klien + workspace + scope). `userId` bertipe text (cuid
+// `identity_user.id`) tanpa FK, sama seperti `WorkspaceMember.userId`;
+// `clientId` tanpa FK karena tabel plugin OAuth tidak diubah bentuknya.
+//
+// Indeks unik PARSIAL `(user_id, client_id, workspace_id) WHERE revoked_at
+// IS NULL` TIDAK bisa dinyatakan di Prisma. Ia hanya ada di migrasi
+// `t149_mcp_access_tables_drop_ai_tables` (mcp_grants_active_user_client_workspace_key).
+// Jangan hapus/ubah lewat `migrate dev` tanpa memeriksa drift; Prisma tidak
+// mengetahuinya.
+//
+// RLS: aktif dengan satu policy `app_runtime` (ADR-141, pengecualian DB-D05);
+// RLS dan policy hidup di migrasi, bukan di schema ini.
+model McpGrant {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspaceId String    @map("workspace_id") @db.Uuid
+  userId      String    @map("user_id")
+  clientId    String    @map("client_id")
+  clientName  String?   @map("client_name")
+  scopes      String[]
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  lastUsedAt  DateTime? @map("last_used_at") @db.Timestamptz(6)
+  revokedAt   DateTime? @map("revoked_at") @db.Timestamptz(6)
 
-  workspace Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  results   AiResult[]
+  workspace Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  auditLogs McpAuditLog[]
 
   @@index([workspaceId])
-  @@map("ai_requests")
+  @@map("mcp_grants")
 }
 
-model AiResult {
+// Retensi 90 hari (dihapus JOB-08). `grantId` kosong bila panggilan ditolak
+// karena tidak ada grant; FK ON DELETE SET NULL menjaga jejak audit saat grant
+// dihapus. `userId` text tanpa FK. Indeks `(workspace_id, created_at)` sudah
+// memenuhi Index Wajib untuk `workspace_id`; `(created_at)` untuk purge global.
+model McpAuditLog {
   id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  requestId    String   @map("request_id") @db.Uuid
-  content      String
-  variantIndex Int      @default(0) @map("variant_index")
+  workspaceId  String   @map("workspace_id") @db.Uuid
+  userId       String   @map("user_id")
+  grantId      String?  @map("grant_id") @db.Uuid
+  clientId     String   @map("client_id")
+  toolName     String   @map("tool_name")
+  scope        String
+  inputSummary String?  @map("input_summary")
+  status       String
+  errorCode    String?  @map("error_code")
+  durationMs   Int?     @map("duration_ms")
+  targetId     String?  @map("target_id")
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  request AiRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  grant     McpGrant? @relation(fields: [grantId], references: [id], onDelete: SetNull)
 
-  @@map("ai_results")
+  @@index([workspaceId, createdAt])
+  @@index([createdAt])
+  @@map("mcp_audit_logs")
 }
 
 // ─────────────────────────────────────────────
@@ -540,7 +690,7 @@ model StartPagePage {
   workspace Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   links     StartPageLink[]
 
-  @@index([workspaceId])
+  @@unique([workspaceId])
   @@map("start_page_pages")
 }
 

@@ -11,6 +11,7 @@ import type {
   CalendarPostItem,
   PublishingPostRecord,
 } from "@/domains/publishing";
+import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
 import { formatRelativeTime } from "@/lib/utils/format-relative-time";
 import { useConfirmAction } from "@/lib/hooks/use-confirm-action";
 import { usePublishingPostsRealtime } from "@/lib/hooks/use-publishing-posts-realtime";
@@ -133,6 +134,7 @@ export function DraftsList({
    * fetch data apa pun langsung di komponen ini (AGENTS.md #5). */
   workspaceId: string;
 }) {
+  const timeZone = useUserTimeZone();
   const { openEditDraft } = useDraftEditor();
   const deleteConfirm = useConfirmAction<DraftListItem>(
     (draft) => deletePostAction(draft.id),
@@ -225,7 +227,7 @@ export function DraftsList({
                         {draft.caption || "(Tanpa caption)"}
                       </Text>
                       <Text variant="muted">
-                        Diedit {formatRelativeTime(draft.updatedAt)}
+                        Diedit {formatRelativeTime(draft.updatedAt, timeZone)}
                       </Text>
                     </div>
                   </TableCell>

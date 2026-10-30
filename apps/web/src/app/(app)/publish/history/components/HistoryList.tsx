@@ -15,11 +15,11 @@ import {
   compareHistoryItemsDesc,
   groupHistoryItemsByDate,
   HISTORY_TERMINAL_STATUSES,
-  WIB_TIME_ZONE,
   type HistoryGroup,
   type HistoryItemRecord,
 } from "@/domains/publishing";
 import type { ConnectedAccountRecord } from "@/domains/workspace";
+import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
 import { formatRelativeTime } from "@/lib/utils/format-relative-time";
 import { formatUtcDateKeyHeading } from "@/lib/utils";
 import { usePublishingPostsRealtime } from "@/lib/hooks/use-publishing-posts-realtime";
@@ -65,7 +65,9 @@ const DATE_HEADING_FORMATTER = new Intl.DateTimeFormat("id-ID", {
   weekday: "long",
   day: "numeric",
   month: "long",
-  timeZone: WIB_TIME_ZONE,
+  // `dateKey` diparse sebagai UTC midnight (kalender zona pengguna, T-147),
+  // jadi formatter berzona "UTC" — zona pengguna menggeser hari untuk offset negatif.
+  timeZone: "UTC",
 });
 
 /** Sama pola `QueueList`/`CalendarAgendaList` — parse UTC-safe dipusatkan di `formatUtcDateKeyHeading`. */
@@ -73,11 +75,11 @@ function formatGroupDateHeading(dateKey: string): string {
   return formatUtcDateKeyHeading(dateKey, DATE_HEADING_FORMATTER);
 }
 
-function formatItemTime(date: Date): string {
+function formatItemTime(date: Date, timeZone: string): string {
   return date.toLocaleTimeString("id-ID", {
     hour: "2-digit",
     minute: "2-digit",
-    timeZone: WIB_TIME_ZONE,
+    timeZone,
   });
 }
 
@@ -173,6 +175,7 @@ export function HistoryList({
   workspaceId,
   renderedAt,
 }: HistoryListProps) {
+  const timeZone = useUserTimeZone();
   const relativeNowMs = useSyncExternalStore(
     subscribeRelativeNow,
     () => readClientNowMs(renderedAt),
@@ -235,8 +238,8 @@ export function HistoryList({
   });
 
   const groups = useMemo<HistoryGroup[]>(
-    () => groupHistoryItemsByDate(localItems),
-    [localItems],
+    () => groupHistoryItemsByDate(localItems, timeZone),
+    [localItems, timeZone],
   );
 
   const accountOptions = useMemo(
@@ -361,7 +364,7 @@ export function HistoryList({
                           as="span"
                           className="w-12 shrink-0 text-xs"
                         >
-                          {formatItemTime(historyListClockDate(item))}
+                          {formatItemTime(historyListClockDate(item), timeZone)}
                         </Text>
 
                         {/* eslint-disable-next-line no-restricted-syntax -- layout-only */}
@@ -402,7 +405,7 @@ export function HistoryList({
                             }
                           >
                             {showsPublishMeta
-                              ? `Dipublikasikan ${formatRelativeTime(publishedAt, relativeNow)}`
+                              ? `Dipublikasikan ${formatRelativeTime(publishedAt, timeZone, relativeNow)}`
                               : getPrimaryErrorMessage(item)}
                           </Text>
                         </ItemContent>

@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Figtree, Montserrat } from "next/font/google";
-import { cookies } from "next/headers";
-import Script from "next/script";
+import { cookies, headers } from "next/headers";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
+import { NONCE_HEADER } from "@/lib/security/public-csp";
 
 import {
-  PREFERS_DARK_MEDIA_QUERY,
+  SYSTEM_DARK_CLASS_SCRIPT,
   THEME_COOKIE_NAME,
   isExplicitThemeCookieValue,
   parseThemeMode,
@@ -44,6 +44,14 @@ export default async function RootLayout({
 }>) {
   const cookieStore = await cookies();
   const initialMode = parseThemeMode(cookieStore.get(THEME_COOKIE_NAME)?.value);
+  const hasExplicitTheme = isExplicitThemeCookieValue(
+    cookieStore.get(THEME_COOKIE_NAME)?.value,
+  );
+  // Nonce CSP hanya ada di `/u/*` (proxy.ts, T-160); rute lain `undefined`.
+  // Hanya dibaca saat skrip tema dirender (cookie `theme` belum ada).
+  const nonce = hasExplicitTheme
+    ? undefined
+    : ((await headers()).get(NONCE_HEADER) ?? undefined);
 
   return (
     <html
@@ -71,18 +79,24 @@ export default async function RootLayout({
       )}
     >
       <head>
-        {isExplicitThemeCookieValue(
-          cookieStore.get(THEME_COOKIE_NAME)?.value,
-        ) ? null : (
+        {hasExplicitTheme ? null : (
           // Cookie belum ada (user belum pernah pilih Light/Dark eksplisit)
           // — default ikut sistem operasi (T-039, amendemen ADR-055).
-          // `beforeInteractive` menjalankan script ini sebelum hydration
-          // supaya tidak ada flash "light" sekilas untuk user ber-OS dark
-          // mode. Konsisten dengan `resolveInitialMode()` di
+          // `<script>` inline biasa (bukan `next/script`) supaya berjalan
+          // sinkron saat HTML di-parse, sebelum `<body>` dilukis (T-177,
+          // KI-104). `next/script` `beforeInteractive` di App Router hanya
+          // mengantre ke `self.__next_s` yang baru dieksekusi setelah chunk
+          // framework dimuat, jadi halaman sempat dilukis terang lebih dulu.
+          // `nonce` wajib di `/u/*` (CSP `strict-dynamic`, T-160).
+          // Konsisten dengan `resolveInitialMode()` di
           // `components/Providers.tsx` — ubah keduanya bersamaan.
-          <Script id="theme-system-default" strategy="beforeInteractive">
-            {`(function(){try{if(window.matchMedia(${JSON.stringify(PREFERS_DARK_MEDIA_QUERY)}).matches){document.documentElement.classList.add("dark");}}catch(e){}})();`}
-          </Script>
+          // `suppressHydrationWarning`: browser menyembunyikan nilai `nonce`
+          // di DOM (`nonce=""`), jadi React dev memperingatkan mismatch.
+          <script
+            nonce={nonce}
+            suppressHydrationWarning
+            dangerouslySetInnerHTML={{ __html: SYSTEM_DARK_CLASS_SCRIPT }}
+          />
         )}
       </head>
       <body className="flex min-h-full flex-col">

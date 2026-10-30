@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { PublishingService } from "@/domains/publishing";
 import { getCachedSession } from "@/lib/better-auth/session";
+import { getCachedUserTimeZone } from "@/lib/better-auth/user-time-zone";
 import { getWorkspaceContext } from "@/lib/workspace/workspace-context";
 import { publishingRepository } from "@/lib/repositories/publishing";
 
@@ -19,6 +20,8 @@ export default async function Page() {
   const groups = await publishingService.listQueue(
     workspaceId,
     asUserId(session.user.id),
+    // T-147: kunci tanggal grup dihitung di zona waktu pengguna.
+    await getCachedUserTimeZone(),
   );
 
   // QueueScreen (client) owns Cancel Schedule dialog state (T-030, T-032.4)

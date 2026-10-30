@@ -36,6 +36,7 @@ import {
   markNotificationReadAction,
 } from "./actions";
 import { useNotificationRealtime } from "@/lib/hooks/use-notification-realtime";
+import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
 import { formatRelativeTime } from "@/lib/utils/format-relative-time";
 
 /**
@@ -68,6 +69,7 @@ function NotificationRow({
   notification: NotificationRecord;
   onMarkRead: (id: NotificationId) => void;
 }) {
+  const timeZone = useUserTimeZone();
   const isUnread = !notification.isRead;
   const isError = !isSuccessType(notification.type);
 
@@ -140,7 +142,7 @@ function NotificationRow({
       {/* eslint-disable-next-line no-restricted-syntax -- T-098.2, sama seperti di atas */}
       <div className="flex shrink-0 flex-col items-end gap-1">
         <Text variant="muted" className="text-xs whitespace-nowrap">
-          {formatRelativeTime(notification.createdAt)}
+          {formatRelativeTime(notification.createdAt, timeZone)}
         </Text>
         {isUnread ? (
           <Button

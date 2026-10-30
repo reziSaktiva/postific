@@ -42,6 +42,7 @@ Pemilik workspace. Role ini dipegang oleh orang yang mendaftarkan workspace ke p
 | Members | Undang, hapus, ubah role semua anggota |
 | Brand Settings | Baca dan ubah |
 | Content | Buat, edit, hapus, jadwalkan, publish semua konten |
+| Start Page | Kelola penuh (profil, tautan, tema, publish/unpublish, lihat analytics) — ADR-144 |
 | Analytics | Akses penuh |
 | Engagement (Comments Inbox) | Baca dan balas semua komentar |
 | Audit Logs | Baca |
@@ -67,6 +68,7 @@ Admin adalah kepercayaan Account Owner. Role ini cocok untuk manajer senior atau
 | Members | Undang, hapus, ubah role (kecuali role Account Owner) |
 | Brand Settings | Baca dan ubah |
 | Content | Buat, edit, hapus, jadwalkan, publish semua konten |
+| Start Page | Kelola penuh (profil, tautan, tema, publish/unpublish, lihat analytics) — ADR-144 |
 | Analytics | Akses penuh |
 | Engagement (Comments Inbox) | Baca dan balas semua komentar |
 | Audit Logs | Baca |
@@ -94,6 +96,7 @@ Creator adalah operator konten — mencakup pembuatan draft **dan** eksekusi jad
 | Members | Tidak ada akses |
 | Brand Settings | Baca saja |
 | Content | Buat, edit, hapus, jadwalkan, publish semua konten |
+| Start Page | Kelola penuh (profil, tautan, tema, publish/unpublish, lihat analytics) — ADR-144 |
 | Analytics | Baca penuh |
 | Engagement (Comments Inbox) | Baca dan balas semua komentar |
 | Audit Logs | Tidak ada akses |
@@ -116,6 +119,7 @@ Creator adalah operator konten — mencakup pembuatan draft **dan** eksekusi jad
 | Jadwalkan/publish konten (termasuk Publish Now, ADR-047) | ✅ | ✅ | ✅ |
 | Akses Analytics penuh | ✅ | ✅ | ✅ |
 | Kelola Engagement Comments Inbox | ✅ | ✅ | ✅ |
+| Kelola Start Page (profil, tautan, tema, publish/unpublish; ADR-144) | ✅ | ✅ | ✅ |
 | Baca Audit Logs | ✅ | ✅ | ❌ |
 
 **Legenda:** ✅ Ya &nbsp; ❌ Tidak &nbsp; 👁 Baca saja

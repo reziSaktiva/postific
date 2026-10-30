@@ -24,12 +24,10 @@ import {
 // (T-098) dan ConnectPlatformMenu/tombol disabled Danger Zone (T-099)
 // setelah migrasi dari `IconButton tooltip=...` Astryx.
 import { TooltipProvider } from "@/components/ui/tooltip";
-// T-102.6: `Toaster` sonner dipasang sekali di root supaya `toast()` bisa
-// dipanggil dari mana saja (mis. `QueueScreen.tsx` Cancel Schedule), sama
-// seperti pola `TooltipProvider` di atas. `theme` di-pass dari `mode`
-// context ini sendiri karena `components/ui/sonner.tsx` sengaja tidak
-// pakai `next-themes` (project sudah punya mekanisme tema sendiri).
-import { Toaster } from "@/components/ui/sonner";
+// T-160: `Toaster` sonner TIDAK dipasang di sini lagi. Sonner menyuntik
+// `<style>` lewat JS saat runtime tanpa nonce, sehingga CSP nonce `/u/*`
+// akan melanggar. Toaster dipasang di layout `(app)` lewat
+// `app/(app)/components/AppToaster.tsx` (satu-satunya pemakai `toast()`).
 
 type ThemeModeContextValue = {
   mode: ThemeMode;
@@ -88,7 +86,7 @@ export function Providers({
 
   // T-039 (amendemen ADR-055): kalau belum ada cookie `theme` (user belum
   // pernah pilih eksplisit), koreksi `mode` ke preferensi OS sebelum paint
-  // pertama. Konsisten dengan script `beforeInteractive` di
+  // pertama. Konsisten dengan `<script>` inline sinkron di
   // `app/layout.tsx` yang sudah menerapkan class `dark` ke `<html>`
   // langsung by DOM manipulation (di luar React) untuk kasus yang sama —
   // ubah keduanya bersamaan kalau logic ini berubah. Sengaja jalan sekali
@@ -108,8 +106,8 @@ export function Providers({
   // shadcn/ui pakai strategi class `dark` di elemen root (`@custom-variant
   // dark (&:is(.dark *))`, globals.css) — bukan lagi provider `Theme`
   // Astryx. `<html>` sudah dapat class yang benar di render pertama dari
-  // RootLayout (Server Component, baca cookie yang sama) + script
-  // `beforeInteractive` (untuk kasus belum ada cookie, ikut sistem), jadi
+  // RootLayout (Server Component, baca cookie yang sama) + script inline
+  // sinkron (untuk kasus belum ada cookie, ikut sistem), jadi
   // baris ini hanya menjaga class tetap sinkron — saat koreksi OS di atas
   // (mount pertama) maupun saat `toggleMode()` dipanggil di client tanpa
   // reload (ADR-097 poin 9, mengamendemen ADR-055 — mekanisme toggle tetap
@@ -140,7 +138,6 @@ export function Providers({
   return (
     <ThemeModeContext.Provider value={themeModeValue}>
       <TooltipProvider>{children}</TooltipProvider>
-      <Toaster theme={mode} />
     </ThemeModeContext.Provider>
   );
 }

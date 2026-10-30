@@ -190,11 +190,16 @@ Area manajemen halaman publik (link-in-bio).
 ```
 Start Page
 ├── Page Editor               — susun tampilan halaman publik
-│   ├── Link List             — tambah / edit / hapus tautan
-│   └── Theme Selector        — pilih tema tampilan (Should Have)
-├── Preview                   — lihat tampilan halaman sebelum publish
-└── Share                     — salin URL halaman publik
+│   ├── Profil                — judul, slug, bio, foto (URL https), tombol Simpan
+│   ├── Link List             — tambah / edit (Dialog) / hapus / urutkan tautan
+│   └── Theme Selector        — ToggleGroup 3 preset: Default, Dark, Aksen
+├── Preview                   — lihat tampilan halaman sesuai draft sebelum disimpan
+└── Share                     — salin URL halaman publik + Publish/Unpublish
 ```
+
+Analytics dasar (total kunjungan di page-head, klik per tautan di Link List) hanya tampil di Page Editor, bukan di halaman publik. Angka penuh (id-ID) di bawah 10.000, ringkas mulai 10.000; tanpa data tampil `0` + petunjuk. Pilihan UI dan hak akses: ADR-144; sumber angka: ADR-143.
+
+**Halaman publik tidak tersedia:** alamat `/u/<slug>` yang slug-nya tidak ada **atau** halamannya belum di-publish menampilkan satu layar 404 kustom (T-166). Layar berdiri sendiri di luar app shell, anonim tanpa navigasi aplikasi: ikon pencarian, judul "Halaman tidak ditemukan", deskripsi singkat, dan footer badge "Powered by Postific" yang sama dengan halaman publik. Copy sengaja identik untuk kedua kasus supaya status draft tidak bocor, dan tanpa tautan atau tombol ke beranda. Bentuk visual: layar `ScreenStartPageNotFound` di artifact Postific (dikonfirmasi King Rezi, 2026-10-29).
 
 **Pengguna utama:** Raka / siapapun yang mengelola profil publik brand.
 
@@ -214,7 +219,7 @@ Settings
 │   └── Billing                   — langganan dan pembayaran
 └── Account
     ├── Workspaces                — daftar workspace user, switch workspace aktif, buat workspace baru (ADR-088)
-    ├── Profile                   — nama, foto, email
+    ├── Profile                   — nama, foto, email, zona waktu (per pengguna, ADR-146)
     ├── Notifications             — preferensi notifikasi email dan in-app
     ├── Preferences               — pengaturan tampilan personal
     └── Klien AI                  — klien AI (MCP) yang tersambung milik pengguna sendiri, plus tombol cabut (ADR-139)
@@ -251,6 +256,7 @@ Tabel berikut memetakan fitur MVP (Must Have) ke layar spesifik dalam IA.
 | Engagement Summary | Analyze → Dashboard → Engagement Summary |
 | Link Management | Start Page → Page Editor → Link List |
 | Public Page | Start Page → Preview + Share |
+| Halaman publik tidak tersedia (slug tak ada / draft) | 404 publik di luar app shell (IA-D12, T-166) |
 
 ---
 
@@ -297,6 +303,7 @@ Keputusan struktural yang dibuat dalam dokumen ini.
 | IA-D09 | Pengguna hanya melihat dan mencabut koneksi klien AI miliknya sendiri; Owner/Admin tidak melihat koneksi anggota lain | Menjaga layar sederhana (tanpa kolom pemilik) dan sesuai sifat personal grant; keputusan King Rezi 2026-10-23 | UXP-03 |
 | IA-D10 | Layar persetujuan OAuth berdiri di luar app shell dan berjalan dua langkah: pilih workspace, lalu persetujuan scope (ADR-139) | Workspace harus ditetapkan sebelum consent (hasil spike T-148); layar ini muncul dari klien AI eksternal, bukan dari navigasi aplikasi | UXP-04 |
 | IA-D11 | Badge dan filter sumber MCP muncul di History, Drafts, dan Queue; Calendar tidak diberi badge | Tiga layar daftar itu yang dipakai pengguna meninjau hasil kerja AI; Calendar yang sudah terkunci tidak disentuh (keputusan King Rezi 2026-10-23) | UXP-04, UXP-06 |
+| IA-D12 | Slug yang tidak ada dan halaman yang belum di-publish memakai satu layar 404 publik yang sama, dengan copy identik dan tanpa tautan ke beranda | Status draft tidak boleh bocor ke pengunjung anonim; layar tetap minimal dan tidak mengarahkan pengunjung ke produk. Keputusan King Rezi 2026-10-29 (rancangan `ScreenStartPageNotFound`, T-166) | UXP-03 |
 
 ---
 

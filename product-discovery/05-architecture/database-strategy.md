@@ -207,7 +207,7 @@ Tabel BC-01 Identity dikelola sepenuhnya oleh **Better Auth**. Better Auth dikon
 
 | Tabel | Dikelola Oleh | Keterangan |
 |-------|--------------|------------|
-| `identity_user` | Better Auth | Data pengguna terdaftar |
+| `identity_user` | Better Auth | Data pengguna terdaftar; zona waktu per pengguna di `time_zone` (IANA, default `Asia/Jakarta`) dan `time_zone_source` (`pending\|legacy\|detected\|manual`), ADR-146 |
 | `identity_session` | Better Auth | Sesi aktif pengguna |
 | `identity_account` | Better Auth | OAuth accounts yang terhubung ke user |
 | `identity_verification` | Better Auth | Token verifikasi email / reset password |
@@ -337,39 +337,64 @@ dipertahankan sebagai referensi historis, bukan aktif dipakai.
 
 ## BC-04 — MCP Access
 
-Kolom indikatif (ADR-138, ADR-139); final di spec dan T-149 setelah spike T-148.
+Kolom final (ADR-138, ADR-139 Accepted 2026-10-26; keputusan model grant King Rezi 2026-10-26, T-149.1). Tipe diperiksa terhadap `apps/web/prisma/schema.prisma`: `workspaces.id` bertipe `uuid` (`@db.Uuid`), sedangkan `identity_user.id` adalah `cuid()` (`text`), jadi `user_id` di sini `text`, sama seperti `workspace_members.user_id` (preseden koreksi T-017, lihat § RLS Policy Pattern).
 
 ### `mcp_grants`
+
+Sumber otorisasi panggilan MCP. Satu baris per persetujuan: pengguna + klien + workspace + scope. Aturan pemakaiannya (per panggilan, pencabutan, hubungan dengan tabel plugin OAuth) ada di `application-layer.md` § McpAccessService.
 
 | Kolom | Tipe | Keterangan |
 |-------|------|-----------|
 | `id` | `uuid PK DEFAULT gen_random_uuid()` | Grant ID |
-| `workspace_id` | `uuid NOT NULL REFERENCES workspaces(id)` | Satu workspace per koneksi |
-| `user_id` | `uuid NOT NULL` | Referensi ke `identity_user.id`; role pengguna ini yang berlaku |
-| `client_id` | `text NOT NULL` | Klien AI hasil dynamic client registration |
-| `scopes` | `text[] NOT NULL` | `read \| draft \| schedule` (MVP) |
+| `workspace_id` | `uuid NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE` | Satu workspace per koneksi. Nilainya sama dengan `referenceId` consent plugin (di tabel plugin bertipe `text`) |
+| `user_id` | `text NOT NULL` | `identity_user.id` (cuid). Tanpa FK, seperti `workspace_members.user_id`. Keanggotaan pengguna ini di workspace yang berlaku |
+| `client_id` | `text NOT NULL` | `clientId` klien AI hasil dynamic client registration (`identity_oauth_client."clientId"`). Tanpa FK: tabel plugin tidak diubah bentuknya |
+| `client_name` | `text` | Salinan nama klien saat persetujuan, supaya layar daftar klien AI (T-156) tidak membaca tabel plugin. Nullable karena nama klien opsional pada pendaftaran |
+| `scopes` | `text[]` | Nama logis `read \| draft \| schedule` (MVP). Nama di kabel (`mcp:read` dan seterusnya) dipetakan di adapter, bukan disimpan di sini. Maksudnya NOT NULL, tetapi Prisma tidak mendukung NOT NULL pada list: migrasi membuat kolom tanpa NOT NULL dan repository yang menegakkannya |
 | `created_at` | `timestamptz NOT NULL DEFAULT now()` | |
-| `revoked_at` | `timestamptz` | Terisi saat dicabut |
+| `last_used_at` | `timestamptz` | Panggilan terakhir yang lolos otorisasi; diperbarui paling cepat sekali per menit |
+| `revoked_at` | `timestamptz` | Terisi saat dicabut. Baris yang dicabut tetap disimpan sebagai riwayat |
+
+**Indeks:**
+- Unik parsial `(user_id, client_id, workspace_id) WHERE revoked_at IS NULL`: paling banyak satu grant aktif per pengguna, klien, dan workspace. Persetujuan ulang saat grant aktif sudah ada memperbarui `scopes` grant itu, bukan menambah baris. Setelah dicabut, menyambungkan lagi membuat baris baru. Indeks ini juga melayani `listGrants` (awalan `user_id`).
+- `(workspace_id)` (Index Wajib).
 
 ### `mcp_audit_logs`
 
 | Kolom | Tipe | Keterangan |
 |-------|------|-----------|
 | `id` | `uuid PK DEFAULT gen_random_uuid()` | Audit ID |
-| `workspace_id` | `uuid NOT NULL REFERENCES workspaces(id)` | |
-| `user_id` | `uuid NOT NULL` | |
-| `grant_id` | `uuid REFERENCES mcp_grants(id)` | |
+| `workspace_id` | `uuid NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE` | |
+| `user_id` | `text NOT NULL` | `identity_user.id` (cuid), tanpa FK |
+| `grant_id` | `uuid REFERENCES mcp_grants(id) ON DELETE SET NULL` | Kosong bila panggilan ditolak karena tidak ada grant |
 | `client_id` | `text NOT NULL` | |
 | `tool_name` | `text NOT NULL` | |
-| `scope` | `text NOT NULL` | |
+| `scope` | `text NOT NULL` | Nama logis scope tool |
 | `input_summary` | `text` | Ringkasan yang disamarkan |
 | `status` | `text NOT NULL` | `success \| denied \| error` |
 | `error_code` | `text` | |
 | `duration_ms` | `integer` | |
 | `target_id` | `text` | ID hasil aksi, misalnya post |
-| `created_at` | `timestamptz NOT NULL DEFAULT now()` | Retensi 90 hari (dihapus cron) |
+| `created_at` | `timestamptz NOT NULL DEFAULT now()` | Retensi 90 hari (dihapus cron JOB-08) |
+
+**Indeks:**
+- `(workspace_id, created_at)` untuk query audit per workspace; awalan `workspace_id` sudah memenuhi Index Wajib, jadi tidak perlu indeks `(workspace_id)` terpisah.
+- `(created_at)` untuk purge global JOB-08 (menghapus per `created_at` lintas workspace, yang tidak dilayani indeks di atas). Ditambahkan di T-149.3 atas persetujuan King Rezi.
 
 Penanda sumber MCP di BC-03: `publishing_posts` mendapat kolom `created_via` (`app | mcp`) dan `created_via_client_id` (nullable), diputuskan final di T-152. Penghitung rate limit per workspace juga berbasis Postgres (ADR-138 poin 7), bentuk tabelnya diputuskan di T-154.
+
+### Kebijakan RLS BC-04 (final, ADR-141)
+
+Diputuskan King Rezi 2026-10-26 dan dicatat di ADR-141 (pengecualian DB-D05). Pola isolasi per-workspace di § RLS Policy Pattern (DB-D05) bergantung pada `app.current_user_id` yang di-set `withCurrentUser` dari sesi Better Auth. Jalur BC-04 tidak punya konteks itu: panggilan tool diautentikasi lewat JWT bearer (bukan sesi), pembuatan grant berjalan di dalam alur consent plugin OAuth, dan purge audit (JOB-08) berjalan tanpa pengguna. Maka kebijakannya:
+
+- `ENABLE ROW LEVEL SECURITY` pada `mcp_grants` dan `mcp_audit_logs`.
+- Satu policy per tabel `FOR ALL TO "app_runtime" USING (true) WITH CHECK (true)`, dijaga `IF EXISTS` pada `pg_roles` (shadow DB tidak punya role itu), dengan bentuk sama seperti migrasi `20261026130000_t148_oauth_tables_app_runtime_policy`.
+- `anon` dan `authenticated` tidak punya policy, jadi tertolak (default-deny). Tabel ini tidak boleh terbaca lewat PostgREST atau Realtime anon key.
+- Role `app_runtime` **tidak** melewati RLS: tabel dengan RLS aktif tanpa policy untuk role itu menolak semua tulis (kesalahan `42501`). Karena itu policy `app_runtime` wajib ada di migrasi yang sama dengan `ENABLE ROW LEVEL SECURITY`.
+
+**Konsekuensi (penyimpangan dari DB-D05):** policy ini tidak memisahkan workspace atau pengguna di level database; isolasi antar workspace dan antar pengguna sepenuhnya ditegakkan application layer (setiap query repository (`IMcpGrantRepository`, `IMcpAuditRepository`, dan adapter `IMcpGrantRevocationPort`) wajib memfilter `workspace_id` dan/atau `user_id`, dan `listGrants` hanya mengembalikan milik pengguna yang sedang login). Safety net DB-D05 tidak berlaku untuk dua tabel ini; RLS hanya menutup akses dari role selain `app_runtime`. Hal serupa sudah berlaku untuk tabel plugin OAuth (T-148) dan tabel infrastruktur server-only (`background_jobs`, `outstand_webhook_events`; lihat § System Tables, tanpa RLS sama sekali).
+
+**Alternatif yang ditolak (ADR-141):** policy per-pengguna (`user_id = current_setting('app.current_user_id', true)`) untuk jalur baca, daftar, dan cabut dengan `withCurrentUser(sub)` dari klaim token, ditambah fungsi `SECURITY DEFINER` untuk purge dan hook consent (pola ADR-099). Mempertahankan safety net, tetapi setiap pemanggil harus men-set variabel itu dan purge butuh jalur sistem tersendiri; safety net per-pengguna tidak sebanding untuk tabel yang hanya dibaca lewat service.
 
 ---
 
@@ -468,13 +493,15 @@ Penanda sumber MCP di BC-03: `publishing_posts` mendapat kolom `created_via` (`a
 | `title` | `text NOT NULL` | Judul halaman |
 | `bio` | `text` | Deskripsi singkat |
 | `avatar_url` | `text` | URL avatar halaman |
-| `theme` | `text NOT NULL DEFAULT 'default'` | `default \| minimal \| bold` |
+| `theme` | `text NOT NULL DEFAULT 'default'` | `default \| dark \| accent` (allowlist `START_PAGE_THEMES`, ADR-144; sebelumnya tertulis `default \| minimal \| bold`) |
 | `is_published` | `boolean NOT NULL DEFAULT false` | |
-| `view_count` | `bigint NOT NULL DEFAULT 0` | Basic analytics |
+| `view_count` | `bigint NOT NULL DEFAULT 0` | Counter kunjungan, hanya naik lewat `start_page_record_view` (ADR-143) |
 | `created_at` | `timestamptz NOT NULL DEFAULT now()` | |
 | `updated_at` | `timestamptz NOT NULL DEFAULT now()` | |
 
-**Catatan:** Satu workspace hanya memiliki satu Start Page. Enforce di application layer; dapat ditambahkan `UNIQUE(workspace_id)` constraint jika diperlukan.
+**Catatan:** Satu workspace hanya memiliki satu Start Page, dijaga constraint `UNIQUE(workspace_id)` (migrasi `20261026130000_t072_start_page_unique_workspace`, ADR-144) selain di application layer.
+
+**Akses anonim (halaman publik `/u/[slug]`):** tabel ini **tidak** punya policy RLS untuk `anon` maupun `app_runtime` dan tidak dibuka lewat PostgREST. Baca dan counter lewat tiga fungsi Postgres `SECURITY DEFINER` dengan kolom terbatas: `start_page_get_public_by_slug` (baca, hanya halaman published, ADR-142), `start_page_record_view` dan `start_page_record_click_and_get_url` (counter, ADR-143). Ketiganya `REVOKE` dari `PUBLIC`/`anon`/`authenticated`, `GRANT EXECUTE` hanya ke `app_runtime`.
 
 ### `start_page_links`
 
@@ -486,7 +513,7 @@ Penanda sumber MCP di BC-03: `publishing_posts` mendapat kolom `created_via` (`a
 | `url` | `text NOT NULL` | Target URL |
 | `position` | `integer NOT NULL` | Urutan tampil |
 | `is_active` | `boolean NOT NULL DEFAULT true` | |
-| `click_count` | `bigint NOT NULL DEFAULT 0` | Basic analytics |
+| `click_count` | `bigint NOT NULL DEFAULT 0` | Counter klik, hanya naik lewat `start_page_record_click_and_get_url` (ADR-143) |
 | `created_at` | `timestamptz NOT NULL DEFAULT now()` | |
 | `updated_at` | `timestamptz NOT NULL DEFAULT now()` | |
 
@@ -675,7 +702,7 @@ Media file disimpan di **Supabase Storage** (keputusan pra-architecture). Supaba
 
 Contoh:
 media/abc-123-workspace/2026/07/f47ac10b-58cc-4372-a567-0e02b2c3d479.jpg
-avatars/abc-123-workspace/avatar.jpg
+avatars/abc-123-workspace/avatar-{uuid}.jpg   (Start Page, ADR-145)
 avatars/users/{user_id}/avatar.{ext}
 ```
 
@@ -759,10 +786,12 @@ Detail implementasi migrasi didefinisikan di Engineering Planning (M6). Poin ars
 | DB-D03 | Hard delete by default; soft delete hanya pada `publishing_posts` | Simplicity dan privacy by default; Posts memerlukan soft delete karena relasi dan historical data | Soft delete semua tabel (kompleksitas query meningkat); hard delete semua (data loss risk untuk Posts) |
 | DB-D04 | Better Auth menggunakan prefix `identity_` | Konsisten dengan naming convention domain; mudah dibedakan dari tabel aplikasi | Tanpa prefix (nama tabel generik seperti `user`, `session` — mudah konflik) |
 | DB-D05 | Application-enforced auth + RLS sebagai safety net | Better Auth tidak terintegrasi native dengan Supabase JWT; semua akses sudah server-side | Custom JWT claim untuk Supabase RLS (lebih kompleks setup untuk MVP) |
+| DB-D05a | Pengecualian DB-D05 untuk tabel BC-04 (`mcp_grants`, `mcp_audit_logs`): RLS aktif dengan satu policy `app_runtime` (`USING (true) WITH CHECK (true)`), tanpa isolasi per-workspace/pengguna di level DB (ADR-141) | Pemanggil memakai token OAuth tanpa `app.current_user_id`, dan jalur sistem (purge JOB-08, hook consent) tidak punya pengguna; isolasi ada di application layer | Policy per `user_id` lewat `withCurrentUser(sub)` + fungsi `SECURITY DEFINER` (kerja dan risiko tambahan, safety net tidak sebanding) |
 | DB-D06 | `created_at` dan `updated_at` di semua tabel | Standar audit trail minimal; diperlukan untuk sync, debugging, dan pagination cursor | Hanya `created_at` (kehilangan kemampuan track update waktu) |
 | DB-D07 | `outstand_webhook_events` sebagai durable idempotent receipt | Menjamin event tersimpan sebelum ACK dan memisahkan delivery vendor dari processing internal | ACK sebelum persist; payload hanya di job queue |
 | DB-D08 | Engagement schema MVP hanya komentar/reply | Selaras kontrak Outstand dan sumber JOB-03/manual sync | Menyimpan DM/mention yang tidak dapat disinkronkan |
-| DB-D09 | ADR-040 | DB-D07–D08 serta metadata working copy media mengamandemen skema konseptual lama |
+| DB-D09 | ADR-040 | DB-D07–D08 serta metadata working copy media mengamandemen skema konseptual lama | — |
+| DB-D10 | Akses anonim Start Page lewat fungsi `SECURITY DEFINER` (baca dan counter), bukan policy RLS `anon` | RLS tidak bisa membatasi kolom (`workspace_id`, counter bocor lewat PostgREST); policy `app_runtime` melemahkan isolasi tenant | Policy `anon`/`app_runtime` langsung di tabel; view kolom terbatas (ADR-142, ADR-143) |
 
 ---
 

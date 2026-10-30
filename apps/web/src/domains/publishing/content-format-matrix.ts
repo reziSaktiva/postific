@@ -31,6 +31,17 @@ function allowedFormatsFor(platform: SocialPlatform): ContentFormat[] {
 }
 
 /**
+ * Format konten yang diizinkan untuk `platform` menurut matriks ADR-039 —
+ * API publik baca (T-150, tool MCP `list_accounts`). Mengembalikan salinan,
+ * jadi caller tidak bisa mengubah matriks.
+ */
+export function getAllowedContentFormats(
+  platform: SocialPlatform,
+): ContentFormat[] {
+  return [...allowedFormatsFor(platform)];
+}
+
+/**
  * Throws `PublishingDomainError` kalau `format` tidak diizinkan untuk
  * `platform` menurut matriks ADR-039.
  */

@@ -135,6 +135,8 @@ const eslintConfig = defineConfig([
     "**/dist/**",
     "**/coverage/**",
     "apps/web/next-env.d.ts",
+    "apps/web/test-results/**",
+    "apps/web/playwright-report/**",
     "apps/web/src/generated/**",
     "product-discovery/**",
     "project-os/**",

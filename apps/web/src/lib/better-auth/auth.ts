@@ -14,6 +14,8 @@ import { prisma } from "@/lib/prisma/client";
 import { workspaceRepository } from "@/lib/repositories/workspace";
 import { INVITE_EMAIL_PROOF_COOKIE } from "@/lib/workspace/invite-email-proof-cookie";
 
+import { mcpSpikePlugins } from "./mcp-spike";
+
 /**
  * Better Auth instance (auth-strategy.md, ADR-030).
  * Identity tables: identity_* via Prisma @@map (DO-D05, DB-D04).
@@ -178,6 +180,9 @@ export const auth = betterAuth({
   // never need a breaking retrofit later.
   plugins: [
     bearer(),
+    // OAuth MCP (ADR-139) — kosong kecuali isMcpEnabled() (MCP_ENABLED atau
+    // MCP_SPIKE_ENABLED lama, lib/mcp/config.ts).
+    ...mcpSpikePlugins(),
     ...(betterAuthApiKey
       ? [
           dash({

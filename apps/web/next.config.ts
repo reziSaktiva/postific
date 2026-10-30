@@ -20,6 +20,29 @@ const nextConfig: NextConfig = {
     // Pin workspace root so parent lockfiles outside the repo are ignored.
     root: monorepoRoot,
   },
+  async headers() {
+    // Header keamanan dasar untuk halaman publik Start Page (T-071) dan route
+    // redirect klik di bawahnya. `Content-Security-Policy` TIDAK di sini:
+    // CSP penuh berbasis nonce per request dipasang di `proxy.ts` untuk
+    // `/u/*` (T-160, `lib/security/public-csp.ts`) — nonce tidak bisa statis.
+    return [
+      {
+        source: "/u/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "DENY" },
+          {
+            key: "Referrer-Policy",
+            value: "strict-origin-when-cross-origin",
+          },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=()",
+          },
+        ],
+      },
+    ];
+  },
   experimental: {
     serverActions: {
       // Diturunkan dari MAX_MEDIA_FILE_SIZE_BYTES (domains/media/validation.ts)

@@ -17,6 +17,8 @@ function createRecord(
     name: "Raka",
     email: "raka@example.com",
     image: null,
+    timeZone: "Asia/Jakarta",
+    timeZoneSource: "legacy",
     ...overrides,
   };
 }
@@ -31,7 +33,13 @@ function createFakeRepository(
         id: userId,
         ...(data.name !== undefined ? { name: data.name } : {}),
         ...(data.image !== undefined ? { image: data.image } : {}),
+        ...(data.timeZone !== undefined ? { timeZone: data.timeZone } : {}),
+        ...(data.timeZoneSource !== undefined
+          ? { timeZoneSource: data.timeZoneSource }
+          : {}),
       }),
+    applyDetectedTimeZone: async (userId, timeZone) =>
+      createRecord({ id: userId, timeZone, timeZoneSource: "detected" }),
     findNotificationPreferences: async () => ({
       notifyRepliesAndMentions: true,
       notifyPublishSchedule: true,
@@ -409,6 +417,125 @@ describe("IdentityService", () => {
 
         await expect(
           service.updateNotificationPreferences(USER_ID, payload as never),
+        ).rejects.toThrow(ValidationError);
+        expect(called).toBe(false);
+      },
+    );
+  });
+
+  describe("zona waktu (T-147, ADR-146)", () => {
+    function serviceWith(overrides: Partial<IIdentityRepository> = {}) {
+      return new IdentityService(
+        createFakeRepository(overrides),
+        createFakeAvatarStorage(),
+      );
+    }
+
+    it("updateProfile menyimpan zona valid dengan sumber manual secara default", async () => {
+      let received: unknown;
+      const service = serviceWith({
+        updateProfile: async (userId, data) => {
+          received = data;
+          return createRecord({ id: userId, timeZone: data.timeZone ?? "x" });
+        },
+      });
+
+      const result = await service.updateProfile({
+        userId: USER_ID,
+        name: "Raka",
+        timeZone: "America/New_York",
+      });
+
+      expect(result.timeZone).toBe("America/New_York");
+      expect(received).toMatchObject({
+        timeZone: "America/New_York",
+        timeZoneSource: "manual",
+      });
+    });
+
+    it("updateProfile meneruskan sumber detected (tombol zona browser)", async () => {
+      let received: unknown;
+      const service = serviceWith({
+        updateProfile: async (userId, data) => {
+          received = data;
+          return createRecord({ id: userId });
+        },
+      });
+
+      await service.updateProfile({
+        userId: USER_ID,
+        name: "Raka",
+        timeZone: "Asia/Tokyo",
+        timeZoneSource: "detected",
+      });
+
+      expect(received).toMatchObject({
+        timeZone: "Asia/Tokyo",
+        timeZoneSource: "detected",
+      });
+    });
+
+    it("updateProfile tanpa timeZone tidak menyentuh zona", async () => {
+      let received: Record<string, unknown> = {};
+      const service = serviceWith({
+        updateProfile: async (userId, data) => {
+          received = data;
+          return createRecord({ id: userId });
+        },
+      });
+
+      await service.updateProfile({ userId: USER_ID, name: "Raka" });
+
+      expect(received.timeZone).toBeUndefined();
+      expect(received.timeZoneSource).toBeUndefined();
+    });
+
+    it.each(["Bukan/Zona", "", "asia/jakarta", "+07:00", "WIB"])(
+      "updateProfile menolak zona tak valid %j tanpa menulis",
+      async (timeZone) => {
+        let called = false;
+        const service = serviceWith({
+          updateProfile: async (userId) => {
+            called = true;
+            return createRecord({ id: userId });
+          },
+        });
+
+        await expect(
+          service.updateProfile({ userId: USER_ID, name: "Raka", timeZone }),
+        ).rejects.toThrow(ValidationError);
+        expect(called).toBe(false);
+      },
+    );
+
+    it("applyDetectedTimeZone menyimpan zona valid", async () => {
+      const service = serviceWith();
+      const result = await service.applyDetectedTimeZone(USER_ID, "UTC");
+      expect(result).toMatchObject({
+        timeZone: "UTC",
+        timeZoneSource: "detected",
+      });
+    });
+
+    it("applyDetectedTimeZone mengembalikan null bila sudah diatur (tidak menimpa)", async () => {
+      const service = serviceWith({ applyDetectedTimeZone: async () => null });
+      await expect(
+        service.applyDetectedTimeZone(USER_ID, "Asia/Tokyo"),
+      ).resolves.toBeNull();
+    });
+
+    it.each(["Bukan/Zona", "", null, undefined, 42])(
+      "applyDetectedTimeZone menolak %j tanpa menulis",
+      async (timeZone) => {
+        let called = false;
+        const service = serviceWith({
+          applyDetectedTimeZone: async () => {
+            called = true;
+            return null;
+          },
+        });
+        await expect(
+          service.applyDetectedTimeZone(USER_ID, timeZone),
         ).rejects.toThrow(ValidationError);
         expect(called).toBe(false);
       },

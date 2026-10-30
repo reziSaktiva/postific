@@ -330,7 +330,7 @@ di T-096. Sumber: `@astryxdesign/theme-stone/dist/theme.css` (versi
 | `--secondary` | `#e2e2e8` | `#3b3b3f` | `--color-background-muted` | |
 | `--secondary-foreground` | `#25252a` | `#f3f3f5` | `--color-text-primary` | |
 | `--muted` | `#e2e2e8` | `#3b3b3f` | `--color-background-muted` | Sama dengan `--secondary` — konsisten dgn pola default shadcn (kedua value identik di preset bawaan) |
-| `--muted-foreground` | `#83838a` | `#9d9da3` | `--color-text-secondary` | |
+| `--muted-foreground` | `#5c5c63` | `#9d9da3` | `--color-text-secondary` | **Menyimpang dari Stone** (`#83838a`, hanya 3,4–3,8:1) agar lolos AA 4,5:1 di atas `--card` (6,63:1), `--background` (5,99:1), dan fill `--muted` (5,14:1). Mode dark tidak berubah. ADR-147 (T-163) |
 | `--accent` | `#e2e2e8` | `#3b3b3f` | `--color-background-muted` | Sama dengan `--muted`/`--secondary` — Stone tidak punya token hover-state solid terpisah yang cukup pekat (`--color-overlay-hover`/`--color-neutral` transparan, tidak cocok jadi bg solid) |
 | `--accent-foreground` | `#25252a` | `#f3f3f5` | `--color-text-primary` | |
 | `--destructive` | `#58413e` | `#dcc0bc` | `--color-error` | Dipakai sebagai warna teks/icon (lihat pola `button.tsx` — `bg-destructive/10 text-destructive`), bukan fill solid; `--color-error` lebih cocok dari `--color-background-red` untuk peran ini |
@@ -391,6 +391,20 @@ perlu di-approve eksplisit (bukan bagian "migrasi tanpa ubah visual").
 * **Motion/duration** — Stone punya `--duration-fast/medium/slow` tapi
   belum ada requirement animasi konkret yang memakainya (§ Motion masih
   `TBD`).
+
+---
+
+# Tema Start Page (ADR-144)
+
+Halaman publik Start Page punya tema yang bisa dipilih pengguna, tetapi **bukan** set token sendiri: setiap preset adalah turunan token produk yang sudah ada (§ Engineering Mapping), tanpa token baru dan tanpa warna bebas dari pengguna. Enum allowlist `default | dark | accent` (`START_PAGE_THEMES`); nilai di luar daftar jatuh ke `default`.
+
+| Preset | Perilaku |
+| ------ | -------- |
+| `default` | Ikut tema aplikasi (light atau dark) |
+| `dark` | Scope token dark dipaksa |
+| `accent` | Aksen **netral tanpa hue**: inversi `--primary` Stone (latar `--primary`, teks `--primary-foreground`) |
+
+Rancangan dikunci di artifact Postific (King Rezi, 2026-10-26). Kalau tema baru atau warna bebas diminta, itu keputusan baru (ADR), bukan penambahan nilai di sini.
 
 ---
 

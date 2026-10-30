@@ -17,7 +17,8 @@ import type { PinterestBoard } from "@postific/shared";
 import { ContentFormat, ContentStatus, SocialPlatform } from "@postific/shared";
 import { pinterestBoardConstraintMessage } from "@/domains/publishing/pinterest-board-constraints";
 import { scheduleTimeConstraintMessage } from "@/domains/publishing/schedule-time-constraints";
-import { wibLocalToUtc } from "@/domains/publishing/wib-time";
+import { zonedLocalToUtc } from "@/domains/publishing/wib-time";
+import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
 
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -165,6 +166,7 @@ function ResumeDialog({
   onDiscard: () => void;
   onResume: () => void;
 }) {
+  const timeZone = useUserTimeZone();
   const preview = unsaved
     ? unsaved.caption.length > 60
       ? `${unsaved.caption.slice(0, 60)}…`
@@ -198,7 +200,9 @@ function ResumeDialog({
           <div className="flex flex-col gap-1">
             <Text variant="muted">Terakhir diedit</Text>
             <Text>
-              {unsaved ? formatRelativeTime(new Date(unsaved.savedAt)) : "-"}
+              {unsaved
+                ? formatRelativeTime(new Date(unsaved.savedAt), timeZone)
+                : "-"}
             </Text>
           </div>
           {/* eslint-disable-next-line no-restricted-syntax -- T-102: padanan Astryx HStack, murni Tailwind flex. */}
@@ -256,6 +260,7 @@ function DraftEditorForm({
   dialogVariant: "standard" | "fullscreen";
   onToggleDialogVariant: () => void;
 }) {
+  const timeZone = useUserTimeZone();
   const { close, clearUnsavedNewPost } = useDraftEditor();
   const router = useRouter();
   const pathname = usePathname();
@@ -498,7 +503,9 @@ function DraftEditorForm({
   // otomatis re-evaluate begitu waktu berjalan lewat titik yang dipilih user.
   const scheduleTimeMessage =
     scheduleDate && scheduleTime
-      ? scheduleTimeConstraintMessage(wibLocalToUtc(scheduleDate, scheduleTime))
+      ? scheduleTimeConstraintMessage(
+          zonedLocalToUtc(scheduleDate, scheduleTime, timeZone),
+        )
       : null;
 
   const isReadyToSchedule =
@@ -821,10 +828,12 @@ function DraftEditorForm({
   async function handleConfirmSchedule() {
     setIsScheduling(true);
     try {
-      // T-146: input jadwal ditafsirkan sebagai WIB, bukan zona browser.
-      const scheduledAt = wibLocalToUtc(
+      // T-147 (ADR-146, menggantikan WIB tetap T-146): input jadwal
+      // ditafsirkan di zona waktu pengguna, bukan zona browser.
+      const scheduledAt = zonedLocalToUtc(
         scheduleDate ?? "",
         scheduleTime ?? "",
+        timeZone,
       ).toISOString();
 
       const result = await scheduleDraftAction({

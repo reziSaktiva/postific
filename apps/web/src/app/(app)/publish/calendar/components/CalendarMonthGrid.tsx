@@ -4,7 +4,8 @@ import { useMemo } from "react";
 
 import type { ConnectedAccountId, PostId } from "@postific/shared";
 import type { CalendarPostItem } from "@/domains/publishing";
-import { getMonthRange, getWibDateParts } from "@/domains/publishing";
+import { getDateParts, getMonthRange } from "@/domains/publishing";
+import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -26,8 +27,7 @@ import {
   flattenCalendarItemsToEntries,
   formatCalendarHour,
   MAX_VISIBLE_PER_CELL,
-  MS_PER_DAY,
-  toWibDateKey,
+  toDateKey,
   useExpandableKeys,
 } from "./calendar-grid-shared";
 
@@ -48,24 +48,23 @@ interface MonthGridDay {
 }
 
 /** Susun sel grid Month: cukup minggu (kelipatan 7) untuk menutupi 1 bulan penuh, termasuk padding awal/akhir. Minggu mulai Senin. */
-function buildMonthGridDays(anchor: Date): MonthGridDay[] {
-  const { from: monthStart, to: monthEnd } = getMonthRange(anchor);
-  const leadingPadding = (getWibDateParts(monthStart).weekday + 6) % 7; // Senin=0 ... Minggu=6
-  const gridStart = addDays(monthStart, -leadingPadding);
+function buildMonthGridDays(anchor: Date, timeZone: string): MonthGridDay[] {
+  const { from: monthStart, to: monthEnd } = getMonthRange(anchor, timeZone);
+  const leadingPadding = (getDateParts(monthStart, timeZone).weekday + 6) % 7; // Senin=0 ... Minggu=6
+  const gridStart = addDays(monthStart, -leadingPadding, timeZone);
 
-  // `monthEnd` = 23:59:59.999 hari terakhir, jadi +1 ms dulu supaya N hari (bukan N+1).
-  const daysInMonth = Math.round(
-    (monthEnd.getTime() + 1 - monthStart.getTime()) / MS_PER_DAY,
-  );
+  // `monthEnd` = 23:59:59.999 hari terakhir → tanggalnya = jumlah hari bulan
+  // (bukan selisih ms / 24 jam, yang meleset di bulan berisi perpindahan DST).
+  const daysInMonth = getDateParts(monthEnd, timeZone).day;
   const totalCells = Math.ceil((leadingPadding + daysInMonth) / 7) * 7;
 
-  const anchorParts = getWibDateParts(anchor);
+  const anchorParts = getDateParts(anchor, timeZone);
   return Array.from({ length: totalCells }, (_, index) => {
-    const cellDate = addDays(gridStart, index);
-    const cellParts = getWibDateParts(cellDate);
+    const cellDate = addDays(gridStart, index, timeZone);
+    const cellParts = getDateParts(cellDate, timeZone);
     return {
       date: cellDate,
-      dateKey: toWibDateKey(cellDate),
+      dateKey: toDateKey(cellDate, timeZone),
       isCurrentMonth:
         cellParts.year === anchorParts.year &&
         cellParts.month === anchorParts.month,
@@ -115,18 +114,23 @@ export function CalendarMonthGrid({
   connectedAccountIds = [],
   onCancelSchedule,
 }: CalendarMonthGridProps) {
+  const timeZone = useUserTimeZone();
   const { expandedKeys: expandedDateKeys, toggle: toggleExpanded } =
     useExpandableKeys();
 
-  const gridDays = useMemo(() => buildMonthGridDays(date), [date]);
+  const gridDays = useMemo(
+    () => buildMonthGridDays(date, timeZone),
+    [date, timeZone],
+  );
   const weeks = useMemo(() => chunkIntoWeeks(gridDays), [gridDays]);
-  const todayKey = toWibDateKey(new Date());
+  const todayKey = toDateKey(new Date(), timeZone);
 
   const connectedAccountIdsKey = connectedAccountIds.join(",");
   const entriesByDate = useMemo(() => {
     const map = new Map<string, CalendarCardEntry[]>();
     for (const entry of flattenCalendarItemsToEntries(
       items,
+      timeZone,
       connectedAccountIds,
     )) {
       const entries = map.get(entry.dateKey) ?? [];
@@ -135,7 +139,7 @@ export function CalendarMonthGrid({
     }
     return map;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items, connectedAccountIdsKey]);
+  }, [items, connectedAccountIdsKey, timeZone]);
 
   return (
     <Card className="gap-2 p-3">
@@ -209,7 +213,7 @@ export function CalendarMonthGrid({
                             : "text-muted-foreground",
                       )}
                     >
-                      {getWibDateParts(day.date).day}
+                      {getDateParts(day.date, timeZone).day}
                     </Text>
 
                     {day.isCurrentMonth &&

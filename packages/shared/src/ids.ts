@@ -12,8 +12,8 @@ export type PostTargetId = string & { readonly _brand: "PostTargetId" };
 export type MediaId = string & { readonly _brand: "MediaId" };
 export type InboxItemId = string & { readonly _brand: "InboxItemId" };
 export type ReplyId = string & { readonly _brand: "ReplyId" };
-export type AIRequestId = string & { readonly _brand: "AIRequestId" };
-export type AIResultId = string & { readonly _brand: "AIResultId" };
+export type McpGrantId = string & { readonly _brand: "McpGrantId" };
+export type McpAuditLogId = string & { readonly _brand: "McpAuditLogId" };
 export type PostMetricsId = string & { readonly _brand: "PostMetricsId" };
 export type WorkspaceSnapshotId = string & {
   readonly _brand: "WorkspaceSnapshotId";
@@ -73,4 +73,12 @@ export function asInboxItemId(value: string): InboxItemId {
 
 export function asReplyId(value: string): ReplyId {
   return value as ReplyId;
+}
+
+export function asMcpGrantId(value: string): McpGrantId {
+  return value as McpGrantId;
+}
+
+export function asMcpAuditLogId(value: string): McpAuditLogId {
+  return value as McpAuditLogId;
 }

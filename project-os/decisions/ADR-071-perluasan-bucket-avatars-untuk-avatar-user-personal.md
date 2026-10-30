@@ -6,7 +6,7 @@ Perluasan Bucket Supabase Storage `avatars` untuk Avatar User Personal (T-016.2)
 
 ### Status
 
-Accepted — Amended by ADR-075 (2026-08-07)
+Accepted — Amended by ADR-075 (2026-08-07), ADR-145 (2026-10-28)
 
 ### Date
 

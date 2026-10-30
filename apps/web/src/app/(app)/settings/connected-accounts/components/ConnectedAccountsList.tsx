@@ -31,6 +31,7 @@ import {
   type ConnectResult,
 } from "@/domains/workspace";
 import { useConfirmAction } from "@/lib/hooks/use-confirm-action";
+import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
 import { formatConnectedDate } from "@/lib/utils/format-date";
 import { cn, getInitials } from "@/lib/utils";
 
@@ -287,6 +288,7 @@ function ConnectedAccountRow({
   canManage: boolean;
   onRequestDisconnect: (account: ConnectedAccountRecord) => void;
 }) {
+  const timeZone = useUserTimeZone();
   const displayStatus = resolveConnectionDisplayStatus(account);
   const entry = PLATFORM_ICON[account.platform];
   const platformLabel = entry?.label ?? account.platform;
@@ -309,7 +311,7 @@ function ConnectedAccountRow({
             <Text variant="small">{account.handle}</Text>
             <Text variant="muted">
               {platformLabel} · Terhubung sejak{" "}
-              {formatConnectedDate(account.connectedAt)}
+              {formatConnectedDate(account.connectedAt, timeZone)}
             </Text>
           </div>
         </div>

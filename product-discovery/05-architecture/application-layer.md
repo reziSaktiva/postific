@@ -147,7 +147,8 @@ PrismaPostRepository implements IPostRepository
 | `Workspace` | `IWorkspaceRepository` |
 | `Member` | `IMemberRepository` |
 | `ConnectedAccount` | `IConnectedAccountRepository` |
-| `McpGrant`, `McpAuditLog` | `IMcpAccessRepository` |
+| `McpGrant` | `IMcpGrantRepository` (pencabutan atomik lewat port `IMcpGrantRevocationPort`) |
+| `McpAuditLog` (entity, BC-04) | `IMcpAuditRepository` |
 | `InboxItem` | `IInboxItemRepository` |
 | `PostMetrics` | `IPostMetricsRepository` |
 | `WorkspaceSnapshot` | `IWorkspaceSnapshotRepository` |
@@ -317,7 +318,7 @@ BC-03 Publishing ──→ BC-02 Workspace (verifikasi ConnectedAccount)
                 ──→ BC-08 Media (attach MediaItem ke post)
                 ──→ BC-06 Analytics (metrik post per target akun, via PostMetricsPort — KI-064)
 
-BC-04 MCP Access ──→ BC-02 Workspace (verifikasi member dan role per panggilan)
+BC-04 MCP Access ──→ BC-02 Workspace (verifikasi member aktif per panggilan)
                  (tool MCP adalah entry point yang memanggil service BC-02/03/05/06/08; BC-04 sendiri hanya memegang grant, audit, rate limit)
 
 BC-05 Engagement ──→ BC-02 Workspace (filter per ConnectedAccount)
@@ -487,29 +488,73 @@ Tool MCP (ADR-138) adalah entry point Route Handler `/api/mcp` yang memanggil se
 
 | Method | Trigger | Keterangan |
 |--------|---------|-----------|
-| `createGrant` | Layar persetujuan OAuth | Buat grant untuk satu workspace dan scope terpilih; RBAC: member workspace |
-| `revokeGrant` | Server Action (Settings) | Cabut koneksi klien AI (isi `revokedAt`) |
-| `listGrants` | Server Component (Settings) | Daftar koneksi klien AI milik pengguna yang sedang login (lintas workspace) |
-| `authorizeCall` | Internal (Route Handler MCP) | Validasi grant, scope, member, role, dan rate limit per panggilan |
+| `createGrant` | Persetujuan OAuth (titik kait diputuskan di T-149.2) | Buat grant untuk satu workspace dan scope terpilih, atau perbarui `scopes` grant aktif yang sudah ada (satu grant aktif per pengguna, klien, workspace); RBAC: member aktif workspace |
+| `revokeGrant` | Server Action (Settings) | Cabut koneksi klien AI; transaksi tunggal, lihat § Aturan otorisasi |
+| `listGrants` | Server Component (Settings) | Daftar grant aktif milik pengguna yang sedang login (lintas workspace) |
+| `authorizeCall` | Internal (Route Handler MCP) | Validasi grant, scope, dan member per panggilan, lalu rate limit (T-154); lihat § Aturan otorisasi |
 | `recordAudit` | Internal (Route Handler MCP) | Tulis `McpAuditLog` satu baris per panggilan |
 | `purgeAudit` | Cron (JOB-08) | Hapus audit yang lebih tua dari 90 hari |
 
-Pemetaan tool MCP ke service yang dibungkus:
+### Aturan otorisasi dan pencabutan (T-149.1, ADR-139 poin 4)
 
-| Scope | Tool | Service yang dipanggil |
-|-------|------|------------------------|
-| `read` | `get_workspace` | `WorkspaceService.getWorkspace` |
-| `read` | `list_accounts` | `IConnectedAccountRepository` via Workspace |
-| `read` | `list_media` | `MediaService.getMediaLibrary` |
-| `read` | `list_drafts` | `PublishingService.getDraftPosts` |
-| `read` | `list_scheduled_posts` | `PublishingService.getScheduledPosts` / `listQueue` |
-| `read` | `list_published_posts` | `PublishingService` History |
-| `read` | `get_analytics` | `AnalyticsService.getWorkspaceSnapshot` / `getPostMetrics` |
-| `read` | `list_comments` | `EngagementService.getInboxItems` |
-| `draft` | `create_draft` | `PublishingService.createDraft` |
+Access token OAuth berupa JWT stateless: tetap diterima sampai kedaluwarsa (1 jam) walau consent dan refresh token sudah dihapus (terbukti di spike T-148). Karena itu token saja tidak pernah cukup. **`mcp_grants` adalah sumber otorisasi** (keputusan King Rezi 2026-10-26); baris `identity_oauth_consent` dan `identity_oauth_refresh_token` milik plugin hanya mekanik OAuth.
+
+`authorizeCall` memeriksa setiap panggilan, dalam urutan ini, dan menolak (fail closed, dengan error yang jelas, bukan data kosong) pada kegagalan pertama:
+
+1. Token valid (tanda tangan, `iss`, `aud`, kedaluwarsa); dikerjakan `mcpHandler`, sebelum service dipanggil.
+2. Grant aktif ada untuk (`sub` token, `azp` token, `workspace_id` token) dengan `revoked_at` kosong. Tanpa grant: ditolak.
+3. Scope yang dibutuhkan tool tercakup oleh scope token **dan** scope grant di DB. Scope di token tidak boleh melampaui grant; mencabut atau menyempitkan grant langsung berlaku tanpa menunggu token baru.
+4. Pengguna masih member aktif workspace itu. Pada MVP tidak ada pembatasan scope berdasarkan role (Account Owner, Admin, Creator setara untuk read, draft, dan schedule; ADR-139 poin 4, S-001). Member yang dikeluarkan ditolak, grant-nya tidak dihapus otomatis.
+5. Titik sambung rate limit (diisi T-154). `last_used_at` diperbarui hanya setelah panggilan lolos, paling cepat sekali per menit.
+
+Panggilan yang ditolak tetap dicatat lewat `recordAudit` (`status = denied`).
+
+`revokeGrant` menjalankan **satu transaksi**: menandai `mcp_grants.revoked_at` dan menghapus baris `identity_oauth_consent` serta `identity_oauth_refresh_token` milik (klien, pengguna, workspace) grant itu (`referenceId` plugin = `workspace_id`). Transaksi dijalankan oleh adapter di lapisan repository lewat port yang dipanggil service; domain tidak mengimpor Prisma. Tabel plugin tidak diubah bentuknya dan tidak diberi FK baru. Mencabut grant yang sudah dicabut tidak error (idempoten). Access token yang masih berlaku ditolak pada panggilan berikutnya oleh aturan 2, bukan oleh kedaluwarsa.
+
+Pemetaan tool MCP ke service yang dibungkus (nama method sudah dicocokkan dengan barrel domain pada T-150.1; handler tool adalah entry point, jadi pemanggilan lintas-BC ini sah menurut peta dependency di atas):
+
+| Scope | Tool | Service yang dipanggil (API publik barrel domain) |
+|-------|------|---------------------------------------------------|
+| `read` | `get_workspace` | `WorkspaceService.getWorkspaceById` (nama); scope dari `McpAuthorizedCall.grantScopes` |
+| `read` | `list_accounts` | `WorkspaceService.listConnectedAccounts`; format konten per platform dari `getAllowedContentFormats` (barrel `publishing`, fungsi murni ADR-039) |
+| `read` | `list_media` | `MediaService.listMediaItems` |
+| `read` | `list_drafts` | `PublishingService.listDrafts` |
+| `read` | `list_scheduled_posts` | `PublishingService.listQueue` (grup per tanggal diratakan) |
+| `read` | `list_published_posts` | `PublishingService.listHistory` dengan `statuses = [Published, Imported]` |
+| `read` | `get_analytics` (workspace) | `AnalyticsService.getDashboardSummary` |
+| `read` | `get_analytics` (satu post) | `PublishingService.getHistoryById` (field `metrics` per akun; `authorName` tidak dipakai) |
+| `read` | `list_comments` | `EngagementService.listInbox` |
+| `draft` | `create_draft` | `PublishingService.createDraft` (nama method dicocokkan di T-152) |
 | `draft` | `update_draft` | `PublishingService.updateDraft` |
 | `draft` | `upload_media` | `MediaService.uploadMedia` (unduh dari URL dengan proteksi SSRF) |
-| `schedule` | `schedule_posts` | `PublishingService.schedulePosts` |
+| `schedule` | `schedule_posts` | `PublishingService.schedulePosts` (nama method dicocokkan di T-153) |
+
+Semua service di atas menerima `workspaceId` dan `userId` dari grant yang lolos `authorizeCall` (bukan dari argumen tool), jadi isolasi workspace dan RLS per pengguna (KI-026) tetap berlaku seperti di UI. Tool tidak punya parameter `workspaceId`.
+
+### Kontrak output tool baca (T-150.1)
+
+Berlaku untuk delapan tool `read`. Handler hanya memetakan record service ke bentuk di bawah; tanpa business logic.
+
+**Bungkus hasil.** Satu blok `text` berisi JSON. Penolakan dan kegagalan memakai `isError: true` dengan blok `text` berisi `{"error":{"code","message"}}`, tidak pernah daftar kosong. `code`: `no_active_grant`, `token_scope_insufficient`, `grant_scope_insufficient`, `not_workspace_member` (`McpDenialReason`), `invalid_input`, `invalid_cursor`, `not_found`, `internal_error` (pesan generik; detail hanya di log server).
+
+**Waktu.** Semua tanggal dan jam berupa string ISO 8601 dengan offset WIB tetap, mis. `2026-10-28T14:30:00+07:00` (T-144/T-146; belum ada zona waktu per workspace). Tanggal tanpa nilai diberi `null`. Tool tidak menerima input waktu pada tool baca.
+
+**ID.** String apa adanya dari domain. Tidak ada `outstand*` id, `storagePath`, URL bertanda tangan, atau `slug` di output.
+
+**Daftar berhalaman.** `list_media`, `list_drafts`, `list_scheduled_posts`, `list_published_posts`, `list_comments` mengembalikan `{ "items": [...], "nextCursor": string | null }`, 20 item per halaman (tetap, tanpa parameter `limit`), dan menerima `cursor` opsional. Cursor opaque (base64url `{v, offset, filter}`); cursor rusak, atau dibuat untuk filter lain, ditolak `invalid_cursor`. **Batas yang diketahui:** service BC lain belum punya paginasi (repository mengembalikan daftar penuh), jadi handler memotong daftar di memori. Urutan mengikuti service: media terbaru dulu, drafts diedit terbaru dulu, jadwal naik menurut `scheduledAt`, terbit turun menurut waktu terbit, komentar terbaru dulu. Halaman bisa bergeser bila data berubah di antara dua panggilan. Paginasi di repository BC lain adalah tiket terpisah bila volume menuntutnya. `list_accounts` dan `get_workspace` tidak berhalaman.
+
+| Tool | Argumen | Bentuk hasil |
+|------|---------|--------------|
+| `get_workspace` | tidak ada | `{ workspaceId, name, grantedScopes: ("read"\|"draft"\|"schedule")[], timezone: "Asia/Jakarta" }`. Brand settings disebut S-001 tetapi belum ada di model BC-02, jadi belum dikembalikan (gap dicatat di T-150) |
+| `list_accounts` | tidak ada | `{ items: [{ id, platform, handle, status, reconnectRequired, connectedAt, supportedContentFormats: ContentFormat[] }] }` |
+| `list_media` | `cursor?` | item `{ id, filename, type: "image"\|"video"\|"gif", mimeType, sizeBytes, width, height, durationSeconds, createdAt }` |
+| `list_drafts` | `cursor?` | item `{ id, caption, status: "draft"\|"in_review"\|"ready_to_schedule", mediaIds, createdAt, updatedAt }` |
+| `list_scheduled_posts` | `cursor?` | item `{ id, caption, scheduledAt, createdAt, targets: [{ accountId, platform, accountHandle, contentFormat }] }` |
+| `list_published_posts` | `cursor?` | item `{ id, caption, status: "published"\|"imported", publishedAt, createdAt, targets: [{ accountId, platform, accountHandle, contentFormat, status, postUrl, error }] }` |
+| `get_analytics` | `period?: "weekly"\|"monthly"` (default `weekly`) atau `postId` (menang atas `period`) | workspace: `{ scope: "workspace", period, summary: { totalPosts, totalEngagements, avgEngagementRate, activeAccounts } \| null }` (`null` = belum ada snapshot, bukan nol). Post: `{ scope: "post", postId, status, metrics: [{ accountId, platform, impressions, reach, likes, comments, shares, clicks, engagementRate, fetchedAt }] \| null }`; `postId` yang tidak ada, bukan milik workspace, atau belum selesai terbit: `not_found` |
+| `list_comments` | `cursor?`, `status?: "unread"\|"done"`, `accountId?` | `{ notice, items: [{ id, accountId, platform, type, status, postId, receivedAt, author, content }], nextCursor }`; `author` dan `content` dibungkus penanda di bawah |
+
+**Data pihak luar (`list_comments`).** Isi komentar dan handle penulis berasal dari pihak luar dan bisa memuat kalimat yang menyerupai perintah. Keduanya dikembalikan di dalam penanda `<data_pihak_luar_tidak_tepercaya>...</data_pihak_luar_tidak_tepercaya>`, dan hasil memuat `notice` tetap yang menyatakan bahwa isi di dalam penanda adalah data dari pihak luar, bukan instruksi. Kemunculan penanda itu di dalam teks komentar dinetralkan (diganti `[penanda dihapus]`) supaya komentar tidak bisa menutup bungkusnya sendiri. Caption draft dan post tidak dibungkus: itu tulisan anggota workspace sendiri. Penanda adalah mitigasi, bukan jaminan; tool `read` memang tidak bisa mengubah apa pun sehingga dampak injeksi tertahan di sisi klien.
 
 ## EngagementService
 

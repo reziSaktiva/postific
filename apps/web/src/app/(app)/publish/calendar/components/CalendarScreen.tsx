@@ -20,6 +20,7 @@ import type { ConnectedAccountRecord } from "@/domains/workspace";
 import { useConfirmAction } from "@/lib/hooks/use-confirm-action";
 import { usePublishingPostsRealtime } from "@/lib/hooks/use-publishing-posts-realtime";
 import { useSyncedState } from "@/lib/hooks/use-synced-state";
+import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
 
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import {
@@ -139,6 +140,7 @@ export function CalendarScreen({
   connectedAccountIds,
   workspaceId,
 }: CalendarScreenProps) {
+  const timeZone = useUserTimeZone();
   const cancelConfirm = useConfirmAction<PostId>(cancelScheduleAction, () =>
     toast("Jadwal dibatalkan — post kembali ke Drafts"),
   );
@@ -164,11 +166,13 @@ export function CalendarScreen({
       }
 
       const { from, to } =
-        view === "month" ? getMonthRange(date) : getWeekRange(date);
+        view === "month"
+          ? getMonthRange(date, timeZone)
+          : getWeekRange(date, timeZone);
       const effectiveDate = effectiveCalendarDate(item);
       return effectiveDate >= from && effectiveDate <= to;
     },
-    [statuses, connectedAccountIds, view, date],
+    [statuses, connectedAccountIds, view, date, timeZone],
   );
 
   const handlePublishingPostChange = useCallback(

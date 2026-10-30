@@ -6,6 +6,11 @@ import {
   EnqueueAnalyticsSyncUseCase,
 } from "@/domains/analytics";
 import {
+  EnqueueMcpAuditPurgeUseCase,
+  MCP_AUDIT_PURGE_JOB_TYPE,
+  McpAuditPurgeJobHandler,
+} from "@/domains/mcp-access";
+import {
   ENGAGEMENT_SYNC_JOB_TYPE,
   EngagementSyncJobHandler,
   SyncCommentsUseCase,
@@ -33,6 +38,8 @@ import { notificationRepository } from "@/lib/repositories/notification";
 import { analyticsRepository } from "@/lib/repositories/analytics";
 import { createAnalyticsSyncJobsPort } from "@/lib/jobs/analytics-sync-enqueue-port";
 import { createImportSyncJobsPort } from "@/lib/jobs/import-sync-enqueue-port";
+import { createMcpAuditPurgeJobsPort } from "@/lib/jobs/mcp-audit-purge-enqueue-port";
+import { getMcpAccessService } from "@/lib/mcp-access/get-mcp-access-service";
 import {
   importJobRepository,
   publishingRepository,
@@ -56,15 +63,16 @@ import { workspaceRepository } from "@/lib/repositories/workspace";
  * Registry: JOB-07 (`RESOLVE_SCHEDULED_POST_OUTCOME_JOB_TYPE`), JOB-03
  * (`ENGAGEMENT_SYNC_JOB_TYPE`), JOB-04 (`ANALYTICS_SYNC_JOB_TYPE`, T-048),
  * JOB-05 (`IMPORT_SYNC_JOB_TYPE`, T-115 — hanya baris antrian
- * `queued: true`). JOB-01 (webhook processing) SENGAJA TETAP inline sync di
+ * `queued: true`), JOB-08 (`MCP_AUDIT_PURGE_JOB_TYPE`, T-149.7 — purge audit
+ * MCP). JOB-01 (webhook processing) SENGAJA TETAP inline sync di
  * `/api/webhooks/outstand/route.ts`.
  *
- * Fan-out JOB-04 dan JOB-05 menumpang cron menit yang sudah hidup
+ * Fan-out JOB-04, JOB-05, dan JOB-08 menumpang cron menit yang sudah hidup
  * (`railway.cron.json`, tanpa crontab baru): paling banyak sekali per hari
  * UTC lewat `executeIfDue`, lalu `runPendingJobs` mengeksekusi job yang
- * due. `?type=analytics` dan `?type=import` memaksa antrian baru untuk
- * verifikasi manual. Kegagalan salah satu fan-out tidak boleh menahan
- * fan-out lain maupun JOB-03/JOB-07.
+ * due. `?type=analytics`, `?type=import`, dan `?type=mcp-audit-purge`
+ * memaksa antrian baru untuk verifikasi manual. Kegagalan salah satu
+ * fan-out tidak boleh menahan fan-out lain maupun JOB-03/JOB-07.
  */
 export async function POST(request: Request): Promise<Response> {
   const { JOB_SECRET } = getServerEnv();
@@ -147,6 +155,13 @@ export async function POST(request: Request): Promise<Response> {
     ),
   );
 
+  const mcpAuditPurgeHandler = new McpAuditPurgeJobHandler(
+    getMcpAccessService(),
+  );
+  const enqueueMcpAuditPurge = new EnqueueMcpAuditPurgeUseCase(
+    createMcpAuditPurgeJobsPort(),
+  );
+
   const jobType = new URL(request.url).searchParams.get("type");
 
   try {
@@ -175,6 +190,19 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 
+  try {
+    if (jobType === "mcp-audit-purge") {
+      await enqueueMcpAuditPurge.execute();
+    } else {
+      await enqueueMcpAuditPurge.executeIfDue();
+    }
+  } catch (error) {
+    console.error(
+      "[jobs/run] fan-out purge audit MCP gagal, job lain tetap dijalankan:",
+      error,
+    );
+  }
+
   const handlers: Record<string, JobHandler> = {
     [RESOLVE_SCHEDULED_POST_OUTCOME_JOB_TYPE]: (payload) =>
       resolveScheduledPostOutcomeHandler.handle(payload),
@@ -184,6 +212,7 @@ export async function POST(request: Request): Promise<Response> {
       analyticsSyncHandler.handle(payload),
     [IMPORT_SYNC_JOB_TYPE]: (payload, jobId) =>
       importSyncHandler.handle(payload, jobId),
+    [MCP_AUDIT_PURGE_JOB_TYPE]: () => mcpAuditPurgeHandler.handle(),
   };
 
   const summary = await runPendingJobs(backgroundJobStore, handlers);

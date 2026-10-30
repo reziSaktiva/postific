@@ -1,4 +1,4 @@
-import { toWibDateKey } from "../wib-time";
+import { toDateKey } from "../wib-time";
 import { ContentStatus } from "@postific/shared";
 import type { HistoryItemRecord } from "../repositories/publishing.repository";
 
@@ -49,7 +49,7 @@ export function compareHistoryItemsDesc(
 export interface HistoryGroup {
   /**
    * Kunci pengelompokan, format ISO calendar date "YYYY-MM-DD" (kalender
-   * WIB / Asia/Jakarta, T-144). Bukan untuk ditampilkan langsung — format tanggal lokal (mis.
+   * di zona waktu pengguna, T-147/ADR-146). Bukan untuk ditampilkan langsung — format tanggal lokal (mis.
    * "Senin, 14 Juli") adalah tanggung jawab UI (T-034.2), sama pola dengan
    * `QueueGroup.date`.
    */
@@ -70,12 +70,13 @@ export interface HistoryGroup {
  */
 export function groupHistoryItemsByDate(
   items: HistoryItemRecord[],
+  timeZone: string,
 ): HistoryGroup[] {
   const groups: HistoryGroup[] = [];
   const groupByDate = new Map<string, HistoryGroup>();
 
   for (const item of items) {
-    const date = toWibDateKey(historyItemOccurredAt(item));
+    const date = toDateKey(historyItemOccurredAt(item), timeZone);
     let group = groupByDate.get(date);
     if (!group) {
       group = { date, items: [] };

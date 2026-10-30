@@ -5,6 +5,13 @@ import { asUserId, asWorkspaceId, MemberStatus } from "@postific/shared";
 
 import { auth } from "@/lib/better-auth/auth";
 import { expireSessionCookie } from "@/lib/better-auth/session-cookie-name";
+import {
+  CSP_HEADER,
+  NONCE_HEADER,
+  buildPublicPageCsp,
+  generateNonce,
+  isPublicStartPagePath,
+} from "@/lib/security/public-csp";
 import { WorkspaceService } from "@/domains/workspace";
 import { getServerEnv } from "@/lib/env";
 import { workspaceRepository } from "@/lib/repositories/workspace";
@@ -61,14 +68,31 @@ import {
 // Better Auth bisa membuat session (`autoSignInAfterVerification`) sementara
 // user masih di halaman yang sama. `PUBLIC_AUTH_PATHS` akan mengarahkan
 // session itu ke "/" . Bypass membiarkan kedua keadaan membuka halaman ini.
+// `/u/[slug]` (T-070.4, ADR-128) — halaman publik Start Page, satu-satunya
+// halaman produk yang memang untuk audiens anonim (tanpa cookie session sama
+// sekali). Dibypass dengan alasan sama seperti `/invite` di atas, bukan
+// `PUBLIC_AUTH_PATHS`: daftar itu me-redirect user yang SUDAH login ke "/",
+// padahal halaman publik harus terbuka untuk siapa pun, login atau tidak.
+// Server Component-nya sendiri yang resolve data lewat use-case publik
+// `GetPublicStartPageBySlug` tanpa workspace context; header `x-workspace-*`
+// tetap di-strip oleh jalur bypass ini.
 const BYPASS_PREFIXES = [
   "/api/auth",
   "/api/jobs",
   "/api/health",
   "/api/v1",
   "/api/webhooks/outstand",
+  // MCP (ADR-139, T-148/T-150): keamanan dipindah ke handler masing-masing
+  // (JWT + grant per panggilan untuk /api/mcp, session untuk halaman
+  // consent). /api/mcp 404 kalau flag MCP (`isMcpEnabled`) mati.
+  "/api/mcp",
+  "/api/mcp-spike",
+  "/.well-known",
+  "/select-workspace",
+  "/consent",
   "/invite",
   "/verify-email",
+  "/u",
 ];
 
 const PUBLIC_AUTH_PATHS = [
@@ -126,13 +150,35 @@ function stripWorkspaceHeaders(request: NextRequest): Headers {
   return headers;
 }
 
+/**
+ * T-160 (RS-D08, ADR-144) — CSP penuh berbasis nonce, HANYA untuk `/u/*`.
+ * Pola resmi Next.js: nonce + CSP dikirim sebagai request header (dibaca
+ * Next saat render untuk menandai script framework) dan sebagai response
+ * header (ditegakkan browser). Header `x-workspace-*` sudah di-strip di
+ * `requestHeaders` yang diterima.
+ */
+function nextWithPublicCsp(requestHeaders: Headers): NextResponse {
+  const nonce = generateNonce();
+  const csp = buildPublicPageCsp({
+    nonce,
+    isDev: process.env.NODE_ENV === "development",
+  });
+  requestHeaders.set(NONCE_HEADER, nonce);
+  requestHeaders.set(CSP_HEADER, csp);
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
+  response.headers.set(CSP_HEADER, csp);
+  return response;
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (BYPASS_PREFIXES.some((prefix) => isUnderPath(pathname, prefix))) {
-    return NextResponse.next({
-      request: { headers: stripWorkspaceHeaders(request) },
-    });
+    const requestHeaders = stripWorkspaceHeaders(request);
+    if (isPublicStartPagePath(pathname)) {
+      return nextWithPublicCsp(requestHeaders);
+    }
+    return NextResponse.next({ request: { headers: requestHeaders } });
   }
 
   const isPublicAuthPage = PUBLIC_AUTH_PATHS.some((path) =>

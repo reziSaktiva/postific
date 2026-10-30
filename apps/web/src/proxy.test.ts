@@ -277,4 +277,124 @@ describe("proxy (middleware)", () => {
     }
     expect(getSessionMock).not.toHaveBeenCalled();
   });
+  describe("/u/[slug] public Start Page (T-070.4/T-070.7, ADR-128)", () => {
+    it("does not redirect to /login with no cookie at all, and never validates a session", async () => {
+      getSessionCookieMock.mockReturnValue(null);
+
+      for (const pathname of ["/u/raka", "/u/raka/", "/u/some-slug-123"]) {
+        const response = await proxy(makeRequest(pathname));
+        expect(response.status).toBe(200);
+        expect(response.headers.get("location")).toBeNull();
+      }
+      expect(getSessionMock).not.toHaveBeenCalled();
+    });
+
+    it("lets the click-redirect route /u/[slug]/go/[linkId] through with no cookie (T-074)", async () => {
+      getSessionCookieMock.mockReturnValue(null);
+
+      const response = await proxy(
+        makeRequest("/u/raka/go/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"),
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("location")).toBeNull();
+      expect(getSessionMock).not.toHaveBeenCalled();
+    });
+
+    it("does not redirect a logged-in visitor to / (bypass, not PUBLIC_AUTH_PATHS)", async () => {
+      getSessionCookieMock.mockReturnValue("some-cookie-value");
+
+      const response = await proxy(makeRequest("/u/raka", "x=y"));
+
+      expect(response.headers.get("location")).toBeNull();
+      expect(getSessionMock).not.toHaveBeenCalled();
+    });
+
+    it("strips client-forged x-workspace-* headers on the public route", async () => {
+      getSessionCookieMock.mockReturnValue(null);
+
+      const response = await proxy(
+        makeRequest("/u/raka", undefined, {
+          "x-workspace-id": "forged-workspace",
+          "x-workspace-role": "owner",
+        }),
+      );
+
+      expect(response.headers.get("x-middleware-request-x-workspace-id")).toBe(
+        null,
+      );
+      expect(
+        response.headers.get("x-middleware-request-x-workspace-role"),
+      ).toBe(null);
+    });
+
+    it("sets a per-request nonce CSP on /u/* (request + response header, T-160)", async () => {
+      getSessionCookieMock.mockReturnValue(null);
+
+      const first = await proxy(makeRequest("/u/raka"));
+      const second = await proxy(makeRequest("/u/raka/go/abc"));
+
+      const nonceOf = (response: Response) =>
+        response.headers.get("x-middleware-request-x-nonce")!;
+      const csp = first.headers.get("content-security-policy")!;
+      expect(nonceOf(first)).toBeTruthy();
+      expect(nonceOf(first)).not.toBe(nonceOf(second));
+      expect(csp).toContain(`'nonce-${nonceOf(first)}'`);
+      expect(csp).toContain("frame-ancestors 'none'");
+      expect(
+        first.headers.get("x-middleware-request-content-security-policy"),
+      ).toBe(csp);
+    });
+
+    it("overwrites a client-forged x-nonce on /u/*", async () => {
+      getSessionCookieMock.mockReturnValue(null);
+
+      const response = await proxy(
+        makeRequest("/u/raka", undefined, { "x-nonce": "forged" }),
+      );
+
+      expect(response.headers.get("x-middleware-request-x-nonce")).not.toBe(
+        "forged",
+      );
+    });
+
+    it("does not add the public CSP to any other route (auth/app/bypass)", async () => {
+      getSessionCookieMock.mockReturnValue(null);
+
+      for (const pathname of [
+        "/login",
+        "/invite/abc",
+        "/verify-email",
+        "/api/health",
+      ]) {
+        const response = await proxy(makeRequest(pathname));
+        expect(response.headers.get("content-security-policy")).toBeNull();
+        expect(response.headers.get("x-middleware-request-x-nonce")).toBeNull();
+      }
+    });
+
+    it("does not widen the bypass to look-alike prefixes (/user, /uploads)", async () => {
+      getSessionCookieMock.mockReturnValue(null);
+
+      for (const pathname of ["/user", "/uploads/x", "/u-raka"]) {
+        const response = await proxy(makeRequest(pathname));
+        expect(new URL(response.headers.get("location")!).pathname).toBe(
+          "/login",
+        );
+      }
+    });
+  });
+
+  it("bypasses the session gate for /api/mcp and /.well-known/* (T-150: OAuth discovery + Bearer, tanpa cookie)", async () => {
+    for (const pathname of [
+      "/api/mcp",
+      "/.well-known/oauth-protected-resource/api/mcp",
+      "/.well-known/oauth-authorization-server",
+    ]) {
+      getSessionCookieMock.mockReturnValue(null);
+      const response = await proxy(makeRequest(pathname));
+      expect(response.headers.get("location")).toBeNull();
+    }
+    expect(getSessionMock).not.toHaveBeenCalled();
+  });
 });

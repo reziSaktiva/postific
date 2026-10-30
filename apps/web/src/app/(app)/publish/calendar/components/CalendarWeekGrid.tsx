@@ -4,7 +4,8 @@ import { useMemo } from "react";
 
 import type { ConnectedAccountId, PostId } from "@postific/shared";
 import type { CalendarPostItem } from "@/domains/publishing";
-import { getWeekRange, getWibDateParts } from "@/domains/publishing";
+import { getDateParts, getWeekRange } from "@/domains/publishing";
+import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -25,7 +26,7 @@ import {
   DAY_LABELS,
   flattenCalendarItemsToEntries,
   MAX_VISIBLE_PER_CELL,
-  toWibDateKey,
+  toDateKey,
   useExpandableKeys,
   WEEK_HOUR_LABELS,
 } from "./calendar-grid-shared";
@@ -67,21 +68,28 @@ export function CalendarWeekGrid({
   connectedAccountIds = [],
   onCancelSchedule,
 }: CalendarWeekGridProps) {
+  const timeZone = useUserTimeZone();
   const { expandedKeys: expandedCellKeys, toggle: toggleExpanded } =
     useExpandableKeys();
 
   const days = useMemo(() => {
-    const { from: weekStart } = getWeekRange(date);
-    return Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
-  }, [date]);
-  const dayKeys = useMemo(() => days.map(toWibDateKey), [days]);
-  const todayKey = toWibDateKey(new Date());
+    const { from: weekStart } = getWeekRange(date, timeZone);
+    return Array.from({ length: 7 }, (_, index) =>
+      addDays(weekStart, index, timeZone),
+    );
+  }, [date, timeZone]);
+  const dayKeys = useMemo(
+    () => days.map((day) => toDateKey(day, timeZone)),
+    [days, timeZone],
+  );
+  const todayKey = toDateKey(new Date(), timeZone);
 
   const connectedAccountIdsKey = connectedAccountIds.join(",");
   const cellEntries = useMemo(() => {
     const map = new Map<string, CalendarCardEntry[]>();
     for (const entry of flattenCalendarItemsToEntries(
       items,
+      timeZone,
       connectedAccountIds,
     )) {
       const dayIndex = dayKeys.indexOf(entry.dateKey);
@@ -94,7 +102,7 @@ export function CalendarWeekGrid({
     }
     return map;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items, connectedAccountIdsKey, dayKeys]);
+  }, [items, connectedAccountIdsKey, dayKeys, timeZone]);
 
   return (
     <Card className="gap-3 p-3">
@@ -134,7 +142,7 @@ export function CalendarWeekGrid({
                       isToday ? "font-bold text-primary" : "font-normal",
                     )}
                   >
-                    {getWibDateParts(day).day}
+                    {getDateParts(day, timeZone).day}
                   </Text>
                 </div>
               );

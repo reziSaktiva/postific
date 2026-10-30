@@ -1337,6 +1337,13 @@ Claude Design tutup **2026-12-14**.
       project lama (UUID di URL project di claude.ai/design) supaya AI bisa
       membaca `list_files` dan membandingkannya, hanya baca. Hasilnya daftar
       layar yang hanya ada di project lama (boleh kosong)
+      _Perbandingan awal AI 2026-10-26 (hanya baca, `DesignSync list_files`
+      memakai `projectId` dari `context/ctx-design.md`, tingkat nama file):
+      tidak ada layar yang hanya ada di project lama. Semua template lama
+      punya padanan kartu `Screen*` di artifact. `templates/oauth-consent.html`
+      lama adalah versi satu halaman (lima state) yang sudah digantikan kartu
+      `ScreenOauthConsent` dua langkah. Isi tiap file belum dibandingkan, jadi
+      T-158.1 masih menunggu King Rezi memastikan di galeri._
 - [ ] **T-158.2** Untuk tiap layar yang hanya ada di project lama dan masih
       dipakai: Neymar Product Designer memindahkannya ke artifact Postific,
       lalu King Rezi mengonfirmasinya lewat galeri review. Layar yang tidak
@@ -1350,3 +1357,124 @@ Claude Design tutup **2026-12-14**.
 **Bukan bagian tiket ini:** sebutan Claude Design di ADR lama dan tiket yang
 sudah selesai adalah riwayat. Label "Gate Claude Design" dan nama folder skill
 `claude-design-scope-discipline` sengaja dipertahankan (ADR-140).
+
+---
+
+### T-177 · Kedipan terang saat memuat halaman dalam mode gelap untuk pengunjung tanpa cookie `theme` (KI-104, ADR-055)
+
+| Field       | Value                                                                                                                                        |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**  | 🟡 In Progress (2026-10-29: T-177.1 sampai .4 selesai, kode di PR 219; ditutup setelah ter-merge dan terbukti di staging; KI-104 tetap Open) |
+| **Domain**  | UI (tema), halaman publik Start Page; kemungkinan berlaku di seluruh aplikasi                                                                |
+| **Spec**    | tidak ada — single-issue                                                                                                                     |
+| **Docs**    | KI-104, ADR-055 (amendemen T-039), ADR-097 poin 9, T-171, `app/layout.tsx`                                                                   |
+| **Terkait** | T-171 (ditemukan di uji otomatis T-171.2), T-039                                                                                             |
+| **Depends** | keputusan King Rezi soal pendekatan perbaikan                                                                                                |
+
+**Ditemukan (2026-10-29):** uji Playwright lintas browser di staging untuk T-171.2
+(Chromium, Firefox, WebKit). Dengan OS mode gelap dan tanpa cookie `theme`,
+halaman `/u/<slug>` dilukis **terang dulu**. Kelas `dark` pada `<html>` baru
+terpasang setelah lukisan pertama, lalu kartu dan lencana (`transition-colors`)
+memudar dari putih ke gelap. Latar `body` berganti seketika, jadi sesaat ada
+kartu putih di atas latar gelap, dan teks putih "Postific" di lencana putih
+nyaris tak terbaca. Mode terang tidak terpengaruh.
+
+**Bukti terukur** (per frame, `colorScheme: dark`, staging Railway, halaman publik
+`e2e-start-page`; angka lengkap di `v06-start-page-mvp.md` § T-171):
+
+| Mesin    | Kelas `dark` terpasang                  | Pemudaran lencana putih → gelap |
+| -------- | --------------------------------------- | ------------------------------- |
+| Chromium | ±283 ms setelah load                    | ±283 sampai 431 ms              |
+| Firefox  | ±890 ms (jaringan staging lebih lambat) | ±890 sampai 1036 ms             |
+| WebKit   | sudah gelap di sampel pertama (±217 ms) | ±217 sampai 353 ms              |
+
+**Kenapa ini masalah:** `app/layout.tsx` menyatakan "tidak ada flash tema salah"
+(ADR-055) dan memasang skrip `theme-system-default` (`beforeInteractive`) justru
+untuk kasus ini: cookie `theme` belum ada, jadi mode mengikuti OS. Pengunjung
+halaman publik hampir selalu anonim tanpa cookie itu, dan banyak yang memakai OS
+mode gelap, jadi ini kasus utama halaman publik, bukan kasus pinggir.
+
+**Belum diketahui (jangan diasumsikan):**
+
+- Penyebab pastinya. Yang terukur hanya urutan dan waktunya; skrip
+  `beforeInteractive` tampaknya berjalan setelah lukisan pertama. Belum diperiksa
+  bagaimana Next menyuntikkan skrip itu pada build produksi.
+- Apakah ada sebelum PR 217 dan apakah berlaku di halaman `(app)` (belum diukur;
+  hanya halaman publik yang diukur).
+- Apakah Safari asli (iOS dan macOS) menunjukkan hal yang sama. WebKit Playwright
+  menunjukkannya, tetapi bukan Safari sungguhan.
+
+**Yang harus dilakukan:**
+
+- [x] **T-177.1** (2026-10-29) Selidiki penyebab di build produksi: urutan eksekusi skrip
+      `theme-system-default` terhadap lukisan pertama, di halaman publik dan di
+      halaman `(app)`; bandingkan dengan pengguna ber-cookie `theme` eksplisit.
+      Hasilnya penyebab terbukti dan cakupannya, tanpa mengubah kode.
+      **Penyebab (terbukti dari HTML staging dan kode Next 16.2.10):** di App
+      Router, `next/script` dengan `strategy="beforeInteractive"` **tidak** menjadi
+      `<script>` inline yang berjalan saat HTML di-parse. Next mengubahnya jadi
+      antrean `(self.__next_s=self.__next_s||[]).push([0,{"children":"(function(){...classList.add(\"dark\")...})();","id":"theme-system-default"}])`
+      (HTML `/u/cook-it-real-good` dan `/login` di staging). Antrean itu hanya
+      dieksekusi oleh `loadScriptsInSequence()` di `next/dist/client/app-bootstrap.js`,
+      yaitu setelah chunk JS framework dimuat dan tepat sebelum hydration. Sementara
+      itu HTML sudah diterima, stylesheet sudah ada di `<head>`, dan `body` sudah
+      bisa dilukis dengan kelas `dark` yang belum terpasang (RSC selalu merender
+      "light" bila cookie kosong). Itu sesuai urutan terukur di atas
+      (kelas `dark` ±217 sampai 890 ms setelah load). **Cakupan:** `app/layout.tsx`
+      adalah root layout, jadi mekanisme yang sama ada di semua rute, bukan hanya
+      `/u/*` (pola antrean yang sama terbukti ada di HTML `/login`; kedipan visual di
+      halaman `(app)` belum diukur). Pengguna ber-cookie `theme` eksplisit tidak
+      terpengaruh: kelas `dark` dirender server-side dan skrip tidak dipasang.
+      **Batasan perbaikan:** pada `/u/*`, CSP berbasis nonce dengan
+      `'strict-dynamic'` (T-160, ADR-144) memblokir `<script>` inline tanpa nonce,
+      jadi skrip inline sungguhan di `<head>` perlu nonce dari header `x-nonce`
+      (hanya ada di `/u/*`)
+- [x] **T-177.2** (2026-10-29, King Rezi memilih skrip inline sinkron; tanpa
+      perubahan tampilan sehingga tidak butuh rancangan baru, ADR-055 tidak
+      berubah) King Rezi memutuskan pendekatan perbaikan setelah penyebab
+      jelas. Catat di tiket ini (atau ADR bila mengubah keputusan ADR-055).
+      Karena tampilan yang terlihat pengguna berubah, ini **UI/UX-related**:
+      cek artifact Postific lebih dulu (aturan UI #10) sebelum kode
+- [x] **T-177.3** (2026-10-29) Perbaiki dan tambahkan tes E2E Playwright.
+      **Hasil:** `app/layout.tsx` memakai `<script>` inline biasa di `<head>`
+      (bukan `next/script`), dengan `nonce` dari header `x-nonce` (ada di `/u/*`).
+      Tes baru `apps/web/e2e/theme.e2e.ts` (5 tes: OS gelap, OS terang, cookie
+      `theme=light`, di `/login` dan `/u/e2e-start-page`). **Terverifikasi:** build
+      produksi lokal (`next build` + `next start`): HTML memuat skrip inline di
+      `<head>` (bukan antrean `__next_s`), 5 dari 5 lolos, 0 pesan konsol
+      (tanpa pelanggaran CSP dan tanpa peringatan hydration); build lama di staging
+      **gagal** pada tes OS gelap di kedua rute (kelas `dark` belum ada saat body
+      muncul), jadi tes terbukti menangkap bug. Typecheck, eslint, dan `bun run test`
+      (1532 lolos) hijau. **Batasan:** 404 `/u/<slug tak ada>` memakai shell error
+      yang dirender di client (tanpa skrip tema di HTML awal), jadi tidak
+      diuji dan tidak diubah di sini; belum diukur apakah itu kedipan nyata (body
+      shell kosong). Tes dijalankan di Chrome saja (config E2E), kedipan di Firefox
+      dan WebKit tidak diukur ulang setelah perbaikan. Tes asli:
+      dengan
+      `colorScheme: dark` dan tanpa cookie, kelas `dark` sudah terpasang pada
+      lukisan pertama dan warna kartu/lencana tidak berubah selama 1 detik
+      pertama (definisi tiket selesai ADR-149). Baca CSP sebelum screenshot
+      (screenshot Playwright WebKit menyuntik `<style>`, lihat T-171)
+- [x] **T-177.4** (2026-10-29, diuji King Rezi) Verifikasi di Safari asli (iOS gelap dan macOS gelap) dan
+      catat di tabel hasil T-171.2. **Hasil:** build lokal yang sudah diperbaiki
+      (`next start`, dibuka lewat tunnel ngrok sementara, halaman
+      `/u/e2e-start-page`, tab/jendela privat, OS gelap): Safari iPhone (iOS 18) dan
+      Safari macOS tampil gelap dan **tidak ada kilas terang** menurut pengamatan
+      King Rezi (versi macOS/Safari dan model iPhone tidak dicatat). **Penting:**
+      di **build lama di staging** (halaman `cook-it-real-good`) King Rezi juga
+      **tidak melihat kilas terang** di kedua perangkat. Jadi uji mata di Safari asli
+      **tidak membedakan build lama dan baru**: kedipan KI-104 hanya terukur per
+      frame di Playwright (Chromium, Firefox, WebKit) dan tidak terlihat oleh mata
+      di Safari asli; bukti bahwa perbaikan bekerja adalah tes E2E (gagal di build
+      lama, lolos di build baru, T-177.3), bukan uji mata ini. Tunnel dan server
+      lokal sudah dimatikan. Perbaikan belum ter-deploy ke staging. **Penutupan:**
+      T-177 dan KI-104 baru ditutup (✅ Done, KI-104 keluar dari daftar) setelah
+      PR 219 ter-merge dan `theme.e2e.ts` lolos terhadap staging (hasil
+      review PR 219: status tidak boleh mendahului merge). Bukti sejauh ini
+      hanya E2E lokal. Sisa yang tidak menghalangi penutupan:
+      kedipan di Firefox dan WebKit tidak diukur ulang; 404 `/u/<slug tak ada>`
+      (shell error client) tidak diubah dan tidak diukur; kedipan visual di
+      halaman `(app)` tidak diukur
+
+**Bukan bagian tiket ini:** perubahan tampilan tema selain kedipan ini, dan
+pilihan tema Light/Dark eksplisit pengguna (cookie `theme` sudah benar).

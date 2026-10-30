@@ -10,6 +10,7 @@ import {
 } from "@/domains/publishing";
 import { WorkspaceService } from "@/domains/workspace";
 import { getCachedSession } from "@/lib/better-auth/session";
+import { getCachedUserTimeZone } from "@/lib/better-auth/user-time-zone";
 import { getWorkspaceContext } from "@/lib/workspace/workspace-context";
 import { analyticsRepository } from "@/lib/repositories/analytics";
 import { publishingRepository } from "@/lib/repositories/publishing";
@@ -59,9 +60,13 @@ export default async function Page({
     redirect("/login");
   }
   const userId = asUserId(session.user.id);
+  // T-147: zona waktu pengguna menentukan batas hari rentang Week/Month.
+  const timeZone = await getCachedUserTimeZone();
 
   const { from, to } =
-    view === "month" ? getMonthRange(date) : getWeekRange(date);
+    view === "month"
+      ? getMonthRange(date, timeZone)
+      : getWeekRange(date, timeZone);
 
   const publishingService = new PublishingService(
     publishingRepository,

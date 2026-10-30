@@ -3,7 +3,8 @@
 import { useMemo } from "react";
 
 import type { ConnectedAccountId, PostId } from "@postific/shared";
-import { WIB_TIME_ZONE, type CalendarPostItem } from "@/domains/publishing";
+import { type CalendarPostItem } from "@/domains/publishing";
+import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
 
 import { Badge } from "@/components/ui/badge";
 import { Text } from "@/components/ui/text";
@@ -21,18 +22,21 @@ import {
   CONTENT_FORMAT_LABEL,
   flattenCalendarItemsToEntries,
   formatCalendarHour,
-  toWibDateKey,
+  toDateKey,
 } from "./calendar-grid-shared";
 
 /** "Rabu, 16 Jul" — beda dari `formatGroupDateHeading` (`QueueList.tsx`,
  * `month: "long"`) karena rancangan Agenda (Claude Design
  * `templates/publish-calendar.html` § "State — Mobile Agenda") memakai
  * bulan singkat, konsisten dengan `DAY_MONTH_FORMATTER` (`CalendarToolbar.tsx`). */
+// `dateKey` sudah kalender zona pengguna (T-147) dan diparse sebagai UTC
+// midnight (`formatUtcDateKeyHeading`), jadi formatter WAJIB berzona "UTC" —
+// zona pengguna di sini akan menggeser tanggal untuk offset negatif.
 const AGENDA_DATE_HEADING_FORMATTER = new Intl.DateTimeFormat("id-ID", {
   weekday: "long",
   day: "numeric",
   month: "short",
-  timeZone: WIB_TIME_ZONE,
+  timeZone: "UTC",
 });
 
 /** Parse UTC-safe dipusatkan di `formatUtcDateKeyHeading` (`@/lib/utils`,
@@ -75,13 +79,15 @@ export function CalendarAgendaList({
   connectedAccountIds = [],
   onCancelSchedule,
 }: CalendarAgendaListProps) {
-  const todayKey = toWibDateKey(new Date());
+  const timeZone = useUserTimeZone();
+  const todayKey = toDateKey(new Date(), timeZone);
 
   const connectedAccountIdsKey = connectedAccountIds.join(",");
   const groups = useMemo(() => {
     const map = new Map<string, CalendarCardEntry[]>();
     for (const entry of flattenCalendarItemsToEntries(
       items,
+      timeZone,
       connectedAccountIds,
     )) {
       const entries = map.get(entry.dateKey) ?? [];
@@ -95,7 +101,7 @@ export function CalendarAgendaList({
         entries: [...entries].sort((a, b) => a.hour - b.hour),
       }));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `connectedAccountIdsKey` representasi stabil `connectedAccountIds` (pola sama `CalendarWeekGrid`/`CalendarMonthGrid`)
-  }, [items, connectedAccountIdsKey]);
+  }, [items, connectedAccountIdsKey, timeZone]);
 
   if (groups.length === 0) {
     return (

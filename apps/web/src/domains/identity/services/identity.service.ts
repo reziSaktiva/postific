@@ -5,6 +5,7 @@ import type { IAvatarStorageAdapter } from "../adapters/avatar-storage-adapter";
 import type { IIdentityRepository } from "../repositories/identity.repository";
 import type {
   NotificationPreferencesRecord,
+  TimeZoneSource,
   UserProfileRecord,
 } from "../types";
 import {
@@ -12,6 +13,7 @@ import {
   MAX_AVATAR_BYTES,
   MAX_NAME_LENGTH,
   parseNotificationPreferences,
+  parseTimeZone,
 } from "../validation";
 
 export interface UpdateProfileInput {
@@ -19,6 +21,13 @@ export interface UpdateProfileInput {
   name: string;
   /** `null`/`undefined` = tidak ganti avatar. */
   avatarFile?: { buffer: Buffer; contentType: string } | null;
+  /**
+   * T-147: zona waktu IANA baru; `undefined` = tidak diubah. Divalidasi di
+   * sini (daftar zona yang dikenal), bukan hanya di klien.
+   */
+  timeZone?: string;
+  /** T-147: "detected" bila zona = hasil deteksi browser (tombol reset), selain itu "manual". */
+  timeZoneSource?: Extract<TimeZoneSource, "detected" | "manual">;
 }
 
 export class IdentityService {
@@ -45,6 +54,18 @@ export class IdentityService {
       throw new ValidationError(`Nama maksimal ${MAX_NAME_LENGTH} karakter.`);
     }
 
+    const timeZone =
+      input.timeZone === undefined ? undefined : parseTimeZone(input.timeZone);
+    const timeZoneSource =
+      timeZone === undefined ? undefined : (input.timeZoneSource ?? "manual");
+    if (
+      timeZoneSource &&
+      timeZoneSource !== "detected" &&
+      timeZoneSource !== "manual"
+    ) {
+      throw new ValidationError("Zona waktu tidak valid.");
+    }
+
     let image: string | undefined;
     let uploadedAvatarExtension: string | undefined;
 
@@ -68,7 +89,12 @@ export class IdentityService {
     }
 
     try {
-      return await this.repository.updateProfile(input.userId, { name, image });
+      return await this.repository.updateProfile(input.userId, {
+        name,
+        image,
+        timeZone,
+        timeZoneSource,
+      });
     } catch (error) {
       if (uploadedAvatarExtension) {
         // Upload sudah sukses tapi DB write gagal — bersihkan file yatim
@@ -82,6 +108,20 @@ export class IdentityService {
       }
       throw error;
     }
+  }
+
+  /**
+   * T-147: simpan zona hasil deteksi browser SEKALI, hanya bila belum pernah
+   * dideteksi/diatur (`timeZoneSource` "pending"). Zona tidak valid ditolak
+   * (`ValidationError`). Mengembalikan profil baru, atau `null` bila tidak
+   * ada perubahan (sudah terdeteksi/diatur — pilihan pengguna tak ditimpa).
+   */
+  async applyDetectedTimeZone(
+    userId: UserId,
+    timeZone: unknown,
+  ): Promise<UserProfileRecord | null> {
+    const parsed = parseTimeZone(timeZone);
+    return this.repository.applyDetectedTimeZone(userId, parsed);
   }
 
   /** T-016.4: `null` = user tidak ditemukan. */

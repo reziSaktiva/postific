@@ -5,6 +5,8 @@ const {
   runPendingJobs,
   listActiveConnectedAccountsForSync,
   hasJobMatchingPayloadKey,
+  hasJobOfType,
+  purgeAudit,
   scheduleJob,
   executeImportSync,
   executeImportSyncIfDue,
@@ -20,6 +22,8 @@ const {
       }>,
   ),
   hasJobMatchingPayloadKey: vi.fn<(input: unknown) => Promise<boolean>>(),
+  hasJobOfType: vi.fn<(input: unknown) => Promise<boolean>>(),
+  purgeAudit: vi.fn(async () => ({ deleted: 0, cutoff: new Date(0) })),
   scheduleJob: vi.fn<(input: unknown) => Promise<void>>(),
   executeImportSync: vi.fn(async () => ({ enqueued: 0 })),
   executeImportSyncIfDue: vi.fn(async () => ({ enqueued: 0, skipped: true })),
@@ -86,7 +90,11 @@ vi.mock("@/lib/jobs/background-job-store", () => ({
   backgroundJobStore: {
     hasJobMatchingPayloadKey: (input: unknown) =>
       hasJobMatchingPayloadKey(input),
+    hasJobOfType: (input: unknown) => hasJobOfType(input),
   },
+}));
+vi.mock("@/lib/mcp-access/get-mcp-access-service", () => ({
+  getMcpAccessService: () => ({ purgeAudit }),
 }));
 
 const SECRET = "test-job-secret";
@@ -112,6 +120,9 @@ describe("POST /api/jobs/run (T-027.1/.2)", () => {
     runPendingJobs.mockResolvedValue({ claimed: 0, results: [] });
     listActiveConnectedAccountsForSync.mockResolvedValue([]);
     hasJobMatchingPayloadKey.mockResolvedValue(true);
+    // Default: purge audit MCP sudah terjadwal, supaya tes analytics/import
+    // tidak ikut melihat `scheduleJob` dari fan-out JOB-08.
+    hasJobOfType.mockResolvedValue(true);
     scheduleJob.mockResolvedValue(undefined);
   });
 
@@ -319,5 +330,101 @@ describe("POST /api/jobs/run (T-027.1/.2)", () => {
     expect(response.status).toBe(200);
     expect(runPendingJobs).toHaveBeenCalledTimes(1);
     expect(scheduleJob).toHaveBeenCalled();
+  });
+  describe("JOB-08 mcp.audit.purge (T-149.7)", () => {
+    function purgeScheduleCalls() {
+      return scheduleJob.mock.calls.filter(
+        ([input]) =>
+          typeof input === "object" &&
+          input !== null &&
+          "type" in input &&
+          input.type === "mcp.audit.purge",
+      );
+    }
+
+    it("enqueues an empty-payload purge job from the minute cron when none exists today", async () => {
+      hasJobOfType.mockResolvedValue(false);
+      const { POST } = await import("./route");
+
+      const response = await POST(buildRequest(SECRET));
+
+      expect(response.status).toBe(200);
+      expect(hasJobOfType).toHaveBeenCalledWith({
+        type: "mcp.audit.purge",
+        createdSince: expect.any(Date),
+      });
+      expect(purgeScheduleCalls()).toEqual([
+        [expect.objectContaining({ type: "mcp.audit.purge", payload: {} })],
+      ]);
+      expect(runPendingJobs).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not enqueue another purge job the same UTC day", async () => {
+      hasJobOfType.mockImplementation(async (input: unknown) => {
+        return (
+          typeof input === "object" &&
+          input !== null &&
+          "createdSince" in input &&
+          input.createdSince instanceof Date
+        );
+      });
+      const { POST } = await import("./route");
+
+      const response = await POST(buildRequest(SECRET));
+
+      expect(response.status).toBe(200);
+      expect(purgeScheduleCalls()).toHaveLength(0);
+      expect(runPendingJobs).toHaveBeenCalledTimes(1);
+    });
+
+    it("forces a new purge job for type=mcp-audit-purge even after today's job", async () => {
+      hasJobOfType.mockImplementation(async (input: unknown) => {
+        return (
+          typeof input === "object" &&
+          input !== null &&
+          "createdSince" in input &&
+          input.createdSince instanceof Date
+        );
+      });
+      const { POST } = await import("./route");
+
+      const response = await POST(
+        buildRequest(
+          SECRET,
+          "http://localhost/api/jobs/run?type=mcp-audit-purge",
+        ),
+      );
+
+      expect(response.status).toBe(200);
+      expect(hasJobOfType).toHaveBeenCalledWith({
+        type: "mcp.audit.purge",
+        createdSince: undefined,
+      });
+      expect(purgeScheduleCalls()).toHaveLength(1);
+    });
+
+    it("still runs pending jobs when the purge fan-out fails", async () => {
+      hasJobOfType.mockRejectedValue(new Error("db down"));
+      const { POST } = await import("./route");
+
+      const response = await POST(buildRequest(SECRET));
+
+      expect(response.status).toBe(200);
+      expect(runPendingJobs).toHaveBeenCalledTimes(1);
+    });
+
+    it("registers a mcp.audit.purge handler that calls McpAccessService.purgeAudit", async () => {
+      const { POST } = await import("./route");
+
+      await POST(buildRequest(SECRET));
+
+      const handlers = runPendingJobs.mock.calls[0]?.[1] as Record<
+        string,
+        (payload: unknown, jobId: string) => Promise<void>
+      >;
+      expect(typeof handlers["mcp.audit.purge"]).toBe("function");
+      await handlers["mcp.audit.purge"]?.({}, "job-1");
+      expect(purgeAudit).toHaveBeenCalledTimes(1);
+    });
   });
 });
