@@ -386,6 +386,8 @@ describe("list_drafts", () => {
         caption: "Draft caption",
         status: "draft",
         mediaIds: [],
+        createdVia: "app",
+        createdViaClientId: null,
         createdAt: "2026-10-03T07:00:00+07:00",
         updatedAt: "2026-10-04T07:00:00+07:00",
       },

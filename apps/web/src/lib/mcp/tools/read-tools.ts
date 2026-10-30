@@ -1,5 +1,6 @@
 import {
   ContentStatus,
+  PostCreatedVia,
   asConnectedAccountId,
   asPostId,
 } from "@postific/shared";
@@ -171,6 +172,8 @@ const listDrafts: McpToolDefinition = {
           caption: post.caption,
           status: post.status,
           mediaIds: post.mediaIds ?? [],
+          createdVia: post.createdVia ?? PostCreatedVia.App,
+          createdViaClientId: post.createdViaClientId ?? null,
           createdAt: toWibIso(post.createdAt),
           updatedAt: toWibIso(post.updatedAt),
         })),

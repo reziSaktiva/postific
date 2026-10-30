@@ -44,8 +44,27 @@ export interface PublishingPostRecord {
   createdVia?: PostCreatedVia;
   /** T-152 — `clientId` OAuth klien AI; hanya terisi bila `createdVia = mcp`. */
   createdViaClientId?: string | null;
+  /**
+   * T-157 — nama klien AI (dari `mcp_grants.client_name`), diisi SERVICE
+   * lewat `McpClientNamePort`; repository tidak mengisinya. `null`/`undefined`
+   * untuk post `app`, atau post `mcp` yang namanya tak ditemukan (UI fallback
+   * "Klien AI").
+   */
+  createdViaClientName?: string | null;
   createdAt: Date;
   updatedAt: Date;
+}
+
+/**
+ * T-157 — penanda sumber pembuatan pada record daftar (Queue/History/
+ * Calendar). `createdViaClientId` diisi repository; `createdViaClientName`
+ * selalu `null` dari repository dan di-overlay oleh `PublishingService`
+ * (pola sama `metrics`/`authorName`).
+ */
+export interface PostSourceFields {
+  createdVia: PostCreatedVia;
+  createdViaClientId: string | null;
+  createdViaClientName: string | null;
 }
 
 /**
@@ -136,7 +155,7 @@ export interface QueueItemTargetRecord {
  * post ("1 card per schedule", T-032.0), bukan 1 record per target.
  * `createdAt` dipakai UI untuk label "Dibuat X lalu" (T-032.0 putaran 1).
  */
-export interface QueueItemRecord {
+export interface QueueItemRecord extends PostSourceFields {
   id: PostId;
   caption: string;
   scheduledAt: Date;
@@ -191,7 +210,7 @@ export interface CalendarItemTargetRecord extends QueueItemTargetRecord {
   platformPostUrl: string | null;
 }
 
-export interface CalendarItemRecord {
+export interface CalendarItemRecord extends PostSourceFields {
   id: PostId;
   caption: string;
   status: ContentStatus;
@@ -249,7 +268,7 @@ export interface HistoryItemTargetRecord extends QueueItemTargetRecord {
  * jam kartu memakai `historyItemOccurredAt` (`publishedAt`/`failedAt` lebih
  * dulu, lalu `updatedAt`).
  */
-export interface HistoryItemRecord {
+export interface HistoryItemRecord extends PostSourceFields {
   id: PostId;
   caption: string;
   status: ContentStatus;

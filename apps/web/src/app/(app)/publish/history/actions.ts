@@ -9,6 +9,7 @@ import {
 import { getCachedSession } from "@/lib/better-auth/session";
 import { getWorkspaceContext } from "@/lib/workspace/workspace-context";
 import { publishingRepository } from "@/lib/repositories/publishing";
+import { getMcpClientNamePort } from "@/lib/mcp-access/get-mcp-client-name-port";
 
 /**
  * Granular patch Realtime History (T-092.6, ADR-094 poin 5, 7) — dipanggil
@@ -39,7 +40,13 @@ export async function getHistoryPostAction(
     return null;
   }
 
-  const publishingService = new PublishingService(publishingRepository);
+  const publishingService = new PublishingService(
+    publishingRepository,
+    undefined,
+    undefined,
+    undefined,
+    getMcpClientNamePort(),
+  );
 
   return publishingService.getHistoryPostById(
     workspaceId,

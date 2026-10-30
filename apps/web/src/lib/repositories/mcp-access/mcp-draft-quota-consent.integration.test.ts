@@ -810,6 +810,7 @@ describe.skipIf(!enabled)(
                 g.workspaceId === key.workspaceId,
             ) ?? null,
           touchLastUsed: async () => undefined,
+          findClientNames: async () => new Map<string, string>(),
         };
         const unused = () => {
           throw new Error("tidak dipakai");

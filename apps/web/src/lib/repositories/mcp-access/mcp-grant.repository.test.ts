@@ -260,4 +260,46 @@ describe("mcpGrantRepository", () => {
       ).rejects.toThrow(/tidak mengembalikan baris/);
     });
   });
+
+  describe("findClientNames (T-157)", () => {
+    it("filters by workspace and clientIds, includes revoked grants, newest name wins", async () => {
+      findMany.mockResolvedValue([
+        { clientId: "c1", clientName: "Terbaru" },
+        { clientId: "c2", clientName: "Claude Code" },
+        { clientId: "c1", clientName: "Lama" },
+      ]);
+
+      const names = await mcpGrantRepository.findClientNames(WORKSPACE, [
+        "c1",
+        "c2",
+      ]);
+
+      expect(names).toEqual(
+        new Map([
+          ["c1", "Terbaru"],
+          ["c2", "Claude Code"],
+        ]),
+      );
+      expect(findMany).toHaveBeenCalledWith({
+        where: {
+          workspaceId: WORKSPACE,
+          clientId: { in: ["c1", "c2"] },
+          clientName: { not: null },
+        },
+        orderBy: { createdAt: "desc" },
+        select: { clientId: true, clientName: true },
+      });
+      // Tidak memfilter revokedAt: grant dicabut tetap memberi nama.
+      expect(JSON.stringify(findMany.mock.calls[0][0].where)).not.toContain(
+        "revokedAt",
+      );
+    });
+
+    it("returns an empty map without querying for empty clientIds", async () => {
+      expect(await mcpGrantRepository.findClientNames(WORKSPACE, [])).toEqual(
+        new Map(),
+      );
+      expect(findMany).not.toHaveBeenCalled();
+    });
+  });
 });

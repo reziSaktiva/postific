@@ -20,6 +20,7 @@ import {
   type DraftTargetRecord,
   type IPublishingRepository,
   type PublishingCancelScheduleRecord,
+  type PostSourceFields,
   type PublishingPostRecord,
   type PublishingPostTargetStatus,
   type PublishingScheduleRecord,
@@ -142,8 +143,17 @@ type QueuePostWithTargets = PublishingPost & {
   })[];
 };
 
+function mapSource(post: PublishingPost): PostSourceFields {
+  return {
+    createdVia: post.createdVia as PostCreatedVia,
+    createdViaClientId: post.createdViaClientId,
+    createdViaClientName: null,
+  };
+}
+
 function mapQueueItem(post: QueuePostWithTargets): QueueItemRecord {
   return {
+    ...mapSource(post),
     id: asPostId(post.id),
     caption: post.caption,
     // Non-null: query di bawah menyaring status Scheduled, yang hanya
@@ -162,6 +172,7 @@ function mapQueueItem(post: QueuePostWithTargets): QueueItemRecord {
 
 function mapCalendarItem(post: QueuePostWithTargets): CalendarItemRecord {
   return {
+    ...mapSource(post),
     id: asPostId(post.id),
     caption: post.caption,
     status: post.status as ContentStatus,
@@ -182,6 +193,7 @@ function mapCalendarItem(post: QueuePostWithTargets): CalendarItemRecord {
 
 function mapHistoryItem(post: QueuePostWithTargets): HistoryItemRecord {
   return {
+    ...mapSource(post),
     id: asPostId(post.id),
     caption: post.caption,
     status: post.status as ContentStatus,

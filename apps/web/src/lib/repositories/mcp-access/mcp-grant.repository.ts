@@ -120,4 +120,27 @@ export const mcpGrantRepository: IMcpGrantRepository = {
       data: { lastUsedAt: usedAt },
     });
   },
+
+  async findClientNames(workspaceId, clientIds) {
+    const names = new Map<string, string>();
+    if (clientIds.length === 0) {
+      return names;
+    }
+    const rows = await prisma.mcpGrant.findMany({
+      where: {
+        workspaceId,
+        clientId: { in: clientIds },
+        clientName: { not: null },
+      },
+      orderBy: { createdAt: "desc" },
+      select: { clientId: true, clientName: true },
+    });
+    for (const row of rows) {
+      // Urut terbaru dulu: entri pertama per clientId menang.
+      if (row.clientName && !names.has(row.clientId)) {
+        names.set(row.clientId, row.clientName);
+      }
+    }
+    return names;
+  },
 };
