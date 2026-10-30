@@ -404,6 +404,17 @@ export class WorkspaceService {
   }
 
   /**
+   * Satu workspace dengan membership aktif milik user, atau `null` (T-180.6).
+   * Method tipis ke repository.
+   */
+  async findWorkspaceForUser(
+    workspaceId: WorkspaceId,
+    userId: UserId,
+  ): Promise<WorkspaceMembershipSummary | null> {
+    return this.repository.findWorkspaceForUser(workspaceId, userId);
+  }
+
+  /**
    * Validasi Workspace Switcher (T-089.2, ADR-088) — memastikan user
    * benar-benar anggota AKTIF dari `targetWorkspaceId` sebelum caller
    * (Server Action `switchWorkspaceAction`) mengizinkan overwrite cookie
@@ -481,6 +492,20 @@ export class WorkspaceService {
     userId: UserId,
   ): Promise<number> {
     return this.repository.countActiveConnectedAccounts(workspaceId, userId);
+  }
+
+  /**
+   * Hitungan akun aktif untuk banyak workspace sekaligus (T-180.6, tanpa N+1).
+   * Semantik sama dengan `countActiveConnectedAccounts`.
+   */
+  async countActiveConnectedAccountsByWorkspace(
+    workspaceIds: WorkspaceId[],
+    userId: UserId,
+  ): Promise<Map<WorkspaceId, number>> {
+    return this.repository.countActiveConnectedAccountsByWorkspace(
+      workspaceIds,
+      userId,
+    );
   }
 
   /**

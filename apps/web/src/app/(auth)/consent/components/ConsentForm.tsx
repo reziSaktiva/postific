@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Alert02Icon } from "@hugeicons/core-free-icons";
@@ -76,11 +76,23 @@ export function ConsentForm({
   const [failed, setFailed] = useState(false);
   const [pending, setPending] = useState<"allow" | "deny" | null>(null);
   const isSubmitting = pending !== null;
+  const allowButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Tombol Izinkan dinonaktifkan selama menyimpan, sehingga fokus keyboard
+  // jatuh ke `body`; setelah gagal, kembalikan ke tombol "Coba Lagi" (T-180.3).
+  useEffect(() => {
+    if (failed && pending === null) {
+      allowButtonRef.current?.focus();
+    }
+  }, [failed, pending]);
 
   const hostLabel =
     client.hosts.length > 0 ? client.hosts.join(", ") : "host tidak diketahui";
   const hasScopes = scopes.length > 0;
-  const hasImpactfulScope = scopes.some((copy) => copy.impactful);
+  // Catatan hanya relevan selama izin berdampak belum dicentang (T-180.3).
+  const hasUngrantedImpactfulScope = scopes.some(
+    (copy) => copy.impactful && !granted.includes(copy.scope),
+  );
 
   function toggle(scope: string, checked: boolean) {
     setGranted((current) =>
@@ -126,6 +138,7 @@ export function ConsentForm({
 
   const allowButton = (
     <Button
+      ref={allowButtonRef}
       type="button"
       variant={client.isUnusual ? "outline" : "default"}
       className="flex-1"
@@ -270,7 +283,7 @@ export function ConsentForm({
               </AlertTitle>
             </Alert>
           )}
-          {hasImpactfulScope ? (
+          {hasUngrantedImpactfulScope ? (
             <p className="text-sm text-muted-foreground">
               Izin Jadwalkan tidak aktif secara bawaan — centang hanya bila Anda
               mengizinkan klien ini menjadwalkan post.

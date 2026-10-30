@@ -82,6 +82,18 @@ describe("ConsentForm (T-151, KSP-09 langkah 2)", () => {
     expect(screen.getByText("Berdampak")).toBeTruthy();
   });
 
+  it("hides the 'Jadwalkan off by default' note once schedule is checked", () => {
+    renderForm();
+    const note = /Izin Jadwalkan tidak aktif secara bawaan/;
+    expect(screen.queryByText(note)).toBeTruthy();
+
+    fireEvent.click(checkbox("mcp:schedule"));
+    expect(screen.queryByText(note)).toBeNull();
+
+    fireEvent.click(checkbox("mcp:schedule"));
+    expect(screen.queryByText(note)).toBeTruthy();
+  });
+
   it("never lists publish or reply", () => {
     renderForm({
       scopes: selectableConsentScopes([
@@ -184,7 +196,10 @@ describe("ConsentForm (T-151, KSP-09 langkah 2)", () => {
     expect(
       screen.getByText(/Persetujuan gagal disimpan\. Tidak ada akses/),
     ).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Coba Lagi" })).toBeTruthy();
+    const retry = screen.getByRole("button", { name: "Coba Lagi" });
+    expect(retry).toBeTruthy();
+    // Fokus kembali ke tombol, bukan jatuh ke body (T-180.3).
+    expect(document.activeElement).toBe(retry);
     expect(checkbox("mcp:schedule").getAttribute("aria-checked")).toBe("true");
   });
 
