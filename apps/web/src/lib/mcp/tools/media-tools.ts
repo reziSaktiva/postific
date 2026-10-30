@@ -1,10 +1,11 @@
 import { ValidationError } from "@/lib/utils/errors";
 import { ALLOWED_MEDIA_MIME_TYPES, detectMediaMimeType } from "@/domains/media";
-import { SafeFetchError } from "@/lib/net/safe-fetch";
+import { SafeFetchError, type SafeFetchErrorCode } from "@/lib/net/safe-fetch";
 
 import { toWibIso } from "../format";
 import {
   McpToolInputError,
+  McpToolTemporaryError,
   assertKnownArgs,
   readOptionalString,
   readRequiredText,
@@ -18,6 +19,16 @@ import type { McpToolDefinition } from "../tool-types";
  * `UploadMediaUseCase`. Kuota `write_actions` sudah dihitung gerbang
  * (`authorizeCall`) untuk setiap tool bercakup `draft`. Identitas dari grant.
  */
+
+/**
+ * `network_error` SENGAJA tidak di sini: pesannya sama dengan
+ * `blocked_destination`, dan memetakannya ke kode berbeda akan menjadi oracle
+ * enumerasi nama DNS internal (resolve privat vs. tidak ada).
+ */
+const TEMPORARY_FETCH_CODES: ReadonlySet<SafeFetchErrorCode> = new Set([
+  "busy",
+  "timeout",
+]);
 
 const MAX_URL_LENGTH = 2048;
 const MAX_FILENAME_LENGTH = 120;
@@ -83,6 +94,13 @@ const uploadMedia: McpToolDefinition = {
       downloaded = await context.services.remoteMedia.download(url);
     } catch (error) {
       if (error instanceof SafeFetchError) {
+        // Sementara (bisa dicoba lagi) vs. salah input; pesan tetap generik.
+        // Catatan kuota: `write_actions` sudah dihitung `authorizeCall` sebelum
+        // handler jalan, jadi panggilan yang ditolak `busy` tetap terhitung;
+        // mengembalikannya butuh mengubah gerbang dan tidak dilakukan di sini.
+        if (TEMPORARY_FETCH_CODES.has(error.code)) {
+          throw new McpToolTemporaryError(error.message);
+        }
         throw new ValidationError(error.message);
       }
       throw error;

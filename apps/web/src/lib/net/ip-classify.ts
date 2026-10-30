@@ -79,7 +79,8 @@ export function parseIPv6(input: string): number[] | null {
 }
 
 export function isBlockedIPv4(octets: readonly number[]): boolean {
-  const [a, b, c] = octets as [number, number, number, number];
+  const [a, b, c, d] = octets as [number, number, number, number];
+  if (a === 255 && b === 255 && c === 255 && d === 255) return true; // broadcast
   if (a === 0) return true; // 0.0.0.0/8
   if (a === 10) return true; // privat
   if (a === 100 && b >= 64 && b <= 127) return true; // CGNAT 100.64/10
@@ -88,6 +89,9 @@ export function isBlockedIPv4(octets: readonly number[]): boolean {
   if (a === 172 && b >= 16 && b <= 31) return true; // privat
   if (a === 192 && b === 0 && c === 0) return true; // IETF protocol assignments
   if (a === 192 && b === 0 && c === 2) return true; // TEST-NET-1
+  if (a === 192 && b === 31 && c === 196) return true; // AS112-v4
+  if (a === 192 && b === 52 && c === 193) return true; // AMT
+  if (a === 192 && b === 175 && c === 48) return true; // direct delegation AS112
   if (a === 192 && b === 88 && c === 99) return true; // 6to4 relay anycast
   if (a === 192 && b === 168) return true; // privat
   if (a === 198 && (b === 18 || b === 19)) return true; // benchmark

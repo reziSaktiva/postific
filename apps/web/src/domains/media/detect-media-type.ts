@@ -62,19 +62,28 @@ export function detectMediaMimeType(bytes: Uint8Array): string | null {
       ((bytes[1] as number) << 16) +
       ((bytes[2] as number) << 8) +
       (bytes[3] as number);
-    if (boxSize < 12 && boxSize !== 1) {
+    // size == 1: largesize 8 byte di offset 8-15, jadi major brand di 16-19
+    // dan compatible brands mulai 24. Size biasa: major di 8, compat mulai 16.
+    const large = boxSize === 1;
+    const majorAt = large ? 16 : 8;
+    const compatAt = large ? 24 : 16;
+    if (!large && boxSize < 12) {
       return null;
     }
-    const major = ascii(bytes, 8, 12);
+    if (bytes.length < majorAt + 4) {
+      return null;
+    }
+    const major = ascii(bytes, majorAt, majorAt + 4);
     if (major === "qt  ") {
       return "video/quicktime";
     }
     if (MP4_BRANDS.has(major)) {
       return "video/mp4";
     }
-    // Brand utama tak dikenal: periksa compatible brands dalam box ftyp.
-    const end = Math.min(bytes.length, boxSize === 1 ? 64 : boxSize, 64);
-    for (let i = 16; i + 4 <= end; i += 4) {
+    // Brand utama tak dikenal: periksa compatible brands dalam box ftyp
+    // (dibatasi 64 byte pertama; box yang dinyatakan lebih pendek dihormati).
+    const end = Math.min(bytes.length, large ? 64 : Math.min(boxSize, 64));
+    for (let i = compatAt; i + 4 <= end; i += 4) {
       if (MP4_BRANDS.has(ascii(bytes, i, i + 4))) {
         return "video/mp4";
       }

@@ -22,7 +22,7 @@ import { SafeFetchError } from "@/lib/net/safe-fetch";
 
 import type { McpClaims } from "../claims";
 import { runMcpTool, type McpGateDeps } from "../run-tool";
-import { McpToolInputError } from "../tool-input";
+import { McpToolInputError, McpToolTemporaryError } from "../tool-input";
 import type { McpToolContext, McpToolServices } from "../tool-types";
 import { MCP_MEDIA_TOOLS, sanitizeFilename } from "./media-tools";
 
@@ -215,10 +215,13 @@ describe("upload_media tool", () => {
 
   it.each([
     "too_large",
-    "timeout",
-    "busy",
     "empty_body",
     "bad_status",
+    "invalid_url",
+    "blocked_destination",
+    "unsupported_encoding",
+    "too_many_redirects",
+    "network_error",
   ] as const)(
     "maps SafeFetchError %s to a generic ValidationError (invalid_input)",
     async (code) => {
@@ -227,6 +230,19 @@ describe("upload_media tool", () => {
         .handler(context(f.services), { url: "https://a.example/x" })
         .catch((e: unknown) => e);
       expect((error as Error).name).toBe("ValidationError");
+      expect((error as Error).message).toBe(new SafeFetchError(code).message);
+      expect(f.execute).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(["busy", "timeout"] as const)(
+    "maps SafeFetchError %s to a retryable error, not invalid_input",
+    async (code) => {
+      const f = fakes({ downloadError: new SafeFetchError(code) });
+      const error = await upload
+        .handler(context(f.services), { url: "https://a.example/x" })
+        .catch((e: unknown) => e);
+      expect(error).toBeInstanceOf(McpToolTemporaryError);
       expect((error as Error).message).toBe(new SafeFetchError(code).message);
       expect(f.execute).not.toHaveBeenCalled();
     },
@@ -375,6 +391,44 @@ describe("upload_media behind the real authorization gate", () => {
       JSON.parse((res.content[0] as { text: string }).text).error.code,
     ).toBe("rate_limited");
     expect(g.download).not.toHaveBeenCalled();
+  });
+
+  it.each(["busy", "timeout"] as const)(
+    "reports %s through the gate as temporarily_unavailable",
+    async (code) => {
+      const g = gate(["read", "draft"]);
+      g.download.mockRejectedValueOnce(new SafeFetchError(code));
+      const res = await runMcpTool(
+        g.deps,
+        claims(["read", "draft"]),
+        upload,
+        args,
+      );
+      const body = JSON.parse((res.content[0] as { text: string }).text);
+      expect(body.error.code).toBe("temporarily_unavailable");
+      expect(g.audits[0]).toMatchObject({
+        status: "error",
+        errorCode: "temporarily_unavailable",
+      });
+    },
+  );
+
+  it("makes network_error and blocked_destination indistinguishable at the gate (no DNS enumeration oracle)", async () => {
+    const results: string[] = [];
+    for (const code of ["network_error", "blocked_destination"] as const) {
+      const g = gate(["read", "draft"]);
+      g.download.mockRejectedValueOnce(new SafeFetchError(code));
+      const res = await runMcpTool(
+        g.deps,
+        claims(["read", "draft"]),
+        upload,
+        args,
+      );
+      results.push((res.content[0] as { text: string }).text);
+      expect(g.audits[0]).toMatchObject({ errorCode: "invalid_input" });
+    }
+    expect(results[0]).toBe(results[1]);
+    expect(JSON.parse(results[0] as string).error.code).toBe("invalid_input");
   });
 
   it("reports a blocked destination as invalid_input with the generic message", async () => {

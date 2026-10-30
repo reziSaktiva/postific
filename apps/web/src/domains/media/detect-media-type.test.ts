@@ -64,14 +64,23 @@ describe("detectMediaMimeType", () => {
     expect(detectMediaMimeType(data)).toBeNull();
   });
 
-  it("treats ftyp boxSize 1 (64-bit size) as valid and still scans compatible brands", () => {
-    const withSize1 = (brand: string, compat: string[] = []) =>
+  describe("64-bit ftyp box (size == 1)", () => {
+    // size(4)=1, "ftyp", largesize(8) di offset 8-15, major di 16, minor 20, compat mulai 24.
+    const large = (brand: string, compat: string[] = []) =>
       bytes(
         0,
         0,
         0,
         1,
         ...text("ftyp"),
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        24 + compat.length * 4,
         ...text(brand),
         0,
         0,
@@ -79,8 +88,45 @@ describe("detectMediaMimeType", () => {
         0,
         ...compat.flatMap(text),
       );
-    expect(detectMediaMimeType(withSize1("isom"))).toBe("video/mp4");
-    expect(detectMediaMimeType(withSize1("qt  "))).toBe("video/quicktime");
-    expect(detectMediaMimeType(withSize1("zzzz", ["mp42"]))).toBe("video/mp4");
+
+    it("reads the major brand at offset 16", () => {
+      expect(detectMediaMimeType(large("isom"))).toBe("video/mp4");
+      expect(detectMediaMimeType(large("qt  "))).toBe("video/quicktime");
+    });
+
+    it("scans compatible brands from offset 24", () => {
+      expect(detectMediaMimeType(large("zzzz", ["mp42"]))).toBe("video/mp4");
+    });
+
+    it("rejects an unknown brand and does not mistake largesize bytes for a brand", () => {
+      expect(detectMediaMimeType(large("zzzz"))).toBeNull();
+      expect(detectMediaMimeType(large("zzzz", ["abcd"]))).toBeNull();
+    });
+
+    it("rejects a truncated box", () => {
+      expect(
+        detectMediaMimeType(
+          bytes(
+            0,
+            0,
+            0,
+            1,
+            ...text("ftyp"),
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            24,
+            ...text("is"),
+          ),
+        ),
+      ).toBeNull();
+      expect(
+        detectMediaMimeType(bytes(0, 0, 0, 1, ...text("ftyp"), 0, 0, 0, 0)),
+      ).toBeNull();
+    });
   });
 });

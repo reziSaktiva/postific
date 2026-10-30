@@ -6,20 +6,29 @@ import { createPinnedTransport, pinnedLookup } from "./node-transport";
 import { testTlsCert, testTlsKey } from "./test-tls-fixture";
 
 describe("pinnedLookup", () => {
-  const lookup = pinnedLookup({ address: "93.184.216.34", family: 4 });
+  const v6 = { address: "2606:4700::1111", family: 6 as const };
+  const v4 = { address: "93.184.216.34", family: 4 as const };
+  const lookup = pinnedLookup([v6, v4]);
 
-  it("always returns the validated address, whatever hostname is asked (all:true)", () => {
+  it("returns ALL validated addresses in order for all:true, whatever hostname is asked", () => {
     const cb = vi.fn();
     lookup("attacker.example", { all: true }, cb);
-    expect(cb).toHaveBeenCalledWith(null, [
-      { address: "93.184.216.34", family: 4 },
-    ]);
+    expect(cb).toHaveBeenCalledWith(null, [v6, v4]);
   });
 
-  it("returns the validated address in the single-result form", () => {
+  it("returns the first validated address in the single-result form", () => {
     const cb = vi.fn();
     lookup("attacker.example", {}, cb);
-    expect(cb).toHaveBeenCalledWith(null, "93.184.216.34", 4);
+    expect(cb).toHaveBeenCalledWith(null, v6.address, 6);
+  });
+
+  it("honors a family filter and errors when none match", () => {
+    const cb = vi.fn();
+    lookup("x.example", { all: true, family: 4 }, cb);
+    expect(cb).toHaveBeenCalledWith(null, [v4]);
+    const cb2 = vi.fn();
+    pinnedLookup([v4])("x.example", { family: 6 }, cb2);
+    expect(cb2.mock.calls[0]?.[0]).toMatchObject({ code: "ENOTFOUND" });
   });
 });
 
@@ -57,7 +66,7 @@ describe("createPinnedTransport (TLS lokal)", () => {
     const transport = createPinnedTransport({ ca: testTlsCert(), port });
     const res = await transport({
       url: new URL("https://pinned.test/x?y=1"),
-      address: pinned,
+      addresses: [pinned],
       signal: new AbortController().signal,
     });
     const chunks: Buffer[] = [];
@@ -72,7 +81,7 @@ describe("createPinnedTransport (TLS lokal)", () => {
     await expect(
       transport({
         url: new URL("https://other.test/"),
-        address: pinned,
+        addresses: [pinned],
         signal: new AbortController().signal,
       }),
     ).rejects.toThrow();

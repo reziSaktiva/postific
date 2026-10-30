@@ -11,6 +11,18 @@ export class McpToolInputError extends Error {
   }
 }
 
+/**
+ * Kegagalan sementara di luar kendali pemanggil (server asal lambat atau
+ * tidak terjangkau, antrean unduhan penuh). Dipetakan gerbang ke
+ * `temporarily_unavailable` (bisa dicoba lagi), bukan `invalid_input`.
+ */
+export class McpToolTemporaryError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "McpToolTemporaryError";
+  }
+}
+
 /** Tolak argumen di luar `allowed` (skema memakai `additionalProperties: false`). */
 export function assertKnownArgs(
   args: Record<string, unknown>,

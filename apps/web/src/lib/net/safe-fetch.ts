@@ -25,7 +25,15 @@ export const SAFE_FETCH_TIMEOUT_MS = 15_000;
 /** Batas unduhan serentak per proses; sisanya ditolak (bukan antre) supaya memori terbatas. */
 export const SAFE_FETCH_MAX_CONCURRENT = 3;
 
-let activeDownloads = 0;
+/**
+ * Penghitung di `globalThis` (bukan variabel modul) supaya tetap satu per
+ * proses walau modul ini dimuat lebih dari sekali (bundle route berbeda).
+ */
+const ACTIVE_KEY = Symbol.for("postific.safeFetch.active");
+function activeCounter(): { count: number } {
+  const holder = globalThis as unknown as Record<symbol, { count: number }>;
+  return (holder[ACTIVE_KEY] ??= { count: 0 });
+}
 
 export type SafeFetchErrorCode =
   | "invalid_url"
@@ -68,8 +76,12 @@ export interface ResolvedAddress {
 
 export interface PinnedRequest {
   url: URL;
-  /** IP hasil validasi; transport WAJIB menyambung ke sini, bukan me-resolve `url.hostname`. */
-  address: ResolvedAddress;
+  /**
+   * SEMUA IP hasil validasi, urutan resolver dipertahankan; transport WAJIB
+   * hanya menyambung ke daftar ini (bukan me-resolve `url.hostname`) dan
+   * boleh fallback antar alamat (mis. autoSelectFamily).
+   */
+  addresses: readonly ResolvedAddress[];
   signal: AbortSignal;
 }
 
@@ -145,13 +157,18 @@ function parseAndCheckUrl(raw: string, base?: URL): URL {
   ) {
     throw new SafeFetchError("blocked_destination");
   }
+  // Normalisasi sekali: hostname tanpa titik akhir dan huruf kecil dipakai
+  // untuk resolve, SNI, dan Host.
+  if (url.hostname !== host) {
+    url.hostname = host;
+  }
   return url;
 }
 
 async function resolveValidated(
   deps: SafeFetchDeps,
   hostname: string,
-): Promise<ResolvedAddress> {
+): Promise<readonly ResolvedAddress[]> {
   let addresses: readonly ResolvedAddress[];
   try {
     addresses = await deps.resolve(hostname);
@@ -165,7 +182,7 @@ async function resolveValidated(
   if (addresses.some((entry) => isBlockedAddress(entry.address))) {
     throw new SafeFetchError("blocked_destination");
   }
-  return addresses[0] as ResolvedAddress;
+  return addresses;
 }
 
 function raceDeadline<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
@@ -235,7 +252,10 @@ async function readBody(
   if (total === 0) {
     throw new SafeFetchError("empty_body");
   }
-  return Buffer.concat(chunks, total);
+  // Satu chunk: pakai langsung, tanpa salinan akhir.
+  return chunks.length === 1
+    ? (chunks[0] as Buffer)
+    : Buffer.concat(chunks, total);
 }
 
 export async function safeFetch(
@@ -245,10 +265,11 @@ export async function safeFetch(
 ): Promise<SafeFetchResult> {
   const maxBytes = options.maxBytes;
   const maxRedirects = options.maxRedirects ?? SAFE_FETCH_MAX_REDIRECTS;
-  if (activeDownloads >= SAFE_FETCH_MAX_CONCURRENT) {
+  const active = activeCounter();
+  if (active.count >= SAFE_FETCH_MAX_CONCURRENT) {
     throw new SafeFetchError("busy");
   }
-  activeDownloads++;
+  active.count++;
   const controller = new AbortController();
   const timer = setTimeout(
     () => controller.abort(),
@@ -259,7 +280,7 @@ export async function safeFetch(
   try {
     let url = parseAndCheckUrl(rawUrl);
     for (let hop = 0; ; hop++) {
-      const address = await raceDeadline(
+      const addresses = await raceDeadline(
         resolveValidated(deps, url.hostname),
         signal,
       );
@@ -267,7 +288,7 @@ export async function safeFetch(
       let response: TransportResponse;
       try {
         response = await raceDeadline(
-          deps.transport({ url, address, signal }),
+          deps.transport({ url, addresses, signal }),
           signal,
         );
       } catch (error) {
@@ -311,7 +332,7 @@ export async function safeFetch(
       return { bytes, finalUrl: url };
     }
   } finally {
-    activeDownloads--;
+    active.count--;
     clearTimeout(timer);
     controller.abort();
   }

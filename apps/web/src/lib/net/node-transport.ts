@@ -25,12 +25,33 @@ async function resolveAll(hostname: string): Promise<ResolvedAddress[]> {
   }));
 }
 
-export function pinnedLookup(address: ResolvedAddress): LookupFunction {
-  return (_hostname, options, callback) => {
+export function pinnedLookup(
+  addresses: readonly ResolvedAddress[],
+): LookupFunction {
+  return (hostname, options, callback) => {
+    const wanted =
+      options.family === 4 || options.family === 6 ? options.family : 0;
+    const list = wanted
+      ? addresses.filter((a) => a.family === wanted)
+      : addresses;
+    if (list.length === 0) {
+      const error = Object.assign(
+        new Error(`getaddrinfo ENOTFOUND ${hostname}`),
+        {
+          code: "ENOTFOUND",
+        },
+      );
+      callback(error as NodeJS.ErrnoException, "", 0);
+      return;
+    }
     if (options.all) {
-      callback(null, [{ address: address.address, family: address.family }]);
+      callback(
+        null,
+        list.map((a) => ({ address: a.address, family: a.family })),
+      );
     } else {
-      callback(null, address.address, address.family);
+      const first = list[0] as ResolvedAddress;
+      callback(null, first.address, first.family);
     }
   };
 }
@@ -61,7 +82,7 @@ function pinnedRequest(
         ...(testOverrides ? { ca: testOverrides.ca } : {}),
         method: "GET",
         path: `${req.url.pathname}${req.url.search}`,
-        lookup: pinnedLookup(req.address),
+        lookup: pinnedLookup(req.addresses),
         agent: false,
         signal: req.signal,
         headers: {

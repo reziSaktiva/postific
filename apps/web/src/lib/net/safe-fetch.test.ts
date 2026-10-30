@@ -209,7 +209,7 @@ describe("safeFetch DNS validation and pinning", () => {
     await fetchSafe("https://rebind.example/a.png", s.deps);
     expect(s.resolve).toHaveBeenCalledTimes(1);
     expect(s.calls).toHaveLength(1);
-    expect(s.calls[0]?.address).toEqual(PUBLIC);
+    expect(s.calls[0]?.addresses).toEqual([PUBLIC]);
     expect(s.calls[0]?.url.hostname).toBe("rebind.example");
   });
 });
@@ -233,7 +233,7 @@ describe("safeFetch redirects", () => {
       "https://a.example/final.png",
       "https://b.example/x.png",
     ]);
-    expect(s.calls[2]?.address.address).toBe("8.8.8.8");
+    expect(s.calls[2]?.addresses[0]?.address).toBe("8.8.8.8");
     expect(result.finalUrl.href).toBe("https://b.example/x.png");
   });
 
@@ -469,5 +469,83 @@ describe("safeFetch concurrency cap", () => {
     await expect(
       fetchSafe("https://a.example/", simple().deps),
     ).resolves.toBeDefined();
+  });
+});
+
+describe("safeFetch pinning of all addresses", () => {
+  it("passes every validated address to the transport, order preserved (AAAA first, then A)", async () => {
+    const v6: ResolvedAddress = { address: "2606:4700::1111", family: 6 };
+    const s = setup(
+      () => [v6, PUBLIC],
+      () => ok(),
+    );
+    await fetchSafe("https://dual.example/a", s.deps);
+    expect(s.calls[0]?.addresses).toEqual([v6, PUBLIC]);
+  });
+
+  it("still blocks when only the second of two addresses is forbidden", async () => {
+    const v6: ResolvedAddress = { address: "2606:4700::1111", family: 6 };
+    const s = setup(
+      () => [v6, { address: "::ffff:10.0.0.1", family: 6 }],
+      () => ok(),
+    );
+    await expectCode(
+      fetchSafe("https://dual.example/a", s.deps),
+      "blocked_destination",
+    );
+    expect(s.transport).not.toHaveBeenCalled();
+  });
+});
+
+describe("safeFetch hostname normalization", () => {
+  it("gives resolver and transport a lowercase hostname without trailing dot", async () => {
+    const s = setup(
+      () => [PUBLIC],
+      () => ok(),
+    );
+    await fetchSafe("https://Example.COM./a.png", s.deps);
+    expect(s.resolve).toHaveBeenCalledWith("example.com");
+    expect(s.calls[0]?.url.hostname).toBe("example.com");
+    expect(s.calls[0]?.url.host).toBe("example.com");
+  });
+
+  it("normalizes redirect targets too", async () => {
+    const s = setup(
+      () => [PUBLIC],
+      (_r, n) => (n === 1 ? redirect("https://B.Example./x") : ok()),
+    );
+    await fetchSafe("https://a.example/", s.deps);
+    expect(s.calls[1]?.url.hostname).toBe("b.example");
+  });
+});
+
+describe("safeFetch memory and shared counter", () => {
+  it("returns the single chunk without a final copy", async () => {
+    const chunk = Buffer.from([1, 2, 3]);
+    const response: TransportResponse = {
+      status: 200,
+      headers: {},
+      body: (async function* () {
+        yield chunk;
+      })(),
+      destroy: vi.fn(),
+    };
+    const s = setup(
+      () => [PUBLIC],
+      () => response,
+    );
+    const result = await fetchSafe("https://a.example/", s.deps);
+    expect(result.bytes).toBe(chunk);
+  });
+
+  it("keeps the concurrency counter on globalThis (shared across module copies)", async () => {
+    const holder = globalThis as unknown as Record<symbol, { count: number }>;
+    const key = Symbol.for("postific.safeFetch.active");
+    holder[key] = { count: 3 };
+    try {
+      await expectCode(fetchSafe("https://a.example/", simple().deps), "busy");
+    } finally {
+      holder[key] = { count: 0 };
+    }
   });
 });
