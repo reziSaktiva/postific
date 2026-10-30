@@ -1,5 +1,6 @@
 import { asUserId, asWorkspaceId } from "@postific/shared";
 import type { IMcpWorkspaceChoiceRepository } from "@/domains/mcp-access";
+import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma/client";
 
 /**
@@ -11,21 +12,35 @@ import { prisma } from "@/lib/prisma/client";
  */
 export const mcpWorkspaceChoiceRepository: IMcpWorkspaceChoiceRepository = {
   async upsert({ sessionId, userId, workspaceId, expiresAt, createdAt }) {
-    const row = await prisma.mcpWorkspaceChoice.upsert({
-      where: { sessionId },
-      create: { sessionId, userId, workspaceId, expiresAt, createdAt },
-      // Pilihan baru menimpa yang lama; `createdAt` ikut diperbarui supaya
-      // baris mencerminkan pilihan terakhir. `userId` sengaja TIDAK ikut
-      // diperbarui: pemilik baris ditetapkan saat dibuat, jadi sesi tidak bisa
-      // "diambil alih" pengguna lain lewat `session_id` yang sama.
-      update: { workspaceId, expiresAt, createdAt },
-    });
-    return {
-      sessionId: row.sessionId,
-      userId: asUserId(row.userId),
-      workspaceId: asWorkspaceId(row.workspaceId),
-      expiresAt: row.expiresAt,
-    };
+    // Pilihan baru menimpa yang lama; `createdAt` ikut diperbarui supaya baris
+    // mencerminkan pilihan terakhir. Update HANYA menyentuh baris milik
+    // `userId` yang sama (`where` memfilter kedua kolom kunci): pengguna lain
+    // yang memakai `session_id` yang sama tidak bisa mengubah pilihan pemilik.
+    const update = () =>
+      prisma.mcpWorkspaceChoice.updateMany({
+        where: { sessionId, userId },
+        data: { workspaceId, expiresAt, createdAt },
+      });
+
+    if ((await update()).count === 0) {
+      try {
+        await prisma.mcpWorkspaceChoice.create({
+          data: { sessionId, userId, workspaceId, expiresAt, createdAt },
+        });
+      } catch (error) {
+        // P2002: baris sudah ada. Pemiliknya pengguna yang sama (dua simpan
+        // bersamaan) -> update ulang berhasil; pemiliknya pengguna lain ->
+        // update tetap 0 baris dan error dilempar ulang (tabrakan sesi tidak
+        // terjadi di jalur sah: `session_id` unik per sesi login).
+        const isUniqueConflict =
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === "P2002";
+        if (!isUniqueConflict || (await update()).count === 0) {
+          throw error;
+        }
+      }
+    }
+    return { sessionId, userId, workspaceId, expiresAt };
   },
 
   async findActive({ sessionId, userId }, now) {

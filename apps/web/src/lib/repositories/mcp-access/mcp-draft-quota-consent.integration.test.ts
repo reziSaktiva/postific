@@ -1072,22 +1072,26 @@ describe.skipIf(!enabled)(
         expect(await consent.getActiveWorkspaceId(sessionId, dual)).toBe(wsB);
       });
 
-      it("upsert tidak menimpa userId pemilik baris: pengguna lain tidak bisa mengambil alih sesi", async () => {
+      it("upsert menolak pengguna lain pada session_id yang sama: baris pemilik tidak berubah sama sekali", async () => {
         const sessionId = session("takeover");
         await consent.chooseWorkspace({
           sessionId,
           userId: owner,
           workspaceId: wsA,
         });
-        // `dual` (member sah A dan B) memakai session_id yang sama.
-        await consent.chooseWorkspace({
-          sessionId,
-          userId: dual,
-          workspaceId: wsA,
-        });
+        // `dual` (member sah A dan B) memakai session_id yang sama dan memilih
+        // workspace LAIN: tabrakan ditolak, bukan menimpa pilihan pemilik.
+        await expect(
+          consent.chooseWorkspace({
+            sessionId,
+            userId: dual,
+            workspaceId: wsB,
+          }),
+        ).rejects.toThrow();
 
         const row = await choiceOf(sessionId);
         expect(row?.userId).toBe(owner);
+        expect(row?.workspaceId).toBe(wsA);
         expect(await consent.getActiveWorkspaceId(sessionId, dual)).toBeNull();
         expect(await consent.getActiveWorkspaceId(sessionId, owner)).toBe(wsA);
       });

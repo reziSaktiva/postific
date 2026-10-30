@@ -1,15 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { UserId, WorkspaceId } from "@postific/shared";
 
-const { upsert, findFirst, deleteMany } = vi.hoisted(() => ({
-  upsert: vi.fn(),
+const { updateMany, create, findFirst, deleteMany } = vi.hoisted(() => ({
+  updateMany: vi.fn(),
+  create: vi.fn(),
   findFirst: vi.fn(),
   deleteMany: vi.fn(),
 }));
 
 vi.mock("@/lib/prisma/client", () => ({
-  prisma: { mcpWorkspaceChoice: { upsert, findFirst, deleteMany } },
+  prisma: {
+    mcpWorkspaceChoice: { updateMany, create, findFirst, deleteMany },
+  },
 }));
+
+import { Prisma } from "@/generated/prisma/client";
 
 import { mcpWorkspaceChoiceRepository } from "./mcp-workspace-choice.repository";
 
@@ -32,38 +37,89 @@ describe("mcpWorkspaceChoiceRepository", () => {
   });
 
   describe("upsert()", () => {
-    it("upserts by session id so a new choice replaces the old one", async () => {
-      upsert.mockResolvedValue(ROW);
+    const input = {
+      sessionId: "sess-1",
+      userId: USER,
+      workspaceId: WORKSPACE,
+      expiresAt: EXPIRES,
+      createdAt: NOW,
+    };
+    const data = { workspaceId: WORKSPACE, expiresAt: EXPIRES, createdAt: NOW };
 
-      const choice = await mcpWorkspaceChoiceRepository.upsert({
-        sessionId: "sess-1",
-        userId: USER,
-        workspaceId: WORKSPACE,
-        expiresAt: EXPIRES,
-        createdAt: NOW,
+    function p2002() {
+      return new Prisma.PrismaClientKnownRequestError("unique", {
+        code: "P2002",
+        clientVersion: "test",
+        meta: { modelName: "McpWorkspaceChoice" },
       });
+    }
 
-      expect(upsert).toHaveBeenCalledWith({
-        where: { sessionId: "sess-1" },
-        create: {
-          sessionId: "sess-1",
-          userId: USER,
-          workspaceId: WORKSPACE,
-          expiresAt: EXPIRES,
-          createdAt: NOW,
-        },
-        update: {
-          workspaceId: WORKSPACE,
-          expiresAt: EXPIRES,
-          createdAt: NOW,
-        },
+    it("updates only the row owned by the same user and skips create when it exists", async () => {
+      updateMany.mockResolvedValue({ count: 1 });
+
+      const choice = await mcpWorkspaceChoiceRepository.upsert(input);
+
+      expect(updateMany).toHaveBeenCalledWith({
+        where: { sessionId: "sess-1", userId: USER },
+        data,
       });
+      expect(create).not.toHaveBeenCalled();
       expect(choice).toEqual({
         sessionId: "sess-1",
         userId: USER,
         workspaceId: WORKSPACE,
         expiresAt: EXPIRES,
       });
+    });
+
+    it("creates the row when none is owned by this user yet", async () => {
+      updateMany.mockResolvedValue({ count: 0 });
+      create.mockResolvedValue(ROW);
+
+      await mcpWorkspaceChoiceRepository.upsert(input);
+
+      expect(create).toHaveBeenCalledWith({
+        data: {
+          sessionId: "sess-1",
+          userId: USER,
+          workspaceId: WORKSPACE,
+          expiresAt: EXPIRES,
+          createdAt: NOW,
+        },
+      });
+    });
+
+    it("retries the update when a concurrent save of the same user wins the create", async () => {
+      updateMany
+        .mockResolvedValueOnce({ count: 0 })
+        .mockResolvedValueOnce({ count: 1 });
+      create.mockRejectedValue(p2002());
+
+      await expect(
+        mcpWorkspaceChoiceRepository.upsert(input),
+      ).resolves.toMatchObject({ sessionId: "sess-1", userId: USER });
+      expect(updateMany).toHaveBeenCalledTimes(2);
+    });
+
+    it("rethrows when the session id belongs to another user (never overwrites their row)", async () => {
+      updateMany.mockResolvedValue({ count: 0 });
+      const conflict = p2002();
+      create.mockRejectedValue(conflict);
+
+      await expect(mcpWorkspaceChoiceRepository.upsert(input)).rejects.toBe(
+        conflict,
+      );
+      expect(updateMany).toHaveBeenCalledTimes(2);
+    });
+
+    it("rethrows errors that are not unique violations without retrying", async () => {
+      updateMany.mockResolvedValue({ count: 0 });
+      create.mockRejectedValue(new Error("db down"));
+
+      await expect(mcpWorkspaceChoiceRepository.upsert(input)).rejects.toThrow(
+        "db down",
+      );
+      expect(updateMany).toHaveBeenCalledTimes(1);
     });
   });
 
