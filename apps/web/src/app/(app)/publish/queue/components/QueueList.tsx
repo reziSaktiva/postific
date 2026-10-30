@@ -9,12 +9,25 @@ import {
   SentIcon,
 } from "@hugeicons/core-free-icons";
 
-import type { ConnectedAccountId, PostId } from "@postific/shared";
+import {
+  PostCreatedVia,
+  type ConnectedAccountId,
+  type PostId,
+} from "@postific/shared";
 import type { QueueGroup } from "@/domains/publishing";
 import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
 import { formatRelativeTime } from "@/lib/utils/format-relative-time";
 import { formatUtcDateKeyHeading } from "@/lib/utils";
 
+import { SourceFilterEmpty } from "@/components/shared/SourceFilterEmpty";
+import { McpSourceBadge } from "@/components/shared/McpSourceBadge";
+import { SourceFilterSelect } from "@/components/shared/SourceFilterSelect";
+import {
+  matchesSourceFilter,
+  resolveFilteredEmptyKind,
+  SourceFilter,
+  type SourceFilterValue,
+} from "@/components/shared/source-filter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -135,6 +148,10 @@ export function QueueList({ groups, onCancelSchedule }: QueueListProps) {
     ALL_ACCOUNTS_FILTER_VALUE,
   );
 
+  const [sourceFilter, setSourceFilter] = useState<SourceFilterValue>(
+    SourceFilter.All,
+  );
+
   const accountOptions = useMemo<AccountFilterOption[]>(() => {
     const seen = new Map<ConnectedAccountId, AccountFilterOption>();
     for (const group of groups) {
@@ -153,26 +170,47 @@ export function QueueList({ groups, onCancelSchedule }: QueueListProps) {
   }, [groups]);
 
   const filteredGroups = useMemo<QueueGroup[]>(() => {
-    if (accountFilter === ALL_ACCOUNTS_FILTER_VALUE) {
+    if (
+      accountFilter === ALL_ACCOUNTS_FILTER_VALUE &&
+      sourceFilter === SourceFilter.All
+    ) {
       return groups;
     }
     return groups
       .map((group) => ({
         ...group,
-        items: group.items.filter((item) =>
-          item.targets.some(
-            (target) => target.connectedAccountId === accountFilter,
-          ),
+        items: group.items.filter(
+          (item) =>
+            (accountFilter === ALL_ACCOUNTS_FILTER_VALUE ||
+              item.targets.some(
+                (target) => target.connectedAccountId === accountFilter,
+              )) &&
+            matchesSourceFilter(item, sourceFilter),
         ),
       }))
       .filter((group) => group.items.length > 0);
-  }, [groups, accountFilter]);
+  }, [groups, accountFilter, sourceFilter]);
+
+  const allItems = groups.flatMap((group) => group.items);
+  const emptyKind = resolveFilteredEmptyKind({
+    sourceFilter,
+    otherFiltersAtDefault: accountFilter === ALL_ACCOUNTS_FILTER_VALUE,
+    totalItems: allItems.length,
+    hasMcpItems: allItems.some(
+      (item) => item.createdVia === PostCreatedVia.Mcp,
+    ),
+  });
+
+  function resetAllFilters() {
+    setAccountFilter(ALL_ACCOUNTS_FILTER_VALUE);
+    setSourceFilter(SourceFilter.All);
+  }
 
   return (
     // eslint-disable-next-line no-restricted-syntax -- T-101.2: layout-only, file sudah dimigrasi shadcn
     <div className="flex flex-col gap-4">
       {/* eslint-disable-next-line no-restricted-syntax -- T-101.2: layout-only */}
-      <div className="flex justify-end">
+      <div className="flex flex-wrap justify-end gap-2">
         <Select value={accountFilter} onValueChange={setAccountFilter}>
           <SelectTrigger size="sm" aria-label="Filter akun" className="w-44">
             <SelectValue placeholder="Semua akun" />
@@ -188,20 +226,28 @@ export function QueueList({ groups, onCancelSchedule }: QueueListProps) {
             ))}
           </SelectContent>
         </Select>
+        <SourceFilterSelect
+          value={sourceFilter}
+          onValueChange={setSourceFilter}
+        />
       </div>
 
       {filteredGroups.length === 0 ? (
         <Card>
           <CardContent>
-            <Empty>
-              <EmptyHeader>
-                <EmptyTitle>Belum ada jadwal</EmptyTitle>
-                <EmptyDescription>
-                  Post yang dijadwalkan akan muncul di sini, dikelompokkan per
-                  tanggal.
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
+            {emptyKind !== "base" ? (
+              <SourceFilterEmpty kind={emptyKind} onShowAll={resetAllFilters} />
+            ) : (
+              <Empty>
+                <EmptyHeader>
+                  <EmptyTitle>Belum ada jadwal</EmptyTitle>
+                  <EmptyDescription>
+                    Post yang dijadwalkan akan muncul di sini, dikelompokkan per
+                    tanggal.
+                  </EmptyDescription>
+                </EmptyHeader>
+              </Empty>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -304,9 +350,17 @@ export function QueueList({ groups, onCancelSchedule }: QueueListProps) {
                           })}
                         </div>
 
-                        <Text variant="muted" as="span" className="text-xs">
-                          Dibuat {formatRelativeTime(item.createdAt, timeZone)}
-                        </Text>
+                        {/* eslint-disable-next-line no-restricted-syntax -- layout-only */}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Text variant="muted" as="span" className="text-xs">
+                            Dibuat{" "}
+                            {formatRelativeTime(item.createdAt, timeZone)}
+                          </Text>
+                          <McpSourceBadge
+                            createdVia={item.createdVia}
+                            clientName={item.createdViaClientName}
+                          />
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

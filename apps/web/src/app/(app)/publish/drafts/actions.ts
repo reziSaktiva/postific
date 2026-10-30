@@ -11,6 +11,7 @@ import { getCachedSession } from "@/lib/better-auth/session";
 import { getWorkspaceContext } from "@/lib/workspace/workspace-context";
 import { analyticsRepository } from "@/lib/repositories/analytics";
 import { publishingRepository } from "@/lib/repositories/publishing";
+import { getMcpClientNamePort } from "@/lib/mcp-access/get-mcp-client-name-port";
 
 /**
  * Delete Post (T-035.2/.3, ADR-049 Tier 2) — dipanggil dari dialog
@@ -85,6 +86,9 @@ export async function getDraftPostAction(
   const publishingService = new PublishingService(
     publishingRepository,
     new AnalyticsService(analyticsRepository),
+    undefined,
+    undefined,
+    getMcpClientNamePort(),
   );
 
   return publishingService.getCalendarPostById(

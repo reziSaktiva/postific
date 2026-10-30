@@ -26,7 +26,16 @@ export interface McpClientIdentity {
   isUnusual: boolean;
 }
 
-const NAME_MAX_LENGTH = 80;
+/**
+ * Batas nama klaim klien. Nama disimpan di grant dan dibekukan di post, jadi
+ * dibatasi ketat di sisi server (registrasi OAuth dinamis tidak tepercaya).
+ */
+const NAME_MAX_LENGTH = 64;
+
+// Karakter kontrol C0/C1 (termasuk newline, tab), pemisah baris/paragraf Unicode,
+// dan karakter format tak terlihat (zero-width, bidi override).
+const UNSAFE_CHARS =
+  /[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028-\u202e\u2060-\u2064\ufeff]/g;
 
 const INTERNAL_SUFFIXES = [
   ".local",
@@ -38,11 +47,18 @@ const INTERNAL_SUFFIXES = [
   ".example",
 ];
 
-/** Rapikan nama klaim klien: spasi dirapatkan dan dipotong supaya tidak merusak layout. */
+/**
+ * Rapikan nama klaim klien: karakter kontrol/newline dibuang, spasi
+ * dirapatkan, dipotong ke `NAME_MAX_LENGTH`; kosong -> `null`. Hanya
+ * sanitasi: tidak bisa mencegah klien meniru nama klien lain yang sah.
+ */
 export function normalizeClientName(
   name: string | null | undefined,
 ): string | null {
-  const collapsed = (name ?? "").replace(/\s+/g, " ").trim();
+  const collapsed = (name ?? "")
+    .replace(UNSAFE_CHARS, " ")
+    .replace(/\s+/g, " ")
+    .trim();
   if (collapsed === "") {
     return null;
   }

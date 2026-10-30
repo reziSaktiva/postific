@@ -62,7 +62,7 @@ function deps(overrides: Partial<McpGateDeps["access"]> = {}) {
 }
 
 describe("createMcpServer over Streamable HTTP", () => {
-  it("lists the eight read tools and the two draft tools with JSON Schema inputs", async () => {
+  it("lists the eight read tools, the two draft tools, and upload_media with JSON Schema inputs", async () => {
     const { value } = deps();
     const body = await rpc(value, {
       jsonrpc: "2.0",
@@ -81,6 +81,7 @@ describe("createMcpServer over Streamable HTTP", () => {
       "list_comments",
       "create_draft",
       "update_draft",
+      "upload_media",
     ]);
     expect(body.result.tools[0].inputSchema.type).toBe("object");
     expect(body.result.tools[0].annotations.readOnlyHint).toBe(true);

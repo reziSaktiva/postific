@@ -50,6 +50,9 @@ function toQueueItemRecord(item: CalendarPostItem): QueueItemRecord | null {
     scheduledAt: item.scheduledAt,
     createdAt: item.createdAt,
     targets: item.targets,
+    createdVia: item.createdVia,
+    createdViaClientId: item.createdViaClientId,
+    createdViaClientName: item.createdViaClientName,
   };
 }
 

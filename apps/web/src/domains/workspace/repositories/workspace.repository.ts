@@ -127,6 +127,16 @@ export interface IWorkspaceRepository {
   listWorkspacesForUser(userId: UserId): Promise<WorkspaceMembershipSummary[]>;
 
   /**
+   * Satu workspace dengan membership AKTIF milik user (T-180.6) — versi
+   * lookup per id dari `listWorkspacesForUser`, tanpa memuat seluruh daftar.
+   * `null` bila user bukan member aktif atau workspace tidak ada.
+   */
+  findWorkspaceForUser(
+    workspaceId: WorkspaceId,
+    userId: UserId,
+  ): Promise<WorkspaceMembershipSummary | null>;
+
+  /**
    * Dipakai `getWorkspaceContext()` (ADR-076) — resolve workspace by cookie
    * id. Menyertakan `pendingOwnerTransferTo` (T-008.3, ADR-050) supaya
    * caller (mis. `WorkspaceService.acceptOwnershipTransfer`) tidak perlu
@@ -154,6 +164,16 @@ export interface IWorkspaceRepository {
     workspaceId: WorkspaceId,
     userId: UserId,
   ): Promise<number>;
+
+  /**
+   * Versi batch `countActiveConnectedAccounts` (T-180.6): satu query untuk
+   * banyak workspace. Setiap id masukan selalu ada di hasil (0 bila tak ada
+   * akun aktif). Semantik "active" dan `userId` (RLS) sama.
+   */
+  countActiveConnectedAccountsByWorkspace(
+    workspaceIds: WorkspaceId[],
+    userId: UserId,
+  ): Promise<Map<WorkspaceId, number>>;
 
   /**
    * Ordered by `joinedAt` ascending — dipakai UI daftar anggota (T-007.4).

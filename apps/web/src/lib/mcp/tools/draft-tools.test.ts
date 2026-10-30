@@ -92,6 +92,7 @@ function context(drafts: McpToolServices["drafts"]): McpToolContext {
     workspaceId: WORKSPACE,
     userId: USER,
     clientId: CLIENT,
+    clientName: "Claude Code",
     grantScopes: ["read", "draft"],
     services: { drafts } as McpToolServices,
   };
@@ -145,7 +146,11 @@ describe("create_draft", () => {
       workspaceId: WORKSPACE,
       authorId: USER,
       caption: "Halo dunia",
-      source: { createdVia: PostCreatedVia.Mcp, clientId: CLIENT },
+      source: {
+        createdVia: PostCreatedVia.Mcp,
+        clientId: CLIENT,
+        clientName: "Claude Code",
+      },
       mediaIds: [MEDIA],
       targets: [{ connectedAccountId: ACCOUNT, contentFormat: "reel" }],
     });
@@ -173,7 +178,11 @@ describe("create_draft", () => {
       workspaceId: WORKSPACE,
       authorId: USER,
       caption: "",
-      source: { createdVia: PostCreatedVia.Mcp, clientId: CLIENT },
+      source: {
+        createdVia: PostCreatedVia.Mcp,
+        clientId: CLIENT,
+        clientName: "Claude Code",
+      },
     });
   });
 

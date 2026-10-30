@@ -1,12 +1,12 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Delete02Icon } from "@hugeicons/core-free-icons";
 
-import { ContentStatus } from "@postific/shared";
+import { ContentStatus, PostCreatedVia } from "@postific/shared";
 import type {
   CalendarPostItem,
   PublishingPostRecord,
@@ -17,6 +17,15 @@ import { useConfirmAction } from "@/lib/hooks/use-confirm-action";
 import { usePublishingPostsRealtime } from "@/lib/hooks/use-publishing-posts-realtime";
 import { useSyncedState } from "@/lib/hooks/use-synced-state";
 
+import { SourceFilterEmpty } from "@/components/shared/SourceFilterEmpty";
+import { McpSourceBadge } from "@/components/shared/McpSourceBadge";
+import { SourceFilterSelect } from "@/components/shared/SourceFilterSelect";
+import {
+  filterBySource,
+  resolveFilteredEmptyKind,
+  SourceFilter,
+  type SourceFilterValue,
+} from "@/components/shared/source-filter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -53,7 +62,12 @@ import { deletePostAction, getDraftPostAction } from "../actions";
  */
 type DraftListItem = Pick<
   PublishingPostRecord,
-  "id" | "caption" | "status" | "updatedAt"
+  | "id"
+  | "caption"
+  | "status"
+  | "updatedAt"
+  | "createdVia"
+  | "createdViaClientName"
 >;
 
 const DRAFT_VIEW_STATUSES: ReadonlySet<ContentStatus> = new Set([
@@ -71,6 +85,8 @@ function toDraftListItem(item: CalendarPostItem): DraftListItem | null {
     caption: item.caption,
     status: item.status,
     updatedAt: item.updatedAt,
+    createdVia: item.createdVia,
+    createdViaClientName: item.createdViaClientName,
   };
 }
 
@@ -142,6 +158,18 @@ export function DraftsList({
   );
 
   const [localDrafts, setLocalDrafts] = useSyncedState(drafts);
+  const [sourceFilter, setSourceFilter] = useState<SourceFilterValue>(
+    SourceFilter.All,
+  );
+  const visibleDrafts = filterBySource(localDrafts, sourceFilter);
+  const emptyKind = resolveFilteredEmptyKind({
+    sourceFilter,
+    otherFiltersAtDefault: true,
+    totalItems: localDrafts.length,
+    hasMcpItems: localDrafts.some(
+      (draft) => draft.createdVia === PostCreatedVia.Mcp,
+    ),
+  });
   const requestSeqRef = useRef<Map<string, number>>(new Map());
 
   const handlePublishingPostChange = useCallback(
@@ -187,14 +215,26 @@ export function DraftsList({
   return (
     // eslint-disable-next-line no-restricted-syntax -- T-101.3: layout-only, file sudah dimigrasi shadcn
     <div className="flex flex-col gap-4">
+      {/* eslint-disable-next-line no-restricted-syntax -- T-157: layout-only */}
+      <div className="flex justify-end gap-2">
+        <SourceFilterSelect
+          value={sourceFilter}
+          onValueChange={setSourceFilter}
+        />
+      </div>
       {/* eslint-disable-next-line no-restricted-syntax -- T-101.3: layout-only */}
       <div
         className={cn(
           "rounded-xl border border-border",
-          localDrafts.length === 0 ? "p-6" : "py-2",
+          visibleDrafts.length === 0 ? "p-6" : "py-2",
         )}
       >
-        {localDrafts.length === 0 ? (
+        {visibleDrafts.length === 0 && emptyKind !== "base" ? (
+          <SourceFilterEmpty
+            kind={emptyKind}
+            onShowAll={() => setSourceFilter(SourceFilter.All)}
+          />
+        ) : visibleDrafts.length === 0 ? (
           <Empty>
             <EmptyHeader>
               <EmptyTitle>Belum ada draft</EmptyTitle>
@@ -206,7 +246,7 @@ export function DraftsList({
         ) : (
           <Table>
             <TableBody>
-              {localDrafts.map((draft) => (
+              {visibleDrafts.map((draft) => (
                 <TableRow
                   key={draft.id}
                   className="cursor-pointer"
@@ -226,9 +266,16 @@ export function DraftsList({
                       <Text variant="small">
                         {draft.caption || "(Tanpa caption)"}
                       </Text>
-                      <Text variant="muted">
-                        Diedit {formatRelativeTime(draft.updatedAt, timeZone)}
-                      </Text>
+                      {/* eslint-disable-next-line no-restricted-syntax -- T-157: layout-only */}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Text variant="muted">
+                          Diedit {formatRelativeTime(draft.updatedAt, timeZone)}
+                        </Text>
+                        <McpSourceBadge
+                          createdVia={draft.createdVia}
+                          clientName={draft.createdViaClientName}
+                        />
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell className="text-right">

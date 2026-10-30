@@ -63,6 +63,11 @@ const NAV_GROUPS = [
         href: "/settings/account/preferences",
         exact: false,
       },
+      {
+        label: "Klien AI",
+        href: "/settings/account/ai-clients",
+        exact: false,
+      },
     ],
   },
 ] as const;

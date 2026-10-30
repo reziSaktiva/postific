@@ -13,6 +13,7 @@ import {
   SocialPlatform,
   type UserId,
 } from "@postific/shared";
+import type { WorkspaceId } from "@postific/shared";
 import { describe, expect, it } from "vitest";
 import {
   noopBackfillRepositoryStubs,
@@ -237,6 +238,7 @@ describe("PublishingService.listDrafts", () => {
       createFakeRepository({ listDrafts: async () => drafts }),
     );
 
+    // Tanpa port: items dikembalikan apa adanya (T-157, tanpa menyalin).
     await expect(service.listDrafts(WORKSPACE_ID, AUTHOR_ID)).resolves.toBe(
       drafts,
     );
@@ -484,6 +486,9 @@ function createQueueItem(
         accountHandle: "@raka",
       },
     ],
+    createdVia: PostCreatedVia.App,
+    createdViaClientId: null,
+    createdViaClientName: null,
     ...overrides,
   };
 }
@@ -576,6 +581,9 @@ function createCalendarItem(
         platformPostUrl: null,
       },
     ],
+    createdVia: PostCreatedVia.App,
+    createdViaClientId: null,
+    createdViaClientName: null,
     ...overrides,
   };
 }
@@ -926,6 +934,9 @@ function createHistoryItem(
         error: null,
       },
     ],
+    createdVia: PostCreatedVia.App,
+    createdViaClientId: null,
+    createdViaClientName: null,
     ...overrides,
   };
 }
@@ -1055,7 +1066,7 @@ describe("PublishingService.listHistory", () => {
 
     await expect(
       service.listHistory({ workspaceId: WORKSPACE_ID }, AUTHOR_ID),
-    ).resolves.toBe(items);
+    ).resolves.toEqual(items);
   });
 });
 
@@ -2832,5 +2843,189 @@ describe("PublishingService.deletePost", () => {
       ),
     ).rejects.toThrow(AuthorizationError);
     expect(calls).toBe(0);
+  });
+});
+
+describe("PublishingService sumber MCP (T-157)", () => {
+  const MCP = {
+    createdVia: PostCreatedVia.Mcp,
+    createdViaClientId: "client-claude",
+  };
+
+  function portWith(names: Record<string, string>) {
+    const calls: { workspaceId: WorkspaceId; clientIds: string[] }[] = [];
+    return {
+      calls,
+      port: {
+        getClientNames: async (
+          workspaceId: WorkspaceId,
+          clientIds: string[],
+        ) => {
+          calls.push({ workspaceId, clientIds });
+          return new Map(Object.entries(names));
+        },
+      },
+    };
+  }
+
+  function build(
+    repo: Partial<IPublishingRepository>,
+    port?: ReturnType<typeof portWith>["port"],
+  ) {
+    return new PublishingService(
+      createFakeRepository(repo),
+      undefined,
+      undefined,
+      undefined,
+      port,
+    );
+  }
+
+  it("listQueue memperkaya nama klien dengan satu query batch; post app tetap null", async () => {
+    const { port, calls } = portWith({ "client-claude": "Claude Code" });
+    const mcpItem = createQueueItem({ id: asPostId("p-mcp"), ...MCP });
+    const mcpItem2 = createQueueItem({ id: asPostId("p-mcp2"), ...MCP });
+    const appItem = createQueueItem({ id: asPostId("p-app") });
+    const groups = await build(
+      { listQueue: async () => [mcpItem, mcpItem2, appItem] },
+      port,
+    ).listQueue(WORKSPACE_ID, AUTHOR_ID, "Asia/Jakarta");
+
+    const items = groups.flatMap((g) => g.items);
+    expect(
+      Object.fromEntries(items.map((i) => [i.id, i.createdViaClientName])),
+    ).toEqual({
+      "p-mcp": "Claude Code",
+      "p-mcp2": "Claude Code",
+      "p-app": null,
+    });
+    expect(calls).toEqual([
+      { workspaceId: WORKSPACE_ID, clientIds: ["client-claude"] },
+    ]);
+  });
+
+  it("nama beku di post menang dan tidak di-resolve; hanya item tanpa nama yang di-lookup", async () => {
+    const { port, calls } = portWith({ "client-claude": "Nama Grant" });
+    const frozen = createQueueItem({
+      id: asPostId("p-frozen"),
+      ...MCP,
+      createdViaClientName: "Nama Beku",
+    });
+    const legacy = createQueueItem({ id: asPostId("p-legacy"), ...MCP });
+    const items = (
+      await build({ listQueue: async () => [frozen, legacy] }, port).listQueue(
+        WORKSPACE_ID,
+        AUTHOR_ID,
+        "Asia/Jakarta",
+      )
+    ).flatMap((g) => g.items);
+
+    expect(
+      Object.fromEntries(items.map((i) => [i.id, i.createdViaClientName])),
+    ).toEqual({ "p-frozen": "Nama Beku", "p-legacy": "Nama Grant" });
+    expect(calls).toHaveLength(1);
+  });
+
+  it("semua nama sudah beku: port tidak dipanggil", async () => {
+    const { port, calls } = portWith({});
+    const [item] = await build(
+      {
+        listHistory: async () => [
+          createHistoryItem({ ...MCP, createdViaClientName: "Beku" }),
+        ],
+      },
+      port,
+    ).listHistory({ workspaceId: WORKSPACE_ID }, AUTHOR_ID);
+    expect(item?.createdViaClientName).toBe("Beku");
+    expect(calls).toEqual([]);
+  });
+
+  it("tanpa port atau tanpa clientId: array items dikembalikan apa adanya (referensi sama)", async () => {
+    const withMcp = [createHistoryItem(MCP)];
+    const noClient = [createHistoryItem()];
+    const spy = (items: unknown[]) =>
+      (
+        build({ listHistory: async () => items as never }) as unknown as {
+          withClientNames: (w: WorkspaceId, i: unknown[]) => Promise<unknown[]>;
+        }
+      ).withClientNames(WORKSPACE_ID, items);
+    expect(await spy(withMcp)).toBe(withMcp);
+
+    const { port } = portWith({});
+    const svc = build({}, port) as unknown as {
+      withClientNames: (w: WorkspaceId, i: unknown[]) => Promise<unknown[]>;
+    };
+    expect(await svc.withClientNames(WORKSPACE_ID, noClient)).toBe(noClient);
+  });
+
+  it("tanpa port: createdViaClientName null, createdVia tetap", async () => {
+    const [item] = (
+      await build({
+        listQueue: async () => [createQueueItem(MCP)],
+      }).listQueue(WORKSPACE_ID, AUTHOR_ID, "Asia/Jakarta")
+    ).flatMap((g) => g.items);
+
+    expect(item?.createdVia).toBe(PostCreatedVia.Mcp);
+    expect(item?.createdViaClientName).toBeNull();
+  });
+
+  it("nama tak ditemukan -> null (bukan string kosong)", async () => {
+    const { port } = portWith({ "client-claude": "" });
+    const [item] = await build(
+      { listHistory: async () => [createHistoryItem(MCP)] },
+      port,
+    ).listHistory({ workspaceId: WORKSPACE_ID }, AUTHOR_ID);
+
+    expect(item?.createdViaClientName).toBeNull();
+  });
+
+  it("post app tidak memanggil port sama sekali", async () => {
+    const { port, calls } = portWith({});
+    await build(
+      { listHistory: async () => [createHistoryItem()] },
+      port,
+    ).listHistory({ workspaceId: WORKSPACE_ID }, AUTHOR_ID);
+    expect(calls).toEqual([]);
+  });
+
+  it("listDrafts, getCalendarPostById, getHistoryById, getHistoryPostById memperkaya nama", async () => {
+    const { port } = portWith({ "client-claude": "Claude Code" });
+    const draft = {
+      id: asPostId("d1"),
+      workspaceId: WORKSPACE_ID,
+      authorId: AUTHOR_ID,
+      caption: "x",
+      status: ContentStatus.Draft,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      ...MCP,
+    };
+    const service = build(
+      {
+        listDrafts: async () => [draft],
+        getCalendarPostById: async () => createCalendarItem(MCP),
+        getHistoryById: async () => createHistoryItem(MCP),
+        getHistoryPostById: async () => createHistoryItem(MCP),
+      },
+      port,
+    );
+    const postId = asPostId("p");
+
+    expect(
+      (await service.listDrafts(WORKSPACE_ID, AUTHOR_ID))[0]
+        ?.createdViaClientName,
+    ).toBe("Claude Code");
+    expect(
+      (await service.getCalendarPostById(WORKSPACE_ID, postId, AUTHOR_ID))
+        ?.createdViaClientName,
+    ).toBe("Claude Code");
+    expect(
+      (await service.getHistoryById(WORKSPACE_ID, postId, AUTHOR_ID))
+        .createdViaClientName,
+    ).toBe("Claude Code");
+    expect(
+      (await service.getHistoryPostById(WORKSPACE_ID, postId, AUTHOR_ID))
+        ?.createdViaClientName,
+    ).toBe("Claude Code");
   });
 });

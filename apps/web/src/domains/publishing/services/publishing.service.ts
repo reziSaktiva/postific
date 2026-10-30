@@ -96,6 +96,22 @@ interface AuthorPort {
 }
 
 /**
+ * Port lokal untuk cross-domain `publishing` -> `mcp-access` (T-157) — pola
+ * sama `AuthorPort`: `mcp-access` konkret TIDAK diimport; composition root
+ * menyuplai adapter tipis di atas `McpAccessService.getClientNames`.
+ * Opsional — tanpa port, `createdViaClientName` selalu `null`.
+ *
+ * Mengembalikan peta `clientId -> clientName` untuk klien yang namanya
+ * ditemukan; klien tanpa nama tidak ada di peta.
+ */
+export interface McpClientNamePort {
+  getClientNames(
+    workspaceId: WorkspaceId,
+    clientIds: string[],
+  ): Promise<Map<string, string>>;
+}
+
+/**
  * Satu item Calendar hasil `PublishingService.listCalendarPosts` —
  * `CalendarItemRecord` mentah dari repository + `metrics`. `metrics`
  * bermakna dua kondisi berbeda by design (KSP-02-F08 — metrik hanya
@@ -392,7 +408,49 @@ export class PublishingService {
     private readonly postMetrics?: PostMetricsPort,
     private readonly connectedAccounts?: ConnectedAccountsPort,
     private readonly authorPort?: AuthorPort,
+    private readonly mcpClientNames?: McpClientNamePort,
   ) {}
+
+  /**
+   * T-157 — lengkapi `createdViaClientName` hanya untuk item yang punya
+   * `createdViaClientId` tetapi namanya belum terisi (nama beku di post
+   * menang). Satu query batch per panggilan. Tanpa port, atau nama tak
+   * ditemukan -> `null` (UI fallback "Klien AI"); tidak pernah string kosong.
+   * Tanpa yang perlu di-resolve, `items` dikembalikan apa adanya.
+   */
+  private async withClientNames<
+    T extends {
+      createdViaClientId?: string | null;
+      createdViaClientName?: string | null;
+    },
+  >(workspaceId: WorkspaceId, items: T[]): Promise<T[]> {
+    if (!this.mcpClientNames) {
+      return items;
+    }
+    const clientIds = [
+      ...new Set(
+        items
+          .filter((item) => !item.createdViaClientName)
+          .map((item) => item.createdViaClientId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    if (clientIds.length === 0) {
+      return items;
+    }
+    const names = await this.mcpClientNames.getClientNames(
+      workspaceId,
+      clientIds,
+    );
+
+    return items.map((item) => ({
+      ...item,
+      createdViaClientName:
+        item.createdViaClientName ||
+        (item.createdViaClientId && names.get(item.createdViaClientId)) ||
+        null,
+    }));
+  }
 
   async saveDraft(input: {
     workspaceId: WorkspaceId;
@@ -430,7 +488,8 @@ export class PublishingService {
     workspaceId: WorkspaceId,
     userId: UserId,
   ): Promise<PublishingPostRecord[]> {
-    return this.repository.listDrafts({ workspaceId }, userId);
+    const drafts = await this.repository.listDrafts({ workspaceId }, userId);
+    return this.withClientNames(workspaceId, drafts);
   }
 
   async getDraftById(
@@ -607,7 +666,10 @@ export class PublishingService {
     timeZone: string,
   ): Promise<QueueGroup[]> {
     const items = await this.repository.listQueue({ workspaceId }, userId);
-    return groupQueueItemsByDate(items, timeZone);
+    return groupQueueItemsByDate(
+      await this.withClientNames(workspaceId, items),
+      timeZone,
+    );
   }
 
   /**
@@ -636,7 +698,10 @@ export class PublishingService {
     },
     userId: UserId,
   ): Promise<CalendarPostItem[]> {
-    const items = await this.repository.listCalendarPosts(input, userId);
+    const items = await this.withClientNames(
+      input.workspaceId,
+      await this.repository.listCalendarPosts(input, userId),
+    );
     const sorted = sortCalendarItemsByEffectiveDate(items);
 
     const publishedPostIds = sorted
@@ -693,10 +758,14 @@ export class PublishingService {
     postId: PostId,
     userId: UserId,
   ): Promise<CalendarPostItem | null> {
-    const item = await this.repository.getCalendarPostById(
+    const found = await this.repository.getCalendarPostById(
       { workspaceId, postId },
       userId,
     );
+    if (!found) {
+      return null;
+    }
+    const [item] = await this.withClientNames(workspaceId, [found]);
     if (!item) {
       return null;
     }
@@ -755,7 +824,10 @@ export class PublishingService {
       return [];
     }
 
-    return this.repository.listHistory({ ...input, statuses }, userId);
+    return this.withClientNames(
+      input.workspaceId,
+      await this.repository.listHistory({ ...input, statuses }, userId),
+    );
   }
 
   /**
@@ -790,10 +862,14 @@ export class PublishingService {
     postId: PostId,
     userId: UserId,
   ): Promise<HistoryDetailItem> {
-    const post = await this.repository.getHistoryById(
+    const found = await this.repository.getHistoryById(
       { workspaceId, postId },
       userId,
     );
+    if (!found) {
+      throw new NotFoundError("Riwayat post tidak ditemukan.");
+    }
+    const [post] = await this.withClientNames(workspaceId, [found]);
     if (!post) {
       throw new NotFoundError("Riwayat post tidak ditemukan.");
     }
@@ -1368,6 +1444,14 @@ export class PublishingService {
     postId: PostId,
     userId: UserId,
   ): Promise<HistoryItemRecord | null> {
-    return this.repository.getHistoryPostById({ workspaceId, postId }, userId);
+    const post = await this.repository.getHistoryPostById(
+      { workspaceId, postId },
+      userId,
+    );
+    if (!post) {
+      return null;
+    }
+    const [enriched] = await this.withClientNames(workspaceId, [post]);
+    return enriched ?? null;
   }
 }

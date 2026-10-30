@@ -10,7 +10,7 @@ import {
 } from "react";
 import Link from "next/link";
 
-import { ContentStatus } from "@postific/shared";
+import { ContentStatus, PostCreatedVia } from "@postific/shared";
 import {
   compareHistoryItemsDesc,
   groupHistoryItemsByDate,
@@ -33,6 +33,15 @@ import {
   subscribeRelativeNow,
 } from "./relative-now";
 
+import { SourceFilterEmpty } from "@/components/shared/SourceFilterEmpty";
+import { McpSourceBadge } from "@/components/shared/McpSourceBadge";
+import { SourceFilterSelect } from "@/components/shared/SourceFilterSelect";
+import {
+  matchesSourceFilter,
+  resolveFilteredEmptyKind,
+  SourceFilter,
+  type SourceFilterValue,
+} from "@/components/shared/source-filter";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -196,6 +205,10 @@ export function HistoryList({
     ALL_ACCOUNTS_FILTER_VALUE,
   );
 
+  const [sourceFilter, setSourceFilter] = useState<SourceFilterValue>(
+    SourceFilter.All,
+  );
+
   const [localItems, setLocalItems] = useSyncedState(items);
   const requestSeqRef = useRef<Map<string, number>>(new Map());
 
@@ -266,11 +279,33 @@ export function HistoryList({
             item.targets.some(
               (target) => target.connectedAccountId === accountFilter,
             );
-          return matchesStatus && matchesAccount;
+          return (
+            matchesStatus &&
+            matchesAccount &&
+            matchesSourceFilter(item, sourceFilter)
+          );
         }),
       }))
       .filter((group) => group.items.length > 0);
-  }, [groups, statusFilter, accountFilter]);
+  }, [groups, statusFilter, accountFilter, sourceFilter]);
+
+  const emptyKind = resolveFilteredEmptyKind({
+    sourceFilter,
+    otherFiltersAtDefault:
+      statusFilter === ALL_STATUS_FILTER_VALUE &&
+      accountFilter === ALL_ACCOUNTS_FILTER_VALUE,
+    totalItems: localItems.length,
+    hasMcpItems: localItems.some(
+      (item) => item.createdVia === PostCreatedVia.Mcp,
+    ),
+  });
+
+  function resetAllFilters() {
+    bumpClientNowMs(renderedAt);
+    setStatusFilter(ALL_STATUS_FILTER_VALUE);
+    setAccountFilter(ALL_ACCOUNTS_FILTER_VALUE);
+    setSourceFilter(SourceFilter.All);
+  }
 
   return (
     // eslint-disable-next-line no-restricted-syntax -- layout-only, konsisten QueueList/DraftsList
@@ -313,20 +348,31 @@ export function HistoryList({
             ))}
           </SelectContent>
         </Select>
+        <SourceFilterSelect
+          value={sourceFilter}
+          onValueChange={(value) => {
+            bumpClientNowMs(renderedAt);
+            setSourceFilter(value);
+          }}
+        />
       </div>
 
       {filteredGroups.length === 0 ? (
         <Card>
           <CardContent>
-            <Empty>
-              <EmptyHeader>
-                <EmptyTitle>Belum ada riwayat</EmptyTitle>
-                <EmptyDescription>
-                  Post yang sudah selesai diproses (published maupun error) akan
-                  muncul di sini, dikelompokkan per tanggal.
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
+            {emptyKind !== "base" ? (
+              <SourceFilterEmpty kind={emptyKind} onShowAll={resetAllFilters} />
+            ) : (
+              <Empty>
+                <EmptyHeader>
+                  <EmptyTitle>Belum ada riwayat</EmptyTitle>
+                  <EmptyDescription>
+                    Post yang sudah selesai diproses (published maupun error)
+                    akan muncul di sini, dikelompokkan per tanggal.
+                  </EmptyDescription>
+                </EmptyHeader>
+              </Empty>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -394,20 +440,27 @@ export function HistoryList({
                           <ItemTitle className="line-clamp-none block w-full min-w-0 font-normal whitespace-normal sm:truncate sm:whitespace-nowrap">
                             {item.caption || "(Tanpa caption)"}
                           </ItemTitle>
-                          <Text
-                            variant="muted"
-                            as="span"
-                            suppressHydrationWarning
-                            className={
-                              showsPublishMeta
-                                ? "truncate text-xs"
-                                : "truncate text-xs text-destructive"
-                            }
-                          >
-                            {showsPublishMeta
-                              ? `Dipublikasikan ${formatRelativeTime(publishedAt, timeZone, relativeNow)}`
-                              : getPrimaryErrorMessage(item)}
-                          </Text>
+                          {/* eslint-disable-next-line no-restricted-syntax -- layout-only */}
+                          <div className="flex min-w-0 items-center gap-2">
+                            <Text
+                              variant="muted"
+                              as="span"
+                              suppressHydrationWarning
+                              className={
+                                showsPublishMeta
+                                  ? "truncate text-xs"
+                                  : "truncate text-xs text-destructive"
+                              }
+                            >
+                              {showsPublishMeta
+                                ? `Dipublikasikan ${formatRelativeTime(publishedAt, timeZone, relativeNow)}`
+                                : getPrimaryErrorMessage(item)}
+                            </Text>
+                            <McpSourceBadge
+                              createdVia={item.createdVia}
+                              clientName={item.createdViaClientName}
+                            />
+                          </div>
                         </ItemContent>
 
                         <Badge

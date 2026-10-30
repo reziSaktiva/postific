@@ -39,6 +39,6 @@ describe("handleMcpRequest", () => {
     );
     expect(response.status).toBe(200);
     const body = (await response.json()) as { result: { tools: unknown[] } };
-    expect(body.result.tools).toHaveLength(10);
+    expect(body.result.tools).toHaveLength(11);
   });
 });

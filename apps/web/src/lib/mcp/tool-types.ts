@@ -2,7 +2,7 @@ import type { UserId, WorkspaceId } from "@postific/shared";
 import type { McpScope } from "@/domains/mcp-access";
 import type { AnalyticsService } from "@/domains/analytics";
 import type { EngagementService } from "@/domains/engagement";
-import type { MediaService } from "@/domains/media";
+import type { MediaService, UploadMediaUseCase } from "@/domains/media";
 import type {
   ComposeDraftUseCase,
   PublishingService,
@@ -30,6 +30,14 @@ export interface McpToolServices {
   engagement: Pick<EngagementService, "listInbox">;
   /** Tool tulis scope `draft` (T-152): validasi + simpan draft lewat use-case publishing. */
   drafts: Pick<ComposeDraftUseCase, "createDraft" | "updateDraft">;
+  /** `upload_media` (T-155): simpan lewat alur `UploadMediaUseCase` yang sama dengan UI. */
+  mediaUpload: Pick<UploadMediaUseCase, "execute">;
+  /** `upload_media` (T-155): unduh URL pihak ketiga dengan proteksi SSRF (infra, `lib/net`). */
+  remoteMedia: McpRemoteMediaFetcher;
+}
+
+export interface McpRemoteMediaFetcher {
+  download(url: string): Promise<{ bytes: Buffer; finalUrl: URL }>;
 }
 
 /** Konteks handler; identitas selalu dari grant yang lolos `authorizeCall`, bukan dari argumen tool. */
@@ -38,6 +46,8 @@ export interface McpToolContext {
   userId: UserId;
   /** `clientId` OAuth klien AI dari grant yang lolos; dipakai penanda sumber post (`created_via_client_id`). */
   clientId: string;
+  /** Nama klien dari grant (sudah dirapikan); dibekukan di post saat `create_draft`. */
+  clientName: string | null;
   grantScopes: readonly McpScope[];
   services: McpToolServices;
 }

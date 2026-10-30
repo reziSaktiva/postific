@@ -14,7 +14,7 @@ import {
 
 import type { McpClaims } from "./claims";
 import { McpInvalidCursorError } from "./cursor";
-import { McpToolInputError } from "./tool-input";
+import { McpToolInputError, McpToolTemporaryError } from "./tool-input";
 import type { McpToolServices, McpToolDefinition } from "./tool-types";
 
 /**
@@ -74,6 +74,7 @@ export type McpErrorCode =
   | "not_found"
   | "conflict"
   | "rate_limited"
+  | "temporarily_unavailable"
   | "internal_error";
 
 /** Rincian tambahan error `rate_limited` (T-154); klien memakai `retryAfterSeconds`. */
@@ -129,6 +130,13 @@ function classify(error: unknown): Failure | null {
   }
   if (error instanceof McpToolInputError) {
     return { code: "invalid_input", message: error.message, status: "error" };
+  }
+  if (error instanceof McpToolTemporaryError) {
+    return {
+      code: "temporarily_unavailable",
+      message: error.message,
+      status: "error",
+    };
   }
   if (error instanceof McpInvalidCursorError) {
     return { code: "invalid_cursor", message: error.message, status: "error" };
@@ -257,6 +265,7 @@ export async function runMcpTool(
         workspaceId: authorized.workspaceId,
         userId: authorized.userId,
         clientId: authorized.clientId,
+        clientName: authorized.clientName ?? null,
         grantScopes: authorized.grantScopes,
         services: deps.services,
       },

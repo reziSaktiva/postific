@@ -1,4 +1,9 @@
-import { ContentStatus, asPostId, asUserId } from "@postific/shared";
+import {
+  ContentStatus,
+  asPostId,
+  asUserId,
+  PostCreatedVia,
+} from "@postific/shared";
 import { describe, expect, it } from "vitest";
 import type { HistoryItemRecord } from "../repositories/publishing.repository";
 import {
@@ -25,6 +30,9 @@ function createHistoryItem(
     mediaIds: [],
     authorId: asUserId("user-1"),
     targets: [],
+    createdVia: PostCreatedVia.App,
+    createdViaClientId: null,
+    createdViaClientName: null,
     ...overrides,
   };
 }

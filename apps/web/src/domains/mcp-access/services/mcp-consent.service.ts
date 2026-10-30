@@ -23,10 +23,18 @@ interface WorkspaceDirectoryPort {
   listWorkspacesForUser(
     userId: UserId,
   ): Promise<{ workspaceId: WorkspaceId; name: string; role: MemberRole }[]>;
-  countActiveConnectedAccounts(
+  findWorkspaceForUser(
     workspaceId: WorkspaceId,
     userId: UserId,
-  ): Promise<number>;
+  ): Promise<{
+    workspaceId: WorkspaceId;
+    name: string;
+    role: MemberRole;
+  } | null>;
+  countActiveConnectedAccountsByWorkspace(
+    workspaceIds: WorkspaceId[],
+    userId: UserId,
+  ): Promise<Map<WorkspaceId, number>>;
   getMembership(
     workspaceId: WorkspaceId,
     userId: UserId,
@@ -71,18 +79,17 @@ export class McpConsentService {
     userId: UserId,
   ): Promise<McpSelectableWorkspace[]> {
     const workspaces = await this.workspaces.listWorkspacesForUser(userId);
-    return Promise.all(
-      workspaces.map(async (workspace) => ({
-        workspaceId: workspace.workspaceId,
-        name: workspace.name,
-        role: workspace.role,
-        connectedAccountCount:
-          await this.workspaces.countActiveConnectedAccounts(
-            workspace.workspaceId,
-            userId,
-          ),
-      })),
-    );
+    const counts =
+      await this.workspaces.countActiveConnectedAccountsByWorkspace(
+        workspaces.map((workspace) => workspace.workspaceId),
+        userId,
+      );
+    return workspaces.map((workspace) => ({
+      workspaceId: workspace.workspaceId,
+      name: workspace.name,
+      role: workspace.role,
+      connectedAccountCount: counts.get(workspace.workspaceId) ?? 0,
+    }));
   }
 
   /**
@@ -152,9 +159,9 @@ export class McpConsentService {
     if (workspaceId === null) {
       return null;
     }
-    const workspaces = await this.workspaces.listWorkspacesForUser(userId);
-    const selected = workspaces.find(
-      (workspace) => workspace.workspaceId === workspaceId,
+    const selected = await this.workspaces.findWorkspaceForUser(
+      workspaceId,
+      userId,
     );
     return selected
       ? {

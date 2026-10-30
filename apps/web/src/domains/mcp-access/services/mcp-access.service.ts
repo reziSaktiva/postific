@@ -90,6 +90,20 @@ export class McpAccessService {
   ) {}
 
   /**
+   * T-157 — peta `clientId -> clientName` untuk badge sumber MCP di
+   * History/Drafts/Queue. Grant yang sudah dicabut ikut dihitung. Read-only;
+   * pemanggil (composition root halaman) sudah memverifikasi keanggotaan
+   * workspace. Klien tanpa nama tidak ada di peta.
+   */
+  async getClientNames(
+    workspaceId: WorkspaceId,
+    clientIds: string[],
+  ): Promise<Map<string, string>> {
+    const unique = [...new Set(clientIds.filter((id) => id !== ""))];
+    return this.grants.findClientNames(workspaceId, unique);
+  }
+
+  /**
    * Buat grant untuk (pengguna, klien, workspace) dengan scope terpilih, atau
    * perbarui `scopes` grant aktif yang sudah ada (satu grant aktif per
    * koneksi, indeks unik parsial). Idempoten untuk input yang sama.
