@@ -75,6 +75,7 @@ function context(services: McpToolServices): McpToolContext {
     workspaceId: WORKSPACE,
     userId: USER,
     clientId: CLIENT,
+    clientName: "Claude",
     grantScopes: ["read", "draft"],
     services,
   };
