@@ -97,6 +97,33 @@ describe("McpAuditPurgeJobHandler", () => {
     await expect(handler.handle()).rejects.toThrow("db down");
   });
 
+  it("surfaces every failure (AggregateError) when more than one purge fails", async () => {
+    const handler = new McpAuditPurgeJobHandler(
+      {
+        purgeAudit: async () => {
+          throw new Error("audit down");
+        },
+        purgeRateLimitWindows: async () => {
+          throw new Error("counters down");
+        },
+      },
+      {
+        purgeExpiredWorkspaceChoices: async () => {
+          throw new Error("choices down");
+        },
+      },
+    );
+
+    const error = await handler.handle().then(
+      () => null,
+      (e: unknown) => e,
+    );
+    expect(error).toBeInstanceOf(AggregateError);
+    expect(
+      (error as AggregateError).errors.map((e: Error) => e.message),
+    ).toEqual(["audit down", "counters down", "choices down"]);
+  });
+
   it("propagates errors so the job runner applies the generic retry", async () => {
     const handler = new McpAuditPurgeJobHandler({
       purgeAudit: async () => {

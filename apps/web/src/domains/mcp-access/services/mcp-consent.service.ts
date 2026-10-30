@@ -170,6 +170,14 @@ export class McpConsentService {
     return describeMcpClient(await this.clients.findRegistration(clientId));
   }
 
+  /**
+   * Hapus pilihan workspace sesi setelah consent berhasil: pilihan terikat satu
+   * alur persetujuan, jadi klien lain di sesi yang sama kembali ke langkah 1.
+   */
+  async clearWorkspaceChoice(sessionId: string, userId: UserId): Promise<void> {
+    await this.choices.deleteForSession({ sessionId, userId });
+  }
+
   /** Hapus pilihan kedaluwarsa (JOB-08). Idempoten; mengembalikan jumlah baris terhapus. */
   async purgeExpiredWorkspaceChoices(): Promise<number> {
     return this.choices.deleteExpired(this.clock());

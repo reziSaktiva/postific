@@ -286,18 +286,7 @@ describe("McpRateLimitService.assertWithinLimit", () => {
     expect((error as Error).message).toContain("30 per jam");
   });
 
-  it("does not consume the write quota when the call quota rejects first", async () => {
-    const { service, repo } = createService({
-      config: { ...CONFIG, calls: 1 },
-    });
-    await service.assertWithinLimit(ctx({ requiredScope: "draft" }));
-    await expect(
-      service.assertWithinLimit(ctx({ requiredScope: "draft" })),
-    ).rejects.toMatchObject({ quota: "calls" });
-    expect(repo.count(WS_A, "write_actions")).toBe(1);
-  });
-
-  it("keeps a call counted when the write quota rejects (the call did happen)", async () => {
+  it("does not consume the call quota when the write quota rejects first", async () => {
     const { service, repo } = createService({
       config: { ...CONFIG, write_actions: 1 },
     });
@@ -305,7 +294,19 @@ describe("McpRateLimitService.assertWithinLimit", () => {
     await expect(
       service.assertWithinLimit(ctx({ requiredScope: "draft" })),
     ).rejects.toMatchObject({ quota: "write_actions" });
-    expect(repo.count(WS_A, "calls")).toBe(2);
+    // Retry tulis yang ditolak tidak menguras kuota baca workspace.
+    expect(repo.count(WS_A, "calls")).toBe(1);
+  });
+
+  it("leaves one write action counted when the call quota rejects a write (bounded by the hourly limit)", async () => {
+    const { service, repo } = createService({
+      config: { ...CONFIG, calls: 1 },
+    });
+    await service.assertWithinLimit(ctx({ requiredScope: "draft" }));
+    await expect(
+      service.assertWithinLimit(ctx({ requiredScope: "draft" })),
+    ).rejects.toMatchObject({ quota: "calls" });
+    expect(repo.count(WS_A, "write_actions")).toBe(2);
   });
 
   it("isolates workspaces: one workspace hitting the limit does not affect another", async () => {

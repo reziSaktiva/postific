@@ -30,6 +30,7 @@ import type {
   RecordMcpAuditInput,
 } from "../types";
 import { summarizeToolInput } from "../value-objects/audit-summary";
+import { normalizeClientName } from "../value-objects/client-identity";
 import type { McpQuotaKind } from "../value-objects/rate-limit";
 import {
   isMcpScope,
@@ -382,11 +383,6 @@ export class McpAccessService {
       throw new McpAccessDeniedError("not_workspace_member");
     }
   }
-}
-
-function normalizeClientName(name: string | null | undefined): string | null {
-  const trimmed = name?.trim();
-  return trimmed ? trimmed : null;
 }
 
 function normalizeDuration(

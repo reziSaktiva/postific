@@ -6,11 +6,9 @@ import { McpAccessDeniedError } from "@/domains/mcp-access";
 import { getCachedSession } from "@/lib/better-auth/session";
 import { getMcpConsentService } from "@/lib/mcp-access/get-mcp-consent-service";
 import { isMcpEnabled } from "@/lib/mcp/config";
+import { UUID_PATTERN } from "@/lib/mcp/tool-input";
 
 export type ChooseWorkspaceResult = { ok: true } | { ok: false; error: string };
-
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * Simpan workspace pilihan pengguna untuk sesi loginnya (T-151, ADR-139).

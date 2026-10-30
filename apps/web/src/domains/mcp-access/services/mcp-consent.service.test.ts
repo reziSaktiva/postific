@@ -34,6 +34,11 @@ function createChoiceRepository() {
       const row = rows.get(sessionId);
       return row && row.userId === userId && row.expiresAt > now ? row : null;
     },
+    async deleteForSession({ sessionId, userId }) {
+      if (rows.get(sessionId)?.userId === userId) {
+        rows.delete(sessionId);
+      }
+    },
     async deleteExpired(now) {
       let deleted = 0;
       for (const [key, row] of rows) {
@@ -255,6 +260,7 @@ describe("McpConsentService", () => {
         {
           upsert: vi.fn(),
           findActive: vi.fn(async () => foreign),
+          deleteForSession: vi.fn(),
           deleteExpired: vi.fn(),
         },
         { findRegistration: vi.fn() },
@@ -341,6 +347,25 @@ describe("McpConsentService", () => {
         hosts: [],
         isUnusual: true,
       });
+    });
+  });
+
+  describe("clearWorkspaceChoice", () => {
+    it("removes the session's choice so another OAuth flow returns to step 1", async () => {
+      const { service, rows } = createService();
+      await service.chooseWorkspace({
+        sessionId: "s1",
+        userId: USER,
+        workspaceId: WS_A,
+      });
+      await service.clearWorkspaceChoice("s1", OTHER_USER);
+      expect(rows.has("s1")).toBe(true); // bukan pemiliknya: tidak terhapus
+
+      await service.clearWorkspaceChoice("s1", USER);
+      expect(rows.has("s1")).toBe(false);
+      await expect(
+        service.getActiveWorkspaceId("s1", USER),
+      ).resolves.toBeNull();
     });
   });
 

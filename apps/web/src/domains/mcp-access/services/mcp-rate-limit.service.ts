@@ -35,13 +35,15 @@ export class McpRateLimitService implements McpRateLimiter {
 
   /**
    * Hook `authorizeCall`, dipanggil setelah grant, scope, dan member lolos:
-   * menghitung satu `calls`, dan satu `write_actions` bila tool butuh scope
-   * selain `read` (`draft` atau `schedule`). Penolakan `calls` tidak
-   * menyentuh `write_actions`. Penolakan `write_actions` tetap meninggalkan
-   * hitungan `calls` karena panggilannya memang terjadi.
+   * menghitung satu `write_actions` bila tool butuh scope selain `read`
+   * (`draft` atau `schedule`), lalu satu `calls`. `write_actions` dicek lebih
+   * dulu supaya klien yang terus mencoba tulis setelah batas per jam habis
+   * tidak menghabiskan kuota `calls` (per menit) milik tool baca seluruh
+   * workspace: penolakan `write_actions` tidak menyentuh `calls`. Harganya,
+   * tulis yang ditolak `calls` tetap meninggalkan satu hitungan `write_actions`
+   * (terbatas 30 per jam).
    */
   async assertWithinLimit(context: McpRateLimitContext): Promise<void> {
-    await this.consume(context.workspaceId, "calls", 1, context.grantId);
     if (context.requiredScope !== "read") {
       await this.consume(
         context.workspaceId,
@@ -50,6 +52,7 @@ export class McpRateLimitService implements McpRateLimiter {
         context.grantId,
       );
     }
+    await this.consume(context.workspaceId, "calls", 1, context.grantId);
   }
 
   /** API kuota untuk tool (T-153): all-or-nothing, melempar bila melebihi batas. */

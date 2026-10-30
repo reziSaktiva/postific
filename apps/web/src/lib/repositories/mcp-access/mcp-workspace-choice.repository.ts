@@ -57,6 +57,12 @@ export const mcpWorkspaceChoiceRepository: IMcpWorkspaceChoiceRepository = {
       : null;
   },
 
+  async deleteForSession({ sessionId, userId }) {
+    await prisma.mcpWorkspaceChoice.deleteMany({
+      where: { sessionId, userId },
+    });
+  },
+
   /**
    * `deleteMany` satu statement: tabel ini hanya memuat satu baris per sesi
    * login dengan umur 10 menit, jadi tidak perlu batch seperti purge audit.

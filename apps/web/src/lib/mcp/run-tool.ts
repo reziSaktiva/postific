@@ -32,6 +32,31 @@ import type { McpToolServices, McpToolDefinition } from "./tool-types";
 /** Batas tunggu audit di jalur respons; audit tidak boleh menahan hasil tool. */
 const AUDIT_TIMEOUT_MS = 2000;
 
+/**
+ * Audit penolakan `rate_limited` dibatasi satu baris per workspace, klien, dan
+ * kuota per menit (per proses): klien yang terus mencoba setelah ditolak tidak
+ * menambah baris `mcp_audit_logs` tanpa batas.
+ */
+const RATE_LIMIT_AUDIT_INTERVAL_MS = 60_000;
+const RATE_LIMIT_AUDIT_MAX_KEYS = 1000;
+const rateLimitAuditedAt = new Map<string, number>();
+
+function shouldAuditRateLimit(key: string, nowMs: number): boolean {
+  const last = rateLimitAuditedAt.get(key);
+  if (last !== undefined && nowMs - last < RATE_LIMIT_AUDIT_INTERVAL_MS) {
+    return false;
+  }
+  if (rateLimitAuditedAt.size >= RATE_LIMIT_AUDIT_MAX_KEYS) {
+    for (const [k, at] of rateLimitAuditedAt) {
+      if (nowMs - at >= RATE_LIMIT_AUDIT_INTERVAL_MS) {
+        rateLimitAuditedAt.delete(k);
+      }
+    }
+  }
+  rateLimitAuditedAt.set(key, nowMs);
+  return true;
+}
+
 export interface McpGateDeps {
   access: Pick<McpAccessService, "authorizeCall" | "recordAudit">;
   services: McpToolServices;
@@ -201,11 +226,18 @@ export async function runMcpTool(
     }
     if (error instanceof McpRateLimitExceededError) {
       const failure = rateLimitFailure(error);
-      await audit({
-        grantId: error.grantId,
-        status: failure.status,
-        errorCode: failure.code,
-      });
+      if (
+        shouldAuditRateLimit(
+          `${claims.workspaceId}:${claims.clientId}:${error.quota}`,
+          now(),
+        )
+      ) {
+        await audit({
+          grantId: error.grantId,
+          status: failure.status,
+          errorCode: failure.code,
+        });
+      }
       return mcpErrorResult(failure.code, failure.message, failure.details);
     }
     logger.error("[mcp] otorisasi gagal (ditolak, fail closed)", {

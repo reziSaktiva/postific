@@ -148,7 +148,7 @@ describe("runMcpTool with rate limit (T-154)", () => {
 
     consumed.length = 0;
     await runMcpTool(deps, claims(["draft"]), tool("draft"), {});
-    expect(consumed).toEqual(["calls", "write_actions"]);
+    expect(consumed).toEqual(["write_actions", "calls"]);
   });
 
   it("reports the write quota when only the hourly limit is exhausted", async () => {

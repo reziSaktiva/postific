@@ -727,7 +727,7 @@ describe.skipIf(!enabled)(
         expect(await countOf(wsA, "write_actions")).toBe(2);
       });
 
-      it("penolakan calls tidak menyentuh write_actions; penolakan write_actions tetap meninggalkan hitungan calls", async () => {
+      it("penolakan write_actions tidak menyentuh calls; penolakan calls meninggalkan satu hitungan write_actions", async () => {
         // calls penuh lewat panggilan baca -> panggilan tulis ditolak di calls.
         for (let i = 0; i < config.calls; i++) {
           await service.assertWithinLimit(context(wsA, "read"));
@@ -736,11 +736,12 @@ describe.skipIf(!enabled)(
           service.assertWithinLimit(context(wsA, "draft")),
         ).rejects.toMatchObject({ quota: "calls" });
         expect(await countOf(wsA, "calls")).toBe(config.calls);
-        expect(await countOf(wsA, "write_actions")).toBe(0);
+        // write_actions dicek lebih dulu: satu hitungan tertinggal.
+        expect(await countOf(wsA, "write_actions")).toBe(1);
 
         // Jendela calls baru; write_actions (per jam) penuh pada panggilan ke-4.
         now = new Date(BASE.getTime() + MIN);
-        for (let i = 0; i < config.write_actions; i++) {
+        for (let i = 0; i < config.write_actions - 1; i++) {
           await service.assertWithinLimit(context(wsA, "draft"));
         }
         const error = await service
@@ -758,7 +759,7 @@ describe.skipIf(!enabled)(
           58 * 60 + 30,
         );
         expect(await countOf(wsA, "write_actions")).toBe(config.write_actions);
-        // calls: 5 (jendela lama) + 3 lolos + 1 yang ditolak write_actions.
+        // calls jendela baru: hanya yang lolos; yang ditolak write_actions tidak dihitung.
         const callsWindow2 = await prisma.mcpRateLimitWindow.findFirstOrThrow({
           where: {
             workspaceId: wsA,
@@ -766,7 +767,7 @@ describe.skipIf(!enabled)(
             windowStart: new Date("2000-01-01T10:01:00.000Z"),
           },
         });
-        expect(callsWindow2.count).toBe(config.write_actions + 1);
+        expect(callsWindow2.count).toBe(config.write_actions - 1);
       });
 
       it("purgeExpired menghapus hanya jendela yang sudah berakhir dan idempoten", async () => {

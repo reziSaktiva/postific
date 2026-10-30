@@ -155,6 +155,20 @@ describe("mcpWorkspaceChoiceRepository", () => {
     });
   });
 
+  describe("deleteForSession()", () => {
+    it("deletes only the row owned by this session and user", async () => {
+      deleteMany.mockResolvedValue({ count: 1 });
+
+      await mcpWorkspaceChoiceRepository.deleteForSession({
+        sessionId: "sess-1",
+        userId: USER,
+      });
+      expect(deleteMany).toHaveBeenCalledWith({
+        where: { sessionId: "sess-1", userId: USER },
+      });
+    });
+  });
+
   describe("deleteExpired()", () => {
     it("deletes rows with expires_at <= now and reports the count", async () => {
       deleteMany.mockResolvedValue({ count: 4 });

@@ -36,7 +36,7 @@ export interface McpWorkspaceChoicePurger {
  * `McpConsentService.purgeExpiredWorkspaceChoices()` (T-151: baris pilihan
  * workspace per sesi OAuth berumur 10 menit, kedaluwarsa sudah diabaikan saat
  * dibaca). Ketiganya dijalankan walau salah satunya gagal; error pertama
- * dilempar setelahnya. Idempoten: run kedua tanpa baris kedaluwarsa menghapus 0
+ * dilempar setelahnya (semuanya dibawa bila lebih dari satu). Idempoten: run kedua tanpa baris kedaluwarsa menghapus 0
  * dan tidak error. Kegagalan dilempar apa adanya
  * supaya job runner memakai retry generik (5m/15m/60m).
  */
@@ -57,10 +57,19 @@ export class McpAuditPurgeJobHandler {
       this.workspaceChoicePurger?.purgeExpiredWorkspaceChoices() ??
         Promise.resolve(null),
     ]);
-    for (const result of results) {
-      if (result.status === "rejected") {
-        throw result.reason;
-      }
+    const failures = results.flatMap((result) =>
+      result.status === "rejected" ? [result.reason] : [],
+    );
+    if (failures.length === 1) {
+      throw failures[0];
+    }
+    if (failures.length > 1) {
+      // Semua kegagalan dibawa, bukan hanya yang pertama, supaya tabel yang
+      // gagal dipurge berulang tetap terlihat di log job runner.
+      throw new AggregateError(
+        failures,
+        `${failures.length} pembersihan JOB-08 gagal`,
+      );
     }
   }
 }

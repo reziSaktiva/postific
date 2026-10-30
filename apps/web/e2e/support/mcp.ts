@@ -113,6 +113,9 @@ export const harnessScreens = {
   scopeCheckbox: (page: Page, scope: string) => page.locator(`[id="${scope}"]`),
   consentAllow: (page: Page) =>
     page.getByRole("button", { name: /^(Izinkan|Saya paham, izinkan)$/ }),
+  /** Tombol yang menggantikan Izinkan setelah persetujuan gagal disimpan. */
+  consentRetry: (page: Page) =>
+    page.getByRole("button", { name: "Coba Lagi", exact: true }),
   /** Teks galat bila persetujuan gagal disimpan (untuk diagnosis). */
   alert: (page: Page) => page.getByRole("alert"),
 };
@@ -320,6 +323,7 @@ export async function authorizeInBrowser(
 
     let pickedWorkspace = false;
     let consented = false;
+    let consentRetries = 0;
     const deadline = Date.now() + 60_000;
     while (!callbackUrl) {
       if (Date.now() > deadline) {
@@ -353,6 +357,25 @@ export async function authorizeInBrowser(
           if (wanted !== checked) await box.click();
         }
         await harnessScreens.consentAllow(page).click();
+      } else if (
+        consented &&
+        (await harnessScreens.consentRetry(page).isVisible())
+      ) {
+        // Simpan gagal sesaat: tombol berubah jadi "Coba Lagi". Ulangi dua kali,
+        // lalu gagal dengan alasan yang jelas (bukan menunggu timeout).
+        if (consentRetries >= 2) {
+          const reason = await harnessScreens
+            .alert(page)
+            .innerText({ timeout: 2_000 })
+            .catch(() => "(tidak terbaca)");
+          throw new Error(
+            scrub(
+              `Consent gagal disimpan setelah ${consentRetries} percobaan ulang: ${reason.slice(0, 300)}`,
+            ),
+          );
+        }
+        consentRetries += 1;
+        await harnessScreens.consentRetry(page).click();
       }
       await page.waitForTimeout(250);
     }

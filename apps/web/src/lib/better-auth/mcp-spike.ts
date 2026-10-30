@@ -34,7 +34,7 @@ export { mcpBaseUrl, mcpResourceUrl } from "@/lib/mcp/config";
 /** Bagian `McpConsentService` yang dibaca plugin OAuth. */
 export type McpWorkspaceChoiceAccess = Pick<
   McpConsentService,
-  "getActiveWorkspaceId"
+  "getActiveWorkspaceId" | "clearWorkspaceChoice"
 >;
 
 export type McpSpikePluginOptions = {
@@ -110,7 +110,12 @@ export function createMcpSpikePlugins({
         workspace_id: referenceId,
       }),
     }),
-    mcpGrantPlugin({ getAccess, consentReferenceId }),
+    mcpGrantPlugin({
+      getAccess,
+      consentReferenceId,
+      onConsentGranted: ({ user, session }) =>
+        getChoices().clearWorkspaceChoice(session.id, asUserId(user.id)),
+    }),
   ];
 }
 

@@ -281,7 +281,8 @@ export class ComposeDraftUseCase {
 }
 
 function assertCaptionWithinLimit(caption: string): void {
-  const length = caption.trim().length;
+  // Panjang apa adanya (tanpa trim): yang disimpan juga caption utuh.
+  const length = caption.length;
   if (length > DRAFT_CAPTION_MAX_LENGTH) {
     throw new ValidationError(
       `Caption terlalu panjang (${length} karakter). Batas maksimum ${DRAFT_CAPTION_MAX_LENGTH} karakter.`,

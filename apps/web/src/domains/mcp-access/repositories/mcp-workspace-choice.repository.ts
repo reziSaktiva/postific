@@ -33,6 +33,12 @@ export interface IMcpWorkspaceChoiceRepository {
   ): Promise<McpWorkspaceChoice | null>;
 
   /**
+   * Hapus pilihan milik `sessionId` DAN `userId` (setelah consent berhasil,
+   * supaya pilihan tidak dipakai ulang oleh alur OAuth klien lain). Idempoten.
+   */
+  deleteForSession(key: { sessionId: string; userId: UserId }): Promise<void>;
+
+  /**
    * Hapus semua pilihan dengan `expires_at <= now`, lintas pengguna (JOB-08).
    * Mengembalikan jumlah baris yang dihapus. Idempoten.
    */

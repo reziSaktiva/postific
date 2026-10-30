@@ -309,6 +309,7 @@ Menampung temuan review Ridwan, QA Najwa, dan catatan penulis gelombang 1 yang t
 - [ ] **T-180.2** (saran Ridwan #7, kerapian) `isMcpQuotaKind` tidak terpakai; `normalizeClientName` duplikat dengan perilaku berbeda; `UUID_PATTERN` duplikat; `maxItems: 10` pada input media draft tidak ditegakkan runtime (hanya di skema tool); JOB-08 hanya melempar error pertama bila lebih dari satu pembersihan gagal.
 - [ ] **T-180.3** (temuan LOW Najwa, T-151) Fokus keyboard jatuh ke `body` setelah error pada tombol Izinkan; catatan "Izin Jadwalkan tidak aktif secara bawaan" tetap tampil setelah dicentang; error langkah 1 tanpa ikon.
 - [ ] **T-180.4** (T-152/T-157) Indeks `(workspace_id, created_via)` pada `publishing_posts` bila T-157 membutuhkannya; `list_drafts` mengembalikan `createdVia`.
+- [ ] **T-180.6** (code-review PR 222, efisiensi) `McpConsentService.listSelectableWorkspaces` memanggil `countActiveConnectedAccounts` sekali per workspace (N+1) dan `getSelectedWorkspace` memuat seluruh daftar workspace untuk satu id. Perlu metode batch/lookup per id di domain `workspace` (port, service, repository dengan RLS, fake tes); ditunda karena di luar PR ini.
 - [ ] **T-180.5** (tindak lanjut desain, T-151.5) Neymar merapikan kartu `ScreenOauthConsent` di artifact Postific (hapus state 2B "scope dibatasi role", rapikan kalimat catatan desain di `consent-foot`). Bukan edit kode; artifact tidak diedit tanpa permintaan King Rezi.
 
 ---

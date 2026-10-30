@@ -56,7 +56,8 @@ export function readOptionalEnum<T extends string>(
   return value as T;
 }
 
-const UUID_PATTERN =
+/** Dipakai bersama layar OAuth (`app/(auth)/_mcp-oauth`) supaya aturan UUID satu tempat. */
+export const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Argumen ID opsional; harus UUID supaya filter kolom `@db.Uuid` tidak melempar error DB. */
@@ -114,10 +115,15 @@ export function readRequiredText(
   return value;
 }
 
-/** Array UUID opsional (mis. `mediaIds`); `[]` sah dan berarti "kosongkan". */
+/** Batas ukuran array yang ditegakkan runtime sebelum elemen diproses (skema JSON saja tidak cukup). */
+export const MAX_UUID_ARRAY_ITEMS = 10;
+export const MAX_DRAFT_TARGET_ITEMS = 50;
+
+/** Array UUID opsional (mis. `mediaIds`); `[]` sah dan berarti "kosongkan". Maksimum `maxItems` elemen. */
 export function readOptionalUuidArray(
   args: Record<string, unknown>,
   key: string,
+  maxItems: number = MAX_UUID_ARRAY_ITEMS,
 ): string[] | undefined {
   const value = args[key];
   if (value === undefined) {
@@ -125,6 +131,11 @@ export function readOptionalUuidArray(
   }
   if (!Array.isArray(value)) {
     throw new McpToolInputError(`Argumen "${key}" harus berupa daftar UUID.`);
+  }
+  if (value.length > maxItems) {
+    throw new McpToolInputError(
+      `Argumen "${key}" maksimum ${maxItems} item (dapat ${value.length}).`,
+    );
   }
   return value.map((item, index) => {
     if (typeof item !== "string" || !UUID_PATTERN.test(item)) {
@@ -157,6 +168,11 @@ export function readOptionalDraftTargets(
   if (!Array.isArray(value)) {
     throw new McpToolInputError(
       `Argumen "${key}" harus berupa daftar { accountId, contentFormat }.`,
+    );
+  }
+  if (value.length > MAX_DRAFT_TARGET_ITEMS) {
+    throw new McpToolInputError(
+      `Argumen "${key}" maksimum ${MAX_DRAFT_TARGET_ITEMS} item (dapat ${value.length}).`,
     );
   }
   return value.map((item, index) => {

@@ -211,6 +211,9 @@ function createWorld(options: WorldOptions = {}) {
       const workspaceId = workspaceChoices.get(sessionId);
       return workspaceId ? asWorkspaceId(workspaceId) : null;
     },
+    async clearWorkspaceChoice(sessionId) {
+      workspaceChoices.delete(sessionId);
+    },
   };
   const remember = (sessionId: string, workspaceId: string) => {
     workspaceChoices.set(sessionId, workspaceId);

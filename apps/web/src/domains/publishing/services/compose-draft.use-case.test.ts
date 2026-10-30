@@ -218,6 +218,20 @@ describe("ComposeDraftUseCase.createDraft", () => {
     expect(createDraft).toHaveBeenCalledOnce();
   });
 
+  it("measures the caption as stored: trailing whitespace counts toward the limit", async () => {
+    const { useCase, createDraft } = setup();
+
+    await expect(
+      useCase.createDraft({
+        workspaceId: WORKSPACE,
+        authorId: USER,
+        source: SOURCE,
+        caption: `a${" ".repeat(DRAFT_CAPTION_MAX_LENGTH)}`,
+      }),
+    ).rejects.toThrow(ValidationError);
+    expect(createDraft).not.toHaveBeenCalled();
+  });
+
   it("rejects a content format the platform does not allow (ADR-039 matrix)", async () => {
     const { useCase, createDraft } = setup();
     await expect(
