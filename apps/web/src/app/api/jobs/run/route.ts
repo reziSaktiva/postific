@@ -40,6 +40,7 @@ import { createAnalyticsSyncJobsPort } from "@/lib/jobs/analytics-sync-enqueue-p
 import { createImportSyncJobsPort } from "@/lib/jobs/import-sync-enqueue-port";
 import { createMcpAuditPurgeJobsPort } from "@/lib/jobs/mcp-audit-purge-enqueue-port";
 import { getMcpAccessService } from "@/lib/mcp-access/get-mcp-access-service";
+import { getMcpConsentService } from "@/lib/mcp-access/get-mcp-consent-service";
 import {
   importJobRepository,
   publishingRepository,
@@ -157,6 +158,7 @@ export async function POST(request: Request): Promise<Response> {
 
   const mcpAuditPurgeHandler = new McpAuditPurgeJobHandler(
     getMcpAccessService(),
+    getMcpConsentService(),
   );
   const enqueueMcpAuditPurge = new EnqueueMcpAuditPurgeUseCase(
     createMcpAuditPurgeJobsPort(),

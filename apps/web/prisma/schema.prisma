@@ -605,6 +605,29 @@ model McpRateLimitWindow {
   @@map("mcp_rate_limit_windows")
 }
 
+// Pilihan workspace per sesi login pada alur OAuth klien AI (T-151, ADR-139):
+// langkah 1 (`/select-workspace`) menulis, `postLogin.consentReferenceId` dan
+// layar consent membaca. Menggantikan `Map` di memori harness spike T-148
+// (tidak tahan multi-instance dan restart). Satu baris per sesi login
+// (`session_id` = `identity_session.id`, kunci utama); pilihan baru menimpa
+// yang lama. Sementara: `expires_at` (10 menit) dan JOB-08 yang membuang
+// baris kedaluwarsa. Sengaja TANPA FK: `session_id` dan `user_id` milik tabel
+// identitas plugin (preseden `mcp_grants.user_id`), dan `workspace_id` tidak
+// diberi FK supaya model `Workspace` tidak berubah; keanggotaan aktif
+// divalidasi saat menulis dan sekali lagi saat grant dibuat (`mcp_grants`
+// punya FK ke `workspaces`). RLS: aktif dengan satu policy `app_runtime`
+// (ADR-141, DB-D05), di migrasi `t151_mcp_workspace_choices`.
+model McpWorkspaceChoice {
+  sessionId   String   @id @map("session_id")
+  userId      String   @map("user_id")
+  workspaceId String   @map("workspace_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  expiresAt   DateTime @map("expires_at") @db.Timestamptz(6)
+
+  @@index([expiresAt])
+  @@map("mcp_workspace_choices")
+}
+
 // ─────────────────────────────────────────────
 // BC-05 — Engagement
 // ─────────────────────────────────────────────
