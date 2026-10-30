@@ -24,6 +24,46 @@ describe("McpAuditPurgeJobHandler", () => {
     expect(purgeAudit).toHaveBeenCalledTimes(2);
   });
 
+  it("also purges expired rate limit windows in the same job (T-154, no new cron)", async () => {
+    const purgeAudit = vi.fn(async () => ({ deleted: 0, cutoff: NOW }));
+    const purgeRateLimitWindows = vi.fn(async () => ({ deleted: 4 }));
+    const handler = new McpAuditPurgeJobHandler({
+      purgeAudit,
+      purgeRateLimitWindows,
+    });
+
+    await handler.handle();
+
+    expect(purgeAudit).toHaveBeenCalledTimes(1);
+    expect(purgeRateLimitWindows).toHaveBeenCalledTimes(1);
+  });
+
+  it("still purges rate limit windows when the audit purge fails, then rethrows", async () => {
+    const purgeRateLimitWindows = vi.fn(async () => ({ deleted: 1 }));
+    const handler = new McpAuditPurgeJobHandler({
+      purgeAudit: async () => {
+        throw new Error("audit down");
+      },
+      purgeRateLimitWindows,
+    });
+
+    await expect(handler.handle()).rejects.toThrow("audit down");
+    expect(purgeRateLimitWindows).toHaveBeenCalledTimes(1);
+  });
+
+  it("still purges audit when the rate limit purge fails, then rethrows", async () => {
+    const purgeAudit = vi.fn(async () => ({ deleted: 0, cutoff: NOW }));
+    const handler = new McpAuditPurgeJobHandler({
+      purgeAudit,
+      purgeRateLimitWindows: async () => {
+        throw new Error("counters down");
+      },
+    });
+
+    await expect(handler.handle()).rejects.toThrow("counters down");
+    expect(purgeAudit).toHaveBeenCalledTimes(1);
+  });
+
   it("propagates errors so the job runner applies the generic retry", async () => {
     const handler = new McpAuditPurgeJobHandler({
       purgeAudit: async () => {

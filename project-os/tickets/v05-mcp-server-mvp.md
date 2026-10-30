@@ -150,7 +150,7 @@ Satu panggilan memuat maksimum 10 konten (konstanta konfigurasi). Target per kon
 
 ### T-154 · Rate limit per workspace (Postgres)
 
-`⏳ Not Started` · **Domain** mcp-access · **ADR** ADR-138 · **Depends** T-150
+`🟡 In Progress` · **Domain** mcp-access · **ADR** ADR-138 · **Depends** T-150
 
 **Baca dulu:** `05-architecture/background-jobs.md` · `05-architecture/database-strategy.md`
 

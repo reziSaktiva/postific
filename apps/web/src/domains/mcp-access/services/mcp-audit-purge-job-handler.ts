@@ -14,13 +14,20 @@ export const MCP_AUDIT_PURGE_JOB_TYPE = "mcp.audit.purge";
  */
 export interface McpAuditPurger {
   purgeAudit(): Promise<PurgeMcpAuditResult>;
+  /**
+   * Pembersihan jendela rate limit kedaluwarsa (T-154) menumpang job harian
+   * yang sama; tidak ada cron baru. Opsional agar pemanggil lama tetap valid.
+   */
+  purgeRateLimitWindows?(): Promise<{ deleted: number }>;
 }
 
 /**
  * Handler JOB-08. Tidak berisi logic selain delegasi ke
- * `McpAccessService.purgeAudit()` (retensi 90 hari ada di service). Idempoten:
- * run kedua tanpa baris kedaluwarsa menghapus 0 dan tidak error. Kegagalan
- * dilempar apa adanya supaya job runner memakai retry generik (5m/15m/60m).
+ * `McpAccessService.purgeAudit()` (retensi 90 hari ada di service) dan
+ * `purgeRateLimitWindows()` (T-154). Keduanya dijalankan walau salah satunya
+ * gagal; error pertama dilempar setelahnya. Idempoten: run kedua tanpa baris
+ * kedaluwarsa menghapus 0 dan tidak error. Kegagalan dilempar apa adanya
+ * supaya job runner memakai retry generik (5m/15m/60m).
  */
 export class McpAuditPurgeJobHandler {
   constructor(private readonly purger: McpAuditPurger) {}
@@ -30,6 +37,14 @@ export class McpAuditPurgeJobHandler {
    * divalidasi, supaya payload tak terduga tidak menggagalkan purge.
    */
   async handle(): Promise<void> {
-    await this.purger.purgeAudit();
+    const results = await Promise.allSettled([
+      this.purger.purgeAudit(),
+      this.purger.purgeRateLimitWindows?.() ?? Promise.resolve(null),
+    ]);
+    for (const result of results) {
+      if (result.status === "rejected") {
+        throw result.reason;
+      }
+    }
   }
 }

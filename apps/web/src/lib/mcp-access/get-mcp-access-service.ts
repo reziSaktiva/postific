@@ -1,9 +1,11 @@
-import { McpAccessService } from "@/domains/mcp-access";
+import { McpAccessService, McpRateLimitService } from "@/domains/mcp-access";
 import { WorkspaceService } from "@/domains/workspace";
+import { getMcpRateLimitConfig } from "@/lib/mcp/config";
 import {
   mcpAuditRepository,
   mcpGrantRepository,
   mcpGrantRevocationAdapter,
+  mcpRateLimitRepository,
 } from "@/lib/repositories/mcp-access";
 import { workspaceRepository } from "@/lib/repositories/workspace";
 
@@ -16,7 +18,9 @@ import { workspaceRepository } from "@/lib/repositories/workspace";
  *
  * `WorkspaceService` di sini hanya dipakai untuk `getMembership`, jadi cukup
  * disuplai `workspaceRepository` (dependency lain opsional dan tidak
- * disentuh method itu). Dipanggil per request oleh endpoint MCP (T-150),
+ * disentuh method itu). Rate limit per workspace (T-154) dirakit dari
+ * `mcpRateLimitRepository` dan batas dari `getMcpRateLimitConfig()` (env, bukan
+ * angka di kode). Dipanggil per request oleh endpoint MCP (T-150),
  * hook consent, Server Action Settings (T-156), dan JOB-08; service ini
  * stateless dan murah dirakit, jadi tidak di-cache.
  */
@@ -26,5 +30,7 @@ export function getMcpAccessService(): McpAccessService {
     mcpAuditRepository,
     mcpGrantRevocationAdapter,
     new WorkspaceService(workspaceRepository),
+    undefined,
+    new McpRateLimitService(mcpRateLimitRepository, getMcpRateLimitConfig()),
   );
 }
