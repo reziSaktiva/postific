@@ -869,14 +869,14 @@ Pemilik: Gibran (dokumen proyek), sekuensial di akhir.
 - [ ] **T-182.5** Bentuk tiket: tambahkan penanda AFK (agen mandiri) atau HITL (butuh keputusan King Rezi) di field tiket; hanya tiket AFK yang boleh menjadi jalur paralel gelombang.
 - [ ] **T-182.6** Jalankan `docs-consistency-audit` dengan topik "status ladder" dan perbaiki temuan.
 
-### T-183 · Skill `wave-orchestration`
+### T-183 · Skill `wave-work`
 
 `⏳ Not Started` · **Domain** project-os, agen · **ADR** ADR-153, ADR-063 · **Spec** S-003 · **Depends** T-181
 **Baca dulu:** `project-os/specs/S-003.md` § Perilaku 2 dan tabel pola · `.claude/skills/project-os-navigator/SKILL.md` § Skills & subagent housekeeping · `.claude/agents/README.md`
 
-Skill pengerjaan bergelombang: alur gelombang seperti yang dijalankan di gelombang A MCP, ditambah pola yang diadopsi dari Matt Pocock (branch integrasi lebih dulu, graf tiket, template PR). Semua nama dalam bahasa Inggris.
+Skill eksekusi gelombang (langkah 2 sampai 11 di S-003 § Perilaku 2): alur gelombang seperti yang dijalankan di gelombang A MCP, ditambah pola yang diadopsi dari Matt Pocock (branch integrasi lebih dulu, template PR). Dipanggil hanya saat King Rezi meminta (keputusan 2026-11-02). Langkah 1 (menyiapkan gelombang) ada di skill `wave-plan` (T-190). Semua nama dalam bahasa Inggris.
 
-- [ ] **T-183.1** Tulis `.claude/skills/wave-orchestration/SKILL.md` (frontmatter dengan deskripsi pemicu, isi ringkas; detail panjang dipindah ke berkas pendamping).
+- [ ] **T-183.1** Tulis `.claude/skills/wave-work/SKILL.md` (frontmatter dengan deskripsi pemicu, isi ringkas; detail panjang dipindah ke berkas pendamping).
 - [ ] **T-183.2** Berkas pendamping: `lane-brief-template.md` (brief per jalur) dan `integration-pr-template.md` (Summary, Evidence, Merge Danger).
 - [ ] **T-183.4** Langkah review dua sumbu di skill: sumbu Standards (aturan repo, arsitektur) dan sumbu Spec (acceptance tiket dan spec), tanpa digabung, label pelanggaran keras atau pertimbangan; daftar anti-pola tes (terikat implementasi, tautologis) di template brief jalur.
 - [ ] **T-183.3** Satu penunjuk di navigator (housekeeping skill) dan satu penunjuk di `.claude/agents/README.md` (orkestrasi); tanpa menyalin isi skill (ADR-133). `.claude/agents/*.md` tidak diubah.
@@ -890,13 +890,13 @@ Skill pengerjaan bergelombang: alur gelombang seperti yang dijalankan di gelomba
 - [ ] **T-184.2** `retro.md`: kategori saran (navigasi, pengecekan otomatis, ekonomi tool, instruksi yang tidak berpengaruh, akses informasi), diurutkan menurut keparahan, hanya saran. Isi awal dari pelajaran gelombang A: `bun install` di worktree baru agar hook jalan, `typecheck` menangkap konflik semantik, izin relay ditolak, laporan terpotong, satu deploy per gelombang.
 - [ ] **T-184.3** Kaitkan keduanya dari `SKILL.md` (langkah handoff dan retro) tanpa menyalin isinya.
 
-### T-185 · Dry-run `wave-orchestration` on the next real wave
+### T-185 · Dry-run `wave-plan` and `wave-work` on the next real wave
 
-`⏳ Not Started` · **Domain** project-os, agen · **ADR** ADR-153 · **Spec** S-003 · **Depends** T-183, T-184
+`⏳ Not Started` · **Domain** project-os, agen · **ADR** ADR-153 · **Spec** S-003 · **Depends** T-183, T-184, T-190
 **Baca dulu:** `project-os/specs/S-003.md` § Jahitan tes
 
-- [ ] **T-185.1** King Rezi memilih gelombang untuk dry-run (kandidat: gelombang B MCP, T-153 dan T-168, setelah keputusan T-152.4 dan T-154.5).
-- [ ] **T-185.2** Jalankan gelombang itu mengikuti skill; catat setiap penyimpangan dan langkah yang tidak jelas.
+- [ ] **T-185.1** Gelombang untuk dry-run: gelombang B MCP, T-153 dan T-168 (keputusan King Rezi 2026-11-02), setelah King Rezi memutuskan T-152.4 dan T-154.5.
+- [ ] **T-185.2** Siapkan gelombang itu dengan `wave-plan`, lalu jalankan dengan `wave-work`; catat setiap penyimpangan dan langkah yang tidak jelas.
 - [ ] **T-185.3** Revisi skill dan berkas pendamping berdasarkan catatan; jalankan retro gelombang itu.
 
 ### T-186 · Docs locator and link check script
@@ -913,7 +913,7 @@ Pencari lokasi dokumen saat dijalankan (bukan berkas indeks yang di-commit, kare
 
 ### T-187 · Update `proactive-clarification` with round-based questioning
 
-`⏳ Not Started` · **Domain** project-os, agen · **ADR** — · **Spec** S-003 · **Depends** S-003 disahkan
+`⏳ Not Started` · **Domain** project-os, agen · **ADR** — · **Spec** S-003 · **Depends** — (S-003 disahkan 2026-11-02)
 **Baca dulu:** `.claude/skills/proactive-clarification/SKILL.md` · `project-os/specs/S-003.md` tabel pola (`grilling`)
 
 - [ ] **T-187.1** Bandingkan skill yang ada (143 baris) dengan `grilling` dari sumber; catat selisihnya, termasuk apa yang sudah kita punya.
@@ -930,6 +930,18 @@ Setiap perubahan isi aturan ditinjau King Rezi per berkas; `.claude/agents/*.md`
 - [ ] **T-188.1** Ukur apa yang selalu dimuat per sesi (`AGENTS.md` 142 baris, navigator 345 baris, README agen, deskripsi skill) dan ukur pemakaian token (skill `explain-usage` atau `get_usage`) sebagai titik awal.
 - [ ] **T-188.2** Terapkan prinsip: penunjuk dengan pemicu, hapus instruksi yang tidak berpengaruh, satu makna di satu tempat, instruksi positif bila aman; tanpa mengubah arti aturan.
 - [ ] **T-188.3** Ukur ulang dan laporkan selisihnya.
+
+### T-190 · Skill `wave-plan`
+
+`⏳ Not Started` · **Domain** project-os, agen · **ADR** ADR-153 · **Spec** S-003 · **Depends** T-181 (Accepted), T-182 (penanda AFK/HITL, T-182.5)
+**Baca dulu:** `project-os/specs/S-003.md` § Perilaku 2 poin 1 dan § Keputusan King Rezi · `project-os/AVAILABLE_TICKETS.md` · `.claude/skills/project-os-navigator/SKILL.md` § Skills & subagent housekeeping
+
+Skill penyiap gelombang (keputusan King Rezi 2026-11-02). Hanya membaca dokumen, berhenti di daftar bernomor yang disetujui King Rezi; `wave-work` (T-183) mulai dari daftar itu. Aman dan murah dipanggil kapan saja, termasuk untuk sekadar melihat gelombang yang tersedia. Semua nama dalam bahasa Inggris.
+
+- [ ] **T-190.1** Tulis `.claude/skills/wave-plan/SKILL.md` (frontmatter dengan deskripsi pemicu, isi ringkas): hitung frontier dari field **Depends** (tiket tanpa blocker), boleh lintas spec; pisahkan tiket AFK dan HITL; periksa bentrok berkas antar tiket.
+- [ ] **T-190.2** Keluaran: daftar bernomor (judul, blocker, hasil, AFK atau HITL, jalur yang diusulkan) untuk disetujui King Rezi; tiket HITL ditandai dan tidak masuk jalur. Skill berhenti di sini dan tidak membuat branch atau worktree.
+- [ ] **T-190.3** Satu penunjuk di navigator (housekeeping skill) dan satu penunjuk di `.claude/agents/README.md`; tanpa menyalin isi skill (ADR-133). `.claude/agents/*.md` tidak diubah.
+- [ ] **T-190.4** Pakai `bun run docs:where` (T-186) untuk menemukan bagian tiket bila sudah tersedia; sebelum itu, baca bagian tiket dengan `offset` dan `limit`.
 
 ---
 
