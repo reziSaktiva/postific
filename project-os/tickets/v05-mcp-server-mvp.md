@@ -177,7 +177,16 @@ Layar tempat pengguna memilih satu workspace dan scope. Default `read` + `draft`
 
 **Catatan dari T-154 (2026-10-30):** kuota dipakai lewat `McpAccessService.consumeQuota(workspaceId, quota, amount)` (all-or-nothing, belum ada refund bila langkah sesudahnya gagal). `McpToolContext` belum memuat `McpAccessService`, jadi T-153 harus menyuntikkannya.
 
-Satu panggilan memuat maksimum 10 konten (konstanta konfigurasi). Target per konten maksimum sejumlah akun terhubung. Waktu diterima sebagai WIB (T-146). Validasi matriks `ContentFormat` dan Safety Check di server. Hasil dilaporkan per item (sebagian berhasil boleh).
+Satu panggilan memuat maksimum 10 konten (konstanta konfigurasi). Target per konten maksimum sejumlah akun terhubung. Waktu input tanpa offset ditafsirkan di `User.timeZone` pemilik koneksi, dan input dengan offset dipakai apa adanya (keputusan King Rezi T-168.1, 2026-11-02; menggantikan teks lama "diterima sebagai WIB"). Validasi matriks `ContentFormat` dan Safety Check di server. Hasil dilaporkan per item (sebagian berhasil boleh).
+
+**Subtask** (gelombang B, 2026-11-02; Depends T-168.2)
+
+- [ ] **T-153.1** Irisan (a), kode: use-case `ScheduleContentsUseCase` di publishing (buat post bertanda MCP lalu jadwalkan lewat `SchedulePostsUseCase`, satu konten sekali, hasil per konten) dan tool `schedule_posts` (scope `schedule`): skema input, batas 10 konten (konstanta di `lib/mcp/config.ts`), tafsir `scheduledAt` di zona pengguna, kuota `scheduled_contents` lewat `McpAccessService.consumeQuota` yang disuntikkan ke `McpToolContext`, pendaftaran di `MCP_TOOLS`.
+- [ ] **T-153.2** Irisan (b), kode: pemeriksaan server sebelum ada yang ditulis (Safety Check dan matriks `ContentFormat`): format per akun harus sah menurut ADR-039; target tanpa duplikat dan tidak melebihi akun terhubung; caption wajib kecuali target Story; Story tidak boleh digabung dengan target lain bila caption terisi; media minimum dan maksimum per format (ADR-107, ADR-121); satu akun Pinterest dan board wajib (board belum bisa diisi lewat MCP, jadi Pinterest ditolak dengan pesan jelas); waktu harus di masa depan. Konten yang gagal diperiksa tidak memakai kuota dan tidak meninggalkan draft.
+- [ ] **T-153.3** Tes unit lewat batas publik (use-case dan handler tool): pembagian hasil per item, batas 10, kuota (all-or-nothing, hanya konten lolos), zona waktu, tiap aturan Safety Check, matriks `ContentFormat`.
+- [ ] **T-153.4** Tes E2E golden path di `e2e/mcp.e2e.ts` (wajib, ADR-149). Done (code) ditetapkan setelah tes ini hijau di lokal; bila lingkungan tidak mengizinkan, tiket tetap In Progress dan alasannya dicatat di "Belum terbukti".
+- [ ] **T-153.5** Verifikasi King Rezi lewat klien MCP nyata di staging (verifikasi gelombang T-189).
+- [ ] **T-153.6** Pertanyaan untuk King Rezi: arti "Safety Check" pada MCP. ADR-049 menetapkan Schedule sebagai Tier 2 berupa dialog Confirmation Summary yang hanya bisa tampil di UI. Implementasi saat ini menegakkan aturan yang membuat tombol Schedule di UI aktif (T-153.2) dan mengembalikan ringkasan per konten (caption, akun, format, waktu di zona pengguna) supaya klien AI bisa menunjukkannya ke manusia. Belum ada argumen konfirmasi eksplisit (mis. `confirm: true` atau pratinjau `dryRun`); menambahkannya adalah keputusan produk.
 
 ### T-154 · Rate limit per workspace (Postgres)
 
