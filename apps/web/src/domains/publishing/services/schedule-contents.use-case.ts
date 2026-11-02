@@ -14,6 +14,7 @@ import {
   ValidationError,
 } from "@/lib/utils/errors";
 import { PublishingDomainError } from "../errors";
+import { assertScheduleSafetyCheck } from "../schedule-safety-check";
 import type {
   IPublishingRepository,
   PostCreationSource,
@@ -272,8 +273,10 @@ export class ScheduleContentsUseCase {
 }
 
 /**
- * Pemeriksaan satu konten tanpa menulis apa pun. Melempar `ValidationError`
- * atau `PublishingDomainError` bila ditolak; mengembalikan target yang sudah
+ * Pemeriksaan satu konten tanpa menulis apa pun: caption, target (termasuk
+ * matriks `ContentFormat`, ADR-039), lalu Safety Check
+ * (`assertScheduleSafetyCheck`). Melempar `ValidationError` atau
+ * `PublishingDomainError` bila ditolak; mengembalikan target yang sudah
  * di-resolve (identitas akun otentik dari DB, bukan dari input).
  */
 function planContent(
@@ -281,7 +284,14 @@ function planContent(
   accounts: ConnectedAccountRecord[],
 ): SchedulePostsTargetInput[] {
   assertCaptionWithinLimit(content.caption);
-  return resolveTargets(content.targets, accounts);
+  const targets = resolveTargets(content.targets, accounts);
+  assertScheduleSafetyCheck({
+    caption: content.caption,
+    mediaCount: content.mediaIds?.length ?? 0,
+    scheduledAt: content.scheduledAt,
+    targets,
+  });
+  return targets;
 }
 
 function resolveTargets(

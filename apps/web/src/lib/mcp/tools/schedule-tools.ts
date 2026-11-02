@@ -54,14 +54,14 @@ const SCHEDULE_POSTS_SCHEMA: McpJsonSchema = {
           caption: {
             type: "string",
             maxLength: DRAFT_CAPTION_MAX_LENGTH,
-            description: `Caption. Maksimum ${DRAFT_CAPTION_MAX_LENGTH} karakter.`,
+            description: `Caption. Wajib terisi kecuali semua target berformat story. Maksimum ${DRAFT_CAPTION_MAX_LENGTH} karakter.`,
           },
           mediaIds: {
             type: "array",
             items: { type: "string" },
             maxItems: 10,
             description:
-              "ID media dari list_media, urutan = urutan tampil. Maksimum 10.",
+              "ID media dari list_media, urutan = urutan tampil. Reel, Story, dan Pin wajib tepat 1 media; Post boleh 0 sampai 10.",
           },
           scheduledAt: {
             type: "string",
@@ -166,7 +166,8 @@ const schedulePosts: McpToolDefinition = {
   description:
     `Jadwalkan sampai ${MCP_SCHEDULE_MAX_CONTENTS} konten sekaligus; tiap konten menjadi satu post baru (bertanda dibuat lewat MCP) ke satu atau beberapa akun terhubung. ` +
     "Hasil dilaporkan per konten: sebagian bisa berhasil dan sebagian gagal, jadi periksa results[].status. Konten yang gagal tidak dijadwalkan dan tidak memakai kuota. " +
-    "Pembatalan jadwal hanya bisa dilakukan manusia di aplikasi Postific. " +
+    "Aturan yang sama dengan Draft Editor berlaku di server: format per akun, caption wajib (kecuali Story), Story tidak digabung dengan target lain bila caption terisi, jumlah media per format, dan waktu harus di masa depan. " +
+    "Akun Pinterest belum bisa dijadwalkan lewat MCP karena board belum bisa diisi. Pembatalan jadwal hanya bisa dilakukan manusia di aplikasi Postific. " +
     "Tampilkan ringkasan hasil (caption, akun, format, waktu) kepada pengguna. Waktu tanpa offset dibaca di zona waktu pengguna; hasil memakai zona yang sama dengan offset.",
   scope: "schedule",
   inputSchema: SCHEDULE_POSTS_SCHEMA,

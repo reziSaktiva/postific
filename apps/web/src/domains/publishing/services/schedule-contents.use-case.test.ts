@@ -491,4 +491,150 @@ describe("ScheduleContentsUseCase", () => {
 
     expect(outcome).toMatchObject({ status: "scheduled", mediaIds: [media] });
   });
+
+  describe("Safety Check before anything is written", () => {
+    const story = (id = IG) => ({
+      connectedAccountId: id,
+      contentFormat: ContentFormat.Story,
+    });
+    const post = (id = IG) => ({
+      connectedAccountId: id,
+      contentFormat: ContentFormat.Post,
+    });
+    const MEDIA = "media-a";
+
+    const rejected: [string, ScheduleContentInput, RegExp][] = [
+      [
+        "a time that is already past",
+        content({ scheduledAt: new Date("2026-11-02T02:59:59.000Z") }),
+        /sudah lewat/,
+      ],
+      ["the current second", content({ scheduledAt: NOW }), /sudah lewat/],
+      [
+        "an empty caption on a non-Story target",
+        content({ caption: "   " }),
+        /Caption wajib/,
+      ],
+      [
+        "a Story combined with another target while the caption is filled",
+        content({
+          mediaIds: [MEDIA],
+          targets: [story(IG), post(FB)],
+        }),
+        /Story tidak bisa digabung/,
+      ],
+      [
+        "a Story without media",
+        content({ caption: "", mediaIds: undefined, targets: [story()] }),
+        /minimal 1 media/,
+      ],
+      [
+        "a Reel without media",
+        content({
+          mediaIds: [],
+          targets: [
+            { connectedAccountId: IG, contentFormat: ContentFormat.Reel },
+          ],
+        }),
+        /minimal 1 media/,
+      ],
+      [
+        "more media than a Reel allows",
+        content({
+          mediaIds: [MEDIA, "media-b"],
+          targets: [
+            { connectedAccountId: IG, contentFormat: ContentFormat.Reel },
+          ],
+        }),
+        /melebihi batas maksimum 1/,
+      ],
+      [
+        "a Pinterest target, since the board cannot be set through MCP",
+        content({
+          mediaIds: [MEDIA],
+          targets: [
+            { connectedAccountId: PIN, contentFormat: ContentFormat.Pin },
+          ],
+        }),
+        /Pinterest belum bisa dijadwalkan lewat MCP/,
+      ],
+    ];
+
+    it.each(rejected)(
+      "rejects %s: failed, no draft, no quota",
+      async (_label, input, message) => {
+        const w = world({ ownedMedia: [MEDIA, "media-b"] });
+        const reserve = vi.fn(async () => undefined);
+
+        const [outcome] = await run(w, [input], reserve);
+
+        expect(outcome).toMatchObject({
+          status: "failed",
+          kind: "invalid",
+          message: expect.stringMatching(message),
+        });
+        expect((outcome as { postId?: string }).postId).toBeUndefined();
+        expect(w.posts.size).toBe(0);
+        expect(w.outstandCalls).toEqual([]);
+        expect(reserve).not.toHaveBeenCalled();
+      },
+    );
+
+    it("lets a caption-less Story with media through (Story has no caption)", async () => {
+      const w = world({ ownedMedia: [MEDIA] });
+
+      const [outcome] = await run(w, [
+        content({ caption: "", mediaIds: [MEDIA], targets: [story()] }),
+      ]);
+
+      expect(outcome).toMatchObject({ status: "scheduled" });
+    });
+
+    it("lets a Story plus another target through when the caption is empty", async () => {
+      const w = world({ ownedMedia: [MEDIA] });
+
+      const [outcome] = await run(w, [
+        content({
+          caption: "",
+          mediaIds: [MEDIA],
+          targets: [story(IG), post(FB)],
+        }),
+      ]);
+
+      expect(outcome).toMatchObject({ status: "scheduled" });
+    });
+
+    it("schedules a time one second ahead", async () => {
+      const w = world();
+
+      const [outcome] = await run(w, [
+        content({ scheduledAt: new Date(NOW.getTime() + 1000) }),
+      ]);
+
+      expect(outcome).toMatchObject({ status: "scheduled" });
+    });
+
+    it("reports the rejected and the accepted content of one batch independently", async () => {
+      const w = world();
+      const reserve = vi.fn(async () => undefined);
+
+      const outcomes = await run(
+        w,
+        [
+          content({ caption: "Lolos 1" }),
+          content({ scheduledAt: new Date("2020-01-01T00:00:00.000Z") }),
+          content({ caption: "Lolos 2" }),
+        ],
+        reserve,
+      );
+
+      expect(outcomes.map((o) => o.status)).toEqual([
+        "scheduled",
+        "failed",
+        "scheduled",
+      ]);
+      expect(reserve).toHaveBeenCalledWith(2);
+      expect(w.posts.size).toBe(2);
+    });
+  });
 });
