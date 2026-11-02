@@ -9,21 +9,18 @@
  * Zona SENGAJA tanpa default tersembunyi di tiap fungsi — pemanggil wajib
  * menyebutnya eksplisit supaya callsite yang terlewat langsung terlihat
  * (tipe error), bukan diam-diam jatuh ke WIB. `WIB_TIME_ZONE` tetap ada
- * sebagai zona default (nilai awal pengguna, MCP).
+ * sebagai zona default (nilai awal pengguna, ADR-146 poin 4; cadangan MCP
+ * bila profil tanpa zona valid, T-168). MCP sendiri mengikuti `User.timeZone`.
  *
  * Nama file `wib-time.ts` dipertahankan agar jalur impor tidak berubah.
  * Pure function, tanpa I/O, aman dipakai server maupun client component.
  */
 
-/** Zona default (nilai awal pengguna, ADR-146 poin 4). */
-export const WIB_TIME_ZONE = "Asia/Jakarta";
-
 /**
- * Offset WIB tetap (+7, tanpa DST). Hanya untuk konsumen yang SENGAJA
- * tetap WIB (MCP `lib/mcp/format.ts`) — kode zona-pengguna memakai fungsi
- * berparameter zona di bawah.
+ * Zona default (nilai awal pengguna, ADR-146 poin 4; cadangan MCP bila profil
+ * tanpa zona valid, T-168). MCP sendiri mengikuti `User.timeZone`.
  */
-export const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
+export const WIB_TIME_ZONE = "Asia/Jakarta";
 
 export const MS_PER_DAY = 24 * 60 * 60 * 1000;
 

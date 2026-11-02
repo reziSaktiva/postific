@@ -29,6 +29,7 @@ import { ConflictError } from "@/lib/utils/errors";
 import type { McpClaims } from "../claims";
 import { runMcpTool, type McpGateDeps } from "../run-tool";
 import { McpToolInputError } from "../tool-input";
+import { fakeIdentity } from "../test-support";
 import type { McpToolContext, McpToolServices } from "../tool-types";
 import { MCP_DRAFT_TOOLS } from "./draft-tools";
 
@@ -94,7 +95,8 @@ function context(drafts: McpToolServices["drafts"]): McpToolContext {
     clientId: CLIENT,
     clientName: "Claude Code",
     grantScopes: ["read", "draft"],
-    services: { drafts } as McpToolServices,
+    timeZone: "Asia/Jakarta",
+    services: { drafts, identity: fakeIdentity() } as McpToolServices,
   };
 }
 
@@ -166,6 +168,20 @@ describe("create_draft", () => {
       createdVia: "mcp",
       createdAt: "2026-10-30T10:00:00+07:00",
       updatedAt: "2026-10-30T10:30:00+07:00",
+    });
+  });
+
+  it("renders createdAt and updatedAt in the zone of the connection owner", async () => {
+    const { drafts } = fakeDrafts();
+
+    const output = await tool("create_draft").handler(
+      { ...context(drafts), timeZone: "America/New_York" },
+      { caption: "Halo dunia" },
+    );
+
+    expect(output.data).toMatchObject({
+      createdAt: "2026-10-29T23:00:00-04:00",
+      updatedAt: "2026-10-29T23:30:00-04:00",
     });
   });
 
@@ -330,7 +346,7 @@ describe("draft tools behind the real authorization gate", () => {
     const { drafts, createDraft } = fakeDrafts();
     const deps: McpGateDeps = {
       access,
-      services: { drafts } as McpToolServices,
+      services: { drafts, identity: fakeIdentity() } as McpToolServices,
     };
     return { deps, audits, createDraft };
   }
@@ -398,6 +414,7 @@ describe("draft tools behind the real authorization gate", () => {
     deps.services = {
       drafts: fakeDrafts(new ConflictError("Post ini sudah dijadwalkan."))
         .drafts,
+      identity: fakeIdentity(),
     } as McpToolServices;
 
     const response = await runMcpTool(

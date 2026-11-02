@@ -171,7 +171,7 @@ Layar tempat pengguna memilih satu workspace dan scope. Default `read` + `draft`
 
 ### T-153 · Tool `schedule_posts` (batch)
 
-`⏳ Not Started` · **Domain** mcp-access · publishing · **ADR** ADR-138, ADR-039, ADR-049 · **Depends** T-152, T-154
+`🟡 In Progress (2026-11-02)` · **Domain** mcp-access · publishing · **ADR** ADR-138, ADR-039, ADR-049 · **Depends** T-152, T-154
 
 **Baca dulu:** `05-architecture/application-layer.md` (`schedulePosts`) · `02-product/mvp-definition.md`
 
@@ -251,14 +251,14 @@ Badge dan filter berdasarkan `created_via`. Dari T-152 (2026-10-30): `list_draft
 
 ### T-168 · MCP mengikuti zona waktu pengguna (tindak lanjut T-147)
 
-`⏳ Not Started` · **Domain** mcp-access · **ADR** ADR-146, ADR-138 · **Terkait** T-147 · **Depends** T-147 (✅), T-150
+`🟡 In Progress (2026-11-02)` · **Domain** mcp-access · **ADR** ADR-146, ADR-138 · **Terkait** T-147 · **Depends** T-147 (✅), T-150
 
 **Baca dulu:** `apps/web/src/lib/mcp/format.ts` · read-tools MCP · `apps/web/src/domains/publishing/wib-time.ts`
 
 Lahir dari T-147 (ADR-146 § 6): MCP sengaja dibiarkan WIB tetap. `toWibIso` di `format.ts` dan read-tools masih memakai Asia/Jakarta, padahal tampilan dan input di UI sudah mengikuti `User.timeZone`.
 
 - [x] **T-168.1** `✅ Done (2026-11-02)` **Diputuskan King Rezi (rekomendasi agen disetujui):** output waktu MCP memakai `User.timeZone` pemilik koneksi dengan offset di ISO, dan input jadwal tanpa offset ditafsirkan di zona itu. Pertanyaan semula: Putuskan perilaku: output waktu MCP dan tafsir input jadwal tool (mis. `schedule_posts`, `create_draft`) memakai `User.timeZone` pemilik koneksi, termasuk offset di ISO.
-- [ ] **T-168.2** Ganti `toWibIso` dan pemakaian di read-tools agar menerima zona pengguna; selaraskan dengan `wib-time.ts` dinamis.
+- [x] **T-168.2** Ganti `toWibIso` dan pemakaian di read-tools agar menerima zona pengguna; selaraskan dengan `wib-time.ts` dinamis. **Hasil kode (2026-11-02):** `toWibIso` diganti `toZonedIso(date, timeZone)` (`lib/mcp/format.ts`, memakai `getTimeZoneOffsetMs` dari `wib-time.ts`, jadi DST dan offset setengah jam benar). `runMcpTool` membaca `User.timeZone` pemilik koneksi lewat `IdentityService.getProfile` tiap panggilan dan menaruhnya di `McpToolContext.timeZone`; semua tool baca, draft, dan `upload_media` memakainya, termasuk `get_workspace.timezone` dan argumen zona `listQueue`. Profil tanpa zona valid jatuh ke WIB (sama dengan sisi UI); kegagalan membaca profil menggagalkan panggilan (`internal_error`), tidak menebak zona. `WIB_OFFSET_MS` dihapus (tak terpakai). Deskripsi tool tidak lagi menyebut WIB. **Dampak dokumen (belum diubah, di luar jalur ini):** `application-layer.md` § Kontrak output tool baca (paragraf Waktu dan baris `get_workspace`) dan `S-001.md` masih menyebut WIB tetap; perlu diselaraskan orkestrator.
 - [ ] **T-168.3** Test dan verifikasi King Rezi.
 
 ### T-178 · Tes E2E MCP otomatis di staging (akun test, workspace E2E Sandbox)

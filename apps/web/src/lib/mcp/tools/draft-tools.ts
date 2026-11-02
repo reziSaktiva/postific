@@ -4,7 +4,7 @@ import {
   type ComposeDraftResult,
 } from "@/domains/publishing";
 
-import { toWibIso } from "../format";
+import { toZonedIso } from "../format";
 import {
   assertKnownArgs,
   readOptionalDraftTargets,
@@ -102,7 +102,7 @@ const UPDATE_DRAFT_SCHEMA: McpJsonSchema = {
   additionalProperties: false,
 };
 
-function formatResult({ post, targets }: ComposeDraftResult) {
+function formatResult({ post, targets }: ComposeDraftResult, timeZone: string) {
   return {
     id: post.id,
     status: post.status,
@@ -114,15 +114,15 @@ function formatResult({ post, targets }: ComposeDraftResult) {
       contentFormat: target.contentFormat,
     })),
     createdVia: post.createdVia ?? PostCreatedVia.App,
-    createdAt: toWibIso(post.createdAt),
-    updatedAt: toWibIso(post.updatedAt),
+    createdAt: toZonedIso(post.createdAt, timeZone),
+    updatedAt: toZonedIso(post.updatedAt, timeZone),
   };
 }
 
 const createDraft: McpToolDefinition = {
   name: "create_draft",
   description:
-    "Buat satu draft baru di workspace (tidak dijadwalkan atau dipublikasikan; manusia atau tool lain yang menjadwalkannya). Draft ditandai dibuat lewat MCP. Tanggal dan jam dalam WIB (Asia/Jakarta, +07:00).",
+    "Buat satu draft baru di workspace (tidak dijadwalkan atau dipublikasikan; manusia atau tool lain yang menjadwalkannya). Draft ditandai dibuat lewat MCP. Tanggal dan jam mengikuti zona waktu pengguna (lihat get_workspace), dengan offset di tiap nilai.",
   scope: "draft",
   inputSchema: CREATE_DRAFT_SCHEMA,
   async handler(context, args) {
@@ -143,14 +143,17 @@ const createDraft: McpToolDefinition = {
       ...(mediaIds !== undefined ? { mediaIds } : {}),
       ...(targets !== undefined ? { targets } : {}),
     });
-    return { targetId: result.post.id, data: formatResult(result) };
+    return {
+      targetId: result.post.id,
+      data: formatResult(result, context.timeZone),
+    };
   },
 };
 
 const updateDraft: McpToolDefinition = {
   name: "update_draft",
   description:
-    "Ubah draft yang sudah ada (caption, media, atau akun tujuan; yang tidak diisi tidak berubah). Hanya post berstatus draft: post yang sudah dijadwalkan, terbit, gagal, atau diimpor ditolak dengan error conflict. Tidak mengubah penanda sumber pembuatan. Tanggal dan jam dalam WIB (Asia/Jakarta, +07:00).",
+    "Ubah draft yang sudah ada (caption, media, atau akun tujuan; yang tidak diisi tidak berubah). Hanya post berstatus draft: post yang sudah dijadwalkan, terbit, gagal, atau diimpor ditolak dengan error conflict. Tidak mengubah penanda sumber pembuatan. Tanggal dan jam mengikuti zona waktu pengguna (lihat get_workspace), dengan offset di tiap nilai.",
   scope: "draft",
   inputSchema: UPDATE_DRAFT_SCHEMA,
   async handler(context, args) {
@@ -168,7 +171,10 @@ const updateDraft: McpToolDefinition = {
       ...(mediaIds !== undefined ? { mediaIds } : {}),
       ...(targets !== undefined ? { targets } : {}),
     });
-    return { targetId: result.post.id, data: formatResult(result) };
+    return {
+      targetId: result.post.id,
+      data: formatResult(result, context.timeZone),
+    };
   },
 };
 

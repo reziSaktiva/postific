@@ -4,17 +4,12 @@ import {
   asConnectedAccountId,
   asPostId,
 } from "@postific/shared";
-import { getAllowedContentFormats, WIB_TIME_ZONE } from "@/domains/publishing";
+import { getAllowedContentFormats } from "@/domains/publishing";
 import type { InboxItemStatus } from "@/domains/engagement";
 import { NotFoundError } from "@/lib/utils/errors";
 
 import { paginate } from "../cursor";
-import {
-  markUntrusted,
-  MCP_TIME_ZONE,
-  toWibIso,
-  UNTRUSTED_NOTICE,
-} from "../format";
+import { markUntrusted, toZonedIso, UNTRUSTED_NOTICE } from "../format";
 import {
   assertKnownArgs,
   readOptionalEnum,
@@ -51,7 +46,8 @@ const PAGED_ARGS: McpJsonSchema = {
   additionalProperties: false,
 };
 
-const TIME_NOTE = "Tanggal dan jam dalam WIB (Asia/Jakarta, +07:00).";
+const TIME_NOTE =
+  "Tanggal dan jam mengikuti zona waktu pengguna (lihat get_workspace), dengan offset di tiap nilai, mis. 2026-10-28T14:30:00+07:00.";
 const PAGE_NOTE =
   "20 item per halaman; gunakan cursor untuk halaman berikutnya.";
 
@@ -85,7 +81,7 @@ const getWorkspace: McpToolDefinition = {
         workspaceId: context.workspaceId,
         name: workspace.name,
         grantedScopes: context.grantScopes,
-        timezone: MCP_TIME_ZONE,
+        timezone: context.timeZone,
       },
     };
   },
@@ -112,7 +108,7 @@ const listAccounts: McpToolDefinition = {
           handle: account.handle,
           status: account.status,
           reconnectRequired: account.reconnectRequired,
-          connectedAt: toWibIso(account.connectedAt),
+          connectedAt: toZonedIso(account.connectedAt, context.timeZone),
           supportedContentFormats: getAllowedContentFormats(account.platform),
         })),
       },
@@ -144,7 +140,7 @@ const listMedia: McpToolDefinition = {
           width: item.width,
           height: item.height,
           durationSeconds: item.duration,
-          createdAt: toWibIso(item.createdAt),
+          createdAt: toZonedIso(item.createdAt, context.timeZone),
         })),
         nextCursor: page.nextCursor,
       },
@@ -174,8 +170,8 @@ const listDrafts: McpToolDefinition = {
           mediaIds: post.mediaIds ?? [],
           createdVia: post.createdVia ?? PostCreatedVia.App,
           createdViaClientId: post.createdViaClientId ?? null,
-          createdAt: toWibIso(post.createdAt),
-          updatedAt: toWibIso(post.updatedAt),
+          createdAt: toZonedIso(post.createdAt, context.timeZone),
+          updatedAt: toZonedIso(post.updatedAt, context.timeZone),
         })),
         nextCursor: page.nextCursor,
       },
@@ -194,8 +190,7 @@ const listScheduledPosts: McpToolDefinition = {
     const groups = await context.services.publishing.listQueue(
       context.workspaceId,
       context.userId,
-      // MCP sengaja tetap WIB (ADR-146 tindak lanjut), bukan zona pengguna.
-      WIB_TIME_ZONE,
+      context.timeZone,
     );
     const page = paginate(
       groups.flatMap((group) => group.items),
@@ -207,8 +202,8 @@ const listScheduledPosts: McpToolDefinition = {
         items: page.items.map((item) => ({
           id: item.id,
           caption: item.caption,
-          scheduledAt: toWibIso(item.scheduledAt),
-          createdAt: toWibIso(item.createdAt),
+          scheduledAt: toZonedIso(item.scheduledAt, context.timeZone),
+          createdAt: toZonedIso(item.createdAt, context.timeZone),
           targets: item.targets.map((target) => ({
             accountId: target.connectedAccountId,
             platform: target.platform,
@@ -244,8 +239,8 @@ const listPublishedPosts: McpToolDefinition = {
           id: item.id,
           caption: item.caption,
           status: item.status,
-          publishedAt: toWibIso(item.publishedAt),
-          createdAt: toWibIso(item.createdAt),
+          publishedAt: toZonedIso(item.publishedAt, context.timeZone),
+          createdAt: toZonedIso(item.createdAt, context.timeZone),
           targets: item.targets.map((target) => ({
             accountId: target.connectedAccountId,
             platform: target.platform,
@@ -311,7 +306,7 @@ const getAnalytics: McpToolDefinition = {
               shares: metric.shares,
               clicks: metric.clicks,
               engagementRate: metric.engagementRate,
-              fetchedAt: toWibIso(metric.fetchedAt),
+              fetchedAt: toZonedIso(metric.fetchedAt, context.timeZone),
             })) ?? null,
         },
       };
@@ -373,7 +368,7 @@ const listComments: McpToolDefinition = {
           type: item.type,
           status: item.status,
           postId: item.postId,
-          receivedAt: toWibIso(item.receivedAt),
+          receivedAt: toZonedIso(item.receivedAt, context.timeZone),
           author: markUntrusted(item.authorHandle),
           content: markUntrusted(item.content),
         })),

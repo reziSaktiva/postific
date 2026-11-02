@@ -228,13 +228,17 @@ function fakeServices(overrides: Partial<McpToolServices> = {}) {
   return { services, calls };
 }
 
-function context(services: McpToolServices): McpToolContext {
+function context(
+  services: McpToolServices,
+  timeZone = "Asia/Jakarta",
+): McpToolContext {
   return {
     workspaceId: WORKSPACE,
     userId: USER,
     clientId: "client-1",
     clientName: "Claude",
     grantScopes: ["read"],
+    timeZone,
     services,
   };
 }
@@ -247,9 +251,13 @@ function tool(name: string) {
   return found;
 }
 
-async function run(name: string, args: Record<string, unknown> = {}) {
+async function run(
+  name: string,
+  args: Record<string, unknown> = {},
+  timeZone?: string,
+) {
   const { services, calls } = fakeServices();
-  const output = await tool(name).handler(context(services), args);
+  const output = await tool(name).handler(context(services, timeZone), args);
   // Round-trip JSON: bentuk yang sama dengan yang diterima klien.
   const data = JSON.parse(JSON.stringify(output.data));
   return { output, calls, data };
@@ -271,7 +279,7 @@ describe("MCP_READ_TOOLS registry", () => {
       expect(t.scope).toBe("read");
       expect(t.inputSchema.additionalProperties).toBe(false);
       if (t.name !== "get_workspace") {
-        expect(t.description).toContain("WIB"); // semua tool lain mengeluarkan waktu
+        expect(t.description).toContain("zona waktu pengguna"); // semua tool lain mengeluarkan waktu
       }
     }
   });
@@ -296,7 +304,7 @@ describe("MCP_READ_TOOLS registry", () => {
 });
 
 describe("get_workspace", () => {
-  it("returns name, granted scopes from the grant, and the WIB timezone; no slug", async () => {
+  it("returns name, granted scopes from the grant, and the connection owner timezone; no slug", async () => {
     const { data, calls } = await run("get_workspace");
     expect(data).toEqual({
       workspaceId: WORKSPACE,
@@ -305,6 +313,11 @@ describe("get_workspace", () => {
       timezone: "Asia/Jakarta",
     });
     expect(calls).toEqual([{ method: "getWorkspaceById", args: [WORKSPACE] }]);
+  });
+
+  it("reports the zone of the connection owner, not a fixed WIB", async () => {
+    const { data } = await run("get_workspace", {}, "America/New_York");
+    expect(data.timezone).toBe("America/New_York");
   });
 
   it("raises not found when the workspace no longer exists", async () => {
@@ -398,7 +411,7 @@ describe("list_drafts", () => {
 });
 
 describe("list_scheduled_posts", () => {
-  it("flattens queue groups in order and renders scheduledAt in WIB", async () => {
+  it("flattens queue groups in order and renders scheduledAt in the user zone", async () => {
     const { data, calls } = await run("list_scheduled_posts");
     expect(data.items.map((item: { id: string }) => item.id)).toEqual([
       POST,
@@ -418,9 +431,22 @@ describe("list_scheduled_posts", () => {
         },
       ],
     });
-    // MCP sengaja tetap WIB, bukan zona pengguna (ADR-146 tindak lanjut).
+    // Zona pengguna (T-168), bukan WIB tetap.
     expect(calls).toEqual([
       { method: "listQueue", args: [WORKSPACE, USER, "Asia/Jakarta"] },
+    ]);
+  });
+
+  it("follows another user zone with the matching offset in the ISO string", async () => {
+    // 2026-11-01T02:00Z: DST New York baru berakhir 06:00Z, jadi masih EDT (-04:00).
+    const { data, calls } = await run(
+      "list_scheduled_posts",
+      {},
+      "America/New_York",
+    );
+    expect(data.items[0].scheduledAt).toBe("2026-10-31T22:00:00-04:00");
+    expect(calls).toEqual([
+      { method: "listQueue", args: [WORKSPACE, USER, "America/New_York"] },
     ]);
   });
 });

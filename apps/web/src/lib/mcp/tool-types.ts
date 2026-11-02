@@ -2,6 +2,7 @@ import type { UserId, WorkspaceId } from "@postific/shared";
 import type { McpScope } from "@/domains/mcp-access";
 import type { AnalyticsService } from "@/domains/analytics";
 import type { EngagementService } from "@/domains/engagement";
+import type { IdentityService } from "@/domains/identity";
 import type { MediaService, UploadMediaUseCase } from "@/domains/media";
 import type {
   ComposeDraftUseCase,
@@ -26,6 +27,8 @@ export interface McpToolServices {
     "listDrafts" | "listQueue" | "listHistory" | "getHistoryById"
   >;
   analytics: Pick<AnalyticsService, "getDashboardSummary">;
+  /** Zona waktu pemilik koneksi (`User.timeZone`, T-168); dibaca `runMcpTool` tiap panggilan. */
+  identity: Pick<IdentityService, "getProfile">;
   /** Dirakit malas di composition root (butuh `OUTSTAND_API_KEY`); hanya disentuh `list_comments`. */
   engagement: Pick<EngagementService, "listInbox">;
   /** Tool tulis scope `draft` (T-152): validasi + simpan draft lewat use-case publishing. */
@@ -49,6 +52,12 @@ export interface McpToolContext {
   /** Nama klien dari grant (sudah dirapikan); dibekukan di post saat `create_draft`. */
   clientName: string | null;
   grantScopes: readonly McpScope[];
+  /**
+   * Zona IANA `User.timeZone` pemilik koneksi (T-168, ADR-146). Semua waktu
+   * keluaran memakai zona ini dengan offset di ISO; waktu masukan tanpa
+   * offset ditafsirkan di zona ini.
+   */
+  timeZone: string;
   services: McpToolServices;
 }
 

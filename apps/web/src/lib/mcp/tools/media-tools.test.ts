@@ -23,6 +23,7 @@ import { SafeFetchError } from "@/lib/net/safe-fetch";
 import type { McpClaims } from "../claims";
 import { runMcpTool, type McpGateDeps } from "../run-tool";
 import { McpToolInputError, McpToolTemporaryError } from "../tool-input";
+import { fakeIdentity } from "../test-support";
 import type { McpToolContext, McpToolServices } from "../tool-types";
 import { MCP_MEDIA_TOOLS, sanitizeFilename } from "./media-tools";
 
@@ -64,6 +65,7 @@ function fakes(opts: { bytes?: Buffer; downloadError?: Error } = {}) {
     return { bytes: opts.bytes ?? PNG, finalUrl: new URL(url) };
   });
   const services = {
+    identity: fakeIdentity(),
     mediaUpload: { execute },
     remoteMedia: { download },
   } as unknown as McpToolServices;
@@ -77,6 +79,7 @@ function context(services: McpToolServices): McpToolContext {
     clientId: CLIENT,
     clientName: "Claude",
     grantScopes: ["read", "draft"],
+    timeZone: "Asia/Jakarta",
     services,
   };
 }

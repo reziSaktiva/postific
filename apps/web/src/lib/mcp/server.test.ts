@@ -6,6 +6,7 @@ import { McpAccessDeniedError } from "@/domains/mcp-access";
 import type { McpClaims } from "./claims";
 import type { McpGateDeps } from "./run-tool";
 import { createMcpServer } from "./server";
+import { fakeIdentity } from "./test-support";
 
 const WS = asWorkspaceId("ws-1");
 const claims: McpClaims = {
@@ -49,6 +50,7 @@ function deps(overrides: Partial<McpGateDeps["access"]> = {}) {
     ...overrides,
   };
   const services = {
+    identity: fakeIdentity(),
     workspace: {
       getWorkspaceById: vi.fn(async () => ({
         id: WS,

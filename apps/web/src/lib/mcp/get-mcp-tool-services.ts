@@ -1,5 +1,6 @@
 import { AnalyticsService } from "@/domains/analytics";
 import { EngagementService } from "@/domains/engagement";
+import { IdentityService } from "@/domains/identity";
 import {
   MAX_MEDIA_FILE_SIZE_BYTES,
   MediaService,
@@ -7,12 +8,14 @@ import {
 } from "@/domains/media";
 import { ComposeDraftUseCase, PublishingService } from "@/domains/publishing";
 import { WorkspaceService } from "@/domains/workspace";
+import { supabaseAvatarStorageAdapter } from "@/lib/adapters/avatar-storage";
 import { supabaseMediaStorageAdapter } from "@/lib/adapters/media-storage/supabase-media-storage-adapter";
 import { nodeSafeFetchDeps } from "@/lib/net/node-transport";
 import { safeFetch } from "@/lib/net/safe-fetch";
 import { getOutstandAdapter } from "@/lib/adapters/outstand";
 import { analyticsRepository } from "@/lib/repositories/analytics";
 import { engagementRepository } from "@/lib/repositories/engagement";
+import { identityRepository } from "@/lib/repositories/identity";
 import { mediaRepository } from "@/lib/repositories/media";
 import { publishingRepository } from "@/lib/repositories/publishing";
 import { workspaceRepository } from "@/lib/repositories/workspace";
@@ -48,6 +51,10 @@ export function getMcpToolServices(): McpToolServices {
     media,
     publishing,
     analytics,
+    identity: new IdentityService(
+      identityRepository,
+      supabaseAvatarStorageAdapter,
+    ),
     drafts,
     mediaUpload: new UploadMediaUseCase(
       mediaRepository,
