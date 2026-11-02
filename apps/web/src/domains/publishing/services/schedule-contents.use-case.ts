@@ -26,7 +26,10 @@ import {
   type DraftAccountsPort,
   type DraftMediaPort,
 } from "./compose-draft.use-case";
-import { resolveDraftMediaIds } from "./resolve-draft-media-ids";
+import {
+  resolveDraftMediaIds,
+  type MediaOwnershipRecord,
+} from "./resolve-draft-media-ids";
 import {
   resolveScheduleTargets,
   type ScheduleTargetRequest,
@@ -88,6 +91,8 @@ interface ContentPlan {
   index: number;
   content: ScheduleContentInput;
   targets: SchedulePostsTargetInput[];
+  /** Hasil baca media fase pemeriksaan; `undefined` bila konten tanpa media. */
+  foundMedia: MediaOwnershipRecord[] | undefined;
 }
 
 /**
@@ -142,7 +147,7 @@ export class ScheduleContentsUseCase {
         plans.push({
           index,
           content,
-          targets: await this.planContent(input, content, accounts),
+          ...(await this.planContent(input, content, accounts)),
         });
       } catch (error) {
         outcomes[index] = this.failureOutcome(index, error);
@@ -154,7 +159,7 @@ export class ScheduleContentsUseCase {
     }
 
     for (const plan of plans) {
-      outcomes[plan.index] = await this.scheduleOne(input, plan);
+      outcomes[plan.index] = await this.scheduleOne(input, accounts, plan);
     }
     return outcomes;
   }
@@ -165,6 +170,7 @@ export class ScheduleContentsUseCase {
       actingUserId: UserId;
       source: PostCreationSource;
     },
+    accounts: ConnectedAccountRecord[],
     plan: ContentPlan,
   ): Promise<ScheduleContentOutcome> {
     const { content, index } = plan;
@@ -179,6 +185,10 @@ export class ScheduleContentsUseCase {
           ? { mediaIds: content.mediaIds }
           : {}),
         targets: content.targets,
+        prefetched: {
+          accounts,
+          ...(plan.foundMedia !== undefined ? { media: plan.foundMedia } : {}),
+        },
       });
       postId = draft.post.id;
 
@@ -252,7 +262,10 @@ export class ScheduleContentsUseCase {
     input: { workspaceId: WorkspaceId; actingUserId: UserId },
     content: ScheduleContentInput,
     accounts: ConnectedAccountRecord[],
-  ): Promise<SchedulePostsTargetInput[]> {
+  ): Promise<{
+    targets: SchedulePostsTargetInput[];
+    foundMedia: MediaOwnershipRecord[] | undefined;
+  }> {
     assertCaptionWithinLimit(content.caption);
     const targets = resolveTargets(content.targets, accounts);
     assertScheduleSafetyCheck({
@@ -263,20 +276,24 @@ export class ScheduleContentsUseCase {
     });
 
     const requested = content.mediaIds ?? [];
+    let foundMedia: MediaOwnershipRecord[] | undefined;
     if (requested.length > 0) {
-      if (new Set(requested).size !== requested.length) {
+      if (
+        new Set(requested.map((id) => id.toLowerCase())).size !==
+        requested.length
+      ) {
         throw new ValidationError(
           "Media yang sama dipilih lebih dari sekali. Satu media cukup satu kali.",
         );
       }
       const mediaIds = requested.map((id) => asMediaId(id));
-      const found = await this.media.listByIds(
+      foundMedia = await this.media.listByIds(
         { workspaceId: input.workspaceId, mediaIds },
         input.actingUserId,
       );
-      resolveDraftMediaIds(found, mediaIds);
+      resolveDraftMediaIds(foundMedia, mediaIds);
     }
-    return targets;
+    return { targets, foundMedia };
   }
 
   private failureOutcome(
@@ -345,12 +362,12 @@ function resolveTargets(
   }
   const seen = new Set<string>();
   for (const request of requests) {
-    if (seen.has(request.connectedAccountId)) {
+    if (seen.has(request.connectedAccountId.toLowerCase())) {
       throw new ValidationError(
         "Akun yang sama dipilih lebih dari sekali. Satu akun cukup satu target.",
       );
     }
-    seen.add(request.connectedAccountId);
+    seen.add(request.connectedAccountId.toLowerCase());
   }
   // Bukan `ScheduleTargetRequest` penuh: `platformOptions` sengaja tidak
   // diterima entry point ini (lihat `ComposeDraftTargetRequest`).

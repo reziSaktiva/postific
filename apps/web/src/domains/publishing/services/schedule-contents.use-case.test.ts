@@ -182,9 +182,14 @@ function world(
     ) => {
       seen("media", input.workspaceId, userId);
       return input.workspaceId === WORKSPACE
-        ? input.mediaIds
-            .filter((id) => owned.includes(id))
-            .map((id) => ({ id }))
+        ? input.mediaIds.flatMap((id) => {
+            // Seperti kolom uuid di DB: cocok tanpa peka huruf, id yang
+            // kembali berbentuk kanonik.
+            const stored = owned.find(
+              (own) => own.toLowerCase() === id.toLowerCase(),
+            );
+            return stored === undefined ? [] : [{ id: asMediaId(stored) }];
+          })
         : [];
     },
   };
@@ -550,6 +555,47 @@ describe("ScheduleContentsUseCase", () => {
         userId: USER,
       });
     }
+  });
+
+  it("reads accounts once and media once per content for a whole batch, not again when drafting", async () => {
+    const a = asMediaId("media-a");
+    const b = asMediaId("media-b");
+    const w = world({ ownedMedia: [a, b] });
+
+    const outcomes = await run(w, [
+      content({ caption: "Satu", mediaIds: [a] }),
+      content({ caption: "Dua", mediaIds: [b] }),
+      content({ caption: "Tiga" }),
+    ]);
+
+    expect(outcomes.map((o) => o.status)).toEqual([
+      "scheduled",
+      "scheduled",
+      "scheduled",
+    ]);
+    const count = (port: string) =>
+      w.calls.filter((call) => call.port === port).length;
+    expect(count("accounts")).toBe(1);
+    expect(count("media")).toBe(2);
+  });
+
+  it("matches account and media ids case-insensitively and stores the canonical ids", async () => {
+    const media = asMediaId("0a1b2c3d-0000-4000-8000-00000000000a");
+    const w = world({ ownedMedia: [media] });
+
+    const [outcome] = await run(w, [
+      content({
+        mediaIds: [media.toUpperCase()],
+        targets: [
+          {
+            connectedAccountId: IG.toUpperCase() as typeof IG,
+            contentFormat: ContentFormat.Post,
+          },
+        ],
+      }),
+    ]);
+
+    expect(outcome).toMatchObject({ status: "scheduled", mediaIds: [media] });
   });
 
   it("sees nothing of another workspace: accounts, media, and posts are scoped to the workspace passed in", async () => {

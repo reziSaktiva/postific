@@ -1,5 +1,4 @@
-import { ContentFormat } from "@postific/shared";
-import type { SocialPlatform } from "@postific/shared";
+import type { ContentFormat, SocialPlatform } from "@postific/shared";
 import {
   assertMediaCountMeetsMinimum,
   assertMediaCountWithinLimit,
@@ -10,6 +9,10 @@ import {
   pinterestBoardConstraintMessage,
 } from "./pinterest-board-constraints";
 import { assertScheduledAtNotInPast } from "./schedule-time-constraints";
+import {
+  captionRequiredConstraintMessage,
+  mixedStoryCaptionConstraintMessage,
+} from "./story-caption-constraints";
 
 /**
  * Safety Check penjadwalan di server (T-153, ADR-138 poin 5, ADR-049).
@@ -29,15 +32,9 @@ import { assertScheduledAtNotInPast } from "./schedule-time-constraints";
  * Matriks `ContentFormat` per platform (ADR-039) ditegakkan saat target
  * di-resolve (`resolveScheduleTargets`), sebelum fungsi ini.
  *
- * Aturan caption/Story dan pesannya sengaja disalin dari `Modal.tsx` (UI
- * memakai milik sendiri); ubah keduanya bersamaan.
+ * Aturan caption/Story hidup di `story-caption-constraints.ts` dan dipakai
+ * bersama `Modal.tsx` (T-192.1).
  */
-export const CAPTION_REQUIRED_MESSAGE =
-  "Caption wajib diisi, kecuali semua konten ini berformat Story (Story tampil tanpa caption).";
-
-export const MIXED_STORY_CAPTION_MESSAGE =
-  "Story tidak bisa digabung dengan target lain selama caption terisi. Kosongkan caption atau jadwalkan Story secara terpisah dari target lainnya.";
-
 export const PINTEREST_VIA_MCP_MESSAGE =
   "Akun Pinterest belum bisa dijadwalkan lewat MCP karena board Pinterest belum bisa dipilih di sini. Jadwalkan akun Pinterest di aplikasi Postific.";
 
@@ -64,15 +61,11 @@ export function assertScheduleSafetyCheck(
   assertScheduledAtNotInPast(input.scheduledAt, input.now);
 
   const formats = input.targets.map((target) => target.contentFormat);
-  const hasStory = formats.includes(ContentFormat.Story);
-  const hasNonStory = formats.some((format) => format !== ContentFormat.Story);
-  const captionFilled = input.caption.trim().length > 0;
-
-  if (!hasStory && !captionFilled) {
-    throw new PublishingDomainError(CAPTION_REQUIRED_MESSAGE);
-  }
-  if (hasStory && hasNonStory && captionFilled) {
-    throw new PublishingDomainError(MIXED_STORY_CAPTION_MESSAGE);
+  const captionMessage =
+    captionRequiredConstraintMessage(input.caption, formats) ??
+    mixedStoryCaptionConstraintMessage(input.caption, formats);
+  if (captionMessage !== null) {
+    throw new PublishingDomainError(captionMessage);
   }
 
   assertMediaCountWithinLimit(input.mediaCount, formats);

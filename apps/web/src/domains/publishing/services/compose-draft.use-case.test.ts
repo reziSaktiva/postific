@@ -183,6 +183,38 @@ describe("ComposeDraftUseCase.createDraft", () => {
     ]);
   });
 
+  it("uses prefetched accounts and media instead of reading them again, and still validates them", async () => {
+    const { useCase, createDraft, listConnectedAccounts, listByIds } = setup();
+
+    await useCase.createDraft({
+      workspaceId: WORKSPACE,
+      authorId: USER,
+      caption: "Halo",
+      mediaIds: [MEDIA_A],
+      targets: [{ connectedAccountId: IG, contentFormat: ContentFormat.Post }],
+      source: SOURCE,
+      prefetched: {
+        accounts: ACCOUNTS,
+        media: [{ id: asMediaId(MEDIA_A) }],
+      },
+    });
+
+    expect(listConnectedAccounts).not.toHaveBeenCalled();
+    expect(listByIds).not.toHaveBeenCalled();
+    expect(createDraft).toHaveBeenCalledTimes(1);
+
+    await expect(
+      useCase.createDraft({
+        workspaceId: WORKSPACE,
+        authorId: USER,
+        caption: "Halo",
+        mediaIds: [MEDIA_B],
+        source: SOURCE,
+        prefetched: { media: [{ id: asMediaId(MEDIA_A) }] },
+      }),
+    ).rejects.toThrow(ValidationError);
+  });
+
   it("does not look up accounts or media when none are given", async () => {
     const { useCase, createDraft, listConnectedAccounts, listByIds } = setup();
 
