@@ -23,7 +23,7 @@ Sejak T-144, T-145, dan T-146 seluruh tampilan, pengelompokan tanggal, rentang C
 3. Penyimpanan waktu di DB tetap UTC. Yang berubah hanya cara tanggal/jam dihitung, ditampilkan, dan ditafsirkan input jadwal (menggantikan penafsiran WIB tetap dari T-146).
 4. Kolom kedua `User.timeZoneSource` (`pending` | `legacy` | `detected` | `manual`) menandai asal nilai agar deteksi browser berjalan sekali dan tidak menimpa pilihan manual. Baris lama diberi `legacy` (tetap WIB, tidak dideteksi diam-diam); pengguna baru `pending`. Penulisan deteksi atomik (`updateMany where timeZoneSource = 'pending'`). Nama IANA alias dari browser (mis. `Asia/Kolkata`) dipetakan ke nama kanonik runtime saat validasi.
 5. `wib-time.ts` direfaktor menjadi helper yang menerima zona sebagai parameter. Konstanta WIB tetap sebagai zona default.
-6. Dampak kolom `occurred_at` (T-145) dicek di T-147.5 sebelum migrasi; kolom itu generated dari kolom UTC, tidak terkait zona, sehingga tidak diubah (T-147.5). MCP (`lib/mcp`) sengaja tetap WIB; penyesuaiannya tindak lanjut terpisah.
+6. Dampak kolom `occurred_at` (T-145) dicek di T-147.5 sebelum migrasi; kolom itu generated dari kolom UTC, tidak terkait zona, sehingga tidak diubah (T-147.5). MCP (`lib/mcp`) sengaja tetap WIB; penyesuaiannya tindak lanjut terpisah (T-168, diputuskan King Rezi 2026-11-02: output dan input waktu MCP mengikuti `User.timeZone` pemilik koneksi).
 
 ### Reason
 

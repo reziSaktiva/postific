@@ -527,7 +527,7 @@ Pemetaan tool MCP ke service yang dibungkus (nama method sudah dicocokkan dengan
 | `draft` | `create_draft` | `ComposeDraftUseCase` (domain `publishing`; membuat draft dengan penanda sumber `created_via = 'mcp'` dan `created_via_client_id` dari grant; T-152) |
 | `draft` | `update_draft` | `ComposeDraftUseCase` (hanya draft berstatus Draft; tidak mengubah penanda sumber; T-152) |
 | `draft` | `upload_media` | `MediaService.uploadMedia` (unduh dari URL dengan proteksi SSRF) |
-| `schedule` | `schedule_posts` | `PublishingService.schedulePosts` (nama method dicocokkan di T-153) |
+| `schedule` | `schedule_posts` | `ScheduleContentsUseCase` (domain `publishing`; memeriksa semua konten lebih dulu, memesan kuota sekali, lalu membuat draft bertanda MCP dan menjadwalkannya satu per satu; hasil per konten; T-153) |
 
 Semua service di atas menerima `workspaceId` dan `userId` dari grant yang lolos `authorizeCall` (bukan dari argumen tool), jadi isolasi workspace dan RLS per pengguna (KI-026) tetap berlaku seperti di UI. Tool tidak punya parameter `workspaceId`.
 
@@ -543,7 +543,7 @@ Berlaku untuk delapan tool `read`. Handler hanya memetakan record service ke ben
 
 **Bungkus hasil.** Satu blok `text` berisi JSON. Penolakan dan kegagalan memakai `isError: true` dengan blok `text` berisi `{"error":{"code","message"}}`, tidak pernah daftar kosong. `code`: `no_active_grant`, `token_scope_insufficient`, `grant_scope_insufficient`, `not_workspace_member` (`McpDenialReason`), `invalid_input` (juga untuk `ValidationError` dan `PublishingDomainError` dari service), `invalid_cursor`, `not_found`, `conflict` (tool tulis, mis. `update_draft` pada post yang sudah dijadwalkan), `rate_limited` (kuota per workspace habis; ADR-152, lihat di bawah), `internal_error` (pesan generik; detail hanya di log server).
 
-**Waktu.** Semua tanggal dan jam berupa string ISO 8601 dengan offset WIB tetap, mis. `2026-10-28T14:30:00+07:00` (T-144/T-146; belum ada zona waktu per workspace). Tanggal tanpa nilai diberi `null`. Tool tidak menerima input waktu pada tool baca.
+**Waktu.** Semua tanggal dan jam berupa string ISO 8601 dengan offset zona `User.timeZone` pemilik koneksi, mis. `2026-10-28T14:30:00+07:00` untuk WIB atau `+08:00` untuk WITA (T-168, ADR-146); zona tidak valid jatuh ke WIB. Input jadwal tanpa offset ditafsirkan di zona itu, dengan offset dipakai apa adanya. Tanggal tanpa nilai diberi `null`. Tool tidak menerima input waktu pada tool baca.
 
 **ID.** String apa adanya dari domain. Tidak ada `outstand*` id, `storagePath`, URL bertanda tangan, atau `slug` di output.
 
