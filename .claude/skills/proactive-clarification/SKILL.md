@@ -83,13 +83,15 @@ Pilihan terbaik:
 Mana yang ingin kamu gunakan?
 ```
 
-### 3. Satu Topik per Pertanyaan
+### 3. Pertanyaan per Ronde
 
-Jangan tumpuk semua pertanyaan sekaligus. Jika ada lebih dari satu fork:
+Tanya per **ronde**, bukan satu per satu dan bukan semua sekaligus tanpa urutan:
 
-- Tanyakan yang paling berdampak dulu.
-- Setelah dijawab, tanyakan berikutnya jika masih diperlukan.
-- Atau batch semua dalam satu sesi AskQuestion jika semua fork memang harus dijawab sebelum mulai.
+- **Frontier keputusan** = semua fork yang sudah bisa dijawab sekarang, yaitu yang tidak bergantung pada jawaban fork lain. Satu ronde memuat seluruh frontier itu (batch dalam satu sesi AskQuestion bila memakai tool), diurutkan dari yang paling berdampak.
+- Fork yang bergantung pada jawaban ronde ini masuk ronde berikutnya; jangan ditanyakan sebelum waktunya.
+- **Rekomendasi di depan:** tiap fork ditulis dengan opsi yang direkomendasikan lebih dulu, bertanda "(rekomendasi)", beserta satu kalimat alasannya. King Rezi tinggal menyetujui atau menggantinya.
+- **Cari fakta sendiri:** hal yang bisa dijawab dengan membaca baseline, kode, atau dokumen tidak ditanyakan; baca, lalu sebut temuannya sebagai dasar rekomendasi. Hanya keputusan (pilihan yang memang milik King Rezi) yang ditanyakan.
+- **Selesai bila frontier kosong:** ulangi ronde sampai tidak ada fork yang tersisa, baik yang sedang terbuka maupun yang baru muncul dari jawaban sebelumnya.
 
 ---
 
@@ -131,7 +133,9 @@ Terlalu banyak, tidak ada konteks, tidak dikurasi.
 
 1. Konfirmasi pilihan yang diambil dalam satu kalimat.
 2. Jika pilihan berpengaruh pada dokumen atau keputusan project, tanyakan apakah perlu dicatat di `DECISIONS.md`.
-3. Lanjutkan eksekusi tugas.
+3. Bila jawaban membuka fork baru, ajukan ronde berikutnya (lihat "Pertanyaan per Ronde").
+4. Bila frontier sudah kosong, ringkas pemahaman bersama (keputusan yang diambil dan yang dipakai dari baseline) dalam beberapa baris, lalu **tunggu King Rezi mengonfirmasi**. Jangan bertindak sebelum konfirmasi itu.
+5. Setelah dikonfirmasi, lanjutkan eksekusi tugas.
 
 ---
 
