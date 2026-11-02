@@ -171,13 +171,26 @@ Layar tempat pengguna memilih satu workspace dan scope. Default `read` + `draft`
 
 ### T-153 · Tool `schedule_posts` (batch)
 
-`⏳ Not Started` · **Domain** mcp-access · publishing · **ADR** ADR-138, ADR-039, ADR-049 · **Depends** T-152, T-154
+`🟡 In Progress (2026-11-02)` · **Domain** mcp-access · publishing · **ADR** ADR-138, ADR-039, ADR-049 · **Depends** T-152, T-154
 
 **Baca dulu:** `05-architecture/application-layer.md` (`schedulePosts`) · `02-product/mvp-definition.md`
 
 **Catatan dari T-154 (2026-10-30):** kuota dipakai lewat `McpAccessService.consumeQuota(workspaceId, quota, amount)` (all-or-nothing, belum ada refund bila langkah sesudahnya gagal). `McpToolContext` belum memuat `McpAccessService`, jadi T-153 harus menyuntikkannya.
 
-Satu panggilan memuat maksimum 10 konten (konstanta konfigurasi). Target per konten maksimum sejumlah akun terhubung. Waktu diterima sebagai WIB (T-146). Validasi matriks `ContentFormat` dan Safety Check di server. Hasil dilaporkan per item (sebagian berhasil boleh).
+Satu panggilan memuat maksimum 10 konten (konstanta konfigurasi). Target per konten maksimum sejumlah akun terhubung. Waktu input tanpa offset ditafsirkan di `User.timeZone` pemilik koneksi, dan input dengan offset dipakai apa adanya (keputusan King Rezi T-168.1, 2026-11-02; menggantikan teks lama "diterima sebagai WIB"). Validasi matriks `ContentFormat` dan Safety Check di server. Hasil dilaporkan per item (sebagian berhasil boleh).
+
+**Subtask** (gelombang B, 2026-11-02; Depends T-168.2)
+
+- [x] **T-153.1** Irisan (a), kode: use-case `ScheduleContentsUseCase` di publishing (buat post bertanda MCP lalu jadwalkan lewat `SchedulePostsUseCase`, satu konten sekali, hasil per konten) dan tool `schedule_posts` (scope `schedule`): skema input, batas 10 konten (konstanta di `lib/mcp/config.ts`), tafsir `scheduledAt` di zona pengguna, kuota `scheduled_contents` lewat `McpAccessService.consumeQuota` yang disuntikkan ke `McpToolContext`, pendaftaran di `MCP_TOOLS`. **Hasil kode (2026-11-02):** `ScheduleContentsUseCase` (`domains/publishing/services/schedule-contents.use-case.ts`) memeriksa semua konten tanpa menulis, memesan kuota sekali untuk jumlah yang lolos (port `reserveQuota`), lalu membuat draft bertanda MCP (`ComposeDraftUseCase`) dan menjadwalkannya (`SchedulePostsUseCase`) satu per satu; kegagalan penyedia dibaca ulang dari status post (use-case lama menandai Failed tanpa melempar). Tool `lib/mcp/tools/schedule-tools.ts`; `McpToolContext.consumeQuota` menyuntikkan `McpAccessService`; `scheduleContents` dirakit malas di `get-mcp-tool-services.ts` (butuh `OUTSTAND_API_KEY`).
+- [x] **T-153.2** Irisan (b), kode: pemeriksaan server sebelum ada yang ditulis (Safety Check dan matriks `ContentFormat`): format per akun harus sah menurut ADR-039; target tanpa duplikat dan tidak melebihi akun terhubung; caption wajib kecuali target Story; Story tidak boleh digabung dengan target lain bila caption terisi; media minimum dan maksimum per format (ADR-107, ADR-121); satu akun Pinterest dan board wajib (board belum bisa diisi lewat MCP, jadi Pinterest ditolak dengan pesan jelas); waktu harus di masa depan. Konten yang gagal diperiksa tidak memakai kuota dan tidak meninggalkan draft. **Hasil kode (2026-11-02):** `assertScheduleSafetyCheck` (`domains/publishing/schedule-safety-check.ts`) mencerminkan `isReadyToSchedule` di `Modal.tsx`; matriks `ContentFormat` lewat `resolveScheduleTargets`; dipanggil di tahap pemeriksaan `ScheduleContentsUseCase`, sebelum kuota dan sebelum draft dibuat. Aturan caption/Story disalin dari `Modal.tsx` (UI tidak diubah); ubah keduanya bersamaan.
+- [x] **T-153.3** Tes unit lewat batas publik (use-case dan handler tool): pembagian hasil per item, batas 10, kuota (all-or-nothing, hanya konten lolos), zona waktu, tiap aturan Safety Check, matriks `ContentFormat`. **Hasil (2026-11-02):** `schedule-contents.use-case.test.ts` (use-case ASLI di atas repository, adapter Outstand, dan job scheduler palsu lokal), `schedule-safety-check.test.ts`, `tools/schedule-tools.test.ts` (handler dan gerbang dengan `McpAccessService` serta rate limit asli), `scheduled-at.test.ts`.
+- [ ] **T-153.4** Tes E2E golden path di `e2e/mcp.e2e.ts` (wajib, ADR-149). Done (code) ditetapkan setelah tes ini hijau di lokal; bila lingkungan tidak mengizinkan, tiket tetap In Progress dan alasannya dicatat di "Belum terbukti". **Status (2026-11-02):** ditulis, belum dijalankan. `mcp.e2e.ts` (g) (tanpa scope schedule ditolak, batas 10 konten, waktu lampau ditolak, semuanya tanpa efek samping) dan (h) (golden path: batch dua konten, satu berhasil dan satu ditolak Safety Check, waktu di zona pengguna, post tampil di `list_scheduled_posts`). Terdaftar di Playwright (`--list`) tetapi tidak bisa dijalankan di sandbox: butuh staging (`E2E_BASE_URL`, ADR-081). (h) juga butuh opt-in `E2E_MCP_SCHEDULE=1` dan akun sandbox terhubung, karena menjadwalkan post sungguhan dan MCP tidak punya tool batal.
+- [ ] **T-153.5** Verifikasi King Rezi lewat klien MCP nyata di staging (verifikasi gelombang T-189).
+- [x] **T-153.6** `✅ Done (2026-11-02)` **Diputuskan King Rezi:** TIDAK ada argumen konfirmasi (`confirm` atau `dryRun`) pada `schedule_posts`. Safety Check di MCP = aturan server T-153.2 ditambah ringkasan per konten di hasil, supaya klien AI menunjukkannya ke manusia. Pertanyaan semula: arti "Safety Check" pada MCP (ADR-049 menetapkan Schedule sebagai dialog Confirmation Summary yang hanya ada di UI).
+
+**Belum terbukti:** tidak ada yang dicoba lewat klien MCP nyata atau di staging: OAuth dengan scope `schedule`, `tools/call` sungguhan, penjadwalan ke Outstand (multi-target, unggah media working copy; tes memakai adapter palsu), dan penghitung kuota Postgres nyata bersama `schedule_posts` (tes memakai penghitung dalam memori). Tes E2E (g) dan (h) belum pernah dijalankan (lihat T-153.4; gerbang opt-in `E2E_MCP_SCHEDULE=1` untuk (h) tetap, keputusan King Rezi 2026-11-02). Pemeriksaan akun tidak aktif dan kepemilikan media memakai port palsu; perilaku dengan data akun dan media nyata belum dicoba. Perilaku jam DST (tidak ada atau ganda) terbukti hanya lewat tes unit. Verified (staging) hanya setelah T-153.5 terbukti, lewat verifikasi gelombang T-189 (ADR-153).
+
+**Keterbatasan yang diketahui:** kuota all-or-nothing tanpa refund. Konten yang ditolak pemeriksaan (format, caption, media, akun tidak aktif, waktu lampau) tidak memakai kuota; yang gagal SETELAH draft dibuat (penyedia menolak, galat internal, konflik) tetap memakai kuota dan meninggalkan post Failed yang dilaporkan dengan `postId`. Konten dijadwalkan berurutan (maksimum 10), dan lama panggilan belum diukur terhadap batas waktu Railway. **Tidak ada idempotensi (keputusan King Rezi 2026-11-02):** hanya peringatan di deskripsi tool, klien harus memeriksa `list_scheduled_posts` sebelum mengulang panggilan yang terputus, kalau tidak post ganda; kunci idempotensi menjadi tiket terpisah (orkestrator). Satu `scheduledAt` yang salah bentuk atau mustahil menggagalkan seluruh panggilan sebagai `invalid_input` dengan indeks item (dipertahankan, ada di deskripsi tool). Waktu yang sangat tipis di masa depan bisa lolos pemeriksaan lalu ditolak saat menjadwalkan (jam berjalan di antara dua tahap); hasilnya draft yatim berstatus Failed dan kuota terpakai. Alasan penolakan penyedia tidak diteruskan ke klien. Akun tidak aktif (status bukan `active` atau `reconnectRequired`) ditolak di pemeriksaan. Akun Pinterest ditolak sampai board bisa dipilih lewat MCP. Jam dinding yang tidak ada karena DST ditolak (T-192.5); jam yang ganda mengikuti `zonedLocalToUtc` (kemunculan pertama atau kedua tergantung zona, lihat komentar `wib-time.ts`), jadi klien yang butuh kepastian mengirim offset eksplisit. **Dokumen yang perlu diselaraskan orkestrator (di luar jalur ini):** `application-layer.md` (baris `schedule_posts` kini `ScheduleContentsUseCase`) dan `S-001.md` bila masih menyebut WIB.
 
 ### T-154 · Rate limit per workspace (Postgres)
 
@@ -251,14 +264,14 @@ Badge dan filter berdasarkan `created_via`. Dari T-152 (2026-10-30): `list_draft
 
 ### T-168 · MCP mengikuti zona waktu pengguna (tindak lanjut T-147)
 
-`⏳ Not Started` · **Domain** mcp-access · **ADR** ADR-146, ADR-138 · **Terkait** T-147 · **Depends** T-147 (✅), T-150
+`🟡 In Progress (2026-11-02)` · **Domain** mcp-access · **ADR** ADR-146, ADR-138 · **Terkait** T-147 · **Depends** T-147 (✅), T-150
 
 **Baca dulu:** `apps/web/src/lib/mcp/format.ts` · read-tools MCP · `apps/web/src/domains/publishing/wib-time.ts`
 
 Lahir dari T-147 (ADR-146 § 6): MCP sengaja dibiarkan WIB tetap. `toWibIso` di `format.ts` dan read-tools masih memakai Asia/Jakarta, padahal tampilan dan input di UI sudah mengikuti `User.timeZone`.
 
-- [ ] **T-168.1** Putuskan perilaku: output waktu MCP dan tafsir input jadwal tool (mis. `schedule_posts`, `create_draft`) memakai `User.timeZone` pemilik koneksi, termasuk offset di ISO.
-- [ ] **T-168.2** Ganti `toWibIso` dan pemakaian di read-tools agar menerima zona pengguna; selaraskan dengan `wib-time.ts` dinamis.
+- [x] **T-168.1** `✅ Done (2026-11-02)` **Diputuskan King Rezi (rekomendasi agen disetujui):** output waktu MCP memakai `User.timeZone` pemilik koneksi dengan offset di ISO, dan input jadwal tanpa offset ditafsirkan di zona itu. Pertanyaan semula: Putuskan perilaku: output waktu MCP dan tafsir input jadwal tool (mis. `schedule_posts`, `create_draft`) memakai `User.timeZone` pemilik koneksi, termasuk offset di ISO.
+- [x] **T-168.2** Ganti `toWibIso` dan pemakaian di read-tools agar menerima zona pengguna; selaraskan dengan `wib-time.ts` dinamis. **Hasil kode (2026-11-02):** `toWibIso` diganti `toZonedIso(date, timeZone)` (`lib/mcp/format.ts`, memakai `getTimeZoneOffsetMs` dari `wib-time.ts`, jadi DST dan offset setengah jam benar). `runMcpTool` membaca `User.timeZone` pemilik koneksi lewat `IdentityService.getProfile` tiap panggilan dan menaruhnya di `McpToolContext.timeZone`; semua tool baca, draft, dan `upload_media` memakainya, termasuk `get_workspace.timezone` dan argumen zona `listQueue`. Profil tanpa zona valid jatuh ke WIB (sama dengan sisi UI); kegagalan membaca profil menggagalkan panggilan (`internal_error`), tidak menebak zona. `WIB_OFFSET_MS` dihapus (tak terpakai). Deskripsi tool tidak lagi menyebut WIB. **Dampak dokumen (belum diubah, di luar jalur ini):** `application-layer.md` § Kontrak output tool baca (paragraf Waktu dan baris `get_workspace`) dan `S-001.md` masih menyebut WIB tetap; perlu diselaraskan orkestrator.
 - [ ] **T-168.3** Test dan verifikasi King Rezi.
 
 ### T-178 · Tes E2E MCP otomatis di staging (akun test, workspace E2E Sandbox)
@@ -355,6 +368,34 @@ Satu verifikasi untuk seluruh gelombang 1 dan A (S-003). Tiket yang dirujuk dian
 - [x] **T-189.9** `✅ Done (2026-11-02)` Keputusan King Rezi (HITL), semua terjawab (T-152.4 dan T-154.5 disetujui sesuai usulan agen): T-152.4 (batas caption 5000 karakter; label draft manusia yang diedit AI), T-154.5 (error `rate_limited` tanpa `Retry-After`; fixed window). **Diputuskan (2026-11-02):** T-155, T-156, T-157 tidak dikecualikan dari E2E golden path ADR-149; tesnya T-155.7, T-156.5, dan T-157.1.
 
 ---
+
+### T-191 · MCP `schedule_posts` idempotency key
+
+`⏳ Not Started` · **Mode** HITL (butuh penyimpanan; kemungkinan migrasi dan izin ADR-081) · **Domain** mcp-access · publishing · **ADR** ADR-138, ADR-081 · **Depends** T-153
+
+**Baca dulu:** section T-153 (keterbatasan idempotensi) · review Ridwan P1 dan QA Najwa gelombang B
+
+Klien AI yang timeout lalu mengulang panggilan `schedule_posts` membuat post ganda yang tayang di akun sosial dan memakai kuota dua kali. Gelombang B hanya menambah peringatan di deskripsi tool (keputusan King Rezi 2026-11-02); mekanisme sungguhan dibuat di sini.
+
+- [ ] **T-191.1** Putuskan mekanisme: argumen `idempotencyKey` per panggilan (disimpan beserta hasilnya dalam jendela waktu) atau dedupe berdasarkan (workspace, klien, caption, waktu, target). Keputusan King Rezi.
+- [ ] **T-191.2** Implementasi dan tes; bila butuh tabel atau kolom baru, migrasi hanya setelah izin langsung King Rezi (ADR-081).
+- [ ] **T-191.3** Verifikasi di staging bersama gelombang MCP berikutnya.
+
+### T-192 · MCP schedule follow-ups: shared constraints and media lookup wiring
+
+`⏳ Not Started` · **Mode** AFK · **Domain** mcp-access · publishing · UI (hanya bila `Modal.tsx` disentuh) · **ADR** ADR-133, ADR-097 · **Depends** T-153
+
+**Baca dulu:** review Ridwan gelombang B (S2, S5, S6, P6) · `apps/web/src/domains/publishing/schedule-safety-check.ts` · `Modal.tsx` di draft-editor
+
+Rapikan temuan pertimbangan dari review gelombang B yang sengaja tidak dikerjakan di sana. Bila `Modal.tsx` disentuh, ikuti aturan 10 `AGENTS.md` (perilaku UI tidak berubah; cek artifact desain bila ada elemen visual).
+
+- [ ] **T-192.1** (S2) Aturan caption dan Story dipakai bersama oleh `Modal.tsx` dan Safety Check server lewat fungsi murni `xxxConstraintMessage` di domain (seperti `pinterestBoardConstraintMessage`), sehingga tidak ada dua salinan yang bisa menyimpang.
+- [ ] **T-192.2** (S5) Satu helper composition root untuk `postMediaLookup` (kini tiga salinan: `get-mcp-tool-services.ts`, `draft-editor/actions.ts`, `publish/history/[postId]/actions.ts`).
+- [ ] **T-192.3** (S6) Putuskan apakah `resolveUserTimeZone` dibuat lazy atau di-cache per koneksi (satu baca profil per panggilan tool kini).
+- [ ] **T-192.4** (P6) Turunkan angka dan teks aturan media di skema dan deskripsi `schedule_posts` dari `maxMediaCountForFormat`, bukan ditulis manual.
+- [x] **T-192.5** `✅ Done (2026-11-02)` (code-review PR 231) `parseScheduledAt` kini menolak jam dinding yang tidak ada akibat DST (tanpa mengubah `wallClockToUtc` yang dipakai UI T-147), menolak waktu lebih dari 2 tahun ke depan (`MAX_YEARS_AHEAD`, angka pilihan agen: **King Rezi boleh menyetel**), dan mendokumentasikan pembuangan pecahan detik di deskripsi tool (klien yang mengirim `.000Z` tidak ditolak). Jam ganda (fall-back) tetap mengikuti `zonedLocalToUtc`.
+- [x] **T-192.6** `✅ Done (2026-11-02)` (code-review PR 231) Batas kuota harian yang dikonfigurasi lebih kecil dari ukuran batch dipetakan ke `invalid_input` di `schedule_posts` (bukan `internal_error`), dengan pesan agar klien mengecilkan batch. Validasi konfigurasi saat start tidak dibuat.
+- [ ] **T-192.7** (code-review gelombang B) `createDraft` membaca ulang daftar akun dan kepemilikan media per konten setelah fase pemeriksaan sudah membacanya; teruskan hasil resolve supaya batch 10 konten tidak melakukan sampai 10 query akun dan 10 query media tambahan. Samakan juga pencocokan UUID agar tidak peka huruf besar-kecil (`resolveDraftMediaIds`, `resolveScheduleTargets`).
 
 ## Tiket lama yang dibatalkan (ADR-138)
 

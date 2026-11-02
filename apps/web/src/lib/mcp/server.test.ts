@@ -6,6 +6,7 @@ import { McpAccessDeniedError } from "@/domains/mcp-access";
 import type { McpClaims } from "./claims";
 import type { McpGateDeps } from "./run-tool";
 import { createMcpServer } from "./server";
+import { fakeIdentity } from "./test-support";
 
 const WS = asWorkspaceId("ws-1");
 const claims: McpClaims = {
@@ -49,6 +50,7 @@ function deps(overrides: Partial<McpGateDeps["access"]> = {}) {
     ...overrides,
   };
   const services = {
+    identity: fakeIdentity(),
     workspace: {
       getWorkspaceById: vi.fn(async () => ({
         id: WS,
@@ -62,7 +64,7 @@ function deps(overrides: Partial<McpGateDeps["access"]> = {}) {
 }
 
 describe("createMcpServer over Streamable HTTP", () => {
-  it("lists the eight read tools, the two draft tools, and upload_media with JSON Schema inputs", async () => {
+  it("lists the eight read tools, the two draft tools, upload_media, and schedule_posts with JSON Schema inputs", async () => {
     const { value } = deps();
     const body = await rpc(value, {
       jsonrpc: "2.0",
@@ -82,6 +84,7 @@ describe("createMcpServer over Streamable HTTP", () => {
       "create_draft",
       "update_draft",
       "upload_media",
+      "schedule_posts",
     ]);
     expect(body.result.tools[0].inputSchema.type).toBe("object");
     expect(body.result.tools[0].annotations.readOnlyHint).toBe(true);

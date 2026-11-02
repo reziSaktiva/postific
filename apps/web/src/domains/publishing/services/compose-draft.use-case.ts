@@ -280,7 +280,7 @@ export class ComposeDraftUseCase {
   }
 }
 
-function assertCaptionWithinLimit(caption: string): void {
+export function assertCaptionWithinLimit(caption: string): void {
   // Panjang apa adanya (tanpa trim): yang disimpan juga caption utuh.
   const length = caption.length;
   if (length > DRAFT_CAPTION_MAX_LENGTH) {

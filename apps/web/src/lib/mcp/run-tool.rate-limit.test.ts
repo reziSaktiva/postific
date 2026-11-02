@@ -21,6 +21,7 @@ import {
 import type { McpClaims } from "./claims";
 import { MCP_RATE_LIMIT_DEFAULTS } from "./config";
 import { runMcpTool, type McpGateDeps } from "./run-tool";
+import { fakeIdentity } from "./test-support";
 import type { McpToolDefinition } from "./tool-types";
 
 const WS = asWorkspaceId("ws-a");
@@ -86,7 +87,7 @@ function world(counters: IMcpRateLimitRepository) {
   );
   const deps: McpGateDeps = {
     access,
-    services: {} as McpGateDeps["services"],
+    services: { identity: fakeIdentity() } as McpGateDeps["services"],
     logger: { error: vi.fn() },
   };
   return { deps, audits, access };

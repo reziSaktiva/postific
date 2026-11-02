@@ -2,28 +2,52 @@ import { describe, expect, it } from "vitest";
 
 import {
   markUntrusted,
-  toWibIso,
+  toZonedIso,
   UNTRUSTED_CLOSE,
   UNTRUSTED_OPEN,
 } from "./format";
 
-describe("toWibIso", () => {
-  it("renders UTC instants with the fixed +07:00 offset", () => {
-    expect(toWibIso(new Date("2026-10-28T07:30:00.000Z"))).toBe(
-      "2026-10-28T14:30:00+07:00",
-    );
+describe("toZonedIso", () => {
+  it("renders an instant with the offset of the given zone", () => {
+    expect(
+      toZonedIso(new Date("2026-10-28T07:30:00.000Z"), "Asia/Jakarta"),
+    ).toBe("2026-10-28T14:30:00+07:00");
   });
 
-  it("rolls the date over at 17:00 UTC", () => {
-    expect(toWibIso(new Date("2026-12-31T18:00:00.000Z"))).toBe(
-      "2027-01-01T01:00:00+07:00",
+  it("rolls the date over according to the zone, not UTC", () => {
+    expect(
+      toZonedIso(new Date("2026-12-31T18:00:00.000Z"), "Asia/Jakarta"),
+    ).toBe("2027-01-01T01:00:00+07:00");
+    expect(
+      toZonedIso(new Date("2026-01-01T03:00:00.000Z"), "America/New_York"),
+    ).toBe("2025-12-31T22:00:00-05:00");
+  });
+
+  it("uses the real offset at that instant, so DST changes the offset", () => {
+    expect(
+      toZonedIso(new Date("2026-07-01T16:00:00.000Z"), "America/New_York"),
+    ).toBe("2026-07-01T12:00:00-04:00");
+    expect(
+      toZonedIso(new Date("2026-12-01T16:00:00.000Z"), "America/New_York"),
+    ).toBe("2026-12-01T11:00:00-05:00");
+  });
+
+  it("keeps half-hour offsets", () => {
+    expect(
+      toZonedIso(new Date("2026-10-28T07:30:00.000Z"), "Asia/Kolkata"),
+    ).toBe("2026-10-28T13:00:00+05:30");
+  });
+
+  it("renders UTC as +00:00", () => {
+    expect(toZonedIso(new Date("2026-10-28T07:30:00.000Z"), "UTC")).toBe(
+      "2026-10-28T07:30:00+00:00",
     );
   });
 
   it("returns null for empty or invalid dates", () => {
-    expect(toWibIso(null)).toBeNull();
-    expect(toWibIso(undefined)).toBeNull();
-    expect(toWibIso(new Date("nope"))).toBeNull();
+    expect(toZonedIso(null, "Asia/Jakarta")).toBeNull();
+    expect(toZonedIso(undefined, "Asia/Jakarta")).toBeNull();
+    expect(toZonedIso(new Date("nope"), "Asia/Jakarta")).toBeNull();
   });
 });
 

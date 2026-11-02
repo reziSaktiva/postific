@@ -166,6 +166,22 @@ describe("wib-time — zona non-WIB (T-147)", () => {
     );
   });
 
+  it("zonedLocalToUtc Berlin: jam yang tidak ada bergeser MUNDUR, jam ganda memakai kemunculan KEDUA (beda arah dari New_York)", () => {
+    const BERLIN = "Europe/Berlin";
+    // 2026-03-29 02:00 CET -> 03:00 CEST: 02:30 tidak ada, hasil 01:30 CET = 00:30Z
+    expect(zonedLocalToUtc("2026-03-29", "02:30", BERLIN).toISOString()).toBe(
+      "2026-03-29T00:30:00.000Z",
+    );
+    // 2026-10-25 03:00 CEST -> 02:00 CET: 02:30 terjadi dua kali, kedua = CET = 01:30Z
+    expect(zonedLocalToUtc("2026-10-25", "02:30", BERLIN).toISOString()).toBe(
+      "2026-10-25T01:30:00.000Z",
+    );
+    // jam yang sah di sekitarnya tidak terpengaruh
+    expect(zonedLocalToUtc("2026-03-29", "03:30", BERLIN).toISOString()).toBe(
+      "2026-03-29T01:30:00.000Z",
+    );
+  });
+
   it("zonedLocalToUtc Kolkata dan Auckland", () => {
     expect(zonedLocalToUtc("2026-07-01", "09:00", KOLKATA).toISOString()).toBe(
       "2026-07-01T03:30:00.000Z",

@@ -26,6 +26,7 @@ import type { McpClaims } from "./claims";
 import { McpInvalidCursorError } from "./cursor";
 import { runMcpTool, type McpGateDeps } from "./run-tool";
 import { McpToolInputError } from "./tool-input";
+import { fakeIdentity } from "./test-support";
 import type { McpToolDefinition, McpToolOutput } from "./tool-types";
 
 const WS_A = asWorkspaceId("ws-a");
@@ -70,11 +71,12 @@ function scriptedDeps(
   const access = {
     authorizeCall: vi.fn(authorize),
     recordAudit: vi.fn(recordAudit),
+    consumeQuota: vi.fn(async () => undefined),
   };
   let tick = 1_000;
   const deps: McpGateDeps = {
     access,
-    services: {} as McpGateDeps["services"],
+    services: { identity: fakeIdentity() } as McpGateDeps["services"],
     logger,
     now: () => (tick += 5),
   };
@@ -91,6 +93,75 @@ const authorizedCall = {
 };
 
 describe("runMcpTool (scripted access)", () => {
+  it("binds quota consumption to the workspace of the grant; the handler cannot name another", async () => {
+    const { deps, access } = scriptedDeps(async () => authorizedCall);
+    const tool = makeTool(async () => ({ data: {} }));
+    tool.handler.mockImplementation(async (context) => {
+      await context.consumeQuota("scheduled_contents", 2);
+      return { data: {} };
+    });
+
+    await runMcpTool(deps, claims, tool, {});
+
+    expect(access.consumeQuota).toHaveBeenCalledWith(
+      WS_A,
+      "scheduled_contents",
+      2,
+    );
+  });
+
+  it("gives the handler the time zone of the connection owner (User.timeZone)", async () => {
+    const { deps } = scriptedDeps(async () => authorizedCall);
+    deps.services = {
+      identity: fakeIdentity("America/New_York"),
+    } as McpGateDeps["services"];
+    const tool = makeTool(async () => ({ data: {} }));
+
+    await runMcpTool(deps, claims, tool, {});
+
+    expect(tool.handler).toHaveBeenCalledWith(
+      expect.objectContaining({ timeZone: "America/New_York" }),
+      {},
+    );
+  });
+
+  it("falls back to WIB only when the profile has no valid zone", async () => {
+    for (const identity of [fakeIdentity(null), fakeIdentity("Bukan/Zona")]) {
+      const { deps } = scriptedDeps(async () => authorizedCall);
+      deps.services = { identity } as McpGateDeps["services"];
+      const tool = makeTool(async () => ({ data: {} }));
+
+      await runMcpTool(deps, claims, tool, {});
+
+      expect(tool.handler).toHaveBeenCalledWith(
+        expect.objectContaining({ timeZone: "Asia/Jakarta" }),
+        {},
+      );
+    }
+  });
+
+  it("fails the call (internal_error, handler not run) when the zone cannot be read, instead of guessing a zone", async () => {
+    const { deps, access, logger } = scriptedDeps(async () => authorizedCall);
+    deps.services = {
+      identity: {
+        getProfile: async () => {
+          throw new Error("db down");
+        },
+      },
+    } as unknown as McpGateDeps["services"];
+    const tool = makeTool(async () => ({ data: {} }));
+
+    const result = await runMcpTool(deps, claims, tool, {});
+
+    expect(result.isError).toBe(true);
+    expect(parse(result).error.code).toBe("internal_error");
+    expect(tool.handler).not.toHaveBeenCalled();
+    expect(access.recordAudit).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "error", errorCode: "internal_error" }),
+    );
+    expect(logger.error).toHaveBeenCalled();
+  });
+
   it("authorizes with token scopes and the tool scope, runs the handler with the grant identity, audits success", async () => {
     const { deps, access } = scriptedDeps(async () => authorizedCall);
     const tool = makeTool(async () => ({
@@ -336,7 +407,7 @@ describe("runMcpTool with the real McpAccessService", () => {
     return {
       deps: {
         access,
-        services: {} as McpGateDeps["services"],
+        services: { identity: fakeIdentity() } as McpGateDeps["services"],
       } satisfies McpGateDeps,
       audits,
     };

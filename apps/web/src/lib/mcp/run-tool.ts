@@ -16,6 +16,7 @@ import type { McpClaims } from "./claims";
 import { McpInvalidCursorError } from "./cursor";
 import { McpToolInputError, McpToolTemporaryError } from "./tool-input";
 import type { McpToolServices, McpToolDefinition } from "./tool-types";
+import { resolveUserTimeZone } from "./user-time-zone";
 
 /**
  * Gerbang satu panggilan tool MCP (T-150.2): `authorizeCall` -> handler ->
@@ -58,7 +59,10 @@ function shouldAuditRateLimit(key: string, nowMs: number): boolean {
 }
 
 export interface McpGateDeps {
-  access: Pick<McpAccessService, "authorizeCall" | "recordAudit">;
+  access: Pick<
+    McpAccessService,
+    "authorizeCall" | "recordAudit" | "consumeQuota"
+  >;
   services: McpToolServices;
   now?: () => number;
   logger?: Pick<Console, "error">;
@@ -260,6 +264,10 @@ export async function runMcpTool(
   }
 
   try {
+    const timeZone = await resolveUserTimeZone(
+      deps.services.identity,
+      authorized.userId,
+    );
     const output = await tool.handler(
       {
         workspaceId: authorized.workspaceId,
@@ -267,6 +275,9 @@ export async function runMcpTool(
         clientId: authorized.clientId,
         clientName: authorized.clientName ?? null,
         grantScopes: authorized.grantScopes,
+        timeZone,
+        consumeQuota: (quota, amount) =>
+          deps.access.consumeQuota(authorized.workspaceId, quota, amount),
         services: deps.services,
       },
       args,

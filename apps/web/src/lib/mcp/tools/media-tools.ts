@@ -2,7 +2,7 @@ import { ValidationError } from "@/lib/utils/errors";
 import { ALLOWED_MEDIA_MIME_TYPES, detectMediaMimeType } from "@/domains/media";
 import { SafeFetchError, type SafeFetchErrorCode } from "@/lib/net/safe-fetch";
 
-import { toWibIso } from "../format";
+import { toZonedIso } from "../format";
 import {
   McpToolInputError,
   McpToolTemporaryError,
@@ -137,7 +137,7 @@ const uploadMedia: McpToolDefinition = {
         mimeType: item.mimeType,
         sizeBytes: Number(item.size),
         ...(item.url ? { url: item.url } : {}),
-        createdAt: toWibIso(item.createdAt),
+        createdAt: toZonedIso(item.createdAt, context.timeZone),
       },
     };
   },

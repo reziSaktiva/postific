@@ -1,18 +1,29 @@
 /**
- * Format tampilan hasil tool MCP: waktu WIB (T-144/T-146) dan penanda data
- * pihak luar. Murni presentasi; tanpa business logic.
+ * Format tampilan hasil tool MCP: waktu menurut zona pengguna (T-168, ADR-146)
+ * dan penanda data pihak luar. Murni presentasi; tanpa business logic.
  */
-import { WIB_OFFSET_MS } from "@/domains/publishing";
+import { getTimeZoneOffsetMs } from "@/domains/publishing";
 
-export const MCP_TIME_ZONE = "Asia/Jakarta";
-
-/** `2026-10-28T14:30:00+07:00` (offset WIB tetap). `null` untuk tanggal kosong. */
-export function toWibIso(date: Date | null | undefined): string | null {
+/**
+ * `2026-10-28T14:30:00+07:00`: waktu dinding di `timeZone` (zona IANA
+ * pemilik koneksi, `User.timeZone`) dengan offset sebenarnya pada instan itu,
+ * jadi DST dan offset setengah jam (Asia/Kolkata) ikut benar. `null` untuk
+ * tanggal kosong.
+ */
+export function toZonedIso(
+  date: Date | null | undefined,
+  timeZone: string,
+): string | null {
   if (!date || Number.isNaN(date.getTime())) {
     return null;
   }
-  const wall = new Date(date.getTime() + WIB_OFFSET_MS);
-  return `${wall.toISOString().slice(0, 19)}+07:00`;
+  const offsetMs = getTimeZoneOffsetMs(date, timeZone);
+  const wall = new Date(date.getTime() + offsetMs);
+  const sign = offsetMs < 0 ? "-" : "+";
+  const offsetMinutes = Math.round(Math.abs(offsetMs) / 60_000);
+  const hh = String(Math.floor(offsetMinutes / 60)).padStart(2, "0");
+  const mm = String(offsetMinutes % 60).padStart(2, "0");
+  return `${wall.toISOString().slice(0, 19)}${sign}${hh}:${mm}`;
 }
 
 export const UNTRUSTED_OPEN = "<data_pihak_luar_tidak_tepercaya>";

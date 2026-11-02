@@ -36,8 +36,10 @@ import { E2E_WORKSPACE_NAME } from "./support/workspace";
 /**
  * T-178 (S-002, ADR-149, ADR-139): E2E MCP terhadap staging. Tes memainkan
  * peran klien MCP (daftar, OAuth + PKCE, JSON-RPC ke `/api/mcp`) memakai akun
- * test dan workspace E2E Sandbox. Hanya tool baca yang dipanggil; tidak ada
- * yang dipublikasikan. Tidak pernah menyentuh workspace nyata: data yang
+ * test dan workspace E2E Sandbox. Tool baca dipanggil bebas; satu-satunya yang
+ * menulis adalah golden path `schedule_posts` (h), yang sengaja butuh opt-in
+ * `E2E_MCP_SCHEDULE=1` karena menjadwalkan post sungguhan ke Outstand dan MCP
+ * tidak punya tool batal (ADR-138). Tidak pernah menyentuh workspace nyata: data yang
  * diubah hanya klien `e2e-*` dan, di skenario (f), baris member akun test di
  * E2E Sandbox.
  *
@@ -89,6 +91,31 @@ const READ_TOOLS = [
   "get_analytics",
   "list_comments",
 ];
+
+/** Format waktu jadwal tanpa offset untuk `daysAhead` hari dari sekarang, jam 10:00. */
+function localScheduleTime(daysAhead: number): string {
+  const day = new Date(Date.now() + daysAhead * 24 * 60 * 60 * 1000);
+  return `${day.toISOString().slice(0, 10)}T10:00:00`;
+}
+
+interface AccountItem {
+  id: string;
+  platform: string;
+  status: string;
+  reconnectRequired: boolean;
+  supportedContentFormats: string[];
+}
+
+/** Akun sandbox yang bisa dipakai menjadwalkan format `post` (bukan Pinterest, tanpa perlu hubung ulang). */
+function pickPostAccount(items: AccountItem[]): AccountItem | undefined {
+  return items.find(
+    (account) =>
+      account.status === "active" &&
+      !account.reconnectRequired &&
+      account.platform !== "pinterest" &&
+      account.supportedContentFormats.includes("post"),
+  );
+}
 
 test.describe("MCP server di staging", () => {
   test.skip(SKIP_REASON !== null, SKIP_REASON ?? "");
@@ -438,5 +465,185 @@ test.describe("MCP server di staging", () => {
     expect((restored.payload as { workspaceId: string }).workspaceId).toBe(
       sandboxWorkspaceId,
     );
+  });
+
+  test("(g) schedule_posts: tanpa scope schedule ditolak; batas 10 konten dan waktu lampau ditolak tanpa efek samping", async () => {
+    const readOnly = await connectClient(session, api, BASE_URL, "noschedule", [
+      "mcp:read",
+    ]);
+    const denied = await callTool(api, readOnly.accessToken, "schedule_posts", {
+      posts: [],
+    });
+    expect(denied.isError).toBe(true);
+    expect(denied.errorCode).toBe("token_scope_insufficient");
+
+    const scheduler = await connectClient(session, api, BASE_URL, "schedule", [
+      "mcp:read",
+      "mcp:schedule",
+    ]);
+    const claims = decodeJwtClaims(scheduler.accessToken);
+    expect(String(claims.scope).split(" ")).toContain("mcp:schedule");
+
+    const list = await mcpRequest(api, {
+      token: scheduler.accessToken,
+      method: "tools/list",
+    });
+    const tool = (
+      (list.body?.result?.tools ?? []) as {
+        name: string;
+        annotations?: { readOnlyHint?: boolean };
+      }[]
+    ).find((candidate) => candidate.name === "schedule_posts");
+    expect(tool, "schedule_posts ada di tools/list").toBeTruthy();
+    expect(tool?.annotations?.readOnlyHint).toBe(false);
+
+    const accounts = await callTool(
+      api,
+      scheduler.accessToken,
+      "list_accounts",
+    );
+    expect(accounts.isError, JSON.stringify(accounts.payload)).toBe(false);
+    const account = pickPostAccount(
+      (accounts.payload as { items: AccountItem[] }).items,
+    );
+    const accountId = account?.id ?? "99999999-9999-4999-8999-999999999999";
+    const target = { accountId, contentFormat: "post" };
+
+    // Batas 10 konten: ditolak utuh sebelum ada yang diproses.
+    const tooMany = await callTool(
+      api,
+      scheduler.accessToken,
+      "schedule_posts",
+      {
+        posts: Array.from({ length: 11 }, () => ({
+          caption: "[e2e] tidak boleh terjadwal",
+          scheduledAt: localScheduleTime(30),
+          targets: [target],
+        })),
+      },
+    );
+    expect(tooMany.isError).toBe(true);
+    expect(tooMany.errorCode).toBe("invalid_input");
+
+    // Waktu lampau ditolak per konten oleh Safety Check; tidak ada yang terjadwal.
+    const past = await callTool(api, scheduler.accessToken, "schedule_posts", {
+      posts: [
+        {
+          caption: "[e2e] waktu lampau",
+          scheduledAt: "2020-01-01T10:00:00",
+          targets: [target],
+        },
+      ],
+    });
+    expect(past.isError, JSON.stringify(past.payload)).toBe(false);
+    const pastData = past.payload as {
+      summary: { requested: number; scheduled: number; failed: number };
+      results: { status: string; error?: { code: string; message: string } }[];
+    };
+    expect(pastData.summary).toEqual({ requested: 1, scheduled: 0, failed: 1 });
+    expect(pastData.results[0]?.status).toBe("failed");
+    expect(pastData.results[0]?.error?.code).toBe("invalid_input");
+    if (account) {
+      expect(pastData.results[0]?.error?.message).toMatch(/sudah lewat/);
+    } else {
+      // Tanpa akun sandbox yang cocok, penolakan waktu lampau tidak bisa
+      // dibedakan dari penolakan target: jangan diam-diam dianggap terbukti.
+      const note =
+        "(g) pesan 'sudah lewat' TIDAK diverifikasi: E2E Sandbox tidak punya akun terhubung aktif (non-Pinterest, format post).";
+      console.warn(`[mcp.e2e] ${note}`);
+      test.info().annotations.push({ type: "unverified", description: note });
+    }
+  });
+
+  test("(h) golden path schedule_posts: batch sebagian berhasil, waktu di zona pengguna, tampil di list_scheduled_posts", async () => {
+    const reason =
+      "Golden path schedule_posts menjadwalkan SATU post sungguhan ke akun terhubung E2E Sandbox via Outstand dan MCP tidak punya tool batal (ADR-138): jalankan hanya dengan opt-in E2E_MCP_SCHEDULE=1, lalu batalkan post berawalan [e2e] di Publish > Queue.";
+    if (process.env.E2E_MCP_SCHEDULE !== "1")
+      console.warn(`[mcp.e2e] (h) DI-SKIP: ${reason}`);
+    test.skip(process.env.E2E_MCP_SCHEDULE !== "1", reason);
+
+    const client = await connectClient(session, api, BASE_URL, "schedule-gp", [
+      "mcp:read",
+      "mcp:schedule",
+    ]);
+    const workspace = await callTool(api, client.accessToken, "get_workspace");
+    expect(workspace.isError, JSON.stringify(workspace.payload)).toBe(false);
+    const { timezone } = workspace.payload as { timezone: string };
+    expect(timezone, "zona waktu pemilik koneksi").toBeTruthy();
+
+    const accounts = await callTool(api, client.accessToken, "list_accounts");
+    const account = pickPostAccount(
+      (accounts.payload as { items: AccountItem[] }).items,
+    );
+    const noAccount =
+      "E2E Sandbox tidak punya akun terhubung aktif (non-Pinterest, format post) untuk golden path schedule_posts.";
+    if (!account) console.warn(`[mcp.e2e] (h) DI-SKIP: ${noAccount}`);
+    test.skip(!account, noAccount);
+    if (!account) return;
+
+    const stamp = Date.now().toString(36);
+    const caption = `[e2e] schedule_posts ${stamp}`;
+    const when = localScheduleTime(30);
+    const outcome = await callTool(api, client.accessToken, "schedule_posts", {
+      posts: [
+        {
+          caption,
+          scheduledAt: when,
+          targets: [{ accountId: account.id, contentFormat: "post" }],
+        },
+        {
+          caption: `[e2e] lampau ${stamp}`,
+          scheduledAt: "2020-01-01T10:00:00",
+          targets: [{ accountId: account.id, contentFormat: "post" }],
+        },
+      ],
+    });
+    expect(outcome.isError, JSON.stringify(outcome.payload)).toBe(false);
+    const data = outcome.payload as {
+      timezone: string;
+      summary: { requested: number; scheduled: number; failed: number };
+      results: {
+        index: number;
+        status: string;
+        postId?: string;
+        scheduledAt?: string;
+        targets?: { accountId: string; contentFormat: string }[];
+        error?: { code: string };
+      }[];
+    };
+    expect(data.timezone).toBe(timezone);
+    expect(data.summary).toEqual({ requested: 2, scheduled: 1, failed: 1 });
+
+    const [ok, bad] = data.results;
+    expect(ok?.status, JSON.stringify(ok)).toBe("scheduled");
+    expect(ok?.postId).toBeTruthy();
+    // Jam 10:00 tanpa offset dibaca di zona pengguna: hasil memuat jam yang sama plus offset.
+    expect(ok?.scheduledAt).toMatch(new RegExp(`^${when}[+-]\\d{2}:\\d{2}$`));
+    expect(ok?.targets).toEqual([
+      expect.objectContaining({ accountId: account.id, contentFormat: "post" }),
+    ]);
+    expect(bad?.status).toBe("failed");
+    expect(bad?.error?.code).toBe("invalid_input");
+
+    // Post terjadwal tampil di Queue; antrean naik menurut waktu, jadi telusuri halaman.
+    let cursor: string | undefined;
+    let found = false;
+    for (let page = 0; page < 10 && !found; page += 1) {
+      const queue = await callTool(
+        api,
+        client.accessToken,
+        "list_scheduled_posts",
+        cursor ? { cursor } : {},
+      );
+      expect(queue.isError, JSON.stringify(queue.payload)).toBe(false);
+      const body = queue.payload as {
+        items: { id: string }[];
+        nextCursor: string | null;
+      };
+      found = body.items.some((item) => item.id === ok?.postId);
+      if (!body.nextCursor) break;
+      cursor = body.nextCursor;
+    }
+    expect(found, "post terjadwal muncul di list_scheduled_posts").toBe(true);
   });
 });

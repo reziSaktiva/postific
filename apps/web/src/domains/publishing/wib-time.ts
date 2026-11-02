@@ -9,21 +9,18 @@
  * Zona SENGAJA tanpa default tersembunyi di tiap fungsi — pemanggil wajib
  * menyebutnya eksplisit supaya callsite yang terlewat langsung terlihat
  * (tipe error), bukan diam-diam jatuh ke WIB. `WIB_TIME_ZONE` tetap ada
- * sebagai zona default (nilai awal pengguna, MCP).
+ * sebagai zona default (nilai awal pengguna, ADR-146 poin 4; cadangan MCP
+ * bila profil tanpa zona valid, T-168). MCP sendiri mengikuti `User.timeZone`.
  *
  * Nama file `wib-time.ts` dipertahankan agar jalur impor tidak berubah.
  * Pure function, tanpa I/O, aman dipakai server maupun client component.
  */
 
-/** Zona default (nilai awal pengguna, ADR-146 poin 4). */
-export const WIB_TIME_ZONE = "Asia/Jakarta";
-
 /**
- * Offset WIB tetap (+7, tanpa DST). Hanya untuk konsumen yang SENGAJA
- * tetap WIB (MCP `lib/mcp/format.ts`) — kode zona-pengguna memakai fungsi
- * berparameter zona di bawah.
+ * Zona default (nilai awal pengguna, ADR-146 poin 4; cadangan MCP bila profil
+ * tanpa zona valid, T-168). MCP sendiri mengikuti `User.timeZone`.
  */
-export const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
+export const WIB_TIME_ZONE = "Asia/Jakarta";
 
 export const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -99,11 +96,18 @@ export function getTimeZoneOffsetMs(date: Date, timeZone: string): number {
 
 /**
  * Instan UTC untuk jam dinding `wallAsUtc` (field `getUTC*` = jam dinding)
- * di `timeZone`. Dua putaran supaya benar di sekitar perpindahan DST; jam
- * yang tidak ada (spring-forward) bergeser maju, jam ganda (fall-back)
- * memakai kemunculan pertama. Berlaku untuk perpindahan DST 1 jam; zona
- * dengan DST 30 menit (Australia/Lord_Howe) bisa menyimpang sampai 30 menit
- * pada jam dinding yang tidak ada/ganda.
+ * di `timeZone`. Dua putaran supaya benar di sekitar perpindahan DST.
+ *
+ * Perilaku pada jam dinding yang bermasalah (diverifikasi lewat tes, bukan
+ * aturan yang dirancang): jam dinding yang TIDAK ADA (spring-forward) hanya
+ * konsisten memakai satu pola, tetapi arahnya bergantung zona. Di zona barat
+ * UTC (America/New_York 02:30 pada 2026-03-08) hasilnya bergeser MAJU ke
+ * 03:30 EDT; di zona timur UTC (Europe/Berlin 02:30 pada 2026-03-29) hasilnya
+ * bergeser MUNDUR ke 01:30 CET. Jam GANDA (fall-back): New_York 01:30 pada
+ * 2026-11-01 memakai kemunculan PERTAMA (EDT), Berlin 02:30 pada 2026-10-25
+ * memakai kemunculan KEDUA (CET). Berlaku untuk perpindahan DST 1 jam; zona
+ * dengan DST 30 menit (Australia/Lord_Howe) bisa menyimpang sampai 30 menit.
+ * Perilaku ini dipakai UI (T-147) dan MCP (T-153): jangan diubah tanpa tiket.
  */
 function wallClockToUtc(wallAsUtcMs: number, timeZone: string): Date {
   const firstGuess =
