@@ -369,6 +369,31 @@ Satu verifikasi untuk seluruh gelombang 1 dan A (S-003). Tiket yang dirujuk dian
 
 ---
 
+### T-191 · MCP `schedule_posts` idempotency key
+
+`⏳ Not Started` · **Mode** HITL (butuh penyimpanan; kemungkinan migrasi dan izin ADR-081) · **Domain** mcp-access · publishing · **ADR** ADR-138, ADR-081 · **Depends** T-153
+
+**Baca dulu:** section T-153 (keterbatasan idempotensi) · review Ridwan P1 dan QA Najwa gelombang B
+
+Klien AI yang timeout lalu mengulang panggilan `schedule_posts` membuat post ganda yang tayang di akun sosial dan memakai kuota dua kali. Gelombang B hanya menambah peringatan di deskripsi tool (keputusan King Rezi 2026-11-02); mekanisme sungguhan dibuat di sini.
+
+- [ ] **T-191.1** Putuskan mekanisme: argumen `idempotencyKey` per panggilan (disimpan beserta hasilnya dalam jendela waktu) atau dedupe berdasarkan (workspace, klien, caption, waktu, target). Keputusan King Rezi.
+- [ ] **T-191.2** Implementasi dan tes; bila butuh tabel atau kolom baru, migrasi hanya setelah izin langsung King Rezi (ADR-081).
+- [ ] **T-191.3** Verifikasi di staging bersama gelombang MCP berikutnya.
+
+### T-192 · MCP schedule follow-ups: shared constraints and media lookup wiring
+
+`⏳ Not Started` · **Mode** AFK · **Domain** mcp-access · publishing · UI (hanya bila `Modal.tsx` disentuh) · **ADR** ADR-133, ADR-097 · **Depends** T-153
+
+**Baca dulu:** review Ridwan gelombang B (S2, S5, S6, P6) · `apps/web/src/domains/publishing/schedule-safety-check.ts` · `Modal.tsx` di draft-editor
+
+Rapikan temuan pertimbangan dari review gelombang B yang sengaja tidak dikerjakan di sana. Bila `Modal.tsx` disentuh, ikuti aturan 10 `AGENTS.md` (perilaku UI tidak berubah; cek artifact desain bila ada elemen visual).
+
+- [ ] **T-192.1** (S2) Aturan caption dan Story dipakai bersama oleh `Modal.tsx` dan Safety Check server lewat fungsi murni `xxxConstraintMessage` di domain (seperti `pinterestBoardConstraintMessage`), sehingga tidak ada dua salinan yang bisa menyimpang.
+- [ ] **T-192.2** (S5) Satu helper composition root untuk `postMediaLookup` (kini tiga salinan: `get-mcp-tool-services.ts`, `draft-editor/actions.ts`, `publish/history/[postId]/actions.ts`).
+- [ ] **T-192.3** (S6) Putuskan apakah `resolveUserTimeZone` dibuat lazy atau di-cache per koneksi (satu baca profil per panggilan tool kini).
+- [ ] **T-192.4** (P6) Turunkan angka dan teks aturan media di skema dan deskripsi `schedule_posts` dari `maxMediaCountForFormat`, bukan ditulis manual.
+
 ## Tiket lama yang dibatalkan (ADR-138)
 
 Status `⛔ Dibatalkan` berarti tidak akan dikerjakan dan bukan bagian antrian.

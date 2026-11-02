@@ -25,7 +25,7 @@ Phase dan blocker ada di [`PROJECT_STATE.md`](PROJECT_STATE.md). Known Issue yan
 
 Status `🟡 Done (code), menunggu Verified (staging)` di judul atau file tiket: kode selesai, verifikasi staging per gelombang menyusul (ADR-153).
 
-ID tiket global, tidak didaur ulang. Berikutnya: **T-191**. ID spec berikutnya: **S-005**.
+ID tiket global, tidak didaur ulang. Berikutnya: **T-193**. ID spec berikutnya: **S-005**.
 
 ---
 
@@ -54,11 +54,11 @@ ID tiket global, tidak didaur ulang. Berikutnya: **T-191**. ID spec berikutnya: 
 
 Masih ⏳, dikerjakan saat rilisnya aktif. Detail di file masing-masing.
 
-| Rilis | ID                                                                                                                                                                                                                                                               | File                                 |
-| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| v0.4  | T-055 Inbox assignment                                                                                                                                                                                                                                           | [v04](tickets/v04-engagement-mvp.md) |
-| v0.5  | T-150 – T-157, T-168, T-179, T-180 (MCP Server, ADR-138; T-149 ✅ 2026-10-26; T-178 ✅ 2026-10-29; T-150 🟡 In Progress, T-150.1–.8 selesai, sisa .9; **T-151, T-152, T-154, T-180 🟡 Done (code), menunggu Verified (staging) lewat T-189 (ADR-152 Accepted)**) | [v05](tickets/v05-mcp-server-mvp.md) |
-| v1.0  | T-080 – T-088, termasuk KI-028 di T-088                                                                                                                                                                                                                          | [v10](tickets/v10-public-launch.md)  |
+| Rilis | ID                                                                                                                                                                                                                                                                             | File                                 |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------ |
+| v0.4  | T-055 Inbox assignment                                                                                                                                                                                                                                                         | [v04](tickets/v04-engagement-mvp.md) |
+| v0.5  | T-150 – T-157, T-168, T-179, T-180, T-191, T-192 (MCP Server, ADR-138; T-149 ✅ 2026-10-26; T-178 ✅ 2026-10-29; T-150 🟡 In Progress, T-150.1–.8 selesai, sisa .9; **T-151, T-152, T-154, T-180 🟡 Done (code), menunggu Verified (staging) lewat T-189 (ADR-152 Accepted)**) | [v05](tickets/v05-mcp-server-mvp.md) |
+| v1.0  | T-080 – T-088, termasuk KI-028 di T-088                                                                                                                                                                                                                                        | [v10](tickets/v10-public-launch.md)  |
 
 v0.3 tidak punya tiket terbuka. v0.7 tidak punya tiket terbuka (T-165, T-169 ✅). v0.6 selesai (T-070 – T-074 ✅, T-159 ✅, T-163 ✅, T-164 ✅, T-170 ✅); sisanya hanya lanjutan T-166, T-167, T-171 di tabel Sekarang.
 
