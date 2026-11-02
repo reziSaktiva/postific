@@ -55,19 +55,42 @@ describe("isMcpEnabled guard for local dev on a shared DB (T-179.4)", () => {
     }
   });
 
-  it("does not affect production builds or tests", () => {
-    expect(
-      isMcpEnabled({
-        MCP_ENABLED: "true",
-        NODE_ENV: "production",
-        DATABASE_URL: shared,
-      }),
-    ).toBe(true);
+  it("does not affect the Railway runtime or tests", () => {
+    for (const railway of [
+      { RAILWAY_ENVIRONMENT_ID: "env-1" },
+      { RAILWAY_ENVIRONMENT_NAME: "staging" },
+      { RAILWAY_PROJECT_ID: "proj-1" },
+    ]) {
+      expect(
+        isMcpEnabled({
+          MCP_ENABLED: "true",
+          NODE_ENV: "production",
+          DATABASE_URL: shared,
+          ...railway,
+        }),
+      ).toBe(true);
+    }
     expect(
       isMcpEnabled({
         MCP_ENABLED: "true",
         NODE_ENV: "test",
         DATABASE_URL: shared,
+      }),
+    ).toBe(true);
+  });
+
+  it("blocks a local production build on a shared DB (no RAILWAY_* variables)", () => {
+    const env = {
+      MCP_ENABLED: "true",
+      NODE_ENV: "production",
+      DATABASE_URL: shared,
+    };
+    expect(isMcpEnabled(env)).toBe(false);
+    expect(mcpBlockedReason(env)).toContain("MCP_ALLOW_SHARED_DB");
+    expect(
+      isMcpEnabled({
+        ...env,
+        DATABASE_URL: "postgresql://u:p@localhost:5432/postgres",
       }),
     ).toBe(true);
   });

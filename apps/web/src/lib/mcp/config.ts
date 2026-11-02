@@ -27,6 +27,19 @@ const LOCAL_DATABASE_HOSTS = new Set([
   "host.docker.internal",
 ]);
 
+/**
+ * Railway mengisi variabel `RAILWAY_*` di runtime layanannya; build produksi
+ * lokal (`bun run build && bun run start`) tidak punya satu pun.
+ */
+function isRailwayRuntime(env: Env): boolean {
+  return Boolean(
+    env.RAILWAY_ENVIRONMENT_ID ||
+    env.RAILWAY_ENVIRONMENT_NAME ||
+    env.RAILWAY_ENVIRONMENT ||
+    env.RAILWAY_PROJECT_ID,
+  );
+}
+
 function isLocalDatabaseUrl(databaseUrl: string | undefined): boolean {
   if (!databaseUrl) {
     return false;
@@ -48,22 +61,26 @@ function isLocalDatabaseUrl(databaseUrl: string | undefined): boolean {
  * dev/staging (ADR-081). Plugin `jwt` membaca `identity_jwks` di setiap
  * pemeriksaan sesi dan kunci privatnya dienkripsi dengan `BETTER_AUTH_SECRET`;
  * secret lokal yang berbeda membuat semua halaman setelah login 500 ("Failed
- * to decrypt private key") dan menulis kunci yang tidak terbaca staging. Hanya
- * berlaku di `NODE_ENV=development` (build produksi dan tes tidak terpengaruh).
+ * to decrypt private key") dan menulis kunci yang tidak terbaca staging. Berlaku
+ * di `NODE_ENV=development` dan di build produksi yang berjalan di luar
+ * Railway (tidak ada `RAILWAY_*`); runtime Railway dan tes tidak terpengaruh.
  * Pengecualian sadar: `MCP_ALLOW_SHARED_DB=true`, hanya bila
  * `BETTER_AUTH_SECRET` lokal sama persis dengan staging.
  */
 export function mcpBlockedReason(env: Env = process.env): string | null {
   if (
     !(env.MCP_ENABLED === "true" || env.MCP_SPIKE_ENABLED === "true") ||
-    env.NODE_ENV !== "development" ||
+    !(
+      env.NODE_ENV === "development" ||
+      (env.NODE_ENV === "production" && !isRailwayRuntime(env))
+    ) ||
     env.MCP_ALLOW_SHARED_DB === "true" ||
     isLocalDatabaseUrl(env.DATABASE_URL)
   ) {
     return null;
   }
   return (
-    "MCP dimatikan: flag MCP menyala di NODE_ENV=development dengan DATABASE_URL " +
+    "MCP dimatikan: flag MCP menyala di luar Railway (dev atau build lokal) dengan DATABASE_URL " +
     "bukan lokal (DB bersama, ADR-081). Plugin OAuth akan membaca/menulis " +
     "identity_jwks dengan BETTER_AUTH_SECRET lokal dan merusak halaman setelah " +
     "login di staging. Gunakan DB lokal, atau set MCP_ALLOW_SHARED_DB=true " +
