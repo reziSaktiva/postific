@@ -372,6 +372,13 @@ Satu verifikasi untuk seluruh gelombang 1 dan A (S-003). Tiket yang dirujuk dian
 - [ ] **T-189.8** Ulangi `mcp.e2e.ts` terhadap deploy gelombang ini (regresi). Terhambat T-193: run staging 2026-11-02 gagal di (c) dan flaky di (a).
 - [x] **T-189.9** `✅ Done (2026-11-02)` Keputusan King Rezi (HITL), semua terjawab (T-152.4 dan T-154.5 disetujui sesuai usulan agen): T-152.4 (batas caption 5000 karakter; label draft manusia yang diedit AI), T-154.5 (error `rate_limited` tanpa `Retry-After`; fixed window). **Diputuskan (2026-11-02):** T-155, T-156, T-157 tidak dikecualikan dari E2E golden path ADR-149; tesnya T-155.7, T-156.5, dan T-157.1.
 
+**Persiapan (2026-11-02, hanya baca; tidak ada butir yang dinyatakan lulus):**
+
+- **Migrasi sudah diterapkan** di DB staging (`_prisma_migrations`, 14 migrasi sejak 2026-10-26 `finished_at` terisi, tanpa rollback), termasuk T-151 (`mcp_workspace_choices`), T-152 (`created_via`), T-154 (`mcp_rate_limit_windows`), dan T-157 (`created_via_client_name`). Kalimat "migrasi belum diterapkan ke DB mana pun" di bagian "Belum terbukti" T-151, T-152, dan T-154 sudah usang; dicoret bersama butir asalnya saat Verified.
+- **Struktur RLS (bukan perilaku):** `mcp_workspace_choices`, `mcp_rate_limit_windows`, dan `mcp_audit_logs` punya RLS aktif dan satu policy `*_app_runtime` (semua perintah); `FORCE ROW LEVEL SECURITY` tidak aktif. Perilaku sebagai `app_runtime` (T-189.1, T-189.4) tetap harus lewat jalur aplikasi.
+- **Cakupan E2E yang ada** (`mcp.e2e.ts` (a) sampai (h)): OAuth dan consent, scope, refresh, pencabutan, member dikeluarkan, dan `schedule_posts`. **Tidak ada E2E** untuk `create_draft`/`update_draft` (T-189.3), rate limit (T-189.4), `upload_media` (T-189.5), Settings klien AI (T-189.6), dan badge sumber (T-189.7).
+- **Urutan yang disarankan:** (0) gerbang: T-193.3 hijau (`mcp.e2e.ts` tanpa retry), karena T-189.8 dan T-189.1 bergantung padanya. (1) T-189.8 dan T-189.1 (jalur aplikasi lewat `mcp.e2e.ts` (a) dan (e)). (2) Satu sesi klien MCP nyata untuk T-189.2, T-189.3, dan T-189.5 (butuh persetujuan King Rezi karena menulis draft dan media ke staging). (3) T-189.4 lewat skrip 61 panggilan dengan token klien yang sama, atau tes E2E baru. (4) T-189.6 dan T-189.7: King Rezi memeriksa di browser dengan data grant sungguhan.
+
 ### T-193 · Fix hydration races in `mcp.e2e.ts` consent steps
 
 `⏳ Not Started` · **Mode** AFK · **Domain** QA, mcp-access · **ADR** ADR-149 · **Terkait** T-178, T-189.8 · **Depends** —
