@@ -137,10 +137,29 @@ Aturan di bawah melengkapi hard rules di [`../AGENTS.md`](../AGENTS.md). Detail 
     terpakai — jangan ditiru untuk port baru. Detail: `code-conventions.md`
     (CC-D04).
 
+21. Tes E2E yang bertindak di layar Next.js menunggu hidrasi dulu sebelum
+    klik atau isi: teks yang sudah ada di HTML server bukan sinyal siap,
+    klik sebelum hidrasi hilang tanpa galat. Pakai `waitUntilHydrated` di
+    `apps/web/e2e/support/mcp.ts`, lakukan aksi sekali, lalu verifikasi
+    dengan asersi (jangan klik ulang atau `waitForTimeout` buta). Preseden:
+    T-193.2, `authorizeInBrowser`.
+22. Tes E2E yang menulis ke staging (membuat draft, media, atau post
+    sungguhan) wajib opt-in lewat env dan di-skip secara default, dengan
+    pembersihan yang gagal dengan jelas bila tidak menemukan datanya.
+    Hanya mengubah data buatan tes sendiri (awalan `[e2e]`, nama klien
+    unik per run). Preseden: `E2E_MCP_SCHEDULE`, `E2E_MCP_DRAFTS`,
+    `E2E_MCP_UPLOAD` di `mcp.e2e.ts`. `mcp.e2e.ts` hanya jalan ke staging
+    (`mcpSkipReason`, ADR-081, ADR-149), jadi "hijau" berarti run staging
+    `workflow_dispatch` (keputusan King Rezi 2026-11-02).
+23. Tes yang menghabiskan kuota per workspace (rate limit) ditaruh paling
+    akhir dan tidak boleh diikuti E2E lain yang memanggil API yang sama;
+    kuota dibagi semua klien dan run paralel. Preseden: (n) di
+    `mcp.e2e.ts`.
+
 ### Git / PR (saat diminta user)
 
-21. Commit hanya jika user meminta — Conventional Commits, imperative, fokus “why”.
-22. Jangan `--no-verify` / force push ke main kecuali diminta eksplisit.
+24. Commit hanya jika user meminta — Conventional Commits, imperative, fokus “why”.
+25. Jangan `--no-verify` / force push ke main kecuali diminta eksplisit.
 
 ---
 
