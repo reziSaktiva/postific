@@ -67,18 +67,51 @@ describe("parseScheduledAt", () => {
     expect(() => parse("2026-11-10T09:00:00+07:99")).toThrow(/offset/);
   });
 
-  it("follows zonedLocalToUtc at DST edges: a gap hour shifts forward in New_York and backward in Berlin, a doubled hour takes the first (New_York) or second (Berlin) occurrence", () => {
-    expect(parse("2026-03-08T02:30:00", "America/New_York").toISOString()).toBe(
+  it("rejects a wall-clock hour that does not exist (DST spring-forward) in zones on both sides of UTC, and accepts the hour after the gap", () => {
+    expect(() => parse("2026-03-08T02:30:00", "America/New_York")).toThrow(
+      /tidak ada di zona waktu America\/New_York/,
+    );
+    expect(() => parse("2026-03-29T02:30:00", "Europe/Berlin")).toThrow(
+      /tidak ada di zona waktu Europe\/Berlin/,
+    );
+    expect(parse("2026-03-08T03:30:00", "America/New_York").toISOString()).toBe(
       "2026-03-08T07:30:00.000Z",
     );
+    expect(parse("2026-03-29T03:30:00", "Europe/Berlin").toISOString()).toBe(
+      "2026-03-29T01:30:00.000Z",
+    );
+  });
+
+  it("keeps following zonedLocalToUtc for a doubled hour (fall-back): the first occurrence in New_York, the second in Berlin", () => {
     expect(parse("2026-11-01T01:30:00", "America/New_York").toISOString()).toBe(
       "2026-11-01T05:30:00.000Z",
     );
-    expect(parse("2026-03-29T02:30:00", "Europe/Berlin").toISOString()).toBe(
-      "2026-03-29T00:30:00.000Z",
-    );
     expect(parse("2026-10-25T02:30:00", "Europe/Berlin").toISOString()).toBe(
       "2026-10-25T01:30:00.000Z",
+    );
+  });
+
+  it("rejects a time beyond the sensible horizon but accepts one inside it, relative to the clock passed in", () => {
+    const now = new Date("2026-11-02T00:00:00.000Z");
+    expect(() =>
+      parseScheduledAt("9999-12-31T00:00:00Z", "Asia/Jakarta", "posts[0]", now),
+    ).toThrow(/terlalu jauh di masa depan/);
+    expect(() =>
+      parseScheduledAt("2028-11-03T00:00:00Z", "Asia/Jakarta", "posts[0]", now),
+    ).toThrow(/terlalu jauh di masa depan/);
+    expect(
+      parseScheduledAt(
+        "2028-11-01T00:00:00Z",
+        "Asia/Jakarta",
+        "posts[0]",
+        now,
+      ).toISOString(),
+    ).toBe("2028-11-01T00:00:00.000Z");
+  });
+
+  it("drops fractional seconds (rounds down to the second) instead of rejecting a client that sends milliseconds", () => {
+    expect(parse("2026-11-10T09:00:00.999Z").toISOString()).toBe(
+      "2026-11-10T09:00:00.000Z",
     );
   });
 

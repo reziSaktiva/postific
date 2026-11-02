@@ -1,4 +1,5 @@
 import { ContentFormat, PostCreatedVia } from "@postific/shared";
+import { McpInvalidRateLimitInputError } from "@/domains/mcp-access";
 import {
   DRAFT_CAPTION_MAX_LENGTH,
   type ScheduleContentFailureKind,
@@ -172,7 +173,7 @@ const schedulePosts: McpToolDefinition = {
     "Satu scheduledAt yang salah bentuk atau mustahil (mis. 30 Februari) menggagalkan SELURUH panggilan sebagai invalid_input dengan indeks konten (mis. posts[2]); tidak ada konten yang diproses. " +
     "PERINGATAN idempotensi: tidak ada kunci idempotensi. Bila panggilan terputus atau kehabisan waktu tanpa hasil, periksa list_scheduled_posts sebelum mengulang; mengulang tanpa memeriksa membuat post ganda. " +
     "Pembatalan jadwal hanya bisa dilakukan manusia di aplikasi Postific. " +
-    "Tampilkan ringkasan hasil (caption, akun, format, waktu) kepada pengguna. Waktu tanpa offset dibaca di zona waktu pengguna; hasil memakai zona yang sama dengan offset.",
+    "Tampilkan ringkasan hasil (caption, akun, format, waktu) kepada pengguna. Waktu tanpa offset dibaca di zona waktu pengguna; hasil memakai zona yang sama dengan offset. Pecahan detik pada scheduledAt dibuang (dibulatkan ke bawah ke detik); jam dinding yang tidak ada karena perpindahan DST ditolak (kirim offset eksplisit); waktu lebih dari 2 tahun ke depan ditolak.",
   scope: "schedule",
   inputSchema: SCHEDULE_POSTS_SCHEMA,
   async handler(context, args) {
@@ -204,8 +205,20 @@ const schedulePosts: McpToolDefinition = {
         clientId: context.clientId,
         clientName: context.clientName,
       },
-      reserveQuota: (count) =>
-        context.consumeQuota("scheduled_contents", count),
+      reserveQuota: async (count) => {
+        try {
+          await context.consumeQuota("scheduled_contents", count);
+        } catch (error) {
+          // Batas harian yang dikonfigurasi lebih kecil dari ukuran batch
+          // bukan galat internal: klien perlu tahu harus mengecilkan batch.
+          if (error instanceof McpInvalidRateLimitInputError) {
+            throw new McpToolInputError(
+              `Batas kuota harian scheduled_contents lebih kecil dari ${count} konten dalam panggilan ini. Kurangi jumlah konten per panggilan.`,
+            );
+          }
+          throw error;
+        }
+      },
     });
 
     const scheduled = outcomes.filter(

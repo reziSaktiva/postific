@@ -545,6 +545,13 @@ test.describe("MCP server di staging", () => {
     expect(pastData.results[0]?.error?.code).toBe("invalid_input");
     if (account) {
       expect(pastData.results[0]?.error?.message).toMatch(/sudah lewat/);
+    } else {
+      // Tanpa akun sandbox yang cocok, penolakan waktu lampau tidak bisa
+      // dibedakan dari penolakan target: jangan diam-diam dianggap terbukti.
+      const note =
+        "(g) pesan 'sudah lewat' TIDAK diverifikasi: E2E Sandbox tidak punya akun terhubung aktif (non-Pinterest, format post).";
+      console.warn(`[mcp.e2e] ${note}`);
+      test.info().annotations.push({ type: "unverified", description: note });
     }
   });
 

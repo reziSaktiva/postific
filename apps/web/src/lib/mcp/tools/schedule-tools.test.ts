@@ -13,6 +13,7 @@ import {
 import { describe, expect, it, vi } from "vitest";
 import {
   McpAccessService,
+  McpInvalidRateLimitInputError,
   McpRateLimitService,
   type IMcpAuditRepository,
   type IMcpGrantRepository,
@@ -278,6 +279,21 @@ describe("schedule_posts handler", () => {
     });
 
     expect(consumeQuota).toHaveBeenCalledWith("scheduled_contents", 1);
+  });
+
+  it("turns a daily quota limit smaller than the batch into an input error, not an internal one", async () => {
+    const { scheduleContents } = fakeUseCase([scheduledOutcome(0)]);
+    const consumeQuota = vi.fn(async () => {
+      throw new McpInvalidRateLimitInputError("melebihi seluruh batas kuota");
+    });
+
+    const run = schedulePosts.handler(
+      context(scheduleContents, { consumeQuota }),
+      { posts: [content()] },
+    );
+
+    await expect(run).rejects.toThrow(McpToolInputError);
+    await expect(run).rejects.toThrow(/Kurangi jumlah konten/);
   });
 
   it("rejects bad batches before touching the use-case: none, too many, not a list, unknown argument", async () => {
