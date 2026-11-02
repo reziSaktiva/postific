@@ -383,7 +383,7 @@ Klien AI yang timeout lalu mengulang panggilan `schedule_posts` membuat post gan
 
 ### T-192 · MCP schedule follow-ups: shared constraints and media lookup wiring
 
-`⏳ Not Started` · **Mode** AFK · **Domain** mcp-access · publishing · UI (hanya bila `Modal.tsx` disentuh) · **ADR** ADR-133, ADR-097 · **Depends** T-153
+`🟡 In Progress (2026-11-02)` (sisa: T-192.3 menunggu keputusan King Rezi; .1, .2, .4, .7 Done di kode, .5 dan .6 sudah ✅) · **Mode** AFK · **Domain** mcp-access · publishing · UI (hanya bila `Modal.tsx` disentuh) · **ADR** ADR-133, ADR-097 · **Depends** T-153
 
 **Baca dulu:** review Ridwan gelombang B (S2, S5, S6, P6) · `apps/web/src/domains/publishing/schedule-safety-check.ts` · `Modal.tsx` di draft-editor
 
