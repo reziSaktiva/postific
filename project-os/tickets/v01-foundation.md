@@ -933,15 +933,15 @@ Setiap perubahan isi aturan ditinjau King Rezi per berkas; `.claude/agents/*.md`
 
 ### T-190 · Skill `wave-plan`
 
-`⏳ Not Started` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-153 · **Spec** S-003 · **Depends** T-181 (Accepted), T-182 (penanda AFK/HITL, T-182.5)
+`✅ Done (2026-11-02)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-153 · **Spec** S-003 · **Depends** T-181 (Accepted), T-182 (penanda AFK/HITL, T-182.5)
 **Baca dulu:** `project-os/specs/S-003.md` § Perilaku 2 poin 1 dan § Keputusan King Rezi · `project-os/AVAILABLE_TICKETS.md` · `.claude/skills/project-os-navigator/SKILL.md` § Skills & subagent housekeeping
 
 Skill penyiap gelombang (keputusan King Rezi 2026-11-02). Hanya membaca dokumen, berhenti di daftar bernomor yang disetujui King Rezi; `wave-work` (T-183) mulai dari daftar itu. Aman dan murah dipanggil kapan saja, termasuk untuk sekadar melihat gelombang yang tersedia. Semua nama dalam bahasa Inggris.
 
-- [ ] **T-190.1** Tulis `.claude/skills/wave-plan/SKILL.md` (frontmatter dengan deskripsi pemicu, isi ringkas): hitung frontier dari field **Depends** (tiket tanpa blocker), boleh lintas spec; pisahkan tiket AFK dan HITL; periksa bentrok berkas antar tiket.
-- [ ] **T-190.2** Keluaran: daftar bernomor (judul, blocker, hasil, AFK atau HITL, jalur yang diusulkan) untuk disetujui King Rezi; tiket HITL ditandai dan tidak masuk jalur. Skill berhenti di sini dan tidak membuat branch atau worktree.
-- [ ] **T-190.3** Satu penunjuk di navigator (housekeeping skill) dan satu penunjuk di `.claude/agents/README.md`; tanpa menyalin isi skill (ADR-133). `.claude/agents/*.md` tidak diubah.
-- [ ] **T-190.4** Pakai `bun run docs:where` (T-186) untuk menemukan bagian tiket bila sudah tersedia; sebelum itu, baca bagian tiket dengan `offset` dan `limit`.
+- [x] **T-190.1** `✅ Done (2026-11-02)` Tulis `.claude/skills/wave-plan/SKILL.md` (frontmatter dengan deskripsi pemicu, isi ringkas): hitung frontier dari field **Depends** (tiket tanpa blocker), boleh lintas spec; pisahkan tiket AFK dan HITL; periksa bentrok berkas antar tiket.
+- [x] **T-190.2** `✅ Done (2026-11-02)` Keluaran: daftar bernomor (judul, blocker, hasil, AFK atau HITL, jalur yang diusulkan) untuk disetujui King Rezi; tiket HITL ditandai dan tidak masuk jalur. Skill berhenti di sini dan tidak membuat branch atau worktree.
+- [x] **T-190.3** `✅ Done (2026-11-02)` Satu penunjuk di navigator (housekeeping skill) dan satu penunjuk di `.claude/agents/README.md`; tanpa menyalin isi skill (ADR-133). `.claude/agents/*.md` tidak diubah.
+- [x] **T-190.4** `✅ Done (2026-11-02)` Pakai `bun run docs:where` (T-186) untuk menemukan bagian tiket bila sudah tersedia; sebelum itu, baca bagian tiket dengan `offset` dan `limit`.
 
 ---
 

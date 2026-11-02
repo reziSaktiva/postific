@@ -94,7 +94,8 @@ verifikasi `Artifact` termuat di sana, lalu lanjut.
   tindih, gunakan opsi `isolation: "worktree"` per agent supaya tidak saling
   menimpa.
 - Gelombang multi-sesi yang melibatkan banyak jalur (branch integrasi, PR
-  integrasi, verifikasi staging): skill `wave-work` (S-003).
+  integrasi, verifikasi staging): skill `wave-work` (S-003). Menyiapkan
+  daftar gelombangnya: skill `wave-plan`.
 
 ---
 

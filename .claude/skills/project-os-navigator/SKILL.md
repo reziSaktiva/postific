@@ -335,6 +335,8 @@ masuk repo di root (T-116).
 **Gelombang kerja multi-sesi (S-003, ADR-153):** menjalankan gelombang yang
 sudah disetujui memakai skill `wave-work`; dipanggil hanya saat King Rezi
 meminta.
+Menyiapkan daftar gelombang (hanya membaca dokumen, berhenti di persetujuan
+King Rezi) memakai skill `wave-plan`; aman dipanggil kapan saja.
 
 **Delegasi subagent (ADR-063):** perubahan sepele — satu berkas, tanpa batas
 domain, tanpa permukaan UI (contoh: rename file, perbaikan satu baris di
