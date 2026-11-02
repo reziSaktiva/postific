@@ -10,6 +10,7 @@ export default defineConfig({
       "apps/web/**/*.{test,spec}.{ts,tsx}",
       "packages/shared/**/*.{test,spec}.{ts,tsx}",
       "eslint-rules/**/*.{test,spec}.ts",
+      "scripts/**/*.{test,spec}.ts",
     ],
   },
   resolve: {
