@@ -8,8 +8,11 @@ import { McpToolInputError } from "./tool-input";
  * ditafsirkan sebagai jam dinding di `timeZone` pemilik koneksi
  * (`User.timeZone`). Detik opsional, pecahan detik dibuang. Tanggal yang tidak
  * ada di kalender (mis. 30 Februari) ditolak, bukan digulirkan ke bulan
- * berikutnya seperti `Date.parse`. Jam dinding yang tidak ada karena DST
- * bergeser maju (perilaku `zonedLocalToUtc`).
+ * berikutnya seperti `Date.parse`. Jam dinding yang tidak ada atau ganda
+ * karena DST mengikuti `zonedLocalToUtc` apa adanya (lihat `wib-time.ts`):
+ * yang tidak ada bergeser maju di zona barat UTC dan mundur di zona timur UTC,
+ * yang ganda memakai kemunculan pertama (New_York) atau kedua (Berlin). Klien
+ * yang butuh kepastian di jam-jam itu sebaiknya mengirim offset eksplisit.
  */
 const SCHEDULED_AT_PATTERN =
   /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?(?:\.\d+)?(Z|[+-]\d{2}:?\d{2})?$/i;

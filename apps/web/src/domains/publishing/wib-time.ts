@@ -96,11 +96,18 @@ export function getTimeZoneOffsetMs(date: Date, timeZone: string): number {
 
 /**
  * Instan UTC untuk jam dinding `wallAsUtc` (field `getUTC*` = jam dinding)
- * di `timeZone`. Dua putaran supaya benar di sekitar perpindahan DST; jam
- * yang tidak ada (spring-forward) bergeser maju, jam ganda (fall-back)
- * memakai kemunculan pertama. Berlaku untuk perpindahan DST 1 jam; zona
- * dengan DST 30 menit (Australia/Lord_Howe) bisa menyimpang sampai 30 menit
- * pada jam dinding yang tidak ada/ganda.
+ * di `timeZone`. Dua putaran supaya benar di sekitar perpindahan DST.
+ *
+ * Perilaku pada jam dinding yang bermasalah (diverifikasi lewat tes, bukan
+ * aturan yang dirancang): jam dinding yang TIDAK ADA (spring-forward) hanya
+ * konsisten memakai satu pola, tetapi arahnya bergantung zona. Di zona barat
+ * UTC (America/New_York 02:30 pada 2026-03-08) hasilnya bergeser MAJU ke
+ * 03:30 EDT; di zona timur UTC (Europe/Berlin 02:30 pada 2026-03-29) hasilnya
+ * bergeser MUNDUR ke 01:30 CET. Jam GANDA (fall-back): New_York 01:30 pada
+ * 2026-11-01 memakai kemunculan PERTAMA (EDT), Berlin 02:30 pada 2026-10-25
+ * memakai kemunculan KEDUA (CET). Berlaku untuk perpindahan DST 1 jam; zona
+ * dengan DST 30 menit (Australia/Lord_Howe) bisa menyimpang sampai 30 menit.
+ * Perilaku ini dipakai UI (T-147) dan MCP (T-153): jangan diubah tanpa tiket.
  */
 function wallClockToUtc(wallAsUtcMs: number, timeZone: string): Date {
   const firstGuess =
