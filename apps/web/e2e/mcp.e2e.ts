@@ -3,6 +3,7 @@ import {
   test,
   type APIRequestContext,
   type BrowserContext,
+  type Page,
 } from "@playwright/test";
 
 import { AUTH_FILE } from "./support/auth";
@@ -20,8 +21,10 @@ import {
   resourceUrl,
   deleteConsent,
   scrub,
+  waitUntilHydrated,
   type ConnectedClient,
 } from "./support/mcp";
+import { sleep } from "./support/sleep";
 import {
   assertWorkspaceId,
   hasDbConnection,
@@ -36,12 +39,14 @@ import { E2E_WORKSPACE_NAME } from "./support/workspace";
 /**
  * T-178 (S-002, ADR-149, ADR-139): E2E MCP terhadap staging. Tes memainkan
  * peran klien MCP (daftar, OAuth + PKCE, JSON-RPC ke `/api/mcp`) memakai akun
- * test dan workspace E2E Sandbox. Tool baca dipanggil bebas; satu-satunya yang
- * menulis adalah golden path `schedule_posts` (h), yang sengaja butuh opt-in
- * `E2E_MCP_SCHEDULE=1` karena menjadwalkan post sungguhan ke Outstand dan MCP
- * tidak punya tool batal (ADR-138). Tidak pernah menyentuh workspace nyata: data yang
- * diubah hanya klien `e2e-*` dan, di skenario (f), baris member akun test di
- * E2E Sandbox.
+ * test dan workspace E2E Sandbox. Tool baca dipanggil bebas; skenario yang
+ * menulis sungguhan semuanya opt-in: (h) `schedule_posts` (`E2E_MCP_SCHEDULE=1`,
+ * menjadwalkan post ke Outstand, MCP tanpa tool batal, ADR-138), (i) draft
+ * (`E2E_MCP_DRAFTS=1`, dihapus lewat UI Drafts), (k2) upload media
+ * (`E2E_MCP_UPLOAD=1`). (j), (k), (m) hanya membaca/menolak; (n) menghabiskan
+ * kuota `calls` workspace dan harus terakhir. Tidak pernah menyentuh workspace
+ * nyata: data yang diubah hanya klien `e2e-*`, baris member akun test di E2E
+ * Sandbox (f), dan data opt-in di atas.
  *
  * Hanya staging (`mcpSkipReason`, allowlist host persis: `https:` + host
  * staging bawaan atau `E2E_STAGING_HOST`). Baris `identity_oauth_client` hasil pendaftaran
@@ -55,9 +60,10 @@ import { E2E_WORKSPACE_NAME } from "./support/workspace";
  *   jadi tes tidak lagi bergantung pada satu instance Railway. Pegangan:
  *   klaim `workspace_id` token dicocokkan dengan workspace E2E Sandbox di (c).
  * - Batas 120 detik per tes. Pendaftaran klien dibatasi 5 permintaan per 60
- *   detik per IP; tes memakai 3 per run, jadi run beruntun < 60 detik
- *   membuat `registerClient` menunggu jendela itu (hingga ~66 detik) dan
- *   makan sebagian batas 120 detik.
+ *   detik per IP; tes memakai beberapa pendaftaran per run, jadi run beruntun
+ *   < 60 detik membuat `registerClient` menunggu jendela itu (hingga ~66
+ *   detik) dan makan sebagian batas waktu tes. Klien read-only (g) dipakai
+ *   ulang oleh (j), (k), (n); klien draft oleh (i), (k), (k2), (m).
  * - Skenario (f) butuh DB: `DATABASE_URL` (role `app_runtime`) hanya cukup
  *   bila E2E Sandbox punya member `active` lain; kalau tidak, (f) di-skip.
  *   `DIRECT_URL` (superuser) hanya dengan opt-in `E2E_ALLOW_DIRECT_URL=1`.
@@ -117,6 +123,92 @@ function pickPostAccount(items: AccountItem[]): AccountItem | undefined {
   );
 }
 
+const STAGING_WRITE_NOTE =
+  "MCP tidak punya tool hapus, jadi tes ini menulis ke staging; jalankan hanya dengan opt-in eksplisit.";
+
+const DRAFT_CLEANUP_PREFIX = "[e2e] create_draft";
+
+/**
+ * Hapus SEMUA draft berawalan `[e2e] create_draft` lewat UI Drafts
+ * (pembersihan; MCP tak punya tool hapus). Menangkap caption lama maupun
+ * baru bila update (i) gagal di tengah. Dipanggil hanya bila draft pernah
+ * dibuat, jadi nol baris dilempar sebagai galat jelas, bukan diam-diam.
+ */
+async function deleteE2eDraftsViaUi(context: BrowserContext): Promise<void> {
+  const page = await context.newPage();
+  try {
+    await page.goto("/publish/drafts");
+    // Layar siap dulu: filter sumber pasti ada di Drafts dan harus terhidrasi
+    // sebelum baris dihitung, supaya "nol baris" tidak berarti "belum dimuat".
+    const trigger = page.getByRole("combobox", { name: "Filter sumber" });
+    await expect(trigger, "Drafts: filter sumber").toBeVisible();
+    await waitUntilHydrated(trigger, "Drafts");
+    const rows = page.locator("tr", { hasText: DRAFT_CLEANUP_PREFIX });
+    if ((await rows.count()) === 0) {
+      throw new Error(
+        `unverified: draft "${DRAFT_CLEANUP_PREFIX}" pernah dibuat tetapi tidak ada di Drafts saat dibersihkan (sudah terhapus atau tidak muncul)`,
+      );
+    }
+    for (let guard = 0; guard < 10 && (await rows.count()) > 0; guard += 1) {
+      const before = await rows.count();
+      await rows.first().getByRole("button", { name: "Hapus draft" }).click();
+      await page
+        .getByRole("button", { name: "Hapus Draft", exact: true })
+        .click();
+      await expect(rows).toHaveCount(before - 1);
+    }
+    await expect(rows, "semua draft [e2e] terhapus").toHaveCount(0);
+  } finally {
+    await page.close();
+  }
+}
+
+/** Buka dropdown filter sumber dan pilih satu opsi. */
+async function chooseSource(page: Page, label: string): Promise<void> {
+  const trigger = page.getByRole("combobox", { name: "Filter sumber" });
+  await trigger.click();
+  await page.getByRole("option", { name: label, exact: true }).click();
+  await expect(trigger).toContainText(label);
+}
+
+const MCP_BADGE_TEXT = "Dibuat lewat MCP oleh";
+const MCP_EMPTY_TITLE = "Belum ada konten dari klien AI";
+
+/**
+ * Kontrak filter sumber di satu layar (T-157): bawaan "Semua Sumber"; "Dibuat
+ * Manual" tidak pernah menampilkan badge MCP; "Lewat MCP" menampilkan hanya
+ * item berbadge, atau state kosong khusus dengan "Tampilkan Semua" yang
+ * mengembalikan ke bawaan.
+ */
+async function assertSourceFilterContract(
+  page: Page,
+  path: string,
+): Promise<void> {
+  await page.goto(path);
+  const trigger = page.getByRole("combobox", { name: "Filter sumber" });
+  await expect(trigger, `${path}: filter sumber`).toBeVisible();
+  await waitUntilHydrated(trigger, path);
+  await expect(trigger, `${path}: bawaan`).toContainText("Semua Sumber");
+
+  await chooseSource(page, "Dibuat Manual");
+  await expect(
+    page.getByText(MCP_BADGE_TEXT),
+    `${path}: Dibuat Manual menyembunyikan badge MCP`,
+  ).toHaveCount(0);
+
+  await chooseSource(page, "Lewat MCP");
+  const badges = page.getByText(MCP_BADGE_TEXT);
+  const empty = page.getByText(MCP_EMPTY_TITLE);
+  await expect(
+    badges.first().or(empty),
+    `${path}: Lewat MCP berisi item berbadge atau state kosong`,
+  ).toBeVisible();
+  if (await empty.isVisible()) {
+    await page.getByRole("button", { name: "Tampilkan Semua" }).click();
+    await expect(trigger).toContainText("Semua Sumber");
+  }
+}
+
 test.describe("MCP server di staging", () => {
   test.skip(SKIP_REASON !== null, SKIP_REASON ?? "");
   test.describe.configure({ mode: "serial", timeout: 120_000 });
@@ -131,6 +223,14 @@ test.describe("MCP server di staging", () => {
   let refreshed: { accessToken: string; refreshToken: string | undefined };
   /** Diisi sebelum status member diubah; dipulihkan di `afterAll` bila masih terisi. */
   let memberToRestore: SandboxMemberRef | undefined;
+  /** Klien scope `read` saja dari (g): dipakai ulang oleh (j), (k), (n) agar tidak menambah pendaftaran klien (batas 5/menit/IP). */
+  let readOnlyClient: ConnectedClient | undefined;
+  /** Klien read+draft dari (i)/(k); namanya dicari di badge sumber pada (m). */
+  let draftClient: ConnectedClient | undefined;
+  /** Caption draft `[e2e] create_draft` dari (i), lama dan baru; dihapus lewat UI Drafts di `afterAll`. */
+  const createdDraftCaptions: string[] = [];
+  /** Caption post `[e2e]` yang dijadwalkan (h) (hanya bila opt-in); dicari di Queue pada (m). */
+  let scheduledMcpCaption: string | undefined;
 
   test.beforeAll(async ({ browser, playwright }) => {
     api = await playwright.request.newContext({
@@ -172,6 +272,11 @@ test.describe("MCP server di staging", () => {
         if (memberToRestore) {
           await restoreMemberActive(memberToRestore);
           memberToRestore = undefined;
+        }
+      });
+      await step("hapus draft [e2e] lewat UI Drafts", async () => {
+        if (createdDraftCaptions.length > 0) {
+          await deleteE2eDraftsViaUi(session);
         }
       });
       await step("sapuan consent e2e-*", async () => {
@@ -471,6 +576,7 @@ test.describe("MCP server di staging", () => {
     const readOnly = await connectClient(session, api, BASE_URL, "noschedule", [
       "mcp:read",
     ]);
+    readOnlyClient = readOnly;
     const denied = await callTool(api, readOnly.accessToken, "schedule_posts", {
       posts: [],
     });
@@ -583,6 +689,7 @@ test.describe("MCP server di staging", () => {
 
     const stamp = Date.now().toString(36);
     const caption = `[e2e] schedule_posts ${stamp}`;
+    scheduledMcpCaption = caption;
     const when = localScheduleTime(30);
     const outcome = await callTool(api, client.accessToken, "schedule_posts", {
       posts: [
@@ -645,5 +752,461 @@ test.describe("MCP server di staging", () => {
       cursor = body.nextCursor;
     }
     expect(found, "post terjadwal muncul di list_scheduled_posts").toBe(true);
+  });
+  // -------------------------------------------------------------------------
+  // T-189.3: create_draft / update_draft (T-152)
+  // -------------------------------------------------------------------------
+
+  test("(i) create_draft dan update_draft: created_via mcp, client id terisi, post non-draft ditolak", async () => {
+    test.setTimeout(240_000);
+    const reason = `Menulis draft [e2e] ke E2E Sandbox (dihapus lewat UI Drafts di akhir). ${STAGING_WRITE_NOTE} Set E2E_MCP_DRAFTS=1.`;
+    if (process.env.E2E_MCP_DRAFTS !== "1")
+      console.warn(`[mcp.e2e] (i) DI-SKIP: ${reason}`);
+    test.skip(process.env.E2E_MCP_DRAFTS !== "1", reason);
+
+    draftClient = await connectClient(session, api, BASE_URL, "drafts", [
+      "mcp:read",
+      "mcp:draft",
+    ]);
+    const token = draftClient.accessToken;
+    const clientId = draftClient.clientId;
+    const stamp = Date.now().toString(36);
+    const caption = `[e2e] create_draft ${stamp}`;
+    createdDraftCaptions.push(caption);
+
+    const created = await callTool(api, token, "create_draft", { caption });
+    expect(created.isError, JSON.stringify(created.payload)).toBe(false);
+    const draft = created.payload as {
+      id: string;
+      status: string;
+      caption: string;
+      createdVia: string;
+    };
+    expect(draft.id).toBeTruthy();
+    expect(draft.status).toBe("draft");
+    expect(draft.caption).toBe(caption);
+    expect(draft.createdVia).toBe("mcp");
+
+    // Terbaca kembali lewat tool baca: penanda sumber dan id klien OAuth.
+    const readBack = async () => {
+      let cursor: string | undefined;
+      for (let page = 0; page < 10; page += 1) {
+        const out = await callTool(
+          api,
+          token,
+          "list_drafts",
+          cursor ? { cursor } : {},
+        );
+        expect(out.isError, JSON.stringify(out.payload)).toBe(false);
+        const body = out.payload as {
+          items: {
+            id: string;
+            caption: string;
+            createdVia: string;
+            createdViaClientId: string | null;
+          }[];
+          nextCursor: string | null;
+        };
+        const hit = body.items.find((item) => item.id === draft.id);
+        if (hit) return hit;
+        if (!body.nextCursor) break;
+        cursor = body.nextCursor;
+      }
+      return undefined;
+    };
+    const listed = await readBack();
+    expect(listed, "draft baru muncul di list_drafts").toBeTruthy();
+    expect(listed?.createdVia).toBe("mcp");
+    expect(listed?.createdViaClientId).toBe(clientId);
+
+    // update_draft: caption berganti, penanda sumber dan klien tidak berubah.
+    const newCaption = `${caption} (diubah)`;
+    // Catat caption baru DI SAMPING yang lama: bila update gagal di tengah,
+    // cleanup tetap menemukan baris mana pun yang tersisa.
+    createdDraftCaptions.push(newCaption);
+    const updated = await callTool(api, token, "update_draft", {
+      postId: draft.id,
+      caption: newCaption,
+    });
+    expect(updated.isError, JSON.stringify(updated.payload)).toBe(false);
+    expect((updated.payload as { caption: string }).caption).toBe(newCaption);
+    const after = await readBack();
+    expect(after?.caption).toBe(newCaption);
+    expect(after?.createdVia).toBe("mcp");
+    expect(after?.createdViaClientId).toBe(clientId);
+
+    // Post yang bukan draft ditolak `conflict`. Memakai post Scheduled yang
+    // sudah ada di E2E Sandbox (tanpa menulis apa pun); tanpa itu, post
+    // terbit sebagai pengganti, dan bila keduanya tidak ada ditandai belum terbukti.
+    // Post nyata (bukan "[e2e]") dikirimi caption yang SAMA dengan miliknya,
+    // jadi bila penolakan `conflict` regresi, update itu tanpa efek.
+    const pickNonDraft = async (tool: string) => {
+      const out = await callTool(api, token, tool);
+      expect(out.isError, JSON.stringify(out.payload)).toBe(false);
+      const items = (
+        out.payload as { items: { id: string; caption?: string }[] }
+      ).items;
+      const own = items.find((item) => item.caption?.startsWith("[e2e]"));
+      if (own) return { id: own.id, caption: "[e2e] harus ditolak" };
+      const real = items.find((item) => item.caption);
+      return real
+        ? { id: real.id, caption: real.caption as string }
+        : undefined;
+    };
+    const scheduled = await pickNonDraft("list_scheduled_posts");
+    const published = scheduled
+      ? undefined
+      : await pickNonDraft("list_published_posts");
+    const target = scheduled ?? published;
+    const targetStatus = scheduled ? "scheduled" : "published";
+    if (target) {
+      const rejected = await callTool(api, token, "update_draft", {
+        postId: target.id,
+        caption: target.caption,
+      });
+      expect(
+        rejected.isError,
+        `update_draft pada post ${targetStatus} harus ditolak`,
+      ).toBe(true);
+      expect(rejected.errorCode).toBe("conflict");
+      if (!scheduled) {
+        test.info().annotations.push({
+          type: "unverified",
+          description:
+            "(i) penolakan diuji pada post published; E2E Sandbox tidak punya post Scheduled (jalankan (h) dengan E2E_MCP_SCHEDULE=1 lebih dulu).",
+        });
+      }
+    } else {
+      test.info().annotations.push({
+        type: "unverified",
+        description:
+          "(i) penolakan post non-draft TIDAK terbukti: E2E Sandbox tidak punya post terjadwal/terbit berkaption (tanpa caption, tak ada nilai aman untuk dikirim).",
+      });
+    }
+  });
+
+  test("(j) scope read saja: create_draft dan update_draft ditolak token_scope_insufficient", async () => {
+    expect(readOnlyClient, "klien read-only dari (g)").toBeTruthy();
+    const token = (readOnlyClient as ConnectedClient).accessToken;
+    expect(String(decodeJwtClaims(token).scope).split(" ")).not.toContain(
+      "mcp:draft",
+    );
+
+    const create = await callTool(api, token, "create_draft", {
+      caption: "[e2e] tidak boleh tercipta",
+    });
+    expect(create.isError).toBe(true);
+    expect(create.errorCode).toBe("token_scope_insufficient");
+
+    const update = await callTool(api, token, "update_draft", {
+      postId: "99999999-9999-4999-8999-999999999999",
+      caption: "[e2e] tidak boleh",
+    });
+    expect(update.isError).toBe(true);
+    expect(update.errorCode).toBe("token_scope_insufficient");
+
+    // Tidak ada efek samping: draft yang ditolak tidak tercipta.
+    const drafts = await callTool(api, token, "list_drafts");
+    expect(drafts.isError, JSON.stringify(drafts.payload)).toBe(false);
+    const items = (drafts.payload as { items: { caption: string }[] }).items;
+    expect(
+      items.some((item) => item.caption === "[e2e] tidak boleh tercipta"),
+    ).toBe(false);
+  });
+
+  // -------------------------------------------------------------------------
+  // T-155.7: upload_media (T-155)
+  // -------------------------------------------------------------------------
+
+  test("(k) upload_media menolak URL berbahaya dan scope read saja, tanpa unduhan", async () => {
+    test.setTimeout(240_000);
+    draftClient ??= await connectClient(session, api, BASE_URL, "drafts", [
+      "mcp:read",
+      "mcp:draft",
+    ]);
+    const token = draftClient.accessToken;
+    // Skema, userinfo, dan IP literal ditolak pada validasi URL, sebelum DNS
+    // atau koneksi apa pun. Host `.invalid` (RFC 2606) lolos validasi lalu
+    // gagal resolve DNS (paling jauh satu lookup, tanpa koneksi HTTP): tidak
+    // ada unduhan dari mana pun dan tidak ada tulis ke Media Library.
+    // Pesan galat server dicocokkan per kelas (lihat safe-fetch.ts MESSAGES).
+    const invalidUrlMessage = "URL tidak valid";
+    const blockedMessage = "tidak diizinkan atau tidak dapat dijangkau";
+    const dangerous: { url: string; message: string }[] = [
+      {
+        url: "http://e2e-no-such-host.invalid/a.png",
+        message: invalidUrlMessage,
+      },
+      {
+        url: "https://user:pass@e2e-no-such-host.invalid/a.png",
+        message: invalidUrlMessage,
+      },
+      { url: "https://127.0.0.1/a.png", message: blockedMessage },
+      {
+        url: "https://169.254.169.254/latest/meta-data/",
+        message: blockedMessage,
+      },
+      {
+        url: "https://e2e-no-such-host.invalid/a.png",
+        message: blockedMessage,
+      },
+    ];
+    for (const { url, message } of dangerous) {
+      const outcome = await callTool(api, token, "upload_media", { url });
+      expect(outcome.isError, url).toBe(true);
+      expect(outcome.errorCode, url).toBe("invalid_input");
+      expect(
+        (outcome.payload as { error?: { message?: string } }).error?.message,
+        `${url}: pesan galat`,
+      ).toContain(message);
+    }
+    expect(readOnlyClient, "klien read-only dari (g)").toBeTruthy();
+    const denied = await callTool(
+      api,
+      (readOnlyClient as ConnectedClient).accessToken,
+      "upload_media",
+      { url: "https://e2e-no-such-host.invalid/a.png" },
+    );
+    expect(denied.isError).toBe(true);
+    expect(denied.errorCode).toBe("token_scope_insufficient");
+  });
+
+  test("(k2) golden path upload_media: unggah dari URL tepercaya, muncul di list_media", async () => {
+    test.setTimeout(240_000);
+    const uploadUrl = process.env.E2E_MCP_UPLOAD_URL;
+    const reason = `Golden path upload_media mengunduh E2E_MCP_UPLOAD_URL (URL https publik milik tim ke JPEG/PNG/WebP/GIF kecil, jangan URL pihak lain) dan menulis MediaItem ke E2E Sandbox tanpa jalur hapus di MCP. ${STAGING_WRITE_NOTE} Set E2E_MCP_UPLOAD=1 dan E2E_MCP_UPLOAD_URL.`;
+    const enabled = process.env.E2E_MCP_UPLOAD === "1" && Boolean(uploadUrl);
+    if (!enabled) console.warn(`[mcp.e2e] (k2) DI-SKIP: ${reason}`);
+    test.skip(!enabled, reason);
+
+    draftClient ??= await connectClient(session, api, BASE_URL, "drafts", [
+      "mcp:read",
+      "mcp:draft",
+    ]);
+    const token = draftClient.accessToken;
+    const filename = `e2e-upload-${Date.now().toString(36)}.png`;
+    const outcome = await callTool(api, token, "upload_media", {
+      url: uploadUrl,
+      filename,
+    });
+    expect(outcome.isError, JSON.stringify(outcome.payload)).toBe(false);
+    const media = outcome.payload as {
+      id: string;
+      filename: string;
+      mimeType: string;
+      sizeBytes: number;
+    };
+    expect(media.id).toBeTruthy();
+    expect(media.filename).toBe(filename);
+    expect(media.mimeType).toMatch(
+      /^(image\/(jpeg|png|webp|gif)|video\/(mp4|quicktime))$/,
+    );
+    expect(media.sizeBytes).toBeGreaterThan(0);
+
+    let cursor: string | undefined;
+    let found = false;
+    for (let page = 0; page < 10 && !found; page += 1) {
+      const list = await callTool(
+        api,
+        token,
+        "list_media",
+        cursor ? { cursor } : {},
+      );
+      expect(list.isError, JSON.stringify(list.payload)).toBe(false);
+      const body = list.payload as {
+        items: { id: string }[];
+        nextCursor: string | null;
+      };
+      found = body.items.some((item) => item.id === media.id);
+      if (!body.nextCursor) break;
+      cursor = body.nextCursor;
+    }
+    expect(found, "media hasil upload muncul di list_media").toBe(true);
+    test.info().annotations.push({
+      type: "written",
+      description: `MediaItem ${filename} tertinggal di Media Library E2E Sandbox (hapus manual).`,
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // T-156.5: Settings klien AI
+  // -------------------------------------------------------------------------
+
+  test("(l) Settings klien AI: grant tampil di daftar, Cabut memutus akses klien", async () => {
+    test.setTimeout(240_000);
+    const client = await connectClient(session, api, BASE_URL, "settings", [
+      "mcp:read",
+    ]);
+    const before = await callTool(api, client.accessToken, "get_workspace");
+    expect(before.isError, JSON.stringify(before.payload)).toBe(false);
+
+    const page = await session.newPage();
+    try {
+      await page.goto("/settings/account/ai-clients");
+      // Baris dikenali dari nama klien (unik per run), bukan dari urutan.
+      const row = page.locator("tr", { hasText: client.clientName });
+      await expect(row, "grant klien tampil di daftar").toBeVisible();
+      await expect(row).toContainText(E2E_WORKSPACE_NAME);
+      await expect(row).toContainText(/read/);
+
+      const revoke = row.getByRole("button", { name: "Cabut", exact: true });
+      await waitUntilHydrated(revoke, "Settings Klien AI");
+      await revoke.click();
+
+      const dialog = page.getByRole("alertdialog");
+      await expect(dialog).toContainText(`Cabut akses ${client.clientName}?`);
+      // Batal tidak mencabut apa pun.
+      await dialog.getByRole("button", { name: "Batal" }).click();
+      await expect(dialog).toBeHidden();
+      await expect(row).toBeVisible();
+      const stillWorks = await callTool(
+        api,
+        client.accessToken,
+        "get_workspace",
+      );
+      expect(stillWorks.isError, "Batal tidak boleh mencabut").toBe(false);
+
+      await revoke.click();
+      await page
+        .getByRole("alertdialog")
+        .getByRole("button", { name: "Cabut Akses" })
+        .click();
+      await expect(
+        page.locator("tr", { hasText: client.clientName }),
+        "baris hilang setelah dicabut",
+      ).toHaveCount(0);
+    } finally {
+      await page.close();
+    }
+
+    // Batas publik: token klien yang dicabut dari UI ditolak server MCP.
+    const after = await callTool(api, client.accessToken, "get_workspace");
+    expect(after.isError).toBe(true);
+    expect(after.errorCode).toBe("no_active_grant");
+  });
+
+  // -------------------------------------------------------------------------
+  // T-157.1: badge dan filter sumber MCP
+  // -------------------------------------------------------------------------
+
+  test("(m) badge dan filter sumber MCP di Drafts, Queue, dan History", async () => {
+    const page = await session.newPage();
+    try {
+      // Drafts: draft MCP asli dari (i), bila ada.
+      await assertSourceFilterContract(page, "/publish/drafts");
+      if (draftClient && createdDraftCaptions.length > 0) {
+        const caption = createdDraftCaptions[createdDraftCaptions.length - 1];
+        await page.goto("/publish/drafts");
+        const trigger = page.getByRole("combobox", { name: "Filter sumber" });
+        await waitUntilHydrated(trigger, "Drafts");
+        const row = page.locator("tr", { hasText: caption });
+        await expect(row, "draft MCP tampil di Drafts").toBeVisible();
+        await expect(row, "badge memuat nama klien").toContainText(
+          `${MCP_BADGE_TEXT} ${draftClient.clientName}`,
+        );
+        await chooseSource(page, "Lewat MCP");
+        await expect(row).toBeVisible();
+        await chooseSource(page, "Dibuat Manual");
+        await expect(row, "draft MCP disembunyikan filter manual").toHaveCount(
+          0,
+        );
+        await chooseSource(page, "Semua Sumber");
+        await expect(row).toBeVisible();
+      } else {
+        test.info().annotations.push({
+          type: "unverified",
+          description:
+            "(m) badge pada draft MCP nyata TIDAK terbukti: (i) di-skip (set E2E_MCP_DRAFTS=1). Hanya kontrak filter yang diperiksa.",
+        });
+      }
+
+      await assertSourceFilterContract(page, "/publish/queue");
+      if (scheduledMcpCaption) {
+        await page.goto("/publish/queue");
+        await waitUntilHydrated(
+          page.getByRole("combobox", { name: "Filter sumber" }),
+          "Queue",
+        );
+        const card = page.locator('[data-slot="card"]', {
+          hasText: scheduledMcpCaption,
+        });
+        await expect(card, "post MCP terjadwal tampil di Queue").toBeVisible();
+        await expect(card).toContainText(MCP_BADGE_TEXT);
+        await chooseSource(page, "Dibuat Manual");
+        await expect(card).toHaveCount(0);
+      } else {
+        test.info().annotations.push({
+          type: "unverified",
+          description:
+            "(m) badge pada post MCP nyata di Queue TIDAK terbukti: (h) di-skip (set E2E_MCP_SCHEDULE=1). History tak bisa dipenuhi lewat MCP (tak ada tool publish).",
+        });
+      }
+
+      await assertSourceFilterContract(page, "/publish/history");
+    } finally {
+      await page.close();
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // T-189.4: rate limit (T-154). HARUS terakhir: menghabiskan kuota `calls`
+  // WORKSPACE (bukan per klien/token) untuk sisa menit itu, jadi tidak boleh
+  // ada E2E lain yang memanggil MCP sesudahnya (berkas lain, worker paralel).
+  // -------------------------------------------------------------------------
+
+  test("(n) panggilan ke-61 dalam semenit ditolak rate_limited dengan retryAfterSeconds", async () => {
+    test.setTimeout(240_000);
+    expect(readOnlyClient, "klien read-only dari (g)").toBeTruthy();
+    const token = (readOnlyClient as ConnectedClient).accessToken;
+    const limit = Number(process.env.E2E_MCP_RATE_LIMIT_CALLS) || 60;
+    const WINDOW_MS = 60_000;
+
+    // Jendela tetap kelipatan menit epoch (UTC): mulai sesaat setelah batas
+    // supaya semua panggilan jatuh di satu jendela dan penolakan tepat di limit+1.
+    await sleep(WINDOW_MS - (Date.now() % WINDOW_MS) + 3_000);
+    const startedAt = Date.now();
+
+    // Gelombang paralel (10 sekaligus) agar 60 panggilan selesai jauh di
+    // dalam jendela walau latensi staging tinggi.
+    const BATCH = 10;
+    for (let first = 1; first <= limit; first += BATCH) {
+      const calls = Array.from(
+        { length: Math.min(BATCH, limit - first + 1) },
+        (_, index) => first + index,
+      );
+      const results = await Promise.all(
+        calls.map(async (call) => ({
+          call,
+          out: await callTool(api, token, "get_workspace"),
+        })),
+      );
+      for (const { call, out } of results) {
+        expect(
+          out.isError,
+          `panggilan ke-${call} (limit ${limit}) tidak boleh ditolak: ${JSON.stringify(out.payload)}`,
+        ).toBe(false);
+      }
+      expect(
+        Date.now() - startedAt,
+        "panggilan terlalu lambat: jendela 60 detik terlewati, hasil tak bisa dinilai",
+      ).toBeLessThan(WINDOW_MS - 5_000);
+    }
+
+    const denied = await callTool(api, token, "get_workspace");
+    expect(denied.isError, JSON.stringify(denied.payload)).toBe(true);
+    expect(denied.errorCode).toBe("rate_limited");
+    const details = (
+      denied.payload as {
+        error: { retryAfterSeconds: number; quota: string; limit: number };
+      }
+    ).error;
+    expect(details.quota).toBe("calls");
+    expect(details.limit).toBe(limit);
+    expect(details.retryAfterSeconds).toBeGreaterThan(0);
+    expect(details.retryAfterSeconds).toBeLessThanOrEqual(60);
+
+    // Penolakan tidak membuka jalan: panggilan berikutnya di jendela itu tetap ditolak.
+    const again = await callTool(api, token, "get_workspace");
+    expect(again.errorCode).toBe("rate_limited");
   });
 });

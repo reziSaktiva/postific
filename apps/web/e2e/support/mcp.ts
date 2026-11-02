@@ -281,7 +281,7 @@ export async function registerClient(
  * sudah terhidrasi memegang `__reactProps$*`; tunggu itu satu kali per layar,
  * lalu bertindak sekali (tanpa klik ulang yang bisa membalik toggle).
  */
-async function waitUntilHydrated(
+export async function waitUntilHydrated(
   target: Locator,
   screen: string,
 ): Promise<void> {
