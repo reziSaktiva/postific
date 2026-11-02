@@ -31,6 +31,8 @@ export interface Reference {
   id: string;
   path: string;
   line: number;
+  /** Ujung rentang (`T-046–T-049`): rentang boleh mencakup ID yang sengaja kosong. */
+  inRange: boolean;
 }
 
 export interface Pointer {
@@ -169,7 +171,17 @@ export function parseReferences(path: string, text: string): Reference[] {
   for (const entry of scan(text)) {
     if (entry.fenced) continue;
     for (const match of entry.text.matchAll(ID_ANYWHERE)) {
-      refs.push({ id: match[1], path, line: entry.line });
+      const before = entry.text.slice(0, match.index);
+      const end = match.index + match[0].length;
+      refs.push({
+        id: match[1],
+        path,
+        line: entry.line,
+        inRange:
+          /[–—]\s*$/.test(before) ||
+          /\bsampai\s*$/.test(before) ||
+          new RegExp(`^[–—]\\s*${ID_SOURCE}`).test(entry.text.slice(end)),
+      });
     }
   }
   return refs;
