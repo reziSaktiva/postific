@@ -901,7 +901,7 @@ Skill eksekusi gelombang (langkah 2 sampai 11 di S-003 § Perilaku 2): alur gelo
 
 ### T-186 · Docs locator and link check script
 
-`🟡 Done (code, sebagian) (2026-11-02)` · **Mode** AFK · **Domain** project-os, tooling · **ADR** ADR-133 · **Spec** S-003 · **Depends** —
+`✅ Done (2026-11-02, PR 233)` · **Mode** AFK · **Domain** project-os, tooling · **ADR** ADR-133 · **Spec** S-003 · **Depends** —
 **Baca dulu:** `project-os/specs/S-003.md` § Ekonomi token · `AGENTS.md` aturan 12
 
 Pencari lokasi dokumen saat dijalankan (bukan berkas indeks yang di-commit, karena nomor baris cepat usang) dan pemeriksa tautan, dalam satu keluarga skrip dengan parser yang sama. Nol token saat dijalankan.
@@ -910,7 +910,7 @@ Pencari lokasi dokumen saat dijalankan (bukan berkas indeks yang di-commit, kare
 - [x] **T-186.2** `✅ Done (2026-11-02)` `bun run docs:where <query>`: kembalikan `path:baris` dan judul untuk ID dan kata kunci judul, sehingga bagian tiket dibaca dengan `offset` dan `limit`.
 - [x] **T-186.3** `✅ Done (2026-11-02, skrip; pemicu belum dipasang)` `bun run docs:check`: penunjuk path valid, ID yang dirujuk ada, penghitung "Berikutnya" di `AVAILABLE_TICKETS.md` sama dengan ID maksimum ditambah satu, pasangan kembaran aturan 12 tidak menyimpang, dan nama folder skill dan judul tiket baru lolos pola penamaan bahasa Inggris. Putuskan pemicunya (pre-commit pada berkas Markdown yang diubah dan/atau CI).
 - [x] **T-186.4** `✅ Done (2026-11-02)` `AGENTS.md`: satu baris penunjuk ke skrip, tanpa menyalin aturan (ADR-133).
-- [ ] **T-186.5** Sisa dari T-186.3: (a) putuskan dan pasang pemicu (usulan: command `docs-check` di pre-commit lefthook untuk `*.md`, plus satu langkah di job quality gates CI; `.github/workflows` dan `lefthook.yml` belum diubah); (b) `🟡 Sebagian (2026-11-02, jalur C gelombang C)`: 32 temuan turun jadi 21. 10 penunjuk path rusak dan satu ketik ID tiket diperbaiki. Sisa 21 adalah rujukan ke dua ID job yang dicadangkan ADR-093 (18 temuan), satu penunjuk ke `CHANGELOG.md` di design-tokens.md (langkah "Update CHANGELOG" itu mengubah makna bila diganti, jadi dibiarkan; perlu keputusan King Rezi), satu usulan ID UX baru di ADR-049, dan satu ID tiket yang sengaja dikosongkan di v03; menunggu keputusan pengecualian skrip (daftar putih), belum dibereskan; (c) setujui pengecualian pemeriksaan yang dibuat skrip (ADR, tiket, laporan, spec, `DECISIONS.md`, `CONVERSATIONS.md` tidak diperiksa penunjuknya). **Belum terbukti:** skrip belum dijalankan di CI; pencocokan pasangan `permissions.deny` hanya mengenali pola `Read(./...)`.
+- [x] **T-186.5** `✅ Done (2026-11-02, PR 233)` Sisa dari T-186.3, diputuskan King Rezi 2026-11-02: (a) pemicu dipasang: command `docs-check` di pre-commit lefthook (glob `*.md`) dan langkah "Docs check" di job Quality gates `ci.yml`; (b) 21 temuan dibereskan lewat daftar putih di `scripts/docs/check.ts`: `RESERVED_IDS` (JOB-05, JOB-06, UXP-08, T-049) dan `ALLOWED_POINTERS` (satu penunjuk `CHANGELOG.md` di design-tokens.md), dengan tes; `docs:check` kini nol temuan; (c) pengecualian pemeriksaan (ADR, tiket, laporan, spec, `DECISIONS.md`, `CONVERSATIONS.md` tidak diperiksa penunjuknya) disetujui. **Terbukti:** langkah "Docs check" lulus di job Quality gates PR 233 (run 41399581086), dan hook lefthook jalan pada commit nyata. **Belum terbukti:** pencocokan pasangan `permissions.deny` hanya mengenali pola `Read(./...)`.
 
 ### T-187 · Update `proactive-clarification` with round-based questioning
 

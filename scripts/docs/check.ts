@@ -40,6 +40,21 @@ export const ENGLISH_TITLES_FROM_TICKET = 181;
 /** Awalan ID yang tidak diperiksa keberadaannya: KI yang selesai dihapus dari daftar (ADR-067). */
 const UNCHECKED_PREFIXES = new Set(["KI"]);
 
+/**
+ * ID yang sengaja dirujuk tanpa definisi (T-186.5, disetujui King Rezi 2026-11-02):
+ * JOB-05 dan JOB-06 dicadangkan ADR-093 untuk Import Posts, UXP-08 adalah usulan
+ * ID baru di ADR-049, T-049 sengaja dikosongkan di v03.
+ */
+const RESERVED_IDS = new Set(["JOB-05", "JOB-06", "UXP-08", "T-049"]);
+
+/**
+ * Penunjuk yang sengaja menunjuk berkas yang tidak ada (T-186.5): langkah
+ * "Update CHANGELOG" di design-tokens.md dibiarkan karena menggantinya mengubah maknanya.
+ */
+const ALLOWED_POINTERS = new Set([
+  "product-discovery/06-engineering/design-tokens.md→../../project-os/CHANGELOG.md",
+]);
+
 /** Dokumen yang menjadi sumber kebenaran penunjuk (bukan catatan historis). */
 function inPointerScope(docPath: string): boolean {
   return (
@@ -160,7 +175,7 @@ function checkIds(docs: Doc[], defs: Definition[]): Finding[] {
   for (const doc of docs) {
     const lines = doc.text.split("\n");
     for (const ref of parseReferences(doc.path, doc.text)) {
-      if (ref.inRange) continue;
+      if (ref.inRange || RESERVED_IDS.has(ref.id)) continue;
       // Penghitung "Berikutnya: **T-NNN**" sengaja menyebut ID yang belum ada;
       // hanya ID penghitung itu yang dilewati, bukan seluruh baris.
       const counters = [
@@ -221,6 +236,7 @@ function checkPointers(root: string, docs: Doc[]): Finding[] {
   const findings: Finding[] = [];
   for (const doc of docs.filter((d) => inPointerScope(d.path))) {
     for (const pointer of parsePointers(doc.path, doc.text)) {
+      if (ALLOWED_POINTERS.has(`${doc.path}→${pointer.target}`)) continue;
       if (!resolvesPointer(root, doc.path, pointer.target, pointer.via)) {
         findings.push({
           rule: "pointer",
