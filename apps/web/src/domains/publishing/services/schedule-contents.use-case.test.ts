@@ -75,12 +75,16 @@ function world(
   options: {
     ownedMedia?: string[];
     outstandFails?: (caption: string) => boolean;
-    outstandThrowsUnexpected?: (caption: string) => boolean;
+    accounts?: ConnectedAccountRecord[];
   } = {},
 ) {
   const posts = new Map<string, PublishingPostRecord>();
   const sources: unknown[] = [];
   const outstandCalls: { caption: string; targets: number; at: Date }[] = [];
+  /** Setiap panggilan port: workspace dan pengguna yang diteruskan use-case. */
+  const calls: { port: string; workspaceId: unknown; userId: unknown }[] = [];
+  const seen = (port: string, workspaceId: unknown, userId: unknown) =>
+    calls.push({ port, workspaceId, userId });
   let counter = 0;
 
   const repository = {
@@ -103,18 +107,30 @@ function world(
       posts.set(record.id, record);
       return record;
     },
-    findPostStatusById: async (input: { postId: string }) => {
+    // Seperti repository nyata: post hanya terlihat di workspace pemiliknya.
+    findPostStatusById: async (
+      input: { workspaceId: unknown; postId: string },
+      userId: unknown,
+    ) => {
+      seen("status", input.workspaceId, userId);
       const found = posts.get(input.postId);
-      return found ? { status: found.status } : null;
+      return found && found.workspaceId === input.workspaceId
+        ? { status: found.status }
+        : null;
     },
-    schedulePost: async (input: {
-      postId: string;
-      targets: {
-        connectedAccountId: ReturnType<typeof asConnectedAccountId>;
-      }[];
-    }) => {
+    schedulePost: async (
+      input: {
+        workspaceId: unknown;
+        postId: string;
+        targets: {
+          connectedAccountId: ReturnType<typeof asConnectedAccountId>;
+        }[];
+      },
+      userId: unknown,
+    ) => {
+      seen("schedule", input.workspaceId, userId);
       const found = posts.get(input.postId);
-      if (!found) return null;
+      if (!found || found.workspaceId !== input.workspaceId) return null;
       found.status = ContentStatus.Scheduled;
       return {
         ...found,
@@ -138,9 +154,6 @@ function world(
       targets: unknown[];
       scheduledAt: Date;
     }) => {
-      if (options.outstandThrowsUnexpected?.(input.caption)) {
-        throw new Error("boom");
-      }
       if (options.outstandFails?.(input.caption)) {
         throw new Error("Outstand menolak");
       }
@@ -155,14 +168,31 @@ function world(
   const jobs: IJobScheduler = { scheduleJob: async () => undefined };
 
   const owned = options.ownedMedia ?? [];
+  // Akun dan media hanya milik WORKSPACE; workspace lain tidak melihat apa pun.
+  const accountsPort = {
+    listConnectedAccounts: async (workspaceId: unknown, userId: unknown) => {
+      seen("accounts", workspaceId, userId);
+      return workspaceId === WORKSPACE ? (options.accounts ?? ACCOUNTS) : [];
+    },
+  };
+  const mediaPort = {
+    listByIds: async (
+      input: { workspaceId: unknown; mediaIds: ReturnType<typeof asMediaId>[] },
+      userId: unknown,
+    ) => {
+      seen("media", input.workspaceId, userId);
+      return input.workspaceId === WORKSPACE
+        ? input.mediaIds
+            .filter((id) => owned.includes(id))
+            .map((id) => ({ id }))
+        : [];
+    },
+  };
   const compose = new ComposeDraftUseCase(
     new PublishingService(repository),
     repository,
-    { listConnectedAccounts: async () => ACCOUNTS },
-    {
-      listByIds: async (input) =>
-        input.mediaIds.filter((id) => owned.includes(id)).map((id) => ({ id })),
-    },
+    accountsPort,
+    mediaPort,
   );
   const logger = { error: vi.fn() };
   const useCase = new ScheduleContentsUseCase(
@@ -182,10 +212,11 @@ function world(
       saveOutstandWorkingCopy: async () => undefined,
     }),
     repository,
-    { listConnectedAccounts: async () => ACCOUNTS },
+    accountsPort,
+    mediaPort,
     logger,
   );
-  return { useCase, posts, sources, outstandCalls, logger };
+  return { useCase, posts, sources, outstandCalls, logger, calls };
 }
 
 function content(
@@ -401,23 +432,178 @@ describe("ScheduleContentsUseCase", () => {
     expect(outcomes[1]).toMatchObject({ status: "scheduled" });
   });
 
-  it("keeps reporting contents that were scheduled when a later one hits an unexpected error", async () => {
-    const w = world({
-      outstandThrowsUnexpected: (caption) => caption === "Meledak",
-    });
+  it("keeps reporting the contents around one the provider refuses, and that refusal still costs quota", async () => {
+    const w = world({ outstandFails: (caption) => caption === "Ditolak" });
+    const reserve = vi.fn(async () => undefined);
 
-    const outcomes = await run(w, [
-      content({ caption: "Aman" }),
-      content({ caption: "Meledak" }),
-      content({ caption: "Aman juga" }),
-    ]);
+    const outcomes = await run(
+      w,
+      [
+        content({ caption: "Aman" }),
+        content({ caption: "Ditolak" }),
+        content({ caption: "Aman juga" }),
+      ],
+      reserve,
+    );
 
     expect(outcomes.map((o) => o.status)).toEqual([
       "scheduled",
-      // Kegagalan penyedia yang tak terduga ditandai gagal oleh SchedulePostsUseCase.
       "failed",
       "scheduled",
     ]);
+    // Kuota dipesan sebelum menulis dan tidak dikembalikan (tanpa refund).
+    expect(reserve).toHaveBeenCalledWith(3);
+  });
+
+  it("reports an unexpected error after the draft exists as internal, with the post id, and the quota stays spent", async () => {
+    const w = world();
+    const reserve = vi.fn(async () => undefined);
+    const useCase = new ScheduleContentsUseCase(
+      {
+        createDraft: async () => ({
+          post: { id: asPostId("p-9") } as PublishingPostRecord,
+          targets: [],
+        }),
+      },
+      {
+        execute: async () => {
+          throw new Error("koneksi DB putus: password=hunter2");
+        },
+      },
+      { findPostStatusById: async () => null },
+      { listConnectedAccounts: async () => ACCOUNTS },
+      { listByIds: async () => [] },
+      w.logger,
+    );
+
+    const [outcome] = await useCase.execute({
+      workspaceId: WORKSPACE,
+      actingUserId: USER,
+      contents: [content()],
+      source: SOURCE,
+      reserveQuota: reserve,
+    });
+
+    expect(outcome).toMatchObject({
+      status: "failed",
+      kind: "internal",
+      postId: "p-9",
+    });
+    expect(JSON.stringify(outcome)).not.toContain("hunter2");
+    expect(reserve).toHaveBeenCalledWith(1);
+  });
+
+  it("forwards the workspace and acting user to the account, media, status, and schedule ports", async () => {
+    const media = asMediaId("media-a");
+    const w = world({ ownedMedia: [media] });
+
+    await run(w, [content({ mediaIds: [media] })]);
+
+    const ports = new Set(w.calls.map((call) => call.port));
+    expect(ports).toEqual(new Set(["accounts", "media", "status", "schedule"]));
+    for (const call of w.calls) {
+      expect(call, call.port).toMatchObject({
+        workspaceId: WORKSPACE,
+        userId: USER,
+      });
+    }
+  });
+
+  it("sees nothing of another workspace: accounts, media, and posts are scoped to the workspace passed in", async () => {
+    const media = asMediaId("media-a");
+    const w = world({ ownedMedia: [media] });
+    const other = asWorkspaceId("ws-other");
+
+    const [outcome] = await w.useCase.execute({
+      workspaceId: other,
+      actingUserId: USER,
+      contents: [content({ mediaIds: [media] })],
+      source: SOURCE,
+    });
+
+    expect(outcome).toMatchObject({ status: "failed", kind: "invalid" });
+    expect(w.posts.size).toBe(0);
+    expect(w.outstandCalls).toEqual([]);
+    expect(w.calls.every((call) => call.workspaceId === other)).toBe(true);
+  });
+
+  describe("accounts and media checked before quota", () => {
+    it("rejects media the workspace does not own without quota or draft", async () => {
+      const w = world({ ownedMedia: [] });
+      const reserve = vi.fn(async () => undefined);
+
+      const [outcome] = await run(
+        w,
+        [content({ mediaIds: [asMediaId("media-asing")] })],
+        reserve,
+      );
+
+      expect(outcome).toMatchObject({
+        status: "failed",
+        kind: "invalid",
+        message: expect.stringContaining("bukan milik workspace"),
+      });
+      expect(reserve).not.toHaveBeenCalled();
+      expect(w.posts.size).toBe(0);
+    });
+
+    it("rejects the same media twice before quota", async () => {
+      const media = asMediaId("media-a");
+      const w = world({ ownedMedia: [media] });
+      const reserve = vi.fn(async () => undefined);
+
+      const [outcome] = await run(
+        w,
+        [content({ mediaIds: [media, media] })],
+        reserve,
+      );
+
+      expect(outcome).toMatchObject({ status: "failed", kind: "invalid" });
+      expect(reserve).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ["status is not active", { status: "disconnected" }, /tidak aktif/],
+      [
+        "it needs reconnecting",
+        { reconnectRequired: true },
+        /perlu dihubungkan ulang/,
+      ],
+    ])(
+      "rejects an account whose %s, per content, before quota",
+      async (_l, patch, message) => {
+        const w = world({
+          accounts: [
+            { ...account(IG, SocialPlatform.Instagram), ...patch },
+            account(FB, SocialPlatform.Facebook),
+          ],
+        });
+        const reserve = vi.fn(async () => undefined);
+
+        const outcomes = await run(
+          w,
+          [
+            content({ caption: "Ke akun mati" }),
+            content({
+              caption: "Ke akun sehat",
+              targets: [
+                { connectedAccountId: FB, contentFormat: ContentFormat.Post },
+              ],
+            }),
+          ],
+          reserve,
+        );
+
+        expect(outcomes[0]).toMatchObject({
+          status: "failed",
+          kind: "invalid",
+          message: expect.stringMatching(message),
+        });
+        expect(outcomes[1]).toMatchObject({ status: "scheduled" });
+        expect(reserve).toHaveBeenCalledWith(1);
+        expect(w.posts.size).toBe(1);
+      },
+    );
   });
 
   it("does not leak the text of unexpected errors", async () => {
@@ -431,6 +617,7 @@ describe("ScheduleContentsUseCase", () => {
       { execute: async () => ({}) as never },
       { findPostStatusById: async () => null },
       { listConnectedAccounts: async () => ACCOUNTS },
+      { listByIds: async () => [] },
       w.logger,
     );
 
@@ -462,6 +649,7 @@ describe("ScheduleContentsUseCase", () => {
       },
       { findPostStatusById: async () => null },
       { listConnectedAccounts: async () => ACCOUNTS },
+      { listByIds: async () => [] },
       w.logger,
     );
 

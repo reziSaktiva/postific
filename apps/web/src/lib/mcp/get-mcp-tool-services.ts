@@ -100,6 +100,7 @@ export function getMcpToolServices(): McpToolServices {
         ),
         publishingRepository,
         workspace,
+        media,
       );
       return scheduleContents;
     },

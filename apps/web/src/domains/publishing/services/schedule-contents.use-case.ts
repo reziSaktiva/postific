@@ -1,4 +1,4 @@
-import { ContentStatus } from "@postific/shared";
+import { ContentStatus, asMediaId } from "@postific/shared";
 import type {
   ConnectedAccountId,
   ContentFormat,
@@ -24,7 +24,9 @@ import {
   type ComposeDraftTargetRequest,
   type ComposeDraftUseCase,
   type DraftAccountsPort,
+  type DraftMediaPort,
 } from "./compose-draft.use-case";
+import { resolveDraftMediaIds } from "./resolve-draft-media-ids";
 import {
   resolveScheduleTargets,
   type ScheduleTargetRequest,
@@ -112,6 +114,7 @@ export class ScheduleContentsUseCase {
       "findPostStatusById"
     >,
     private readonly accounts: DraftAccountsPort,
+    private readonly media: DraftMediaPort,
     private readonly logger: Pick<Console, "error"> = console,
   ) {}
 
@@ -134,17 +137,17 @@ export class ScheduleContentsUseCase {
 
     const outcomes: ScheduleContentOutcome[] = [];
     const plans: ContentPlan[] = [];
-    input.contents.forEach((content, index) => {
+    for (const [index, content] of input.contents.entries()) {
       try {
         plans.push({
           index,
           content,
-          targets: planContent(content, accounts),
+          targets: await this.planContent(input, content, accounts),
         });
       } catch (error) {
         outcomes[index] = this.failureOutcome(index, error);
       }
-    });
+    }
 
     if (plans.length > 0 && input.reserveQuota) {
       await input.reserveQuota(plans.length);
@@ -222,6 +225,45 @@ export class ScheduleContentsUseCase {
     }
   }
 
+  /**
+   * Pemeriksaan satu konten tanpa menulis apa pun: caption, target (matriks
+   * `ContentFormat` ADR-039, akun aktif), Safety Check
+   * (`assertScheduleSafetyCheck`), lalu kepemilikan media workspace. Semua
+   * ini sebelum kuota dipesan. Melempar `ValidationError` atau
+   * `PublishingDomainError` bila ditolak; mengembalikan target yang sudah
+   * di-resolve (identitas akun otentik dari DB, bukan dari input).
+   */
+  private async planContent(
+    input: { workspaceId: WorkspaceId; actingUserId: UserId },
+    content: ScheduleContentInput,
+    accounts: ConnectedAccountRecord[],
+  ): Promise<SchedulePostsTargetInput[]> {
+    assertCaptionWithinLimit(content.caption);
+    const targets = resolveTargets(content.targets, accounts);
+    assertScheduleSafetyCheck({
+      caption: content.caption,
+      mediaCount: content.mediaIds?.length ?? 0,
+      scheduledAt: content.scheduledAt,
+      targets,
+    });
+
+    const requested = content.mediaIds ?? [];
+    if (requested.length > 0) {
+      if (new Set(requested).size !== requested.length) {
+        throw new ValidationError(
+          "Media yang sama dipilih lebih dari sekali. Satu media cukup satu kali.",
+        );
+      }
+      const mediaIds = requested.map((id) => asMediaId(id));
+      const found = await this.media.listByIds(
+        { workspaceId: input.workspaceId, mediaIds },
+        input.actingUserId,
+      );
+      resolveDraftMediaIds(found, mediaIds);
+    }
+    return targets;
+  }
+
   private failureOutcome(
     index: number,
     error: unknown,
@@ -272,28 +314,6 @@ export class ScheduleContentsUseCase {
   }
 }
 
-/**
- * Pemeriksaan satu konten tanpa menulis apa pun: caption, target (termasuk
- * matriks `ContentFormat`, ADR-039), lalu Safety Check
- * (`assertScheduleSafetyCheck`). Melempar `ValidationError` atau
- * `PublishingDomainError` bila ditolak; mengembalikan target yang sudah
- * di-resolve (identitas akun otentik dari DB, bukan dari input).
- */
-function planContent(
-  content: ScheduleContentInput,
-  accounts: ConnectedAccountRecord[],
-): SchedulePostsTargetInput[] {
-  assertCaptionWithinLimit(content.caption);
-  const targets = resolveTargets(content.targets, accounts);
-  assertScheduleSafetyCheck({
-    caption: content.caption,
-    mediaCount: content.mediaIds?.length ?? 0,
-    scheduledAt: content.scheduledAt,
-    targets,
-  });
-  return targets;
-}
-
 function resolveTargets(
   requests: ComposeDraftTargetRequest[],
   accounts: ConnectedAccountRecord[],
@@ -323,5 +343,20 @@ function resolveTargets(
     connectedAccountId: request.connectedAccountId,
     contentFormat: request.contentFormat,
   }));
-  return resolveScheduleTargets(accounts, asRequests);
+  const resolved = resolveScheduleTargets(accounts, asRequests);
+  const byId = new Map(accounts.map((account) => [account.id, account]));
+  for (const target of resolved) {
+    const account = byId.get(target.connectedAccountId);
+    if (account && !isAccountUsable(account)) {
+      throw new ValidationError(
+        `Akun ${account.handle} (${target.platform}) tidak aktif${account.reconnectRequired ? " dan perlu dihubungkan ulang" : ""}. Hubungkan ulang di Settings > Connected Accounts, lalu jadwalkan lagi.`,
+      );
+    }
+  }
+  return resolved;
+}
+
+/** Akun yang boleh menerima jadwal: status `active` dan tidak menunggu hubung ulang. */
+function isAccountUsable(account: ConnectedAccountRecord): boolean {
+  return account.status === "active" && !account.reconnectRequired;
 }
