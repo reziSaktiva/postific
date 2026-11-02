@@ -923,14 +923,16 @@ Pencari lokasi dokumen saat dijalankan (bukan berkas indeks yang di-commit, kare
 
 ### T-188 · Prune always-loaded orchestration context
 
-`⏳ Not Started` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133 · **Spec** S-003 · **Depends** —
+`✅ Done (2026-11-02)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133 · **Spec** S-003 · **Depends** —
 **Baca dulu:** `project-os/specs/S-003.md` § Ekonomi token · tabel pola (`writing-for-agents`)
 
 Setiap perubahan isi aturan ditinjau King Rezi per berkas; `.claude/agents/*.md` tidak diubah tanpa permintaan eksplisit.
 
-- [ ] **T-188.1** Ukur apa yang selalu dimuat per sesi (`AGENTS.md` 142 baris, navigator 345 baris, README agen, deskripsi skill) dan ukur pemakaian token (skill `explain-usage` atau `get_usage`) sebagai titik awal.
-- [ ] **T-188.2** Terapkan prinsip: penunjuk dengan pemicu, hapus instruksi yang tidak berpengaruh, satu makna di satu tempat, instruksi positif bila aman; tanpa mengubah arti aturan.
-- [ ] **T-188.3** Ukur ulang dan laporkan selisihnya.
+- [x] **T-188.1** `✅ Done (2026-11-02)` Ukur apa yang selalu dimuat per sesi (`AGENTS.md` 142 baris, navigator 345 baris, README agen, deskripsi skill) dan ukur pemakaian token (skill `explain-usage` atau `get_usage`) sebagai titik awal.
+- [x] **T-188.2** `✅ Done (2026-11-02)` Terapkan prinsip: penunjuk dengan pemicu, hapus instruksi yang tidak berpengaruh, satu makna di satu tempat, instruksi positif bila aman; tanpa mengubah arti aturan.
+- [x] **T-188.3** `✅ Done (2026-11-02)` Ukur ulang dan laporkan selisihnya.
+
+**Hasil (2026-11-02):** pengukuran awal (byte ÷ 4, bukan pemakaian token sesungguhnya karena `explain-usage` dan `get_usage` tidak tersedia): `AGENTS.md` 143 baris (~2.400 token), navigator 363 baris (~5.200), README agen 195 baris (~3.100), deskripsi 21 skill 8.555 karakter (~2.100). King Rezi meninjau per berkas: dari tiga usulan di navigator hanya **format entri CONVERSATIONS dan BRAINSTORM** yang disetujui (diganti penunjuk ke bagian "Format Entry" di berkas masing-masing). Template ADR dan File Map **tidak** disetujui dan dibiarkan; `AGENTS.md` dan README agen tidak diubah. Setelah: navigator 344 baris (20.401 byte, selisih -19 baris dan -451 byte, sekitar 110 token). Penghematan kecil; ukuran token nyata belum terukur.
 
 ### T-190 · Skill `wave-plan`
 

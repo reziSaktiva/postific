@@ -42,7 +42,6 @@ ID tiket global, tidak didaur ulang. Berikutnya: **T-191**. ID spec berikutnya: 
 | T-185   | ⏳     | Dry-run `wave-plan` and `wave-work` on the next real wave (S-003, depends T-183, T-184, T-190)                                                                                        | [v0.1](tickets/v01-foundation.md)     |
 | T-186   | 🟡     | Docs locator and link check script (S-003). Skrip selesai; sisa T-186.5: pemicu dan 32 temuan dokumen                                                                                 | [v0.1](tickets/v01-foundation.md)     |
 | T-187   | 🟡     | Update `proactive-clarification` with round-based questioning (S-003). Sisa T-187.3: uji pada klarifikasi nyata                                                                       | [v0.1](tickets/v01-foundation.md)     |
-| T-188   | ⏳     | Prune always-loaded orchestration context (S-003)                                                                                                                                     | [v0.1](tickets/v01-foundation.md)     |
 | T-189   | ⏳     | Wave A staging verification (T-151, T-152, T-154 sampai T-157, T-180; S-003)                                                                                                          | [v0.5](tickets/v05-mcp-server-mvp.md) |
 | T-088.1 | ⏳     | Jadikan check E2E staging required check untuk `main` (dari T-175.3, ADR-151). Ditunda: AI wajib mengingatkan King Rezi saat v1.0 / MVP public launch dimulai                         | [v1.0](tickets/v10-public-launch.md)  |
 

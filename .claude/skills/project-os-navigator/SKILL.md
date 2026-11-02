@@ -69,15 +69,7 @@ Lihat `project-os/PROJECT_RULES.md` bagian **Document Type Classification** untu
 3. Jangan menyarankan solusi yang keluar dari scope phase aktif (lihat `Active Conversation Mode` di PROJECT_STATE.md).
 4. Jika diskusi menghasilkan insight penting, catat di `project-os/CONVERSATIONS.md`.
 
-**Format CONVERSATIONS.md entry:**
-
-```
-## [YYYY-MM-DD] — [Topik Singkat]
-**Phase:** [phase aktif]
-**Summary:** [ringkasan diskusi dalam 2-3 kalimat]
-**Key Decision/Insight:** [jika ada]
-**Impact:** [apakah ada dokumen yang perlu diupdate?]
-```
+Format entri: bagian "Format Entry" di `project-os/CONVERSATIONS.md`.
 
 ---
 
@@ -92,18 +84,7 @@ Lihat `project-os/PROJECT_RULES.md` bagian **Document Type Classification** untu
 3. Setelah brainstorm selesai, evaluasi hasilnya terhadap baseline yang ada.
 4. Jika ada ide yang layak dipertimbangkan, catat di `project-os/BRAINSTORM.md`.
 
-**Format BRAINSTORM.md entry:**
-
-```
-## [YYYY-MM-DD] — [Topik Brainstorm]
-**Phase:** [phase aktif]
-**Context:** [mengapa topik ini didiskusikan]
-**Ideas:**
-- [ide 1]
-- [ide 2]
-**Evaluation:** [selaras / bertentangan / perlu ADR / perlu validasi lebih lanjut]
-**Next Action:** [discard / simpan untuk fase X / buat ADR / validasi dulu]
-```
+Format entri: bagian "Format Entry" di `project-os/BRAINSTORM.md`.
 
 ---
 
