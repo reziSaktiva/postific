@@ -161,8 +161,14 @@ function checkIds(docs: Doc[], defs: Definition[]): Finding[] {
     const lines = doc.text.split("\n");
     for (const ref of parseReferences(doc.path, doc.text)) {
       if (ref.inRange) continue;
-      // Baris penghitung "Berikutnya" sengaja menyebut ID yang belum ada.
-      if (/berikutnya/i.test(lines[ref.line - 1])) continue;
+      // Penghitung "Berikutnya: **T-NNN**" sengaja menyebut ID yang belum ada;
+      // hanya ID penghitung itu yang dilewati, bukan seluruh baris.
+      const counters = [
+        ...lines[ref.line - 1].matchAll(
+          /berikutnya:\s*\*\*([A-Z]{1,4}-\d+)\*\*/gi,
+        ),
+      ];
+      if (counters.some((counter) => counter[1] === ref.id)) continue;
       const prefix = ref.id.split("-")[0];
       if (!prefixes.has(prefix)) continue;
       const base = ref.id.replace(/\.\d+$/, "");
@@ -284,13 +290,25 @@ function readJson(root: string, file: string): unknown {
   return existsSync(abs) ? JSON.parse(readFileSync(abs, "utf8")) : undefined;
 }
 
+/** JSON.stringify dengan kunci objek terurut, agar urutan kunci tidak dianggap beda. */
+function stableStringify(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
+  if (value !== null && typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, item]) => `${JSON.stringify(key)}:${stableStringify(item)}`);
+    return `{${entries.join(",")}}`;
+  }
+  return JSON.stringify(value) ?? "undefined";
+}
+
 function checkTwins(root: string): Finding[] {
   const findings: Finding[] = [];
 
   const claude = readJson(root, ".mcp.json");
   const cursor = readJson(root, ".cursor/mcp.json");
   if (claude !== undefined || cursor !== undefined) {
-    if (JSON.stringify(claude) !== JSON.stringify(cursor)) {
+    if (stableStringify(claude) !== stableStringify(cursor)) {
       findings.push({
         rule: "twin-pair",
         path: ".cursor/mcp.json",

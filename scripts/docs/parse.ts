@@ -56,13 +56,14 @@ interface ScannedLine {
 /** Tandai tiap baris apakah ia berada di dalam blok kode berpagar. */
 function scan(text: string): ScannedLine[] {
   const out: ScannedLine[] = [];
-  let fence: string | null = null;
+  let fence: { char: string; length: number } | null = null;
   text.split(/\r?\n/).forEach((raw, index) => {
     const marker = /^\s*(```+|~~~+)/.exec(raw);
     if (marker) {
-      const kind = marker[1][0];
-      if (fence === null) fence = kind;
-      else if (fence === kind) fence = null;
+      const char = marker[1][0];
+      const length = marker[1].length;
+      if (fence === null) fence = { char, length };
+      else if (fence.char === char && length >= fence.length) fence = null;
       out.push({ line: index + 1, text: raw, fenced: true });
       return;
     }
@@ -151,13 +152,26 @@ export function parseDefinitions(path: string, text: string): Definition[] {
     }
   });
 
+  // Satu lintasan mundur dengan tumpukan: heading berikutnya yang levelnya
+  // sama atau lebih tinggi untuk tiap heading, tanpa memindai ulang daftar.
+  const nextAtOrAbove = new Map<number, number>();
+  const stack: { index: number; level: number }[] = [];
+  for (let i = headings.length - 1; i >= 0; i--) {
+    const heading = headings[i];
+    while (stack.length > 0 && stack[stack.length - 1].level > heading.level) {
+      stack.pop();
+    }
+    if (stack.length > 0) {
+      nextAtOrAbove.set(heading.index, stack[stack.length - 1].index);
+    }
+    stack.push(heading);
+  }
+
   for (const def of defs) {
     if (def.kind !== "heading") continue;
     const start = def.line - 1;
-    const next = headings.find(
-      (h) => h.index > start && h.level <= (def.level as number),
-    );
-    let end = next ? next.index : lines.length;
+    const next = nextAtOrAbove.get(start);
+    let end = next ?? lines.length;
     while (end > start + 1 && /^\s*(---)?\s*$/.test(lines[end - 1].text)) {
       end--;
     }

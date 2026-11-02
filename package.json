@@ -38,6 +38,10 @@
       "eslint --fix",
       "prettier --write"
     ],
+    "scripts/**/*.{ts,tsx,js}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
     "{apps,packages}/**/*.{json,css,md}": [
       "prettier --write"
     ],

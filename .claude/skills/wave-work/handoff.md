@@ -36,7 +36,7 @@ yang dikutip singkat). Tandai pertanyaan yang masih milik King Rezi.
 
 ## Skill yang harus dipanggil agen berikutnya
 
-Nama skill dan alasan (mis. `wave-work` langkah 5 dan seterusnya).
+Nama skill dan alasan (mis. `wave-work` mulai dari langkah "Gabungkan jalur").
 
 ## Penunjuk bacaan
 
