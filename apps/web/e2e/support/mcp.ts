@@ -5,6 +5,7 @@ import {
   type APIRequestContext,
   type APIResponse,
   type BrowserContext,
+  type Locator,
   type Page,
 } from "@playwright/test";
 
@@ -114,6 +115,9 @@ export const harnessScreens = {
   scopeCheckbox: (page: Page, scope: string) => page.locator(`[id="${scope}"]`),
   consentAllow: (page: Page) =>
     page.getByRole("button", { name: /^(Izinkan|Saya paham, izinkan)$/ }),
+  /** Label tombol Izinkan selama persetujuan disimpan (menandakan klik terdaftar). */
+  consentSaving: (page: Page) =>
+    page.getByRole("button", { name: "Menyimpan…", exact: true }),
   /** Tombol yang menggantikan Izinkan setelah persetujuan gagal disimpan. */
   consentRetry: (page: Page) =>
     page.getByRole("button", { name: "Coba Lagi", exact: true }),
@@ -271,6 +275,57 @@ export async function registerClient(
 // Authorize di browser (pilih workspace, setujui scope)
 // ---------------------------------------------------------------------------
 
+/**
+ * Layar consent sudah ada di HTML server sebelum React terhidrasi, dan klik
+ * sebelum hidrasi tidak memicu handler (T-193). Karena itu klik diulang sampai
+ * efeknya terlihat, bukan dianggap berhasil begitu klik selesai.
+ */
+async function setScopeChecked(box: Locator, wanted: boolean): Promise<void> {
+  const target = String(wanted);
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    if ((await box.getAttribute("aria-checked")) === target) return;
+    await box.click();
+    try {
+      await expect(box).toHaveAttribute("aria-checked", target, {
+        timeout: 1_500,
+      });
+      return;
+    } catch {
+      // Klik hilang (belum terhidrasi): ulangi.
+    }
+  }
+  throw new Error(
+    `Checkbox scope tidak berubah menjadi ${target} setelah 6 klik.`,
+  );
+}
+
+/**
+ * Klik Izinkan sampai terdaftar: tombol berubah jadi "Menyimpan…" atau
+ * redirect sudah terjadi. Klik sebelum hidrasi hilang diam-diam (T-193).
+ */
+async function clickAllowUntilRegistered(
+  page: Page,
+  redirected: () => boolean,
+): Promise<void> {
+  for (let attempt = 0; attempt < 5 && !redirected(); attempt += 1) {
+    try {
+      await harnessScreens.consentAllow(page).click({ timeout: 5_000 });
+    } catch {
+      // Tombol sudah berubah (Menyimpan… atau Coba Lagi) atau halaman pindah:
+      // loop pemanggil yang menangani sisanya.
+      return;
+    }
+    try {
+      await harnessScreens
+        .consentSaving(page)
+        .waitFor({ state: "visible", timeout: 3_000 });
+      return;
+    } catch {
+      // Belum terdaftar: ulangi klik.
+    }
+  }
+}
+
 export function resourceUrl(baseURL: string): string {
   return `${baseURL.replace(/\/+$/, "")}/api/mcp`;
 }
@@ -353,11 +408,9 @@ export async function authorizeInBrowser(
         for (const scope of harnessScreens.scopes) {
           const box = harnessScreens.scopeCheckbox(page, scope);
           if ((await box.count()) === 0) continue;
-          const wanted = grantScopes.includes(scope);
-          const checked = (await box.getAttribute("aria-checked")) === "true";
-          if (wanted !== checked) await box.click();
+          await setScopeChecked(box, grantScopes.includes(scope));
         }
-        await harnessScreens.consentAllow(page).click();
+        await clickAllowUntilRegistered(page, () => callbackUrl !== undefined);
       } else if (
         consented &&
         (await harnessScreens.consentRetry(page).isVisible())
