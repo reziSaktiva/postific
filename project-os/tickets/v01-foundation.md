@@ -847,12 +847,12 @@ Hasil: `e2e/start-page.e2e.ts` (3 tes serial). Berjalan di workspace khusus **E2
 
 ### T-181 · Draft ADR-153: Done (code) and Verified (staging) status ladder
 
-`⏳ Not Started` · **Domain** project-os, agen · **ADR** ADR-153 (Proposed), ADR-149 · **Spec** S-003 · **Depends** —
+`🟡 In Progress (2026-11-02)` · **Domain** project-os, agen · **ADR** ADR-153 (Proposed), ADR-149 · **Spec** S-003 · **Depends** —
 **Baca dulu:** `project-os/specs/S-003.md` § Perilaku 1 · `.claude/skills/project-os-navigator/SKILL.md` § Pekerjaan Baru
 
 Memisahkan "kode selesai" dari "terbukti di staging" (keputusan King Rezi 2026-10-30). Mengubah definisi selesai, jadi butuh ADR baru (AGENTS.md aturan 2).
 
-- [ ] **T-181.1** Tulis ADR-153 (Proposed) di `DECISIONS.md`: tiket boleh ✅ saat Done (code); Verified (staging) menjadi satu verifikasi per gelombang; bagian "Belum terbukti" wajib sampai verifikasinya lulus. Mengamandemen konvensi tutup-setelah-staging di tiket MCP (T-150.7, T-178). Catat koreksi: definisi di ADR-149 sudah berbasis `local`.
+- [x] **T-181.1** `✅ Done (2026-11-02)` Tulis ADR-153 (Proposed) di `DECISIONS.md`: tiket boleh ✅ saat Done (code); Verified (staging) menjadi satu verifikasi per gelombang; bagian "Belum terbukti" wajib sampai verifikasinya lulus. Mengamandemen konvensi tutup-setelah-staging di tiket MCP (T-150.7, T-178). Catat koreksi: definisi di ADR-149 sudah berbasis `local`.
 - [ ] **T-181.2** King Rezi menyetujui ADR-153 (Proposed menjadi Accepted).
 
 ### T-182 · Apply the status ladder to project docs
