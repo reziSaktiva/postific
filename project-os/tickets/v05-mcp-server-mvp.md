@@ -126,7 +126,7 @@ Urutan: .1 dulu; .2 dan .3 berurutan (Prabowo); .4 sebelum .5 (SQL staging diset
 
 ### T-151 · Layar persetujuan OAuth (pilih workspace dan scope)
 
-`🟡 Done (code), menunggu Verified (staging) lewat T-189.1, T-189.2 (2026-11-02)` · **Domain** mcp-access · UI · **ADR** ADR-139, ADR-097, ADR-152 (Proposed) · **Terkait** T-178 · **Depends** T-148, T-149
+`🟡 Done (code), menunggu Verified (staging) lewat T-189.1, T-189.2 (2026-11-02)` · **Domain** mcp-access · UI · **ADR** ADR-139, ADR-097, ADR-152 (Accepted) · **Terkait** T-178 · **Depends** T-148, T-149
 
 **Baca dulu:** `apps/web/.claude/CLAUDE.md` · `.claude/skills/claude-design-scope-discipline/SKILL.md` · ADR-139
 
@@ -152,11 +152,11 @@ Layar tempat pengguna memilih satu workspace dan scope. Default `read` + `draft`
 
 ### T-152 · Tool draft dan penanda sumber MCP
 
-`🟡 Done (code), menunggu Verified (staging) lewat T-189.3 (2026-11-02)` · **Domain** mcp-access · publishing · **ADR** ADR-138, ADR-039, ADR-152 (Proposed) · **Depends** T-150
+`🟡 Done (code), menunggu Verified (staging) lewat T-189.3 (2026-11-02)` · **Domain** mcp-access · publishing · **ADR** ADR-138, ADR-039, ADR-152 (Accepted) · **Depends** T-150
 
 **Baca dulu:** `05-architecture/application-layer.md` · `05-architecture/database-strategy.md`
 
-`create_draft` dan `update_draft` (hanya draft, tidak menyentuh post yang sudah dijadwalkan). Kolom penanda sumber di `publishing_posts` (`created_via`, `created_via_client_id`), diputuskan final di tiket ini (usulan di ADR-152, menunggu persetujuan King Rezi).
+`create_draft` dan `update_draft` (hanya draft, tidak menyentuh post yang sudah dijadwalkan). Kolom penanda sumber di `publishing_posts` (`created_via`, `created_via_client_id`), diputuskan final di tiket ini (usulan di ADR-152, Accepted 2026-11-02).
 
 **Subtask** (gelombang 1, 2026-10-30)
 
@@ -181,7 +181,7 @@ Satu panggilan memuat maksimum 10 konten (konstanta konfigurasi). Target per kon
 
 ### T-154 · Rate limit per workspace (Postgres)
 
-`🟡 Done (code), menunggu Verified (staging) lewat T-189.4 (2026-11-02)` · **Domain** mcp-access · **ADR** ADR-138, ADR-152 (Proposed) · **Terkait** T-153 · **Depends** T-150
+`🟡 Done (code), menunggu Verified (staging) lewat T-189.4 (2026-11-02)` · **Domain** mcp-access · **ADR** ADR-138, ADR-152 (Accepted) · **Terkait** T-153 · **Depends** T-150
 
 **Baca dulu:** `05-architecture/background-jobs.md` · `05-architecture/database-strategy.md`
 
@@ -323,7 +323,7 @@ Menampung temuan T-150.7 yang tadinya hanya tercatat sebagai prosa. Detail bukti
 
 ### T-180 · Tindak lanjut temuan non-blocking gelombang 1 MCP (T-151, T-152, T-154)
 
-`🟡 Done (code), menunggu Verified (staging) lewat T-189.2, T-189.8 (2026-11-02)` · **Domain** mcp-access · publishing · UI · **ADR** ADR-138, ADR-152 (Proposed) · **Terkait** T-151, T-152, T-154, T-157 · **Depends** T-151, T-152, T-154 (kode selesai, 2026-10-30)
+`🟡 Done (code), menunggu Verified (staging) lewat T-189.2, T-189.8 (2026-11-02)` · **Domain** mcp-access · publishing · UI · **ADR** ADR-138, ADR-152 (Accepted) · **Terkait** T-151, T-152, T-154, T-157 · **Depends** T-151, T-152, T-154 (kode selesai, 2026-10-30)
 
 **Baca dulu:** tiket T-151, T-152, T-154 di file ini (bagian hasil kode)
 
@@ -338,7 +338,7 @@ Menampung temuan review Ridwan, QA Najwa, dan catatan penulis gelombang 1 yang t
 
 ### T-189 · Wave A staging verification
 
-`⏳ Not Started` · **Mode** HITL (T-189.9) · **Domain** mcp-access, QA · **ADR** ADR-152 (Proposed), ADR-153 (Accepted) · **Spec** S-003 · **Terkait** T-151, T-152, T-154, T-155, T-156, T-157, T-180 · **Depends** deploy `e3c973a1` (PR 227, live 2026-10-30)
+`⏳ Not Started` · **Mode** HITL (T-189.9) · **Domain** mcp-access, QA · **ADR** ADR-152 (Accepted), ADR-153 (Accepted) · **Spec** S-003 · **Terkait** T-151, T-152, T-154, T-155, T-156, T-157, T-180 · **Depends** deploy `e3c973a1` (PR 227, live 2026-10-30)
 
 **Baca dulu:** `project-os/specs/S-003.md` § Perilaku 1 · bagian "Belum terbukti" di tiket yang dirujuk
 
