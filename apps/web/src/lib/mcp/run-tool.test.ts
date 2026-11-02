@@ -93,6 +93,23 @@ const authorizedCall = {
 };
 
 describe("runMcpTool (scripted access)", () => {
+  it("binds quota consumption to the workspace of the grant; the handler cannot name another", async () => {
+    const { deps, access } = scriptedDeps(async () => authorizedCall);
+    const tool = makeTool(async () => ({ data: {} }));
+    tool.handler.mockImplementation(async (context) => {
+      await context.consumeQuota("scheduled_contents", 2);
+      return { data: {} };
+    });
+
+    await runMcpTool(deps, claims, tool, {});
+
+    expect(access.consumeQuota).toHaveBeenCalledWith(
+      WS_A,
+      "scheduled_contents",
+      2,
+    );
+  });
+
   it("gives the handler the time zone of the connection owner (User.timeZone)", async () => {
     const { deps } = scriptedDeps(async () => authorizedCall);
     deps.services = {

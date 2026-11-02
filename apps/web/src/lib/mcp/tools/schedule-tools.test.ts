@@ -258,7 +258,7 @@ describe("schedule_posts handler", () => {
     expect(output.targetId).toBeUndefined();
   });
 
-  it("asks the quota for the number of contents the use-case lets through, on scheduled_contents of this workspace", async () => {
+  it("forwards the use-case quota request to the context as scheduled_contents with the requested count (no workspace argument)", async () => {
     const { scheduleContents } = fakeUseCase([scheduledOutcome(0)]);
     const consumeQuota = vi.fn(async () => undefined);
 
@@ -266,11 +266,7 @@ describe("schedule_posts handler", () => {
       posts: [content()],
     });
 
-    expect(consumeQuota).toHaveBeenCalledWith(
-      WORKSPACE,
-      "scheduled_contents",
-      1,
-    );
+    expect(consumeQuota).toHaveBeenCalledWith("scheduled_contents", 1);
   });
 
   it("rejects bad batches before touching the use-case: none, too many, not a list, unknown argument", async () => {
@@ -352,11 +348,15 @@ describe("schedule_posts through the gate (real McpAccessService and rate limit)
   /** Penghitung dalam memori: menolak (all-or-nothing) bila melebihi batas. */
   function counters(): IMcpRateLimitRepository & {
     used: Record<string, number>;
+    workspaces: Set<unknown>;
   } {
     const used: Record<string, number> = {};
+    const workspaces = new Set<unknown>();
     return {
       used,
-      consume: async ({ quota, amount, limit }) => {
+      workspaces,
+      consume: async ({ workspaceId, quota, amount, limit }) => {
+        workspaces.add(workspaceId);
         const next = (used[quota] ?? 0) + amount;
         if (next > limit) return { allowed: false };
         used[quota] = next;
@@ -401,7 +401,7 @@ describe("schedule_posts through the gate (real McpAccessService and rate limit)
   const parse = (r: { content: { type: string; text?: string }[] }) =>
     JSON.parse(r.content[0]?.text ?? "null");
 
-  it("counts one scheduled_contents unit per content that passes, plus the call and write action", async () => {
+  it("counts the quota the use-case reserves on the workspace of the grant, next to the call and write action", async () => {
     const repo = counters();
     const { deps } = gate(
       repo,
@@ -421,9 +421,10 @@ describe("schedule_posts through the gate (real McpAccessService and rate limit)
     expect(repo.used.scheduled_contents).toBe(3);
     expect(repo.used.write_actions).toBe(1);
     expect(repo.used.calls).toBe(1);
+    expect([...repo.workspaces]).toEqual([WORKSPACE]);
   });
 
-  it("returns rate_limited when the daily scheduled contents are exhausted and does not schedule", async () => {
+  it("surfaces a refused reservation as rate_limited and leaves the counter untouched", async () => {
     const repo = counters();
     repo.used.scheduled_contents = 49; // batas bawaan 50 per hari
     const scheduled = vi.fn();

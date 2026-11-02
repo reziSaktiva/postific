@@ -276,8 +276,8 @@ export async function runMcpTool(
         clientName: authorized.clientName ?? null,
         grantScopes: authorized.grantScopes,
         timeZone,
-        consumeQuota: (workspaceId, quota, amount) =>
-          deps.access.consumeQuota(workspaceId, quota, amount),
+        consumeQuota: (quota, amount) =>
+          deps.access.consumeQuota(authorized.workspaceId, quota, amount),
         services: deps.services,
       },
       args,

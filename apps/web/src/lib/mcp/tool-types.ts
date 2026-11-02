@@ -1,5 +1,5 @@
 import type { UserId, WorkspaceId } from "@postific/shared";
-import type { McpAccessService, McpScope } from "@/domains/mcp-access";
+import type { McpQuotaKind, McpScope } from "@/domains/mcp-access";
 import type { AnalyticsService } from "@/domains/analytics";
 import type { EngagementService } from "@/domains/engagement";
 import type { IdentityService } from "@/domains/identity";
@@ -62,11 +62,13 @@ export interface McpToolContext {
    */
   timeZone: string;
   /**
-   * Kuota workspace dari `McpAccessService` (T-154); tool yang memakai kuota
-   * di luar `authorizeCall` (mis. `scheduled_contents`, T-153) memanggilnya.
-   * Melempar `McpRateLimitExceededError` bila habis (dipetakan ke `rate_limited`).
+   * Kuota workspace dari `McpAccessService` (T-154), terikat ke workspace
+   * grant oleh `runMcpTool`: handler tidak bisa menyebut workspace lain.
+   * Dipakai tool yang menghitung kuota di luar `authorizeCall` (mis.
+   * `scheduled_contents`, T-153). Melempar `McpRateLimitExceededError` bila
+   * habis (dipetakan ke `rate_limited`).
    */
-  consumeQuota: McpAccessService["consumeQuota"];
+  consumeQuota: (quota: McpQuotaKind, amount?: number) => Promise<void>;
   services: McpToolServices;
 }
 

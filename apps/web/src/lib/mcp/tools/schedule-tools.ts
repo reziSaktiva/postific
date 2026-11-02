@@ -201,7 +201,7 @@ const schedulePosts: McpToolDefinition = {
         clientName: context.clientName,
       },
       reserveQuota: (count) =>
-        context.consumeQuota(context.workspaceId, "scheduled_contents", count),
+        context.consumeQuota("scheduled_contents", count),
     });
 
     const scheduled = outcomes.filter(
