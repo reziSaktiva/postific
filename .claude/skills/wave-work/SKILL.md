@@ -43,7 +43,9 @@ milik King Rezi. Commit dan push hanya atas permintaan King Rezi (`AGENTS.md` at
 7. **Done (code)** per tiket menurut ADR-153; tandai ✅ tanpa menunggu deploy. Butir yang hanya terbukti di staging tetap di "Belum terbukti".
 8. **Verified (staging):** setelah deploy sukses, satu verifikasi gelombang; catat hasil di tiket verifikasi gelombang dan coret butir yang lulus.
 9. **Bersihkan:** tutup PR jalur dengan komentar yang menunjuk PR integrasi (hanya atas izin King Rezi), hapus worktree jalur.
-10. **Retro** (hanya saran, tanpa mengedit): kandidat perbaikan lingkungan agen per kategori, diurutkan menurut keparahan.
+10. **Retro** (hanya saran, tanpa mengedit): kandidat perbaikan lingkungan agen per kategori, diurutkan menurut keparahan. Bentuk dan kategori di [`retro.md`](retro.md).
+
+**Handoff** (kapan saja sesi berhenti di tengah gelombang, bukan langkah berurutan): dokumen penunjuk di scratchpad sesi, bentuknya di [`handoff.md`](handoff.md).
 
 ## Pelajaran gelombang A yang sudah dikunci
 
