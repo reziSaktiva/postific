@@ -27,6 +27,8 @@ export interface McpAuditPurger {
  */
 export interface McpWorkspaceChoicePurger {
   purgeExpiredWorkspaceChoices(): Promise<number>;
+  /** Pembersihan klien OAuth dinamis tak terpakai (T-150.9); opsional agar pemanggil lama tetap valid. */
+  purgeUnusedClientRegistrations?(): Promise<number>;
 }
 
 /**
@@ -35,7 +37,7 @@ export interface McpWorkspaceChoicePurger {
  * `purgeRateLimitWindows()` (T-154) dan, bila disuplai,
  * `McpConsentService.purgeExpiredWorkspaceChoices()` (T-151: baris pilihan
  * workspace per sesi OAuth berumur 10 menit, kedaluwarsa sudah diabaikan saat
- * dibaca). Ketiganya dijalankan walau salah satunya gagal; error pertama
+ * dibaca). Semuanya dijalankan walau salah satunya gagal; error pertama
  * dilempar setelahnya (semuanya dibawa bila lebih dari satu). Idempoten: run kedua tanpa baris kedaluwarsa menghapus 0
  * dan tidak error. Kegagalan dilempar apa adanya
  * supaya job runner memakai retry generik (5m/15m/60m).
@@ -55,6 +57,8 @@ export class McpAuditPurgeJobHandler {
       this.purger.purgeAudit(),
       this.purger.purgeRateLimitWindows?.() ?? Promise.resolve(null),
       this.workspaceChoicePurger?.purgeExpiredWorkspaceChoices() ??
+        Promise.resolve(null),
+      this.workspaceChoicePurger?.purgeUnusedClientRegistrations?.() ??
         Promise.resolve(null),
     ]);
     const failures = results.flatMap((result) =>

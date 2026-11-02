@@ -102,13 +102,23 @@ function createService(
     ),
   };
   const findRegistration = vi.fn(async () => options.registration ?? null);
+  const deleteUnusedRegistrations = vi.fn(async () => 3);
   const service = new McpConsentService(
     repository,
-    { findRegistration },
+    {
+      findRegistration,
+      deleteUnusedRegistrations,
+    },
     workspaces,
     options.clock ?? (() => NOW),
   );
-  return { service, rows, workspaces, findRegistration };
+  return {
+    service,
+    rows,
+    workspaces,
+    findRegistration,
+    deleteUnusedRegistrations,
+  };
 }
 
 describe("McpConsentService", () => {
@@ -278,7 +288,7 @@ describe("McpConsentService", () => {
           deleteForSession: vi.fn(),
           deleteExpired: vi.fn(),
         },
-        { findRegistration: vi.fn() },
+        { findRegistration: vi.fn(), deleteUnusedRegistrations: vi.fn() },
         {
           listWorkspacesForUser: vi.fn(),
           findWorkspaceForUser: vi.fn(),
@@ -407,6 +417,17 @@ describe("McpConsentService", () => {
       await expect(service.purgeExpiredWorkspaceChoices()).resolves.toBe(1);
       expect([...rows.keys()]).toEqual(["fresh"]);
       await expect(service.purgeExpiredWorkspaceChoices()).resolves.toBe(0);
+    });
+  });
+
+  describe("purgeUnusedClientRegistrations", () => {
+    it("asks the repository to delete clients registered more than a day ago and returns its count", async () => {
+      const { service, deleteUnusedRegistrations } = createService();
+
+      await expect(service.purgeUnusedClientRegistrations()).resolves.toBe(3);
+      expect(deleteUnusedRegistrations).toHaveBeenCalledWith(
+        new Date(NOW.getTime() - 24 * 60 * 60 * 1000),
+      );
     });
   });
 });

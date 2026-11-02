@@ -31,6 +31,12 @@ export async function handleMcpRequest(
     sessionIdGenerator: undefined,
     enableJsonResponse: true,
   });
+  // Penyebab 400 transport (JSON tak valid, pesan bukan JSON-RPC, versi
+  // protokol tak didukung) tidak terlihat di log HTTP; catat alasannya
+  // (T-179.1) tanpa isi body.
+  transport.onerror = (error) => {
+    console.warn(`[mcp] transport menolak request: ${error.message}`);
+  };
   await server.connect(transport);
   return transport.handleRequest(request);
 }

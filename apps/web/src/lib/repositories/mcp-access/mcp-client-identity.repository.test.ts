@@ -1,9 +1,85 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { findUnique } = vi.hoisted(() => ({ findUnique: vi.fn() }));
+const { findUnique, db } = vi.hoisted(() => {
+  type Row = {
+    id: string;
+    clientId: string;
+    userId: string | null;
+    createdAt: Date;
+  };
+  const state = {
+    clients: [] as Row[],
+    consents: [] as string[],
+    refresh: [] as string[],
+    access: [] as string[],
+    grants: [] as string[],
+  };
+  // Tabel palsu berperilaku seperti filter Prisma yang dipakai repository.
+  const inList = (ids: string[]) => ({
+    findMany: async ({ where }: { where: { clientId: { in: string[] } } }) =>
+      ids
+        .filter((id) => where.clientId.in.includes(id))
+        .map((clientId) => ({ clientId })),
+  });
+  const tx = {
+    oauthClient: {
+      findMany: async ({
+        where,
+        take,
+        cursor,
+        skip = 0,
+      }: {
+        where: { userId: null; createdAt: { lt: Date } };
+        take: number;
+        cursor?: { id: string };
+        skip?: number;
+      }) => {
+        const rows = state.clients
+          .filter((c) => c.userId === null && c.createdAt < where.createdAt.lt)
+          .sort(
+            (x, y) =>
+              x.createdAt.getTime() - y.createdAt.getTime() ||
+              x.id.localeCompare(y.id),
+          );
+        const start = cursor ? rows.findIndex((c) => c.id === cursor.id) : 0;
+        return rows
+          .slice(start + skip, start + skip + take)
+          .map(({ id, clientId }) => ({ id, clientId }));
+      },
+      deleteMany: async ({
+        where,
+      }: {
+        where: { clientId: { in: string[] } };
+      }) => {
+        const before = state.clients.length;
+        state.clients = state.clients.filter(
+          (c) => !where.clientId.in.includes(c.clientId),
+        );
+        return { count: before - state.clients.length };
+      },
+    },
+    oauthConsent: inList([]),
+    oauthRefreshToken: inList([]),
+    oauthAccessToken: inList([]),
+    mcpGrant: inList([]),
+  };
+  Object.defineProperties(tx, {
+    oauthConsent: { get: () => inList(state.consents) },
+    oauthRefreshToken: { get: () => inList(state.refresh) },
+    oauthAccessToken: { get: () => inList(state.access) },
+    mcpGrant: { get: () => inList(state.grants) },
+  });
+  return {
+    findUnique: vi.fn(),
+    db: { state, tx },
+  };
+});
 
 vi.mock("@/lib/prisma/client", () => ({
-  prisma: { oauthClient: { findUnique } },
+  prisma: {
+    oauthClient: { findUnique },
+    $transaction: async (fn: (tx: unknown) => Promise<number>) => fn(db.tx),
+  },
 }));
 
 import { mcpClientIdentityRepository } from "./mcp-client-identity.repository";
@@ -38,5 +114,99 @@ describe("mcpClientIdentityRepository", () => {
     await expect(
       mcpClientIdentityRepository.findRegistration("ghost"),
     ).resolves.toBeNull();
+  });
+
+  describe("deleteUnusedRegistrations", () => {
+    const CUTOFF = new Date("2026-11-01T00:00:00Z");
+    const old = new Date("2026-10-01T00:00:00Z");
+    const recent = new Date("2026-11-02T00:00:00Z");
+
+    beforeEach(() => {
+      db.state.clients = [];
+      db.state.consents = [];
+      db.state.refresh = [];
+      db.state.access = [];
+      db.state.grants = [];
+    });
+
+    it("deletes old ownerless clients nobody uses and keeps the rest", async () => {
+      db.state.clients = [
+        { id: "unused", clientId: "unused", userId: null, createdAt: old },
+        {
+          id: "has-consent",
+          clientId: "has-consent",
+          userId: null,
+          createdAt: old,
+        },
+        {
+          id: "has-refresh",
+          clientId: "has-refresh",
+          userId: null,
+          createdAt: old,
+        },
+        {
+          id: "has-access",
+          clientId: "has-access",
+          userId: null,
+          createdAt: old,
+        },
+        {
+          id: "has-revoked-grant",
+          clientId: "has-revoked-grant",
+          userId: null,
+          createdAt: old,
+        },
+        { id: "owned", clientId: "owned", userId: "user-1", createdAt: old },
+        { id: "too-new", clientId: "too-new", userId: null, createdAt: recent },
+      ];
+      db.state.consents = ["has-consent"];
+      db.state.refresh = ["has-refresh"];
+      db.state.access = ["has-access"];
+      db.state.grants = ["has-revoked-grant"];
+
+      await expect(
+        mcpClientIdentityRepository.deleteUnusedRegistrations(CUTOFF),
+      ).resolves.toBe(1);
+      expect(db.state.clients.map((c) => c.clientId)).toEqual([
+        "has-consent",
+        "has-refresh",
+        "has-access",
+        "has-revoked-grant",
+        "owned",
+        "too-new",
+      ]);
+    });
+
+    it("still reaches unused clients behind more than one page of used ones", async () => {
+      const usedCount = 1100;
+      db.state.clients = [
+        ...Array.from({ length: usedCount }, (_, i) => ({
+          id: `used-${i}`,
+          clientId: `used-${i}`,
+          userId: null,
+          createdAt: new Date(old.getTime() + i),
+        })),
+        {
+          id: "unused-late",
+          clientId: "unused-late",
+          userId: null,
+          createdAt: new Date(old.getTime() + usedCount + 1),
+        },
+      ];
+      db.state.consents = db.state.clients
+        .filter((c) => c.clientId.startsWith("used-"))
+        .map((c) => c.clientId);
+
+      await expect(
+        mcpClientIdentityRepository.deleteUnusedRegistrations(CUTOFF),
+      ).resolves.toBe(1);
+      expect(db.state.clients).toHaveLength(usedCount);
+    });
+
+    it("returns 0 when nothing qualifies", async () => {
+      await expect(
+        mcpClientIdentityRepository.deleteUnusedRegistrations(CUTOFF),
+      ).resolves.toBe(0);
+    });
   });
 });
