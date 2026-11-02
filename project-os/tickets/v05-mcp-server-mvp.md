@@ -257,7 +257,7 @@ Badge dan filter berdasarkan `created_via`. Dari T-152 (2026-10-30): `list_draft
 
 Lahir dari T-147 (ADR-146 § 6): MCP sengaja dibiarkan WIB tetap. `toWibIso` di `format.ts` dan read-tools masih memakai Asia/Jakarta, padahal tampilan dan input di UI sudah mengikuti `User.timeZone`.
 
-- [ ] **T-168.1** Putuskan perilaku: output waktu MCP dan tafsir input jadwal tool (mis. `schedule_posts`, `create_draft`) memakai `User.timeZone` pemilik koneksi, termasuk offset di ISO.
+- [x] **T-168.1** `✅ Done (2026-11-02)` **Diputuskan King Rezi (rekomendasi agen disetujui):** output waktu MCP memakai `User.timeZone` pemilik koneksi dengan offset di ISO, dan input jadwal tanpa offset ditafsirkan di zona itu. Pertanyaan semula: Putuskan perilaku: output waktu MCP dan tafsir input jadwal tool (mis. `schedule_posts`, `create_draft`) memakai `User.timeZone` pemilik koneksi, termasuk offset di ISO.
 - [ ] **T-168.2** Ganti `toWibIso` dan pemakaian di read-tools agar menerima zona pengguna; selaraskan dengan `wib-time.ts` dinamis.
 - [ ] **T-168.3** Test dan verifikasi King Rezi.
 
