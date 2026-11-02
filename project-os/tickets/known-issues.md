@@ -1362,14 +1362,14 @@ sudah selesai adalah riwayat. Label "Gate Claude Design" dan nama folder skill
 
 ### T-177 · Kedipan terang saat memuat halaman dalam mode gelap untuk pengunjung tanpa cookie `theme` (KI-104, ADR-055)
 
-| Field       | Value                                                                                                                                                                                                 |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | 🟡 Done (code), menunggu Verified (staging) (2026-11-02, ADR-153; T-177.1 sampai .4 selesai, kode di PR 219; Verified setelah ter-merge dan `theme.e2e.ts` lolos terhadap staging; KI-104 tetap Open) |
-| **Domain**  | UI (tema), halaman publik Start Page; kemungkinan berlaku di seluruh aplikasi                                                                                                                         |
-| **Spec**    | tidak ada — single-issue                                                                                                                                                                              |
-| **Docs**    | KI-104, ADR-055 (amendemen T-039), ADR-097 poin 9, T-171, `app/layout.tsx`                                                                                                                            |
-| **Terkait** | T-171 (ditemukan di uji otomatis T-171.2), T-039                                                                                                                                                      |
-| **Depends** | keputusan King Rezi soal pendekatan perbaikan                                                                                                                                                         |
+| Field       | Value                                                                                                                                  |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**  | ✅ Done (2026-11-02, ADR-153; kode di PR 219, Verified (staging): `theme.e2e.ts` lolos di E2E staging run 41402235403; KI-104 ditutup) |
+| **Domain**  | UI (tema), halaman publik Start Page; kemungkinan berlaku di seluruh aplikasi                                                          |
+| **Spec**    | tidak ada — single-issue                                                                                                               |
+| **Docs**    | KI-104, ADR-055 (amendemen T-039), ADR-097 poin 9, T-171, `app/layout.tsx`                                                             |
+| **Terkait** | T-171 (ditemukan di uji otomatis T-171.2), T-039                                                                                       |
+| **Depends** | keputusan King Rezi soal pendekatan perbaikan                                                                                          |
 
 **Ditemukan (2026-10-29):** uji Playwright lintas browser di staging untuk T-171.2
 (Chromium, Firefox, WebKit). Dengan OS mode gelap dan tanpa cookie `theme`,
@@ -1467,7 +1467,7 @@ mode gelap, jadi ini kasus utama halaman publik, bukan kasus pinggir.
       frame di Playwright (Chromium, Firefox, WebKit) dan tidak terlihat oleh mata
       di Safari asli; bukti bahwa perbaikan bekerja adalah tes E2E (gagal di build
       lama, lolos di build baru, T-177.3), bukan uji mata ini. Tunnel dan server
-      lokal sudah dimatikan. Perbaikan belum ter-deploy ke staging. **Penutupan:**
+      lokal sudah dimatikan. **Penutupan (2026-11-02):** PR 219 ter-merge ke staging 2026-10-29 dan `theme.e2e.ts` (5 tes) lolos terhadap staging di workflow E2E staging (`workflow_dispatch`, run 41402235403, Chrome; lima tes tema tidak masuk daftar gagal, flaky, atau tidak jalan; kegagalan di run itu hanya di `mcp.e2e.ts`). Semula:
       T-177 dan KI-104 baru ditutup (✅ Done, KI-104 keluar dari daftar) setelah
       PR 219 ter-merge dan `theme.e2e.ts` lolos terhadap staging (hasil
       review PR 219: status tidak boleh mendahului merge). Bukti sejauh ini

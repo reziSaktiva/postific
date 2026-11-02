@@ -914,12 +914,12 @@ Pencari lokasi dokumen saat dijalankan (bukan berkas indeks yang di-commit, kare
 
 ### T-187 · Update `proactive-clarification` with round-based questioning
 
-`🟡 In Progress (2026-11-02)` · **Mode** AFK · **Domain** project-os, agen · **ADR** — · **Spec** S-003 · **Depends** — (S-003 disahkan 2026-11-02)
+`✅ Done (2026-11-02)` · **Mode** AFK · **Domain** project-os, agen · **ADR** — · **Spec** S-003 · **Depends** — (S-003 disahkan 2026-11-02)
 **Baca dulu:** `.claude/skills/proactive-clarification/SKILL.md` · `project-os/specs/S-003.md` tabel pola (`grilling`)
 
 - [x] **T-187.1** `✅ Done (2026-11-02)` Bandingkan skill yang ada (143 baris) dengan `grilling` dari sumber; catat selisihnya, termasuk apa yang sudah kita punya.
 - [x] **T-187.2** `✅ Done (2026-11-02)` Terapkan yang belum ada: pertanyaan per ronde mencakup seluruh frontier keputusan, rekomendasi di depan, fakta dicari sendiri dan hanya keputusan yang ditanyakan, selesai bila frontier kosong, tidak bertindak sebelum King Rezi mengonfirmasi pemahaman bersama.
-- [ ] **T-187.3** Uji pada klarifikasi nyata berikutnya dan revisi bila perlu.
+- [x] **T-187.3** `✅ Done (2026-11-02)` Diuji pada klarifikasi nyata (ronde 3 fork sebelum T-186.5). Lolos: satu ronde memuat seluruh frontier, fakta dicari sendiri, rekomendasi di depan, selesai bila frontier kosong. Direvisi: nama tool `AskQuestion` menjadi `AskUserQuestion` beserta batasnya (maks 4 pertanyaan, 2 sampai 4 opsi, "Other" otomatis) dan label "(Recommended)". Temuan terbuka: saya bertindak langsung setelah jawaban tanpa ringkasan dan konfirmasi (langkah 4); aturan dibiarkan utuh atas keputusan King Rezi (2026-11-02): konfirmasi tetap wajib, termasuk pada klarifikasi satu ronde.
 
 ### T-188 · Prune always-loaded orchestration context
 
