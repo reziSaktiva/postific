@@ -130,6 +130,17 @@ describe("schedule_posts definition", () => {
   });
 });
 
+describe("schedule_posts description (contract for the AI client)", () => {
+  it("warns about missing idempotency, says rejected contents cost no quota while later failures do, and that one bad scheduledAt fails the call", () => {
+    const text = schedulePosts.description;
+    expect(text).toMatch(/idempotensi/);
+    expect(text).toContain("list_scheduled_posts");
+    expect(text).toMatch(/tidak memakai kuota/);
+    expect(text).toMatch(/tetap memakai kuota/);
+    expect(text).toMatch(/SELURUH panggilan.*invalid_input/);
+  });
+});
+
 describe("schedule_posts handler", () => {
   it("passes grant identity, MCP source, and contents with the time read in the user zone", async () => {
     const { execute, scheduleContents } = fakeUseCase([scheduledOutcome(0)]);

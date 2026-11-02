@@ -165,9 +165,13 @@ const schedulePosts: McpToolDefinition = {
   name: "schedule_posts",
   description:
     `Jadwalkan sampai ${MCP_SCHEDULE_MAX_CONTENTS} konten sekaligus; tiap konten menjadi satu post baru (bertanda dibuat lewat MCP) ke satu atau beberapa akun terhubung. ` +
-    "Hasil dilaporkan per konten: sebagian bisa berhasil dan sebagian gagal, jadi periksa results[].status. Konten yang gagal tidak dijadwalkan dan tidak memakai kuota. " +
-    "Aturan yang sama dengan Draft Editor berlaku di server: format per akun, caption wajib (kecuali Story), Story tidak digabung dengan target lain bila caption terisi, jumlah media per format, dan waktu harus di masa depan. " +
-    "Akun Pinterest belum bisa dijadwalkan lewat MCP karena board belum bisa diisi. Pembatalan jadwal hanya bisa dilakukan manusia di aplikasi Postific. " +
+    "Hasil dilaporkan per konten: sebagian bisa berhasil dan sebagian gagal, jadi periksa results[].status. " +
+    "Aturan yang sama dengan Draft Editor berlaku di server: akun harus aktif, format per akun, caption wajib (kecuali Story), Story tidak digabung dengan target lain bila caption terisi, jumlah media per format, dan waktu harus di masa depan. " +
+    "Akun Pinterest belum bisa dijadwalkan lewat MCP karena board belum bisa diisi. " +
+    "Kuota: konten yang ditolak pemeriksaan di atas tidak dijadwalkan dan tidak memakai kuota. Konten yang gagal SETELAH draft dibuat (penyedia menolak, galat internal, konflik) tetap memakai kuota dan meninggalkan post berstatus Failed (hasilnya memuat postId); kuota tidak dikembalikan. " +
+    "Satu scheduledAt yang salah bentuk atau mustahil (mis. 30 Februari) menggagalkan SELURUH panggilan sebagai invalid_input dengan indeks konten (mis. posts[2]); tidak ada konten yang diproses. " +
+    "PERINGATAN idempotensi: tidak ada kunci idempotensi. Bila panggilan terputus atau kehabisan waktu tanpa hasil, periksa list_scheduled_posts sebelum mengulang; mengulang tanpa memeriksa membuat post ganda. " +
+    "Pembatalan jadwal hanya bisa dilakukan manusia di aplikasi Postific. " +
     "Tampilkan ringkasan hasil (caption, akun, format, waktu) kepada pengguna. Waktu tanpa offset dibaca di zona waktu pengguna; hasil memakai zona yang sama dengan offset.",
   scope: "schedule",
   inputSchema: SCHEDULE_POSTS_SCHEMA,
