@@ -11,10 +11,10 @@ import {
   PublishingService,
   SchedulePostsUseCase,
   ScheduleContentsUseCase,
-  type PostMediaLookupPort,
 } from "@/domains/publishing";
 import { WorkspaceService } from "@/domains/workspace";
 import { supabaseAvatarStorageAdapter } from "@/lib/adapters/avatar-storage";
+import { createPostMediaLookup } from "@/lib/adapters/media-storage/post-media-lookup";
 import { supabaseMediaStorageAdapter } from "@/lib/adapters/media-storage/supabase-media-storage-adapter";
 import { nodeSafeFetchDeps } from "@/lib/net/node-transport";
 import { safeFetch } from "@/lib/net/safe-fetch";
@@ -28,20 +28,6 @@ import { publishingRepository } from "@/lib/repositories/publishing";
 import { workspaceRepository } from "@/lib/repositories/workspace";
 
 import type { McpToolServices } from "./tool-types";
-
-/**
- * Lookup media untuk penjadwalan (resolve `mediaIds` ke URL Outstand): pola
- * sama `createPostMediaLookup` di Server Action Draft Editor.
- */
-function postMediaLookup(mediaService: MediaService): PostMediaLookupPort {
-  return {
-    listByIds: (input, userId) => mediaService.listByIds(input, userId),
-    downloadBytes: (storagePath) =>
-      supabaseMediaStorageAdapter.downloadMedia(storagePath),
-    saveOutstandWorkingCopy: (input, userId) =>
-      mediaService.saveOutstandWorkingCopy(input, userId),
-  };
-}
 
 /**
  * Composition root service BC lain untuk tool MCP (baca T-150.3, draft T-152), pola sama
@@ -96,7 +82,7 @@ export function getMcpToolServices(): McpToolServices {
           publishingRepository,
           getOutstandAdapter(),
           backgroundJobScheduler,
-          postMediaLookup(media),
+          createPostMediaLookup(media),
         ),
         publishingRepository,
         workspace,

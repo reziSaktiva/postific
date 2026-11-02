@@ -23,12 +23,25 @@ export function resolveDraftMediaIds(
   foundMedia: MediaOwnershipRecord[],
   requestedMediaIds: MediaId[],
 ): MediaId[] {
-  const foundIds = new Set(foundMedia.map((item) => item.id));
-  const missing = requestedMediaIds.filter((id) => !foundIds.has(id));
-  if (missing.length > 0) {
+  // UUID tidak peka huruf besar-kecil (T-192.7); id yang dikembalikan adalah
+  // bentuk kanonik dari DB, bukan ejaan klien.
+  const canonicalById = new Map(
+    foundMedia.map((item) => [item.id.toLowerCase(), item.id]),
+  );
+  const resolved: MediaId[] = [];
+  for (const id of requestedMediaIds) {
+    const canonical = canonicalById.get(id.toLowerCase());
+    if (canonical === undefined) {
+      throw new ValidationError(
+        "Salah satu media yang dipilih tidak ditemukan atau bukan milik workspace ini.",
+      );
+    }
+    resolved.push(canonical);
+  }
+  if (new Set(resolved).size !== resolved.length) {
     throw new ValidationError(
-      "Salah satu media yang dipilih tidak ditemukan atau bukan milik workspace ini.",
+      "Media yang sama dipilih lebih dari sekali. Satu media cukup satu kali.",
     );
   }
-  return requestedMediaIds;
+  return resolved;
 }

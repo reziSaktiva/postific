@@ -1,4 +1,4 @@
-import { asConnectedAccountId, ContentFormat } from "@postific/shared";
+import { ContentFormat } from "@postific/shared";
 import type { ConnectedAccountRecord } from "@/domains/workspace";
 import { ValidationError } from "@/lib/utils/errors";
 import { assertContentFormatAllowed } from "../content-format-matrix";
@@ -36,13 +36,14 @@ export function resolveScheduleTargets(
   connectedAccounts: ConnectedAccountRecord[],
   requests: ScheduleTargetRequest[],
 ): SchedulePostsTargetInput[] {
+  // UUID tidak peka huruf besar-kecil (T-192.7).
   const connectedAccountById = new Map(
-    connectedAccounts.map((account) => [account.id, account]),
+    connectedAccounts.map((account) => [account.id.toLowerCase(), account]),
   );
 
   return requests.map((request) => {
     const account = connectedAccountById.get(
-      asConnectedAccountId(request.connectedAccountId),
+      request.connectedAccountId.toLowerCase(),
     );
     if (!account) {
       throw new ValidationError(

@@ -2,6 +2,8 @@ import { ContentFormat, PostCreatedVia } from "@postific/shared";
 import { McpInvalidRateLimitInputError } from "@/domains/mcp-access";
 import {
   DRAFT_CAPTION_MAX_LENGTH,
+  maxMediaCountForFormat,
+  minMediaCountForFormat,
   type ScheduleContentFailureKind,
   type ScheduleContentInput,
   type ScheduleContentOutcome,
@@ -41,6 +43,39 @@ const FAILURE_CODE: Record<ScheduleContentFailureKind, string> = {
 
 const CONTENT_KEYS = ["caption", "mediaIds", "scheduledAt", "targets"] as const;
 
+/**
+ * Angka dan teks aturan media diturunkan dari matriks domain
+ * (`content-format-matrix.ts`), bukan ditulis manual (T-192.4): format yang
+ * batas min dan maks-nya sama dikelompokkan ("Reel, Story, dan Pin wajib tepat
+ * 1 media"), sisanya ditulis sebagai rentang ("Post boleh 0 sampai 10").
+ */
+const MEDIA_MAX_ITEMS = Math.max(
+  ...Object.values(ContentFormat).map(maxMediaCountForFormat),
+);
+const MEDIA_RULE_TEXT = describeMediaRules();
+
+function describeMediaRules(): string {
+  const groups = new Map<string, ContentFormat[]>();
+  for (const format of Object.values(ContentFormat)) {
+    const key = `${minMediaCountForFormat(format)}-${maxMediaCountForFormat(format)}`;
+    groups.set(key, [...(groups.get(key) ?? []), format]);
+  }
+  const sentences = [...groups.entries()].map(([key, formats]) => {
+    const [min, max] = key.split("-");
+    const names = formats.map(
+      (format) => format.charAt(0).toUpperCase() + format.slice(1),
+    );
+    const list =
+      names.length > 1
+        ? `${names.slice(0, -1).join(", ")}, dan ${names[names.length - 1]}`
+        : (names[0] ?? "");
+    return min === max
+      ? `${list} wajib tepat ${min} media`
+      : `${list} boleh ${min} sampai ${max}`;
+  });
+  return sentences.join("; ");
+}
+
 const SCHEDULE_POSTS_SCHEMA: McpJsonSchema = {
   type: "object",
   properties: {
@@ -60,9 +95,8 @@ const SCHEDULE_POSTS_SCHEMA: McpJsonSchema = {
           mediaIds: {
             type: "array",
             items: { type: "string" },
-            maxItems: 10,
-            description:
-              "ID media dari list_media, urutan = urutan tampil. Reel, Story, dan Pin wajib tepat 1 media; Post boleh 0 sampai 10.",
+            maxItems: MEDIA_MAX_ITEMS,
+            description: `ID media dari list_media, urutan = urutan tampil. ${MEDIA_RULE_TEXT}.`,
           },
           scheduledAt: {
             type: "string",

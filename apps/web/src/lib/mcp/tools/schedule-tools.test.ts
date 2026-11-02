@@ -21,8 +21,10 @@ import {
   type McpAuditEntry,
   type McpGrant,
 } from "@/domains/mcp-access";
-import type {
-  ScheduleContentOutcome,
+import {
+  maxMediaCountForFormat,
+  minMediaCountForFormat,
+  type ScheduleContentOutcome,
   ScheduleContentsUseCase,
 } from "@/domains/publishing";
 
@@ -139,6 +141,23 @@ describe("schedule_posts description (contract for the AI client)", () => {
     expect(text).toMatch(/tidak memakai kuota/);
     expect(text).toMatch(/tetap memakai kuota/);
     expect(text).toMatch(/SELURUH panggilan.*invalid_input/);
+  });
+});
+
+describe("schedule_posts media rules (derived from the format matrix, T-192.4)", () => {
+  it("states the media bounds of every format and caps mediaIds at the largest max", () => {
+    const posts = schedulePosts.inputSchema.properties.posts as {
+      items: {
+        properties: { mediaIds: { maxItems: number; description: string } };
+      };
+    };
+    const { maxItems, description } = posts.items.properties.mediaIds;
+
+    expect(maxItems).toBe(maxMediaCountForFormat(ContentFormat.Post));
+    expect(description).toContain(
+      `Post boleh ${minMediaCountForFormat(ContentFormat.Post)} sampai ${maxMediaCountForFormat(ContentFormat.Post)}`,
+    );
+    expect(description).toMatch(/Reel, Story, dan Pin wajib tepat 1 media/);
   });
 });
 
