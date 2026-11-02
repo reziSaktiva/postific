@@ -1362,14 +1362,14 @@ sudah selesai adalah riwayat. Label "Gate Claude Design" dan nama folder skill
 
 ### T-177 · Kedipan terang saat memuat halaman dalam mode gelap untuk pengunjung tanpa cookie `theme` (KI-104, ADR-055)
 
-| Field       | Value                                                                                                                                        |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | 🟡 In Progress (2026-10-29: T-177.1 sampai .4 selesai, kode di PR 219; ditutup setelah ter-merge dan terbukti di staging; KI-104 tetap Open) |
-| **Domain**  | UI (tema), halaman publik Start Page; kemungkinan berlaku di seluruh aplikasi                                                                |
-| **Spec**    | tidak ada — single-issue                                                                                                                     |
-| **Docs**    | KI-104, ADR-055 (amendemen T-039), ADR-097 poin 9, T-171, `app/layout.tsx`                                                                   |
-| **Terkait** | T-171 (ditemukan di uji otomatis T-171.2), T-039                                                                                             |
-| **Depends** | keputusan King Rezi soal pendekatan perbaikan                                                                                                |
+| Field       | Value                                                                                                                                                                                                 |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**  | 🟡 Done (code), menunggu Verified (staging) (2026-11-02, ADR-153; T-177.1 sampai .4 selesai, kode di PR 219; Verified setelah ter-merge dan `theme.e2e.ts` lolos terhadap staging; KI-104 tetap Open) |
+| **Domain**  | UI (tema), halaman publik Start Page; kemungkinan berlaku di seluruh aplikasi                                                                                                                         |
+| **Spec**    | tidak ada — single-issue                                                                                                                                                                              |
+| **Docs**    | KI-104, ADR-055 (amendemen T-039), ADR-097 poin 9, T-171, `app/layout.tsx`                                                                                                                            |
+| **Terkait** | T-171 (ditemukan di uji otomatis T-171.2), T-039                                                                                                                                                      |
+| **Depends** | keputusan King Rezi soal pendekatan perbaikan                                                                                                                                                         |
 
 **Ditemukan (2026-10-29):** uji Playwright lintas browser di staging untuk T-171.2
 (Chromium, Firefox, WebKit). Dengan OS mode gelap dan tanpa cookie `theme`,

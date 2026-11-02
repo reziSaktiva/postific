@@ -201,7 +201,7 @@ Satu panggilan memuat maksimum 10 konten (konstanta konfigurasi). Target per kon
 
 ### T-155 · Tool `upload_media` dari URL (proteksi SSRF)
 
-`🟡 In Progress (2026-10-30)` · **Domain** mcp-access · media · **ADR** ADR-138 · **Depends** T-152 · **Tangga ADR-153:** Done (code) belum ditetapkan, menunggu keputusan pengecualian E2E (T-189.9); Verified (staging) lewat T-189.5
+`🟡 In Progress (2026-10-30)` · **Domain** mcp-access · media · **ADR** ADR-138 · **Depends** T-152 · **Tangga ADR-153:** Done (code) ditetapkan setelah tes E2E golden path-nya hijau di lokal (tanpa pengecualian, 2026-11-02); Verified (staging) lewat T-189.5
 
 **Baca dulu:** `05-architecture/integration-layer.md` · `05-architecture/application-layer.md` (`uploadMedia`)
 
@@ -213,7 +213,7 @@ Tiket sendiri karena butuh review keamanan terfokus. Hanya `https`, periksa IP s
 - [ ] **T-155.4** Uji di staging/Railway dengan unduhan nyata: DNS, TLS dengan CA sistem, redirect CDN, dan perilaku lookup custom di runtime Railway (bila dijalankan dengan `bun --bun`, tes ulang).
 - [ ] **T-155.5** Uji dengan klien MCP nyata: `upload_media` lalu `create_draft`, termasuk upload ke Supabase Storage dan record `MediaItem` lewat grant MCP.
 - [ ] **T-155.6** Uji file mendekati 50 MB nyata (memori, kecepatan) dan konkurensi lebih dari 3 unduhan.
-- [ ] **T-155.7** (Opsional) Tes E2E di `e2e/mcp.e2e.ts`.
+- [ ] **T-155.7** Tes E2E golden path di `e2e/mcp.e2e.ts` (wajib, ADR-149; tanpa pengecualian, keputusan King Rezi 2026-11-02). Done (code) ditetapkan setelah tes ini hijau di lokal.
 
 **Hasil kode (2026-10-30):** tool `upload_media` (scope `draft`) mengunduh file dari URL lalu menyimpannya lewat `UploadMediaUseCase`. Desain: `https` saja, tanpa userinfo, port default saja, IP literal ditolak. DNS di-resolve sekali per hop dan semua alamat harus lolos allow-list (IPv4 publik; IPv6 hanya `2000::/3` dengan unwrap mapped/NAT64/6to4). Koneksi di-pin ke alamat hasil resolve lewat lookup custom, sementara SNI, Host, dan validasi sertifikat tetap memakai hostname asli (terbukti dengan server TLS lokal di tes). Redirect manual maksimum 3 hop, tiap hop divalidasi ulang. Timeout total 15 detik, batas 50 MB (Content-Length dan hitung stream), `accept-encoding: identity`, maksimum 3 unduhan serentak per proses (kelebihan dijawab `busy`). Tipe file ditentukan dari magic bytes (jpeg/png/gif/webp/mp4/mov), `Content-Type` server diabaikan. Tidak ada migrasi dan tidak ada perubahan DB.
 
@@ -221,7 +221,7 @@ Tiket sendiri karena butuh review keamanan terfokus. Hanya `https`, periksa IP s
 
 ### T-156 · Settings: daftar dan cabut klien AI
 
-`🔄 In Progress (kode selesai, menunggu verifikasi King Rezi)` · **Domain** mcp-access · UI · **ADR** ADR-139, ADR-097 · **Depends** T-149, T-151 · **Tangga ADR-153:** Done (code) belum ditetapkan, menunggu keputusan pengecualian E2E (T-189.9); Verified (staging) lewat T-189.6
+`🔄 In Progress (kode selesai, menunggu verifikasi King Rezi)` · **Domain** mcp-access · UI · **ADR** ADR-139, ADR-097 · **Depends** T-149, T-151 · **Tangga ADR-153:** Done (code) ditetapkan setelah tes E2E golden path-nya hijau di lokal (tanpa pengecualian, 2026-11-02); Verified (staging) lewat T-189.6
 
 **Baca dulu:** `04-ux/information-architecture.md` · `apps/web/.claude/CLAUDE.md`
 
@@ -232,11 +232,12 @@ Daftar klien AI yang tersambung dan tombol cabut.
 - [x] **T-156.1** Server Action `revokeAiClientAction` (`settings/account/ai-clients/actions.ts`): sesi → `McpAccessService.revokeGrant`; `McpGrantNotFoundError` → pesan ramah + revalidate. Tes unit (4 kasus) hijau.
 - [x] **T-156.2** Halaman RSC `settings/account/ai-clients/page.tsx` (`listGrants` hanya milik sendiri, nama workspace dari `WorkspaceService`, URL MCP dari `mcpResourceUrl()`), view `AiClientsView` (baris KSP-08, scope sebagai Badge outline, AlertDialog Tier 2, empty state dengan Salin), entri nav "Klien AI" di grup Account. Tes komponen (6 kasus) hijau.
 - [ ] **T-156.3** BELUM terbukti: uji visual/interaksi di browser dengan data grant sungguhan (belum dijalankan; perlu login dan grant di DB staging=lokal, ADR-081). `typecheck`, `lint`, `bun run test` hijau.
+- [ ] **T-156.5** Tes E2E golden path daftar dan cabut klien AI (wajib, ADR-149; tanpa pengecualian, keputusan King Rezi 2026-11-02). Done (code) ditetapkan setelah tes ini hijau di lokal.
 - [ ] **T-156.4** Verifikasi King Rezi. Catatan jujur: grant lama tanpa `client_name` tampil sebagai "Klien AI"; workspace yang pengguna sudah bukan member-nya tampil "Workspace tidak tersedia".
 
 ### T-157 · Badge "dibuat lewat MCP" di History, Drafts, dan Queue
 
-`🟡 In Progress (2026-10-30, kode di staging lewat PR 227)` · **Domain** mcp-access · UI · **ADR** ADR-138, ADR-097 · **Depends** T-152 · **Tangga ADR-153:** Done (code) belum ditetapkan, menunggu keputusan pengecualian E2E (T-189.9); Verified (staging) lewat T-189.7
+`🟡 In Progress (2026-10-30, kode di staging lewat PR 227)` · **Domain** mcp-access · UI · **ADR** ADR-138, ADR-097 · **Depends** T-152 · **Tangga ADR-153:** Done (code) ditetapkan setelah tes E2E golden path-nya hijau di lokal (tanpa pengecualian, 2026-11-02); Verified (staging) lewat T-189.7
 
 **Baca dulu:** `04-ux/key-screen-patterns.md` · `.claude/skills/claude-design-scope-discipline/SKILL.md`
 
@@ -245,6 +246,8 @@ Badge dan filter berdasarkan `created_via`. Dari T-152 (2026-10-30): `list_draft
 **Gate Claude Design:** rancangan **sudah ada** di artifact Postific (https://claude.ai/artifact/FdRNU4gnxgAGY3zmBxNfR3), `components/McpSourceBadge/preview.html`; **dikonfirmasi King Rezi 2026-10-26** setelah ditinjau lewat galeri review (https://claude.ai/artifact/4BJCWNsCwubLd7SFwRtree). Pola di `product-discovery/04-ux/key-screen-patterns.md` § Pola: Badge dan Filter Sumber MCP. Keputusan yang sudah dikunci: cakupan **History, Drafts, dan Queue**, Calendar tidak diberi badge (IA-D11); badge outline berisi ikon dan nama klien di baris meta; filter sumber Semua / Dibuat manual / Lewat MCP dengan **bawaan Semua**; tampilan default setiap layar tidak berubah selain badge pada item MCP. Filter di Drafts adalah kontrol baru karena Drafts belum punya filter.
 
 **Hasil kode (2026-10-30):** badge outline (ikon robot + nama klien, ellipsis 140px, di baris meta) dan filter sumber (Semua Sumber / Dibuat Manual / Lewat MCP, bawaan Semua) terpasang di History, Drafts, dan Queue; Calendar tanpa badge. Filter murni sisi klien. `createdVia` dan `createdViaClientName` mengalir lewat `PublishingService` (port `McpClientNamePort`, satu query batch per panggilan) ke `QueueItemRecord`, `HistoryItemRecord`, `CalendarPostItem`, dan `PublishingPostRecord`, termasuk jalur Realtime. Nama klien dari `mcp_grants.client_name` (grant yang dicabut tetap dihitung; query memfilter `workspace_id` karena tabel tanpa RLS, ADR-141); bila tidak ditemukan badge menampilkan "Klien AI". Komponen bersama di `src/components/shared/` (`McpSourceBadge`, `SourceFilterSelect`, `SourceFilterEmpty`, `source-filter`). **Migrasi (diterapkan 2026-10-30 oleh sesi utama atas izin King Rezi lewat `prisma migrate deploy`; hasil di bawah dilaporkan sesi utama, tidak saya verifikasi sendiri):** `20261030130000_t157_publishing_posts_created_via_client_name` menambah kolom nullable `created_via_client_name` agar nama klien dibekukan saat `create_draft` (hasil code-review PR 225); post lama memakai lookup `mcp_grants`. Migrasi wajib diterapkan sebelum atau bersamaan deploy karena kode memilih kolom itu. **Hasil verifikasi SQL (laporan sesi utama):** kolom `created_via_client_name` bertipe text, nullable, tanpa default; `publishing_posts` 488 baris, 488 NULL, 0 non-NULL; constraint `publishing_posts_created_via_check` tidak berubah; `_prisma_migrations` mencatat `finished=true`, `applied_steps_count=1`. Belum ada post MCP dengan nama beku, jadi jalur tulis nama beku baru terbukti lewat tes unit saja. Nama klien disanitasi di server (kontrol/zero-width dibuang, maks 64 karakter); peniruan nama klien yang sah tidak bisa dicegah dari kode. Lebar select `w-44` mengikuti select Status/Akun yang ada (rancangan memakai maks 180px). Belum ada tes komponen untuk badge dan select. **QA Najwa (2026-10-30, localhost, aksi baca saja):** filter muncul di ketiga layar dengan bawaan Semua Sumber, tampilan default tidak berubah (History 488 item sama seperti sebelumnya), "Dibuat Manual" dan "Lewat MCP" (state kosong + Tampilkan Semua) berfungsi, Calendar tanpa badge. Review Ridwan: tanpa pelanggaran arsitektur; query nama klien yang tak terpakai di detail History dilepas, teks sr-only ditambah, state kosong History hanya bila filter lain di Semua, ikon badge diberi `shrink-0`. **Belum terbukti:** badge MCP asli dengan data nyata (tidak ada post `created_via='mcp'` di workspace uji; badge hanya diperiksa lewat render yang disuntikkan ke DOM, light/dark, ellipsis, 400px), perilaku saat grant dicabut (hanya tes unit), dan role selain Admin/Owner. Ikon badge dipaksa 12px oleh `Badge` (rancangan 10px). Perlu verifikasi King Rezi dengan satu post dari klien MCP.
+
+- [ ] **T-157.1** Tes E2E golden path badge dan filter sumber di History, Drafts, dan Queue (wajib, ADR-149; tanpa pengecualian, keputusan King Rezi 2026-11-02). Done (code) ditetapkan setelah tes ini hijau di lokal.
 
 ### T-168 · MCP mengikuti zona waktu pengguna (tindak lanjut T-147)
 
@@ -339,7 +342,7 @@ Menampung temuan review Ridwan, QA Najwa, dan catatan penulis gelombang 1 yang t
 
 **Baca dulu:** `project-os/specs/S-003.md` § Perilaku 1 · bagian "Belum terbukti" di tiket yang dirujuk
 
-Satu verifikasi untuk seluruh gelombang 1 dan A (S-003). Tiket yang dirujuk dianggap Verified (staging) hanya bila butir yang bersangkutan lulus; butir yang lulus dicoret dari "Belum terbukti" di tiket asalnya. Done (code) tiap tiket mengikuti ADR-153 (Accepted 2026-11-02); T-155, T-156, T-157 belum ditetapkan sampai keputusan di T-189.9. Butir HITL diputuskan King Rezi, tidak dijawab agen.
+Satu verifikasi untuk seluruh gelombang 1 dan A (S-003). Tiket yang dirujuk dianggap Verified (staging) hanya bila butir yang bersangkutan lulus; butir yang lulus dicoret dari "Belum terbukti" di tiket asalnya. Done (code) tiap tiket mengikuti ADR-153 (Accepted 2026-11-02); T-155, T-156, T-157 ditetapkan setelah tes E2E-nya (T-155.7, T-156.5, T-157.1) hijau di lokal. Butir HITL diputuskan King Rezi, tidak dijawab agen.
 
 - [ ] **T-189.1** (T-151.2) Perilaku sebagai role `app_runtime` pada `mcp_workspace_choices` (konsol SQL menolak `set role`; buktikan lewat jalur aplikasi di staging).
 - [ ] **T-189.2** (T-151.3, T-180.1) Alur OAuth penuh lewat klien MCP nyata (Claude Code atau Cursor): pilih workspace, persetujuan, baris `mcp_workspace_choices` tersimpan lalu terhapus setelah consent sukses, dan grant terbentuk.
@@ -349,7 +352,7 @@ Satu verifikasi untuk seluruh gelombang 1 dan A (S-003). Tiket yang dirujuk dian
 - [ ] **T-189.6** (T-156.3, .4) Settings klien AI dengan grant sungguhan: daftar dan cabut; verifikasi King Rezi.
 - [ ] **T-189.7** (T-157) Badge dan filter sumber dengan draft MCP nyata di History, Drafts, dan Queue, termasuk nama klien yang dibekukan.
 - [ ] **T-189.8** Ulangi `mcp.e2e.ts` terhadap deploy gelombang ini (regresi).
-- [ ] **T-189.9** Keputusan King Rezi (HITL): T-152.4 (batas caption 5000 karakter; label draft manusia yang diedit AI), T-154.5 (error `rate_limited` tanpa `Retry-After`; fixed window), dan apakah T-155, T-156, T-157 dikecualikan dari E2E golden path ADR-149 (tidak otomatis; pengecualian diputuskan King Rezi dan alasannya dicatat).
+- [ ] **T-189.9** Keputusan King Rezi (HITL): T-152.4 (batas caption 5000 karakter; label draft manusia yang diedit AI), T-154.5 (error `rate_limited` tanpa `Retry-After`; fixed window). **Diputuskan (2026-11-02):** T-155, T-156, T-157 tidak dikecualikan dari E2E golden path ADR-149; tesnya T-155.7, T-156.5, dan T-157.1.
 
 ---
 
