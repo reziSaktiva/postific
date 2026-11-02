@@ -276,54 +276,33 @@ export async function registerClient(
 // ---------------------------------------------------------------------------
 
 /**
- * Layar consent sudah ada di HTML server sebelum React terhidrasi, dan klik
- * sebelum hidrasi tidak memicu handler (T-193). Karena itu klik diulang sampai
- * efeknya terlihat, bukan dianggap berhasil begitu klik selesai.
+ * Layar workspace dan consent sudah ada di HTML server sebelum React
+ * terhidrasi, dan klik sebelum hidrasi hilang diam-diam (T-193). Elemen yang
+ * sudah terhidrasi memegang `__reactProps$*`; tunggu itu satu kali per layar,
+ * lalu bertindak sekali (tanpa klik ulang yang bisa membalik toggle).
  */
-async function setScopeChecked(box: Locator, wanted: boolean): Promise<void> {
-  const target = String(wanted);
-  for (let attempt = 0; attempt < 6; attempt += 1) {
-    if ((await box.getAttribute("aria-checked")) === target) return;
-    await box.click();
-    try {
-      await expect(box).toHaveAttribute("aria-checked", target, {
-        timeout: 1_500,
-      });
-      return;
-    } catch {
-      // Klik hilang (belum terhidrasi): ulangi.
-    }
-  }
-  throw new Error(
-    `Checkbox scope tidak berubah menjadi ${target} setelah 6 klik.`,
-  );
+async function waitUntilHydrated(
+  target: Locator,
+  screen: string,
+): Promise<void> {
+  await expect
+    .poll(
+      () =>
+        target.evaluate((el) =>
+          Object.keys(el).some((key) => key.startsWith("__reactProps$")),
+        ),
+      { message: `layar ${screen} belum terhidrasi`, timeout: 15_000 },
+    )
+    .toBe(true);
 }
 
-/**
- * Klik Izinkan sampai terdaftar: tombol berubah jadi "Menyimpan…" atau
- * redirect sudah terjadi. Klik sebelum hidrasi hilang diam-diam (T-193).
- */
-async function clickAllowUntilRegistered(
-  page: Page,
-  redirected: () => boolean,
-): Promise<void> {
-  for (let attempt = 0; attempt < 5 && !redirected(); attempt += 1) {
-    try {
-      await harnessScreens.consentAllow(page).click({ timeout: 5_000 });
-    } catch {
-      // Tombol sudah berubah (Menyimpan… atau Coba Lagi) atau halaman pindah:
-      // loop pemanggil yang menangani sisanya.
-      return;
-    }
-    try {
-      await harnessScreens
-        .consentSaving(page)
-        .waitFor({ state: "visible", timeout: 3_000 });
-      return;
-    } catch {
-      // Belum terdaftar: ulangi klik.
-    }
-  }
+async function setScopeChecked(box: Locator, wanted: boolean): Promise<void> {
+  if ((await box.getAttribute("aria-checked")) === String(wanted)) return;
+  await box.click();
+  await expect(
+    box,
+    "checkbox scope tidak berubah setelah diklik",
+  ).toHaveAttribute("aria-checked", String(wanted));
 }
 
 export function resourceUrl(baseURL: string): string {
@@ -398,19 +377,34 @@ export async function authorizeInBrowser(
         (await harnessScreens.workspaceHeading(page).isVisible())
       ) {
         pickedWorkspace = true;
-        await harnessScreens.workspaceOption(page, E2E_WORKSPACE_NAME).click();
+        const option = harnessScreens.workspaceOption(page, E2E_WORKSPACE_NAME);
+        await waitUntilHydrated(option, "workspace");
+        await option.click();
         await harnessScreens.workspaceContinue(page).click();
       } else if (
         !consented &&
         (await harnessScreens.consentHeading(page).isVisible())
       ) {
         consented = true;
+        await waitUntilHydrated(harnessScreens.consentAllow(page), "consent");
         for (const scope of harnessScreens.scopes) {
           const box = harnessScreens.scopeCheckbox(page, scope);
           if ((await box.count()) === 0) continue;
           await setScopeChecked(box, grantScopes.includes(scope));
         }
-        await clickAllowUntilRegistered(page, () => callbackUrl !== undefined);
+        await harnessScreens.consentAllow(page).click();
+        // Klik terdaftar bila tombol berubah jadi "Menyimpan…" atau redirect terjadi.
+        await expect
+          .poll(
+            async () =>
+              callbackUrl !== undefined ||
+              (await harnessScreens
+                .consentSaving(page)
+                .isVisible()
+                .catch(() => false)),
+            { message: "klik Izinkan tidak terdaftar", timeout: 10_000 },
+          )
+          .toBe(true);
       } else if (
         consented &&
         (await harnessScreens.consentRetry(page).isVisible())
