@@ -63,10 +63,10 @@ Sebelum bertanya, tentukan:
 
 ### 2. Sajikan Pilihan Terbaik
 
-Berikan opsi yang **benar-benar terbaik di kelasnya** — bukan daftar semua yang ada. Kuasi: maks 4–5 pilihan yang paling relevan dan teruji. Sertakan konteks singkat mengapa masing-masing menarik.
+Berikan opsi yang **benar-benar terbaik di kelasnya** — bukan daftar semua yang ada. Kuasi: maks 4 pilihan yang paling relevan dan teruji. Sertakan konteks singkat mengapa masing-masing menarik.
 
-**Format saat menggunakan AskQuestion tool:**
-Gunakan `AskQuestion` untuk mengumpulkan jawaban secara terstruktur.
+**Format saat menggunakan tool `AskUserQuestion`:**
+Gunakan `AskUserQuestion` untuk mengumpulkan jawaban secara terstruktur. Batas tool: 1 sampai 4 pertanyaan per panggilan dan 2 sampai 4 opsi per pertanyaan; opsi "Other" ditambahkan otomatis, jangan dibuat sendiri. Frontier yang lebih dari 4 fork dipecah menjadi beberapa panggilan berurutan, tetap diurutkan dari yang paling berdampak.
 
 **Format saat bertanya secara conversational:**
 
@@ -87,9 +87,9 @@ Mana yang ingin kamu gunakan?
 
 Tanya per **ronde**, bukan satu per satu dan bukan semua sekaligus tanpa urutan:
 
-- **Frontier keputusan** = semua fork yang sudah bisa dijawab sekarang, yaitu yang tidak bergantung pada jawaban fork lain. Satu ronde memuat seluruh frontier itu (batch dalam satu sesi AskQuestion bila memakai tool), diurutkan dari yang paling berdampak.
+- **Frontier keputusan** = semua fork yang sudah bisa dijawab sekarang, yaitu yang tidak bergantung pada jawaban fork lain. Satu ronde memuat seluruh frontier itu (batch dalam satu panggilan `AskUserQuestion` bila memakai tool), diurutkan dari yang paling berdampak.
 - Fork yang bergantung pada jawaban ronde ini masuk ronde berikutnya; jangan ditanyakan sebelum waktunya.
-- **Rekomendasi di depan:** tiap fork ditulis dengan opsi yang direkomendasikan lebih dulu, bertanda "(rekomendasi)", beserta satu kalimat alasannya. King Rezi tinggal menyetujui atau menggantinya.
+- **Rekomendasi di depan:** tiap fork ditulis dengan opsi yang direkomendasikan lebih dulu, bertanda "(Recommended)" pada label bila memakai tool (atau "(rekomendasi)" bila bertanya di teks), beserta satu kalimat alasannya. King Rezi tinggal menyetujui atau menggantinya.
 - **Cari fakta sendiri:** hal yang bisa dijawab dengan membaca baseline, kode, atau dokumen tidak ditanyakan; baca, lalu sebut temuannya sebagai dasar rekomendasi. Hanya keputusan (pilihan yang memang milik King Rezi) yang ditanyakan.
 - **Selesai bila frontier kosong:** ulangi ronde sampai tidak ada fork yang tersisa, baik yang sedang terbuka maupun yang baru muncul dari jawaban sebelumnya.
 
