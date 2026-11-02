@@ -883,12 +883,12 @@ Skill eksekusi gelombang (langkah 2 sampai 11 di S-003 § Perilaku 2): alur gelo
 
 ### T-184 · Wave handoff and retro references
 
-`⏳ Not Started` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-153 · **Spec** S-003 · **Depends** T-183
+`✅ Done (2026-11-02)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-153 · **Spec** S-003 · **Depends** T-183
 **Baca dulu:** `project-os/specs/S-003.md` § Perilaku 2 poin 11 dan § 3
 
-- [ ] **T-184.1** `handoff.md` di folder skill: bentuk dokumen handoff (penunjuk, bukan salinan; tanpa rahasia; disimpan di scratchpad sesi).
-- [ ] **T-184.2** `retro.md`: kategori saran (navigasi, pengecekan otomatis, ekonomi tool, instruksi yang tidak berpengaruh, akses informasi), diurutkan menurut keparahan, hanya saran. Isi awal dari pelajaran gelombang A: `bun install` di worktree baru agar hook jalan, `typecheck` menangkap konflik semantik, izin relay ditolak, laporan terpotong, satu deploy per gelombang.
-- [ ] **T-184.3** Kaitkan keduanya dari `SKILL.md` (langkah handoff dan retro) tanpa menyalin isinya.
+- [x] **T-184.1** `✅ Done (2026-11-02)` `handoff.md` di folder skill: bentuk dokumen handoff (penunjuk, bukan salinan; tanpa rahasia; disimpan di scratchpad sesi).
+- [x] **T-184.2** `✅ Done (2026-11-02)` `retro.md`: kategori saran (navigasi, pengecekan otomatis, ekonomi tool, instruksi yang tidak berpengaruh, akses informasi), diurutkan menurut keparahan, hanya saran. Isi awal dari pelajaran gelombang A: `bun install` di worktree baru agar hook jalan, `typecheck` menangkap konflik semantik, izin relay ditolak, laporan terpotong, satu deploy per gelombang.
+- [x] **T-184.3** `✅ Done (2026-11-02)` Kaitkan keduanya dari `SKILL.md` (langkah handoff dan retro) tanpa menyalin isinya.
 
 ### T-185 · Dry-run `wave-plan` and `wave-work` on the next real wave
 
@@ -901,23 +901,24 @@ Skill eksekusi gelombang (langkah 2 sampai 11 di S-003 § Perilaku 2): alur gelo
 
 ### T-186 · Docs locator and link check script
 
-`⏳ Not Started` · **Mode** AFK · **Domain** project-os, tooling · **ADR** ADR-133 · **Spec** S-003 · **Depends** —
+`🟡 Done (code, sebagian) (2026-11-02)` · **Mode** AFK · **Domain** project-os, tooling · **ADR** ADR-133 · **Spec** S-003 · **Depends** —
 **Baca dulu:** `project-os/specs/S-003.md` § Ekonomi token · `AGENTS.md` aturan 12
 
 Pencari lokasi dokumen saat dijalankan (bukan berkas indeks yang di-commit, karena nomor baris cepat usang) dan pemeriksa tautan, dalam satu keluarga skrip dengan parser yang sama. Nol token saat dijalankan.
 
-- [ ] **T-186.1** Periksa keseragaman format ID di dokumen (tiket `### T-xxx ·`, baris ADR di tabel, S-, KI-, KSP-, CI-D) sebelum merancang parser; laporkan yang tidak seragam.
-- [ ] **T-186.2** `bun run docs:where <query>`: kembalikan `path:baris` dan judul untuk ID dan kata kunci judul, sehingga bagian tiket dibaca dengan `offset` dan `limit`.
-- [ ] **T-186.3** `bun run docs:check`: penunjuk path valid, ID yang dirujuk ada, penghitung "Berikutnya" di `AVAILABLE_TICKETS.md` sama dengan ID maksimum ditambah satu, pasangan kembaran aturan 12 tidak menyimpang, dan nama folder skill dan judul tiket baru lolos pola penamaan bahasa Inggris. Putuskan pemicunya (pre-commit pada berkas Markdown yang diubah dan/atau CI).
-- [ ] **T-186.4** `AGENTS.md`: satu baris penunjuk ke skrip, tanpa menyalin aturan (ADR-133).
+- [x] **T-186.1** `✅ Done (2026-11-02)` Periksa keseragaman format ID di dokumen (tiket `### T-xxx ·`, baris ADR di tabel, S-, KI-, KSP-, CI-D) sebelum merancang parser; laporkan yang tidak seragam.
+- [x] **T-186.2** `✅ Done (2026-11-02)` `bun run docs:where <query>`: kembalikan `path:baris` dan judul untuk ID dan kata kunci judul, sehingga bagian tiket dibaca dengan `offset` dan `limit`.
+- [x] **T-186.3** `✅ Done (2026-11-02, skrip; pemicu belum dipasang)` `bun run docs:check`: penunjuk path valid, ID yang dirujuk ada, penghitung "Berikutnya" di `AVAILABLE_TICKETS.md` sama dengan ID maksimum ditambah satu, pasangan kembaran aturan 12 tidak menyimpang, dan nama folder skill dan judul tiket baru lolos pola penamaan bahasa Inggris. Putuskan pemicunya (pre-commit pada berkas Markdown yang diubah dan/atau CI).
+- [x] **T-186.4** `✅ Done (2026-11-02)` `AGENTS.md`: satu baris penunjuk ke skrip, tanpa menyalin aturan (ADR-133).
+- [ ] **T-186.5** Sisa dari T-186.3: (a) putuskan dan pasang pemicu (usulan: command `docs-check` di pre-commit lefthook untuk `*.md`, plus satu langkah di job quality gates CI; `.github/workflows` dan `lefthook.yml` belum diubah); (b) 32 temuan `docs:check` pada dokumen yang ada (rujukan JOB-05/JOB-06 yang dicadangkan ADR-093, ID tak terdefinisi, dan 11 penunjuk path rusak) dibereskan atau dikecualikan sebelum pemicu dipasang; (c) setujui pengecualian pemeriksaan yang dibuat skrip (ADR, tiket, laporan, spec, `DECISIONS.md`, `CONVERSATIONS.md` tidak diperiksa penunjuknya). **Belum terbukti:** skrip belum dijalankan di CI; pencocokan pasangan `permissions.deny` hanya mengenali pola `Read(./...)`.
 
 ### T-187 · Update `proactive-clarification` with round-based questioning
 
-`⏳ Not Started` · **Mode** AFK · **Domain** project-os, agen · **ADR** — · **Spec** S-003 · **Depends** — (S-003 disahkan 2026-11-02)
+`🟡 In Progress (2026-11-02)` · **Mode** AFK · **Domain** project-os, agen · **ADR** — · **Spec** S-003 · **Depends** — (S-003 disahkan 2026-11-02)
 **Baca dulu:** `.claude/skills/proactive-clarification/SKILL.md` · `project-os/specs/S-003.md` tabel pola (`grilling`)
 
-- [ ] **T-187.1** Bandingkan skill yang ada (143 baris) dengan `grilling` dari sumber; catat selisihnya, termasuk apa yang sudah kita punya.
-- [ ] **T-187.2** Terapkan yang belum ada: pertanyaan per ronde mencakup seluruh frontier keputusan, rekomendasi di depan, fakta dicari sendiri dan hanya keputusan yang ditanyakan, selesai bila frontier kosong, tidak bertindak sebelum King Rezi mengonfirmasi pemahaman bersama.
+- [x] **T-187.1** `✅ Done (2026-11-02)` Bandingkan skill yang ada (143 baris) dengan `grilling` dari sumber; catat selisihnya, termasuk apa yang sudah kita punya.
+- [x] **T-187.2** `✅ Done (2026-11-02)` Terapkan yang belum ada: pertanyaan per ronde mencakup seluruh frontier keputusan, rekomendasi di depan, fakta dicari sendiri dan hanya keputusan yang ditanyakan, selesai bila frontier kosong, tidak bertindak sebelum King Rezi mengonfirmasi pemahaman bersama.
 - [ ] **T-187.3** Uji pada klarifikasi nyata berikutnya dan revisi bila perlu.
 
 ### T-188 · Prune always-loaded orchestration context
