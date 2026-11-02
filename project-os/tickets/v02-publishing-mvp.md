@@ -2295,14 +2295,14 @@ scope T-111 yang disetujui King Rezi):**
 
 ### T-125 · Default view Calendar jadi Monthly/Bulan
 
-| Field         | Value                                                                                                            |
-| ------------- | ---------------------------------------------------------------------------------------------------------------- |
-| **Status**    | ✅ Done (2026-10-19)                                                                                             |
-| **Domain**    | publishing · UI                                                                                                  |
-| **ADR**       | — (ubah default, bukan baseline — kedua view `week`/`month` sudah didesain & diimplementasikan penuh sejak T-33) |
-| **Terkait**   | T-033 (Calendar view)                                                                                            |
-| **Depends**   | T-033 ✅                                                                                                         |
-| **Baca dulu** | `apps/web/src/domains/publishing/services/parse-calendar-view-state.ts`                                          |
+| Field         | Value                                                                                                             |
+| ------------- | ----------------------------------------------------------------------------------------------------------------- |
+| **Status**    | ✅ Done (2026-10-19)                                                                                              |
+| **Domain**    | publishing · UI                                                                                                   |
+| **ADR**       | — (ubah default, bukan baseline — kedua view `week`/`month` sudah didesain & diimplementasikan penuh sejak T-033) |
+| **Terkait**   | T-033 (Calendar view)                                                                                             |
+| **Depends**   | T-033 ✅                                                                                                          |
+| **Baca dulu** | `apps/web/src/domains/publishing/services/parse-calendar-view-state.ts`                                           |
 
 Diminta King Rezi (2026-10-19): saat buka `/publish/calendar` tanpa query
 param `?view=`, tampilan default yang muncul sekarang `week` (ADR-046,

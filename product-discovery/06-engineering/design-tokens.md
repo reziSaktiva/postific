@@ -73,7 +73,7 @@ Di metadata atas:
 ## Langkah 4 — Catat di Project OS
 
 * Tambah/update ADR di `../../project-os/DECISIONS.md` jika nilai brand/tema berdampak luas (atau amandemen singkat pada ADR-038 bahwa nilai sudah diisi).
-* Update `../../project-os/CHANGELOG.md`.
+* Catat status di tiket terkait (`../../project-os/tickets/`, ADR-131).
 * Update `../../project-os/PROJECT_STATE.md` bila ini menjadi next-task selesai / unlock UI shell.
 
 ## Langkah 5 — Mirror ke kode (M8)

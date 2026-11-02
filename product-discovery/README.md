@@ -209,4 +209,3 @@ Pada fase tersebut akan dilakukan:
 * `../project-os/PROJECT_RULES.md`
 * `../project-os/PROJECT_STATE.md`
 * `../project-os/DECISIONS.md`
-* `../project-os/CHANGELOG.md`

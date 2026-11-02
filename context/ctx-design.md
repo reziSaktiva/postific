@@ -7,7 +7,7 @@ Pointer ke **artifact desain Postific** (artifact di Claude, ADR-140) dan ke
 designer) sudah **dihapus** dari repo dan **tidak akan dibuat ulang** —
 project ini tidak akan merekrut designer eksternal; perannya digantikan
 permanen oleh King Rezi sendiri lewat artifact desain. Pointer yang
-sebelumnya ada di `design/README.md` dipindah ke bagian "Artifact desain
+sebelumnya ada di folder `design/` (sudah dihapus) dipindah ke bagian "Artifact desain
 Postific" di bawah.
 
 ---
