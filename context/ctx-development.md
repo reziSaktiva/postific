@@ -149,7 +149,8 @@ Aturan di bawah melengkapi hard rules di [`../AGENTS.md`](../AGENTS.md). Detail 
     Hanya mengubah data buatan tes sendiri (awalan `[e2e]`, nama klien
     unik per run). Preseden: `E2E_MCP_SCHEDULE`, `E2E_MCP_DRAFTS`,
     `E2E_MCP_UPLOAD` di `mcp.e2e.ts`. `mcp.e2e.ts` hanya jalan ke staging
-    (`mcpSkipReason`, ADR-081, ADR-149).
+    (`mcpSkipReason`, ADR-081, ADR-149), jadi "hijau" berarti run staging
+    `workflow_dispatch` (keputusan King Rezi 2026-11-02).
 23. Tes yang menghabiskan kuota per workspace (rate limit) ditaruh paling
     akhir dan tidak boleh diikuti E2E lain yang memanggil API yang sama;
     kuota dibagi semua klien dan run paralel. Preseden: (n) di
