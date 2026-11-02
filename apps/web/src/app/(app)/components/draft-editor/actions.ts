@@ -25,7 +25,6 @@ import {
   resolveDraftMediaIds,
   resolveScheduleTargets,
   SchedulePostsUseCase,
-  type PostMediaLookupPort,
 } from "@/domains/publishing";
 import {
   DeleteMediaUseCase,
@@ -36,6 +35,7 @@ import { WorkspaceService } from "@/domains/workspace";
 import { getCachedSession } from "@/lib/better-auth/session";
 import { getWorkspaceContext } from "@/lib/workspace/workspace-context";
 import { getOutstandAdapter } from "@/lib/adapters/outstand";
+import { createPostMediaLookup } from "@/lib/adapters/media-storage/post-media-lookup";
 import { supabaseMediaStorageAdapter } from "@/lib/adapters/media-storage/supabase-media-storage-adapter";
 import { backgroundJobScheduler } from "@/lib/jobs/job-scheduler";
 import { publishingRepository } from "@/lib/repositories/publishing";
@@ -63,18 +63,6 @@ function isKnownActionError(
   return (
     error instanceof ApplicationError || error instanceof PublishingDomainError
   );
-}
-
-/** Composition root — MediaService + Storage download untuk schedule/publish. */
-function createPostMediaLookup(): PostMediaLookupPort {
-  const mediaService = new MediaService(mediaRepository);
-  return {
-    listByIds: (input, userId) => mediaService.listByIds(input, userId),
-    downloadBytes: (storagePath) =>
-      supabaseMediaStorageAdapter.downloadMedia(storagePath),
-    saveOutstandWorkingCopy: (input, userId) =>
-      mediaService.saveOutstandWorkingCopy(input, userId),
-  };
 }
 
 /**

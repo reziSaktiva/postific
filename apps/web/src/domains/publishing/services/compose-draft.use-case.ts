@@ -115,6 +115,19 @@ export class ComposeDraftUseCase {
     mediaIds?: string[];
     targets?: ComposeDraftTargetRequest[];
     source: PostCreationSource;
+    /**
+     * Hasil baca yang sudah dimiliki pemanggil (mis. fase pemeriksaan
+     * `ScheduleContentsUseCase`), supaya batch banyak konten tidak mengulang
+     * query akun dan media per konten (T-192.7). Validasi tetap dijalankan
+     * terhadap data ini; hanya pembacaan DB yang dilewati. Akun difilter ke
+     * `workspaceId`; media tidak membawa workspace, jadi hanya boleh berasal
+     * dari `MediaService.listByIds` yang sudah di-scope workspace (pemanggil
+     * internal use case batch).
+     */
+    prefetched?: {
+      accounts?: ConnectedAccountRecord[];
+      media?: MediaOwnershipRecord[];
+    };
   }): Promise<ComposeDraftResult> {
     assertCaptionWithinLimit(input.caption);
 
@@ -122,12 +135,14 @@ export class ComposeDraftUseCase {
       input.workspaceId,
       input.authorId,
       input.targets,
+      input.prefetched?.accounts,
     );
     const mediaIds = await this.resolveMedia(
       input.workspaceId,
       input.authorId,
       input.mediaIds,
       (targets ?? []).map((target) => target.contentFormat),
+      input.prefetched?.media,
     );
 
     const post = await this.drafts.saveDraft({
@@ -220,6 +235,7 @@ export class ComposeDraftUseCase {
     workspaceId: WorkspaceId,
     userId: UserId,
     requests: ComposeDraftTargetRequest[] | undefined,
+    prefetchedAccounts?: ConnectedAccountRecord[],
   ): Promise<SchedulePostTargetInput[] | undefined> {
     if (requests === undefined) {
       return undefined;
@@ -229,18 +245,22 @@ export class ComposeDraftUseCase {
     }
     const seen = new Set<string>();
     for (const request of requests) {
-      if (seen.has(request.connectedAccountId)) {
+      const key = request.connectedAccountId.toLowerCase();
+      if (seen.has(key)) {
         throw new ValidationError(
           "Akun yang sama dipilih lebih dari sekali. Satu akun cukup satu target.",
         );
       }
-      seen.add(request.connectedAccountId);
+      seen.add(key);
     }
 
-    const accounts = await this.accounts.listConnectedAccounts(
-      workspaceId,
-      userId,
-    );
+    // Data prefetched dari pemanggil tidak dipercaya lintas workspace: akun
+    // milik workspace lain dibuang, sehingga target itu ditolak seperti tak ada.
+    const accounts = prefetchedAccounts
+      ? prefetchedAccounts.filter(
+          (account) => account.workspaceId === workspaceId,
+        )
+      : await this.accounts.listConnectedAccounts(workspaceId, userId);
     return resolveScheduleTargets(accounts, requests).map((target) => ({
       connectedAccountId: target.connectedAccountId,
       platform: target.platform,
@@ -256,6 +276,7 @@ export class ComposeDraftUseCase {
     userId: UserId,
     requested: string[] | undefined,
     formats: ContentFormat[],
+    prefetchedMedia?: MediaOwnershipRecord[],
   ): Promise<MediaId[] | undefined> {
     if (requested === undefined) {
       return undefined;
@@ -263,7 +284,9 @@ export class ComposeDraftUseCase {
     if (requested.length === 0) {
       return [];
     }
-    if (new Set(requested).size !== requested.length) {
+    if (
+      new Set(requested.map((id) => id.toLowerCase())).size !== requested.length
+    ) {
       throw new ValidationError(
         "Media yang sama dipilih lebih dari sekali. Satu media cukup satu kali.",
       );
@@ -273,7 +296,9 @@ export class ComposeDraftUseCase {
     assertMediaCountWithinLimit(requested.length, []);
 
     const mediaIds = requested.map((id) => asMediaId(id));
-    const found = await this.media.listByIds({ workspaceId, mediaIds }, userId);
+    const found =
+      prefetchedMedia ??
+      (await this.media.listByIds({ workspaceId, mediaIds }, userId));
     const resolved = resolveDraftMediaIds(found, mediaIds);
     assertMediaCountWithinLimit(resolved.length, formats);
     return resolved;

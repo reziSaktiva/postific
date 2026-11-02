@@ -151,7 +151,7 @@ sengaja oleh user yang masih punya cookie valid, bukan oleh cookie yang
 hilang di luar kendalinya. Scope ini sengaja narrow: hanya switch antar
 membership yang sudah ada + create workspace tambahan; "Multi Workspace
 Management" yang lebih luas (bulk actions, billing gabungan, dst.) tetap
-Out of Scope (`../../02-product/mvp-definition.md`).
+Out of Scope (`../02-product/mvp-definition.md`).
 
 ## Session Validation
 
@@ -235,7 +235,7 @@ Owner memiliki semua permission Admin. Admin memiliki lebih banyak permission da
 
 ## Permission Matrix
 
-Referensi lengkap: `../../02-product/roles-permissions.md`
+Referensi lengkap: `../02-product/roles-permissions.md`
 
 Ringkasan permission per area yang relevan untuk enforcement di Application Service:
 
@@ -443,7 +443,7 @@ Login berhasil / Middleware redirect ke /onboarding (cookie active-workspace-id 
 * `domain-model.md` — BC-01 Identity, BC-02 Workspace, WorkspaceMember entity
 * `database-strategy.md` — tabel `identity_*` (Better Auth), `workspace_members`
 * `application-layer.md` — Middleware strategy dan Application Service authorization pattern
-* `../../02-product/roles-permissions.md` — Permission matrix lengkap per role
+* `../02-product/roles-permissions.md` — Permission matrix lengkap per role
 * `realtime-strategy.md` — Session diperlukan sebelum Supabase Realtime subscription
 * `../06-engineering/auth-strategy.md` — konfigurasi Better Auth Bearer plugin untuk mobile (AS-D06)
 * `../../project-os/DECISIONS.md` — ADR-024, ADR-043

@@ -41,4 +41,28 @@ describe("handleMcpRequest", () => {
     const body = (await response.json()) as { result: { tools: unknown[] } };
     expect(body.result.tools).toHaveLength(12);
   });
+
+  it("answers 400 and logs the reason for a body that is not JSON-RPC (T-179.1)", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const response = await handleMcpRequest(
+      new Request("http://localhost/api/mcp", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json, text/event-stream",
+        },
+        body: "{caption: rahasia-pengguna\nbaris palsu",
+      }),
+      { sub: "u", azp: "c", workspace_id: "w", scope: "mcp:read" },
+    );
+    expect(response.status).toBe(400);
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("transport menolak request"),
+    );
+    // Isi body tidak boleh masuk log (potongan teks dan baris baru dari klien).
+    const logged = warn.mock.calls.map((call) => String(call[0])).join("\n");
+    expect(logged).not.toContain("rahasia-pengguna");
+    expect(logged).not.toContain("baris palsu");
+    warn.mockRestore();
+  });
 });

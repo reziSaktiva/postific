@@ -551,7 +551,7 @@ Berlaku untuk delapan tool `read`. Handler hanya memetakan record service ke ben
 
 | Tool | Argumen | Bentuk hasil |
 |------|---------|--------------|
-| `get_workspace` | tidak ada | `{ workspaceId, name, grantedScopes: ("read"\|"draft"\|"schedule")[], timezone: "Asia/Jakarta" }`. Brand settings disebut S-001 tetapi belum ada di model BC-02, jadi belum dikembalikan (gap dicatat di T-150) |
+| `get_workspace` | tidak ada | `{ workspaceId, name, grantedScopes: ("read"\|"draft"\|"schedule")[], timezone: string }` (nama zona IANA dari `User.timeZone` pemilik koneksi; T-168). Brand settings disebut S-001 tetapi belum ada di model BC-02, jadi belum dikembalikan (gap dicatat di T-150) |
 | `list_accounts` | tidak ada | `{ items: [{ id, platform, handle, status, reconnectRequired, connectedAt, supportedContentFormats: ContentFormat[] }] }` |
 | `list_media` | `cursor?` | item `{ id, filename, type: "image"\|"video"\|"gif", mimeType, sizeBytes, width, height, durationSeconds, createdAt }` |
 | `list_drafts` | `cursor?` | item `{ id, caption, status: "draft"\|"in_review"\|"ready_to_schedule", mediaIds, createdAt, updatedAt }` |

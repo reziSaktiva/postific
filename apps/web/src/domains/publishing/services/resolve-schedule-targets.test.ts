@@ -30,6 +30,24 @@ function createConnectedAccount(
 }
 
 describe("resolveScheduleTargets", () => {
+  it("mencocokkan connectedAccountId tanpa peka huruf besar-kecil dan memakai id dari DB", () => {
+    const account = createConnectedAccount({
+      id: asConnectedAccountId("0a1b2c3d-0000-4000-8000-00000000000a"),
+    });
+
+    const [target] = resolveScheduleTargets(
+      [account],
+      [
+        {
+          connectedAccountId: account.id.toUpperCase(),
+          contentFormat: ContentFormat.Post,
+        },
+      ],
+    );
+
+    expect(target?.connectedAccountId).toBe(account.id);
+  });
+
   it("mencocokkan request dengan connected account dan menyertakan outstandAccountId", () => {
     const account = createConnectedAccount();
 

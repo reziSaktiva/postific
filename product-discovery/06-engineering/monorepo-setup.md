@@ -384,7 +384,7 @@ Prisma schema & migrasi berada di `apps/web/prisma/` (lihat `database-orm.md`).
 - Repository implementations ada di `src/lib/repositories/` — bukan di dalam folder domain.
 - Domain hanya mendefinisikan interface; implementasi di `lib/` menggunakan **Prisma Client** (ADR-031).
 - Supabase client **tidak** dipakai untuk CRUD domain — hanya Realtime dan Storage (`database-orm.md` DO-D02).
-- `supabase/client.ts`, `supabase/server.ts`, dan `supabase/middleware.ts` adalah konteks berbeda — jangan gunakan yang salah (client.ts di Server Component akan error).
+- `apps/web/src/lib/supabase/client.ts`, `server.ts`, dan `middleware.ts` adalah konteks berbeda — jangan gunakan yang salah (client.ts di Server Component akan error).
 
 ---
 

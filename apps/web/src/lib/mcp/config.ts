@@ -20,8 +20,83 @@ const DEFAULT_ALLOWED_ORIGINS = [
 
 type Env = Record<string, string | undefined>;
 
+const LOCAL_DATABASE_HOSTS = new Set([
+  "localhost",
+  "127.0.0.1",
+  "[::1]",
+  "host.docker.internal",
+]);
+
+/**
+ * Railway memberi variabel sistem `RAILWAY_*` (mis. `RAILWAY_ENVIRONMENT_NAME`,
+ * `RAILWAY_SERVICE_NAME`, `RAILWAY_DEPLOYMENT_ID`) ke setiap deployment
+ * (docs.railway.com/variables/reference); build produksi lokal
+ * (`bun run build && bun run start`) tidak punya satu pun.
+ */
+function isRailwayRuntime(env: Env): boolean {
+  return Boolean(
+    env.RAILWAY_ENVIRONMENT_ID ||
+    env.RAILWAY_ENVIRONMENT_NAME ||
+    env.RAILWAY_ENVIRONMENT ||
+    env.RAILWAY_PROJECT_ID ||
+    env.RAILWAY_SERVICE_NAME ||
+    env.RAILWAY_DEPLOYMENT_ID,
+  );
+}
+
+function isLocalDatabaseUrl(databaseUrl: string | undefined): boolean {
+  if (!databaseUrl) {
+    return false;
+  }
+  try {
+    const { hostname } = new URL(databaseUrl);
+    return (
+      LOCAL_DATABASE_HOSTS.has(hostname) || hostname.endsWith(".localhost")
+    );
+  } catch {
+    // Tidak bisa diurai: perlakukan sebagai DB jauh (gagal tertutup).
+    return false;
+  }
+}
+
+/**
+ * Alasan MCP dimatikan paksa walau flag menyala, atau `null` (T-179.4).
+ * `bun dev` lokal memakai `DATABASE_URL` yang menunjuk DB bersama
+ * dev/staging (ADR-081). Plugin `jwt` membaca `identity_jwks` di setiap
+ * pemeriksaan sesi dan kunci privatnya dienkripsi dengan `BETTER_AUTH_SECRET`;
+ * secret lokal yang berbeda membuat semua halaman setelah login 500 ("Failed
+ * to decrypt private key") dan menulis kunci yang tidak terbaca staging. Berlaku
+ * di `NODE_ENV=development` dan di build produksi yang berjalan di luar
+ * Railway (tidak ada `RAILWAY_*`); runtime Railway dan tes tidak terpengaruh.
+ * Pengecualian sadar: `MCP_ALLOW_SHARED_DB=true`, hanya bila
+ * `BETTER_AUTH_SECRET` lokal sama persis dengan staging.
+ */
+export function mcpBlockedReason(env: Env = process.env): string | null {
+  if (
+    !(env.MCP_ENABLED === "true" || env.MCP_SPIKE_ENABLED === "true") ||
+    !(
+      env.NODE_ENV === "development" ||
+      (env.NODE_ENV === "production" && !isRailwayRuntime(env))
+    ) ||
+    env.MCP_ALLOW_SHARED_DB === "true" ||
+    isLocalDatabaseUrl(env.DATABASE_URL)
+  ) {
+    return null;
+  }
+  return (
+    "MCP dimatikan: flag MCP menyala di luar Railway (dev atau build lokal) dengan DATABASE_URL " +
+    "bukan lokal (DB bersama, ADR-081). Plugin OAuth akan membaca/menulis " +
+    "identity_jwks dengan BETTER_AUTH_SECRET lokal dan merusak halaman setelah " +
+    "login di staging. Gunakan DB lokal, atau set MCP_ALLOW_SHARED_DB=true " +
+    "hanya jika BETTER_AUTH_SECRET sama dengan staging. Bila ini runtime " +
+    "Railway yang sah, variabel RAILWAY_* tidak terdeteksi: periksa env service."
+  );
+}
+
 export function isMcpEnabled(env: Env = process.env): boolean {
-  return env.MCP_ENABLED === "true" || env.MCP_SPIKE_ENABLED === "true";
+  const flagged =
+    env.MCP_ENABLED === "true" || env.MCP_SPIKE_ENABLED === "true";
+  return flagged && mcpBlockedReason(env) === null;
 }
 
 export function mcpBaseUrl(env: Env = process.env): string {

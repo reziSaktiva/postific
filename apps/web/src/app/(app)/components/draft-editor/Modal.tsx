@@ -58,8 +58,10 @@ import { formatRelativeTime } from "@/lib/utils/format-relative-time";
 import { useConfirmAction } from "@/lib/hooks/use-confirm-action";
 import { MediaThumbnail } from "../media-thumbnail";
 import {
+  isCaptionRequiredForFormats,
   maxMediaCountForFormats,
   minMediaCountConstraintMessage,
+  mixedStoryCaptionConstraintMessage,
 } from "@/domains/publishing";
 
 import type { ConnectedAccountDto, DraftMediaDto } from "./actions";
@@ -476,11 +478,11 @@ function DraftEditorForm({
   const hasNonStoryTarget = activeFormatsForGate.some(
     (format) => format !== ContentFormat.Story,
   );
-  const isCaptionRequired = !hasStoryTarget;
-  const mixedStoryCaptionMessage =
-    hasStoryTarget && hasNonStoryTarget && caption.trim().length > 0
-      ? "Story tidak bisa digabung dengan target lain selama caption terisi — kosongkan caption atau publish Story secara terpisah dari target lainnya."
-      : null;
+  const isCaptionRequired = isCaptionRequiredForFormats(activeFormatsForGate);
+  const mixedStoryCaptionMessage = mixedStoryCaptionConstraintMessage(
+    caption,
+    activeFormatsForGate,
+  );
 
   // KI-074: Story/Reel/Pin secara native selalu berbasis media — tanpa
   // guard ini, target Story/Reel/Pin bisa "berhasil" terpublish tapi

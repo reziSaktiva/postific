@@ -6,7 +6,7 @@ import { asUserId } from "@postific/shared";
 import type { McpConsentService } from "@/domains/mcp-access";
 import { getMcpAccessService } from "@/lib/mcp-access/get-mcp-access-service";
 import { getMcpConsentService } from "@/lib/mcp-access/get-mcp-consent-service";
-import { isMcpEnabled, mcpBaseUrl } from "@/lib/mcp/config";
+import { isMcpEnabled, mcpBaseUrl, mcpBlockedReason } from "@/lib/mcp/config";
 
 import { mcpGrantPlugin, type McpGrantAccess } from "./mcp-grant-hook";
 
@@ -21,6 +21,15 @@ import { mcpGrantPlugin, type McpGrantAccess } from "./mcp-grant-hook";
  * sama dengan route `/api/mcp`, jadi route dan OAuth tidak bisa menyala
  * terpisah. Nama file `mcp-spike` dipertahankan agar impor tidak berubah.
  */
+
+/**
+ * Batas pendaftaran klien dinamis tanpa login (`/oauth2/register`) per IP
+ * (T-150.9): setiap pendaftaran menambah satu baris `identity_oauth_client`.
+ * Sama dengan bawaan plugin; ditulis eksplisit supaya pembaruan library tidak
+ * mengubahnya diam-diam. Penghitung di memori per instance (bawaan Better
+ * Auth), berlaku saat rate limit Better Auth aktif (produksi).
+ */
+export const MCP_CLIENT_REGISTRATION_RATE_LIMIT = { window: 60, max: 5 };
 
 export const MCP_SCOPES = ["mcp:read", "mcp:draft", "mcp:schedule"] as const;
 
@@ -43,6 +52,8 @@ export type McpSpikePluginOptions = {
   getAccess: () => McpGrantAccess;
   /** Pabrik pembaca pilihan workspace; produksi: `getMcpConsentService`. */
   getChoices: () => McpWorkspaceChoiceAccess;
+  /** Batas pendaftaran klien tanpa login; bawaan `MCP_CLIENT_REGISTRATION_RATE_LIMIT`. */
+  registrationRateLimit?: { window: number; max: number };
 };
 
 /**
@@ -55,6 +66,7 @@ export function createMcpSpikePlugins({
   baseUrl,
   getAccess,
   getChoices,
+  registrationRateLimit = MCP_CLIENT_REGISTRATION_RATE_LIMIT,
 }: McpSpikePluginOptions) {
   const resourceUrl = `${baseUrl}/api/mcp`;
 
@@ -98,6 +110,7 @@ export function createMcpSpikePlugins({
       validAudiences: [resourceUrl],
       allowDynamicClientRegistration: true,
       allowUnauthenticatedClientRegistration: true,
+      rateLimit: { register: registrationRateLimit },
       clientRegistrationDefaultScopes: ["mcp:read", "mcp:draft"],
       clientRegistrationAllowedScopes: ["mcp:schedule", "offline_access"],
       postLogin: {
@@ -123,6 +136,10 @@ export function createMcpSpikePlugins({
  * Plugin yang ditambahkan ke `auth.ts` hanya saat `isMcpEnabled()`.
  */
 export function mcpSpikePlugins() {
+  const blocked = mcpBlockedReason();
+  if (blocked) {
+    console.error(`[mcp] ${blocked}`);
+  }
   if (!isMcpEnabled()) {
     return [];
   }

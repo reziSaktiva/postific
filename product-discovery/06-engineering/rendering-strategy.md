@@ -42,7 +42,7 @@ diikuti tanpa ambiguitas, dan melengkapi `monorepo-setup.md` (lokasi file
 | ID | Topik | Keputusan |
 |----|-------|-----------|
 | RS-D01 | Server Actions | Eksklusif untuk **mutation**; satu file `actions.ts` per feature folder, tidak ada `"use server"` inline di komponen |
-| RS-D02 | Reads di Server Component | Data fetching pada render page **wajib** panggil Application Service langsung (pola `calendar/page.tsx`), bukan Server Action |
+| RS-D02 | Reads di Server Component | Data fetching pada render page **wajib** panggil Application Service langsung (pola `apps/web/src/app/(app)/publish/calendar/page.tsx`), bukan Server Action |
 | RS-D03 | Client Components | Hanya untuk state/interactivity/hooks/browser API; boundary sedalam mungkin (leaf component), bukan membungkus page |
 | RS-D04 | Streaming/Suspense | Belum dipakai hari ini (keputusan sadar MVP); kriteria kapan wajib mulai dipertimbangkan |
 | RS-D05 | SSR/SSG/ISR | 100% dynamic/SSR, termasuk rute publik `/u/[slug]` (RS-D08); SSG/ISR di luar scope |
@@ -185,7 +185,7 @@ tidak diduplikasi di sini:
 | ID | Keputusan | Alasan | Alternatif |
 |----|-----------|--------|-----------|
 | RS-D01 | Server Actions eksklusif mutation | Mencegah drift seperti kasus dashboard terulang di fitur baru | Membolehkan Server Action untuk read juga (ditolak — overhead POST tidak perlu) |
-| RS-D02 | Data fetching page.tsx via Application Service langsung | Selaras AGENTS.md rule 3, sudah terbukti di `calendar/page.tsx` | Tetap lewat Server Action seperti dashboard (ditolak — pola menyimpang, tidak direplikasi) |
+| RS-D02 | Data fetching page.tsx via Application Service langsung | Selaras AGENTS.md rule 3, sudah terbukti di `apps/web/src/app/(app)/publish/calendar/page.tsx` | Tetap lewat Server Action seperti dashboard (ditolak — pola menyimpang, tidak direplikasi) |
 | RS-D04 | Streaming/Suspense belum diaktifkan | Kesederhanaan MVP, belum ada kebutuhan nyata | Aktifkan proaktif di semua page (ditolak — kompleksitas tanpa manfaat terukur saat ini) |
 | RS-D05 | 100% dynamic, SSG/ISR di luar scope | Seluruh route personalized per-request di balik auth; rute publik `/u/[slug]` juga dinamis (RS-D08) | SSG/ISR untuk rute publik (ditolak — counter kunjungan butuh render per request) |
 

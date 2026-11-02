@@ -940,7 +940,10 @@ describe.skipIf(!enabled)(
       beforeAll(() => {
         consent = new McpConsentService(
           mcpWorkspaceChoiceRepository,
-          { findRegistration: async () => null },
+          {
+            findRegistration: async () => null,
+            deleteUnusedRegistrations: async () => 0,
+          },
           workspaceService,
           () => now,
         );

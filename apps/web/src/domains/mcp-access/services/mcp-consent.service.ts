@@ -14,6 +14,14 @@ import {
 export const MCP_WORKSPACE_CHOICE_TTL_MS = 10 * 60 * 1000;
 
 /**
+ * Klien dinamis yang belum dipakai baru dihapus setelah selang ini. Asumsi
+ * perilaku klien (tidak ditegakkan kode): alur persetujuan selesai dalam
+ * menit. Klien yang menyimpan `client_id` lebih dari selang ini tanpa pernah
+ * menyelesaikan consent bisa gagal `invalid_client` dan harus mendaftar ulang.
+ */
+export const MCP_UNUSED_CLIENT_TTL_MS = 24 * 60 * 60 * 1000;
+
+/**
  * Port lokal untuk cross-domain `mcp-access` -> `workspace` (AGENTS.md #5),
  * pola sama `WorkspaceMembershipPort` di `McpAccessService`. Sengaja TIDAK
  * `export`: composition root menyuplai `WorkspaceService`, yang memenuhinya
@@ -188,5 +196,15 @@ export class McpConsentService {
   /** Hapus pilihan kedaluwarsa (JOB-08). Idempoten; mengembalikan jumlah baris terhapus. */
   async purgeExpiredWorkspaceChoices(): Promise<number> {
     return this.choices.deleteExpired(this.clock());
+  }
+
+  /**
+   * Hapus klien OAuth dinamis yang tak pernah dipakai (JOB-08, T-150.9). Klien
+   * dengan consent, token, atau grant (termasuk yang dicabut) tidak disentuh.
+   */
+  async purgeUnusedClientRegistrations(): Promise<number> {
+    return this.clients.deleteUnusedRegistrations(
+      new Date(this.clock().getTime() - MCP_UNUSED_CLIENT_TTL_MS),
+    );
   }
 }
