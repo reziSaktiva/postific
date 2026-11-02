@@ -11,6 +11,7 @@ import {
 import { assertScheduledAtNotInPast } from "./schedule-time-constraints";
 import {
   captionRequiredConstraintMessage,
+  MIXED_STORY_CAPTION_SCHEDULE_MESSAGE,
   mixedStoryCaptionConstraintMessage,
 } from "./story-caption-constraints";
 
@@ -63,7 +64,11 @@ export function assertScheduleSafetyCheck(
   const formats = input.targets.map((target) => target.contentFormat);
   const captionMessage =
     captionRequiredConstraintMessage(input.caption, formats) ??
-    mixedStoryCaptionConstraintMessage(input.caption, formats);
+    mixedStoryCaptionConstraintMessage(
+      input.caption,
+      formats,
+      MIXED_STORY_CAPTION_SCHEDULE_MESSAGE,
+    );
   if (captionMessage !== null) {
     throw new PublishingDomainError(captionMessage);
   }

@@ -51,12 +51,18 @@ describe("handleMcpRequest", () => {
           "content-type": "application/json",
           accept: "application/json, text/event-stream",
         },
-        body: "",
+        body: "{caption: rahasia-pengguna\nbaris palsu",
       }),
       { sub: "u", azp: "c", workspace_id: "w", scope: "mcp:read" },
     );
     expect(response.status).toBe(400);
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining("Invalid JSON"));
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("transport menolak request"),
+    );
+    // Isi body tidak boleh masuk log (potongan teks dan baris baru dari klien).
+    const logged = warn.mock.calls.map((call) => String(call[0])).join("\n");
+    expect(logged).not.toContain("rahasia-pengguna");
+    expect(logged).not.toContain("baris palsu");
     warn.mockRestore();
   });
 });

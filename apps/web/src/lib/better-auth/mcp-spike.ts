@@ -138,7 +138,7 @@ export function createMcpSpikePlugins({
 export function mcpSpikePlugins() {
   const blocked = mcpBlockedReason();
   if (blocked) {
-    console.warn(`[mcp] ${blocked}`);
+    console.error(`[mcp] ${blocked}`);
   }
   if (!isMcpEnabled()) {
     return [];

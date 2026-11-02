@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   CAPTION_REQUIRED_MESSAGE,
   MIXED_STORY_CAPTION_MESSAGE,
+  MIXED_STORY_CAPTION_SCHEDULE_MESSAGE,
   captionRequiredConstraintMessage,
   isCaptionRequiredForFormats,
   mixedStoryCaptionConstraintMessage,
@@ -31,5 +32,17 @@ describe("mixedStoryCaptionConstraintMessage", () => {
     expect(mixedStoryCaptionConstraintMessage("  ", [Story, Post])).toBeNull();
     expect(mixedStoryCaptionConstraintMessage("Halo", [Story])).toBeNull();
     expect(mixedStoryCaptionConstraintMessage("Halo", [Post, Reel])).toBeNull();
+  });
+
+  it("uses the scheduling wording on the server path without changing the UI wording", () => {
+    expect(
+      mixedStoryCaptionConstraintMessage(
+        "Halo",
+        [Story, Post],
+        MIXED_STORY_CAPTION_SCHEDULE_MESSAGE,
+      ),
+    ).toBe(MIXED_STORY_CAPTION_SCHEDULE_MESSAGE);
+    expect(MIXED_STORY_CAPTION_SCHEDULE_MESSAGE).toContain("jadwalkan Story");
+    expect(MIXED_STORY_CAPTION_MESSAGE).toContain("publish Story");
   });
 });

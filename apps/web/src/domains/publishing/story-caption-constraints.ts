@@ -13,6 +13,10 @@ export const CAPTION_REQUIRED_MESSAGE =
 export const MIXED_STORY_CAPTION_MESSAGE =
   "Story tidak bisa digabung dengan target lain selama caption terisi — kosongkan caption atau publish Story secara terpisah dari target lainnya.";
 
+/** Teks untuk jalur jadwal server (Safety Check, `schedule_posts`); tidak diubah dari sebelum T-192.1. */
+export const MIXED_STORY_CAPTION_SCHEDULE_MESSAGE =
+  "Story tidak bisa digabung dengan target lain selama caption terisi. Kosongkan caption atau jadwalkan Story secara terpisah dari target lainnya.";
+
 /** Caption wajib hanya bila tidak ada target Story sama sekali. */
 export function isCaptionRequiredForFormats(
   formats: ReadonlyArray<ContentFormat>,
@@ -34,10 +38,9 @@ export function captionRequiredConstraintMessage(
 export function mixedStoryCaptionConstraintMessage(
   caption: string,
   formats: ReadonlyArray<ContentFormat>,
+  message: string = MIXED_STORY_CAPTION_MESSAGE,
 ): string | null {
   const hasStory = formats.includes(ContentFormat.Story);
   const hasNonStory = formats.some((format) => format !== ContentFormat.Story);
-  return hasStory && hasNonStory && caption.trim().length > 0
-    ? MIXED_STORY_CAPTION_MESSAGE
-    : null;
+  return hasStory && hasNonStory && caption.trim().length > 0 ? message : null;
 }

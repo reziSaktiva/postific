@@ -215,6 +215,29 @@ describe("ComposeDraftUseCase.createDraft", () => {
     ).rejects.toThrow(ValidationError);
   });
 
+  it("drops prefetched accounts that belong to another workspace", async () => {
+    const { useCase, createDraft } = setup();
+
+    await expect(
+      useCase.createDraft({
+        workspaceId: WORKSPACE,
+        authorId: USER,
+        caption: "Halo",
+        targets: [
+          { connectedAccountId: IG, contentFormat: ContentFormat.Post },
+        ],
+        source: SOURCE,
+        prefetched: {
+          accounts: ACCOUNTS.map((account) => ({
+            ...account,
+            workspaceId: asWorkspaceId("99999999-9999-4999-8999-999999999999"),
+          })),
+        },
+      }),
+    ).rejects.toThrow(ValidationError);
+    expect(createDraft).not.toHaveBeenCalled();
+  });
+
   it("does not look up accounts or media when none are given", async () => {
     const { useCase, createDraft, listConnectedAccounts, listByIds } = setup();
 

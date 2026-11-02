@@ -60,6 +60,8 @@ describe("isMcpEnabled guard for local dev on a shared DB (T-179.4)", () => {
       { RAILWAY_ENVIRONMENT_ID: "env-1" },
       { RAILWAY_ENVIRONMENT_NAME: "staging" },
       { RAILWAY_PROJECT_ID: "proj-1" },
+      { RAILWAY_SERVICE_NAME: "web" },
+      { RAILWAY_DEPLOYMENT_ID: "dep-1" },
     ]) {
       expect(
         isMcpEnabled({

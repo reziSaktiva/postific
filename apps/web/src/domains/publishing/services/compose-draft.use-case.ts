@@ -119,7 +119,10 @@ export class ComposeDraftUseCase {
      * Hasil baca yang sudah dimiliki pemanggil (mis. fase pemeriksaan
      * `ScheduleContentsUseCase`), supaya batch banyak konten tidak mengulang
      * query akun dan media per konten (T-192.7). Validasi tetap dijalankan
-     * terhadap data ini; hanya pembacaan DB yang dilewati.
+     * terhadap data ini; hanya pembacaan DB yang dilewati. Akun difilter ke
+     * `workspaceId`; media tidak membawa workspace, jadi hanya boleh berasal
+     * dari `MediaService.listByIds` yang sudah di-scope workspace (pemanggil
+     * internal use case batch).
      */
     prefetched?: {
       accounts?: ConnectedAccountRecord[];
@@ -251,9 +254,13 @@ export class ComposeDraftUseCase {
       seen.add(key);
     }
 
-    const accounts =
-      prefetchedAccounts ??
-      (await this.accounts.listConnectedAccounts(workspaceId, userId));
+    // Data prefetched dari pemanggil tidak dipercaya lintas workspace: akun
+    // milik workspace lain dibuang, sehingga target itu ditolak seperti tak ada.
+    const accounts = prefetchedAccounts
+      ? prefetchedAccounts.filter(
+          (account) => account.workspaceId === workspaceId,
+        )
+      : await this.accounts.listConnectedAccounts(workspaceId, userId);
     return resolveScheduleTargets(accounts, requests).map((target) => ({
       connectedAccountId: target.connectedAccountId,
       platform: target.platform,
