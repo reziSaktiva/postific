@@ -45,6 +45,16 @@ describe("docs:check", () => {
     expect(runChecks(root)).toEqual([]);
   });
 
+  describe("allowlist", () => {
+    it("skips reserved IDs but still flags other undefined IDs", () => {
+      cleanTree();
+      write("AGENTS.md", "Lihat JOB-05 dan T-050 dan T-049.\n");
+      expect(runChecks(root).map(formatFinding)).toEqual([
+        "AGENTS.md:1  [id-ref] ID T-050 dirujuk tetapi tidak didefinisikan di dokumen mana pun",
+      ]);
+    });
+  });
+
   describe("pointers", () => {
     it("flags a backticked path that does not exist, with path:line", () => {
       cleanTree();

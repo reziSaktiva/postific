@@ -2,3 +2,6 @@ pre-commit:
   commands:
     lint-staged:
       run: bunx lint-staged
+    docs-check:
+      glob: "*.md"
+      run: bun run docs:check
