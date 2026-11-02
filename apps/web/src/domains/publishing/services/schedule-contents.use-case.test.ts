@@ -493,6 +493,49 @@ describe("ScheduleContentsUseCase", () => {
     expect(reserve).toHaveBeenCalledWith(1);
   });
 
+  it("still reports scheduled when only the status read after a successful schedule fails", async () => {
+    const w = world();
+    const reserve = vi.fn(async () => undefined);
+    const logger = { error: vi.fn() };
+    const useCase = new ScheduleContentsUseCase(
+      {
+        createDraft: async () => ({
+          post: {
+            id: asPostId("p-7"),
+            caption: "Aman",
+          } as PublishingPostRecord,
+          targets: [],
+        }),
+      },
+      {
+        execute: async () =>
+          ({ id: asPostId("p-7"), caption: "Aman", mediaIds: [] }) as never,
+      },
+      {
+        findPostStatusById: async () => {
+          throw new Error("DB sesaat putus");
+        },
+      },
+      { listConnectedAccounts: async () => ACCOUNTS },
+      { listByIds: async () => [] },
+      logger,
+    );
+
+    const [outcome] = await useCase.execute({
+      workspaceId: WORKSPACE,
+      actingUserId: USER,
+      contents: [content()],
+      source: SOURCE,
+      reserveQuota: reserve,
+    });
+
+    // Post sudah terjadwal di penyedia; galat pelaporan tidak boleh memancing
+    // klien mengulang panggilan dan membuat post ganda.
+    expect(outcome).toMatchObject({ status: "scheduled", postId: "p-7" });
+    expect(logger.error).toHaveBeenCalledTimes(1);
+    expect(w.posts.size).toBe(0);
+  });
+
   it("forwards the workspace and acting user to the account, media, status, and schedule ports", async () => {
     const media = asMediaId("media-a");
     const w = world({ ownedMedia: [media] });

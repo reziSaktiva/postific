@@ -192,11 +192,26 @@ export class ScheduleContentsUseCase {
 
       // `SchedulePostsUseCase` tidak melempar saat penyedia menolak: ia
       // menandai post Failed dan tetap mengembalikan record. Status dibaca
-      // ulang supaya kegagalan itu tidak dilaporkan sebagai berhasil.
-      const status = await this.repository.findPostStatusById(
-        { workspaceId: input.workspaceId, postId },
-        input.actingUserId,
-      );
+      // ulang supaya kegagalan itu tidak dilaporkan sebagai berhasil. Pembacaan
+      // ini hanya pelaporan: post sudah terjadwal, jadi galatnya tidak boleh
+      // mengubah hasil menjadi gagal (klien akan mengulang dan membuat post ganda).
+      const status = await this.repository
+        .findPostStatusById(
+          { workspaceId: input.workspaceId, postId },
+          input.actingUserId,
+        )
+        .catch((statusError: unknown) => {
+          this.logger.error(
+            "[publishing] schedule contents: gagal membaca status setelah penjadwalan",
+            {
+              workspaceId: input.workspaceId,
+              postId,
+              error:
+                statusError instanceof Error ? statusError.message : "unknown",
+            },
+          );
+          return null;
+        });
       if (status?.status === ContentStatus.Failed) {
         return {
           index,

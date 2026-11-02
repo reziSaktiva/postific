@@ -393,6 +393,9 @@ Rapikan temuan pertimbangan dari review gelombang B yang sengaja tidak dikerjaka
 - [ ] **T-192.2** (S5) Satu helper composition root untuk `postMediaLookup` (kini tiga salinan: `get-mcp-tool-services.ts`, `draft-editor/actions.ts`, `publish/history/[postId]/actions.ts`).
 - [ ] **T-192.3** (S6) Putuskan apakah `resolveUserTimeZone` dibuat lazy atau di-cache per koneksi (satu baca profil per panggilan tool kini).
 - [ ] **T-192.4** (P6) Turunkan angka dan teks aturan media di skema dan deskripsi `schedule_posts` dari `maxMediaCountForFormat`, bukan ditulis manual.
+- [ ] **T-192.5** (code-review gelombang B) Perkuat `parseScheduledAt`: tolak atau tandai jam dinding yang tidak ada akibat DST (kini bergeser diam-diam, di Berlin mundur satu jam), beri batas atas tahun yang wajar, dan putuskan perlakuan pecahan detik (kini dipotong). Jangan mengubah `wallClockToUtc` yang dipakai UI T-147 tanpa keputusan King Rezi.
+- [ ] **T-192.6** (code-review gelombang B) Validasi konfigurasi saat start: batas kuota harian `scheduled_contents` harus >= `MCP_SCHEDULE_MAX_CONTENTS`, atau petakan `McpInvalidRateLimitInputError` ke `invalid_input`/`rate_limited` agar klien tahu mengecilkan batch (kini jatuh ke `internal_error`).
+- [ ] **T-192.7** (code-review gelombang B) `createDraft` membaca ulang daftar akun dan kepemilikan media per konten setelah fase pemeriksaan sudah membacanya; teruskan hasil resolve supaya batch 10 konten tidak melakukan sampai 10 query akun dan 10 query media tambahan. Samakan juga pencocokan UUID agar tidak peka huruf besar-kecil (`resolveDraftMediaIds`, `resolveScheduleTargets`).
 
 ## Tiket lama yang dibatalkan (ADR-138)
 
