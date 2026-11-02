@@ -63,7 +63,7 @@ Sebelum bertanya, tentukan:
 
 ### 2. Sajikan Pilihan Terbaik
 
-Berikan opsi yang **benar-benar terbaik di kelasnya** — bukan daftar semua yang ada. Kuasi: maks 4–5 pilihan yang paling relevan dan teruji. Sertakan konteks singkat mengapa masing-masing menarik.
+Berikan opsi yang **benar-benar terbaik di kelasnya** — bukan daftar semua yang ada. Kuasi: maks 4 pilihan yang paling relevan dan teruji. Sertakan konteks singkat mengapa masing-masing menarik.
 
 **Format saat menggunakan tool `AskUserQuestion`:**
 Gunakan `AskUserQuestion` untuk mengumpulkan jawaban secara terstruktur. Batas tool: 1 sampai 4 pertanyaan per panggilan dan 2 sampai 4 opsi per pertanyaan; opsi "Other" ditambahkan otomatis, jangan dibuat sendiri. Frontier yang lebih dari 4 fork dipecah menjadi beberapa panggilan berurutan, tetap diurutkan dari yang paling berdampak.
