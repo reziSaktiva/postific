@@ -25,6 +25,8 @@
     "db:deploy": "bun run --cwd apps/web db:deploy",
     "db:studio": "bun run --cwd apps/web db:studio",
     "jobs:trigger": "bun run scripts/trigger-job-run.ts",
+    "docs:where": "bun run scripts/docs-where.ts",
+    "docs:check": "bun run scripts/docs-check.ts",
     "prepare": "lefthook install || true"
   },
   "lint-staged": {
@@ -33,6 +35,10 @@
       "prettier --write"
     ],
     "packages/**/*.{ts,tsx,js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "scripts/**/*.{ts,tsx,js}": [
       "eslint --fix",
       "prettier --write"
     ],

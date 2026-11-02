@@ -531,7 +531,7 @@ Pemetaan tool MCP ke service yang dibungkus (nama method sudah dicocokkan dengan
 
 Semua service di atas menerima `workspaceId` dan `userId` dari grant yang lolos `authorizeCall` (bukan dari argumen tool), jadi isolasi workspace dan RLS per pengguna (KI-026) tetap berlaku seperti di UI. Tool tidak punya parameter `workspaceId`.
 
-### Tool draft dan rate limit (T-152, T-154; ADR-152 Proposed)
+### Tool draft dan rate limit (T-152, T-154; ADR-152 Accepted)
 
 **`create_draft` dan `update_draft`** (scope `draft`). Caption maksimum 5000 karakter dan media maksimum 10 per draft. `update_draft` hanya untuk draft berstatus Draft; post Scheduled ditolak dengan `conflict` ("Batalkan jadwal di aplikasi dulu") dan penanda sumber tidak berubah. `platformOptions` (mis. board Pinterest) tidak bisa diatur lewat MCP. `list_drafts` belum mengembalikan penanda sumber.
 

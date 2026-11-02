@@ -847,52 +847,52 @@ Hasil: `e2e/start-page.e2e.ts` (3 tes serial). Berjalan di workspace khusus **E2
 
 ### T-181 · Draft ADR-153: Done (code) and Verified (staging) status ladder
 
-`⏳ Not Started` · **Domain** project-os, agen · **ADR** ADR-153 (Proposed), ADR-149 · **Spec** S-003 · **Depends** —
+`✅ Done (2026-11-02)` · **Mode** HITL (T-181.2) · **Domain** project-os, agen · **ADR** ADR-153 (Accepted), ADR-149 · **Spec** S-003 · **Depends** —
 **Baca dulu:** `project-os/specs/S-003.md` § Perilaku 1 · `.claude/skills/project-os-navigator/SKILL.md` § Pekerjaan Baru
 
 Memisahkan "kode selesai" dari "terbukti di staging" (keputusan King Rezi 2026-10-30). Mengubah definisi selesai, jadi butuh ADR baru (AGENTS.md aturan 2).
 
-- [ ] **T-181.1** Tulis ADR-153 (Proposed) di `DECISIONS.md`: tiket boleh ✅ saat Done (code); Verified (staging) menjadi satu verifikasi per gelombang; bagian "Belum terbukti" wajib sampai verifikasinya lulus. Mengamandemen konvensi tutup-setelah-staging di tiket MCP (T-150.7, T-178). Catat koreksi: definisi di ADR-149 sudah berbasis `local`.
-- [ ] **T-181.2** King Rezi menyetujui ADR-153 (Proposed menjadi Accepted).
+- [x] **T-181.1** `✅ Done (2026-11-02)` Tulis ADR-153 (Proposed) di `DECISIONS.md`: tiket boleh ✅ saat Done (code); Verified (staging) menjadi satu verifikasi per gelombang; bagian "Belum terbukti" wajib sampai verifikasinya lulus. Mengamandemen konvensi tutup-setelah-staging di tiket MCP (T-150.7, T-178). Catat koreksi: definisi di ADR-149 sudah berbasis `local`.
+- [x] **T-181.2** `✅ Done (2026-11-02)` King Rezi menyetujui ADR-153 (Proposed menjadi Accepted).
 
 ### T-182 · Apply the status ladder to project docs
 
-`⏳ Not Started` · **Domain** project-os, agen · **ADR** ADR-153 · **Spec** S-003 · **Depends** T-181 (Accepted)
+`✅ Done (2026-11-02)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-153 · **Spec** S-003 · **Depends** T-181 ✅
 **Baca dulu:** `project-os/specs/S-003.md` · `project-os/AVAILABLE_TICKETS.md` · `project-os/specs/README.md`
 
 Pemilik: Gibran (dokumen proyek), sekuensial di akhir.
 
-- [ ] **T-182.1** Navigator § Pekerjaan Baru: tambahkan definisi Done (code) dan Verified (staging) di samping definisi ADR-149; satu sumber, tanpa menyalin paragraf ke dokumen lain (ADR-133).
-- [ ] **T-182.2** `AVAILABLE_TICKETS.md` dan bentuk tiket di `specs/README.md`: legenda dan penanda untuk Done (code) versus Verified (staging).
-- [ ] **T-182.3** Pindahkan tiket MCP yang kini 🟡 hanya karena menunggu staging ke tangga baru, dengan butir verifikasi gelombang yang eksplisit; jangan menghapus bagian "Belum terbukti".
-- [ ] **T-182.4** `AGENTS.md`: cukup satu penunjuk ke definisi di navigator (ADR-133).
-- [ ] **T-182.5** Bentuk tiket: tambahkan penanda AFK (agen mandiri) atau HITL (butuh keputusan King Rezi) di field tiket; hanya tiket AFK yang boleh menjadi jalur paralel gelombang.
-- [ ] **T-182.6** Jalankan `docs-consistency-audit` dengan topik "status ladder" dan perbaiki temuan.
+- [x] **T-182.1** `✅ Done (2026-11-02)` Navigator § Pekerjaan Baru: tambahkan definisi Done (code) dan Verified (staging) di samping definisi ADR-149; satu sumber, tanpa menyalin paragraf ke dokumen lain (ADR-133).
+- [x] **T-182.2** `✅ Done (2026-11-02)` `AVAILABLE_TICKETS.md` dan bentuk tiket di `specs/README.md`: legenda dan penanda untuk Done (code) versus Verified (staging).
+- [x] **T-182.3** `✅ Done (2026-11-02)` Pindahkan tiket MCP yang kini 🟡 hanya karena menunggu staging ke tangga baru, dengan butir verifikasi gelombang yang eksplisit; jangan menghapus bagian "Belum terbukti".
+- [x] **T-182.4** `✅ Done (2026-11-02)` `AGENTS.md`: cukup satu penunjuk ke definisi di navigator (ADR-133).
+- [x] **T-182.5** `✅ Done (2026-11-02)` Bentuk tiket: tambahkan penanda AFK (agen mandiri) atau HITL (butuh keputusan King Rezi) di field tiket; hanya tiket AFK yang boleh menjadi jalur paralel gelombang.
+- [x] **T-182.6** `✅ Done (2026-11-02)` Jalankan `docs-consistency-audit` dengan topik "status ladder" dan perbaiki temuan.
 
 ### T-183 · Skill `wave-work`
 
-`⏳ Not Started` · **Domain** project-os, agen · **ADR** ADR-153, ADR-063 · **Spec** S-003 · **Depends** T-181
+`✅ Done (2026-11-02)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-153, ADR-063 · **Spec** S-003 · **Depends** T-181
 **Baca dulu:** `project-os/specs/S-003.md` § Perilaku 2 dan tabel pola · `.claude/skills/project-os-navigator/SKILL.md` § Skills & subagent housekeeping · `.claude/agents/README.md`
 
 Skill eksekusi gelombang (langkah 2 sampai 11 di S-003 § Perilaku 2): alur gelombang seperti yang dijalankan di gelombang A MCP, ditambah pola yang diadopsi dari Matt Pocock (branch integrasi lebih dulu, template PR). Dipanggil hanya saat King Rezi meminta (keputusan 2026-11-02). Langkah 1 (menyiapkan gelombang) ada di skill `wave-plan` (T-190). Semua nama dalam bahasa Inggris.
 
-- [ ] **T-183.1** Tulis `.claude/skills/wave-work/SKILL.md` (frontmatter dengan deskripsi pemicu, isi ringkas; detail panjang dipindah ke berkas pendamping).
-- [ ] **T-183.2** Berkas pendamping: `lane-brief-template.md` (brief per jalur) dan `integration-pr-template.md` (Summary, Evidence, Merge Danger).
-- [ ] **T-183.4** Langkah review dua sumbu di skill: sumbu Standards (aturan repo, arsitektur) dan sumbu Spec (acceptance tiket dan spec), tanpa digabung, label pelanggaran keras atau pertimbangan; daftar anti-pola tes (terikat implementasi, tautologis) di template brief jalur.
-- [ ] **T-183.3** Satu penunjuk di navigator (housekeeping skill) dan satu penunjuk di `.claude/agents/README.md` (orkestrasi); tanpa menyalin isi skill (ADR-133). `.claude/agents/*.md` tidak diubah.
+- [x] **T-183.1** `✅ Done (2026-11-02)` Tulis `.claude/skills/wave-work/SKILL.md` (frontmatter dengan deskripsi pemicu, isi ringkas; detail panjang dipindah ke berkas pendamping).
+- [x] **T-183.2** `✅ Done (2026-11-02)` Berkas pendamping: `lane-brief-template.md` (brief per jalur) dan `integration-pr-template.md` (Summary, Evidence, Merge Danger).
+- [x] **T-183.4** `✅ Done (2026-11-02)` Langkah review dua sumbu di skill: sumbu Standards (aturan repo, arsitektur) dan sumbu Spec (acceptance tiket dan spec), tanpa digabung, label pelanggaran keras atau pertimbangan; daftar anti-pola tes (terikat implementasi, tautologis) di template brief jalur.
+- [x] **T-183.3** `✅ Done (2026-11-02)` Satu penunjuk di navigator (housekeeping skill) dan satu penunjuk di `.claude/agents/README.md` (orkestrasi); tanpa menyalin isi skill (ADR-133). `.claude/agents/*.md` tidak diubah.
 
 ### T-184 · Wave handoff and retro references
 
-`⏳ Not Started` · **Domain** project-os, agen · **ADR** ADR-153 · **Spec** S-003 · **Depends** T-183
+`✅ Done (2026-11-02)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-153 · **Spec** S-003 · **Depends** T-183
 **Baca dulu:** `project-os/specs/S-003.md` § Perilaku 2 poin 11 dan § 3
 
-- [ ] **T-184.1** `handoff.md` di folder skill: bentuk dokumen handoff (penunjuk, bukan salinan; tanpa rahasia; disimpan di scratchpad sesi).
-- [ ] **T-184.2** `retro.md`: kategori saran (navigasi, pengecekan otomatis, ekonomi tool, instruksi yang tidak berpengaruh, akses informasi), diurutkan menurut keparahan, hanya saran. Isi awal dari pelajaran gelombang A: `bun install` di worktree baru agar hook jalan, `typecheck` menangkap konflik semantik, izin relay ditolak, laporan terpotong, satu deploy per gelombang.
-- [ ] **T-184.3** Kaitkan keduanya dari `SKILL.md` (langkah handoff dan retro) tanpa menyalin isinya.
+- [x] **T-184.1** `✅ Done (2026-11-02)` `handoff.md` di folder skill: bentuk dokumen handoff (penunjuk, bukan salinan; tanpa rahasia; disimpan di scratchpad sesi).
+- [x] **T-184.2** `✅ Done (2026-11-02)` `retro.md`: kategori saran (navigasi, pengecekan otomatis, ekonomi tool, instruksi yang tidak berpengaruh, akses informasi), diurutkan menurut keparahan, hanya saran. Isi awal dari pelajaran gelombang A: `bun install` di worktree baru agar hook jalan, `typecheck` menangkap konflik semantik, izin relay ditolak, laporan terpotong, satu deploy per gelombang.
+- [x] **T-184.3** `✅ Done (2026-11-02)` Kaitkan keduanya dari `SKILL.md` (langkah handoff dan retro) tanpa menyalin isinya.
 
 ### T-185 · Dry-run `wave-plan` and `wave-work` on the next real wave
 
-`⏳ Not Started` · **Domain** project-os, agen · **ADR** ADR-153 · **Spec** S-003 · **Depends** T-183, T-184, T-190
+`⏳ Not Started` · **Mode** HITL · **Domain** project-os, agen · **ADR** ADR-153 · **Spec** S-003 · **Depends** T-183, T-184, T-190
 **Baca dulu:** `project-os/specs/S-003.md` § Jahitan tes
 
 - [ ] **T-185.1** Gelombang untuk dry-run: gelombang B MCP, T-153 dan T-168 (keputusan King Rezi 2026-11-02), setelah King Rezi memutuskan T-152.4 dan T-154.5.
@@ -901,47 +901,50 @@ Skill eksekusi gelombang (langkah 2 sampai 11 di S-003 § Perilaku 2): alur gelo
 
 ### T-186 · Docs locator and link check script
 
-`⏳ Not Started` · **Domain** project-os, tooling · **ADR** ADR-133 · **Spec** S-003 · **Depends** —
+`🟡 Done (code, sebagian) (2026-11-02)` · **Mode** AFK · **Domain** project-os, tooling · **ADR** ADR-133 · **Spec** S-003 · **Depends** —
 **Baca dulu:** `project-os/specs/S-003.md` § Ekonomi token · `AGENTS.md` aturan 12
 
 Pencari lokasi dokumen saat dijalankan (bukan berkas indeks yang di-commit, karena nomor baris cepat usang) dan pemeriksa tautan, dalam satu keluarga skrip dengan parser yang sama. Nol token saat dijalankan.
 
-- [ ] **T-186.1** Periksa keseragaman format ID di dokumen (tiket `### T-xxx ·`, baris ADR di tabel, S-, KI-, KSP-, CI-D) sebelum merancang parser; laporkan yang tidak seragam.
-- [ ] **T-186.2** `bun run docs:where <query>`: kembalikan `path:baris` dan judul untuk ID dan kata kunci judul, sehingga bagian tiket dibaca dengan `offset` dan `limit`.
-- [ ] **T-186.3** `bun run docs:check`: penunjuk path valid, ID yang dirujuk ada, penghitung "Berikutnya" di `AVAILABLE_TICKETS.md` sama dengan ID maksimum ditambah satu, pasangan kembaran aturan 12 tidak menyimpang, dan nama folder skill dan judul tiket baru lolos pola penamaan bahasa Inggris. Putuskan pemicunya (pre-commit pada berkas Markdown yang diubah dan/atau CI).
-- [ ] **T-186.4** `AGENTS.md`: satu baris penunjuk ke skrip, tanpa menyalin aturan (ADR-133).
+- [x] **T-186.1** `✅ Done (2026-11-02)` Periksa keseragaman format ID di dokumen (tiket `### T-xxx ·`, baris ADR di tabel, S-, KI-, KSP-, CI-D) sebelum merancang parser; laporkan yang tidak seragam.
+- [x] **T-186.2** `✅ Done (2026-11-02)` `bun run docs:where <query>`: kembalikan `path:baris` dan judul untuk ID dan kata kunci judul, sehingga bagian tiket dibaca dengan `offset` dan `limit`.
+- [x] **T-186.3** `✅ Done (2026-11-02, skrip; pemicu belum dipasang)` `bun run docs:check`: penunjuk path valid, ID yang dirujuk ada, penghitung "Berikutnya" di `AVAILABLE_TICKETS.md` sama dengan ID maksimum ditambah satu, pasangan kembaran aturan 12 tidak menyimpang, dan nama folder skill dan judul tiket baru lolos pola penamaan bahasa Inggris. Putuskan pemicunya (pre-commit pada berkas Markdown yang diubah dan/atau CI).
+- [x] **T-186.4** `✅ Done (2026-11-02)` `AGENTS.md`: satu baris penunjuk ke skrip, tanpa menyalin aturan (ADR-133).
+- [ ] **T-186.5** Sisa dari T-186.3: (a) putuskan dan pasang pemicu (usulan: command `docs-check` di pre-commit lefthook untuk `*.md`, plus satu langkah di job quality gates CI; `.github/workflows` dan `lefthook.yml` belum diubah); (b) 32 temuan `docs:check` pada dokumen yang ada (rujukan ke dua ID job yang dicadangkan ADR-093, ID tak terdefinisi, dan 11 penunjuk path rusak) dibereskan atau dikecualikan sebelum pemicu dipasang; (c) setujui pengecualian pemeriksaan yang dibuat skrip (ADR, tiket, laporan, spec, `DECISIONS.md`, `CONVERSATIONS.md` tidak diperiksa penunjuknya). **Belum terbukti:** skrip belum dijalankan di CI; pencocokan pasangan `permissions.deny` hanya mengenali pola `Read(./...)`.
 
 ### T-187 · Update `proactive-clarification` with round-based questioning
 
-`⏳ Not Started` · **Domain** project-os, agen · **ADR** — · **Spec** S-003 · **Depends** — (S-003 disahkan 2026-11-02)
+`🟡 In Progress (2026-11-02)` · **Mode** AFK · **Domain** project-os, agen · **ADR** — · **Spec** S-003 · **Depends** — (S-003 disahkan 2026-11-02)
 **Baca dulu:** `.claude/skills/proactive-clarification/SKILL.md` · `project-os/specs/S-003.md` tabel pola (`grilling`)
 
-- [ ] **T-187.1** Bandingkan skill yang ada (143 baris) dengan `grilling` dari sumber; catat selisihnya, termasuk apa yang sudah kita punya.
-- [ ] **T-187.2** Terapkan yang belum ada: pertanyaan per ronde mencakup seluruh frontier keputusan, rekomendasi di depan, fakta dicari sendiri dan hanya keputusan yang ditanyakan, selesai bila frontier kosong, tidak bertindak sebelum King Rezi mengonfirmasi pemahaman bersama.
+- [x] **T-187.1** `✅ Done (2026-11-02)` Bandingkan skill yang ada (143 baris) dengan `grilling` dari sumber; catat selisihnya, termasuk apa yang sudah kita punya.
+- [x] **T-187.2** `✅ Done (2026-11-02)` Terapkan yang belum ada: pertanyaan per ronde mencakup seluruh frontier keputusan, rekomendasi di depan, fakta dicari sendiri dan hanya keputusan yang ditanyakan, selesai bila frontier kosong, tidak bertindak sebelum King Rezi mengonfirmasi pemahaman bersama.
 - [ ] **T-187.3** Uji pada klarifikasi nyata berikutnya dan revisi bila perlu.
 
 ### T-188 · Prune always-loaded orchestration context
 
-`⏳ Not Started` · **Domain** project-os, agen · **ADR** ADR-133 · **Spec** S-003 · **Depends** —
+`✅ Done (2026-11-02)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133 · **Spec** S-003 · **Depends** —
 **Baca dulu:** `project-os/specs/S-003.md` § Ekonomi token · tabel pola (`writing-for-agents`)
 
 Setiap perubahan isi aturan ditinjau King Rezi per berkas; `.claude/agents/*.md` tidak diubah tanpa permintaan eksplisit.
 
-- [ ] **T-188.1** Ukur apa yang selalu dimuat per sesi (`AGENTS.md` 142 baris, navigator 345 baris, README agen, deskripsi skill) dan ukur pemakaian token (skill `explain-usage` atau `get_usage`) sebagai titik awal.
-- [ ] **T-188.2** Terapkan prinsip: penunjuk dengan pemicu, hapus instruksi yang tidak berpengaruh, satu makna di satu tempat, instruksi positif bila aman; tanpa mengubah arti aturan.
-- [ ] **T-188.3** Ukur ulang dan laporkan selisihnya.
+- [x] **T-188.1** `✅ Done (2026-11-02)` Ukur apa yang selalu dimuat per sesi (`AGENTS.md` 142 baris, navigator 345 baris, README agen, deskripsi skill) dan ukur pemakaian token (skill `explain-usage` atau `get_usage`) sebagai titik awal.
+- [x] **T-188.2** `✅ Done (2026-11-02)` Terapkan prinsip: penunjuk dengan pemicu, hapus instruksi yang tidak berpengaruh, satu makna di satu tempat, instruksi positif bila aman; tanpa mengubah arti aturan.
+- [x] **T-188.3** `✅ Done (2026-11-02)` Ukur ulang dan laporkan selisihnya.
+
+**Hasil (2026-11-02):** pengukuran awal (byte ÷ 4, bukan pemakaian token sesungguhnya karena `explain-usage` dan `get_usage` tidak tersedia): `AGENTS.md` 143 baris (~2.400 token), navigator 363 baris (~5.200), README agen 195 baris (~3.100), deskripsi 21 skill 8.555 karakter (~2.100). King Rezi meninjau per berkas: dari tiga usulan di navigator hanya **format entri CONVERSATIONS dan BRAINSTORM** yang disetujui (diganti penunjuk ke bagian "Format Entry" di berkas masing-masing). Template ADR dan File Map **tidak** disetujui dan dibiarkan; `AGENTS.md` dan README agen tidak diubah. Setelah: navigator 344 baris (20.401 byte, selisih -19 baris dan -451 byte, sekitar 110 token). Penghematan kecil; ukuran token nyata belum terukur.
 
 ### T-190 · Skill `wave-plan`
 
-`⏳ Not Started` · **Domain** project-os, agen · **ADR** ADR-153 · **Spec** S-003 · **Depends** T-181 (Accepted), T-182 (penanda AFK/HITL, T-182.5)
+`✅ Done (2026-11-02)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-153 · **Spec** S-003 · **Depends** T-181 (Accepted), T-182 (penanda AFK/HITL, T-182.5)
 **Baca dulu:** `project-os/specs/S-003.md` § Perilaku 2 poin 1 dan § Keputusan King Rezi · `project-os/AVAILABLE_TICKETS.md` · `.claude/skills/project-os-navigator/SKILL.md` § Skills & subagent housekeeping
 
 Skill penyiap gelombang (keputusan King Rezi 2026-11-02). Hanya membaca dokumen, berhenti di daftar bernomor yang disetujui King Rezi; `wave-work` (T-183) mulai dari daftar itu. Aman dan murah dipanggil kapan saja, termasuk untuk sekadar melihat gelombang yang tersedia. Semua nama dalam bahasa Inggris.
 
-- [ ] **T-190.1** Tulis `.claude/skills/wave-plan/SKILL.md` (frontmatter dengan deskripsi pemicu, isi ringkas): hitung frontier dari field **Depends** (tiket tanpa blocker), boleh lintas spec; pisahkan tiket AFK dan HITL; periksa bentrok berkas antar tiket.
-- [ ] **T-190.2** Keluaran: daftar bernomor (judul, blocker, hasil, AFK atau HITL, jalur yang diusulkan) untuk disetujui King Rezi; tiket HITL ditandai dan tidak masuk jalur. Skill berhenti di sini dan tidak membuat branch atau worktree.
-- [ ] **T-190.3** Satu penunjuk di navigator (housekeeping skill) dan satu penunjuk di `.claude/agents/README.md`; tanpa menyalin isi skill (ADR-133). `.claude/agents/*.md` tidak diubah.
-- [ ] **T-190.4** Pakai `bun run docs:where` (T-186) untuk menemukan bagian tiket bila sudah tersedia; sebelum itu, baca bagian tiket dengan `offset` dan `limit`.
+- [x] **T-190.1** `✅ Done (2026-11-02)` Tulis `.claude/skills/wave-plan/SKILL.md` (frontmatter dengan deskripsi pemicu, isi ringkas): hitung frontier dari field **Depends** (tiket tanpa blocker), boleh lintas spec; pisahkan tiket AFK dan HITL; periksa bentrok berkas antar tiket.
+- [x] **T-190.2** `✅ Done (2026-11-02)` Keluaran: daftar bernomor (judul, blocker, hasil, AFK atau HITL, jalur yang diusulkan) untuk disetujui King Rezi; tiket HITL ditandai dan tidak masuk jalur. Skill berhenti di sini dan tidak membuat branch atau worktree.
+- [x] **T-190.3** `✅ Done (2026-11-02)` Satu penunjuk di navigator (housekeeping skill) dan satu penunjuk di `.claude/agents/README.md`; tanpa menyalin isi skill (ADR-133). `.claude/agents/*.md` tidak diubah.
+- [x] **T-190.4** `✅ Done (2026-11-02)` Pakai `bun run docs:where` (T-186) untuk menemukan bagian tiket bila sudah tersedia; sebelum itu, baca bagian tiket dengan `offset` dan `limit`.
 
 ---
 

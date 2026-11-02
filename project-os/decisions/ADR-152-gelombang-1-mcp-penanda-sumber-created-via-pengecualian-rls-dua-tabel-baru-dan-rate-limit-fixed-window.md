@@ -6,7 +6,7 @@ Gelombang 1 MCP: Penanda Sumber `created_via` pada `publishing_posts`, Pengecual
 
 ### Status
 
-**Proposed — menunggu persetujuan King Rezi.** Belum berlaku sampai King Rezi menyetujui; sebelum itu migrasi dan kode T-151, T-152, T-154 berstatus usulan terhadap baseline. Bila disetujui, ubah status menjadi `Accepted` (di file ini dan di tabel `DECISIONS.md`).
+**Accepted** (disetujui King Rezi, 2026-11-02): poin 1 (penanda sumber dan tanpa indeks), poin 2 (pengecualian RLS dua tabel baru), poin 3 (rate limit fixed window, error `rate_limited` di hasil tool tanpa `Retry-After`), serta label `app` untuk draft manusia yang diedit AI (T-152.4, T-154.5).
 
 ### Date
 
@@ -14,7 +14,7 @@ Gelombang 1 MCP: Penanda Sumber `created_via` pada `publishing_posts`, Pengecual
 
 ### Context
 
-Gelombang 1 v0.5 (T-151, T-152, T-154) menambah tiga migrasi dan keputusan yang menyentuh baseline (`database-strategy.md` BC-03/BC-04, ADR-141), jadi butuh ADR (`AGENTS.md` aturan 2). Kode dan migrasi sudah ditulis di branch `feature/mcp-v05-gelombang-1`, dan **sudah diterapkan ke DB bersama (staging = local) pada 2026-10-30 atas instruksi King Rezi** untuk menjalankan verifikasi DB; status ADR ini tetap Proposed sampai King Rezi menyetujuinya secara eksplisit.
+Gelombang 1 v0.5 (T-151, T-152, T-154) menambah tiga migrasi dan keputusan yang menyentuh baseline (`database-strategy.md` BC-03/BC-04, ADR-141), jadi butuh ADR (`AGENTS.md` aturan 2). Kode dan migrasi sudah ditulis di branch `feature/mcp-v05-gelombang-1`, dan **sudah diterapkan ke DB bersama (staging = local) pada 2026-10-30 atas instruksi King Rezi** untuk menjalankan verifikasi DB; ADR ini disetujui King Rezi pada 2026-11-02.
 
 ### Decision
 
@@ -23,7 +23,7 @@ Gelombang 1 v0.5 (T-151, T-152, T-154) menambah tiga migrasi dan keputusan yang 
 - Kolom `created_via TEXT NOT NULL DEFAULT 'app'` (nilai `app | mcp`) dan `created_via_client_id TEXT NULL` (`clientId` OAuth klien AI; tanpa FK).
 - CHECK `publishing_posts_created_via_check` menjaga pasangan: `app` wajib tanpa client id, `mcp` wajib dengan client id.
 - Nilainya `app`, bukan `manual` (mengikuti `database-strategy.md` BC-04 dan ADR-138 poin 6).
-- `update_draft` lewat MCP **tidak** mengubah penanda sumber. Draft buatan manusia (`app`) yang diedit AI tetap berlabel `app`; jejak penyuntingan AI hanya ada di `mcp_audit_logs` (retensi 90 hari). **Perlu konfirmasi King Rezi** bahwa ini sesuai maksud ADR-138 poin 6 (saran review Ridwan #6).
+- `update_draft` lewat MCP **tidak** mengubah penanda sumber. Draft buatan manusia (`app`) yang diedit AI tetap berlabel `app`; jejak penyuntingan AI hanya ada di `mcp_audit_logs` (retensi 90 hari). Dikonfirmasi King Rezi 2026-11-02 sesuai ADR-138 poin 6 (saran review Ridwan #6).
 - Tidak ada indeks pada `created_via`. T-157 (badge dan filter sumber) kemungkinan butuh `(workspace_id, created_via)`; diputuskan di T-157 atau T-180 saat ada ukuran datanya.
 
 **2. Pengecualian RLS ADR-141 diperluas ke dua tabel BC-04 baru (T-151, T-154).**
@@ -35,7 +35,7 @@ Gelombang 1 v0.5 (T-151, T-152, T-154) menambah tiga migrasi dan keputusan yang 
 - Fixed window 60 detik (panggilan), 1 jam (aksi tulis), dan 1 hari (konten terjadwal), semuanya kelipatan epoch UTC. Kuota harian reset 00:00 UTC (07:00 WIB). Konsekuensi yang diterima: dua jendela bersebelahan bisa memuat sampai 2x batas.
 - Penghitung atomik satu statement `INSERT ... ON CONFLICT DO UPDATE ... WHERE count + n <= limit`; penolakan tidak menaikkan penghitung. Fail-closed bila penghitung gagal.
 - Batas bawaan 60 calls/menit, 30 write_actions/jam, 50 scheduled_contents/hari (angka dikonfirmasi King Rezi 2026-10-26, lihat T-154), dapat diubah lewat env tanpa ubah kode.
-- Penolakan dikembalikan sebagai error MCP `rate_limited` di hasil tool (JSON dengan `retryAfterSeconds`, `quota`, `limit`), **bukan** header HTTP `Retry-After`, karena transport Streamable HTTP membalas HTTP 200 dengan JSON-RPC. **Perlu konfirmasi King Rezi.**
+- Penolakan dikembalikan sebagai error MCP `rate_limited` di hasil tool (JSON dengan `retryAfterSeconds`, `quota`, `limit`), **bukan** header HTTP `Retry-After`, karena transport Streamable HTTP membalas HTTP 200 dengan JSON-RPC. Dikonfirmasi King Rezi 2026-11-02.
 
 ### Reason
 

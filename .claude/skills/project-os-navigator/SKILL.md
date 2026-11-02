@@ -69,15 +69,7 @@ Lihat `project-os/PROJECT_RULES.md` bagian **Document Type Classification** untu
 3. Jangan menyarankan solusi yang keluar dari scope phase aktif (lihat `Active Conversation Mode` di PROJECT_STATE.md).
 4. Jika diskusi menghasilkan insight penting, catat di `project-os/CONVERSATIONS.md`.
 
-**Format CONVERSATIONS.md entry:**
-
-```
-## [YYYY-MM-DD] — [Topik Singkat]
-**Phase:** [phase aktif]
-**Summary:** [ringkasan diskusi dalam 2-3 kalimat]
-**Key Decision/Insight:** [jika ada]
-**Impact:** [apakah ada dokumen yang perlu diupdate?]
-```
+Format entri: bagian "Format Entry" di `project-os/CONVERSATIONS.md`.
 
 ---
 
@@ -92,18 +84,7 @@ Lihat `project-os/PROJECT_RULES.md` bagian **Document Type Classification** untu
 3. Setelah brainstorm selesai, evaluasi hasilnya terhadap baseline yang ada.
 4. Jika ada ide yang layak dipertimbangkan, catat di `project-os/BRAINSTORM.md`.
 
-**Format BRAINSTORM.md entry:**
-
-```
-## [YYYY-MM-DD] — [Topik Brainstorm]
-**Phase:** [phase aktif]
-**Context:** [mengapa topik ini didiskusikan]
-**Ideas:**
-- [ide 1]
-- [ide 2]
-**Evaluation:** [selaras / bertentangan / perlu ADR / perlu validasi lebih lanjut]
-**Next Action:** [discard / simpan untuk fase X / buat ADR / validasi dulu]
-```
+Format entri: bagian "Format Entry" di `project-os/BRAINSTORM.md`.
 
 ---
 
@@ -136,6 +117,18 @@ terlihat user, dan tiket tooling. Backend/API/cron/migrasi tanpa perubahan
 UI **bukan** pengecualian otomatis; King Rezi yang memutuskan setiap
 pengecualian, dan agen mencatat alasannya di tiket. Gerbang CI terhadap
 staging untuk PR `staging` → `main` diatur di CI-D07, bukan di sini.
+
+**Tangga status tiket (ADR-153, S-003):** tiket punya dua tahap. **Done (code)**
+mencakup definisi ADR-149 di atas, `/code-review` dan review arsitektur
+(Ridwan) tanpa temuan terbuka, QA (Najwa) lolos, serta `typecheck`, `lint`,
+dan tes hijau; tiket boleh `✅` di tahap ini tanpa menunggu merge atau deploy.
+**Verified (staging)** adalah satu verifikasi per gelombang setelah satu deploy
+gelombang itu, untuk hal yang tidak bisa dibuktikan lokal (OAuth di balik
+proxy Railway, RLS `app_runtime`, klien MCP nyata, multi-instance). Bagian
+"Belum terbukti" di tiket tetap wajib sampai butir verifikasinya lulus; `✅`
+tidak boleh menyembunyikan klaim yang belum teruji. Tiket yang kodenya selesai
+tetapi butirnya masih menunggu staging ditulis `🟡 Done (code), menunggu
+Verified (staging)` dan menunjuk tiket verifikasi gelombangnya.
 
 **Aturan verifikasi: otomatis dulu, manual untuk sisanya.** Sebelum
 menyerahkan verifikasi ke King Rezi sebagai langkah manual, atau menulis
@@ -278,17 +271,17 @@ social-media-management/
 
 ## Mapping task → baca dulu
 
-| Jenis task                   | Context dulu                                 | Baseline minimal                                                                                        |
-| ----------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| Fitur / use-case              | `ctx-domain` + `ctx-implementation`           | BC di `05-architecture/` + UX di `04-ux/` + `rendering-strategy.md` (+ `ctx-business` untuk roles/MVP)    |
-| Schema / migrasi              | `ctx-architecture` + `ctx-technical-context`  | `database-strategy.md` + `database-orm.md` + `apps/web/prisma/schema.prisma`                              |
-| Auth / session                | `ctx-architecture` + `ctx-technical-context`  | `auth-architecture.md` + `auth-strategy.md`                                                               |
-| Outstand / webhook / publish  | `ctx-architecture`                            | `integration-layer.md`                                                                                    |
-| Jobs / cron                   | `ctx-architecture`                            | `background-jobs.md`                                                                                      |
-| Env / deploy / CI             | `ctx-technical-context`                       | `environment-management.md`, `deployment-infrastructure.md`, `cicd-pipeline.md`                           |
-| Coding conventions / DX       | `ctx-development`                             | `dx-tooling.md` + `code-conventions.md`                                                                   |
-| UI component / styling        | `ctx-design` + `ctx-implementation`           | `apps/web/.claude/CLAUDE.md` + `monorepo-setup.md` + `design-tokens.md` + ADR-097                         |
-| Desain / handoff UI           | `ctx-design`                                  | `04-ux/` + pointer artifact desain Postific (ADR-140; folder `design/` dihapus, ADR-045)                                      |
+| Jenis task                   | Context dulu                                 | Baseline minimal                                                                                       |
+| ---------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Fitur / use-case             | `ctx-domain` + `ctx-implementation`          | BC di `05-architecture/` + UX di `04-ux/` + `rendering-strategy.md` (+ `ctx-business` untuk roles/MVP) |
+| Schema / migrasi             | `ctx-architecture` + `ctx-technical-context` | `database-strategy.md` + `database-orm.md` + `apps/web/prisma/schema.prisma`                           |
+| Auth / session               | `ctx-architecture` + `ctx-technical-context` | `auth-architecture.md` + `auth-strategy.md`                                                            |
+| Outstand / webhook / publish | `ctx-architecture`                           | `integration-layer.md`                                                                                 |
+| Jobs / cron                  | `ctx-architecture`                           | `background-jobs.md`                                                                                   |
+| Env / deploy / CI            | `ctx-technical-context`                      | `environment-management.md`, `deployment-infrastructure.md`, `cicd-pipeline.md`                        |
+| Coding conventions / DX      | `ctx-development`                            | `dx-tooling.md` + `code-conventions.md`                                                                |
+| UI component / styling       | `ctx-design` + `ctx-implementation`          | `apps/web/.claude/CLAUDE.md` + `monorepo-setup.md` + `design-tokens.md` + ADR-097                      |
+| Desain / handoff UI          | `ctx-design`                                 | `04-ux/` + pointer artifact desain Postific (ADR-140; folder `design/` dihapus, ADR-045)               |
 
 ---
 
@@ -319,6 +312,12 @@ Berkas panduan vendor panjang di dalam sebuah skill (mis. rules lengkap)
 dinamai `REFERENCE.md`, bukan `AGENTS.md` — Cursor menyuntikkan setiap berkas
 bernama `AGENTS.md` ke setiap pesan, jadi nama itu dicadangkan untuk pintu
 masuk repo di root (T-116).
+
+**Gelombang kerja multi-sesi (S-003, ADR-153):** menjalankan gelombang yang
+sudah disetujui memakai skill `wave-work`; dipanggil hanya saat King Rezi
+meminta.
+Menyiapkan daftar gelombang (hanya membaca dokumen, berhenti di persetujuan
+King Rezi) memakai skill `wave-plan`; aman dipanggil kapan saja.
 
 **Delegasi subagent (ADR-063):** perubahan sepele — satu berkas, tanpa batas
 domain, tanpa permukaan UI (contoh: rename file, perbaikan satu baris di

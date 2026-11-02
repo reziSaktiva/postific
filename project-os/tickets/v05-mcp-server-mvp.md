@@ -15,7 +15,7 @@
 
 **Di luar rilis ini (ADR-138):** `publish` (Publish Now) dan `reply` (balas komentar) lewat MCP ditunda. Aksi destruktif dan administratif tidak diekspos. AI bawaan Postific dicabut.
 
-**Penentuan status gelombang 1 dan A (2026-10-30, tangga status S-003):** kode T-151, T-152, T-154, T-155, T-156, T-157, dan T-180 sudah di `staging` (PR 222 dan PR 227; deploy `e3c973a1`, commit `16d3a1d`, live). Penutupan ✅ ditentukan oleh satu verifikasi gelombang di [T-189](#t-189--wave-a-staging-verification) dan, untuk Done (code), oleh ADR-153 (T-181, belum Accepted). Sampai itu, bagian "Belum terbukti" di tiap tiket tetap berlaku.
+**Penentuan status gelombang 1 dan A (2026-10-30, tangga status S-003):** kode T-151, T-152, T-154, T-155, T-156, T-157, dan T-180 sudah di `staging` (PR 222 dan PR 227; deploy `e3c973a1`, commit `16d3a1d`, live). Penutupan ✅ ditentukan oleh satu verifikasi gelombang di [T-189](#t-189--wave-a-staging-verification) dan, untuk Done (code), oleh ADR-153 (Accepted 2026-11-02). Sampai itu, bagian "Belum terbukti" di tiap tiket tetap berlaku.
 
 ---
 
@@ -126,7 +126,7 @@ Urutan: .1 dulu; .2 dan .3 berurutan (Prabowo); .4 sebelum .5 (SQL staging diset
 
 ### T-151 · Layar persetujuan OAuth (pilih workspace dan scope)
 
-`🟡 In Progress (2026-10-30)` · **Domain** mcp-access · UI · **ADR** ADR-139, ADR-097, ADR-152 (Proposed) · **Terkait** T-178 · **Depends** T-148, T-149
+`🟡 Done (code), menunggu Verified (staging) lewat T-189.1, T-189.2 (2026-11-02)` · **Domain** mcp-access · UI · **ADR** ADR-139, ADR-097, ADR-152 (Accepted) · **Terkait** T-178 · **Depends** T-148, T-149
 
 **Baca dulu:** `apps/web/.claude/CLAUDE.md` · `.claude/skills/claude-design-scope-discipline/SKILL.md` · ADR-139
 
@@ -148,26 +148,26 @@ Layar tempat pengguna memilih satu workspace dan scope. Default `read` + `draft`
 
 **Temuan LOW Najwa (belum dikerjakan, masuk T-180):** fokus keyboard jatuh ke `body` setelah error pada tombol Izinkan; catatan "Izin Jadwalkan tidak aktif secara bawaan" tetap tampil setelah dicentang; error langkah 1 tanpa ikon.
 
-**Belum terbukti:** migrasi belum diterapkan ke DB mana pun, alur OAuth nyata di staging (consent dua langkah, hook consent permanen diganti tabel pilihan), dan RLS pada tabel baru. Ditutup ✅ hanya setelah T-151.2 sampai T-151.4 terbukti (konvensi T-150.7/T-178).
+**Belum terbukti:** migrasi belum diterapkan ke DB mana pun, alur OAuth nyata di staging (consent dua langkah, hook consent permanen diganti tabel pilihan), dan RLS pada tabel baru. Verified (staging) hanya setelah T-151.2 sampai T-151.4 terbukti, lewat verifikasi gelombang T-189 (ADR-153; menggantikan konvensi tutup-setelah-staging T-150.7/T-178).
 
 ### T-152 · Tool draft dan penanda sumber MCP
 
-`🟡 In Progress (2026-10-30)` · **Domain** mcp-access · publishing · **ADR** ADR-138, ADR-039, ADR-152 (Proposed) · **Depends** T-150
+`🟡 Done (code), menunggu Verified (staging) lewat T-189.3 (2026-11-02)` · **Domain** mcp-access · publishing · **ADR** ADR-138, ADR-039, ADR-152 (Accepted) · **Depends** T-150
 
 **Baca dulu:** `05-architecture/application-layer.md` · `05-architecture/database-strategy.md`
 
-`create_draft` dan `update_draft` (hanya draft, tidak menyentuh post yang sudah dijadwalkan). Kolom penanda sumber di `publishing_posts` (`created_via`, `created_via_client_id`), diputuskan final di tiket ini (usulan di ADR-152, menunggu persetujuan King Rezi).
+`create_draft` dan `update_draft` (hanya draft, tidak menyentuh post yang sudah dijadwalkan). Kolom penanda sumber di `publishing_posts` (`created_via`, `created_via_client_id`), diputuskan final di tiket ini (usulan di ADR-152, Accepted 2026-11-02).
 
 **Subtask** (gelombang 1, 2026-10-30)
 
 - [x] **T-152.1** Kode: tool `create_draft` dan `update_draft` (scope `draft`), `ComposeDraftUseCase` di publishing, migrasi `20261030100000_t152_publishing_posts_created_via`. Review Ridwan tanpa pelanggaran; `typecheck`, `lint`, 1742 tes unit hijau.
 - [x] **T-152.2** Terapkan migrasi `20261030100000_t152_publishing_posts_created_via` ke staging (SQL ditunjukkan ke King Rezi dulu); verifikasi kolom, CHECK pasangan, dan baris lama berisi `app`. **Hasil (2026-10-30):** migrasi diterapkan ke DB bersama; kolom `created_via` (`text NOT NULL DEFAULT 'app'`) dan `created_via_client_id` (`text NULL`) ada, CHECK `publishing_posts_created_via_check` terpasang dan menolak mcp tanpa client id, app dengan client id, nilai di luar `app`/`mcp`, serta UPDATE yang menghapus client id (kode 23514, tes integrasi).
 - [ ] **T-152.3** Verifikasi `create_draft` dan `update_draft` lewat klien MCP nyata di staging dan/atau `mcp.e2e.ts` (draft tercipta dengan `created_via='mcp'` dan `created_via_client_id` terisi; draft yang sudah Scheduled ditolak; scope `read` saja ditolak). **Hasil (2026-10-30):** jalur DB sudah terbukti lewat `ComposeDraftUseCase` dengan repository nyata (draft `mcp` tersimpan dengan `created_via_client_id`; `update_draft` hanya mengubah Draft, post Scheduled ditolak `ConflictError`, `created_via` tidak berubah; akun workspace lain ditolak). **Masih terbuka:** panggilan lewat klien MCP nyata (OAuth, token, `tools/call`) belum terbukti. **Verifikasi staging (2026-10-30):** `mcp.e2e.ts` hanya memanggil tool baca, jadi `create_draft`/`update_draft` TIDAK tercakup dan tetap belum terbukti lewat klien MCP nyata di staging; skenario e2e untuk tool tulis belum ada.
-- [ ] **T-152.4** Keputusan King Rezi: (a) batas caption 5000 karakter (angka pilihan agen, bukan dari baseline); (b) draft buatan manusia (`app`) yang diedit AI tetap berlabel `app`, jejak hanya di audit log (saran Ridwan #6), sesuai ADR-138 poin 6 atau tidak.
+- [x] **T-152.4** `✅ Done (2026-11-02)` **Diputuskan King Rezi:** (a) batas 5000 karakter disetujui; (b) draft `app` yang diedit AI tetap berlabel `app`, jejak hanya di audit log (sesuai ADR-138 poin 6). Pertanyaan semula: (a) batas caption 5000 karakter (angka pilihan agen, bukan dari baseline); (b) draft buatan manusia (`app`) yang diedit AI tetap berlabel `app`, jejak hanya di audit log (saran Ridwan #6), sesuai ADR-138 poin 6 atau tidak.
 
 **Hasil kode (2026-10-30):** `publishing_posts.created_via TEXT NOT NULL DEFAULT 'app'` (`app | mcp`) dan `created_via_client_id TEXT NULL` (`clientId` OAuth, tanpa FK); CHECK menjaga pasangan (`app` tanpa client id, `mcp` dengan client id). `update_draft` hanya untuk status Draft (Scheduled ditolak dengan pesan "Batalkan jadwal di aplikasi dulu") dan tidak mengubah penanda sumber. Batas input: caption maksimum 5000 karakter, maksimum 10 media. `platformOptions` (board Pinterest) tidak bisa lewat MCP. Kode error MCP baru `conflict`; `ValidationError` dan `PublishingDomainError` dipetakan ke `invalid_input`. Tidak ada indeks pada `created_via`; T-157 mungkin butuh `(workspace_id, created_via)`. `list_drafts` belum mengembalikan `createdVia` (T-157).
 
-**Belum terbukti:** migrasi belum diterapkan ke DB mana pun, dan tool draft belum dicoba lewat klien MCP nyata. Ditutup ✅ hanya setelah T-152.2 dan T-152.3 terbukti.
+**Belum terbukti:** migrasi belum diterapkan ke DB mana pun, dan tool draft belum dicoba lewat klien MCP nyata. Verified (staging) hanya setelah T-152.2 dan T-152.3 terbukti, lewat verifikasi gelombang T-189 (ADR-153; menggantikan konvensi tutup-setelah-staging T-150.7/T-178).
 
 ### T-153 · Tool `schedule_posts` (batch)
 
@@ -181,7 +181,7 @@ Satu panggilan memuat maksimum 10 konten (konstanta konfigurasi). Target per kon
 
 ### T-154 · Rate limit per workspace (Postgres)
 
-`🟡 In Progress (2026-10-30)` · **Domain** mcp-access · **ADR** ADR-138, ADR-152 (Proposed) · **Terkait** T-153 · **Depends** T-150
+`🟡 Done (code), menunggu Verified (staging) lewat T-189.4 (2026-11-02)` · **Domain** mcp-access · **ADR** ADR-138, ADR-152 (Accepted) · **Terkait** T-153 · **Depends** T-150
 
 **Baca dulu:** `05-architecture/background-jobs.md` · `05-architecture/database-strategy.md`
 
@@ -193,15 +193,15 @@ Satu panggilan memuat maksimum 10 konten (konstanta konfigurasi). Target per kon
 - [x] **T-154.2** Terapkan migrasi `20261030110000_t154_mcp_rate_limit_windows` ke staging (SQL ditunjukkan ke King Rezi dulu). **Hasil (2026-10-30):** migrasi diterapkan ke DB bersama (atas izin King Rezi).
 - [x] **T-154.3** Jalankan tes integrasi DB (opt-in) `mcp-rate-limit.repository.integration.test.ts` terhadap Postgres yang boleh dipakai (hati-hati: `DATABASE_URL` lokal menunjuk staging, ADR-081; atas persetujuan King Rezi). Belum pernah dijalankan. **Hasil (2026-10-30):** `MCP_RATE_LIMIT_DB_TEST=1` lulus di Postgres nyata (konkurensi dan purge); ditambah tes integrasi `mcp-draft-quota-consent.integration.test.ts`: `consumeQuota` all-or-nothing, `retryAfterSeconds` tepat, isolasi antar workspace, 20 `consumeQuota` paralel meloloskan tepat 4, `authorizeCall` dengan limiter nyata (panggilan ke-6 ditolak tanpa menaikkan penghitung, penolakan otorisasi tidak mengonsumsi kuota).
 - [ ] **T-154.4** Uji RLS `app_runtime` pada `mcp_rate_limit_windows` (upsert atomik, penolakan tidak menaikkan penghitung, `anon` ditolak) di staging, dan verifikasi limit lewat klien nyata atau `mcp.e2e.ts` (panggilan ke-61 dalam satu menit ditolak `rate_limited`). **Hasil (2026-10-30):** upsert atomik dan penolakan tidak menaikkan penghitung terbukti di DB nyata; `anon` dan `authenticated` tidak melihat baris di `mcp_rate_limit_windows` (uji transaksi, rollback). **Masih terbuka:** perilaku sebagai role `app_runtime` itu sendiri, dan limit lewat klien MCP nyata (panggilan ke-61). **Verifikasi staging (2026-10-30):** deploy dd2447f sehat dan panggilan e2e (beberapa `tools/call`) lolos gerbang per panggilan tanpa penolakan, tetapi panggilan ke-61 dalam semenit (`rate_limited`) belum dicoba dan role `app_runtime` belum diuji langsung; tetap terbuka.
-- [ ] **T-154.5** Konfirmasi King Rezi: error `rate_limited` di hasil tool (`retryAfterSeconds`, quota, limit) **tanpa** header HTTP `Retry-After` (HTTP 200 JSON-RPC), dan fixed window (kuota harian reset 00:00 UTC = 07:00 WIB; dua jendela bersebelahan bisa memuat sampai 2x batas).
+- [x] **T-154.5** `✅ Done (2026-11-02)` **Disetujui King Rezi:** error `rate_limited` di hasil tool tanpa header `Retry-After`, dan fixed window. Pertanyaan semula: error `rate_limited` di hasil tool (`retryAfterSeconds`, quota, limit) **tanpa** header HTTP `Retry-After` (HTTP 200 JSON-RPC), dan fixed window (kuota harian reset 00:00 UTC = 07:00 WIB; dua jendela bersebelahan bisa memuat sampai 2x batas).
 
 **Hasil kode (2026-10-30):** tabel `mcp_rate_limit_windows` (PK `workspace_id`+`quota`+`window_start`, FK ke `workspaces` cascade, indeks `expires_at`, CHECK `count >= 0` dan `expires_at > window_start`, RLS policy `app_runtime`). Fixed window 60 detik / 1 jam / 1 hari, kelipatan epoch UTC. Upsert atomik satu statement `INSERT ... ON CONFLICT DO UPDATE ... WHERE count+n <= limit`; penolakan tidak menaikkan penghitung. Batas bawaan lewat `MCP_RATE_LIMIT_DEFAULTS` (60 calls/menit, 30 write_actions/jam, 50 scheduled_contents/hari), dapat diubah lewat env `MCP_RATE_LIMIT_CALLS_PER_MINUTE`, `MCP_RATE_LIMIT_WRITES_PER_HOUR`, `MCP_RATE_LIMIT_SCHEDULED_CONTENTS_PER_DAY` (maksimum int4; di atasnya kembali ke default). Error `rate_limited` berisi `retryAfterSeconds`, quota, dan limit. Fail-closed. JOB-08 (`mcp.audit.purge`) kini tiga pembersihan: audit, jendela rate limit kedaluwarsa, pilihan workspace kedaluwarsa. API untuk T-153: `McpAccessService.consumeQuota(workspaceId, quota, amount)`, all-or-nothing, belum ada refund.
 
-**Belum terbukti:** migrasi belum diterapkan ke DB mana pun, tes integrasi DB belum pernah dijalankan, RLS `app_runtime` pada tabel baru belum diuji, dan limit belum dicoba lewat klien nyata. Ditutup ✅ hanya setelah T-154.2 sampai T-154.4 terbukti.
+**Belum terbukti:** migrasi belum diterapkan ke DB mana pun, tes integrasi DB belum pernah dijalankan, RLS `app_runtime` pada tabel baru belum diuji, dan limit belum dicoba lewat klien nyata. Verified (staging) hanya setelah T-154.2 sampai T-154.4 terbukti, lewat verifikasi gelombang T-189 (ADR-153; menggantikan konvensi tutup-setelah-staging T-150.7/T-178).
 
 ### T-155 · Tool `upload_media` dari URL (proteksi SSRF)
 
-`🟡 In Progress (2026-10-30)` · **Domain** mcp-access · media · **ADR** ADR-138 · **Depends** T-152
+`🟡 In Progress (2026-10-30)` · **Domain** mcp-access · media · **ADR** ADR-138 · **Depends** T-152 · **Tangga ADR-153:** Done (code) ditetapkan setelah tes E2E golden path-nya hijau di lokal (tanpa pengecualian, 2026-11-02); Verified (staging) lewat T-189.5
 
 **Baca dulu:** `05-architecture/integration-layer.md` · `05-architecture/application-layer.md` (`uploadMedia`)
 
@@ -213,15 +213,15 @@ Tiket sendiri karena butuh review keamanan terfokus. Hanya `https`, periksa IP s
 - [ ] **T-155.4** Uji di staging/Railway dengan unduhan nyata: DNS, TLS dengan CA sistem, redirect CDN, dan perilaku lookup custom di runtime Railway (bila dijalankan dengan `bun --bun`, tes ulang).
 - [ ] **T-155.5** Uji dengan klien MCP nyata: `upload_media` lalu `create_draft`, termasuk upload ke Supabase Storage dan record `MediaItem` lewat grant MCP.
 - [ ] **T-155.6** Uji file mendekati 50 MB nyata (memori, kecepatan) dan konkurensi lebih dari 3 unduhan.
-- [ ] **T-155.7** (Opsional) Tes E2E di `e2e/mcp.e2e.ts`.
+- [ ] **T-155.7** Tes E2E golden path di `e2e/mcp.e2e.ts` (wajib, ADR-149; tanpa pengecualian, keputusan King Rezi 2026-11-02). Done (code) ditetapkan setelah tes ini hijau di lokal.
 
 **Hasil kode (2026-10-30):** tool `upload_media` (scope `draft`) mengunduh file dari URL lalu menyimpannya lewat `UploadMediaUseCase`. Desain: `https` saja, tanpa userinfo, port default saja, IP literal ditolak. DNS di-resolve sekali per hop dan semua alamat harus lolos allow-list (IPv4 publik; IPv6 hanya `2000::/3` dengan unwrap mapped/NAT64/6to4). Koneksi di-pin ke alamat hasil resolve lewat lookup custom, sementara SNI, Host, dan validasi sertifikat tetap memakai hostname asli (terbukti dengan server TLS lokal di tes). Redirect manual maksimum 3 hop, tiap hop divalidasi ulang. Timeout total 15 detik, batas 50 MB (Content-Length dan hitung stream), `accept-encoding: identity`, maksimum 3 unduhan serentak per proses (kelebihan dijawab `busy`). Tipe file ditentukan dari magic bytes (jpeg/png/gif/webp/mp4/mov), `Content-Type` server diabaikan. Tidak ada migrasi dan tidak ada perubahan DB.
 
-**Belum terbukti:** unduhan nyata di staging/Railway (DNS, TLS dengan CA sistem, redirect CDN); perilaku lookup custom di runtime Railway (dugaan Node; bila dijalankan dengan `bun --bun` harus dites ulang); upload ke Supabase Storage dan pembuatan record `MediaItem` lewat grant MCP; file 50 MB nyata dan pemakaian memori (puncak sekitar 2-3x ukuran file, semaphore hanya per proses); klien MCP nyata dan alur `upload_media` lalu `create_draft`; tes E2E (belum ada). Keterbatasan yang diketahui: batas 15 detik butuh sekitar 27 Mbps untuk file 50 MB; validasi hanya pada header file, bukan integritas isi; pesan `busy` muncul bila lebih dari 3 unduhan serentak; unduhan yang gagal tetap memakai 1 kuota `write_actions`. Ditutup ✅ hanya setelah T-155.4 sampai T-155.6 terbukti.
+**Belum terbukti:** unduhan nyata di staging/Railway (DNS, TLS dengan CA sistem, redirect CDN); perilaku lookup custom di runtime Railway (dugaan Node; bila dijalankan dengan `bun --bun` harus dites ulang); upload ke Supabase Storage dan pembuatan record `MediaItem` lewat grant MCP; file 50 MB nyata dan pemakaian memori (puncak sekitar 2-3x ukuran file, semaphore hanya per proses); klien MCP nyata dan alur `upload_media` lalu `create_draft`; tes E2E (belum ada). Keterbatasan yang diketahui: batas 15 detik butuh sekitar 27 Mbps untuk file 50 MB; validasi hanya pada header file, bukan integritas isi; pesan `busy` muncul bila lebih dari 3 unduhan serentak; unduhan yang gagal tetap memakai 1 kuota `write_actions`. Verified (staging) hanya setelah T-155.4 sampai T-155.6 terbukti, lewat verifikasi gelombang T-189 (ADR-153; menggantikan konvensi tutup-setelah-staging T-150.7/T-178).
 
 ### T-156 · Settings: daftar dan cabut klien AI
 
-`🔄 In Progress (kode selesai, menunggu verifikasi King Rezi)` · **Domain** mcp-access · UI · **ADR** ADR-139, ADR-097 · **Depends** T-149, T-151
+`🔄 In Progress (kode selesai, menunggu verifikasi King Rezi)` · **Domain** mcp-access · UI · **ADR** ADR-139, ADR-097 · **Depends** T-149, T-151 · **Tangga ADR-153:** Done (code) ditetapkan setelah tes E2E golden path-nya hijau di lokal (tanpa pengecualian, 2026-11-02); Verified (staging) lewat T-189.6
 
 **Baca dulu:** `04-ux/information-architecture.md` · `apps/web/.claude/CLAUDE.md`
 
@@ -232,11 +232,12 @@ Daftar klien AI yang tersambung dan tombol cabut.
 - [x] **T-156.1** Server Action `revokeAiClientAction` (`settings/account/ai-clients/actions.ts`): sesi → `McpAccessService.revokeGrant`; `McpGrantNotFoundError` → pesan ramah + revalidate. Tes unit (4 kasus) hijau.
 - [x] **T-156.2** Halaman RSC `settings/account/ai-clients/page.tsx` (`listGrants` hanya milik sendiri, nama workspace dari `WorkspaceService`, URL MCP dari `mcpResourceUrl()`), view `AiClientsView` (baris KSP-08, scope sebagai Badge outline, AlertDialog Tier 2, empty state dengan Salin), entri nav "Klien AI" di grup Account. Tes komponen (6 kasus) hijau.
 - [ ] **T-156.3** BELUM terbukti: uji visual/interaksi di browser dengan data grant sungguhan (belum dijalankan; perlu login dan grant di DB staging=lokal, ADR-081). `typecheck`, `lint`, `bun run test` hijau.
+- [ ] **T-156.5** Tes E2E golden path daftar dan cabut klien AI (wajib, ADR-149; tanpa pengecualian, keputusan King Rezi 2026-11-02). Done (code) ditetapkan setelah tes ini hijau di lokal.
 - [ ] **T-156.4** Verifikasi King Rezi. Catatan jujur: grant lama tanpa `client_name` tampil sebagai "Klien AI"; workspace yang pengguna sudah bukan member-nya tampil "Workspace tidak tersedia".
 
 ### T-157 · Badge "dibuat lewat MCP" di History, Drafts, dan Queue
 
-`🟡 In Progress (2026-10-30, kode di staging lewat PR 227)` · **Domain** mcp-access · UI · **ADR** ADR-138, ADR-097 · **Depends** T-152
+`🟡 In Progress (2026-10-30, kode di staging lewat PR 227)` · **Domain** mcp-access · UI · **ADR** ADR-138, ADR-097 · **Depends** T-152 · **Tangga ADR-153:** Done (code) ditetapkan setelah tes E2E golden path-nya hijau di lokal (tanpa pengecualian, 2026-11-02); Verified (staging) lewat T-189.7
 
 **Baca dulu:** `04-ux/key-screen-patterns.md` · `.claude/skills/claude-design-scope-discipline/SKILL.md`
 
@@ -245,6 +246,8 @@ Badge dan filter berdasarkan `created_via`. Dari T-152 (2026-10-30): `list_draft
 **Gate Claude Design:** rancangan **sudah ada** di artifact Postific (https://claude.ai/artifact/FdRNU4gnxgAGY3zmBxNfR3), `components/McpSourceBadge/preview.html`; **dikonfirmasi King Rezi 2026-10-26** setelah ditinjau lewat galeri review (https://claude.ai/artifact/4BJCWNsCwubLd7SFwRtree). Pola di `product-discovery/04-ux/key-screen-patterns.md` § Pola: Badge dan Filter Sumber MCP. Keputusan yang sudah dikunci: cakupan **History, Drafts, dan Queue**, Calendar tidak diberi badge (IA-D11); badge outline berisi ikon dan nama klien di baris meta; filter sumber Semua / Dibuat manual / Lewat MCP dengan **bawaan Semua**; tampilan default setiap layar tidak berubah selain badge pada item MCP. Filter di Drafts adalah kontrol baru karena Drafts belum punya filter.
 
 **Hasil kode (2026-10-30):** badge outline (ikon robot + nama klien, ellipsis 140px, di baris meta) dan filter sumber (Semua Sumber / Dibuat Manual / Lewat MCP, bawaan Semua) terpasang di History, Drafts, dan Queue; Calendar tanpa badge. Filter murni sisi klien. `createdVia` dan `createdViaClientName` mengalir lewat `PublishingService` (port `McpClientNamePort`, satu query batch per panggilan) ke `QueueItemRecord`, `HistoryItemRecord`, `CalendarPostItem`, dan `PublishingPostRecord`, termasuk jalur Realtime. Nama klien dari `mcp_grants.client_name` (grant yang dicabut tetap dihitung; query memfilter `workspace_id` karena tabel tanpa RLS, ADR-141); bila tidak ditemukan badge menampilkan "Klien AI". Komponen bersama di `src/components/shared/` (`McpSourceBadge`, `SourceFilterSelect`, `SourceFilterEmpty`, `source-filter`). **Migrasi (diterapkan 2026-10-30 oleh sesi utama atas izin King Rezi lewat `prisma migrate deploy`; hasil di bawah dilaporkan sesi utama, tidak saya verifikasi sendiri):** `20261030130000_t157_publishing_posts_created_via_client_name` menambah kolom nullable `created_via_client_name` agar nama klien dibekukan saat `create_draft` (hasil code-review PR 225); post lama memakai lookup `mcp_grants`. Migrasi wajib diterapkan sebelum atau bersamaan deploy karena kode memilih kolom itu. **Hasil verifikasi SQL (laporan sesi utama):** kolom `created_via_client_name` bertipe text, nullable, tanpa default; `publishing_posts` 488 baris, 488 NULL, 0 non-NULL; constraint `publishing_posts_created_via_check` tidak berubah; `_prisma_migrations` mencatat `finished=true`, `applied_steps_count=1`. Belum ada post MCP dengan nama beku, jadi jalur tulis nama beku baru terbukti lewat tes unit saja. Nama klien disanitasi di server (kontrol/zero-width dibuang, maks 64 karakter); peniruan nama klien yang sah tidak bisa dicegah dari kode. Lebar select `w-44` mengikuti select Status/Akun yang ada (rancangan memakai maks 180px). Belum ada tes komponen untuk badge dan select. **QA Najwa (2026-10-30, localhost, aksi baca saja):** filter muncul di ketiga layar dengan bawaan Semua Sumber, tampilan default tidak berubah (History 488 item sama seperti sebelumnya), "Dibuat Manual" dan "Lewat MCP" (state kosong + Tampilkan Semua) berfungsi, Calendar tanpa badge. Review Ridwan: tanpa pelanggaran arsitektur; query nama klien yang tak terpakai di detail History dilepas, teks sr-only ditambah, state kosong History hanya bila filter lain di Semua, ikon badge diberi `shrink-0`. **Belum terbukti:** badge MCP asli dengan data nyata (tidak ada post `created_via='mcp'` di workspace uji; badge hanya diperiksa lewat render yang disuntikkan ke DOM, light/dark, ellipsis, 400px), perilaku saat grant dicabut (hanya tes unit), dan role selain Admin/Owner. Ikon badge dipaksa 12px oleh `Badge` (rancangan 10px). Perlu verifikasi King Rezi dengan satu post dari klien MCP.
+
+- [ ] **T-157.1** Tes E2E golden path badge dan filter sumber di History, Drafts, dan Queue (wajib, ADR-149; tanpa pengecualian, keputusan King Rezi 2026-11-02). Done (code) ditetapkan setelah tes ini hijau di lokal.
 
 ### T-168 · MCP mengikuti zona waktu pengguna (tindak lanjut T-147)
 
@@ -320,7 +323,7 @@ Menampung temuan T-150.7 yang tadinya hanya tercatat sebagai prosa. Detail bukti
 
 ### T-180 · Tindak lanjut temuan non-blocking gelombang 1 MCP (T-151, T-152, T-154)
 
-`🟡 In Progress (2026-10-30, kode di staging lewat PR 227; T-180.2 sebagian)` · **Domain** mcp-access · publishing · UI · **ADR** ADR-138, ADR-152 (Proposed) · **Terkait** T-151, T-152, T-154, T-157 · **Depends** T-151, T-152, T-154 (kode selesai, 2026-10-30)
+`🟡 Done (code), menunggu Verified (staging) lewat T-189.2, T-189.8 (2026-11-02)` · **Domain** mcp-access · publishing · UI · **ADR** ADR-138, ADR-152 (Accepted) · **Terkait** T-151, T-152, T-154, T-157 · **Depends** T-151, T-152, T-154 (kode selesai, 2026-10-30)
 
 **Baca dulu:** tiket T-151, T-152, T-154 di file ini (bagian hasil kode)
 
@@ -335,11 +338,11 @@ Menampung temuan review Ridwan, QA Najwa, dan catatan penulis gelombang 1 yang t
 
 ### T-189 · Wave A staging verification
 
-`⏳ Not Started` · **Domain** mcp-access, QA · **ADR** ADR-152 (Proposed), ADR-153 (belum ada) · **Spec** S-003 · **Terkait** T-151, T-152, T-154, T-155, T-156, T-157, T-180 · **Depends** deploy `e3c973a1` (PR 227, live 2026-10-30)
+`⏳ Not Started` · **Mode** HITL (T-189.9) · **Domain** mcp-access, QA · **ADR** ADR-152 (Accepted), ADR-153 (Accepted) · **Spec** S-003 · **Terkait** T-151, T-152, T-154, T-155, T-156, T-157, T-180 · **Depends** deploy `e3c973a1` (PR 227, live 2026-10-30)
 
 **Baca dulu:** `project-os/specs/S-003.md` § Perilaku 1 · bagian "Belum terbukti" di tiket yang dirujuk
 
-Satu verifikasi untuk seluruh gelombang 1 dan A (S-003). Tiket yang dirujuk dianggap Verified (staging) hanya bila butir yang bersangkutan lulus; butir yang lulus dicoret dari "Belum terbukti" di tiket asalnya. Done (code) tiap tiket ditetapkan setelah ADR-153 Accepted (T-181). Butir HITL diputuskan King Rezi, tidak dijawab agen.
+Satu verifikasi untuk seluruh gelombang 1 dan A (S-003). Tiket yang dirujuk dianggap Verified (staging) hanya bila butir yang bersangkutan lulus; butir yang lulus dicoret dari "Belum terbukti" di tiket asalnya. Done (code) tiap tiket mengikuti ADR-153 (Accepted 2026-11-02); T-155, T-156, T-157 ditetapkan setelah tes E2E-nya (T-155.7, T-156.5, T-157.1) hijau di lokal. Butir HITL diputuskan King Rezi, tidak dijawab agen.
 
 - [ ] **T-189.1** (T-151.2) Perilaku sebagai role `app_runtime` pada `mcp_workspace_choices` (konsol SQL menolak `set role`; buktikan lewat jalur aplikasi di staging).
 - [ ] **T-189.2** (T-151.3, T-180.1) Alur OAuth penuh lewat klien MCP nyata (Claude Code atau Cursor): pilih workspace, persetujuan, baris `mcp_workspace_choices` tersimpan lalu terhapus setelah consent sukses, dan grant terbentuk.
@@ -349,7 +352,7 @@ Satu verifikasi untuk seluruh gelombang 1 dan A (S-003). Tiket yang dirujuk dian
 - [ ] **T-189.6** (T-156.3, .4) Settings klien AI dengan grant sungguhan: daftar dan cabut; verifikasi King Rezi.
 - [ ] **T-189.7** (T-157) Badge dan filter sumber dengan draft MCP nyata di History, Drafts, dan Queue, termasuk nama klien yang dibekukan.
 - [ ] **T-189.8** Ulangi `mcp.e2e.ts` terhadap deploy gelombang ini (regresi).
-- [ ] **T-189.9** Keputusan King Rezi (HITL): T-152.4 (batas caption 5000 karakter; label draft manusia yang diedit AI), T-154.5 (error `rate_limited` tanpa `Retry-After`; fixed window), dan apakah T-155, T-156, T-157 dikecualikan dari E2E golden path ADR-149 (tidak otomatis; pengecualian diputuskan King Rezi dan alasannya dicatat).
+- [x] **T-189.9** `✅ Done (2026-11-02)` Keputusan King Rezi (HITL), semua terjawab (T-152.4 dan T-154.5 disetujui sesuai usulan agen): T-152.4 (batas caption 5000 karakter; label draft manusia yang diedit AI), T-154.5 (error `rate_limited` tanpa `Retry-After`; fixed window). **Diputuskan (2026-11-02):** T-155, T-156, T-157 tidak dikecualikan dari E2E golden path ADR-149; tesnya T-155.7, T-156.5, dan T-157.1.
 
 ---
 

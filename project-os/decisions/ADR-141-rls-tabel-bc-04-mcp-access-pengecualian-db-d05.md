@@ -6,7 +6,7 @@ RLS Tabel BC-04 MCP Access: Pengecualian DB-D05 (Policy `app_runtime` Tanpa Isol
 
 ### Status
 
-Accepted. Cakupan tabel diamandemen oleh ADR-152 (Proposed, 2026-10-30; menambah `mcp_rate_limit_windows` dan `mcp_workspace_choices`, menunggu persetujuan King Rezi).
+Accepted. Cakupan tabel diamandemen oleh ADR-152 (Accepted 2026-11-02; menambah `mcp_rate_limit_windows` dan `mcp_workspace_choices`).
 
 ### Date
 
