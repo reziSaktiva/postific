@@ -847,43 +847,43 @@ Hasil: `e2e/start-page.e2e.ts` (3 tes serial). Berjalan di workspace khusus **E2
 
 ### T-181 · Draft ADR-153: Done (code) and Verified (staging) status ladder
 
-`🟡 In Progress (2026-11-02)` · **Domain** project-os, agen · **ADR** ADR-153 (Proposed), ADR-149 · **Spec** S-003 · **Depends** —
+`✅ Done (2026-11-02)` · **Mode** HITL (T-181.2) · **Domain** project-os, agen · **ADR** ADR-153 (Accepted), ADR-149 · **Spec** S-003 · **Depends** —
 **Baca dulu:** `project-os/specs/S-003.md` § Perilaku 1 · `.claude/skills/project-os-navigator/SKILL.md` § Pekerjaan Baru
 
 Memisahkan "kode selesai" dari "terbukti di staging" (keputusan King Rezi 2026-10-30). Mengubah definisi selesai, jadi butuh ADR baru (AGENTS.md aturan 2).
 
 - [x] **T-181.1** `✅ Done (2026-11-02)` Tulis ADR-153 (Proposed) di `DECISIONS.md`: tiket boleh ✅ saat Done (code); Verified (staging) menjadi satu verifikasi per gelombang; bagian "Belum terbukti" wajib sampai verifikasinya lulus. Mengamandemen konvensi tutup-setelah-staging di tiket MCP (T-150.7, T-178). Catat koreksi: definisi di ADR-149 sudah berbasis `local`.
-- [ ] **T-181.2** King Rezi menyetujui ADR-153 (Proposed menjadi Accepted).
+- [x] **T-181.2** `✅ Done (2026-11-02)` King Rezi menyetujui ADR-153 (Proposed menjadi Accepted).
 
 ### T-182 · Apply the status ladder to project docs
 
-`⏳ Not Started` · **Domain** project-os, agen · **ADR** ADR-153 · **Spec** S-003 · **Depends** T-181 (Accepted)
+`✅ Done (2026-11-02)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-153 · **Spec** S-003 · **Depends** T-181 ✅
 **Baca dulu:** `project-os/specs/S-003.md` · `project-os/AVAILABLE_TICKETS.md` · `project-os/specs/README.md`
 
 Pemilik: Gibran (dokumen proyek), sekuensial di akhir.
 
-- [ ] **T-182.1** Navigator § Pekerjaan Baru: tambahkan definisi Done (code) dan Verified (staging) di samping definisi ADR-149; satu sumber, tanpa menyalin paragraf ke dokumen lain (ADR-133).
-- [ ] **T-182.2** `AVAILABLE_TICKETS.md` dan bentuk tiket di `specs/README.md`: legenda dan penanda untuk Done (code) versus Verified (staging).
-- [ ] **T-182.3** Pindahkan tiket MCP yang kini 🟡 hanya karena menunggu staging ke tangga baru, dengan butir verifikasi gelombang yang eksplisit; jangan menghapus bagian "Belum terbukti".
-- [ ] **T-182.4** `AGENTS.md`: cukup satu penunjuk ke definisi di navigator (ADR-133).
-- [ ] **T-182.5** Bentuk tiket: tambahkan penanda AFK (agen mandiri) atau HITL (butuh keputusan King Rezi) di field tiket; hanya tiket AFK yang boleh menjadi jalur paralel gelombang.
-- [ ] **T-182.6** Jalankan `docs-consistency-audit` dengan topik "status ladder" dan perbaiki temuan.
+- [x] **T-182.1** `✅ Done (2026-11-02)` Navigator § Pekerjaan Baru: tambahkan definisi Done (code) dan Verified (staging) di samping definisi ADR-149; satu sumber, tanpa menyalin paragraf ke dokumen lain (ADR-133).
+- [x] **T-182.2** `✅ Done (2026-11-02)` `AVAILABLE_TICKETS.md` dan bentuk tiket di `specs/README.md`: legenda dan penanda untuk Done (code) versus Verified (staging).
+- [x] **T-182.3** `✅ Done (2026-11-02)` Pindahkan tiket MCP yang kini 🟡 hanya karena menunggu staging ke tangga baru, dengan butir verifikasi gelombang yang eksplisit; jangan menghapus bagian "Belum terbukti".
+- [x] **T-182.4** `✅ Done (2026-11-02)` `AGENTS.md`: cukup satu penunjuk ke definisi di navigator (ADR-133).
+- [x] **T-182.5** `✅ Done (2026-11-02)` Bentuk tiket: tambahkan penanda AFK (agen mandiri) atau HITL (butuh keputusan King Rezi) di field tiket; hanya tiket AFK yang boleh menjadi jalur paralel gelombang.
+- [x] **T-182.6** `✅ Done (2026-11-02)` Jalankan `docs-consistency-audit` dengan topik "status ladder" dan perbaiki temuan.
 
 ### T-183 · Skill `wave-work`
 
-`⏳ Not Started` · **Domain** project-os, agen · **ADR** ADR-153, ADR-063 · **Spec** S-003 · **Depends** T-181
+`✅ Done (2026-11-02)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-153, ADR-063 · **Spec** S-003 · **Depends** T-181
 **Baca dulu:** `project-os/specs/S-003.md` § Perilaku 2 dan tabel pola · `.claude/skills/project-os-navigator/SKILL.md` § Skills & subagent housekeeping · `.claude/agents/README.md`
 
 Skill eksekusi gelombang (langkah 2 sampai 11 di S-003 § Perilaku 2): alur gelombang seperti yang dijalankan di gelombang A MCP, ditambah pola yang diadopsi dari Matt Pocock (branch integrasi lebih dulu, template PR). Dipanggil hanya saat King Rezi meminta (keputusan 2026-11-02). Langkah 1 (menyiapkan gelombang) ada di skill `wave-plan` (T-190). Semua nama dalam bahasa Inggris.
 
-- [ ] **T-183.1** Tulis `.claude/skills/wave-work/SKILL.md` (frontmatter dengan deskripsi pemicu, isi ringkas; detail panjang dipindah ke berkas pendamping).
-- [ ] **T-183.2** Berkas pendamping: `lane-brief-template.md` (brief per jalur) dan `integration-pr-template.md` (Summary, Evidence, Merge Danger).
-- [ ] **T-183.4** Langkah review dua sumbu di skill: sumbu Standards (aturan repo, arsitektur) dan sumbu Spec (acceptance tiket dan spec), tanpa digabung, label pelanggaran keras atau pertimbangan; daftar anti-pola tes (terikat implementasi, tautologis) di template brief jalur.
-- [ ] **T-183.3** Satu penunjuk di navigator (housekeeping skill) dan satu penunjuk di `.claude/agents/README.md` (orkestrasi); tanpa menyalin isi skill (ADR-133). `.claude/agents/*.md` tidak diubah.
+- [x] **T-183.1** `✅ Done (2026-11-02)` Tulis `.claude/skills/wave-work/SKILL.md` (frontmatter dengan deskripsi pemicu, isi ringkas; detail panjang dipindah ke berkas pendamping).
+- [x] **T-183.2** `✅ Done (2026-11-02)` Berkas pendamping: `lane-brief-template.md` (brief per jalur) dan `integration-pr-template.md` (Summary, Evidence, Merge Danger).
+- [x] **T-183.4** `✅ Done (2026-11-02)` Langkah review dua sumbu di skill: sumbu Standards (aturan repo, arsitektur) dan sumbu Spec (acceptance tiket dan spec), tanpa digabung, label pelanggaran keras atau pertimbangan; daftar anti-pola tes (terikat implementasi, tautologis) di template brief jalur.
+- [x] **T-183.3** `✅ Done (2026-11-02)` Satu penunjuk di navigator (housekeeping skill) dan satu penunjuk di `.claude/agents/README.md` (orkestrasi); tanpa menyalin isi skill (ADR-133). `.claude/agents/*.md` tidak diubah.
 
 ### T-184 · Wave handoff and retro references
 
-`⏳ Not Started` · **Domain** project-os, agen · **ADR** ADR-153 · **Spec** S-003 · **Depends** T-183
+`⏳ Not Started` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-153 · **Spec** S-003 · **Depends** T-183
 **Baca dulu:** `project-os/specs/S-003.md` § Perilaku 2 poin 11 dan § 3
 
 - [ ] **T-184.1** `handoff.md` di folder skill: bentuk dokumen handoff (penunjuk, bukan salinan; tanpa rahasia; disimpan di scratchpad sesi).
@@ -892,7 +892,7 @@ Skill eksekusi gelombang (langkah 2 sampai 11 di S-003 § Perilaku 2): alur gelo
 
 ### T-185 · Dry-run `wave-plan` and `wave-work` on the next real wave
 
-`⏳ Not Started` · **Domain** project-os, agen · **ADR** ADR-153 · **Spec** S-003 · **Depends** T-183, T-184, T-190
+`⏳ Not Started` · **Mode** HITL · **Domain** project-os, agen · **ADR** ADR-153 · **Spec** S-003 · **Depends** T-183, T-184, T-190
 **Baca dulu:** `project-os/specs/S-003.md` § Jahitan tes
 
 - [ ] **T-185.1** Gelombang untuk dry-run: gelombang B MCP, T-153 dan T-168 (keputusan King Rezi 2026-11-02), setelah King Rezi memutuskan T-152.4 dan T-154.5.
@@ -901,7 +901,7 @@ Skill eksekusi gelombang (langkah 2 sampai 11 di S-003 § Perilaku 2): alur gelo
 
 ### T-186 · Docs locator and link check script
 
-`⏳ Not Started` · **Domain** project-os, tooling · **ADR** ADR-133 · **Spec** S-003 · **Depends** —
+`⏳ Not Started` · **Mode** AFK · **Domain** project-os, tooling · **ADR** ADR-133 · **Spec** S-003 · **Depends** —
 **Baca dulu:** `project-os/specs/S-003.md` § Ekonomi token · `AGENTS.md` aturan 12
 
 Pencari lokasi dokumen saat dijalankan (bukan berkas indeks yang di-commit, karena nomor baris cepat usang) dan pemeriksa tautan, dalam satu keluarga skrip dengan parser yang sama. Nol token saat dijalankan.
@@ -913,7 +913,7 @@ Pencari lokasi dokumen saat dijalankan (bukan berkas indeks yang di-commit, kare
 
 ### T-187 · Update `proactive-clarification` with round-based questioning
 
-`⏳ Not Started` · **Domain** project-os, agen · **ADR** — · **Spec** S-003 · **Depends** — (S-003 disahkan 2026-11-02)
+`⏳ Not Started` · **Mode** AFK · **Domain** project-os, agen · **ADR** — · **Spec** S-003 · **Depends** — (S-003 disahkan 2026-11-02)
 **Baca dulu:** `.claude/skills/proactive-clarification/SKILL.md` · `project-os/specs/S-003.md` tabel pola (`grilling`)
 
 - [ ] **T-187.1** Bandingkan skill yang ada (143 baris) dengan `grilling` dari sumber; catat selisihnya, termasuk apa yang sudah kita punya.
@@ -922,7 +922,7 @@ Pencari lokasi dokumen saat dijalankan (bukan berkas indeks yang di-commit, kare
 
 ### T-188 · Prune always-loaded orchestration context
 
-`⏳ Not Started` · **Domain** project-os, agen · **ADR** ADR-133 · **Spec** S-003 · **Depends** —
+`⏳ Not Started` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133 · **Spec** S-003 · **Depends** —
 **Baca dulu:** `project-os/specs/S-003.md` § Ekonomi token · tabel pola (`writing-for-agents`)
 
 Setiap perubahan isi aturan ditinjau King Rezi per berkas; `.claude/agents/*.md` tidak diubah tanpa permintaan eksplisit.
@@ -933,7 +933,7 @@ Setiap perubahan isi aturan ditinjau King Rezi per berkas; `.claude/agents/*.md`
 
 ### T-190 · Skill `wave-plan`
 
-`⏳ Not Started` · **Domain** project-os, agen · **ADR** ADR-153 · **Spec** S-003 · **Depends** T-181 (Accepted), T-182 (penanda AFK/HITL, T-182.5)
+`⏳ Not Started` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-153 · **Spec** S-003 · **Depends** T-181 (Accepted), T-182 (penanda AFK/HITL, T-182.5)
 **Baca dulu:** `project-os/specs/S-003.md` § Perilaku 2 poin 1 dan § Keputusan King Rezi · `project-os/AVAILABLE_TICKETS.md` · `.claude/skills/project-os-navigator/SKILL.md` § Skills & subagent housekeeping
 
 Skill penyiap gelombang (keputusan King Rezi 2026-11-02). Hanya membaca dokumen, berhenti di daftar bernomor yang disetujui King Rezi; `wave-work` (T-183) mulai dari daftar itu. Aman dan murah dipanggil kapan saja, termasuk untuk sekadar melihat gelombang yang tersedia. Semua nama dalam bahasa Inggris.

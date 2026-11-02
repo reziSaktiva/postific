@@ -17,11 +17,12 @@ Perubahan kode di `apps/` dan `packages/` wajib punya tiket di sini, di file ril
 
 Phase dan blocker ada di [`PROJECT_STATE.md`](PROJECT_STATE.md). Known Issue yang masih terbuka punya baris di tabel KI file itu, dan tiketnya ada di sini.
 
-| Simbol | Arti                                              |
-| ------ | ------------------------------------------------- |
-| ⏳     | Belum dimulai                                     |
-| 🟡     | Sedang dikerjakan                                 |
-| 🚫     | Terhenti, menunggu King Rezi atau dependency luar |
+| Simbol         | Arti                                                              |
+| -------------- | ----------------------------------------------------------------- |
+| ⏳             | Belum dimulai                                                     |
+| 🟡             | Sedang dikerjakan                                                 |
+| 🟡 Done (code) | Kode selesai, menunggu Verified (staging) per gelombang (ADR-153) |
+| 🚫             | Terhenti, menunggu King Rezi atau dependency luar                 |
 
 ID tiket global, tidak didaur ulang. Berikutnya: **T-191**. ID spec berikutnya: **S-005**.
 
@@ -38,9 +39,6 @@ ID tiket global, tidak didaur ulang. Berikutnya: **T-191**. ID spec berikutnya: 
 | T-158   | 🚫     | Lepas project Claude Design lama dan verifikasi isinya terhadap artifact. KI-103. Sebelum 2026-12-14. Langkah manual King Rezi                                                              | [KI](tickets/known-issues.md)         |
 | T-171   | 🟡     | Pantau rasio view/klik Start Page setelah rilis (T-171.1, sisa T-164.6). T-171.2 (Safari asli) ✅ ditutup dengan hasil iPhone iOS 18; sisa T-171.1 butuh trafik produksi nyata              | [v0.6](tickets/v06-start-page-mvp.md) |
 | T-177   | 🟡     | Kedipan terang mode gelap tanpa cookie `theme` (KI-104, ADR-055, ADR-102). Kode dan tes E2E selesai di PR 219; tiket ditutup setelah PR ter-merge dan `theme.e2e.ts` lolos terhadap staging | [KI](tickets/known-issues.md)         |
-| T-181   | 🟡     | Draft ADR-153: Done (code) and Verified (staging) status ladder (S-003)                                                                                                                     | [v0.1](tickets/v01-foundation.md)     |
-| T-182   | ⏳     | Apply the status ladder to project docs (S-003, depends T-181)                                                                                                                              | [v0.1](tickets/v01-foundation.md)     |
-| T-183   | ⏳     | Skill `wave-work` (S-003, depends T-181)                                                                                                                                                    | [v0.1](tickets/v01-foundation.md)     |
 | T-184   | ⏳     | Wave handoff and retro references (S-003, depends T-183)                                                                                                                                    | [v0.1](tickets/v01-foundation.md)     |
 | T-185   | ⏳     | Dry-run `wave-plan` and `wave-work` on the next real wave (S-003, depends T-183, T-184, T-190)                                                                                              | [v0.1](tickets/v01-foundation.md)     |
 | T-186   | ⏳     | Docs locator and link check script (S-003)                                                                                                                                                  | [v0.1](tickets/v01-foundation.md)     |
@@ -58,11 +56,11 @@ ID tiket global, tidak didaur ulang. Berikutnya: **T-191**. ID spec berikutnya: 
 
 Masih ⏳, dikerjakan saat rilisnya aktif. Detail di file masing-masing.
 
-| Rilis | ID                                                                                                                                                                                                                                                                    | File                                 |
-| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| v0.4  | T-055 Inbox assignment                                                                                                                                                                                                                                                | [v04](tickets/v04-engagement-mvp.md) |
-| v0.5  | T-150 – T-157, T-168, T-179, T-180 (MCP Server, ADR-138; T-149 ✅ 2026-10-26; T-178 ✅ 2026-10-29; T-150 🟡 In Progress, T-150.1–.8 selesai, sisa .9; **T-151, T-152, T-154 🟡: kode selesai 2026-10-30, migrasi dan verifikasi staging terbuka (ADR-152 Proposed)**) | [v05](tickets/v05-mcp-server-mvp.md) |
-| v1.0  | T-080 – T-088, termasuk KI-028 di T-088                                                                                                                                                                                                                               | [v10](tickets/v10-public-launch.md)  |
+| Rilis | ID                                                                                                                                                                                                                                                               | File                                 |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| v0.4  | T-055 Inbox assignment                                                                                                                                                                                                                                           | [v04](tickets/v04-engagement-mvp.md) |
+| v0.5  | T-150 – T-157, T-168, T-179, T-180 (MCP Server, ADR-138; T-149 ✅ 2026-10-26; T-178 ✅ 2026-10-29; T-150 🟡 In Progress, T-150.1–.8 selesai, sisa .9; **T-151, T-152, T-154, T-180 🟡 Done (code), menunggu Verified (staging) lewat T-189 (ADR-152 Proposed)**) | [v05](tickets/v05-mcp-server-mvp.md) |
+| v1.0  | T-080 – T-088, termasuk KI-028 di T-088                                                                                                                                                                                                                          | [v10](tickets/v10-public-launch.md)  |
 
 v0.3 tidak punya tiket terbuka. v0.7 tidak punya tiket terbuka (T-165, T-169 ✅). v0.6 selesai (T-070 – T-074 ✅, T-159 ✅, T-163 ✅, T-164 ✅, T-170 ✅); sisanya hanya lanjutan T-166, T-167, T-171 di tabel Sekarang.
 

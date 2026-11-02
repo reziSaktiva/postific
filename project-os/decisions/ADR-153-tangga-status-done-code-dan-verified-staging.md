@@ -6,7 +6,7 @@ Tangga Status Tiket: Done (code) dan Verified (staging) Dipisah; Verifikasi Stag
 
 ### Status
 
-**Proposed — menunggu persetujuan King Rezi.** Belum berlaku sampai King Rezi menyetujui (tiket T-181.2). Bila disetujui, ubah status menjadi `Accepted` di file ini dan di tabel `DECISIONS.md`. T-182, T-183, dan T-190 baru boleh dimulai setelah itu.
+**Accepted** (disetujui King Rezi, 2026-11-02; T-181.2). Berlaku untuk tiket baru dan tiket yang dipindahkan lewat T-182.3.
 
 ### Date
 
@@ -46,4 +46,4 @@ Gelombang A MCP v0.5 (PR 222 dan PR 227) membuat beberapa tiket menggantung 🟡
 - `project-os-navigator` (§ Pekerjaan Baru), `AVAILABLE_TICKETS.md` (legenda), dan bentuk tiket di `specs/README.md` memuat dua tahap ini (T-182); satu sumber, tanpa salinan (ADR-133).
 - Tiket gelombang A MCP (T-151, T-152, T-154 sampai T-157, T-180) berpindah ke tangga baru; penutupan Verified lewat T-189.
 - Tidak ada perubahan di `apps/` atau `packages/`; tidak ada migrasi.
-- Bila ADR ini ditolak, T-182, T-183, dan T-190 dibatalkan atau disesuaikan.
+- Bila ADR ini kelak diubah, T-182, T-183, dan T-190 disesuaikan.
