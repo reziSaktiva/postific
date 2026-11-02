@@ -369,8 +369,22 @@ Satu verifikasi untuk seluruh gelombang 1 dan A (S-003). Tiket yang dirujuk dian
 - [ ] **T-189.5** (T-155.4, .5, .6) `upload_media` dengan unduhan nyata (DNS, TLS dengan CA sistem, redirect CDN, lookup custom di runtime Railway), lalu `create_draft` dengan media itu; file mendekati 50 MB dan lebih dari 3 unduhan bersamaan.
 - [ ] **T-189.6** (T-156.3, .4) Settings klien AI dengan grant sungguhan: daftar dan cabut; verifikasi King Rezi.
 - [ ] **T-189.7** (T-157) Badge dan filter sumber dengan draft MCP nyata di History, Drafts, dan Queue, termasuk nama klien yang dibekukan.
-- [ ] **T-189.8** Ulangi `mcp.e2e.ts` terhadap deploy gelombang ini (regresi).
+- [ ] **T-189.8** Ulangi `mcp.e2e.ts` terhadap deploy gelombang ini (regresi). Terhambat T-193: run staging 2026-11-02 gagal di (a) dan flaky di (c).
 - [x] **T-189.9** `✅ Done (2026-11-02)` Keputusan King Rezi (HITL), semua terjawab (T-152.4 dan T-154.5 disetujui sesuai usulan agen): T-152.4 (batas caption 5000 karakter; label draft manusia yang diedit AI), T-154.5 (error `rate_limited` tanpa `Retry-After`; fixed window). **Diputuskan (2026-11-02):** T-155, T-156, T-157 tidak dikecualikan dari E2E golden path ADR-149; tesnya T-155.7, T-156.5, dan T-157.1.
+
+### T-193 · Fix consent hydration race in `mcp.e2e.ts`
+
+`⏳ Not Started` · **Mode** AFK · **Domain** QA, mcp-access · **ADR** ADR-149 · **Terkait** T-178, T-189.8 · **Depends** —
+
+**Baca dulu:** `apps/web/e2e/support/mcp.ts` (`authorizeInBrowser`) · `apps/web/src/app/(auth)/consent/components/ConsentForm.tsx`
+
+Run E2E staging 2026-11-02 (run 41402235403): `mcp.e2e.ts` (a) golden path gagal (authorize tidak sampai ke `redirect_uri` dalam 60 detik, layar masih `/consent`), 5 tes sesudahnya tidak jalan (mode serial), dan (c) flaky (token draft-only memuat `mcp:read`). `theme.e2e.ts` lolos, jadi tidak terkait T-177. Menghambat T-189.8.
+
+**Hipotesis (belum terbukti):** `authorizeInBrowser` bertindak begitu teks "Izin yang diminta" terlihat, padahal teks itu sudah ada di HTML server sebelum React terhidrasi. Klik ke `Checkbox` dan tombol Izinkan sebelum hidrasi tidak memicu handler, dan flag `consented = true` mencegah klik diulang. Cocok dengan (a) dan (c); belum direproduksi, dan trace dimatikan di berkas ini (token). Belum jelas apakah hidrasi lebih lambat sejak PR 231 (T-153); run staging 2026-10-29 belum memuat tes MCP.
+
+- [ ] **T-193.1** Reproduksi atau bantah hipotesis (lokal ke staging, tanpa trace; catat hasil di sini). Bila bukan race hidrasi, tulis penyebab sebenarnya dan ubah butir di bawah.
+- [ ] **T-193.2** Tunggu hidrasi sebelum bertindak di `authorizeInBrowser`: ulangi klik checkbox sampai `aria-checked` sama dengan yang diminta, dan ulangi klik Izinkan sampai tombol berubah jadi "Menyimpan…" atau redirect terjadi (hindari `waitForTimeout` buta). Hanya berkas `e2e/`; tanpa perubahan produk.
+- [ ] **T-193.3** Jalankan ulang E2E staging (`workflow_dispatch`); `mcp.e2e.ts` hijau penuh tanpa retry. Catat run di sini.
 
 ---
 
