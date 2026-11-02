@@ -107,3 +107,11 @@ export function isMcpOriginAllowed(
   ].filter(Boolean);
   return allowed.includes(origin);
 }
+
+/**
+ * Maksimum konten per panggilan `schedule_posts` (T-153, ADR-138 poin 4;
+ * dikonfirmasi King Rezi 2026-10-26). Konstanta konfigurasi, boleh diubah;
+ * satu-satunya tempat angkanya. Skema JSON tool dan pemeriksaan runtime
+ * memakai konstanta ini.
+ */
+export const MCP_SCHEDULE_MAX_CONTENTS = 10;

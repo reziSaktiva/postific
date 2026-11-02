@@ -1,5 +1,5 @@
 import type { UserId, WorkspaceId } from "@postific/shared";
-import type { McpScope } from "@/domains/mcp-access";
+import type { McpAccessService, McpScope } from "@/domains/mcp-access";
 import type { AnalyticsService } from "@/domains/analytics";
 import type { EngagementService } from "@/domains/engagement";
 import type { IdentityService } from "@/domains/identity";
@@ -7,6 +7,7 @@ import type { MediaService, UploadMediaUseCase } from "@/domains/media";
 import type {
   ComposeDraftUseCase,
   PublishingService,
+  ScheduleContentsUseCase,
 } from "@/domains/publishing";
 import type { WorkspaceService } from "@/domains/workspace";
 
@@ -33,6 +34,8 @@ export interface McpToolServices {
   engagement: Pick<EngagementService, "listInbox">;
   /** Tool tulis scope `draft` (T-152): validasi + simpan draft lewat use-case publishing. */
   drafts: Pick<ComposeDraftUseCase, "createDraft" | "updateDraft">;
+  /** `schedule_posts` (T-153): buat dan jadwalkan banyak konten, hasil per konten. Dirakit malas (butuh `OUTSTAND_API_KEY`). */
+  scheduleContents: Pick<ScheduleContentsUseCase, "execute">;
   /** `upload_media` (T-155): simpan lewat alur `UploadMediaUseCase` yang sama dengan UI. */
   mediaUpload: Pick<UploadMediaUseCase, "execute">;
   /** `upload_media` (T-155): unduh URL pihak ketiga dengan proteksi SSRF (infra, `lib/net`). */
@@ -58,6 +61,12 @@ export interface McpToolContext {
    * offset ditafsirkan di zona ini.
    */
   timeZone: string;
+  /**
+   * Kuota workspace dari `McpAccessService` (T-154); tool yang memakai kuota
+   * di luar `authorizeCall` (mis. `scheduled_contents`, T-153) memanggilnya.
+   * Melempar `McpRateLimitExceededError` bila habis (dipetakan ke `rate_limited`).
+   */
+  consumeQuota: McpAccessService["consumeQuota"];
   services: McpToolServices;
 }
 

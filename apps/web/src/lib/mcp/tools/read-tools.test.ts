@@ -239,6 +239,7 @@ function context(
     clientName: "Claude",
     grantScopes: ["read"],
     timeZone,
+    consumeQuota: async () => undefined,
     services,
   };
 }

@@ -71,6 +71,7 @@ function scriptedDeps(
   const access = {
     authorizeCall: vi.fn(authorize),
     recordAudit: vi.fn(recordAudit),
+    consumeQuota: vi.fn(async () => undefined),
   };
   let tick = 1_000;
   const deps: McpGateDeps = {

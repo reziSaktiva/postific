@@ -96,6 +96,7 @@ function context(drafts: McpToolServices["drafts"]): McpToolContext {
     clientName: "Claude Code",
     grantScopes: ["read", "draft"],
     timeZone: "Asia/Jakarta",
+    consumeQuota: async () => undefined,
     services: { drafts, identity: fakeIdentity() } as McpToolServices,
   };
 }

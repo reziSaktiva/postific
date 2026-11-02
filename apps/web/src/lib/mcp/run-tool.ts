@@ -59,7 +59,10 @@ function shouldAuditRateLimit(key: string, nowMs: number): boolean {
 }
 
 export interface McpGateDeps {
-  access: Pick<McpAccessService, "authorizeCall" | "recordAudit">;
+  access: Pick<
+    McpAccessService,
+    "authorizeCall" | "recordAudit" | "consumeQuota"
+  >;
   services: McpToolServices;
   now?: () => number;
   logger?: Pick<Console, "error">;
@@ -273,6 +276,8 @@ export async function runMcpTool(
         clientName: authorized.clientName ?? null,
         grantScopes: authorized.grantScopes,
         timeZone,
+        consumeQuota: (workspaceId, quota, amount) =>
+          deps.access.consumeQuota(workspaceId, quota, amount),
         services: deps.services,
       },
       args,

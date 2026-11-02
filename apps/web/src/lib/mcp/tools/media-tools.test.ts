@@ -80,6 +80,7 @@ function context(services: McpToolServices): McpToolContext {
     clientName: "Claude",
     grantScopes: ["read", "draft"],
     timeZone: "Asia/Jakarta",
+    consumeQuota: async () => undefined,
     services,
   };
 }
