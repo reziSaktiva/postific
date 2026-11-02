@@ -179,4 +179,28 @@ describe("McpAuditPurgeJobHandler", () => {
       await expect(service.purgeAudit()).resolves.toMatchObject({ deleted: 0 });
     });
   });
+
+  it("also purges unused OAuth clients, and a failure there fails the job (T-150.9)", async () => {
+    const purgeUnusedClientRegistrations = vi.fn(async () => 4);
+    await new McpAuditPurgeJobHandler(
+      { purgeAudit: async () => ({ deleted: 0, cutoff: NOW }) },
+      {
+        purgeExpiredWorkspaceChoices: async () => 0,
+        purgeUnusedClientRegistrations,
+      },
+    ).handle();
+    expect(purgeUnusedClientRegistrations).toHaveBeenCalledTimes(1);
+
+    await expect(
+      new McpAuditPurgeJobHandler(
+        { purgeAudit: async () => ({ deleted: 0, cutoff: NOW }) },
+        {
+          purgeExpiredWorkspaceChoices: async () => 0,
+          purgeUnusedClientRegistrations: async () => {
+            throw new Error("clients down");
+          },
+        },
+      ).handle(),
+    ).rejects.toThrow("clients down");
+  });
 });

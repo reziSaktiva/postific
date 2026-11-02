@@ -5,6 +5,7 @@ import {
   isMcpEnabled,
   isMcpOriginAllowed,
   MCP_RATE_LIMIT_DEFAULTS,
+  mcpBlockedReason,
   mcpResourceUrl,
 } from "./config";
 
@@ -20,6 +21,71 @@ describe("isMcpEnabled", () => {
 
   it("still accepts the harness flag MCP_SPIKE_ENABLED so OAuth plugin and route stay paired", () => {
     expect(isMcpEnabled({ MCP_SPIKE_ENABLED: "true" })).toBe(true);
+  });
+});
+
+describe("isMcpEnabled guard for local dev on a shared DB (T-179.4)", () => {
+  const dev = { MCP_ENABLED: "true", NODE_ENV: "development" };
+  const shared = "postgresql://u:p@db.abc.supabase.co:6543/postgres";
+
+  it("disables MCP in dev when DATABASE_URL is a remote database", () => {
+    const env = { ...dev, DATABASE_URL: shared };
+    expect(isMcpEnabled(env)).toBe(false);
+    expect(mcpBlockedReason(env)).toContain("MCP_ALLOW_SHARED_DB");
+  });
+
+  it("also blocks the legacy harness flag and an unparsable URL (fail closed)", () => {
+    expect(
+      isMcpEnabled({
+        MCP_SPIKE_ENABLED: "true",
+        NODE_ENV: "development",
+        DATABASE_URL: shared,
+      }),
+    ).toBe(false);
+    expect(isMcpEnabled({ ...dev, DATABASE_URL: "not a url" })).toBe(false);
+  });
+
+  it("stays on for a local database", () => {
+    for (const url of [
+      "postgresql://u:p@localhost:5432/db",
+      "postgresql://u:p@127.0.0.1:5432/db",
+      "postgresql://u:p@[::1]:5432/db",
+    ]) {
+      expect(isMcpEnabled({ ...dev, DATABASE_URL: url })).toBe(true);
+    }
+  });
+
+  it("does not affect production builds or tests", () => {
+    expect(
+      isMcpEnabled({
+        MCP_ENABLED: "true",
+        NODE_ENV: "production",
+        DATABASE_URL: shared,
+      }),
+    ).toBe(true);
+    expect(
+      isMcpEnabled({
+        MCP_ENABLED: "true",
+        NODE_ENV: "test",
+        DATABASE_URL: shared,
+      }),
+    ).toBe(true);
+  });
+
+  it("can be overridden knowingly with MCP_ALLOW_SHARED_DB=true", () => {
+    expect(
+      isMcpEnabled({
+        ...dev,
+        DATABASE_URL: shared,
+        MCP_ALLOW_SHARED_DB: "true",
+      }),
+    ).toBe(true);
+  });
+
+  it("reports nothing when the flag is off", () => {
+    expect(
+      mcpBlockedReason({ NODE_ENV: "development", DATABASE_URL: shared }),
+    ).toBeNull();
   });
 });
 

@@ -57,6 +57,8 @@ function createService(
   options: {
     memberships?: Record<string, MemberStatus>;
     clock?: () => Date;
+    clientRows?: Map<string, Date>;
+    clientsInUse?: Set<string>;
     registration?: Awaited<
       ReturnType<IMcpClientIdentityRepository["findRegistration"]>
     >;
@@ -102,9 +104,24 @@ function createService(
     ),
   };
   const findRegistration = vi.fn(async () => options.registration ?? null);
+  // Klien dinamis palsu: nama -> waktu pendaftaran; yang terpakai tak pernah dihapus.
+  const clientRows = options.clientRows ?? new Map<string, Date>();
+  const clientsInUse = options.clientsInUse ?? new Set<string>();
   const service = new McpConsentService(
     repository,
-    { findRegistration },
+    {
+      findRegistration,
+      async deleteUnusedRegistrations(registeredBefore) {
+        let deleted = 0;
+        for (const [id, at] of [...clientRows]) {
+          if (at < registeredBefore && !clientsInUse.has(id)) {
+            clientRows.delete(id);
+            deleted += 1;
+          }
+        }
+        return deleted;
+      },
+    },
     workspaces,
     options.clock ?? (() => NOW),
   );
@@ -278,7 +295,7 @@ describe("McpConsentService", () => {
           deleteForSession: vi.fn(),
           deleteExpired: vi.fn(),
         },
-        { findRegistration: vi.fn() },
+        { findRegistration: vi.fn(), deleteUnusedRegistrations: vi.fn() },
         {
           listWorkspacesForUser: vi.fn(),
           findWorkspaceForUser: vi.fn(),
@@ -407,6 +424,25 @@ describe("McpConsentService", () => {
       await expect(service.purgeExpiredWorkspaceChoices()).resolves.toBe(1);
       expect([...rows.keys()]).toEqual(["fresh"]);
       await expect(service.purgeExpiredWorkspaceChoices()).resolves.toBe(0);
+    });
+  });
+
+  describe("purgeUnusedClientRegistrations", () => {
+    it("removes only unused clients older than a day and is idempotent", async () => {
+      const day = 24 * 60 * 60 * 1000;
+      const clientRows = new Map([
+        ["stale-unused", new Date(NOW.getTime() - day - 1)],
+        ["stale-in-use", new Date(NOW.getTime() - 3 * day)],
+        ["fresh", new Date(NOW.getTime() - day + 60_000)],
+      ]);
+      const { service } = createService({
+        clientRows,
+        clientsInUse: new Set(["stale-in-use"]),
+      });
+
+      await expect(service.purgeUnusedClientRegistrations()).resolves.toBe(1);
+      expect([...clientRows.keys()]).toEqual(["stale-in-use", "fresh"]);
+      await expect(service.purgeUnusedClientRegistrations()).resolves.toBe(0);
     });
   });
 });
