@@ -1,7 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { findUnique, db } = vi.hoisted(() => {
-  type Row = { clientId: string; userId: string | null; createdAt: Date };
+  type Row = {
+    id: string;
+    clientId: string;
+    userId: string | null;
+    createdAt: Date;
+  };
   const state = {
     clients: [] as Row[],
     consents: [] as string[],
@@ -21,14 +26,26 @@ const { findUnique, db } = vi.hoisted(() => {
       findMany: async ({
         where,
         take,
+        cursor,
+        skip = 0,
       }: {
         where: { userId: null; createdAt: { lt: Date } };
         take: number;
-      }) =>
-        state.clients
+        cursor?: { id: string };
+        skip?: number;
+      }) => {
+        const rows = state.clients
           .filter((c) => c.userId === null && c.createdAt < where.createdAt.lt)
-          .slice(0, take)
-          .map(({ clientId }) => ({ clientId })),
+          .sort(
+            (x, y) =>
+              x.createdAt.getTime() - y.createdAt.getTime() ||
+              x.id.localeCompare(y.id),
+          );
+        const start = cursor ? rows.findIndex((c) => c.id === cursor.id) : 0;
+        return rows
+          .slice(start + skip, start + skip + take)
+          .map(({ id, clientId }) => ({ id, clientId }));
+      },
       deleteMany: async ({
         where,
       }: {
@@ -114,13 +131,33 @@ describe("mcpClientIdentityRepository", () => {
 
     it("deletes old ownerless clients nobody uses and keeps the rest", async () => {
       db.state.clients = [
-        { clientId: "unused", userId: null, createdAt: old },
-        { clientId: "has-consent", userId: null, createdAt: old },
-        { clientId: "has-refresh", userId: null, createdAt: old },
-        { clientId: "has-access", userId: null, createdAt: old },
-        { clientId: "has-revoked-grant", userId: null, createdAt: old },
-        { clientId: "owned", userId: "user-1", createdAt: old },
-        { clientId: "too-new", userId: null, createdAt: recent },
+        { id: "unused", clientId: "unused", userId: null, createdAt: old },
+        {
+          id: "has-consent",
+          clientId: "has-consent",
+          userId: null,
+          createdAt: old,
+        },
+        {
+          id: "has-refresh",
+          clientId: "has-refresh",
+          userId: null,
+          createdAt: old,
+        },
+        {
+          id: "has-access",
+          clientId: "has-access",
+          userId: null,
+          createdAt: old,
+        },
+        {
+          id: "has-revoked-grant",
+          clientId: "has-revoked-grant",
+          userId: null,
+          createdAt: old,
+        },
+        { id: "owned", clientId: "owned", userId: "user-1", createdAt: old },
+        { id: "too-new", clientId: "too-new", userId: null, createdAt: recent },
       ];
       db.state.consents = ["has-consent"];
       db.state.refresh = ["has-refresh"];
@@ -138,6 +175,32 @@ describe("mcpClientIdentityRepository", () => {
         "owned",
         "too-new",
       ]);
+    });
+
+    it("still reaches unused clients behind more than one page of used ones", async () => {
+      const usedCount = 1100;
+      db.state.clients = [
+        ...Array.from({ length: usedCount }, (_, i) => ({
+          id: `used-${i}`,
+          clientId: `used-${i}`,
+          userId: null,
+          createdAt: new Date(old.getTime() + i),
+        })),
+        {
+          id: "unused-late",
+          clientId: "unused-late",
+          userId: null,
+          createdAt: new Date(old.getTime() + usedCount + 1),
+        },
+      ];
+      db.state.consents = db.state.clients
+        .filter((c) => c.clientId.startsWith("used-"))
+        .map((c) => c.clientId);
+
+      await expect(
+        mcpClientIdentityRepository.deleteUnusedRegistrations(CUTOFF),
+      ).resolves.toBe(1);
+      expect(db.state.clients).toHaveLength(usedCount);
     });
 
     it("returns 0 when nothing qualifies", async () => {

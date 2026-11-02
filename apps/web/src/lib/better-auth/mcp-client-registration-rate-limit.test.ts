@@ -3,10 +3,7 @@ import { memoryAdapter } from "better-auth/adapters/memory";
 import { getAuthTables } from "better-auth/db";
 import { describe, expect, it, vi } from "vitest";
 
-import {
-  MCP_CLIENT_REGISTRATION_RATE_LIMIT,
-  createMcpSpikePlugins,
-} from "./mcp-spike";
+import { createMcpSpikePlugins } from "./mcp-spike";
 
 // `mcp-spike.ts` mengimpor composition root produksi (Prisma); tes ini tidak
 // memakainya.
@@ -24,6 +21,9 @@ vi.mock("@/lib/mcp-access/get-mcp-consent-service", () => ({
  */
 const BASE = "http://localhost:3000";
 
+// Nilai sengaja berbeda dari bawaan plugin (5): lulus hanya bila opsi eksplisit terbaca.
+const LIMIT = { window: 60, max: 2 };
+
 function createAuth() {
   const options = {
     baseURL: BASE,
@@ -31,6 +31,7 @@ function createAuth() {
     rateLimit: { enabled: true },
     plugins: createMcpSpikePlugins({
       baseUrl: BASE,
+      registrationRateLimit: LIMIT,
       getAccess: () => {
         throw new Error("tidak dipakai");
       },
@@ -63,7 +64,7 @@ function register(auth: ReturnType<typeof createAuth>, ip: string) {
 describe("unauthenticated dynamic client registration rate limit", () => {
   it("rejects registrations beyond the limit per IP, but not other IPs", async () => {
     const auth = createAuth();
-    const { max } = MCP_CLIENT_REGISTRATION_RATE_LIMIT;
+    const { max } = LIMIT;
 
     for (let i = 0; i < max; i += 1) {
       expect((await register(auth, "203.0.113.7")).status).toBe(200);

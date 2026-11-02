@@ -14,9 +14,10 @@ import {
 export const MCP_WORKSPACE_CHOICE_TTL_MS = 10 * 60 * 1000;
 
 /**
- * Klien dinamis yang belum dipakai baru dihapus setelah selang ini: alur
- * persetujuan (login, pilih workspace, consent) selesai dalam menit, jadi
- * klien yang masih tanpa consent setelah sehari tidak akan dipakai lagi.
+ * Klien dinamis yang belum dipakai baru dihapus setelah selang ini. Asumsi
+ * perilaku klien (tidak ditegakkan kode): alur persetujuan selesai dalam
+ * menit. Klien yang menyimpan `client_id` lebih dari selang ini tanpa pernah
+ * menyelesaikan consent bisa gagal `invalid_client` dan harus mendaftar ulang.
  */
 export const MCP_UNUSED_CLIENT_TTL_MS = 24 * 60 * 60 * 1000;
 

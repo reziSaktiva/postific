@@ -52,6 +52,8 @@ export type McpSpikePluginOptions = {
   getAccess: () => McpGrantAccess;
   /** Pabrik pembaca pilihan workspace; produksi: `getMcpConsentService`. */
   getChoices: () => McpWorkspaceChoiceAccess;
+  /** Batas pendaftaran klien tanpa login; bawaan `MCP_CLIENT_REGISTRATION_RATE_LIMIT`. */
+  registrationRateLimit?: { window: number; max: number };
 };
 
 /**
@@ -64,6 +66,7 @@ export function createMcpSpikePlugins({
   baseUrl,
   getAccess,
   getChoices,
+  registrationRateLimit = MCP_CLIENT_REGISTRATION_RATE_LIMIT,
 }: McpSpikePluginOptions) {
   const resourceUrl = `${baseUrl}/api/mcp`;
 
@@ -107,7 +110,7 @@ export function createMcpSpikePlugins({
       validAudiences: [resourceUrl],
       allowDynamicClientRegistration: true,
       allowUnauthenticatedClientRegistration: true,
-      rateLimit: { register: MCP_CLIENT_REGISTRATION_RATE_LIMIT },
+      rateLimit: { register: registrationRateLimit },
       clientRegistrationDefaultScopes: ["mcp:read", "mcp:draft"],
       clientRegistrationAllowedScopes: ["mcp:schedule", "offline_access"],
       postLogin: {
