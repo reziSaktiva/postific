@@ -22,8 +22,9 @@ import { E2E_WORKSPACE_NAME } from "./workspace";
 /** Redirect URI palsu: hanya ditangkap lewat `page.route`, tidak ada yang listen. */
 const REDIRECT_URI = "http://127.0.0.1:53682/callback";
 
-/** Scope yang diminta klien: baca, draft, dan refresh token. */
-export const ALL_REQUESTED_SCOPES = "mcp:read mcp:draft offline_access";
+/** Scope yang diminta klien: baca, draft, jadwal (T-153), dan refresh token. Yang disetujui hanya yang dicentang di layar consent. */
+export const ALL_REQUESTED_SCOPES =
+  "mcp:read mcp:draft mcp:schedule offline_access";
 
 // ---------------------------------------------------------------------------
 // Guard staging-only
