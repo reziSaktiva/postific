@@ -72,14 +72,62 @@ export class OutstandIntegrationError extends ExternalServiceError {
   }
 }
 
-/** Cari field pesan error yang lazim dipakai REST API (`message`/`error`/`detail`/`error_description`). */
+/** Batas panjang ringkasan body galat yang ikut ke pesan (T-195.1). */
+const MAX_ERROR_DETAIL_LENGTH = 500;
+
+/** Ambil teks dari satu butir galat: string, atau objek dengan `message`/`msg`/`detail`. */
+function textOfErrorItem(item: unknown): string | undefined {
+  if (typeof item === "string" && item.length > 0) return item;
+  if (item && typeof item === "object") {
+    const rec = item as Record<string, unknown>;
+    const text = rec.message ?? rec.msg ?? rec.detail;
+    if (typeof text !== "string" || text.length === 0) return undefined;
+    const path = rec.path ?? rec.field;
+    return typeof path === "string" && path.length > 0
+      ? `${path}: ${text}`
+      : text;
+  }
+  return undefined;
+}
+
+/**
+ * Cari pesan galat dalam body respons Outstand. Mengenali string datar
+ * (`message`/`error`/`detail`/`error_description`), bentuk bersarang
+ * (`error.message`), dan daftar (`errors[]`/`message[]`). Kalau body objek
+ * tetapi tidak ada yang cocok, ringkasan JSON-nya (dipotong) dipakai supaya
+ * penyebab 4xx tidak hilang (T-195.1); `fallback` hanya untuk body kosong.
+ */
 function extractErrorMessage(body: unknown, fallback: string): string {
   if (body && typeof body === "object") {
     const rec = body as Record<string, unknown>;
-    const candidate =
-      rec.message ?? rec.error ?? rec.detail ?? rec.error_description;
-    if (typeof candidate === "string" && candidate.length > 0) {
-      return candidate;
+    // Gabungkan semua butir (mis. `message` umum + `errors[]` per kolom) supaya
+    // detail per kolom tidak hilang di balik pesan generik.
+    const texts: string[] = [];
+    for (const candidate of [
+      rec.message,
+      rec.error,
+      rec.detail,
+      rec.error_description,
+      rec.errors,
+    ]) {
+      const items = Array.isArray(candidate) ? candidate : [candidate];
+      for (const item of items) {
+        const text = textOfErrorItem(item);
+        if (text !== undefined && !texts.includes(text)) texts.push(text);
+      }
+    }
+    if (texts.length > 0) return texts.join("; ");
+    if (Object.keys(rec).length > 0) {
+      // URL (mis. media bertanda tangan) dibuang sebelum body tak dikenal
+      // diringkas; pemotongan per code point agar surrogate pair tidak terbelah.
+      const json = JSON.stringify(body).replace(
+        /https?:\/\/[^\s"\\]+/g,
+        "[url]",
+      );
+      const chars = Array.from(json);
+      return chars.length > MAX_ERROR_DETAIL_LENGTH
+        ? `${chars.slice(0, MAX_ERROR_DETAIL_LENGTH).join("")}…`
+        : json;
     }
   }
   if (typeof body === "string" && body.length > 0) {
@@ -88,11 +136,21 @@ function extractErrorMessage(body: unknown, fallback: string): string {
   return fallback;
 }
 
-/** Cari field kode error vendor lazim (`code`/`error_code`/`errorCode`). */
+/** Cari field kode error vendor lazim (`code`/`error_code`/`errorCode`), juga di dalam `error`. */
 function extractErrorCode(body: unknown): string | undefined {
   if (body && typeof body === "object") {
     const rec = body as Record<string, unknown>;
-    const code = rec.code ?? rec.error_code ?? rec.errorCode;
+    const nested =
+      rec.error && typeof rec.error === "object"
+        ? (rec.error as Record<string, unknown>)
+        : undefined;
+    const code =
+      rec.code ??
+      rec.error_code ??
+      rec.errorCode ??
+      nested?.code ??
+      nested?.error_code ??
+      nested?.errorCode;
     if (typeof code === "string") return code;
   }
   return undefined;
