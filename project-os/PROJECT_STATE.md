@@ -199,10 +199,10 @@ seluruh daftar Known Issues.
 ADR terbaru. Daftar lengkap (indeks + link ke tiap ADR): lihat `DECISIONS.md`.
 
 - **ADR-155** — Redesain Draft Editor mengikuti pola modal Create Post Buffer, Tahap 1 (tata letak dan perilaku dengan kapabilitas yang ada; Confirmation Summary dipertahankan). Addendum 2026-11-03: rancangan dikonfirmasi, jadwal lewat popover WIB, Create Another di luar Tahap 1, Reel wajib video (mengamandemen ADR-154), lebar Standard 1120px. Spec S-005, tiket T-199 sampai T-207.
-- **ADR-149** — Playwright (Chrome) jadi standar QA E2E per tiket/spec di local dan staging; gerbang CI terhadap staging setelah deploy, hijau jadi syarat PR `staging` → `main` (PR `feature/*` → `staging` tidak diblokir E2E di CI). Mengamandemen CI-D02/CI-D06, menambah CI-D07. Spec S-002.
-- **ADR-144** — Keputusan produk dan UI Start Page v0.6: tema preset terbatas (`default | dark | accent`, tanpa token baru), Page Editor (Dialog, tombol Simpan draft, avatar URL https), RBAC Owner/Admin/Creator, `UNIQUE(workspace_id)`, ikon platform hugeicons (deviasi dari ADR-058 poin 6).
-- **ADR-143** — Counter kunjungan dan klik anonim Start Page lewat fungsi `SECURITY DEFINER` dan redirect klik 302, tanpa tabel event dan tanpa PII; memperluas ADR-142 ke jalur tulis. Tanpa dedup/rate limit.
-- **ADR-142** — Baca publik Start Page lewat fungsi `SECURITY DEFINER` `start_page_get_public_by_slug`, bukan RLS policy anon (menggantikan teks T-070.5); sudah di-apply di staging (T-164).
+- **ADR-154** — Media wajib per platform dan batas jadwal 30 hari mengikuti aturan Outstand (mengamandemen ADR-121; KI-107, KI-105).
+- **ADR-153** — Tangga status tiket: Done (code) dan Verified (staging) dipisah; verifikasi staging satu kali per gelombang (S-003; mengoreksi catatan konvensi tutup-setelah-staging di tiket MCP).
+- **ADR-152** — Gelombang 1 MCP: penanda sumber `created_via` di `publishing_posts`, pengecualian RLS ADR-141 untuk dua tabel baru, rate limit fixed window (mengamandemen cakupan ADR-141).
+- **ADR-151** — Required check E2E untuk PR `staging` → `main` ditunda sampai MVP public launch (T-088.1; mengamandemen ADR-150 poin 3, CI-D07).
 
 ---
 

@@ -364,7 +364,7 @@ Drafts adalah tempat Raka menyimpan dan mengakses konten yang belum terjadwal �
 
 | Field | Value |
 | ----- | ----- |
-| Path IA | `Publish → Drafts → Draft Editor` (dibuka sebagai modal, bukan route terpisah — ADR-052). Variant Dialog belum final — lihat Catatan di bawah |
+| Path IA | `Publish → Drafts → Draft Editor` (dibuka sebagai modal, bukan route terpisah — ADR-052). Variant Dialog final sejak ADR-065 (Standard default, Fullscreen via toggle) — lihat Catatan di bawah |
 | Pengguna Utama | Raka |
 | Entry Points | New Post; Klik item dari Calendar / Queue / Drafts; Quick Compose dari Channels sidebar (akun otomatis pre-selected, NP-D14) |
 | UX Principles | UXP-01, UXP-03, UXP-04, UXP-06 |
@@ -393,7 +393,7 @@ Tidak dipersist antar sesi (session-only), sama seperti pola Light/Dark Mode Tog
 | KSP-05-F02 | ~~AI Caption Assist~~ — **Dicabut ADR-138**. AI bawaan Postific dicabut; AI pengguna membuat draft lewat MCP, bukan lewat trigger di Caption Editor. ID tidak dipakai ulang | — |
 | KSP-05-F03 | Media Attachment | Lampirkan gambar atau video dari perangkat lokal atau Media Library | UXP-01 |
 | KSP-05-F04 | Account Selector | Baris channel di atas editor (ADR-155): tombol Channels membuka popover (pencarian, Pilih semua, daftar centang dengan avatar, badge platform, dan status koneksi, tautan Hubungkan akun), plus pintasan Terakhir dipakai dan Semua. Setelah dipilih, baris menciut jadi chip avatar (aksi hapus per chip) dan tombol Tambah akun. Akun Disconnected tetap tampil dengan peringatan dan aksi Reconnect, dan tidak diblokir di UI | UXP-04 |
-| KSP-05-F05 | Schedule Picker | Tombol "Atur jadwal" di footer membuka popover: kalender (hari lampau dan hari lebih dari 30 hari ke depan dinonaktifkan, ADR-154), input jam, dan label zona waktu WIB; setelah diisi tombol menampilkan jadwal terpilih. Tidak ada "Next Available" di Tahap 1 (ADR-155) | UXP-04 |
+| KSP-05-F05 | Schedule Picker | Tombol "Atur jadwal" di footer membuka popover: kalender (hari lampau dan hari lebih dari 30 hari ke depan dinonaktifkan, ADR-154), input jam, dan label zona waktu pengguna (default WIB, ADR-146); setelah diisi tombol menampilkan jadwal terpilih. Tidak ada "Next Available" di Tahap 1 (ADR-155) | UXP-04 |
 | KSP-05-F06 | Confirmation Summary | Ringkasan: preview caption, akun tujuan, **format per akun**, waktu — ditampilkan sebelum Schedule dieksekusi. Panel Pratinjau tetap terlihat saat ringkasan tampil (ADR-155) | UXP-04 |
 | KSP-05-F07 | Status Indicator | Status draft saat ini: Draft, In Review, Ready to Schedule, Scheduled, Published, Failed — selalu terlihat | UXP-06 |
 | KSP-05-F08 | Save as Draft | Simpan progres tanpa menjadwalkan. Setelah tersimpan, modal ditutup dan pengguna diarahkan ke **Publish → Drafts** — terlepas dari section mana modal dibuka (ADR-054) | UXP-01 |

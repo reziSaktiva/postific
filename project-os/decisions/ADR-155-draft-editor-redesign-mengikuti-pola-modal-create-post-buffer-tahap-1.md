@@ -125,6 +125,11 @@ King Rezi mengonfirmasi rancangan Draft Editor di galeri Postific Design Review 
 
 Dokumen baseline `product-discovery/04-ux/` (KSP-05, KSP-D02, NP-D11, dan yang terkait) diperbarui di sesi yang sama oleh sesi utama sesuai rancangan terkonfirmasi (urutan: product-discovery, lalu project-os). Gerbang "Consequences" poin pertama sudah terpenuhi; kode boleh dikerjakan lewat tiket T-199 sampai T-207 (`tickets/v02-publishing-mvp.md`) dengan spec S-005 (`specs/S-005.md`).
 
+### E. Klarifikasi dari review konsistensi dokumen (2026-11-03)
+
+1. **Label zona waktu.** "WIB" di A.2 adalah contoh pada rancangan. Label di popover jadwal mengikuti zona waktu pengguna (ADR-146, default WIB), sama seperti penafsiran input jadwal.
+2. **Letak banner validasi.** B.4 menyempurnakan Decision 2: validasi per jaringan ada di blok jaringan, validasi lintas jaringan di atas editor, dan validasi jadwal di footer. Decision 2 dibaca bersama B.4.
+
 ### Referensi addendum
 
 ADR-054, ADR-065, ADR-107, ADR-121, ADR-140, ADR-149, ADR-153, ADR-154, `specs/S-005.md`, `tickets/v02-publishing-mvp.md` (T-199 sampai T-207).
