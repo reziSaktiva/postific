@@ -136,6 +136,55 @@ describe("OutstandHttpClient.request (T-025.1)", () => {
       });
     });
 
+    it.each([
+      ["nested error.message", { error: { message: "scheduledAt invalid" } }],
+      [
+        "errors[] of objects with path",
+        { errors: [{ path: "scheduledAt", message: "invalid" }] },
+      ],
+      ["message[] of strings", { message: ["accounts is required"] }],
+    ])(
+      "keeps the Outstand detail of a 400 with %s (T-195.1)",
+      async (_name, body) => {
+        const fetchImpl = vi.fn().mockResolvedValue(jsonResponse(400, body));
+        const client = new OutstandHttpClient(API_KEY, { fetchImpl });
+
+        const error = await client
+          .request("/v1/posts", { method: "POST", body: {} })
+          .catch((e: unknown) => e);
+
+        expect(error).toBeInstanceOf(OutstandIntegrationError);
+        const message = (error as OutstandIntegrationError).message;
+        expect(message).toContain("HTTP 400");
+        expect(message).not.toContain("mengembalikan HTTP 400 pada");
+      },
+    );
+
+    it("falls back to a truncated JSON summary for an unrecognised 400 body (T-195.1)", async () => {
+      const fetchImpl = vi
+        .fn()
+        .mockResolvedValue(
+          jsonResponse(400, { code: "X", note: "y".repeat(800) }),
+        );
+      const client = new OutstandHttpClient(API_KEY, { fetchImpl });
+
+      const error = (await client
+        .request("/v1/posts", { method: "POST", body: {} })
+        .catch((e: unknown) => e)) as OutstandIntegrationError;
+
+      expect(error.message).toContain('"code":"X"');
+      expect(error.message.length).toBeLessThan(600);
+    });
+
+    it("keeps the generic message for an empty 400 body", async () => {
+      const fetchImpl = vi.fn().mockResolvedValue(jsonResponse(400, {}));
+      const client = new OutstandHttpClient(API_KEY, { fetchImpl });
+
+      await expect(
+        client.request("/v1/posts", { method: "POST", body: {} }),
+      ).rejects.toThrow("Outstand API mengembalikan HTTP 400 pada /v1/posts");
+    });
+
     it("maps HTTP 500+ to transient, retryable", async () => {
       const fetchImpl = vi
         .fn()
