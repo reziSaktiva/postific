@@ -250,7 +250,7 @@ export function NotificationBell({
             "Mark all as read" — `pr-14` sebelumnya cuma mencadangkan ruang,
             tidak memperbaiki alignment vertikal. `showCloseButton={false}`
             + tombol close dirender manual di dalam grup aksi kanan (pola
-            sama seperti `draft-editor/Modal.tsx` DialogHeader) supaya
+            sama seperti `draft-editor/EditorHeader.tsx`) supaya
             title/"Mark all as read"/close jadi flex-sibling satu baris,
             dijamin sejajar oleh `items-center`. */}
         <SheetContent

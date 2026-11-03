@@ -19,7 +19,7 @@ import {
  * Safety Check penjadwalan di server (T-153, ADR-138 poin 5, ADR-049).
  * Dialog Confirmation Summary (Schedule, Tier 2) hanya ada di UI, jadi entry
  * point non-UI menegakkan aturan yang membuat tombol Schedule di Draft Editor
- * aktif (`isReadyToSchedule` di `Modal.tsx`), sebelum ada yang ditulis:
+ * aktif (`isReadyToSchedule` di `useDraftEditorForm.ts`), sebelum ada yang ditulis:
  *
  * - waktu jadwal di masa depan (T-108);
  * - caption wajib kecuali ada target Story (KI-073);
@@ -34,7 +34,7 @@ import {
  * di-resolve (`resolveScheduleTargets`), sebelum fungsi ini.
  *
  * Aturan caption/Story hidup di `story-caption-constraints.ts` dan dipakai
- * bersama `Modal.tsx` (T-192.1).
+ * bersama `useDraftEditorForm.ts` (T-192.1).
  */
 export const PINTEREST_VIA_MCP_MESSAGE =
   "Akun Pinterest belum bisa dijadwalkan lewat MCP karena board Pinterest belum bisa dipilih di sini. Jadwalkan akun Pinterest di aplikasi Postific.";

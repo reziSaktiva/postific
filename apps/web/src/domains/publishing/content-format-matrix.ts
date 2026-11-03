@@ -215,7 +215,7 @@ function joinLabels(labels: string[]): string {
  * Pesan constraint minimum media (KI-074, ADR-154) — `null` kalau
  * `mediaCount` sudah memenuhi batas minimum efektif untuk `targets`. Pola
  * sama `pinterestBoardConstraintMessage`: satu implementasi dipakai bersama
- * oleh client (gating tombol + pesan, `Modal.tsx`) dan
+ * oleh client (gating tombol + pesan, `useDraftEditorForm.ts`) dan
  * `assertMediaCountMeetsMinimum` (server, throw). Pesan menyebut semua
  * target yang wajib media.
  */

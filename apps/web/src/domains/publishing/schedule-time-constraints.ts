@@ -12,7 +12,7 @@ import {
  * T-108 (KI-044): tidak ada validasi yang mencegah user men-Schedule post ke
  * waktu yang sudah lewat — baik tanggal hari ini dengan jam yang sudah lewat
  * (mis. jadwalkan jam 08:00 padahal sekarang jam 11:48) maupun tanggal di
- * masa lalu sama sekali (date picker `Modal.tsx` tidak punya batas `min`).
+ * masa lalu sama sekali (date picker Draft Editor, `ScheduleSection.tsx`, tidak punya batas `min`).
  * Post lolos ke Queue tanpa penolakan/warning apa pun.
  *
  * Perbandingan dilakukan terhadap detik penuh (bukan `<=` murni ke
@@ -104,7 +104,7 @@ export function scheduleTimeConstraintMessage(
 /**
  * Defense-in-depth (T-108.2, T-198) — dipanggil di
  * `SchedulePostsUseCase.execute`, bukan hanya diandalkan dari validasi client
- * di `Modal.tsx`. Menolak jadwal yang sudah lewat DAN yang lebih dari
+ * di `useDraftEditorForm.ts`. Menolak jadwal yang sudah lewat DAN yang lebih dari
  * `SCHEDULE_MAX_DAYS_AHEAD` hari ke depan.
  */
 export function assertScheduledAtAllowed(
