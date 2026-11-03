@@ -2948,6 +2948,8 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 - [ ] **T-201.5** Quick Compose dari sidebar membuka modal dengan akun yang di-hover sudah terpilih (NP-D14); simpan akun tujuan draft tetap berjalan (ADR-125).
 - [ ] **T-201.6** Tes unit untuk logika pemilihan (fungsi murni: pilih semua, terakhir dipakai, filter pencarian, status koneksi). Perilaku komponen dibuktikan di E2E T-207.
 
+- [ ] **T-201.7** Edit Draft: chip akun terisi dari data draft tersimpan (akun, format, dan opsi Pinterest, ADR-125) sama seperti sebelum redesain; New Post dan Quick Compose tidak terpengaruh. Tes unit untuk pemetaan data draft ke pilihan akun.
+
 **Blocked by:** T-199
 
 ---
@@ -3052,6 +3054,8 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 - [ ] **T-205.6** Redirect setelah aksi terminal mengikuti ADR-054; tanpa "Create Another".
 - [ ] **T-205.7** Tes unit untuk logika tombol (aktif atau nonaktif per validasi dan peran) dan label jadwal.
 
+- [ ] **T-205.8** Aksi per status: Edit Draft dan post `Scheduled` mengikuti perilaku yang berlaku sekarang (KSP-05 State Handling); post `Published`, `Failed`, dan `Imported` tidak dibuka di Draft Editor (T-091); status chip di header tetap menampilkan status konten. Tes unit untuk logika aksi per status.
+
 **Blocked by:** T-199, T-202
 
 ---
@@ -3096,10 +3100,10 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 **What to build:** bukti bahwa redesain berjalan dari ujung ke ujung, dan penutupan lewat tangga status ADR-153.
 
-- [ ] **T-207.1** Perbarui tes Playwright E2E alur Draft Editor (ADR-149, S-002): golden path pilih akun, isi caption dan media, lihat Pratinjau, atur jadwal dalam batas, Save as Draft; tambah layar sempit dan mode gelap. Tidak mempublikasikan ke akun media sosial nyata.
+- [ ] **T-207.1** Perbarui tes Playwright E2E alur Draft Editor (ADR-149, S-002): golden path pilih akun, isi caption dan media, lihat Pratinjau, atur jadwal dalam batas, Save as Draft, buka kembali lewat Edit Draft; tambah layar sempit dan mode gelap. Tidak mempublikasikan ke akun media sosial nyata.
 - [ ] **T-207.2** Suite E2E hijau di `local`; hasil di deskripsi PR.
 - [ ] **T-207.3** Review `/code-review` dan Ridwan (arsitektur) tanpa temuan terbuka.
-- [ ] **T-207.4** QA Najwa lolos (termasuk RBAC per peran, Disconnected, Reel dengan gambar, jadwal di batas 30 hari).
+- [ ] **T-207.4** QA Najwa lolos (termasuk RBAC per peran, Disconnected, Reel dengan gambar, jadwal di batas 30 hari, Edit Draft dengan akun, format, dan opsi Pinterest terisi dari data tersimpan, status read-only `Published`/`Failed`/`Imported` sesuai T-091, dan post `Scheduled` sama seperti sebelum redesain).
 - [ ] **T-207.5** `typecheck`, `lint`, dan tes hijau. Status T-199 sampai T-206 menjadi Done (code).
 - [ ] **T-207.6** Verified (staging) satu kali per gelombang (ADR-153): verifikasi King Rezi di staging; tanpa akun media sosial nyata untuk post Scheduled sebelum T-195 selesai.
 - [ ] **T-207.7** Pastikan baseline `product-discovery/04-ux/` (KSP-05, KSP-D02, NP-D11) masih sesuai hasil akhir; selisih dilaporkan ke King Rezi, bukan diubah diam-diam.
