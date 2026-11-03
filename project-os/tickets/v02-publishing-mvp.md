@@ -2876,7 +2876,7 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 | Field       | Value                                                                                                                                |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Status**  | ⏳ Not Started                                                                                                                       |
+| **Status**  | 🟡 Merged ke staging (PR 250, 2026-11-03); belum Done (code), keputusan King Rezi                                                    |
 | **Mode**    | AFK                                                                                                                                  |
 | **Domain**  | draft editor · UI                                                                                                                    |
 | **Spec**    | S-005                                                                                                                                |
@@ -2899,10 +2899,13 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 - Panel Pratinjau belum ada di kode sekarang, jadi belum ada komponen yang bisa dipecah untuk itu; dibuat di tiket berikutnya (T-201).
 - Catatan review Standards (Ridwan, 2026-11-03, nol pelanggaran keras): (a) setiap `shadcn add` berikutnya wajib diikuti `grep 'from "cn"'` dan `git diff` pada `button.tsx`, karena registry masih mengisi `cn` dan menawarkan menimpa `button.tsx`; (b) `useDraftEditorForm.ts` (805 baris, sekitar 55 field kembalian) kandidat pemecahan sub-hook (mis. `usePinterestBoards`, `useDraftMedia`, turunan validasi) saat tiket redesain berikutnya menyentuhnya, sambil menjaga state di satu hook induk; (c) `react-day-picker` dan `date-fns` baru dipakai mulai T-202 dan T-205, ukur chunk Draft Editor saat itu; (d) komentar domain yang menunjuk `Modal.tsx` sebagai mirror client sudah diarahkan ke `useDraftEditorForm.ts` dan `ScheduleSection.tsx` di branch integrasi.
 
+**Bukti staging (2026-11-03):** PR 250 (base staging) di-squash-merge atas perintah King Rezi setelah CI "Quality gates" hijau (bersama T-200); run CI staging 41611048959, deploy staging commit `0b7ac823` success di Railway. Najwa menjalankan spec Playwright 13 tes (1 setup login + 12 skenario) terhadap staging setelah deploy: 13 passed, dua kali (42s dan 41s). Ini bukti browser pertama untuk kode hasil refactor T-199/T-200. Rincian cakupan dan batasnya di T-207. Status Done (code) dan Verified (staging) TIDAK dinaikkan oleh dokumen ini: keputusan ada di King Rezi (lihat T-207, alasan: ADR-149 meminta suite hijau di `local`, bukan staging; ADR-153 meminta `/code-review`, Ridwan, dan QA tanpa temuan terbuka untuk gelombang). T-199.4 tetap tidak dicentang.
+
 **Belum terbukti (jangan diasumsikan):**
 
-- Suite E2E Playwright dan tampilan di browser sungguhan belum dijalankan untuk T-199 (butuh `.env.local` dan login akun uji; tidak ada di worktree). Suite E2E yang ada juga tidak menyentuh Draft Editor. Kesetaraan perilaku dibuktikan dengan perbandingan DOM dan panggilan aksi antara `Modal.tsx` lama dan baru di jsdom (sementara, tidak di-commit), bukan dengan mata di browser.
+- (Diperbarui 2026-11-03: spec staging 13 tes lulus untuk perilaku browser, lihat "Bukti staging" di atas; yang bawah ini catatan awal.) Suite E2E Playwright dan tampilan di browser sungguhan belum dijalankan untuk T-199 (butuh `.env.local` dan login akun uji; tidak ada di worktree). Suite E2E yang ada juga tidak menyentuh Draft Editor. Kesetaraan perilaku dibuktikan dengan perbandingan DOM dan panggilan aksi antara `Modal.tsx` lama dan baru di jsdom (sementara, tidak di-commit), bukan dengan mata di browser.
 - Tidak ada tes permanen baru: refactor murni, dan tes yang hanya mengintip struktur internal komponen hasil pecahan sengaja tidak ditambah.
+- Spec staging menguji perilaku browser, bukan struktur kode hasil pecahan T-199. E2E belum dijalankan terhadap kode lokal (lihat catatan lingkungan di T-207).
 
 **Blocked by:** tidak ada
 
@@ -2912,7 +2915,7 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 | Field       | Value                                                                                                                |
 | ----------- | -------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | 🟡 In Progress (T-200.1 sampai T-200.5 dikerjakan di branch jalur; menunggu review)                                  |
+| **Status**  | 🟡 Merged ke staging (PR 250, 2026-11-03); belum Done (code), keputusan King Rezi                                    |
 | **Mode**    | AFK                                                                                                                  |
 | **Domain**  | publishing · MCP · draft editor                                                                                      |
 | **Spec**    | S-005                                                                                                                |
@@ -2945,11 +2948,13 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 - Media draft tersimpan (`mediaIds` tidak dikirim): `scheduleDraftAction` dan `publishNowAction` kini membaca media draft sekali dan memvalidasi keberadaan dan kepemilikannya (`resolveDraftMediaIds`, pesan sama) untuk SEMUA format, karena ID di `PublishingPost.mediaIds` (kolom `UUID[]` tanpa foreign key) tidak dilepas saat media dihapus (`DeleteMediaUseCase`). Sebelumnya ID yang hilang baru ketahuan setelah post dipersist dan Outstand dipanggil, lalu post ditandai Failed. Penyebab dasarnya (penghapusan media tidak melepas ID dari draft lain) belum diperbaiki dan di luar lingkup T-200.
 - Aturan Reel hanya dijaga di Server Action dan `ScheduleContentsUseCase`, tidak di `SchedulePostsUseCase` dan `PublishNowUseCase`: use case itu baru membaca media setelah post dipersist (dan tipenya tidak ada di `PostMediaItemForPublish`), jadi menaruh aturan di sana butuh pembacaan media tambahan sebelum persist atau menandai post Failed. Tidak dipaksakan.
 
+**Bukti staging (2026-11-03):** merge bersama T-199 lewat PR 250 (CI "Quality gates" hijau, deploy staging `0b7ac823` success). Spec Playwright Najwa (13 passed, dua kali) hanya menyentuh banner "Instagram tanpa media" dan radio Post/Reel/Story; aturan Reel wajib satu video TIDAK diuji langsung di browser maupun lewat publish nyata. Status Done (code) dan Verified (staging) tidak dinaikkan; keputusan King Rezi.
+
 **Belum terbukti (jangan diasumsikan):**
 
 - Aturan "Reel wajib video" adalah keputusan King Rezi (ADR-155 addendum B.1); kalimat eksplisit di dokumen Outstand per jaringan diperiksa di T-200.1.
 - Instagram: dokumen Outstand tidak eksplisit bahwa Reel butuh tepat satu video (hasil T-200.1); hanya Facebook yang eksplisit. Aturan Instagram Reel ditegakkan sebagai keputusan King Rezi, belum terbukti di dokumen Outstand dan belum diuji di akun Instagram nyata (apakah Outstand atau Instagram menolak Reel bergambar belum diketahui).
-- Penegakan hanya diuji dengan tes unit (domain, use-case, Server Action, definisi tool MCP); belum diverifikasi di staging maupun dengan publish nyata ke Outstand.
+- Penegakan hanya diuji dengan tes unit (domain, use-case, Server Action, definisi tool MCP) dan CI hijau; belum diverifikasi di browser staging untuk skenario Reel dengan gambar, maupun dengan publish nyata ke Outstand.
 - Jenis media untuk platform lain (YouTube, TikTok) belum ditegakkan.
 - Di antara T-200 dan T-202, Modal Draft Editor masih mengizinkan memilih Reel dengan media gambar; server menolak saat Schedule atau Publish Now (pesan Reel untuk satu gambar atau GIF, pesan batas maksimum untuk dua media atau lebih). Modal baru baru sinkron dengan server setelah T-202.
 
@@ -3140,6 +3145,19 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 - [ ] **T-207.5** `typecheck`, `lint`, dan tes hijau. Status T-199 sampai T-206 menjadi Done (code).
 - [ ] **T-207.6** Verified (staging) satu kali per gelombang (ADR-153): verifikasi King Rezi di staging; tanpa akun media sosial nyata untuk post Scheduled sebelum T-195 selesai.
 - [ ] **T-207.7** Pastikan baseline `product-discovery/04-ux/` (KSP-05, KSP-D02, NP-D11) masih sesuai hasil akhir; selisih dilaporkan ke King Rezi, bukan diubah diam-diam.
+
+**Bukti QA staging (2026-11-03, setelah PR 250 dan deploy `0b7ac823`):** Najwa menjalankan `apps/web/e2e/draft-editor.e2e.ts` (berkas baru, belum di-commit; 13 tes: 1 setup login + 12 skenario S1-S10 termasuk S7b, S8a, S8b) terhadap staging: 13 passed, dua kali (spec sementara 42s, berkas baru 41s). Cakupan: New Post dari Drafts, toggle Fullscreen/Standard tidak dipersist, upload dan hapus media dengan dialog konfirmasi, Save as Draft, Edit Draft tanpa dialog Resume, Resume/Mulai Baru, validasi Schedule/Publish Now, ringkasan konfirmasi (Batal, tanpa eksekusi), layar 375px tanpa overflow halaman/dialog, mode gelap tanpa elemen kontras <3, jalur sidebar dari Calendar, pembersihan draft e2e-qa. Screenshot di `apps/web/test-results/draft-editor`. Ini mengisi sebagian T-207.1 (golden path; Pratinjau, jadwal popover, dan Pinterest belum ada karena T-201 sampai T-205 belum dikerjakan); T-207.1 belum dicentang.
+
+**Batas bukti dan temuan (jangan dilebih-lebihkan):**
+
+1. Fullscreen hanya selebar 448px dari viewport 1280px (tinggi penuh). S2 lulus karena hanya mencetak angka dan tidak menegaskan lebar penuh. Temuan sama dengan T-206; tetap TERBUKA (perbaikan di T-206.1, bukti di T-207).
+2. S8a: satu elemen `BUTTON.peer` (kemungkinan checkbox akun, `size-4`) tercatat meluap; tidak ada overflow horizontal halaman maupun dialog.
+3. Aturan Reel wajib satu video (T-200) tidak diuji langsung; hanya banner "Instagram tanpa media" dan radio Post/Reel/Story yang tercakup.
+4. Spec menguji perilaku browser di staging, bukan struktur kode hasil pecahan T-199, dan bukan `local` (ADR-149 menghendaki suite hijau di `local`).
+5. File PNG yatim `e2e-qa-*-b.png` di Storage workspace E2E Sandbox tidak diperiksa ulang; run ini membersihkan media lewat UI.
+6. Keputusan status T-199 dan T-200 (Done (code) / Verified (staging)) ada di King Rezi; belum dinaikkan.
+
+**Saran retro (hanya saran, tidak mengubah aturan):** brief jalur sebaiknya melarang `git switch` di checkout utama; E2E lokal harus eksplisit `E2E_BASE_URL=http://localhost:3000` (`.env.local` mengarah ke staging); worktree lama di `.claude/worktrees/` kandidat pembersihan hanya atas izin King Rezi.
 
 **Catatan lingkungan QA (2026-11-03):** `apps/web/.env.local` mengarahkan `E2E_BASE_URL` ke staging, sehingga `bun run test:e2e` tanpa override menjalankan tes terhadap staging, bukan kode lokal. Untuk target lokal tulis `E2E_BASE_URL=http://localhost:3000` secara eksplisit. Login E2E ke localhost gagal pada sesi QA ini ("Invalid password"; `E2E_USER_PASSWORD` tidak cocok untuk Better Auth lokal), jadi E2E lokal untuk Draft Editor belum pernah dijalankan; spesifikasi sementara Najwa (13 tes, lulus terhadap staging kode lama) bisa jadi dasar `e2e/draft-editor.e2e.ts`. Satu file PNG 1x1 yatim `e2e-qa-*-b.png` tertinggal di Storage workspace E2E Sandbox dari run yang gagal; hapus saat pembersihan.
 
