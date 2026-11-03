@@ -136,44 +136,96 @@ describe("OutstandHttpClient.request (T-025.1)", () => {
       });
     });
 
+    async function failWith(
+      status: number,
+      body: unknown,
+    ): Promise<OutstandIntegrationError> {
+      const fetchImpl = vi.fn().mockResolvedValue(jsonResponse(status, body));
+      const client = new OutstandHttpClient(API_KEY, { fetchImpl });
+      return (await client
+        .request("/v1/posts", { method: "POST", body: {} })
+        .catch((e: unknown) => e)) as OutstandIntegrationError;
+    }
+
     it.each([
-      ["nested error.message", { error: { message: "scheduledAt invalid" } }],
+      [
+        "nested error.message",
+        { error: { message: "scheduledAt invalid" } },
+        "scheduledAt invalid",
+      ],
       [
         "errors[] of objects with path",
         { errors: [{ path: "scheduledAt", message: "invalid" }] },
+        "scheduledAt: invalid",
       ],
-      ["message[] of strings", { message: ["accounts is required"] }],
+      [
+        "message[] of strings",
+        { message: ["accounts is required"] },
+        "accounts is required",
+      ],
+      [
+        "generic message plus errors[]",
+        {
+          message: "Bad Request",
+          errors: [{ path: "scheduledAt", message: "must be in the future" }],
+        },
+        "Bad Request; scheduledAt: must be in the future",
+      ],
     ])(
       "keeps the Outstand detail of a 400 with %s (T-195.1)",
-      async (_name, body) => {
-        const fetchImpl = vi.fn().mockResolvedValue(jsonResponse(400, body));
-        const client = new OutstandHttpClient(API_KEY, { fetchImpl });
-
-        const error = await client
-          .request("/v1/posts", { method: "POST", body: {} })
-          .catch((e: unknown) => e);
+      async (_name, body, expected) => {
+        const error = await failWith(400, body);
 
         expect(error).toBeInstanceOf(OutstandIntegrationError);
-        const message = (error as OutstandIntegrationError).message;
-        expect(message).toContain("HTTP 400");
-        expect(message).not.toContain("mengembalikan HTTP 400 pada");
+        expect(error.message).toBe(
+          `Outstand client error (HTTP 400): ${expected}`,
+        );
       },
     );
 
     it("falls back to a truncated JSON summary for an unrecognised 400 body (T-195.1)", async () => {
-      const fetchImpl = vi
-        .fn()
-        .mockResolvedValue(
-          jsonResponse(400, { code: "X", note: "y".repeat(800) }),
-        );
-      const client = new OutstandHttpClient(API_KEY, { fetchImpl });
-
-      const error = (await client
-        .request("/v1/posts", { method: "POST", body: {} })
-        .catch((e: unknown) => e)) as OutstandIntegrationError;
+      const error = await failWith(400, { code: "X", note: "y".repeat(800) });
 
       expect(error.message).toContain('"code":"X"');
       expect(error.message.length).toBeLessThan(600);
+    });
+
+    it("truncates the summary by code point, never splitting an emoji (T-195.1)", async () => {
+      const error = await failWith(400, { note: "😀".repeat(600) });
+
+      expect(error.message).not.toMatch(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/);
+      expect(error.message).not.toMatch(/(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/);
+    });
+
+    it("strips URLs (e.g. signed media URLs) from the unrecognised-body summary (T-195.1)", async () => {
+      const error = await failWith(400, {
+        media:
+          "https://x.supabase.co/storage/v1/object/sign/m.png?token=SECRET",
+      });
+
+      expect(error.message).toContain("[url]");
+      expect(error.message).not.toContain("SECRET");
+    });
+
+    it("applies the body summary to 5xx and 429 too, still without URLs (T-195.1)", async () => {
+      const serverError = await failWith(502, {
+        upstream: "https://internal.example/path?token=SECRET",
+      });
+      const limited = await failWith(429, { retry: 30 });
+
+      expect(serverError.type).toBe("transient");
+      expect(serverError.message).toContain("[url]");
+      expect(serverError.message).not.toContain("SECRET");
+      expect(limited.message).toContain('"retry":30');
+    });
+
+    it("reads outstandErrorCode from a nested error object (T-195.1)", async () => {
+      const error = await failWith(400, {
+        error: { code: "invalid_schedule", message: "bad time" },
+      });
+
+      expect(error.outstandErrorCode).toBe("invalid_schedule");
+      expect(error.message).toContain("bad time");
     });
 
     it("keeps the generic message for an empty 400 body", async () => {

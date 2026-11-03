@@ -100,6 +100,9 @@ function textOfErrorItem(item: unknown): string | undefined {
 function extractErrorMessage(body: unknown, fallback: string): string {
   if (body && typeof body === "object") {
     const rec = body as Record<string, unknown>;
+    // Gabungkan semua butir (mis. `message` umum + `errors[]` per kolom) supaya
+    // detail per kolom tidak hilang di balik pesan generik.
+    const texts: string[] = [];
     for (const candidate of [
       rec.message,
       rec.error,
@@ -107,20 +110,23 @@ function extractErrorMessage(body: unknown, fallback: string): string {
       rec.error_description,
       rec.errors,
     ]) {
-      if (Array.isArray(candidate)) {
-        const texts = candidate
-          .map(textOfErrorItem)
-          .filter((text): text is string => text !== undefined);
-        if (texts.length > 0) return texts.join("; ");
-        continue;
+      const items = Array.isArray(candidate) ? candidate : [candidate];
+      for (const item of items) {
+        const text = textOfErrorItem(item);
+        if (text !== undefined && !texts.includes(text)) texts.push(text);
       }
-      const text = textOfErrorItem(candidate);
-      if (text !== undefined) return text;
     }
+    if (texts.length > 0) return texts.join("; ");
     if (Object.keys(rec).length > 0) {
-      const json = JSON.stringify(body);
-      return json.length > MAX_ERROR_DETAIL_LENGTH
-        ? `${json.slice(0, MAX_ERROR_DETAIL_LENGTH)}…`
+      // URL (mis. media bertanda tangan) dibuang sebelum body tak dikenal
+      // diringkas; pemotongan per code point agar surrogate pair tidak terbelah.
+      const json = JSON.stringify(body).replace(
+        /https?:\/\/[^\s"\\]+/g,
+        "[url]",
+      );
+      const chars = Array.from(json);
+      return chars.length > MAX_ERROR_DETAIL_LENGTH
+        ? `${chars.slice(0, MAX_ERROR_DETAIL_LENGTH).join("")}…`
         : json;
     }
   }
@@ -130,11 +136,21 @@ function extractErrorMessage(body: unknown, fallback: string): string {
   return fallback;
 }
 
-/** Cari field kode error vendor lazim (`code`/`error_code`/`errorCode`). */
+/** Cari field kode error vendor lazim (`code`/`error_code`/`errorCode`), juga di dalam `error`. */
 function extractErrorCode(body: unknown): string | undefined {
   if (body && typeof body === "object") {
     const rec = body as Record<string, unknown>;
-    const code = rec.code ?? rec.error_code ?? rec.errorCode;
+    const nested =
+      rec.error && typeof rec.error === "object"
+        ? (rec.error as Record<string, unknown>)
+        : undefined;
+    const code =
+      rec.code ??
+      rec.error_code ??
+      rec.errorCode ??
+      nested?.code ??
+      nested?.error_code ??
+      nested?.errorCode;
     if (typeof code === "string") return code;
   }
   return undefined;
