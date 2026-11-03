@@ -2937,6 +2937,7 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 - Instagram: dokumen Outstand tidak eksplisit bahwa Reel butuh tepat satu video (hasil T-200.1); hanya Facebook yang eksplisit. Aturan Instagram Reel ditegakkan sebagai keputusan King Rezi, belum terbukti di dokumen Outstand dan belum diuji di akun Instagram nyata (apakah Outstand atau Instagram menolak Reel bergambar belum diketahui).
 - Penegakan hanya diuji dengan tes unit (domain, use-case, Server Action, definisi tool MCP); belum diverifikasi di staging maupun dengan publish nyata ke Outstand.
 - Jenis media untuk platform lain (YouTube, TikTok) belum ditegakkan.
+- Di antara T-200 dan T-202, Modal Draft Editor masih mengizinkan memilih Reel dengan media gambar; server menolak saat Schedule atau Publish Now (pesan Reel untuk satu gambar atau GIF, pesan batas maksimum untuk dua media atau lebih). Modal baru baru sinkron dengan server setelah T-202.
 
 **Blocked by:** tidak ada
 

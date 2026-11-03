@@ -59,6 +59,7 @@ import { MediaService } from "@/domains/media";
 import {
   PublishingService,
   PublishNowUseCase,
+  reelMediaConstraintMessage,
   SchedulePostsUseCase,
 } from "@/domains/publishing";
 import { WorkspaceService } from "@/domains/workspace";
@@ -98,6 +99,8 @@ function account(platform: SocialPlatform) {
 const VIDEO_1 = asMediaId("media-video-1");
 const VIDEO_2 = asMediaId("media-video-2");
 const IMAGE_1 = asMediaId("media-image-1");
+const GIF_1 = asMediaId("media-gif-1");
+const DELETED = asMediaId("media-deleted");
 
 /** Media tersimpan di "DB": `listByIds` hanya mengembalikan yang diminta. */
 function stubStoredMedia() {
@@ -105,6 +108,7 @@ function stubStoredMedia() {
     { id: VIDEO_1, type: MediaType.Video },
     { id: VIDEO_2, type: MediaType.Video },
     { id: IMAGE_1, type: MediaType.Image },
+    { id: GIF_1, type: MediaType.Gif },
   ];
   vi.spyOn(MediaService.prototype, "listByIds").mockImplementation((async ({
     mediaIds,
@@ -194,10 +198,9 @@ describe.each([
 
     it.each([
       ["satu gambar", [IMAGE_1]],
-      ["gambar dan video", [IMAGE_1, VIDEO_1]],
-      ["dua video", [VIDEO_1, VIDEO_2]],
+      ["satu GIF", [GIF_1]],
     ])(
-      "menolak Reel dengan %s tanpa menyimpan atau memanggil use-case",
+      "menolak Reel dengan %s lewat aturan Reel, tanpa menyimpan atau memanggil use-case",
       async (_label, mediaIds) => {
         const execute = useCase();
         const saveDraft = vi.spyOn(PublishingService.prototype, "saveDraft");
@@ -207,9 +210,47 @@ describe.each([
           contentFormat: ContentFormat.Reel,
         });
 
-        expect(result).toHaveProperty("error");
+        expect(result).toEqual({ error: REEL_MESSAGE });
         expect(saveDraft).not.toHaveBeenCalled();
         expect(execute).not.toHaveBeenCalled();
+      },
+    );
+
+    // Dua media atau lebih ke target Reel ditolak lebih dulu oleh batas
+    // maksimum ADR-107 ("melebihi batas maksimum 1"), bukan oleh aturan Reel.
+    // Urutan cek ini sengaja tidak dibalik: keputusannya sama (ditolak), teksnya
+    // beda. Klien memakai pesan Reel dari `reelMediaConstraintMessage` untuk
+    // kasus yang sama, jadi dua jaringan pesan ini memang berbeda.
+    it.each([
+      ["gambar dan video", [IMAGE_1, VIDEO_1]],
+      ["dua video", [VIDEO_1, VIDEO_2]],
+    ])(
+      "menolak Reel dengan %s lewat batas maksimum ADR-107 (bukan aturan Reel), sementara pesan klien tetap pesan Reel",
+      async (_label, mediaIds) => {
+        const execute = useCase();
+        const saveDraft = vi.spyOn(PublishingService.prototype, "saveDraft");
+
+        const result = await call({
+          mediaIds,
+          contentFormat: ContentFormat.Reel,
+        });
+
+        expect(result).toEqual({
+          error: expect.stringMatching(/melebihi batas maksimum 1/),
+        });
+        expect(saveDraft).not.toHaveBeenCalled();
+        expect(execute).not.toHaveBeenCalled();
+        expect(
+          reelMediaConstraintMessage(
+            [{ platform, contentFormat: ContentFormat.Reel }],
+            mediaIds.map((id) => ({
+              type:
+                id === VIDEO_1 || id === VIDEO_2
+                  ? MediaType.Video
+                  : MediaType.Image,
+            })),
+          ),
+        ).toBe(REEL_MESSAGE);
       },
     );
 
@@ -256,6 +297,33 @@ describe.each([
         });
 
         expect(result).toEqual({ error: REEL_MESSAGE });
+        expect(updateDraft).not.toHaveBeenCalled();
+        expect(execute).not.toHaveBeenCalled();
+      });
+
+      // Draft dengan dua media tersimpan atau lebih sudah ditolak batas
+      // maksimum Reel lebih dulu, jadi kasus yang menembus ke pembacaan media
+      // adalah draft dengan satu media yang sudah hilang.
+      it("menolak dengan pesan kepemilikan bila media draft sudah terhapus atau bukan milik workspace, bukan meloloskan aturan Reel", async () => {
+        const execute = useCase();
+        vi.spyOn(PublishingService.prototype, "getDraftById").mockResolvedValue(
+          { ...fakePost(), mediaIds: [DELETED], draftTargets: [] } as never,
+        );
+        const updateDraft = vi.spyOn(
+          PublishingService.prototype,
+          "updateDraft",
+        );
+
+        const result = await call({
+          postId: "post-1",
+          contentFormat: ContentFormat.Reel,
+        });
+
+        expect(result).toEqual({
+          error: expect.stringMatching(
+            /tidak ditemukan atau bukan milik workspace ini/,
+          ),
+        });
         expect(updateDraft).not.toHaveBeenCalled();
         expect(execute).not.toHaveBeenCalled();
       });

@@ -269,7 +269,7 @@ const REEL_VIDEO_ONLY_PLATFORMS: ReadonlySet<SocialPlatform> = new Set([
 
 /** Bentuk media minimal untuk aturan Reel. `type` kosong dianggap bukan video. */
 export interface ReelMediaItem {
-  type?: MediaType | string;
+  type?: MediaType;
 }
 
 /** `true` bila target ini berformat Reel di platform yang wajib satu video. */

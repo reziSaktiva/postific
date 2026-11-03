@@ -19,9 +19,9 @@ import type { ScheduleTargetRequest } from "@/domains/publishing";
 import {
   assertActorCanPublishNow,
   assertMediaCountMeetsMinimum,
+  assertMediaCountWithinLimit,
   assertReelMediaRule,
   isVideoOnlyReelTarget,
-  assertMediaCountWithinLimit,
   PublishingService,
   PublishNowUseCase,
   resolveDraftMediaIds,
@@ -108,16 +108,21 @@ async function assertReelMediaForTargets(params: {
   if (!params.targets.some(isVideoOnlyReelTarget)) {
     return;
   }
-  const media =
-    params.storedMediaIds !== undefined && params.storedMediaIds.length > 0
-      ? await params.mediaService.listByIds(
-          {
-            workspaceId: params.workspaceId,
-            mediaIds: params.storedMediaIds,
-          },
-          params.actingUserId,
-        )
-      : params.foundMedia;
+  let media = params.foundMedia;
+  if (params.storedMediaIds !== undefined && params.storedMediaIds.length > 0) {
+    const stored = await params.mediaService.listByIds(
+      {
+        workspaceId: params.workspaceId,
+        mediaIds: params.storedMediaIds,
+      },
+      params.actingUserId,
+    );
+    // Media draft yang sudah terhapus atau bukan milik workspace ini tidak
+    // boleh membuat aturan Reel lolos karena daftarnya kosong: pakai validasi
+    // kepemilikan yang sama (`resolveDraftMediaIds`, pesan sama).
+    resolveDraftMediaIds(stored, params.storedMediaIds);
+    media = stored;
+  }
   assertReelMediaRule(params.targets, media);
 }
 

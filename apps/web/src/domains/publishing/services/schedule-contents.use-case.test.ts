@@ -958,8 +958,17 @@ describe("ScheduleContentsUseCase", () => {
 
       it.each([
         ["an image", [IMAGE]],
-        ["an image and a video", [IMAGE, VIDEO]],
-        ["two videos", [VIDEO, VIDEO_2]],
+        // Dua media atau lebih ditolak lebih dulu oleh batas maksimum Reel
+        // (ADR-107), bukan oleh aturan Reel wajib video; aturan Reel diuji
+        // lewat satu gambar di atas dan di tes domain.
+        [
+          "an image and a video (refused by the ADR-107 maximum, not the Reel rule)",
+          [IMAGE, VIDEO],
+        ],
+        [
+          "two videos (refused by the ADR-107 maximum, not the Reel rule)",
+          [VIDEO, VIDEO_2],
+        ],
       ])(
         "rejects a Reel with %s: failed, no draft, no quota",
         async (_label, mediaIds) => {
