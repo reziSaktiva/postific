@@ -147,7 +147,7 @@ function createFakeJobScheduler(
 }
 
 describe("SchedulePostsUseCase.execute", () => {
-  // T-108.2 (KI-044): `assertScheduledAtNotInPast` membandingkan `SCHEDULED_AT`
+  // T-108.2 (KI-044): `assertScheduledAtAllowed` membandingkan `SCHEDULED_AT`
   // di bawah terhadap `new Date()` sungguhan. `SCHEDULED_AT` adalah tanggal
   // tetap (fixture lama, dari sebelum T-108 ada) — tanpa fake timers, fixture
   // itu perlahan jadi "masa lalu" seiring waktu berjalan dan seluruh test di

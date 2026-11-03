@@ -10,7 +10,8 @@ import {
   maxMediaCountForFormats,
   minMediaCountConstraintMessage,
   minMediaCountForFormat,
-  minMediaCountForFormats,
+  minMediaCountForTargets,
+  targetRequiresMedia,
 } from "./content-format-matrix";
 
 describe("assertContentFormatAllowed", () => {
@@ -125,79 +126,138 @@ describe("minMediaCountForFormat", () => {
   });
 });
 
-describe("minMediaCountForFormats", () => {
-  it("returns 0 when no format is selected yet", () => {
-    expect(minMediaCountForFormats([])).toBe(0);
+const IG = SocialPlatform.Instagram;
+const FB = SocialPlatform.Facebook;
+
+function target(platform: SocialPlatform, contentFormat: ContentFormat) {
+  return { platform, contentFormat };
+}
+
+describe("targetRequiresMedia (ADR-154)", () => {
+  it("requires media for every Instagram format", () => {
+    for (const format of [
+      ContentFormat.Post,
+      ContentFormat.Reel,
+      ContentFormat.Story,
+    ]) {
+      expect(targetRequiresMedia(target(IG, format))).toBe(true);
+    }
   });
 
-  it("returns the single format's minimum when only one format is selected", () => {
-    expect(minMediaCountForFormats([ContentFormat.Post])).toBe(0);
-    expect(minMediaCountForFormats([ContentFormat.Story])).toBe(1);
+  it("requires media for TikTok, YouTube, and Pinterest", () => {
+    expect(
+      targetRequiresMedia(target(SocialPlatform.TikTok, ContentFormat.Post)),
+    ).toBe(true);
+    expect(
+      targetRequiresMedia(target(SocialPlatform.YouTube, ContentFormat.Post)),
+    ).toBe(true);
+    expect(
+      targetRequiresMedia(target(SocialPlatform.Pinterest, ContentFormat.Pin)),
+    ).toBe(true);
   });
 
-  it("returns the MAXIMUM across formats when multiple targets with different formats are selected (stricter format wins)", () => {
+  it("requires media for Facebook Reel and Story but not Facebook Post", () => {
+    expect(targetRequiresMedia(target(FB, ContentFormat.Reel))).toBe(true);
+    expect(targetRequiresMedia(target(FB, ContentFormat.Story))).toBe(true);
+    expect(targetRequiresMedia(target(FB, ContentFormat.Post))).toBe(false);
+  });
+
+  it("allows text-only for LinkedIn, Threads, and X", () => {
+    for (const platform of [
+      SocialPlatform.LinkedIn,
+      SocialPlatform.Threads,
+      SocialPlatform.Twitter,
+    ]) {
+      expect(targetRequiresMedia(target(platform, ContentFormat.Post))).toBe(
+        false,
+      );
+    }
+  });
+});
+
+describe("minMediaCountForTargets", () => {
+  it("returns 0 when no target is selected yet", () => {
+    expect(minMediaCountForTargets([])).toBe(0);
+  });
+
+  it("returns 1 when ANY target requires media (stricter target wins)", () => {
     expect(
-      minMediaCountForFormats([ContentFormat.Post, ContentFormat.Story]),
+      minMediaCountForTargets([
+        target(FB, ContentFormat.Post),
+        target(IG, ContentFormat.Post),
+      ]),
     ).toBe(1);
-    expect(
-      minMediaCountForFormats([ContentFormat.Post, ContentFormat.Reel]),
-    ).toBe(1);
+  });
+
+  it("returns 0 when only text-only-capable targets are selected", () => {
+    expect(minMediaCountForTargets([target(FB, ContentFormat.Post)])).toBe(0);
   });
 });
 
 describe("minMediaCountConstraintMessage", () => {
-  it("returns null when Post-only has 0 media (caption-only is valid)", () => {
-    expect(minMediaCountConstraintMessage(0, [ContentFormat.Post])).toBeNull();
+  it("returns null for Facebook Post with 0 media (caption-only is valid)", () => {
+    expect(
+      minMediaCountConstraintMessage(0, [target(FB, ContentFormat.Post)]),
+    ).toBeNull();
   });
 
-  it("returns null when Story has at least 1 media", () => {
-    expect(minMediaCountConstraintMessage(1, [ContentFormat.Story])).toBeNull();
+  it("returns null when a required target has at least 1 media", () => {
+    expect(
+      minMediaCountConstraintMessage(1, [target(IG, ContentFormat.Post)]),
+    ).toBeNull();
   });
 
-  it("returns a message when Story has 0 media", () => {
-    expect(minMediaCountConstraintMessage(0, [ContentFormat.Story])).toEqual(
-      expect.stringContaining("minimal 1 media"),
+  it("names Instagram when an Instagram Post has 0 media", () => {
+    expect(
+      minMediaCountConstraintMessage(0, [target(IG, ContentFormat.Post)]),
+    ).toBe(
+      "Instagram tidak bisa dipublish tanpa media. Tambahkan minimal 1 gambar atau video.",
     );
   });
 
-  it("returns a message when a mixed Post+Story selection has 0 media (Story in the mix still requires media)", () => {
+  it("names every offending target once, Facebook with its format", () => {
     expect(
       minMediaCountConstraintMessage(0, [
-        ContentFormat.Post,
-        ContentFormat.Story,
+        target(FB, ContentFormat.Reel),
+        target(SocialPlatform.Pinterest, ContentFormat.Pin),
+        target(FB, ContentFormat.Post),
+        target(IG, ContentFormat.Post),
+        target(IG, ContentFormat.Reel),
       ]),
-    ).toEqual(expect.stringContaining("minimal 1 media"));
+    ).toBe(
+      "Facebook Reel, Pinterest dan Instagram tidak bisa dipublish tanpa media. Tambahkan minimal 1 gambar atau video.",
+    );
   });
 });
 
 describe("assertMediaCountMeetsMinimum", () => {
-  it("does not throw when Post has 0 media", () => {
+  it("does not throw for Facebook Post with 0 media", () => {
     expect(() =>
-      assertMediaCountMeetsMinimum(0, [ContentFormat.Post]),
+      assertMediaCountMeetsMinimum(0, [target(FB, ContentFormat.Post)]),
     ).not.toThrow();
   });
 
   it("does not throw when Story has exactly the minimum (1 media)", () => {
     expect(() =>
-      assertMediaCountMeetsMinimum(1, [ContentFormat.Story]),
+      assertMediaCountMeetsMinimum(1, [target(IG, ContentFormat.Story)]),
     ).not.toThrow();
   });
 
-  it("throws PublishingDomainError when Story has 0 media (KI-074)", () => {
+  it("throws PublishingDomainError when Instagram Post has 0 media (KI-107)", () => {
     expect(() =>
-      assertMediaCountMeetsMinimum(0, [ContentFormat.Story]),
+      assertMediaCountMeetsMinimum(0, [target(IG, ContentFormat.Post)]),
     ).toThrow(PublishingDomainError);
   });
 
-  it("throws PublishingDomainError when Reel has 0 media", () => {
-    expect(() => assertMediaCountMeetsMinimum(0, [ContentFormat.Reel])).toThrow(
-      PublishingDomainError,
-    );
-  });
-
-  it("throws PublishingDomainError when Pin has 0 media", () => {
-    expect(() => assertMediaCountMeetsMinimum(0, [ContentFormat.Pin])).toThrow(
-      PublishingDomainError,
-    );
+  it("throws PublishingDomainError when Reel/Story/Pin has 0 media (KI-074)", () => {
+    for (const t of [
+      target(FB, ContentFormat.Reel),
+      target(FB, ContentFormat.Story),
+      target(SocialPlatform.Pinterest, ContentFormat.Pin),
+    ]) {
+      expect(() => assertMediaCountMeetsMinimum(0, [t])).toThrow(
+        PublishingDomainError,
+      );
+    }
   });
 });

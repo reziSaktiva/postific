@@ -32,6 +32,7 @@ const USER = asUserId("user-1");
 const IG = asConnectedAccountId("acc-ig");
 const FB = asConnectedAccountId("acc-fb");
 const PIN = asConnectedAccountId("acc-pin");
+const TH = asConnectedAccountId("acc-th");
 const SOURCE = {
   createdVia: PostCreatedVia.Mcp,
   clientId: "client-1",
@@ -63,6 +64,7 @@ const ACCOUNTS = [
   account(IG, SocialPlatform.Instagram),
   account(FB, SocialPlatform.Facebook),
   account(PIN, SocialPlatform.Pinterest),
+  account(TH, SocialPlatform.Threads),
 ];
 
 /**
@@ -230,7 +232,7 @@ function content(
   return {
     caption: "Halo",
     scheduledAt: LATER,
-    targets: [{ connectedAccountId: IG, contentFormat: ContentFormat.Post }],
+    targets: [{ connectedAccountId: FB, contentFormat: ContentFormat.Post }],
     ...overrides,
   };
 }
@@ -266,8 +268,8 @@ describe("ScheduleContentsUseCase", () => {
       content({
         caption: "Dua",
         targets: [
-          { connectedAccountId: IG, contentFormat: ContentFormat.Post },
           { connectedAccountId: FB, contentFormat: ContentFormat.Post },
+          { connectedAccountId: TH, contentFormat: ContentFormat.Post },
         ],
       }),
     ]);
@@ -280,8 +282,8 @@ describe("ScheduleContentsUseCase", () => {
       scheduledAt: LATER,
       targets: [
         {
-          connectedAccountId: IG,
-          platform: SocialPlatform.Instagram,
+          connectedAccountId: FB,
+          platform: SocialPlatform.Facebook,
           contentFormat: ContentFormat.Post,
         },
       ],
@@ -366,8 +368,8 @@ describe("ScheduleContentsUseCase", () => {
       content({ targets: tooMany }),
       content({
         targets: [
-          { connectedAccountId: IG, contentFormat: ContentFormat.Post },
-          { connectedAccountId: IG, contentFormat: ContentFormat.Post },
+          { connectedAccountId: FB, contentFormat: ContentFormat.Post },
+          { connectedAccountId: FB, contentFormat: ContentFormat.Post },
         ],
       }),
     ]);
@@ -663,8 +665,8 @@ describe("ScheduleContentsUseCase", () => {
       async (_l, patch, message) => {
         const w = world({
           accounts: [
-            { ...account(IG, SocialPlatform.Instagram), ...patch },
-            account(FB, SocialPlatform.Facebook),
+            { ...account(FB, SocialPlatform.Facebook), ...patch },
+            account(TH, SocialPlatform.Threads),
           ],
         });
         const reserve = vi.fn(async () => undefined);
@@ -676,7 +678,7 @@ describe("ScheduleContentsUseCase", () => {
             content({
               caption: "Ke akun sehat",
               targets: [
-                { connectedAccountId: FB, contentFormat: ContentFormat.Post },
+                { connectedAccountId: TH, contentFormat: ContentFormat.Post },
               ],
             }),
           ],
@@ -774,7 +776,7 @@ describe("ScheduleContentsUseCase", () => {
       connectedAccountId: id,
       contentFormat: ContentFormat.Story,
     });
-    const post = (id = IG) => ({
+    const post = (id = FB) => ({
       connectedAccountId: id,
       contentFormat: ContentFormat.Post,
     });
@@ -803,7 +805,7 @@ describe("ScheduleContentsUseCase", () => {
       [
         "a Story without media",
         content({ caption: "", mediaIds: undefined, targets: [story()] }),
-        /minimal 1 media/,
+        /tanpa media/,
       ],
       [
         "a Reel without media",
@@ -813,7 +815,7 @@ describe("ScheduleContentsUseCase", () => {
             { connectedAccountId: IG, contentFormat: ContentFormat.Reel },
           ],
         }),
-        /minimal 1 media/,
+        /tanpa media/,
       ],
       [
         "more media than a Reel allows",

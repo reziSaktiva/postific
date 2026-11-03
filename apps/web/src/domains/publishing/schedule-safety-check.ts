@@ -8,7 +8,7 @@ import {
   PINTEREST_ONE_ACCOUNT_MESSAGE,
   pinterestBoardConstraintMessage,
 } from "./pinterest-board-constraints";
-import { assertScheduledAtNotInPast } from "./schedule-time-constraints";
+import { assertScheduledAtAllowed } from "./schedule-time-constraints";
 import {
   captionRequiredConstraintMessage,
   MIXED_STORY_CAPTION_SCHEDULE_MESSAGE,
@@ -59,7 +59,7 @@ export function assertScheduleSafetyCheck(
   if (Number.isNaN(input.scheduledAt.getTime())) {
     throw new PublishingDomainError("Waktu jadwal tidak valid.");
   }
-  assertScheduledAtNotInPast(input.scheduledAt, input.now);
+  assertScheduledAtAllowed(input.scheduledAt, input.now);
 
   const formats = input.targets.map((target) => target.contentFormat);
   const captionMessage =
@@ -74,7 +74,7 @@ export function assertScheduleSafetyCheck(
   }
 
   assertMediaCountWithinLimit(input.mediaCount, formats);
-  assertMediaCountMeetsMinimum(input.mediaCount, formats);
+  assertMediaCountMeetsMinimum(input.mediaCount, input.targets);
 
   const pinterest = pinterestBoardConstraintMessage(input.targets);
   if (pinterest === PINTEREST_ONE_ACCOUNT_MESSAGE) {

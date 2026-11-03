@@ -12,7 +12,7 @@ import type { IJobScheduler } from "../adapters/job-scheduler";
 import { assertContentFormatAllowed } from "../content-format-matrix";
 import { assertPinterestBoardConstraints } from "../pinterest-board-constraints";
 import { assertPostMutable } from "../readonly-terminal-status";
-import { assertScheduledAtNotInPast } from "../schedule-time-constraints";
+import { assertScheduledAtAllowed } from "../schedule-time-constraints";
 import { enqueueResolveOutcomeFallback } from "./enqueue-resolve-outcome-fallback";
 import type {
   IPublishingRepository,
@@ -128,7 +128,7 @@ export class SchedulePostsUseCase {
     // bisa dilewati (request langsung ke Server Action, jam sistem client
     // berbeda dari server, dll). Reject di sini juga, sebelum apa pun
     // dipersist.
-    assertScheduledAtNotInPast(input.scheduledAt);
+    assertScheduledAtAllowed(input.scheduledAt);
 
     const record = await this.repository.schedulePost(
       {

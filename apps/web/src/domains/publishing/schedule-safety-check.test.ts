@@ -10,7 +10,7 @@ const LATER = new Date("2026-11-10T03:00:00.000Z");
 
 const ok = {
   caption: "Halo",
-  mediaCount: 0,
+  mediaCount: 1,
   scheduledAt: LATER,
   now: NOW,
   targets: [
