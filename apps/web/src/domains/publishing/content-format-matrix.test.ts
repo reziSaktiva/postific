@@ -1,16 +1,19 @@
-import { ContentFormat, SocialPlatform } from "@postific/shared";
+import { ContentFormat, MediaType, SocialPlatform } from "@postific/shared";
 import { describe, expect, it } from "vitest";
 import { PublishingDomainError } from "./errors";
 import {
   assertContentFormatAllowed,
   assertMediaCountMeetsMinimum,
   assertMediaCountWithinLimit,
+  assertReelMediaRule,
   getAllowedContentFormats,
   maxMediaCountForFormat,
   maxMediaCountForFormats,
   minMediaCountConstraintMessage,
   minMediaCountForFormat,
   minMediaCountForTargets,
+  REEL_REQUIRES_VIDEO_MESSAGE,
+  reelMediaConstraintMessage,
   targetRequiresMedia,
 } from "./content-format-matrix";
 
@@ -259,5 +262,90 @@ describe("assertMediaCountMeetsMinimum", () => {
         PublishingDomainError,
       );
     }
+  });
+});
+
+describe("aturan Reel wajib satu video (T-200, ADR-155 addendum B.1)", () => {
+  const MESSAGE =
+    "Reel membutuhkan satu video. Ganti media dengan video, atau pilih format Post atau Story.";
+  const video = { type: MediaType.Video };
+  const image = { type: MediaType.Image };
+  const gif = { type: MediaType.Gif };
+
+  it("memakai teks pesan yang sudah dikonfirmasi King Rezi", () => {
+    expect(REEL_REQUIRES_VIDEO_MESSAGE).toBe(MESSAGE);
+  });
+
+  describe.each([
+    ["Instagram", SocialPlatform.Instagram],
+    ["Facebook", SocialPlatform.Facebook],
+  ])("Reel %s", (_name, platform) => {
+    const reel = [{ platform, contentFormat: ContentFormat.Reel }];
+
+    it("menerima tepat satu video", () => {
+      expect(reelMediaConstraintMessage(reel, [video])).toBeNull();
+      expect(() => assertReelMediaRule(reel, [video])).not.toThrow();
+    });
+
+    it.each([
+      ["satu gambar", [image]],
+      ["satu GIF", [gif]],
+      ["campuran gambar dan video", [image, video]],
+      ["dua video", [video, video]],
+      ["dua gambar", [image, image]],
+      ["media tanpa jenis (tidak dianggap video)", [{}]],
+    ])("menolak %s dengan pesan Reel", (_label, media) => {
+      expect(reelMediaConstraintMessage(reel, media)).toBe(MESSAGE);
+      expect(() => assertReelMediaRule(reel, media)).toThrow(
+        PublishingDomainError,
+      );
+      expect(() => assertReelMediaRule(reel, media)).toThrow(MESSAGE);
+    });
+
+    it("tidak menolak saat belum ada media (itu urusan batas minimum, bukan jenis)", () => {
+      expect(reelMediaConstraintMessage(reel, [])).toBeNull();
+      expect(minMediaCountConstraintMessage(0, reel)).not.toBeNull();
+    });
+
+    it("tidak berlaku untuk Post dan Story di jaringan yang sama", () => {
+      for (const contentFormat of [ContentFormat.Post, ContentFormat.Story]) {
+        expect(
+          reelMediaConstraintMessage([{ platform, contentFormat }], [image]),
+        ).toBeNull();
+      }
+    });
+  });
+
+  it("menolak bila SATU saja dari beberapa target adalah Reel dan medianya gambar", () => {
+    expect(
+      reelMediaConstraintMessage(
+        [
+          {
+            platform: SocialPlatform.Facebook,
+            contentFormat: ContentFormat.Post,
+          },
+          {
+            platform: SocialPlatform.Instagram,
+            contentFormat: ContentFormat.Reel,
+          },
+        ],
+        [image],
+      ),
+    ).toBe(MESSAGE);
+  });
+
+  it("tidak menyentuh platform yang tidak punya format Reel", () => {
+    expect(
+      reelMediaConstraintMessage(
+        [
+          {
+            platform: SocialPlatform.Pinterest,
+            contentFormat: ContentFormat.Pin,
+          },
+        ],
+        [image],
+      ),
+    ).toBeNull();
+    expect(reelMediaConstraintMessage([], [image])).toBeNull();
   });
 });

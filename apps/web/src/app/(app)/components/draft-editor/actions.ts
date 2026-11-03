@@ -19,6 +19,8 @@ import type { ScheduleTargetRequest } from "@/domains/publishing";
 import {
   assertActorCanPublishNow,
   assertMediaCountMeetsMinimum,
+  assertReelMediaRule,
+  isVideoOnlyReelTarget,
   assertMediaCountWithinLimit,
   PublishingService,
   PublishNowUseCase,
@@ -82,6 +84,41 @@ function resolveMediaIdsAgainstFormats(
   const resolved = resolveDraftMediaIds(found, requestedMediaIds);
   assertMediaCountWithinLimit(resolved.length, activeFormats);
   return resolved;
+}
+
+/**
+ * T-200 (ADR-155 addendum B.1): Reel hanya sah dengan satu video. Dipanggil
+ * HANYA dari `scheduleDraftAction`/`publishNowAction` (Save as Draft boleh
+ * melanggar). Aturannya hidup di domain (`assertReelMediaRule`); helper ini
+ * hanya menyediakan jenis media: `foundMedia` bila client mengirim `mediaIds`,
+ * atau media draft tersimpan (`storedMediaIds`) bila tidak. Tanpa target Reel,
+ * tidak ada bacaan media tambahan.
+ */
+async function assertReelMediaForTargets(params: {
+  mediaService: MediaService;
+  workspaceId: WorkspaceId;
+  actingUserId: UserId;
+  targets: ReadonlyArray<{
+    platform: SocialPlatform;
+    contentFormat: ContentFormat;
+  }>;
+  foundMedia: Parameters<typeof assertReelMediaRule>[1];
+  storedMediaIds: MediaId[] | undefined;
+}): Promise<void> {
+  if (!params.targets.some(isVideoOnlyReelTarget)) {
+    return;
+  }
+  const media =
+    params.storedMediaIds !== undefined && params.storedMediaIds.length > 0
+      ? await params.mediaService.listByIds(
+          {
+            workspaceId: params.workspaceId,
+            mediaIds: params.storedMediaIds,
+          },
+          params.actingUserId,
+        )
+      : params.foundMedia;
+  assertReelMediaRule(params.targets, media);
 }
 
 /**
@@ -599,6 +636,7 @@ export async function scheduleDraftAction(
     // ADR-107 tetap wajib ditegakkan terhadap `activeFormats` yang baru saja
     // di-resolve, bukan hanya saat client mengirim `mediaIds` eksplisit.
     let effectiveMediaCount = mediaIds?.length ?? 0;
+    let storedMediaIds: MediaId[] | undefined;
     if (mediaIds === undefined && input.postId) {
       const existingDraft = await publishingService.getDraftById(
         workspaceId,
@@ -606,6 +644,7 @@ export async function scheduleDraftAction(
         actingUserId,
       );
       effectiveMediaCount = existingDraft.mediaIds?.length ?? 0;
+      storedMediaIds = existingDraft.mediaIds;
       assertMediaCountWithinLimit(effectiveMediaCount, activeFormats);
     }
     // KI-074, ADR-154: batas MINIMUM (Story/Reel/Pin dan Instagram/TikTok/YouTube butuh ≥1 media) — beda dari
@@ -621,6 +660,15 @@ export async function scheduleDraftAction(
     // masih disusun (belum siap dijadwalkan/dipublish) boleh belum punya
     // media sama sekali.
     assertMediaCountMeetsMinimum(effectiveMediaCount, targets);
+    // T-200: Reel wajib tepat satu video (jenis media, bukan hanya jumlah).
+    await assertReelMediaForTargets({
+      mediaService,
+      workspaceId,
+      actingUserId,
+      targets,
+      foundMedia,
+      storedMediaIds,
+    });
 
     const post = input.postId
       ? await publishingService.updateDraft(
@@ -740,6 +788,7 @@ export async function publishNowAction(
     // ADR-107 tetap wajib ditegakkan terhadap `activeFormats` yang baru saja
     // di-resolve, bukan hanya saat client mengirim `mediaIds` eksplisit.
     let effectiveMediaCount = mediaIds?.length ?? 0;
+    let storedMediaIds: MediaId[] | undefined;
     if (mediaIds === undefined && input.postId) {
       const existingDraft = await publishingService.getDraftById(
         workspaceId,
@@ -747,6 +796,7 @@ export async function publishNowAction(
         actingUserId,
       );
       effectiveMediaCount = existingDraft.mediaIds?.length ?? 0;
+      storedMediaIds = existingDraft.mediaIds;
       assertMediaCountWithinLimit(effectiveMediaCount, activeFormats);
     }
     // KI-074, ADR-154: batas MINIMUM (Story/Reel/Pin dan Instagram/TikTok/YouTube butuh ≥1 media) — beda dari
@@ -762,6 +812,15 @@ export async function publishNowAction(
     // masih disusun (belum siap dijadwalkan/dipublish) boleh belum punya
     // media sama sekali.
     assertMediaCountMeetsMinimum(effectiveMediaCount, targets);
+    // T-200: Reel wajib tepat satu video (jenis media, bukan hanya jumlah).
+    await assertReelMediaForTargets({
+      mediaService,
+      workspaceId,
+      actingUserId,
+      targets,
+      foundMedia,
+      storedMediaIds,
+    });
 
     const post = input.postId
       ? await publishingService.updateDraft(

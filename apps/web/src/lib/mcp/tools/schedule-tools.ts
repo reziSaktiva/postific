@@ -6,6 +6,7 @@ import {
   minMediaCountForFormat,
   platformLabel,
   platformsWhosePostRequiresMedia,
+  REEL_REQUIRES_VIDEO_MESSAGE,
   SCHEDULE_MAX_DAYS_AHEAD,
   type ScheduleContentFailureKind,
   type ScheduleContentInput,
@@ -85,7 +86,7 @@ function describeMediaRules(): string {
       ? `${list} wajib tepat ${min} media`
       : `${list} boleh ${min} sampai ${max}`;
   });
-  return `${sentences.join("; ")}. Khusus Post (ADR-154), ${POST_REQUIRES_MEDIA_NAMES} wajib minimal 1 media; akun lain boleh tanpa media`;
+  return `${sentences.join("; ")}. Khusus Post (ADR-154), ${POST_REQUIRES_MEDIA_NAMES} wajib minimal 1 media; akun lain boleh tanpa media. Khusus Reel di Facebook dan Instagram, medianya wajib satu video (gambar, GIF, atau lebih dari satu media ditolak)`;
 }
 
 const SCHEDULE_POSTS_SCHEMA: McpJsonSchema = {
@@ -215,6 +216,7 @@ const schedulePosts: McpToolDefinition = {
     "Aturan yang sama dengan Draft Editor berlaku di server: akun harus aktif, format per akun, caption wajib (kecuali Story), Story tidak digabung dengan target lain bila caption terisi, jumlah media per format, dan waktu harus di masa depan dan paling jauh " +
     `${SCHEDULE_MAX_DAYS_AHEAD} hari dari sekarang (Outstand menolak jadwal lebih jauh). ` +
     `${POST_REQUIRES_MEDIA_NAMES} tidak bisa dijadwalkan tanpa media. ` +
+    `${REEL_REQUIRES_VIDEO_MESSAGE} (berlaku untuk Facebook dan Instagram). ` +
     "Akun Pinterest belum bisa dijadwalkan lewat MCP karena board belum bisa diisi. " +
     "Kuota: konten yang ditolak pemeriksaan di atas tidak dijadwalkan dan tidak memakai kuota. Konten yang gagal SETELAH draft dibuat (penyedia menolak, galat internal, konflik) tetap memakai kuota dan meninggalkan post yang tidak terjadwal: berstatus Failed bila penyedia menolak, atau masih Draft untuk galat lain (hasilnya memuat postId); kuota tidak dikembalikan. " +
     "Satu scheduledAt yang salah bentuk atau mustahil (mis. 30 Februari) menggagalkan SELURUH panggilan sebagai invalid_input dengan indeks konten (mis. posts[2]); tidak ada konten yang diproses. " +

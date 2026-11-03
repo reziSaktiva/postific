@@ -1,6 +1,7 @@
 import {
   ContentFormat,
   ContentStatus,
+  MediaType,
   PostCreatedVia,
   SocialPlatform,
   asConnectedAccountId,
@@ -76,6 +77,8 @@ const ACCOUNTS = [
 function world(
   options: {
     ownedMedia?: string[];
+    /** Jenis media tersimpan per id; tanpa entri = tidak ada jenis (bukan video). */
+    mediaTypes?: Record<string, MediaType>;
     outstandFails?: (caption: string) => boolean;
     accounts?: ConnectedAccountRecord[];
   } = {},
@@ -190,7 +193,9 @@ function world(
             const stored = owned.find(
               (own) => own.toLowerCase() === id.toLowerCase(),
             );
-            return stored === undefined ? [] : [{ id: asMediaId(stored) }];
+            return stored === undefined
+              ? []
+              : [{ id: asMediaId(stored), type: options.mediaTypes?.[stored] }];
           })
         : [];
     },
@@ -914,6 +919,143 @@ describe("ScheduleContentsUseCase", () => {
       ]);
       expect(reserve).toHaveBeenCalledWith(2);
       expect(w.posts.size).toBe(2);
+    });
+  });
+
+  describe("Reel wajib tepat satu video (T-200)", () => {
+    const VIDEO = "media-video";
+    const VIDEO_2 = "media-video-2";
+    const IMAGE = "media-image";
+    const TYPES = {
+      [VIDEO]: MediaType.Video,
+      [VIDEO_2]: MediaType.Video,
+      [IMAGE]: MediaType.Image,
+    };
+    const reel = (id: typeof IG) => ({
+      connectedAccountId: id,
+      contentFormat: ContentFormat.Reel,
+    });
+    const REEL_MESSAGE = /Reel membutuhkan satu video/;
+
+    describe.each([
+      ["Instagram", IG],
+      ["Facebook", FB],
+    ])("%s", (_name, id) => {
+      it("schedules a Reel with exactly one video", async () => {
+        const w = world({ ownedMedia: [VIDEO], mediaTypes: TYPES });
+        const reserve = vi.fn(async () => undefined);
+
+        const [outcome] = await run(
+          w,
+          [content({ mediaIds: [VIDEO], targets: [reel(id)] })],
+          reserve,
+        );
+
+        expect(outcome).toMatchObject({ status: "scheduled" });
+        expect(w.outstandCalls).toHaveLength(1);
+        expect(reserve).toHaveBeenCalledWith(1);
+      });
+
+      it.each([
+        ["an image", [IMAGE]],
+        ["an image and a video", [IMAGE, VIDEO]],
+        ["two videos", [VIDEO, VIDEO_2]],
+      ])(
+        "rejects a Reel with %s: failed, no draft, no quota",
+        async (_label, mediaIds) => {
+          const w = world({
+            ownedMedia: [VIDEO, VIDEO_2, IMAGE],
+            mediaTypes: TYPES,
+          });
+          const reserve = vi.fn(async () => undefined);
+
+          const [outcome] = await run(
+            w,
+            [content({ mediaIds, targets: [reel(id)] })],
+            reserve,
+          );
+
+          expect(outcome).toMatchObject({ status: "failed", kind: "invalid" });
+          expect(w.posts.size).toBe(0);
+          expect(w.outstandCalls).toEqual([]);
+          expect(reserve).not.toHaveBeenCalled();
+        },
+      );
+
+      it("rejects a Reel with an image using the Reel message", async () => {
+        const w = world({ ownedMedia: [IMAGE], mediaTypes: TYPES });
+
+        const [outcome] = await run(w, [
+          content({ mediaIds: [IMAGE], targets: [reel(id)] }),
+        ]);
+
+        expect(outcome).toMatchObject({
+          status: "failed",
+          message:
+            "Reel membutuhkan satu video. Ganti media dengan video, atau pilih format Post atau Story.",
+        });
+      });
+
+      it("still lets a Post with an image through", async () => {
+        const w = world({ ownedMedia: [IMAGE], mediaTypes: TYPES });
+
+        const [outcome] = await run(w, [
+          content({
+            mediaIds: [IMAGE],
+            targets: [
+              { connectedAccountId: id, contentFormat: ContentFormat.Post },
+            ],
+          }),
+        ]);
+
+        expect(outcome).toMatchObject({ status: "scheduled" });
+      });
+    });
+
+    it("rejects an image when only one of several targets is a Reel", async () => {
+      const w = world({ ownedMedia: [IMAGE], mediaTypes: TYPES });
+
+      const [outcome] = await run(w, [
+        content({
+          mediaIds: [IMAGE],
+          targets: [
+            { connectedAccountId: FB, contentFormat: ContentFormat.Post },
+            reel(IG),
+          ],
+        }),
+      ]);
+
+      expect(outcome).toMatchObject({
+        status: "failed",
+        message: expect.stringMatching(REEL_MESSAGE),
+      });
+    });
+
+    it("treats media with no known type as not a video", async () => {
+      const w = world({ ownedMedia: [VIDEO] });
+
+      const [outcome] = await run(w, [
+        content({ mediaIds: [VIDEO], targets: [reel(IG)] }),
+      ]);
+
+      expect(outcome).toMatchObject({ status: "failed", kind: "invalid" });
+    });
+
+    it("reports the rejected Reel and the accepted Post of one batch independently", async () => {
+      const w = world({ ownedMedia: [IMAGE], mediaTypes: TYPES });
+      const reserve = vi.fn(async () => undefined);
+
+      const outcomes = await run(
+        w,
+        [
+          content({ mediaIds: [IMAGE], targets: [reel(IG)] }),
+          content({ mediaIds: [IMAGE] }),
+        ],
+        reserve,
+      );
+
+      expect(outcomes.map((o) => o.status)).toEqual(["failed", "scheduled"]);
+      expect(reserve).toHaveBeenCalledWith(1);
     });
   });
 });
