@@ -1474,3 +1474,34 @@ mode gelap, jadi ini kasus utama halaman publik, bukan kasus pinggir.
 
 **Bukan bagian tiket ini:** perubahan tampilan tema selain kedipan ini, dan
 pilihan tema Light/Dark eksplisit pengguna (cookie `theme` sudah benar).
+
+---
+
+### T-196 · RLS disabled on 8 `public` tables exposed to anon and authenticated roles (KI-106)
+
+| Field       | Value                                                                                                 |
+| ----------- | ----------------------------------------------------------------------------------------------------- |
+| **Status**  | ⏳ Todo (menunggu keputusan King Rezi)                                                                |
+| **Domain**  | database, keamanan                                                                                    |
+| **Spec**    | tidak ada                                                                                             |
+| **Docs**    | KI-106, ADR-064, `mcp_*` (pola policy `app_runtime` di T-151), advisor Supabase `rls_disabled`        |
+| **Terkait** | T-189.1, T-189.4                                                                                      |
+| **Depends** | keputusan King Rezi: policy per tabel, dan apakah koneksi aplikasi memakai `app_runtime` atau pemilik |
+
+**Ditemukan (2026-11-03)** lewat advisor Supabase pada DB staging
+(`ndcrkzqgqukqfmekgoze`): RLS nonaktif pada `_prisma_migrations`, `identity_user`,
+`identity_session`, `identity_account`, `identity_verification`, `workspaces`,
+`background_jobs`, `outstand_webhook_events`. Tabel itu terbuka penuh bagi siapa
+pun yang memegang anon key.
+
+**Belum diketahui:** apakah anon key terpapar di klien (Supabase JS dipakai hanya
+untuk Realtime dan Storage, AGENTS.md #6), dan apakah tabel yang sama juga tanpa
+RLS di production (belum ada). Agen tidak mengubah apa pun.
+
+**Catatan:** mengaktifkan RLS tanpa policy memblokir semua akses non-pemilik, jadi
+urutan dan policy butuh keputusan King Rezi dan migrasi Prisma bertiket sendiri.
+
+- [ ] **T-196.1** Keputusan King Rezi: policy per tabel dan peran koneksi.
+- [ ] **T-196.2** Migrasi RLS (satu tabel sensitif dulu, mis. `identity_*`), tes
+      aplikasi tetap jalan sebagai `app_runtime`.
+- [ ] **T-196.3** Ulangi advisor Supabase dan catat hasil.
