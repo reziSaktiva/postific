@@ -2887,10 +2887,21 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 **What to build:** dasar teknis redesain. Komponen shadcn yang dibutuhkan terpasang, dan `Modal` yang berisi seluruh state form (sekitar 1.770 baris) dipecah menjadi komponen modul tanpa perubahan perilaku yang terlihat pemakai.
 
-- [ ] **T-199.1** Pasang `calendar` lewat workflow CLI/MCP shadcn (discover-first: cek registry dan dokumen komponen, jangan menebak props); sesuaikan dengan token Stone.
-- [ ] **T-199.2** Pasang `accordion` dengan cara yang sama.
-- [ ] **T-199.3** Pecah `Modal` menjadi komponen modul bertanggung jawab tunggal (baris channel, editor dan media, blok jaringan, panel Pratinjau, footer, ringkasan konfirmasi, dialog Resume); state form dan aksi tetap berpusat di satu tempat; entry point tetap tidak berisi business logic (aturan 3 `AGENTS.md`).
+- [x] **T-199.1** Pasang `calendar` lewat workflow CLI/MCP shadcn (discover-first: cek registry dan dokumen komponen, jangan menebak props); sesuaikan dengan token Stone.
+- [x] **T-199.2** Pasang `accordion` dengan cara yang sama.
+- [x] **T-199.3** Pecah `Modal` menjadi komponen modul bertanggung jawab tunggal (baris channel, editor dan media, blok jaringan, panel Pratinjau, footer, ringkasan konfirmasi, dialog Resume); state form dan aksi tetap berpusat di satu tempat; entry point tetap tidak berisi business logic (aturan 3 `AGENTS.md`).
 - [ ] **T-199.4** Perilaku tidak berubah: `typecheck`, `lint`, dan seluruh tes yang ada hijau; suite E2E yang ada tetap hijau.
+
+**Catatan hasil (jalur A, gelombang 1):**
+
+- T-199.1 dan T-199.2: dipasang dengan `bunx shadcn@latest add calendar accordion` dari `apps/web`. CLI menulis `import { cn } from "cn"` dan menambah paket npm `cn` (kekeliruan registry); impor diganti ke `@/lib/utils` dan paket `cn` dibuang. Dependensi baru yang sah: `react-day-picker` dan `date-fns`. Kelas `h-full w-full` di `calendar.tsx` diganti `size-full` oleh lint (setara). `button` tidak ditimpa.
+- T-199.3: `Modal.tsx` tinggal `DraftEditorModal` (cangkang Dialog, varian Standard/Fullscreen, snapshot tutup). State, efek, nilai turunan, dan aksi form dipusatkan di `useDraftEditorForm.ts`; `DraftEditorForm.tsx` hanya menyusun komponen modul: `EditorHeader`, `FormAlerts`, `CaptionEditor`, `MediaSection`, `AccountSelector` (berisi `ChannelRow`, `NetworkBlock`, `PinterestFields`), `ScheduleSection`, `ConfirmationSummary`, `EditorFooter`, `ResumeDialog`. Konstanta dan helper bersama ada di `form-shared.ts`. Export `DraftEditorModal`, Context, dan `Mount` tidak berubah.
+- Panel Pratinjau belum ada di kode sekarang, jadi belum ada komponen yang bisa dipecah untuk itu; dibuat di tiket berikutnya (T-201).
+
+**Belum terbukti (jangan diasumsikan):**
+
+- Suite E2E Playwright dan tampilan di browser sungguhan belum dijalankan untuk T-199 (butuh `.env.local` dan login akun uji; tidak ada di worktree). Suite E2E yang ada juga tidak menyentuh Draft Editor. Kesetaraan perilaku dibuktikan dengan perbandingan DOM dan panggilan aksi antara `Modal.tsx` lama dan baru di jsdom (sementara, tidak di-commit), bukan dengan mata di browser.
+- Tidak ada tes permanen baru: refactor murni, dan tes yang hanya mengintip struktur internal komponen hasil pecahan sengaja tidak ditambah.
 
 **Blocked by:** tidak ada
 
