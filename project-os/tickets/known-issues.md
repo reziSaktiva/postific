@@ -1531,3 +1531,46 @@ Cook It Real Good (akun Facebook nyata). Data hanya-baca (Supabase dan Outstand)
 
 **Aturan sampai tiket ini selesai:** jangan menguji post Scheduled di workspace
 yang punya akun sosial nyata; pakai E2E Sandbox.
+
+---
+
+### T-196 · RLS disabled on 8 `public` tables exposed to anon and authenticated roles (KI-106)
+
+| Field       | Value                                                                                                                                           |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**  | ⏳ Todo (🔴 prioritas tinggi, menunggu keputusan King Rezi)                                                                                     |
+| **Mode**    | HITL (T-196.1 diputuskan King Rezi; sisanya AFK setelah itu)                                                                                    |
+| **Domain**  | database, keamanan                                                                                                                              |
+| **Spec**    | tidak ada                                                                                                                                       |
+| **Docs**    | KI-106, `product-discovery/05-architecture/database-strategy.md`, `mcp_*` (pola policy `app_runtime` di T-151), advisor Supabase `rls_disabled` |
+| **Terkait** | T-189.1, T-189.4                                                                                                                                |
+| **Depends** | keputusan King Rezi: policy per tabel, dan apakah koneksi aplikasi memakai `app_runtime` atau pemilik                                           |
+
+**Ditemukan (2026-11-03)** lewat advisor Supabase pada DB staging
+(`ndcrkzqgqukqfmekgoze`): RLS nonaktif pada `_prisma_migrations`, `identity_user`,
+`identity_session`, `identity_account`, `identity_verification`, `workspaces`,
+`background_jobs`, `outstand_webhook_events`.
+
+**Belum terbukti (jangan diasumsikan):** advisor hanya melaporkan RLS mati.
+Apakah data benar-benar terbaca bergantung pada grant ke `anon`/`authenticated`
+dan pada eksposur schema `public` lewat PostgREST; itu belum diuji. Kunci publik
+Supabase biasanya sudah dikirim ke browser untuk Realtime dan Storage
+(AGENTS.md #6), jadi keterpaparannya mungkin tinggi, tetapi belum diperiksa.
+Apakah tabel yang sama juga tanpa RLS di production belum diketahui (belum ada).
+Agen tidak mengubah apa pun.
+
+**Catatan:** mengaktifkan RLS tanpa policy memblokir semua akses non-pemilik,
+termasuk login Better Auth bila aplikasi tersambung sebagai peran non-pemilik
+(mis. `app_runtime`). Jangan mengaktifkan RLS pada tabel mana pun sebelum
+T-196.1 dan T-196.2 selesai.
+
+- [ ] **T-196.1** Buktikan keterpaparan: baca tabel itu sebagai `anon` dan
+      `authenticated` (hanya baca, tanpa mengubah data) dan periksa grant serta
+      eksposur PostgREST. Hasilnya menentukan prioritas.
+- [ ] **T-196.2** Keputusan King Rezi: peran koneksi aplikasi (pemilik atau
+      `app_runtime`), policy per tabel, dan urutan; tulis policy beserta
+      langkah rollback untuk tiap tabel sebelum satu pun diubah.
+- [ ] **T-196.3** Migrasi RLS per tabel (mulai dari tabel dengan dampak login
+      terkecil), uji sign-in dan alur utama di staging setelah tiap tabel, dan
+      rollback bila gagal.
+- [ ] **T-196.4** Ulangi advisor Supabase dan catat hasil.
