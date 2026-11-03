@@ -54,6 +54,9 @@ jobs:
       E2E_MCP_UPLOAD: ${{ github.event_name == 'workflow_dispatch' && secrets.E2E_MCP_UPLOAD || '' }}
       E2E_MCP_UPLOAD_URL: ${{ github.event_name == 'workflow_dispatch' && secrets.E2E_MCP_UPLOAD_URL || '' }}
       E2E_MCP_SCHEDULE: ${{ github.event_name == 'workflow_dispatch' && secrets.E2E_MCP_SCHEDULE || '' }}
+      # (f) member dikeluarkan: koneksi DB staging role app_runtime (support/member-db.ts);
+      # butuh member active kedua di E2E Sandbox. Hanya run manual.
+      DATABASE_URL: ${{ github.event_name == 'workflow_dispatch' && secrets.DATABASE_URL || '' }}
       SKIP_ENV_VALIDATION: "1"
 
     steps:
