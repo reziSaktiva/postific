@@ -328,6 +328,83 @@ describe.each([
         expect(execute).not.toHaveBeenCalled();
       });
 
+      // ID di `PublishingPost.mediaIds` bisa tertinggal setelah media dihapus
+      // (kolom array tanpa foreign key). Validasi berlaku untuk semua format,
+      // bukan hanya Reel, supaya post tidak sampai ke Outstand lalu gagal.
+      it("menolak draft tersimpan berformat Post yang memuat ID media yang sudah terhapus", async () => {
+        const execute = useCase();
+        vi.spyOn(PublishingService.prototype, "getDraftById").mockResolvedValue(
+          { ...fakePost(), mediaIds: [DELETED], draftTargets: [] } as never,
+        );
+        const updateDraft = vi.spyOn(
+          PublishingService.prototype,
+          "updateDraft",
+        );
+
+        const result = await call({
+          postId: "post-1",
+          contentFormat: ContentFormat.Post,
+        });
+
+        expect(result).toEqual({
+          error: expect.stringMatching(
+            /tidak ditemukan atau bukan milik workspace ini/,
+          ),
+        });
+        expect(updateDraft).not.toHaveBeenCalled();
+        expect(execute).not.toHaveBeenCalled();
+      });
+
+      it("menerima draft tersimpan berformat Post yang medianya masih ada", async () => {
+        const execute = useCase();
+        vi.spyOn(PublishingService.prototype, "getDraftById").mockResolvedValue(
+          { ...fakePost(), mediaIds: [IMAGE_1], draftTargets: [] } as never,
+        );
+        vi.spyOn(PublishingService.prototype, "updateDraft").mockResolvedValue(
+          fakePost() as never,
+        );
+
+        const result = await call({
+          postId: "post-1",
+          contentFormat: ContentFormat.Post,
+        });
+
+        expect(result).toEqual({ postId: "post-1" });
+        expect(execute).toHaveBeenCalledTimes(1);
+      });
+
+      it("tidak membaca media sama sekali bila draft tersimpan tanpa media", async () => {
+        useCase();
+        vi.spyOn(PublishingService.prototype, "getDraftById").mockResolvedValue(
+          { ...fakePost(), mediaIds: [], draftTargets: [] } as never,
+        );
+        vi.spyOn(PublishingService.prototype, "updateDraft").mockResolvedValue(
+          fakePost() as never,
+        );
+        const listByIds = vi.mocked(MediaService.prototype.listByIds);
+        listByIds.mockClear();
+
+        await call({ postId: "post-1", contentFormat: ContentFormat.Post });
+
+        expect(listByIds).not.toHaveBeenCalled();
+      });
+
+      it("membaca media draft tersimpan tepat sekali untuk Reel, dipakai bersama validasi dan aturan Reel", async () => {
+        useCase();
+        vi.spyOn(PublishingService.prototype, "getDraftById").mockResolvedValue(
+          { ...fakePost(), mediaIds: [VIDEO_1], draftTargets: [] } as never,
+        );
+        vi.spyOn(PublishingService.prototype, "updateDraft").mockResolvedValue(
+          fakePost() as never,
+        );
+        const listByIds = vi.mocked(MediaService.prototype.listByIds);
+        listByIds.mockClear();
+
+        await call({ postId: "post-1", contentFormat: ContentFormat.Reel });
+
+        expect(listByIds).toHaveBeenCalledTimes(1);
+      });
+
       it("menerima bila draft tersimpan berisi tepat satu video", async () => {
         const execute = useCase();
         vi.spyOn(PublishingService.prototype, "getDraftById").mockResolvedValue(
