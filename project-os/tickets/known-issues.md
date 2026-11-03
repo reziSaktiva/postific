@@ -1474,3 +1474,91 @@ mode gelap, jadi ini kasus utama halaman publik, bukan kasus pinggir.
 
 **Bukan bagian tiket ini:** perubahan tampilan tema selain kedipan ini, dan
 pilihan tema Light/Dark eksplisit pengguna (cookie `theme` sudah benar).
+
+---
+
+### T-195 · Scheduling fails with Outstand HTTP 400 and one post published immediately while recorded as `failed` (KI-105)
+
+| Field       | Value                                                                               |
+| ----------- | ----------------------------------------------------------------------------------- |
+| **Status**  | ⏳ Todo                                                                             |
+| **Domain**  | publishing, integrasi Outstand (ACL)                                                |
+| **Spec**    | tidak ada: investigasi dulu, spec bila perbaikannya multi-sesi                      |
+| **Docs**    | KI-105, ADR-092, T-025.2, `real-outstand-adapter.ts` (`schedulePost`, `createPost`) |
+| **Terkait** | T-189.3 (uji post Scheduled), T-153                                                 |
+| **Depends** | —                                                                                   |
+
+**Ditemukan (2026-11-03)** saat King Rezi menjadwalkan post di staging, workspace
+Cook It Real Good (akun Facebook nyata). Data hanya-baca (Supabase dan Outstand):
+
+- Tiga post (`a2459502…` draft buatan MCP, `88120df3…` post, `4e95e42a…` reel)
+  berstatus `failed` dengan galat "Outstand client error (HTTP 400): Outstand API
+  mengembalikan HTTP 400 pada /v1/posts". Jadwal ke depan (Desember 2026 sampai
+  Februari 2027).
+- Untuk `a2459502…`, `retry_outstand_post_id` terisi (`cGk8t`) sedangkan target
+  tetap `pending`. Di Outstand post `cGk8t` berstatus `published`,
+  `scheduledAt: null`, terbit 2026-11-03 04:56:26 UTC ke halaman Facebook nyata,
+  padahal jadwal di Postific 2027-01-03. Post itu sudah dihapus dari Facebook atas
+  izin King Rezi (`delete_remote_post`).
+
+**Belum diketahui (jangan diasumsikan):**
+
+- Penyebab HTTP 400. Pesan galat Outstand hilang: `mapHttpErrorToIntegrationError`
+  memakai pesan bawaan karena bentuk body galat tidak dikenali
+  `extractErrorMessage` (hanya `message`, `error`, `detail`,
+  `error_description` berupa string). Isi body 400 sebenarnya belum teramati.
+- Jalur yang membuat `cGk8t` tanpa `scheduledAt` (kemungkinan retry atau "Publish
+  now" setelah kegagalan, belum dibuktikan; kode `publishNow` memang memanggil
+  endpoint yang sama tanpa `scheduledAt`).
+- Apakah 400 terkait media, format Reel, atau `scheduledAt` jauh di depan.
+
+**What to build:**
+
+- [x] **T-195.1** `🟡 Done (code) (2026-11-03)` Catat body galat Outstand pada
+      4xx supaya penyebab 400 terlihat; `extractErrorMessage` kini mengenali
+      `error.message`, `errors[]`, `message[]`, dan memakai ringkasan JSON
+      (dipotong 500 karakter) untuk body tak dikenal. Tes di
+      `outstand-http-client.test.ts` (119 lulus di folder adapter). Belum
+      Verified (staging): setelah deploy, ulangi satu penjadwalan di E2E Sandbox
+      untuk membaca pesan 400 yang sebenarnya. Branch `fix/t-195-outstand-error-body`,
+      belum di-commit.
+- [ ] **T-195.2** Reproduksi 400 secara terkontrol (E2E Sandbox atau double), dan
+      tentukan penyebabnya.
+- [ ] **T-195.3** Pastikan kegagalan penjadwalan tidak pernah berujung terbit
+      langsung tanpa jadwal; sinkronkan status Postific dengan Outstand bila post
+      sudah terbentuk di sana (`retry_outstand_post_id`).
+- [ ] **T-195.4** Tes regresi, lalu verifikasi di staging **tanpa akun nyata**.
+
+**Aturan sampai tiket ini selesai:** jangan menguji post Scheduled di workspace
+yang punya akun sosial nyata; pakai E2E Sandbox.
+
+---
+
+### T-196 · RLS disabled on 8 `public` tables exposed to anon and authenticated roles (KI-106)
+
+| Field       | Value                                                                                                 |
+| ----------- | ----------------------------------------------------------------------------------------------------- |
+| **Status**  | ⏳ Todo (menunggu keputusan King Rezi)                                                                |
+| **Domain**  | database, keamanan                                                                                    |
+| **Spec**    | tidak ada                                                                                             |
+| **Docs**    | KI-106, ADR-064, `mcp_*` (pola policy `app_runtime` di T-151), advisor Supabase `rls_disabled`        |
+| **Terkait** | T-189.1, T-189.4                                                                                      |
+| **Depends** | keputusan King Rezi: policy per tabel, dan apakah koneksi aplikasi memakai `app_runtime` atau pemilik |
+
+**Ditemukan (2026-11-03)** lewat advisor Supabase pada DB staging
+(`ndcrkzqgqukqfmekgoze`): RLS nonaktif pada `_prisma_migrations`, `identity_user`,
+`identity_session`, `identity_account`, `identity_verification`, `workspaces`,
+`background_jobs`, `outstand_webhook_events`. Tabel itu terbuka penuh bagi siapa
+pun yang memegang anon key.
+
+**Belum diketahui:** apakah anon key terpapar di klien (Supabase JS dipakai hanya
+untuk Realtime dan Storage, AGENTS.md #6), dan apakah tabel yang sama juga tanpa
+RLS di production (belum ada). Agen tidak mengubah apa pun.
+
+**Catatan:** mengaktifkan RLS tanpa policy memblokir semua akses non-pemilik, jadi
+urutan dan policy butuh keputusan King Rezi dan migrasi Prisma bertiket sendiri.
+
+- [ ] **T-196.1** Keputusan King Rezi: policy per tabel dan peran koneksi.
+- [ ] **T-196.2** Migrasi RLS (satu tabel sensitif dulu, mis. `identity_*`), tes
+      aplikasi tetap jalan sebagai `app_runtime`.
+- [ ] **T-196.3** Ulangi advisor Supabase dan catat hasil.
