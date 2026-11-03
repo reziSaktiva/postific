@@ -46,13 +46,14 @@ jobs:
       E2E_BASE_URL: ${{ vars.E2E_BASE_URL || 'https://web-staging-60d7.up.railway.app' }}
       E2E_USER_EMAIL: ${{ secrets.E2E_USER_EMAIL }}
       E2E_USER_PASSWORD: ${{ secrets.E2E_USER_PASSWORD }}
-      # Opt-in tes E2E MCP yang menulis ke staging (mcp.e2e.ts (i), (k2); lihat
+      # Opt-in tes E2E MCP yang menulis ke staging (mcp.e2e.ts (h), (i), (k2); lihat
       # ctx-development.md aturan 22). Hanya untuk run manual (workflow_dispatch):
       # gerbang PR staging → main tidak boleh menulis draft dan media tiap kali.
       # Kosong atau bukan "1" berarti di-skip.
       E2E_MCP_DRAFTS: ${{ github.event_name == 'workflow_dispatch' && secrets.E2E_MCP_DRAFTS || '' }}
       E2E_MCP_UPLOAD: ${{ github.event_name == 'workflow_dispatch' && secrets.E2E_MCP_UPLOAD || '' }}
       E2E_MCP_UPLOAD_URL: ${{ github.event_name == 'workflow_dispatch' && secrets.E2E_MCP_UPLOAD_URL || '' }}
+      E2E_MCP_SCHEDULE: ${{ github.event_name == 'workflow_dispatch' && secrets.E2E_MCP_SCHEDULE || '' }}
       SKIP_ENV_VALIDATION: "1"
 
     steps:
