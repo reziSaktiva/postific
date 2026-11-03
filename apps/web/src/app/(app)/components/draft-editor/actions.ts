@@ -517,6 +517,8 @@ export interface ScheduleDraftInput {
   postId?: string;
   caption: string;
   scheduledAt: string;
+  /** Zona pengguna, hanya untuk memformat pesan batas jadwal 30 hari. */
+  timeZone?: string;
   targets: ScheduleDraftTargetInput[];
   /** T-024.4 — media yang di-attach ke post ini (SATU set untuk seluruh post, ADR-107). */
   mediaIds?: string[];
@@ -646,6 +648,7 @@ export async function scheduleDraftAction(
       workspaceId,
       postId: post.id,
       scheduledAt: new Date(input.scheduledAt),
+      timeZone: input.timeZone,
       targets,
       actingUserId,
     });

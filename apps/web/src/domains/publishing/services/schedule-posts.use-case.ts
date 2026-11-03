@@ -105,6 +105,8 @@ export class SchedulePostsUseCase {
     workspaceId: WorkspaceId;
     postId: PostId;
     scheduledAt: Date;
+    /** Zona untuk pesan batas jadwal (zona pengguna); default UTC. */
+    timeZone?: string;
     targets: SchedulePostsTargetInput[];
     /** RLS (KI-026 follow-up) — acting user for `withCurrentUser`. */
     actingUserId: UserId;
@@ -128,7 +130,7 @@ export class SchedulePostsUseCase {
     // bisa dilewati (request langsung ke Server Action, jam sistem client
     // berbeda dari server, dll). Reject di sini juga, sebelum apa pun
     // dipersist.
-    assertScheduledAtAllowed(input.scheduledAt);
+    assertScheduledAtAllowed(input.scheduledAt, undefined, input.timeZone);
 
     const record = await this.repository.schedulePost(
       {

@@ -496,9 +496,10 @@ function DraftEditorForm({
   // wajib media, Facebook Post tidak), jadi target dikirim lengkap.
   const mediaMinimumMessage = minMediaCountConstraintMessage(
     mediaItems.length,
-    selectedAccounts.map((account, index) => ({
+    selectedAccounts.map((account) => ({
       platform: account.platform,
-      contentFormat: activeFormatsForGate[index],
+      contentFormat:
+        formatByAccount[account.id] ?? getDefaultFormat(account.platform),
     })),
   );
 
@@ -852,6 +853,7 @@ function DraftEditorForm({
         postId: savedPostId,
         caption,
         scheduledAt,
+        timeZone,
         targets: buildTargetsPayload(),
         mediaIds,
       });

@@ -122,6 +122,9 @@ interface AccountItem {
   supportedContentFormats: string[];
 }
 
+/** Cermin `platformsWhosePostRequiresMedia()` (domain tidak bisa diimpor dari E2E). */
+const POST_REQUIRES_MEDIA_PLATFORMS = ["instagram", "tiktok", "youtube"];
+
 /** Akun sandbox yang bisa dipakai menjadwalkan format `post` (bukan Pinterest, tanpa perlu hubung ulang). */
 function pickPostAccount(items: AccountItem[]): AccountItem | undefined {
   return items.find(
@@ -129,6 +132,8 @@ function pickPostAccount(items: AccountItem[]): AccountItem | undefined {
       account.status === "active" &&
       !account.reconnectRequired &&
       account.platform !== "pinterest" &&
+      // ADR-154: Post wajib media di platform ini; golden path tanpa media.
+      !POST_REQUIRES_MEDIA_PLATFORMS.includes(account.platform) &&
       account.supportedContentFormats.includes("post"),
   );
 }
@@ -638,7 +643,7 @@ test.describe("MCP server di staging", () => {
       {
         posts: Array.from({ length: 11 }, () => ({
           caption: "[e2e] tidak boleh terjadwal",
-          scheduledAt: localScheduleTime(30),
+          scheduledAt: localScheduleTime(29),
           targets: [target],
         })),
       },
@@ -705,7 +710,7 @@ test.describe("MCP server di staging", () => {
     const stamp = Date.now().toString(36);
     const caption = `[e2e] schedule_posts ${stamp}`;
     scheduledMcpCaption = caption;
-    const when = localScheduleTime(30);
+    const when = localScheduleTime(29);
     const outcome = await callTool(api, client.accessToken, "schedule_posts", {
       posts: [
         {

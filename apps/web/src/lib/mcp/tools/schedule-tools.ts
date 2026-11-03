@@ -1,13 +1,10 @@
-import {
-  ContentFormat,
-  PostCreatedVia,
-  SocialPlatform,
-} from "@postific/shared";
+import { ContentFormat, PostCreatedVia } from "@postific/shared";
 import { McpInvalidRateLimitInputError } from "@/domains/mcp-access";
 import {
   DRAFT_CAPTION_MAX_LENGTH,
   maxMediaCountForFormat,
   minMediaCountForFormat,
+  platformLabel,
   platformsWhosePostRequiresMedia,
   SCHEDULE_MAX_DAYS_AHEAD,
   type ScheduleContentFailureKind,
@@ -49,12 +46,6 @@ const FAILURE_CODE: Record<ScheduleContentFailureKind, string> = {
 
 const CONTENT_KEYS = ["caption", "mediaIds", "scheduledAt", "targets"] as const;
 
-const PLATFORM_NAME: Partial<Record<SocialPlatform, string>> = {
-  [SocialPlatform.Instagram]: "Instagram",
-  [SocialPlatform.TikTok]: "TikTok",
-  [SocialPlatform.YouTube]: "YouTube",
-};
-
 /**
  * Angka dan teks aturan media diturunkan dari matriks domain
  * (`content-format-matrix.ts`), bukan ditulis manual (T-192.4): format yang
@@ -63,6 +54,9 @@ const PLATFORM_NAME: Partial<Record<SocialPlatform, string>> = {
  */
 const MEDIA_MAX_ITEMS = Math.max(
   ...Object.values(ContentFormat).map(maxMediaCountForFormat),
+);
+const POST_REQUIRES_MEDIA_NAMES = joinNames(
+  platformsWhosePostRequiresMedia().map(platformLabel),
 );
 const MEDIA_RULE_TEXT = describeMediaRules();
 
@@ -91,10 +85,7 @@ function describeMediaRules(): string {
       ? `${list} wajib tepat ${min} media`
       : `${list} boleh ${min} sampai ${max}`;
   });
-  const postRequired = platformsWhosePostRequiresMedia().map(
-    (platform) => PLATFORM_NAME[platform] ?? platform,
-  );
-  return `${sentences.join("; ")}. Khusus Post (ADR-154), ${joinNames(postRequired)} wajib minimal 1 media; akun lain boleh tanpa media`;
+  return `${sentences.join("; ")}. Khusus Post (ADR-154), ${POST_REQUIRES_MEDIA_NAMES} wajib minimal 1 media; akun lain boleh tanpa media`;
 }
 
 const SCHEDULE_POSTS_SCHEMA: McpJsonSchema = {
@@ -223,7 +214,7 @@ const schedulePosts: McpToolDefinition = {
     "Hasil dilaporkan per konten: sebagian bisa berhasil dan sebagian gagal, jadi periksa results[].status. " +
     "Aturan yang sama dengan Draft Editor berlaku di server: akun harus aktif, format per akun, caption wajib (kecuali Story), Story tidak digabung dengan target lain bila caption terisi, jumlah media per format, dan waktu harus di masa depan dan paling jauh " +
     `${SCHEDULE_MAX_DAYS_AHEAD} hari dari sekarang (Outstand menolak jadwal lebih jauh). ` +
-    "Instagram, TikTok, dan YouTube tidak bisa dijadwalkan tanpa media. " +
+    `${POST_REQUIRES_MEDIA_NAMES} tidak bisa dijadwalkan tanpa media. ` +
     "Akun Pinterest belum bisa dijadwalkan lewat MCP karena board belum bisa diisi. " +
     "Kuota: konten yang ditolak pemeriksaan di atas tidak dijadwalkan dan tidak memakai kuota. Konten yang gagal SETELAH draft dibuat (penyedia menolak, galat internal, konflik) tetap memakai kuota dan meninggalkan post yang tidak terjadwal: berstatus Failed bila penyedia menolak, atau masih Draft untuk galat lain (hasilnya memuat postId); kuota tidak dikembalikan. " +
     "Satu scheduledAt yang salah bentuk atau mustahil (mis. 30 Februari) menggagalkan SELURUH panggilan sebagai invalid_input dengan indeks konten (mis. posts[2]); tidak ada konten yang diproses. " +

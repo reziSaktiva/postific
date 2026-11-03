@@ -191,8 +191,13 @@ const PLATFORM_LABEL: Partial<Record<SocialPlatform, string>> = {
  * dan Story yang wajib media (Facebook Post tidak), platform lain cukup
  * namanya.
  */
+/** Nama tampilan platform untuk pesan dan teks tool MCP. */
+export function platformLabel(platform: SocialPlatform): string {
+  return PLATFORM_LABEL[platform] ?? platform;
+}
+
 function mediaTargetLabel(target: MediaTarget): string {
-  const platform = PLATFORM_LABEL[target.platform] ?? target.platform;
+  const platform = platformLabel(target.platform);
   if (target.platform === SocialPlatform.Facebook) {
     return `${platform} ${target.contentFormat === ContentFormat.Story ? "Story" : "Reel"}`;
   }

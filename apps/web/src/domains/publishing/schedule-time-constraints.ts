@@ -1,5 +1,12 @@
 import { PublishingDomainError } from "./errors";
-import { MS_PER_DAY, toDateKey } from "./wib-time";
+import {
+  getDateParts,
+  getHour,
+  getTimeZoneOffsetMs,
+  isValidTimeZone,
+  MS_PER_DAY,
+  toDateKey,
+} from "./wib-time";
 
 /**
  * T-108 (KI-044): tidak ada validasi yang mencegah user men-Schedule post ke
@@ -57,23 +64,17 @@ const LIMIT_MONTHS = [
 ];
 
 /**
- * "28 Oct 2026 18:48 (Asia/Jakarta)". Dirakit dari `formatToParts` supaya
- * tidak bergantung pada pola locale ICU (versi baru menyisipkan "at").
+ * "28 Oct 2026 18:48 (Asia/Jakarta)". Dirakit dari helper zona `wib-time`,
+ * bukan pola locale ICU (versi baru menyisipkan "at").
  */
 function formatLimit(limit: Date, timeZone: string): string {
-  const parts = new Intl.DateTimeFormat("en-GB", {
-    day: "numeric",
-    month: "numeric",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-    timeZone,
-  }).formatToParts(limit);
-  const part = (type: string) =>
-    parts.find((item) => item.type === type)?.value ?? "";
-  const month = LIMIT_MONTHS[Number(part("month")) - 1] ?? part("month");
-  return `${part("day")} ${month} ${part("year")} ${part("hour")}:${part("minute")} (${timeZone})`;
+  const { year, month, day } = getDateParts(limit, timeZone);
+  const minute = new Date(
+    limit.getTime() + getTimeZoneOffsetMs(limit, timeZone),
+  ).getUTCMinutes();
+  const hh = String(getHour(limit, timeZone)).padStart(2, "0");
+  const mm = String(minute).padStart(2, "0");
+  return `${day} ${LIMIT_MONTHS[month]} ${year} ${hh}:${mm} (${timeZone})`;
 }
 
 /**
@@ -111,7 +112,8 @@ export function assertScheduledAtAllowed(
   now: Date = new Date(),
   timeZone: string = "UTC",
 ): void {
-  const message = scheduleTimeConstraintMessage(scheduledAt, now, timeZone);
+  const zone = isValidTimeZone(timeZone) ? timeZone : "UTC";
+  const message = scheduleTimeConstraintMessage(scheduledAt, now, zone);
   if (message) {
     throw new PublishingDomainError(message);
   }

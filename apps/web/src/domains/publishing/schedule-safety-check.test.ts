@@ -23,6 +23,36 @@ describe("assertScheduleSafetyCheck", () => {
     expect(() => assertScheduleSafetyCheck(ok)).not.toThrow();
   });
 
+  it("rejects an Instagram Post without media (ADR-154)", () => {
+    expect(() => assertScheduleSafetyCheck({ ...ok, mediaCount: 0 })).toThrow(
+      /Instagram tidak bisa dipublish tanpa media/,
+    );
+  });
+
+  it("accepts a Facebook Post without media (text-only is valid)", () => {
+    expect(() =>
+      assertScheduleSafetyCheck({
+        ...ok,
+        mediaCount: 0,
+        targets: [
+          {
+            platform: SocialPlatform.Facebook,
+            contentFormat: ContentFormat.Post,
+          },
+        ],
+      }),
+    ).not.toThrow();
+  });
+
+  it("rejects a schedule more than 30 days ahead (Outstand limit, ADR-154)", () => {
+    expect(() =>
+      assertScheduleSafetyCheck({
+        ...ok,
+        scheduledAt: new Date(NOW.getTime() + 31 * 24 * 60 * 60 * 1000),
+      }),
+    ).toThrow(/Jadwal maksimal 30 hari/);
+  });
+
   it("rejects an invalid date", () => {
     expect(() =>
       assertScheduleSafetyCheck({ ...ok, scheduledAt: new Date("nope") }),
