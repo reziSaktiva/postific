@@ -2,6 +2,7 @@ import fs from "node:fs";
 
 import { expect, test, type Page } from "@playwright/test";
 
+import { AUTH_FILE } from "./support/auth";
 import { E2E_WORKSPACE_NAME } from "./support/workspace";
 
 const OUT = "test-results/draft-editor";
@@ -54,8 +55,35 @@ test.beforeAll(() => {
   fs.mkdirSync(OUT, { recursive: true });
 });
 
-test.afterAll(() => {
+async function deleteE2eDrafts(page: Page): Promise<number> {
+  await page.goto("/publish/drafts");
+  await expect(page.getByText(E2E_WORKSPACE_NAME).first()).toBeVisible();
+  await page.waitForTimeout(1500);
+  let removed = 0;
+  for (let i = 0; i < 10; i++) {
+    const row = page.getByRole("button").filter({ hasText: /e2e-qa-draft-/ });
+    if ((await row.count()) === 0) break;
+    await row.first().getByRole("button", { name: "Hapus draft" }).click();
+    await page
+      .getByRole("alertdialog")
+      .getByRole("button", { name: "Hapus Draft" })
+      .click();
+    await page.waitForTimeout(1500);
+    removed++;
+  }
+  return removed;
+}
+
+// Mode serial melewati S10 bila tes sebelumnya gagal, jadi pembersihan juga
+// dijalankan di sini (idempoten: tanpa sisa, tidak melakukan apa pun).
+test.afterAll(async ({ browser }) => {
   fs.writeFileSync(`${OUT}/console.txt`, consoleLog.join("\n") || "(kosong)");
+  const context = await browser.newContext({ storageState: AUTH_FILE });
+  try {
+    await deleteE2eDrafts(await context.newPage());
+  } finally {
+    await context.close();
+  }
 });
 
 test("S1 buka New Post dari Drafts: Standard, judul, chip, Close, Account Selector", async ({
@@ -66,7 +94,7 @@ test("S1 buka New Post dari Drafts: Standard, judul, chip, Close, Account Select
   const dlg = dialog(page);
   await expect(dlg).toBeVisible();
   const resume = page.getByText("Resume unfinished post?");
-  console.log("S1 resume dialog muncul di awal:", await resume.isVisible());
+  await expect(resume).toBeHidden();
   await expect(dlg.getByRole("heading", { name: "New Post" })).toBeVisible();
   await expect(dlg.getByText("Draft", { exact: true }).first()).toBeVisible();
   await expect(dlg.getByRole("button", { name: "Close" })).toBeVisible();
@@ -93,6 +121,9 @@ test("S1 buka New Post dari Drafts: Standard, judul, chip, Close, Account Select
 });
 
 test("S2 toggle Fullscreen/Standard, tidak dipersist", async ({ page }) => {
+  // Bug terbuka T-206: Fullscreen hanya ~448px lebar, bukan layar penuh.
+  // Hapus baris ini saat T-206 diperbaiki (tes yang lulus akan dilaporkan).
+  test.fail(true, "T-206: Fullscreen belum selebar viewport");
   track(page, "S2");
   await openNewPostFromDrafts(page);
   const dlg = dialog(page);
@@ -103,12 +134,8 @@ test("S2 toggle Fullscreen/Standard, tidak dipersist", async ({ page }) => {
   await page.waitForTimeout(500);
   const fsBox = await dlg.boundingBox();
   console.log("S2 fullscreen box", JSON.stringify(fsBox));
-  console.log(
-    "S2 fullscreen lebar==viewport?",
-    Math.round(fsBox!.width) === vp.width,
-    "tinggi==viewport?",
-    Math.round(fsBox!.height) === vp.height,
-  );
+  expect.soft(Math.round(fsBox!.width)).toBe(vp.width);
+  expect.soft(Math.round(fsBox!.height)).toBe(vp.height);
   await snap(page, "s2-fullscreen");
   await dlg.getByRole("button", { name: "Standard" }).click();
   await expect(dlg.getByRole("button", { name: "Fullscreen" })).toBeVisible();
@@ -316,7 +343,7 @@ test("S7b dengan akun terhubung: tombol aktif, ringkasan konfirmasi muncul, Bata
   await expect(dlg).toBeVisible();
   const sched = dlg.getByRole("button", { name: "Schedule", exact: true });
   const pub = dlg.getByRole("button", { name: "Publish Now", exact: true });
-  const acct = dlg.getByRole("checkbox").first();
+  const acct = dlg.getByRole("checkbox", { name: /Instagram/ });
   await expect(acct).toBeVisible({ timeout: 15_000 });
   await acct.check();
   await expect(pub).toBeDisabled(); // caption kosong
@@ -335,8 +362,8 @@ test("S7b dengan akun terhubung: tombol aktif, ringkasan konfirmasi muncul, Bata
   const delBtn = dlg.getByRole("button", {
     name: /^Hapus e2e-qa-.*secara permanen/,
   });
-  await delBtn.waitFor({ timeout: 30_000 });
   try {
+    await delBtn.waitFor({ timeout: 30_000 });
     await expect(pub).toBeEnabled();
     await expect(sched).toBeDisabled(); // belum ada jadwal
     const radios = await dlg.getByRole("radio").allInnerTexts();
@@ -372,13 +399,15 @@ test("S7b dengan akun terhubung: tombol aktif, ringkasan konfirmasi muncul, Bata
     await expect(dlg.getByRole("heading", { name: "New Post" })).toBeVisible();
   } finally {
     // bersihkan media milik tes lewat UI, lalu caption supaya tidak persist
-    await delBtn.click({ force: true });
-    await page
-      .getByRole("alertdialog", { name: "Hapus media ini secara permanen?" })
-      .getByRole("button", { name: "Hapus Media" })
-      .click();
-    await expect(delBtn).toHaveCount(0, { timeout: 20_000 });
-    console.log("S7b media terhapus via UI");
+    if ((await delBtn.count()) > 0) {
+      await delBtn.click({ force: true });
+      await page
+        .getByRole("alertdialog", { name: "Hapus media ini secara permanen?" })
+        .getByRole("button", { name: "Hapus Media" })
+        .click();
+      await expect(delBtn).toHaveCount(0, { timeout: 20_000 });
+      console.log("S7b media terhapus via UI");
+    }
   }
   await dlg.getByLabel("Caption").fill("");
   await dlg.getByRole("button", { name: "Close" }).click();
@@ -499,6 +528,7 @@ test.describe("S8b mode gelap", () => {
     await page.getByRole("button", { name: "Mulai Baru" }).click();
     await dialog(page).getByRole("button", { name: "Close" }).click();
     expect(res.bgLum).toBeLessThan(0.2);
+    expect(res.bad).toEqual([]);
   });
 });
 
@@ -522,21 +552,7 @@ test("S9 jalur lain: sidebar New Post dari Calendar dan klik baris draft membuka
 
 test("S10 bersihkan draft e2e-qa dan kunci localStorage", async ({ page }) => {
   track(page, "S10");
-  await page.goto("/publish/drafts");
-  await expect(page.getByText(E2E_WORKSPACE_NAME).first()).toBeVisible();
-  await page.waitForTimeout(1500);
-  let removed = 0;
-  for (let i = 0; i < 10; i++) {
-    const row = page.getByRole("button").filter({ hasText: /e2e-qa-draft-/ });
-    if ((await row.count()) === 0) break;
-    await row.first().getByRole("button", { name: "Hapus draft" }).click();
-    await page
-      .getByRole("alertdialog")
-      .getByRole("button", { name: "Hapus Draft" })
-      .click();
-    await page.waitForTimeout(1500);
-    removed++;
-  }
+  const removed = await deleteE2eDrafts(page);
   console.log("S10 draft dihapus:", removed);
   await expect(page.getByText(/e2e-qa-draft-/)).toHaveCount(0);
   await snap(page, "s10-after-cleanup");
