@@ -1585,7 +1585,7 @@ T-196.1 dan T-196.2 selesai.
 | **Domain**  | publishing, draft editor, MCP                                                    |
 | **Spec**    | tidak ada                                                                        |
 | **Docs**    | KI-107, ADR-154 (mengamandemen ADR-121), `content-format-matrix.ts`, `Modal.tsx` |
-| **Terkait** | T-198, T-195                                                                     |
+| **Terkait** | T-198, T-195, T-200 (aturan jenis media Reel)                                    |
 | **Depends** | rancangan UI dikonfirmasi King Rezi (aturan 10 `AGENTS.md`)                      |
 
 **Ditemukan (2026-11-03)** oleh King Rezi: Instagram bisa dijadwalkan tanpa gambar.

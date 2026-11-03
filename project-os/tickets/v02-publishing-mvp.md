@@ -2868,6 +2868,246 @@ Tindak lanjut: MCP (`lib/mcp/format.ts` `toWibIso` + read-tools) masih WIB tetap
 
 ---
 
+## Redesain Draft Editor mengikuti pola Buffer, Tahap 1 (ADR-155, spec S-005)
+
+Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Urutan kerja: T-199 dan T-200 bisa jalan paralel; T-201 setelah T-199; T-202 setelah T-199, T-200, T-201; T-203 setelah T-199; T-204 setelah T-203; T-205 setelah T-199 dan T-202; T-206 setelah T-201 sampai T-205; T-207 terakhir. Kapabilitas di luar ADR-155 dan addendum-nya tidak masuk (lihat "Di luar spec" di S-005).
+
+### T-199 · Draft Editor foundation: add shadcn `calendar` and `accordion`, split `Modal` into module components without changing behaviour
+
+| Field       | Value                                                                                                                                |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| **Status**  | ⏳ Not Started                                                                                                                       |
+| **Mode**    | AFK                                                                                                                                  |
+| **Domain**  | draft editor · UI                                                                                                                    |
+| **Spec**    | S-005                                                                                                                                |
+| **Docs**    | ADR-155 dan addendum 2026-11-03, ADR-097, KSP-05 (hasil pembaruan 2026-11-03), S-005, `apps/web/.claude/CLAUDE.md` (workflow shadcn) |
+| **Depends** | —                                                                                                                                    |
+
+**Gate rancangan:** dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review.
+
+**What to build:** dasar teknis redesain. Komponen shadcn yang dibutuhkan terpasang, dan `Modal` yang berisi seluruh state form (sekitar 1.770 baris) dipecah menjadi komponen modul tanpa perubahan perilaku yang terlihat pemakai.
+
+- [ ] **T-199.1** Pasang `calendar` lewat workflow CLI/MCP shadcn (discover-first: cek registry dan dokumen komponen, jangan menebak props); sesuaikan dengan token Stone.
+- [ ] **T-199.2** Pasang `accordion` dengan cara yang sama.
+- [ ] **T-199.3** Pecah `Modal` menjadi komponen modul bertanggung jawab tunggal (baris channel, editor dan media, blok jaringan, panel Pratinjau, footer, ringkasan konfirmasi, dialog Resume); state form dan aksi tetap berpusat di satu tempat; entry point tetap tidak berisi business logic (aturan 3 `AGENTS.md`).
+- [ ] **T-199.4** Perilaku tidak berubah: `typecheck`, `lint`, dan seluruh tes yang ada hijau; suite E2E yang ada tetap hijau.
+
+**Blocked by:** tidak ada
+
+---
+
+### T-200 · Reel requires a video media rule (amends ADR-154)
+
+| Field       | Value                                                                                                                |
+| ----------- | -------------------------------------------------------------------------------------------------------------------- |
+| **Status**  | ⏳ Not Started                                                                                                       |
+| **Mode**    | AFK                                                                                                                  |
+| **Domain**  | publishing · MCP · draft editor                                                                                      |
+| **Spec**    | S-005                                                                                                                |
+| **Docs**    | ADR-155 addendum B.1, ADR-154, ADR-121, ADR-039, KSP-05 (hasil pembaruan 2026-11-03), S-005, `content-format-matrix` |
+| **Terkait** | T-197 (jenis media yang dulu belum ditegakkan)                                                                       |
+| **Depends** | —                                                                                                                    |
+
+**Gate rancangan:** dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review (pesan dan perilaku opsi Reel nonaktif; tampilannya dikerjakan di T-202).
+
+**What to build:** Reel (Facebook dan Instagram) hanya sah dengan satu video. Pelanggaran ditolak di server untuk setiap jalur Schedule dan Publish Now, dan klien menyediakan hasil aturan yang sama untuk dipakai blok jaringan.
+
+- [ ] **T-200.1** Cek dokumen Outstand per jaringan (Instagram Reel, Facebook Reel): jenis dan jumlah media yang diterima. Catat hasilnya di tiket ini; bila dokumen tidak eksplisit, tulis di "Belum terbukti" dan tanyakan ke King Rezi sebelum menegakkan.
+- [ ] **T-200.2** Domain `content-format-matrix`: tambah aturan jenis media untuk pasangan platform dan format Reel (satu video), beserta pesan "Reel membutuhkan satu video. Ganti media dengan video, atau pilih format Post atau Story." Tes unit per platform, termasuk media gambar, campuran, dan lebih dari satu video.
+- [ ] **T-200.3** Tegakkan di server: `scheduleDraftAction`, `publishNowAction`, dan jalur MCP `schedule_posts`. Save as Draft tetap boleh melanggar (draft boleh tidak lengkap). Tes unit untuk tiap jalur.
+- [ ] **T-200.4** Sediakan fungsi murni yang sama untuk klien (dipakai T-202 untuk menonaktifkan opsi Reel dan menampilkan pesan); tidak ada logika duplikat.
+- [ ] **T-200.5** Perbarui bagian "Belum terbukti" T-197 (jenis media Reel kini ditegakkan; YouTube tetap belum).
+
+**Belum terbukti (jangan diasumsikan):**
+
+- Aturan "Reel wajib video" adalah keputusan King Rezi (ADR-155 addendum B.1); kalimat eksplisit di dokumen Outstand per jaringan diperiksa di T-200.1.
+
+**Blocked by:** tidak ada
+
+---
+
+### T-201 · Draft Editor channel row: Channels popover, Last used, All, avatar chips
+
+| Field       | Value                                                                                                    |
+| ----------- | -------------------------------------------------------------------------------------------------------- |
+| **Status**  | ⏳ Not Started                                                                                           |
+| **Mode**    | AFK                                                                                                      |
+| **Domain**  | draft editor · UI                                                                                        |
+| **Spec**    | S-005                                                                                                    |
+| **Docs**    | ADR-155 dan addendum 2026-11-03, KSP-05 dan KSP-D04 (hasil pembaruan 2026-11-03), NP-D14, ADR-125, S-005 |
+| **Depends** | T-199                                                                                                    |
+
+**Gate rancangan:** dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review.
+
+**What to build:** pemilihan akun di atas editor. Pemakai memilih akun lewat popover, melihat hasilnya sebagai chip avatar, dan bisa menambah atau melepas akun tanpa request jaringan.
+
+- [ ] **T-201.1** Popover Channels: pencarian, "Pilih semua", daftar centang (avatar, badge platform, nama, status koneksi), dan tautan "Hubungkan akun".
+- [ ] **T-201.2** Pintasan "Terakhir dipakai" dan "Semua". Tentukan sumber data "Terakhir dipakai" dari data yang sudah ada tanpa migrasi; bila butuh penyimpanan baru, berhenti dan tanya King Rezi.
+- [ ] **T-201.3** Setelah ada pilihan, baris menciut menjadi chip avatar plus tombol "+ Tambah akun"; chip bisa dilepas.
+- [ ] **T-201.4** Akun Disconnected tetap tampil dan boleh dicentang, dengan peringatan dan aksi Reconnect; Schedule dan Publish Now tidak diblokir karenanya (ADR-155 addendum B.2).
+- [ ] **T-201.5** Quick Compose dari sidebar membuka modal dengan akun yang di-hover sudah terpilih (NP-D14); simpan akun tujuan draft tetap berjalan (ADR-125).
+- [ ] **T-201.6** Tes unit untuk logika pemilihan (fungsi murni: pilih semua, terakhir dipakai, filter pencarian, status koneksi). Perilaku komponen dibuktikan di E2E T-207.
+
+**Blocked by:** T-199
+
+---
+
+### T-202 · Draft Editor: editor, media, and per-network blocks (format, Pinterest fields, validation banners)
+
+| Field       | Value                                                                                                                       |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------- |
+| **Status**  | ⏳ Not Started                                                                                                              |
+| **Mode**    | AFK                                                                                                                         |
+| **Domain**  | draft editor · UI                                                                                                           |
+| **Spec**    | S-005                                                                                                                       |
+| **Docs**    | ADR-155 dan addendum 2026-11-03, ADR-039, ADR-107, ADR-121, ADR-154, KSP-05 dan KSP-D12 (hasil pembaruan 2026-11-03), S-005 |
+| **Depends** | T-199, T-200, T-201                                                                                                         |
+
+**Gate rancangan:** dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review.
+
+**What to build:** bagian kiri modal di bawah baris channel: editor caption, area media, dan blok pengaturan per jaringan dengan validasi inline.
+
+- [ ] **T-202.1** Editor caption dan area media (thumbnail plus dropzone); toolbar hanya "Lampirkan media" (tanpa emoji dan hashtag).
+- [ ] **T-202.2** Blok per jaringan berbentuk akordeon (satu terbuka, lainnya baris ringkas); bila hanya satu akun terpilih, blok selalu terbuka tanpa akordeon.
+- [ ] **T-202.3** Radio format Post/Reel/Story (ADR-039) di dalam blok; opsi yang tidak sah dinonaktifkan; Reel nonaktif dengan pesan dari T-200 bila media bukan satu video.
+- [ ] **T-202.4** Field Pinterest (board, judul, link) di dalam blok; perilaku data sama dengan sebelumnya.
+- [ ] **T-202.5** Banner validasi kuning inline: validasi per jaringan (media wajib, board, Reel) di dalam blok; validasi lintas jaringan (Story dengan caption campur, lebih dari satu akun Pinterest) di atas editor. Aturan tetap ADR-107, ADR-121, ADR-154, dan T-200; hanya letaknya yang pindah.
+- [ ] **T-202.6** Tes unit untuk fungsi validasi per jaringan dan lintas jaringan (hasil per kombinasi akun, format, dan media).
+
+**Blocked by:** T-199, T-200, T-201
+
+---
+
+### T-203 · Draft Editor live preview: panel shell, toggle, empty state, Facebook and Instagram
+
+| Field       | Value                                                                                                |
+| ----------- | ---------------------------------------------------------------------------------------------------- |
+| **Status**  | ⏳ Not Started                                                                                       |
+| **Mode**    | AFK                                                                                                  |
+| **Domain**  | draft editor · UI                                                                                    |
+| **Spec**    | S-005                                                                                                |
+| **Docs**    | ADR-155 dan addendum 2026-11-03 (Decision 5), KSP-05 dan KSP-D02 (hasil pembaruan 2026-11-03), S-005 |
+| **Depends** | T-199                                                                                                |
+
+**Gate rancangan:** dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review.
+
+**What to build:** panel Pratinjau di sisi kanan yang diperbarui saat mengetik, dengan Pratinjau Facebook dan Instagram yang dirakit dari komponen dan token Postific (bukan aset atau markup Buffer).
+
+- [ ] **T-203.1** Kerangka panel kanan, pemilih Pratinjau per akun terpilih, dan toggle Pratinjau di header.
+- [ ] **T-203.2** Keadaan kosong (tanpa akun atau tanpa isi) yang menjelaskan apa yang perlu diisi.
+- [ ] **T-203.3** Pratinjau Facebook.
+- [ ] **T-203.4** Pratinjau Instagram (mengikuti format yang dipilih bila rancangan membedakannya).
+- [ ] **T-203.5** Pratinjau dihitung di klien dan hidup saat mengetik atau mengganti media, tanpa request jaringan.
+- [ ] **T-203.6** Tes tampilan atau tes unit untuk pemetaan data post ke Pratinjau (ADR-155 Consequences).
+
+**Blocked by:** T-199
+
+---
+
+### T-204 · Draft Editor preview for TikTok, Pinterest, generic card, and brand guideline check
+
+| Field       | Value                                                                                                |
+| ----------- | ---------------------------------------------------------------------------------------------------- |
+| **Status**  | ⏳ Not Started                                                                                       |
+| **Mode**    | HITL (keputusan King Rezi bila pedoman merek menunjukkan risiko)                                     |
+| **Domain**  | draft editor · UI                                                                                    |
+| **Spec**    | S-005                                                                                                |
+| **Docs**    | ADR-155 dan addendum 2026-11-03 (Decision 5, addendum C), KSP-05 (hasil pembaruan 2026-11-03), S-005 |
+| **Depends** | T-203                                                                                                |
+
+**Gate rancangan:** dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review.
+
+**What to build:** Pratinjau TikTok dan Pinterest yang meniru tampilan aslinya, dan kartu generik untuk platform lain. Logo dan badge platform dipakai sesuai pedoman merek masing-masing.
+
+- [ ] **T-204.1** Pratinjau TikTok.
+- [ ] **T-204.2** Pratinjau Pinterest (memakai board, judul, dan link dari blok jaringan).
+- [ ] **T-204.3** Kartu generik untuk platform lain.
+- [ ] **T-204.4** Cek pedoman merek logo dan badge tiap platform (Facebook, Instagram, TikTok, Pinterest). Catat hasilnya di tiket ini; bila ada risiko, King Rezi memutuskan sebelum rilis.
+- [ ] **T-204.5** Tes tampilan atau tes unit untuk pemetaan data ke ketiga Pratinjau.
+
+**Blocked by:** T-203
+
+---
+
+### T-205 · Draft Editor footer and schedule: Set schedule popover, actions, Confirmation Summary with preview
+
+| Field       | Value                                                                                                                                |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| **Status**  | ⏳ Not Started                                                                                                                       |
+| **Mode**    | AFK                                                                                                                                  |
+| **Domain**  | draft editor · publishing · UI                                                                                                       |
+| **Spec**    | S-005                                                                                                                                |
+| **Docs**    | ADR-155 dan addendum 2026-11-03, ADR-154, ADR-146, ADR-054, ADR-047, ADR-074, KSP-05 dan KSP-D05 (hasil pembaruan 2026-11-03), S-005 |
+| **Depends** | T-199, T-202                                                                                                                         |
+
+**Gate rancangan:** dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review.
+
+**What to build:** footer modal berisi Save as Draft, tombol "Atur jadwal", Schedule, dan Publish Now, dengan Confirmation Summary yang menampilkan Pratinjau di sampingnya.
+
+- [ ] **T-205.1** Tombol "Atur jadwal" membuka popover: Calendar (hari lampau dan hari di atas 30 hari nonaktif), input jam, label zona waktu ("WIB" pada rancangan), dan penjelasan batas. Setelah diisi, tombol menampilkan jadwalnya, mis. "Rab, 4 Nov · 10:00 WIB". Tanpa "Next Available".
+- [ ] **T-205.2** Pesan validasi jadwal tampil di footer dekat kontrol jadwal; batas 30 hari dan masa lampau mengikuti `schedule-time-constraints` (ADR-154), penafsiran zona mengikuti ADR-146.
+- [ ] **T-205.3** Save as Draft (boleh tanpa media; akun tujuan tersimpan, ADR-125).
+- [ ] **T-205.4** Schedule dan Publish Now sesuai RBAC (ADR-047, ADR-074), aktif hanya bila validasi lulus.
+- [ ] **T-205.5** Confirmation Summary (KSP-05-F06, KSP-D05) dengan panel Pratinjau tetap terlihat (ADR-155 addendum B.5).
+- [ ] **T-205.6** Redirect setelah aksi terminal mengikuti ADR-054; tanpa "Create Another".
+- [ ] **T-205.7** Tes unit untuk logika tombol (aktif atau nonaktif per validasi dan peran) dan label jadwal.
+
+**Blocked by:** T-199, T-202
+
+---
+
+### T-206 · Draft Editor variants and screens: Standard 1120px, Fullscreen, Resume dialog, narrow screen, dark mode
+
+| Field       | Value                                                                                                           |
+| ----------- | --------------------------------------------------------------------------------------------------------------- |
+| **Status**  | ⏳ Not Started                                                                                                  |
+| **Mode**    | AFK                                                                                                             |
+| **Domain**  | draft editor · UI                                                                                               |
+| **Spec**    | S-005                                                                                                           |
+| **Docs**    | ADR-155 dan addendum 2026-11-03, ADR-065, ADR-052, KSP-05 (F13) dan KSP-D02 (hasil pembaruan 2026-11-03), S-005 |
+| **Depends** | T-201, T-202, T-203, T-204, T-205                                                                               |
+
+**Gate rancangan:** dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review.
+
+**What to build:** seluruh varian tampilan Draft Editor yang sudah dikonfirmasi.
+
+- [ ] **T-206.1** Standard 1120px (naik dari 960px; default tetap Standard) dan Fullscreen lewat toggle di header; pilihan tidak dipersist (ADR-065).
+- [ ] **T-206.2** Dialog Resume tetap modal (KSP-05-F13) dengan teks deskripsi dirapikan, tanpa ID KSP atau ADR di UI. Hanya caption yang kembali; akun dan media tidak.
+- [ ] **T-206.3** Layar sempit (375px): modal penuh, tab "Editor | Pratinjau" di bawah header, footer ditumpuk, toggle Fullscreen dan Pratinjau di header disembunyikan.
+- [ ] **T-206.4** Mode gelap: seluruh zona, Pratinjau, popover, dan banner memakai token tema; tidak ada kedipan terang.
+- [ ] **T-206.5** Tes unit untuk logika varian (mis. visibilitas toggle per lebar layar) bila ada logika murni.
+
+**Blocked by:** T-201 sampai T-205
+
+---
+
+### T-207 · Draft Editor redesign QA and verification (E2E, review, Done (code), Verified (staging))
+
+| Field       | Value                                                                                         |
+| ----------- | --------------------------------------------------------------------------------------------- |
+| **Status**  | ⏳ Not Started                                                                                |
+| **Mode**    | HITL (verifikasi staging oleh King Rezi)                                                      |
+| **Domain**  | draft editor · QA                                                                             |
+| **Spec**    | S-005                                                                                         |
+| **Docs**    | ADR-155 dan addendum 2026-11-03, ADR-149, ADR-153, KSP-05 (hasil pembaruan 2026-11-03), S-005 |
+| **Depends** | T-206                                                                                         |
+
+**Gate rancangan:** dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review.
+
+**What to build:** bukti bahwa redesain berjalan dari ujung ke ujung, dan penutupan lewat tangga status ADR-153.
+
+- [ ] **T-207.1** Perbarui tes Playwright E2E alur Draft Editor (ADR-149, S-002): golden path pilih akun, isi caption dan media, lihat Pratinjau, atur jadwal dalam batas, Save as Draft; tambah layar sempit dan mode gelap. Tidak mempublikasikan ke akun media sosial nyata.
+- [ ] **T-207.2** Suite E2E hijau di `local`; hasil di deskripsi PR.
+- [ ] **T-207.3** Review `/code-review` dan Ridwan (arsitektur) tanpa temuan terbuka.
+- [ ] **T-207.4** QA Najwa lolos (termasuk RBAC per peran, Disconnected, Reel dengan gambar, jadwal di batas 30 hari).
+- [ ] **T-207.5** `typecheck`, `lint`, dan tes hijau. Status T-199 sampai T-206 menjadi Done (code).
+- [ ] **T-207.6** Verified (staging) satu kali per gelombang (ADR-153): verifikasi King Rezi di staging; tanpa akun media sosial nyata untuk post Scheduled sebelum T-195 selesai.
+- [ ] **T-207.7** Pastikan baseline `product-discovery/04-ux/` (KSP-05, KSP-D02, NP-D11) masih sesuai hasil akhir; selisih dilaporkan ke King Rezi, bukan diubah diam-diam.
+
+**Blocked by:** T-206
+
+---
+
 ## Dari Known Issue
 
 Tiket yang lahir sebagai pelacak Known Issue ada di [`known-issues.md`](known-issues.md) (ADR-134); daftar lengkapnya hanya di file itu, tidak disalin ke sini.
@@ -2883,4 +3123,5 @@ Tiket yang lahir sebagai pelacak Known Issue ada di [`known-issues.md`](known-is
 - **T-106** (ditambah 2026-09-25, permintaan King Rezi setelah T-025) memakai ID global berikutnya setelah T-105 — ditempatkan di file ini karena domain `integration`, kelanjutan T-025/ADR-059.
 - **T-107**/**T-108** (ditambah 2026-09-28, promosi dari Known Issues KI-049/KI-063/KI-044 setelah audit aplikasi menyeluruh atas permintaan King Rezi) memakai ID global berikutnya setelah T-106 — ditempatkan di file ini karena domain `publishing`.
 - **T-111** (ditambah 2026-10-06, promosi KI-083, follow-up King Rezi atas hasil KI-082) memakai ID global berikutnya setelah T-110 (`tickets/v01-foundation.md`) — ditempatkan di file ini karena subtask utamanya (T-111.1/.2, History Detail) domain `publishing`, meski T-111.3/.4 domain `engagement` (Post asal Engage, lokasi kedua gap yang sama).
+- **T-199 sampai T-207** (ditambah 2026-11-03, rancangan redesain Draft Editor ADR-155 dikonfirmasi King Rezi) memakai ID global berikutnya setelah T-198 (`tickets/known-issues.md`) — ditempatkan di file ini karena domain `publishing` (Draft Editor), spec S-005.
 - **Definition of Done rilis ini** (dari `release-roadmap.md`): pengguna dapat mengelola proses publikasi dari awal hingga selesai — draft → format per akun → schedule/publish → lihat queue/calendar → lihat hasil di history.

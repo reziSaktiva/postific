@@ -6,7 +6,7 @@ Media Wajib per Platform dan Batas Jadwal 30 Hari, Mengikuti Aturan Outstand —
 
 ### Status
 
-**Accepted** (keputusan King Rezi, 2026-11-03). Kode menunggu rancangan baru dikonfirmasi King Rezi di galeri Postific Design Review (`AGENTS.md` aturan 10).
+**Accepted — Amended by ADR-155 (2026-11-03)** (aturan Reel wajib video, addendum ADR-155 B.1) (keputusan King Rezi, 2026-11-03). Kode menunggu rancangan baru dikonfirmasi King Rezi di galeri Postific Design Review (`AGENTS.md` aturan 10).
 
 ### Date
 
