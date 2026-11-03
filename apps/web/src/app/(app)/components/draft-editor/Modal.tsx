@@ -16,7 +16,10 @@ import { toast } from "sonner";
 import type { PinterestBoard } from "@postific/shared";
 import { ContentFormat, ContentStatus, SocialPlatform } from "@postific/shared";
 import { pinterestBoardConstraintMessage } from "@/domains/publishing/pinterest-board-constraints";
-import { scheduleTimeConstraintMessage } from "@/domains/publishing/schedule-time-constraints";
+import {
+  scheduleMaxDateKey,
+  scheduleTimeConstraintMessage,
+} from "@/domains/publishing/schedule-time-constraints";
 import { zonedLocalToUtc } from "@/domains/publishing/wib-time";
 import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
 
@@ -489,9 +492,15 @@ function DraftEditorForm({
   // tayang kosong (caption-nya sendiri juga sudah dikosongkan untuk
   // Story, KI-073 di atas). Mirror server: `assertMediaCountMeetsMinimum`
   // (`content-format-matrix.ts`).
+  // ADR-154: minimum media ditentukan per platform + format (Instagram Post
+  // wajib media, Facebook Post tidak), jadi target dikirim lengkap.
   const mediaMinimumMessage = minMediaCountConstraintMessage(
     mediaItems.length,
-    activeFormatsForGate,
+    selectedAccounts.map((account) => ({
+      platform: account.platform,
+      contentFormat:
+        formatByAccount[account.id] ?? getDefaultFormat(account.platform),
+    })),
   );
 
   // T-108 (KI-044): tidak ada validasi yang mencegah user men-Schedule post
@@ -507,6 +516,8 @@ function DraftEditorForm({
     scheduleDate && scheduleTime
       ? scheduleTimeConstraintMessage(
           zonedLocalToUtc(scheduleDate, scheduleTime, timeZone),
+          new Date(),
+          timeZone,
         )
       : null;
 
@@ -842,6 +853,7 @@ function DraftEditorForm({
         postId: savedPostId,
         caption,
         scheduledAt,
+        timeZone,
         targets: buildTargetsPayload(),
         mediaIds,
       });
@@ -1503,6 +1515,7 @@ function DraftEditorForm({
                         id="draft-schedule-date"
                         type="date"
                         className="w-auto"
+                        max={scheduleMaxDateKey(new Date(), timeZone)}
                         value={scheduleDate ?? ""}
                         onChange={(event) =>
                           setScheduleDate(event.target.value || undefined)

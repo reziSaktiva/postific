@@ -270,7 +270,7 @@ describe("draft-editor actions — mediaIds undefined vs [] (T-024.4 fix)", () =
   const CONNECTED_ACCOUNT = {
     id: asConnectedAccountId("account-1"),
     workspaceId: WORKSPACE_ID,
-    platform: SocialPlatform.Instagram,
+    platform: SocialPlatform.Facebook,
     outstandAccountId: "outstand-1",
     handle: "@acme",
     status: "active",
@@ -371,7 +371,7 @@ describe("draft-editor actions — mediaIds undefined vs [] (T-024.4 fix)", () =
         mediaIds: [],
       });
       expect(result).toMatchObject({
-        error: expect.stringMatching(/minimal 1 media/),
+        error: expect.stringMatching(/tanpa media/),
       });
       expect(executeSpy).not.toHaveBeenCalled();
     });
@@ -397,7 +397,7 @@ describe("draft-editor actions — mediaIds undefined vs [] (T-024.4 fix)", () =
         // silently lolos karena field-nya undefined.
       });
       expect(result).toMatchObject({
-        error: expect.stringMatching(/minimal 1 media/),
+        error: expect.stringMatching(/tanpa media/),
       });
       expect(executeSpy).not.toHaveBeenCalled();
     });
@@ -476,7 +476,7 @@ describe("draft-editor actions — mediaIds undefined vs [] (T-024.4 fix)", () =
         mediaIds: [],
       });
       expect(result).toMatchObject({
-        error: expect.stringMatching(/minimal 1 media/),
+        error: expect.stringMatching(/tanpa media/),
       });
       expect(executeSpy).not.toHaveBeenCalled();
     });

@@ -4,6 +4,9 @@ import {
   DRAFT_CAPTION_MAX_LENGTH,
   maxMediaCountForFormat,
   minMediaCountForFormat,
+  platformLabel,
+  platformsWhosePostRequiresMedia,
+  SCHEDULE_MAX_DAYS_AHEAD,
   type ScheduleContentFailureKind,
   type ScheduleContentInput,
   type ScheduleContentOutcome,
@@ -52,7 +55,16 @@ const CONTENT_KEYS = ["caption", "mediaIds", "scheduledAt", "targets"] as const;
 const MEDIA_MAX_ITEMS = Math.max(
   ...Object.values(ContentFormat).map(maxMediaCountForFormat),
 );
+const POST_REQUIRES_MEDIA_NAMES = joinNames(
+  platformsWhosePostRequiresMedia().map(platformLabel),
+);
 const MEDIA_RULE_TEXT = describeMediaRules();
+
+function joinNames(names: string[]): string {
+  return names.length > 1
+    ? `${names.slice(0, -1).join(", ")}, dan ${names[names.length - 1]}`
+    : (names[0] ?? "");
+}
 
 function describeMediaRules(): string {
   const groups = new Map<string, ContentFormat[]>();
@@ -73,7 +85,7 @@ function describeMediaRules(): string {
       ? `${list} wajib tepat ${min} media`
       : `${list} boleh ${min} sampai ${max}`;
   });
-  return sentences.join("; ");
+  return `${sentences.join("; ")}. Khusus Post (ADR-154), ${POST_REQUIRES_MEDIA_NAMES} wajib minimal 1 media; akun lain boleh tanpa media`;
 }
 
 const SCHEDULE_POSTS_SCHEMA: McpJsonSchema = {
@@ -100,8 +112,7 @@ const SCHEDULE_POSTS_SCHEMA: McpJsonSchema = {
           },
           scheduledAt: {
             type: "string",
-            description:
-              "Waktu terbit, ISO 8601, harus di masa depan. Tanpa offset (mis. 2026-11-10T09:00:00) dibaca di zona waktu pengguna (lihat get_workspace); dengan offset (mis. 2026-11-10T09:00:00+07:00) dipakai apa adanya.",
+            description: `Waktu terbit, ISO 8601, harus di masa depan dan paling jauh ${SCHEDULE_MAX_DAYS_AHEAD} hari dari sekarang. Tanpa offset (mis. 2026-11-10T09:00:00) dibaca di zona waktu pengguna (lihat get_workspace); dengan offset (mis. 2026-11-10T09:00:00+07:00) dipakai apa adanya.`,
           },
           targets: {
             type: "array",
@@ -201,7 +212,9 @@ const schedulePosts: McpToolDefinition = {
   description:
     `Jadwalkan sampai ${MCP_SCHEDULE_MAX_CONTENTS} konten sekaligus; tiap konten menjadi satu post baru (bertanda dibuat lewat MCP) ke satu atau beberapa akun terhubung. ` +
     "Hasil dilaporkan per konten: sebagian bisa berhasil dan sebagian gagal, jadi periksa results[].status. " +
-    "Aturan yang sama dengan Draft Editor berlaku di server: akun harus aktif, format per akun, caption wajib (kecuali Story), Story tidak digabung dengan target lain bila caption terisi, jumlah media per format, dan waktu harus di masa depan. " +
+    "Aturan yang sama dengan Draft Editor berlaku di server: akun harus aktif, format per akun, caption wajib (kecuali Story), Story tidak digabung dengan target lain bila caption terisi, jumlah media per format, dan waktu harus di masa depan dan paling jauh " +
+    `${SCHEDULE_MAX_DAYS_AHEAD} hari dari sekarang (Outstand menolak jadwal lebih jauh). ` +
+    `${POST_REQUIRES_MEDIA_NAMES} tidak bisa dijadwalkan tanpa media. ` +
     "Akun Pinterest belum bisa dijadwalkan lewat MCP karena board belum bisa diisi. " +
     "Kuota: konten yang ditolak pemeriksaan di atas tidak dijadwalkan dan tidak memakai kuota. Konten yang gagal SETELAH draft dibuat (penyedia menolak, galat internal, konflik) tetap memakai kuota dan meninggalkan post yang tidak terjadwal: berstatus Failed bila penyedia menolak, atau masih Draft untuk galat lain (hasilnya memuat postId); kuota tidak dikembalikan. " +
     "Satu scheduledAt yang salah bentuk atau mustahil (mis. 30 Februari) menggagalkan SELURUH panggilan sebagai invalid_input dengan indeks konten (mis. posts[2]); tidak ada konten yang diproses. " +

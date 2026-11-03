@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { PublishingDomainError } from "./errors";
 import {
   SCHEDULE_TIME_IN_PAST_MESSAGE,
-  assertScheduledAtNotInPast,
+  assertScheduledAtAllowed,
+  scheduleMaxDateKey,
   scheduleTimeConstraintMessage,
 } from "./schedule-time-constraints";
 import { zonedLocalToUtc } from "./wib-time";
@@ -47,16 +48,16 @@ describe("scheduleTimeConstraintMessage", () => {
   });
 });
 
-describe("assertScheduledAtNotInPast", () => {
+describe("assertScheduledAtAllowed", () => {
   it("does not throw for a future time", () => {
     expect(() =>
-      assertScheduledAtNotInPast(new Date("2026-09-28T12:00:00.000Z"), NOW),
+      assertScheduledAtAllowed(new Date("2026-09-28T12:00:00.000Z"), NOW),
     ).not.toThrow();
   });
 
   it("throws PublishingDomainError for a past time", () => {
     expect(() =>
-      assertScheduledAtNotInPast(new Date("2026-09-28T08:00:00.000Z"), NOW),
+      assertScheduledAtAllowed(new Date("2026-09-28T08:00:00.000Z"), NOW),
     ).toThrow(PublishingDomainError);
   });
 });
@@ -79,5 +80,44 @@ describe("scheduleTimeConstraintMessage dengan input picker WIB (T-146)", () => 
         NOW,
       ),
     ).toBeNull();
+  });
+});
+
+describe("batas jadwal 30 hari (ADR-154, T-198)", () => {
+  const limit = new Date(NOW.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+  it("accepts a schedule exactly at the 30-day limit", () => {
+    expect(scheduleTimeConstraintMessage(limit, NOW)).toBeNull();
+  });
+
+  it("rejects a schedule one second past the limit and names the exact limit", () => {
+    const message = scheduleTimeConstraintMessage(
+      new Date(limit.getTime() + 1000),
+      NOW,
+      "Asia/Jakarta",
+    );
+    expect(message).toBe(
+      "Jadwal maksimal 30 hari dari sekarang. Pilih waktu paling lambat 28 Oct 2026 18:48 (Asia/Jakarta).",
+    );
+  });
+
+  it("formats the limit in the given time zone", () => {
+    expect(
+      scheduleTimeConstraintMessage(
+        new Date(limit.getTime() + 1000),
+        NOW,
+        "UTC",
+      ),
+    ).toContain("28 Oct 2026 11:48 (UTC)");
+  });
+
+  it("throws PublishingDomainError for a schedule beyond 30 days", () => {
+    expect(() =>
+      assertScheduledAtAllowed(new Date("2027-01-03T03:00:00.000Z"), NOW),
+    ).toThrow(PublishingDomainError);
+  });
+
+  it("exposes the last selectable date key for the date input max", () => {
+    expect(scheduleMaxDateKey(NOW, "Asia/Jakarta")).toBe("2026-10-28");
   });
 });

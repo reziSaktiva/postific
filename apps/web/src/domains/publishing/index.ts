@@ -4,6 +4,7 @@ export * from "./errors";
 export * from "./adapters/outstand-adapter";
 export * from "./adapters/job-scheduler";
 export * from "./content-format-matrix";
+export { SCHEDULE_MAX_DAYS_AHEAD } from "./schedule-time-constraints";
 export * from "./schedule-safety-check";
 export * from "./story-caption-constraints";
 export * from "./failure-reason";

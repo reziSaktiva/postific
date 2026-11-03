@@ -55,7 +55,7 @@ import { PublishingDomainError } from "@/domains/publishing";
  * code-review PR #140, celah ini sudah ada sejak `assertMediaCountWithinLimit`/
  * `assertMediaCountMeetsMinimum` dipanggil tanpa try/catch di
  * `scheduleDraftAction`/`publishNowAction`, T-108 cuma menambah satu throw
- * site lagi (`assertScheduledAtNotInPast`) ke celah yang sama.
+ * site lagi (`assertScheduledAtAllowed`) ke celah yang sama.
  */
 function isKnownActionError(
   error: unknown,
@@ -517,6 +517,8 @@ export interface ScheduleDraftInput {
   postId?: string;
   caption: string;
   scheduledAt: string;
+  /** Zona pengguna, hanya untuk memformat pesan batas jadwal 30 hari. */
+  timeZone?: string;
   targets: ScheduleDraftTargetInput[];
   /** T-024.4 — media yang di-attach ke post ini (SATU set untuk seluruh post, ADR-107). */
   mediaIds?: string[];
@@ -559,7 +561,7 @@ export async function scheduleDraftAction(
   // T-108 code-review (PR #140, finding #1): seluruh validasi/use-case di
   // bawah ini bisa melempar `ApplicationError` ATAU `PublishingDomainError`
   // (`assertMediaCountWithinLimit`/`assertMediaCountMeetsMinimum`/
-  // `assertScheduledAtNotInPast` di dalam `SchedulePostsUseCase.execute`) —
+  // `assertScheduledAtAllowed` di dalam `SchedulePostsUseCase.execute`) —
   // tanpa try/catch di sini, exception lolos sampai boundary Server Action
   // Next.js, yang MEN-MASK pesan error asli di production build (klien
   // hanya menerima pesan generik, bukan "Waktu yang dipilih sudah lewat..."
@@ -606,7 +608,7 @@ export async function scheduleDraftAction(
       effectiveMediaCount = existingDraft.mediaIds?.length ?? 0;
       assertMediaCountWithinLimit(effectiveMediaCount, activeFormats);
     }
-    // KI-074: batas MINIMUM (Story/Reel/Pin butuh ≥1 media) — beda dari
+    // KI-074, ADR-154: batas MINIMUM (Story/Reel/Pin dan Instagram/TikTok/YouTube butuh ≥1 media) — beda dari
     // `assertMediaCountWithinLimit` di atas (yang cuma menegakkan batas
     // maksimum), ini SENGAJA dievaluasi terhadap `effectiveMediaCount` untuk
     // KETIGA kasus sekaligus (mediaIds baru dikirim client, mediaIds
@@ -618,7 +620,7 @@ export async function scheduleDraftAction(
     // yang juga dipakai `saveDraftAction`/`updateDraftAction` — draft yang
     // masih disusun (belum siap dijadwalkan/dipublish) boleh belum punya
     // media sama sekali.
-    assertMediaCountMeetsMinimum(effectiveMediaCount, activeFormats);
+    assertMediaCountMeetsMinimum(effectiveMediaCount, targets);
 
     const post = input.postId
       ? await publishingService.updateDraft(
@@ -646,6 +648,7 @@ export async function scheduleDraftAction(
       workspaceId,
       postId: post.id,
       scheduledAt: new Date(input.scheduledAt),
+      timeZone: input.timeZone,
       targets,
       actingUserId,
     });
@@ -746,7 +749,7 @@ export async function publishNowAction(
       effectiveMediaCount = existingDraft.mediaIds?.length ?? 0;
       assertMediaCountWithinLimit(effectiveMediaCount, activeFormats);
     }
-    // KI-074: batas MINIMUM (Story/Reel/Pin butuh ≥1 media) — beda dari
+    // KI-074, ADR-154: batas MINIMUM (Story/Reel/Pin dan Instagram/TikTok/YouTube butuh ≥1 media) — beda dari
     // `assertMediaCountWithinLimit` di atas (yang cuma menegakkan batas
     // maksimum), ini SENGAJA dievaluasi terhadap `effectiveMediaCount` untuk
     // KETIGA kasus sekaligus (mediaIds baru dikirim client, mediaIds
@@ -758,7 +761,7 @@ export async function publishNowAction(
     // yang juga dipakai `saveDraftAction`/`updateDraftAction` — draft yang
     // masih disusun (belum siap dijadwalkan/dipublish) boleh belum punya
     // media sama sekali.
-    assertMediaCountMeetsMinimum(effectiveMediaCount, activeFormats);
+    assertMediaCountMeetsMinimum(effectiveMediaCount, targets);
 
     const post = input.postId
       ? await publishingService.updateDraft(

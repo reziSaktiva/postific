@@ -125,52 +125,123 @@ export function minMediaCountForFormat(format: ContentFormat): number {
 }
 
 /**
- * Batas minimum EFEKTIF untuk seluruh post — kebalikan dari
- * `maxMediaCountForFormats` (yang pakai MINIMUM antar format yang sedang
- * dipilih): di sini pakai MAKSIMUM antar format, supaya format yang lebih
- * ketat (mis. Story butuh ≥1 media) tidak kalah oleh format yang lebih
- * longgar (Post butuh ≥0) dalam satu post gabungan yang sama (`mediaIds`
- * satu set untuk seluruh post, ADR-107). Array kosong (belum ada akun
- * dipilih sama sekali) → 0, supaya user tetap bisa mulai upload media
- * sebelum memilih akun tujuan (konsisten filosofi `maxMediaCountForFormats`).
+ * Target publish minimal yang dibutuhkan untuk menentukan batas media
+ * (ADR-154): platform DAN format, karena aturan media Outstand berbeda per
+ * platform (mis. Facebook Post boleh teks saja, Instagram Post tidak).
  */
-export function minMediaCountForFormats(formats: ContentFormat[]): number {
-  if (formats.length === 0) {
-    return 0;
-  }
-  return Math.max(
-    ...formats.map((format) => MEDIA_COUNT_BOUNDS_BY_FORMAT[format].min),
-  );
+export interface MediaTarget {
+  platform: SocialPlatform;
+  contentFormat: ContentFormat;
 }
 
 /**
- * Pesan constraint minimum media (KI-074) — `null` kalau `mediaCount` sudah
- * memenuhi batas minimum efektif untuk `formats` yang sedang dipilih. Pola
- * sama `pinterestBoardConstraintMessage` (`pinterest-board-constraints.ts`)
- * — satu implementasi dipakai bersama oleh client (gating tombol Publish
- * Now/Schedule + tampilan pesan, `Modal.tsx`) dan
- * `assertMediaCountMeetsMinimum` (server, throw).
+ * ADR-154 (amandemen ADR-121): platform yang `Post`-nya wajib media. Dasar:
+ * dokumen Outstand per jaringan (Instagram: setiap format berisi media;
+ * TikTok/YouTube: keputusan King Rezi 2026-11-03). Facebook, LinkedIn,
+ * Threads, dan X tidak ada di sini karena boleh teks saja.
+ */
+const POST_REQUIRES_MEDIA_PLATFORMS: ReadonlySet<SocialPlatform> = new Set([
+  SocialPlatform.Instagram,
+  SocialPlatform.TikTok,
+  SocialPlatform.YouTube,
+]);
+
+/** Platform yang `Post`-nya wajib media (ADR-154), untuk teks tool MCP. */
+export function platformsWhosePostRequiresMedia(): SocialPlatform[] {
+  return [...POST_REQUIRES_MEDIA_PLATFORMS];
+}
+
+/**
+ * `true` kalau target ini tidak boleh dipublish/dijadwalkan tanpa media.
+ * Reel/Story/Pin selalu wajib (ADR-121, semua platform); `Post` hanya untuk
+ * platform di `POST_REQUIRES_MEDIA_PLATFORMS` (ADR-154).
+ */
+export function targetRequiresMedia(target: MediaTarget): boolean {
+  if (MEDIA_COUNT_BOUNDS_BY_FORMAT[target.contentFormat].min > 0) {
+    return true;
+  }
+  return POST_REQUIRES_MEDIA_PLATFORMS.has(target.platform);
+}
+
+/**
+ * Batas minimum EFEKTIF untuk seluruh post: 1 kalau ada SATU target saja
+ * yang wajib media (`mediaIds` satu set untuk seluruh post, ADR-107/121),
+ * selain itu 0. Array kosong (belum ada akun dipilih) → 0, supaya user bisa
+ * mulai upload media sebelum memilih akun tujuan.
+ */
+export function minMediaCountForTargets(
+  targets: ReadonlyArray<MediaTarget>,
+): number {
+  return targets.some(targetRequiresMedia) ? 1 : 0;
+}
+
+const PLATFORM_LABEL: Partial<Record<SocialPlatform, string>> = {
+  [SocialPlatform.Instagram]: "Instagram",
+  [SocialPlatform.Facebook]: "Facebook",
+  [SocialPlatform.Twitter]: "X",
+  [SocialPlatform.LinkedIn]: "LinkedIn",
+  [SocialPlatform.TikTok]: "TikTok",
+  [SocialPlatform.YouTube]: "YouTube",
+  [SocialPlatform.Threads]: "Threads",
+  [SocialPlatform.Pinterest]: "Pinterest",
+};
+
+/**
+ * Nama target untuk pesan. Facebook menyebut formatnya karena hanya Reel
+ * dan Story yang wajib media (Facebook Post tidak), platform lain cukup
+ * namanya.
+ */
+/** Nama tampilan platform untuk pesan dan teks tool MCP. */
+export function platformLabel(platform: SocialPlatform): string {
+  return PLATFORM_LABEL[platform] ?? platform;
+}
+
+function mediaTargetLabel(target: MediaTarget): string {
+  const platform = platformLabel(target.platform);
+  if (target.platform === SocialPlatform.Facebook) {
+    return `${platform} ${target.contentFormat === ContentFormat.Story ? "Story" : "Reel"}`;
+  }
+  return platform;
+}
+
+function joinLabels(labels: string[]): string {
+  if (labels.length <= 1) {
+    return labels.join("");
+  }
+  return `${labels.slice(0, -1).join(", ")} dan ${labels[labels.length - 1]}`;
+}
+
+/**
+ * Pesan constraint minimum media (KI-074, ADR-154) — `null` kalau
+ * `mediaCount` sudah memenuhi batas minimum efektif untuk `targets`. Pola
+ * sama `pinterestBoardConstraintMessage`: satu implementasi dipakai bersama
+ * oleh client (gating tombol + pesan, `Modal.tsx`) dan
+ * `assertMediaCountMeetsMinimum` (server, throw). Pesan menyebut semua
+ * target yang wajib media.
  */
 export function minMediaCountConstraintMessage(
   mediaCount: number,
-  formats: ContentFormat[],
+  targets: ReadonlyArray<MediaTarget>,
 ): string | null {
-  const min = minMediaCountForFormats(formats);
-  if (mediaCount < min) {
-    return `Target ini butuh minimal ${min} media — Story/Reel/Pin tidak bisa dipublish tanpa media (jumlah media saat ini: ${mediaCount}).`;
+  const min = minMediaCountForTargets(targets);
+  if (mediaCount >= min) {
+    return null;
   }
-  return null;
+  const labels = [
+    ...new Set(targets.filter(targetRequiresMedia).map(mediaTargetLabel)),
+  ];
+  return `${joinLabels(labels)} tidak bisa dipublish tanpa media. Tambahkan minimal ${min} gambar atau video.`;
 }
 
 /**
  * Throws `PublishingDomainError` kalau `mediaCount` kurang dari batas
- * minimum (KI-074) untuk `formats` yang sedang dipilih.
+ * minimum (KI-074, ADR-154) untuk `targets` yang sedang dipilih.
  */
 export function assertMediaCountMeetsMinimum(
   mediaCount: number,
-  formats: ContentFormat[],
+  targets: ReadonlyArray<MediaTarget>,
 ): void {
-  const message = minMediaCountConstraintMessage(mediaCount, formats);
+  const message = minMediaCountConstraintMessage(mediaCount, targets);
   if (message) {
     throw new PublishingDomainError(message);
   }

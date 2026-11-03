@@ -1574,3 +1574,67 @@ T-196.1 dan T-196.2 selesai.
       terkecil), uji sign-in dan alur utama di staging setelah tiap tabel, dan
       rollback bila gagal.
 - [ ] **T-196.4** Ulangi advisor Supabase dan catat hasil.
+
+---
+
+### T-197 · Instagram and other platforms can be scheduled or published without media (KI-107)
+
+| Field       | Value                                                                            |
+| ----------- | -------------------------------------------------------------------------------- |
+| **Status**  | 🟡 Done (code) 2026-11-03; menunggu Verified (staging)                           |
+| **Domain**  | publishing, draft editor, MCP                                                    |
+| **Spec**    | tidak ada                                                                        |
+| **Docs**    | KI-107, ADR-154 (mengamandemen ADR-121), `content-format-matrix.ts`, `Modal.tsx` |
+| **Terkait** | T-198, T-195                                                                     |
+| **Depends** | rancangan UI dikonfirmasi King Rezi (aturan 10 `AGENTS.md`)                      |
+
+**Ditemukan (2026-11-03)** oleh King Rezi: Instagram bisa dijadwalkan tanpa gambar.
+Penyebab: `MEDIA_COUNT_BOUNDS_BY_FORMAT` menetapkan `Post` min 0 untuk semua platform (ADR-121).
+
+**What to build (ADR-154 poin 1 dan 3):**
+
+- [x] **T-197.1** `🟡 Done (code) (2026-11-03)` Minimum media per pasangan platform + format di
+      `content-format-matrix.ts`: Instagram (Post/Reel/Story), Facebook Reel/Story,
+      Pinterest Pin, TikTok, YouTube wajib ≥1; Facebook Post, LinkedIn, Threads, X
+      boleh 0. Fungsi agregat menerima `{platform, format}`; tes unit per platform.
+- [x] **T-197.2** `🟡 Done (code) (2026-11-03)` Tegakkan di `scheduleDraftAction`, `publishNowAction`, dan jalur
+      MCP `schedule_posts`; draft tetap boleh tanpa media.
+- [x] **T-197.3** `🟡 Done (code) (2026-11-03)` Mirror di `Modal.tsx`: Alert inline (teks menyebut platform),
+      Publish Now dan Schedule disabled. Mengikuti rancangan yang sudah dikonfirmasi.
+- [x] **T-197.4** `🟡 Done (code) (2026-11-03)`: review Ridwan dan QA Najwa selesai; tampilan browser lokal dicek King Rezi. Belum Verified (staging). Tes regresi, review Ridwan, QA Najwa; verifikasi staging tanpa
+      akun nyata.
+
+**Belum terbukti (jangan diasumsikan):**
+
+- TikTok dan YouTube wajib media: keputusan King Rezi, bukan kalimat eksplisit
+  di dokumen Outstand.
+- Instagram wajib media: kesimpulan dari dokumen Outstand dan Meta, tidak ada
+  kalimat "tanpa media ditolak".
+- Jenis media (YouTube harus video) belum ditegakkan; hanya jumlah.
+
+---
+
+### T-198 · Scheduling is limited to 30 days ahead (Outstand limit) (KI-105)
+
+| Field       | Value                                                                |
+| ----------- | -------------------------------------------------------------------- |
+| **Status**  | 🟡 Done (code) 2026-11-03, sisa T-198.4; menunggu Verified (staging) |
+| **Domain**  | publishing, draft editor, MCP                                        |
+| **Spec**    | tidak ada                                                            |
+| **Docs**    | KI-105, ADR-154, `schedule-time-constraints.ts`, `Modal.tsx`, T-108  |
+| **Terkait** | T-195, T-197                                                         |
+| **Depends** | rancangan UI dikonfirmasi King Rezi (aturan 10 `AGENTS.md`)          |
+
+Dokumen Outstand "Create a post": `scheduledAt` lebih dari 30 hari ke depan
+mengembalikan HTTP 400 dan tidak ada post terbentuk. Dugaan kuat penyebab 400 di
+T-195; belum terbukti sampai pesan 400 terbaca (T-195.1 di staging).
+
+- [x] **T-198.1** `🟡 Done (code) (2026-11-03)` Batas atas jadwal di `schedule-time-constraints.ts` (sekarang +30
+      hari) beserta pesan; tes unit termasuk tepat di batas.
+- [x] **T-198.2** `🟡 Done (code) (2026-11-03)` Tegakkan di server untuk Draft Editor, `schedule_posts` MCP,
+      dan reschedule.
+- [x] **T-198.3** `🟡 Done (code) (2026-11-03)` `Modal.tsx`: Alert inline, tombol Schedule disabled, dan hari di
+      luar 30 hari disabled di popover kalender. Mengikuti rancangan terkonfirmasi.
+- [ ] **T-198.4** Putuskan nasib post `Scheduled` lama yang jadwalnya lewat 30 hari
+      (nyata atau tidak ada). Cek data staging dulu; jangan diasumsikan.
+- [x] **T-198.5** `🟡 Done (code) (2026-11-03)`: review Ridwan dan QA Najwa selesai; tampilan browser lokal dicek King Rezi. Belum Verified (staging). Tes regresi, review, QA; verifikasi staging tanpa akun nyata.
