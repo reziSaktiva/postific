@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import {
   expect,
   test,
@@ -34,6 +36,14 @@ import {
   setMemberStatus,
   type SandboxMemberRef,
 } from "./support/member-db";
+import {
+  hasAppRuntimeConnection,
+  probeRateLimitWrite,
+  probeWorkspaceChoicesWrite,
+  readRateLimitRows,
+  readRole,
+  readTableRls,
+} from "./support/mcp-tables-db";
 import { E2E_WORKSPACE_NAME } from "./support/workspace";
 
 /**
@@ -209,6 +219,9 @@ async function assertSourceFilterContract(
   }
 }
 
+/** Batas kuota `calls` per menit (sama dengan server; env hanya bila server diubah). */
+const RATE_LIMIT_CALLS = Number(process.env.E2E_MCP_RATE_LIMIT_CALLS) || 60;
+
 test.describe("MCP server di staging", () => {
   test.skip(SKIP_REASON !== null, SKIP_REASON ?? "");
   test.describe.configure({ mode: "serial", timeout: 120_000 });
@@ -225,6 +238,8 @@ test.describe("MCP server di staging", () => {
   let memberToRestore: SandboxMemberRef | undefined;
   /** Klien scope `read` saja dari (g): dipakai ulang oleh (j), (k), (n) agar tidak menambah pendaftaran klien (batas 5/menit/IP). */
   let readOnlyClient: ConnectedClient | undefined;
+  /** Epoch ms sebelum (n) memanggil MCP; dipakai (o) membatasi baris penghitung run ini. */
+  let rateLimitStartedAt: number | undefined;
   /** Klien read+draft dari (i)/(k); namanya dicari di badge sumber pada (m). */
   let draftClient: ConnectedClient | undefined;
   /** Caption draft `[e2e] create_draft` dari (i), lama dan baru; dihapus lewat UI Drafts di `afterAll`. */
@@ -1158,11 +1173,13 @@ test.describe("MCP server di staging", () => {
     test.setTimeout(240_000);
     expect(readOnlyClient, "klien read-only dari (g)").toBeTruthy();
     const token = (readOnlyClient as ConnectedClient).accessToken;
-    const limit = Number(process.env.E2E_MCP_RATE_LIMIT_CALLS) || 60;
+    const limit = RATE_LIMIT_CALLS;
     const WINDOW_MS = 60_000;
 
     // Jendela tetap kelipatan menit epoch (UTC): mulai sesaat setelah batas
     // supaya semua panggilan jatuh di satu jendela dan penolakan tepat di limit+1.
+    // Sebelum sleep: `window_start` adalah batas menit di depan, bukan `startedAt`.
+    rateLimitStartedAt = Date.now();
     await sleep(WINDOW_MS - (Date.now() % WINDOW_MS) + 3_000);
     const startedAt = Date.now();
 
@@ -1208,5 +1225,84 @@ test.describe("MCP server di staging", () => {
     // Penolakan tidak membuka jalan: panggilan berikutnya di jendela itu tetap ditolak.
     const again = await callTool(api, token, "get_workspace");
     expect(again.errorCode).toBe("rate_limited");
+  });
+
+  // -------------------------------------------------------------------------
+  // (o) T-189.1 dan T-189.4: perilaku role `app_runtime` pada tabel MCP lewat
+  // koneksi langsung `DATABASE_URL`. Bukan bukti jalur aplikasi (consent,
+  // T-189.2) dan bukan bukti bahwa runtime Railway memakai role itu; hanya
+  // bukti bahwa role + policy + RLS mengizinkan operasi yang dibutuhkan jalur
+  // aplikasi. Tidak memanggil MCP, jadi aman sesudah (n).
+  // -------------------------------------------------------------------------
+
+  test("(o) app_runtime pada mcp_workspace_choices dan mcp_rate_limit_windows (T-189.1, T-189.4)", async () => {
+    const noDbReason =
+      "DATABASE_URL (role app_runtime) tidak tersedia: bukti RLS app_runtime butuh koneksi itu, DIRECT_URL (superuser) tidak berarti.";
+    if (!hasAppRuntimeConnection())
+      console.warn(`[mcp.e2e] (o) DI-SKIP: ${noDbReason}`);
+    test.skip(!hasAppRuntimeConnection(), noDbReason);
+    expect(sandboxWorkspaceId, "workspace E2E dari (a)").not.toBe("");
+    expect(rateLimitStartedAt, "(n) mencatat waktu mulai").toBeDefined();
+
+    const role = await readRole();
+    console.log(
+      `[mcp.e2e] (o) DB: role ${role.role}, bypass RLS ${role.bypassRls}`,
+    );
+    test.info().annotations.push({
+      type: "db-role",
+      description: `DATABASE_URL role=${role.role} bypassRls=${role.bypassRls}`,
+    });
+    expect(role.role, "role koneksi").toBe("app_runtime");
+    expect(role.bypassRls, "app_runtime tidak boleh melewati RLS").toBe(false);
+
+    // Struktur: RLS aktif, policy untuk app_runtime ada, dan app_runtime bukan
+    // pemilik tabel (pemilik melewati RLS karena tabel tidak FORCE).
+    for (const table of [
+      "mcp_workspace_choices",
+      "mcp_rate_limit_windows",
+    ] as const) {
+      const rls = await readTableRls(table);
+      expect(rls.rlsEnabled, `${table}: RLS aktif`).toBe(true);
+      expect(rls.policies, `${table}: policy app_runtime`).toContain(
+        `${table}_app_runtime`,
+      );
+      expect(rls.owner, `${table}: pemilik bukan app_runtime`).not.toBe(
+        "app_runtime",
+      );
+    }
+
+    // T-189.1: sebagai app_runtime (RLS berlaku) INSERT, SELECT, DELETE pada
+    // mcp_workspace_choices lolos; di-ROLLBACK. Tanpa FK, jadi workspace uji acak.
+    const choices = await probeWorkspaceChoicesWrite({
+      userId: "e2e-rls-probe-user",
+      workspaceId: randomUUID(),
+    });
+    expect(choices.readBack, "baris terbaca kembali sebagai app_runtime").toBe(
+      1,
+    );
+    expect(choices.deleted, "baris terhapus sebagai app_runtime").toBe(1);
+
+    // T-189.4: upsert penghitung seperti repository, baca, dan DELETE (purge
+    // JOB-08) pada mcp_rate_limit_windows sebagai app_runtime; di-ROLLBACK.
+    const write = await probeRateLimitWrite(sandboxWorkspaceId);
+    expect(write.inserted, "INSERT penghitung").toBe(1);
+    expect(write.upserted, "ON CONFLICT DO UPDATE penghitung").toBe(1);
+    expect(write.count, "penghitung naik 1 lalu 2").toBe(2);
+    expect(write.deleted, "DELETE penghitung").toBe(1);
+
+    // Penghitung yang ditulis aplikasi oleh (n) pada run ini: dibatasi sejak
+    // (n) mulai agar baris run lama tidak membuat tes lulus basi.
+    const rows = await readRateLimitRows(
+      sandboxWorkspaceId,
+      new Date(rateLimitStartedAt as number),
+    );
+    const calls = rows.filter((row) => row.quota === "calls");
+    expect(calls.length, "baris calls dari (n) pada run ini").toBeGreaterThan(
+      0,
+    );
+    expect(
+      Math.max(...calls.map((row) => row.count)),
+      "penghitung calls tepat di limit",
+    ).toBe(RATE_LIMIT_CALLS);
   });
 });
