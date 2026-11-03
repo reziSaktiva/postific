@@ -6,7 +6,7 @@ New Post & Edit Draft — Draft Editor jadi Modal Reusable (override NP-D02)
 
 ### Status
 
-Accepted — Amended by ADR-065 (2026-08-05)
+Accepted — Amended by ADR-065 (2026-08-05), ADR-155 (2026-11-03, tata letak dan lebar kartu Standard)
 
 ### Date
 

@@ -83,10 +83,10 @@ Setiap flow memiliki struktur:
    - **Menulis manual** — Raka mengetik caption langsung di Caption Editor.
    - **Menyunting draft dari AI pengguna** (opsional) — draft juga dapat disusun AI pengguna lewat MCP lalu disunting Raka di sini (ADR-138).
 4. Raka melampirkan media melalui **Media Attachment** — dari file lokal atau Media Library.
-5. Raka memilih satu atau beberapa akun tujuan via **Account Selector**.
-6. Per akun terpilih, Raka menetapkan **Content Format** sesuai platform (ADR-039): IG/FB → Post / Reel / Story; Pinterest → Pin (+ field pin bila perlu); TikTok & lainnya → Post.
-7. Raka menetapkan waktu publish via **Schedule Picker**.
-8. Draft Editor menampilkan ringkasan: preview caption, akun tujuan + format masing-masing, dan waktu yang dipilih.
+5. Raka memilih satu atau beberapa akun tujuan lewat **baris channel** di atas editor (popover Channels, lalu chip avatar); Pratinjau per platform langsung muncul di kanan (ADR-155).
+6. Per akun terpilih, di blok pengaturan jaringan Raka menetapkan **Content Format** sesuai platform (ADR-039): IG/FB → Post / Reel / Story; Pinterest → Pin (+ field pin bila perlu); TikTok & lainnya → Post.
+7. Raka menetapkan waktu publish lewat popover **Atur jadwal** di footer (batas 30 hari, zona waktu pengguna dengan default WIB).
+8. Draft Editor menampilkan ringkasan: preview caption, akun tujuan + format masing-masing, dan waktu yang dipilih; panel Pratinjau tetap terlihat.
 9. Raka menekan **Schedule** — status konten berubah menjadi `Scheduled`.
 10. Post muncul di **Calendar** dan **Queue** sesuai waktu yang ditentukan.
 

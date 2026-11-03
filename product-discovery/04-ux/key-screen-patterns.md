@@ -364,7 +364,7 @@ Drafts adalah tempat Raka menyimpan dan mengakses konten yang belum terjadwal �
 
 | Field | Value |
 | ----- | ----- |
-| Path IA | `Publish → Drafts → Draft Editor` (dibuka sebagai modal, bukan route terpisah — ADR-052). Variant Dialog belum final — lihat Catatan di bawah |
+| Path IA | `Publish → Drafts → Draft Editor` (dibuka sebagai modal, bukan route terpisah — ADR-052). Variant Dialog final sejak ADR-065 (Standard default, Fullscreen via toggle) — lihat Catatan di bawah |
 | Pengguna Utama | Raka |
 | Entry Points | New Post; Klik item dari Calendar / Queue / Drafts; Quick Compose dari Channels sidebar (akun otomatis pre-selected, NP-D14) |
 | UX Principles | UXP-01, UXP-03, UXP-04, UXP-06 |
@@ -381,6 +381,8 @@ Draft Editor adalah **layar kerja terpenting** dalam produk. Raka menulis, melen
 
 Tidak dipersist antar sesi (session-only), sama seperti pola Light/Dark Mode Toggle (ADR-055).
 
+**Redesain Tahap 1 — final sejak ADR-155 (rancangan dikonfirmasi King Rezi, 2026-11-03):** tata letak mengikuti pola modal Create Post Buffer (pola dan perilaku, bukan salinan), dibangun dari komponen shadcn/ui dan token Postific. Baris channel pindah ke atas editor, Pratinjau live per platform ada di zona kanan, pengaturan per jaringan berbentuk blok akordeon, dan jadwal serta aksi ada di footer. Lebar kartu `standard` naik dari 960px ke 1120px. Satu caption dan satu set media dipakai bersama semua jaringan (caption dan media per jaringan di luar Tahap 1). Rancangan visual: galeri Postific Design Review, entri "Draft Editor: redesain pola Buffer (ADR-155)".
+
 ---
 
 ### Critical Functions
@@ -390,61 +392,67 @@ Tidak dipersist antar sesi (session-only), sama seperti pola Light/Dark Mode Tog
 | KSP-05-F01 | Caption Editor | Area tulis utama untuk caption konten — menjadi fokus saat layar terbuka | UXP-01, UXP-03 |
 | KSP-05-F02 | ~~AI Caption Assist~~ — **Dicabut ADR-138**. AI bawaan Postific dicabut; AI pengguna membuat draft lewat MCP, bukan lewat trigger di Caption Editor. ID tidak dipakai ulang | — |
 | KSP-05-F03 | Media Attachment | Lampirkan gambar atau video dari perangkat lokal atau Media Library | UXP-01 |
-| KSP-05-F04 | Account Selector | Pilih satu atau beberapa akun tujuan — dengan indikator status koneksi tiap akun | UXP-04 |
-| KSP-05-F05 | Schedule Picker | Tentukan tanggal dan waktu publish | UXP-04 |
-| KSP-05-F06 | Confirmation Summary | Ringkasan: preview caption, akun tujuan, **format per akun**, waktu — ditampilkan sebelum Schedule dieksekusi | UXP-04 |
+| KSP-05-F04 | Account Selector | Baris channel di atas editor (ADR-155): tombol Channels membuka popover (pencarian, Pilih semua, daftar centang dengan avatar, badge platform, dan status koneksi, tautan Hubungkan akun), plus pintasan Terakhir dipakai dan Semua. Setelah dipilih, baris menciut jadi chip avatar (aksi hapus per chip) dan tombol Tambah akun. Akun Disconnected tetap tampil dengan peringatan dan aksi Reconnect, dan tidak diblokir di UI | UXP-04 |
+| KSP-05-F05 | Schedule Picker | Tombol "Atur jadwal" di footer membuka popover: kalender (hari lampau dan hari lebih dari 30 hari ke depan dinonaktifkan, ADR-154), input jam, dan label zona waktu pengguna (default WIB, ADR-146); setelah diisi tombol menampilkan jadwal terpilih. Tidak ada "Next Available" di Tahap 1 (ADR-155) | UXP-04 |
+| KSP-05-F06 | Confirmation Summary | Ringkasan: preview caption, akun tujuan, **format per akun**, waktu — ditampilkan sebelum Schedule dieksekusi. Panel Pratinjau tetap terlihat saat ringkasan tampil (ADR-155) | UXP-04 |
 | KSP-05-F07 | Status Indicator | Status draft saat ini: Draft, In Review, Ready to Schedule, Scheduled, Published, Failed — selalu terlihat | UXP-06 |
 | KSP-05-F08 | Save as Draft | Simpan progres tanpa menjadwalkan. Setelah tersimpan, modal ditutup dan pengguna diarahkan ke **Publish → Drafts** — terlepas dari section mana modal dibuka (ADR-054) | UXP-01 |
 | KSP-05-F09 | Schedule Action | Eksekusi penjadwalan setelah pengguna konfirmasi (Confirmation Summary, KSP-05-F06). Setelah berhasil, modal ditutup dan pengguna diarahkan ke **Publish → Queue** — terlepas dari section mana modal dibuka (ADR-054) | UXP-04 |
 | KSP-05-F10 | Tutup Modal | Tombol Close di header modal menutup Draft Editor, kembali ke sub-screen asal (Calendar / Queue / Drafts) tanpa navigasi URL. Untuk **New Post**, state form yang belum disimpan tetap ada via localStorage (lihat KSP-05-F13). Untuk **Edit Draft**, tidak ada mekanisme resume — perubahan yang belum disimpan hilang saat modal ditutup (ADR-052) | UXP-03 |
-| KSP-05-F11 | Content Format Selector | Pilih format publikasi **per akun terpilih** sesuai platform (ADR-039): IG/FB → Post / Reel / Story; Pinterest → Pin (+ field pin); TikTok & lainnya → Post (tanpa radio Reel/Story) | UXP-01, UXP-03 |
+| KSP-05-F11 | Content Format Selector | Pilih format publikasi **per akun terpilih** sesuai platform (ADR-039) di dalam blok pengaturan jaringan: IG/FB → Post / Reel / Story; Pinterest → Pin (+ field pin); TikTok & lainnya → Post (tanpa radio Reel/Story). Opsi yang tidak valid untuk media dinonaktifkan: Reel nonaktif bila media bukan video (ADR-155, mengamandemen ADR-154) | UXP-01, UXP-03 |
 | KSP-05-F12 | Publish Now Action | Eksekusi publish langsung tanpa jadwal (skip Schedule Picker) — tersedia berdampingan dengan Schedule Action di action bar, untuk semua role: Account Owner, Admin, Creator (ADR-047, ADR-074). Setelah berhasil, modal ditutup dan pengguna diarahkan ke **Publish → History** — karena History belum jadi layar terdokumentasi (KSP-D10), tujuan sementara adalah **Publish → Calendar** sampai layar itu dibangun (ADR-054) | UXP-04, UXP-06 |
 | KSP-05-F13 | Resume Unfinished Post (New Post saja) | Saat modal **New Post** dibuka dan ditemukan state belum-tersimpan di localStorage dari sesi sebelumnya, tampilkan dialog konfirmasi "Resume unfinished post?" dengan dua pilihan: **Resume** (lanjutkan isi form dari state tersimpan) atau **Mulai Baru** (buang state lama, form kosong). **Tidak berlaku untuk Edit Draft** — draft existing selalu dibuka dengan data dari server, tanpa cek localStorage (ADR-052) | UXP-03, UXP-04 |
+| KSP-05-F14 | Pratinjau Live | Panel kanan menampilkan pratinjau per platform yang diperbarui saat mengetik dan saat memilih akun atau blok: Facebook, Instagram, TikTok, dan Pinterest meniru tampilan platform (dirakit dari komponen dan token Postific, ADR-155), platform lain memakai kartu generik. Toggle Pratinjau di header menampilkan atau menyembunyikan panel; ada keadaan kosong saat belum ada akun atau isi | UXP-04 |
+| KSP-05-F15 | Blok Pengaturan per Jaringan | Setiap akun terpilih punya blok berbentuk akordeon (satu blok terbuka, lainnya menciut jadi baris ringkas berisi ikon platform, potongan caption, dan thumbnail media). Isi blok: format (F11), field khusus platform yang sudah didukung (Pinterest: board, judul, link), dan banner validasi (F16). Saat hanya satu akun terpilih, blok selalu terbuka tanpa akordeon. Caption dan media tetap satu dan bersama untuk semua jaringan | UXP-01, UXP-03 |
+| KSP-05-F16 | Validasi Inline | Banner validasi tampil di dekat sumber masalahnya: validasi per jaringan (media wajib, board Pinterest, Reel butuh video) di dalam blok jaringan; validasi lintas jaringan (Story + caption campur, lebih dari satu akun Pinterest) di atas editor; validasi jadwal (di luar batas 30 hari) di footer dekat kontrol jadwal. Schedule dan Publish Now nonaktif sampai valid (ADR-107, ADR-121, ADR-154, ADR-155) | UXP-04 |
 
 ---
 
 ### Zona Fungsional
 
-Draft Editor dibagi menjadi dua area utama:
+Draft Editor dibagi menjadi dua zona utama, kiri (Channel + Editor + Blok Jaringan) dan kanan (Pratinjau), dengan footer aksi di bawahnya (ADR-155):
 
-Layout di bawah ini kini dirender di dalam modal (ADR-052, default `variant="standard"` sejak ADR-065, alternatif `variant="fullscreen"` via toggle — lihat Catatan di Identitas) — bukan halaman route sendiri. Header modal menampilkan judul, status chip, toggle variant, dan tombol Close, bukan "← Kembali".
+Layout di bawah ini dirender di dalam modal (ADR-052, default `variant="standard"` selebar 1120px sejak ADR-065 dan ADR-155, alternatif `variant="fullscreen"` via toggle — lihat Catatan di Identitas) — bukan halaman route sendiri. Header modal menampilkan judul, status chip, toggle Pratinjau, toggle variant, dan tombol Close, bukan "← Kembali".
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│  Draft Editor              [✕ Close]  Status: [Draft ▼] │
-├────────────────────────────┬────────────────────────────┤
-│  CAPTION EDITOR            │  KONFIGURASI               │
-│                            │                            │
-│  [Tulis caption di sini...]│  Account Selector          │
-│                            │  ☐ Instagram @brand        │
-│                            │    ○ Post  ○ Reel  ○ Story │
-│                            │  ☐ Facebook @brand         │
-│  MEDIA ATTACHMENT          │    ○ Post  ○ Reel  ○ Story │
-│  [+ Tambah Media]          │  ☐ TikTok @brand           │
-│                            │    (format: Post)          │
-│  [preview media]           │  ☐ Pinterest @brand        │
-│                            │    format Pin + title/link │
-│                            │                            │
-│                            │  Schedule Picker           │
-│                            │  [Tanggal] [Waktu]         │
-│                            ├────────────────────────────┤
-│                            │  [Save as Draft]  [Schedule│
-└────────────────────────────┴────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Draft Editor  [Status ▼]         [Pratinjau]  [⤢ Fullscreen]  [✕ Close] │
+├───────────────────────────────────────────┬─────────────────────────────┤
+│  BARIS CHANNEL                            │  PRATINJAU                  │
+│  [+ Channels] [Terakhir dipakai] [Semua]  │  (live per platform)        │
+│  setelah dipilih: (IG) (FB) [+ Tambah]    │                             │
+│                                           │  Facebook                   │
+│  EDITOR                                   │  ┌───────────────────────┐  │
+│  [Tulis caption di sini...]               │  │ avatar  nama          │  │
+│  [thumbnail media] [+ dropzone]           │  │ caption               │  │
+│                                           │  │ media                 │  │
+│  BLOK PER JARINGAN (akordeon)             │  └───────────────────────┘  │
+│  ▼ Instagram   ○ Post ○ Reel ○ Story      │  Instagram                  │
+│    ⚠ Banner validasi                      │  ┌───────────────────────┐  │
+│  ▶ Facebook    "caption…"  [thumb]        │  │ ...                   │  │
+│  ▶ Pinterest   board / judul / link       │  └───────────────────────┘  │
+├───────────────────────────────────────────┴─────────────────────────────┤
+│  [Save as Draft]            [Atur jadwal ▼]  [Publish Now]  [Schedule]  │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Zona kiri — Caption Editor:** Area utama yang menjadi fokus saat layar terbuka. Caption Editor besar, bisa expand.
+**Zona kiri — Baris Channel:** Di atas editor. Tombol Channels membuka popover pemilihan akun dengan status koneksi; pintasan Terakhir dipakai dan Semua mempercepat pemilihan; akun terpilih tampil sebagai chip avatar (F04).
 
-**Zona kiri — Media Attachment:** Di bawah Caption Editor. Preview media yang dilampirkan. Syarat media menyesuaikan format terpilih (mis. Story/Reel biasanya butuh media vertikal).
+**Zona kiri — Caption Editor:** Area utama yang menjadi fokus saat layar terbuka. Satu caption bersama untuk semua jaringan. Besar, bisa expand.
 
-**Zona kanan — Account Selector + Content Format:** Daftar akun terhubung. Di bawah tiap akun Meta (IG/FB) tampil selector **Post / Reel / Story**. Pinterest menampilkan field Pin. TikTok & platform lain tanpa radio Reel/Story. Akun Disconnected menampilkan warning.
+**Zona kiri — Media Attachment:** Di bawah Caption Editor. Thumbnail media yang dilampirkan dan dropzone yang tetap tersedia untuk menambah media. Syarat media menyesuaikan format terpilih per jaringan (mis. Story/Reel butuh media vertikal, Reel butuh video). Media dipakai bersama semua jaringan.
 
-**Zona kanan — Schedule Picker:** Input tanggal dan waktu. Terletak di bawah Account Selector.
+**Zona kiri — Blok Pengaturan per Jaringan:** Di bawah media. Satu blok per akun terpilih berbentuk akordeon (F15): format Post / Reel / Story (F11), field Pinterest (board, judul, link), dan banner validasi (F16). Akun Meta (IG/FB) punya selector Post / Reel / Story; Pinterest menampilkan field Pin; TikTok & platform lain tanpa radio Reel/Story. Akun Disconnected menampilkan warning.
 
-**Zona kanan — Action bar:** Save as Draft dan Schedule. Schedule adalah aksi primer; Save as Draft adalah aksi sekunder.
+**Zona kanan — Pratinjau:** Panel pratinjau live per platform (F14). Memilih blok atau chip akun mengganti pratinjau ke platform itu.
+
+**Footer — Aksi:** Save as Draft (aksi sekunder), kontrol jadwal "Atur jadwal" (F05), Publish Now, dan Schedule. Schedule adalah aksi primer; Save as Draft adalah aksi sekunder.
+
+**Layar sempit (di bawah 640px):** Modal memenuhi layar dengan tab "Editor | Pratinjau" di bawah header, footer ditumpuk, dan toggle Fullscreen/Standard serta Pratinjau di header disembunyikan (ADR-155).
 
 ---
 
-Catatan (ADR-052/ADR-065): pengguna bisa berpindah antara dua variant lewat toggle resmi di header modal (fitur produk, bukan lagi alat banding sementara). Pada variant `standard` (**default sejak ADR-065**), sidebar dan layar di belakang tetap terlihat, redup di balik backdrop. Pada variant `fullscreen` (alternatif, dipilih lewat toggle), sidebar navigasi **tertutup total** selama modal terbuka (trade-off yang disadari, lihat NP-D11) — berbeda dari versi sebelumnya di mana sidebar tetap terlihat. Pilihan toggle tidak dipersist — reset ke Standard setiap modal dibuka ulang.
+Catatan (ADR-052/ADR-065): pengguna bisa berpindah antara dua variant lewat toggle resmi di header modal (fitur produk, bukan lagi alat banding sementara). Pada variant `standard` (**default sejak ADR-065**), sidebar dan layar di belakang tetap terlihat, redup di balik backdrop. Pada variant `fullscreen` (alternatif, dipilih lewat toggle), sidebar navigasi **tertutup total** selama modal terbuka (trade-off yang disadari, lihat NP-D11) — berbeda dari versi sebelumnya di mana sidebar tetap terlihat. Pilihan toggle tidak dipersist — reset ke Standard setiap modal dibuka ulang. Lebar kartu `standard` adalah 1120px (ADR-155).
 
 ---
 
@@ -462,6 +470,8 @@ Account Selector menampilkan semua akun terhubung:
 Akun Disconnected tetap ditampilkan — tidak disembunyikan. Pengguna melihat masalah di titik kritis (saat memilih akun), bukan setelah dijadwalkan. (UXP-04)
 
 Klik tautan **Reconnect** membawa pengguna ke KSP-08.
+
+Pada tata letak ADR-155 daftar ini tampil di popover Channels (daftar centang dengan status koneksi). Akun Disconnected tetap bisa dicentang dengan peringatan dan aksi Reconnect, dan Schedule/Publish Now tidak diblokir di UI (mengikuti perilaku saat ini).
 
 ---
 
@@ -483,7 +493,7 @@ Konfirmasi Jadwal:
 
 Untuk Publish Now, baris "Waktu" berubah jadi "Sekarang" dan tombol menjadi "Konfirmasi & Publish" — struktur ringkasan tetap sama, hanya menegaskan bahwa aksi ini tayang langsung tanpa jeda koreksi seperti `cancelSchedule` pada Schedule.
 
-Confirmation Summary ini adalah pola konfirmasi **paling lengkap** yang didokumentasikan di produk — dipakai khusus untuk dua aksi yang mempublikasikan konten: Schedule dan Publish Now (UXP-04). Disconnect Account punya pola konfirmasi sendiri yang lebih ringkas (KSP-08-F07, ADR-048) karena bukan aksi publish. Aksi lain (Save as Draft, Remove Member, Transfer Ownership, Delete Workspace, dll.) masih belum memiliki spesifikasi konfirmasi apa pun. Format per akun wajib terlihat agar tidak salah jadwalkan Story/Reel.
+Confirmation Summary ini adalah pola konfirmasi **paling lengkap** yang didokumentasikan di produk — dipakai khusus untuk dua aksi yang mempublikasikan konten: Schedule dan Publish Now (UXP-04). Disconnect Account punya pola konfirmasi sendiri yang lebih ringkas (KSP-08-F07, ADR-048) karena bukan aksi publish. Aksi lain (Save as Draft, Remove Member, Transfer Ownership, Delete Workspace, dll.) masih belum memiliki spesifikasi konfirmasi apa pun. Format per akun wajib terlihat agar tidak salah jadwalkan Story/Reel. Pada tata letak ADR-155 panel Pratinjau tetap terlihat saat ringkasan tampil.
 
 ---
 
@@ -500,6 +510,9 @@ Confirmation Summary ini adalah pola konfirmasi **paling lengkap** yang didokume
 | Status Published | Status Indicator menampilkan "Published"; layar read-only dengan opsi lihat di platform |
 | Status Failed | Status Indicator menampilkan "Failed" + pesan alasan; aksi: Retry atau Edit |
 | Akun Disconnected | Warning pada Account Selector + aksi Reconnect |
+| Validasi gagal (media wajib, board Pinterest, Reel bukan video, jadwal di luar 30 hari) | Banner inline di dekat sumbernya (blok jaringan, atas editor, atau footer, lihat F16); Schedule dan Publish Now nonaktif sampai valid (ADR-155) |
+| Satu akun terpilih | Blok jaringan selalu terbuka tanpa akordeon (ADR-155) |
+| Layar sempit (di bawah 640px) | Modal penuh dengan tab Editor / Pratinjau di bawah header; footer ditumpuk; toggle Fullscreen/Standard dan Pratinjau di header disembunyikan (ADR-155) |
 
 ---
 
@@ -1010,7 +1023,7 @@ Keputusan desain yang dibuat dalam dokumen ini.
 | ID | Keputusan | Alasan | Prinsip |
 | -- | --------- | ------ | ------- |
 | KSP-D01 | Home adalah layar orientasi, bukan dashboard kerja — tidak ada aksi berat yang diselesaikan di sini | Home melayani kebutuhan visibility Maya tanpa memaksa Raka melewatinya (IA-D03) | UXP-02, UXP-03 |
-| KSP-D02 | Draft Editor memiliki dua zona: kiri (Caption + Media) dan kanan (Account, Schedule, Actions) | Pemisahan ini memungkinkan Raka fokus menulis di kiri sambil konfigurasi publish di kanan — alur linear dari kiri ke kanan | UXP-01, UXP-03 |
+| KSP-D02 | ~~Draft Editor memiliki dua zona: kiri (Caption + Media) dan kanan (Account, Schedule, Actions)~~ — **Diamandemen ADR-155**: dua zona kiri (Baris Channel + Caption + Media + Blok per Jaringan) dan kanan (Pratinjau live), dengan footer aksi (Save as Draft, Atur jadwal, Publish Now, Schedule) | Pemisahan ini memungkinkan Raka fokus menulis di kiri sambil konfigurasi publish di kanan — alur linear dari kiri ke kanan | UXP-01, UXP-03 |
 | KSP-D03 | ~~AI Assist tampil sebagai trigger di dalam Caption Editor, bukan panel terpisah yang dibuka secara sengaja~~ — **Dicabut ADR-138**. AI bawaan dicabut; tidak ada trigger AI di Caption Editor | ~~AI paling berguna saat muncul tepat di momen penulisan, bukan sebagai destinasi navigasi (UXP-05, I-06)~~ | UXP-05 |
 | KSP-D04 | Account Selector menampilkan akun Disconnected — tidak disembunyikan | Pengguna harus melihat masalah di titik keputusan, bukan setelah post gagal | UXP-04 |
 | KSP-D05 | Confirmation summary muncul sebelum tombol Schedule **atau Publish Now** dieksekusi (ADR-047) | Membangun kepercayaan bahwa konten akan terbit ke akun dan waktu yang benar (UXP-04) | UXP-04 |
@@ -1029,6 +1042,9 @@ Keputusan desain yang dibuat dalam dokumen ini.
 | KSP-D18 | Nama dan host klien selalu ditampilkan di layar persetujuan, dengan catatan nama diberikan klien sendiri (KSP-09-F03) | Semua klien mendaftar sendiri tanpa verifikasi (dynamic client registration); pengguna harus bisa menilai asal klien | UXP-04 |
 | KSP-D19 | Klien AI dikelola di Settings → Account, hanya koneksi milik sendiri, dan pencabutan lewat dialog Tier 2 (KSP-10) | Grant bersifat personal; pencabutan memutus akses seketika sehingga perlu konfirmasi (ADR-049) | UXP-03, UXP-04 |
 | KSP-D20 | Badge dan filter sumber MCP di History, Drafts, Queue; filter bawaan Semua; Calendar tidak diberi badge | Memberi jejak hasil kerja AI tanpa mengubah tampilan default yang sudah disetujui (ADR-052 scope discipline) | UXP-04, UXP-05, UXP-06 |
+| KSP-D21 | Pemilihan akun ada di baris channel di atas editor (popover, chip, Terakhir dipakai, Semua), bukan daftar akun di zona kanan (ADR-155) | Memilih tujuan sebelum menulis membuat Pratinjau dan aturan format langsung relevan, mengikuti pola Create Post Buffer yang dipilih King Rezi | UXP-01, UXP-04 |
+| KSP-D22 | Pratinjau live per platform dan validasi inline di dekat sumbernya (blok jaringan, atas editor, footer) menggantikan Alert tersebar (ADR-155) | Pengguna melihat hasil dan masalah di titik keputusan, bukan setelah menekan Schedule; selaras KSP-D04 | UXP-04 |
+| KSP-D23 | Jadwal lewat popover "Atur jadwal" di footer tanpa "Next Available"; "Create Another" tidak ikut Tahap 1 (bentrok dengan redirect KSP-D15) (ADR-155) | Postific belum punya konsep slot antrean; Create Another akan membuat modal tetap terbuka dan melawan ADR-054 | UXP-01, UXP-04 |
 
 ---
 
@@ -1040,7 +1056,7 @@ Keputusan desain yang dibuat dalam dokumen ini.
 | KSP-02 Calendar | Grid per hari × waktu + klik → Editor | Item Failed, Disconnected warning |
 | KSP-03 Queue | Daftar linear berurutan (grouped by tanggal) + 1 card per item + filter | Queue kosong, filter tidak ada hasil (Item Failed pindah ke History) |
 | KSP-04 Drafts | Daftar draft + CTA New Post | Drafts kosong |
-| KSP-05 Draft Editor | Dua zona (Caption / Konfigurasi) + Confirmation Summary | Akun Disconnected, Status Failed |
+| KSP-05 Draft Editor | Dua zona (Baris Channel + Editor + Blok per Jaringan / Pratinjau) + footer aksi + Confirmation Summary | Akun Disconnected, Status Failed |
 | KSP-06 Inbox | Master-detail + sync status + Manual Refresh | Badge setelah sync, refresh gagal, Inbox kosong |
 | KSP-07 Dashboard | Summary Row + Account Overview + Post Performance | Empty state (belum ada data) |
 | KSP-08 Connected Accounts | Daftar akun + status + aksi kontekstual | Disconnected → Reconnect |

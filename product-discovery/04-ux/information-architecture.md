@@ -133,8 +133,10 @@ Publish
 │   └── Draft Editor          — buat / edit konten
 │       ├── Caption Editor    — area tulis caption
 │       ├── Media Attachment  — lampirkan gambar / video
-│       ├── Account Selector  — pilih akun tujuan
+│       ├── Account Selector  — pilih akun tujuan lewat baris channel: popover Channels, chip akun (ADR-155)
 │       ├── Content Format    — Post / Reel / Story / Pin per akun (ADR-039)
+│       ├── Blok per Jaringan — akordeon berisi format, field platform, dan validasi inline (ADR-155)
+│       ├── Pratinjau Live    — pratinjau per platform di panel kanan (ADR-155)
 │       ├── Schedule Picker   — tentukan waktu publish
 │       ├── Publish Now       — publish langsung tanpa jadwal, semua role (Account Owner/Admin/Creator, ADR-047/ADR-074)
 │       └── Status Indicator  — draft / in review / ready to schedule / scheduled / published / failed

@@ -6,7 +6,7 @@ Draft Editor — Toggle Fullscreen/Standard Naik Status jadi Fitur Resmi, Defaul
 
 ### Status
 
-Accepted
+Accepted — Amended by ADR-155 (2026-11-03, lebar kartu Standard 960 → 1120px; default dan toggle tidak berubah)
 
 ### Date
 
