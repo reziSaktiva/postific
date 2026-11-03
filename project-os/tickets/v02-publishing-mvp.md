@@ -2887,10 +2887,22 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 **What to build:** dasar teknis redesain. Komponen shadcn yang dibutuhkan terpasang, dan `Modal` yang berisi seluruh state form (sekitar 1.770 baris) dipecah menjadi komponen modul tanpa perubahan perilaku yang terlihat pemakai.
 
-- [ ] **T-199.1** Pasang `calendar` lewat workflow CLI/MCP shadcn (discover-first: cek registry dan dokumen komponen, jangan menebak props); sesuaikan dengan token Stone.
-- [ ] **T-199.2** Pasang `accordion` dengan cara yang sama.
-- [ ] **T-199.3** Pecah `Modal` menjadi komponen modul bertanggung jawab tunggal (baris channel, editor dan media, blok jaringan, panel Pratinjau, footer, ringkasan konfirmasi, dialog Resume); state form dan aksi tetap berpusat di satu tempat; entry point tetap tidak berisi business logic (aturan 3 `AGENTS.md`).
+- [x] **T-199.1** Pasang `calendar` lewat workflow CLI/MCP shadcn (discover-first: cek registry dan dokumen komponen, jangan menebak props); sesuaikan dengan token Stone.
+- [x] **T-199.2** Pasang `accordion` dengan cara yang sama.
+- [x] **T-199.3** Pecah `Modal` menjadi komponen modul bertanggung jawab tunggal (baris channel, editor dan media, blok jaringan, panel Pratinjau, footer, ringkasan konfirmasi, dialog Resume); state form dan aksi tetap berpusat di satu tempat; entry point tetap tidak berisi business logic (aturan 3 `AGENTS.md`).
 - [ ] **T-199.4** Perilaku tidak berubah: `typecheck`, `lint`, dan seluruh tes yang ada hijau; suite E2E yang ada tetap hijau.
+
+**Catatan hasil (jalur A, gelombang 1):**
+
+- T-199.1 dan T-199.2: dipasang dengan `bunx shadcn@latest add calendar accordion` dari `apps/web`. CLI menulis `import { cn } from "cn"` dan menambah paket npm `cn` (kekeliruan registry); impor diganti ke `@/lib/utils` dan paket `cn` dibuang. Dependensi baru yang sah: `react-day-picker` dan `date-fns`. Kelas `h-full w-full` di `calendar.tsx` diganti `size-full` oleh lint (setara). `button` tidak ditimpa.
+- T-199.3: `Modal.tsx` tinggal `DraftEditorModal` (cangkang Dialog, varian Standard/Fullscreen, snapshot tutup). State, efek, nilai turunan, dan aksi form dipusatkan di `useDraftEditorForm.ts`; `DraftEditorForm.tsx` hanya menyusun komponen modul: `EditorHeader`, `FormAlerts`, `CaptionEditor`, `MediaSection`, `AccountSelector` (berisi `ChannelRow`, `NetworkBlock`, `PinterestFields`), `ScheduleSection`, `ConfirmationSummary`, `EditorFooter`, `ResumeDialog`. Konstanta dan helper bersama ada di `form-shared.ts`. Export `DraftEditorModal`, Context, dan `Mount` tidak berubah.
+- Panel Pratinjau belum ada di kode sekarang, jadi belum ada komponen yang bisa dipecah untuk itu; dibuat di tiket berikutnya (T-201).
+- Catatan review Standards (Ridwan, 2026-11-03, nol pelanggaran keras): (a) setiap `shadcn add` berikutnya wajib diikuti `grep 'from "cn"'` dan `git diff` pada `button.tsx`, karena registry masih mengisi `cn` dan menawarkan menimpa `button.tsx`; (b) `useDraftEditorForm.ts` (805 baris, sekitar 55 field kembalian) kandidat pemecahan sub-hook (mis. `usePinterestBoards`, `useDraftMedia`, turunan validasi) saat tiket redesain berikutnya menyentuhnya, sambil menjaga state di satu hook induk; (c) `react-day-picker` dan `date-fns` baru dipakai mulai T-202 dan T-205, ukur chunk Draft Editor saat itu; (d) komentar domain yang menunjuk `Modal.tsx` sebagai mirror client sudah diarahkan ke `useDraftEditorForm.ts` dan `ScheduleSection.tsx` di branch integrasi.
+
+**Belum terbukti (jangan diasumsikan):**
+
+- Suite E2E Playwright dan tampilan di browser sungguhan belum dijalankan untuk T-199 (butuh `.env.local` dan login akun uji; tidak ada di worktree). Suite E2E yang ada juga tidak menyentuh Draft Editor. Kesetaraan perilaku dibuktikan dengan perbandingan DOM dan panggilan aksi antara `Modal.tsx` lama dan baru di jsdom (sementara, tidak di-commit), bukan dengan mata di browser.
+- Tidak ada tes permanen baru: refactor murni, dan tes yang hanya mengintip struktur internal komponen hasil pecahan sengaja tidak ditambah.
 
 **Blocked by:** tidak ada
 
@@ -2900,7 +2912,7 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 | Field       | Value                                                                                                                |
 | ----------- | -------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | ⏳ Not Started                                                                                                       |
+| **Status**  | 🟡 In Progress (T-200.1 sampai T-200.5 dikerjakan di branch jalur; menunggu review)                                  |
 | **Mode**    | AFK                                                                                                                  |
 | **Domain**  | publishing · MCP · draft editor                                                                                      |
 | **Spec**    | S-005                                                                                                                |
@@ -2912,15 +2924,34 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 **What to build:** Reel (Facebook dan Instagram) hanya sah dengan satu video. Pelanggaran ditolak di server untuk setiap jalur Schedule dan Publish Now, dan klien menyediakan hasil aturan yang sama untuk dipakai blok jaringan.
 
-- [ ] **T-200.1** Cek dokumen Outstand per jaringan (Instagram Reel, Facebook Reel): jenis dan jumlah media yang diterima. Catat hasilnya di tiket ini; bila dokumen tidak eksplisit, tulis di "Belum terbukti" dan tanyakan ke King Rezi sebelum menegakkan.
-- [ ] **T-200.2** Domain `content-format-matrix`: tambah aturan jenis media untuk pasangan platform dan format Reel (satu video), beserta pesan "Reel membutuhkan satu video. Ganti media dengan video, atau pilih format Post atau Story." Tes unit per platform, termasuk media gambar, campuran, dan lebih dari satu video.
-- [ ] **T-200.3** Tegakkan di server: `scheduleDraftAction`, `publishNowAction`, dan jalur MCP `schedule_posts`. Save as Draft tetap boleh melanggar (draft boleh tidak lengkap). Tes unit untuk tiap jalur.
-- [ ] **T-200.4** Sediakan fungsi murni yang sama untuk klien (dipakai T-202 untuk menonaktifkan opsi Reel dan menampilkan pesan); tidak ada logika duplikat.
-- [ ] **T-200.5** Perbarui bagian "Belum terbukti" T-197 (jenis media Reel kini ditegakkan; YouTube tetap belum).
+- [x] `(2026-11-03)` **T-200.1** Cek dokumen Outstand per jaringan (Instagram Reel, Facebook Reel): jenis dan jumlah media yang diterima. Catat hasilnya di tiket ini; bila dokumen tidak eksplisit, tulis di "Belum terbukti" dan tanyakan ke King Rezi sebelum menegakkan.
+
+  **Hasil T-200.1 (2026-11-03, dokumen dibaca mentah dari outstand.so):**
+
+  - **Facebook Reel: eksplisit.** `docs/configurations/facebook`, bagian "Reels Limitations": "One video, no images - a Reel is exactly one video." Tabel format: Reel "Exactly one video, no images, no multiple media." Reel ditentukan lewat `publishAsReel: true` (adapter kita sudah mengirimnya).
+  - **Instagram Reel: TIDAK eksplisit.** `docs/configurations/instagram` tidak memuat kalimat "Reel wajib tepat satu video". Yang ada: "Video posts / Reels (through Instagram's publishing API)" (satu butir daftar yang sama untuk video biasa dan Reel), tabel Reels hanya berisi kontainer MOV atau MP4, durasi 3 detik sampai 15 menit, dan rasio 9:16; "Reels only - a cover image can only be set on a single-video post" (aturan cover, bukan aturan jumlah media). Dokumen Instagram tidak punya flag Reel (Story punya `publishAsStory`), dan adapter kita juga tidak mengirim flag apa pun untuk Instagram Reel versus Post. Jadi "satu video" untuk Instagram adalah kesimpulan dari contoh dan aturan cover, bukan pernyataan dokumen.
+  - Keputusan King Rezi (2026-11-03): tegakkan SATU aturan untuk Facebook dan Instagram (ADR-155 addendum B.1); Instagram tetap tercatat belum terbukti di dokumen Outstand dan belum diuji di akun nyata.
+
+- [x] `(2026-11-03)` **T-200.2** Domain `content-format-matrix`: tambah aturan jenis media untuk pasangan platform dan format Reel (satu video), beserta pesan "Reel membutuhkan satu video. Ganti media dengan video, atau pilih format Post atau Story." Tes unit per platform, termasuk media gambar, campuran, dan lebih dari satu video.
+- [x] `(2026-11-03)` **T-200.3** Tegakkan di server: `scheduleDraftAction`, `publishNowAction`, dan jalur MCP `schedule_posts`. Save as Draft tetap boleh melanggar (draft boleh tidak lengkap). Tes unit untuk tiap jalur.
+- [x] `(2026-11-03)` **T-200.4** Sediakan fungsi murni yang sama untuk klien (dipakai T-202 untuk menonaktifkan opsi Reel dan menampilkan pesan); tidak ada logika duplikat.
+- [x] `(2026-11-03)` **T-200.5** Perbarui bagian "Belum terbukti" T-197 (jenis media Reel kini ditegakkan; YouTube tetap belum).
+
+**Catatan implementasi (2026-11-03):**
+
+- Domain: `reelMediaConstraintMessage`, `assertReelMediaRule`, `isVideoOnlyReelTarget`, dan `REEL_REQUIRES_VIDEO_MESSAGE` di `content-format-matrix.ts`. Fungsi yang sama dipakai server dan klien (T-202: kirim satu target `{platform, contentFormat: Reel}` dan media terpilih). Media kosong mengembalikan `null` (itu urusan batas minimum); GIF, gambar, campuran, lebih dari satu media, dan media tanpa jenis melanggar.
+- Server: `scheduleDraftAction` dan `publishNowAction` (jenis media dari media yang dikirim, atau dari media draft tersimpan bila `mediaIds` tidak dikirim, tanpa migrasi); MCP `schedule_posts` lewat `ScheduleContentsUseCase.planContent`, sebelum kuota dan sebelum draft dibuat. Save as Draft tidak dicek. Deskripsi tool MCP memuat aturannya.
+- Untuk dua media atau lebih (dua video, atau gambar dan video), server menolak lewat batas maksimum Reel yang lama (pesan "melebihi batas maksimum 1") karena batas itu dicek lebih dulu; pesan Reel muncul di server untuk satu gambar atau satu GIF. Fungsi murni klien mengembalikan pesan Reel untuk semua pelanggaran, termasuk dua media atau lebih.
+- Media draft tersimpan (`mediaIds` tidak dikirim): `scheduleDraftAction` dan `publishNowAction` kini membaca media draft sekali dan memvalidasi keberadaan dan kepemilikannya (`resolveDraftMediaIds`, pesan sama) untuk SEMUA format, karena ID di `PublishingPost.mediaIds` (kolom `UUID[]` tanpa foreign key) tidak dilepas saat media dihapus (`DeleteMediaUseCase`). Sebelumnya ID yang hilang baru ketahuan setelah post dipersist dan Outstand dipanggil, lalu post ditandai Failed. Penyebab dasarnya (penghapusan media tidak melepas ID dari draft lain) belum diperbaiki dan di luar lingkup T-200.
+- Aturan Reel hanya dijaga di Server Action dan `ScheduleContentsUseCase`, tidak di `SchedulePostsUseCase` dan `PublishNowUseCase`: use case itu baru membaca media setelah post dipersist (dan tipenya tidak ada di `PostMediaItemForPublish`), jadi menaruh aturan di sana butuh pembacaan media tambahan sebelum persist atau menandai post Failed. Tidak dipaksakan.
 
 **Belum terbukti (jangan diasumsikan):**
 
 - Aturan "Reel wajib video" adalah keputusan King Rezi (ADR-155 addendum B.1); kalimat eksplisit di dokumen Outstand per jaringan diperiksa di T-200.1.
+- Instagram: dokumen Outstand tidak eksplisit bahwa Reel butuh tepat satu video (hasil T-200.1); hanya Facebook yang eksplisit. Aturan Instagram Reel ditegakkan sebagai keputusan King Rezi, belum terbukti di dokumen Outstand dan belum diuji di akun Instagram nyata (apakah Outstand atau Instagram menolak Reel bergambar belum diketahui).
+- Penegakan hanya diuji dengan tes unit (domain, use-case, Server Action, definisi tool MCP); belum diverifikasi di staging maupun dengan publish nyata ke Outstand.
+- Jenis media untuk platform lain (YouTube, TikTok) belum ditegakkan.
+- Di antara T-200 dan T-202, Modal Draft Editor masih mengizinkan memilih Reel dengan media gambar; server menolak saat Schedule atau Publish Now (pesan Reel untuk satu gambar atau GIF, pesan batas maksimum untuk dua media atau lebih). Modal baru baru sinkron dengan server setelah T-202.
 
 **Blocked by:** tidak ada
 
@@ -3081,6 +3112,8 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 - [ ] **T-206.4** Mode gelap: seluruh zona, Pratinjau, popover, dan banner memakai token tema; tidak ada kedipan terang.
 - [ ] **T-206.5** Tes unit untuk logika varian (mis. visibilitas toggle per lebar layar) bila ada logika murni.
 
+**Temuan QA lama (Najwa, 2026-11-03, staging, kode sebelum refactor):** Fullscreen di desktop (lebar viewport 640px atau lebih) hanya selebar 448px dan menempel di kiri, bukan menutupi viewport seperti KSP-05. Penyebabnya `DialogContent` bawaan membawa `sm:max-w-md` yang mengalahkan `max-w-none` tanpa prefiks; kode ini sudah ada di `Modal.tsx` lama dan ikut terbawa refactor T-199 tanpa perubahan. Perbaiki di T-206.1 dan buktikan di T-207.1. Pada viewport 375px checkbox akun terukur meluber horizontal sedikit tanpa scroll halaman (aksesibilitas ringan, juga lama).
+
 **Blocked by:** T-201 sampai T-205
 
 ---
@@ -3107,6 +3140,8 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 - [ ] **T-207.5** `typecheck`, `lint`, dan tes hijau. Status T-199 sampai T-206 menjadi Done (code).
 - [ ] **T-207.6** Verified (staging) satu kali per gelombang (ADR-153): verifikasi King Rezi di staging; tanpa akun media sosial nyata untuk post Scheduled sebelum T-195 selesai.
 - [ ] **T-207.7** Pastikan baseline `product-discovery/04-ux/` (KSP-05, KSP-D02, NP-D11) masih sesuai hasil akhir; selisih dilaporkan ke King Rezi, bukan diubah diam-diam.
+
+**Catatan lingkungan QA (2026-11-03):** `apps/web/.env.local` mengarahkan `E2E_BASE_URL` ke staging, sehingga `bun run test:e2e` tanpa override menjalankan tes terhadap staging, bukan kode lokal. Untuk target lokal tulis `E2E_BASE_URL=http://localhost:3000` secara eksplisit. Login E2E ke localhost gagal pada sesi QA ini ("Invalid password"; `E2E_USER_PASSWORD` tidak cocok untuk Better Auth lokal), jadi E2E lokal untuk Draft Editor belum pernah dijalankan; spesifikasi sementara Najwa (13 tes, lulus terhadap staging kode lama) bisa jadi dasar `e2e/draft-editor.e2e.ts`. Satu file PNG 1x1 yatim `e2e-qa-*-b.png` tertinggal di Storage workspace E2E Sandbox dari run yang gagal; hapus saat pembersihan.
 
 **Blocked by:** T-206
 

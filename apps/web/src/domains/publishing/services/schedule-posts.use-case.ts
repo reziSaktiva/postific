@@ -126,7 +126,7 @@ export class SchedulePostsUseCase {
       assertContentFormatAllowed(target.platform, target.contentFormat);
     }
     assertPinterestBoardConstraints(input.targets);
-    // T-108.2 (KI-044) — defense-in-depth: validasi client di `Modal.tsx`
+    // T-108.2 (KI-044) — defense-in-depth: validasi client di `useDraftEditorForm.ts`
     // bisa dilewati (request langsung ke Server Action, jam sistem client
     // berbeda dari server, dll). Reject di sini juga, sebelum apa pun
     // dipersist.

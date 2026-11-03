@@ -88,7 +88,7 @@ export function FacebookPagesPickerDialog({
   // Reset state saat "sesi" dialog berganti (dialog dibuka ulang dengan
   // state berbeda) — diadaptasi SELAMA render (bukan di dalam
   // `useEffect`), pola yang sama dengan penyesuaian
-  // `hasCheckedAutoAdvance` di `draft-editor/Modal.tsx`, supaya tidak
+  // `hasCheckedAutoAdvance` di `draft-editor/useDraftEditorForm.ts`, supaya tidak
   // memicu render effect tambahan (`react-hooks/set-state-in-effect`)
   // untuk reset state turunan sederhana seperti ini.
   const sessionKey = open ? state : null;

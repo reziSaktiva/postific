@@ -1,9 +1,11 @@
-import type { MediaId } from "@postific/shared";
+import type { MediaId, MediaType } from "@postific/shared";
 import { ValidationError } from "@/lib/utils/errors";
 
 /** Bentuk minimal yang dibutuhkan dari `MediaItemRecord` (domain `media`) untuk validasi ini. */
 export interface MediaOwnershipRecord {
   id: MediaId;
+  /** Jenis media; dipakai aturan Reel wajib video (T-200). Kosong dianggap bukan video. */
+  type?: MediaType;
 }
 
 /**

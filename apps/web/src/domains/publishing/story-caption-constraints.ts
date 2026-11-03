@@ -2,7 +2,7 @@ import { ContentFormat } from "@postific/shared";
 
 /**
  * Aturan caption dan Story (KI-073) yang dipakai bersama Draft Editor
- * (`Modal.tsx`) dan Safety Check di server (`assertScheduleSafetyCheck`,
+ * (`useDraftEditorForm.ts`) dan Safety Check di server (`assertScheduleSafetyCheck`,
  * T-153), supaya tidak ada dua salinan yang bisa menyimpang (T-192.1). Pola
  * sama `pinterestBoardConstraintMessage`: fungsi murni, mengembalikan pesan
  * atau `null`.

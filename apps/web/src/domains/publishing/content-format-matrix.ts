@@ -1,4 +1,4 @@
-import { ContentFormat, SocialPlatform } from "@postific/shared";
+import { ContentFormat, MediaType, SocialPlatform } from "@postific/shared";
 import { PublishingDomainError } from "./errors";
 
 /**
@@ -215,7 +215,7 @@ function joinLabels(labels: string[]): string {
  * Pesan constraint minimum media (KI-074, ADR-154) — `null` kalau
  * `mediaCount` sudah memenuhi batas minimum efektif untuk `targets`. Pola
  * sama `pinterestBoardConstraintMessage`: satu implementasi dipakai bersama
- * oleh client (gating tombol + pesan, `Modal.tsx`) dan
+ * oleh client (gating tombol + pesan, `useDraftEditorForm.ts`) dan
  * `assertMediaCountMeetsMinimum` (server, throw). Pesan menyebut semua
  * target yang wajib media.
  */
@@ -242,6 +242,73 @@ export function assertMediaCountMeetsMinimum(
   targets: ReadonlyArray<MediaTarget>,
 ): void {
   const message = minMediaCountConstraintMessage(mediaCount, targets);
+  if (message) {
+    throw new PublishingDomainError(message);
+  }
+}
+
+/**
+ * Pesan pelanggaran aturan Reel (ADR-155 addendum B.1, mengamandemen
+ * ADR-154): Reel hanya sah dengan satu video. Satu teks untuk klien dan
+ * server supaya tidak bisa berbeda.
+ */
+export const REEL_REQUIRES_VIDEO_MESSAGE =
+  "Reel membutuhkan satu video. Ganti media dengan video, atau pilih format Post atau Story.";
+
+/**
+ * Platform yang format `Reel`-nya wajib satu video. Facebook: dokumen
+ * Outstand eksplisit ("a Reel is exactly one video"). Instagram: dokumen
+ * Outstand TIDAK eksplisit; aturan ini keputusan King Rezi (ADR-155 addendum
+ * B.1) dan belum diuji di akun nyata (T-200.1). Dua jaringan memakai satu
+ * aturan yang sama.
+ */
+const REEL_VIDEO_ONLY_PLATFORMS: ReadonlySet<SocialPlatform> = new Set([
+  SocialPlatform.Instagram,
+  SocialPlatform.Facebook,
+]);
+
+/** Bentuk media minimal untuk aturan Reel. `type` kosong dianggap bukan video. */
+export interface ReelMediaItem {
+  type?: MediaType;
+}
+
+/** `true` bila target ini berformat Reel di platform yang wajib satu video. */
+export function isVideoOnlyReelTarget(target: MediaTarget): boolean {
+  return (
+    target.contentFormat === ContentFormat.Reel &&
+    REEL_VIDEO_ONLY_PLATFORMS.has(target.platform)
+  );
+}
+
+/**
+ * Pesan aturan Reel (T-200) — `null` bila tidak ada target Reel, bila belum
+ * ada media sama sekali, atau bila media tepat satu video. Satu implementasi
+ * untuk klien (menonaktifkan opsi Reel di blok jaringan: kirim satu target
+ * `{platform, contentFormat: Reel}`) dan `assertReelMediaRule` (server).
+ *
+ * Media kosong sengaja `null`: itu urusan batas minimum
+ * (`minMediaCountConstraintMessage`, "tanpa media"), sehingga pengguna yang
+ * memilih Reel sebelum mengunggah media tidak langsung ditolak. Gambar, GIF,
+ * campuran media, dan lebih dari satu media melanggar.
+ */
+export function reelMediaConstraintMessage(
+  targets: ReadonlyArray<MediaTarget>,
+  media: ReadonlyArray<ReelMediaItem>,
+): string | null {
+  if (!targets.some(isVideoOnlyReelTarget) || media.length === 0) {
+    return null;
+  }
+  const exactlyOneVideo =
+    media.length === 1 && media[0]?.type === MediaType.Video;
+  return exactlyOneVideo ? null : REEL_REQUIRES_VIDEO_MESSAGE;
+}
+
+/** Throws `PublishingDomainError` bila media melanggar aturan Reel (T-200). */
+export function assertReelMediaRule(
+  targets: ReadonlyArray<MediaTarget>,
+  media: ReadonlyArray<ReelMediaItem>,
+): void {
+  const message = reelMediaConstraintMessage(targets, media);
   if (message) {
     throw new PublishingDomainError(message);
   }

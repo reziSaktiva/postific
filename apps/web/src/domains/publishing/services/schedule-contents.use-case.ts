@@ -14,6 +14,7 @@ import {
   ValidationError,
 } from "@/lib/utils/errors";
 import { PublishingDomainError } from "../errors";
+import { assertReelMediaRule } from "../content-format-matrix";
 import { assertScheduleSafetyCheck } from "../schedule-safety-check";
 import type {
   IPublishingRepository,
@@ -292,6 +293,9 @@ export class ScheduleContentsUseCase {
         input.actingUserId,
       );
       resolveDraftMediaIds(foundMedia, mediaIds);
+      // T-200: jenis media baru diketahui setelah dibaca, jadi aturan Reel
+      // wajib video dicek di sini (masih sebelum kuota dan sebelum menulis).
+      assertReelMediaRule(targets, foundMedia);
     }
     return { targets, foundMedia };
   }

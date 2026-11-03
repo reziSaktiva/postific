@@ -20,6 +20,7 @@ import {
   assertActorCanPublishNow,
   assertMediaCountMeetsMinimum,
   assertMediaCountWithinLimit,
+  assertReelMediaRule,
   PublishingService,
   PublishNowUseCase,
   resolveDraftMediaIds,
@@ -82,6 +83,67 @@ function resolveMediaIdsAgainstFormats(
   const resolved = resolveDraftMediaIds(found, requestedMediaIds);
   assertMediaCountWithinLimit(resolved.length, activeFormats);
   return resolved;
+}
+
+/**
+ * Media efektif untuk `scheduleDraftAction`/`publishNowAction` (Save as Draft
+ * tidak memakainya, draft boleh belum lengkap). Satu tempat untuk tiga hal:
+ *
+ * - `mediaIds` dikirim client: jumlahnya, dan `foundMedia` (sudah divalidasi
+ *   kepemilikannya) sebagai media efektif.
+ * - `mediaIds` tidak dikirim dan ada `postId`: media draft tersimpan dibaca
+ *   dan batas maksimum ADR-107 ditegakkan terhadap `activeFormats`. ID di
+ *   `PublishingPost.mediaIds` bisa tertinggal setelah media dihapus (kolom
+ *   `UUID[]` tanpa foreign key, `DeleteMediaUseCase` tidak melepasnya), jadi
+ *   keberadaan dan kepemilikannya divalidasi dengan `resolveDraftMediaIds`
+ *   (pesan sama) sebelum draft dijadwalkan atau dipublish.
+ * - selain itu (post baru tanpa `mediaIds`): 0 media.
+ *
+ * Hasilnya dipakai `assertMediaCountMeetsMinimum` (KI-074, ADR-154) dan
+ * `assertReelMediaRule` (T-200, ADR-155 addendum B.1) di pemanggil. Satu
+ * pembacaan `listByIds` untuk draft tersimpan, dipakai bersama kedua aturan.
+ */
+async function resolveEffectiveDraftMedia(params: {
+  publishingService: PublishingService;
+  mediaService: MediaService;
+  workspaceId: WorkspaceId;
+  actingUserId: UserId;
+  postId: string | undefined;
+  /** Hasil `resolveMediaIdsAgainstFormats`; `undefined` bila client tidak mengirim `mediaIds`. */
+  mediaIds: MediaId[] | undefined;
+  foundMedia: Parameters<typeof assertReelMediaRule>[1];
+  activeFormats: ContentFormat[];
+}): Promise<{
+  effectiveMediaCount: number;
+  media: Parameters<typeof assertReelMediaRule>[1];
+}> {
+  if (params.mediaIds !== undefined) {
+    return {
+      effectiveMediaCount: params.mediaIds.length,
+      media: params.foundMedia,
+    };
+  }
+  if (!params.postId) {
+    return { effectiveMediaCount: 0, media: [] };
+  }
+
+  const existingDraft = await params.publishingService.getDraftById(
+    params.workspaceId,
+    asPostId(params.postId),
+    params.actingUserId,
+  );
+  const storedMediaIds = existingDraft.mediaIds ?? [];
+  assertMediaCountWithinLimit(storedMediaIds.length, params.activeFormats);
+  if (storedMediaIds.length === 0) {
+    return { effectiveMediaCount: 0, media: [] };
+  }
+
+  const stored = await params.mediaService.listByIds(
+    { workspaceId: params.workspaceId, mediaIds: storedMediaIds },
+    params.actingUserId,
+  );
+  resolveDraftMediaIds(stored, storedMediaIds);
+  return { effectiveMediaCount: storedMediaIds.length, media: stored };
 }
 
 /**
@@ -598,16 +660,16 @@ export async function scheduleDraftAction(
     // dipersist sebelumnya (lihat catatan `resolveAndValidateMediaIds`) — batas
     // ADR-107 tetap wajib ditegakkan terhadap `activeFormats` yang baru saja
     // di-resolve, bukan hanya saat client mengirim `mediaIds` eksplisit.
-    let effectiveMediaCount = mediaIds?.length ?? 0;
-    if (mediaIds === undefined && input.postId) {
-      const existingDraft = await publishingService.getDraftById(
-        workspaceId,
-        asPostId(input.postId),
-        actingUserId,
-      );
-      effectiveMediaCount = existingDraft.mediaIds?.length ?? 0;
-      assertMediaCountWithinLimit(effectiveMediaCount, activeFormats);
-    }
+    const { effectiveMediaCount, media } = await resolveEffectiveDraftMedia({
+      publishingService,
+      mediaService,
+      workspaceId,
+      actingUserId,
+      postId: input.postId,
+      mediaIds,
+      foundMedia,
+      activeFormats,
+    });
     // KI-074, ADR-154: batas MINIMUM (Story/Reel/Pin dan Instagram/TikTok/YouTube butuh ≥1 media) — beda dari
     // `assertMediaCountWithinLimit` di atas (yang cuma menegakkan batas
     // maksimum), ini SENGAJA dievaluasi terhadap `effectiveMediaCount` untuk
@@ -621,6 +683,8 @@ export async function scheduleDraftAction(
     // masih disusun (belum siap dijadwalkan/dipublish) boleh belum punya
     // media sama sekali.
     assertMediaCountMeetsMinimum(effectiveMediaCount, targets);
+    // T-200: Reel wajib tepat satu video (jenis media, bukan hanya jumlah).
+    assertReelMediaRule(targets, media);
 
     const post = input.postId
       ? await publishingService.updateDraft(
@@ -739,16 +803,16 @@ export async function publishNowAction(
     // dipersist sebelumnya (lihat catatan `resolveAndValidateMediaIds`) — batas
     // ADR-107 tetap wajib ditegakkan terhadap `activeFormats` yang baru saja
     // di-resolve, bukan hanya saat client mengirim `mediaIds` eksplisit.
-    let effectiveMediaCount = mediaIds?.length ?? 0;
-    if (mediaIds === undefined && input.postId) {
-      const existingDraft = await publishingService.getDraftById(
-        workspaceId,
-        asPostId(input.postId),
-        actingUserId,
-      );
-      effectiveMediaCount = existingDraft.mediaIds?.length ?? 0;
-      assertMediaCountWithinLimit(effectiveMediaCount, activeFormats);
-    }
+    const { effectiveMediaCount, media } = await resolveEffectiveDraftMedia({
+      publishingService,
+      mediaService,
+      workspaceId,
+      actingUserId,
+      postId: input.postId,
+      mediaIds,
+      foundMedia,
+      activeFormats,
+    });
     // KI-074, ADR-154: batas MINIMUM (Story/Reel/Pin dan Instagram/TikTok/YouTube butuh ≥1 media) — beda dari
     // `assertMediaCountWithinLimit` di atas (yang cuma menegakkan batas
     // maksimum), ini SENGAJA dievaluasi terhadap `effectiveMediaCount` untuk
@@ -762,6 +826,8 @@ export async function publishNowAction(
     // masih disusun (belum siap dijadwalkan/dipublish) boleh belum punya
     // media sama sekali.
     assertMediaCountMeetsMinimum(effectiveMediaCount, targets);
+    // T-200: Reel wajib tepat satu video (jenis media, bukan hanya jumlah).
+    assertReelMediaRule(targets, media);
 
     const post = input.postId
       ? await publishingService.updateDraft(

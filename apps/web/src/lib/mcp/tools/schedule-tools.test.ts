@@ -24,6 +24,7 @@ import {
 import {
   maxMediaCountForFormat,
   minMediaCountForFormat,
+  REEL_REQUIRES_VIDEO_MESSAGE,
   type ScheduleContentOutcome,
   ScheduleContentsUseCase,
 } from "@/domains/publishing";
@@ -158,6 +159,17 @@ describe("schedule_posts media rules (derived from the format matrix, T-192.4)",
       `Post boleh ${minMediaCountForFormat(ContentFormat.Post)} sampai ${maxMediaCountForFormat(ContentFormat.Post)}`,
     );
     expect(description).toMatch(/Reel, Story, dan Pin wajib tepat 1 media/);
+  });
+
+  it("tells the AI client that a Reel on Facebook and Instagram needs exactly one video, in the tool and in mediaIds (T-200)", () => {
+    const posts = schedulePosts.inputSchema.properties.posts as {
+      items: { properties: { mediaIds: { description: string } } };
+    };
+
+    expect(schedulePosts.description).toContain(REEL_REQUIRES_VIDEO_MESSAGE);
+    expect(posts.items.properties.mediaIds.description).toMatch(
+      /Reel di Facebook dan Instagram, medianya wajib satu video/,
+    );
   });
 });
 
