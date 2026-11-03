@@ -2911,7 +2911,7 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 | Field       | Value                                                                                                                |
 | ----------- | -------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | ⏳ Not Started                                                                                                       |
+| **Status**  | 🟡 In Progress (T-200.1 sampai T-200.5 dikerjakan di branch jalur; menunggu review)                                  |
 | **Mode**    | AFK                                                                                                                  |
 | **Domain**  | publishing · MCP · draft editor                                                                                      |
 | **Spec**    | S-005                                                                                                                |
@@ -2923,15 +2923,32 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 **What to build:** Reel (Facebook dan Instagram) hanya sah dengan satu video. Pelanggaran ditolak di server untuk setiap jalur Schedule dan Publish Now, dan klien menyediakan hasil aturan yang sama untuk dipakai blok jaringan.
 
-- [ ] **T-200.1** Cek dokumen Outstand per jaringan (Instagram Reel, Facebook Reel): jenis dan jumlah media yang diterima. Catat hasilnya di tiket ini; bila dokumen tidak eksplisit, tulis di "Belum terbukti" dan tanyakan ke King Rezi sebelum menegakkan.
-- [ ] **T-200.2** Domain `content-format-matrix`: tambah aturan jenis media untuk pasangan platform dan format Reel (satu video), beserta pesan "Reel membutuhkan satu video. Ganti media dengan video, atau pilih format Post atau Story." Tes unit per platform, termasuk media gambar, campuran, dan lebih dari satu video.
-- [ ] **T-200.3** Tegakkan di server: `scheduleDraftAction`, `publishNowAction`, dan jalur MCP `schedule_posts`. Save as Draft tetap boleh melanggar (draft boleh tidak lengkap). Tes unit untuk tiap jalur.
-- [ ] **T-200.4** Sediakan fungsi murni yang sama untuk klien (dipakai T-202 untuk menonaktifkan opsi Reel dan menampilkan pesan); tidak ada logika duplikat.
-- [ ] **T-200.5** Perbarui bagian "Belum terbukti" T-197 (jenis media Reel kini ditegakkan; YouTube tetap belum).
+- [x] `(2026-11-03)` **T-200.1** Cek dokumen Outstand per jaringan (Instagram Reel, Facebook Reel): jenis dan jumlah media yang diterima. Catat hasilnya di tiket ini; bila dokumen tidak eksplisit, tulis di "Belum terbukti" dan tanyakan ke King Rezi sebelum menegakkan.
+
+  **Hasil T-200.1 (2026-11-03, dokumen dibaca mentah dari outstand.so):**
+
+  - **Facebook Reel: eksplisit.** `docs/configurations/facebook`, bagian "Reels Limitations": "One video, no images - a Reel is exactly one video." Tabel format: Reel "Exactly one video, no images, no multiple media." Reel ditentukan lewat `publishAsReel: true` (adapter kita sudah mengirimnya).
+  - **Instagram Reel: TIDAK eksplisit.** `docs/configurations/instagram` tidak memuat kalimat "Reel wajib tepat satu video". Yang ada: "Video posts / Reels (through Instagram's publishing API)" (satu butir daftar yang sama untuk video biasa dan Reel), tabel Reels hanya berisi kontainer MOV atau MP4, durasi 3 detik sampai 15 menit, dan rasio 9:16; "Reels only - a cover image can only be set on a single-video post" (aturan cover, bukan aturan jumlah media). Dokumen Instagram tidak punya flag Reel (Story punya `publishAsStory`), dan adapter kita juga tidak mengirim flag apa pun untuk Instagram Reel versus Post. Jadi "satu video" untuk Instagram adalah kesimpulan dari contoh dan aturan cover, bukan pernyataan dokumen.
+  - Keputusan King Rezi (2026-11-03): tegakkan SATU aturan untuk Facebook dan Instagram (ADR-155 addendum B.1); Instagram tetap tercatat belum terbukti di dokumen Outstand dan belum diuji di akun nyata.
+
+- [x] `(2026-11-03)` **T-200.2** Domain `content-format-matrix`: tambah aturan jenis media untuk pasangan platform dan format Reel (satu video), beserta pesan "Reel membutuhkan satu video. Ganti media dengan video, atau pilih format Post atau Story." Tes unit per platform, termasuk media gambar, campuran, dan lebih dari satu video.
+- [x] `(2026-11-03)` **T-200.3** Tegakkan di server: `scheduleDraftAction`, `publishNowAction`, dan jalur MCP `schedule_posts`. Save as Draft tetap boleh melanggar (draft boleh tidak lengkap). Tes unit untuk tiap jalur.
+- [x] `(2026-11-03)` **T-200.4** Sediakan fungsi murni yang sama untuk klien (dipakai T-202 untuk menonaktifkan opsi Reel dan menampilkan pesan); tidak ada logika duplikat.
+- [x] `(2026-11-03)` **T-200.5** Perbarui bagian "Belum terbukti" T-197 (jenis media Reel kini ditegakkan; YouTube tetap belum).
+
+**Catatan implementasi (2026-11-03):**
+
+- Domain: `reelMediaConstraintMessage`, `assertReelMediaRule`, `isVideoOnlyReelTarget`, dan `REEL_REQUIRES_VIDEO_MESSAGE` di `content-format-matrix.ts`. Fungsi yang sama dipakai server dan klien (T-202: kirim satu target `{platform, contentFormat: Reel}` dan media terpilih). Media kosong mengembalikan `null` (itu urusan batas minimum); GIF, gambar, campuran, lebih dari satu media, dan media tanpa jenis melanggar.
+- Server: `scheduleDraftAction` dan `publishNowAction` (jenis media dari media yang dikirim, atau dari media draft tersimpan bila `mediaIds` tidak dikirim, tanpa migrasi); MCP `schedule_posts` lewat `ScheduleContentsUseCase.planContent`, sebelum kuota dan sebelum draft dibuat. Save as Draft tidak dicek. Deskripsi tool MCP memuat aturannya.
+- Untuk dua media atau lebih (dua video, atau gambar dan video), server menolak lewat batas maksimum Reel yang lama (pesan "melebihi batas maksimum 1") karena batas itu dicek lebih dulu; pesan Reel muncul di server untuk satu gambar atau satu GIF. Fungsi murni klien mengembalikan pesan Reel untuk semua pelanggaran, termasuk dua media atau lebih.
 
 **Belum terbukti (jangan diasumsikan):**
 
 - Aturan "Reel wajib video" adalah keputusan King Rezi (ADR-155 addendum B.1); kalimat eksplisit di dokumen Outstand per jaringan diperiksa di T-200.1.
+- Instagram: dokumen Outstand tidak eksplisit bahwa Reel butuh tepat satu video (hasil T-200.1); hanya Facebook yang eksplisit. Aturan Instagram Reel ditegakkan sebagai keputusan King Rezi, belum terbukti di dokumen Outstand dan belum diuji di akun Instagram nyata (apakah Outstand atau Instagram menolak Reel bergambar belum diketahui).
+- Penegakan hanya diuji dengan tes unit (domain, use-case, Server Action, definisi tool MCP); belum diverifikasi di staging maupun dengan publish nyata ke Outstand.
+- Jenis media untuk platform lain (YouTube, TikTok) belum ditegakkan.
+- Di antara T-200 dan T-202, Modal Draft Editor masih mengizinkan memilih Reel dengan media gambar; server menolak saat Schedule atau Publish Now (pesan Reel untuk satu gambar atau GIF, pesan batas maksimum untuk dua media atau lebih). Modal baru baru sinkron dengan server setelah T-202.
 
 **Blocked by:** tidak ada
 

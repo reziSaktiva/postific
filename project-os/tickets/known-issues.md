@@ -1610,7 +1610,7 @@ Penyebab: `MEDIA_COUNT_BOUNDS_BY_FORMAT` menetapkan `Post` min 0 untuk semua pla
   di dokumen Outstand.
 - Instagram wajib media: kesimpulan dari dokumen Outstand dan Meta, tidak ada
   kalimat "tanpa media ditolak".
-- Jenis media (YouTube harus video) belum ditegakkan; hanya jumlah.
+- Jenis media sekarang ditegakkan hanya untuk Reel Facebook dan Instagram (wajib tepat satu video, T-200, ADR-155 addendum B.1). Untuk Instagram aturan ini belum terbukti di dokumen Outstand (tidak eksplisit) dan belum diuji di akun nyata; Facebook eksplisit di dokumen. Jenis media untuk YouTube (harus video), TikTok, dan platform lain tetap belum ditegakkan; hanya jumlah.
 
 ---
 
