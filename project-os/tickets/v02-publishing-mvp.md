@@ -3112,6 +3112,8 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 - [ ] **T-206.4** Mode gelap: seluruh zona, Pratinjau, popover, dan banner memakai token tema; tidak ada kedipan terang.
 - [ ] **T-206.5** Tes unit untuk logika varian (mis. visibilitas toggle per lebar layar) bila ada logika murni.
 
+**Temuan QA lama (Najwa, 2026-11-03, staging, kode sebelum refactor):** Fullscreen di desktop (lebar viewport 640px atau lebih) hanya selebar 448px dan menempel di kiri, bukan menutupi viewport seperti KSP-05. Penyebabnya `DialogContent` bawaan membawa `sm:max-w-md` yang mengalahkan `max-w-none` tanpa prefiks; kode ini sudah ada di `Modal.tsx` lama dan ikut terbawa refactor T-199 tanpa perubahan. Perbaiki di T-206.1 dan buktikan di T-207.1. Pada viewport 375px checkbox akun terukur meluber horizontal sedikit tanpa scroll halaman (aksesibilitas ringan, juga lama).
+
 **Blocked by:** T-201 sampai T-205
 
 ---
@@ -3138,6 +3140,8 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 - [ ] **T-207.5** `typecheck`, `lint`, dan tes hijau. Status T-199 sampai T-206 menjadi Done (code).
 - [ ] **T-207.6** Verified (staging) satu kali per gelombang (ADR-153): verifikasi King Rezi di staging; tanpa akun media sosial nyata untuk post Scheduled sebelum T-195 selesai.
 - [ ] **T-207.7** Pastikan baseline `product-discovery/04-ux/` (KSP-05, KSP-D02, NP-D11) masih sesuai hasil akhir; selisih dilaporkan ke King Rezi, bukan diubah diam-diam.
+
+**Catatan lingkungan QA (2026-11-03):** `apps/web/.env.local` mengarahkan `E2E_BASE_URL` ke staging, sehingga `bun run test:e2e` tanpa override menjalankan tes terhadap staging, bukan kode lokal. Untuk target lokal tulis `E2E_BASE_URL=http://localhost:3000` secara eksplisit. Login E2E ke localhost gagal pada sesi QA ini ("Invalid password"; `E2E_USER_PASSWORD` tidak cocok untuk Better Auth lokal), jadi E2E lokal untuk Draft Editor belum pernah dijalankan; spesifikasi sementara Najwa (13 tes, lulus terhadap staging kode lama) bisa jadi dasar `e2e/draft-editor.e2e.ts`. Satu file PNG 1x1 yatim `e2e-qa-*-b.png` tertinggal di Storage workspace E2E Sandbox dari run yang gagal; hapus saat pembersihan.
 
 **Blocked by:** T-206
 
