@@ -192,12 +192,16 @@ export function useDraftEditorForm({
   // is edit-only), since a brand-new post still needs real accounts to pick.
   useEffect(() => {
     let cancelled = false;
-    // Pintasan opsional: gagal memuat tidak boleh mengganggu editor.
-    getLastUsedAccountIdsAction()
-      .then((ids) => {
-        if (!cancelled) setLastUsedAccountIds(ids);
-      })
-      .catch(() => undefined);
+    // Pintasan opsional: gagal memuat tidak boleh mengganggu editor. Mode edit
+    // sudah punya akun tersimpan dan tidak menampilkan pintasan, jadi tidak
+    // perlu query (review Ridwan 2026-11-04).
+    if (!isEdit) {
+      getLastUsedAccountIdsAction()
+        .then((ids) => {
+          if (!cancelled) setLastUsedAccountIds(ids);
+        })
+        .catch(() => undefined);
+    }
     getConnectedAccountsAction()
       .then((result) => {
         if (cancelled) return;

@@ -412,7 +412,9 @@ export interface IPublishingRepository {
    * workspace: post tidak ter-soft-delete yang punya minimal satu target,
    * semua pemakai dan semua status, diurutkan `createdAt` menurun. Tanpa
    * penyimpanan baru. Workspace tanpa post bertarget mengembalikan `[]`.
-   * Urutan target mengikuti waktu pembuatannya.
+   * Urutan target tidak dijamin (target satu post dibuat dalam satu
+   * transaksi dengan `createdAt` yang sama); pemanggil memperlakukannya sebagai
+   * himpunan.
    *
    * `userId` (RLS, KI-026 follow-up) — acting user for `withCurrentUser`.
    */

@@ -2988,6 +2988,15 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 - [ ] **T-201.7** Edit Draft: chip akun terisi dari data draft tersimpan (akun, format, dan opsi Pinterest, ADR-125) sama seperti sebelum redesain; New Post dan Quick Compose tidak terpengaruh. Tes unit untuk pemetaan data draft ke pilihan akun.
 
+**Catatan hasil (jalur A, A2, gelombang S-005, 2026-11-04):** komponen dan logika di `draft-editor/` (`ChannelRow.tsx`, `AccountSelector.tsx`, `account-selection.ts` + tes, `useDraftEditorForm.ts`), query `findLatestPostTargetAccountIds` (repository, service, `getLastUsedAccountIdsAction`), tanpa migrasi. Commit lokal: `fea312f8`, `320a5f39`, `69f5884a`, perbaikan review `1c894453`. Review Ridwan dua putaran: nol pelanggaran keras. Perbaikan atas review: ARIA popover (daftar centang biasa), "Pilih semua" mempertahankan akun Disconnected yang sudah dicentang, query "Terakhir dipakai" dilewati di mode edit, komentar kontrak urutan target.
+
+**Belum terbukti (jangan diasumsikan):**
+
+- Tampilan dan interaksi popover, chip, dan Quick Compose di browser (belum ada E2E untuk baris channel selain pemilihan akun di S7b; bukti di T-207).
+- Query "Terakhir dipakai" ke DB nyata: hanya diuji dengan mock; tidak ada `EXPLAIN`. Indeks `PublishingPost` tidak punya `(workspaceId, createdAt desc)`, jadi `orderBy createdAt desc` memindai post workspace (linear). Menambah indeks adalah perubahan skema, belum diputuskan.
+- Semantik `Imported`: `createdAt` post impor adalah waktu sinkron (bukan waktu publikasi), sehingga satu batch impor satu akun bisa menjadi "post terbaru" dan menimpa kelompok multi-akun dari post yang dibuat di aplikasi. Keputusan King Rezi memasukkan `Imported` dicatat; dampaknya belum diverifikasi di staging dan belum ada keputusan lanjutan.
+- Tes: tes repository memeriksa argumen `findFirst` dengan mock; `ChannelRow` dan `PreviewPanel` tidak punya tes komponen.
+
 **Blocked by:** T-199
 
 ---
@@ -3039,6 +3048,15 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 - [ ] **T-203.4** Pratinjau Instagram (mengikuti format yang dipilih bila rancangan membedakannya).
 - [ ] **T-203.5** Pratinjau dihitung di klien dan hidup saat mengetik atau mengganti media, tanpa request jaringan.
 - [ ] **T-203.6** Tes tampilan atau tes unit untuk pemetaan data post ke Pratinjau (ADR-155 Consequences).
+
+**Catatan hasil (jalur B, B2, gelombang S-005, 2026-11-04):** `PreviewPanel.tsx`, `FacebookPreview.tsx`, `InstagramPreview.tsx`, `VerticalPreview.tsx` (Reel dan Story), `preview-shared.tsx`, `preview-model.ts` + tes, toggle di `EditorHeader.tsx`, dua kolom di `DraftEditorForm.tsx`. Token baru `--media-scrim` dan `--media-foreground` (terang dan gelap) di `globals.css`. Commit lokal: `eb818a57`, `1c894453`, `ce83045c`. Review Ridwan dua putaran: nol pelanggaran keras. Perbedaan dari rancangan yang disengaja: ilustrasi keadaan kosong diganti `EmptyMedia` berikon, lebar panel `w-96` (384px) karena lint melarang nilai arbitrer.
+
+**Belum terbukti (jangan diasumsikan):**
+
+- Tampilan visual di browser (terang dan gelap, lebar dialog, scroll); E2E belum menyentuh Pratinjau (T-207).
+- Panel dan toggle disembunyikan di bawah `md` dan saat Confirmation Summary: tab "Editor | Pratinjau" 375px ada di T-206, panel tetap terlihat di ringkasan ada di T-205.5.
+- Platform selain Facebook dan Instagram menampilkan kartu netral "belum tersedia" (bukan kartu generik T-204).
+- `ChannelRow` dan `PreviewPanel` tanpa tes komponen; hanya fungsi murni (`preview-model`, `account-selection`) yang dites.
 
 **Blocked by:** T-199
 
