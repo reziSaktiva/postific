@@ -525,6 +525,25 @@ export async function getConnectedAccountsAction(): Promise<
 }
 
 /**
+ * T-201.2 — pintasan "Terakhir dipakai": id akun tujuan dari post terbaru
+ * workspace aktif (semua pemakai, semua status). Dibaca lewat repository
+ * dengan RLS pemakai yang sedang masuk, jadi cakupannya tetap workspace aktif.
+ */
+export async function getLastUsedAccountIdsAction(): Promise<string[]> {
+  const { workspaceId } = await getWorkspaceContext();
+  const session = await getCachedSession();
+  if (!session) {
+    redirect("/login");
+  }
+
+  const publishingService = new PublishingService(publishingRepository);
+  return publishingService.getLastUsedAccountIds(
+    workspaceId,
+    asUserId(session.user.id),
+  );
+}
+
+/**
  * Pinterest board picker (menutup KI-072, sisa scope ADR-114) — dipanggil
  * UI Draft Editor (Mark UI Engineer) saat user memilih akun target Pinterest
  * di composer, untuk mengisi dropdown board ASLI (bukan text input bebas).

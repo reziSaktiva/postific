@@ -81,6 +81,7 @@ import {
 import { WorkspaceService } from "@/domains/workspace";
 import {
   getDraftAction,
+  getLastUsedAccountIdsAction,
   publishNowAction,
   saveDraftAction,
   scheduleDraftAction,
@@ -480,5 +481,35 @@ describe("draft-editor actions — mediaIds undefined vs [] (T-024.4 fix)", () =
       });
       expect(executeSpy).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe("getLastUsedAccountIdsAction (T-201.2)", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    getSessionMock.mockReset();
+    redirectMock.mockClear();
+  });
+
+  it("delegates to PublishingService with the active workspace and the session user", async () => {
+    getSessionMock.mockResolvedValue({ user: { id: "user-1" } });
+    const spy = vi
+      .spyOn(PublishingService.prototype, "getLastUsedAccountIds")
+      .mockResolvedValue([asConnectedAccountId("acc-1")]);
+
+    await expect(getLastUsedAccountIdsAction()).resolves.toEqual(["acc-1"]);
+
+    expect(spy).toHaveBeenCalledWith(WORKSPACE_ID, USER_ID);
+  });
+
+  it("redirects to login without a session and does not query", async () => {
+    getSessionMock.mockResolvedValue(null);
+    const spy = vi.spyOn(PublishingService.prototype, "getLastUsedAccountIds");
+
+    await expect(getLastUsedAccountIdsAction()).rejects.toThrow(
+      "REDIRECT:/login",
+    );
+
+    expect(spy).not.toHaveBeenCalled();
   });
 });
