@@ -17,6 +17,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { PLATFORM_ICON } from "../platform-icons";
+import { resolveSelectedAccounts } from "./account-selection";
 import { FacebookPreview } from "./FacebookPreview";
 import {
   FORMAT_LABEL,
@@ -64,16 +65,25 @@ function PreviewCard({ model }: { model: PostPreviewModel }) {
  * request jaringan, jadi ikut berubah saat mengetik atau mengganti media.
  */
 export function PreviewPanel({
-  selectedAccounts,
+  selectedAccounts: selectedAccountsInput,
+  selectedAccountIds,
   formatByAccount,
   caption,
   mediaItems,
 }: {
   selectedAccounts: ConnectedAccount[];
+  /**
+   * Urutan pilihan (sama dengan urutan chip). Bila diisi, tab Pratinjau
+   * mengikuti urutan ini; bila tidak, memakai urutan `selectedAccounts`.
+   */
+  selectedAccountIds?: string[];
   formatByAccount: Record<string, ContentFormat | undefined>;
   caption: string;
   mediaItems: PreviewMediaInput[];
 }) {
+  const selectedAccounts = selectedAccountIds
+    ? resolveSelectedAccounts(selectedAccountsInput, selectedAccountIds)
+    : selectedAccountsInput;
   const [requestedAccountId, setRequestedAccountId] = useState<string | null>(
     null,
   );
@@ -108,10 +118,19 @@ export function PreviewPanel({
             <TabsList variant="line" className="h-auto flex-wrap">
               {selectedAccounts.map((account) => {
                 const entry = PLATFORM_ICON[account.platform];
+                const fullLabel = `${PLATFORM_LABEL[account.platform]} ${account.handle}`;
                 return (
-                  <TabsTrigger key={account.id} value={account.id}>
+                  <TabsTrigger
+                    key={account.id}
+                    value={account.id}
+                    aria-label={fullLabel}
+                    title={fullLabel}
+                    className="max-w-48"
+                  >
                     <entry.Icon size={14} color={entry.color} aria-hidden />
-                    {PLATFORM_LABEL[account.platform]}
+                    <span className="truncate">
+                      {PLATFORM_LABEL[account.platform]} · {account.handle}
+                    </span>
                   </TabsTrigger>
                 );
               })}

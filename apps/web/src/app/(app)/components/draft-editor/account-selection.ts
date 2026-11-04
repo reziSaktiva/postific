@@ -43,6 +43,25 @@ export function selectAllConnectedIds(accounts: ConnectedAccount[]): string[] {
   return getConnectedAccounts(accounts).map((account) => account.id);
 }
 
+/**
+ * Aksi "Pilih semua": gabungan pilihan saat ini dan semua akun terhubung.
+ * Akun Disconnected yang sudah dicentang tetap terpilih; urutan pilihan
+ * saat ini dipertahankan, akun baru ditambahkan di belakang. Id yang sudah
+ * tidak ada di daftar akun tetap dibawa apa adanya (bukan urusan fungsi ini).
+ */
+export function selectAllKeepingCurrent(
+  accounts: ConnectedAccount[],
+  currentIds: readonly string[],
+): string[] {
+  const result = [...currentIds];
+  for (const id of selectAllConnectedIds(accounts)) {
+    if (!result.includes(id)) {
+      result.push(id);
+    }
+  }
+  return result;
+}
+
 /** Checkbox "Pilih semua": true hanya bila ada akun terhubung dan semuanya terpilih. */
 export function areAllConnectedSelected(
   accounts: ConnectedAccount[],

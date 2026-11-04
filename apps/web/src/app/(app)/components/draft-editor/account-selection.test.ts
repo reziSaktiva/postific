@@ -9,6 +9,7 @@ import {
   resolveLastUsedIds,
   resolveSelectedAccounts,
   selectAllConnectedIds,
+  selectAllKeepingCurrent,
 } from "./account-selection";
 import type { ConnectedAccount } from "./form-shared";
 import { restoreDraftTargetSelection } from "./restore-draft-targets";
@@ -121,5 +122,27 @@ describe("resolveSelectedAccounts (chip) dengan data draft tersimpan", () => {
 
   it("tidak membuat chip untuk akun yang sudah dilepas dari workspace", () => {
     expect(resolveSelectedAccounts(ACCOUNTS, ["gone", "fb"])).toEqual([FB]);
+  });
+});
+
+describe("selectAllKeepingCurrent", () => {
+  it("menambahkan semua akun terhubung ke pilihan kosong", () => {
+    expect(selectAllKeepingCurrent(ACCOUNTS, [])).toEqual(["ig", "fb"]);
+  });
+
+  it("mempertahankan akun Disconnected yang sudah dicentang", () => {
+    expect(selectAllKeepingCurrent(ACCOUNTS, ["x"])).toEqual(["x", "ig", "fb"]);
+  });
+
+  it("mempertahankan urutan pilihan dan tidak menggandakan id", () => {
+    expect(selectAllKeepingCurrent(ACCOUNTS, ["fb", "x"])).toEqual([
+      "fb",
+      "x",
+      "ig",
+    ]);
+  });
+
+  it("tidak mencentang akun Disconnected yang belum dicentang", () => {
+    expect(selectAllKeepingCurrent(ACCOUNTS, ["ig"])).not.toContain("x");
   });
 });
