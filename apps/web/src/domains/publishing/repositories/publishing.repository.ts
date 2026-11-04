@@ -335,6 +335,13 @@ export interface RetryTargetRecord {
    * (API tidak scoped). Retry harus SKIP `deletePost` bila true.
    */
   hasSiblingLiveTargets: boolean;
+  /**
+   * T-195.3 — `PublishingPost.scheduledAt` / `publishedAt`. Retry tanpa
+   * `scheduledAt` ke Outstand = terbit LANGSUNG; use-case memakai keduanya
+   * untuk menolak retry yang akan menerbitkan lebih awal dari jadwal.
+   */
+  postScheduledAt: Date | null;
+  postPublishedAt: Date | null;
 }
 
 /**
