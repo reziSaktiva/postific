@@ -142,13 +142,14 @@ test("S1 buka New Post dari Drafts: Standard, judul, chip, Close, Akun tujuan", 
     JSON.stringify(vp),
   );
   expect(box!.width).toBeLessThan(vp.width - 10);
+  // T-206.1: Standard selebar 1120px bila viewport cukup lebar (94vw).
+  expect(Math.round(box!.width)).toBe(
+    Math.min(1120, Math.round(vp.width * 0.94)),
+  );
   await snap(page, "s1-new-post-standard");
 });
 
 test("S2 toggle Fullscreen/Standard, tidak dipersist", async ({ page }) => {
-  // Bug terbuka T-206: Fullscreen hanya ~448px lebar, bukan layar penuh.
-  // Hapus baris ini saat T-206 diperbaiki (tes yang lulus akan dilaporkan).
-  test.fail(true, "T-206: Fullscreen belum selebar viewport");
   track(page, "S2");
   await openNewPostFromDrafts(page);
   const dlg = dialog(page);
@@ -307,6 +308,10 @@ test("S6 Resume: Close lalu buka lagi -> dialog; Resume dan Mulai Baru", async (
   await expect(resumeHeading).toBeVisible();
   await expect(page.getByRole("alertdialog")).toContainText(CAPTION_RESUME);
   await expect(dialog(page)).toHaveCount(0);
+  // T-206.2: teks dirapikan, tanpa ID KSP/ADR; hanya caption yang kembali.
+  const resumeText = (await page.getByRole("alertdialog").innerText()) ?? "";
+  expect(resumeText).not.toMatch(/KSP|ADR/);
+  expect(resumeText).toContain("Hanya caption yang tersimpan");
   await snap(page, "s6-resume-dialog");
   await page.getByRole("button", { name: "Resume", exact: true }).click();
   dlg = dialog(page);
@@ -490,6 +495,17 @@ test("S8a layar sempit 375: modal penuh, tanpa overflow horizontal", async ({
   expect(Math.round(m.dialogW)).toBe(375);
   expect(m.dialogScroll).toBeLessThanOrEqual(376);
   await snap(page, "s8a-mobile");
+  // T-206.3: tab Editor|Pratinjau; toggle Fullscreen dan Pratinjau disembunyikan.
+  await expect(dlg.getByRole("tab", { name: "Editor" })).toBeVisible();
+  await expect(dlg.getByRole("tab", { name: "Pratinjau" })).toBeVisible();
+  await expect(dlg.getByRole("button", { name: "Fullscreen" })).toHaveCount(0);
+  await expect(dlg.getByRole("button", { name: "Pratinjau" })).toHaveCount(0);
+  await dlg.getByRole("tab", { name: "Pratinjau" }).click();
+  await expect(
+    dlg.getByRole("complementary", { name: "Pratinjau" }),
+  ).toBeVisible();
+  await snap(page, "s8a-mobile-pratinjau");
+  await dlg.getByRole("tab", { name: "Editor" }).click();
   // footer terlihat
   await expect(
     dlg.getByRole("button", { name: "Save as Draft" }),

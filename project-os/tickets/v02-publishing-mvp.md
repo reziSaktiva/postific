@@ -3148,7 +3148,7 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 | Field       | Value                                                                                                           |
 | ----------- | --------------------------------------------------------------------------------------------------------------- |
-| **Status**  | ⏳ Not Started                                                                                                  |
+| **Status**  | 🟡 In Progress                                                                                                  |
 | **Mode**    | AFK                                                                                                             |
 | **Domain**  | draft editor · UI                                                                                               |
 | **Spec**    | S-005                                                                                                           |
@@ -3159,11 +3159,13 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 **What to build:** seluruh varian tampilan Draft Editor yang sudah dikonfirmasi.
 
-- [ ] **T-206.1** Standard 1120px (naik dari 960px; default tetap Standard) dan Fullscreen lewat toggle di header; pilihan tidak dipersist (ADR-065).
-- [ ] **T-206.2** Dialog Resume tetap modal (KSP-05-F13) dengan teks deskripsi dirapikan, tanpa ID KSP atau ADR di UI. Hanya caption yang kembali; akun dan media tidak.
-- [ ] **T-206.3** Layar sempit (375px): modal penuh, tab "Editor | Pratinjau" di bawah header, footer ditumpuk, toggle Fullscreen dan Pratinjau di header disembunyikan.
-- [ ] **T-206.4** Mode gelap: seluruh zona, Pratinjau, popover, dan banner memakai token tema; tidak ada kedipan terang.
-- [ ] **T-206.5** Tes unit untuk logika varian (mis. visibilitas toggle per lebar layar) bila ada logika murni.
+- [x] **T-206.1** Standard 1120px (naik dari 960px; default tetap Standard) dan Fullscreen lewat toggle di header; pilihan tidak dipersist (ADR-065).
+- [x] **T-206.2** Dialog Resume tetap modal (KSP-05-F13) dengan teks deskripsi dirapikan, tanpa ID KSP atau ADR di UI. Hanya caption yang kembali; akun dan media tidak.
+- [x] **T-206.3** Layar sempit (375px): modal penuh, tab "Editor | Pratinjau" di bawah header, footer ditumpuk, toggle Fullscreen dan Pratinjau di header disembunyikan.
+- [~] **T-206.4** Mode gelap: seluruh zona, Pratinjau, popover, dan banner memakai token tema; tidak ada kedipan terang.
+- [x] **T-206.5** Tes unit untuk logika varian (mis. visibilitas toggle per lebar layar) bila ada logika murni.
+
+**Hasil (2026-11-04, jalur A gelombang 5, belum di-commit):** (1) `Modal.tsx`: Standard `min(1120px, 94vw)` dengan tinggi `min(100dvh - 40px, 820px)`; Fullscreen diperbaiki dengan `sm:max-w-none` (akar temuan QA: `sm:max-w-md` bawaan `DialogContent`), terukur 1280x720 di viewport 1280x720. (2) `dialog-layout.ts` (logika murni, 6 tes): layar sempit (viewport 767px atau kurang, setara `md` seperti sebelum redesain; keputusan King Rezi 2026-11-04) memaksa modal penuh, menyembunyikan toggle Pratinjau dan Fullscreen, dan memunculkan tab "Editor | Pratinjau" (kecuali layar konfirmasi). `PreviewPanel` punya `placement` `side` (384px) atau `full` (tab). Footer sempit: help text disembunyikan, trigger jadwal selebar penuh, tiga tombol berbagi baris. (3) `ResumeDialog`: deskripsi "Ada draft New Post yang belum disimpan dari sesi sebelumnya. Hanya caption yang tersimpan; akun dan media perlu dipilih lagi." tanpa ID KSP/ADR (sesuai rancangan Postific). (4) Perbaikan sampingan: `<p>` berisi `<div>` skeleton di Pratinjau Facebook/Instagram/Generic memicu error hydration; diganti `span`. Rancangan acuan: kartu `ScreenDraftEditorRedesain` (skenario 10 sampai 12). **Terbukti:** `bun run typecheck`, `eslint apps/web`, `vitest run` (2411 lulus) hijau; E2E `draft-editor.e2e.ts` terhadap `local` (`E2E_BASE_URL=http://localhost:3000`, `next dev` worktree): 13 passed (login, S1 sampai S10 termasuk S7 dan S7b yang baru pertama kali berjalan, `test.fail` S2 dihapus), S1 menegaskan lebar 1120px, S6 menegaskan teks Resume, S8a menegaskan tab dan toggle di 375px tanpa overflow (daftar elemen meluap kosong), S8b tanpa elemen kontras kurang dari 3. Screenshot di `apps/web/test-results/draft-editor` (terabaikan git). **Belum terbukti:** "tanpa kedipan terang" T-206.4 hanya diukur dari warna latar dialog sesudah render dan tampilan screenshot, bukan rekaman frame saat mount (karena itu `[~]`); ambang 767px viewport menyimpang dari rancangan (ambang 640px pada lebar modal lewat container query), dipilih supaya kolom form tidak menyempit di 641 sampai 767px; belum diverifikasi di browser pada lebar itu; mode gelap Pratinjau tiap jaringan (TikTok, Pinterest, tab Pratinjau 375px) tidak diperiksa satu per satu; tidak diuji di staging dan tidak ada post Scheduled atau publish nyata di E2E (S7b berhenti di Batal).
 
 **Temuan QA lama (Najwa, 2026-11-03, staging, kode sebelum refactor):** Fullscreen di desktop (lebar viewport 640px atau lebih) hanya selebar 448px dan menempel di kiri, bukan menutupi viewport seperti KSP-05. Penyebabnya `DialogContent` bawaan membawa `sm:max-w-md` yang mengalahkan `max-w-none` tanpa prefiks; kode ini sudah ada di `Modal.tsx` lama dan ikut terbawa refactor T-199 tanpa perubahan. Perbaiki di T-206.1 dan buktikan di T-207.1. Pada viewport 375px checkbox akun terukur meluber horizontal sedikit tanpa scroll halaman (aksesibilitas ringan, juga lama).
 

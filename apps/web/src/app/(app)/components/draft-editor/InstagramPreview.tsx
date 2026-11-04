@@ -74,7 +74,7 @@ export function InstagramPreview({ model }: { model: InstagramPostModel }) {
           className="size-5.5"
         />
       </span>
-      <p className="px-3 pt-1 pb-1.5">
+      <span className="block px-3 pt-1 pb-1.5">
         {model.hasCaption ? (
           <>
             <span className="line-clamp-2">
@@ -88,7 +88,7 @@ export function InstagramPreview({ model }: { model: InstagramPostModel }) {
         ) : (
           <PreviewCaptionSkeleton />
         )}
-      </p>
+      </span>
       <p className="px-3 pb-3 text-xs text-muted-foreground uppercase">
         Baru saja
       </p>

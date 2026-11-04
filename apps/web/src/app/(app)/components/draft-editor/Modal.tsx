@@ -9,28 +9,24 @@ import type { UnsavedNewPost } from "./Context";
 import { useDraftEditor } from "./Context";
 import { DraftEditorForm } from "./DraftEditorForm";
 import type { LatestFormSnapshot } from "./form-shared";
+import { NARROW_VIEWPORT_QUERY, type DialogVariant } from "./dialog-layout";
 import { ResumeDialog } from "./ResumeDialog";
 
-// Standard variant's floating card + backdrop margins waste too much of a
-// small phone's screen (ADR-065 only decided the desktop default; it never
-// addressed small viewports). Below this breakpoint the Dialog always
-// renders Fullscreen regardless of the user's toggle choice, restoring the
-// edge-to-edge editing surface mobile needs.
-const MOBILE_VIEWPORT_QUERY = "(max-width: 640px)";
-
-function useIsMobileViewport() {
-  const [isMobile, setIsMobile] = useState(
+// Di bawah lebar ini modal selalu penuh dan Pratinjau pindah ke tab (T-206.3);
+// aturan lengkapnya di `dialog-layout.ts`.
+function useIsNarrowViewport() {
+  const [isNarrow, setIsNarrow] = useState(
     () =>
       typeof window !== "undefined" &&
-      window.matchMedia(MOBILE_VIEWPORT_QUERY).matches,
+      window.matchMedia(NARROW_VIEWPORT_QUERY).matches,
   );
   useEffect(() => {
-    const query = window.matchMedia(MOBILE_VIEWPORT_QUERY);
-    const onChange = (event: MediaQueryListEvent) => setIsMobile(event.matches);
+    const query = window.matchMedia(NARROW_VIEWPORT_QUERY);
+    const onChange = (event: MediaQueryListEvent) => setIsNarrow(event.matches);
     query.addEventListener("change", onChange);
     return () => query.removeEventListener("change", onChange);
   }, []);
-  return isMobile;
+  return isNarrow;
 }
 
 export function DraftEditorModal() {
@@ -67,9 +63,7 @@ export function DraftEditorModal() {
   // wrapping `Dialog`'s own `variant`/`width`, so it's reset the same way
   // `resumeData` above is: adjusted during render when `sessionKey` changes,
   // not in an effect.
-  const [dialogVariant, setDialogVariant] = useState<"standard" | "fullscreen">(
-    "standard",
-  );
+  const [dialogVariant, setDialogVariant] = useState<DialogVariant>("standard");
   const [prevSessionKey, setPrevSessionKey] = useState(sessionKey);
   if (prevSessionKey !== sessionKey) {
     setPrevSessionKey(sessionKey);
@@ -82,8 +76,8 @@ export function DraftEditorModal() {
       current === "standard" ? "fullscreen" : "standard",
     );
   }
-  const isMobileViewport = useIsMobileViewport();
-  const effectiveDialogVariant = isMobileViewport
+  const isNarrow = useIsNarrowViewport();
+  const effectiveDialogVariant: DialogVariant = isNarrow
     ? "fullscreen"
     : dialogVariant;
 
@@ -129,15 +123,17 @@ export function DraftEditorModal() {
           className={cn(
             "flex flex-col gap-0 overflow-hidden p-0",
             effectiveDialogVariant === "fullscreen" &&
-              "top-0 left-0 h-dvh max-h-none w-screen max-w-none translate-none rounded-none",
+              // `sm:max-w-none` wajib: DialogContent membawa `sm:max-w-md`
+              // yang mengalahkan `max-w-none` tanpa prefiks (temuan QA T-206.1).
+              "top-0 left-0 h-dvh max-h-none w-screen max-w-none translate-none rounded-none sm:max-w-none",
           )}
           style={
             effectiveDialogVariant === "fullscreen"
               ? undefined
               : {
-                  width: "min(960px, 94vw)",
-                  maxWidth: "min(960px, 94vw)",
-                  maxHeight: "88vh",
+                  width: "min(1120px, 94vw)",
+                  maxWidth: "min(1120px, 94vw)",
+                  height: "min(calc(100dvh - 40px), 820px)",
                 }
           }
         >
@@ -157,6 +153,7 @@ export function DraftEditorModal() {
               }
               onOpenChange={handleOpenChange}
               dialogVariant={dialogVariant}
+              isNarrow={isNarrow}
               onToggleDialogVariant={toggleDialogVariant}
               onLatestChange={(snapshot) => {
                 latestFormRef.current = snapshot;

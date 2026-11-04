@@ -15,6 +15,7 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 
 import { PLATFORM_ICON } from "../platform-icons";
 import { resolveSelectedAccounts } from "./account-selection";
@@ -74,7 +75,10 @@ export function PreviewPanel({
   pinLink = "",
   boardIdByAccount,
   pinterestBoardsByAccount,
+  placement = "side",
 }: {
+  /** `side`: kolom 384px di samping form; `full`: mengisi lebar (tab layar sempit, T-206.3). */
+  placement?: "side" | "full";
   selectedAccounts: ConnectedAccount[];
   /**
    * Urutan pilihan (sama dengan urutan chip). Bila diisi, tab Pratinjau
@@ -110,7 +114,12 @@ export function PreviewPanel({
   return (
     <aside
       aria-label="Pratinjau"
-      className="hidden min-h-0 w-96 shrink-0 flex-col border-l border-border bg-muted/30 md:flex"
+      className={cn(
+        "flex min-h-0 flex-col bg-muted/30",
+        placement === "side"
+          ? "w-96 shrink-0 border-l border-border"
+          : "min-w-0 flex-1",
+      )}
     >
       <header className="flex flex-col gap-2 px-4 pt-3.5 pb-2.5">
         <span className="flex items-baseline justify-between gap-2">

@@ -43,9 +43,8 @@ export function ResumeDialog({
         <DialogHeader>
           <DialogTitle>Resume unfinished post?</DialogTitle>
           <DialogDescription>
-            Ada draft New Post yang belum disimpan dari sesi sebelumnya
-            (KSP-05-F13, ADR-052). Hanya berlaku untuk New Post — Edit Draft
-            tidak punya dialog ini.
+            Ada draft New Post yang belum disimpan dari sesi sebelumnya. Hanya
+            caption yang tersimpan; akun dan media perlu dipilih lagi.
           </DialogDescription>
         </DialogHeader>
         {/* eslint-disable-next-line no-restricted-syntax -- T-102: padanan Astryx VStack/HStack, murni komposisi Tailwind flex, tidak ada primitive shadcn setara. */}

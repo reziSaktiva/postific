@@ -28,7 +28,7 @@ export function GenericPreview({ model }: { model: GenericModel }) {
           </span>
         </span>
       </header>
-      <p className="px-3 pb-2.5">
+      <span className="block px-3 pb-2.5">
         {model.hasCaption ? (
           <PreviewCaptionText
             segments={model.captionSegments}
@@ -37,7 +37,7 @@ export function GenericPreview({ model }: { model: GenericModel }) {
         ) : (
           <PreviewCaptionSkeleton />
         )}
-      </p>
+      </span>
       {model.media.first ? (
         <PreviewMediaBox
           media={model.media}

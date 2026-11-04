@@ -45,7 +45,7 @@ export function FacebookPreview({ model }: { model: FacebookPostModel }) {
           className="size-4.5 text-muted-foreground"
         />
       </header>
-      <p className="px-3 pb-3">
+      <span className="block px-3 pb-3">
         {model.hasCaption ? (
           <PreviewCaptionText
             segments={model.captionSegments}
@@ -54,7 +54,7 @@ export function FacebookPreview({ model }: { model: FacebookPostModel }) {
         ) : (
           <PreviewCaptionSkeleton />
         )}
-      </p>
+      </span>
       {model.media.first ? (
         <PreviewMediaBox
           media={model.media}
