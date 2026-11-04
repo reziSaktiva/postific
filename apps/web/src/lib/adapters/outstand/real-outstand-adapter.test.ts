@@ -122,7 +122,7 @@ describe("RealOutstandAdapter.schedulePost / publishNow (T-025.2/T-025.3)", () =
     ).rejects.toBeInstanceOf(OutstandIntegrationError);
   });
 
-  it("T-195.4 (KI-105): a 400 on schedulePost keeps the Outstand detail, is not retryable, and still sends scheduledAt (body simulated, real body not yet observed)", async () => {
+  it("T-195.4 (KI-105): schedulePost sends scheduledAt in the request body even when Outstand answers 400 (cause of the real 400 not yet observed)", async () => {
     const fetchImpl = vi.fn().mockResolvedValue(
       jsonResponse(400, {
         success: false,
@@ -132,9 +132,9 @@ describe("RealOutstandAdapter.schedulePost / publishNow (T-025.2/T-025.3)", () =
     const adapter = buildAdapter(fetchImpl);
     const scheduledAt = new Date("2027-02-01T10:00:00.000Z");
 
-    const error = await adapter
-      .schedulePost({
-        caption: "far future",
+    await expect(
+      adapter.schedulePost({
+        caption: "scheduled",
         scheduledAt,
         targets: [
           {
@@ -143,18 +143,10 @@ describe("RealOutstandAdapter.schedulePost / publishNow (T-025.2/T-025.3)", () =
             contentFormat: ContentFormat.Post,
           },
         ],
-      })
-      .catch((e: unknown) => e);
+      }),
+    ).rejects.toBeInstanceOf(OutstandIntegrationError);
 
-    expect(error).toBeInstanceOf(OutstandIntegrationError);
-    expect(error).toMatchObject({
-      type: "client_error",
-      retryable: false,
-      httpStatus: 400,
-    });
-    expect((error as Error).message).toContain(
-      "scheduledAt must be within 30 days",
-    );
+    // Detail galat dan retryable sudah dicakup outstand-http-client.test.ts.
     const body = JSON.parse(fetchImpl.mock.calls[0]![1].body as string);
     expect(body.scheduledAt).toBe(scheduledAt.toISOString());
   });

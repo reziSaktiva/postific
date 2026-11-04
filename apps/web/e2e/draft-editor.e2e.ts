@@ -74,17 +74,34 @@ function dayButton(page: Page, offsetDays: number) {
     name: new RegExp(`${label}(, dipilih)?$`),
   });
 }
-/** Tunggu semua animasi/transisi elemen selesai (pengganti jeda tetap). */
+/**
+ * Tunggu animasi/transisi berhingga selesai (pengganti jeda tetap). Animasi
+ * tak berhingga (skeleton, spinner) dilewati karena tidak pernah selesai, dan
+ * animasi yang dibatalkan (unmount) tidak menggagalkan tes.
+ */
 async function settleAnimations(el: Locator) {
   await el.evaluate((node) =>
-    Promise.all(node.getAnimations({ subtree: true }).map((a) => a.finished)),
+    Promise.allSettled(
+      node
+        .getAnimations({ subtree: true })
+        .filter((a) => a.effect?.getComputedTiming().iterations !== Infinity)
+        .map((a) => a.finished),
+    ),
   );
+}
+/** Kotak dialog; gagal dengan pesan jelas (bukan TypeError) bila dialog terlepas. */
+async function dialogBox(dlg: Locator) {
+  const box = await dlg.boundingBox();
+  if (!box) throw new Error("Dialog tidak terpasang saat mengukur ukuran");
+  return box;
 }
 async function selectInstagram(page: Page, dlg: Locator) {
   await dlg.getByRole("button", { name: "Channels" }).click();
-  // Sandbox bisa punya lebih dari satu akun Instagram: pilih yang pertama di
-  // daftar supaya selektor tidak gagal di strict mode dan hasilnya deterministik.
-  const acct = page.getByRole("checkbox", { name: /Pilih Instagram/ }).first();
+  // Tes ini mengasumsikan tepat satu akun Instagram di workspace E2E Sandbox.
+  // Bila ada lebih dari satu, gagal dengan jelas, bukan diam-diam memilih akun
+  // yang bisa jadi akun nyata.
+  const acct = page.getByRole("checkbox", { name: /Pilih Instagram/ });
+  await expect(acct).toHaveCount(1, { timeout: 15_000 });
   await expect(acct).toBeVisible({ timeout: 15_000 });
   await acct.check();
   await page.keyboard.press("Escape");
@@ -218,10 +235,10 @@ test("S2 toggle Fullscreen/Standard, tidak dipersist", async ({ page }) => {
   await expect(dlg.getByRole("button", { name: "Standard" })).toBeVisible();
   // Tunggu animasi ukuran selesai: ukuran dibaca setelah mencapai nilai akhir.
   await expect
-    .poll(async () => Math.round((await dlg.boundingBox())!.width))
+    .poll(async () => Math.round((await dialogBox(dlg)).width))
     .toBe(vp.width);
   await expect
-    .poll(async () => Math.round((await dlg.boundingBox())!.height))
+    .poll(async () => Math.round((await dialogBox(dlg)).height))
     .toBe(vp.height);
   const fsBox = await dlg.boundingBox();
   console.log("S2 fullscreen box", JSON.stringify(fsBox));
@@ -231,7 +248,7 @@ test("S2 toggle Fullscreen/Standard, tidak dipersist", async ({ page }) => {
   await dlg.getByRole("button", { name: "Standard" }).click();
   await expect(dlg.getByRole("button", { name: "Fullscreen" })).toBeVisible();
   await expect
-    .poll(async () => (await dlg.boundingBox())!.width)
+    .poll(async () => (await dialogBox(dlg)).width)
     .toBeLessThan(vp.width - 10);
   // persist check: ke Fullscreen, tutup, buka ulang
   await dlg.getByRole("button", { name: "Fullscreen" }).click();
@@ -528,7 +545,7 @@ test("S8a layar sempit 375: modal penuh, tanpa overflow horizontal", async ({
   await expect(dlg).toBeVisible();
   // Metrik overflow hanya bermakna setelah ukuran akhir dan daftar akun termuat.
   await expect
-    .poll(async () => Math.round((await dlg.boundingBox())!.width))
+    .poll(async () => Math.round((await dialogBox(dlg)).width))
     .toBe(375);
   await expect(dlg.getByText(/Terakhir dipakai \(\d+\)/)).toBeVisible({
     timeout: 15_000,
@@ -643,12 +660,12 @@ test.describe("S8b mode gelap", () => {
     await snap(page, "s8b-dark-standard");
     await dlg.getByRole("button", { name: "Fullscreen" }).click();
     await expect
-      .poll(async () => Math.round((await dlg.boundingBox())!.width))
+      .poll(async () => Math.round((await dialogBox(dlg)).width))
       .toBe(page.viewportSize()!.width);
     await snap(page, "s8b-dark-fullscreen");
     await dlg.getByRole("button", { name: "Close" }).click();
-    // dialog Resume dalam gelap
-    // caption sudah terisi di atas, jadi Close lalu buka lagi memunculkan Resume.
+    // dialog Resume dalam gelap: caption terisi di atas; tunggu tersimpan dulu.
+    await expect.poll(() => hasStorageKey(page)).toBeGreaterThan(0);
     await page.getByRole("button", { name: "New Post" }).last().click();
     await expect(page.getByText("Resume unfinished post?")).toBeVisible();
     await snap(page, "s8b-dark-resume");
@@ -743,8 +760,7 @@ test("S11 golden path: akun, caption, media, Pratinjau, jadwal dalam batas, Save
         .getByRole("button")
         .filter({ hasText: caption })
         .first()
-        .click({ timeout: 10_000 })
-        .catch(() => undefined);
+        .click({ timeout: 10_000 });
     }
     if ((await mediaBtn().count()) > 0) {
       await deleteMediaViaUi(page, mediaBtn().first());
@@ -808,6 +824,25 @@ test("S10 bersihkan draft e2e-qa dan kunci localStorage", async ({ page }) => {
   track(page, "S10");
   const removed = await deleteE2eDrafts(page);
   console.log("S10 draft dihapus:", removed);
-  await expect(page.getByText(/e2e-qa-draft-/)).toHaveCount(0);
+  const leftover = page.getByText(/e2e-qa-draft-/);
+  try {
+    await expect(leftover).toHaveCount(0);
+  } catch (error) {
+    console.log(
+      "S10 sisa:",
+      JSON.stringify(
+        await leftover.evaluateAll((els) =>
+          els.map((el) => ({
+            tag: el.tagName,
+            html: el.outerHTML.slice(0, 200),
+            role: el.closest("[role]")?.getAttribute("role") ?? null,
+            visible: !!(el as HTMLElement).offsetParent,
+          })),
+        ),
+      ),
+    );
+    await snap(page, "s10-leftover");
+    throw error;
+  }
   await snap(page, "s10-after-cleanup");
 });
