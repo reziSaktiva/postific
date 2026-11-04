@@ -1592,9 +1592,43 @@ termasuk login Better Auth bila aplikasi tersambung sebagai peran non-pemilik
 (mis. `app_runtime`). Jangan mengaktifkan RLS pada tabel mana pun sebelum
 T-196.1 dan T-196.2 selesai.
 
-- [ ] **T-196.1** Buktikan keterpaparan: baca tabel itu sebagai `anon` dan
+- [x] **T-196.1** Buktikan keterpaparan: baca tabel itu sebagai `anon` dan
       `authenticated` (hanya baca, tanpa mengubah data) dan periksa grant serta
       eksposur PostgREST. Hasilnya menentukan prioritas.
+
+      **Hasil (2026-11-04, DB staging `ndcrkzqgqukqfmekgoze`, hanya baca,
+          tanpa mencetak isi baris):**
+
+          - Grant: `anon` dan `authenticated` punya `USAGE` pada schema `public` dan
+            privilege penuh (SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES,
+            TRIGGER) pada kedelapan tabel itu. Jadi bukan hanya baca; secara grant,
+            tulis dan hapus juga terbuka (tulis tidak diuji).
+          - Baca sebagai peran (transaksi `begin read only` + `set local role` +
+            `rollback`, hanya `count(*)`): **terbaca oleh `anon` dan `authenticated`**
+            pada ke-8 tabel. Jumlah baris: `_prisma_migrations` 68, `identity_user` 4,
+            `identity_session` 43, `identity_account` 4, `identity_verification` 0,
+            `workspaces` 2, `background_jobs` 2715, `outstand_webhook_events` 0.
+            Dua tabel kosong tidak membuktikan apa-apa selain grant.
+          - Kontrol: `workspace_members` (RLS aktif) terbaca 0 baris oleh kedua
+            peran, jadi RLS memang bekerja di tabel lain dan perbedaannya nyata.
+          - Seluruh tabel `public` lain (RLS aktif) juga punya grant penuh ke kedua
+            peran; hanya RLS yang menahannya.
+          - Eksposur PostgREST: `rolconfig` `authenticator` tidak memuat
+            `pgrst.db_schemas`, jadi tidak ada pembatasan di tingkat peran DB; nilai
+            sebenarnya (pengaturan Data API dashboard) tidak terbaca lewat MCP.
+            Schema `public` berlaku sebagai default PostgREST.
+          - Production: tidak disentuh dan tidak ditentukan.
+
+          **Belum terbukti:** (a) GET PostgREST nyata dengan kunci publishable
+          (bukti uji lewat HTTP; peran DB sudah terbukti, jalur HTTP belum), (b)
+          apakah Data API aktif dan `public` terekspos di dashboard staging, (c)
+          uji tulis (sengaja tidak dilakukan), (d) kondisi production, (e) apakah
+          isi `identity_session`/`identity_account` memuat token yang dapat dipakai
+          (isi tidak dibaca). Dugaan kuat: keterpaparan tinggi bila Data API aktif;
+          prioritas tertinggi `identity_session`, `identity_account`,
+          `identity_verification`, `identity_user`, lalu `workspaces`,
+          `background_jobs`, `outstand_webhook_events`, `_prisma_migrations`.
+
 - [ ] **T-196.2** Keputusan King Rezi: peran koneksi aplikasi (pemilik atau
       `app_runtime`), policy per tabel, dan urutan; tulis policy beserta
       langkah rollback untuk tiap tabel sebelum satu pun diubah.
