@@ -135,6 +135,7 @@ export function DraftEditorForm({
         {isPreviewVisible && !pendingAction ? (
           <PreviewPanel
             selectedAccounts={form.selectedAccounts}
+            selectedAccountIds={form.selectedAccountIds}
             formatByAccount={form.formatByAccount}
             caption={form.caption}
             mediaItems={form.mediaItems}
