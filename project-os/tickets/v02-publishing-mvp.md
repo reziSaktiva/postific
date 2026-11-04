@@ -3005,7 +3005,7 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 | Field       | Value                                                                                                                       |
 | ----------- | --------------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | ⏳ Not Started                                                                                                              |
+| **Status**  | 🟡 In Progress (gelombang 3, branch `feature/s-005-draft-editor-gelombang-3`, ditumpuk di atas PR 252)                      |
 | **Mode**    | AFK                                                                                                                         |
 | **Domain**  | draft editor · UI                                                                                                           |
 | **Spec**    | S-005                                                                                                                       |
