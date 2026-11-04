@@ -12,6 +12,7 @@ import { Text } from "@/components/ui/text";
 import { Button } from "@/components/ui/button";
 
 import type { PinterestBoardState } from "./form-shared";
+import { getPinLinkHint } from "./network-blocks-state";
 
 export interface PinterestFieldsValue {
   pinTitle: string;
@@ -37,6 +38,7 @@ export function PinterestFields({
   onBoardChange,
   onRetryBoards,
 }: PinterestFieldsValue & { checkboxId: string }) {
+  const linkHint = getPinLinkHint(pinLink);
   return (
     // eslint-disable-next-line no-restricted-syntax -- T-102: padanan Astryx VStack, murni Tailwind flex.
     <div className="flex flex-col gap-2">
@@ -57,7 +59,16 @@ export function PinterestFields({
         id={`${checkboxId}-pin-link`}
         value={pinLink}
         onChange={(event) => onPinLinkChange(event.target.value)}
+        aria-describedby={linkHint ? `${checkboxId}-pin-link-hint` : undefined}
       />
+      {linkHint ? (
+        <FieldDescription
+          id={`${checkboxId}-pin-link-hint`}
+          className="text-warning"
+        >
+          {linkHint}
+        </FieldDescription>
+      ) : null}
       <Label htmlFor={`${checkboxId}-board`}>Board</Label>
       <FieldDescription>
         Wajib. Pin tidak terkirim tanpa board.

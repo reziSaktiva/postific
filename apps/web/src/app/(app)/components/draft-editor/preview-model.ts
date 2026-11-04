@@ -1,4 +1,8 @@
-import { ContentFormat, SocialPlatform } from "@postific/shared";
+import {
+  ContentFormat,
+  SocialPlatform,
+  type PinterestBoard,
+} from "@postific/shared";
 
 /**
  * Pemetaan data post (state form) ke model Pratinjau (S-005, T-203, ADR-155).
@@ -52,13 +56,28 @@ export type PostPreviewModel =
       kind: "vertical";
       format: typeof ContentFormat.Reel | typeof ContentFormat.Story;
     })
-  /** Platform/format yang Pratinjaunya dikerjakan tiket lain (T-204). */
-  | {
-      kind: "unavailable";
-      accountId: string;
-      platform: SocialPlatform;
-      format: ContentFormat;
-    };
+  /** TikTok: selalu kartu vertikal 9:16 dengan rel aksi (T-204.1). */
+  | (PreviewBase & { kind: "tiktok" })
+  /** Pinterest: pin 2:3 dengan judul, link, dan board dari blok jaringan (T-204.2). */
+  | (PreviewBase & {
+      kind: "pinterest-pin";
+      /** Judul pin (sudah di-trim); string kosong bila belum diisi. */
+      pinTitle: string;
+      /** Host dari link tujuan; `null` bila kosong atau bukan URL http(s) valid. */
+      linkHost: string | null;
+      /** Nama board terpilih; `null` bila belum dipilih atau daftar board belum termuat. */
+      boardName: string | null;
+    })
+  /** Kartu umum untuk platform tanpa Pratinjau khusus (T-204.3). */
+  | (PreviewBase & { kind: "generic" });
+
+/** Data blok jaringan Pinterest untuk akun yang sedang dipratinjau (T-204.2). */
+export interface PinterestPreviewInput {
+  title: string;
+  link: string;
+  boardId: string | undefined;
+  boards: readonly PinterestBoard[];
+}
 
 /** Ambang caption Instagram sebelum "selengkapnya" (mengikuti rancangan). */
 export const INSTAGRAM_CAPTION_PREVIEW_LIMIT = 125;
@@ -113,25 +132,31 @@ export function resolveActivePreviewAccountId(
   return selectedAccountIds[0] ?? null;
 }
 
+/** Host dari link pin bila berupa URL http(s) valid; selain itu `null`. */
+export function extractLinkHost(link: string): string | null {
+  const trimmed = link.trim();
+  if (trimmed === "") {
+    return null;
+  }
+  try {
+    const url = new URL(trimmed);
+    return url.protocol === "http:" || url.protocol === "https:"
+      ? url.host
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 export function buildPostPreview(input: {
   account: PreviewAccountInput;
   format: ContentFormat;
   caption: string;
   media: readonly PreviewMediaInput[];
+  /** Hanya dipakai untuk akun Pinterest; tanpa ini pin tampil tanpa judul/link/board. */
+  pinterest?: PinterestPreviewInput;
 }): PostPreviewModel {
-  const { account, format, caption, media } = input;
-  const isFacebookOrInstagram =
-    account.platform === SocialPlatform.Facebook ||
-    account.platform === SocialPlatform.Instagram;
-
-  if (!isFacebookOrInstagram) {
-    return {
-      kind: "unavailable",
-      accountId: account.id,
-      platform: account.platform,
-      format,
-    };
-  }
+  const { account, format, caption, media, pinterest } = input;
 
   const displayName =
     account.platform === SocialPlatform.Instagram
@@ -147,6 +172,30 @@ export function buildPostPreview(input: {
     media: summarizePreviewMedia(media),
   };
 
+  if (account.platform === SocialPlatform.TikTok) {
+    return { ...base, kind: "tiktok" };
+  }
+  if (account.platform === SocialPlatform.Pinterest) {
+    const boardName =
+      pinterest?.boardId !== undefined
+        ? (pinterest.boards.find((board) => board.id === pinterest.boardId)
+            ?.name ?? null)
+        : null;
+    return {
+      ...base,
+      kind: "pinterest-pin",
+      pinTitle: pinterest?.title.trim() ?? "",
+      linkHost: pinterest ? extractLinkHost(pinterest.link) : null,
+      boardName,
+    };
+  }
+  if (
+    account.platform !== SocialPlatform.Facebook &&
+    account.platform !== SocialPlatform.Instagram
+  ) {
+    return { ...base, kind: "generic" };
+  }
+
   if (format === ContentFormat.Reel || format === ContentFormat.Story) {
     return { ...base, kind: "vertical", format };
   }
@@ -159,10 +208,5 @@ export function buildPostPreview(input: {
         }
       : { ...base, kind: "facebook-post" };
   }
-  return {
-    kind: "unavailable",
-    accountId: account.id,
-    platform: account.platform,
-    format,
-  };
+  return { ...base, kind: "generic" };
 }

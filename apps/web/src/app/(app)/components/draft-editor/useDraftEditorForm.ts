@@ -1,37 +1,24 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
-import { toast } from "sonner";
-
 import { ContentFormat, ContentStatus, SocialPlatform } from "@postific/shared";
-import { pinterestBoardConstraintMessage } from "@/domains/publishing/pinterest-board-constraints";
 import { scheduleTimeConstraintMessage } from "@/domains/publishing/schedule-time-constraints";
 import { zonedLocalToUtc } from "@/domains/publishing/wib-time";
 import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
 
-import { useConfirmAction } from "@/lib/hooks/use-confirm-action";
 import { markTerminalNavigationPending } from "@/lib/navigation/pending-terminal-navigation";
-import {
-  isCaptionRequiredForFormats,
-  maxMediaCountForFormats,
-  minMediaCountConstraintMessage,
-  mixedStoryCaptionConstraintMessage,
-} from "@/domains/publishing";
+import { isCaptionRequiredForFormats } from "@/domains/publishing";
 
-import type { DraftMediaDto } from "./actions";
 import {
-  deleteMediaAction,
   getConnectedAccountsAction,
   getLastUsedAccountIdsAction,
   getDraftAction,
-  listPinterestBoardsAction,
   publishNowAction,
   saveDraftAction,
   scheduleDraftAction,
   updateDraftAction,
-  uploadMediaAction,
 } from "./actions";
 import { useDraftEditor } from "./Context";
 import type {
@@ -39,10 +26,10 @@ import type {
   FormNotice,
   LatestFormSnapshot,
   PendingAction,
-  PinterestBoardState,
 } from "./form-shared";
 import { getDefaultFormat, isAccountDisconnected } from "./form-shared";
 import { diffSelection } from "./account-selection";
+import { getActionReadiness } from "./action-readiness";
 import type { TerminalAction } from "./terminal-destination";
 import {
   isAlreadyAtDestination,
@@ -50,6 +37,10 @@ import {
 } from "./terminal-destination";
 import { decideDraftSaveTargets } from "./draft-save-targets";
 import { restoreDraftTargetSelection } from "./restore-draft-targets";
+import { resolveActiveAccountId } from "./network-blocks-state";
+import { validateNetworks } from "./network-validation";
+import { useDraftMedia } from "./useDraftMedia";
+import { usePinterestBoards } from "./usePinterestBoards";
 
 export interface DraftEditorFormParams {
   mode: "create" | "edit";
@@ -103,16 +94,6 @@ export function useDraftEditorForm({
   const [formatByAccount, setFormatByAccount] = useState<
     Record<string, ContentFormat>
   >({});
-  // Media (T-024.4) — setiap file diupload segera saat dipilih/didrop
-  // (`uploadMediaAction`, bukan disimpan sebagai `File` mentah di state),
-  // supaya preview + validasi mime/ukuran terjadi langsung, bukan ditunda
-  // sampai Save/Schedule. `mediaItems` adalah SATU set untuk seluruh post
-  // (bukan per-akun/per-target, ADR-107) — "hapus" di grid preview (T-024.5)
-  // menghapus PERMANEN (file Storage + record `MediaItem` DB, lewat dialog
-  // konfirmasi Tier 2/ADR-049), bukan sekadar unlink dari state lokal.
-  const [mediaItems, setMediaItems] = useState<DraftMediaDto[]>([]);
-  const [uploadingMediaCount, setUploadingMediaCount] = useState(0);
-  const [mediaError, setMediaError] = useState<string | null>(null);
   const [pinTitle, setPinTitle] = useState("");
   const [pinLink, setPinLink] = useState("");
   // Board Pinterest (KI-072) dipilih PER POST tapi PER AKUN (bug fix QA
@@ -125,16 +106,6 @@ export function useDraftEditorForm({
   const [boardIdByAccount, setBoardIdByAccount] = useState<
     Record<string, string | undefined>
   >({});
-  // Daftar board ASLI per akun Pinterest (bukan mock) — di-fetch saat akun
-  // Pinterest dicentang di form akun tujuan (lihat `toggleAccount`), keyed by
-  // `connectedAccountId` supaya beberapa akun Pinterest yang dicentang
-  // bersamaan tidak saling menimpa status loading/error satu sama lain.
-  const [pinterestBoardsByAccount, setPinterestBoardsByAccount] = useState<
-    Record<string, PinterestBoardState>
-  >({});
-  // Respons fetch yang lebih lama tidak boleh menimpa hasil request yang
-  // lebih baru (retry sukses, lalu error request sebelumnya datang belakangan).
-  const pinterestBoardRequestSeq = useRef<Record<string, number>>({});
   const [scheduleDate, setScheduleDate] = useState<string | undefined>();
   const [scheduleTime, setScheduleTime] = useState<string | undefined>();
   // A step *within* this same Dialog (regardless of variant) — NOT a
@@ -156,6 +127,38 @@ export function useDraftEditorForm({
   const [isLoadingAccounts, setIsLoadingAccounts] = useState(true);
   // T-201.2 — sumber pintasan "Terakhir dipakai"; dimuat sekali bersama akun.
   const [lastUsedAccountIds, setLastUsedAccountIds] = useState<string[]>([]);
+
+  const selectedAccounts = useMemo(
+    () => accounts.filter((account) => selectedAccountIds.includes(account.id)),
+    [accounts, selectedAccountIds],
+  );
+  /**
+   * Format yang sedang aktif dipilih di antara akun target yang dicentang
+   * — dipakai untuk menghitung batas media efektif (ADR-107) DAN dikirim ke
+   * Server Action (`activeFormats`) supaya server bisa menegakkan batas yang
+   * sama (defense-in-depth, sama pola guard lain di repo ini).
+   */
+  const activeFormats = selectedAccounts.map(
+    (account) =>
+      formatByAccount[account.id] ?? getDefaultFormat(account.platform),
+  );
+
+  const {
+    mediaItems,
+    setMediaItems,
+    uploadingMediaCount,
+    mediaError,
+    effectiveMaxMedia,
+    isMediaLimitReached,
+    overLimitMediaCount,
+    handleFilesSelected,
+    deleteMediaConfirm,
+  } = useDraftMedia(activeFormats);
+  const { pinterestBoardsByAccount, fetchPinterestBoards, hasRequestedBoards } =
+    usePinterestBoards();
+  // Blok jaringan yang terbuka di akordeon (T-202.2). Hanya id; nilai
+  // efektifnya diturunkan di bawah supaya selalu menunjuk akun terpilih.
+  const [openAccountId, setOpenAccountId] = useState<string | undefined>();
 
   useEffect(() => {
     if (!isEdit) {
@@ -262,11 +265,12 @@ export function useDraftEditorForm({
       if (isAccountDisconnected(account)) {
         continue;
       }
-      if (pinterestBoardRequestSeq.current[account.id]) {
+      if (hasRequestedBoards(account.id)) {
         continue;
       }
       fetchPinterestBoards(account.id);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetch/hasRequested dibuat ulang tiap render tetapi hanya membaca ref dan setter stabil; effect hanya perlu jalan saat akun/pilihan berubah (KI-060).
   }, [accounts, isEdit, isLoadingAccounts, selectedAccountIds]);
 
   // Report the live snapshot on every render so the parent's Dialog
@@ -274,31 +278,16 @@ export function useDraftEditorForm({
   // without needing this state lifted up.
   onLatestChange({ mode, caption, savedPostId });
 
-  const selectedAccounts = useMemo(
-    () => accounts.filter((account) => selectedAccountIds.includes(account.id)),
-    [accounts, selectedAccountIds],
-  );
-
-  const pinterestConstraintMessage = pinterestBoardConstraintMessage(
-    selectedAccounts.map((account) => ({
-      platform: account.platform,
-      platformOptions:
-        account.platform === SocialPlatform.Pinterest
-          ? { boardId: boardIdByAccount[account.id] }
-          : undefined,
-    })),
-  );
-
   // KI-073: caption HANYA wajib kalau TIDAK ADA target Story sama sekali —
   // Story justru MENOLAK caption di Outstand (`buildPostRequestBody`,
   // `real-outstand-adapter.ts`: `contentForBody = hasStoryTarget ? "" :
   // input.caption`). Kombinasi Story + non-Story ber-caption ditolak
-  // adapter secara TERPISAH (throw `client_error`) — ditangani di bawah
-  // sebagai constraint sendiri (`mixedStoryCaptionMessage`), BUKAN dilipat
+  // adapter secara TERPISAH (throw `client_error`) — ditangani sebagai
+  // constraint sendiri (`validateNetworks`, T-202.5), BUKAN dilipat
   // ke gate caption-required (versi sebelumnya salah: mewajibkan caption
   // untuk kombinasi campuran justru menjamin submit gagal di adapter,
   // padahal versi caption-kosong itu yang sebenarnya diterima).
-  const activeFormatsForGate = getActiveFormats();
+  const activeFormatsForGate = activeFormats;
   const hasStoryTarget = activeFormatsForGate.some(
     (format) => format === ContentFormat.Story,
   );
@@ -306,26 +295,6 @@ export function useDraftEditorForm({
     (format) => format !== ContentFormat.Story,
   );
   const isCaptionRequired = isCaptionRequiredForFormats(activeFormatsForGate);
-  const mixedStoryCaptionMessage = mixedStoryCaptionConstraintMessage(
-    caption,
-    activeFormatsForGate,
-  );
-
-  // KI-074: Story/Reel/Pin secara native selalu berbasis media — tanpa
-  // guard ini, target Story/Reel/Pin bisa "berhasil" terpublish tapi
-  // tayang kosong (caption-nya sendiri juga sudah dikosongkan untuk
-  // Story, KI-073 di atas). Mirror server: `assertMediaCountMeetsMinimum`
-  // (`content-format-matrix.ts`).
-  // ADR-154: minimum media ditentukan per platform + format (Instagram Post
-  // wajib media, Facebook Post tidak), jadi target dikirim lengkap.
-  const mediaMinimumMessage = minMediaCountConstraintMessage(
-    mediaItems.length,
-    selectedAccounts.map((account) => ({
-      platform: account.platform,
-      contentFormat:
-        formatByAccount[account.id] ?? getDefaultFormat(account.platform),
-    })),
-  );
 
   // T-108 (KI-044): tidak ada validasi yang mencegah user men-Schedule post
   // ke waktu yang sudah lewat (mis. jadwalkan jam 08:00 padahal sekarang
@@ -345,24 +314,31 @@ export function useDraftEditorForm({
         )
       : null;
 
-  const isReadyToSchedule =
-    (!isCaptionRequired || caption.trim().length > 0) &&
-    selectedAccounts.length > 0 &&
-    Boolean(scheduleDate) &&
-    Boolean(scheduleTime) &&
-    pinterestConstraintMessage === null &&
-    mediaMinimumMessage === null &&
-    mixedStoryCaptionMessage === null &&
-    scheduleTimeMessage === null;
+  // T-202.5: pelanggaran per jaringan (tampil di blok) dan lintas jaringan
+  // (tampil di atas editor) dikelompokkan oleh `validateNetworks`: sumber
+  // tunggal untuk aturan board Pinterest, minimum media (KI-074, ADR-154),
+  // caption campur Story (KI-073), dan Reel (T-200).
+  const networkValidation = validateNetworks(
+    selectedAccounts.map((account) => ({
+      accountId: account.id,
+      platform: account.platform,
+      contentFormat:
+        formatByAccount[account.id] ?? getDefaultFormat(account.platform),
+      boardId: boardIdByAccount[account.id],
+    })),
+    caption,
+    mediaItems,
+  );
 
-  // Publish Now (KSP-05-F12) skips the Schedule Picker entirely — tanggal/
-  // waktu tidak relevan sama sekali, beda dari `isReadyToSchedule`.
-  const isReadyToPublishNow =
-    (!isCaptionRequired || caption.trim().length > 0) &&
-    selectedAccounts.length > 0 &&
-    pinterestConstraintMessage === null &&
-    mediaMinimumMessage === null &&
-    mixedStoryCaptionMessage === null;
+  const { isReadyToSchedule, isReadyToPublishNow } = getActionReadiness({
+    isCaptionRequired,
+    caption,
+    selectedAccountCount: selectedAccounts.length,
+    scheduleDate,
+    scheduleTime,
+    hasBlockingNetworkIssues: networkValidation.hasBlockingIssues,
+    scheduleTimeMessage,
+  });
 
   // Publish Now dari Queue (T-032.4) — lompat otomatis ke step konfirmasi
   // begitu draft (caption/status) DAN daftar akun terhubung selesai dimuat,
@@ -423,6 +399,8 @@ export function useDraftEditorForm({
       checked ? [...prev, account.id] : prev.filter((id) => id !== account.id),
     );
     if (checked) {
+      // Blok jaringan akun yang baru dicentang terbuka (T-202.2).
+      setOpenAccountId(account.id);
       applyAccountAddedEffects(account);
     }
   }
@@ -437,54 +415,15 @@ export function useDraftEditorForm({
   function setAccountSelection(nextAccountIds: string[]) {
     const { added } = diffSelection(selectedAccountIds, nextAccountIds);
     setSelectedAccountIds(nextAccountIds);
+    if (added[0]) {
+      setOpenAccountId(added[0]);
+    }
     for (const accountId of added) {
       const account = accounts.find((item) => item.id === accountId);
       if (account) {
         applyAccountAddedEffects(account);
       }
     }
-  }
-
-  /** Fetch daftar board Pinterest asli (KI-072) — dipanggil saat akun
-   * Pinterest dicentang di `toggleAccount`, dan sebagai retry manual dari
-   * tombol "Coba lagi" pada state error. */
-  function fetchPinterestBoards(connectedAccountId: string) {
-    const requestSeq =
-      (pinterestBoardRequestSeq.current[connectedAccountId] ?? 0) + 1;
-    pinterestBoardRequestSeq.current[connectedAccountId] = requestSeq;
-    setPinterestBoardsByAccount((prev) => ({
-      ...prev,
-      [connectedAccountId]: { status: "loading" },
-    }));
-    listPinterestBoardsAction(connectedAccountId)
-      .then((boards) => {
-        if (
-          pinterestBoardRequestSeq.current[connectedAccountId] !== requestSeq
-        ) {
-          return;
-        }
-        setPinterestBoardsByAccount((prev) => ({
-          ...prev,
-          [connectedAccountId]: { status: "success", boards },
-        }));
-      })
-      .catch((error) => {
-        if (
-          pinterestBoardRequestSeq.current[connectedAccountId] !== requestSeq
-        ) {
-          return;
-        }
-        setPinterestBoardsByAccount((prev) => ({
-          ...prev,
-          [connectedAccountId]: {
-            status: "error",
-            message:
-              error instanceof Error
-                ? error.message
-                : "Gagal memuat daftar board.",
-          },
-        }));
-      });
   }
 
   function changeFormat(accountId: string, format: ContentFormat) {
@@ -514,105 +453,7 @@ export function useDraftEditorForm({
     }
   }
 
-  /**
-   * Format yang sedang aktif dipilih di antara akun target yang dicentang
-   * — dipakai untuk menghitung batas media efektif (ADR-107,
-   * `maxMediaCountFor`) DAN dikirim ke Server Action (`activeFormats`)
-   * supaya server bisa menegakkan batas yang sama (defense-in-depth, sama
-   * pola guard lain di repo ini).
-   */
-  function getActiveFormats(): ContentFormat[] {
-    return selectedAccounts.map(
-      (account) =>
-        formatByAccount[account.id] ?? getDefaultFormat(account.platform),
-    );
-  }
-
   const mediaIds = mediaItems.map((item) => item.id);
-  const effectiveMaxMedia = maxMediaCountForFormats(getActiveFormats());
-  const isMediaLimitReached =
-    mediaItems.length + uploadingMediaCount >= effectiveMaxMedia;
-  /**
-   * KI-061 (ADR-107): kalau user upload media dulu lalu menambah akun
-   * target dengan format lebih ketat, `effectiveMaxMedia` bisa turun di
-   * bawah `mediaItems.length` yang sudah ada — tanpa indikator ini user
-   * baru tahu ada masalah setelah klik Save/Schedule/Publish dan kena
-   * error server (`assertMediaCountWithinLimit`). Server menolak berdasarkan
-   * TOTAL count, bukan per-item (lihat `content-format-matrix.ts`).
-   * Urutan grid = urutan `mediaIds` yang tersimpan (upload di-append,
-   * dan `getDraftAction` mengembalikan urutan itu lagi meski
-   * `listByIds` datang sebagai `createdAt desc`). Item index >=
-   * `effectiveMaxMedia` adalah ekor array — media paling baru — yang
-   * perlu dihapus dulu sampai total kembali di bawah batas.
-   */
-  const overLimitMediaCount = Math.max(
-    0,
-    mediaItems.length - effectiveMaxMedia,
-  );
-
-  async function handleFilesSelected(fileList: FileList | null) {
-    if (!fileList || fileList.length === 0) {
-      return;
-    }
-    const files = Array.from(fileList);
-    const max = maxMediaCountForFormats(getActiveFormats());
-    const availableSlots = Math.max(
-      0,
-      max - mediaItems.length - uploadingMediaCount,
-    );
-
-    if (availableSlots === 0) {
-      setMediaError(
-        `Batas maksimum ${max} media untuk format yang sedang dipilih sudah tercapai.`,
-      );
-      return;
-    }
-
-    const toUpload = files.slice(0, availableSlots);
-    if (files.length > toUpload.length) {
-      setMediaError(
-        `Hanya ${toUpload.length} dari ${files.length} file diunggah — batas maksimum media untuk format ini adalah ${max}.`,
-      );
-    } else {
-      setMediaError(null);
-    }
-
-    setUploadingMediaCount((count) => count + toUpload.length);
-    await Promise.all(
-      toUpload.map(async (file) => {
-        try {
-          const formData = new FormData();
-          formData.append("file", file);
-          const result = await uploadMediaAction(formData);
-          if ("error" in result) {
-            setMediaError(result.error);
-          } else {
-            setMediaItems((prev) => [...prev, result.media]);
-          }
-        } catch {
-          setMediaError("Gagal mengunggah salah satu file. Coba lagi.");
-        } finally {
-          setUploadingMediaCount((count) => count - 1);
-        }
-      }),
-    );
-  }
-
-  // T-024.5 (ADR-049 Tier 2): hapus media dari grid preview sekarang berarti
-  // hapus PERMANEN (file Storage + record `MediaItem` DB), bukan lagi
-  // unlink diam-diam — pola sama `deleteConfirm` di `DraftsList.tsx`
-  // (`useConfirmAction` + `ConfirmActionDialog`). Karena `ConfirmActionDialog`
-  // adalah `AlertDialog` modal (memblokir interaksi lain di belakangnya
-  // selagi terbuka), tombol hapus item lain di grid otomatis tidak bisa
-  // diklik selama satu proses berjalan — tidak perlu state disable
-  // tambahan per-tile, konsisten pola `DraftsList`.
-  const deleteMediaConfirm = useConfirmAction<DraftMediaDto>(
-    (item) => deleteMediaAction(item.id),
-    (item) => {
-      setMediaItems((prev) => prev.filter((m) => m.id !== item.id));
-      toast("Media berhasil dihapus");
-    },
-  );
 
   async function handleSaveDraft() {
     const decision = decideDraftSaveTargets({
@@ -632,7 +473,6 @@ export function useDraftEditorForm({
 
     setIsSavingDraft(true);
     try {
-      const activeFormats = getActiveFormats();
       let nextPostId = savedPostId;
       if (savedPostId) {
         const result = await updateDraftAction(savedPostId, {
@@ -798,6 +638,15 @@ export function useDraftEditorForm({
       setIsPublishingNow(false);
     }
   }
+  // Blok yang terbuka di akordeon (T-202.2): pilihan terakhir bila masih
+  // terpilih, selain itu blok paling atas. Diturunkan dari urutan PILIHAN
+  // (urutan blok dirender), bukan urutan daftar workspace.
+  const activeAccountId = resolveActiveAccountId(
+    selectedAccountIds.filter((id) =>
+      selectedAccounts.some((account) => account.id === id),
+    ),
+    openAccountId,
+  );
   const showStoryCaptionWarning =
     hasStoryTarget && !hasNonStoryTarget && caption.trim().length > 0;
 
@@ -842,9 +691,9 @@ export function useDraftEditorForm({
     isSavingDraft,
     isScheduling,
     isPublishingNow,
-    pinterestConstraintMessage,
-    mediaMinimumMessage,
-    mixedStoryCaptionMessage,
+    networkValidation,
+    activeAccountId,
+    setActiveAccountId: setOpenAccountId,
     scheduleTimeMessage,
     showStoryCaptionWarning,
     isReadyToSchedule,

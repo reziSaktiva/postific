@@ -10,8 +10,10 @@ import { CaptionEditor } from "./CaptionEditor";
 import { ConfirmationSummary } from "./ConfirmationSummary";
 import { EditorFooter } from "./EditorFooter";
 import { EditorHeader } from "./EditorHeader";
+import { resolveSelectedAccounts } from "./account-selection";
 import { FormAlerts } from "./FormAlerts";
 import { MediaSection } from "./MediaSection";
+import { NetworkBlocks } from "./NetworkBlocks";
 import { PreviewPanel } from "./PreviewPanel";
 import { ScheduleSection } from "./ScheduleSection";
 import type { DraftEditorFormParams } from "./useDraftEditorForm";
@@ -67,21 +69,27 @@ export function DraftEditorForm({
           ) : (
             // eslint-disable-next-line no-restricted-syntax -- T-102: padanan Astryx VStack, murni Tailwind flex.
             <div className="flex flex-col gap-4">
-              <FormAlerts
-                pinterestConstraintMessage={form.pinterestConstraintMessage}
-                mediaMinimumMessage={form.mediaMinimumMessage}
-                mixedStoryCaptionMessage={form.mixedStoryCaptionMessage}
-                scheduleTimeMessage={form.scheduleTimeMessage}
-                notice={form.notice}
-              />
-
               {form.isLoadingDraft ? (
                 <Text variant="muted">Memuat draft…</Text>
               ) : (
-                // eslint-disable-next-line no-restricted-syntax -- T-102: padanan Astryx HStack, murni Tailwind flex.
-                <div className="flex flex-wrap items-start gap-6">
-                  {/* eslint-disable-next-line no-restricted-syntax -- T-102: padanan Astryx VStack, murni Tailwind flex. */}
-                  <div className="flex w-full max-w-125 flex-col gap-5">
+                <>
+                  <AccountSelector
+                    accounts={form.accounts}
+                    isLoadingAccounts={form.isLoadingAccounts}
+                    selectedAccountIds={form.selectedAccountIds}
+                    onToggleAccount={form.toggleAccount}
+                    onSetSelection={form.setAccountSelection}
+                    lastUsedAccountIds={form.lastUsedAccountIds}
+                  />
+                  <FormAlerts
+                    crossNetworkIssues={form.networkValidation.cross}
+                    scheduleTimeMessage={form.scheduleTimeMessage}
+                    notice={form.notice}
+                  />
+                  <section
+                    aria-label="Komposer"
+                    className="flex flex-col gap-3 rounded-lg border border-border p-3"
+                  >
                     <CaptionEditor
                       caption={form.caption}
                       onCaptionChange={form.setCaption}
@@ -98,36 +106,35 @@ export function DraftEditorForm({
                       onFilesSelected={form.handleFilesSelected}
                       onRequestDelete={form.deleteMediaConfirm.open}
                     />
-                  </div>
-
-                  {/* eslint-disable-next-line no-restricted-syntax -- T-102: padanan Astryx VStack, murni Tailwind flex. */}
-                  <div className="flex w-full max-w-85 flex-col gap-4">
-                    <AccountSelector
-                      accounts={form.accounts}
-                      isLoadingAccounts={form.isLoadingAccounts}
-                      selectedAccountIds={form.selectedAccountIds}
-                      formatByAccount={form.formatByAccount}
-                      onToggleAccount={form.toggleAccount}
-                      onSetSelection={form.setAccountSelection}
-                      lastUsedAccountIds={form.lastUsedAccountIds}
-                      onFormatChange={form.changeFormat}
-                      pinTitle={form.pinTitle}
-                      pinLink={form.pinLink}
-                      onPinTitleChange={form.setPinTitle}
-                      onPinLinkChange={form.setPinLink}
-                      boardIdByAccount={form.boardIdByAccount}
-                      pinterestBoardsByAccount={form.pinterestBoardsByAccount}
-                      onBoardChange={form.changeBoard}
-                      onRetryBoards={form.fetchPinterestBoards}
-                    />
-                    <ScheduleSection
-                      scheduleDate={form.scheduleDate}
-                      scheduleTime={form.scheduleTime}
-                      onScheduleDateChange={form.setScheduleDate}
-                      onScheduleTimeChange={form.setScheduleTime}
-                    />
-                  </div>
-                </div>
+                  </section>
+                  <NetworkBlocks
+                    accounts={resolveSelectedAccounts(
+                      form.selectedAccounts,
+                      form.selectedAccountIds,
+                    )}
+                    activeAccountId={form.activeAccountId}
+                    onActiveAccountChange={form.setActiveAccountId}
+                    formatByAccount={form.formatByAccount}
+                    onFormatChange={form.changeFormat}
+                    caption={form.caption}
+                    mediaItems={form.mediaItems}
+                    issuesByAccount={form.networkValidation.byAccount}
+                    pinTitle={form.pinTitle}
+                    pinLink={form.pinLink}
+                    onPinTitleChange={form.setPinTitle}
+                    onPinLinkChange={form.setPinLink}
+                    boardIdByAccount={form.boardIdByAccount}
+                    pinterestBoardsByAccount={form.pinterestBoardsByAccount}
+                    onBoardChange={form.changeBoard}
+                    onRetryBoards={form.fetchPinterestBoards}
+                  />
+                  <ScheduleSection
+                    scheduleDate={form.scheduleDate}
+                    scheduleTime={form.scheduleTime}
+                    onScheduleDateChange={form.setScheduleDate}
+                    onScheduleTimeChange={form.setScheduleTime}
+                  />
+                </>
               )}
             </div>
           )}
@@ -139,6 +146,10 @@ export function DraftEditorForm({
             formatByAccount={form.formatByAccount}
             caption={form.caption}
             mediaItems={form.mediaItems}
+            pinTitle={form.pinTitle}
+            pinLink={form.pinLink}
+            boardIdByAccount={form.boardIdByAccount}
+            pinterestBoardsByAccount={form.pinterestBoardsByAccount}
           />
         ) : null}
       </div>

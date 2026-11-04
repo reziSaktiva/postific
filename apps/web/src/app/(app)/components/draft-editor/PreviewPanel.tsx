@@ -24,6 +24,7 @@ import {
   PLATFORM_LABEL,
   getDefaultFormat,
   type ConnectedAccount,
+  type PinterestBoardState,
 } from "./form-shared";
 import { InstagramPreview } from "./InstagramPreview";
 import {
@@ -33,6 +34,13 @@ import {
   type PreviewMediaInput,
 } from "./preview-model";
 import { VerticalPreview } from "./VerticalPreview";
+import { GenericPreview } from "./GenericPreview";
+import { PinterestPreview } from "./PinterestPreview";
+import { TikTokPreview } from "./TikTokPreview";
+
+function resolveBoards(state: PinterestBoardState | undefined) {
+  return state?.status === "success" ? state.boards : [];
+}
 
 function PreviewCard({ model }: { model: PostPreviewModel }) {
   switch (model.kind) {
@@ -42,20 +50,12 @@ function PreviewCard({ model }: { model: PostPreviewModel }) {
       return <InstagramPreview model={model} />;
     case "vertical":
       return <VerticalPreview model={model} />;
-    case "unavailable":
-      // Pratinjau TikTok, Pinterest, dan kartu generik dikerjakan di T-204.
-      return (
-        <Empty className="rounded-2xl border p-6">
-          <EmptyHeader>
-            <EmptyTitle className="text-sm">
-              Pratinjau {PLATFORM_LABEL[model.platform]} belum tersedia
-            </EmptyTitle>
-            <EmptyDescription>
-              Caption, media, dan jadwal tetap berlaku untuk akun ini.
-            </EmptyDescription>
-          </EmptyHeader>
-        </Empty>
-      );
+    case "tiktok":
+      return <TikTokPreview model={model} />;
+    case "pinterest-pin":
+      return <PinterestPreview model={model} />;
+    case "generic":
+      return <GenericPreview model={model} />;
   }
 }
 
@@ -70,6 +70,10 @@ export function PreviewPanel({
   formatByAccount,
   caption,
   mediaItems,
+  pinTitle = "",
+  pinLink = "",
+  boardIdByAccount,
+  pinterestBoardsByAccount,
 }: {
   selectedAccounts: ConnectedAccount[];
   /**
@@ -80,6 +84,11 @@ export function PreviewPanel({
   formatByAccount: Record<string, ContentFormat | undefined>;
   caption: string;
   mediaItems: PreviewMediaInput[];
+  /** Data blok jaringan Pinterest (opsional; tanpa ini pin tampil tanpa judul/link/board). */
+  pinTitle?: string;
+  pinLink?: string;
+  boardIdByAccount?: Record<string, string | undefined>;
+  pinterestBoardsByAccount?: Record<string, PinterestBoardState | undefined>;
 }) {
   const selectedAccounts = selectedAccountIds
     ? resolveSelectedAccounts(selectedAccountsInput, selectedAccountIds)
@@ -147,6 +156,14 @@ export function PreviewPanel({
                 format: activeFormat,
                 caption,
                 media: mediaItems,
+                pinterest: {
+                  title: pinTitle,
+                  link: pinLink,
+                  boardId: boardIdByAccount?.[activeAccount.id],
+                  boards: resolveBoards(
+                    pinterestBoardsByAccount?.[activeAccount.id],
+                  ),
+                },
               })}
             />
             <p className="max-w-80 text-center text-xs text-muted-foreground">
