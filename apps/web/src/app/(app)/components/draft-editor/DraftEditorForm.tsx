@@ -109,6 +109,7 @@ export function DraftEditorForm({
                       formatByAccount={form.formatByAccount}
                       onToggleAccount={form.toggleAccount}
                       onSetSelection={form.setAccountSelection}
+                      lastUsedAccountIds={form.lastUsedAccountIds}
                       onFormatChange={form.changeFormat}
                       pinTitle={form.pinTitle}
                       pinLink={form.pinLink}
