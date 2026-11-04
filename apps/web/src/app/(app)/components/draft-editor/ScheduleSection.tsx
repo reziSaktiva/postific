@@ -39,12 +39,14 @@ export function ScheduleSection({
   scheduleDate,
   scheduleTime,
   disabled,
+  triggerClassName,
   onScheduleDateChange,
   onScheduleTimeChange,
 }: {
   scheduleDate: string | undefined;
   scheduleTime: string | undefined;
   disabled: boolean;
+  triggerClassName?: string;
   onScheduleDateChange: (date: string | undefined) => void;
   onScheduleTimeChange: (time: string | undefined) => void;
 }) {
@@ -77,6 +79,7 @@ export function ScheduleSection({
         <Button
           type="button"
           variant="outline"
+          className={triggerClassName}
           disabled={disabled}
           aria-label={`Jadwal: ${label}`}
         >

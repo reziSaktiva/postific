@@ -9,6 +9,7 @@ import {
 
 import type { ContentStatus } from "@postific/shared";
 
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+import type { DialogVariant } from "./dialog-layout";
 import type { PendingAction } from "./form-shared";
 import {
   CONTENT_STATUS_BADGE_VARIANT,
@@ -28,6 +30,9 @@ export function EditorHeader({
   isEdit,
   status,
   dialogVariant,
+  showVariantToggle,
+  showPreviewToggle,
+  isNarrow,
   onToggleDialogVariant,
   isPreviewVisible,
   onTogglePreview,
@@ -36,14 +41,22 @@ export function EditorHeader({
   pendingAction: PendingAction;
   isEdit: boolean;
   status: ContentStatus;
-  dialogVariant: "standard" | "fullscreen";
+  dialogVariant: DialogVariant;
+  showVariantToggle: boolean;
+  showPreviewToggle: boolean;
+  isNarrow: boolean;
   onToggleDialogVariant: () => void;
   isPreviewVisible: boolean;
   onTogglePreview: () => void;
   onClose: () => void;
 }) {
   return (
-    <DialogHeader className="flex-row items-start justify-between gap-3 border-b border-border px-6 py-4">
+    <DialogHeader
+      className={cn(
+        "flex-row items-start justify-between gap-3 border-b border-border px-6 py-4",
+        isNarrow && "items-center px-3 py-2.5",
+      )}
+    >
       <DialogTitle className="text-lg">
         {pendingAction === "schedule"
           ? "Konfirmasi Jadwal"
@@ -73,23 +86,26 @@ export function EditorHeader({
               />
               {CONTENT_STATUS_LABEL[status]}
             </Badge>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="hidden md:inline-flex"
-              aria-pressed={isPreviewVisible}
-              onClick={onTogglePreview}
-            >
-              <HugeiconsIcon
-                icon={isPreviewVisible ? ViewIcon : ViewOffIcon}
-                strokeWidth={2}
-                data-icon="inline-start"
-              />
-              Pratinjau
-            </Button>
-            <Button variant="ghost" size="sm" onClick={onToggleDialogVariant}>
-              {dialogVariant === "fullscreen" ? "Standard" : "Fullscreen"}
-            </Button>
+            {showPreviewToggle ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                aria-pressed={isPreviewVisible}
+                onClick={onTogglePreview}
+              >
+                <HugeiconsIcon
+                  icon={isPreviewVisible ? ViewIcon : ViewOffIcon}
+                  strokeWidth={2}
+                  data-icon="inline-start"
+                />
+                Pratinjau
+              </Button>
+            ) : null}
+            {showVariantToggle ? (
+              <Button variant="ghost" size="sm" onClick={onToggleDialogVariant}>
+                {dialogVariant === "fullscreen" ? "Standard" : "Fullscreen"}
+              </Button>
+            ) : null}
           </>
         )}
         <Button variant="ghost" size="icon-sm" onClick={onClose}>
