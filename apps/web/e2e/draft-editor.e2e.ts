@@ -38,9 +38,7 @@ function dialog(page: Page) {
 /**
  * T-205: jadwal diatur lewat popover "Atur jadwal" (Calendar + jam), bukan dua
  * input di badan form. Memilih hari `offsetDays` dari hari ini (zona WIB, zona
- * akun test) lalu menutup popover dengan "Selesai". Spesifikasi ini belum
- * dijalankan terhadap aplikasi karena tidak ada `.env.local` di worktree
- * jalur-a; jalankan di `local` sebelum dipercaya.
+ * akun test) lalu menutup popover dengan "Selesai".
  */
 async function pickScheduleDay(page: Page, dlg: Locator, offsetDays: number) {
   const target = new Date(Date.now() + offsetDays * 86_400_000);
@@ -76,9 +74,17 @@ function dayButton(page: Page, offsetDays: number) {
     name: new RegExp(`${label}(, dipilih)?$`),
   });
 }
+/** Tunggu semua animasi/transisi elemen selesai (pengganti jeda tetap). */
+async function settleAnimations(el: Locator) {
+  await el.evaluate((node) =>
+    Promise.all(node.getAnimations({ subtree: true }).map((a) => a.finished)),
+  );
+}
 async function selectInstagram(page: Page, dlg: Locator) {
   await dlg.getByRole("button", { name: "Channels" }).click();
-  const acct = page.getByRole("checkbox", { name: /Pilih Instagram/ });
+  // Sandbox bisa punya lebih dari satu akun Instagram: pilih yang pertama di
+  // daftar supaya selektor tidak gagal di strict mode dan hasilnya deterministik.
+  const acct = page.getByRole("checkbox", { name: /Pilih Instagram/ }).first();
   await expect(acct).toBeVisible({ timeout: 15_000 });
   await acct.check();
   await page.keyboard.press("Escape");
@@ -127,7 +133,13 @@ test.beforeAll(() => {
 async function deleteE2eDrafts(page: Page): Promise<number> {
   await page.goto("/publish/drafts");
   await expect(page.getByText(E2E_WORKSPACE_NAME).first()).toBeVisible();
-  await page.waitForTimeout(1500);
+  // Daftar sudah dimuat bila ada baris draft atau keadaan kosong.
+  await expect(
+    page
+      .getByRole("button", { name: "Hapus draft" })
+      .first()
+      .or(page.getByText("Belum ada draft")),
+  ).toBeVisible({ timeout: 15_000 });
   let removed = 0;
   const rows = page.getByRole("button").filter({ hasText: /e2e-qa-draft-/ });
   for (let i = 0; i < 10; i++) {
@@ -171,7 +183,10 @@ test("S1 buka New Post dari Drafts: Standard, judul, chip, Close, Akun tujuan", 
   await expect(dlg.getByRole("button", { name: "Close" })).toBeVisible();
   await expect(dlg.getByRole("button", { name: "Fullscreen" })).toBeVisible();
   await expect(dlg.getByRole("heading", { name: "Akun tujuan" })).toBeVisible();
-  await page.waitForTimeout(2500);
+  // Daftar akun selesai dimuat bila pintasan menampilkan jumlahnya.
+  await expect(dlg.getByText(/Terakhir dipakai \(\d+\)/)).toBeVisible({
+    timeout: 15_000,
+  });
   const accountsText = await dlg
     .getByRole("heading", { name: "Akun tujuan" })
     .locator("xpath=..")
@@ -201,7 +216,13 @@ test("S2 toggle Fullscreen/Standard, tidak dipersist", async ({ page }) => {
   const vp = page.viewportSize()!;
   await dlg.getByRole("button", { name: "Fullscreen" }).click();
   await expect(dlg.getByRole("button", { name: "Standard" })).toBeVisible();
-  await page.waitForTimeout(500);
+  // Tunggu animasi ukuran selesai: ukuran dibaca setelah mencapai nilai akhir.
+  await expect
+    .poll(async () => Math.round((await dlg.boundingBox())!.width))
+    .toBe(vp.width);
+  await expect
+    .poll(async () => Math.round((await dlg.boundingBox())!.height))
+    .toBe(vp.height);
   const fsBox = await dlg.boundingBox();
   console.log("S2 fullscreen box", JSON.stringify(fsBox));
   expect(Math.round(fsBox!.width)).toBe(vp.width);
@@ -209,12 +230,12 @@ test("S2 toggle Fullscreen/Standard, tidak dipersist", async ({ page }) => {
   await snap(page, "s2-fullscreen");
   await dlg.getByRole("button", { name: "Standard" }).click();
   await expect(dlg.getByRole("button", { name: "Fullscreen" })).toBeVisible();
-  await page.waitForTimeout(500);
-  const stBox = await dlg.boundingBox();
-  expect(stBox!.width).toBeLessThan(vp.width - 10);
+  await expect
+    .poll(async () => (await dlg.boundingBox())!.width)
+    .toBeLessThan(vp.width - 10);
   // persist check: ke Fullscreen, tutup, buka ulang
   await dlg.getByRole("button", { name: "Fullscreen" }).click();
-  await page.waitForTimeout(300);
+  await expect(dlg.getByRole("button", { name: "Standard" })).toBeVisible();
   await dlg.getByRole("button", { name: "Close" }).click();
   await expect(dialog(page)).toHaveCount(0);
   await page.getByRole("button", { name: "New Post" }).last().click();
@@ -417,12 +438,7 @@ test("S7b dengan akun terhubung: tombol aktif, ringkasan konfirmasi muncul, Bata
   const sched = dlg.getByRole("button", { name: "Schedule", exact: true });
   const pub = dlg.getByRole("button", { name: "Publish Now", exact: true });
   // T-201: akun dipilih lewat popover Channels (portal, di luar dialog).
-  await dlg.getByRole("button", { name: "Channels" }).click();
-  const acct = page.getByRole("checkbox", { name: /Pilih Instagram/ });
-  await expect(acct).toBeVisible({ timeout: 15_000 });
-  await acct.check();
-  await page.keyboard.press("Escape");
-  await expect(acct).toBeHidden();
+  await selectInstagram(page, dlg);
   await expect(dlg).toBeVisible();
   await expect(pub).toBeDisabled(); // caption kosong
   await dlg.getByLabel("Caption").fill("e2e-qa konfirmasi saja");
@@ -510,7 +526,14 @@ test("S8a layar sempit 375: modal penuh, tanpa overflow horizontal", async ({
   await page.getByRole("button", { name: "New Post" }).last().click();
   const dlg = dialog(page);
   await expect(dlg).toBeVisible();
-  await page.waitForTimeout(1500);
+  // Metrik overflow hanya bermakna setelah ukuran akhir dan daftar akun termuat.
+  await expect
+    .poll(async () => Math.round((await dlg.boundingBox())!.width))
+    .toBe(375);
+  await expect(dlg.getByText(/Terakhir dipakai \(\d+\)/)).toBeVisible({
+    timeout: 15_000,
+  });
+  await settleAnimations(dlg);
   const m = await page.evaluate(() => {
     const d = document.querySelector(
       '[role="dialog"][data-state="open"]',
@@ -579,7 +602,7 @@ test.describe("S8b mode gelap", () => {
     await expect(
       page.getByRole("complementary", { name: "Pratinjau" }),
     ).toContainText("e2e-qa gelap pratinjau");
-    await page.waitForTimeout(1200);
+    await settleAnimations(dlg);
     // pantau kedipan terang: sampel latar dialog & kontras teks
     const res = await page.evaluate(() => {
       const lum = (rgb: string) => {
@@ -619,7 +642,9 @@ test.describe("S8b mode gelap", () => {
     console.log("S8b hasil", JSON.stringify(res));
     await snap(page, "s8b-dark-standard");
     await dlg.getByRole("button", { name: "Fullscreen" }).click();
-    await page.waitForTimeout(400);
+    await expect
+      .poll(async () => Math.round((await dlg.boundingBox())!.width))
+      .toBe(page.viewportSize()!.width);
     await snap(page, "s8b-dark-fullscreen");
     await dlg.getByRole("button", { name: "Close" }).click();
     // dialog Resume dalam gelap
@@ -662,53 +687,73 @@ test("S11 golden path: akun, caption, media, Pratinjau, jadwal dalam batas, Save
   await expect(dlg).toBeVisible();
   await selectInstagram(page, dlg);
   await dlg.getByLabel("Caption").fill(caption);
-  await uploadPng(dlg, `e2e-qa-${STAMP}-g.png`);
-  // Pratinjau live memuat caption yang diketik.
-  const preview = page.getByRole("complementary", { name: "Pratinjau" });
-  await expect(preview).toBeVisible();
-  await expect(preview).toContainText(caption);
-  // Jadwal dalam batas diterima; hari ke-31 tidak bisa dipilih (ADR-154).
-  await pickScheduleDay(page, dlg, 3);
-  await expect(
-    dlg.getByRole("button", { name: /^Jadwal: .+ · 10:00 WIB$/ }),
-  ).toBeVisible();
-  await dlg.getByRole("button", { name: /^Jadwal:/ }).click();
-  if ((await dayButton(page, 31).count()) === 0) {
-    await page.getByRole("button", { name: "Ke bulan berikutnya" }).click();
+  try {
+    await uploadPng(dlg, `e2e-qa-${STAMP}-g.png`);
+    // Pratinjau live memuat caption yang diketik.
+    const preview = page.getByRole("complementary", { name: "Pratinjau" });
+    await expect(preview).toBeVisible();
+    await expect(preview).toContainText(caption);
+    // Jadwal dalam batas diterima; hari ke-31 tidak bisa dipilih (ADR-154).
+    await pickScheduleDay(page, dlg, 3);
+    await expect(
+      dlg.getByRole("button", { name: /^Jadwal: .+ · 10:00 WIB$/ }),
+    ).toBeVisible();
+    await dlg.getByRole("button", { name: /^Jadwal:/ }).click();
+    if ((await dayButton(page, 31).count()) === 0) {
+      await page.getByRole("button", { name: "Ke bulan berikutnya" }).click();
+    }
+    await expect(dayButton(page, 31)).toBeDisabled();
+    await page.getByRole("button", { name: "Selesai" }).click();
+    await snap(page, "s11-golden-path");
+    await dlg.getByRole("button", { name: "Save as Draft" }).click();
+    await expect(dialog(page)).toHaveCount(0, { timeout: 30_000 });
+    await expect(page).toHaveURL(/\/publish\/drafts/, { timeout: 30_000 });
+    const row = page.getByRole("button").filter({ hasText: caption }).first();
+    await expect(row).toBeVisible({ timeout: 30_000 });
+    // Edit Draft: akun, format, media, dan Pratinjau kembali dari data tersimpan.
+    await row.click();
+    const edit = dialog(page);
+    await expect(
+      edit.getByRole("heading", { name: "Edit Draft" }),
+    ).toBeVisible();
+    await expect(edit.getByLabel("Caption")).toHaveValue(caption, {
+      timeout: 15_000,
+    });
+    await expect(
+      edit.getByRole("button", { name: /^Hapus Instagram/ }),
+    ).toBeVisible();
+    await expect(edit.getByRole("radio", { name: "Post" })).toBeChecked();
+    await expect(
+      edit.getByRole("button", { name: /^Hapus e2e-qa-.*secara permanen/ }),
+    ).toBeVisible();
+    const editPreview = page.getByRole("complementary", { name: "Pratinjau" });
+    await expect(editPreview).toBeVisible();
+    await expect(editPreview).toContainText(caption);
+    await snap(page, "s11-edit-draft");
+  } finally {
+    // Media diunggah ke Storage: hapus lewat UI walau tes gagal. Bila modal sudah
+    // tertutup (draft tersimpan), buka lagi lewat Edit Draft untuk menghapusnya.
+    const mediaBtn = () =>
+      dialog(page).getByRole("button", {
+        name: /^Hapus e2e-qa-.*secara permanen/,
+      });
+    if ((await dialog(page).count()) === 0) {
+      await page.goto("/publish/drafts");
+      await page
+        .getByRole("button")
+        .filter({ hasText: caption })
+        .first()
+        .click({ timeout: 10_000 })
+        .catch(() => undefined);
+    }
+    if ((await mediaBtn().count()) > 0) {
+      await deleteMediaViaUi(page, mediaBtn().first());
+    }
+    await dialog(page)
+      .getByRole("button", { name: "Close" })
+      .click({ timeout: 5_000 })
+      .catch(() => undefined);
   }
-  await expect(dayButton(page, 31)).toBeDisabled();
-  await page.getByRole("button", { name: "Selesai" }).click();
-  await snap(page, "s11-golden-path");
-  await dlg.getByRole("button", { name: "Save as Draft" }).click();
-  await expect(dialog(page)).toHaveCount(0, { timeout: 30_000 });
-  await expect(page).toHaveURL(/\/publish\/drafts/, { timeout: 30_000 });
-  const row = page.getByRole("button").filter({ hasText: caption }).first();
-  await expect(row).toBeVisible({ timeout: 30_000 });
-  // Edit Draft: akun, format, media, dan Pratinjau kembali dari data tersimpan.
-  await row.click();
-  const edit = dialog(page);
-  await expect(edit.getByRole("heading", { name: "Edit Draft" })).toBeVisible();
-  await expect(edit.getByLabel("Caption")).toHaveValue(caption, {
-    timeout: 15_000,
-  });
-  await expect(
-    edit.getByRole("button", { name: /^Hapus Instagram/ }),
-  ).toBeVisible();
-  await expect(edit.getByRole("radio", { name: "Post" })).toBeChecked();
-  await expect(
-    edit.getByRole("button", { name: /^Hapus e2e-qa-.*secara permanen/ }),
-  ).toBeVisible();
-  const editPreview = page.getByRole("complementary", { name: "Pratinjau" });
-  await expect(editPreview).toBeVisible();
-  await expect(editPreview).toContainText(caption);
-  await snap(page, "s11-edit-draft");
-  // Bersihkan media milik tes (draft dihapus di S10/afterAll).
-  await deleteMediaViaUi(
-    page,
-    edit.getByRole("button", { name: /^Hapus e2e-qa-.*secara permanen/ }),
-  );
-  await edit.getByRole("button", { name: "Close" }).click();
-  await expect(dialog(page)).toHaveCount(0);
 });
 
 test("S12 Reel dengan gambar: opsi Reel nonaktif dengan alasan, Publish Now tetap valid untuk Post", async ({
@@ -733,6 +778,28 @@ test("S12 Reel dengan gambar: opsi Reel nonaktif dengan alasan, Publish Now teta
     await deleteMediaViaUi(page, del);
   }
   await dlg.getByLabel("Caption").fill("");
+  await dlg.getByRole("button", { name: "Close" }).click();
+  await expect(dialog(page)).toHaveCount(0);
+});
+
+test("S13 baris channel: chip akun, Tambah akun, chip dilepas mengosongkan Pratinjau", async ({
+  page,
+}) => {
+  track(page, "S13");
+  await openNewPostFromDrafts(page);
+  const dlg = dialog(page);
+  await expect(dlg).toBeVisible();
+  const preview = page.getByRole("complementary", { name: "Pratinjau" });
+  await expect(preview.getByText("Pratinjau tampil di sini")).toBeVisible();
+  await selectInstagram(page, dlg);
+  // Setelah ada pilihan: chip avatar plus tombol Tambah akun (T-201.3).
+  await expect(dlg.getByTestId("channel-chip")).toHaveCount(1);
+  await expect(dlg.getByRole("button", { name: "Tambah akun" })).toBeVisible();
+  await expect(preview.getByText("Pratinjau tampil di sini")).toBeHidden();
+  await dlg.getByRole("button", { name: /^Hapus Instagram/ }).click();
+  await expect(dlg.getByTestId("channel-chip")).toHaveCount(0);
+  await expect(preview.getByText("Pratinjau tampil di sini")).toBeVisible();
+  await expect(dlg.getByRole("button", { name: "Channels" })).toBeVisible();
   await dlg.getByRole("button", { name: "Close" }).click();
   await expect(dialog(page)).toHaveCount(0);
 });
