@@ -1556,6 +1556,18 @@ Cook It Real Good (akun Facebook nyata). Data hanya-baca (Supabase dan Outstand)
       baru agar post kembali Scheduled) alih-alih ditolak; dan retry atas post yang
       jadwalnya sudah lewat tetap terbit langsung. Belum di-commit.
 - [ ] **T-195.4** Tes regresi, lalu verifikasi di staging **tanpa akun nyata**.
+      Bagian tes regresi selesai (2026-11-04): tes batas publik sudah ada untuk
+      guard 30 hari (`SchedulePostsUseCase`), penolakan Retry post terjadwal
+      (`RetryFailedTargetUseCase`), dan pencatatan body 400 (`outstand-http-client`);
+      ditambah satu tes adapter (`schedulePost` jadwal jauh, 400 mempertahankan
+      detail Outstand, tidak retryable, `scheduledAt` tetap terkirim). Body 400 di
+      tes itu SIMULASI, bukan teramati. **Belum terbukti:** pembuktian penyebab 400
+      dari body asli TIDAK dilakukan. `OUTSTAND_API_KEY` di env local terbukti (list
+      akun, hanya baca) terhubung ke org berisi akun nyata Cook It Real Good
+      (Facebook, Pinterest, TikTok, Instagram x2, YouTube), bukan E2E Sandbox,
+      sehingga tidak ada panggilan tulis ke Outstand. Butuh kredensial org E2E
+      Sandbox yang terbukti hanya berisi akun Sandbox, lalu jadwalkan > 30 hari
+      lewat adapter dan baca body 400.
 
 **Aturan sampai tiket ini selesai:** jangan menguji post Scheduled di workspace
 yang punya akun sosial nyata; pakai E2E Sandbox.
