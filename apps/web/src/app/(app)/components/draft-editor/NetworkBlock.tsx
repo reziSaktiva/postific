@@ -68,7 +68,6 @@ export function NetworkBlockSummary({
       {PlatformGlyph ? (
         <PlatformGlyph size={16} color={entry.color} aria-hidden />
       ) : null}
-      {}
       <span className="flex min-w-0 flex-col">
         <span className="font-medium">{PLATFORM_LABEL[account.platform]}</span>
         <span className="truncate text-xs font-normal text-muted-foreground">

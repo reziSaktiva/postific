@@ -165,7 +165,6 @@ export function MediaSection({
               <Spinner />
             </div>
           ))}
-          {}
           <button
             type="button"
             aria-label="Tambah media: tarik file ke sini atau klik untuk memilih"

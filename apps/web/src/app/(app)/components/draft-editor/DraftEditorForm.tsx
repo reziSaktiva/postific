@@ -10,6 +10,7 @@ import { CaptionEditor } from "./CaptionEditor";
 import { ConfirmationSummary } from "./ConfirmationSummary";
 import { EditorFooter } from "./EditorFooter";
 import { EditorHeader } from "./EditorHeader";
+import { resolveSelectedAccounts } from "./account-selection";
 import { FormAlerts } from "./FormAlerts";
 import { MediaSection } from "./MediaSection";
 import { NetworkBlocks } from "./NetworkBlocks";
@@ -85,7 +86,6 @@ export function DraftEditorForm({
                     scheduleTimeMessage={form.scheduleTimeMessage}
                     notice={form.notice}
                   />
-                  {}
                   <section
                     aria-label="Komposer"
                     className="flex flex-col gap-3 rounded-lg border border-border p-3"
@@ -108,7 +108,10 @@ export function DraftEditorForm({
                     />
                   </section>
                   <NetworkBlocks
-                    accounts={form.selectedAccounts}
+                    accounts={resolveSelectedAccounts(
+                      form.selectedAccounts,
+                      form.selectedAccountIds,
+                    )}
                     activeAccountId={form.activeAccountId}
                     onActiveAccountChange={form.setActiveAccountId}
                     formatByAccount={form.formatByAccount}

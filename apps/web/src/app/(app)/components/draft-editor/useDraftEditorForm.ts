@@ -4,17 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 import { ContentFormat, ContentStatus, SocialPlatform } from "@postific/shared";
-import { pinterestBoardConstraintMessage } from "@/domains/publishing/pinterest-board-constraints";
 import { scheduleTimeConstraintMessage } from "@/domains/publishing/schedule-time-constraints";
 import { zonedLocalToUtc } from "@/domains/publishing/wib-time";
 import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
 
 import { markTerminalNavigationPending } from "@/lib/navigation/pending-terminal-navigation";
-import {
-  isCaptionRequiredForFormats,
-  minMediaCountConstraintMessage,
-  mixedStoryCaptionConstraintMessage,
-} from "@/domains/publishing";
+import { isCaptionRequiredForFormats } from "@/domains/publishing";
 
 import {
   getConnectedAccountsAction,
@@ -278,22 +273,12 @@ export function useDraftEditorForm({
   // without needing this state lifted up.
   onLatestChange({ mode, caption, savedPostId });
 
-  const pinterestConstraintMessage = pinterestBoardConstraintMessage(
-    selectedAccounts.map((account) => ({
-      platform: account.platform,
-      platformOptions:
-        account.platform === SocialPlatform.Pinterest
-          ? { boardId: boardIdByAccount[account.id] }
-          : undefined,
-    })),
-  );
-
   // KI-073: caption HANYA wajib kalau TIDAK ADA target Story sama sekali —
   // Story justru MENOLAK caption di Outstand (`buildPostRequestBody`,
   // `real-outstand-adapter.ts`: `contentForBody = hasStoryTarget ? "" :
   // input.caption`). Kombinasi Story + non-Story ber-caption ditolak
-  // adapter secara TERPISAH (throw `client_error`) — ditangani di bawah
-  // sebagai constraint sendiri (`mixedStoryCaptionMessage`), BUKAN dilipat
+  // adapter secara TERPISAH (throw `client_error`) — ditangani sebagai
+  // constraint sendiri (`validateNetworks`, T-202.5), BUKAN dilipat
   // ke gate caption-required (versi sebelumnya salah: mewajibkan caption
   // untuk kombinasi campuran justru menjamin submit gagal di adapter,
   // padahal versi caption-kosong itu yang sebenarnya diterima).
@@ -305,26 +290,6 @@ export function useDraftEditorForm({
     (format) => format !== ContentFormat.Story,
   );
   const isCaptionRequired = isCaptionRequiredForFormats(activeFormatsForGate);
-  const mixedStoryCaptionMessage = mixedStoryCaptionConstraintMessage(
-    caption,
-    activeFormatsForGate,
-  );
-
-  // KI-074: Story/Reel/Pin secara native selalu berbasis media — tanpa
-  // guard ini, target Story/Reel/Pin bisa "berhasil" terpublish tapi
-  // tayang kosong (caption-nya sendiri juga sudah dikosongkan untuk
-  // Story, KI-073 di atas). Mirror server: `assertMediaCountMeetsMinimum`
-  // (`content-format-matrix.ts`).
-  // ADR-154: minimum media ditentukan per platform + format (Instagram Post
-  // wajib media, Facebook Post tidak), jadi target dikirim lengkap.
-  const mediaMinimumMessage = minMediaCountConstraintMessage(
-    mediaItems.length,
-    selectedAccounts.map((account) => ({
-      platform: account.platform,
-      contentFormat:
-        formatByAccount[account.id] ?? getDefaultFormat(account.platform),
-    })),
-  );
 
   // T-108 (KI-044): tidak ada validasi yang mencegah user men-Schedule post
   // ke waktu yang sudah lewat (mis. jadwalkan jam 08:00 padahal sekarang
@@ -345,11 +310,9 @@ export function useDraftEditorForm({
       : null;
 
   // T-202.5: pelanggaran per jaringan (tampil di blok) dan lintas jaringan
-  // (tampil di atas editor) dikelompokkan oleh `validateNetworks`; aturannya
-  // sama dengan `pinterestConstraintMessage`, `mediaMinimumMessage`, dan
-  // `mixedStoryCaptionMessage` di atas, ditambah aturan Reel (T-200) yang
-  // sebelumnya hanya ditegakkan server. Nilai-nilai lama tetap dikembalikan
-  // hook ini (dipakai Pratinjau dan kartu lain).
+  // (tampil di atas editor) dikelompokkan oleh `validateNetworks`: sumber
+  // tunggal untuk aturan board Pinterest, minimum media (KI-074, ADR-154),
+  // caption campur Story (KI-073), dan Reel (T-200).
   const networkValidation = validateNetworks(
     selectedAccounts.map((account) => ({
       accountId: account.id,
@@ -727,9 +690,6 @@ export function useDraftEditorForm({
     isSavingDraft,
     isScheduling,
     isPublishingNow,
-    pinterestConstraintMessage,
-    mediaMinimumMessage,
-    mixedStoryCaptionMessage,
     networkValidation,
     activeAccountId,
     setActiveAccountId: setOpenAccountId,
