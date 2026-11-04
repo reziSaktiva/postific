@@ -2876,7 +2876,7 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 | Field       | Value                                                                                                                                |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Status**  | 🟡 Merged ke staging (PR 250, 2026-11-03); belum Done (code), keputusan King Rezi                                                    |
+| **Status**  | ✅ Done (code, 2026-11-04, atas keputusan King Rezi); belum Verified (staging)                                                       |
 | **Mode**    | AFK                                                                                                                                  |
 | **Domain**  | draft editor · UI                                                                                                                    |
 | **Spec**    | S-005                                                                                                                                |
@@ -2890,7 +2890,7 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 - [x] **T-199.1** Pasang `calendar` lewat workflow CLI/MCP shadcn (discover-first: cek registry dan dokumen komponen, jangan menebak props); sesuaikan dengan token Stone.
 - [x] **T-199.2** Pasang `accordion` dengan cara yang sama.
 - [x] **T-199.3** Pecah `Modal` menjadi komponen modul bertanggung jawab tunggal (baris channel, editor dan media, blok jaringan, panel Pratinjau, footer, ringkasan konfirmasi, dialog Resume); state form dan aksi tetap berpusat di satu tempat; entry point tetap tidak berisi business logic (aturan 3 `AGENTS.md`).
-- [ ] **T-199.4** Perilaku tidak berubah: `typecheck`, `lint`, dan seluruh tes yang ada hijau; suite E2E yang ada tetap hijau.
+- [x] `(2026-11-04)` **T-199.4** Perilaku tidak berubah: `typecheck`, `lint`, dan seluruh tes yang ada hijau; suite E2E yang ada tetap hijau.
 
 **Catatan hasil (jalur A, gelombang 1):**
 
@@ -2900,6 +2900,8 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 - Catatan review Standards (Ridwan, 2026-11-03, nol pelanggaran keras): (a) setiap `shadcn add` berikutnya wajib diikuti `grep 'from "cn"'` dan `git diff` pada `button.tsx`, karena registry masih mengisi `cn` dan menawarkan menimpa `button.tsx`; (b) `useDraftEditorForm.ts` (805 baris, sekitar 55 field kembalian) kandidat pemecahan sub-hook (mis. `usePinterestBoards`, `useDraftMedia`, turunan validasi) saat tiket redesain berikutnya menyentuhnya, sambil menjaga state di satu hook induk; (c) `react-day-picker` dan `date-fns` baru dipakai mulai T-202 dan T-205, ukur chunk Draft Editor saat itu; (d) komentar domain yang menunjuk `Modal.tsx` sebagai mirror client sudah diarahkan ke `useDraftEditorForm.ts` dan `ScheduleSection.tsx` di branch integrasi.
 
 **Bukti staging (2026-11-03):** PR 250 (base staging) di-squash-merge atas perintah King Rezi setelah CI "Quality gates" hijau (bersama T-200); run CI staging 41611048959, deploy staging commit `0b7ac823` success di Railway. Najwa menjalankan spec Playwright 13 tes (1 setup login + 12 skenario) terhadap staging setelah deploy: 13 passed, dua kali (42s dan 41s). Ini bukti browser pertama untuk kode hasil refactor T-199/T-200. Rincian cakupan dan batasnya di T-207. Status Done (code) dan Verified (staging) TIDAK dinaikkan oleh dokumen ini: keputusan ada di King Rezi (lihat T-207, alasan: ADR-149 meminta suite hijau di `local`, bukan staging; ADR-153 meminta `/code-review`, Ridwan, dan QA tanpa temuan terbuka untuk gelombang). T-199.4 tetap tidak dicentang.
+
+**Penutupan (2026-11-04):** King Rezi menetapkan Done (code) setelah verifikasi gelombang 0 di `local` (ADR-149). Di `local` pada kode `7956ea8d`: `typecheck`, `lint`, dan 2.226 tes unit hijau; `draft-editor.e2e.ts` 13 passed pada run pertama. Run berikutnya menemukan bug redirect Save as Draft dari Queue (T-208, KI-108), yang diperbaiki di branch integrasi (S4 lulus 3 dari 3, spec penuh 13 passed, 2.239 tes unit hijau). Tes tema `/u/e2e-start-page` gagal hanya di `next dev` lokal (CSP mode dev) dan lulus di staging; bukan bagian S-005. Suite lengkap lain (`session`, `smoke`, `start-page`, `theme` untuk `/login`) hijau; hasil `mcp.e2e.ts` di run lokal tidak diperiksa (tidak tampil di keluaran yang disaring), jadi tidak diklaim hijau. Verified (staging) menyusul sekali untuk seluruh S-005 (ADR-153, T-207.6).
 
 **Belum terbukti (jangan diasumsikan):**
 
