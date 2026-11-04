@@ -3189,8 +3189,8 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 **What to build:** bukti bahwa redesain berjalan dari ujung ke ujung, dan penutupan lewat tangga status ADR-153.
 
 - [x] **T-207.1** Perbarui tes Playwright E2E alur Draft Editor (ADR-149, S-002): golden path pilih akun, isi caption dan media, lihat Pratinjau, atur jadwal dalam batas, Save as Draft, buka kembali lewat Edit Draft; tambah layar sempit dan mode gelap. Tidak mempublikasikan ke akun media sosial nyata.
-- [ ] **T-207.2** Suite E2E hijau di `local`; hasil di deskripsi PR.
-- [ ] **T-207.3** Review `/code-review` dan Ridwan (arsitektur) tanpa temuan terbuka.
+- [~] **T-207.2** Suite E2E hijau di `local`; hasil di deskripsi PR. (Bagian hijau di `local` terbukti; hasil di deskripsi PR menunggu PR.)
+- [ ] **T-207.3** Review `/code-review` dan Ridwan (arsitektur) tanpa temuan terbuka. (Ridwan selesai; `/code-review` belum dijalankan.)
 - [ ] **T-207.4** QA Najwa lolos (termasuk RBAC per peran, Disconnected, Reel dengan gambar, jadwal di batas 30 hari, Edit Draft dengan akun, format, dan opsi Pinterest terisi dari data tersimpan, status read-only `Published`/`Failed`/`Imported` sesuai T-091, dan post `Scheduled` sama seperti sebelum redesain).
 - [ ] **T-207.5** `typecheck`, `lint`, dan tes hijau. Status T-199 sampai T-206 menjadi Done (code).
 - [ ] **T-207.6** Verified (staging) satu kali per gelombang (ADR-153): verifikasi King Rezi di staging; tanpa akun media sosial nyata untuk post Scheduled sebelum T-195 selesai.
@@ -3218,6 +3218,23 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 **Hasil jalur A gelombang 6 (2026-11-04, `local`):** E2E Draft Editor hijau di `local` pada tiga run berturut-turut (login E2E lokal berhasil). Cakupan: golden path (akun, caption, media, Pratinjau, jadwal dalam batas dan hari ke-31 nonaktif, Save as Draft, Edit Draft dengan akun, format, media, dan Pratinjau), Reel dengan gambar, Fullscreen penuh viewport (T-206.1 terbukti diperbaiki), tanpa overflow di 375px, dan pindai kontras mode gelap dengan akun dan Pratinjau. Typecheck, lint, dan tes unit hijau.
 
 **T-206.4 (mode gelap), bukti jujur:** pindai kontras (ambang 3) atas heading, label, tombol, textarea, `p`, dan `span` di modal dengan Instagram terpilih dan Pratinjau terbuka tanpa temuan; latar dialog gelap. Dialog Resume dan Fullscreen hanya diambil screenshot. Bukan audit WCAG.
+
+**Hasil gelombang 6 (2026-11-04), bukti jujur:**
+
+- **E2E (T-207.2):** spec Draft Editor 16 tes (S1 sampai S13) hijau di `local`, empat run berturut-turut tanpa flaky atau retry setelah perbaikan. Typecheck, lint, dan tes unit hijau. Hasil di deskripsi PR menunggu PR dibuat.
+- **Review (T-207.3):** Ridwan (Standards) selesai tanpa pelanggaran keras, sembilan pertimbangan, semuanya ditangani (centang T-201.3 dan sejenisnya diturunkan ke `[~]`, jeda tetap di E2E diganti penantian kondisi, dan lainnya). `/code-review` belum dijalankan, jadi T-207.3 tetap terbuka.
+- **QA Najwa (T-207.4), lolos:** RBAC Admin; Reel gambar dan video; jadwal batas 30 hari per jam; Edit Draft (akun, format Story, media); `Imported` read-only; post `Scheduled` setara pra-redesain (dari kode dan perilaku); Pratinjau Instagram dan keadaan kosong; baris channel; Quick Compose; Resume; Fullscreen; layar 375px; mode gelap (editor, popover, Calendar).
+- **QA Najwa, TIDAK TERUJI (data Sandbox hanya satu akun Instagram):** RBAC Owner dan Creator di browser; akun Disconnected; `Published` dan `Failed` read-only di browser; opsi Pinterest tersimpan; Pratinjau TikTok, Pinterest, Facebook, dan generik; mode gelap Pinterest dan TikTok. Karena itu T-207.4 tidak dicentang.
+
+**Butir keputusan King Rezi (selisih kecil dari artifact desain, belum diubah, desain dan kode tidak disentuh):**
+
+1. Pesan Reel dengan gambar lebih panjang dari rancangan.
+2. Label zona waktu tampil "WIB (Asia/Jakarta)", rancangan "(UTC+7)".
+3. Teks bantuan unggah menampilkan "(ADR-107)" di UI.
+4. Reel tanpa media memakai banner generik.
+5. Pesan Reel nonaktif belum memakai `aria-describedby`.
+
+**T-207.5, T-207.6, T-207.7** tetap terbuka. Status T-199 sampai T-206 menjadi Done (code) hanya bila semua butirnya terbukti, keputusan King Rezi. T-207 tetap In Progress.
 
 **Belum terbukti:** (1) T-207.2 perlu hasil di deskripsi PR; (2) T-207.3 dan T-207.4 milik koordinator; (3) Pratinjau TikTok, Pinterest, kartu generik, blok Pinterest, dan akordeon lebih dari satu akun tidak diuji E2E; (4) Reel dengan video asli, akun Disconnected, RBAC per peran, dan post `Scheduled`, `Published`, `Failed`, `Imported` tidak diuji E2E; (5) mode gelap untuk popover jadwal, Calendar, Pinterest dan TikTok tidak dipindai; (6) Close pada Edit Draft membuang perubahan (KSP-05-F10) belum ditegaskan; (7) butir T-201, T-202, T-203, T-204, T-205, T-206 yang masih tidak dicentang belum punya bukti tes, sehingga status belum Done (code); (8) T-207.7: tidak ada selisih terdeteksi untuk KSP-05, KSP-D02, NP-D11 pada hal yang diuji (Standard 1120px, Fullscreen penuh viewport, toggle tidak dipersist, Resume hanya New Post, dua zona dengan Pratinjau kanan); penutupan sidebar di Fullscreen dan footer "Atur jadwal" saat kosong tidak ditegaskan eksplisit, menunggu King Rezi.
 
@@ -3254,7 +3271,7 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 | Field       | Value                                                                             |
 | ----------- | --------------------------------------------------------------------------------- |
-| **Status**  | 🟡 In Progress                                                                    |
+| **Status**  | 🟡 Done (code), menunggu Verified (staging)                                       |
 | **Mode**    | AFK                                                                               |
 | **Domain**  | UI · shadcn components                                                            |
 | **Spec**    | tidak ada (temuan review T-202)                                                   |
@@ -3266,11 +3283,15 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 - [x] **T-210.1** Inventaris selektor `data-open:`/`data-closed:` di `components/ui/` dan periksa atribut yang benar-benar dipancarkan tiap komponen Radix (jangan menebak).
 - [x] **T-210.2** (tidak perlu, premis keliru, lihat temuan) Perbaiki ke selektor `data-state` yang berlaku (atau tambahkan varian Tailwind kustom), tanpa mengubah tampilan komponen lain secara tak sengaja; cek tampilan terang dan gelap.
 - [x] **T-210.3** (tidak ada tambalan: `NetworkBlocks.tsx` tidak memuat `data-[state=open]`; `bg-muted/50` di baris 109 adalah latar kontainer statis) Hapus tambalan `data-[state=open]:bg-muted/50` di `NetworkBlocks.tsx` bila akar masalahnya sudah teratasi.
-- [ ] **T-210.4** `typecheck`, `lint`, tes hijau; verifikasi tampilan di browser dan E2E bila ada.
+- [x] **T-210.4** `typecheck`, `lint`, tes hijau; verifikasi tampilan di browser dan E2E bila ada.
 
 **Hasil T-210.1 (2026-11-04, jalur B):** premis tiket **tidak terbukti**. `shadcn/tailwind.css` (shadcn 4.19.1, di-import `globals.css` baris 16) mendefinisikan `@custom-variant data-open|data-closed|data-checked|data-unchecked|data-active|data-disabled` yang masing-masing mencocokkan `[data-state="open"]` (dst.) ATAU atribut boolean Base UI. Bukti: Tailwind CLI v4.3.4 mengompilasi `data-open:animate-accordion-down` menjadi `.data-open\:animate-accordion-down:where([data-state="open"]), ...:where([data-open]:not([data-open="false"]))`. Radix accordion 1.2.20 memancarkan `data-state` pada Item dan Content (diperiksa di `dist/index.mjs`). Maka `data-open:`/`data-closed:`/`data-checked:`/`data-active:` di `accordion`, `alert-dialog`, `sheet`, `popover`, `select`, `dropdown-menu`, `tooltip`, `radio-group`, `tabs`, `sidebar` valid dan **tidak diubah**. Tooltip tetap punya `data-[state=delayed-open]` terpisah (benar). Belum diverifikasi: tampilan di browser (bukti memakai kompilasi CSS, bukan layar). Tidak ada perubahan kode.
 
-**Belum terbukti (jangan diasumsikan):** apakah animasi yang hilang terlihat oleh pemakai, dan apakah komponen selain accordion benar-benar terdampak.
+**Hasil T-210.4 (2026-11-04):** typecheck, lint, dan tes unit hijau. Akordeon diverifikasi di browser terang dan gelap: item terbuka berlatar `muted/50` dan animasi `accordion-down`/`accordion-up` berjalan. Tidak ada perubahan kode.
+
+**Catatan temuan di luar lingkup (belum diputuskan King Rezi, bukan tiket baru):** teks peringatan panjang terpotong di baris akordeon yang tertutup (TikTok, Instagram, YouTube).
+
+**Belum terbukti (jangan diasumsikan):** E2E Draft Editor khusus akordeon; tampilan di viewport mobile; persepsi animasi oleh pemakai; apakah komponen selain accordion benar-benar terdampak.
 
 **Blocked by:** tidak ada
 
