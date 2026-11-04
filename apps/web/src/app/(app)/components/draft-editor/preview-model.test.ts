@@ -138,18 +138,115 @@ describe("buildPostPreview", () => {
     }
   });
 
-  it("platform tanpa Pratinjau (T-204) dilaporkan unavailable", () => {
+  it("TikTok selalu kartu tiktok apa pun formatnya, dengan media video", () => {
+    for (const format of [ContentFormat.Post, ContentFormat.Reel]) {
+      const model = buildPostPreview({
+        account: { id: "tt1", platform: SocialPlatform.TikTok, handle: "@x" },
+        format,
+        caption: "Seduh #kopi",
+        media: [video],
+      });
+      if (model.kind !== "tiktok") throw new Error("kind tidak sesuai");
+      expect(model.displayName).toBe("@x");
+      expect(model.hasCaption).toBe(true);
+      expect(model.media.first?.isVideo).toBe(true);
+    }
+  });
+
+  it("platform tanpa Pratinjau khusus memakai kartu generik", () => {
+    for (const platform of [
+      SocialPlatform.Twitter,
+      SocialPlatform.LinkedIn,
+      SocialPlatform.YouTube,
+      SocialPlatform.Threads,
+    ]) {
+      const model = buildPostPreview({
+        account: { id: "x1", platform, handle: "Kopi" },
+        format: ContentFormat.Post,
+        caption: "",
+        media: [],
+      });
+      if (model.kind !== "generic") throw new Error("kind tidak sesuai");
+      expect(model.platform).toBe(platform);
+      expect(model.hasCaption).toBe(false);
+      expect(model.media.first).toBeNull();
+    }
+  });
+});
+
+describe("buildPostPreview Pinterest", () => {
+  const pinAccount = {
+    id: "pin1",
+    platform: SocialPlatform.Pinterest,
+    handle: "Kopi Selasar",
+  };
+  const boards = [
+    { id: "b1", name: "Resep" },
+    { id: "b2", name: "Menu" },
+  ];
+
+  it("memetakan judul, host link, dan nama board dari blok jaringan", () => {
     const model = buildPostPreview({
-      account: { id: "tt1", platform: SocialPlatform.TikTok, handle: "@x" },
-      format: ContentFormat.Post,
+      account: pinAccount,
+      format: ContentFormat.Pin,
+      caption: "Resep rumahan",
+      media: [image],
+      pinterest: {
+        title: "  Kopi Susu  ",
+        link: "https://kopiselasar.id/resep/kopi",
+        boardId: "b2",
+        boards,
+      },
+    });
+    if (model.kind !== "pinterest-pin") throw new Error("kind tidak sesuai");
+    expect(model.pinTitle).toBe("Kopi Susu");
+    expect(model.linkHost).toBe("kopiselasar.id");
+    expect(model.boardName).toBe("Menu");
+  });
+
+  it("board belum dipilih, tidak ada di daftar, atau daftar belum termuat menghasilkan null", () => {
+    const base = {
+      account: pinAccount,
+      format: ContentFormat.Pin,
+      caption: "",
+      media: [],
+    };
+    const cases = [
+      { title: "", link: "", boardId: undefined, boards },
+      { title: "", link: "", boardId: "tidak-ada", boards },
+      { title: "", link: "", boardId: "b1", boards: [] },
+    ];
+    for (const pinterest of cases) {
+      const model = buildPostPreview({ ...base, pinterest });
+      if (model.kind !== "pinterest-pin") throw new Error("kind tidak sesuai");
+      expect(model.boardName).toBeNull();
+    }
+  });
+
+  it("link kosong, bukan URL, atau bukan http(s) tidak menghasilkan host", () => {
+    for (const link of ["", "   ", "kopi.id/resep", "javascript:alert(1)"]) {
+      const model = buildPostPreview({
+        account: pinAccount,
+        format: ContentFormat.Pin,
+        caption: "",
+        media: [],
+        pinterest: { title: "", link, boardId: undefined, boards },
+      });
+      if (model.kind !== "pinterest-pin") throw new Error("kind tidak sesuai");
+      expect(model.linkHost).toBeNull();
+    }
+  });
+
+  it("tanpa data blok jaringan pin tetap valid dengan judul kosong", () => {
+    const model = buildPostPreview({
+      account: pinAccount,
+      format: ContentFormat.Pin,
       caption: "x",
       media: [],
     });
-    expect(model).toEqual({
-      kind: "unavailable",
-      accountId: "tt1",
-      platform: SocialPlatform.TikTok,
-      format: ContentFormat.Post,
-    });
+    if (model.kind !== "pinterest-pin") throw new Error("kind tidak sesuai");
+    expect(model.pinTitle).toBe("");
+    expect(model.linkHost).toBeNull();
+    expect(model.boardName).toBeNull();
   });
 });
