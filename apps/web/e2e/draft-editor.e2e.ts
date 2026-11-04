@@ -354,7 +354,9 @@ test("S7b dengan akun terhubung: tombol aktif, ringkasan konfirmasi muncul, Bata
   await expect(pub).toBeDisabled(); // Instagram tanpa media
   console.log(
     "S7b banner validasi:",
-    JSON.stringify(await dlg.locator("[role=alert]").allInnerTexts()),
+    JSON.stringify(
+      await dlg.locator("[role=alert], [role=status]").allInnerTexts(),
+    ),
   );
   await snap(page, "s7b-no-media");
   await dlg.locator("#draft-media").setInputFiles({

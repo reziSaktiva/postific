@@ -37,6 +37,7 @@ import {
 } from "./terminal-destination";
 import { decideDraftSaveTargets } from "./draft-save-targets";
 import { restoreDraftTargetSelection } from "./restore-draft-targets";
+import { resolveActiveAccountId } from "./network-blocks-state";
 import { validateNetworks } from "./network-validation";
 import { useDraftMedia } from "./useDraftMedia";
 import { usePinterestBoards } from "./usePinterestBoards";
@@ -638,11 +639,14 @@ export function useDraftEditorForm({
     }
   }
   // Blok yang terbuka di akordeon (T-202.2): pilihan terakhir bila masih
-  // terpilih, selain itu akun terpilih pertama.
-  const activeAccountId =
-    openAccountId && selectedAccountIds.includes(openAccountId)
-      ? openAccountId
-      : selectedAccounts[0]?.id;
+  // terpilih, selain itu blok paling atas. Diturunkan dari urutan PILIHAN
+  // (urutan blok dirender), bukan urutan daftar workspace.
+  const activeAccountId = resolveActiveAccountId(
+    selectedAccountIds.filter((id) =>
+      selectedAccounts.some((account) => account.id === id),
+    ),
+    openAccountId,
+  );
   const showStoryCaptionWarning =
     hasStoryTarget && !hasNonStoryTarget && caption.trim().length > 0;
 

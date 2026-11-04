@@ -12,6 +12,7 @@ import type { DraftMediaDto } from "./actions";
 import type { ConnectedAccount, PinterestBoardState } from "./form-shared";
 import { getDefaultFormat } from "./form-shared";
 import { NetworkBlockBody, NetworkBlockSummary } from "./NetworkBlock";
+import { summarizeBlockIssues } from "./network-blocks-state";
 import type { NetworkIssue } from "./network-validation";
 
 /**
@@ -83,8 +84,8 @@ export function NetworkBlocks({
     );
   }
 
-  function hasWarning(account: ConnectedAccount) {
-    return (issuesByAccount[account.id]?.length ?? 0) > 0;
+  function warningOf(account: ConnectedAccount) {
+    return summarizeBlockIssues(issuesByAccount[account.id]);
   }
 
   function formatOf(account: ConnectedAccount) {
@@ -110,9 +111,9 @@ export function NetworkBlocks({
             account={single}
             format={formatOf(single)}
             caption={caption}
-            firstMedia={mediaItems[0]}
+            mediaCount={mediaItems.length}
             showPreview={false}
-            hasWarning={hasWarning(single)}
+            warningMessage={warningOf(single)}
           />
           {renderBody(single)}
         </div>
@@ -131,19 +132,15 @@ export function NetworkBlocks({
           {accounts.map((account) => {
             const isOpen = account.id === activeAccountId;
             return (
-              <AccordionItem
-                key={account.id}
-                value={account.id}
-                className="data-[state=open]:bg-muted/50"
-              >
+              <AccordionItem key={account.id} value={account.id}>
                 <AccordionTrigger className="items-center">
                   <NetworkBlockSummary
                     account={account}
                     format={formatOf(account)}
                     caption={caption}
-                    firstMedia={mediaItems[0]}
+                    mediaCount={mediaItems.length}
                     showPreview={!isOpen}
-                    hasWarning={hasWarning(account)}
+                    warningMessage={warningOf(account)}
                   />
                 </AccordionTrigger>
                 <AccordionContent>{renderBody(account)}</AccordionContent>
