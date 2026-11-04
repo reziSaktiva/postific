@@ -11,8 +11,9 @@ import type { NetworkValidation } from "./network-validation";
  *
  * RBAC (ADR-047, ADR-074): Schedule dan Publish Now terbuka untuk Account
  * Owner, Admin, dan Creator, jadi tidak ada peran yang perlu dinonaktifkan di
- * tombol. Penegakannya tetap di server (`assertActorCanPublishNow` pada
- * `publishNowAction`); penolakan server tampil sebagai notice error.
+ * tombol. Penegakan di server hanya untuk Publish Now
+ * (`assertActorCanPublishNow` pada `publishNowAction`); Schedule belum punya
+ * pengecekan peran di server. Penolakan server tampil sebagai notice error.
  */
 
 /**
