@@ -143,6 +143,10 @@ export function DraftEditorForm({
             formatByAccount={form.formatByAccount}
             caption={form.caption}
             mediaItems={form.mediaItems}
+            pinTitle={form.pinTitle}
+            pinLink={form.pinLink}
+            boardIdByAccount={form.boardIdByAccount}
+            pinterestBoardsByAccount={form.pinterestBoardsByAccount}
           />
         ) : null}
       </div>
