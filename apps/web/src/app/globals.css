@@ -45,6 +45,7 @@
   --color-success: var(--success);
   --color-media-scrim: var(--media-scrim);
   --color-media-foreground: var(--media-foreground);
+  --color-brand-pinterest: var(--brand-pinterest);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -110,6 +111,8 @@ body {
   /* Overlay di atas media (pratinjau Reel/Story): sengaja tetap sama di mode terang dan gelap, karena warna latar adalah foto/video, bukan permukaan tema. */
   --media-scrim: #000000;
   --media-foreground: #ffffff;
+  /* Aksen tombol "Simpan" di Pratinjau Pinterest; sama di mode terang dan gelap. */
+  --brand-pinterest: #e60023;
   --border: #e2e2e8;
   --input: #e2e2e8;
   --ring: #83838a;
@@ -153,6 +156,7 @@ body {
   --warning-foreground: #2e2412;
   --media-scrim: #000000;
   --media-foreground: #ffffff;
+  --brand-pinterest: #e60023;
   --border: rgba(255, 255, 255, 0.1);
   --input: rgba(255, 255, 255, 0.1);
   --ring: #5e5e61;
