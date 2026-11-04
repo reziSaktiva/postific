@@ -3,8 +3,10 @@ import type { ContentFormat } from "@postific/shared";
 import { Separator } from "@/components/ui/separator";
 import { Text } from "@/components/ui/text";
 
+import { resolveSelectedAccounts } from "./account-selection";
 import { ChannelRow } from "./ChannelRow";
 import type { ConnectedAccount, PinterestBoardState } from "./form-shared";
+import { PLATFORM_LABEL } from "./form-shared";
 import { NetworkBlock } from "./NetworkBlock";
 
 export function AccountSelector({
@@ -12,7 +14,9 @@ export function AccountSelector({
   isLoadingAccounts,
   selectedAccountIds,
   formatByAccount,
+  lastUsedAccountIds,
   onToggleAccount,
+  onSetSelection,
   onFormatChange,
   pinTitle,
   pinLink,
@@ -27,7 +31,10 @@ export function AccountSelector({
   isLoadingAccounts: boolean;
   selectedAccountIds: string[];
   formatByAccount: Record<string, ContentFormat>;
+  /** Akun yang dipakai sebelumnya (pintasan "Terakhir dipakai"); sumber datanya belum diputuskan (T-201.2). */
+  lastUsedAccountIds?: string[];
   onToggleAccount: (account: ConnectedAccount, checked: boolean) => void;
+  onSetSelection: (nextAccountIds: string[]) => void;
   onFormatChange: (accountId: string, format: ContentFormat) => void;
   pinTitle: string;
   pinLink: string;
@@ -42,7 +49,7 @@ export function AccountSelector({
     // eslint-disable-next-line no-restricted-syntax -- T-102: padanan Astryx VStack, murni Tailwind flex.
     <div className="flex flex-col gap-3">
       <Text variant="h4" as="h3">
-        Account Selector
+        Akun tujuan
       </Text>
       {isLoadingAccounts ? (
         <Text variant="muted">Memuat akun terhubung…</Text>
@@ -51,42 +58,40 @@ export function AccountSelector({
           Belum ada akun terhubung untuk workspace ini.
         </Text>
       ) : (
-        accounts.map((account) => {
-          const isChecked = selectedAccountIds.includes(account.id);
-          const checkboxId = `draft-account-${account.id}`;
-
-          return (
-            // eslint-disable-next-line no-restricted-syntax -- T-102: padanan Astryx VStack, murni Tailwind flex.
-            <div key={account.id} className="flex flex-col gap-2">
-              <ChannelRow
-                account={account}
-                checkboxId={checkboxId}
-                isChecked={isChecked}
-                onToggle={onToggleAccount}
-              />
-              <NetworkBlock
-                account={account}
-                checkboxId={checkboxId}
-                isChecked={isChecked}
-                currentFormat={formatByAccount[account.id]}
-                onFormatChange={(format) => onFormatChange(account.id, format)}
-                pinterest={{
-                  pinTitle,
-                  pinLink,
-                  onPinTitleChange,
-                  onPinLinkChange,
-                  boardState: pinterestBoardsByAccount[account.id],
-                  boardId: boardIdByAccount[account.id],
-                  onBoardChange: (boardId) =>
-                    onBoardChange(account.id, boardId),
-                  onRetryBoards: () => onRetryBoards(account.id),
-                }}
-              />
-              <Separator />
-            </div>
-          );
-        })
+        <ChannelRow
+          accounts={accounts}
+          selectedAccountIds={selectedAccountIds}
+          lastUsedAccountIds={lastUsedAccountIds}
+          onToggleAccount={onToggleAccount}
+          onSetSelection={onSetSelection}
+        />
       )}
+      {resolveSelectedAccounts(accounts, selectedAccountIds).map((account) => (
+        // eslint-disable-next-line no-restricted-syntax -- T-102: padanan Astryx VStack, murni Tailwind flex.
+        <div key={account.id} className="flex flex-col gap-2">
+          <Text variant="small">
+            {PLATFORM_LABEL[account.platform]} {account.handle}
+          </Text>
+          <NetworkBlock
+            account={account}
+            checkboxId={`draft-account-${account.id}`}
+            isChecked
+            currentFormat={formatByAccount[account.id]}
+            onFormatChange={(format) => onFormatChange(account.id, format)}
+            pinterest={{
+              pinTitle,
+              pinLink,
+              onPinTitleChange,
+              onPinLinkChange,
+              boardState: pinterestBoardsByAccount[account.id],
+              boardId: boardIdByAccount[account.id],
+              onBoardChange: (boardId) => onBoardChange(account.id, boardId),
+              onRetryBoards: () => onRetryBoards(account.id),
+            }}
+          />
+          <Separator />
+        </div>
+      ))}
     </div>
   );
 }

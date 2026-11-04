@@ -41,6 +41,7 @@ import type {
   PinterestBoardState,
 } from "./form-shared";
 import { getDefaultFormat, isAccountDisconnected } from "./form-shared";
+import { diffSelection } from "./account-selection";
 import type { TerminalAction } from "./terminal-destination";
 import {
   isAlreadyAtDestination,
@@ -397,6 +398,35 @@ export function useDraftEditorForm({
       !isAccountDisconnected(account)
     ) {
       fetchPinterestBoards(account.id);
+    }
+  }
+
+  /**
+   * Ganti seluruh pilihan akun sekaligus (popover "Pilih semua", pintasan
+   * "Terakhir dipakai" dan "Semua", T-201). Akun yang baru masuk mendapat
+   * efek samping yang sama dengan `toggleAccount` (format default, board
+   * Pinterest); semuanya di klien kecuali pengambilan board Pinterest yang
+   * memang sudah ada sebelumnya.
+   */
+  function setAccountSelection(nextAccountIds: string[]) {
+    const { added } = diffSelection(selectedAccountIds, nextAccountIds);
+    setSelectedAccountIds(nextAccountIds);
+    for (const accountId of added) {
+      const account = accounts.find((item) => item.id === accountId);
+      if (!account) {
+        continue;
+      }
+      setFormatByAccount((prev) =>
+        prev[account.id]
+          ? prev
+          : { ...prev, [account.id]: getDefaultFormat(account.platform) },
+      );
+      if (
+        account.platform === SocialPlatform.Pinterest &&
+        !isAccountDisconnected(account)
+      ) {
+        fetchPinterestBoards(account.id);
+      }
     }
   }
 
@@ -769,6 +799,7 @@ export function useDraftEditorForm({
     formatByAccount,
     changeFormat,
     toggleAccount,
+    setAccountSelection,
     pinTitle,
     setPinTitle,
     pinLink,
