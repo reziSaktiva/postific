@@ -3189,6 +3189,31 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 ---
 
+### T-209 · Replace platform icons with official brand logo files (T-204.4 follow-up)
+
+| Field       | Value                                                                                        |
+| ----------- | -------------------------------------------------------------------------------------------- |
+| **Status**  | ⏳ Not Started                                                                               |
+| **Mode**    | HITL (unduhan file logo dan izin merek di tangan King Rezi)                                  |
+| **Domain**  | UI · platform icons                                                                          |
+| **Spec**    | S-005 (tindak lanjut T-204.4)                                                                |
+| **Docs**    | ADR-155 addendum C, ADR-097, ADR-148, `platform-icons.tsx`, hasil cek pedoman merek di T-204 |
+| **Depends** | T-204                                                                                        |
+
+**Ditemukan (2026-11-04)** saat cek pedoman merek T-204.4: `PLATFORM_ICON` (`platform-icons.tsx`, react-icons berwarna) dipakai di tab, chip, dan pemilih akun, padahal pedoman Meta mewajibkan file logo resmi dan persetujuan, dan Pinterest, TikTok punya aturan sendiri. **Keputusan King Rezi (2026-11-04):** ganti dengan logo resmi dari kit merek tiap platform; nama platform tetap sebagai teks.
+
+- [ ] **T-209.1** King Rezi mengunduh atau menyetujui unduhan file logo resmi dari kit merek Facebook, Instagram, TikTok, Pinterest (dan platform lain yang tampil: X, LinkedIn, YouTube, Threads, Bluesky bila ada), serta mengurus izin yang disyaratkan (Meta meminta persetujuan). Agen tidak mengunduh tanpa izin eksplisit (nama berkas, sumber, ukuran).
+- [ ] **T-209.2** Baca pedoman resmi TikTok secara lengkap (isi aturannya belum terverifikasi di T-204; hanya sumber sekunder) dan catat aturan warna, ruang kosong, dan larangannya di tiket ini.
+- [ ] **T-209.3** Ganti `PLATFORM_ICON` dengan komponen yang memakai file resmi (tanpa pewarnaan ulang, tanpa distorsi, sesuai varian warna penuh atau monokrom yang diizinkan); inventaris pemakai ikon lintas layar dulu (`grep PLATFORM_ICON`).
+- [ ] **T-209.4** Tombol "Simpan" merah di Pratinjau Pinterest dan elemen tiruan merek lain di Pratinjau: nilai risikonya terhadap pedoman (menyiratkan keterkaitan) dan laporkan keputusan ke King Rezi.
+- [ ] **T-209.5** `typecheck`, `lint`, tes hijau; tampilan di browser (terang dan gelap) dan E2E bila ada.
+
+**Belum terbukti (jangan diasumsikan):** apakah pemakaian logo saat ini benar-benar melanggar (tafsir ringkasan, belum dibaca langsung di halaman pedoman); aturan TikTok.
+
+**Blocked by:** T-204
+
+---
+
 ## Dari Known Issue
 
 Tiket yang lahir sebagai pelacak Known Issue ada di [`known-issues.md`](known-issues.md) (ADR-134); daftar lengkapnya hanya di file itu, tidak disalin ke sini.
