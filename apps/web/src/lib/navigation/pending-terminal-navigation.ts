@@ -11,35 +11,50 @@
  * diproses setelah batas waktu supaya layar tidak basi.
  */
 
-/** Batas atas menunggu navigasi sebelum dianggap gagal. */
-export const TERMINAL_NAVIGATION_TIMEOUT_MS = 8_000;
+/**
+ * Batas atas menunggu navigasi sebelum dianggap gagal. Sengaja panjang: lewat
+ * batas ini event yang tertahan dilepas ke handler layar asal, yaitu jalur
+ * yang diduga menggagalkan navigasi, jadi hanya dipakai bila navigasi memang
+ * macet (build produksi atau jaringan lambat bisa melebihi beberapa detik).
+ */
+export const TERMINAL_NAVIGATION_TIMEOUT_MS = 30_000;
 
 interface PendingNavigation {
-  destination: string;
+  origin: string;
   deadline: number;
 }
 
 let pending: PendingNavigation | null = null;
 
-export function markTerminalNavigationPending(
-  destination: string,
-  now: number = Date.now(),
-): void {
-  pending = { destination, deadline: now + TERMINAL_NAVIGATION_TIMEOUT_MS };
+function currentPathname(): string {
+  return typeof window === "undefined" ? "" : window.location.pathname;
 }
 
 /**
- * `true` selama navigasi terminal belum sampai di tujuan dan belum lewat
- * batas waktu. `currentPath` dan `now` bisa disuntikkan untuk tes.
+ * Tandai navigasi terminal sebagai berjalan, dari layar asal `origin` (bawaan
+ * path saat ini). `origin` menentukan kapan penanda berakhir: begitu path
+ * saat ini bukan `origin` lagi, navigasi dianggap selesai atau pemakai sudah
+ * pindah ke layar lain, sehingga event Realtime layar itu tidak ikut tertahan.
+ */
+export function markTerminalNavigationPending(options?: {
+  now?: number;
+  origin?: string;
+}): void {
+  const now = options?.now ?? Date.now();
+  const origin = options?.origin ?? currentPathname();
+  pending = { origin, deadline: now + TERMINAL_NAVIGATION_TIMEOUT_MS };
+}
+
+/**
+ * `true` selama layar asal masih tampil dan batas waktu belum lewat.
+ * `currentPath` dan `now` bisa disuntikkan untuk tes.
  */
 export function isTerminalNavigationPending(
-  currentPath: string = typeof window === "undefined"
-    ? ""
-    : window.location.pathname,
+  currentPath: string = currentPathname(),
   now: number = Date.now(),
 ): boolean {
   if (!pending) return false;
-  if (now >= pending.deadline || currentPath === pending.destination) {
+  if (now >= pending.deadline || currentPath !== pending.origin) {
     pending = null;
     return false;
   }
@@ -80,7 +95,13 @@ export function createPendingNavigationGate(options?: {
     }
     const tasks = [...held.values()];
     held.clear();
-    for (const task of tasks) task();
+    for (const task of tasks) {
+      try {
+        task();
+      } catch (error) {
+        console.error("pending-navigation gate: held task failed", error);
+      }
+    }
   }
 
   return {

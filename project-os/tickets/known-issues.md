@@ -1645,7 +1645,7 @@ T-195; belum terbukti sampai pesan 400 terbaca (T-195.1 di staging).
 
 | Field       | Value                                                                                                                                                 |
 | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | 🟡 Perbaikan selesai di branch lokal (2026-11-04); belum Done (code): review Ridwan dan uji Calendar menyusul                                         |
+| **Status**  | 🟡 Perbaikan selesai di branch lokal (2026-11-04), review Ridwan tanpa pelanggaran keras; belum Done (code): uji Calendar dan navigasi gagal menyusul |
 | **Mode**    | AFK                                                                                                                                                   |
 | **Domain**  | publishing, draft editor, realtime                                                                                                                    |
 | **Spec**    | tidak ada (menghalangi penutupan gelombang 0 S-005 lewat T-199.4 dan T-207.2)                                                                         |
@@ -1666,16 +1666,20 @@ T-195; belum terbukti sampai pesan 400 terbaca (T-195.1 di staging).
 - [~] **T-208.1** `(2026-11-04)` Sebab terbukti lewat eksperimen (Realtime diblokir: redirect berhasil; Realtime aktif: gagal), tetapi kode router Next yang menjelaskan mekanismenya tidak dibaca. Uji Calendar dan Schedule/Publish Now (tujuan Queue dan Calendar) belum dilakukan; perbaikan dipasang di hook bersama sehingga ikut mencakup Calendar dan Drafts, tetapi belum dibuktikan di sana.
 - [x] **T-208.2** `(2026-11-04)` Perbaiki tanpa mengubah tampilan. Kandidat, urut kesukaan: (a) ambil record tunggal Realtime lewat fetch/route handler, bukan server action, sehingga tidak masuk antrean router; (b) tunda handler Realtime selama navigasi tertunda; (c) `startTransition` di `finishTerminalAction` (paling rapuh). Event Realtime hanya membawa `{postId, eventType}` (ADR-094 poin 5), jadi menyaring berdasarkan status butuh mengubah bentuk event dan tidak dipilih bila tidak perlu. Pilihan akhir dicatat di sini.
 - [x] **T-208.3** `(2026-11-04)` Tes unit untuk perilaku handler yang diubah. Regresi perilaku dibuktikan di E2E S4 (lulus berulang di `local`, minimal tiga run berturut-turut).
-- [ ] **T-208.4** `typecheck`, `lint`, dan tes hijau. Review Ridwan tanpa temuan terbuka. Verified (staging) ikut gelombang S-005 (ADR-153).
+- [~] **T-208.4** `(2026-11-04)` `typecheck`, `lint`, dan tes hijau; review Ridwan tanpa pelanggaran keras (tiga saran, dua diperbaiki, lihat bawah). Verified (staging) ikut gelombang S-005 (ADR-153).
 
-**Catatan implementasi (2026-11-04):** dipilih varian (b) yang diperluas di hook bersama, bukan (a). `finishTerminalAction` menandai navigasi tertunda (`markTerminalNavigationPending(destination)`, hanya di cabang `router.push`); `usePublishingPostsRealtime` menahan event lewat `createPendingNavigationGate` selama path belum sama dengan tujuan dan belum lewat 8 detik, lalu memprosesnya bila layar masih mount (navigasi gagal) atau membuangnya saat unmount (navigasi berhasil). Berkas: `lib/navigation/pending-terminal-navigation.ts` (+ tes, 9 tes), `lib/hooks/use-publishing-posts-realtime.ts`, `useDraftEditorForm.ts`. Tidak ada perubahan tampilan, skema, atau server action.
+**Catatan implementasi (2026-11-04):** dipilih varian (b) yang diperluas di hook bersama, bukan (a). `finishTerminalAction` menandai navigasi tertunda (`markTerminalNavigationPending()`, hanya di cabang `router.push`, mencatat path layar asal); `usePublishingPostsRealtime` menahan event lewat `createPendingNavigationGate` selama path saat ini masih layar asal dan belum lewat 30 detik, lalu memprosesnya bila batas waktu lewat atau membuangnya saat layar unmount (navigasi berhasil). Berkas: `lib/navigation/pending-terminal-navigation.ts` (+ tes, 13 tes), `lib/hooks/use-publishing-posts-realtime.ts`, `useDraftEditorForm.ts`. Tidak ada perubahan tampilan, skema, atau server action.
 
-**Bukti (local, `next dev`):** S4 sebelum perbaikan gagal 4 dari 4 run setelah satu run lulus; sesudah perbaikan lulus 3 dari 3 run terpisah dan dalam spec penuh `draft-editor.e2e.ts` (13 passed, S2 gagal sesuai `test.fail`). `typecheck`, `lint`, dan 2.235 tes unit hijau.
+**Review Ridwan (2026-11-04, commit f1b3fde1):** nol pelanggaran keras. Tiga saran: (1) penanda yang dibersihkan hanya saat ada event bisa menahan Realtime layar lain sampai batas waktu: diperbaiki, penanda kini berakhir begitu path bukan layar asal lagi; (2) batas 8 detik melepas event ke jalur pemicu bug saat navigasi lambat: batas dinaikkan ke 30 detik, tetap bukan jaminan bila navigasi macet lebih lama; (3) komentar hook menyebut dugaan sebagai fakta: diperbaiki jadi "diduga". Tugas gerbang yang melempar error kini ditangkap agar tugas lain tetap jalan.
+
+**Bukti (local, `next dev`):** S4 sebelum perbaikan gagal 4 dari 4 run setelah satu run lulus; sesudah perbaikan (dan sesudah revisi review) lulus 3 dari 3 run terpisah dan dalam spec penuh `draft-editor.e2e.ts` (13 passed, S2 gagal sesuai `test.fail`). `typecheck`, `lint`, dan 2.239 tes unit hijau.
 
 **Belum terbukti (jangan diasumsikan):**
 
 - Perbaikan di Calendar dan di Schedule/Publish Now dari layar Queue atau Calendar belum diuji; hanya Save as Draft dari Queue.
-- Event Realtime yang ditahan sampai 8 detik berarti layar bisa basi sebentar bila navigasi gagal; belum diuji dengan navigasi yang gagal sungguhan.
+- Event Realtime yang ditahan sampai 30 detik berarti layar bisa basi bila navigasi gagal; belum diuji dengan navigasi yang gagal sungguhan.
+- Tidak ada tes integrasi hook `usePublishingPostsRealtime` dengan gerbang; sambungannya hanya terbukti lewat E2E S4.
+- Jalur `router.refresh()` (Schedule dari Queue ke Queue) mungkin punya balapan serupa dan tidak ditutup gerbang; tidak ada bukti, belum diuji.
 
 - Mekanisme persis (T-208.1) dan apakah staging (build produksi) ikut terkena. Spec staging 13 tes lulus dua kali pada 2026-11-03, jadi di staging kemungkinan bergantung pada waktu.
 - Apakah bug ada sebelum T-199.

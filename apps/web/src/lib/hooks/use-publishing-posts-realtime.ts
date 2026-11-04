@@ -38,10 +38,11 @@ export interface UsePublishingPostsRealtimeHandlers {
  * (ADR-094 poin 6) — cukup 1 dari 4 screen yang aktif dalam satu waktu di
  * satu tab, jadi tidak perlu dedupe/ref-count seperti notification bell.
  *
- * T-208 (KI-108): selama navigasi pascaaksi terminal Draft Editor tertunda,
- * event ditahan dan baru diproses setelah navigasi selesai atau lewat batas
- * waktu, karena server action milik handler layar asal membuat navigasi itu
- * tidak pernah selesai. Bila navigasi berhasil, layar asal sudah unmount dan
+ * T-208 (KI-108): selama navigasi pascaaksi terminal Draft Editor berjalan
+ * dari layar ini, event ditahan dan baru diproses setelah layar ini ditinggal
+ * atau batas waktu lewat. Diduga (mekanismenya belum dibaca di router Next,
+ * lihat T-208.1) server action milik handler layar ini membuat navigasi itu
+ * tidak pernah selesai. Bila navigasi berhasil, layar ini sudah unmount dan
  * event yang tertahan dibuang bersama `dispose`.
  */
 export function usePublishingPostsRealtime(

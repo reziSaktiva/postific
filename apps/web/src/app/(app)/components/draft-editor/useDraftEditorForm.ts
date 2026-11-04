@@ -464,7 +464,7 @@ export function useDraftEditorForm({
     } else {
       // T-208: event Realtime layar asal tidak boleh memanggil server action
       // selagi navigasi ini berjalan.
-      markTerminalNavigationPending(destination);
+      markTerminalNavigationPending();
       router.push(destination);
     }
   }
