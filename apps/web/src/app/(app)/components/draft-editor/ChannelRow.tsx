@@ -28,13 +28,13 @@ import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 
 import {
+  applySelectAllToggle,
   areAllConnectedSelected,
   filterAccountsByQuery,
   getConnectionStatus,
   resolveLastUsedIds,
   resolveSelectedAccounts,
   selectAllConnectedIds,
-  selectAllKeepingCurrent,
 } from "./account-selection";
 import type { ConnectedAccount } from "./form-shared";
 import { PLATFORM_LABEL } from "./form-shared";
@@ -191,6 +191,12 @@ function ChannelsPopover({
   const visibleAccounts = filterAccountsByQuery(accounts, query);
   const connectedIds = selectAllConnectedIds(accounts);
   const allSelected = areAllConnectedSelected(accounts, selectedAccountIds);
+  // Hanya akun yang masih ada di daftar: id yatim tidak punya chip dan tidak
+  // boleh ikut terhitung.
+  const selectedCount = resolveSelectedAccounts(
+    accounts,
+    selectedAccountIds,
+  ).length;
 
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
@@ -220,18 +226,20 @@ function ChannelsPopover({
           <label className="flex items-center gap-2">
             <Checkbox
               checked={allSelected}
-              disabled={connectedIds.length === 0}
+              disabled={connectedIds.length === 0 && selectedCount === 0}
               onCheckedChange={(checked) =>
                 onSetSelection(
-                  checked === true
-                    ? selectAllKeepingCurrent(accounts, selectedAccountIds)
-                    : [],
+                  applySelectAllToggle(
+                    accounts,
+                    selectedAccountIds,
+                    checked === true,
+                  ),
                 )
               }
             />
             Pilih semua ({connectedIds.length})
           </label>
-          <Text variant="muted">{selectedAccountIds.length} dipilih</Text>
+          <Text variant="muted">{selectedCount} dipilih</Text>
         </div>
         {/* eslint-disable-next-line no-restricted-syntax -- ADR-155: daftar akun scrollable popover, murni Tailwind. */}
         <div className="max-h-85 overflow-y-auto border-y p-1">

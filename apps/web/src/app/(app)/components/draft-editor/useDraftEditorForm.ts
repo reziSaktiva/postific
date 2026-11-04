@@ -196,8 +196,11 @@ export function useDraftEditorForm({
     let cancelled = false;
     // Pintasan opsional: gagal memuat tidak boleh mengganggu editor. Mode edit
     // sudah punya akun tersimpan dan tidak menampilkan pintasan, jadi tidak
-    // perlu query (review Ridwan 2026-11-04).
-    if (!isEdit) {
+    // perlu query (review Ridwan 2026-11-04). Quick Compose (akun sudah
+    // terpilih lewat `preSelectedAccountId`) juga tidak menampilkan pintasan.
+    // Sisa risiko: query ini belum punya indeks (workspaceId, createdAt),
+    // sengaja tidak ditambah di sini (keputusan King Rezi).
+    if (!isEdit && !preSelectedAccountId) {
       getLastUsedAccountIdsAction()
         .then((ids) => {
           if (!cancelled) setLastUsedAccountIds(ids);
@@ -370,25 +373,34 @@ export function useDraftEditorForm({
     }
   }
 
+  /**
+   * Efek samping bersama saat sebuah akun ditambahkan ke pilihan: format
+   * default dan board Pinterest. Dipakai `toggleAccount` dan
+   * `setAccountSelection`. Melepas akun sengaja tidak membersihkan state
+   * format/board akun itu (perilaku lama `toggleAccount`).
+   */
+  function applyAccountAddedEffects(account: ConnectedAccount) {
+    setFormatByAccount((prev) =>
+      prev[account.id]
+        ? prev
+        : { ...prev, [account.id]: getDefaultFormat(account.platform) },
+    );
+    if (
+      account.platform === SocialPlatform.Pinterest &&
+      !isAccountDisconnected(account)
+    ) {
+      fetchPinterestBoards(account.id);
+    }
+  }
+
   function toggleAccount(account: ConnectedAccount, checked: boolean) {
     setSelectedAccountIds((prev) =>
       checked ? [...prev, account.id] : prev.filter((id) => id !== account.id),
     );
     if (checked) {
+      // Blok jaringan akun yang baru dicentang terbuka (T-202.2).
       setOpenAccountId(account.id);
-    }
-    setFormatByAccount((prev) => {
-      if (checked && !prev[account.id]) {
-        return { ...prev, [account.id]: getDefaultFormat(account.platform) };
-      }
-      return prev;
-    });
-    if (
-      checked &&
-      account.platform === SocialPlatform.Pinterest &&
-      !isAccountDisconnected(account)
-    ) {
-      fetchPinterestBoards(account.id);
+      applyAccountAddedEffects(account);
     }
   }
 
@@ -407,19 +419,8 @@ export function useDraftEditorForm({
     }
     for (const accountId of added) {
       const account = accounts.find((item) => item.id === accountId);
-      if (!account) {
-        continue;
-      }
-      setFormatByAccount((prev) =>
-        prev[account.id]
-          ? prev
-          : { ...prev, [account.id]: getDefaultFormat(account.platform) },
-      );
-      if (
-        account.platform === SocialPlatform.Pinterest &&
-        !isAccountDisconnected(account)
-      ) {
-        fetchPinterestBoards(account.id);
+      if (account) {
+        applyAccountAddedEffects(account);
       }
     }
   }
