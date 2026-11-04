@@ -122,21 +122,27 @@ describe("buildPostPreview", () => {
     expect(model.media.counterLabel).toBeNull();
   });
 
-  it("Reel dan Story menghasilkan kartu vertikal untuk Instagram dan Facebook", () => {
-    for (const account of [instagram, facebook]) {
-      for (const format of [ContentFormat.Reel, ContentFormat.Story] as const) {
-        const model = buildPostPreview({
-          account,
-          format,
-          caption: "x",
-          media: [video],
-        });
-        if (model.kind !== "vertical") throw new Error("kind tidak sesuai");
-        expect(model.format).toBe(format);
-        expect(model.media.first?.isVideo).toBe(true);
-      }
-    }
-  });
+  it.each([
+    ["Instagram", "Reel", instagram, ContentFormat.Reel],
+    ["Instagram", "Story", instagram, ContentFormat.Story],
+    ["Facebook", "Reel", facebook, ContentFormat.Reel],
+    ["Facebook", "Story", facebook, ContentFormat.Story],
+  ] as const)(
+    "%s %s menghasilkan kartu vertikal",
+    (_platform, _format, account, format) => {
+      const model = buildPostPreview({
+        account,
+        format,
+        caption: "x",
+        media: [video],
+      });
+      expect(model).toMatchObject({
+        kind: "vertical",
+        format,
+        media: { first: { isVideo: true } },
+      });
+    },
+  );
 
   it("platform tanpa Pratinjau (T-204) dilaporkan unavailable", () => {
     const model = buildPostPreview({

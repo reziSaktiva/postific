@@ -2,6 +2,7 @@ import { SocialPlatform } from "@postific/shared";
 import { describe, expect, it } from "vitest";
 
 import {
+  applySelectAllToggle,
   areAllConnectedSelected,
   diffSelection,
   filterAccountsByQuery,
@@ -144,5 +145,25 @@ describe("selectAllKeepingCurrent", () => {
 
   it("tidak mencentang akun Disconnected yang belum dicentang", () => {
     expect(selectAllKeepingCurrent(ACCOUNTS, ["ig"])).not.toContain("x");
+  });
+});
+
+describe("applySelectAllToggle", () => {
+  it("centang menggabungkan pilihan dengan semua akun terhubung", () => {
+    expect(applySelectAllToggle(ACCOUNTS, ["x"], true)).toEqual([
+      "x",
+      "ig",
+      "fb",
+    ]);
+  });
+
+  it("lepas centang mengosongkan semua pilihan", () => {
+    expect(applySelectAllToggle(ACCOUNTS, ["ig", "fb", "x"], false)).toEqual(
+      [],
+    );
+  });
+
+  it("tanpa akun terhubung, klik mengosongkan pilihan Disconnected yang tersisa", () => {
+    expect(applySelectAllToggle([X], ["x"], true)).toEqual([]);
   });
 });

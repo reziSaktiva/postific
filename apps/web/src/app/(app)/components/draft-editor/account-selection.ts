@@ -62,6 +62,26 @@ export function selectAllKeepingCurrent(
   return result;
 }
 
+/**
+ * Hasil klik checkbox "Pilih semua". Centang = gabungan
+ * (`selectAllKeepingCurrent`); lepas centang = kosongkan semua. Bila tidak ada
+ * akun terhubung yang bisa ditambahkan tetapi masih ada pilihan (mis. hanya
+ * akun Disconnected terpilih), checkbox tampil tidak tercentang sehingga klik
+ * berarti centang yang tidak menambah apa pun; itu diperlakukan sebagai
+ * mengosongkan pilihan supaya kontrolnya tetap berguna.
+ */
+export function applySelectAllToggle(
+  accounts: ConnectedAccount[],
+  currentIds: readonly string[],
+  checked: boolean,
+): string[] {
+  if (!checked) {
+    return [];
+  }
+  const next = selectAllKeepingCurrent(accounts, currentIds);
+  return next.length === currentIds.length ? [] : next;
+}
+
 /** Checkbox "Pilih semua": true hanya bila ada akun terhubung dan semuanya terpilih. */
 export function areAllConnectedSelected(
   accounts: ConnectedAccount[],
