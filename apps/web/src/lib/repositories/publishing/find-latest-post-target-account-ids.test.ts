@@ -48,7 +48,7 @@ describe("publishingRepository.findLatestPostTargetAccountIds (T-201.2)", () => 
     ).resolves.toEqual([]);
   });
 
-  it("looks only at this workspace's non-deleted posts that have targets, newest first", async () => {
+  it("ignores imported posts, deleted posts, and posts without targets, newest first", async () => {
     findFirst.mockResolvedValue(null);
 
     await publishingRepository.findLatestPostTargetAccountIds(
@@ -60,6 +60,7 @@ describe("publishingRepository.findLatestPostTargetAccountIds (T-201.2)", () => 
     expect(args.where).toMatchObject({
       workspaceId: "ws-1",
       deletedAt: null,
+      status: { not: "imported" },
       targets: { some: {} },
     });
     expect(args.orderBy).toEqual({ createdAt: "desc" });

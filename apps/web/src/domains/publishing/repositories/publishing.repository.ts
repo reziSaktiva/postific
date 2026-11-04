@@ -410,7 +410,8 @@ export interface IPublishingRepository {
   /**
    * T-201.2 ("Terakhir dipakai") — id akun tujuan dari post TERBARU di
    * workspace: post tidak ter-soft-delete yang punya minimal satu target,
-   * semua pemakai dan semua status, diurutkan `createdAt` menurun. Tanpa
+   * semua pemakai dan semua status KECUALI `Imported`, diurutkan `createdAt`
+   * menurun. Tanpa
    * penyimpanan baru. Workspace tanpa post bertarget mengembalikan `[]`.
    * Urutan target tidak dijamin (target satu post dibuat dalam satu
    * transaksi dengan `createdAt` yang sama); pemanggil memperlakukannya sebagai

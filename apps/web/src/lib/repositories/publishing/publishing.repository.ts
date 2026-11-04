@@ -293,6 +293,9 @@ export const publishingRepository: IPublishingRepository = {
         where: {
           workspaceId,
           deletedAt: null,
+          // Post impor bukan pilihan akun pemakai di Postific dan `createdAt`-nya
+          // adalah waktu sinkron, jadi tidak ikut (keputusan King Rezi, T-201.2).
+          status: { not: ContentStatus.Imported },
           targets: { some: {} },
         },
         orderBy: { createdAt: "desc" },
