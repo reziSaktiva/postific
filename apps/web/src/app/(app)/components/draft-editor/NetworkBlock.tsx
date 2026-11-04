@@ -12,7 +12,6 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Text } from "@/components/ui/text";
 
-import { MediaThumbnail } from "../media-thumbnail";
 import type { DraftMediaDto } from "./actions";
 import { ValidationBanner } from "./FormAlerts";
 import type { ConnectedAccount } from "./form-shared";
@@ -33,25 +32,32 @@ const CONNECTED_ACCOUNTS_HREF = "/settings/connected-accounts";
 
 /**
  * Ringkasan satu blok jaringan (T-202.2): ikon platform, nama dan handle,
- * lencana format, dan, saat blok tertutup, cuplikan caption dan thumbnail
- * media pertama. Dipakai sebagai isi pemicu akordeon dan sebagai kepala blok
+ * lencana format, dan, saat blok tertutup, pelanggaran pertama (bila ada)
+ * atau cuplikan caption beserta jumlah media. Tanpa thumbnail: tiap baris
+ * merender elemen media sendiri akan memuat ulang video sebanyak jumlah
+ * akun. Dipakai sebagai isi pemicu akordeon dan sebagai kepala blok
  * statis bila hanya ada satu akun.
  */
 export function NetworkBlockSummary({
   account,
   format,
   caption,
-  firstMedia,
+  mediaCount,
   showPreview,
-  hasWarning,
+  warningMessage,
 }: {
   account: ConnectedAccount;
   format: ContentFormat;
   caption: string;
-  firstMedia: DraftMediaDto | undefined;
-  /** Cuplikan caption dan thumbnail hanya saat blok tertutup. */
+  mediaCount: number;
+  /** Cuplikan caption dan jumlah media hanya saat blok tertutup. */
   showPreview: boolean;
-  hasWarning: boolean;
+  /**
+   * Ringkasan pelanggaran blok ini (`summarizeBlockIssues`). Pada blok
+   * tertutup teksnya ditampilkan di baris ringkas supaya alasan tombol
+   * Schedule/Publish Now nonaktif terlihat tanpa membuka blok.
+   */
+  warningMessage: string | undefined;
 }) {
   const entry = PLATFORM_ICON[account.platform];
   const PlatformGlyph = entry?.Icon;
@@ -77,26 +83,33 @@ export function NetworkBlockSummary({
       <Badge variant="outline">{FORMAT_LABEL[format]}</Badge>
       {showPreview ? (
         <>
-          <span className="min-w-0 flex-1 truncate text-xs font-normal text-muted-foreground">
-            {snippet}
-          </span>
-          {firstMedia ? (
-            <span className="size-6 shrink-0 overflow-hidden rounded-sm border border-border">
-              <MediaThumbnail
-                url={firstMedia.url}
-                type={firstMedia.type}
-                alt={firstMedia.filename}
-              />
+          {warningMessage ? (
+            <span className="min-w-0 flex-1 truncate text-xs font-normal text-warning">
+              {warningMessage}
+            </span>
+          ) : (
+            <span className="min-w-0 flex-1 truncate text-xs font-normal text-muted-foreground">
+              {snippet}
+            </span>
+          )}
+          {mediaCount > 0 ? (
+            <span className="shrink-0 text-xs font-normal text-muted-foreground">
+              {mediaCount} media
             </span>
           ) : null}
         </>
       ) : (
         <span className="flex-1" />
       )}
-      {hasWarning ? (
+      {warningMessage ? (
         <span className="shrink-0 text-warning">
-          <HugeiconsIcon icon={Alert02Icon} strokeWidth={2} size={18} />
-          <span className="sr-only">Ada peringatan</span>
+          <HugeiconsIcon
+            icon={Alert02Icon}
+            strokeWidth={2}
+            size={18}
+            aria-hidden
+          />
+          {showPreview ? null : <span className="sr-only">Ada peringatan</span>}
         </span>
       ) : null}
     </span>

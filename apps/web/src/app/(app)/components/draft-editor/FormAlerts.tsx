@@ -21,6 +21,9 @@ export function ValidationBanner({
 }) {
   return (
     <Alert
+      // Banner inline yang berubah saat pemakai mengetik: pengumuman sopan
+      // (`status`), bukan `alert` yang memotong pembaca layar.
+      role="status"
       className={cn(
         "border-warning/40 bg-warning/10 text-warning *:[svg]:text-warning",
         className,
