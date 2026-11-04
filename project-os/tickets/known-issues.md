@@ -1638,3 +1638,44 @@ T-195; belum terbukti sampai pesan 400 terbaca (T-195.1 di staging).
 - [ ] **T-198.4** Putuskan nasib post `Scheduled` lama yang jadwalnya lewat 30 hari
       (nyata atau tidak ada). Cek data staging dulu; jangan diasumsikan.
 - [x] **T-198.5** `🟡 Done (code) (2026-11-03)`: review Ridwan dan QA Najwa selesai; tampilan browser lokal dicek King Rezi. Belum Verified (staging). Tes regresi, review, QA; verifikasi staging tanpa akun nyata.
+
+---
+
+### T-208 · Save as Draft from Queue can leave the user on Queue because a Realtime server action cancels the redirect (KI-108)
+
+| Field       | Value                                                                                                                                                 |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**  | 🟡 Perbaikan selesai di branch lokal (2026-11-04); belum Done (code): review Ridwan dan uji Calendar menyusul                                         |
+| **Mode**    | AFK                                                                                                                                                   |
+| **Domain**  | publishing, draft editor, realtime                                                                                                                    |
+| **Spec**    | tidak ada (menghalangi penutupan gelombang 0 S-005 lewat T-199.4 dan T-207.2)                                                                         |
+| **Docs**    | KI-108, ADR-054, ADR-094 (poin 5), `useDraftEditorForm.ts` (`finishTerminalAction`), `QueueScreen.tsx` (`handlePublishingPostChange`), E2E S4         |
+| **Terkait** | T-199, T-207                                                                                                                                          |
+| **Depends** | tidak ada. Perbaikan perilaku tanpa perubahan tampilan, jadi tidak butuh rancangan baru (aturan 10 `AGENTS.md`: bukan perubahan screen atau komponen) |
+
+**Ditemukan (2026-11-04)** saat verifikasi gelombang 0 S-005 di `local` (E2E `draft-editor.e2e.ts` S4). Dari `/publish/queue`, New Post lalu Save as Draft: dialog menutup tetapi URL tetap `/publish/queue`, bukan `/publish/drafts` (ADR-054). Gagal 4 kali berturut-turut setelah satu run yang lulus.
+
+**Bukti (rekaman jaringan, tes sementara yang sudah dihapus):**
+
+1. `saveDraftAction` selesai (POST 200). `router.push("/publish/drafts")` jalan: GET `/publish/drafts?_rsc` 200 dan chunk halaman Drafts termuat.
+2. Hampir bersamaan halaman Queue mengirim server action `getQueuePostAction` dengan ID draft yang baru dibuat (dipicu event Realtime INSERT di `QueueScreen`). Navigasi tidak pernah selesai selama lebih dari 60 detik.
+3. Dengan koneksi Realtime diblokir di tes (`routeWebSocket`), navigasi ke Drafts berhasil dan draft muncul. Itu membuktikan sebabnya.
+
+**Dugaan penyebab (belum terbukti sampai mekanismenya dibaca):** server action yang berjalan saat navigasi App Router tertunda ikut mengantre di router action queue dan menggagalkan navigasi itu. Run yang lulus kebetulan karena urutan waktu. Tidak dibandingkan dengan kode sebelum T-199; Realtime di Queue tidak disentuh T-199, jadi kemungkinan sudah ada sebelumnya. Calendar juga memakai Realtime dan belum diuji.
+
+- [~] **T-208.1** `(2026-11-04)` Sebab terbukti lewat eksperimen (Realtime diblokir: redirect berhasil; Realtime aktif: gagal), tetapi kode router Next yang menjelaskan mekanismenya tidak dibaca. Uji Calendar dan Schedule/Publish Now (tujuan Queue dan Calendar) belum dilakukan; perbaikan dipasang di hook bersama sehingga ikut mencakup Calendar dan Drafts, tetapi belum dibuktikan di sana.
+- [x] **T-208.2** `(2026-11-04)` Perbaiki tanpa mengubah tampilan. Kandidat, urut kesukaan: (a) ambil record tunggal Realtime lewat fetch/route handler, bukan server action, sehingga tidak masuk antrean router; (b) tunda handler Realtime selama navigasi tertunda; (c) `startTransition` di `finishTerminalAction` (paling rapuh). Event Realtime hanya membawa `{postId, eventType}` (ADR-094 poin 5), jadi menyaring berdasarkan status butuh mengubah bentuk event dan tidak dipilih bila tidak perlu. Pilihan akhir dicatat di sini.
+- [x] **T-208.3** `(2026-11-04)` Tes unit untuk perilaku handler yang diubah. Regresi perilaku dibuktikan di E2E S4 (lulus berulang di `local`, minimal tiga run berturut-turut).
+- [ ] **T-208.4** `typecheck`, `lint`, dan tes hijau. Review Ridwan tanpa temuan terbuka. Verified (staging) ikut gelombang S-005 (ADR-153).
+
+**Catatan implementasi (2026-11-04):** dipilih varian (b) yang diperluas di hook bersama, bukan (a). `finishTerminalAction` menandai navigasi tertunda (`markTerminalNavigationPending(destination)`, hanya di cabang `router.push`); `usePublishingPostsRealtime` menahan event lewat `createPendingNavigationGate` selama path belum sama dengan tujuan dan belum lewat 8 detik, lalu memprosesnya bila layar masih mount (navigasi gagal) atau membuangnya saat unmount (navigasi berhasil). Berkas: `lib/navigation/pending-terminal-navigation.ts` (+ tes, 9 tes), `lib/hooks/use-publishing-posts-realtime.ts`, `useDraftEditorForm.ts`. Tidak ada perubahan tampilan, skema, atau server action.
+
+**Bukti (local, `next dev`):** S4 sebelum perbaikan gagal 4 dari 4 run setelah satu run lulus; sesudah perbaikan lulus 3 dari 3 run terpisah dan dalam spec penuh `draft-editor.e2e.ts` (13 passed, S2 gagal sesuai `test.fail`). `typecheck`, `lint`, dan 2.235 tes unit hijau.
+
+**Belum terbukti (jangan diasumsikan):**
+
+- Perbaikan di Calendar dan di Schedule/Publish Now dari layar Queue atau Calendar belum diuji; hanya Save as Draft dari Queue.
+- Event Realtime yang ditahan sampai 8 detik berarti layar bisa basi sebentar bila navigasi gagal; belum diuji dengan navigasi yang gagal sungguhan.
+
+- Mekanisme persis (T-208.1) dan apakah staging (build produksi) ikut terkena. Spec staging 13 tes lulus dua kali pada 2026-11-03, jadi di staging kemungkinan bergantung pada waktu.
+- Apakah bug ada sebelum T-199.

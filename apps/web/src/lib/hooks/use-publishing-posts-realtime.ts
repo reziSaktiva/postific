@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { createPendingNavigationGate } from "@/lib/navigation/pending-terminal-navigation";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import {
   subscribeToPublishingPostChanges,
@@ -36,6 +37,12 @@ export interface UsePublishingPostsRealtimeHandlers {
  * saat screen di-mount, dilepas saat unmount/pindah halaman/workspace
  * (ADR-094 poin 6) — cukup 1 dari 4 screen yang aktif dalam satu waktu di
  * satu tab, jadi tidak perlu dedupe/ref-count seperti notification bell.
+ *
+ * T-208 (KI-108): selama navigasi pascaaksi terminal Draft Editor tertunda,
+ * event ditahan dan baru diproses setelah navigasi selesai atau lewat batas
+ * waktu, karena server action milik handler layar asal membuat navigasi itu
+ * tidak pernah selesai. Bila navigasi berhasil, layar asal sudah unmount dan
+ * event yang tertahan dibuang bersama `dispose`.
  */
 export function usePublishingPostsRealtime(
   workspaceId: string | null,
@@ -54,6 +61,7 @@ export function usePublishingPostsRealtime(
     const client = createBrowserSupabaseClient();
     let unsubscribe: (() => void) | undefined;
     let cancelled = false;
+    const gate = createPendingNavigationGate();
 
     async function connect() {
       try {
@@ -74,8 +82,14 @@ export function usePublishingPostsRealtime(
           client,
           activeWorkspaceId,
           {
-            onInsert: (event) => handlersRef.current.onInsert?.(event),
-            onUpdate: (event) => handlersRef.current.onUpdate?.(event),
+            onInsert: (event) =>
+              gate.run(event.postId, () =>
+                handlersRef.current.onInsert?.(event),
+              ),
+            onUpdate: (event) =>
+              gate.run(event.postId, () =>
+                handlersRef.current.onUpdate?.(event),
+              ),
           },
         );
       } catch (error) {
@@ -90,6 +104,7 @@ export function usePublishingPostsRealtime(
 
     return () => {
       cancelled = true;
+      gate.dispose();
       unsubscribe?.();
       client.realtime.disconnect();
     };

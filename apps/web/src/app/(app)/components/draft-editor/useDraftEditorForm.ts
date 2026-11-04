@@ -12,6 +12,7 @@ import { zonedLocalToUtc } from "@/domains/publishing/wib-time";
 import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
 
 import { useConfirmAction } from "@/lib/hooks/use-confirm-action";
+import { markTerminalNavigationPending } from "@/lib/navigation/pending-terminal-navigation";
 import {
   isCaptionRequiredForFormats,
   maxMediaCountForFormats,
@@ -461,6 +462,9 @@ export function useDraftEditorForm({
     if (isAlreadyAtDestination(pathname, destination)) {
       router.refresh();
     } else {
+      // T-208: event Realtime layar asal tidak boleh memanggil server action
+      // selagi navigasi ini berjalan.
+      markTerminalNavigationPending(destination);
       router.push(destination);
     }
   }
