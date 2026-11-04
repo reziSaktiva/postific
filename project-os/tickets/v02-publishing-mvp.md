@@ -2980,7 +2980,7 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 **What to build:** pemilihan akun di atas editor. Pemakai memilih akun lewat popover, melihat hasilnya sebagai chip avatar, dan bisa menambah atau melepas akun tanpa request jaringan.
 
 - [ ] **T-201.1** Popover Channels: pencarian, "Pilih semua", daftar centang (avatar, badge platform, nama, status koneksi), dan tautan "Hubungkan akun".
-- [ ] **T-201.2** Pintasan "Terakhir dipakai" dan "Semua". Tentukan sumber data "Terakhir dipakai" dari data yang sudah ada tanpa migrasi; bila butuh penyimpanan baru, berhenti dan tanya King Rezi.
+- [ ] **T-201.2** Pintasan "Terakhir dipakai" dan "Semua". Tentukan sumber data "Terakhir dipakai" dari data yang sudah ada tanpa migrasi; bila butuh penyimpanan baru, berhenti dan tanya King Rezi. **Keputusan King Rezi (2026-11-04):** sumbernya akun dari post terbaru workspace (semua pemakai, semua status), lewat query baca baru tanpa migrasi. Logika murni dan UI sudah ada (commit `fea312f8`); penghubung ke data dikerjakan di jalur A2.
 - [ ] **T-201.3** Setelah ada pilihan, baris menciut menjadi chip avatar plus tombol "+ Tambah akun"; chip bisa dilepas.
 - [ ] **T-201.4** Akun Disconnected tetap tampil dan boleh dicentang, dengan peringatan dan aksi Reconnect; Schedule dan Publish Now tidak diblokir karenanya (ADR-155 addendum B.2).
 - [ ] **T-201.5** Quick Compose dari sidebar membuka modal dengan akun yang di-hover sudah terpilih (NP-D14); simpan akun tujuan draft tetap berjalan (ADR-125).
@@ -3034,7 +3034,7 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 **What to build:** panel Pratinjau di sisi kanan yang diperbarui saat mengetik, dengan Pratinjau Facebook dan Instagram yang dirakit dari komponen dan token Postific (bukan aset atau markup Buffer).
 
 - [ ] **T-203.1** Kerangka panel kanan, pemilih Pratinjau per akun terpilih, dan toggle Pratinjau di header.
-- [ ] **T-203.2** Keadaan kosong (tanpa akun atau tanpa isi) yang menjelaskan apa yang perlu diisi.
+- [ ] **T-203.2** Keadaan kosong saat belum ada akun terpilih, yang menjelaskan apa yang perlu diisi. Dengan akun tetapi tanpa isi, kartu tampil dengan placeholder caption (keputusan King Rezi 2026-11-04: ikuti rancangan, bukan frasa "atau tanpa isi" di spec awal).
 - [ ] **T-203.3** Pratinjau Facebook.
 - [ ] **T-203.4** Pratinjau Instagram (mengikuti format yang dipilih bila rancangan membedakannya).
 - [ ] **T-203.5** Pratinjau dihitung di klien dan hidup saat mengetik atau mengganti media, tanpa request jaringan.
