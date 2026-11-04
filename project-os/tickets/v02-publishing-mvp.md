@@ -3297,6 +3297,47 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 ---
 
+### T-211 · Draft Editor: Calendar fills the schedule popover width, and non-overlapping preview account picker
+
+| Field       | Value                                                                                                                                         |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**  | ⏳ Not Started (menunggu review King Rezi atas tiket ini)                                                                                     |
+| **Mode**    | HITL (T-211.2 keputusan komponen dan T-211.3 konfirmasi rancangan di galeri adalah milik King Rezi; T-211.1 bisa AFK setelah tiket disetujui) |
+| **Domain**  | draft editor · UI                                                                                                                             |
+| **Spec**    | S-005 (temuan review integrasi King Rezi sebelum merge PR 256)                                                                                |
+| **Docs**    | ADR-155, ADR-097, ADR-140, KSP-05 dan KSP-D02, `apps/web/.claude/CLAUDE.md`, artifact Postific (kartu `ScreenDraftEditorRedesain`)            |
+| **Depends** | T-205 (popover jadwal), T-203 (panel Pratinjau)                                                                                               |
+
+**Ditemukan (2026-11-04)** oleh King Rezi saat meninjau integrasi UI Draft Editor sebelum merge PR 256. Diukur di staging (build gelombang 5) dengan 4 akun terpilih:
+
+1. **Calendar tidak mengisi popover jadwal.** `PopoverContent` selebar 320px dengan padding 16px (isi 288px), sedangkan Calendar selebar 224px (7 kolom x `--cell-size` 32px): `Calendar` membuka `root` dengan `w-fit`. Sisa 64px kosong di kanan. Rancangan artifact memakai popover 336px dan grid 7 kolom `1fr` yang mengisi lebar.
+2. **Pemilih Pratinjau berantakan.** `PreviewPanel.tsx` memakai `Tabs`/`TabsList variant="line"` dengan `flex-wrap` untuk akun terpilih. `TabsList` membawa tinggi tetap `group-data-horizontal/tabs:h-9` (36px) dari `tabs.tsx`; `h-auto` tidak menimpanya karena variannya berbeda. Saat label tidak muat satu baris, tab turun baris dan menimpa kartu Pratinjau di bawahnya. **Rancangan artifact memakai pola yang sama** (`TabsList` dengan `flexWrap`), jadi akar masalahnya juga ada di rancangan, bukan hanya di kode.
+
+**What to build:** popover jadwal yang kalendernya mengisi lebar dan persis sama dengan rancangan; serta pemilih Pratinjau per akun yang rapi di 1 sampai banyak akun, termasuk dua akun dengan platform sama, di Standard, Fullscreen, dan 375px.
+
+- [ ] **T-211.1** Calendar mengisi lebar popover jadwal. Popover selebar 336px seperti rancangan (`.de2-sched`, setara `w-84`, tanpa nilai arbitrer) dan `Calendar` dengan `root` selebar kontainer sehingga 7 kolom mengisi lebar. Tampilan harus **persis sama dengan artifact** (permintaan King Rezi). Periksa di terang dan gelap, dan di layar sempit (`max-w-[calc(100vw-1rem)]` seperti rancangan). Gate rancangan: sudah ada di artifact; yang diubah hanya kode.
+- [x] **T-211.2** **Keputusan King Rezi (2026-11-04): `Select`** (opsi B). Dropdown shadcn `Select` dengan ikon platform dan handle di tiap item menggantikan `Tabs`; alasan: handle selalu terbaca untuk akun satu platform dan tidak ada baris yang membungkus. Opsi yang tidak dipilih dan perbandingannya ada di bawah.
+- [ ] **T-211.3** Perbarui artifact desain Postific (Neymar, wajib baca `claude-design-scope-discipline` dulu, jangan mengubah default atau state lain): ganti pola pemilih Pratinjau di kartu `ScreenDraftEditorRedesain` sesuai keputusan T-211.2, dan perbaiki tinggi `TabsList` bila Tabs tetap dipakai. Konfirmasi King Rezi di galeri "Postific Design Review" sebelum kode.
+- [ ] **T-211.4** Terapkan pola terpilih di `PreviewPanel.tsx` (cek `apps/web/src/components/ui/` dulu; bila komponen belum ada, ikuti workflow shadcn discover-first). Judul header tetap menampilkan platform dan format akun aktif; `resolveActivePreviewAccountId` tidak berubah.
+- [ ] **T-211.5** Tes: E2E menegaskan pemilih tidak menimpa kartu Pratinjau (kotak pemilih dan kartu tidak beririsan) dengan 4 akun, dan kolom hari Calendar mengisi lebar popover; unit bila ada logika murni baru. Tambah ke `draft-editor.e2e.ts`, jangan mempublikasikan ke akun nyata.
+- [ ] **T-211.6** `typecheck`, `lint`, tes hijau; verifikasi di browser (terang, gelap, 375px) dan E2E tiga run hijau di `local`.
+
+**Pilihan komponen pemilih Pratinjau (T-211.2), rekomendasi saya:**
+
+| Opsi                                | Komponen shadcn                                                                                                                   | Kelebihan                                                                                                                                              | Kekurangan                                                                                                       |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| A (rekomendasi agen, tidak dipilih) | `ToggleGroup` `type="single"` varian `outline` dengan ikon platform (dan avatar kecil bila perlu) plus `Tooltip` berisi nama akun | Selalu satu baris, ringkas untuk 2 sampai banyak akun, senada dengan chip akun di baris channel. Header Pratinjau sudah menyebut akun dan format aktif | Dua akun satu platform hanya dibedakan lewat avatar dan tooltip; semantik radio (`role="radiogroup"`), bukan tab |
+| B                                   | `Select` dengan ikon platform dan handle di tiap item                                                                             | Paling aman untuk banyak akun dan platform sama, handle selalu terbaca                                                                                 | Tidak terlihat sekilas akun mana saja yang ada; satu klik lebih banyak                                           |
+| C                                   | `Tabs` tetap, tetapi satu baris `overflow-x-auto`, label dipersingkat jadi ikon pada tab non-aktif                                | Perubahan kode terkecil, semantik tab tetap                                                                                                            | Menggulir horizontal di panel 384px; rancangan harus ikut diubah juga                                            |
+
+Alasan A: pemilih ini hanya mengganti kartu yang ditampilkan, bukan berpindah antar panel isi, jadi semantik `Tabs` tidak terlalu penting; ikon tidak pernah membungkus baris sehingga masalah tumpang tindih hilang. Bila King Rezi memprioritaskan keterbacaan handle untuk akun satu platform, pilih B.
+
+**Belum terbukti (jangan diasumsikan):** `Calendar` dengan `root` selebar kontainer benar-benar menyebar rata di semua ukuran popover (perlu dilihat di browser, `td` memakai `size-full` dan `aspect-square`); perilaku opsi A dengan banyak akun (lebih dari 6) dan di 375px; perilaku `Select` dengan banyak akun (daftar panjang, pencarian tidak perlu) dan di 375px; apakah artifact memakai komponen `Calendar` shadcn (rancangan memakai grid buatan sendiri, jadi persis sama hanya terukur lewat tampilan, bukan kode).
+
+**Blocked by:** T-211.3 (konfirmasi rancangan King Rezi) untuk T-211.4 sampai T-211.6; T-211.1 tidak terblokir.
+
+---
+
 ## Dari Known Issue
 
 Tiket yang lahir sebagai pelacak Known Issue ada di [`known-issues.md`](known-issues.md) (ADR-134); daftar lengkapnya hanya di file itu, tidak disalin ke sini.
