@@ -30,6 +30,7 @@ import type {
 import { getDefaultFormat, isAccountDisconnected } from "./form-shared";
 import { diffSelection } from "./account-selection";
 import { getActionReadiness } from "./action-readiness";
+import { isEditableInDraftEditor } from "./footer-actions";
 import type { TerminalAction } from "./terminal-destination";
 import {
   isAlreadyAtDestination,
@@ -168,6 +169,13 @@ export function useDraftEditorForm({
     getDraftAction(postId as string)
       .then((draft) => {
         if (cancelled) return;
+        // T-205.8 (T-091): Published, Failed, dan Imported read-only, tidak
+        // dibuka di Draft Editor (pintu masuk sudah menyaringnya; ini
+        // pengaman bila ID basi sampai ke sini).
+        if (!isEditableInDraftEditor(draft.status as ContentStatus)) {
+          close();
+          return;
+        }
         setCaption(draft.caption);
         setStatus(draft.status as ContentStatus);
         setMediaItems(draft.media);
