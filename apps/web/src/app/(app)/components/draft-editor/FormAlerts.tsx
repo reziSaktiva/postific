@@ -1,38 +1,56 @@
+import { Alert02Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+
 import { Alert, AlertTitle } from "@/components/ui/alert";
+import { cn } from "@/lib/utils";
 
 import type { FormNotice } from "./form-shared";
+import type { CrossNetworkIssue } from "./network-validation";
 
-/** Alert validasi dan notice di atas form (urutan sama dengan Modal sebelum dipecah). */
+/**
+ * Banner validasi kuning (T-202.5, ADR-155): dipakai di dalam blok jaringan
+ * (pelanggaran per jaringan) dan di atas editor (lintas jaringan). Warna dari
+ * token `warning`, bukan nilai mentah.
+ */
+export function ValidationBanner({
+  message,
+  className,
+}: {
+  message: string;
+  className?: string;
+}) {
+  return (
+    <Alert
+      className={cn(
+        "border-warning/40 bg-warning/10 text-warning *:[svg]:text-warning",
+        className,
+      )}
+    >
+      <HugeiconsIcon icon={Alert02Icon} strokeWidth={2} />
+      <AlertTitle>{message}</AlertTitle>
+    </Alert>
+  );
+}
+
+/**
+ * Di atas editor: pelanggaran lintas jaringan (banner kuning), pesan jadwal,
+ * dan notice hasil aksi. Pelanggaran per jaringan ada di blok jaringan
+ * masing-masing (`NetworkBlock`).
+ */
 export function FormAlerts({
-  pinterestConstraintMessage,
-  mediaMinimumMessage,
-  mixedStoryCaptionMessage,
+  crossNetworkIssues,
   scheduleTimeMessage,
   notice,
 }: {
-  pinterestConstraintMessage: string | null;
-  mediaMinimumMessage: string | null;
-  mixedStoryCaptionMessage: string | null;
+  crossNetworkIssues: CrossNetworkIssue[];
   scheduleTimeMessage: string | null;
   notice: FormNotice | null;
 }) {
   return (
     <>
-      {pinterestConstraintMessage ? (
-        <Alert variant="destructive">
-          <AlertTitle>{pinterestConstraintMessage}</AlertTitle>
-        </Alert>
-      ) : null}
-      {mediaMinimumMessage ? (
-        <Alert variant="destructive">
-          <AlertTitle>{mediaMinimumMessage}</AlertTitle>
-        </Alert>
-      ) : null}
-      {mixedStoryCaptionMessage ? (
-        <Alert variant="destructive">
-          <AlertTitle>{mixedStoryCaptionMessage}</AlertTitle>
-        </Alert>
-      ) : null}
+      {crossNetworkIssues.map((issue) => (
+        <ValidationBanner key={issue.code} message={issue.message} />
+      ))}
       {scheduleTimeMessage ? (
         <Alert variant="destructive">
           <AlertTitle>{scheduleTimeMessage}</AlertTitle>
