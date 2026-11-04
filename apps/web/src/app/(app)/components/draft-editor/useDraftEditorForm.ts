@@ -29,6 +29,7 @@ import type {
 } from "./form-shared";
 import { getDefaultFormat, isAccountDisconnected } from "./form-shared";
 import { diffSelection } from "./account-selection";
+import { getActionReadiness } from "./action-readiness";
 import type { TerminalAction } from "./terminal-destination";
 import {
   isAlreadyAtDestination,
@@ -325,20 +326,15 @@ export function useDraftEditorForm({
     mediaItems,
   );
 
-  const isReadyToSchedule =
-    (!isCaptionRequired || caption.trim().length > 0) &&
-    selectedAccounts.length > 0 &&
-    Boolean(scheduleDate) &&
-    Boolean(scheduleTime) &&
-    !networkValidation.hasBlockingIssues &&
-    scheduleTimeMessage === null;
-
-  // Publish Now (KSP-05-F12) skips the Schedule Picker entirely — tanggal/
-  // waktu tidak relevan sama sekali, beda dari `isReadyToSchedule`.
-  const isReadyToPublishNow =
-    (!isCaptionRequired || caption.trim().length > 0) &&
-    selectedAccounts.length > 0 &&
-    !networkValidation.hasBlockingIssues;
+  const { isReadyToSchedule, isReadyToPublishNow } = getActionReadiness({
+    isCaptionRequired,
+    caption,
+    selectedAccountCount: selectedAccounts.length,
+    scheduleDate,
+    scheduleTime,
+    hasBlockingNetworkIssues: networkValidation.hasBlockingIssues,
+    scheduleTimeMessage,
+  });
 
   // Publish Now dari Queue (T-032.4) — lompat otomatis ke step konfirmasi
   // begitu draft (caption/status) DAN daftar akun terhubung selesai dimuat,
