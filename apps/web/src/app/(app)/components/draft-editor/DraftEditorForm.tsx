@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import { ConfirmActionDialog } from "@/components/shared/ConfirmActionDialog";
 import { Text } from "@/components/ui/text";
 
@@ -10,6 +12,7 @@ import { EditorFooter } from "./EditorFooter";
 import { EditorHeader } from "./EditorHeader";
 import { FormAlerts } from "./FormAlerts";
 import { MediaSection } from "./MediaSection";
+import { PreviewPanel } from "./PreviewPanel";
 import { ScheduleSection } from "./ScheduleSection";
 import type { DraftEditorFormParams } from "./useDraftEditorForm";
 import { useDraftEditorForm } from "./useDraftEditorForm";
@@ -30,6 +33,9 @@ export function DraftEditorForm({
 }) {
   const form = useDraftEditorForm(formParams);
   const { pendingAction } = form;
+  // Toggle Pratinjau di header (T-203.1): murni state tampilan, tidak ikut
+  // tersimpan di draft.
+  const [isPreviewVisible, setIsPreviewVisible] = useState(true);
 
   return (
     // eslint-disable-next-line no-restricted-syntax -- T-100.1: struktur Layout Astryx sudah diganti shadcn Dialog (ADR-097); wrapper flex-column header/body/footer ini tidak punya padanan primitive shadcn, murni komposisi Tailwind.
@@ -40,85 +46,101 @@ export function DraftEditorForm({
         status={form.status}
         dialogVariant={dialogVariant}
         onToggleDialogVariant={onToggleDialogVariant}
+        isPreviewVisible={isPreviewVisible}
+        onTogglePreview={() => setIsPreviewVisible((visible) => !visible)}
         onClose={() => onOpenChange(false)}
       />
-      {/* eslint-disable-next-line no-restricted-syntax -- T-100.1: area body scrollable Dialog (dulu Astryx LayoutContent) tidak punya padanan primitive shadcn, murni Tailwind. */}
-      <div className="min-h-0 flex-1 overflow-y-auto p-6">
-        {pendingAction ? (
-          <ConfirmationSummary
-            pendingAction={pendingAction}
-            notice={form.notice}
-            caption={form.caption}
-            selectedAccounts={form.selectedAccounts}
-            formatByAccount={form.formatByAccount}
-            scheduleDate={form.scheduleDate}
-            scheduleTime={form.scheduleTime}
-          />
-        ) : (
-          // eslint-disable-next-line no-restricted-syntax -- T-102: padanan Astryx VStack, murni Tailwind flex.
-          <div className="flex flex-col gap-4">
-            <FormAlerts
-              pinterestConstraintMessage={form.pinterestConstraintMessage}
-              mediaMinimumMessage={form.mediaMinimumMessage}
-              mixedStoryCaptionMessage={form.mixedStoryCaptionMessage}
-              scheduleTimeMessage={form.scheduleTimeMessage}
+      {/* eslint-disable-next-line no-restricted-syntax -- T-203: baris body dua kolom (form + Pratinjau) tidak punya padanan primitive shadcn, murni Tailwind. */}
+      <div className="flex min-h-0 flex-1">
+        {/* eslint-disable-next-line no-restricted-syntax -- T-100.1: area body scrollable Dialog (dulu Astryx LayoutContent) tidak punya padanan primitive shadcn, murni Tailwind. */}
+        <div className="min-h-0 min-w-0 flex-1 overflow-y-auto p-6">
+          {pendingAction ? (
+            <ConfirmationSummary
+              pendingAction={pendingAction}
               notice={form.notice}
+              caption={form.caption}
+              selectedAccounts={form.selectedAccounts}
+              formatByAccount={form.formatByAccount}
+              scheduleDate={form.scheduleDate}
+              scheduleTime={form.scheduleTime}
             />
+          ) : (
+            // eslint-disable-next-line no-restricted-syntax -- T-102: padanan Astryx VStack, murni Tailwind flex.
+            <div className="flex flex-col gap-4">
+              <FormAlerts
+                pinterestConstraintMessage={form.pinterestConstraintMessage}
+                mediaMinimumMessage={form.mediaMinimumMessage}
+                mixedStoryCaptionMessage={form.mixedStoryCaptionMessage}
+                scheduleTimeMessage={form.scheduleTimeMessage}
+                notice={form.notice}
+              />
 
-            {form.isLoadingDraft ? (
-              <Text variant="muted">Memuat draft…</Text>
-            ) : (
-              // eslint-disable-next-line no-restricted-syntax -- T-102: padanan Astryx HStack, murni Tailwind flex.
-              <div className="flex flex-wrap items-start gap-6">
-                {/* eslint-disable-next-line no-restricted-syntax -- T-102: padanan Astryx VStack, murni Tailwind flex. */}
-                <div className="flex w-full max-w-125 flex-col gap-5">
-                  <CaptionEditor
-                    caption={form.caption}
-                    onCaptionChange={form.setCaption}
-                    showStoryCaptionWarning={form.showStoryCaptionWarning}
-                  />
-                  <MediaSection
-                    mediaItems={form.mediaItems}
-                    uploadingMediaCount={form.uploadingMediaCount}
-                    mediaError={form.mediaError}
-                    effectiveMaxMedia={form.effectiveMaxMedia}
-                    isMediaLimitReached={form.isMediaLimitReached}
-                    overLimitMediaCount={form.overLimitMediaCount}
-                    isDeleting={form.deleteMediaConfirm.isLoading}
-                    onFilesSelected={form.handleFilesSelected}
-                    onRequestDelete={form.deleteMediaConfirm.open}
-                  />
-                </div>
+              {form.isLoadingDraft ? (
+                <Text variant="muted">Memuat draft…</Text>
+              ) : (
+                // eslint-disable-next-line no-restricted-syntax -- T-102: padanan Astryx HStack, murni Tailwind flex.
+                <div className="flex flex-wrap items-start gap-6">
+                  {/* eslint-disable-next-line no-restricted-syntax -- T-102: padanan Astryx VStack, murni Tailwind flex. */}
+                  <div className="flex w-full max-w-125 flex-col gap-5">
+                    <CaptionEditor
+                      caption={form.caption}
+                      onCaptionChange={form.setCaption}
+                      showStoryCaptionWarning={form.showStoryCaptionWarning}
+                    />
+                    <MediaSection
+                      mediaItems={form.mediaItems}
+                      uploadingMediaCount={form.uploadingMediaCount}
+                      mediaError={form.mediaError}
+                      effectiveMaxMedia={form.effectiveMaxMedia}
+                      isMediaLimitReached={form.isMediaLimitReached}
+                      overLimitMediaCount={form.overLimitMediaCount}
+                      isDeleting={form.deleteMediaConfirm.isLoading}
+                      onFilesSelected={form.handleFilesSelected}
+                      onRequestDelete={form.deleteMediaConfirm.open}
+                    />
+                  </div>
 
-                {/* eslint-disable-next-line no-restricted-syntax -- T-102: padanan Astryx VStack, murni Tailwind flex. */}
-                <div className="flex w-full max-w-85 flex-col gap-4">
-                  <AccountSelector
-                    accounts={form.accounts}
-                    isLoadingAccounts={form.isLoadingAccounts}
-                    selectedAccountIds={form.selectedAccountIds}
-                    formatByAccount={form.formatByAccount}
-                    onToggleAccount={form.toggleAccount}
-                    onFormatChange={form.changeFormat}
-                    pinTitle={form.pinTitle}
-                    pinLink={form.pinLink}
-                    onPinTitleChange={form.setPinTitle}
-                    onPinLinkChange={form.setPinLink}
-                    boardIdByAccount={form.boardIdByAccount}
-                    pinterestBoardsByAccount={form.pinterestBoardsByAccount}
-                    onBoardChange={form.changeBoard}
-                    onRetryBoards={form.fetchPinterestBoards}
-                  />
-                  <ScheduleSection
-                    scheduleDate={form.scheduleDate}
-                    scheduleTime={form.scheduleTime}
-                    onScheduleDateChange={form.setScheduleDate}
-                    onScheduleTimeChange={form.setScheduleTime}
-                  />
+                  {/* eslint-disable-next-line no-restricted-syntax -- T-102: padanan Astryx VStack, murni Tailwind flex. */}
+                  <div className="flex w-full max-w-85 flex-col gap-4">
+                    <AccountSelector
+                      accounts={form.accounts}
+                      isLoadingAccounts={form.isLoadingAccounts}
+                      selectedAccountIds={form.selectedAccountIds}
+                      formatByAccount={form.formatByAccount}
+                      onToggleAccount={form.toggleAccount}
+                      onSetSelection={form.setAccountSelection}
+                      lastUsedAccountIds={form.lastUsedAccountIds}
+                      onFormatChange={form.changeFormat}
+                      pinTitle={form.pinTitle}
+                      pinLink={form.pinLink}
+                      onPinTitleChange={form.setPinTitle}
+                      onPinLinkChange={form.setPinLink}
+                      boardIdByAccount={form.boardIdByAccount}
+                      pinterestBoardsByAccount={form.pinterestBoardsByAccount}
+                      onBoardChange={form.changeBoard}
+                      onRetryBoards={form.fetchPinterestBoards}
+                    />
+                    <ScheduleSection
+                      scheduleDate={form.scheduleDate}
+                      scheduleTime={form.scheduleTime}
+                      onScheduleDateChange={form.setScheduleDate}
+                      onScheduleTimeChange={form.setScheduleTime}
+                    />
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        )}
+              )}
+            </div>
+          )}
+        </div>
+        {isPreviewVisible && !pendingAction ? (
+          <PreviewPanel
+            selectedAccounts={form.selectedAccounts}
+            selectedAccountIds={form.selectedAccountIds}
+            formatByAccount={form.formatByAccount}
+            caption={form.caption}
+            mediaItems={form.mediaItems}
+          />
+        ) : null}
       </div>
       <EditorFooter
         isLoadingDraft={form.isLoadingDraft}

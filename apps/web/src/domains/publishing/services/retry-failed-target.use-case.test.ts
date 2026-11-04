@@ -57,6 +57,7 @@ function createFakeRepository(
     }),
     listDrafts: async () => [],
     findDraftById: async () => null,
+    findLatestPostTargetAccountIds: async () => [],
     findPostStatusById: async () => null,
     updateDraftCaption: async () => null,
     schedulePost: async () => null,

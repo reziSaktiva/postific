@@ -408,6 +408,23 @@ export interface IPublishingRepository {
   ): Promise<PublishingPostRecord[]>;
 
   /**
+   * T-201.2 ("Terakhir dipakai") — id akun tujuan dari post TERBARU di
+   * workspace: post tidak ter-soft-delete yang punya minimal satu target,
+   * semua pemakai dan semua status KECUALI `Imported`, diurutkan `createdAt`
+   * menurun. Tanpa
+   * penyimpanan baru. Workspace tanpa post bertarget mengembalikan `[]`.
+   * Urutan target tidak dijamin (target satu post dibuat dalam satu
+   * transaksi dengan `createdAt` yang sama); pemanggil memperlakukannya sebagai
+   * himpunan.
+   *
+   * `userId` (RLS, KI-026 follow-up) — acting user for `withCurrentUser`.
+   */
+  findLatestPostTargetAccountIds(
+    input: { workspaceId: WorkspaceId },
+    userId: UserId,
+  ): Promise<ConnectedAccountId[]>;
+
+  /**
    * PERHATIAN: nama method ini menyiratkan hasilnya selalu berstatus
    * `Draft`, TAPI query-nya TIDAK memfilter `status` sama sekali — post
    * dengan status apa pun (`Draft`/`Scheduled`/`Published`/dst.) yang

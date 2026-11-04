@@ -2876,7 +2876,7 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 | Field       | Value                                                                                                                                |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Status**  | 🟡 Merged ke staging (PR 250, 2026-11-03); belum Done (code), keputusan King Rezi                                                    |
+| **Status**  | ✅ Done (code, 2026-11-04, atas keputusan King Rezi); belum Verified (staging)                                                       |
 | **Mode**    | AFK                                                                                                                                  |
 | **Domain**  | draft editor · UI                                                                                                                    |
 | **Spec**    | S-005                                                                                                                                |
@@ -2890,7 +2890,7 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 - [x] **T-199.1** Pasang `calendar` lewat workflow CLI/MCP shadcn (discover-first: cek registry dan dokumen komponen, jangan menebak props); sesuaikan dengan token Stone.
 - [x] **T-199.2** Pasang `accordion` dengan cara yang sama.
 - [x] **T-199.3** Pecah `Modal` menjadi komponen modul bertanggung jawab tunggal (baris channel, editor dan media, blok jaringan, panel Pratinjau, footer, ringkasan konfirmasi, dialog Resume); state form dan aksi tetap berpusat di satu tempat; entry point tetap tidak berisi business logic (aturan 3 `AGENTS.md`).
-- [ ] **T-199.4** Perilaku tidak berubah: `typecheck`, `lint`, dan seluruh tes yang ada hijau; suite E2E yang ada tetap hijau.
+- [x] `(2026-11-04)` **T-199.4** Perilaku tidak berubah: `typecheck`, `lint`, dan seluruh tes yang ada hijau; suite E2E yang ada tetap hijau.
 
 **Catatan hasil (jalur A, gelombang 1):**
 
@@ -2900,6 +2900,8 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 - Catatan review Standards (Ridwan, 2026-11-03, nol pelanggaran keras): (a) setiap `shadcn add` berikutnya wajib diikuti `grep 'from "cn"'` dan `git diff` pada `button.tsx`, karena registry masih mengisi `cn` dan menawarkan menimpa `button.tsx`; (b) `useDraftEditorForm.ts` (805 baris, sekitar 55 field kembalian) kandidat pemecahan sub-hook (mis. `usePinterestBoards`, `useDraftMedia`, turunan validasi) saat tiket redesain berikutnya menyentuhnya, sambil menjaga state di satu hook induk; (c) `react-day-picker` dan `date-fns` baru dipakai mulai T-202 dan T-205, ukur chunk Draft Editor saat itu; (d) komentar domain yang menunjuk `Modal.tsx` sebagai mirror client sudah diarahkan ke `useDraftEditorForm.ts` dan `ScheduleSection.tsx` di branch integrasi.
 
 **Bukti staging (2026-11-03):** PR 250 (base staging) di-squash-merge atas perintah King Rezi setelah CI "Quality gates" hijau (bersama T-200); run CI staging 41611048959, deploy staging commit `0b7ac823` success di Railway. Najwa menjalankan spec Playwright 13 tes (1 setup login + 12 skenario) terhadap staging setelah deploy: 13 passed, dua kali (42s dan 41s). Ini bukti browser pertama untuk kode hasil refactor T-199/T-200. Rincian cakupan dan batasnya di T-207. Status Done (code) dan Verified (staging) TIDAK dinaikkan oleh dokumen ini: keputusan ada di King Rezi (lihat T-207, alasan: ADR-149 meminta suite hijau di `local`, bukan staging; ADR-153 meminta `/code-review`, Ridwan, dan QA tanpa temuan terbuka untuk gelombang). T-199.4 tetap tidak dicentang.
+
+**Penutupan (2026-11-04):** King Rezi menetapkan Done (code) setelah verifikasi gelombang 0 di `local` (ADR-149). Di `local` pada kode `7956ea8d`: `typecheck`, `lint`, dan 2.226 tes unit hijau; `draft-editor.e2e.ts` 13 passed pada run pertama. Run berikutnya menemukan bug redirect Save as Draft dari Queue (T-208, KI-108), yang diperbaiki di branch integrasi (S4 lulus 3 dari 3, spec penuh 13 passed, 2.239 tes unit hijau). Tes tema `/u/e2e-start-page` gagal hanya di `next dev` lokal (CSP mode dev) dan lulus di staging; bukan bagian S-005. Suite lengkap lain (`session`, `smoke`, `start-page`, `theme` untuk `/login`) hijau; hasil `mcp.e2e.ts` di run lokal tidak diperiksa (tidak tampil di keluaran yang disaring), jadi tidak diklaim hijau. Verified (staging) menyusul sekali untuk seluruh S-005 (ADR-153, T-207.6).
 
 **Belum terbukti (jangan diasumsikan):**
 
@@ -2978,13 +2980,22 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 **What to build:** pemilihan akun di atas editor. Pemakai memilih akun lewat popover, melihat hasilnya sebagai chip avatar, dan bisa menambah atau melepas akun tanpa request jaringan.
 
 - [ ] **T-201.1** Popover Channels: pencarian, "Pilih semua", daftar centang (avatar, badge platform, nama, status koneksi), dan tautan "Hubungkan akun".
-- [ ] **T-201.2** Pintasan "Terakhir dipakai" dan "Semua". Tentukan sumber data "Terakhir dipakai" dari data yang sudah ada tanpa migrasi; bila butuh penyimpanan baru, berhenti dan tanya King Rezi.
+- [ ] **T-201.2** Pintasan "Terakhir dipakai" dan "Semua". Tentukan sumber data "Terakhir dipakai" dari data yang sudah ada tanpa migrasi; bila butuh penyimpanan baru, berhenti dan tanya King Rezi. **Keputusan King Rezi (2026-11-04):** sumbernya akun dari post terbaru workspace (semua pemakai, semua status), lewat query baca baru tanpa migrasi. Logika murni dan UI sudah ada (commit `fea312f8`); penghubung ke data dikerjakan di jalur A2 (commit `320a5f39`, `69f5884a`): query `findLatestPostTargetAccountIds` memilih post terbaru berdasarkan `createdAt` yang tidak dihapus dan punya target; post berstatus `Imported` TIDAK dihitung (keputusan King Rezi 2026-11-04, setelah semula diputuskan ikut: `createdAt` post impor adalah waktu sinkron, jadi satu batch impor menimpa pilihan multi-akun terakhir). Belum terbukti: query ke DB nyata (hanya diuji dengan mock) dan tampilan tombol di browser.
 - [ ] **T-201.3** Setelah ada pilihan, baris menciut menjadi chip avatar plus tombol "+ Tambah akun"; chip bisa dilepas.
 - [ ] **T-201.4** Akun Disconnected tetap tampil dan boleh dicentang, dengan peringatan dan aksi Reconnect; Schedule dan Publish Now tidak diblokir karenanya (ADR-155 addendum B.2).
 - [ ] **T-201.5** Quick Compose dari sidebar membuka modal dengan akun yang di-hover sudah terpilih (NP-D14); simpan akun tujuan draft tetap berjalan (ADR-125).
 - [ ] **T-201.6** Tes unit untuk logika pemilihan (fungsi murni: pilih semua, terakhir dipakai, filter pencarian, status koneksi). Perilaku komponen dibuktikan di E2E T-207.
 
 - [ ] **T-201.7** Edit Draft: chip akun terisi dari data draft tersimpan (akun, format, dan opsi Pinterest, ADR-125) sama seperti sebelum redesain; New Post dan Quick Compose tidak terpengaruh. Tes unit untuk pemetaan data draft ke pilihan akun.
+
+**Catatan hasil (jalur A, A2, gelombang S-005, 2026-11-04):** komponen dan logika di `draft-editor/` (`ChannelRow.tsx`, `AccountSelector.tsx`, `account-selection.ts` + tes, `useDraftEditorForm.ts`), query `findLatestPostTargetAccountIds` (repository, service, `getLastUsedAccountIdsAction`), tanpa migrasi. Commit lokal: `fea312f8`, `320a5f39`, `69f5884a`, perbaikan review `1c894453`. Review Ridwan dua putaran: nol pelanggaran keras. Perbaikan atas review: ARIA popover (daftar centang biasa), "Pilih semua" mempertahankan akun Disconnected yang sudah dicentang, query "Terakhir dipakai" dilewati di mode edit, komentar kontrak urutan target.
+
+**Belum terbukti (jangan diasumsikan):**
+
+- Tampilan dan interaksi popover, chip, dan Quick Compose di browser (belum ada E2E untuk baris channel selain pemilihan akun di S7b; bukti di T-207).
+- Query "Terakhir dipakai" ke DB nyata: hanya diuji dengan mock; tidak ada `EXPLAIN`. Indeks `PublishingPost` tidak punya `(workspaceId, createdAt desc)`, jadi `orderBy createdAt desc` memindai post workspace (linear). Menambah indeks adalah perubahan skema, belum diputuskan.
+- `Imported` dikecualikan dari query (filter `status != imported`, tes unit memeriksa argumen query). Belum terbukti terhadap DB nyata.
+- Tes: tes repository memeriksa argumen `findFirst` dengan mock; `ChannelRow` dan `PreviewPanel` tidak punya tes komponen.
 
 **Blocked by:** T-199
 
@@ -3032,11 +3043,20 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 **What to build:** panel Pratinjau di sisi kanan yang diperbarui saat mengetik, dengan Pratinjau Facebook dan Instagram yang dirakit dari komponen dan token Postific (bukan aset atau markup Buffer).
 
 - [ ] **T-203.1** Kerangka panel kanan, pemilih Pratinjau per akun terpilih, dan toggle Pratinjau di header.
-- [ ] **T-203.2** Keadaan kosong (tanpa akun atau tanpa isi) yang menjelaskan apa yang perlu diisi.
+- [ ] **T-203.2** Keadaan kosong saat belum ada akun terpilih, yang menjelaskan apa yang perlu diisi. Dengan akun tetapi tanpa isi, kartu tampil dengan placeholder caption (keputusan King Rezi 2026-11-04: ikuti rancangan, bukan frasa "atau tanpa isi" di spec awal).
 - [ ] **T-203.3** Pratinjau Facebook.
 - [ ] **T-203.4** Pratinjau Instagram (mengikuti format yang dipilih bila rancangan membedakannya).
 - [ ] **T-203.5** Pratinjau dihitung di klien dan hidup saat mengetik atau mengganti media, tanpa request jaringan.
 - [ ] **T-203.6** Tes tampilan atau tes unit untuk pemetaan data post ke Pratinjau (ADR-155 Consequences).
+
+**Catatan hasil (jalur B, B2, gelombang S-005, 2026-11-04):** `PreviewPanel.tsx`, `FacebookPreview.tsx`, `InstagramPreview.tsx`, `VerticalPreview.tsx` (Reel dan Story), `preview-shared.tsx`, `preview-model.ts` + tes, toggle di `EditorHeader.tsx`, dua kolom di `DraftEditorForm.tsx`. Token baru `--media-scrim` dan `--media-foreground` (terang dan gelap) di `globals.css`. Commit lokal: `eb818a57`, `1c894453`, `ce83045c`. Review Ridwan dua putaran: nol pelanggaran keras. Perbedaan dari rancangan yang disengaja: ilustrasi keadaan kosong diganti `EmptyMedia` berikon, lebar panel `w-96` (384px) karena lint melarang nilai arbitrer.
+
+**Belum terbukti (jangan diasumsikan):**
+
+- Tampilan visual di browser (terang dan gelap, lebar dialog, scroll); E2E belum menyentuh Pratinjau (T-207).
+- Panel dan toggle disembunyikan di bawah `md` dan saat Confirmation Summary: tab "Editor | Pratinjau" 375px ada di T-206, panel tetap terlihat di ringkasan ada di T-205.5.
+- Platform selain Facebook dan Instagram menampilkan kartu netral "belum tersedia" (bukan kartu generik T-204).
+- `ChannelRow` dan `PreviewPanel` tanpa tes komponen; hanya fungsi murni (`preview-model`, `account-selection`) yang dites.
 
 **Blocked by:** T-199
 

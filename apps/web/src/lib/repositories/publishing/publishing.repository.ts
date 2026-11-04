@@ -287,6 +287,32 @@ export const publishingRepository: IPublishingRepository = {
     return posts.map(mapPost);
   },
 
+  async findLatestPostTargetAccountIds({ workspaceId }, userId) {
+    const post = await withCurrentUser(userId, (tx) =>
+      tx.publishingPost.findFirst({
+        where: {
+          workspaceId,
+          deletedAt: null,
+          // Post impor bukan pilihan akun pemakai di Postific dan `createdAt`-nya
+          // adalah waktu sinkron, jadi tidak ikut (keputusan King Rezi, T-201.2).
+          status: { not: ContentStatus.Imported },
+          targets: { some: {} },
+        },
+        orderBy: { createdAt: "desc" },
+        select: {
+          targets: {
+            select: { connectedAccountId: true },
+            orderBy: { createdAt: "asc" },
+          },
+        },
+      }),
+    );
+
+    return (post?.targets ?? []).map((target) =>
+      asConnectedAccountId(target.connectedAccountId),
+    );
+  },
+
   async findDraftById({ workspaceId, postId }, userId) {
     const post = await withCurrentUser(userId, (tx) =>
       tx.publishingPost.findFirst({

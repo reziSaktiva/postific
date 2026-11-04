@@ -57,6 +57,7 @@ function createFakeRepository(
       updatedAt: new Date(0),
     }),
     listDrafts: async () => [],
+    findLatestPostTargetAccountIds: async () => [],
     findDraftById: async () => null,
     findPostStatusById: async () => null,
     updateDraftCaption: async () => null,
@@ -242,6 +243,48 @@ describe("PublishingService.listDrafts", () => {
     await expect(service.listDrafts(WORKSPACE_ID, AUTHOR_ID)).resolves.toBe(
       drafts,
     );
+  });
+});
+
+describe("PublishingService.getLastUsedAccountIds (T-201.2)", () => {
+  it("returns the latest post's account ids without duplicates, keeping order", async () => {
+    const service = new PublishingService(
+      createFakeRepository({
+        findLatestPostTargetAccountIds: async () => [
+          asConnectedAccountId("acc-2"),
+          asConnectedAccountId("acc-1"),
+          asConnectedAccountId("acc-2"),
+        ],
+      }),
+    );
+
+    await expect(
+      service.getLastUsedAccountIds(WORKSPACE_ID, AUTHOR_ID),
+    ).resolves.toEqual(["acc-2", "acc-1"]);
+  });
+
+  it("returns an empty list for a workspace without posts", async () => {
+    const service = new PublishingService(createFakeRepository());
+
+    await expect(
+      service.getLastUsedAccountIds(WORKSPACE_ID, AUTHOR_ID),
+    ).resolves.toEqual([]);
+  });
+
+  it("scopes the lookup to the given workspace and acting user", async () => {
+    const calls: unknown[][] = [];
+    const service = new PublishingService(
+      createFakeRepository({
+        findLatestPostTargetAccountIds: async (...args) => {
+          calls.push(args);
+          return [];
+        },
+      }),
+    );
+
+    await service.getLastUsedAccountIds(WORKSPACE_ID, AUTHOR_ID);
+
+    expect(calls).toEqual([[{ workspaceId: WORKSPACE_ID }, AUTHOR_ID]]);
   });
 });
 

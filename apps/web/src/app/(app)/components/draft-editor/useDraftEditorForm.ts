@@ -12,6 +12,7 @@ import { zonedLocalToUtc } from "@/domains/publishing/wib-time";
 import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
 
 import { useConfirmAction } from "@/lib/hooks/use-confirm-action";
+import { markTerminalNavigationPending } from "@/lib/navigation/pending-terminal-navigation";
 import {
   isCaptionRequiredForFormats,
   maxMediaCountForFormats,
@@ -23,6 +24,7 @@ import type { DraftMediaDto } from "./actions";
 import {
   deleteMediaAction,
   getConnectedAccountsAction,
+  getLastUsedAccountIdsAction,
   getDraftAction,
   listPinterestBoardsAction,
   publishNowAction,
@@ -40,6 +42,7 @@ import type {
   PinterestBoardState,
 } from "./form-shared";
 import { getDefaultFormat, isAccountDisconnected } from "./form-shared";
+import { diffSelection } from "./account-selection";
 import type { TerminalAction } from "./terminal-destination";
 import {
   isAlreadyAtDestination,
@@ -151,6 +154,8 @@ export function useDraftEditorForm({
   const [notice, setNotice] = useState<FormNotice | null>(null);
   const [accounts, setAccounts] = useState<ConnectedAccount[]>([]);
   const [isLoadingAccounts, setIsLoadingAccounts] = useState(true);
+  // T-201.2 — sumber pintasan "Terakhir dipakai"; dimuat sekali bersama akun.
+  const [lastUsedAccountIds, setLastUsedAccountIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (!isEdit) {
@@ -187,6 +192,19 @@ export function useDraftEditorForm({
   // is edit-only), since a brand-new post still needs real accounts to pick.
   useEffect(() => {
     let cancelled = false;
+    // Pintasan opsional: gagal memuat tidak boleh mengganggu editor. Mode edit
+    // sudah punya akun tersimpan dan tidak menampilkan pintasan, jadi tidak
+    // perlu query (review Ridwan 2026-11-04). Quick Compose (akun sudah
+    // terpilih lewat `preSelectedAccountId`) juga tidak menampilkan pintasan.
+    // Sisa risiko: query ini belum punya indeks (workspaceId, createdAt),
+    // sengaja tidak ditambah di sini (keputusan King Rezi).
+    if (!isEdit && !preSelectedAccountId) {
+      getLastUsedAccountIdsAction()
+        .then((ids) => {
+          if (!cancelled) setLastUsedAccountIds(ids);
+        })
+        .catch(() => undefined);
+    }
     getConnectedAccountsAction()
       .then((result) => {
         if (cancelled) return;
@@ -380,22 +398,50 @@ export function useDraftEditorForm({
     }
   }
 
-  function toggleAccount(account: ConnectedAccount, checked: boolean) {
-    setSelectedAccountIds((prev) =>
-      checked ? [...prev, account.id] : prev.filter((id) => id !== account.id),
+  /**
+   * Efek samping bersama saat sebuah akun ditambahkan ke pilihan: format
+   * default dan board Pinterest. Dipakai `toggleAccount` dan
+   * `setAccountSelection`. Melepas akun sengaja tidak membersihkan state
+   * format/board akun itu (perilaku lama `toggleAccount`).
+   */
+  function applyAccountAddedEffects(account: ConnectedAccount) {
+    setFormatByAccount((prev) =>
+      prev[account.id]
+        ? prev
+        : { ...prev, [account.id]: getDefaultFormat(account.platform) },
     );
-    setFormatByAccount((prev) => {
-      if (checked && !prev[account.id]) {
-        return { ...prev, [account.id]: getDefaultFormat(account.platform) };
-      }
-      return prev;
-    });
     if (
-      checked &&
       account.platform === SocialPlatform.Pinterest &&
       !isAccountDisconnected(account)
     ) {
       fetchPinterestBoards(account.id);
+    }
+  }
+
+  function toggleAccount(account: ConnectedAccount, checked: boolean) {
+    setSelectedAccountIds((prev) =>
+      checked ? [...prev, account.id] : prev.filter((id) => id !== account.id),
+    );
+    if (checked) {
+      applyAccountAddedEffects(account);
+    }
+  }
+
+  /**
+   * Ganti seluruh pilihan akun sekaligus (popover "Pilih semua", pintasan
+   * "Terakhir dipakai" dan "Semua", T-201). Akun yang baru masuk mendapat
+   * efek samping yang sama dengan `toggleAccount` (format default, board
+   * Pinterest); semuanya di klien kecuali pengambilan board Pinterest yang
+   * memang sudah ada sebelumnya.
+   */
+  function setAccountSelection(nextAccountIds: string[]) {
+    const { added } = diffSelection(selectedAccountIds, nextAccountIds);
+    setSelectedAccountIds(nextAccountIds);
+    for (const accountId of added) {
+      const account = accounts.find((item) => item.id === accountId);
+      if (account) {
+        applyAccountAddedEffects(account);
+      }
     }
   }
 
@@ -461,6 +507,9 @@ export function useDraftEditorForm({
     if (isAlreadyAtDestination(pathname, destination)) {
       router.refresh();
     } else {
+      // T-208: event Realtime layar asal tidak boleh memanggil server action
+      // selagi navigasi ini berjalan.
+      markTerminalNavigationPending();
       router.push(destination);
     }
   }
@@ -760,11 +809,13 @@ export function useDraftEditorForm({
     isLoadingDraft,
     accounts,
     isLoadingAccounts,
+    lastUsedAccountIds,
     selectedAccounts,
     selectedAccountIds,
     formatByAccount,
     changeFormat,
     toggleAccount,
+    setAccountSelection,
     pinTitle,
     setPinTitle,
     pinLink,
