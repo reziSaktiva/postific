@@ -129,15 +129,17 @@ async function deleteE2eDrafts(page: Page): Promise<number> {
   await expect(page.getByText(E2E_WORKSPACE_NAME).first()).toBeVisible();
   await page.waitForTimeout(1500);
   let removed = 0;
+  const rows = page.getByRole("button").filter({ hasText: /e2e-qa-draft-/ });
   for (let i = 0; i < 10; i++) {
-    const row = page.getByRole("button").filter({ hasText: /e2e-qa-draft-/ });
-    if ((await row.count()) === 0) break;
-    await row.first().getByRole("button", { name: "Hapus draft" }).click();
+    const before = await rows.count();
+    if (before === 0) break;
+    await rows.first().getByRole("button", { name: "Hapus draft" }).click();
     await page
       .getByRole("alertdialog")
       .getByRole("button", { name: "Hapus Draft" })
       .click();
-    await page.waitForTimeout(1500);
+    // tunggu daftar benar-benar menyusut, bukan jeda tetap
+    await expect(rows).toHaveCount(before - 1, { timeout: 15_000 });
     removed++;
   }
   return removed;
@@ -621,9 +623,7 @@ test.describe("S8b mode gelap", () => {
     await snap(page, "s8b-dark-fullscreen");
     await dlg.getByRole("button", { name: "Close" }).click();
     // dialog Resume dalam gelap
-    await page.getByRole("button", { name: "New Post" }).last().click();
-    await dialog(page).getByLabel("Caption").fill("e2e-qa gelap resume");
-    await dialog(page).getByRole("button", { name: "Close" }).click();
+    // caption sudah terisi di atas, jadi Close lalu buka lagi memunculkan Resume.
     await page.getByRole("button", { name: "New Post" }).last().click();
     await expect(page.getByText("Resume unfinished post?")).toBeVisible();
     await snap(page, "s8b-dark-resume");
