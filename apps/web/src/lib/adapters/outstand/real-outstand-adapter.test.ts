@@ -122,7 +122,7 @@ describe("RealOutstandAdapter.schedulePost / publishNow (T-025.2/T-025.3)", () =
     ).rejects.toBeInstanceOf(OutstandIntegrationError);
   });
 
-  it("T-195.4 (KI-105): a 400 on a far-future schedulePost keeps the Outstand detail, is not retryable, and still sent scheduledAt (body simulated, real body not yet observed)", async () => {
+  it("T-195.4 (KI-105): a 400 on schedulePost keeps the Outstand detail, is not retryable, and still sends scheduledAt (body simulated, real body not yet observed)", async () => {
     const fetchImpl = vi.fn().mockResolvedValue(
       jsonResponse(400, {
         success: false,

@@ -1604,9 +1604,9 @@ termasuk login Better Auth bila aplikasi tersambung sebagai peran non-pemilik
 (mis. `app_runtime`). Jangan mengaktifkan RLS pada tabel mana pun sebelum
 T-196.1 dan T-196.2 selesai.
 
-- [x] **T-196.1** Buktikan keterpaparan: baca tabel itu sebagai `anon` dan
-      `authenticated` (hanya baca, tanpa mengubah data) dan periksa grant serta
-      eksposur PostgREST. Hasilnya menentukan prioritas.
+- [~] **T-196.1** Buktikan keterpaparan: baca tabel itu sebagai `anon` dan
+  `authenticated` (hanya baca, tanpa mengubah data) dan periksa grant serta
+  eksposur PostgREST. Hasilnya menentukan prioritas.
 
       **Hasil (2026-11-04, DB staging `ndcrkzqgqukqfmekgoze`, hanya baca,
           tanpa mencetak isi baris):**

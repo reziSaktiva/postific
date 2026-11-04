@@ -2981,7 +2981,7 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 - [ ] **T-201.1** Popover Channels: pencarian, "Pilih semua", daftar centang (avatar, badge platform, nama, status koneksi), dan tautan "Hubungkan akun".
 - [ ] **T-201.2** Pintasan "Terakhir dipakai" dan "Semua". Tentukan sumber data "Terakhir dipakai" dari data yang sudah ada tanpa migrasi; bila butuh penyimpanan baru, berhenti dan tanya King Rezi. **Keputusan King Rezi (2026-11-04):** sumbernya akun dari post terbaru workspace (semua pemakai, semua status), lewat query baca baru tanpa migrasi. Logika murni dan UI sudah ada (commit `fea312f8`); penghubung ke data dikerjakan di jalur A2 (commit `320a5f39`, `69f5884a`): query `findLatestPostTargetAccountIds` memilih post terbaru berdasarkan `createdAt` yang tidak dihapus dan punya target; post berstatus `Imported` TIDAK dihitung (keputusan King Rezi 2026-11-04, setelah semula diputuskan ikut: `createdAt` post impor adalah waktu sinkron, jadi satu batch impor menimpa pilihan multi-akun terakhir). Belum terbukti: query ke DB nyata (hanya diuji dengan mock) dan tampilan tombol di browser.
-- [x] **T-201.3** Setelah ada pilihan, baris menciut menjadi chip avatar plus tombol "+ Tambah akun"; chip bisa dilepas.
+- [~] **T-201.3** Setelah ada pilihan, baris menciut menjadi chip avatar plus tombol "+ Tambah akun"; chip bisa dilepas.
 - [ ] **T-201.4** Akun Disconnected tetap tampil dan boleh dicentang, dengan peringatan dan aksi Reconnect; Schedule dan Publish Now tidak diblokir karenanya (ADR-155 addendum B.2).
 - [ ] **T-201.5** Quick Compose dari sidebar membuka modal dengan akun yang di-hover sudah terpilih (NP-D14); simpan akun tujuan draft tetap berjalan (ADR-125).
 - [x] **T-201.6** Tes unit untuk logika pemilihan (fungsi murni: pilih semua, terakhir dipakai, filter pencarian, status koneksi). Perilaku komponen dibuktikan di E2E T-207.
@@ -3005,7 +3005,7 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 | Field       | Value                                                                                                                       |
 | ----------- | --------------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | 🟡 In Progress (gelombang 3, branch `feature/s-005-draft-editor-gelombang-3`, ditumpuk di atas PR 252)                      |
+| **Status**  | 🟡 In Progress (merged ke staging lewat PR 253; butir `[~]` belum terbukti tes)                                             |
 | **Mode**    | AFK                                                                                                                         |
 | **Domain**  | draft editor · UI                                                                                                           |
 | **Spec**    | S-005                                                                                                                       |
@@ -3016,7 +3016,7 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 **What to build:** bagian kiri modal di bawah baris channel: editor caption, area media, dan blok pengaturan per jaringan dengan validasi inline.
 
-- [x] **T-202.1** Editor caption dan area media (thumbnail plus dropzone); toolbar hanya "Lampirkan media" (tanpa emoji dan hashtag).
+- [~] **T-202.1** Editor caption dan area media (thumbnail plus dropzone); toolbar hanya "Lampirkan media" (tanpa emoji dan hashtag).
 - [ ] **T-202.2** Blok per jaringan berbentuk akordeon (satu terbuka, lainnya baris ringkas); bila hanya satu akun terpilih, blok selalu terbuka tanpa akordeon.
 - [x] **T-202.3** Radio format Post/Reel/Story (ADR-039) di dalam blok; opsi yang tidak sah dinonaktifkan; Reel nonaktif dengan pesan dari T-200 bila media bukan satu video.
 - [ ] **T-202.4** Field Pinterest (board, judul, link) di dalam blok; perilaku data sama dengan sebelumnya.
@@ -3057,7 +3057,7 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 - [ ] **T-203.1** Kerangka panel kanan, pemilih Pratinjau per akun terpilih, dan toggle Pratinjau di header.
 - [ ] **T-203.2** Keadaan kosong saat belum ada akun terpilih, yang menjelaskan apa yang perlu diisi. Dengan akun tetapi tanpa isi, kartu tampil dengan placeholder caption (keputusan King Rezi 2026-11-04: ikuti rancangan, bukan frasa "atau tanpa isi" di spec awal).
 - [ ] **T-203.3** Pratinjau Facebook.
-- [x] **T-203.4** Pratinjau Instagram (mengikuti format yang dipilih bila rancangan membedakannya).
+- [~] **T-203.4** Pratinjau Instagram (mengikuti format yang dipilih bila rancangan membedakannya).
 - [ ] **T-203.5** Pratinjau dihitung di klien dan hidup saat mengetik atau mengganti media, tanpa request jaringan.
 - [x] **T-203.6** Tes tampilan atau tes unit untuk pemetaan data post ke Pratinjau (ADR-155 Consequences).
 
@@ -3126,7 +3126,7 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 - [~] **T-205.1** `(2026-11-04)` Tombol "Atur jadwal" membuka popover: Calendar (hari lampau dan hari di atas 30 hari nonaktif), input jam, label zona waktu ("WIB" pada rancangan), dan penjelasan batas. Setelah diisi, tombol menampilkan jadwalnya, mis. "Rab, 4 Nov · 10:00 WIB". Tanpa "Next Available".
 - [~] **T-205.2** `(2026-11-04)` Pesan validasi jadwal tampil di footer dekat kontrol jadwal; batas 30 hari dan masa lampau mengikuti `schedule-time-constraints` (ADR-154), penafsiran zona mengikuti ADR-146.
-- [x] **T-205.3** `(2026-11-04)` Save as Draft (boleh tanpa media; akun tujuan tersimpan, ADR-125).
+- [~] **T-205.3** `(2026-11-04)` Save as Draft (boleh tanpa media; akun tujuan tersimpan, ADR-125).
 - [~] **T-205.4** `(2026-11-04)` Schedule dan Publish Now sesuai RBAC (ADR-047, ADR-074), aktif hanya bila validasi lulus.
 - [x] **T-205.5** `(2026-11-04)` Confirmation Summary (KSP-05-F06, KSP-D05) dengan panel Pratinjau tetap terlihat (ADR-155 addendum B.5).
 - [~] **T-205.6** `(2026-11-04)` Redirect setelah aksi terminal mengikuti ADR-054; tanpa "Create Another".
@@ -3177,7 +3177,7 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 | Field       | Value                                                                                         |
 | ----------- | --------------------------------------------------------------------------------------------- |
-| **Status**  | ⏳ Not Started                                                                                |
+| **Status**  | 🟡 In Progress                                                                                |
 | **Mode**    | HITL (verifikasi staging oleh King Rezi)                                                      |
 | **Domain**  | draft editor · QA                                                                             |
 | **Spec**    | S-005                                                                                         |
