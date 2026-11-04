@@ -436,6 +436,111 @@ describe("SchedulePostsUseCase.execute", () => {
     expect(scheduleJob).not.toHaveBeenCalled();
   });
 
+  it("T-195.3: cancels the Outstand post and marks Failed when persisting outstandPostId fails after Outstand accepted the schedule", async () => {
+    const scheduleRecord = baseScheduleRecord([
+      {
+        id: asPostTargetId("target-1"),
+        connectedAccountId: CONNECTED_ACCOUNT_1,
+      },
+    ]);
+    const outcomes: Parameters<
+      IPublishingRepository["updateTargetOutcome"]
+    >[0][] = [];
+    let markPostFailedCalled = false;
+    const deleted: string[] = [];
+    const repository = createFakeRepository({
+      schedulePost: async () => scheduleRecord,
+      setOutstandPostId: async () => {
+        throw new Error("db down");
+      },
+      updateTargetOutcome: async (input) => {
+        outcomes.push(input);
+      },
+      markPostFailed: async () => {
+        markPostFailedCalled = true;
+      },
+    });
+    const adapter = createFakeOutstandAdapter({
+      schedulePost: async () => ({ outstandPostId: "remote-1" }),
+      cancelScheduledPost: async (id) => {
+        deleted.push(id);
+      },
+    });
+    const scheduleJob = vi.fn(async () => undefined);
+
+    await new SchedulePostsUseCase(
+      repository,
+      adapter,
+      createFakeJobScheduler({ scheduleJob }),
+    ).execute({
+      workspaceId: WORKSPACE_ID,
+      postId: POST_ID,
+      scheduledAt: SCHEDULED_AT,
+      targets: [
+        {
+          connectedAccountId: CONNECTED_ACCOUNT_1,
+          platform: SocialPlatform.Instagram,
+          contentFormat: ContentFormat.Post,
+          outstandAccountId: "outstand-acc-1",
+        },
+      ],
+      actingUserId: AUTHOR_ID,
+    });
+
+    expect(deleted).toEqual(["remote-1"]);
+    expect(markPostFailedCalled).toBe(true);
+    expect(outcomes).toEqual([
+      {
+        postTargetId: asPostTargetId("target-1"),
+        status: "failed",
+        error: "db down",
+      },
+    ]);
+    expect(scheduleJob).not.toHaveBeenCalled();
+  });
+
+  it("T-195.3: rejects scheduledAt beyond 30 days before touching repository or adapter (the Outstand 400 cause, KI-105)", async () => {
+    let repositoryCalled = false;
+    let adapterCalled = false;
+    const repository = createFakeRepository({
+      schedulePost: async () => {
+        repositoryCalled = true;
+        return null;
+      },
+    });
+    const adapter = createFakeOutstandAdapter({
+      schedulePost: async () => {
+        adapterCalled = true;
+        return { outstandPostId: "x" };
+      },
+    });
+    const useCase = new SchedulePostsUseCase(
+      repository,
+      adapter,
+      createFakeJobScheduler(),
+    );
+
+    await expect(
+      useCase.execute({
+        workspaceId: WORKSPACE_ID,
+        postId: POST_ID,
+        // "sekarang" di blok ini 2026-08-01; 2026-09-15 = 45 hari.
+        scheduledAt: new Date("2026-09-15T10:00:00Z"),
+        targets: [
+          {
+            connectedAccountId: CONNECTED_ACCOUNT_1,
+            platform: SocialPlatform.Instagram,
+            contentFormat: ContentFormat.Post,
+            outstandAccountId: "outstand-acc-1",
+          },
+        ],
+        actingUserId: AUTHOR_ID,
+      }),
+    ).rejects.toThrow(PublishingDomainError);
+    expect(repositoryCalled).toBe(false);
+    expect(adapterCalled).toBe(false);
+  });
+
   it("rejects a content format not allowed for the platform before calling repository or adapter", async () => {
     let repositoryCalled = false;
     let adapterCalled = false;

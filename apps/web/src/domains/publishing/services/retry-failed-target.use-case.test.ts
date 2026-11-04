@@ -163,6 +163,8 @@ function baseRetryTarget(
     contentFormat: ContentFormat.Post,
     platformOptions: null,
     hasSiblingLiveTargets: false,
+    postScheduledAt: null,
+    postPublishedAt: null,
     ...overrides,
   };
 }
@@ -432,6 +434,98 @@ describe("RetryFailedTargetUseCase.execute", () => {
     });
 
     expect(result.status).toBe("published");
+  });
+
+  describe("T-195.3 (KI-105): retry never publishes a scheduled post early", () => {
+    async function runRetry(retryTarget: RetryTargetRecord) {
+      const calls = { publishNow: 0, deletePost: 0, reset: 0 };
+      const repository = createFakeRepository({
+        getRetryTarget: async () => retryTarget,
+        resetTargetForRetry: async () => {
+          calls.reset += 1;
+        },
+      });
+      const adapter = createFakeOutstandAdapter({
+        deletePost: async () => {
+          calls.deletePost += 1;
+        },
+        publishNow: async () => {
+          calls.publishNow += 1;
+          return { outstandPostId: "fake-post-retry" };
+        },
+        fetchPostOutcome: async () => [publishedOutcome("outstand-acc-1")],
+      });
+      const promise = new RetryFailedTargetUseCase(repository, adapter).execute(
+        {
+          workspaceId: WORKSPACE_ID,
+          postId: POST_ID,
+          targetId: TARGET_ID,
+          actorRole: MemberRole.Creator,
+          actingUserId: AUTHOR_ID,
+        },
+      );
+      return { calls, promise };
+    }
+
+    it("rejects retry when the post is scheduled in the future and was never published, without any delete/reset/publishNow", async () => {
+      const { calls, promise } = await runRetry(
+        baseRetryTarget({
+          postScheduledAt: new Date(Date.now() + 40 * 24 * 3600 * 1000),
+        }),
+      );
+      await expect(promise).rejects.toThrow(ConflictError);
+      expect(calls).toEqual({ publishNow: 0, deletePost: 0, reset: 0 });
+    });
+
+    it("allows retry when the scheduled time has already passed (failed at publish time)", async () => {
+      const { calls, promise } = await runRetry(
+        baseRetryTarget({ postScheduledAt: new Date(Date.now() - 60_000) }),
+      );
+      await expect(promise).resolves.toMatchObject({ status: "published" });
+      expect(calls.publishNow).toBe(1);
+    });
+
+    it("allows retry when the post was explicitly published now (publishedAt set) even if scheduledAt is stale in the future", async () => {
+      const { calls, promise } = await runRetry(
+        baseRetryTarget({
+          postScheduledAt: new Date(Date.now() + 5 * 24 * 3600 * 1000),
+          postPublishedAt: new Date(),
+        }),
+      );
+      await expect(promise).resolves.toMatchObject({ status: "published" });
+      expect(calls.publishNow).toBe(1);
+    });
+  });
+
+  it("T-195.3: does not mark the target failed when Outstand created the post but saving retryOutstandPostId throws", async () => {
+    const updateOutcomeCalls: unknown[] = [];
+    const repository = createFakeRepository({
+      getRetryTarget: async () => baseRetryTarget(),
+      setRetryOutstandPostId: async () => {
+        throw new Error("db down");
+      },
+      updateTargetOutcome: async (input) => {
+        updateOutcomeCalls.push(input);
+      },
+    });
+    const adapter = createFakeOutstandAdapter({
+      publishNow: async () => ({ outstandPostId: "fake-post-retry" }),
+      fetchPostOutcome: async () => [publishedOutcome("outstand-acc-1")],
+    });
+    const result = await new RetryFailedTargetUseCase(
+      repository,
+      adapter,
+    ).execute({
+      workspaceId: WORKSPACE_ID,
+      postId: POST_ID,
+      targetId: TARGET_ID,
+      actorRole: MemberRole.Creator,
+      actingUserId: AUTHOR_ID,
+    });
+    expect(result.status).toBe("published");
+    expect(updateOutcomeCalls).not.toContainEqual(
+      expect.objectContaining({ status: "failed" }),
+    );
   });
 
   it("rejects when the target is not found (or not part of this post/workspace)", async () => {

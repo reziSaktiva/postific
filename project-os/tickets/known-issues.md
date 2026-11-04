@@ -1481,7 +1481,7 @@ pilihan tema Light/Dark eksplisit pengguna (cookie `theme` sudah benar).
 
 | Field       | Value                                                                               |
 | ----------- | ----------------------------------------------------------------------------------- |
-| **Status**  | ⏳ Todo                                                                             |
+| **Status**  | 🟡 In Progress                                                                      |
 | **Domain**  | publishing, integrasi Outstand (ACL)                                                |
 | **Spec**    | tidak ada: investigasi dulu, spec bila perbaikannya multi-sesi                      |
 | **Docs**    | KI-105, ADR-092, T-025.2, `real-outstand-adapter.ts` (`schedulePost`, `createPost`) |
@@ -1522,11 +1522,39 @@ Cook It Real Good (akun Facebook nyata). Data hanya-baca (Supabase dan Outstand)
       Verified (staging): setelah deploy, ulangi satu penjadwalan di E2E Sandbox
       untuk membaca pesan 400 yang sebenarnya. Branch `fix/t-195-outstand-error-body`,
       belum di-commit.
-- [ ] **T-195.2** Reproduksi 400 secara terkontrol (E2E Sandbox atau double), dan
-      tentukan penyebabnya.
-- [ ] **T-195.3** Pastikan kegagalan penjadwalan tidak pernah berujung terbit
-      langsung tanpa jadwal; sinkronkan status Postific dengan Outstand bila post
-      sudah terbentuk di sana (`retry_outstand_post_id`).
+- [ ] **T-195.2** `🟡 Done (code), penyebab 400 belum terbukti dari body asli`
+      Reproduksi nyata TIDAK dilakukan: satu-satunya org Outstand yang bisa
+      diakses agen berisi akun nyata Cook It Real Good (Facebook, Pinterest,
+      TikTok, Instagram x2, YouTube) dan tidak ada akun E2E Sandbox, jadi tidak
+      ada panggilan tulis ke Outstand. Bukti yang ada: (a) kontrak `create_post`
+      Outstand menyatakan `scheduledAt` harus dalam 30 hari dan nilai lebih jauh
+      ditolak tanpa membuat post (sejalan dengan ADR-154); (b) ketiga post gagal
+      dijadwalkan Desember 2026 sampai Februari 2027, sedangkan saat dijadwalkan
+      (2026-11-03) belum ada guard 30 hari (T-198 baru ada sesudahnya); (c) tidak
+      ada bukti kedua yang lebih kuat: body galat 400 belum pernah teramati.
+      Kesimpulan: penyebab paling mungkin, belum terbukti. Guard T-198 di
+      `SchedulePostsUseCase` sudah menolak kasus ini sebelum menghubungi Outstand
+      (tes regresi ditambahkan). Pembuktian akhir: T-195.4 membaca body 400 lewat
+      pencatatan T-195.1 di E2E Sandbox dengan `scheduledAt` > 30 hari.
+- [x] **T-195.3** `🟡 Done (code)` Jalur terbit-langsung terbukti dari kode:
+      `RetryFailedTargetUseCase` memanggil `publishNow` (tanpa `scheduledAt`) untuk
+      target gagal dari post yang dijadwalkan; Outstand menerbitkan seketika,
+      `retry_outstand_post_id` terisi, target tetap `pending` karena outcome belum
+      dilaporkan. Ini cocok dengan `cGk8t` (`scheduledAt: null`, terbit saat
+      itu). Perbaikan: retry ditolak (`ConflictError`) bila `scheduledAt` post
+      belum tiba dan post belum pernah Publish Now (`publishedAt` kosong), sebelum
+      delete/reset/network; retry tetap jalan bila jadwal sudah lewat. Sinkron
+      status: `SchedulePostsUseCase` membatalkan post Outstand (best-effort
+      `deletePost`) bila penyimpanan `outstandPostId`/status gagal setelah Outstand
+      menerima jadwal; `RetryFailedTargetUseCase` tidak lagi menandai target
+      `failed` bila hanya penyimpanan `retryOutstandPostId` yang gagal (post sudah
+      ada di Outstand). Berkas: `schedule-posts.use-case.ts`,
+      `retry-failed-target.use-case.ts`, `RetryTargetRecord` (+`postScheduledAt`,
+      `postPublishedAt`), `lib/repositories/publishing/publishing.repository.ts`.
+      Belum diputuskan (milik King Rezi): apakah Retry untuk post terjadwal masa
+      depan seharusnya menjadwalkan ulang ke jadwal semula (butuh method repository
+      baru agar post kembali Scheduled) alih-alih ditolak; dan retry atas post yang
+      jadwalnya sudah lewat tetap terbit langsung. Belum di-commit.
 - [ ] **T-195.4** Tes regresi, lalu verifikasi di staging **tanpa akun nyata**.
 
 **Aturan sampai tiket ini selesai:** jangan menguji post Scheduled di workspace
