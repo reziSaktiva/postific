@@ -1,6 +1,6 @@
 import fs from "node:fs";
 
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { AUTH_FILE } from "./support/auth";
 import { E2E_WORKSPACE_NAME } from "./support/workspace";
@@ -34,6 +34,31 @@ function dialog(page: Page) {
   return page.getByRole("dialog").filter({
     hasText: /New Post|Edit Draft|Konfirmasi Jadwal|Konfirmasi Publish/,
   });
+}
+/**
+ * T-205: jadwal diatur lewat popover "Atur jadwal" (Calendar + jam), bukan dua
+ * input di badan form. Memilih hari `offsetDays` dari hari ini (zona WIB, zona
+ * akun test) lalu menutup popover dengan "Selesai". Spesifikasi ini belum
+ * dijalankan terhadap aplikasi karena tidak ada `.env.local` di worktree
+ * jalur-a; jalankan di `local` sebelum dipercaya.
+ */
+async function pickScheduleDay(page: Page, dlg: Locator, offsetDays: number) {
+  const target = new Date(Date.now() + offsetDays * 86_400_000);
+  const label = new Intl.DateTimeFormat("id-ID", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "Asia/Jakarta",
+  }).format(target);
+  await dlg.getByRole("button", { name: /^Jadwal:/ }).click();
+  const day = page.getByRole("button", { name: new RegExp(`${label}$`) });
+  if ((await day.count()) === 0) {
+    await page.getByRole("button", { name: "Ke bulan berikutnya" }).click();
+  }
+  await day.click();
+  await page.getByLabel("Jam").fill("10:00");
+  await page.getByRole("button", { name: "Selesai" }).click();
 }
 async function openNewPostFromDrafts(page: Page) {
   await page.goto("/publish/drafts");
@@ -320,8 +345,7 @@ test("S7 validasi: Schedule dan Publish Now nonaktif saat form belum lengkap", a
   await expect(pub).toBeDisabled();
   await expect(draftBtn).toBeEnabled({ timeout: 15_000 });
   await dlg.getByLabel("Caption").fill("e2e-qa validasi");
-  await dlg.getByLabel("Tanggal").fill("2030-01-01");
-  await dlg.getByLabel("Waktu").fill("10:00");
+  await pickScheduleDay(page, dlg, 3);
   await expect(sched).toBeDisabled();
   await expect(pub).toBeDisabled();
   console.log(
@@ -379,10 +403,12 @@ test("S7b dengan akun terhubung: tombol aktif, ringkasan konfirmasi muncul, Bata
       radios.length,
     );
     await snap(page, "s7b-account-selected");
-    const d = new Date(Date.now() + 3 * 86400_000).toISOString().slice(0, 10);
-    await dlg.getByLabel("Tanggal").fill(d);
-    await dlg.getByLabel("Waktu").fill("10:00");
+    await pickScheduleDay(page, dlg, 3);
     await expect(sched).toBeEnabled();
+    // Tombol jadwal menampilkan jadwal terisi, mis. "Rab, 4 Nov · 10:00 WIB".
+    await expect(
+      dlg.getByRole("button", { name: /^Jadwal: .+ · 10:00 WIB$/ }),
+    ).toBeVisible();
     // Schedule -> hanya ringkasan konfirmasi, lalu Batal
     await sched.click();
     await expect(
@@ -398,7 +424,11 @@ test("S7b dengan akun terhubung: tombol aktif, ringkasan konfirmasi muncul, Bata
     await expect(
       dlg.getByRole("heading", { name: "Konfirmasi Publish" }),
     ).toBeVisible();
-    await expect(dlg.getByText("Waktu: Sekarang")).toBeVisible();
+    await expect(dlg.getByText("Sekarang", { exact: true })).toBeVisible();
+    // T-205.5: Pratinjau tetap terlihat saat Confirmation Summary tampil.
+    await expect(
+      page.getByRole("complementary", { name: "Pratinjau" }),
+    ).toBeVisible();
     await snap(page, "s7b-confirm-publish-now");
     await dlg.getByRole("button", { name: "Batal", exact: true }).click();
     await expect(dlg.getByRole("heading", { name: "New Post" })).toBeVisible();

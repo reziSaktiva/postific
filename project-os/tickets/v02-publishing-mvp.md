@@ -3113,7 +3113,7 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 | Field       | Value                                                                                                                                |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Status**  | ⏳ Not Started                                                                                                                       |
+| **Status**  | 🟡 In Progress                                                                                                                       |
 | **Mode**    | AFK                                                                                                                                  |
 | **Domain**  | draft editor · publishing · UI                                                                                                       |
 | **Spec**    | S-005                                                                                                                                |
@@ -3124,15 +3124,21 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 **What to build:** footer modal berisi Save as Draft, tombol "Atur jadwal", Schedule, dan Publish Now, dengan Confirmation Summary yang menampilkan Pratinjau di sampingnya.
 
-- [ ] **T-205.1** Tombol "Atur jadwal" membuka popover: Calendar (hari lampau dan hari di atas 30 hari nonaktif), input jam, label zona waktu ("WIB" pada rancangan), dan penjelasan batas. Setelah diisi, tombol menampilkan jadwalnya, mis. "Rab, 4 Nov · 10:00 WIB". Tanpa "Next Available".
-- [ ] **T-205.2** Pesan validasi jadwal tampil di footer dekat kontrol jadwal; batas 30 hari dan masa lampau mengikuti `schedule-time-constraints` (ADR-154), penafsiran zona mengikuti ADR-146.
-- [ ] **T-205.3** Save as Draft (boleh tanpa media; akun tujuan tersimpan, ADR-125).
-- [ ] **T-205.4** Schedule dan Publish Now sesuai RBAC (ADR-047, ADR-074), aktif hanya bila validasi lulus.
-- [ ] **T-205.5** Confirmation Summary (KSP-05-F06, KSP-D05) dengan panel Pratinjau tetap terlihat (ADR-155 addendum B.5).
-- [ ] **T-205.6** Redirect setelah aksi terminal mengikuti ADR-054; tanpa "Create Another".
-- [ ] **T-205.7** Tes unit untuk logika tombol (aktif atau nonaktif per validasi dan peran) dan label jadwal.
+- [x] **T-205.1** `(2026-11-04)` Tombol "Atur jadwal" membuka popover: Calendar (hari lampau dan hari di atas 30 hari nonaktif), input jam, label zona waktu ("WIB" pada rancangan), dan penjelasan batas. Setelah diisi, tombol menampilkan jadwalnya, mis. "Rab, 4 Nov · 10:00 WIB". Tanpa "Next Available".
+- [x] **T-205.2** `(2026-11-04)` Pesan validasi jadwal tampil di footer dekat kontrol jadwal; batas 30 hari dan masa lampau mengikuti `schedule-time-constraints` (ADR-154), penafsiran zona mengikuti ADR-146.
+- [x] **T-205.3** `(2026-11-04)` Save as Draft (boleh tanpa media; akun tujuan tersimpan, ADR-125).
+- [x] **T-205.4** `(2026-11-04)` Schedule dan Publish Now sesuai RBAC (ADR-047, ADR-074), aktif hanya bila validasi lulus.
+- [x] **T-205.5** `(2026-11-04)` Confirmation Summary (KSP-05-F06, KSP-D05) dengan panel Pratinjau tetap terlihat (ADR-155 addendum B.5).
+- [x] **T-205.6** `(2026-11-04)` Redirect setelah aksi terminal mengikuti ADR-054; tanpa "Create Another".
+- [x] **T-205.7** `(2026-11-04)` Tes unit untuk logika tombol (aktif atau nonaktif per validasi dan peran) dan label jadwal.
 
-- [ ] **T-205.8** Aksi per status: Edit Draft dan post `Scheduled` mengikuti perilaku yang berlaku sekarang (KSP-05 State Handling); post `Published`, `Failed`, dan `Imported` tidak dibuka di Draft Editor (T-091); status chip di header tetap menampilkan status konten. Tes unit untuk logika aksi per status.
+- [x] **T-205.8** `(2026-11-04)` Aksi per status: Edit Draft dan post `Scheduled` mengikuti perilaku yang berlaku sekarang (KSP-05 State Handling); post `Published`, `Failed`, dan `Imported` tidak dibuka di Draft Editor (T-091); status chip di header tetap menampilkan status konten. Tes unit untuk logika aksi per status.
+
+**Catatan implementasi (2026-11-04, jalur A gelombang 4, belum di-commit):** `ScheduleSection` kini tombol "Atur jadwal" di footer dengan popover shadcn `Calendar` (locale `id`, `disabled` sebelum hari ini dan setelah batas 30 hari, `startMonth`/`endMonth` membatasi navigasi, "hari ini" dihitung di zona pengguna), input jam, label zona, penjelasan batas, "Hapus jadwal" dan "Selesai"; pilih tanggal tanpa jam memberi jam bawaan 10:00 seperti rancangan. Pesan validasi jadwal pindah dari badan form ke footer (`FormAlerts` tidak lagi memuatnya). Logika murni di `schedule-label.ts` (label tombol, ringkasan, batas Calendar, label zona WIB/WITA/WIT atau nama pendek Intl) dan `footer-actions.ts` (aktif atau nonaktif tombol, jumlah peringatan, teks bantuan, status yang boleh dibuka). `ConfirmationSummary` mengikuti rancangan (kartu Caption, Akun dengan format, Waktu dengan zona) dan panel Pratinjau tetap tampil selama ringkasan. Hook menutup editor bila draft yang dimuat berstatus `Published`, `Failed`, atau `Imported` (pengaman; pintu masuk sudah menyaringnya).
+
+**RBAC (T-205.4), tafsir yang perlu dikonfirmasi:** peran Account Owner, Admin, dan Creator semuanya boleh Schedule dan Publish Now (ADR-074, `roles-permissions.md`), jadi tombol tidak dinonaktifkan per peran; penegakan tetap di server (`assertActorCanPublishNow`) dan penolakannya tampil sebagai notice galat. Klien belum punya konteks peran; bila peran baru ditambah, UI perlu sumber peran terlebih dulu.
+
+**Bukti (unit dan jsdom, belum browser):** tes unit `schedule-label` dan `footer-actions`; tes render `EditorFooter` (label jadwal, popover, hari lampau dan hari setelah batas 30 hari nonaktif, jam bawaan, Hapus jadwal, tanpa Next Available, status read-only mengunci aksi), `ConfirmationSummary`, `DraftEditorForm` (Pratinjau tetap ada saat ringkasan dan setelah Batal), dan hook (pesan jadwal lampau dan lewat 30 hari, Edit Draft per status). **Belum terbukti:** tampilan di browser (popover di dalam modal, mode gelap, layar sempit 375px), E2E (spesifikasi `draft-editor.e2e.ts` diperbarui untuk popover tetapi belum dijalankan: worktree jalur A tidak punya `.env.local`), tombol Schedule dan Publish Now sampai redirect nyata, dan penolakan RBAC di UI.
 
 **Blocked by:** T-199, T-202
 

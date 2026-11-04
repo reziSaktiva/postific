@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
-import { SocialPlatform } from "@postific/shared";
+import { ContentStatus, SocialPlatform } from "@postific/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const actionMocks = vi.hoisted(() => ({
@@ -21,8 +21,12 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
   usePathname: () => "/publish/drafts",
 }));
+const contextMocks = vi.hoisted(() => ({
+  close: vi.fn(),
+  clearUnsavedNewPost: vi.fn(),
+}));
 vi.mock("./Context", () => ({
-  useDraftEditor: () => ({ close: vi.fn(), clearUnsavedNewPost: vi.fn() }),
+  useDraftEditor: () => contextMocks,
 }));
 vi.mock("@/lib/time/user-time-zone-context", () => ({
   useUserTimeZone: () => "Asia/Jakarta",
@@ -126,5 +130,100 @@ describe("useDraftEditorForm: wiring validasi jaringan", () => {
     // Blok aktif yang dilepas jatuh ke blok paling atas yang tersisa.
     act(() => result.current.toggleAccount(FACEBOOK, false));
     expect(result.current.activeAccountId).toBe(INSTAGRAM.id);
+  });
+});
+
+describe("useDraftEditorForm: jadwal di footer (T-205)", () => {
+  async function setupReady() {
+    const view = await setup([FACEBOOK]);
+    act(() => {
+      view.result.current.setCaption("halo dunia");
+      view.result.current.toggleAccount(FACEBOOK, true);
+    });
+    return view;
+  }
+
+  it("jadwal di masa lalu memunculkan pesan dan menahan Schedule; Publish Now tidak terpengaruh", async () => {
+    const { result } = await setupReady();
+    act(() => {
+      result.current.setScheduleDate("2020-01-01");
+      result.current.setScheduleTime("10:00");
+    });
+    expect(result.current.scheduleTimeMessage).toMatch(/sudah lewat/);
+    expect(result.current.isReadyToSchedule).toBe(false);
+    expect(result.current.isReadyToPublishNow).toBe(true);
+  });
+
+  it("jadwal lebih dari 30 hari menyebut batas dan menahan Schedule", async () => {
+    const { result } = await setupReady();
+    act(() => {
+      result.current.setScheduleDate(futureDate(45));
+      result.current.setScheduleTime("10:00");
+    });
+    expect(result.current.scheduleTimeMessage).toMatch(/maksimal 30 hari/);
+    expect(result.current.isReadyToSchedule).toBe(false);
+  });
+
+  it("jadwal dalam batas melepas Schedule; menghapus jadwal menahannya lagi", async () => {
+    const { result } = await setupReady();
+    act(() => {
+      result.current.setScheduleDate(futureDate(3));
+      result.current.setScheduleTime("10:00");
+    });
+    expect(result.current.scheduleTimeMessage).toBeNull();
+    expect(result.current.isReadyToSchedule).toBe(true);
+
+    act(() => {
+      result.current.setScheduleDate(undefined);
+      result.current.setScheduleTime(undefined);
+    });
+    expect(result.current.isReadyToSchedule).toBe(false);
+  });
+});
+
+describe("useDraftEditorForm: Edit Draft per status (T-205.8)", () => {
+  function draft(status: string) {
+    return {
+      postId: "p1",
+      caption: "isi tersimpan",
+      status,
+      media: [],
+      targets: [],
+    };
+  }
+
+  async function openEdit(status: string) {
+    actionMocks.getConnectedAccountsAction.mockResolvedValue([FACEBOOK]);
+    actionMocks.getLastUsedAccountIdsAction.mockResolvedValue([]);
+    actionMocks.getDraftAction.mockResolvedValue(draft(status));
+    const view = renderHook(() =>
+      useDraftEditorForm({
+        mode: "edit",
+        postId: "p1",
+        onLatestChange: vi.fn(),
+      }),
+    );
+    await waitFor(() => expect(view.result.current.isLoadingDraft).toBe(false));
+    return view;
+  }
+
+  it.each([ContentStatus.Draft, ContentStatus.Scheduled])(
+    "status %s dibuka dengan data tersimpan",
+    async (status) => {
+      const { result } = await openEdit(status);
+      expect(result.current.caption).toBe("isi tersimpan");
+      expect(result.current.status).toBe(status);
+      expect(contextMocks.close).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    ContentStatus.Published,
+    ContentStatus.Failed,
+    ContentStatus.Imported,
+  ])("status read-only %s tidak dibuka di editor", async (status) => {
+    const { result } = await openEdit(status);
+    expect(contextMocks.close).toHaveBeenCalledTimes(1);
+    expect(result.current.caption).toBe("");
   });
 });
