@@ -3023,6 +3023,18 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 - [ ] **T-202.5** Banner validasi kuning inline: validasi per jaringan (media wajib, board, Reel) di dalam blok; validasi lintas jaringan (Story dengan caption campur, lebih dari satu akun Pinterest) di atas editor. Aturan tetap ADR-107, ADR-121, ADR-154, dan T-200; hanya letaknya yang pindah.
 - [ ] **T-202.6** Tes unit untuk fungsi validasi per jaringan dan lintas jaringan (hasil per kombinasi akun, format, dan media).
 
+**Catatan hasil (jalur A gelombang 3, 2026-11-04):** `NetworkBlocks.tsx` (akordeon shadcn, satu blok selalu terbuka; satu akun = blok statis), `NetworkBlock.tsx` (radio format, field Pinterest, banner per jaringan), `CaptionEditor.tsx` dan `MediaSection.tsx` (komposer dengan dropzone dan thumbnail), `FormAlerts.tsx` (`ValidationBanner` token `warning`), `network-validation.ts` + tes (32 tes; sumber tunggal aturan board Pinterest, minimum media, Story dengan caption campur, dan Reel T-200), `action-readiness.ts` + tes (kapan Schedule dan Publish Now aktif). `useDraftEditorForm.ts` dipecah: `useDraftMedia.ts` dan `usePinterestBoards.ts` (state tetap di hook induk, API kembalian hanya bertambah). Commit lokal: `f62e90d8`, `7899d350`, `e21ae4db`, dan commit `action-readiness`. Review Ridwan: nol pelanggaran keras; perbaikan atas review: tiga validasi lama yang terduplikasi dihapus, urutan blok jaringan mengikuti chip, sisa `{}` JSX dibersihkan.
+
+**Keputusan King Rezi (2026-11-04):** aturan Reel (T-200) menahan Schedule dan Publish Now di klien (`getActionReadiness`); Save as Draft tetap boleh melanggar. Dampak: draft lama berformat Reel dengan gambar harus mengganti media atau format dulu sebelum Schedule atau Publish Now, dan Publish Now dari Queue tidak lompat otomatis ke konfirmasi untuk kasus itu.
+
+**Belum terbukti (jangan diasumsikan):**
+
+- Tampilan browser: akordeon, banner kuning (terang dan gelap), dropzone, thumbnail, dan blok yang terbuka saat chip diklik (klik chip belum membuka blok jaringannya; butuh perubahan di `ChannelRow.tsx`).
+- E2E belum menguji blok jaringan secara langsung; banner "Instagram tanpa media" kini di dalam blok Instagram, spec masih lulus.
+- `accordion.tsx` (T-199) memakai selektor `data-open:`/`data-closed:` yang tidak cocok dengan `data-state` Radix, jadi animasi buka-tutup dan latar item bawaan tidak aktif; latar ditambal di `NetworkBlocks.tsx`. Akar masalahnya di T-210.
+- Impor domain di `network-validation.ts` lewat jalur dalam, bukan barrel `domains/publishing/index.ts` (preseden ada di hook lama); belum diseragamkan.
+- Banner validasi memakai `role="alert"`, bisa diumumkan asertif tiap kali pelanggaran muncul saat mengetik.
+
 **Blocked by:** T-199, T-200, T-201
 
 ---
@@ -3082,6 +3094,16 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 - [ ] **T-204.3** Kartu generik untuk platform lain.
 - [ ] **T-204.4** Cek pedoman merek logo dan badge tiap platform (Facebook, Instagram, TikTok, Pinterest). Catat hasilnya di tiket ini; bila ada risiko, King Rezi memutuskan sebelum rilis.
 - [ ] **T-204.5** Tes tampilan atau tes unit untuk pemetaan data ke ketiga Pratinjau.
+
+**Catatan hasil (jalur B gelombang 3, 2026-11-04):** `TikTokPreview.tsx`, `PinterestPreview.tsx` (board, judul, link dari blok), `GenericPreview.tsx`, `PreviewPanel.tsx` dan `preview-model.ts` + tes diperluas (kind `tiktok`, `pinterest-pin`, `generic`), token `--brand-pinterest` di `globals.css`. Commit lokal: `8b6e15f6`, penyambung data Pinterest di `DraftEditorForm.tsx`. Review Ridwan: nol pelanggaran keras.
+
+**T-204.4 (cek pedoman merek, dicek 2026-11-04, ringkasan dengan kata sendiri, sumber di halaman resmi):** Meta (Facebook, Instagram): memakai aset merek butuh persetujuan Meta dan hanya file resmi; logo tidak boleh diwarnai ulang. Pinterest: pakai badge "P", tanpa efek, tidak menyiratkan endorsement. TikTok: pedoman resmi wajib dipatuhi tetapi isinya belum terverifikasi (hanya sumber sekunder). `PLATFORM_ICON` memakai ikon react-icons berwarna di tab, chip, dan pemilih akun, yang bukan file resmi: berisiko menurut pedoman Meta. **Keputusan King Rezi (2026-11-04): ganti dengan logo resmi, tindak lanjut di T-209 (HITL).** Tombol "Simpan" merah di Pratinjau Pinterest: risiko tiruan merek, dinilai di T-209.4.
+
+**Belum terbukti (jangan diasumsikan):**
+
+- Tampilan visual ketiga Pratinjau di browser (hanya struktur kode dibandingkan dengan rancangan).
+- Pedoman TikTok dan tafsir pelanggaran logo (ringkasan, belum dibaca langsung di halaman pedoman).
+- Format Reel dan Story dari platform selain Facebook dan Instagram memakai kartu generik.
 
 **Blocked by:** T-203
 
@@ -3211,6 +3233,30 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 **Belum terbukti (jangan diasumsikan):** apakah pemakaian logo saat ini benar-benar melanggar (tafsir ringkasan, belum dibaca langsung di halaman pedoman); aturan TikTok.
 
 **Blocked by:** T-204
+
+---
+
+### T-210 · Fix `data-open`/`data-closed` selectors that do not match Radix `data-state` in vendored shadcn components
+
+| Field       | Value                                                                             |
+| ----------- | --------------------------------------------------------------------------------- |
+| **Status**  | ⏳ Not Started                                                                    |
+| **Mode**    | AFK                                                                               |
+| **Domain**  | UI · shadcn components                                                            |
+| **Spec**    | tidak ada (temuan review T-202)                                                   |
+| **Docs**    | ADR-097, `apps/web/.claude/CLAUDE.md`, `apps/web/src/components/ui/accordion.tsx` |
+| **Depends** | —                                                                                 |
+
+**Ditemukan (2026-11-04)** oleh review Ridwan atas gelombang 3: `accordion.tsx` (T-199) memakai `data-open:` dan `data-closed:`, tetapi Radix Accordion (react-accordion 1.2.20) hanya memancarkan `data-state="open|closed"`, jadi latar item terbuka dan animasi buka-tutup tidak aktif. Pola yang sama muncul di `alert-dialog`, `sheet`, `popover`, `select`, `dropdown-menu`, dan `tooltip`; dugaan: preset `radix-maia` bercampur dengan konvensi Base UI. Belum terbukti di browser.
+
+- [ ] **T-210.1** Inventaris selektor `data-open:`/`data-closed:` di `components/ui/` dan periksa atribut yang benar-benar dipancarkan tiap komponen Radix (jangan menebak).
+- [ ] **T-210.2** Perbaiki ke selektor `data-state` yang berlaku (atau tambahkan varian Tailwind kustom), tanpa mengubah tampilan komponen lain secara tak sengaja; cek tampilan terang dan gelap.
+- [ ] **T-210.3** Hapus tambalan `data-[state=open]:bg-muted/50` di `NetworkBlocks.tsx` bila akar masalahnya sudah teratasi.
+- [ ] **T-210.4** `typecheck`, `lint`, tes hijau; verifikasi tampilan di browser dan E2E bila ada.
+
+**Belum terbukti (jangan diasumsikan):** apakah animasi yang hilang terlihat oleh pemakai, dan apakah komponen selain accordion benar-benar terdampak.
+
+**Blocked by:** tidak ada
 
 ---
 
