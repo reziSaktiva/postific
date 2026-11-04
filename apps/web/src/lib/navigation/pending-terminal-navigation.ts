@@ -25,6 +25,36 @@ interface PendingNavigation {
 }
 
 let pending: PendingNavigation | null = null;
+let watcher: ReturnType<typeof setInterval> | undefined;
+
+/** Jeda pemantauan path; cukup rapat supaya Back cepat tetap tertangkap. */
+const WATCH_INTERVAL_MS = 100;
+
+function stopWatching() {
+  if (watcher !== undefined) clearInterval(watcher);
+  watcher = undefined;
+}
+
+/**
+ * Bersihkan penanda begitu navigasi selesai (path bukan `origin` lagi) atau
+ * batas waktu lewat, tanpa menunggu ada yang memanggil
+ * `isTerminalNavigationPending`. Tanpa ini, layar tujuan yang tidak punya
+ * event Realtime membiarkan penanda hidup, dan Back ke layar asal dalam batas
+ * waktu menahan event layar asal. Hanya jalan di browser (tidak di SSR/tes
+ * tanpa `window`).
+ */
+function startWatching() {
+  stopWatching();
+  if (typeof window === "undefined") return;
+  watcher = setInterval(() => {
+    if (!pending) {
+      stopWatching();
+      return;
+    }
+    // Membersihkan `pending` lewat pemeriksaan yang sama dengan gerbang.
+    if (!isTerminalNavigationPending()) stopWatching();
+  }, WATCH_INTERVAL_MS);
+}
 
 function currentPathname(): string {
   return typeof window === "undefined" ? "" : window.location.pathname;
@@ -43,6 +73,7 @@ export function markTerminalNavigationPending(options?: {
   const now = options?.now ?? Date.now();
   const origin = options?.origin ?? currentPathname();
   pending = { origin, deadline: now + TERMINAL_NAVIGATION_TIMEOUT_MS };
+  startWatching();
 }
 
 /**
@@ -63,6 +94,7 @@ export function isTerminalNavigationPending(
 
 export function resetTerminalNavigationForTests(): void {
   pending = null;
+  stopWatching();
 }
 
 export interface PendingNavigationGate {

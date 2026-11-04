@@ -60,6 +60,35 @@ describe("isTerminalNavigationPending", () => {
   });
 });
 
+describe("pemantauan path tanpa event", () => {
+  it("penanda dibersihkan saat navigasi selesai, jadi kembali ke asal dalam batas waktu tidak menahan event", () => {
+    vi.useFakeTimers();
+    const win = { location: { pathname: "/publish/queue" } };
+    vi.stubGlobal("window", win);
+    markTerminalNavigationPending();
+    expect(isTerminalNavigationPending()).toBe(true);
+
+    // Navigasi selesai ke layar tujuan; tidak ada yang memanggil gerbang.
+    win.location.pathname = "/publish/drafts";
+    vi.advanceTimersByTime(200);
+
+    // Pemakai menekan Back dalam 30 detik.
+    vi.advanceTimersByTime(5_000);
+    win.location.pathname = "/publish/queue";
+    expect(isTerminalNavigationPending()).toBe(false);
+  });
+
+  it("penanda tetap menahan selama path masih layar asal", () => {
+    vi.useFakeTimers();
+    vi.stubGlobal("window", { location: { pathname: "/publish/queue" } });
+    markTerminalNavigationPending();
+    vi.advanceTimersByTime(10_000);
+    expect(isTerminalNavigationPending()).toBe(true);
+    vi.advanceTimersByTime(TERMINAL_NAVIGATION_TIMEOUT_MS);
+    expect(isTerminalNavigationPending()).toBe(false);
+  });
+});
+
 describe("createPendingNavigationGate", () => {
   beforeEach(() => {
     vi.useFakeTimers();
