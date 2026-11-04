@@ -86,7 +86,7 @@ test.afterAll(async ({ browser }) => {
   }
 });
 
-test("S1 buka New Post dari Drafts: Standard, judul, chip, Close, Account Selector", async ({
+test("S1 buka New Post dari Drafts: Standard, judul, chip, Close, Akun tujuan", async ({
   page,
 }) => {
   track(page, "S1");
@@ -99,15 +99,13 @@ test("S1 buka New Post dari Drafts: Standard, judul, chip, Close, Account Select
   await expect(dlg.getByText("Draft", { exact: true }).first()).toBeVisible();
   await expect(dlg.getByRole("button", { name: "Close" })).toBeVisible();
   await expect(dlg.getByRole("button", { name: "Fullscreen" })).toBeVisible();
-  await expect(
-    dlg.getByRole("heading", { name: "Account Selector" }),
-  ).toBeVisible();
+  await expect(dlg.getByRole("heading", { name: "Akun tujuan" })).toBeVisible();
   await page.waitForTimeout(2500);
   const accountsText = await dlg
-    .getByRole("heading", { name: "Account Selector" })
+    .getByRole("heading", { name: "Akun tujuan" })
     .locator("xpath=..")
     .innerText();
-  console.log("S1 Account Selector isi:", JSON.stringify(accountsText));
+  console.log("S1 Akun tujuan isi:", JSON.stringify(accountsText));
   const box = await dlg.boundingBox();
   const vp = page.viewportSize()!;
   console.log(
@@ -343,9 +341,14 @@ test("S7b dengan akun terhubung: tombol aktif, ringkasan konfirmasi muncul, Bata
   await expect(dlg).toBeVisible();
   const sched = dlg.getByRole("button", { name: "Schedule", exact: true });
   const pub = dlg.getByRole("button", { name: "Publish Now", exact: true });
-  const acct = dlg.getByRole("checkbox", { name: /Instagram/ });
+  // T-201: akun dipilih lewat popover Channels (portal, di luar dialog).
+  await dlg.getByRole("button", { name: "Channels" }).click();
+  const acct = page.getByRole("checkbox", { name: /Pilih Instagram/ });
   await expect(acct).toBeVisible({ timeout: 15_000 });
   await acct.check();
+  await page.keyboard.press("Escape");
+  await expect(acct).toBeHidden();
+  await expect(dlg).toBeVisible();
   await expect(pub).toBeDisabled(); // caption kosong
   await dlg.getByLabel("Caption").fill("e2e-qa konfirmasi saja");
   await expect(pub).toBeDisabled(); // Instagram tanpa media
