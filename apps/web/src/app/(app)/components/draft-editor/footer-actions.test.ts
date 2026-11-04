@@ -12,7 +12,6 @@ import {
 
 const IDLE: FooterActionsInput = {
   readiness: { isReadyToSchedule: true, isReadyToPublishNow: true },
-  status: ContentStatus.Draft,
   isSavingDraft: false,
   isScheduling: false,
   isPublishingNow: false,
@@ -65,28 +64,6 @@ describe("getFooterActions", () => {
       });
     },
   );
-
-  it.each([
-    ContentStatus.Published,
-    ContentStatus.Failed,
-    ContentStatus.Imported,
-  ])("status read-only %s mengunci semua aksi (T-091)", (status) => {
-    expect(getFooterActions({ ...IDLE, status })).toEqual({
-      saveDraftDisabled: true,
-      publishNowDisabled: true,
-      scheduleDisabled: true,
-      scheduleTriggerDisabled: true,
-    });
-  });
-
-  it.each([
-    ContentStatus.Draft,
-    ContentStatus.InReview,
-    ContentStatus.ReadyToSchedule,
-    ContentStatus.Scheduled,
-  ])("status %s tetap bisa diedit", (status) => {
-    expect(getFooterActions({ ...IDLE, status }).saveDraftDisabled).toBe(false);
-  });
 });
 
 describe("isEditableInDraftEditor", () => {

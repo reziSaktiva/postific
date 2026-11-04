@@ -7,7 +7,8 @@ import type { NetworkValidation } from "./network-validation";
 
 /**
  * Logika murni footer Draft Editor (T-205.4, T-205.7, T-205.8): kapan tiap
- * tombol aktif, teks bantuan, dan aksi per status konten.
+ * tombol aktif, teks bantuan, dan status yang boleh dibuka. Status read-only
+ * ditangani sekali, di hook (`useDraftEditorForm`), yang menutup editor.
  *
  * RBAC (ADR-047, ADR-074): Schedule dan Publish Now terbuka untuk Account
  * Owner, Admin, dan Creator, jadi tidak ada peran yang perlu dinonaktifkan di
@@ -28,7 +29,6 @@ export function isEditableInDraftEditor(status: ContentStatus): boolean {
 
 export interface FooterActionsInput {
   readiness: ActionReadiness;
-  status: ContentStatus;
   isSavingDraft: boolean;
   isScheduling: boolean;
   isPublishingNow: boolean;
@@ -52,14 +52,11 @@ export interface FooterActions {
 export function getFooterActions(input: FooterActionsInput): FooterActions {
   const isBusy =
     input.isSavingDraft || input.isScheduling || input.isPublishingNow;
-  const isMutable = isEditableInDraftEditor(input.status);
   return {
-    saveDraftDisabled: !isMutable || isBusy || input.isLoadingAccounts,
-    publishNowDisabled:
-      !isMutable || isBusy || !input.readiness.isReadyToPublishNow,
-    scheduleDisabled:
-      !isMutable || isBusy || !input.readiness.isReadyToSchedule,
-    scheduleTriggerDisabled: !isMutable || isBusy,
+    saveDraftDisabled: isBusy || input.isLoadingAccounts,
+    publishNowDisabled: isBusy || !input.readiness.isReadyToPublishNow,
+    scheduleDisabled: isBusy || !input.readiness.isReadyToSchedule,
+    scheduleTriggerDisabled: isBusy,
   };
 }
 

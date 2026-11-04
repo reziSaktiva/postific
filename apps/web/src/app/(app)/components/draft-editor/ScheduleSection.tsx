@@ -58,6 +58,12 @@ export function ScheduleSection({
   const minDate = dateKeyToCalendarDate(minKey);
   const maxDate = dateKeyToCalendarDate(maxKey);
   const selectedDate = dateKeyToCalendarDate(scheduleDate);
+  // Jadwal tersimpan di luar rentang (lampau atau lewat batas) tetap harus
+  // terlihat di Calendar; harinya nonaktif sehingga tidak bisa dipilih ulang.
+  const startMonth =
+    selectedDate && minDate && selectedDate < minDate ? selectedDate : minDate;
+  const endMonth =
+    selectedDate && maxDate && selectedDate > maxDate ? selectedDate : maxDate;
   const label = formatScheduleTriggerLabel(
     scheduleDate,
     scheduleTime,
@@ -96,8 +102,8 @@ export function ScheduleSection({
           selected={selectedDate}
           defaultMonth={selectedDate ?? minDate}
           today={minDate}
-          startMonth={minDate}
-          endMonth={maxDate}
+          startMonth={startMonth}
+          endMonth={endMonth}
           disabled={
             minDate && maxDate
               ? [{ before: minDate }, { after: maxDate }]

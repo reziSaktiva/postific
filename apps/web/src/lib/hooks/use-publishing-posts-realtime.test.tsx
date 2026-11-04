@@ -51,6 +51,8 @@ beforeEach(() => {
   );
 });
 afterEach(() => {
+  vi.useRealTimers();
+  window.history.pushState({}, "", "/");
   cleanup();
   resetTerminalNavigationForTests();
   vi.unstubAllGlobals();
@@ -77,6 +79,7 @@ describe("usePublishingPostsRealtime dengan gerbang navigasi terminal", () => {
 
   it("selama navigasi terminal tertunda, event ditahan lalu dilepas setelah layar asal ditinggal", async () => {
     const { onInsert } = await mountSubscribed();
+    vi.useFakeTimers();
     // Layar asal = path jsdom saat ini ("/").
     markTerminalNavigationPending();
     supabase.handlers?.onInsert?.({ postId: POST, eventType: "INSERT" });
@@ -84,19 +87,19 @@ describe("usePublishingPostsRealtime dengan gerbang navigasi terminal", () => {
 
     // Navigasi selesai tanpa unmount (layar lain tetap memakai hook ini):
     // path bukan layar asal lagi, penanda berakhir.
-    markTerminalNavigationPending({ origin: "/layar-lain" });
-    await waitFor(() => expect(onInsert).toHaveBeenCalledTimes(1), {
-      timeout: 2000,
-    });
+    window.history.pushState({}, "", "/layar-lain");
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(onInsert).toHaveBeenCalledTimes(1);
   });
 
   it("layar unmount selagi event ditahan: event dibuang, tidak ada server action tertinggal", async () => {
     const { onInsert, unmount } = await mountSubscribed();
+    vi.useFakeTimers();
     markTerminalNavigationPending();
     supabase.handlers?.onInsert?.({ postId: POST, eventType: "INSERT" });
     unmount();
-    markTerminalNavigationPending({ origin: "/layar-lain" });
-    await new Promise((resolve) => setTimeout(resolve, 600));
+    window.history.pushState({}, "", "/layar-lain");
+    await vi.advanceTimersByTimeAsync(2000);
     expect(onInsert).not.toHaveBeenCalled();
     expect(supabase.unsubscribe).toHaveBeenCalled();
   });

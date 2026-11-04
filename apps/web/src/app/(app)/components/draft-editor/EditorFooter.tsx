@@ -1,5 +1,3 @@
-import type { ContentStatus } from "@postific/shared";
-
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
@@ -12,7 +10,6 @@ import { ScheduleSection } from "./ScheduleSection";
 export function EditorFooter({
   isLoadingDraft,
   pendingAction,
-  status,
   isSavingDraft,
   isScheduling,
   isPublishingNow,
@@ -35,7 +32,6 @@ export function EditorFooter({
 }: {
   isLoadingDraft: boolean;
   pendingAction: PendingAction;
-  status: ContentStatus;
   isSavingDraft: boolean;
   isScheduling: boolean;
   isPublishingNow: boolean;
@@ -98,7 +94,6 @@ export function EditorFooter({
 
   const actions = getFooterActions({
     readiness: { isReadyToSchedule, isReadyToPublishNow },
-    status,
     isSavingDraft,
     isScheduling,
     isPublishingNow,
@@ -106,11 +101,7 @@ export function EditorFooter({
   });
 
   return (
-    // eslint-disable-next-line no-restricted-syntax -- T-205: footer dua baris (pesan jadwal + kontrol), tanpa padanan primitive shadcn, murni Tailwind.
-    <div
-      data-slot="dialog-footer"
-      className="flex flex-col gap-2 border-t border-border px-5 py-3"
-    >
+    <DialogFooter className="flex-col gap-2 border-t border-border px-5 py-3 sm:flex-col sm:justify-start">
       {scheduleTimeMessage ? (
         <Alert variant="destructive" data-testid="schedule-message">
           <AlertTitle>{scheduleTimeMessage}</AlertTitle>
@@ -153,6 +144,6 @@ export function EditorFooter({
           </Button>
         </div>
       </div>
-    </div>
+    </DialogFooter>
   );
 }

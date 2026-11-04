@@ -52,7 +52,9 @@ async function pickScheduleDay(page: Page, dlg: Locator, offsetDays: number) {
     timeZone: "Asia/Jakarta",
   }).format(target);
   await dlg.getByRole("button", { name: /^Jadwal:/ }).click();
-  const day = page.getByRole("button", { name: new RegExp(`${label}$`) });
+  const day = page.getByRole("button", {
+    name: new RegExp(`${label}(, dipilih)?$`),
+  });
   if ((await day.count()) === 0) {
     await page.getByRole("button", { name: "Ke bulan berikutnya" }).click();
   }

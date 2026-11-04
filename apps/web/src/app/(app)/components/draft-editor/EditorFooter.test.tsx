@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 import { useState } from "react";
 
-import { ContentStatus } from "@postific/shared";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -25,7 +24,6 @@ afterEach(() => {
 });
 
 function Harness({
-  status = ContentStatus.Draft,
   isReadyToSchedule = true,
   isReadyToPublishNow = true,
   initialDate,
@@ -35,7 +33,6 @@ function Harness({
   warningCount = 0,
   handlers = {},
 }: {
-  status?: ContentStatus;
   isReadyToSchedule?: boolean;
   isReadyToPublishNow?: boolean;
   initialDate?: string;
@@ -55,7 +52,6 @@ function Harness({
     <EditorFooter
       isLoadingDraft={false}
       pendingAction={null}
-      status={status}
       isSavingDraft={false}
       isScheduling={false}
       isPublishingNow={false}
@@ -130,14 +126,6 @@ describe("EditorFooter: tombol dan label jadwal", () => {
     expect(onSaveDraft).toHaveBeenCalledTimes(1);
     expect(onRequestPublishNow).toHaveBeenCalledTimes(1);
     expect(onRequestSchedule).toHaveBeenCalledTimes(1);
-  });
-
-  it("status Published read-only: semua kontrol aksi nonaktif", () => {
-    render(<Harness status={ContentStatus.Published} />);
-    expect(button("Save as Draft")).toHaveProperty("disabled", true);
-    expect(button("Publish Now")).toHaveProperty("disabled", true);
-    expect(button("Schedule")).toHaveProperty("disabled", true);
-    expect(button(/^Jadwal:/)).toHaveProperty("disabled", true);
   });
 });
 

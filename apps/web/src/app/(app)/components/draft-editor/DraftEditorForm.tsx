@@ -149,7 +149,6 @@ export function DraftEditorForm({
       <EditorFooter
         isLoadingDraft={form.isLoadingDraft}
         pendingAction={pendingAction}
-        status={form.status}
         isSavingDraft={form.isSavingDraft}
         isScheduling={form.isScheduling}
         isPublishingNow={form.isPublishingNow}

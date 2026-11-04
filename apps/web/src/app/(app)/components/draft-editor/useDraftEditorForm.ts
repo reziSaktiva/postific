@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 import { ContentFormat, ContentStatus, SocialPlatform } from "@postific/shared";
 import { scheduleTimeConstraintMessage } from "@/domains/publishing/schedule-time-constraints";
@@ -173,6 +174,9 @@ export function useDraftEditorForm({
         // dibuka di Draft Editor (pintu masuk sudah menyaringnya; ini
         // pengaman bila ID basi sampai ke sini).
         if (!isEditableInDraftEditor(draft.status as ContentStatus)) {
+          toast.info(
+            "Post ini sudah Published, Failed, atau Imported dan tidak bisa diedit.",
+          );
           close();
           return;
         }

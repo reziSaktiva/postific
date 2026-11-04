@@ -10,21 +10,11 @@ import { getZonedFormatter } from "@/lib/time/zoned-formatter";
  * ikut campur.
  */
 
-const DAY_LABELS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"] as const;
-const MONTH_LABELS = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "Mei",
-  "Jun",
-  "Jul",
-  "Agu",
-  "Sep",
-  "Okt",
-  "Nov",
-  "Des",
-] as const;
+const SHORT_DATE_FORMATTER = new Intl.DateTimeFormat("id-ID", {
+  weekday: "short",
+  month: "short",
+  timeZone: "UTC",
+});
 
 /** Teks tombol bila belum ada jadwal sama sekali. */
 export const SCHEDULE_TRIGGER_EMPTY_LABEL = "Atur jadwal";
@@ -102,16 +92,17 @@ function labelInstant(
   time: string | undefined,
   timeZone: string,
 ): Date {
-  const instant = zonedLocalToUtc(date, time ?? "12:00", timeZone);
-  return Number.isNaN(instant.getTime()) ? new Date() : instant;
+  // Instan tidak sah (celah DST, zona tak dikenal) diteruskan apa adanya;
+  // `getTimeZoneLabel` lalu jatuh ke nama IANA, bukan zona hari ini.
+  return zonedLocalToUtc(date, time ?? "12:00", timeZone);
 }
 
 function formatShortDate(parts: DateKeyParts, includeYear: boolean): string {
-  const dayName =
-    DAY_LABELS[
-      new Date(Date.UTC(parts.year, parts.month, parts.day)).getUTCDay()
-    ];
-  const base = `${dayName}, ${parts.day} ${MONTH_LABELS[parts.month]}`;
+  const at = new Date(Date.UTC(parts.year, parts.month, parts.day));
+  const named = SHORT_DATE_FORMATTER.formatToParts(at);
+  const dayName = named.find((part) => part.type === "weekday")?.value;
+  const monthName = named.find((part) => part.type === "month")?.value;
+  const base = `${dayName}, ${parts.day} ${monthName}`;
   return includeYear ? `${base} ${parts.year}` : base;
 }
 
