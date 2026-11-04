@@ -24,6 +24,7 @@ import type { DraftMediaDto } from "./actions";
 import {
   deleteMediaAction,
   getConnectedAccountsAction,
+  getLastUsedAccountIdsAction,
   getDraftAction,
   listPinterestBoardsAction,
   publishNowAction,
@@ -153,6 +154,8 @@ export function useDraftEditorForm({
   const [notice, setNotice] = useState<FormNotice | null>(null);
   const [accounts, setAccounts] = useState<ConnectedAccount[]>([]);
   const [isLoadingAccounts, setIsLoadingAccounts] = useState(true);
+  // T-201.2 — sumber pintasan "Terakhir dipakai"; dimuat sekali bersama akun.
+  const [lastUsedAccountIds, setLastUsedAccountIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (!isEdit) {
@@ -189,6 +192,12 @@ export function useDraftEditorForm({
   // is edit-only), since a brand-new post still needs real accounts to pick.
   useEffect(() => {
     let cancelled = false;
+    // Pintasan opsional: gagal memuat tidak boleh mengganggu editor.
+    getLastUsedAccountIdsAction()
+      .then((ids) => {
+        if (!cancelled) setLastUsedAccountIds(ids);
+      })
+      .catch(() => undefined);
     getConnectedAccountsAction()
       .then((result) => {
         if (cancelled) return;
@@ -794,6 +803,7 @@ export function useDraftEditorForm({
     isLoadingDraft,
     accounts,
     isLoadingAccounts,
+    lastUsedAccountIds,
     selectedAccounts,
     selectedAccountIds,
     formatByAccount,

@@ -492,6 +492,23 @@ export class PublishingService {
     return this.withClientNames(workspaceId, drafts);
   }
 
+  /**
+   * T-201.2 — pintasan "Terakhir dipakai" di Draft Editor: id akun tujuan
+   * dari post terbaru workspace (tanpa duplikat, urutan dipertahankan).
+   * Akun yang sudah terputus atau tidak ada disaring di sisi UI
+   * (`resolveLastUsedIds`). Workspace tanpa post bertarget mengembalikan `[]`.
+   */
+  async getLastUsedAccountIds(
+    workspaceId: WorkspaceId,
+    userId: UserId,
+  ): Promise<ConnectedAccountId[]> {
+    const ids = await this.repository.findLatestPostTargetAccountIds(
+      { workspaceId },
+      userId,
+    );
+    return [...new Set(ids)];
+  }
+
   async getDraftById(
     workspaceId: WorkspaceId,
     postId: PostId,

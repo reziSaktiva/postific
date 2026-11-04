@@ -113,6 +113,7 @@ function world(
       return record;
     },
     // Seperti repository nyata: post hanya terlihat di workspace pemiliknya.
+    findLatestPostTargetAccountIds: async () => [],
     findPostStatusById: async (
       input: { workspaceId: unknown; postId: string },
       userId: unknown,
