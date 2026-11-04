@@ -34,6 +34,7 @@ import {
   resolveLastUsedIds,
   resolveSelectedAccounts,
   selectAllConnectedIds,
+  selectAllKeepingCurrent,
 } from "./account-selection";
 import type { ConnectedAccount } from "./form-shared";
 import { PLATFORM_LABEL } from "./form-shared";
@@ -74,7 +75,6 @@ export function ChannelRow({
       type="button"
       variant={hasSelection ? "ghost" : "outline"}
       size="sm"
-      aria-haspopup="listbox"
     >
       <HugeiconsIcon
         icon={Add01Icon}
@@ -222,7 +222,11 @@ function ChannelsPopover({
               checked={allSelected}
               disabled={connectedIds.length === 0}
               onCheckedChange={(checked) =>
-                onSetSelection(checked === true ? connectedIds : [])
+                onSetSelection(
+                  checked === true
+                    ? selectAllKeepingCurrent(accounts, selectedAccountIds)
+                    : [],
+                )
               }
             />
             Pilih semua ({connectedIds.length})
@@ -230,11 +234,7 @@ function ChannelsPopover({
           <Text variant="muted">{selectedAccountIds.length} dipilih</Text>
         </div>
         {/* eslint-disable-next-line no-restricted-syntax -- ADR-155: daftar akun scrollable popover, murni Tailwind. */}
-        <div
-          role="listbox"
-          aria-multiselectable="true"
-          className="max-h-85 overflow-y-auto border-y p-1"
-        >
+        <div className="max-h-85 overflow-y-auto border-y p-1">
           {accounts.length === 0 ? (
             <Text variant="muted" className="p-4 text-center">
               Belum ada akun terhubung untuk workspace ini.
@@ -244,64 +244,63 @@ function ChannelsPopover({
               Tidak ada akun yang cocok.
             </Text>
           ) : (
-            visibleAccounts.map((account) => {
-              const checked = selectedAccountIds.includes(account.id);
-              const isDisconnected =
-                getConnectionStatus(account) === "disconnected";
-              const optionId = `draft-account-${account.id}`;
-              return (
-                // eslint-disable-next-line no-restricted-syntax -- ADR-155: baris opsi akun, murni Tailwind.
-                <div
-                  key={account.id}
-                  role="option"
-                  aria-selected={checked}
-                  className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 hover:bg-muted"
-                >
-                  <Checkbox
-                    id={optionId}
-                    checked={checked}
-                    aria-label={`Pilih ${PLATFORM_LABEL[account.platform]} ${account.handle}`}
-                    onCheckedChange={(value) =>
-                      onToggleAccount(account, value === true)
-                    }
-                  />
-                  <ChannelAvatarBadge
-                    handle={account.handle}
-                    platform={account.platform}
-                  />
-                  <label
-                    htmlFor={optionId}
-                    className="flex min-w-0 flex-1 cursor-pointer flex-col"
+            <ul aria-label="Daftar akun" className="m-0 list-none p-0">
+              {visibleAccounts.map((account) => {
+                const checked = selectedAccountIds.includes(account.id);
+                const isDisconnected =
+                  getConnectionStatus(account) === "disconnected";
+                const optionId = `draft-account-${account.id}`;
+                return (
+                  <li
+                    key={account.id}
+                    className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 hover:bg-muted"
                   >
-                    <span className="truncate font-medium">
-                      {account.handle}
-                    </span>
-                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      {PLATFORM_LABEL[account.platform]}
-                      {isDisconnected ? (
-                        <Badge variant="warning">Disconnected</Badge>
-                      ) : null}
-                    </span>
-                  </label>
-                  {isDisconnected ? (
-                    <NextLink
-                      href={CONNECTED_ACCOUNTS_HREF}
-                      className="text-xs text-primary underline underline-offset-4 hover:no-underline"
+                    <Checkbox
+                      id={optionId}
+                      checked={checked}
+                      aria-label={`Pilih ${PLATFORM_LABEL[account.platform]} ${account.handle}`}
+                      onCheckedChange={(value) =>
+                        onToggleAccount(account, value === true)
+                      }
+                    />
+                    <ChannelAvatarBadge
+                      handle={account.handle}
+                      platform={account.platform}
+                    />
+                    <label
+                      htmlFor={optionId}
+                      className="flex min-w-0 flex-1 cursor-pointer flex-col"
                     >
-                      Reconnect
-                    </NextLink>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 text-xs whitespace-nowrap text-muted-foreground">
-                      <span
-                        className="size-1.5 rounded-full bg-success"
-                        aria-hidden
-                      />
-                      Terhubung
-                    </span>
-                  )}
-                </div>
-              );
-            })
+                      <span className="truncate font-medium">
+                        {account.handle}
+                      </span>
+                      <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        {PLATFORM_LABEL[account.platform]}
+                        {isDisconnected ? (
+                          <Badge variant="warning">Disconnected</Badge>
+                        ) : null}
+                      </span>
+                    </label>
+                    {isDisconnected ? (
+                      <NextLink
+                        href={CONNECTED_ACCOUNTS_HREF}
+                        className="text-xs text-primary underline underline-offset-4 hover:no-underline"
+                      >
+                        Reconnect
+                      </NextLink>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 text-xs whitespace-nowrap text-muted-foreground">
+                        <span
+                          className="size-1.5 rounded-full bg-success"
+                          aria-hidden
+                        />
+                        Terhubung
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
           )}
         </div>
         {/* eslint-disable-next-line no-restricted-syntax -- ADR-155: footer popover, murni Tailwind. */}

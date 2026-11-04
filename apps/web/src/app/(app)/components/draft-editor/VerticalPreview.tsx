@@ -18,7 +18,7 @@ type VerticalModel = Extract<PostPreviewModel, { kind: "vertical" }>;
 
 /**
  * Pratinjau Reel dan Story (Instagram dan Facebook), rasio 9:16. Teks dan
- * ikon di atas media memakai putih tetap di atas overlay gelap, supaya terbaca
+ * ikon di atas media memakai token media-foreground/media-scrim (tetap di kedua mode), supaya terbaca
  * di mode terang maupun gelap (sama dengan tampilan asli kedua platform).
  */
 export function VerticalPreview({ model }: { model: VerticalModel }) {
@@ -29,7 +29,7 @@ export function VerticalPreview({ model }: { model: VerticalModel }) {
   return (
     <article
       aria-label={`Pratinjau ${platformLabel} ${formatLabel}`}
-      className="relative aspect-9/16 w-63 overflow-hidden rounded-3xl bg-black text-white ring-1 ring-border"
+      className="relative aspect-9/16 w-63 overflow-hidden rounded-3xl bg-media-scrim text-media-foreground ring-1 ring-border"
     >
       {model.media.first ? (
         <span className="absolute inset-0">
@@ -51,13 +51,13 @@ export function VerticalPreview({ model }: { model: VerticalModel }) {
       )}
       <span
         aria-hidden="true"
-        className="absolute inset-0 bg-linear-to-b from-black/45 via-transparent via-25% to-black/65"
+        className="absolute inset-0 bg-linear-to-b from-media-scrim/45 via-transparent via-25% to-media-scrim/65"
       />
       <header className="absolute inset-x-0 top-0 flex flex-col gap-2 px-3 py-2.5">
         {isStory ? (
           <span aria-hidden="true" className="flex gap-1">
-            <span className="h-0.5 flex-1 rounded-full bg-white" />
-            <span className="h-0.5 flex-1 rounded-full bg-white/40" />
+            <span className="h-0.5 flex-1 rounded-full bg-media-foreground" />
+            <span className="h-0.5 flex-1 rounded-full bg-media-foreground/40" />
           </span>
         ) : null}
         <span className="flex items-center gap-2 text-xs font-semibold">
@@ -65,7 +65,9 @@ export function VerticalPreview({ model }: { model: VerticalModel }) {
             <>
               <PreviewAvatar initial={model.initial} size="sm" />
               <span className="truncate">{model.displayName}</span>
-              <span className="font-normal text-white/70">Baru saja</span>
+              <span className="font-normal text-media-foreground/70">
+                Baru saja
+              </span>
             </>
           ) : (
             <span className="text-base">Reels</span>
@@ -74,7 +76,7 @@ export function VerticalPreview({ model }: { model: VerticalModel }) {
       </header>
       {isStory ? (
         <footer className="absolute inset-x-0 bottom-0 p-3">
-          <span className="block rounded-full border border-white/60 px-3.5 py-1.5 text-xs text-white/90">
+          <span className="block rounded-full border border-media-foreground/60 px-3.5 py-1.5 text-xs text-media-foreground/90">
             {model.platform === SocialPlatform.Instagram
               ? "Kirim pesan"
               : "Balas..."}
