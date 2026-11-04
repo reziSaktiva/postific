@@ -1021,6 +1021,8 @@ export const publishingRepository: IPublishingRepository = {
       contentFormat: found.contentFormat as ContentFormat,
       platformOptions: found.platformOptions as Record<string, unknown> | null,
       hasSiblingLiveTargets,
+      postScheduledAt: found.post.scheduledAt,
+      postPublishedAt: found.post.publishedAt,
     };
 
     return record;

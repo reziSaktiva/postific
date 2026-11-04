@@ -1,4 +1,5 @@
 import { Alert, AlertTitle } from "@/components/ui/alert";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
@@ -8,6 +9,7 @@ import type { PendingAction } from "./form-shared";
 import { ScheduleSection } from "./ScheduleSection";
 
 export function EditorFooter({
+  isNarrow = false,
   isLoadingDraft,
   pendingAction,
   isSavingDraft,
@@ -30,6 +32,8 @@ export function EditorFooter({
   onRequestPublishNow,
   onRequestSchedule,
 }: {
+  /** Layar sempit (T-206.3): footer ditumpuk, tombol selebar penuh. */
+  isNarrow?: boolean;
   isLoadingDraft: boolean;
   pendingAction: PendingAction;
   isSavingDraft: boolean;
@@ -101,7 +105,12 @@ export function EditorFooter({
   });
 
   return (
-    <DialogFooter className="flex-col gap-2 border-t border-border px-5 py-3 sm:flex-col sm:justify-start">
+    <DialogFooter
+      className={cn(
+        "flex-col gap-2 border-t border-border px-5 py-3 sm:flex-col sm:justify-start",
+        isNarrow && "px-3 py-2.5",
+      )}
+    >
       {scheduleTimeMessage ? (
         <Alert variant="destructive" data-testid="schedule-message">
           <AlertTitle>{scheduleTimeMessage}</AlertTitle>
@@ -109,20 +118,31 @@ export function EditorFooter({
       ) : null}
       {/* eslint-disable-next-line no-restricted-syntax -- T-205: baris kontrol footer, murni Tailwind flex. */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <span className="text-xs text-muted-foreground">
-          {getFooterHelpText(selectedAccountCount, warningCount)}
-        </span>
+        {isNarrow ? null : (
+          <span className="text-xs text-muted-foreground">
+            {getFooterHelpText(selectedAccountCount, warningCount)}
+          </span>
+        )}
         {/* eslint-disable-next-line no-restricted-syntax -- T-205: kelompok tombol aksi, murni Tailwind flex. */}
-        <div className="flex flex-wrap items-center justify-end gap-2">
+        <div
+          className={cn(
+            "flex flex-wrap items-center justify-end gap-2",
+            isNarrow && "w-full",
+          )}
+        >
           <ScheduleSection
             scheduleDate={scheduleDate}
             scheduleTime={scheduleTime}
             disabled={actions.scheduleTriggerDisabled}
+            triggerClassName={
+              isNarrow ? "w-full flex-[1_1_100%] justify-start" : undefined
+            }
             onScheduleDateChange={onScheduleDateChange}
             onScheduleTimeChange={onScheduleTimeChange}
           />
           <Button
             variant="secondary"
+            className={isNarrow ? "min-w-0 flex-1" : undefined}
             onClick={onSaveDraft}
             disabled={actions.saveDraftDisabled}
           >
@@ -131,12 +151,14 @@ export function EditorFooter({
           </Button>
           <Button
             variant="secondary"
+            className={isNarrow ? "min-w-0 flex-1" : undefined}
             disabled={actions.publishNowDisabled}
             onClick={onRequestPublishNow}
           >
             Publish Now
           </Button>
           <Button
+            className={isNarrow ? "min-w-0 flex-1" : undefined}
             disabled={actions.scheduleDisabled}
             onClick={onRequestSchedule}
           >

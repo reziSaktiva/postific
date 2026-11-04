@@ -180,23 +180,40 @@ export class SchedulePostsUseCase {
         ...(media ? { media } : {}),
       });
 
-      await this.repository.setOutstandPostId(
-        {
-          workspaceId: input.workspaceId,
-          postId: input.postId,
-          outstandPostId: result.outstandPostId,
-        },
-        input.actingUserId,
-      );
+      // T-195.3 — post SUDAH terbentuk di Outstand (terjadwal). Kalau
+      // persist DB sesudahnya gagal, jangan biarkan Postific `failed` sambil
+      // Outstand tetap memegang post terjadwal (yang kemudian bisa terbit
+      // tanpa sepengetahuan Postific): batalkan di Outstand (best-effort)
+      // lalu lempar supaya `catch` di bawah menandai gagal.
+      try {
+        await this.repository.setOutstandPostId(
+          {
+            workspaceId: input.workspaceId,
+            postId: input.postId,
+            outstandPostId: result.outstandPostId,
+          },
+          input.actingUserId,
+        );
 
-      await Promise.all(
-        record.targets.map((scheduledTarget) =>
-          this.repository.updateTargetOutcome(
-            { postTargetId: scheduledTarget.id, status: "scheduled" },
-            input.actingUserId,
+        await Promise.all(
+          record.targets.map((scheduledTarget) =>
+            this.repository.updateTargetOutcome(
+              { postTargetId: scheduledTarget.id, status: "scheduled" },
+              input.actingUserId,
+            ),
           ),
-        ),
-      );
+        );
+      } catch (persistError) {
+        try {
+          await this.outstandAdapter.cancelScheduledPost(result.outstandPostId);
+        } catch (cancelError) {
+          console.error(
+            `[SchedulePostsUseCase] postId=${input.postId} outstandPostId=${result.outstandPostId} — persist gagal DAN pembatalan di Outstand gagal; post terjadwal mungkin masih ada di Outstand, batalkan manual:`,
+            cancelError,
+          );
+        }
+        throw persistError;
+      }
 
       scheduleResult = result;
     } catch (error) {

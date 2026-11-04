@@ -62,7 +62,7 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
-function renderEditForm() {
+function renderEditForm({ isNarrow = false }: { isNarrow?: boolean } = {}) {
   return render(
     <TooltipProvider>
       <Dialog open>
@@ -75,6 +75,7 @@ function renderEditForm() {
             dialogVariant="standard"
             onToggleDialogVariant={vi.fn()}
             onLatestChange={vi.fn()}
+            isNarrow={isNarrow}
           />
         </DialogContent>
       </Dialog>
@@ -138,5 +139,92 @@ describe("DraftEditorForm: Confirmation Summary dengan Pratinjau (T-205.5)", () 
       screen.getByRole("complementary", { name: "Pratinjau" }),
     ).toBeTruthy();
     expect(screen.queryByLabelText("Ringkasan konfirmasi")).toBeNull();
+  });
+});
+
+describe("DraftEditorForm: varian layar (T-206)", () => {
+  const EMPTY_DRAFT = {
+    postId: "p1",
+    caption: "Promo kopi susu",
+    status: ContentStatus.Draft,
+    media: [],
+    targets: [
+      {
+        connectedAccountId: "fb",
+        contentFormat: "post",
+        platformOptions: null,
+      },
+    ],
+  };
+
+  it("layar lebar: toggle Fullscreen dan Pratinjau ada, tanpa tab Editor|Pratinjau", async () => {
+    actionMocks.getDraftAction.mockResolvedValue({
+      ...EMPTY_DRAFT,
+      status: ContentStatus.Draft,
+    });
+    render(
+      <TooltipProvider>
+        <Dialog open>
+          <DialogContent showCloseButton={false}>
+            <DraftEditorForm
+              mode="edit"
+              postId="p1"
+              onOpenChange={vi.fn()}
+              dialogVariant="standard"
+              onToggleDialogVariant={vi.fn()}
+              onLatestChange={vi.fn()}
+            />
+          </DialogContent>
+        </Dialog>
+      </TooltipProvider>,
+    );
+    await screen.findByRole("button", { name: "Fullscreen" });
+    expect(screen.getByRole("button", { name: "Pratinjau" })).toBeTruthy();
+    expect(screen.queryByRole("tab", { name: "Editor" })).toBeNull();
+    expect(
+      screen.getByRole("complementary", { name: "Pratinjau" }),
+    ).toBeTruthy();
+  });
+
+  it("layar sempit: toggle disembunyikan, tab Pratinjau menampilkan panel penuh", async () => {
+    const user = userEvent.setup();
+    actionMocks.getDraftAction.mockResolvedValue(EMPTY_DRAFT);
+    render(
+      <TooltipProvider>
+        <Dialog open>
+          <DialogContent showCloseButton={false}>
+            <DraftEditorForm
+              mode="edit"
+              postId="p1"
+              onOpenChange={vi.fn()}
+              dialogVariant="standard"
+              onToggleDialogVariant={vi.fn()}
+              onLatestChange={vi.fn()}
+              isNarrow
+            />
+          </DialogContent>
+        </Dialog>
+      </TooltipProvider>,
+    );
+    const previewTab = await screen.findByRole("tab", { name: "Pratinjau" });
+    expect(screen.getByRole("tab", { name: "Editor" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Fullscreen" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Pratinjau" })).toBeNull();
+    // Tab Editor aktif: kolom Pratinjau belum dirender.
+    expect(
+      screen.queryByRole("complementary", { name: "Pratinjau" }),
+    ).toBeNull();
+
+    await user.click(previewTab);
+    expect(
+      screen.getByRole("complementary", { name: "Pratinjau" }),
+    ).toBeTruthy();
+  });
+
+  it("layar sempit pada konfirmasi: tanpa tab Editor|Pratinjau", async () => {
+    actionMocks.getDraftAction.mockResolvedValue(EMPTY_DRAFT);
+    renderEditForm({ isNarrow: true });
+    await screen.findByLabelText("Ringkasan konfirmasi");
+    expect(screen.queryByRole("tab", { name: "Editor" })).toBeNull();
   });
 });

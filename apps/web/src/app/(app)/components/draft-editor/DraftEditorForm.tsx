@@ -3,7 +3,9 @@
 import { useState } from "react";
 
 import { ConfirmActionDialog } from "@/components/shared/ConfirmActionDialog";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Text } from "@/components/ui/text";
+import { cn } from "@/lib/utils";
 
 import { AccountSelector } from "./AccountSelector";
 import { CaptionEditor } from "./CaptionEditor";
@@ -12,6 +14,11 @@ import { EditorFooter } from "./EditorFooter";
 import { EditorHeader } from "./EditorHeader";
 import { resolveSelectedAccounts } from "./account-selection";
 import { FormAlerts } from "./FormAlerts";
+import {
+  resolveDialogLayout,
+  type DialogVariant,
+  type EditorTab,
+} from "./dialog-layout";
 import { countFooterWarnings } from "./footer-actions";
 import { MediaSection } from "./MediaSection";
 import { NetworkBlocks } from "./NetworkBlocks";
@@ -27,17 +34,30 @@ export function DraftEditorForm({
   onOpenChange,
   dialogVariant,
   onToggleDialogVariant,
+  isNarrow = false,
   ...formParams
 }: DraftEditorFormParams & {
   onOpenChange: (open: boolean) => void;
-  dialogVariant: "standard" | "fullscreen";
+  dialogVariant: DialogVariant;
   onToggleDialogVariant: () => void;
+  /** Layar sempit (T-206.3): Pratinjau pindah ke tab, toggle header hilang. */
+  isNarrow?: boolean;
 }) {
   const form = useDraftEditorForm(formParams);
   const { pendingAction } = form;
   // Toggle Pratinjau di header (T-203.1): murni state tampilan, tidak ikut
   // tersimpan di draft.
   const [isPreviewVisible, setIsPreviewVisible] = useState(true);
+  const [narrowTab, setNarrowTab] = useState<EditorTab>("editor");
+  const layout = resolveDialogLayout({
+    variant: dialogVariant,
+    isNarrow,
+    isPreviewVisible,
+    isConfirming: pendingAction !== null,
+  });
+  // Di layar sempit Pratinjau hanya ada di tab; layar konfirmasi tanpa tab.
+  const showNarrowPreview =
+    layout.showEditorPreviewTabs && narrowTab === "preview";
 
   return (
     // eslint-disable-next-line no-restricted-syntax -- T-100.1: struktur Layout Astryx sudah diganti shadcn Dialog (ADR-097); wrapper flex-column header/body/footer ini tidak punya padanan primitive shadcn, murni komposisi Tailwind.
@@ -47,15 +67,36 @@ export function DraftEditorForm({
         isEdit={form.isEdit}
         status={form.status}
         dialogVariant={dialogVariant}
+        showVariantToggle={layout.showVariantToggle}
+        showPreviewToggle={layout.showPreviewToggle}
+        isNarrow={isNarrow}
         onToggleDialogVariant={onToggleDialogVariant}
         isPreviewVisible={isPreviewVisible}
         onTogglePreview={() => setIsPreviewVisible((visible) => !visible)}
         onClose={() => onOpenChange(false)}
       />
+      {layout.showEditorPreviewTabs ? (
+        <Tabs
+          value={narrowTab}
+          onValueChange={(value) => setNarrowTab(value as EditorTab)}
+          className="px-3 pt-2"
+        >
+          <TabsList className="w-full">
+            <TabsTrigger value="editor">Editor</TabsTrigger>
+            <TabsTrigger value="preview">Pratinjau</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      ) : null}
       {/* eslint-disable-next-line no-restricted-syntax -- T-203: baris body dua kolom (form + Pratinjau) tidak punya padanan primitive shadcn, murni Tailwind. */}
       <div className="flex min-h-0 flex-1">
         {/* eslint-disable-next-line no-restricted-syntax -- T-100.1: area body scrollable Dialog (dulu Astryx LayoutContent) tidak punya padanan primitive shadcn, murni Tailwind. */}
-        <div className="min-h-0 min-w-0 flex-1 overflow-y-auto p-6">
+        <div
+          className={cn(
+            "min-h-0 min-w-0 flex-1 overflow-y-auto p-6",
+            isNarrow && "px-3 pt-3.5 pb-5",
+            showNarrowPreview && "hidden",
+          )}
+        >
           {pendingAction ? (
             <ConfirmationSummary
               pendingAction={pendingAction}
@@ -132,8 +173,9 @@ export function DraftEditorForm({
             </div>
           )}
         </div>
-        {isPreviewVisible ? (
+        {layout.showSidePreview || showNarrowPreview ? (
           <PreviewPanel
+            placement={showNarrowPreview ? "full" : "side"}
             selectedAccounts={form.selectedAccounts}
             selectedAccountIds={form.selectedAccountIds}
             formatByAccount={form.formatByAccount}
@@ -147,6 +189,7 @@ export function DraftEditorForm({
         ) : null}
       </div>
       <EditorFooter
+        isNarrow={isNarrow}
         isLoadingDraft={form.isLoadingDraft}
         pendingAction={pendingAction}
         isSavingDraft={form.isSavingDraft}

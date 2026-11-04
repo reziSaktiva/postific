@@ -92,6 +92,22 @@ export class RetryFailedTargetUseCase {
       );
     }
 
+    // T-195.3 (KI-105) — retry memanggil `publishNow` (tanpa `scheduledAt`):
+    // Outstand menerbitkan SEKETIKA. Kalau post ini dijadwalkan dan jadwalnya
+    // belum tiba (mis. penjadwalan gagal HTTP 400, lalu King menekan Retry),
+    // retry akan menerbitkan lebih awal dari jadwal ke akun nyata. Tolak SEBELUM
+    // delete/reset/network. Post yang jadwalnya sudah lewat, atau yang memang
+    // pernah Publish Now (`publishedAt` terisi), tetap boleh retry langsung.
+    if (
+      target.postScheduledAt &&
+      !target.postPublishedAt &&
+      target.postScheduledAt.getTime() > Date.now()
+    ) {
+      throw new ConflictError(
+        "Post ini dijadwalkan dan jadwalnya belum tiba. Retry akan menerbitkannya sekarang, bukan pada jadwal. Jadwalkan ulang dari editor, atau tunggu sampai waktu jadwalnya lewat.",
+      );
+    }
+
     assertPinterestBoardConstraints([
       {
         platform: target.platform,
@@ -158,13 +174,24 @@ export class RetryFailedTargetUseCase {
       });
       outstandPostId = result.outstandPostId;
 
-      await this.repository.setRetryOutstandPostId(
-        {
-          targetId: input.targetId,
-          retryOutstandPostId: result.outstandPostId,
-        },
-        input.actingUserId,
-      );
+      // Post SUDAH terbentuk di Outstand di titik ini. Kegagalan mencatat id
+      // ke DB bukan kegagalan publish: jangan jatuh ke `catch` di bawah yang
+      // menandai target `failed` padahal post-nya ada (T-195.3). Cukup log
+      // dengan id supaya bisa direkonsiliasi; outcome tetap dibaca di bawah.
+      try {
+        await this.repository.setRetryOutstandPostId(
+          {
+            targetId: input.targetId,
+            retryOutstandPostId: result.outstandPostId,
+          },
+          input.actingUserId,
+        );
+      } catch (persistError) {
+        console.error(
+          `[RetryFailedTargetUseCase] postId=${input.postId} targetId=${input.targetId} outstandPostId=${result.outstandPostId} — post sudah dibuat di Outstand tetapi retryOutstandPostId gagal disimpan:`,
+          persistError,
+        );
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       await this.repository.updateTargetOutcome(
