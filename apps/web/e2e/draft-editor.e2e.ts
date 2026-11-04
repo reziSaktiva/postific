@@ -62,6 +62,48 @@ async function pickScheduleDay(page: Page, dlg: Locator, offsetDays: number) {
   await page.getByLabel("Jam").fill("10:00");
   await page.getByRole("button", { name: "Selesai" }).click();
 }
+
+function dayButton(page: Page, offsetDays: number) {
+  const target = new Date(Date.now() + offsetDays * 86_400_000);
+  const label = new Intl.DateTimeFormat("id-ID", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "Asia/Jakarta",
+  }).format(target);
+  return page.getByRole("button", {
+    name: new RegExp(`${label}(, dipilih)?$`),
+  });
+}
+async function selectInstagram(page: Page, dlg: Locator) {
+  await dlg.getByRole("button", { name: "Channels" }).click();
+  const acct = page.getByRole("checkbox", { name: /Pilih Instagram/ });
+  await expect(acct).toBeVisible({ timeout: 15_000 });
+  await acct.check();
+  await page.keyboard.press("Escape");
+  await expect(acct).toBeHidden();
+}
+async function uploadPng(dlg: Locator, name: string) {
+  await dlg.locator("#draft-media").setInputFiles({
+    name,
+    mimeType: "image/png",
+    buffer: PNG,
+  });
+  const del = dlg.getByRole("button", {
+    name: /^Hapus e2e-qa-.*secara permanen/,
+  });
+  await del.waitFor({ timeout: 30_000 });
+  return del;
+}
+async function deleteMediaViaUi(page: Page, del: Locator) {
+  await del.click({ force: true });
+  await page
+    .getByRole("alertdialog", { name: "Hapus media ini secara permanen?" })
+    .getByRole("button", { name: "Hapus Media" })
+    .click();
+  await expect(del).toHaveCount(0, { timeout: 20_000 });
+}
 async function openNewPostFromDrafts(page: Page) {
   await page.goto("/publish/drafts");
   await expect(page.getByText(E2E_WORKSPACE_NAME).first()).toBeVisible();
@@ -87,15 +129,17 @@ async function deleteE2eDrafts(page: Page): Promise<number> {
   await expect(page.getByText(E2E_WORKSPACE_NAME).first()).toBeVisible();
   await page.waitForTimeout(1500);
   let removed = 0;
+  const rows = page.getByRole("button").filter({ hasText: /e2e-qa-draft-/ });
   for (let i = 0; i < 10; i++) {
-    const row = page.getByRole("button").filter({ hasText: /e2e-qa-draft-/ });
-    if ((await row.count()) === 0) break;
-    await row.first().getByRole("button", { name: "Hapus draft" }).click();
+    const before = await rows.count();
+    if (before === 0) break;
+    await rows.first().getByRole("button", { name: "Hapus draft" }).click();
     await page
       .getByRole("alertdialog")
       .getByRole("button", { name: "Hapus Draft" })
       .click();
-    await page.waitForTimeout(1500);
+    // tunggu daftar benar-benar menyusut, bukan jeda tetap
+    await expect(rows).toHaveCount(before - 1, { timeout: 15_000 });
     removed++;
   }
   return removed;
@@ -160,8 +204,8 @@ test("S2 toggle Fullscreen/Standard, tidak dipersist", async ({ page }) => {
   await page.waitForTimeout(500);
   const fsBox = await dlg.boundingBox();
   console.log("S2 fullscreen box", JSON.stringify(fsBox));
-  expect.soft(Math.round(fsBox!.width)).toBe(vp.width);
-  expect.soft(Math.round(fsBox!.height)).toBe(vp.height);
+  expect(Math.round(fsBox!.width)).toBe(vp.width);
+  expect(Math.round(fsBox!.height)).toBe(vp.height);
   await snap(page, "s2-fullscreen");
   await dlg.getByRole("button", { name: "Standard" }).click();
   await expect(dlg.getByRole("button", { name: "Fullscreen" })).toBeVisible();
@@ -494,6 +538,7 @@ test("S8a layar sempit 375: modal penuh, tanpa overflow horizontal", async ({
   expect(m.docScroll).toBeLessThanOrEqual(m.docClient);
   expect(Math.round(m.dialogW)).toBe(375);
   expect(m.dialogScroll).toBeLessThanOrEqual(376);
+  expect(m.overflowing).toEqual([]);
   await snap(page, "s8a-mobile");
   // T-206.3: tab Editor|Pratinjau; toggle Fullscreen dan Pratinjau disembunyikan.
   await expect(dlg.getByRole("tab", { name: "Editor" })).toBeVisible();
@@ -528,6 +573,12 @@ test.describe("S8b mode gelap", () => {
     await page.getByRole("button", { name: "New Post" }).last().click();
     const dlg = dialog(page);
     await expect(dlg).toBeVisible();
+    // Akun + caption supaya blok jaringan dan Pratinjau ikut terpindai.
+    await selectInstagram(page, dlg);
+    await dlg.getByLabel("Caption").fill("e2e-qa gelap pratinjau");
+    await expect(
+      page.getByRole("complementary", { name: "Pratinjau" }),
+    ).toContainText("e2e-qa gelap pratinjau");
     await page.waitForTimeout(1200);
     // pantau kedipan terang: sampel latar dialog & kontras teks
     const res = await page.evaluate(() => {
@@ -572,9 +623,7 @@ test.describe("S8b mode gelap", () => {
     await snap(page, "s8b-dark-fullscreen");
     await dlg.getByRole("button", { name: "Close" }).click();
     // dialog Resume dalam gelap
-    await page.getByRole("button", { name: "New Post" }).last().click();
-    await dialog(page).getByLabel("Caption").fill("e2e-qa gelap resume");
-    await dialog(page).getByRole("button", { name: "Close" }).click();
+    // caption sudah terisi di atas, jadi Close lalu buka lagi memunculkan Resume.
     await page.getByRole("button", { name: "New Post" }).last().click();
     await expect(page.getByText("Resume unfinished post?")).toBeVisible();
     await snap(page, "s8b-dark-resume");
@@ -601,6 +650,91 @@ test("S9 jalur lain: sidebar New Post dari Calendar dan klik baris draft membuka
   await expect(dialog(page)).toHaveCount(0);
   console.log("S9 setelah Close URL:", page.url());
   expect(page.url()).toMatch(/\/publish\/calendar/);
+});
+
+test("S11 golden path: akun, caption, media, Pratinjau, jadwal dalam batas, Save as Draft, Edit Draft", async ({
+  page,
+}) => {
+  track(page, "S11");
+  const caption = `e2e-qa-draft-${STAMP} golden path`;
+  await openNewPostFromDrafts(page);
+  const dlg = dialog(page);
+  await expect(dlg).toBeVisible();
+  await selectInstagram(page, dlg);
+  await dlg.getByLabel("Caption").fill(caption);
+  await uploadPng(dlg, `e2e-qa-${STAMP}-g.png`);
+  // Pratinjau live memuat caption yang diketik.
+  const preview = page.getByRole("complementary", { name: "Pratinjau" });
+  await expect(preview).toBeVisible();
+  await expect(preview).toContainText(caption);
+  // Jadwal dalam batas diterima; hari ke-31 tidak bisa dipilih (ADR-154).
+  await pickScheduleDay(page, dlg, 3);
+  await expect(
+    dlg.getByRole("button", { name: /^Jadwal: .+ · 10:00 WIB$/ }),
+  ).toBeVisible();
+  await dlg.getByRole("button", { name: /^Jadwal:/ }).click();
+  if ((await dayButton(page, 31).count()) === 0) {
+    await page.getByRole("button", { name: "Ke bulan berikutnya" }).click();
+  }
+  await expect(dayButton(page, 31)).toBeDisabled();
+  await page.getByRole("button", { name: "Selesai" }).click();
+  await snap(page, "s11-golden-path");
+  await dlg.getByRole("button", { name: "Save as Draft" }).click();
+  await expect(dialog(page)).toHaveCount(0, { timeout: 30_000 });
+  await expect(page).toHaveURL(/\/publish\/drafts/, { timeout: 30_000 });
+  const row = page.getByRole("button").filter({ hasText: caption }).first();
+  await expect(row).toBeVisible({ timeout: 30_000 });
+  // Edit Draft: akun, format, media, dan Pratinjau kembali dari data tersimpan.
+  await row.click();
+  const edit = dialog(page);
+  await expect(edit.getByRole("heading", { name: "Edit Draft" })).toBeVisible();
+  await expect(edit.getByLabel("Caption")).toHaveValue(caption, {
+    timeout: 15_000,
+  });
+  await expect(
+    edit.getByRole("button", { name: /^Hapus Instagram/ }),
+  ).toBeVisible();
+  await expect(edit.getByRole("radio", { name: "Post" })).toBeChecked();
+  await expect(
+    edit.getByRole("button", { name: /^Hapus e2e-qa-.*secara permanen/ }),
+  ).toBeVisible();
+  const editPreview = page.getByRole("complementary", { name: "Pratinjau" });
+  await expect(editPreview).toBeVisible();
+  await expect(editPreview).toContainText(caption);
+  await snap(page, "s11-edit-draft");
+  // Bersihkan media milik tes (draft dihapus di S10/afterAll).
+  await deleteMediaViaUi(
+    page,
+    edit.getByRole("button", { name: /^Hapus e2e-qa-.*secara permanen/ }),
+  );
+  await edit.getByRole("button", { name: "Close" }).click();
+  await expect(dialog(page)).toHaveCount(0);
+});
+
+test("S12 Reel dengan gambar: opsi Reel nonaktif dengan alasan, Publish Now tetap valid untuk Post", async ({
+  page,
+}) => {
+  track(page, "S12");
+  await openNewPostFromDrafts(page);
+  const dlg = dialog(page);
+  await expect(dlg).toBeVisible();
+  await selectInstagram(page, dlg);
+  await dlg.getByLabel("Caption").fill("e2e-qa reel gambar");
+  const del = await uploadPng(dlg, `e2e-qa-${STAMP}-r.png`);
+  try {
+    await expect(dlg.getByRole("radio", { name: "Reel" })).toBeDisabled();
+    await expect(dlg.getByText(/Reel nonaktif\./)).toBeVisible();
+    await expect(dlg.getByRole("radio", { name: "Post" })).toBeChecked();
+    await expect(
+      dlg.getByRole("button", { name: "Publish Now", exact: true }),
+    ).toBeEnabled();
+    await snap(page, "s12-reel-image");
+  } finally {
+    await deleteMediaViaUi(page, del);
+  }
+  await dlg.getByLabel("Caption").fill("");
+  await dlg.getByRole("button", { name: "Close" }).click();
+  await expect(dialog(page)).toHaveCount(0);
 });
 
 test("S10 bersihkan draft e2e-qa dan kunci localStorage", async ({ page }) => {
