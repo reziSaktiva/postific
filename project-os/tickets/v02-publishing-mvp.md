@@ -3240,7 +3240,7 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 | Field       | Value                                                                             |
 | ----------- | --------------------------------------------------------------------------------- |
-| **Status**  | ⏳ Not Started                                                                    |
+| **Status**  | 🟡 In Progress                                                                    |
 | **Mode**    | AFK                                                                               |
 | **Domain**  | UI · shadcn components                                                            |
 | **Spec**    | tidak ada (temuan review T-202)                                                   |
@@ -3249,10 +3249,12 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 **Ditemukan (2026-11-04)** oleh review Ridwan atas gelombang 3: `accordion.tsx` (T-199) memakai `data-open:` dan `data-closed:`, tetapi Radix Accordion (react-accordion 1.2.20) hanya memancarkan `data-state="open|closed"`, jadi latar item terbuka dan animasi buka-tutup tidak aktif. Pola yang sama muncul di `alert-dialog`, `sheet`, `popover`, `select`, `dropdown-menu`, dan `tooltip`; dugaan: preset `radix-maia` bercampur dengan konvensi Base UI. Belum terbukti di browser.
 
-- [ ] **T-210.1** Inventaris selektor `data-open:`/`data-closed:` di `components/ui/` dan periksa atribut yang benar-benar dipancarkan tiap komponen Radix (jangan menebak).
-- [ ] **T-210.2** Perbaiki ke selektor `data-state` yang berlaku (atau tambahkan varian Tailwind kustom), tanpa mengubah tampilan komponen lain secara tak sengaja; cek tampilan terang dan gelap.
-- [ ] **T-210.3** Hapus tambalan `data-[state=open]:bg-muted/50` di `NetworkBlocks.tsx` bila akar masalahnya sudah teratasi.
+- [x] **T-210.1** Inventaris selektor `data-open:`/`data-closed:` di `components/ui/` dan periksa atribut yang benar-benar dipancarkan tiap komponen Radix (jangan menebak).
+- [x] **T-210.2** (tidak perlu, premis keliru, lihat temuan) Perbaiki ke selektor `data-state` yang berlaku (atau tambahkan varian Tailwind kustom), tanpa mengubah tampilan komponen lain secara tak sengaja; cek tampilan terang dan gelap.
+- [x] **T-210.3** (tidak ada tambalan: `NetworkBlocks.tsx` tidak memuat `data-[state=open]`; `bg-muted/50` di baris 109 adalah latar kontainer statis) Hapus tambalan `data-[state=open]:bg-muted/50` di `NetworkBlocks.tsx` bila akar masalahnya sudah teratasi.
 - [ ] **T-210.4** `typecheck`, `lint`, tes hijau; verifikasi tampilan di browser dan E2E bila ada.
+
+**Hasil T-210.1 (2026-11-04, jalur B):** premis tiket **tidak terbukti**. `shadcn/tailwind.css` (shadcn 4.19.1, di-import `globals.css` baris 16) mendefinisikan `@custom-variant data-open|data-closed|data-checked|data-unchecked|data-active|data-disabled` yang masing-masing mencocokkan `[data-state="open"]` (dst.) ATAU atribut boolean Base UI. Bukti: Tailwind CLI v4.3.4 mengompilasi `data-open:animate-accordion-down` menjadi `.data-open\:animate-accordion-down:where([data-state="open"]), ...:where([data-open]:not([data-open="false"]))`. Radix accordion 1.2.20 memancarkan `data-state` pada Item dan Content (diperiksa di `dist/index.mjs`). Maka `data-open:`/`data-closed:`/`data-checked:`/`data-active:` di `accordion`, `alert-dialog`, `sheet`, `popover`, `select`, `dropdown-menu`, `tooltip`, `radio-group`, `tabs`, `sidebar` valid dan **tidak diubah**. Tooltip tetap punya `data-[state=delayed-open]` terpisah (benar). Belum diverifikasi: tampilan di browser (bukti memakai kompilasi CSS, bukan layar). Tidak ada perubahan kode.
 
 **Belum terbukti (jangan diasumsikan):** apakah animasi yang hilang terlihat oleh pemakai, dan apakah komponen selain accordion benar-benar terdampak.
 
