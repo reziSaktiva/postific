@@ -36,17 +36,15 @@ export function ValidationBanner({
 }
 
 /**
- * Di atas editor: pelanggaran lintas jaringan (banner kuning), pesan jadwal,
- * dan notice hasil aksi. Pelanggaran per jaringan ada di blok jaringan
+ * Di atas editor: pelanggaran lintas jaringan (banner kuning) dan notice hasil
+ * aksi. Pesan jadwal ada di footer, dekat kontrol jadwal (T-205.2). Pelanggaran per jaringan ada di blok jaringan
  * masing-masing (`NetworkBlock`).
  */
 export function FormAlerts({
   crossNetworkIssues,
-  scheduleTimeMessage,
   notice,
 }: {
   crossNetworkIssues: CrossNetworkIssue[];
-  scheduleTimeMessage: string | null;
   notice: FormNotice | null;
 }) {
   return (
@@ -54,11 +52,6 @@ export function FormAlerts({
       {crossNetworkIssues.map((issue) => (
         <ValidationBanner key={issue.code} message={issue.message} />
       ))}
-      {scheduleTimeMessage ? (
-        <Alert variant="destructive">
-          <AlertTitle>{scheduleTimeMessage}</AlertTitle>
-        </Alert>
-      ) : null}
       {notice ? (
         <Alert variant={notice.status === "error" ? "destructive" : "default"}>
           <AlertTitle>{notice.title}</AlertTitle>

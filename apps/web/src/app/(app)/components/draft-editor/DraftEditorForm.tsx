@@ -12,10 +12,10 @@ import { EditorFooter } from "./EditorFooter";
 import { EditorHeader } from "./EditorHeader";
 import { resolveSelectedAccounts } from "./account-selection";
 import { FormAlerts } from "./FormAlerts";
+import { countFooterWarnings } from "./footer-actions";
 import { MediaSection } from "./MediaSection";
 import { NetworkBlocks } from "./NetworkBlocks";
 import { PreviewPanel } from "./PreviewPanel";
-import { ScheduleSection } from "./ScheduleSection";
 import type { DraftEditorFormParams } from "./useDraftEditorForm";
 import { useDraftEditorForm } from "./useDraftEditorForm";
 
@@ -83,7 +83,6 @@ export function DraftEditorForm({
                   />
                   <FormAlerts
                     crossNetworkIssues={form.networkValidation.cross}
-                    scheduleTimeMessage={form.scheduleTimeMessage}
                     notice={form.notice}
                   />
                   <section
@@ -128,18 +127,12 @@ export function DraftEditorForm({
                     onBoardChange={form.changeBoard}
                     onRetryBoards={form.fetchPinterestBoards}
                   />
-                  <ScheduleSection
-                    scheduleDate={form.scheduleDate}
-                    scheduleTime={form.scheduleTime}
-                    onScheduleDateChange={form.setScheduleDate}
-                    onScheduleTimeChange={form.setScheduleTime}
-                  />
                 </>
               )}
             </div>
           )}
         </div>
-        {isPreviewVisible && !pendingAction ? (
+        {isPreviewVisible ? (
           <PreviewPanel
             selectedAccounts={form.selectedAccounts}
             selectedAccountIds={form.selectedAccountIds}
@@ -162,6 +155,16 @@ export function DraftEditorForm({
         isLoadingAccounts={form.isLoadingAccounts}
         isReadyToSchedule={form.isReadyToSchedule}
         isReadyToPublishNow={form.isReadyToPublishNow}
+        selectedAccountCount={form.selectedAccounts.length}
+        warningCount={countFooterWarnings(
+          form.networkValidation,
+          form.scheduleTimeMessage,
+        )}
+        scheduleDate={form.scheduleDate}
+        scheduleTime={form.scheduleTime}
+        scheduleTimeMessage={form.scheduleTimeMessage}
+        onScheduleDateChange={form.setScheduleDate}
+        onScheduleTimeChange={form.setScheduleTime}
         onCancelPending={() => form.setPendingAction(null)}
         onConfirmSchedule={form.handleConfirmSchedule}
         onConfirmPublishNow={form.handleConfirmPublishNow}
