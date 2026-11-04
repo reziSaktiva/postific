@@ -1,7 +1,11 @@
 "use client";
 
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Cancel01Icon } from "@hugeicons/core-free-icons";
+import {
+  Cancel01Icon,
+  ViewIcon,
+  ViewOffIcon,
+} from "@hugeicons/core-free-icons";
 
 import type { ContentStatus } from "@postific/shared";
 
@@ -25,6 +29,8 @@ export function EditorHeader({
   status,
   dialogVariant,
   onToggleDialogVariant,
+  isPreviewVisible,
+  onTogglePreview,
   onClose,
 }: {
   pendingAction: PendingAction;
@@ -32,6 +38,8 @@ export function EditorHeader({
   status: ContentStatus;
   dialogVariant: "standard" | "fullscreen";
   onToggleDialogVariant: () => void;
+  isPreviewVisible: boolean;
+  onTogglePreview: () => void;
   onClose: () => void;
 }) {
   return (
@@ -65,6 +73,20 @@ export function EditorHeader({
               />
               {CONTENT_STATUS_LABEL[status]}
             </Badge>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="hidden md:inline-flex"
+              aria-pressed={isPreviewVisible}
+              onClick={onTogglePreview}
+            >
+              <HugeiconsIcon
+                icon={isPreviewVisible ? ViewIcon : ViewOffIcon}
+                strokeWidth={2}
+                data-icon="inline-start"
+              />
+              Pratinjau
+            </Button>
             <Button variant="ghost" size="sm" onClick={onToggleDialogVariant}>
               {dialogVariant === "fullscreen" ? "Standard" : "Fullscreen"}
             </Button>
