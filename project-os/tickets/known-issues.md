@@ -1568,6 +1568,12 @@ Cook It Real Good (akun Facebook nyata). Data hanya-baca (Supabase dan Outstand)
       sehingga tidak ada panggilan tulis ke Outstand. Butuh kredensial org E2E
       Sandbox yang terbukti hanya berisi akun Sandbox, lalu jadwalkan > 30 hari
       lewat adapter dan baca body 400.
+      **Diputuskan King Rezi (2026-11-05):** tidak ada org E2E Sandbox di
+      Outstand, jadi pembuktian ditunda. Kode dan tes regresi dianggap selesai;
+      T-195.2 dan T-195.4 tetap terbuka sampai ada org Sandbox (atau tenant uji)
+      dengan akun uji. Sementara itu pencatatan T-195.1 akan menangkap body 400
+      bila terulang di staging. Pertanyaan T-195.3 (Retry post terjadwal masa
+      depan: tolak atau jadwalkan ulang) tetap belum diputuskan.
 
 **Aturan sampai tiket ini selesai:** jangan menguji post Scheduled di workspace
 yang punya akun sosial nyata; pakai E2E Sandbox.
