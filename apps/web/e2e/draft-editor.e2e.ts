@@ -349,6 +349,70 @@ test("S4 Save as Draft hanya caption: redirect ke Drafts, draft muncul", async (
   await snap(page, "s4-draft-list");
 });
 
+/**
+ * T-208 (KI-108): bukti dengan Realtime AKTIF. Soket Realtime Supabase harus
+ * benar-benar terbuka di layar asal, kalau tidak tesnya tidak membuktikan apa pun.
+ */
+function watchRealtime(page: Page) {
+  const sockets: string[] = [];
+  page.on("websocket", (ws) => {
+    if (/realtime/i.test(ws.url())) sockets.push(ws.url());
+  });
+  return sockets;
+}
+
+test("S4b T-208 Save as Draft dari Calendar (Realtime aktif): redirect ke Drafts, draft muncul", async ({
+  page,
+}) => {
+  track(page, "S4b");
+  const sockets = watchRealtime(page);
+  await page.goto("/publish/calendar");
+  await expect(page.getByText(E2E_WORKSPACE_NAME).first()).toBeVisible();
+  await expect
+    .poll(() => sockets.length, { timeout: 20_000 })
+    .toBeGreaterThan(0);
+  await page.getByRole("button", { name: "New Post" }).first().click();
+  const dlg = dialog(page);
+  await expect(dlg).toBeVisible();
+  await dlg
+    .getByLabel("Caption")
+    .fill(`e2e-qa-draft-cal-${STAMP} dari calendar`);
+  const save = dlg.getByRole("button", { name: "Save as Draft" });
+  await expect(save).toBeEnabled({ timeout: 15_000 });
+  await save.click();
+  await expect(dialog(page)).toHaveCount(0, { timeout: 30_000 });
+  await expect(page).toHaveURL(/\/publish\/drafts/, { timeout: 30_000 });
+  await expect(page.getByText(`e2e-qa-draft-cal-${STAMP}`)).toBeVisible({
+    timeout: 30_000,
+  });
+  console.log("S4b soket Realtime:", sockets.length, "URL akhir:", page.url());
+});
+
+test("S4c T-208 Save as Draft dari Drafts (Realtime aktif): tetap di Drafts, draft baru muncul", async ({
+  page,
+}) => {
+  track(page, "S4c");
+  const sockets = watchRealtime(page);
+  await page.goto("/publish/drafts");
+  await expect(page.getByText(E2E_WORKSPACE_NAME).first()).toBeVisible();
+  await expect
+    .poll(() => sockets.length, { timeout: 20_000 })
+    .toBeGreaterThan(0);
+  await page.getByRole("button", { name: "New Post" }).last().click();
+  const dlg = dialog(page);
+  await expect(dlg).toBeVisible();
+  await dlg.getByLabel("Caption").fill(`e2e-qa-draft-drf-${STAMP} dari drafts`);
+  const save = dlg.getByRole("button", { name: "Save as Draft" });
+  await expect(save).toBeEnabled({ timeout: 15_000 });
+  await save.click();
+  await expect(dialog(page)).toHaveCount(0, { timeout: 30_000 });
+  await expect(page.getByText(`e2e-qa-draft-drf-${STAMP}`)).toBeVisible({
+    timeout: 30_000,
+  });
+  await expect(page).toHaveURL(/\/publish\/drafts/);
+  console.log("S4c soket Realtime:", sockets.length, "URL akhir:", page.url());
+});
+
 test("S5 Edit Draft: form terisi dari server tanpa dialog Resume", async ({
   page,
 }) => {
