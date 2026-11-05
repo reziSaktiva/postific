@@ -3088,19 +3088,23 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 **What to build:** Pratinjau TikTok dan Pinterest yang meniru tampilan aslinya, dan kartu generik untuk platform lain. Logo dan badge platform dipakai sesuai pedoman merek masing-masing.
 
-- [ ] **T-204.1** Pratinjau TikTok.
-- [ ] **T-204.2** Pratinjau Pinterest (memakai board, judul, dan link dari blok jaringan).
-- [ ] **T-204.3** Kartu generik untuk platform lain.
+- [x] **T-204.1** Pratinjau TikTok.
+- [x] **T-204.2** Pratinjau Pinterest (memakai board, judul, dan link dari blok jaringan).
+- [x] **T-204.3** Kartu generik untuk platform lain.
 - [ ] **T-204.4** Cek pedoman merek logo dan badge tiap platform (Facebook, Instagram, TikTok, Pinterest). Catat hasilnya di tiket ini; bila ada risiko, King Rezi memutuskan sebelum rilis.
-- [ ] **T-204.5** Tes tampilan atau tes unit untuk pemetaan data ke ketiga Pratinjau.
+- [x] **T-204.5** Tes tampilan atau tes unit untuk pemetaan data ke ketiga Pratinjau.
 
 **Catatan hasil (jalur B gelombang 3, 2026-11-04):** `TikTokPreview.tsx`, `PinterestPreview.tsx` (board, judul, link dari blok), `GenericPreview.tsx`, `PreviewPanel.tsx` dan `preview-model.ts` + tes diperluas (kind `tiktok`, `pinterest-pin`, `generic`), token `--brand-pinterest` di `globals.css`. Commit lokal: `8b6e15f6`, penyambung data Pinterest di `DraftEditorForm.tsx`. Review Ridwan: nol pelanggaran keras.
 
 **T-204.4 (cek pedoman merek, dicek 2026-11-04, ringkasan dengan kata sendiri, sumber di halaman resmi):** Meta (Facebook, Instagram): memakai aset merek butuh persetujuan Meta dan hanya file resmi; logo tidak boleh diwarnai ulang. Pinterest: pakai badge "P", tanpa efek, tidak menyiratkan endorsement. TikTok: pedoman resmi wajib dipatuhi tetapi isinya belum terverifikasi (hanya sumber sekunder). `PLATFORM_ICON` memakai ikon react-icons berwarna di tab, chip, dan pemilih akun, yang bukan file resmi: berisiko menurut pedoman Meta. **Keputusan King Rezi (2026-11-04): ganti dengan logo resmi, tindak lanjut di T-209 (HITL).** Tombol "Simpan" merah di Pratinjau Pinterest: risiko tiruan merek, dinilai di T-209.4.
 
+**Bukti tes T-204.1, .2, .3, .5 (jalur C gelombang 9, 2026-11-05):** `PreviewPanel.test.tsx` (16 tes lewat batas publik `PreviewPanel`: kartu TikTok, pin Pinterest dengan judul/host link/board per akun dan keadaan board kosong/dimuat/gagal, kartu generik untuk X, LinkedIn, YouTube, Threads) dan `DraftEditorForm.preview.test.tsx` (3 tes: isian blok Pinterest, akun TikTok, akun X tampil di Pratinjau lewat form). Pemetaan murni `buildPostPreview` sudah punya tes di `preview-model.test.ts`. Uji mutasi manual: merusak pencocokan board, filter protokol link, trim judul, pemilihan kartu TikTok, label kartu generik, dan penyambungan judul/link/board (di `PreviewPanel.tsx` dan `DraftEditorForm.tsx`) membuat tes gagal. Tidak ada bug komponen yang ditemukan; komponen Pratinjau tidak diubah.
+
 **Belum terbukti (jangan diasumsikan):**
 
-- Tampilan visual ketiga Pratinjau di browser (hanya struktur kode dibandingkan dengan rancangan).
+- T-204.4 (cek pedoman merek) masih terbuka: hasil dan keputusan King Rezi tercatat di atas, tindak lanjut di T-209.
+- Tampilan visual ketiga Pratinjau di browser (tes memeriksa isi dan label, bukan tampilan; hanya struktur kode dibandingkan dengan rancangan).
+- Kartu TikTok memakai teks "suara asli" dan angka rel aksi "0" sebagai hiasan tetap: tidak diuji dan bukan data pemakai.
 - Pedoman TikTok dan tafsir pelanggaran logo (ringkasan, belum dibaca langsung di halaman pedoman).
 - Format Reel dan Story dari platform selain Facebook dan Instagram memakai kartu generik.
 
