@@ -1622,7 +1622,7 @@ yang punya akun sosial nyata; pakai E2E Sandbox.
 
 | Field       | Value                                                                                                                                           |
 | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | ⏳ Todo (🔴 prioritas tinggi, menunggu keputusan King Rezi)                                                                                     |
+| **Status**  | 🟡 In Progress (🔴 prioritas tinggi; T-196.1 sebagian terbukti 2026-11-04, menunggu keputusan King Rezi T-196.2)                                |
 | **Mode**    | HITL (T-196.1 diputuskan King Rezi; sisanya AFK setelah itu)                                                                                    |
 | **Domain**  | database, keamanan                                                                                                                              |
 | **Spec**    | tidak ada                                                                                                                                       |
@@ -1635,7 +1635,7 @@ yang punya akun sosial nyata; pakai E2E Sandbox.
 `identity_session`, `identity_account`, `identity_verification`, `workspaces`,
 `background_jobs`, `outstand_webhook_events`.
 
-**Belum terbukti (jangan diasumsikan):** advisor hanya melaporkan RLS mati.
+**Belum terbukti saat ditemukan (2026-11-03; sebagian sudah dibuktikan di T-196.1, lihat Hasil dan daftar Belum terbukti di bawah):** advisor hanya melaporkan RLS mati.
 Apakah data benar-benar terbaca bergantung pada grant ke `anon`/`authenticated`
 dan pada eksposur schema `public` lewat PostgREST; itu belum diuji. Kunci publik
 Supabase biasanya sudah dikirim ke browser untuk Realtime dan Storage
