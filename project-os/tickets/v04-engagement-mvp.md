@@ -160,8 +160,246 @@ Isi kotak "Post asal" di detail panel `/engage` (`EngageInboxView.tsx`) yang saa
 
 ---
 
+## Engage per posting mengikuti pola Buffer (spec S-006, ADR-157)
+
+Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Accepted** 2026-11-05 (jawaban Q1 sampai Q5 King Rezi tercatat di ADR). Sumber: pengamatan REA pada `publish.buffer.com/community` (2026-11-05) dan keputusan arah King Rezi 2026-11-05. Rincian perilaku ada di [`specs/S-006.md`](../specs/S-006.md). ID rilis v0.4 sebelumnya (T-050 sampai T-056) tidak berubah.
+
+### T-216 · Engage by post: design in the Postific artifact and gallery confirmation
+
+| Field       | Value                                                                                                                         |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| **Status**  | ✅ Done (2026-11-05, rancangan dikonfirmasi King Rezi di galeri)                                                              |
+| **Mode**    | HITL (konfirmasi galeri adalah milik King Rezi)                                                                               |
+| **Domain**  | engagement · UI/UX (UI/UX-related)                                                                                            |
+| **Spec**    | S-006                                                                                                                         |
+| **Docs**    | ADR-157, ADR-140, ADR-097, KSP-06, KSP-D06, `context/ctx-design.md`, `.claude/skills/claude-design-scope-discipline/SKILL.md` |
+| **Depends** | — (ADR-157 Accepted 2026-11-05)                                                                                               |
+
+**Gate rancangan (`AGENTS.md` aturan 10):** belum ada rancangan Engage per posting di artifact Postific. Tiket UI (T-219, T-220) tidak boleh mulai sebelum T-216 dikonfirmasi King Rezi di galeri "Postific Design Review".
+
+**What to build:** kartu layar Engage per posting di artifact Postific, dikerjakan Neymar (wajib baca `claude-design-scope-discipline` dulu; jangan mengubah default atau state lain, jangan menambah kontrol pembanding tanpa izin).
+
+- [x] **T-216.1** Brief pola Buffer (14 pola, padanan shadcn, selisih prioritas) diserahkan ke Neymar. Padanan shadcn pada brief masih dugaan; Mark memverifikasi lewat MCP shadcn sebelum implementasi.
+- [x] **T-216.2** Kartu layar: daftar posting (kartu dengan badge dan progress), panel komentar, kartu pratinjau posting, dan ringkasan "x dibalas / y total".
+- [x] **T-216.3** Filter utama (Akun, Status) dan panel Filter & Sort dengan Reset; tempat filter Platform diputuskan di sini (spec S-006).
+- [x] **T-216.4** Aksi hover per komentar (Resolve, Dismiss, Reply, buka kembali), semua status, dan state kosong, filter tanpa hasil, refresh berjalan, refresh gagal, kelompok "tanpa posting".
+- [x] **T-216.5** Tampilan List (toggle By post / List, Q5): isi, urutan, dan filter di tampilan List; mode List Buffer belum teramati, jadi rancangannya diputuskan di sini, bukan ditiru.
+- [x] **T-216.6** Varian terang, gelap, 375px, dan panel daftar terlipat.
+- [x] **T-216.7** Konfirmasi King Rezi di galeri. Pola ambigu (lebih dari satu pola shadcn valid) ditanyakan lewat `AskUserQuestion`, tidak ditebak.
+
+**Hasil rancangan (2026-11-05, Neymar):** draf terbit. Artifact Postific v38 (kartu `ScreenEngagePerPosting`, 19 skenario, prototipe interaktif) dan galeri Postific Design Review v15 (entri "Engage: per posting (T-216, ADR-157)", tag draft, menu Workspace). "Engage: Inbox" lama tidak diubah. Diamati di browser pane pada salinan lokal identik dengan hasil publish (bukan halaman live): terisi, status dan hover, panel Filter & Sort, dropdown Status, refresh gagal, filter tanpa hasil, List, 375px daftar, detail, dan gelap. **Hanya dibuat, belum diamati:** Tanpa posting, terlipat, kosong, refresh berjalan, gelap desktop, tinggi layar telepon sungguhan, kontras WCAG; dua ikon (sliders, list) digambar manual, Mark memakai ikon asli.
+
+**Keputusan King Rezi atas pertanyaan ambigu (2026-11-05, `AskUserQuestion`, semua sesuai default gambar Neymar, tanpa perubahan rancangan):**
+
+| #   | Pertanyaan                 | Jawaban                                                                                                    |
+| --- | -------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| 1   | Panel Filter & Sort        | `Popover` (tetap `Popover` di 375px)                                                                       |
+| 2   | Dropdown Akun dan Status   | `Select`                                                                                                   |
+| 3   | Filter Platform            | Di panel Filter & Sort                                                                                     |
+| 4   | Komposer balasan (By post) | Docked di bawah panel kanan; inline di tampilan List                                                       |
+| 5   | Kartu posting              | Kustom dari `Card`, `Badge`, `Progress`; Mark memverifikasi lewat MCP shadcn sebelum implementasi          |
+| 6   | Cakupan Reset filters      | Semua filter (Akun, Status, Platform, Sort, Date Range)                                                    |
+| 7   | Arti "x dibalas / y total" | x = status Dibalas saja; progress bar memakai rasio ditangani; teks kecil "n dari y ditangani" ditambahkan |
+
+**Keputusan Neymar yang belum dikonfirmasi eksplisit (diperiksa saat konfirmasi galeri):** tampilan List adalah usulan (mode List Buffer belum teramati); Date Range bawaan 12 bulan; Sort bawaan "Belum dibalas dulu"; "Tanpa posting" di dasar daftar dan tidak ikut sort; posting tanpa komentar disembunyikan dan ditampilkan lewat toggle ikon.
+
+**Belum terbukti:** komposer balasan, aksi hover, mode List, dan layar sempit Buffer belum teramati; rancangan memutuskannya sendiri, bukan meniru.
+
+**Blocked by:** tidak ada. **Konfirmasi King Rezi (2026-11-05, di chat):** rancangan Engage per posting dikonfirmasi, termasuk keputusan Neymar yang belum dibahas satu per satu (tampilan List usulan, Date Range 12 bulan, Sort bawaan "Belum dibalas dulu", "Tanpa posting" di dasar daftar, posting tanpa komentar disembunyikan). Bagian yang hanya dibuat dan belum teramati (lihat Hasil rancangan) diperiksa lagi di implementasi T-219, T-220, T-224 dan QA T-222. Tag "draft" pada entri galeri belum diubah (lihat catatan sesi: perubahan artifact lewat Neymar).
+
+---
+
+### T-217 · Engage: status `replied` / `resolved` / `dismissed`
+
+| Field       | Value                                                                                                                   |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------- |
+| **Status**  | ⏳ Not Started                                                                                                          |
+| **Mode**    | AFK (migrasi data `done` butuh izin King Rezi sebelum diterapkan ke DB bersama)                                         |
+| **Domain**  | engagement · backend                                                                                                    |
+| **Spec**    | S-006                                                                                                                   |
+| **Docs**    | ADR-157, ADR-040, `domains/engagement/types.ts`, `lib/repositories/engagement`, `schema.prisma` (`EngagementInboxItem`) |
+| **Depends** | — (ADR-157 Accepted 2026-11-05)                                                                                         |
+
+**What to build:** `InboxItemStatus` dari `"unread" | "done"` menjadi `unread | replied | resolved | dismissed`, dengan transisi yang jelas, tanpa kolom atau tabel baru (kolom `status` adalah `TEXT` tanpa constraint).
+
+- [ ] **T-217.1** Inventarisasi semua pemakai status `done` dan `unread` (service, repository, `EngageInboxView`, badge sidebar, Engagement Snapshot di Home, MCP bila ada) sebelum mengubah apa pun. Hasilnya dicatat di tiket ini.
+- [ ] **T-217.2** Tipe dan aturan transisi di domain `engagement` (mis. `unread` → `replied` / `resolved` / `dismissed`; `resolved` dan `dismissed` → `unread`), sesuai jawaban Q2 dan Q3 (`replied` otomatis saat balasan terkirim, status reversibel). Nama method `markAsDone` ditinjau.
+- [ ] **T-217.3** `EngagementService.reply` menandai `replied` saat balasan berhasil terkirim bila status `unread`; tidak menurunkan status lain.
+- [ ] **T-217.4** Migrasi data baris `done` menjadi `resolved` (jawaban Q1, 2026-11-05). Migrasi ditulis, ditinjau, dan diterapkan ke DB bersama hanya atas izin King Rezi.
+- [ ] **T-217.5** Server Action di `engage/actions.ts` hanya memanggil service (aturan keras no. 3). Domain tidak mengimpor Prisma (aturan keras no. 4).
+- [ ] **T-217.6** Tes unit (double lokal di berkas tes), `typecheck`, `lint`, tes hijau.
+
+**Belum terbukti:** perilaku badge sidebar dan Home setelah status baru; dicek di T-217.1 dan T-222.
+
+**Blocked by:** tidak ada (ADR-157 Accepted 2026-11-05).
+
+---
+
+### T-218 · Engage: query inbox per posting
+
+| Field       | Value                                                                                                   |
+| ----------- | ------------------------------------------------------------------------------------------------------- |
+| **Status**  | ⏳ Not Started                                                                                          |
+| **Mode**    | AFK                                                                                                     |
+| **Domain**  | engagement · backend                                                                                    |
+| **Spec**    | S-006                                                                                                   |
+| **Docs**    | ADR-157, ADR-046, `lib/repositories/engagement`, `domains/engagement/services`, `context/ctx-domain.md` |
+| **Depends** | T-217                                                                                                   |
+
+**What to build:** query yang mengembalikan posting beserta ringkasan komentarnya, bukan hanya daftar item datar.
+
+- [ ] **T-218.1** Repository mengelompokkan item per `postId`: jumlah komentar total, jumlah belum dibalas, jumlah ditangani (untuk progress bar), waktu komentar terbaru. Item tanpa `postId` menjadi satu kelompok "tanpa posting".
+- [ ] **T-218.2** Sort: belum dibalas dulu (bawaan), terbaru, terlama. Rentang tanggal (7 hari, 30 hari, 6 bulan, 12 bulan) atas `receivedAt`. Filter akun, platform, dan status tetap berfungsi.
+- [ ] **T-218.3** Snapshot posting (caption, thumbnail, platform, akun) memakai jalur yang sudah ada (`PublishingPostSnapshotPort`, T-056), tanpa import lintas domain (aturan keras no. 5). Thumbnail memakai signed URL yang diregenerasi.
+- [ ] **T-218.4** Posting tanpa komentar disembunyikan secara bawaan; parameter menampilkan semuanya.
+- [ ] **T-218.5** Tes unit dan integrasi DB; indeks DB diperiksa (kandidat: `workspace_id`, `post_id`, `status`, `received_at`) sebelum menambah migrasi.
+- [ ] **T-218.6** `typecheck`, `lint`, tes hijau.
+
+**Belum terbukti:** performa query pada volume besar (ratusan komentar per posting); dicek di T-218.5.
+
+**Blocked by:** T-217.
+
+---
+
+### T-219 · Engage UI: post list, selected post comments, and per-comment status actions
+
+| Field       | Value                                                                                                     |
+| ----------- | --------------------------------------------------------------------------------------------------------- |
+| **Status**  | ⏳ Not Started                                                                                            |
+| **Mode**    | AFK setelah T-216 dikonfirmasi                                                                            |
+| **Domain**  | engagement · UI (UI/UX-related)                                                                           |
+| **Spec**    | S-006                                                                                                     |
+| **Docs**    | ADR-157, ADR-097, ADR-140, KSP-06, KSP-D06, `apps/web/.claude/CLAUDE.md`, artifact Postific (kartu T-216) |
+| **Depends** | T-216, T-217, T-218                                                                                       |
+
+**Gate rancangan:** rancangan T-216 sudah dikonfirmasi King Rezi. Bila sebuah butir ambigu, **STOP** dan tanya lewat `AskUserQuestion`; jangan menebak.
+
+**What to build:** tata letak dua panel Engage per posting dan aksi status per komentar, sesuai rancangan. Komponen shadcn diverifikasi dulu lewat MCP shadcn (workflow discover-first); jangan menebak nama komponen atau props.
+
+- [ ] **T-219.1** Panel daftar posting (kartu dengan badge, progress, kelompok "tanpa posting", panel bisa dilipat) menggantikan daftar item datar di `EngageInboxView.tsx`. Berkas besar (800 baris) dipecah menjadi komponen modul tanpa mengubah perilaku, seperti T-199.
+- [ ] **T-219.2** Panel komentar: kartu pratinjau posting, ringkasan "x dibalas / y total", daftar komentar, area balas yang sudah ada (T-054) dipertahankan.
+- [ ] **T-219.3** Aksi hover per komentar: Resolve, Dismiss, buka kembali; Reply membuka area balas. Optimistic update dan error ditangani; Server Action hanya memanggil service.
+- [ ] **T-219.4** State: kosong, filter tanpa hasil, refresh berjalan dan gagal, selaras KSP-06 yang diperbarui. Zona sinkronisasi (KSP-06-F07, F08) dipertahankan.
+- [ ] **T-219.5** Perilaku yang sudah ada tidak regresi: filter akun/platform/status, reply, post asal (T-056), badge sidebar, manual refresh. Terang, gelap, 375px diamati di browser.
+- [ ] **T-219.6** Tes komponen dan unit; `typecheck`, `lint`, tes hijau.
+
+**Belum terbukti:** perilaku di layar sempit (375px) dan keyboard/fokus aksi hover; dicek di T-219.5 dan T-222.
+
+**Blocked by:** T-216 (konfirmasi rancangan), T-217, T-218.
+
+---
+
+### T-220 · Engage UI: primary filters and the Filter & Sort panel
+
+| Field       | Value                                                                                                |
+| ----------- | ---------------------------------------------------------------------------------------------------- |
+| **Status**  | ⏳ Not Started                                                                                       |
+| **Mode**    | AFK setelah T-216 dikonfirmasi                                                                       |
+| **Domain**  | engagement · UI (UI/UX-related)                                                                      |
+| **Spec**    | S-006                                                                                                |
+| **Docs**    | ADR-157, ADR-097, ADR-140, KSP-06-F02, `apps/web/.claude/CLAUDE.md`, artifact Postific (kartu T-216) |
+| **Depends** | T-216, T-218                                                                                         |
+
+**What to build:** filter utama di header (Akun, Status) dan satu panel sekunder (Sort By, Date Range, Reset filters), menggantikan tiga `Select` sejajar. Menyentuh berkas yang sama dengan T-219 (`EngageInboxView` dan turunannya): kerjakan setelah T-219.1 memecah berkas, bukan paralel.
+
+- [ ] **T-220.1** Dropdown Akun/Channels dan Status (single-select bercentang) di header.
+- [ ] **T-220.2** Panel Filter & Sort (komponen ditentukan rancangan, diverifikasi lewat MCP shadcn): Sort By, Date Range, Reset filters. Tempat filter Platform mengikuti rancangan.
+- [ ] **T-220.3** Filter memicu query T-218 server-side seperti pola sekarang (`listInboxAction`); tanpa request ganda saat render awal.
+- [ ] **T-220.4** Tes komponen; terang, gelap, 375px diamati; `typecheck`, `lint`, tes hijau.
+
+**Blocked by:** T-216, T-218; urutan dengan T-219 karena berkas bersama.
+
+---
+
+### T-221 · Align KSP-06 and KSP-D06 baseline with the confirmed Engage by-post design
+
+| Field       | Value                                                                              |
+| ----------- | ---------------------------------------------------------------------------------- |
+| **Status**  | ⏳ Not Started                                                                     |
+| **Mode**    | AFK (dokumentasi)                                                                  |
+| **Domain**  | dokumentasi · UX                                                                   |
+| **Spec**    | S-006                                                                              |
+| **Docs**    | ADR-157, `product-discovery/04-ux/key-screen-patterns.md`, `context/ctx-design.md` |
+| **Depends** | T-216                                                                              |
+
+**What to build:** perbarui KSP-06 (Critical Functions, Zona Fungsional, State Handling) dan KSP-D06 agar sesuai rancangan yang dikonfirmasi: unit per posting, status baru, panel Filter & Sort, batas MVP tetap menyebut Mentions dan DM di luar (ADR-040). Urutan tulis: `product-discovery/` dulu, lalu `context/` hanya bila penunjuknya berubah (`AGENTS.md` aturan 14).
+
+- [ ] **T-221.1** KSP-06 dan KSP-D06 diperbarui; tag amandemen ADR-157 ditambahkan.
+- [x] **T-221.2** ADR-157 `Proposed` → `Accepted` (2026-11-05, setelah Q1 sampai Q5 dijawab King Rezi); indeks `DECISIONS.md` ikut.
+- [ ] **T-221.3** `bun run docs:check` hijau.
+
+**Blocked by:** T-216.
+
+---
+
+### T-222 · Engage by post: QA and verification
+
+| Field       | Value                                                                  |
+| ----------- | ---------------------------------------------------------------------- |
+| **Status**  | ⏳ Not Started                                                         |
+| **Mode**    | AFK untuk E2E, review, dan QA; HITL untuk Verified (staging)           |
+| **Domain**  | engagement · QA                                                        |
+| **Spec**    | S-006                                                                  |
+| **Docs**    | ADR-149, ADR-153, ADR-157, `apps/web/e2e/`, `.claude/agents/README.md` |
+| **Depends** | T-219, T-220, T-224                                                    |
+
+**What to build:** bukti bahwa Engage per posting bekerja dan tidak merusak yang sudah ada.
+
+- [ ] **T-222.1** E2E Playwright golden path (ADR-149): buka Engage, pilih posting, balas komentar, Resolve, Dismiss, buka kembali, filter status, Sort, Date Range, Reset, dan pindah By post / List. Hijau tiga run di `local`. Konvensi `e2e-data.ts` (workspace E2E Sandbox) diikuti; tes tidak memublikasikan di workspace produksi.
+- [ ] **T-222.2** Regresi: filter akun/platform, reply (T-054), post asal (T-056), badge sidebar, Engagement Snapshot Home, manual refresh.
+- [ ] **T-222.3** Review arsitektur Ridwan dan QA Najwa tanpa temuan terbuka; `/code-review`; `typecheck`, `lint`, tes hijau.
+- [ ] **T-222.4** Done (code). Verified (staging) satu kali per gelombang (ADR-153) untuk hal yang tidak bisa dibuktikan lokal; bagian "Belum terbukti" tiket T-217 sampai T-220 tetap wajib sampai butirnya lulus.
+
+**Blocked by:** T-219, T-220, T-224.
+
+---
+
+### T-224 · Engage UI: List view (By post / List toggle)
+
+| Field       | Value                                                                                                          |
+| ----------- | -------------------------------------------------------------------------------------------------------------- |
+| **Status**  | ⏳ Not Started                                                                                                 |
+| **Mode**    | AFK setelah T-216 dikonfirmasi                                                                                 |
+| **Domain**  | engagement · UI (UI/UX-related)                                                                                |
+| **Spec**    | S-006                                                                                                          |
+| **Docs**    | ADR-157 (Q5), ADR-097, ADR-140, KSP-06, KSP-D06, `apps/web/.claude/CLAUDE.md`, artifact Postific (kartu T-216) |
+| **Depends** | T-216, T-218, T-219                                                                                            |
+
+**Gate rancangan:** mode List Buffer belum teramati (hanya tombolnya), jadi isi tampilan List sepenuhnya diputuskan di rancangan T-216.5 dan dikonfirmasi King Rezi. Bila ambigu, **STOP** dan tanya lewat `AskUserQuestion`; jangan menebak.
+
+**What to build:** toggle By post / List di header (komponen diverifikasi lewat MCP shadcn) dan tampilan List sesuai rancangan. Menyentuh berkas yang sama dengan T-219 dan T-220: kerjakan setelah T-219, bukan paralel.
+
+- [ ] **T-224.1** Toggle By post / List di header; By post tetap bawaan. Pilihan tampilan boleh diingat per pengguna hanya bila rancangan menyebutnya.
+- [ ] **T-224.2** Tampilan List sesuai rancangan T-216.5, memakai query T-218 (tanpa query baru kecuali rancangan menuntutnya).
+- [ ] **T-224.3** Filter utama dan panel Filter & Sort (T-220) berlaku konsisten di kedua tampilan; aksi status per komentar (T-219.3) juga tersedia di List.
+- [ ] **T-224.4** Tes komponen; terang, gelap, 375px diamati; `typecheck`, `lint`, tes hijau.
+
+**Belum terbukti:** perilaku List dengan volume komentar besar (paginasi atau pengguliran); dicek di T-224.4 dan T-222.
+
+**Blocked by:** T-216, T-218, T-219.
+
+---
+
+### T-223 · Engage Mentions tab (Instagram story mentions)
+
+| Field       | Value                                                                                                                |
+| ----------- | -------------------------------------------------------------------------------------------------------------------- |
+| **Status**  | ⏸️ Deferred (keputusan King Rezi 2026-11-05)                                                                         |
+| **Mode**    | HITL                                                                                                                 |
+| **Domain**  | engagement · integrasi Outstand                                                                                      |
+| **Spec**    | tidak ada — ditunda                                                                                                  |
+| **Docs**    | ADR-157, ADR-040, `outstand.so/docs` (Webhooks; Conversations: Message Lifecycle, bagian Story replies and mentions) |
+| **Depends** | ADR baru yang mengubah ADR-040                                                                                       |
+
+**Alasan ditunda:** Outstand tidak punya endpoint atau event mention di feed dan tidak punya tag. Satu-satunya jalur adalah story mention dan story reply Instagram lewat Conversations API (`message.received` dengan objek `story`, `type` `reply` atau `mention`). Itu DM, di luar MVP (ADR-040). Kendala: URL story kedaluwarsa 24 jam dan medianya tidak boleh disimpan; mention hanya dari akun publik atau privat yang mengikuti; hanya Instagram; syarat izin dan tipe akun tidak tertulis di docs.
+
+**Bila dibuka kembali:** perlu ADR yang mengubah ADR-040, tabel atau tipe data baru, penanganan media yang kedaluwarsa, dan rancangan sendiri. Labelnya lebih jujur sebagai pesan atau story Instagram, bukan Mentions penuh seperti Buffer.
+
+---
+
 ## Catatan Rilis
 
+- T-216 sampai T-223 (Engage per posting, spec S-006, ADR-157) ditambahkan 2026-11-05 setelah rilis v0.4 selesai; ADR-040 tetap berlaku (Mentions dan DM di luar).
 - T-057–T-059 sengaja dikosongkan sebagai ruang penambahan task v0.4 (T-056 sudah terpakai, 2026-10-06 — promosi KI-065).
 - **Definition of Done rilis ini:** pengguna dapat membaca dan membalas komentar tanpa berpindah platform, dengan data diperbarui setiap 30 menit atau lewat manual refresh.
 - **Yang sengaja di luar rilis ini (ADR-040 + `feature-priority.md`):** Social Listening, Direct Messages, Mentions, Engagement Webhooks.
