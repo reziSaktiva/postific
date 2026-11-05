@@ -59,9 +59,22 @@ function isValidTime(time: string | undefined): time is string {
 }
 
 /**
+ * Satu notasi selisih: "GMT+8" jadi "UTC+8", dan offset nol ("GMT" atau "UTC",
+ * tergantung runtime Intl) selalu "UTC+0". Nama lain (mis. "EST") apa adanya.
+ */
+function normalizeUtcName(name: string): string {
+  if (name === "GMT" || name === "UTC") {
+    return "UTC+0";
+  }
+  return name.replace(/^GMT(?=[+-])/, "UTC");
+}
+
+/**
  * Singkatan zona untuk label jadwal. Tiga zona Indonesia memakai singkatan
  * resmi (WIB, WITA, WIT); zona lain memakai nama pendek Intl pada saat jadwal
- * (mis. "GMT+8"), dan jatuh ke nama IANA bila Intl tidak memberinya.
+ * (mis. "EST"), dengan selisih berbentuk "UTC+8" (bukan "GMT+8", T-213.2,
+ * seragam dengan `getUtcOffsetLabel`), dan jatuh ke nama IANA bila Intl tidak
+ * memberinya.
  */
 export function getTimeZoneLabel(timeZone: string, at: Date): string {
   switch (timeZone) {
@@ -79,9 +92,8 @@ export function getTimeZoneLabel(timeZone: string, at: Date): string {
       { timeZoneName: "short" },
       timeZone,
     ).formatToParts(at);
-    return (
-      parts.find((part) => part.type === "timeZoneName")?.value ?? timeZone
-    );
+    const name = parts.find((part) => part.type === "timeZoneName")?.value;
+    return name ? normalizeUtcName(name) : timeZone;
   } catch {
     return timeZone;
   }
@@ -90,7 +102,7 @@ export function getTimeZoneLabel(timeZone: string, at: Date): string {
 /**
  * Selisih zona terhadap UTC untuk label popover jadwal (T-212.2), mis.
  * "UTC+7" atau "UTC+5:30". Dibaca dari Intl pada saat `at`, bukan dikodekan
- * per zona. Offset nol bisa "UTC" atau "UTC+0" tergantung Intl; nama IANA bila Intl gagal.
+ * per zona. Offset nol selalu "UTC+0" (dinormalkan); nama IANA bila Intl gagal.
  */
 export function getUtcOffsetLabel(timeZone: string, at: Date): string {
   try {
@@ -104,8 +116,8 @@ export function getUtcOffsetLabel(timeZone: string, at: Date): string {
     if (!raw) {
       return timeZone;
     }
-    // Intl memberi "GMT+7", "GMT+5:30", atau "GMT" (offset nol).
-    return raw.replace(/^GMT/, "UTC");
+    // Intl memberi "GMT+7", "GMT+5:30", atau "GMT"/"UTC" (offset nol).
+    return normalizeUtcName(raw);
   } catch {
     return timeZone;
   }
@@ -115,10 +127,43 @@ export function getUtcOffsetLabel(timeZone: string, at: Date): string {
 export function formatZoneWithOffset(timeZone: string, at: Date): string {
   const abbreviation = getTimeZoneLabel(timeZone, at);
   const offset = getUtcOffsetLabel(timeZone, at);
-  // Zona tanpa singkatan resmi sudah berbentuk offset (mis. "GMT+8").
+  // Zona tak dikenal: keduanya jatuh ke nama IANA; tulis sekali saja.
+  if (abbreviation === timeZone && offset === timeZone) {
+    return timeZone;
+  }
+  // Zona tanpa singkatan resmi sudah berbentuk offset (mis. "UTC+8").
   return /^(GMT|UTC)/.test(abbreviation)
     ? offset
     : `${abbreviation} (${offset})`;
+}
+
+/**
+ * Instan acuan label zona di popover jadwal (T-213.1): selisih UTC zona ber-DST
+ * berbeda per tanggal, jadi dibaca pada tanggal jadwal, bukan hari ini. Tanpa
+ * tanggal sah, atau zona tak dikenal, memakai `now`. Jam di celah spring-forward
+ * tidak jatuh ke `now`: `zonedLocalToUtc` memberi tebakan valid (mis. 02:30
+ * 8 Mar 2026 di America/New_York menjadi 07:30Z, EDT).
+ */
+export function getScheduleZoneInstant(
+  date: string | undefined,
+  time: string | undefined,
+  timeZone: string,
+  now: Date,
+): Date {
+  if (!date || !parseDateKey(date)) {
+    return now;
+  }
+  try {
+    const instant = labelInstant(
+      date,
+      isValidTime(time) ? time : undefined,
+      timeZone,
+    );
+    return Number.isNaN(instant.getTime()) ? now : instant;
+  } catch {
+    // Zona tak dikenal: label jatuh ke nama IANA pada `now`.
+    return now;
+  }
 }
 
 /**

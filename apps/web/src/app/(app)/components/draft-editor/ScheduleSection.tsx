@@ -27,6 +27,7 @@ import {
   formatScheduleTriggerLabel,
   formatZoneWithOffset,
   getScheduleCalendarBounds,
+  getScheduleZoneInstant,
   getTimeZoneLabel,
   pickScheduleDate,
 } from "./schedule-label";
@@ -83,7 +84,14 @@ export function ScheduleSection({
     scheduleTime,
     timeZone,
   );
-  const zoneLabel = getTimeZoneLabel(timeZone, now);
+  // T-213.1: label zona dibaca pada tanggal jadwal (zona ber-DST berubah per tanggal).
+  const zoneAt = getScheduleZoneInstant(
+    scheduleDate,
+    scheduleTime,
+    timeZone,
+    now,
+  );
+  const zoneLabel = getTimeZoneLabel(timeZone, zoneAt);
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -109,7 +117,7 @@ export function ScheduleSection({
           <PopoverTitle>Jadwal publish</PopoverTitle>
           <PopoverDescription>
             Waktu dibaca di zona waktu Anda:{" "}
-            {formatZoneWithOffset(timeZone, now)}.
+            {formatZoneWithOffset(timeZone, zoneAt)}.
           </PopoverDescription>
         </PopoverHeader>
         <Calendar

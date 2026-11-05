@@ -561,6 +561,37 @@ describe("Editor, media, dan blok jaringan (T-202)", () => {
     expect(screen.queryByText(/^Reel nonaktif/)).toBeNull();
   });
 
+  it("T-213.5 banner Reel bervarian destructive, banner lain bervarian warning", async () => {
+    actionMocks.uploadMediaAction.mockResolvedValue({
+      media: {
+        id: "m1",
+        url: "https://cdn.example.test/kopi.png",
+        type: "image",
+        filename: "kopi.png",
+      },
+    });
+    const user = await renderCreate();
+    await pickAccounts(user, "Pilih Instagram kopi_ig");
+
+    // Tanpa media: banner "tanpa media" adalah peringatan, bukan merah.
+    const warning = (
+      await screen.findByText(/tidak bisa dipublish tanpa media/)
+    ).closest('[data-slot="alert"]');
+    expect(warning?.getAttribute("data-variant")).toBe("warning");
+
+    await user.click(screen.getByRole("radio", { name: "Reel" }));
+    await user.upload(
+      screen.getByLabelText<HTMLInputElement>("Media", {
+        selector: "input[type=file]",
+      }),
+      new File(["x"], "kopi.png", { type: "image/png" }),
+    );
+    const destructive = (
+      await screen.findByText(/^Reel membutuhkan satu video/)
+    ).closest('[data-slot="alert"]');
+    expect(destructive?.getAttribute("data-variant")).toBe("destructive");
+  });
+
   it("T-212.3 teks bantuan unggah tanpa rujukan ADR", async () => {
     await renderCreate();
     expect(

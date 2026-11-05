@@ -142,10 +142,21 @@ export function validateNetworks(
   return { byAccount, cross, hasBlockingIssues };
 }
 
+/**
+ * Sebab opsi format nonaktif (T-213.6): tampilan memetakan kode ke teks,
+ * tidak menurunkan sebab dari media sendiri.
+ * - `reel-non-video-media`: ada media yang bukan video (gambar, GIF, campuran).
+ * - `reel-multiple-videos`: semua media video, tetapi lebih dari satu.
+ */
+export type FormatDisabledReasonCode =
+  "reel-non-video-media" | "reel-multiple-videos";
+
 export interface FormatOptionState {
   disabled: boolean;
   /** Alasan opsi nonaktif (teks T-200); `null` bila opsi sah. */
   reason: string | null;
+  /** Kode sebab; `null` bila opsi sah. */
+  reasonCode: FormatDisabledReasonCode | null;
 }
 
 /**
@@ -163,5 +174,13 @@ export function getFormatOptionState(
     [{ platform, contentFormat: format }],
     toReelMedia(media),
   );
-  return { disabled: reason !== null, reason };
+  if (reason === null) {
+    return { disabled: false, reason: null, reasonCode: null };
+  }
+  const reasonCode: FormatDisabledReasonCode = media.some(
+    (item) => item.type !== MediaType.Video,
+  )
+    ? "reel-non-video-media"
+    : "reel-multiple-videos";
+  return { disabled: true, reason, reasonCode };
 }
