@@ -361,7 +361,9 @@ describe("Editor, media, dan blok jaringan (T-202)", () => {
     expect(screen.queryByRole("button", { name: /emoji|hashtag/i })).toBeNull();
 
     await user.upload(
-      document.querySelector<HTMLInputElement>("#draft-media")!,
+      screen.getByLabelText<HTMLInputElement>("Media", {
+        selector: "input[type=file]",
+      }),
       new File(["x"], "kopi.png", { type: "image/png" }),
     );
     expect(
@@ -463,11 +465,17 @@ describe("Editor, media, dan blok jaringan (T-202)", () => {
     await pickAccounts(user, "Pilih Instagram kopi_ig");
     await user.type(screen.getByLabelText("Caption"), "Halo");
 
-    const block = screen.getByRole("radiogroup", { name: "Format" })
-      .parentElement!.parentElement!;
-    expect(
-      within(block).getByText(/Instagram tidak bisa dipublish tanpa media/),
-    ).toBeTruthy();
+    const banner = screen.getByText(
+      /Instagram tidak bisa dipublish tanpa media/,
+    );
+    // Banner satu wadah dengan pilihan Format (blok jaringan), tanpa mengandalkan
+    // kedalaman DOM: wadah bersama terdekat tidak memuat editor Caption.
+    let shared: HTMLElement | null = screen.getByRole("radiogroup", {
+      name: "Format",
+    });
+    while (shared && !shared.contains(banner)) shared = shared.parentElement;
+    expect(shared).not.toBeNull();
+    expect(shared!.contains(screen.getByLabelText("Caption"))).toBe(false);
     // Dalam blok, bukan di atas editor: bagian atas tidak memuat banner itu.
     expect(
       screen.getAllByText(/Instagram tidak bisa dipublish tanpa media/),
@@ -503,9 +511,7 @@ describe("Editor, media, dan blok jaringan (T-202)", () => {
       "Pilih Pinterest kopi-pin-dua",
     );
     const alerts = () =>
-      screen
-        .queryAllByRole("status")
-        .filter((el) => el.closest("aside") === null);
+      screen.queryAllByRole("status").filter((el) => !preview().contains(el));
     await waitFor(() =>
       expect(
         alerts().some((el) =>
@@ -639,7 +645,9 @@ describe("Pratinjau live (T-203)", () => {
     const user = await renderCreate();
     await pickAccounts(user, "Pilih Instagram kopi_ig");
     await user.upload(
-      document.querySelector<HTMLInputElement>("#draft-media")!,
+      screen.getByLabelText<HTMLInputElement>("Media", {
+        selector: "input[type=file]",
+      }),
       new File(["x"], "kopi.png", { type: "image/png" }),
     );
     await screen.findByRole("button", {

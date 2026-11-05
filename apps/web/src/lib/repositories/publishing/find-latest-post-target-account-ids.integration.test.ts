@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   asUserId,
   asWorkspaceId,
@@ -168,6 +168,13 @@ describe.skipIf(!enabled)(
       );
     });
 
+    // Tiap tes mandiri: post dikosongkan, tes menyiapkan sendiri datanya.
+    beforeEach(async () => {
+      await prisma.publishingPost.deleteMany({
+        where: { workspaceId: { in: [wsA, wsB] } },
+      });
+    });
+
     afterAll(async () => {
       if (!prisma) {
         return;
@@ -228,6 +235,12 @@ describe.skipIf(!enabled)(
     it("post milik rekan dan berstatus apa pun (Scheduled) ikut dihitung", async () => {
       await createPost({
         workspace: wsA,
+        actor: owner,
+        createdAt: at(1),
+        accounts: [{ id: instagram, platform: SocialPlatform.Instagram }],
+      });
+      await createPost({
+        workspace: wsA,
         actor: teammate,
         createdAt: at(10),
         status: ContentStatus.Scheduled,
@@ -237,6 +250,12 @@ describe.skipIf(!enabled)(
     });
 
     it("post Imported yang lebih baru dilewati (createdAt-nya waktu sinkron)", async () => {
+      await createPost({
+        workspace: wsA,
+        actor: owner,
+        createdAt: at(5),
+        accounts: [{ id: facebook, platform: SocialPlatform.Facebook }],
+      });
       await createPost({
         workspace: wsA,
         actor: owner,
@@ -254,6 +273,12 @@ describe.skipIf(!enabled)(
       await createPost({
         workspace: wsA,
         actor: owner,
+        createdAt: at(5),
+        accounts: [{ id: facebook, platform: SocialPlatform.Facebook }],
+      });
+      await createPost({
+        workspace: wsA,
+        actor: owner,
         createdAt: at(30),
         deletedAt: at(31),
         accounts: [{ id: instagram, platform: SocialPlatform.Instagram }],
@@ -268,6 +293,12 @@ describe.skipIf(!enabled)(
     });
 
     it("post workspace lain yang lebih baru tidak bocor, dan pemakai bukan member tidak melihat apa pun (RLS)", async () => {
+      await createPost({
+        workspace: wsA,
+        actor: owner,
+        createdAt: at(5),
+        accounts: [{ id: facebook, platform: SocialPlatform.Facebook }],
+      });
       await createPost({
         workspace: wsB,
         actor: otherOwner,
