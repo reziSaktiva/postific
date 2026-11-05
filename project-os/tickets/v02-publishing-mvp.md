@@ -3317,14 +3317,14 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 ### T-211 · Draft Editor: Calendar fills the schedule popover width, and non-overlapping preview account picker
 
-| Field       | Value                                                                                                                                         |
-| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | 🟡 Done (code) T-211.1, .4, .5; T-211.6 belum (E2E dan browser belum dijalankan, lihat Belum terbukti)                                        |
-| **Mode**    | HITL (T-211.2 keputusan komponen dan T-211.3 konfirmasi rancangan di galeri adalah milik King Rezi; T-211.1 bisa AFK setelah tiket disetujui) |
-| **Domain**  | draft editor · UI                                                                                                                             |
-| **Spec**    | S-005 (temuan review integrasi King Rezi sebelum merge PR 256)                                                                                |
-| **Docs**    | ADR-155, ADR-097, ADR-140, KSP-05 dan KSP-D02, `apps/web/.claude/CLAUDE.md`, artifact Postific (kartu `ScreenDraftEditorRedesain`)            |
-| **Depends** | T-205 (popover jadwal), T-203 (panel Pratinjau)                                                                                               |
+| Field       | Value                                                                                                                                                              |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Status**  | 🟡 Done (code), menunggu Verified (staging); T-211.6 tercentang (E2E S17 sampai S17d hijau 3 run di Cook It Real Good; S17 dan S17b belum terbukti di E2E Sandbox) |
+| **Mode**    | HITL (T-211.2 keputusan komponen dan T-211.3 konfirmasi rancangan di galeri adalah milik King Rezi; T-211.1 bisa AFK setelah tiket disetujui)                      |
+| **Domain**  | draft editor · UI                                                                                                                                                  |
+| **Spec**    | S-005 (temuan review integrasi King Rezi sebelum merge PR 256)                                                                                                     |
+| **Docs**    | ADR-155, ADR-097, ADR-140, KSP-05 dan KSP-D02, `apps/web/.claude/CLAUDE.md`, artifact Postific (kartu `ScreenDraftEditorRedesain`)                                 |
+| **Depends** | T-205 (popover jadwal), T-203 (panel Pratinjau)                                                                                                                    |
 
 **Ditemukan (2026-11-04)** oleh King Rezi saat meninjau integrasi UI Draft Editor sebelum merge PR 256. Diukur di staging (build gelombang 5) dengan 4 akun terpilih:
 
