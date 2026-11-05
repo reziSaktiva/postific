@@ -1046,3 +1046,112 @@ test("S10 bersihkan draft e2e-qa dan kunci localStorage", async ({ page }) => {
   }
   await snap(page, "s10-after-cleanup");
 });
+
+/**
+ * T-211.5: tata letak yang diukur, bukan sekadar "terlihat". Tidak membuat atau
+ * memublikasikan apa pun: akun hanya dipilih di form lalu dialog ditutup.
+ */
+async function pickFirstAccounts(page: Page, dlg: Locator, count: number) {
+  await dlg.getByRole("button", { name: "Channels" }).click();
+  const boxes = page.getByRole("checkbox", { name: /^Pilih / });
+  await expect(boxes.first()).toBeVisible({ timeout: 15_000 });
+  const available = await boxes.count();
+  test.skip(
+    available < count,
+    `Butuh ${count} akun terhubung di workspace E2E, hanya ada ${available}`,
+  );
+  for (let i = 0; i < count; i++) await boxes.nth(i).check();
+  await page.keyboard.press("Escape");
+  await expect(boxes.first()).toBeHidden();
+}
+
+async function expectPickerClearOfCard(page: Page, optionCount: number) {
+  const preview = page.getByRole("complementary", { name: "Pratinjau" });
+  const picker = preview.getByRole("combobox", {
+    name: "Akun yang dipratinjau",
+  });
+  await expect(picker).toBeVisible();
+  // Setiap akun dipilih bergantian: kotak pemilih tidak boleh beririsan dengan
+  // kartu Pratinjau mana pun, apa pun panjang label akunnya.
+  for (let i = 0; i < optionCount; i++) {
+    await picker.click();
+    await page.getByRole("option").nth(i).click();
+    const card = preview.locator('section [aria-label^="Pratinjau "]').first();
+    await expect(card).toBeVisible();
+    const p = (await picker.boundingBox())!;
+    const c = (await card.boundingBox())!;
+    expect(
+      p.y + p.height,
+      `akun ke-${i + 1}: pemilih di atas kartu`,
+    ).toBeLessThanOrEqual(c.y + 0.5);
+  }
+}
+
+async function expectCalendarFillsPopover(page: Page, dlg: Locator) {
+  await dlg.getByRole("button", { name: /^Jadwal:/ }).click();
+  const pop = page.locator('[data-slot="popover-content"]');
+  const grid = pop.getByRole("grid");
+  await expect(grid).toBeVisible();
+  const popBox = (await pop.boundingBox())!;
+  const viewport = page.viewportSize()!;
+  // Rancangan: 336px, menyusut di layar sempit (sisa 8px tiap sisi).
+  expect(popBox.width).toBeLessThanOrEqual(
+    Math.min(336, viewport.width - 16) + 0.5,
+  );
+  const ctx = await pop.evaluate((el) => {
+    const s = getComputedStyle(el);
+    const g = el.querySelector('[role="grid"]')!.getBoundingClientRect();
+    const cells = Array.from(
+      el.querySelectorAll('[role="grid"] tr:nth-of-type(2) [role="gridcell"]'),
+    ).map((c) => c.getBoundingClientRect());
+    return {
+      padL: parseFloat(s.paddingLeft),
+      padR: parseFloat(s.paddingRight),
+      grid: { x: g.x, w: g.width },
+      cols: cells.map((c) => ({ x: c.x, w: c.width })),
+    };
+  });
+  const inner = popBox.width - ctx.padL - ctx.padR;
+  expect(ctx.grid.w).toBeGreaterThanOrEqual(inner - 1);
+  expect(ctx.cols).toHaveLength(7);
+  // Tujuh kolom mengisi grid dari tepi kiri ke tepi kanan (tanpa sisa kosong).
+  const first = ctx.cols[0];
+  const last = ctx.cols[6];
+  expect(first.x - ctx.grid.x).toBeLessThanOrEqual(1);
+  expect(ctx.grid.x + ctx.grid.w - (last.x + last.w)).toBeLessThanOrEqual(1);
+  await page.keyboard.press("Escape");
+}
+
+test("S15 T-211: Calendar mengisi popover jadwal dan pemilih Pratinjau tidak menimpa kartu (4 akun)", async ({
+  page,
+}) => {
+  track(page, "S15");
+  await openNewPostFromDrafts(page);
+  const dlg = dialog(page);
+  await expect(dlg).toBeVisible();
+  await pickFirstAccounts(page, dlg, 4);
+  await dlg.getByLabel("Caption").fill(`e2e-qa-t211-${STAMP}`);
+  await expectPickerClearOfCard(page, 4);
+  await snap(page, "s15-picker-desktop");
+  await expectCalendarFillsPopover(page, dlg);
+  await dlg.getByRole("button", { name: "Close" }).click();
+  await expect(dialog(page)).toHaveCount(0);
+});
+
+test("S15b T-211 375px: Calendar mengisi popover dan pemilih Pratinjau rapi", async ({
+  page,
+}) => {
+  track(page, "S15b");
+  await page.setViewportSize({ width: 375, height: 812 });
+  await openNewPostFromDrafts(page);
+  const dlg = dialog(page);
+  await expect(dlg).toBeVisible();
+  await pickFirstAccounts(page, dlg, 4);
+  await dlg.getByLabel("Caption").fill(`e2e-qa-t211-${STAMP}`);
+  await expectCalendarFillsPopover(page, dlg);
+  await dlg.getByRole("tab", { name: "Pratinjau" }).click();
+  await expectPickerClearOfCard(page, 4);
+  await snap(page, "s15b-picker-375");
+  await dlg.getByRole("button", { name: "Close" }).click();
+  await expect(dialog(page)).toHaveCount(0);
+});

@@ -9,6 +9,7 @@
 import { SocialPlatform } from "@postific/shared";
 import {
   cleanup,
+  fireEvent,
   render,
   screen,
   waitFor,
@@ -566,7 +567,7 @@ describe("Pratinjau live (T-203)", () => {
     expect(within(card).getByText("Diskon kopi 20%")).toBeTruthy();
   });
 
-  it("T-203.1 pemilih Pratinjau per akun: tab mengganti kartu mengikuti akun", async () => {
+  it("T-203.1 pemilih Pratinjau per akun: pilihan mengganti kartu mengikuti akun (T-211.4: Select)", async () => {
     const user = await renderCreate();
     await pickAccounts(
       user,
@@ -578,8 +579,15 @@ describe("Pratinjau live (T-203)", () => {
       within(preview()).getByLabelText("Pratinjau Instagram Post"),
     ).toBeTruthy();
 
-    await user.click(
-      within(preview()).getByRole("tab", { name: "Facebook kopi-fb" }),
+    // Radix Select membuka lewat keyboard di jsdom (tanpa pointer capture).
+    fireEvent.keyDown(
+      within(preview()).getByRole("combobox", {
+        name: "Akun yang dipratinjau",
+      }),
+      { key: "Enter" },
+    );
+    fireEvent.click(
+      await screen.findByRole("option", { name: "Facebook kopi-fb" }),
     );
     expect(
       within(preview()).getByLabelText("Pratinjau Facebook Post"),
