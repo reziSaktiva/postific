@@ -3403,6 +3403,39 @@ Alasan A: pemilih ini hanya mengganti kartu yang ditampilkan, bukan berpindah an
 
 ---
 
+### T-214 · Creator RBAC E2E for the Draft Editor and Settings (T-207.4)
+
+| Field       | Value                                                                                           |
+| ----------- | ----------------------------------------------------------------------------------------------- |
+| **Status**  | 🟡 Done (code), menunggu Verified (staging) dan keputusan King Rezi atas pertanyaan dokumen     |
+| **Mode**    | AFK                                                                                             |
+| **Domain**  | QA · E2E · RBAC                                                                                 |
+| **Spec**    | S-005 (butir "RBAC per peran" pada T-207.4)                                                     |
+| **Docs**    | `product-discovery/02-product/roles-permissions.md` (ADR-012, ADR-074), ADR-047, ADR-149, T-207 |
+| **Depends** | T-207                                                                                           |
+
+**What to build:** bukti E2E di `local` bahwa akun Creator di workspace "E2E Sandbox" berperilaku sesuai matriks peran, lewat sesi login kedua (storage state terpisah dari Owner). Assertion hanya untuk perilaku yang tertulis di `roles-permissions.md`; perilaku yang tidak tertulis dicatat sebagai pertanyaan untuk King Rezi, tidak ditebak.
+
+- [x] **T-214.1** Dukungan login Creator di E2E: sesi kedua dari `E2E_CREATOR_EMAIL` dan `E2E_CREATOR_PASSWORD`, tanpa mengubah alur login Owner dan tanpa membuat workspace atau data. Bila variabel tidak ada, tes ter-skip dengan alasan jelas, bukan gagal.
+- [x] **T-214.2** Draft Editor sebagai Creator: Save as Draft, Schedule, dan Publish Now tersedia (hak yang sama dengan Owner dan Admin, ADR-047). Tes hanya membuka dialog dan memeriksa status tombol; tidak pernah menekan tombol aksi atau konfirmasi.
+- [x] **T-214.3** Area tanpa akses Creator: Organization Settings, Members, dan Billing tidak menampilkan isinya.
+- [x] **T-214.4** Connected Accounts bagi Creator hanya baca: akun terlihat, tanpa Connect, Disconnect, atau Reconnect.
+- [~] **T-214.5** Hasil tiga run berturut-turut di `local` dicatat (hijau). GitHub Secrets CI (`E2E_CREATOR_EMAIL`, `E2E_CREATOR_PASSWORD`) menjadi tindakan King Rezi dan belum dibuat.
+
+**Hasil (2026-11-05, `local`, workspace E2E Sandbox, akun Creator):** `rbac-creator.e2e.ts` (C1 sampai C5) hijau, tiga run berturut-turut (6 passed tiap run, 23 sampai 28 detik; run pertama login Creator baru, dua berikutnya memakai sesi tersimpan). Dua percobaan sebelumnya gagal karena (a) nilai email env tidak valid (sudah diperbaiki King Rezi) dan (b) `goto` pertama setelah login beradu dengan redirect login ke `/` (diperbaiki dengan menunggu redirect mendarat). Perilaku nyata diperiksa dengan skrip probe sementara (dihapus). `typecheck`, `lint`, `docs:check` hijau.
+
+- **C1:** halaman Workspaces menampilkan baris E2E Sandbox dengan peran "Creator" dan "Aktif".
+- **C2:** Draft Editor: Save as Draft aktif tanpa akun terpilih; Schedule dan Publish Now tampil.
+- **C3:** `/settings`, `/settings/members`, `/settings/billing` dialihkan ke `/settings/account`; padanan positif: Profile termuat (tombol "Simpan Perubahan"), tombol Invite Member tidak ada.
+- **C4:** Connected Accounts termuat (akun Instagram, "Terhubung sejak"), tanpa Connect Account, Disconnect, atau Reconnect.
+- **C5 (kontrol Owner):** sesi Owner melihat Connect Account, Disconnect, Invite Member, serta tetap di `/settings/members`, `/settings/billing`, `/settings`; membuktikan nama tombol di C3/C4 benar. Hanya membaca.
+
+**Belum terbukti:** (1) Schedule dan Publish Now hanya terbukti tampil, tidak terbukti aktif untuk Creator: nonaktif tanpa akun, dan Instagram butuh media sehingga mengaktifkannya menuntut unggah data yang dilarang tes ini. (2) Tidak ada tes bahwa aksi tulis (Save as Draft, Schedule, Publish Now) benar-benar berhasil sebagai Creator, dan tidak ada pemeriksaan server (Server Action/RLS) selain gate halaman. (3) Roles & Permissions di sidebar tidak diperiksa. (4) Hanya satu akun Creator; Admin tidak diuji. (5) Perilaku Disconnected tidak tercakup. **Pertanyaan untuk King Rezi (dokumen diam):** (a) Creator tetap melihat menu General, Members, Billing, dan Roles & Permissions di sidebar Settings dan hanya dialihkan saat membuka; apakah itu diinginkan atau menu disembunyikan? (b) Tujuan pengalihan `/settings/account` (Profile): sah atau perlu halaman "tidak ada akses"? (c) Dokumen menulis Creator "Tidak ada akses" ke Organization Settings, sedangkan Connected Accounts dan Brand Settings "baca saja"; halaman General memang dialihkan, sesuai.
+
+**Blocked by:** T-207
+
+---
+
 ## Dari Known Issue
 
 Tiket yang lahir sebagai pelacak Known Issue ada di [`known-issues.md`](known-issues.md) (ADR-134); daftar lengkapnya hanya di file itu, tidak disalin ke sini.

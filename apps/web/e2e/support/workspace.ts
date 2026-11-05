@@ -58,3 +58,44 @@ export async function ensureE2eWorkspaceActive(page: Page): Promise<void> {
       .getByText("Aktif"),
   ).toBeVisible();
 }
+
+/**
+ * Seperti `ensureE2eWorkspaceActive`, tetapi TIDAK PERNAH membuat workspace:
+ * untuk akun non-Owner (Creator, T-214) yang diundang ke `E2E_WORKSPACE_NAME`.
+ * Gagal dengan pesan jelas bila akun belum menjadi anggotanya.
+ */
+export async function activateExistingE2eWorkspace(page: Page): Promise<void> {
+  await page.goto("/settings/account/workspaces");
+  const picker = page.getByText("Pilih Workspace");
+  await picker.or(page.getByRole("row").first()).first().waitFor();
+  if (await picker.isVisible()) {
+    const target = page.getByText(E2E_WORKSPACE_NAME);
+    if ((await target.count()) === 0) {
+      throw new Error(
+        `Akun ini bukan anggota workspace "${E2E_WORKSPACE_NAME}"; undang dulu.`,
+      );
+    }
+    await target.click();
+    await expect(page).toHaveURL(/\/$/, { timeout: 30_000 });
+    await page.goto("/settings/account/workspaces");
+  }
+
+  const row = page.getByRole("row").filter({ hasText: E2E_WORKSPACE_NAME });
+  if ((await row.count()) === 0) {
+    throw new Error(
+      `Akun ini bukan anggota workspace "${E2E_WORKSPACE_NAME}"; undang dulu.`,
+    );
+  }
+  if ((await row.getByText("Aktif").count()) === 0) {
+    await row.click();
+    await page.getByRole("button", { name: "Pindah", exact: true }).click();
+    await expect(page).toHaveURL(/\/$/, { timeout: 30_000 });
+    await page.goto("/settings/account/workspaces");
+  }
+  await expect(
+    page
+      .getByRole("row")
+      .filter({ hasText: E2E_WORKSPACE_NAME })
+      .getByText("Aktif"),
+  ).toBeVisible();
+}
