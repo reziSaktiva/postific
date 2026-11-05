@@ -1122,36 +1122,53 @@ async function expectCalendarFillsPopover(page: Page, dlg: Locator) {
   await page.keyboard.press("Escape");
 }
 
-test("S15 T-211: Calendar mengisi popover jadwal dan pemilih Pratinjau tidak menimpa kartu (4 akun)", async ({
+test("S17 T-211: pemilih Pratinjau tidak menimpa kartu (4 akun, desktop)", async ({
   page,
 }) => {
-  track(page, "S15");
+  track(page, "S17");
   await openNewPostFromDrafts(page);
   const dlg = dialog(page);
   await expect(dlg).toBeVisible();
   await pickFirstAccounts(page, dlg, 4);
   await dlg.getByLabel("Caption").fill(`e2e-qa-t211-${STAMP}`);
   await expectPickerClearOfCard(page, 4);
-  await snap(page, "s15-picker-desktop");
-  await expectCalendarFillsPopover(page, dlg);
+  await snap(page, "s17-picker-desktop");
   await dlg.getByRole("button", { name: "Close" }).click();
   await expect(dialog(page)).toHaveCount(0);
 });
 
-test("S15b T-211 375px: Calendar mengisi popover dan pemilih Pratinjau rapi", async ({
+test("S17b T-211 375px: pemilih Pratinjau rapi dengan 4 akun", async ({
   page,
 }) => {
-  track(page, "S15b");
+  track(page, "S17b");
   await page.setViewportSize({ width: 375, height: 812 });
   await openNewPostFromDrafts(page);
   const dlg = dialog(page);
   await expect(dlg).toBeVisible();
   await pickFirstAccounts(page, dlg, 4);
   await dlg.getByLabel("Caption").fill(`e2e-qa-t211-${STAMP}`);
-  await expectCalendarFillsPopover(page, dlg);
   await dlg.getByRole("tab", { name: "Pratinjau" }).click();
   await expectPickerClearOfCard(page, 4);
-  await snap(page, "s15b-picker-375");
+  await snap(page, "s17b-picker-375");
   await dlg.getByRole("button", { name: "Close" }).click();
   await expect(dialog(page)).toHaveCount(0);
 });
+
+// Calendar cukup 1 akun: tidak bergantung pada jumlah akun workspace E2E.
+for (const [name, width] of [
+  ["S17c T-211.1 Calendar mengisi popover jadwal (desktop)", 1280],
+  ["S17d T-211.1 Calendar mengisi popover jadwal (375px)", 375],
+] as const) {
+  test(name, async ({ page }) => {
+    track(page, name.slice(0, 4));
+    await page.setViewportSize({ width, height: 812 });
+    await openNewPostFromDrafts(page);
+    const dlg = dialog(page);
+    await expect(dlg).toBeVisible();
+    await pickFirstAccounts(page, dlg, 1);
+    await expectCalendarFillsPopover(page, dlg);
+    await snap(page, `s17-calendar-${width}`);
+    await dlg.getByRole("button", { name: "Close" }).click();
+    await expect(dialog(page)).toHaveCount(0);
+  });
+}
