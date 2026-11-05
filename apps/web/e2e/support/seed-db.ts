@@ -225,9 +225,20 @@ export async function seedPostStatusFixtures(
       return post.rows[0].id;
     };
 
-    const publishedAt = new Date(now - 1 * DAY);
-    const failedAt = new Date(now - 2 * DAY);
-    const importedAt = new Date(now - 3 * DAY);
+    // Tetap di bulan berjalan (zona WIB) supaya entri selalu tampil di
+    // Calendar bulan ini, bahkan pada tanggal 1 sampai 3.
+    const nowDate = new Date(now);
+    const monthStart = Date.UTC(
+      nowDate.getUTCFullYear(),
+      nowDate.getUTCMonth(),
+      1,
+      8,
+    );
+    const daysAgo = (days: number) =>
+      new Date(Math.min(now, Math.max(now - days * DAY, monthStart)));
+    const publishedAt = daysAgo(1);
+    const failedAt = daysAgo(2);
+    const importedAt = daysAgo(3);
     const publishedPostId = await insertPost({
       status: "published",
       caption: captions.published,
@@ -304,19 +315,31 @@ export async function seedPostStatusFixtures(
 }
 
 /**
- * Hapus semuanya yang disemai (juga sisa run yang terhenti): target dan post
- * berawalan `SEED_CAPTION_PREFIX`, akun berawalan `SEED_HANDLE_PREFIX`. Akun
- * Pinterest dengan id Outstand nyata dikenali lewat handle `SEED_HANDLE_PREFIX`.
- * Mengembalikan jumlah baris yang dihapus.
+ * Hapus data semai. Dengan `stamp`: hanya milik run itu (akhir run). Tanpa
+ * `stamp`: hanya sisa yang lebih tua dari `STALE_AFTER`, supaya run lain di DB
+ * bersama tidak kehilangan fixture yang sedang dipakai. Mengembalikan jumlah
+ * baris yang dihapus.
  */
-export async function cleanupSeedFixtures(): Promise<{
+const STALE_AFTER = "2 hours";
+
+export async function cleanupSeedFixtures(
+  options: { stamp?: string } = {},
+): Promise<{
   posts: number;
   accounts: number;
 }> {
+  const { stamp } = options;
+  const postPattern = `${SEED_CAPTION_PREFIX}${stamp ?? ""}%`;
+  const accountPattern = stamp
+    ? `${SEED_HANDLE_PREFIX}%-${stamp}`
+    : `${SEED_HANDLE_PREFIX}%`;
+  const staleOnly = stamp
+    ? ""
+    : ` AND created_at < now() - interval '${STALE_AFTER}'`;
   return withTx(async (client, { workspaceId }) => {
     const posts = await client.query(
-      "SELECT id FROM publishing_posts WHERE workspace_id = $1 AND caption LIKE $2",
-      [workspaceId, `${SEED_CAPTION_PREFIX}%`],
+      `SELECT id FROM publishing_posts WHERE workspace_id = $1 AND caption LIKE $2${staleOnly}`,
+      [workspaceId, postPattern],
     );
     const ids = posts.rows.map((r: { id: string }) => r.id);
     if (ids.length > 0) {
@@ -330,8 +353,8 @@ export async function cleanupSeedFixtures(): Promise<{
       );
     }
     const accounts = await client.query(
-      "DELETE FROM workspace_connected_accounts WHERE workspace_id = $1 AND handle LIKE $2",
-      [workspaceId, `${SEED_HANDLE_PREFIX}%`],
+      `DELETE FROM workspace_connected_accounts WHERE workspace_id = $1 AND handle LIKE $2${staleOnly}`,
+      [workspaceId, accountPattern],
     );
     return { posts: ids.length, accounts: accounts.rowCount ?? 0 };
   });
