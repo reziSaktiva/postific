@@ -9,7 +9,10 @@ import {
   formatScheduleSummary,
   formatScheduleTriggerLabel,
   getScheduleCalendarBounds,
+  formatScheduleLimitText,
+  formatZoneWithOffset,
   getTimeZoneLabel,
+  getUtcOffsetLabel,
   pickScheduleDate,
 } from "./schedule-label";
 
@@ -140,5 +143,28 @@ describe("pickScheduleDate", () => {
       time: DEFAULT_SCHEDULE_TIME,
     });
     expect(pickScheduleDate(new Date(2026, 10, 5), "25:99").time).toBe("10:00");
+  });
+});
+
+describe("label zona popover jadwal (T-212.2)", () => {
+  const AT = new Date("2026-11-03T07:20:00Z");
+
+  it("selisih UTC dibaca dari Intl, bukan dikodekan per zona", () => {
+    expect(getUtcOffsetLabel(WIB, AT)).toBe("UTC+7");
+    expect(getUtcOffsetLabel("Asia/Makassar", AT)).toBe("UTC+8");
+    expect(getUtcOffsetLabel("Asia/Kolkata", AT)).toBe("UTC+5:30");
+    expect(getUtcOffsetLabel("UTC", AT)).toMatch(/^UTC(\+0)?$/);
+  });
+
+  it("menulis singkatan dengan selisih; zona tanpa singkatan resmi hanya selisih", () => {
+    expect(formatZoneWithOffset(WIB, AT)).toBe("WIB (UTC+7)");
+    expect(formatZoneWithOffset("Asia/Jayapura", AT)).toBe("WIT (UTC+9)");
+    expect(formatZoneWithOffset("Asia/Singapore", AT)).toBe("UTC+8");
+  });
+
+  it("teks batas memuat tanggal batas dan hari ini lengkap dengan jam", () => {
+    expect(formatScheduleLimitText(AT, WIB, 30)).toBe(
+      "Jadwal maksimal 30 hari ke depan: tanggal setelah 3 Des 2026 dinonaktifkan. Hari ini Sel, 3 Nov, 14:20 WIB.",
+    );
   });
 });

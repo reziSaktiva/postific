@@ -2994,7 +2994,7 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 - Query "Terakhir dipakai": tidak ada `EXPLAIN`. Indeks `PublishingPost` tidak punya `(workspaceId, createdAt desc)`, jadi `orderBy createdAt desc` memindai post workspace (linear). Menambah indeks adalah perubahan skema, belum diputuskan (keputusan King Rezi).
 - Browser hanya dengan satu akun Instagram aktif: popover dengan banyak platform, akun Disconnected, dan chip peringatan hanya terbukti di jsdom (`DraftEditorForm.screens.test.tsx`).
-- Tampilan visual popover dan chip (terang dan 375px) belum diperiksa satu per satu; mode gelap popover tercakup S16.
+- Tampilan visual popover dan chip (terang dan 375px) belum diperiksa satu per satu; mode gelap popover tercakup S16. _Review manual King Rezi 2026-11-05, PR 257:_ popover Channels di mode gelap "sudah sesuai" (diamati manual di browser, bukan diukur dan bukan tes otomatis; hanya butir popover Channels mode gelap, bukan terang, 375px, chip, atau Disconnected).
 
 **Blocked by:** T-199
 
@@ -3193,7 +3193,7 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 - [ ] **T-207.4** QA Najwa lolos (termasuk RBAC per peran, Disconnected, Reel dengan gambar, jadwal di batas 30 hari, Edit Draft dengan akun, format, dan opsi Pinterest terisi dari data tersimpan, status read-only `Published`/`Failed`/`Imported` sesuai T-091, dan post `Scheduled` sama seperti sebelum redesain).
 - [ ] **T-207.5** `typecheck`, `lint`, dan tes hijau. Status T-199 sampai T-206 menjadi Done (code).
 - [ ] **T-207.6** Verified (staging) satu kali per gelombang (ADR-153): verifikasi King Rezi di staging; tanpa akun media sosial nyata untuk post Scheduled sebelum T-195 selesai.
-- [ ] **T-207.7** Pastikan baseline `product-discovery/04-ux/` (KSP-05, KSP-D02, NP-D11) masih sesuai hasil akhir; selisih dilaporkan ke King Rezi, bukan diubah diam-diam.
+- [ ] **T-207.7** Pastikan baseline `product-discovery/04-ux/` (KSP-05, KSP-D02, NP-D11) masih sesuai hasil akhir; selisih dilaporkan ke King Rezi, bukan diubah diam-diam. _Catatan 2026-11-05 (keputusan King Rezi atas review PR 257):_ baseline KSP-05-F14 dan KSP-D02 diselaraskan ke pemilih Pratinjau `Select` lewat ADR-156 (NP-D11 tidak berubah); galeri desain (artifact Postific) sedang diperbarui Neymar. Butir tetap terbuka sampai selisih lain (penutupan sidebar di Fullscreen, footer "Atur jadwal" saat kosong) dikonfirmasi.
 
 **Bukti QA staging (2026-11-03, setelah PR 250 dan deploy `0b7ac823`):** Najwa menyusun spesifikasi `apps/web/e2e/draft-editor.e2e.ts` (dimuat PR ini; 13 tes: 1 setup login + 12 skenario S1-S10 termasuk S7b, S8a, S8b) terhadap staging: 13 passed (Najwa 42s; sesi utama menjalankan berkas yang sama dua kali, 41s dan 53s setelah perbaikan review). Cakupan: New Post dari Drafts, toggle Fullscreen/Standard tidak dipersist, upload dan hapus media dengan dialog konfirmasi, Save as Draft, Edit Draft tanpa dialog Resume, Resume/Mulai Baru, validasi Schedule/Publish Now, ringkasan konfirmasi (Batal, tanpa eksekusi), layar 375px tanpa overflow halaman/dialog, mode gelap tanpa elemen kontras <3, jalur sidebar dari Calendar, pembersihan draft e2e-qa. Screenshot di `apps/web/test-results/draft-editor`. Ini mengisi sebagian T-207.1 (golden path; Pratinjau, jadwal popover, dan Pinterest belum ada karena T-201 sampai T-205 belum dikerjakan); T-207.1 belum dicentang.
 
@@ -3225,7 +3225,7 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 - **QA Najwa (T-207.4), lolos:** RBAC Admin; Reel gambar dan video; jadwal batas 30 hari per jam; Edit Draft (akun, format Story, media); `Imported` read-only; post `Scheduled` setara pra-redesain (dari kode dan perilaku); Pratinjau Instagram dan keadaan kosong; baris channel; Quick Compose; Resume; Fullscreen; layar 375px; mode gelap (editor, popover, Calendar).
 - **QA Najwa, TIDAK TERUJI (data Sandbox hanya satu akun Instagram):** RBAC Owner dan Creator di browser; akun Disconnected; `Published` dan `Failed` read-only di browser; opsi Pinterest tersimpan; Pratinjau TikTok, Pinterest, Facebook, dan generik; mode gelap Pinterest dan TikTok. Karena itu T-207.4 tidak dicentang.
 
-**Butir keputusan King Rezi (selisih kecil dari artifact desain, belum diubah, desain dan kode tidak disentuh):**
+**Butir keputusan King Rezi (selisih kecil dari artifact desain; keputusan 2026-11-05: kode diselaraskan ke rancangan, dikerjakan di T-212):**
 
 1. Pesan Reel dengan gambar lebih panjang dari rancangan.
 2. Label zona waktu tampil "WIB (Asia/Jakarta)", rancangan "(UTC+7)".
@@ -3233,9 +3233,19 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 4. Reel tanpa media memakai banner generik.
 5. Pesan Reel nonaktif belum memakai `aria-describedby`.
 
+**Review manual King Rezi (2026-11-05, PR 257, gelombang 7):** King Rezi menyatakan "sudah sesuai" untuk (1) pemilih Pratinjau 4 akun di desktop dan 375px (T-211.4), (2) popover jadwal di terang, gelap, dan 375px (T-211.1), (3) popover Channels di mode gelap (T-201). Bukti ini manual di browser, bukan E2E (S17 dan S17b tetap ter-skip) dan bukan pengukuran. Belum direview dan tetap terbuka: akun Disconnected, Pinterest dan YouTube, RBAC Owner dan Creator, status read-only dan `Scheduled`. T-207.4, T-207.5, T-207.6 tidak dicentang; tidak ada perubahan status Done (code) atau Verified (staging) (ADR-153).
+
+**Keputusan King Rezi (2026-11-05) atas review PR 257:**
+
+1. Lima butir keputusan di atas: "kalau belum sesuai harus disesuaikan lagi", artinya kode diselaraskan ke rancangan artifact. Dikerjakan di T-212 (teks persis rancangan diisi dari laporan Neymar).
+2. Urutan akun berbalik setelah Edit Draft dipulihkan (Instagram lalu Facebook menjadi Facebook lalu Instagram): **diterima** King Rezi sebagai perilaku, tanpa tiket.
+3. Pemilih Pratinjau `Select` dicatat di baseline lewat ADR-156 (lihat T-207.7). Galeri desain diperbarui Neymar.
+4. Review 2026-11-04: King Rezi menyatakan temuannya sudah dikerjakan dan sesuai (T-211). Tidak ada Known Issue terbuka dari review itu dan tidak ada KI baru.
+5. T-195.3 (Retry post terjadwal masa depan): diputuskan **tolak** (lihat `known-issues.md`, T-195.3).
+
 **T-207.5, T-207.6, T-207.7** tetap terbuka. Status T-199 sampai T-206 menjadi Done (code) hanya bila semua butirnya terbukti, keputusan King Rezi. T-207 tetap In Progress.
 
-**Belum terbukti:** (1) T-207.2 perlu hasil di deskripsi PR; (2) T-207.3 dan T-207.4 milik koordinator; (3) Pratinjau TikTok, Pinterest, kartu generik, blok Pinterest, dan akordeon lebih dari satu akun tidak diuji E2E; (4) Reel dengan video asli, akun Disconnected, RBAC per peran, dan post `Scheduled`, `Published`, `Failed`, `Imported` tidak diuji E2E; (5) mode gelap untuk popover jadwal, Calendar, Pinterest dan TikTok tidak dipindai; (6) Close pada Edit Draft membuang perubahan (KSP-05-F10) belum ditegaskan; (7) butir T-201, T-202, T-203, T-204, T-205, T-206 yang masih tidak dicentang belum punya bukti tes, sehingga status belum Done (code); (8) T-207.7: tidak ada selisih terdeteksi untuk KSP-05, KSP-D02, NP-D11 pada hal yang diuji (Standard 1120px, Fullscreen penuh viewport, toggle tidak dipersist, Resume hanya New Post, dua zona dengan Pratinjau kanan); penutupan sidebar di Fullscreen dan footer "Atur jadwal" saat kosong tidak ditegaskan eksplisit, menunggu King Rezi.
+**Belum terbukti:** (1) T-207.2 perlu hasil di deskripsi PR; (2) T-207.3 dan T-207.4 milik koordinator; (3) Pratinjau TikTok, Pinterest, kartu generik, blok Pinterest, dan akordeon lebih dari satu akun tidak diuji E2E; (4) Reel dengan video asli, akun Disconnected, RBAC per peran, dan post `Scheduled`, `Published`, `Failed`, `Imported` tidak diuji E2E; (5) mode gelap untuk popover jadwal, Calendar, Pinterest dan TikTok tidak dipindai (popover jadwal di gelap, terang, dan 375px dan popover Channels di gelap sudah "sesuai" menurut review manual King Rezi 2026-11-05, PR 257: diamati manual, bukan dipindai atau diukur; Calendar, Pinterest, TikTok tetap tidak dipindai); (6) Close pada Edit Draft membuang perubahan (KSP-05-F10) belum ditegaskan; (7) butir T-201, T-202, T-203, T-204, T-205, T-206 yang masih tidak dicentang belum punya bukti tes, sehingga status belum Done (code); (8) T-207.7: tidak ada selisih terdeteksi untuk KSP-05, KSP-D02, NP-D11 pada hal yang diuji (Standard 1120px, Fullscreen penuh viewport, toggle tidak dipersist, Resume hanya New Post, dua zona dengan Pratinjau kanan); penutupan sidebar di Fullscreen dan footer "Atur jadwal" saat kosong tidak ditegaskan eksplisit, menunggu King Rezi.
 
 **Blocked by:** T-206
 
@@ -3314,12 +3324,12 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 **What to build:** popover jadwal yang kalendernya mengisi lebar dan persis sama dengan rancangan; serta pemilih Pratinjau per akun yang rapi di 1 sampai banyak akun, termasuk dua akun dengan platform sama, di Standard, Fullscreen, dan 375px.
 
-- [x] **T-211.1** `Done (code)` Calendar mengisi lebar popover jadwal. Popover selebar 336px seperti rancangan (`.de2-sched`, setara `w-84`, tanpa nilai arbitrer) dan `Calendar` dengan `root` selebar kontainer sehingga 7 kolom mengisi lebar. Tampilan harus **persis sama dengan artifact** (permintaan King Rezi). Periksa di terang dan gelap, dan di layar sempit (`max-w-[calc(100vw-1rem)]` seperti rancangan). Gate rancangan: sudah ada di artifact; yang diubah hanya kode.
+- [x] **T-211.1** `Done (code)` Calendar mengisi lebar popover jadwal. _Review manual King Rezi 2026-11-05, PR 257:_ popover jadwal "sudah sesuai" di terang, gelap, dan 375px (diamati manual, bukan diukur, bukan E2E). Popover selebar 336px seperti rancangan (`.de2-sched`, setara `w-84`, tanpa nilai arbitrer) dan `Calendar` dengan `root` selebar kontainer sehingga 7 kolom mengisi lebar. Tampilan harus **persis sama dengan artifact** (permintaan King Rezi). Periksa di terang dan gelap, dan di layar sempit (`max-w-[calc(100vw-1rem)]` seperti rancangan). Gate rancangan: sudah ada di artifact; yang diubah hanya kode.
 - [x] **T-211.2** **Keputusan King Rezi (2026-11-04): `Select`** (opsi B). Dropdown shadcn `Select` dengan ikon platform dan handle di tiap item menggantikan `Tabs`; alasan: handle selalu terbaca untuk akun satu platform dan tidak ada baris yang membungkus. Opsi yang tidak dipilih dan perbandingannya ada di bawah.
 - [x] **T-211.3** Selesai (Neymar, dikonfirmasi King Rezi di galeri). Perbarui artifact desain Postific (Neymar, wajib baca `claude-design-scope-discipline` dulu, jangan mengubah default atau state lain): ganti pola pemilih Pratinjau di kartu `ScreenDraftEditorRedesain` sesuai keputusan T-211.2, dan perbaiki tinggi `TabsList` bila Tabs tetap dipakai. Konfirmasi King Rezi di galeri "Postific Design Review" sebelum kode.
-- [x] **T-211.4** `Done (code)` Terapkan pola terpilih di `PreviewPanel.tsx` (cek `apps/web/src/components/ui/` dulu; bila komponen belum ada, ikuti workflow shadcn discover-first). Judul header tetap menampilkan platform dan format akun aktif; `resolveActivePreviewAccountId` tidak berubah.
+- [x] **T-211.4** `Done (code)` Terapkan pola terpilih di `PreviewPanel.tsx` (cek `apps/web/src/components/ui/` dulu; bila komponen belum ada, ikuti workflow shadcn discover-first). Judul header tetap menampilkan platform dan format akun aktif; `resolveActivePreviewAccountId` tidak berubah. _Review manual King Rezi 2026-11-05, PR 257:_ pemilih Pratinjau dengan 4 akun "sudah sesuai" di desktop dan 375px, tidak menimpa kartu Pratinjau (diamati manual; E2E S17 dan S17b tetap ter-skip, jadi bukan bukti E2E).
 - [x] **T-211.5** `Done (code), belum dijalankan` Tes (S17 dan S17b pemilih 4 akun, S17c dan S17d Calendar dengan 1 akun, di `draft-editor.e2e.ts`; unit T-203.1 diubah ke Select): E2E menegaskan pemilih tidak menimpa kartu Pratinjau (kotak pemilih dan kartu tidak beririsan) dengan 4 akun, dan kolom hari Calendar mengisi lebar popover; unit bila ada logika murni baru. Tambah ke `draft-editor.e2e.ts`, jangan mempublikasikan ke akun nyata.
-- [ ] **T-211.6** `typecheck`, `lint`, tes hijau; verifikasi di browser (terang, gelap, 375px) dan E2E tiga run hijau di `local`.
+- [ ] **T-211.6** `typecheck`, `lint`, tes hijau; verifikasi di browser (terang, gelap, 375px) dan E2E tiga run hijau di `local`. (Verifikasi browser sudah ada lewat review manual King Rezi 2026-11-05, PR 257, lihat Belum terbukti; E2E tiga run hijau belum, S17 dan S17b ter-skip, sehingga butir ini tetap terbuka.)
 
 **Pilihan komponen pemilih Pratinjau (T-211.2), rekomendasi saya:**
 
@@ -3331,9 +3341,40 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 Alasan A: pemilih ini hanya mengganti kartu yang ditampilkan, bukan berpindah antar panel isi, jadi semantik `Tabs` tidak terlalu penting; ikon tidak pernah membungkus baris sehingga masalah tumpang tindih hilang. Bila King Rezi memprioritaskan keterbacaan handle untuk akun satu platform, pilih B.
 
-**Belum terbukti (diperbarui 2026-11-05, gelombang 7 jalur A):** (1) E2E S17, S17b, S17c, S17d belum pernah dijalankan: worktree tidak punya `apps/web/.env.local` (pembacaan secret ditolak aturan proteksi), sehingga `next dev` gagal `DATABASE_URL is required`. Tiga run hijau di `local` (T-211.6) menunggu env. (2) Tampilan di browser (terang, gelap, 375px) belum dilihat; Calendar yang mengisi lebar popover dan Select tanpa tumpang tindih baru terbukti lewat typecheck, lint, dan unit (278 hijau), bukan lewat pengukuran. (3) Pemilih Pratinjau tidak beririsan dengan kartu belum terbukti oleh E2E di browser: S17 dan S17b melewatkan diri (`test.skip`) karena workspace E2E hanya punya 1 akun Instagram dan butuh workspace dengan 4 akun atau lebih (jsdom tidak punya layout, jadi tes unit tidak membuktikan tata letak). QA manual Najwa 2026-11-05 di workspace 4 akun melihat `Select` 3 opsi bergantian benar di desktop dan 375px (pengamatan, bukan pengukuran); Calendar (S17c, S17d) cukup 1 akun dan harus dibuktikan di browser; memilih akun di form tidak memublikasikan apa pun. (4) Batas lebar memakai `max-w-(--radix-popover-content-available-width)` (bukan `calc(100vw-1rem)` rancangan, karena lint melarang nilai arbitrer); setara dengan `collisionPadding` 8, belum diukur di 375px. (5) Sisa daftar lama: perilaku Select dengan lebih dari 6 akun, dan persis-sama dengan artifact hanya terukur lewat tampilan (artifact memakai grid buatan sendiri).
+**Belum terbukti (diperbarui 2026-11-05, gelombang 7 jalur A):** (1) E2E S17, S17b, S17c, S17d belum pernah dijalankan: worktree tidak punya `apps/web/.env.local` (pembacaan secret ditolak aturan proteksi), sehingga `next dev` gagal `DATABASE_URL is required`. Tiga run hijau di `local` (T-211.6) menunggu env. (2) ~~Tampilan di browser (terang, gelap, 375px) belum dilihat~~ Tercakup review manual King Rezi 2026-11-05, PR 257 ("sudah sesuai"): popover jadwal di terang, gelap, dan 375px; pemilih Pratinjau 4 akun di desktop dan 375px, tidak menimpa kartu. Ini pengamatan manual, bukan pengukuran dan bukan E2E; sebelumnya hanya terbukti lewat typecheck, lint, dan unit (278 hijau). (3) Pemilih Pratinjau tidak beririsan dengan kartu belum terbukti oleh E2E di browser (secara manual sudah sesuai menurut King Rezi 2026-11-05, lihat (2)): S17 dan S17b melewatkan diri (`test.skip`) karena workspace E2E hanya punya 1 akun Instagram dan butuh workspace dengan 4 akun atau lebih (jsdom tidak punya layout, jadi tes unit tidak membuktikan tata letak). QA manual Najwa 2026-11-05 di workspace 4 akun melihat `Select` 3 opsi bergantian benar di desktop dan 375px (pengamatan, bukan pengukuran); Calendar (S17c, S17d) cukup 1 akun dan harus dibuktikan di browser; memilih akun di form tidak memublikasikan apa pun. (4) (Pengamatan manual King Rezi di 375px sesuai, 2026-11-05; tetap belum diukur.) Batas lebar memakai `max-w-(--radix-popover-content-available-width)` (bukan `calc(100vw-1rem)` rancangan, karena lint melarang nilai arbitrer); setara dengan `collisionPadding` 8, belum diukur di 375px. (5) Sisa daftar lama: perilaku Select dengan lebih dari 6 akun, dan persis-sama dengan artifact hanya terukur lewat tampilan (artifact memakai grid buatan sendiri).
 
 **Blocked by:** T-211.3 (konfirmasi rancangan King Rezi) untuk T-211.4 sampai T-211.6; T-211.1 tidak terblokir.
+
+---
+
+### T-212 · Draft Editor: align five small UI differences to the design artifact (T-207 King Rezi decision items)
+
+| Field       | Value                                                                                                                                                                     |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**  | ⏳ Not Started                                                                                                                                                            |
+| **Mode**    | AFK                                                                                                                                                                       |
+| **Domain**  | draft editor · UI (UI/UX-related)                                                                                                                                         |
+| **Spec**    | S-005 (keputusan King Rezi 2026-11-05 atas review PR 257, butir keputusan T-207)                                                                                          |
+| **Docs**    | ADR-155, ADR-107, ADR-097, ADR-140, KSP-05-F11 dan F16, `apps/web/.claude/CLAUDE.md`, artifact Postific (kartu `ScreenDraftEditorRedesain`), T-207 (lima butir keputusan) |
+| **Depends** | T-211                                                                                                                                                                     |
+
+**Gate rancangan (UI/UX-related, `AGENTS.md` aturan 10):** rancangan sudah ada di artifact Postific dan dikonfirmasi King Rezi. Bila sebuah butir ternyata ambigu (lebih dari satu pola valid dan rancangan tidak mengunci), **STOP** dan tanya King Rezi lewat `AskUserQuestion`; jangan menebak. Teks persis rancangan diisi dari laporan Neymar (belum ada saat tiket ini ditulis); jangan menulis teks tebakan.
+
+**Keputusan King Rezi (2026-11-05):** lima selisih kecil di T-207 ("kalau belum sesuai harus disesuaikan lagi") harus diselaraskan ke rancangan, bukan rancangan ke kode.
+
+**What to build:** lima butir tampilan di Draft Editor yang kodenya masih berbeda dari artifact desain.
+
+- [ ] **T-212.1** Pesan Reel dengan gambar (Reel nonaktif karena media bukan video) memakai teks persis rancangan; kode saat ini lebih panjang dari rancangan. Teks: _(diisi dari laporan Neymar)_.
+- [ ] **T-212.2** Label zona waktu di popover jadwal tampil "(UTC+7)" sesuai rancangan, bukan "WIB (Asia/Jakarta)". Tetap mengikuti zona waktu pengguna (ADR-146); hanya format label yang berubah. Format persis: _(diisi dari laporan Neymar)_.
+- [ ] **T-212.3** Hilangkan teks "(ADR-107)" dari teks bantuan unggah di UI; rujukan ADR tidak boleh tampil ke pengguna. Teks bantuan persis rancangan: _(diisi dari laporan Neymar)_.
+- [ ] **T-212.4** Reel tanpa media memakai banner sesuai rancangan, bukan banner generik. Teks dan gaya banner: _(diisi dari laporan Neymar)_. Bila rancangan tidak mengunci bentuknya, tanya King Rezi.
+- [ ] **T-212.5** Pesan Reel nonaktif memakai `aria-describedby` yang menunjuk ke elemen pesan, sehingga alasan nonaktif terbaca pembaca layar.
+- [ ] **T-212.6** Tes: unit/komponen (`DraftEditorForm.screens.test.tsx` dan sejenis) menegaskan teks butir 1 sampai 4 dan `aria-describedby` butir 5; E2E di `draft-editor.e2e.ts` bila butir terjangkau tanpa mempublikasikan ke akun nyata.
+- [ ] **T-212.7** `typecheck`, `lint`, tes hijau; verifikasi di browser (terang, gelap, 375px) bahwa kelima butir sama dengan artifact.
+
+**Belum terbukti:** teks persis rancangan belum diisi (menunggu laporan Neymar); tidak ada kode yang diubah saat tiket ini ditulis. Status Done (code) dan Verified (staging) mengikuti ADR-153.
+
+**Blocked by:** T-211
 
 ---
 

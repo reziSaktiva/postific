@@ -87,6 +87,67 @@ export function getTimeZoneLabel(timeZone: string, at: Date): string {
   }
 }
 
+/**
+ * Selisih zona terhadap UTC untuk label popover jadwal (T-212.2), mis.
+ * "UTC+7" atau "UTC+5:30". Dibaca dari Intl pada saat `at`, bukan dikodekan
+ * per zona. Offset nol bisa "UTC" atau "UTC+0" tergantung Intl; nama IANA bila Intl gagal.
+ */
+export function getUtcOffsetLabel(timeZone: string, at: Date): string {
+  try {
+    const raw = getZonedFormatter(
+      "en-US",
+      { timeZoneName: "shortOffset" },
+      timeZone,
+    )
+      .formatToParts(at)
+      .find((part) => part.type === "timeZoneName")?.value;
+    if (!raw) {
+      return timeZone;
+    }
+    // Intl memberi "GMT+7", "GMT+5:30", atau "GMT" (offset nol).
+    return raw.replace(/^GMT/, "UTC");
+  } catch {
+    return timeZone;
+  }
+}
+
+/** Zona untuk deskripsi popover: "WIB (UTC+7)". */
+export function formatZoneWithOffset(timeZone: string, at: Date): string {
+  const abbreviation = getTimeZoneLabel(timeZone, at);
+  const offset = getUtcOffsetLabel(timeZone, at);
+  // Zona tanpa singkatan resmi sudah berbentuk offset (mis. "GMT+8").
+  return /^(GMT|UTC)/.test(abbreviation)
+    ? offset
+    : `${abbreviation} (${offset})`;
+}
+
+/**
+ * Teks batas di popover jadwal (T-212.2): "Jadwal maksimal 30 hari ke depan:
+ * tanggal setelah 3 Des 2026 dinonaktifkan. Hari ini Sel, 3 Nov, 14:20 WIB."
+ */
+export function formatScheduleLimitText(
+  now: Date,
+  timeZone: string,
+  maxDaysAhead: number,
+): string {
+  const { minKey, maxKey } = getScheduleCalendarBounds(now, timeZone);
+  const maxParts = parseDateKey(maxKey);
+  const todayParts = parseDateKey(minKey);
+  if (!maxParts || !todayParts) {
+    return `Jadwal maksimal ${maxDaysAhead} hari ke depan.`;
+  }
+  const maxMonth = SHORT_DATE_FORMATTER.formatToParts(
+    new Date(Date.UTC(maxParts.year, maxParts.month, maxParts.day)),
+  ).find((part) => part.type === "month")?.value;
+  const time = getZonedFormatter(
+    "en-GB",
+    { hour: "2-digit", minute: "2-digit", hourCycle: "h23" },
+    timeZone,
+  ).format(now);
+  const zone = getTimeZoneLabel(timeZone, now);
+  return `Jadwal maksimal ${maxDaysAhead} hari ke depan: tanggal setelah ${maxParts.day} ${maxMonth} ${maxParts.year} dinonaktifkan. Hari ini ${formatShortDate(todayParts, false)}, ${time} ${zone}.`;
+}
+
 function labelInstant(
   date: string,
   time: string | undefined,

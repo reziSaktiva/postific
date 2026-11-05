@@ -2,7 +2,7 @@ import { Alert02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import NextLink from "next/link";
 
-import { ContentFormat, SocialPlatform } from "@postific/shared";
+import { ContentFormat, MediaType, SocialPlatform } from "@postific/shared";
 
 import { PLATFORM_ICON } from "@/app/(app)/components/platform-icons";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -142,6 +142,7 @@ export function NetworkBlockBody({
   const formats = getSelectableFormats(account.platform);
   const format = currentFormat ?? getDefaultFormat(account.platform);
   const formatLabelId = `${checkboxId}-format-label`;
+  const reelReasonId = `${checkboxId}-format-reel-reason`;
 
   // Teks nonaktif Reel (T-200) ditampilkan sekali di bawah radio, kecuali
   // Reel sedang terpilih: saat itu pesan yang sama sudah tampil sebagai banner.
@@ -150,6 +151,15 @@ export function NetworkBlockBody({
     : null;
   const showReelReason =
     reelState?.disabled === true && format !== ContentFormat.Reel;
+
+  // Teks rancangan (T-212.1) untuk media gambar; untuk sebab lain (mis. lebih
+  // dari satu video) tetap alasan dari domain, karena teks gambar akan salah.
+  const hasNonVideoMedia = mediaItems.some(
+    (item) => item.type !== MediaType.Video,
+  );
+  const reelDisabledText = hasNonVideoMedia
+    ? "Reel nonaktif karena media berupa gambar. Reel membutuhkan video."
+    : `Reel nonaktif. ${reelState?.reason}`;
 
   return (
     // eslint-disable-next-line no-restricted-syntax -- T-102: padanan Astryx VStack, murni Tailwind flex.
@@ -166,9 +176,17 @@ export function NetworkBlockBody({
         </Alert>
       ) : null}
 
-      {issues.map((issue) => (
-        <ValidationBanner key={issue.code} message={issue.message} />
-      ))}
+      {issues.map((issue) =>
+        issue.code === "reel-requires-video" ? (
+          // T-212.1: rancangan memakai banner destructive (hanya judul) untuk Reel dengan media bukan video.
+          <Alert key={issue.code} variant="destructive" role="status">
+            <HugeiconsIcon icon={Alert02Icon} strokeWidth={2} />
+            <AlertTitle>{issue.message}</AlertTitle>
+          </Alert>
+        ) : (
+          <ValidationBanner key={issue.code} message={issue.message} />
+        ),
+      )}
 
       {formats ? (
         // eslint-disable-next-line no-restricted-syntax -- T-202: baris label+radio, murni Tailwind flex.
@@ -196,6 +214,11 @@ export function NetworkBlockBody({
                       value={option}
                       id={radioId}
                       disabled={state.disabled}
+                      aria-describedby={
+                        option === ContentFormat.Reel && showReelReason
+                          ? reelReasonId
+                          : undefined
+                      }
                     />
                   }
                 >
@@ -205,8 +228,8 @@ export function NetworkBlockBody({
             })}
           </RadioGroup>
           {showReelReason ? (
-            <FieldDescription>
-              Reel nonaktif. {reelState?.reason}
+            <FieldDescription id={reelReasonId}>
+              {reelDisabledText}
             </FieldDescription>
           ) : null}
         </div>

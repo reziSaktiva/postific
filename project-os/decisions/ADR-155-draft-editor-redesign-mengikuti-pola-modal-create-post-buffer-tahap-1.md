@@ -6,7 +6,7 @@ Redesain Draft Editor Mengikuti Pola Modal Create Post Buffer, Tahap 1: Tata Let
 
 ### Status
 
-**Accepted** (keputusan King Rezi, 2026-11-03). Rancangan dikonfirmasi King Rezi 2026-11-03; kode boleh dikerjakan lewat tiket (T-199 sampai T-207, spec S-005). Addendum konfirmasi ada di bagian paling bawah file ini; Reel wajib video mengamandemen ADR-154.
+**Accepted — Amended by ADR-156 (2026-11-05)** (pemilih Pratinjau per akun berupa `Select`, bukan `Tabs`) (keputusan King Rezi, 2026-11-03). Rancangan dikonfirmasi King Rezi 2026-11-03; kode boleh dikerjakan lewat tiket (T-199 sampai T-207, spec S-005). Addendum konfirmasi ada di bagian paling bawah file ini; Reel wajib video mengamandemen ADR-154.
 
 ### Date
 

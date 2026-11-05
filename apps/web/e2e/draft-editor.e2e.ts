@@ -784,7 +784,16 @@ test("S12 Reel dengan gambar: opsi Reel nonaktif dengan alasan, Publish Now teta
   const del = await uploadPng(dlg, `e2e-qa-${STAMP}-r.png`);
   try {
     await expect(dlg.getByRole("radio", { name: "Reel" })).toBeDisabled();
-    await expect(dlg.getByText(/Reel nonaktif\./)).toBeVisible();
+    await expect(
+      dlg.getByText(
+        "Reel nonaktif karena media berupa gambar. Reel membutuhkan video.",
+      ),
+    ).toBeVisible();
+    await expect(
+      dlg.getByRole("radio", { name: "Reel" }),
+    ).toHaveAccessibleDescription(
+      "Reel nonaktif karena media berupa gambar. Reel membutuhkan video.",
+    );
     await expect(dlg.getByRole("radio", { name: "Post" })).toBeChecked();
     await expect(
       dlg.getByRole("button", { name: "Publish Now", exact: true }),

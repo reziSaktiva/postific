@@ -23,7 +23,9 @@ import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
 
 import {
   dateKeyToCalendarDate,
+  formatScheduleLimitText,
   formatScheduleTriggerLabel,
+  formatZoneWithOffset,
   getScheduleCalendarBounds,
   getTimeZoneLabel,
   pickScheduleDate,
@@ -96,7 +98,8 @@ export function ScheduleSection({
         <PopoverHeader>
           <PopoverTitle>Jadwal publish</PopoverTitle>
           <PopoverDescription>
-            Waktu dibaca di zona waktu Anda: {zoneLabel} ({timeZone}).
+            Waktu dibaca di zona waktu Anda:{" "}
+            {formatZoneWithOffset(timeZone, now)}.
           </PopoverDescription>
         </PopoverHeader>
         <Calendar
@@ -141,8 +144,7 @@ export function ScheduleSection({
           <span className="text-muted-foreground">{zoneLabel}</span>
         </div>
         <p className="text-xs text-muted-foreground">
-          Jadwal maksimal {SCHEDULE_MAX_DAYS_AHEAD} hari ke depan. Tanggal
-          lampau dan tanggal setelah batas tidak bisa dipilih.
+          {formatScheduleLimitText(now, timeZone, SCHEDULE_MAX_DAYS_AHEAD)}
         </p>
         {/* eslint-disable-next-line no-restricted-syntax -- T-205: baris aksi popover, murni Tailwind flex. */}
         <div className="flex items-center justify-between gap-2">

@@ -496,6 +496,81 @@ describe("Editor, media, dan blok jaringan (T-202)", () => {
     );
   });
 
+  it("T-212.1 dan T-212.5 media gambar: Reel nonaktif, teks bantuan menjadi deskripsi radio Reel", async () => {
+    actionMocks.uploadMediaAction.mockResolvedValue({
+      media: {
+        id: "m1",
+        url: "https://cdn.example.test/kopi.png",
+        type: "image",
+        filename: "kopi.png",
+      },
+    });
+    const user = await renderCreate();
+    await pickAccounts(user, "Pilih Instagram kopi_ig");
+    await user.upload(
+      screen.getByLabelText<HTMLInputElement>("Media", {
+        selector: "input[type=file]",
+      }),
+      new File(["x"], "kopi.png", { type: "image/png" }),
+    );
+    await screen.findByRole("button", {
+      name: "Hapus kopi.png secara permanen",
+    });
+
+    const reel = screen.getByRole("radio", { name: "Reel" });
+    expect((reel as HTMLButtonElement).disabled).toBe(true);
+    expect(
+      screen.getByRole("radio", {
+        name: "Reel",
+        description:
+          "Reel nonaktif karena media berupa gambar. Reel membutuhkan video.",
+      }),
+    ).toBe(reel);
+    // Radio lain tidak membawa deskripsi itu.
+    expect(
+      screen
+        .getByRole("radio", { name: "Post" })
+        .hasAttribute("aria-describedby"),
+    ).toBe(false);
+  });
+
+  it("T-212.1 Reel terpilih lalu media gambar: banner destructive memakai teks rancangan", async () => {
+    actionMocks.uploadMediaAction.mockResolvedValue({
+      media: {
+        id: "m1",
+        url: "https://cdn.example.test/kopi.png",
+        type: "image",
+        filename: "kopi.png",
+      },
+    });
+    const user = await renderCreate();
+    await pickAccounts(user, "Pilih Instagram kopi_ig");
+    await user.click(screen.getByRole("radio", { name: "Reel" }));
+    await user.upload(
+      screen.getByLabelText<HTMLInputElement>("Media", {
+        selector: "input[type=file]",
+      }),
+      new File(["x"], "kopi.png", { type: "image/png" }),
+    );
+    expect(
+      await screen.findByText(
+        "Reel membutuhkan satu video. Ganti media dengan video, atau pilih format Post atau Story.",
+      ),
+    ).toBeTruthy();
+    // Teks bantuan tidak diulang saat Reel terpilih (pesan sama sebagai banner).
+    expect(screen.queryByText(/^Reel nonaktif/)).toBeNull();
+  });
+
+  it("T-212.3 teks bantuan unggah tanpa rujukan ADR", async () => {
+    await renderCreate();
+    expect(
+      screen.getByText(
+        "Maks. 10 media untuk format yang sedang dipilih — 50MB per file.",
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByText(/ADR-/)).toBeNull();
+  });
+
   it("T-202.5 banner lintas jaringan di atas editor: lebih dari satu akun Pinterest dan Story dengan caption", async () => {
     const SECOND_PIN = {
       id: "pin2",

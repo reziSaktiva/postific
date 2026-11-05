@@ -140,8 +140,17 @@ describe("EditorFooter: popover Atur jadwal", () => {
 
   it("menampilkan penjelasan zona dan batas 30 hari", async () => {
     const { dialog } = await openPopover();
-    expect(within(dialog).getByText(/WIB \(Asia\/Jakarta\)/)).toBeTruthy();
-    expect(within(dialog).getByText(/maksimal 30 hari/)).toBeTruthy();
+    expect(
+      within(dialog).getByText("Waktu dibaca di zona waktu Anda: WIB (UTC+7)."),
+    ).toBeTruthy();
+    expect(within(dialog).queryByText(/Asia\/Jakarta/)).toBeNull();
+    // Baris Jam hanya memuat singkatan zona setelah input.
+    expect(within(dialog).getByText("WIB")).toBeTruthy();
+    expect(
+      within(dialog).getByText(
+        "Jadwal maksimal 30 hari ke depan: tanggal setelah 3 Des 2026 dinonaktifkan. Hari ini Sel, 3 Nov, 14:20 WIB.",
+      ),
+    ).toBeTruthy();
   });
 
   it("hari lampau dan hari setelah batas 30 hari nonaktif; hari ini dan hari batas masih bisa dipilih", async () => {
