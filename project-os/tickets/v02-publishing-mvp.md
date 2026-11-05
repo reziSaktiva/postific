@@ -3351,28 +3351,35 @@ Alasan A: pemilih ini hanya mengganti kartu yang ditampilkan, bukan berpindah an
 
 | Field       | Value                                                                                                                                                                     |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | ⏳ Not Started                                                                                                                                                            |
+| **Status**  | 🟡 Done (code) untuk T-212.1 sampai T-212.6; T-212.7 (verifikasi browser) belum dijalankan, sehingga tiket belum ✅                                                       |
 | **Mode**    | AFK                                                                                                                                                                       |
 | **Domain**  | draft editor · UI (UI/UX-related)                                                                                                                                         |
 | **Spec**    | S-005 (keputusan King Rezi 2026-11-05 atas review PR 257, butir keputusan T-207)                                                                                          |
 | **Docs**    | ADR-155, ADR-107, ADR-097, ADR-140, KSP-05-F11 dan F16, `apps/web/.claude/CLAUDE.md`, artifact Postific (kartu `ScreenDraftEditorRedesain`), T-207 (lima butir keputusan) |
 | **Depends** | T-211                                                                                                                                                                     |
 
-**Gate rancangan (UI/UX-related, `AGENTS.md` aturan 10):** rancangan sudah ada di artifact Postific dan dikonfirmasi King Rezi. Bila sebuah butir ternyata ambigu (lebih dari satu pola valid dan rancangan tidak mengunci), **STOP** dan tanya King Rezi lewat `AskUserQuestion`; jangan menebak. Teks persis rancangan diisi dari laporan Neymar (belum ada saat tiket ini ditulis); jangan menulis teks tebakan.
+**Gate rancangan (UI/UX-related, `AGENTS.md` aturan 10):** rancangan sudah ada di artifact Postific dan dikonfirmasi King Rezi. Bila sebuah butir ternyata ambigu (lebih dari satu pola valid dan rancangan tidak mengunci), **STOP** dan tanya King Rezi lewat `AskUserQuestion`; jangan menebak. Teks persis rancangan sudah diisi dari laporan Neymar (artifact Postific v37, galeri v14); jangan menulis teks tebakan.
 
 **Keputusan King Rezi (2026-11-05):** lima selisih kecil di T-207 ("kalau belum sesuai harus disesuaikan lagi") harus diselaraskan ke rancangan, bukan rancangan ke kode.
 
 **What to build:** lima butir tampilan di Draft Editor yang kodenya masih berbeda dari artifact desain.
 
-- [ ] **T-212.1** Pesan Reel dengan gambar (Reel nonaktif karena media bukan video) memakai teks persis rancangan; kode saat ini lebih panjang dari rancangan. Teks: _(diisi dari laporan Neymar)_.
-- [ ] **T-212.2** Label zona waktu di popover jadwal tampil "(UTC+7)" sesuai rancangan, bukan "WIB (Asia/Jakarta)". Tetap mengikuti zona waktu pengguna (ADR-146); hanya format label yang berubah. Format persis: _(diisi dari laporan Neymar)_.
-- [ ] **T-212.3** Hilangkan teks "(ADR-107)" dari teks bantuan unggah di UI; rujukan ADR tidak boleh tampil ke pengguna. Teks bantuan persis rancangan: _(diisi dari laporan Neymar)_.
-- [ ] **T-212.4** Reel tanpa media memakai banner sesuai rancangan, bukan banner generik. Teks dan gaya banner: _(diisi dari laporan Neymar)_. Bila rancangan tidak mengunci bentuknya, tanya King Rezi.
-- [ ] **T-212.5** Pesan Reel nonaktif memakai `aria-describedby` yang menunjuk ke elemen pesan, sehingga alasan nonaktif terbaca pembaca layar.
-- [ ] **T-212.6** Tes: unit/komponen (`DraftEditorForm.screens.test.tsx` dan sejenis) menegaskan teks butir 1 sampai 4 dan `aria-describedby` butir 5; E2E di `draft-editor.e2e.ts` bila butir terjangkau tanpa mempublikasikan ke akun nyata.
-- [ ] **T-212.7** `typecheck`, `lint`, tes hijau; verifikasi di browser (terang, gelap, 375px) bahwa kelima butir sama dengan artifact.
+- [x] **T-212.1** Pesan Reel dengan gambar (Reel nonaktif karena media bukan video) memakai teks persis rancangan. Teks bantuan: `Reel nonaktif karena media berupa gambar. Reel membutuhkan video.` Banner destructive (`Alert`, hanya `AlertTitle`): `Reel membutuhkan satu video. Ganti media dengan video, atau pilih format Post atau Story.`
+- [x] **T-212.2** Label zona waktu di popover jadwal mengikuti rancangan, bukan "WIB (Asia/Jakarta)". Tetap mengikuti zona waktu pengguna (ADR-146); hanya format label yang berubah. Teks persis: `Waktu dibaca di zona waktu Anda: WIB (UTC+7).`; baris Jam hanya `WIB`; teks batas `Jadwal maksimal 30 hari ke depan: tanggal setelah {tgl} {bln} {thn} dinonaktifkan. Hari ini {hari, tgl bln}, {jam} WIB.`
+- [x] **T-212.3** Hilangkan "(ADR-107)" dari teks bantuan unggah di UI; rujukan ADR tidak boleh tampil ke pengguna. Teks persis: `Maks. {maxMedia} media untuk format yang sedang dipilih — 50MB per file.` Keputusan King Rezi: dihapus di desain dan kode (artifact Postific v37 dan galeri v14 sudah diperbarui Neymar).
+- [x] **T-212.4** Reel tanpa media: rancangan memakai pesan generik `{Label} tidak bisa dipublish tanpa media. Tambahkan minimal 1 gambar atau video.`; kode sudah sesuai, tidak diubah. Catatan: untuk Instagram Reel bunyi banner tidak menyebut "Reel" (bunyi rancangan).
+- [x] **T-212.5** Radio Reel nonaktif memakai `aria-describedby` yang menunjuk ke teks bantuan, sehingga alasan nonaktif terbaca pembaca layar. Keputusan King Rezi: ditambahkan di kode; rancangan tidak mengunci.
+- [x] **T-212.6** Tes: unit/komponen menegaskan teks butir 1 sampai 4 dan `aria-describedby` butir 5; E2E S12 menegaskan teks baru plus `toHaveAccessibleDescription`. Berkas di bagian Hasil implementasi.
+- [ ] **T-212.7** `typecheck`, `lint`, tes hijau sudah (lihat Hasil implementasi). BELUM: verifikasi di browser (terang, gelap, 375px) bahwa kelima butir sama dengan artifact; belum dijalankan.
 
-**Belum terbukti:** teks persis rancangan belum diisi (menunggu laporan Neymar); tidak ada kode yang diubah saat tiket ini ditulis. Status Done (code) dan Verified (staging) mengikuti ADR-153.
+**Hasil implementasi (Mark, commit `1b8b48d5`):** kode di `NetworkBlock.tsx`, `ScheduleSection.tsx`, `schedule-label.ts` (helper `getUtcOffsetLabel`, `formatZoneWithOffset`, `formatScheduleLimitText`), dan `MediaSection.tsx`. Tes: `DraftEditorForm.screens.test.tsx` (3 tes baru), `EditorFooter.test.tsx`, `schedule-label.test.ts`, E2E S12 di `draft-editor.e2e.ts` (teks baru plus `toHaveAccessibleDescription`). Hasil koordinator: `typecheck`, `lint`, dan 2450 tes unit hijau; E2E `draft-editor.e2e.ts` di local 21 lulus 2 skip (S17, S17b).
+
+**Belum terbukti:**
+
+- T-212.7: verifikasi browser (terang, gelap, 375px) belum dijalankan, sehingga tiket belum ✅.
+- Review `/code-review`, Ridwan, dan QA Najwa untuk gelombang ini tidak dicatat di sesi pencatatan ini; ADR-153 mensyaratkannya untuk Done (code) penuh.
+- Butir keputusan terbuka King Rezi: (a) Reel nonaktif karena lebih dari satu video tetap memakai teks lama "Reel nonaktif. {alasan domain}" (rancangan hanya mencakup media gambar); (b) banner Reel dengan gambar kini `Alert` destructive dengan ikon `Alert02Icon` yang dipertahankan, ada tidaknya ikon di rancangan belum diverifikasi; (c) E2E tidak menegaskan tampilan visual banner.
+- Verified (staging) mengikuti ADR-153.
 
 **Blocked by:** T-211
 
