@@ -123,6 +123,7 @@ export function ScheduleSection({
             onScheduleTimeChange(next.time);
           }}
           className="p-0"
+          // Menimpa `w-fit` bawaan Calendar agar 7 kolom mengisi popover (T-211.1).
           classNames={{ root: "w-full" }}
         />
         {/* eslint-disable-next-line no-restricted-syntax -- T-205: baris jam popover, murni Tailwind flex. */}

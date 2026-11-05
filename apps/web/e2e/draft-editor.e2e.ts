@@ -844,24 +844,27 @@ test("S14 popover Channels dengan data nyata: pencarian, status koneksi, Hubungk
   const rows = popover
     .getByRole("list", { name: "Daftar akun" })
     .getByRole("listitem");
-  await expect(rows).toHaveCount(1, { timeout: 15_000 });
-  await expect(rows.first()).toContainText("Instagram");
+  await expect(rows.first()).toBeVisible({ timeout: 15_000 });
+  // Jumlah akun mengikuti workspace E2E (tidak dikunci ke satu akun).
+  const total = await rows.count();
+  expect(total).toBeGreaterThanOrEqual(1);
   await expect(rows.first()).toContainText("Terhubung");
+  const rowTexts = await rows.allInnerTexts();
   await expect(
     popover.getByRole("link", { name: "Hubungkan akun" }),
   ).toHaveAttribute("href", "/settings/connected-accounts");
-  await expect(popover.getByText("Pilih semua (1)")).toBeVisible();
+  await expect(popover.getByText(`Pilih semua (${total})`)).toBeVisible();
   await snap(page, "s14-channels-popover");
 
   // Pencarian menyaring dengan data nyata.
   await popover.getByLabel("Cari akun").fill("zzz-tidak-ada");
   await expect(popover.getByText("Tidak ada akun yang cocok.")).toBeVisible();
   await popover.getByLabel("Cari akun").fill("");
-  await expect(rows).toHaveCount(1);
+  await expect(rows).toHaveCount(total);
 
   // Pilih semua lalu batalkan.
   await popover.getByRole("checkbox", { name: /Pilih semua/ }).check();
-  await expect(popover.getByText("1 dipilih")).toBeVisible();
+  await expect(popover.getByText(`${total} dipilih`)).toBeVisible();
   await popover.getByRole("checkbox", { name: /Pilih semua/ }).uncheck();
   await expect(popover.getByText("0 dipilih")).toBeVisible();
   await page.keyboard.press("Escape");
@@ -870,12 +873,18 @@ test("S14 popover Channels dengan data nyata: pencarian, status koneksi, Hubungk
   // "Terakhir dipakai" datang dari query baca ke DB (T-201.2): pintasan hanya
   // muncul bila workspace punya post dengan akun tujuan.
   const lastUsed = dlg.getByRole("button", {
-    name: /^Terakhir dipakai \(1\)$/,
+    name: /^Terakhir dipakai \(\d+\)$/,
   });
   await expect(lastUsed).toBeVisible({ timeout: 15_000 });
+  const usedCount = Number(/\((\d+)\)/.exec(await lastUsed.innerText())![1]);
   await lastUsed.click();
-  await expect(dlg.getByTestId("channel-chip")).toHaveCount(1);
-  await expect(dlg.getByTestId("channel-chip")).toContainText(/\S/);
+  const chips = dlg.getByTestId("channel-chip");
+  await expect(chips).toHaveCount(usedCount);
+  // Tiap chip adalah akun yang ada di daftar workspace (bukan sekadar teks).
+  for (const chipText of await chips.allInnerTexts()) {
+    expect(chipText.trim()).not.toBe("");
+    expect(rowTexts.some((t) => t.includes(chipText.trim()))).toBe(true);
+  }
   await snap(page, "s14-last-used");
   await dlg.getByRole("button", { name: "Close" }).click();
   await expect(dialog(page)).toHaveCount(0);
@@ -891,12 +900,16 @@ test("S15 Quick Compose dari sidebar: akun yang di-hover sudah terpilih dan ters
   // Baris akun di sidebar (sebelum modal terbuka, test id ini milik sidebar).
   const sidebarRow = page.getByTestId("channel-row").first();
   await expect(sidebarRow).toBeVisible({ timeout: 15_000 });
-  const handle = (await sidebarRow.getByText(/\S/).first().innerText()).trim();
   await sidebarRow.hover();
-  await page
+  const quick = page
     .getByRole("button", { name: /^Buat post baru untuk / })
-    .first()
-    .click();
+    .first();
+  // Handle diambil dari nama tombol (aria-label), bukan dari teks pertama baris.
+  const handle = ((await quick.getAttribute("aria-label")) ?? "")
+    .replace(/^Buat post baru untuk /, "")
+    .trim();
+  expect(handle).not.toBe("");
+  await quick.click();
   const dlg = dialog(page);
   await expect(dlg.getByRole("heading", { name: "New Post" })).toBeVisible();
   // Tanpa dialog Resume dan tanpa pintasan; akun sudah menjadi chip.
@@ -1076,7 +1089,7 @@ async function expectPickerClearOfCard(page: Page, optionCount: number) {
   for (let i = 0; i < optionCount; i++) {
     await picker.click();
     await page.getByRole("option").nth(i).click();
-    const card = preview.locator('section [aria-label^="Pratinjau "]').first();
+    const card = preview.getByLabel(/^Pratinjau /).first();
     await expect(card).toBeVisible();
     const p = (await picker.boundingBox())!;
     const c = (await card.boundingBox())!;
@@ -1095,30 +1108,25 @@ async function expectCalendarFillsPopover(page: Page, dlg: Locator) {
   const popBox = (await pop.boundingBox())!;
   const viewport = page.viewportSize()!;
   // Rancangan: 336px, menyusut di layar sempit (sisa 8px tiap sisi).
-  expect(popBox.width).toBeLessThanOrEqual(
-    Math.min(336, viewport.width - 16) + 0.5,
-  );
-  const ctx = await pop.evaluate((el) => {
+  expect(
+    Math.abs(popBox.width - Math.min(336, viewport.width - 16)),
+  ).toBeLessThanOrEqual(1);
+  const pad = await pop.evaluate((el) => {
     const s = getComputedStyle(el);
-    const g = el.querySelector('[role="grid"]')!.getBoundingClientRect();
-    const cells = Array.from(
-      el.querySelectorAll('[role="grid"] tr:nth-of-type(2) [role="gridcell"]'),
-    ).map((c) => c.getBoundingClientRect());
-    return {
-      padL: parseFloat(s.paddingLeft),
-      padR: parseFloat(s.paddingRight),
-      grid: { x: g.x, w: g.width },
-      cols: cells.map((c) => ({ x: c.x, w: c.width })),
-    };
+    return parseFloat(s.paddingLeft) + parseFloat(s.paddingRight);
   });
-  const inner = popBox.width - ctx.padL - ctx.padR;
-  expect(ctx.grid.w).toBeGreaterThanOrEqual(inner - 1);
-  expect(ctx.cols).toHaveLength(7);
-  // Tujuh kolom mengisi grid dari tepi kiri ke tepi kanan (tanpa sisa kosong).
-  const first = ctx.cols[0];
-  const last = ctx.cols[6];
-  expect(first.x - ctx.grid.x).toBeLessThanOrEqual(1);
-  expect(ctx.grid.x + ctx.grid.w - (last.x + last.w)).toBeLessThanOrEqual(1);
+  const gridBox = (await grid.boundingBox())!;
+  expect(gridBox.width).toBeGreaterThanOrEqual(popBox.width - pad - 1);
+  // Baris pertama minggu (baris 0 adalah header hari): tujuh kolom mengisi grid
+  // dari tepi kiri ke tepi kanan, tanpa sisa kosong.
+  const cells = grid.getByRole("row").nth(1).getByRole("gridcell");
+  await expect(cells).toHaveCount(7);
+  const first = (await cells.first().boundingBox())!;
+  const last = (await cells.last().boundingBox())!;
+  expect(first.x - gridBox.x).toBeLessThanOrEqual(1);
+  expect(gridBox.x + gridBox.width - (last.x + last.width)).toBeLessThanOrEqual(
+    1,
+  );
   await page.keyboard.press("Escape");
 }
 
@@ -1133,6 +1141,7 @@ test("S17 T-211: pemilih Pratinjau tidak menimpa kartu (4 akun, desktop)", async
   await dlg.getByLabel("Caption").fill(`e2e-qa-t211-${STAMP}`);
   await expectPickerClearOfCard(page, 4);
   await snap(page, "s17-picker-desktop");
+  await dlg.getByLabel("Caption").fill("");
   await dlg.getByRole("button", { name: "Close" }).click();
   await expect(dialog(page)).toHaveCount(0);
 });
@@ -1150,6 +1159,7 @@ test("S17b T-211 375px: pemilih Pratinjau rapi dengan 4 akun", async ({
   await dlg.getByRole("tab", { name: "Pratinjau" }).click();
   await expectPickerClearOfCard(page, 4);
   await snap(page, "s17b-picker-375");
+  await dlg.getByLabel("Caption").fill("");
   await dlg.getByRole("button", { name: "Close" }).click();
   await expect(dialog(page)).toHaveCount(0);
 });
