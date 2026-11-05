@@ -297,7 +297,34 @@ describe("getFormatOptionState", () => {
       getFormatOptionState(SocialPlatform.Instagram, ContentFormat.Reel, [
         image,
       ]),
-    ).toEqual({ disabled: true, reason: REEL_REQUIRES_VIDEO_MESSAGE });
+    ).toEqual({
+      disabled: true,
+      reason: REEL_REQUIRES_VIDEO_MESSAGE,
+      reasonCode: "reel-non-video-media",
+    });
+  });
+
+  it("kode sebab: campuran video dan gambar tetap non-video, dua video = multiple-videos (T-213.6)", () => {
+    expect(
+      getFormatOptionState(SocialPlatform.Facebook, ContentFormat.Reel, [
+        video,
+        image,
+      ]).reasonCode,
+    ).toBe("reel-non-video-media");
+    expect(
+      getFormatOptionState(SocialPlatform.Facebook, ContentFormat.Reel, [
+        video,
+        video,
+      ]).reasonCode,
+    ).toBe("reel-multiple-videos");
+  });
+
+  it("opsi sah tidak punya kode sebab (T-213.6)", () => {
+    expect(
+      getFormatOptionState(SocialPlatform.Instagram, ContentFormat.Reel, [
+        video,
+      ]),
+    ).toEqual({ disabled: false, reason: null, reasonCode: null });
   });
 
   it("Reel nonaktif bila lebih dari satu video", () => {
@@ -325,7 +352,7 @@ describe("getFormatOptionState", () => {
     for (const format of [ContentFormat.Post, ContentFormat.Story]) {
       expect(
         getFormatOptionState(SocialPlatform.Instagram, format, [image, image]),
-      ).toEqual({ disabled: false, reason: null });
+      ).toEqual({ disabled: false, reason: null, reasonCode: null });
     }
   });
 });

@@ -2,7 +2,7 @@ import { Alert02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import NextLink from "next/link";
 
-import { ContentFormat, MediaType, SocialPlatform } from "@postific/shared";
+import { ContentFormat, SocialPlatform } from "@postific/shared";
 
 import { PLATFORM_ICON } from "@/app/(app)/components/platform-icons";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -154,12 +154,11 @@ export function NetworkBlockBody({
 
   // Teks rancangan (T-212.1) untuk media gambar; untuk sebab lain (mis. lebih
   // dari satu video) tetap alasan dari domain, karena teks gambar akan salah.
-  const hasNonVideoMedia = mediaItems.some(
-    (item) => item.type !== MediaType.Video,
-  );
-  const reelDisabledText = hasNonVideoMedia
-    ? "Reel nonaktif karena media berupa gambar. Reel membutuhkan video."
-    : `Reel nonaktif. ${reelState?.reason}`;
+  // Sebab datang sebagai kode dari `getFormatOptionState` (T-213.6).
+  const reelDisabledText =
+    reelState?.reasonCode === "reel-non-video-media"
+      ? "Reel nonaktif karena media berupa gambar. Reel membutuhkan video."
+      : `Reel nonaktif. ${reelState?.reason}`;
 
   return (
     // eslint-disable-next-line no-restricted-syntax -- T-102: padanan Astryx VStack, murni Tailwind flex.
