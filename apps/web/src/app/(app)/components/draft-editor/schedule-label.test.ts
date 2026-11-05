@@ -11,6 +11,7 @@ import {
   getScheduleCalendarBounds,
   formatScheduleLimitText,
   formatZoneWithOffset,
+  getScheduleZoneInstant,
   getTimeZoneLabel,
   getUtcOffsetLabel,
   pickScheduleDate,
@@ -165,6 +166,78 @@ describe("label zona popover jadwal (T-212.2)", () => {
   it("teks batas memuat tanggal batas dan hari ini lengkap dengan jam", () => {
     expect(formatScheduleLimitText(AT, WIB, 30)).toBe(
       "Jadwal maksimal 30 hari ke depan: tanggal setelah 3 Des 2026 dinonaktifkan. Hari ini Sel, 3 Nov, 14:20 WIB.",
+    );
+  });
+});
+
+describe("label zona: zona negatif, DST, dan zona tak valid (T-213.1, T-213.2, T-213.4)", () => {
+  const NY = "America/New_York";
+  // Hari ini Nov (EST, UTC-5); jadwal Juli (EDT, UTC-4).
+  const NOW = new Date("2026-11-03T12:00:00Z");
+
+  it("zona negatif memakai tanda minus", () => {
+    expect(getUtcOffsetLabel(NY, NOW)).toBe("UTC-5");
+    expect(getUtcOffsetLabel("America/Sao_Paulo", NOW)).toBe("UTC-3");
+  });
+
+  it("selisih mengikuti tanggal jadwal, bukan hari ini (DST)", () => {
+    const summer = getScheduleZoneInstant("2026-07-15", "10:00", NY, NOW);
+    const winter = getScheduleZoneInstant("2026-12-15", "10:00", NY, NOW);
+    expect(formatZoneWithOffset(NY, summer)).toBe("EDT (UTC-4)");
+    expect(formatZoneWithOffset(NY, winter)).toBe("EST (UTC-5)");
+    // Hari ini dalam musim dingin: memakai NOW akan salah untuk jadwal Juli.
+    expect(formatZoneWithOffset(NY, NOW)).toBe("EST (UTC-5)");
+  });
+
+  it("tanpa tanggal sah memakai now", () => {
+    expect(getScheduleZoneInstant(undefined, undefined, NY, NOW)).toBe(NOW);
+    expect(getScheduleZoneInstant("2026-13-40", "10:00", NY, NOW)).toBe(NOW);
+  });
+
+  it("jam di celah spring-forward memakai tebakan valid, bukan now", () => {
+    const gap = getScheduleZoneInstant("2026-03-08", "02:30", NY, NOW);
+    expect(gap.toISOString()).toBe("2026-03-08T07:30:00.000Z");
+    expect(formatZoneWithOffset(NY, gap)).toBe("EDT (UTC-4)");
+  });
+
+  it("offset nol: selisih ditulis UTC+0, singkatan resmi GMT dan UTC tidak diubah", () => {
+    const winter = new Date("2026-12-15T12:00:00Z");
+    for (const zone of ["Europe/London", "UTC"]) {
+      // Nama bawaan Intl apa adanya (GMT, UTC, atau UTC+0 tergantung runtime).
+      expect(getTimeZoneLabel(zone, winter)).toMatch(/^(GMT|UTC)(\+0)?$/);
+      expect(getUtcOffsetLabel(zone, winter)).toBe("UTC+0");
+      expect(formatZoneWithOffset(zone, winter)).toBe("UTC+0");
+    }
+  });
+
+  it("jam kosong atau tak sah memakai tengah hari pada tanggal jadwal", () => {
+    expect(
+      getScheduleZoneInstant("2026-07-15", undefined, NY, NOW).toISOString(),
+    ).toBe("2026-07-15T16:00:00.000Z");
+    expect(
+      getScheduleZoneInstant("2026-07-15", "99:99", NY, NOW).toISOString(),
+    ).toBe("2026-07-15T16:00:00.000Z");
+  });
+
+  it("zona tanpa singkatan resmi ditulis UTC+N di semua tempat, bukan GMT+N", () => {
+    expect(getTimeZoneLabel("Asia/Singapore", NOW)).toBe("UTC+8");
+    expect(formatZoneWithOffset("Asia/Singapore", NOW)).toBe("UTC+8");
+    expect(getTimeZoneLabel("Asia/Kolkata", NOW)).toBe("UTC+5:30");
+  });
+
+  it("zona tak valid jatuh ke namanya sekali, tanpa melempar", () => {
+    expect(
+      getScheduleZoneInstant("2026-07-15", "10:00", "Bukan/Zona", NOW),
+    ).toBe(NOW);
+    expect(getUtcOffsetLabel("Bukan/Zona", NOW)).toBe("Bukan/Zona");
+    expect(formatZoneWithOffset("Bukan/Zona", NOW)).toBe("Bukan/Zona");
+  });
+
+  it("teks batas di zona negatif memakai hari lokal zona itu", () => {
+    // 03:00Z = 20:00 PDT 27 Sep; batas 30 hari = 27 Okt.
+    const at = new Date("2026-09-28T03:00:00Z");
+    expect(formatScheduleLimitText(at, "America/Los_Angeles", 30)).toBe(
+      "Jadwal maksimal 30 hari ke depan: tanggal setelah 27 Okt 2026 dinonaktifkan. Hari ini Min, 27 Sep, 20:00 PDT.",
     );
   });
 });

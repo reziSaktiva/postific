@@ -7,12 +7,26 @@ import { expect, type Page } from "@playwright/test";
  */
 export const E2E_WORKSPACE_NAME = "E2E Sandbox";
 
+const NOT_A_MEMBER = `Akun ini bukan anggota workspace "${E2E_WORKSPACE_NAME}"; undang dulu.`;
+
 /**
  * Pastikan workspace aktif sesi ini adalah `E2E_WORKSPACE_NAME`: dibuat bila
- * belum ada, dipindah bila belum aktif. Workspace aktif tersimpan di cookie,
- * jadi dipanggil sebelum `storageState` disimpan.
+ * belum ada (kecuali `createIfMissing: false`, lalu gagal dengan pesan jelas),
+ * dipindah bila belum aktif. Workspace aktif tersimpan di cookie, jadi dipanggil
+ * sebelum `storageState` disimpan.
  */
-export async function ensureE2eWorkspaceActive(page: Page): Promise<void> {
+export async function ensureE2eWorkspaceActive(
+  page: Page,
+  { createIfMissing = true }: { createIfMissing?: boolean } = {},
+): Promise<void> {
+  const createWorkspace = async () => {
+    await page.getByLabel("Nama Workspace").fill(E2E_WORKSPACE_NAME);
+    await page
+      .getByRole("button", { name: "Buat Workspace", exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/$/, { timeout: 30_000 });
+  };
+
   await page.goto("/settings/account/workspaces");
 
   // Login baru tanpa workspace aktif (akun di >1 workspace) diarahkan ke
@@ -24,12 +38,10 @@ export async function ensureE2eWorkspaceActive(page: Page): Promise<void> {
     if ((await target.count()) > 0) {
       await target.click();
       await expect(page).toHaveURL(/\/$/, { timeout: 30_000 });
+    } else if (createIfMissing) {
+      await createWorkspace();
     } else {
-      await page.getByLabel("Nama Workspace").fill(E2E_WORKSPACE_NAME);
-      await page
-        .getByRole("button", { name: "Buat Workspace", exact: true })
-        .click();
-      await expect(page).toHaveURL(/\/$/, { timeout: 30_000 });
+      throw new Error(NOT_A_MEMBER);
     }
     await page.goto("/settings/account/workspaces");
   }
@@ -37,12 +49,11 @@ export async function ensureE2eWorkspaceActive(page: Page): Promise<void> {
   const row = page.getByRole("row").filter({ hasText: E2E_WORKSPACE_NAME });
 
   if ((await row.count()) === 0) {
+    if (!createIfMissing) {
+      throw new Error(NOT_A_MEMBER);
+    }
     await page.getByRole("button", { name: "Buat Workspace Baru" }).click();
-    await page.getByLabel("Nama Workspace").fill(E2E_WORKSPACE_NAME);
-    await page
-      .getByRole("button", { name: "Buat Workspace", exact: true })
-      .click();
-    await expect(page).toHaveURL(/\/$/, { timeout: 30_000 });
+    await createWorkspace();
     await page.goto("/settings/account/workspaces");
   } else if ((await row.getByText("Aktif").count()) === 0) {
     await row.click();
@@ -57,4 +68,12 @@ export async function ensureE2eWorkspaceActive(page: Page): Promise<void> {
       .filter({ hasText: E2E_WORKSPACE_NAME })
       .getByText("Aktif"),
   ).toBeVisible();
+}
+
+/**
+ * Untuk akun non-Owner (Creator, T-214) yang diundang ke `E2E_WORKSPACE_NAME`:
+ * TIDAK PERNAH membuat workspace.
+ */
+export function activateExistingE2eWorkspace(page: Page): Promise<void> {
+  return ensureE2eWorkspaceActive(page, { createIfMissing: false });
 }
