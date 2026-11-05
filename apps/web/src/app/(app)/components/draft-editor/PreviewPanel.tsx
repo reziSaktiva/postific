@@ -141,7 +141,11 @@ export function PreviewPanel({
           <Select value={activeId} onValueChange={setRequestedAccountId}>
             <SelectTrigger
               className="w-full"
-              aria-label="Akun yang dipratinjau"
+              aria-label={`Akun yang dipratinjau: ${
+                activeAccount
+                  ? `${PLATFORM_LABEL[activeAccount.platform]} ${activeAccount.handle}`
+                  : ""
+              }`}
             >
               <SelectValue />
             </SelectTrigger>

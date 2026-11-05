@@ -140,6 +140,15 @@ async function renderCreate(
 
 const chips = () => screen.queryAllByTestId("channel-chip");
 const preview = () => screen.getByRole("complementary", { name: "Pratinjau" });
+// Pemicu akordeon: tombol ber-aria-expanded tanpa aria-haspopup (pemicu popover
+// membawa aria-haspopup="dialog", jadi tidak ikut terhitung).
+const accordionTriggers = () =>
+  screen
+    .queryAllByRole("button")
+    .filter(
+      (b) =>
+        b.hasAttribute("aria-expanded") && !b.hasAttribute("aria-haspopup"),
+    );
 
 async function openChannels(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("button", { name: "Channels" }));
@@ -385,9 +394,7 @@ describe("Editor, media, dan blok jaringan (T-202)", () => {
 
     expect(screen.getByRole("radiogroup", { name: "Format" })).toBeTruthy();
     // Akordeon memakai tombol pemicu ber-aria-expanded; satu akun tidak punya.
-    expect(
-      document.querySelectorAll("[data-slot=accordion-trigger]"),
-    ).toHaveLength(0);
+    expect(accordionTriggers()).toHaveLength(0);
   });
 
   it("T-202.2 banyak akun: akordeon dengan satu blok terbuka, klik membuka blok lain dan menutup yang lama", async () => {
@@ -398,10 +405,7 @@ describe("Editor, media, dan blok jaringan (T-202)", () => {
       "Pilih Facebook kopi-fb",
     );
 
-    const triggers = () =>
-      Array.from(
-        document.querySelectorAll<HTMLElement>("[data-slot=accordion-trigger]"),
-      );
+    const triggers = accordionTriggers;
     expect(triggers()).toHaveLength(2);
     const expanded = () =>
       triggers().filter((t) => t.getAttribute("aria-expanded") === "true");
@@ -588,7 +592,7 @@ describe("Pratinjau live (T-203)", () => {
     // Radix Select membuka lewat keyboard di jsdom (tanpa pointer capture).
     fireEvent.keyDown(
       within(preview()).getByRole("combobox", {
-        name: "Akun yang dipratinjau",
+        name: /^Akun yang dipratinjau/,
       }),
       { key: "Enter" },
     );
@@ -703,10 +707,13 @@ describe("Footer dan jadwal (T-205)", () => {
     // Pesan duduk di footer, satu wadah dengan tombol aksi.
     const message = screen.getByRole("alert");
     expect(message.textContent).toMatch(/sudah lewat/i);
-    const footer = screen
-      .getByRole("button", { name: "Save as Draft" })
-      .closest("[data-slot=dialog-footer]");
-    expect(footer?.contains(message)).toBe(true);
+    // Wadah bersama terdekat pesan dan tombol tidak memuat editor Caption.
+    let shared: HTMLElement | null = screen.getByRole("button", {
+      name: "Save as Draft",
+    });
+    while (shared && !shared.contains(message)) shared = shared.parentElement;
+    expect(shared).not.toBeNull();
+    expect(shared!.contains(screen.getByLabelText("Caption"))).toBe(false);
   });
 
   it("T-205.3 Save as Draft tanpa media dan tanpa akun: tersimpan, dan dengan akun menyimpan akun tujuan", async () => {
