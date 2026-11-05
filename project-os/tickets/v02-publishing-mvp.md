@@ -3374,11 +3374,16 @@ Alasan A: pemilih ini hanya mengganti kartu yang ditampilkan, bukan berpindah an
 
 **Hasil implementasi (Mark, commit `1b8b48d5`):** kode di `NetworkBlock.tsx`, `ScheduleSection.tsx`, `schedule-label.ts` (helper `getUtcOffsetLabel`, `formatZoneWithOffset`, `formatScheduleLimitText`), dan `MediaSection.tsx`. Tes: `DraftEditorForm.screens.test.tsx` (3 tes baru), `EditorFooter.test.tsx`, `schedule-label.test.ts`, E2E S12 di `draft-editor.e2e.ts` (teks baru plus `toHaveAccessibleDescription`). Hasil koordinator: `typecheck`, `lint`, dan 2450 tes unit hijau; E2E `draft-editor.e2e.ts` di local 21 lulus 2 skip (S17, S17b).
 
+**Keputusan (2026-11-05, koordinator atas permintaan King Rezi, "tolong kamu yang tentukan"):** (a) Reel nonaktif karena lebih dari satu video tetap memakai teks lama "Reel nonaktif. {alasan domain}"; teks rancangan ("Reel nonaktif karena media berupa gambar...") hanya benar untuk media gambar. (b) Ikon `Alert02Icon` pada banner Reel destructive dipertahankan: rancangan tidak melarang dan konsisten dengan banner validasi lain.
+
+**Hasil review (2026-11-05, commit `1b8b48d5` dan perbaikan `8a66d16e`):** `/code-review` 4 temuan: (1) jam popover basi, diperbaiki dengan render ulang tiap 30 detik saat popover terbuka; (2) teks Reel khusus gambar, tidak diubah karena domain hanya punya satu pesan `REEL_REQUIRES_VIDEO_MESSAGE` tanpa kode sebab; (3) duplikasi nama bulan dan hitung batas dua kali, diperbaiki dengan helper `getShortDateNames` dan parameter bounds; (4) dua gaya banner, diperbaiki dengan prop `variant` di `ValidationBanner`. Review Ridwan: 0 pelanggaran keras, 9 pertimbangan; yang sudah tertutup: banner dan jam basi; sisanya di "Belum terbukti". Hasil: `typecheck`, `lint`, 2450 tes unit hijau; E2E `draft-editor.e2e.ts` di local 21 lulus 2 skip (S17, S17b).
+
 **Belum terbukti:**
 
 - T-212.7: verifikasi browser (terang, gelap, 375px) belum dijalankan, sehingga tiket belum ✅.
-- Review `/code-review`, Ridwan, dan QA Najwa untuk gelombang ini tidak dicatat di sesi pencatatan ini; ADR-153 mensyaratkannya untuk Done (code) penuh.
-- Butir keputusan terbuka King Rezi: (a) Reel nonaktif karena lebih dari satu video tetap memakai teks lama "Reel nonaktif. {alasan domain}" (rancangan hanya mencakup media gambar); (b) banner Reel dengan gambar kini `Alert` destructive dengan ikon `Alert02Icon` yang dipertahankan, ada tidaknya ikon di rancangan belum diverifikasi; (c) E2E tidak menegaskan tampilan visual banner.
+- Review QA Najwa untuk gelombang ini tidak dicatat; ADR-153 mensyaratkannya untuk Done (code) penuh (review `/code-review` dan Ridwan sudah, lihat "Hasil review" di bawah).
+- E2E tidak menegaskan tampilan visual banner (varian merah); tes unit banner destructive hanya memeriksa teks.
+- Sisa pertimbangan Ridwan yang belum dikerjakan (tindak lanjut; belum ada tiket, wajib dibuat sebelum baris kode pertama, ADR-132): (i) label selisih UTC dihitung untuk hari ini, bukan tanggal jadwal, sehingga zona ber-DST seperti America/New_York bisa keliru (tak berdampak pada WIB, WITA, WIT); (ii) penulisan zona tidak seragam dalam satu popover ("UTC+8" di deskripsi, "GMT+8" di baris Jam); (iii) pesan batas di footer (`formatLimit` di `domains/publishing/schedule-time-constraints.ts`) masih memakai bulan Inggris dan nama IANA ("3 Dec 2026 14:20 (Asia/Jakarta)"), bertentangan dengan arah T-212.2; (iv) tes belum mencakup zona negatif, DST, dan zona tak valid; (v) tes banner destructive hanya memeriksa teks, bukan varian merahnya; (vi) `getFormatOptionState` sebaiknya mengembalikan kode sebab Reel nonaktif alih-alih diturunkan di tampilan.
 - Verified (staging) mengikuti ADR-153.
 
 **Blocked by:** T-211
