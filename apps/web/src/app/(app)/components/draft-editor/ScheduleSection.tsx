@@ -91,7 +91,7 @@ export function ScheduleSection({
         align="end"
         side="top"
         collisionPadding={8}
-        className="w-80"
+        className="w-84 max-w-(--radix-popover-content-available-width)"
       >
         <PopoverHeader>
           <PopoverTitle>Jadwal publish</PopoverTitle>
@@ -123,6 +123,7 @@ export function ScheduleSection({
             onScheduleTimeChange(next.time);
           }}
           className="p-0"
+          classNames={{ root: "w-full" }}
         />
         {/* eslint-disable-next-line no-restricted-syntax -- T-205: baris jam popover, murni Tailwind flex. */}
         <div className="flex items-center gap-2">
