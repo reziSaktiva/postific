@@ -4,22 +4,23 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 // T-201.2 — penjaga drift antara query `findLatestPostTargetAccountIds` dan
-// indeks parsialnya. Kalau filter query berubah, predikat indeks harus ikut
+// indeksnya. Kalau filter query berubah, predikat indeks harus ikut
 // berubah (atau indeks tidak akan dipakai planner).
 const webRoot = join(dirname(fileURLToPath(import.meta.url)), "../../../..");
 const read = (path: string) => readFileSync(join(webRoot, path), "utf8");
 
-describe("indeks parsial 'Terakhir dipakai' (T-201.2)", () => {
+describe("indeks 'Terakhir dipakai' (T-201.2)", () => {
   const sql = read(
-    "prisma/migrations/20261105100000_t201_publishing_posts_latest_target_index/migration.sql",
+    "prisma/migrations/20261105110000_t201_latest_target_index_literal_predicate/migration.sql",
   );
   const repo = read("src/lib/repositories/publishing/publishing.repository.ts");
 
   it("indeks workspace_id + created_at DESC dengan predikat sama dengan query", () => {
     expect(sql).toMatch(/\("workspace_id", "created_at" DESC\)/);
-    expect(sql).toMatch(
-      /WHERE "deleted_at" IS NULL AND "status" <> 'imported'/,
-    );
+    // Hanya predikat literal: status dikirim Prisma sebagai parameter, jadi
+    // tidak boleh masuk predikat indeks (rencana generik tidak memakainya).
+    expect(sql).toMatch(/WHERE "deleted_at" IS NULL;/);
+    expect(sql).not.toMatch(/"status"/);
   });
 
   it("repository masih memakai filter dan urutan yang dicakup indeks", () => {
