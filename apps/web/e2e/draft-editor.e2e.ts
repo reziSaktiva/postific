@@ -1105,12 +1105,16 @@ async function expectCalendarFillsPopover(page: Page, dlg: Locator) {
   const pop = page.locator('[data-slot="popover-content"]');
   const grid = pop.getByRole("grid");
   await expect(grid).toBeVisible();
-  const popBox = (await pop.boundingBox())!;
   const viewport = page.viewportSize()!;
-  // Rancangan: 336px, menyusut di layar sempit (sisa 8px tiap sisi).
-  expect(
-    Math.abs(popBox.width - Math.min(336, viewport.width - 16)),
-  ).toBeLessThanOrEqual(1);
+  // Rancangan: 336px, menyusut di layar sempit (sisa 8px tiap sisi). Animasi
+  // buka popover (zoom-in) mengecilkan kotaknya sesaat, jadi ukur setelah stabil.
+  const expectedWidth = Math.min(336, viewport.width - 16);
+  await expect
+    .poll(async () =>
+      Math.abs((await pop.boundingBox())!.width - expectedWidth),
+    )
+    .toBeLessThanOrEqual(1);
+  const popBox = (await pop.boundingBox())!;
   const pad = await pop.evaluate((el) => {
     const s = getComputedStyle(el);
     return parseFloat(s.paddingLeft) + parseFloat(s.paddingRight);
