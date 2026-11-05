@@ -177,20 +177,24 @@ describe("Pratinjau Pinterest (T-204.2)", () => {
     }
   });
 
-  it("link bukan URL http(s) tidak ditampilkan sebagai tautan", () => {
+  it("link bukan URL http(s) tidak mengubah isi kartu dibanding tanpa link", () => {
+    const cardText = () =>
+      within(panel()).getByLabelText("Pratinjau Pinterest Pin").textContent;
+    const { unmount: unmountBaseline } = renderPanel({ account: pinterest });
+    const baseline = cardText();
+    unmountBaseline();
     for (const pinLink of [
       "kopi.id/resep",
       "ftp://berkas.example.test/resep",
       "   ",
     ]) {
       const { unmount } = renderPanel({ account: pinterest, pinLink });
-      const card = within(panel()).getByLabelText("Pratinjau Pinterest Pin");
-      expect(within(card).queryByText(/kopi\.id|berkas\.example/)).toBeNull();
+      expect(cardText()).toBe(baseline);
       unmount();
     }
   });
 
-  it("tanpa judul kartu tetap tampil (placeholder), tanpa media meminta media", () => {
+  it("tanpa media kartu meminta media dan tetap menampilkan nama akun", () => {
     renderPanel({ account: pinterest });
     const card = within(panel()).getByLabelText("Pratinjau Pinterest Pin");
     expect(within(card).getByText("Pinterest membutuhkan media")).toBeTruthy();

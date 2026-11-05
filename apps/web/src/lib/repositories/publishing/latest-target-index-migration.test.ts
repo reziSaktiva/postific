@@ -15,7 +15,7 @@ describe("indeks 'Terakhir dipakai' (T-201.2)", () => {
   );
   const repo = read("src/lib/repositories/publishing/publishing.repository.ts");
 
-  it("indeks workspace_id + created_at DESC dengan predikat sama dengan query", () => {
+  it("migrasi aktif membuat indeks workspace_id + created_at DESC dengan predikat literal saja", () => {
     expect(sql).toMatch(/\("workspace_id", "created_at" DESC\)/);
     // Hanya predikat literal: status dikirim Prisma sebagai parameter, jadi
     // tidak boleh masuk predikat indeks (rencana generik tidak memakainya).
@@ -23,7 +23,7 @@ describe("indeks 'Terakhir dipakai' (T-201.2)", () => {
     expect(sql).not.toMatch(/"status"/);
   });
 
-  it("repository masih memakai filter dan urutan yang dicakup indeks", () => {
+  it("repository masih menyebut filter dan urutan yang dicakup indeks (penjaga dokumentasi, bukan bukti planner)", () => {
     const start = repo.indexOf("async findLatestPostTargetAccountIds");
     const body = repo.slice(start, start + 1200);
     expect(body).toContain("deletedAt: null");
