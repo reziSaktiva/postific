@@ -6,7 +6,7 @@ import {
   type Page,
 } from "@playwright/test";
 
-import { creatorCredentialsProblem } from "./support/auth";
+import { AUTH_FILE, creatorCredentialsProblem } from "./support/auth";
 import { creatorContext } from "./support/creator-auth";
 import {
   cleanupSeedFixtures,
@@ -38,7 +38,7 @@ let seed: SeedIds;
 const realBoardName = process.env.E2E_PINTEREST_BOARD_NAME;
 
 test.beforeAll(async () => {
-  await cleanupSeedFixtures(); // sisa run yang terhenti
+  await cleanupSeedFixtures(); // sisa run lama yang terhenti (bukan run lain)
   seed = await seedPostStatusFixtures({
     pinterestOutstandId: process.env.E2E_PINTEREST_OUTSTAND_ID || undefined,
     pinterestBoardId: process.env.E2E_PINTEREST_BOARD_ID || undefined,
@@ -46,7 +46,7 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
-  const removed = await cleanupSeedFixtures();
+  const removed = await cleanupSeedFixtures({ stamp: seed?.stamp });
   console.log("seed dihapus:", JSON.stringify(removed));
 });
 
@@ -83,7 +83,7 @@ async function expectReadOnlyPopover(
   }
 }
 
-function suite(label: string, getPage: () => Page, opts: { creator: boolean }) {
+function suite(label: string, getPage: () => Page) {
   test(`${label} Published read-only di Calendar dan History Detail`, async () => {
     const page = getPage();
     const pop = await openCalendarEntry(page, seed.captions.published);
@@ -200,8 +200,7 @@ function suite(label: string, getPage: () => Page, opts: { creator: boolean }) {
     );
     await expect(dlg.getByText("Akun ini terputus.")).toBeVisible();
     await expect(dlg.getByText("Akun terputus")).toBeVisible();
-    // Schedule tidak boleh aktif dengan akun terputus tanpa jadwal; Publish Now
-    // tidak ditekan, hanya statusnya dicatat.
+    // Schedule nonaktif karena jadwal kosong; Publish Now tidak ditekan.
     await expect(
       dlg.getByRole("button", { name: "Schedule", exact: true }),
     ).toBeDisabled();
@@ -209,10 +208,9 @@ function suite(label: string, getPage: () => Page, opts: { creator: boolean }) {
       name: "Publish Now",
       exact: true,
     });
-    console.log(
-      `${label} Disconnected: Publish Now enabled =`,
-      await publishNow.isEnabled(),
-    );
+    // ADR-155 addendum B.2: akun Disconnected tidak memblokir Publish Now
+    // (penolakan akun tidak aktif ada di server).
+    await expect(publishNow).toBeEnabled();
     await dlg.getByRole("button", { name: "Tambah akun" }).click();
     const pop = page.getByRole("dialog", { name: "Pilih akun tujuan" });
     const li = pop.getByRole("listitem").filter({ hasText: /e2e-seed-fb-/ });
@@ -247,7 +245,6 @@ function suite(label: string, getPage: () => Page, opts: { creator: boolean }) {
     ).toBeVisible();
     await dlg.getByRole("button", { name: "Close" }).click();
     await expect(dialog(page)).toHaveCount(0);
-    void opts;
   });
 }
 
@@ -256,14 +253,14 @@ let ownerPage: Page;
 test.describe("Owner", () => {
   test.beforeAll(async ({ browser }) => {
     const ctx = await browser.newContext({
-      storageState: (await import("./support/auth")).AUTH_FILE,
+      storageState: AUTH_FILE,
     });
     ownerPage = await ctx.newPage();
   });
   test.afterAll(async () => {
     await ownerPage?.context().close();
   });
-  suite("Owner", () => ownerPage, { creator: false });
+  suite("Owner", () => ownerPage);
 });
 
 // Creator (sesi T-214).
@@ -280,5 +277,5 @@ test.describe("Creator", () => {
   test.afterAll(async () => {
     await creatorCtx?.close();
   });
-  suite("Creator", () => creatorPage, { creator: true });
+  suite("Creator", () => creatorPage);
 });
