@@ -1576,6 +1576,43 @@ Cook It Real Good (akun Facebook nyata). Data hanya-baca (Supabase dan Outstand)
       depan: tolak atau jadwalkan ulang) diputuskan 2026-11-05: tolak (lihat
       T-195.3); tes penolakan di T-195.4 sudah sesuai keputusan itu.
 
+**Temuan investigasi baca-saja, Jalur C gelombang 8 (2026-11-05).** Sumber: Supabase
+staging (SELECT), Outstand `get_post`/`list_posts`, `real-outstand-adapter.ts`.
+Tidak ada tulis ke Outstand maupun DB.
+
+- Terbukti (dari bacaan): `schedulePost` dan `publishNow` memakai `createPost`
+  yang sama dan membangun body yang sama (`containers[].media` bila ada media),
+  bedanya hanya `scheduledAt`. Post `cGk8t` (Facebook, satu media PNG) terbit
+  lewat jalur tanpa `scheduledAt` dengan payload media yang sama, jadi bentuk
+  media dan akun Facebook diterima Outstand. Waktu: `a2459502` gagal
+  04:55:47, `cGk8t` dibuat 04:56:17 (30 detik sesudahnya), cocok dengan jalur
+  Retry di T-195.3.
+- Terbukti: Outstand tidak menyimpan post apa pun dari tiga percobaan gagal
+  (`list_posts` sejak 2026-11-03 hanya memuat `cGk8t`, dua post Instagram
+  terjadwal, dan post impor). Sejalan dengan 400 yang menolak sebelum membuat
+  post, bukan dengan kegagalan sebagian.
+- Korelasi: ketiga kegagalan (Facebook, satu media, `post` x2 dan `reel` x1)
+  berjadwal 39 sampai 92 hari. Dua penjadwalan sukses di hari yang sama (`IlP62`,
+  `RNjZy`, Instagram, tanpa media) berjadwal 29 hari 22 jam, di dalam batas 30
+  hari. Jadi `scheduledAt` > 30 hari adalah penjelas yang paling hemat, tetapi
+  tercampur dengan "ada media" dan "Facebook": tidak ada data penjadwalan
+  bermedia atau Facebook dalam 30 hari.
+- Belum terbukti: body 400 asli (pesan galat tidak pernah tercatat sebelum T-195.1),
+  apakah Reel Facebook bermasalah sendiri (satu sampel, tertutup oleh faktor
+  jadwal), dan apakah penjadwalan Facebook bermedia dalam 30 hari berhasil.
+  Pembuktian membutuhkan uji tulis; usulan uji terkecil: di org Sandbox, jadwalkan
+  (a) Facebook `post` + media dengan jadwal +7 hari (harus sukses), (b) hal yang
+  sama +45 hari (harus 400, baca body lewat T-195.1), (c) Reel +7 hari. Setelah
+  itu hapus ketiganya. Tidak dijalankan: tidak ada org Sandbox.
+- Tidak ada perubahan kode di sesi ini.
+
+**Uji tulis langsung ke Outstand (2026-11-05, izin King Rezi di chat, dijalankan sesi utama lewat tool MCP, bukan lewat aplikasi).** Akun: Instagram `turanilkerl` (`IDveX`, satu-satunya akun cocok "turan"; kecocokan dengan workspace E2E tidak dicek lewat DB). Tiga post maksimal, semuanya dihapus; `list_posts` sesudahnya kosong.
+
+- (a) Instagram post + satu gambar JPG (23 KB), jadwal +7 hari: **sukses terjadwal** (`1EaM9`; `get_post`: `status: pending`, `publishedAt: null`, antrean publikasi terisi). Dihapus.
+- (b) uji pertama jadwal +45 hari: **ditolak validasi tool MCP** sebelum request keluar ("scheduledAt cannot be more than 30 days in the future"). Ini mengonfirmasi batas 30 hari di sisi Outstand, tetapi bukan body 400 asli dari `/v1/posts`: body itu tetap belum teramati. Atas koreksi King Rezi, (b) seharusnya di bawah 30 hari: diulang dengan jadwal +29 hari (2026-12-04T06:30:00Z), gambar yang sama: **sukses terjadwal** (`e98it`, `status: pending`, `publishedAt: null`, antrean terisi). Dihapus.
+- (c) Instagram Reel (video MP4 6,7 MB), jadwal +7 hari: **sukses terjadwal** (`IlgrC`). Dihapus.
+- Bukti tambahan: media, akun Instagram, dan format video bukan penyebab 400 untuk jadwal dalam 30 hari. Tidak diuji: Facebook (post, Reel) bermedia dalam 30 hari. Dugaan jadwal > 30 hari tetap penjelas paling hemat dan kini diperkuat deskripsi batas Outstand, tetapi belum terbukti sebagai penyebab 400 di jalur aplikasi.
+
 **Aturan sampai tiket ini selesai:** jangan menguji post Scheduled di workspace
 yang punya akun sosial nyata; pakai E2E Sandbox.
 
