@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import path from "node:path";
 
 import { type Browser, type BrowserContext } from "@playwright/test";
 
@@ -23,12 +24,17 @@ export async function creatorContext(
       baseURL,
       storageState: CREATOR_AUTH_FILE,
     });
-    const page = await saved.newPage();
-    await page.goto("/start-page");
-    if (!/\/login/.test(page.url())) {
-      await activateExistingE2eWorkspace(page);
-      await saved.storageState({ path: CREATOR_AUTH_FILE });
-      return saved;
+    try {
+      const page = await saved.newPage();
+      await page.goto("/start-page");
+      if (!/\/login/.test(page.url())) {
+        await activateExistingE2eWorkspace(page);
+        await saved.storageState({ path: CREATOR_AUTH_FILE });
+        return saved;
+      }
+    } catch (error) {
+      await saved.close();
+      throw error;
     }
     await saved.close();
   }
@@ -37,19 +43,24 @@ export async function creatorContext(
     baseURL,
     storageState: { cookies: [], origins: [] },
   });
-  const page = await context.newPage();
-  await page.goto("/login");
-  await page.getByLabel("Email").fill(creds.email);
-  await page.getByLabel("Password").fill(creds.password);
-  await page.getByRole("button", { name: "Masuk" }).click();
-  // Tunggu redirect login benar-benar mendarat (Home atau pemilih workspace);
-  // `goto` yang terlalu cepat beradu dengan redirect itu.
-  await page.waitForURL((u) => /^\/(select-workspace)?$/.test(u.pathname), {
-    timeout: 60_000,
-  });
-  await page.waitForLoadState("load");
-  await activateExistingE2eWorkspace(page);
-  fs.mkdirSync(CREATOR_AUTH_FILE.replace(/[^/]+$/, ""), { recursive: true });
-  await context.storageState({ path: CREATOR_AUTH_FILE });
-  return context;
+  try {
+    const page = await context.newPage();
+    await page.goto("/login");
+    await page.getByLabel("Email").fill(creds.email);
+    await page.getByLabel("Password").fill(creds.password);
+    await page.getByRole("button", { name: "Masuk" }).click();
+    // Tunggu redirect login benar-benar mendarat (Home atau pemilih workspace);
+    // `goto` yang terlalu cepat beradu dengan redirect itu.
+    await page.waitForURL((u) => /^\/(select-workspace)?$/.test(u.pathname), {
+      timeout: 60_000,
+    });
+    await page.waitForLoadState("load");
+    await activateExistingE2eWorkspace(page);
+    fs.mkdirSync(path.dirname(CREATOR_AUTH_FILE), { recursive: true });
+    await context.storageState({ path: CREATOR_AUTH_FILE });
+    return context;
+  } catch (error) {
+    await context.close();
+    throw error;
+  }
 }

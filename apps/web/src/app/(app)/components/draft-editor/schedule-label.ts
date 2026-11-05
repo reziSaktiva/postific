@@ -93,7 +93,8 @@ export function getTimeZoneLabel(timeZone: string, at: Date): string {
       timeZone,
     ).formatToParts(at);
     const name = parts.find((part) => part.type === "timeZoneName")?.value;
-    return name ? normalizeUtcName(name) : timeZone;
+    // Singkatan resmi (EST, GMT, UTC) apa adanya; hanya "GMT+8" jadi "UTC+8".
+    return name ? name.replace(/^GMT(?=[+-])/, "UTC") : timeZone;
   } catch {
     return timeZone;
   }

@@ -15,7 +15,8 @@
 # Tunggu deploy: polling status deployment GitHub dari Railway (environment
 # "Postific / staging") untuk SHA ujung staging.
 #
-# Secrets (GitHub → Settings → Secrets): E2E_USER_EMAIL, E2E_USER_PASSWORD.
+# Secrets (GitHub → Settings → Secrets): E2E_USER_EMAIL, E2E_USER_PASSWORD,
+# E2E_CREATOR_EMAIL, E2E_CREATOR_PASSWORD (tanpa dua terakhir, rbac-creator.e2e.ts ter-skip).
 # Opsional (Variables): E2E_BASE_URL (default URL staging di bawah).
 
 name: E2E staging
@@ -46,6 +47,8 @@ jobs:
       E2E_BASE_URL: ${{ vars.E2E_BASE_URL || 'https://web-staging-60d7.up.railway.app' }}
       E2E_USER_EMAIL: ${{ secrets.E2E_USER_EMAIL }}
       E2E_USER_PASSWORD: ${{ secrets.E2E_USER_PASSWORD }}
+      E2E_CREATOR_EMAIL: ${{ secrets.E2E_CREATOR_EMAIL }}
+      E2E_CREATOR_PASSWORD: ${{ secrets.E2E_CREATOR_PASSWORD }}
       # Opt-in tes E2E MCP yang menulis ke staging (mcp.e2e.ts (h), (i), (k2); lihat
       # ctx-development.md aturan 22). Hanya untuk run manual (workflow_dispatch):
       # gerbang PR staging → main tidak boleh menulis draft dan media tiap kali.

@@ -200,10 +200,11 @@ describe("label zona: zona negatif, DST, dan zona tak valid (T-213.1, T-213.2, T
     expect(formatZoneWithOffset(NY, gap)).toBe("EDT (UTC-4)");
   });
 
-  it("offset nol ditulis UTC+0 di label dan deskripsi, apa pun nama Intl", () => {
+  it("offset nol: selisih ditulis UTC+0, singkatan resmi GMT dan UTC tidak diubah", () => {
     const winter = new Date("2026-12-15T12:00:00Z");
     for (const zone of ["Europe/London", "UTC"]) {
-      expect(getTimeZoneLabel(zone, winter)).toBe("UTC+0");
+      // Nama bawaan Intl apa adanya (GMT, UTC, atau UTC+0 tergantung runtime).
+      expect(getTimeZoneLabel(zone, winter)).toMatch(/^(GMT|UTC)(\+0)?$/);
       expect(getUtcOffsetLabel(zone, winter)).toBe("UTC+0");
       expect(formatZoneWithOffset(zone, winter)).toBe("UTC+0");
     }
