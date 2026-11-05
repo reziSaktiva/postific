@@ -15,17 +15,22 @@ import type { CrossNetworkIssue } from "./network-validation";
 export function ValidationBanner({
   message,
   className,
+  variant = "warning",
 }: {
   message: string;
   className?: string;
+  /** `destructive` untuk pelanggaran yang memblokir (rancangan T-212.1: Reel dengan media bukan video). */
+  variant?: "warning" | "destructive";
 }) {
   return (
     <Alert
+      variant={variant === "destructive" ? "destructive" : "default"}
       // Banner inline yang berubah saat pemakai mengetik: pengumuman sopan
       // (`status`), bukan `alert` yang memotong pembaca layar.
       role="status"
       className={cn(
-        "border-warning/40 bg-warning/10 text-warning *:[svg]:text-warning",
+        variant === "warning" &&
+          "border-warning/40 bg-warning/10 text-warning *:[svg]:text-warning",
         className,
       )}
     >

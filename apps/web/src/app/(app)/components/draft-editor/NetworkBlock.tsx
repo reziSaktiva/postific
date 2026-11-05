@@ -176,17 +176,16 @@ export function NetworkBlockBody({
         </Alert>
       ) : null}
 
-      {issues.map((issue) =>
-        issue.code === "reel-requires-video" ? (
-          // T-212.1: rancangan memakai banner destructive (hanya judul) untuk Reel dengan media bukan video.
-          <Alert key={issue.code} variant="destructive" role="status">
-            <HugeiconsIcon icon={Alert02Icon} strokeWidth={2} />
-            <AlertTitle>{issue.message}</AlertTitle>
-          </Alert>
-        ) : (
-          <ValidationBanner key={issue.code} message={issue.message} />
-        ),
-      )}
+      {issues.map((issue) => (
+        <ValidationBanner
+          key={issue.code}
+          message={issue.message}
+          // T-212.1: rancangan memakai banner destructive untuk Reel dengan media bukan video.
+          variant={
+            issue.code === "reel-requires-video" ? "destructive" : "warning"
+          }
+        />
+      ))}
 
       {formats ? (
         // eslint-disable-next-line no-restricted-syntax -- T-202: baris label+radio, murni Tailwind flex.

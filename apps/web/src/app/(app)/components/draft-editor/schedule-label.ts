@@ -129,16 +129,15 @@ export function formatScheduleLimitText(
   now: Date,
   timeZone: string,
   maxDaysAhead: number,
+  bounds = getScheduleCalendarBounds(now, timeZone),
 ): string {
-  const { minKey, maxKey } = getScheduleCalendarBounds(now, timeZone);
+  const { minKey, maxKey } = bounds;
   const maxParts = parseDateKey(maxKey);
   const todayParts = parseDateKey(minKey);
   if (!maxParts || !todayParts) {
     return `Jadwal maksimal ${maxDaysAhead} hari ke depan.`;
   }
-  const maxMonth = SHORT_DATE_FORMATTER.formatToParts(
-    new Date(Date.UTC(maxParts.year, maxParts.month, maxParts.day)),
-  ).find((part) => part.type === "month")?.value;
+  const { monthName: maxMonth } = getShortDateNames(maxParts);
   const time = getZonedFormatter(
     "en-GB",
     { hour: "2-digit", minute: "2-digit", hourCycle: "h23" },
@@ -158,11 +157,17 @@ function labelInstant(
   return zonedLocalToUtc(date, time ?? "12:00", timeZone);
 }
 
-function formatShortDate(parts: DateKeyParts, includeYear: boolean): string {
+function getShortDateNames(parts: DateKeyParts) {
   const at = new Date(Date.UTC(parts.year, parts.month, parts.day));
   const named = SHORT_DATE_FORMATTER.formatToParts(at);
-  const dayName = named.find((part) => part.type === "weekday")?.value;
-  const monthName = named.find((part) => part.type === "month")?.value;
+  return {
+    dayName: named.find((part) => part.type === "weekday")?.value,
+    monthName: named.find((part) => part.type === "month")?.value,
+  };
+}
+
+function formatShortDate(parts: DateKeyParts, includeYear: boolean): string {
+  const { dayName, monthName } = getShortDateNames(parts);
   const base = `${dayName}, ${parts.day} ${monthName}`;
   return includeYear ? `${base} ${parts.year}` : base;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Calendar03Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -54,11 +54,21 @@ export function ScheduleSection({
 }) {
   const timeZone = useUserTimeZone();
   const [isOpen, setIsOpen] = useState(false);
+  const [, setTick] = useState(0);
+
+  // Selama popover terbuka, render ulang tiap 30 detik agar `now` (jam dan
+  // batas 30 hari) tidak basi bila dibiarkan terbuka melewati tengah malam.
+  useEffect(() => {
+    if (!isOpen) return;
+    const timer = setInterval(() => setTick((tick) => tick + 1), 30_000);
+    return () => clearInterval(timer);
+  }, [isOpen]);
 
   // Dihitung saat dirender: batas bergeser bila dialog dibiarkan terbuka
   // melewati tengah malam.
   const now = new Date();
-  const { minKey, maxKey } = getScheduleCalendarBounds(now, timeZone);
+  const bounds = getScheduleCalendarBounds(now, timeZone);
+  const { minKey, maxKey } = bounds;
   const minDate = dateKeyToCalendarDate(minKey);
   const maxDate = dateKeyToCalendarDate(maxKey);
   const selectedDate = dateKeyToCalendarDate(scheduleDate);
@@ -144,7 +154,12 @@ export function ScheduleSection({
           <span className="text-muted-foreground">{zoneLabel}</span>
         </div>
         <p className="text-xs text-muted-foreground">
-          {formatScheduleLimitText(now, timeZone, SCHEDULE_MAX_DAYS_AHEAD)}
+          {formatScheduleLimitText(
+            now,
+            timeZone,
+            SCHEDULE_MAX_DAYS_AHEAD,
+            bounds,
+          )}
         </p>
         {/* eslint-disable-next-line no-restricted-syntax -- T-205: baris aksi popover, murni Tailwind flex. */}
         <div className="flex items-center justify-between gap-2">
