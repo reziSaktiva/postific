@@ -1172,6 +1172,8 @@ test("S17b T-211 375px: pemilih Pratinjau rapi dengan 4 akun", async ({
   await dlg.getByRole("tab", { name: "Pratinjau" }).click();
   await expectPickerClearOfCard(page, 4);
   await snap(page, "s17b-picker-375");
+  // Di 375px Caption tersembunyi selama tab Pratinjau aktif: kembali ke Editor.
+  await dlg.getByRole("tab", { name: "Editor" }).click();
   await dlg.getByLabel("Caption").fill("");
   await dlg.getByRole("button", { name: "Close" }).click();
   await expect(dialog(page)).toHaveCount(0);
