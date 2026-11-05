@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Calendar03Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -23,7 +23,9 @@ import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
 
 import {
   dateKeyToCalendarDate,
+  formatScheduleLimitText,
   formatScheduleTriggerLabel,
+  formatZoneWithOffset,
   getScheduleCalendarBounds,
   getTimeZoneLabel,
   pickScheduleDate,
@@ -52,11 +54,21 @@ export function ScheduleSection({
 }) {
   const timeZone = useUserTimeZone();
   const [isOpen, setIsOpen] = useState(false);
+  const [, setTick] = useState(0);
+
+  // Selama popover terbuka, render ulang tiap 30 detik agar `now` (jam dan
+  // batas 30 hari) tidak basi bila dibiarkan terbuka melewati tengah malam.
+  useEffect(() => {
+    if (!isOpen) return;
+    const timer = setInterval(() => setTick((tick) => tick + 1), 30_000);
+    return () => clearInterval(timer);
+  }, [isOpen]);
 
   // Dihitung saat dirender: batas bergeser bila dialog dibiarkan terbuka
   // melewati tengah malam.
   const now = new Date();
-  const { minKey, maxKey } = getScheduleCalendarBounds(now, timeZone);
+  const bounds = getScheduleCalendarBounds(now, timeZone);
+  const { minKey, maxKey } = bounds;
   const minDate = dateKeyToCalendarDate(minKey);
   const maxDate = dateKeyToCalendarDate(maxKey);
   const selectedDate = dateKeyToCalendarDate(scheduleDate);
@@ -91,12 +103,13 @@ export function ScheduleSection({
         align="end"
         side="top"
         collisionPadding={8}
-        className="w-80"
+        className="w-84 max-w-(--radix-popover-content-available-width)"
       >
         <PopoverHeader>
           <PopoverTitle>Jadwal publish</PopoverTitle>
           <PopoverDescription>
-            Waktu dibaca di zona waktu Anda: {zoneLabel} ({timeZone}).
+            Waktu dibaca di zona waktu Anda:{" "}
+            {formatZoneWithOffset(timeZone, now)}.
           </PopoverDescription>
         </PopoverHeader>
         <Calendar
@@ -123,6 +136,8 @@ export function ScheduleSection({
             onScheduleTimeChange(next.time);
           }}
           className="p-0"
+          // Menimpa `w-fit` bawaan Calendar agar 7 kolom mengisi popover (T-211.1).
+          classNames={{ root: "w-full" }}
         />
         {/* eslint-disable-next-line no-restricted-syntax -- T-205: baris jam popover, murni Tailwind flex. */}
         <div className="flex items-center gap-2">
@@ -139,8 +154,12 @@ export function ScheduleSection({
           <span className="text-muted-foreground">{zoneLabel}</span>
         </div>
         <p className="text-xs text-muted-foreground">
-          Jadwal maksimal {SCHEDULE_MAX_DAYS_AHEAD} hari ke depan. Tanggal
-          lampau dan tanggal setelah batas tidak bisa dipilih.
+          {formatScheduleLimitText(
+            now,
+            timeZone,
+            SCHEDULE_MAX_DAYS_AHEAD,
+            bounds,
+          )}
         </p>
         {/* eslint-disable-next-line no-restricted-syntax -- T-205: baris aksi popover, murni Tailwind flex. */}
         <div className="flex items-center justify-between gap-2">

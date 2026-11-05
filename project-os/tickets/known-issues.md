@@ -1551,9 +1551,9 @@ Cook It Real Good (akun Facebook nyata). Data hanya-baca (Supabase dan Outstand)
       ada di Outstand). Berkas: `schedule-posts.use-case.ts`,
       `retry-failed-target.use-case.ts`, `RetryTargetRecord` (+`postScheduledAt`,
       `postPublishedAt`), `lib/repositories/publishing/publishing.repository.ts`.
-      Belum diputuskan (milik King Rezi): apakah Retry untuk post terjadwal masa
-      depan seharusnya menjadwalkan ulang ke jadwal semula (butuh method repository
-      baru agar post kembali Scheduled) alih-alih ditolak; dan retry atas post yang
+      **Diputuskan King Rezi (2026-11-05): TOLAK.** Retry untuk post terjadwal masa
+      depan ditolak (`ConflictError`, perilaku kode saat ini); tidak dijadwalkan
+      ulang, jadi method repository baru tidak diperlukan. Retry atas post yang
       jadwalnya sudah lewat tetap terbit langsung. Belum di-commit.
 - [ ] **T-195.4** Tes regresi, lalu verifikasi di staging **tanpa akun nyata**.
       Bagian tes regresi selesai (2026-11-04): tes batas publik sudah ada untuk
@@ -1568,6 +1568,13 @@ Cook It Real Good (akun Facebook nyata). Data hanya-baca (Supabase dan Outstand)
       sehingga tidak ada panggilan tulis ke Outstand. Butuh kredensial org E2E
       Sandbox yang terbukti hanya berisi akun Sandbox, lalu jadwalkan > 30 hari
       lewat adapter dan baca body 400.
+      **Diputuskan King Rezi (2026-11-05):** tidak ada org E2E Sandbox di
+      Outstand, jadi pembuktian ditunda. Kode dan tes regresi dianggap selesai;
+      T-195.2 dan T-195.4 tetap terbuka sampai ada org Sandbox (atau tenant uji)
+      dengan akun uji. Sementara itu pencatatan T-195.1 akan menangkap body 400
+      bila terulang di staging. Pertanyaan T-195.3 (Retry post terjadwal masa
+      depan: tolak atau jadwalkan ulang) diputuskan 2026-11-05: tolak (lihat
+      T-195.3); tes penolakan di T-195.4 sudah sesuai keputusan itu.
 
 **Aturan sampai tiket ini selesai:** jangan menguji post Scheduled di workspace
 yang punya akun sosial nyata; pakai E2E Sandbox.

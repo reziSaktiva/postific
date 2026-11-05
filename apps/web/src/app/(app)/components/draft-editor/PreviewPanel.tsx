@@ -14,7 +14,13 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 import { PLATFORM_ICON } from "../platform-icons";
@@ -81,7 +87,7 @@ export function PreviewPanel({
   placement?: "side" | "full";
   selectedAccounts: ConnectedAccount[];
   /**
-   * Urutan pilihan (sama dengan urutan chip). Bila diisi, tab Pratinjau
+   * Urutan pilihan (sama dengan urutan chip). Bila diisi, pemilih Pratinjau
    * mengikuti urutan ini; bila tidak, memakai urutan `selectedAccounts`.
    */
   selectedAccountIds?: string[];
@@ -132,28 +138,32 @@ export function PreviewPanel({
           ) : null}
         </span>
         {selectedAccounts.length > 1 && activeId ? (
-          <Tabs value={activeId} onValueChange={setRequestedAccountId}>
-            <TabsList variant="line" className="h-auto flex-wrap">
+          <Select value={activeId} onValueChange={setRequestedAccountId}>
+            <SelectTrigger
+              className="w-full"
+              aria-label={`Akun yang dipratinjau: ${
+                activeAccount
+                  ? `${PLATFORM_LABEL[activeAccount.platform]} ${activeAccount.handle}`
+                  : ""
+              }`}
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
               {selectedAccounts.map((account) => {
                 const entry = PLATFORM_ICON[account.platform];
-                const fullLabel = `${PLATFORM_LABEL[account.platform]} ${account.handle}`;
                 return (
-                  <TabsTrigger
-                    key={account.id}
-                    value={account.id}
-                    aria-label={fullLabel}
-                    title={fullLabel}
-                    className="max-w-48"
-                  >
+                  <SelectItem key={account.id} value={account.id}>
                     <entry.Icon size={14} color={entry.color} aria-hidden />
-                    <span className="truncate">
-                      {PLATFORM_LABEL[account.platform]} · {account.handle}
+                    {PLATFORM_LABEL[account.platform]}{" "}
+                    <span className="truncate text-muted-foreground">
+                      {account.handle}
                     </span>
-                  </TabsTrigger>
+                  </SelectItem>
                 );
               })}
-            </TabsList>
-          </Tabs>
+            </SelectContent>
+          </Select>
         ) : null}
       </header>
       <section className="flex min-h-0 flex-1 flex-col items-center gap-3 overflow-y-auto px-4 pt-1 pb-5">

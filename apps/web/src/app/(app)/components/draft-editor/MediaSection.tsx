@@ -248,8 +248,8 @@ export function MediaSection({
         // eslint-disable-next-line no-restricted-syntax -- T-102: padanan Astryx HStack, murni Tailwind flex.
         <div className="flex flex-wrap items-center gap-2">
           <FieldDescription>
-            Maks. {effectiveMaxMedia} media untuk format yang sedang dipilih
-            (ADR-107) — 50MB per file.
+            Maks. {effectiveMaxMedia} media untuk format yang sedang dipilih —
+            50MB per file.
           </FieldDescription>
           {/* KI-061: indikator over-limit setelah ganti target akun/format menurunkan effectiveMaxMedia di bawah media yang sudah diupload. */}
           {overLimitMediaCount > 0 ? (
