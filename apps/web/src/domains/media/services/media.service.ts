@@ -78,6 +78,40 @@ export class MediaService {
   }
 
   /**
+   * Signed URL baru untuk daftar `storagePath` (T-230, ADR-158) — file yang
+   * BUKAN `MediaItem` (thumbnail posting impor). Hanya path di bawah
+   * `{workspaceId}/imports/` yang ditandatangani (pertahanan berlapis, review
+   * Ridwan M4: caller tidak bisa meminta URL berkas workspace lain). Mengembalikan
+   * peta `storagePath → url`; path yang ditolak atau gagal ditandatangani
+   * dilewati (caller jatuh ke ikon), tidak melempar.
+   */
+  async signStoragePaths(
+    workspaceId: WorkspaceId,
+    paths: string[],
+  ): Promise<Map<string, string>> {
+    const result = new Map<string, string>();
+    const adapter = this.storageAdapter;
+    const prefix = `${workspaceId}/imports/`;
+    const allowed = [...new Set(paths)].filter(
+      (path) => path.startsWith(prefix) && !path.includes(".."),
+    );
+    if (!adapter || allowed.length === 0) return result;
+    await Promise.all(
+      allowed.map(async (path) => {
+        try {
+          result.set(path, await adapter.getSignedUrl(path));
+        } catch (error) {
+          console.error(
+            `MediaService.signStoragePaths: gagal signed URL untuk ${path}`,
+            error,
+          );
+        }
+      }),
+    );
+    return result;
+  }
+
+  /**
    * Buat record `MediaItem` baru. Dipanggil SETELAH file fisik sudah
    * ter-upload ke Supabase Storage (T-024.2) — `storagePath` di sini
    * diasumsikan sudah valid, service ini tidak memvalidasi keberadaan file

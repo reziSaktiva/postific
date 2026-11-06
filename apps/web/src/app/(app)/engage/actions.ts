@@ -245,6 +245,22 @@ export async function listInboxByPostAction(
       console.error("listInboxByPostAction: gagal resolve thumbnail", error);
     }
 
+    // T-230 (ADR-158): thumbnail tersimpan posting impor (path di bucket
+    // `media`) ditandatangani sekali jalan; gagal berarti jatuh ke URL CDN
+    // atau tanpa thumbnail, tidak pernah menggagalkan daftar.
+    const storedPaths = groups.flatMap((group) => {
+      const snapshot = group.postSnapshot;
+      return snapshot &&
+        snapshot.mediaIds.length === 0 &&
+        snapshot.thumbnailStoragePath
+        ? [snapshot.thumbnailStoragePath]
+        : [];
+    });
+    const signedStoragePaths = await mediaService.signStoragePaths(
+      workspaceId,
+      storedPaths,
+    );
+
     const data: InboxPostGroupDto[] = groups.map((group) => {
       const { postSnapshot, ...summary } = group;
       return {
@@ -256,6 +272,7 @@ export async function listInboxByPostAction(
               thumbnail: resolveSnapshotThumbnail(
                 postSnapshot,
                 thumbnailByMediaId,
+                signedStoragePaths,
               ),
             }
           : null,

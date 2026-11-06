@@ -272,6 +272,36 @@ kedaluwarsa tidak menghapus apa pun.
 **Retry:** Mengikuti retry generik job runner (lihat § Retry Strategy di
 bawah — 5m/15m/60m).
 
+## JOB-09 — Import Media (thumbnail posting impor)
+
+**Trigger:** Setelah Import Posts (JOB-05) memproses post baru, `EnqueueImportMediaUseCase`
+mengantrikan job (best-effort) untuk target posting impor akun itu yang belum
+punya thumbnail; juga backfill sekali jalan lewat `POST /api/jobs/run?type=import-media`
+(ADR-158, T-230).
+
+**Tipe:** `import.media`
+
+**Payload:**
+```
+{ workspaceId, actingUserId, targetIds: string[] }   // paling banyak 5 target
+```
+
+**Handler:** `ImportMediaJobHandler` memanggil `ProcessImportMediaUseCase`: unduh
+media CDN platform (gambar) atau ambil satu frame (video, `ffmpeg`), kecilkan ke
+webp 640 px (`sharp`), simpan di bucket `media` pada
+`{workspaceId}/imports/{targetId}.webp`, lalu isi `thumbnail_storage_path`,
+`thumbnail_kind`, dan `thumbnail_attempted_at` di `publishing_post_targets`.
+
+**Anggaran waktu:** 20 detik per job (BG-D05), dibatalkan lewat `AbortSignal`;
+sisa target tetap tertunda untuk job berikutnya.
+
+**Idempotensi:** Hanya target yang belum punya thumbnail dan belum pernah dicoba
+yang diproses. Kegagalan permanen (URL kedaluwarsa, host tidak dikenal, terlalu
+besar) ditandai `thumbnail_attempted_at`; kegagalan sementara (timeout, 5xx,
+`ffmpeg` belum terpasang) tidak ditandai dan dicoba lagi pada pemicu berikutnya.
+
+**Retry:** Mengikuti retry generik job runner (lihat § Retry Strategy di bawah).
+
 ---
 
 # Retry Strategy

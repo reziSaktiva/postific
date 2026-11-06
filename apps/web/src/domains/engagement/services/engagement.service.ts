@@ -77,6 +77,8 @@ interface PublishingPostReferencePort {
     mediaIds: MediaId[];
     platformPostUrl: string | null;
     externalMediaUrl?: string | null;
+    thumbnailStoragePath?: string | null;
+    thumbnailKind?: "image" | "video_poster" | null;
   } | null>;
 
   /**
@@ -132,6 +134,9 @@ export interface InboxItemPostSnapshot {
   mediaIds: MediaId[];
   platformPostUrl: string | null;
   externalMediaUrl?: string | null;
+  /** T-230: thumbnail tersimpan posting impor (path di bucket `media`); diutamakan atas `externalMediaUrl`. */
+  thumbnailStoragePath?: string | null;
+  thumbnailKind?: "image" | "video_poster" | null;
 }
 
 /**

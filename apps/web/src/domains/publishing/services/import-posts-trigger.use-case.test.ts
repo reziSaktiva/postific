@@ -1611,6 +1611,96 @@ describe("ImportPostsTriggerUseCase — T-132.4 classify ContentFormat wiring (A
   });
 });
 
+describe("ImportPostsTriggerUseCase — T-230 antrian thumbnail posting impor (ADR-158)", () => {
+  const importedPosts = [
+    {
+      platformPostId: "platform-post-1",
+      outstandPostId: "outstand-post-1",
+      caption: "caption",
+      publishedAt: new Date("2026-10-01T00:00:00.000Z"),
+      platformPostUrl: null,
+      mediaUrls: ["https://scontent.fbcdn.net/a.jpg"],
+    },
+  ];
+  const completedAdapter = () =>
+    createFakeOutstandAdapter({
+      fetchImportJobStatus: vi.fn(async (): Promise<ImportJobOutcome> => ({
+        status: "completed",
+        posts: importedPosts,
+        error: null,
+      })),
+    });
+  const input = {
+    workspaceId: WORKSPACE_ID,
+    connectedAccountId: CONNECTED_ACCOUNT_ID,
+    outstandAccountId: OUTSTAND_ACCOUNT_ID,
+    platform: SocialPlatform.Instagram,
+    actingUserId: ACTING_USER_ID,
+  };
+
+  it("mengantrikan thumbnail untuk akun ini setelah import selesai", async () => {
+    const enqueueForAccount = vi.fn(async () => 1);
+    const useCase = new ImportPostsTriggerUseCase(
+      createFakeImportJobRepository(),
+      completedAdapter(),
+      createFakeWatermarkPort(),
+      createProcessUseCase(1),
+      noopBackfillUseCase,
+      noopClassifyUseCase,
+      undefined,
+      { enqueueForAccount },
+    );
+
+    const result = await useCase.triggerAuto(input);
+
+    expect(result.outcome).toBe("triggered");
+    expect(enqueueForAccount).toHaveBeenCalledWith({
+      workspaceId: WORKSPACE_ID,
+      connectedAccountId: CONNECTED_ACCOUNT_ID,
+      actingUserId: ACTING_USER_ID,
+    });
+  });
+
+  it("gagal mengantrikan thumbnail bersifat best-effort: import tetap berhasil", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const useCase = new ImportPostsTriggerUseCase(
+      createFakeImportJobRepository(),
+      completedAdapter(),
+      createFakeWatermarkPort(),
+      createProcessUseCase(1),
+      noopBackfillUseCase,
+      noopClassifyUseCase,
+      undefined,
+      {
+        enqueueForAccount: async () => {
+          throw new Error("db down");
+        },
+      },
+    );
+
+    const result = await useCase.triggerAuto(input);
+
+    expect(result.outcome).toBe("triggered");
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining("T-230 antrian thumbnail gagal"),
+    );
+    warnSpy.mockRestore();
+  });
+
+  it("tanpa use case thumbnail (opsional) import berjalan seperti biasa", async () => {
+    const useCase = new ImportPostsTriggerUseCase(
+      createFakeImportJobRepository(),
+      completedAdapter(),
+      createFakeWatermarkPort(),
+      createProcessUseCase(1),
+      noopBackfillUseCase,
+      noopClassifyUseCase,
+    );
+
+    expect((await useCase.triggerAuto(input)).outcome).toBe("triggered");
+  });
+});
+
 describe("ImportPostsTriggerUseCase — concurrent guard stays on for manual and auto (T-115.4)", () => {
   it("rejects manual sync when another import is already active for the account", async () => {
     const importJobs = createFakeImportJobRepository({

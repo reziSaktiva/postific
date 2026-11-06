@@ -11,6 +11,8 @@ const {
   scheduleJob,
   executeImportSync,
   executeImportSyncIfDue,
+  enqueueImportMediaBackfill,
+  processImportMedia,
 } = vi.hoisted(() => ({
   getServerEnv: vi.fn(),
   runPendingJobs: vi.fn(),
@@ -29,6 +31,8 @@ const {
   scheduleJob: vi.fn<(input: unknown) => Promise<void>>(),
   executeImportSync: vi.fn(async () => ({ enqueued: 0 })),
   executeImportSyncIfDue: vi.fn(async () => ({ enqueued: 0, skipped: true })),
+  enqueueImportMediaBackfill: vi.fn(async () => ({ accounts: 0, enqueued: 0 })),
+  processImportMedia: vi.fn(async () => ({})),
 }));
 vi.mock("@/lib/env", () => ({ getServerEnv }));
 
@@ -64,6 +68,10 @@ vi.mock("@/domains/publishing", () => ({
     handle = vi.fn();
   },
   IMPORT_SYNC_JOB_TYPE: "import.sync",
+  IMPORT_MEDIA_JOB_TYPE: "import.media",
+  ImportMediaJobHandler: class {
+    handle = vi.fn();
+  },
   ImportSyncJobHandler: class {
     handle = vi.fn();
   },
@@ -75,6 +83,13 @@ vi.mock("@/domains/publishing", () => ({
   ImportPostsProcessUseCase: class {},
   BackfillOutstandPostIdsUseCase: class {},
   ClassifyImportedPostTargetsUseCase: class {},
+}));
+vi.mock("@/lib/jobs/import-media-composition", () => ({
+  createEnqueueImportMediaUseCase: () => ({
+    enqueueBackfill: enqueueImportMediaBackfill,
+    enqueueForAccount: vi.fn(),
+  }),
+  createProcessImportMediaUseCase: () => ({ process: processImportMedia }),
 }));
 vi.mock("@/domains/notification", () => ({
   NotificationService: class {},
@@ -301,6 +316,45 @@ describe("POST /api/jobs/run (T-027.1/.2)", () => {
       unknown
     >;
     expect(typeof handlers["import.sync"]).toBe("function");
+  });
+
+  it("registers the import.media handler (T-230)", async () => {
+    const { POST } = await import("./route");
+
+    await POST(buildRequest(SECRET));
+
+    const handlers = runPendingJobs.mock.calls[0]?.[1] as Record<
+      string,
+      (payload: unknown, jobId: string) => Promise<void>
+    >;
+    expect(typeof handlers["import.media"]).toBe("function");
+  });
+
+  it("runs the thumbnail backfill only when the request asks for type=import-media (T-230)", async () => {
+    const { POST } = await import("./route");
+
+    await POST(buildRequest(SECRET));
+    expect(enqueueImportMediaBackfill).not.toHaveBeenCalled();
+
+    const response = await POST(
+      buildRequest(SECRET, "http://localhost/api/jobs/run?type=import-media"),
+    );
+    expect(response.status).toBe(200);
+    expect(enqueueImportMediaBackfill).toHaveBeenCalledTimes(1);
+  });
+
+  it("still returns 200 and runs pending jobs when the thumbnail backfill fails (T-230)", async () => {
+    enqueueImportMediaBackfill.mockRejectedValueOnce(new Error("db down"));
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { POST } = await import("./route");
+
+    const response = await POST(
+      buildRequest(SECRET, "http://localhost/api/jobs/run?type=import-media"),
+    );
+
+    expect(response.status).toBe(200);
+    expect(runPendingJobs).toHaveBeenCalledTimes(1);
+    errorSpy.mockRestore();
   });
 
   it("calls import execute when the request asks for type=import", async () => {

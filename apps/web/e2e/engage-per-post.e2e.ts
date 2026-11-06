@@ -2,6 +2,7 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { seedDbSkipReason } from "./support/seed-db";
 import {
+  attachStoredThumbnailToP1,
   cleanupEngageFixtures,
   seedEngageFixtures,
   type EngageSeed,
@@ -488,4 +489,25 @@ test("T-227: thumbnail dari media eksternal; gagal muat jatuh ke ikon", async ({
       document.documentElement.clientWidth,
   );
   expect(overflow).toBeLessThanOrEqual(0);
+});
+
+test("T-230: thumbnail tersimpan (signed URL Storage) tampil, mengalahkan URL eksternal", async ({
+  page,
+}) => {
+  const attached = await attachStoredThumbnailToP1(seed);
+  test.skip(!attached, "Supabase Storage tidak tersedia di lingkungan tes");
+  await openEngage(page);
+
+  // P1 punya thumbnail_storage_path (webp sungguhan di bucket `media`).
+  const img = card(page, seed.captions.p1).locator("img");
+  await expect(img).toHaveCount(1);
+  await expect(img).toHaveAttribute(
+    "src",
+    /\/storage\/v1\/object\/sign\/media\/.*\/imports\//,
+  );
+  await expect
+    .poll(() => img.evaluate((el: HTMLImageElement) => el.naturalWidth), {
+      timeout: 15_000,
+    })
+    .toBeGreaterThan(0);
 });

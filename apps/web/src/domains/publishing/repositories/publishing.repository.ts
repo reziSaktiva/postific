@@ -1129,6 +1129,42 @@ export interface IPublishingRepository {
   ): Promise<string | null>;
 
   /**
+   * T-230 (ADR-158): id target posting impor akun ini yang belum punya
+   * thumbnail DAN belum pernah dicoba, terbaru dulu (URL CDN paling mungkin
+   * masih hidup), dibatasi `limit`.
+   */
+  listImportedTargetIdsNeedingThumbnail(
+    input: {
+      workspaceId: WorkspaceId;
+      connectedAccountId: ConnectedAccountId;
+      limit: number;
+    },
+    userId: UserId,
+  ): Promise<string[]>;
+
+  /**
+   * T-230: dari `targetIds`, hanya yang masih menunggu thumbnail (belum ada
+   * thumbnail, belum dicoba) dan punya URL media, beserta URL sumbernya.
+   */
+  findImportedTargetsNeedingThumbnail(
+    input: { workspaceId: WorkspaceId; targetIds: string[] },
+    userId: UserId,
+  ): Promise<ImportedTargetForThumbnail[]>;
+
+  /**
+   * T-230: simpan hasil percobaan thumbnail satu target. Selalu mengisi
+   * `thumbnailAttemptedAt`; `thumbnail` `null` berarti gagal (tanpa path).
+   */
+  saveImportedTargetThumbnail(
+    input: {
+      workspaceId: WorkspaceId;
+      targetId: string;
+      thumbnail: { storagePath: string; kind: "image" | "video_poster" } | null;
+    },
+    userId: UserId,
+  ): Promise<void>;
+
+  /**
    * Preview post asli (T-056, KI-065) — snapshot caption/media/
    * `platformPostUrl` untuk kotak "Post asal" di detail panel Comments
    * Inbox (`engagement.EngagementService.getInboxItemDetail`). Query lewat
@@ -1379,6 +1415,15 @@ export interface PostSnapshotForEngagementRecord {
    * `null` bila target tidak menyimpannya.
    */
   externalMediaUrl: string | null;
+  /** T-230: thumbnail tersimpan posting impor (path di bucket `media`); `null` bila belum ada. */
+  thumbnailStoragePath: string | null;
+  thumbnailKind: "image" | "video_poster" | null;
+}
+
+/** T-230: target posting impor yang menunggu thumbnail. */
+export interface ImportedTargetForThumbnail {
+  targetId: string;
+  sourceUrl: string;
 }
 
 /**

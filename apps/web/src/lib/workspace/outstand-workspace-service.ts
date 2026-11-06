@@ -1,4 +1,5 @@
 import { EnqueueAnalyticsSyncUseCase } from "@/domains/analytics";
+import { createEnqueueImportMediaUseCase } from "@/lib/jobs/import-media-composition";
 import { ENGAGEMENT_SYNC_JOB_TYPE } from "@/domains/engagement";
 import {
   BackfillOutstandPostIdsUseCase,
@@ -48,6 +49,8 @@ export function createImportPostsTriggerUseCase(): ImportPostsTriggerUseCase {
       publishingRepository,
       outstandAdapter,
     ),
+    undefined,
+    createEnqueueImportMediaUseCase(),
   );
 }
 

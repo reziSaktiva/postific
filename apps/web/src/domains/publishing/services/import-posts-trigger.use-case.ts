@@ -20,6 +20,7 @@ import type {
 } from "../repositories/import-job.repository";
 import type { BackfillOutstandPostIdsUseCase } from "./backfill-outstand-post-ids.use-case";
 import type { ClassifyImportedPostTargetsUseCase } from "./classify-imported-post-targets.use-case";
+import type { EnqueueImportMediaUseCase } from "./enqueue-import-media.use-case";
 import type { ImportPostsProcessUseCase } from "./import-posts-process.use-case";
 
 /**
@@ -381,6 +382,15 @@ export class ImportPostsTriggerUseCase {
     private readonly classifyUseCase: ClassifyImportedPostTargetsUseCase,
     /** Injectable sleep (test memakai versi instan) — lihat `SleepFn`/`IMPORT_STATUS_POLL_*` di atas. */
     private readonly sleep: SleepFn = defaultSleep,
+    /**
+     * T-230 (ADR-158) — OPSIONAL (hanya menambah langkah best-effort
+     * setelah import): mengantrikan job `import.media` untuk thumbnail
+     * posting impor. Tanpa ini import berjalan persis seperti sebelumnya.
+     */
+    private readonly importMedia?: Pick<
+      EnqueueImportMediaUseCase,
+      "enqueueForAccount"
+    >,
   ) {}
 
   /**
@@ -774,6 +784,7 @@ export class ImportPostsTriggerUseCase {
       // `attemptClassification` — gagal di sini tidak pernah menggagalkan
       // import yang sudah berhasil di atas.
       await this.attemptClassification(input, jobOutcome.posts);
+      await this.attemptEnqueueImportMedia(input);
 
       // Code review PR #149 — `jobOutcome.error` di titik ini (status
       // SUDAH `"completed"`) hanya terisi untuk kasus real API `partial`
@@ -907,6 +918,28 @@ export class ImportPostsTriggerUseCase {
     } catch (error) {
       console.warn(
         `[ImportPostsTriggerUseCase] T-132.4 klasifikasi ContentFormat gagal untuk akun ${input.connectedAccountId}: ${error instanceof Error ? error.message : String(error)} — best-effort, tidak menggagalkan sync utama.`,
+      );
+    }
+  }
+
+  /**
+   * T-230 (ADR-158) — antrikan job thumbnail posting impor. Best-effort:
+   * gagal mengantrikan tidak pernah menggagalkan import yang sudah berhasil
+   * (target yang terlewat terambil pada import atau backfill berikutnya).
+   */
+  private async attemptEnqueueImportMedia(
+    input: RunImportSyncInput,
+  ): Promise<void> {
+    if (!this.importMedia) return;
+    try {
+      await this.importMedia.enqueueForAccount({
+        workspaceId: input.workspaceId,
+        connectedAccountId: input.connectedAccountId,
+        actingUserId: input.actingUserId,
+      });
+    } catch (error) {
+      console.warn(
+        `[ImportPostsTriggerUseCase] T-230 antrian thumbnail gagal untuk akun ${input.connectedAccountId}: ${error instanceof Error ? error.message : String(error)} — best-effort, tidak menggagalkan sync utama.`,
       );
     }
   }

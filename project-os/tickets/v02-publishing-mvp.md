@@ -3576,24 +3576,24 @@ Alasan A: pemilih ini hanya mengganti kartu yang ditampilkan, bukan berpindah an
 
 ### T-230 · Import Posts: download and store thumbnails and video posters during Import (option C, ADR-158)
 
-| Field       | Value                                                          |
-| ----------- | -------------------------------------------------------------- |
-| **Status**  | ⏳ Not Started                                                 |
-| **Mode**    | AFK setelah T-229                                              |
-| **Domain**  | publishing · media · integration                               |
-| **Spec**    | S-006 (konteks)                                                |
-| **Docs**    | ADR-158, ADR-093, ADR-040, T-229, T-227, AGENTS.md no. 3-6, 13 |
-| **Depends** | T-229                                                          |
+| Field       | Value                                                                                                                                                         |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**  | 🟡 In Progress (kode, tes, E2E, amatan visual, uji job langsung, review Ridwan selesai; sisa: QA Najwa, `ffmpeg` di build Railway (HITL), Verified (staging)) |
+| **Mode**    | AFK setelah T-229                                                                                                                                             |
+| **Domain**  | publishing · media · integration                                                                                                                              |
+| **Spec**    | S-006 (konteks)                                                                                                                                               |
+| **Docs**    | ADR-158, ADR-093, ADR-040, T-229, T-227, AGENTS.md no. 3-6, 13                                                                                                |
+| **Depends** | T-229                                                                                                                                                         |
 
 Rincian mengikuti hasil T-229 (skema kolom baru di `publishing_post_targets`, job `import.media` per batch, `sharp` untuk gambar, `ffmpeg` untuk poster video):
 
-- [ ] **T-230.0** Migrasi: `thumbnail_storage_path` dan `thumbnail_kind` di `publishing_post_targets` (nullable), tanpa perubahan bucket; deklarasikan `sharp` dan siapkan `ffmpeg` di build Railway.
-- [ ] **T-230.1** Setelah `upsertImportedPosts`, antrikan job `import.media` per batch kecil (sekitar 10 posting); handler mengunduh media baru, membuat thumbnail kecil (gambar) atau poster (video), dan menyimpannya lewat domain `media` (Supabase Storage lewat adapter; domain tanpa import Prisma/Supabase, AGENTS.md no. 4 dan 6).
-- [ ] **T-230.2** Kegagalan satu media tidak menggagalkan import posting; posting tetap tampil dengan fallback T-227.
-- [ ] **T-230.3** Idempotensi: import ulang tidak menduplikasi thumbnail (kunci `connectedAccountId` + `platformPostId`, ADR-093 butir 4); posting yang sudah punya thumbnail tidak diunduh ulang.
-- [ ] **T-230.4** Batas ukuran, waktu, dan konkurensi unduhan; validasi URL sumber (hanya `https`, host CDN yang dikenal) untuk mencegah SSRF.
-- [ ] **T-230.5** Engage (T-227) memakai thumbnail tersimpan lebih dulu (snapshot membawa `thumbnailStoragePath`, URL ditandatangani lewat `MediaService`), lalu URL eksternal, lalu ikon. Pembersihan file thumbnail saat posting dihapus, dan backfill sekali jalan untuk posting yang URL-nya masih hidup.
-- [ ] **T-230.6** Tes unit dan integrasi; E2E Import dan Engage (ADR-149); `typecheck`, `lint`, tes hijau.
+- [~] **T-230.0** Migrasi `20261106140000_t230_import_thumbnail_columns` (tiga kolom nullable plus CHECK jenis) **sudah diterapkan** ke DB bersama (2026-11-06, izin King Rezi) dan `sharp` dideklarasikan. **Belum:** menyediakan `ffmpeg` di build Railway (NIXPACKS belum punya `nixpacks.toml`; perlu keputusan dan diverifikasi di staging). Tanpa `ffmpeg`, poster video ditunda (bukan ditandai), jadi aman dideploy dulu.
+- [x] **T-230.1** Setelah `upsertImportedPosts`, antrikan job `import.media` per batch kecil (sekitar 10 posting); handler mengunduh media baru, membuat thumbnail kecil (gambar) atau poster (video), dan menyimpannya lewat domain `media` (Supabase Storage lewat adapter; domain tanpa import Prisma/Supabase, AGENTS.md no. 4 dan 6).
+- [x] **T-230.2** Kegagalan satu media tidak menggagalkan import posting; posting tetap tampil dengan fallback T-227.
+- [x] **T-230.3** Idempotensi: import ulang tidak menduplikasi thumbnail (kunci `connectedAccountId` + `platformPostId`, ADR-093 butir 4); posting yang sudah punya thumbnail tidak diunduh ulang.
+- [x] **T-230.4** Batas ukuran, waktu, dan konkurensi unduhan; validasi URL sumber (hanya `https`, host CDN yang dikenal) untuk mencegah SSRF.
+- [x] **T-230.5** Engage (T-227) memakai thumbnail tersimpan lebih dulu (snapshot membawa `thumbnailStoragePath`, URL ditandatangani workspace-scoped lewat `MediaService.signStoragePaths`), lalu URL eksternal, lalu ikon. Backfill sekali jalan: `POST /api/jobs/run?type=import-media`. Pembersihan berkas dipindah ke T-231.
+- [x] **T-230.6** Tes unit dan integrasi (2689 tes hijau, `typecheck`, `lint`); E2E Engage (`engage-per-post.e2e.ts`) diperluas dengan tes T-230 (webp sungguhan diunggah ke bucket `media`, kolom `thumbnail_*` diisi, signed URL tampil dan dimuat, berkas dibersihkan); amatan terang, gelap, dan 375px (kartu thumbnail tersimpan, URL eksternal, dan ikon fallback) lolos.
 
 **Blocked by:** T-229.
 
@@ -3617,3 +3617,39 @@ Tiket yang lahir sebagai pelacak Known Issue ada di [`known-issues.md`](known-is
 - **T-213** (ditambah 2026-11-05, tindak lanjut review Ridwan atas T-212) memakai ID global berikutnya setelah T-212 di file ini (domain `publishing`, spec S-005).
 - **T-199 sampai T-207** (ditambah 2026-11-03, rancangan redesain Draft Editor ADR-155 dikonfirmasi King Rezi) memakai ID global berikutnya setelah T-198 (`tickets/known-issues.md`) — ditempatkan di file ini karena domain `publishing` (Draft Editor), spec S-005.
 - **Definition of Done rilis ini** (dari `release-roadmap.md`): pengguna dapat mengelola proses publikasi dari awal hingga selesai — draft → format per akun → schedule/publish → lihat queue/calendar → lihat hasil di history.
+
+**Hasil dan keputusan implementasi (2026-11-06):**
+
+- Alur: setelah `upsertImportedPosts` (best-effort) `EnqueueImportMediaUseCase` mengantrikan job `import.media` per 5 target (tipe JOB-09, `background_jobs`); `ImportMediaJobHandler` memanggil `ProcessImportMediaUseCase`; `importThumbnailGenerator` (`lib/adapters/import-thumbnail`) mengunduh gambar atau mengambil satu frame video (`ffmpeg`), membuat webp 640 px (`sharp`), dan menyimpannya di bucket `media` pada `{workspaceId}/imports/{targetId}.webp`.
+- Dua jenis kegagalan (review Ridwan H1): **permanen** (host tidak dikenal, 403/404/410 dan 4xx lain, bukan gambar, terlalu besar, media rusak) dikembalikan `null` dan ditandai `thumbnail_attempted_at`; **sementara** (timeout, 408/429/5xx, galat jaringan, `ffmpeg` tidak terpasang, galat Storage, dibatalkan) dilempar `TransientThumbnailError` dan TIDAK ditandai, jadi dicoba lagi pada import atau backfill berikutnya.
+- Anggaran waktu (review Ridwan H2): satu job 20 detik dengan pembatalan (`AbortSignal`), batch 5, timeout total 9 detik per media setelah mendapat giliran, semaphore 4 pekerjaan aktif per proses lintas job, `sharp` dibatasi 50 MP, `ffmpeg` dipaksa demuxer `mov` dan `-threads 1`.
+- Antrian (review Ridwan M3): hanya target yang punya `mediaUrls[0]` berawalan `http` (filter JSON path di query); posting teks tidak mengisi antrian.
+- Keamanan: allowlist host CDN, `https` saja, tanpa kredensial dan port khusus, `fetch` dengan `redirect: "error"`, `MediaService.signStoragePaths(workspaceId, paths)` hanya menandatangani `{workspaceId}/imports/` (review Ridwan M4). Sisa risiko: `ffmpeg` mengikuti redirect HTTP sendiri (host awal sudah di-allowlist, protokol dibatasi `https`).
+- **Uji langsung (2026-11-06, akun Facebook Cook It Real Good, 10 target terbaru):** 2 tersimpan (webp 33 KB dan 50 KB), 8 ditandai permanen (URL sudah mati), 6,1 detik; sisa 182 target menunggu. `ffmpeg` terhadap https sungguhan: 0,46 detik, frame 80 KB; tanpa `ffmpeg` melempar sementara; pembatalan melempar sementara.
+
+**Belum terbukti:** `ffmpeg` dan poster mp4 Instagram nyata di Railway (semua URL Instagram di DB sudah kedaluwarsa), perilaku `HEAD` pada URL bertanda tangan Instagram/TikTok hidup, halaman Engage menampilkan thumbnail tersimpan di browser, dan urutan deploy (`prisma migrate deploy` wajib berjalan sebelum rilis kode ini; `railway.json` tidak memuat langkah itu, `db:deploy` hanya skrip manual).
+
+**Catatan E2E (2026-11-06):** tes lama "Reset mengembalikan Sort, Date Range, dan Platform" (dan sesekali "Resolve, Dismiss...") gagal intermiten ketika DB bersama lambat, karena aksi server berurutan melewati asersi 5 detik; tes yang sama gagal juga pada kode sebelum T-230 (diuji dengan stash), jadi bukan regresi T-230. Penguatan selektor dan waktu tunggu masuk lingkup T-226.
+
+**Blocked by:** keputusan `ffmpeg` di build Railway; QA Najwa; Verified (staging).
+
+---
+
+### T-231 · Import Posts: purge imported-post thumbnails when posts, accounts, or workspaces are deleted (ADR-158)
+
+| Field       | Value                                   |
+| ----------- | --------------------------------------- |
+| **Status**  | ⏳ Not Started                          |
+| **Mode**    | AFK                                     |
+| **Domain**  | publishing · media                      |
+| **Spec**    | S-006 (konteks)                         |
+| **Docs**    | ADR-158, T-229, T-230, review Ridwan M5 |
+| **Depends** | T-230                                   |
+
+Berkas `{workspaceId}/imports/{targetId}.webp` tidak ikut terhapus bila posting impor dihapus, akun diputus, atau workspace dihapus, sehingga berkas yatim menumpuk di bucket privat `media`.
+
+- [ ] **T-231.1** Hapus berkas thumbnail saat posting impor di-soft-delete atau target dihapus (best-effort lewat adapter storage; domain tanpa import Supabase).
+- [ ] **T-231.2** Pembersihan saat akun diputus dan workspace dihapus (cascade atau job).
+- [ ] **T-231.3** Job sapu berkala (atau skrip) untuk berkas `imports/` yang tidak lagi dirujuk `thumbnail_storage_path`; tes dan dokumentasi.
+
+**Blocked by:** T-230.
