@@ -323,7 +323,7 @@ Terjadi ketika pengguna menyelesaikan salah satu dari tiga aksi terminal di Draf
 
 ---
 
-## Pola: Thread Expansion
+## Pola: Komentar Posting Terpilih (Thread Expansion)
 
 Terjadi di Engage. Memilih satu posting membuka komentarnya di dalam Inbox — tidak membuka layar baru.
 
@@ -428,7 +428,7 @@ Keputusan navigasi yang dibuat dalam dokumen ini.
 | -- | --------- | ------ | ------- |
 | NP-D01 | Model navigasi: Persistent Sidebar | Web app; sidebar memberikan akses cepat antar section tanpa kehilangan konteks | UXP-01, NP-P01 |
 | NP-D02 | ~~Draft Editor ditampilkan sebagai panel/layar penuh dalam Publish, bukan modal overlay~~ — **Dioverride oleh NP-D11 (ADR-052)** | Alasan asli: modal menutupi Calendar/Queue, pengguna kehilangan konteks jadwal saat mengedit. Trade-off ini kemudian disadari & diterima demi kecepatan alur kerja — lihat NP-D11 | NP-P02, UXP-04 |
-| NP-D03 | Thread Inbox: inline expansion, bukan layar baru | Volume triage tinggi; pengguna perlu berpindah thread dengan cepat tanpa full-page nav | UXP-03, NP-P03 |
+| NP-D03 | Komentar Inbox per posting: inline expansion, bukan layar baru (diamandemen ADR-157; sebelumnya "Thread Inbox") | Volume triage tinggi; pengguna perlu berpindah posting dengan cepat tanpa full-page nav | UXP-03, NP-P03 |
 | NP-D04 | Notification badge hanya pada Engage | Hanya Engage yang memerlukan respons segera; badge di semua section menambah noise | UXP-03, UXP-07 |
 | NP-D05 | Tidak ada redirect otomatis setelah cross-section navigation | State layar asal mungkin sudah berubah; redirect otomatis menciptakan kebingungan | NP-P02 |
 | NP-D06 | Publish default ke tab Calendar | Calendar memberi overview jadwal terbaik untuk Raka dan Maya (IA-D04) | UXP-02, P-IA-02 |
@@ -454,7 +454,7 @@ Keputusan navigasi yang dibuat dalam dokumen ini.
 | Buat post baru dari Calendar atau Queue | Klik CTA "New Post" | Buka Draft Editor (modal) kosong; Close menutup modal kembali ke sub-screen asal tanpa navigasi URL |
 | Buat post baru dari section manapun | Klik CTA "+ New Post" di Sidebar | Buka Draft Editor (modal) kosong, sama seperti CTA di Calendar/Queue/Drafts (NP-D12) |
 | Selesaikan aksi terminal di Draft Editor | Klik Save as Draft / Schedule / Publish Now | Modal tertutup, redirect ke Publish → Drafts / Queue / History-sementara-Calendar (NP-D13) |
-| Buka thread dari Inbox | Klik thread | Expand inline panel kanan dalam Inbox |
+| Buka komentar posting dari Inbox | Pilih posting | Komentar tampil inline di panel kanan dalam Inbox |
 | Akses Settings | Klik User Avatar → dropdown | Navigasi ke Settings (Organization / Account); sidebar persistent digantikan sidebar khusus Settings + tombol back (ADR-077) |
 | Buka Notifications | Klik Notifications icon | Buka Notifications Panel (overlay) |
 | Error status → Settings | Klik indikator error / tautan aksi | Navigasi ke Settings → Organization → Connected Accounts |

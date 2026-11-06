@@ -7,9 +7,9 @@
 **Tujuan rilis:** Menyatukan interaksi media sosial dalam satu tempat.
 **Baseline rilis:** `product-discovery/02-product/release-roadmap.md` → v0.4
 
-**Kedalaman dokumen ini:** task-level saja (rolling wave). **Subtask sengaja belum diisi** — akan dirinci saat rilis ini mendekat, supaya tidak disusun mendahului desain/ADR pendukungnya. ID task sudah dikunci sejak sekarang agar bisa dirujuk.
+**Kedalaman dokumen ini:** semula task-level saja (rolling wave); tiket rilis awal (T-050 sampai T-056) sudah Done dan tiket Engage per posting (T-216 sampai T-224) berisi subtask rinci. ID task dikunci agar bisa dirujuk.
 
-**Titik awal:** domain `engagement/` masih stub kosong. Model `EngagementInboxItem` + `EngagementReply` **sudah ada** di schema. Route `/engage` masih placeholder — saat ini masih di bawah dynamic segment lama `[slug]`, tapi baseline routing sudah pindah ke route group `(app)` (ADR-076); kalau **T-039** (migrasi kode, `tickets/v01-foundation.md`) belum selesai saat task rilis ini dikerjakan, bangun langsung di `(app)/engage` — jangan menambah route baru di `[slug]/...` lama.
+**Titik awal (historis, saat rilis v0.4 mulai; domain `engagement/`, route `/engage`, dan UI Inbox kini sudah ada):** domain `engagement/` masih stub kosong. Model `EngagementInboxItem` + `EngagementReply` **sudah ada** di schema. Route `/engage` masih placeholder — saat ini masih di bawah dynamic segment lama `[slug]`, tapi baseline routing sudah pindah ke route group `(app)` (ADR-076); kalau **T-039** (migrasi kode, `tickets/v01-foundation.md`) belum selesai saat task rilis ini dikerjakan, bangun langsung di `(app)/engage` — jangan menambah route baru di `[slug]/...` lama.
 
 **Batas rilis (ADR-040):** Direct Message, mention, dan **webhook engagement** tidak termasuk MVP. Engagement memakai **periodic pull 30 menit + manual refresh**, bukan webhook.
 
@@ -144,7 +144,7 @@ Isi kotak "Post asal" di detail panel `/engage` (`EngageInboxView.tsx`) yang saa
 - UI: render caption (truncate wajar), thumbnail (atau fallback kalau post tidak bermedia), dan link `platformPostUrl` yang bisa diklik (buka tab baru) — menggantikan label generik saat ini.
 - **Wajib AGENTS.md rule 17** sebelum menulis kode UI: cek Claude Design (`templates/engage-inbox.html`, KSP-06) apakah struktur preview post asli (caption+thumbnail+link) sudah dikunci ("SYNCED"/"LOCKED PATTERN"). Kalau belum dikunci atau mockup belum menunjukkan pola ini → STOP, tanya King Rezi via `AskUserQuestion` sebelum implementasi (persis preseden T-053).
 
-**Update (2026-10-06) — Claude Design sudah di-lock, implementasi belum dimulai:** `templates/engage-inbox.html` (KSP-06) sudah diupdate dan dikunci — gate AGENTS.md rule 17 untuk pola link sudah terpenuhi, implementer tidak perlu STOP/tanya lagi soal ini. Perubahan: kotak `.post-context` sekarang render caption asli (`.post-context-cap`, truncate 1 baris, di dalam `.post-context-body`) + link **"Go to post →"** yang reuse class `.popover-link` dari `components/popover.html` (Post Preview Popover) — bukan gaya ikon+"Lihat post asli" dari `publish-history-detail.html`. Keputusan dipilih eksplisit oleh King Rezi via `AskUserQuestion` (dua pola existing ini ambigu secara teknis per AGENTS.md rule 17). Fallback media: kalau post tidak bermedia, elemen `.thumb` di-omit sepenuhnya (bukan kotak kosong) dan kolom teks jadi full width — didokumentasikan sebagai komentar HTML "LOCKED PATTERN (T-056, 2026-10-06, King Rezi confirmed via AskUserQuestion)" tepat di atas blok `.post-context`. CSS pendukung (`.post-context-body`, `.post-context-cap`) ditambahkan di `styles.css` setelah rule `.thumb`. Detail lengkap: `project-os/COMPLETE_TASK.md` entri 2026-10-06. Branch kerja `feature/t056-engage-post-asal-preview` sudah dibuat dari `origin/staging`, tapi belum ada commit kode apps/web — status task tetap `⏳ Not Started`.
+**Update (2026-10-06) — Claude Design sudah di-lock, implementasi belum dimulai:** `templates/engage-inbox.html` (KSP-06) sudah diupdate dan dikunci — gate AGENTS.md rule 17 untuk pola link sudah terpenuhi, implementer tidak perlu STOP/tanya lagi soal ini. Perubahan: kotak `.post-context` sekarang render caption asli (`.post-context-cap`, truncate 1 baris, di dalam `.post-context-body`) + link **"Go to post →"** yang reuse class `.popover-link` dari `components/popover.html` (Post Preview Popover) — bukan gaya ikon+"Lihat post asli" dari `publish-history-detail.html`. Keputusan dipilih eksplisit oleh King Rezi via `AskUserQuestion` (dua pola existing ini ambigu secara teknis per AGENTS.md rule 17). Fallback media: kalau post tidak bermedia, elemen `.thumb` di-omit sepenuhnya (bukan kotak kosong) dan kolom teks jadi full width — didokumentasikan sebagai komentar HTML "LOCKED PATTERN (T-056, 2026-10-06, King Rezi confirmed via AskUserQuestion)" tepat di atas blok `.post-context`. CSS pendukung (`.post-context-body`, `.post-context-cap`) ditambahkan di `styles.css` setelah rule `.thumb`. Detail lengkap: riwayat git (berkas `COMPLETE_TASK.md` sudah dihapus) entri 2026-10-06. Branch kerja `feature/t056-engage-post-asal-preview` sudah dibuat dari `origin/staging`, tapi belum ada commit kode apps/web — status task tetap `⏳ Not Started`.
 
 **Update (2026-10-06) — Implementasi selesai, commit `e7395c7`, PR #143 ke `staging`:**
 
@@ -156,7 +156,7 @@ Isi kotak "Post asal" di detail panel `/engage` (`EngageInboxView.tsx`) yang saa
 - QA Najwa round 2 (independen, setelah kedua fix): PASS semua — 620 test pass/6 skip, typecheck/lint bersih, tidak ada regresi (termasuk draft editor, filter Comments Inbox, Mark as Done, reply box).
 - Gate T-103.3 (verifikasi struktur vs Claude Design): PASS, dicek langsung sesi utama via `DesignSync`.
 - **Catatan untuk masa depan:** King Rezi sempat tanya soal thumbnail untuk post yang BUKAN dibuat lewat app kita (post hasil import) — investigasi menemukan fitur Import Posts (T-090/T-091, ADR-093) belum diimplementasikan sama sekali, jadi skenario ini belum relevan sekarang. Kalau T-090/T-091 dikerjakan nanti, perlu didesain ulang bagaimana post hasil import mendapat referensi media (saat ini `PublishingPost.mediaIds` cuma menunjuk `MediaItem` lokal hasil upload kita sendiri, tidak ada field untuk URL media platform asli).
-- Status task: **✅ Done**. Terkait juga **KI-082** (media/thumbnail tidak tampil di beberapa preview post lain — History Detail, Calendar Popover — di luar scope T-056). **KI-082 Resolved (2026-10-06)**: History Detail sudah diimplementasikan (reuse pola resolve media T-056), lihat `COMPLETE_TASK.md`; Calendar Popover sengaja tidak diubah (keputusan King Rezi, placeholder sudah cukup).
+- Status task: **✅ Done**. Terkait juga **KI-082** (media/thumbnail tidak tampil di beberapa preview post lain — History Detail, Calendar Popover — di luar scope T-056). **KI-082 Resolved (2026-10-06)**: History Detail sudah diimplementasikan (reuse pola resolve media T-056), lihat riwayat git (`COMPLETE_TASK.md` sudah dihapus); Calendar Popover sengaja tidak diubah (keputusan King Rezi, placeholder sudah cukup).
 
 ---
 
@@ -175,7 +175,7 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 | **Docs**    | ADR-157, ADR-140, ADR-097, KSP-06, KSP-D06, `context/ctx-design.md`, `.claude/skills/claude-design-scope-discipline/SKILL.md` |
 | **Depends** | — (ADR-157 Accepted 2026-11-05)                                                                                               |
 
-**Gate rancangan (`AGENTS.md` aturan 10):** belum ada rancangan Engage per posting di artifact Postific. Tiket UI (T-219, T-220) tidak boleh mulai sebelum T-216 dikonfirmasi King Rezi di galeri "Postific Design Review".
+**Gate rancangan (`AGENTS.md` aturan 10), riwayat:** saat tiket ini dibuat belum ada rancangan Engage per posting di artifact Postific, jadi tiket UI (T-219, T-220, T-224) tidak boleh mulai sebelum T-216 dikonfirmasi King Rezi. Gate sudah terpenuhi (T-216 ✅, 2026-11-05).
 
 **What to build:** kartu layar Engage per posting di artifact Postific, dikerjakan Neymar (wajib baca `claude-design-scope-discipline` dulu; jangan mengubah default atau state lain, jangan menambah kontrol pembanding tanpa izin).
 
@@ -222,7 +222,7 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 **What to build:** `InboxItemStatus` dari `"unread" | "done"` menjadi `unread | replied | resolved | dismissed`, dengan transisi yang jelas, tanpa kolom atau tabel baru (kolom `status` adalah `TEXT` tanpa constraint).
 
-- [ ] **T-217.1** Inventarisasi semua pemakai status `done` dan `unread` (service, repository, `EngageInboxView`, badge sidebar, Engagement Snapshot di Home, MCP bila ada) sebelum mengubah apa pun. Hasilnya dicatat di tiket ini.
+- [ ] **T-217.1** Inventarisasi semua pemakai status `done` dan `unread` (service, repository, `EngageInboxView`, badge sidebar, Engagement Snapshot di Home, dan tool MCP `list_comments` yang memakai filter `status` `"unread"|"done"`, `application-layer.md`) sebelum mengubah apa pun. Hasilnya dicatat di tiket ini.
 - [ ] **T-217.2** Tipe dan aturan transisi di domain `engagement` (mis. `unread` → `replied` / `resolved` / `dismissed`; `resolved` dan `dismissed` → `unread`), sesuai jawaban Q2 dan Q3 (`replied` otomatis saat balasan terkirim, status reversibel). Nama method `markAsDone` ditinjau.
 - [ ] **T-217.3** `EngagementService.reply` menandai `replied` saat balasan berhasil terkirim bila status `unread`; tidak menurunkan status lain.
 - [ ] **T-217.4** Migrasi data baris `done` menjadi `resolved` (jawaban Q1, 2026-11-05). Migrasi ditulis, ditinjau, dan diterapkan ke DB bersama hanya atas izin King Rezi.
@@ -298,16 +298,16 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 | **Domain**  | engagement · UI (UI/UX-related)                                                                      |
 | **Spec**    | S-006                                                                                                |
 | **Docs**    | ADR-157, ADR-097, ADR-140, KSP-06-F02, `apps/web/.claude/CLAUDE.md`, artifact Postific (kartu T-216) |
-| **Depends** | T-216, T-218                                                                                         |
+| **Depends** | T-216, T-218, T-219                                                                                  |
 
 **What to build:** filter utama di header (Akun, Status) dan satu panel sekunder (Sort By, Date Range, Reset filters), menggantikan tiga `Select` sejajar. Menyentuh berkas yang sama dengan T-219 (`EngageInboxView` dan turunannya): kerjakan setelah T-219.1 memecah berkas, bukan paralel.
 
 - [ ] **T-220.1** Dropdown Akun/Channels dan Status (single-select bercentang) di header.
-- [ ] **T-220.2** Panel Filter & Sort (komponen ditentukan rancangan, diverifikasi lewat MCP shadcn): Sort By, Date Range, Reset filters. Tempat filter Platform mengikuti rancangan.
+- [ ] **T-220.2** Panel Filter & Sort (komponen ditentukan rancangan, diverifikasi lewat MCP shadcn): Sort By, Date Range, Reset filters. Filter Platform berada di panel ini (keputusan King Rezi 2026-11-05 atas rancangan T-216).
 - [ ] **T-220.3** Filter memicu query T-218 server-side seperti pola sekarang (`listInboxAction`); tanpa request ganda saat render awal.
 - [ ] **T-220.4** Tes komponen; terang, gelap, 375px diamati; `typecheck`, `lint`, tes hijau.
 
-**Blocked by:** T-216, T-218; urutan dengan T-219 karena berkas bersama.
+**Blocked by:** T-219 (berkas bersama; T-216 dan T-218 sudah/segera terpenuhi).
 
 ---
 
@@ -345,6 +345,8 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 **Hasil (2026-11-06):** KSP-06 ditulis ulang (Critical Functions F01 sampai F09, tabel status dan transisi, zona, state, pola badge) dan KSP-D06 serta baris konfirmasi "Resolve / Dismiss" diselaraskan; UF-04 (langkah, alternate path, UXP-03), `navigation-patterns.md` (badge, Engage satu layar dengan pilihan tampilan, pola ekspansi), `information-architecture.md` (struktur Engage, peta konten), dan `domain-model.md` (`InboxItemStatus`, transisi, query per posting; drift lama `unread | read | replied | archived` terkoreksi) diperbarui. `ctx-domain.md` dan `ctx-design.md` ditinjau dan tidak diubah: penunjuknya tidak berubah. Baris Engagement Snapshot di IA dan KSP-01-F03 tetap benar (menghitung `unread`, Q4).
 
+**Audit lanjutan (2026-11-06, `docs-consistency-audit` topik engage, scope inti sekitar 33 berkas):** 10 temuan kelas A diperbaiki di sesi yang sama: `database-strategy.md` (status, `read_at`), `application-layer.md` (tabel `EngagementService`, catatan kontrak MCP `list_comments`), `integration-layer.md` (nama atribut), `navigation-patterns.md` (NP-D03 dan istilah thread), `key-screen-patterns.md` (ringkasan KSP-06), `roles-permissions.md` (aksi Resolve/Dismiss), S-006, T-216 sampai T-222, antrean, dan `PROJECT_STATE.md`. Temuan kelas B (B1 sampai B10) menunggu keputusan King Rezi dan belum diubah.
+
 **Belum terbukti:** apakah ada dokumen lain yang menyebut model lama dengan istilah berbeda; audit memakai grep istilah (`Mark as Done`, `Unread / Done`, `KSP-06`, `Comments Inbox`, `InboxItem`), bukan pembacaan semua berkas.
 
 **Blocked by:** T-216.
@@ -367,7 +369,7 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 - [ ] **T-222.1** E2E Playwright golden path (ADR-149): buka Engage, pilih posting, balas komentar, Resolve, Dismiss, buka kembali, filter status, Sort, Date Range, Reset, dan pindah By post / List. Hijau tiga run di `local`. Konvensi `e2e-data.ts` (workspace E2E Sandbox) diikuti; tes tidak memublikasikan di workspace produksi.
 - [ ] **T-222.2** Regresi: filter akun/platform, reply (T-054), post asal (T-056), badge sidebar, Engagement Snapshot Home, manual refresh.
 - [ ] **T-222.3** Review arsitektur Ridwan dan QA Najwa tanpa temuan terbuka; `/code-review`; `typecheck`, `lint`, tes hijau.
-- [ ] **T-222.4** Done (code). Verified (staging) satu kali per gelombang (ADR-153) untuk hal yang tidak bisa dibuktikan lokal; bagian "Belum terbukti" tiket T-217 sampai T-220 tetap wajib sampai butirnya lulus.
+- [ ] **T-222.4** Done (code). Verified (staging) satu kali per gelombang (ADR-153) untuk hal yang tidak bisa dibuktikan lokal; bagian "Belum terbukti" tiket T-217 sampai T-220 dan T-224 tetap wajib sampai butirnya lulus.
 
 **Blocked by:** T-219, T-220, T-224.
 

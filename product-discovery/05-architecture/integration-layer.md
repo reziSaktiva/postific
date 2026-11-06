@@ -359,9 +359,9 @@ Engagement MVP hanya mencakup **komentar dan reply**. Direct Message dan mention
 `OutstandAdapter.fetchComments` mentranslasikan response Outstand menjadi data komentar domain. `EngagementService` melakukan upsert idempoten berdasarkan external comment ID. Jika sync menemukan item baru, service membuat notifikasi internal `engagement_new` secara agregat; notifikasi ini **berasal dari sync**, bukan webhook.
 
 **Atribut `InboxItem` yang berasal dari Outstand:**
-- `outstandItemId` — ID unik dari Outstand, digunakan untuk idempotency check.
+- `externalId` — ID komentar dari Outstand (kolom `external_id`), digunakan untuk idempotency check.
 - `platform` — dari `ConnectedAccount`.
-- `authorName` — nama pengirim komentar.
+- `authorHandle` — username pengirim komentar (kolom `author_handle`).
 - `content` — teks komentar.
 - `postId` — referensi ke `Post` jika komentar terkait post internal (matched via `outstandPostId`, amandemen ADR-092, sebelumnya `outstandJobId`).
 - `receivedAt` — timestamp dari Outstand.

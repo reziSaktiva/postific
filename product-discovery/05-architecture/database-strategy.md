@@ -440,10 +440,10 @@ Diputuskan King Rezi 2026-10-26 dan dicatat di ADR-141 (pengecualian DB-D05). Po
 | `external_id` | `text NOT NULL` | ID komentar dari Outstand Comments API |
 | `author_handle` | `text NOT NULL` | Username pengirim |
 | `content` | `text NOT NULL` | Isi interaksi |
-| `status` | `text NOT NULL DEFAULT 'unread'` | `unread \| read \| replied \| archived` |
+| `status` | `text NOT NULL DEFAULT 'unread'` | `unread \| replied \| resolved \| dismissed` (ADR-157); tanpa constraint basis data. Baris lama `done` dimigrasi menjadi `resolved` (T-217.4). Sebelumnya tertulis `unread \| read \| replied \| archived` dan di kode `unread \| done` |
 | `post_id` | `uuid` | Soft ref ke `publishing_posts.id` — tidak enforce FK |
 | `received_at` | `timestamptz NOT NULL` | Waktu item diterima di platform |
-| `read_at` | `timestamptz` | |
+| `read_at` | `timestamptz` | Tidak lagi terkait status `read` (sudah tidak ada, ADR-157); nasib kolom ini menunggu keputusan |
 | `created_at` | `timestamptz NOT NULL DEFAULT now()` | |
 | `updated_at` | `timestamptz NOT NULL DEFAULT now()` | |
 

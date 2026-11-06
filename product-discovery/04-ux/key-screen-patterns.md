@@ -1071,7 +1071,7 @@ Keputusan desain yang dibuat dalam dokumen ini.
 | KSP-03 Queue | Daftar linear berurutan (grouped by tanggal) + 1 card per item + filter | Queue kosong, filter tidak ada hasil (Item Failed pindah ke History) |
 | KSP-04 Drafts | Daftar draft + CTA New Post | Drafts kosong |
 | KSP-05 Draft Editor | Dua zona (Baris Channel + Editor + Blok per Jaringan / Pratinjau) + footer aksi + Confirmation Summary | Akun Disconnected, Status Failed |
-| KSP-06 Inbox | Master-detail + sync status + Manual Refresh | Badge setelah sync, refresh gagal, Inbox kosong |
+| KSP-06 Inbox | Dua panel per posting (By post / List) + filter utama + panel Filter & Sort + sync status + Manual Refresh | Badge setelah sync, refresh gagal, Inbox kosong, filter tanpa hasil |
 | KSP-07 Dashboard | Summary Row + Account Overview + Post Performance | Empty state (belum ada data) |
 | KSP-08 Connected Accounts | Daftar akun + status + aksi kontekstual | Disconnected → Reconnect |
 | KSP-09 Persetujuan OAuth | Dua langkah (workspace, scope) di luar app shell | Tanpa workspace, klien tanpa nama, error, menyimpan |
