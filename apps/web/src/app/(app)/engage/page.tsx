@@ -1,33 +1,25 @@
 import { asUserId } from "@postific/shared";
 import { redirect } from "next/navigation";
 
-import { EngagementService } from "@/domains/engagement";
 import { WorkspaceService } from "@/domains/workspace";
-import { getOutstandAdapter } from "@/lib/adapters/outstand";
 import { getCachedSession } from "@/lib/better-auth/session";
-import { engagementRepository } from "@/lib/repositories/engagement";
-import { publishingRepository } from "@/lib/repositories/publishing";
 import { workspaceRepository } from "@/lib/repositories/workspace";
 import { getWorkspaceContext } from "@/lib/workspace/workspace-context";
 
+import { listInboxByPostAction } from "./actions";
 import { EngageInboxView } from "./components/EngageInboxView";
+import { DEFAULT_DATE_RANGE } from "./components/engage-model";
 
 /**
- * `/engage` (T-053, KSP-06 Engage → Inbox) — Comments Inbox. Entry point
- * tipis (AGENTS.md #5): resolve workspace/session, ambil data awal lewat
- * `EngagementService.listInbox` (tanpa filter — state default "Semua
- * Akun"/"Semua Platform"/"Semua Status") dan
- * `WorkspaceService.listConnectedAccounts` (opsi dropdown filter Akun,
- * pola sama `CalendarPage`/`CalendarToolbar` — daftar akun LENGKAP, bukan
- * derive dari `items` yang sudah terfilter, supaya opsi filter tidak
- * hilang saat filter lain aktif), lalu delegasikan render + state
- * filter/detail ke `EngageInboxView` (client).
+ * `/engage` (KSP-06 Engage, T-219 per posting). Entry point tipis (AGENTS.md
+ * #5): resolve workspace/session, ambil daftar posting awal lewat
+ * `listInboxByPostAction` (filter bawaan, rentang 12 bulan) dan daftar akun
+ * terkoneksi lewat `WorkspaceService.listConnectedAccounts` (opsi filter
+ * Akun dan nama akun kartu; daftar LENGKAP, bukan turunan hasil terfilter),
+ * lalu delegasikan render + state ke `EngageInboxView` (client).
  *
- * Data engagement TIDAK memakai Supabase Realtime (ADR-023 membatasinya
- * hanya untuk tabel `notifications`) — `EngageInboxView` re-fetch lewat
- * Server Action (`listInboxAction`/`refreshInboxAction`, T-052) saat
- * filter berubah atau tombol Refresh diklik, bukan subscribe channel
- * apa pun.
+ * Tanpa Supabase Realtime (ADR-023): `EngageInboxView` mengambil data lewat
+ * Server Action saat filter berubah, posting dipilih, atau Refresh diklik.
  */
 export default async function Page() {
   const { workspaceId } = await getWorkspaceContext();
@@ -37,18 +29,21 @@ export default async function Page() {
   }
   const userId = asUserId(session.user.id);
 
-  const engagementService = new EngagementService(
-    engagementRepository,
-    getOutstandAdapter(),
-    publishingRepository,
-    workspaceRepository,
-  );
   const workspaceService = new WorkspaceService(workspaceRepository);
 
-  const [items, accounts] = await Promise.all([
-    engagementService.listInbox({ workspaceId }, userId),
+  // Daftar posting lewat Server Action yang sama dengan re-fetch di client:
+  // satu jalur untuk ringkasan kelompok dan thumbnail ber-signed URL baru.
+  const [groupsResult, accounts] = await Promise.all([
+    listInboxByPostAction({ dateRange: DEFAULT_DATE_RANGE }),
     workspaceService.listConnectedAccounts(workspaceId, userId),
   ]);
 
-  return <EngageInboxView initialItems={items} accounts={accounts} />;
+  return (
+    <EngageInboxView
+      initialGroups={groupsResult.data ?? []}
+      initialTruncated={groupsResult.truncated ?? false}
+      initialLoadFailed={Boolean(groupsResult.error)}
+      accounts={accounts}
+    />
+  );
 }

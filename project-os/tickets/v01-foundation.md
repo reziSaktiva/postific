@@ -946,6 +946,17 @@ Skill penyiap gelombang (keputusan King Rezi 2026-11-02). Hanya membaca dokumen,
 - [x] **T-190.3** `✅ Done (2026-11-02)` Satu penunjuk di navigator (housekeeping skill) dan satu penunjuk di `.claude/agents/README.md`; tanpa menyalin isi skill (ADR-133). `.claude/agents/*.md` tidak diubah.
 - [x] **T-190.4** `✅ Done (2026-11-02)` Pakai `bun run docs:where` (T-186) untuk menemukan bagian tiket bila sudah tersedia; sebelum itu, baca bagian tiket dengan `offset` dan `limit`.
 
+### T-225 · Wave orchestration: clarify the E2E brief and the remaining-ticket check (S-006 g3 retro follow-up)
+
+`⏳ Not Started` · **Mode** AFK · **Domain** project-os, agen (tanpa kode produk) · **ADR** ADR-153 · **Spec** S-003 · **Depends** —
+**Baca dulu:** `.claude/skills/wave-plan/SKILL.md` · `.claude/skills/wave-work/SKILL.md` (termasuk `lane-brief-template`) · `project-os/specs/S-003.md`
+
+Tindak lanjut retro gelombang 3 S-006 (disetujui King Rezi 2026-11-06). Hanya mengubah skill dan dokumen orkestrasi; tidak ada kode produk. Perubahan skill tetap atas permintaan eksplisit King Rezi dan dicek dengan `bun run docs:check`.
+
+- [ ] **T-225.1** Brief jalur (`lane-brief-template`) untuk E2E menyatakan: E2E dijalankan di checkout utama dengan `E2E_BASE_URL` menunjuk ke dev server yang sudah berjalan; worktree jalur tidak punya `apps/web/.env.local`; `next dev` mengunci `.next/dev` per direktori sehingga dev server kedua di worktree gagal. Bukti: Prabowo gagal menjalankan E2E di port 3101 pada gelombang 3 S-006 (laporan gelombang).
+- [ ] **T-225.2** `wave-plan` memeriksa centang butir (`- [ ]` / `- [x]`) di file tiket, bukan hanya baris antrean di `AVAILABLE_TICKETS.md`, sebelum menyebut sebuah tiket "sisa" atau memasukkannya ke daftar gelombang. Bukti: T-212.7 sudah tercentang tetapi baris antrean menyebutnya sisa, sehingga masuk daftar gelombang dan jalur B kosong.
+- [ ] **T-225.3** Periksa apakah MCP shadcn (`components.json` dan `.mcp.json`) tersedia di worktree jalur; bila tidak, putuskan dan tulis penanganannya (salin/tautkan berkas, atau brief menyatakan keterbatasannya). Bukti: `search_items_in_registries` mengembalikan "tidak ada registry terkonfigurasi" di worktree jalur A, sehingga Mark jatuh ke pembacaan sumber lokal. Catatan: `.mcp.json` dan `.cursor/mcp.json` adalah pasangan kembar (`AGENTS.md` aturan 12); bila perlu diubah, ubah bersamaan.
+
 ---
 
 ## Dari Known Issue
