@@ -183,11 +183,14 @@ describe("listInboxByPostAction (T-218)", () => {
   });
 
   it("mengganti mediaIds dengan thumbnail ber-URL segar lewat satu pencarian media", async () => {
-    vi.spyOn(EngagementService.prototype, "listInboxByPost").mockResolvedValue([
-      group("post-1", ["m1", "m2"]),
-      group("post-2", []),
-      group(null, []),
-    ]);
+    vi.spyOn(EngagementService.prototype, "listInboxByPost").mockResolvedValue({
+      groups: [
+        group("post-1", ["m1", "m2"]),
+        group("post-2", []),
+        group(null, []),
+      ],
+      truncated: false,
+    });
     const listByIds = vi
       .spyOn(MediaService.prototype, "listByIds")
       .mockResolvedValue([
@@ -199,6 +202,7 @@ describe("listInboxByPostAction (T-218)", () => {
       ] as never);
 
     const result = await listInboxByPostAction({ sort: "newest" });
+    expect(result.truncated).toBe(false);
 
     expect(listByIds).toHaveBeenCalledTimes(1);
     expect(listByIds.mock.calls[0][0].mediaIds).toEqual(["m1"]);
@@ -214,9 +218,10 @@ describe("listInboxByPostAction (T-218)", () => {
 
   it("tetap mengembalikan daftar tanpa thumbnail bila resolve media gagal", async () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    vi.spyOn(EngagementService.prototype, "listInboxByPost").mockResolvedValue([
-      group("post-1", ["m1"]),
-    ]);
+    vi.spyOn(EngagementService.prototype, "listInboxByPost").mockResolvedValue({
+      groups: [group("post-1", ["m1"])],
+      truncated: false,
+    });
     vi.spyOn(MediaService.prototype, "listByIds").mockRejectedValue(
       new Error("storage down"),
     );
@@ -226,5 +231,20 @@ describe("listInboxByPostAction (T-218)", () => {
     expect(result.error).toBeUndefined();
     expect(result.data?.[0].postSnapshot?.thumbnail).toBeNull();
     errorSpy.mockRestore();
+  });
+
+  it("input tidak valid menjadi error validasi tanpa memanggil service", async () => {
+    const spy = vi.spyOn(EngagementService.prototype, "listInboxByPost");
+
+    const badAccount = await listInboxByPostAction({
+      connectedAccountId: "bukan-uuid" as never,
+    });
+    const badPlatform = await listInboxByPostAction({
+      platform: "myspace" as never,
+    });
+
+    expect(badAccount.error).toBeTruthy();
+    expect(badPlatform.error).toBeTruthy();
+    expect(spy).not.toHaveBeenCalled();
   });
 });

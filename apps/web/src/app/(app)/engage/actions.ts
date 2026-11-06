@@ -32,7 +32,7 @@ import { mediaRepository } from "@/lib/repositories/media";
 import { notificationRepository } from "@/lib/repositories/notification";
 import { publishingRepository } from "@/lib/repositories/publishing";
 import { workspaceRepository } from "@/lib/repositories/workspace";
-import { toActionError } from "@/lib/utils/errors";
+import { ValidationError, toActionError } from "@/lib/utils/errors";
 import { createActiveWorkspaceMembersPort } from "@/lib/workspace/active-members-port";
 import { getWorkspaceContext } from "@/lib/workspace/workspace-context";
 
@@ -239,6 +239,9 @@ export async function getInboxItemDetailAction(
   }
 }
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /** Snapshot posting siap-render untuk kartu posting (T-218): `mediaIds` diganti thumbnail ber-signed URL. */
 export interface InboxPostGroupSnapshotDto {
   caption: string;
@@ -262,7 +265,11 @@ export type InboxPostGroupDto = Omit<InboxPostGroup, "postSnapshot"> & {
  */
 export async function listInboxByPostAction(
   input?: Omit<ListInboxByPostInput, "workspaceId">,
-): Promise<{ data?: InboxPostGroupDto[]; error?: string }> {
+): Promise<{
+  data?: InboxPostGroupDto[];
+  truncated?: boolean;
+  error?: string;
+}> {
   const { workspaceId } = await getWorkspaceContext();
   const session = await getCachedSession();
   if (!session) {
@@ -278,7 +285,21 @@ export async function listInboxByPostAction(
   );
 
   try {
-    const groups = await engagementService.listInboxByPost(
+    // Input datang dari client (tidak dipercaya): nilai di luar bentuknya
+    // menjadi ValidationError, bukan galat Prisma.
+    if (
+      input?.connectedAccountId !== undefined &&
+      !UUID_PATTERN.test(input.connectedAccountId)
+    ) {
+      throw new ValidationError("Akun tidak valid.");
+    }
+    if (
+      input?.platform !== undefined &&
+      !(Object.values(SocialPlatform) as string[]).includes(input.platform)
+    ) {
+      throw new ValidationError("Platform tidak dikenal.");
+    }
+    const { groups, truncated } = await engagementService.listInboxByPost(
       { ...input, workspaceId },
       userId,
     );
@@ -328,7 +349,7 @@ export async function listInboxByPostAction(
           : null,
       };
     });
-    return { data };
+    return { data, truncated };
   } catch (error) {
     return toActionError(error);
   }

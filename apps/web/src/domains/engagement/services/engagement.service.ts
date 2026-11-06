@@ -161,8 +161,18 @@ export interface ListInboxByPostInput {
   includeEmpty?: boolean;
 }
 
-/** Jumlah kelompok maksimum per panggilan dan konkurensi pengambilan snapshot. */
-const POST_GROUP_LIMIT = 100;
+/**
+ * Hasil `listInboxByPost`. `truncated` = ada posting bernomor (berkomentar atau
+ * `includeEmpty`) yang dibuang karena melewati `POST_GROUP_LIMIT`; kelompok
+ * "Tanpa posting" tidak pernah dibuang.
+ */
+export interface InboxPostGroupsResult {
+  groups: InboxPostGroup[];
+  truncated: boolean;
+}
+
+/** Jumlah posting bernomor maksimum per panggilan dan konkurensi pengambilan snapshot. */
+export const POST_GROUP_LIMIT = 100;
 const SNAPSHOT_CONCURRENCY = 10;
 
 /**
@@ -200,7 +210,13 @@ export class EngagementService {
    * dasar tampilan "By post". Dikelompokkan per `postId` (komentar tanpa
    * `postId` menjadi satu kelompok `postId: null`), dengan hitungan total,
    * belum dibalas (`unread`), ditangani (sisanya), dan waktu komentar
-   * terbaru. Posting tanpa komentar disembunyikan kecuali `includeEmpty`.
+   * terbaru. Semua hitungan hanya atas komentar dalam rentang tanggal (dan
+   * filter akun/platform). Kelompok "Tanpa posting" selalu di dasar dan tidak
+   * ikut sort. Posting tanpa komentar disembunyikan kecuali `includeEmpty`;
+   * "kosong" berarti tanpa komentar DALAM rentang. `includeEmpty` diabaikan
+   * saat filter status aktif, dan posting kosong selalu di bawah posting
+   * berkomentar untuk sort apa pun. Maksimum `POST_GROUP_LIMIT` posting
+   * bernomor; `truncated` menandai ada yang dibuang.
    * Snapshot posting diambil lewat port `publishing` (T-056); `mediaIds`
    * dibawa mentah, signed URL thumbnail diregenerasi composition root
    * (`MediaService.resolveThumbnails`), seperti `getInboxItemDetail`.
@@ -209,7 +225,7 @@ export class EngagementService {
     input: ListInboxByPostInput,
     userId: UserId,
     now: Date = new Date(),
-  ): Promise<InboxPostGroup[]> {
+  ): Promise<InboxPostGroupsResult> {
     const sort = input.sort ?? "unreplied_first";
     const dateRange = input.dateRange ?? "12m";
     if (!INBOX_POST_SORTS.includes(sort)) {
@@ -240,11 +256,20 @@ export class EngagementService {
         : Promise.resolve([]),
     ]);
 
-    const groups = buildInboxPostGroups(rows, {
+    const built = buildInboxPostGroups(rows, {
       sort,
       status: input.status,
       emptyPosts,
-    }).slice(0, POST_GROUP_LIMIT);
+    });
+    // Batas hanya untuk posting bernomor (urutan builder: berkomentar, lalu
+    // posting kosong, jadi yang kosong terbuang lebih dulu); "Tanpa posting"
+    // selalu dipertahankan di dasar.
+    const numbered = built.filter((group) => group.postId !== null);
+    const groups = [
+      ...numbered.slice(0, POST_GROUP_LIMIT),
+      ...built.filter((group) => group.postId === null),
+    ];
+    const truncated = numbered.length > POST_GROUP_LIMIT;
 
     const result: InboxPostGroup[] = [];
     for (let i = 0; i < groups.length; i += SNAPSHOT_CONCURRENCY) {
@@ -267,7 +292,7 @@ export class EngagementService {
         result.push({ ...group, postSnapshot: snapshots[index] }),
       );
     }
-    return result;
+    return { groups: result, truncated };
   }
 
   /**

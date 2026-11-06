@@ -126,7 +126,12 @@ export function buildInboxPostGroups(
       statuses: [...acc.statuses],
     }));
 
-  withComments.sort((a, b) => {
+  // Kelompok "Tanpa posting" tidak ikut sort (KSP-06-F01/F02): dipisahkan
+  // sebelum sort dan selalu di dasar daftar.
+  const noPost = withComments.filter((group) => group.postId === null);
+  const posts = withComments.filter((group) => group.postId !== null);
+
+  posts.sort((a, b) => {
     const aTime = a.latestReceivedAt?.getTime() ?? 0;
     const bTime = b.latestReceivedAt?.getTime() ?? 0;
     if (sort === "oldest") return aTime - bTime;
@@ -134,10 +139,10 @@ export function buildInboxPostGroups(
     return b.unrepliedCount - a.unrepliedCount || bTime - aTime;
   });
 
-  // Posting tanpa komentar tidak punya status, jadi tidak ikut saat filter
-  // status aktif; ditaruh di akhir dengan urutan masukan (terbaru dulu dari
-  // sumbernya).
-  const commented = new Set(withComments.map((g) => g.postId));
+  // Posting tanpa komentar (dalam rentang) tidak punya status, jadi tidak ikut
+  // saat filter status aktif; ditaruh setelah posting berkomentar dengan
+  // urutan masukan (terbaru dulu dari sumbernya), apa pun sort-nya.
+  const commented = new Set(posts.map((g) => g.postId));
   const empties: InboxPostGroupSummary[] = status
     ? []
     : emptyPosts
@@ -154,5 +159,5 @@ export function buildInboxPostGroups(
           statuses: [],
         }));
 
-  return [...withComments, ...empties];
+  return [...posts, ...empties, ...noPost];
 }

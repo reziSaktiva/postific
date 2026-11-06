@@ -260,7 +260,7 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 - [x] **T-218.2** Sort: belum dibalas dulu (bawaan), terbaru, terlama. Rentang tanggal (7 hari, 30 hari, 6 bulan, 12 bulan) atas `receivedAt`. Filter akun, platform, dan status tetap berfungsi.
 - [x] **T-218.3** Snapshot posting (caption, thumbnail, platform, akun) memakai jalur yang sudah ada (`PublishingPostSnapshotPort`, T-056), tanpa import lintas domain (aturan keras no. 5). Thumbnail memakai signed URL yang diregenerasi.
 - [x] **T-218.4** Posting tanpa komentar disembunyikan secara bawaan; parameter menampilkan semuanya.
-- [x] **T-218.5** Tes unit dan integrasi DB; indeks DB diperiksa (kandidat: `workspace_id`, `post_id`, `status`, `received_at`) sebelum menambah migrasi.
+- [ ] **T-218.5** Tes unit dan integrasi DB; indeks DB diperiksa (kandidat: `workspace_id`, `post_id`, `status`, `received_at`) sebelum menambah migrasi.
 - [x] **T-218.6** `typecheck`, `lint`, tes hijau.
 - [x] **T-218.7** Jelaskan dan putuskan cara JOB-03 menarik komentar per akun memakai endpoint Outstand per posting (`GET /v1/posts/{id}/replies`): iterasi posting terbit per akun dan batas posting yang ditarik; tulis hasilnya di `integration-layer.md` dan `background-jobs.md` (keputusan King Rezi 2026-11-06, B7).
 - [x] **T-218.8** Putuskan indeks untuk query per posting (kandidat `post_id` dan `received_at`) dan tulis di `database-strategy.md` bersama migrasinya bila perlu (B7).
@@ -272,11 +272,22 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 - T-218.7: JOB-03 dipertahankan menelusuri posting terbit per akun (maksimum 50 terbaru, berurutan, kegagalan per posting dilewati); ditulis di `integration-layer.md` dan `background-jobs.md`. Tidak ada perubahan kode JOB-03.
 - T-218.8: satu indeks `(workspace_id, post_id, received_at DESC)`; tanpa `(workspace_id, received_at)`; ditulis di `database-strategy.md`.
 - Kelompok = per `postId`. Posting multi-akun menjadi satu kelompok dengan `connectedAccountId`/`platform` dari komentar terbaru (plus `connectedAccountIds`); snapshot diambil untuk akun itu.
+- Kelompok "Tanpa posting" tidak ikut sort dan selalu di dasar daftar (KSP-06-F01/F02), setelah posting berkomentar dan posting kosong. Urutan akhir: posting berkomentar (sesuai sort), posting kosong (`includeEmpty`), "Tanpa posting".
+- Batas 100 posting bernomor per panggilan: pemotongan hanya atas posting bernomor (posting kosong terbuang lebih dulu), "Tanpa posting" tidak pernah dibuang, dan hasil membawa `truncated: true` bila ada yang dibuang (`listInboxByPost` mengembalikan `{ groups, truncated }`).
+- Semantik rentang tanggal vs `includeEmpty`: semua hitungan hanya atas komentar dalam rentang (dan filter akun/platform); posting "kosong" berarti tanpa komentar dalam rentang, bukan tanpa komentar sama sekali. `includeEmpty` diabaikan saat filter status aktif. Posting kosong selalu di bawah posting berkomentar untuk sort newest/oldest/unreplied_first.
+- `listInboxByPostAction` memvalidasi input runtime (`connectedAccountId` harus UUID, `platform` harus platform dikenal) menjadi `ValidationError`.
 - "Belum dibalas" = `unread`; "ditangani" = `replied` + `resolved` + `dismissed`.
 - Filter status memilih kelompok yang punya minimal satu komentar berstatus itu, tetapi hitungan kelompok tetap atas semua komentar (dalam akun/platform/rentang). Rentang bawaan 12 bulan (S-006).
 - `includeEmpty` memakai sumber posting JOB-03 (maksimum 50 per akun, tanpa filter tanggal terbit); tidak berlaku bersama filter status. Maksimum 100 kelompok per panggilan.
 
-**Belum terbukti:** (1) performa query pada volume besar (ratusan komentar per posting) belum diukur: tes integrasi DB `aggregate-inbox-by-post.integration.test.ts` ditulis tetapi opt-in (`ENGAGEMENT_DB_TEST=1` + `DATABASE_URL`) dan belum dijalankan di lingkungan ini; belum ada `EXPLAIN (ANALYZE)`; (2) migrasi indeks belum diterapkan ke DB manapun; (3) snapshot posting diambil per kelompok (maks 10 konkuren, maks 100 kelompok), belum ada query batch; (4) tes repository unit memakai tabel in-memory, bukan SQL sungguhan; (5) `listInboxByPostAction` belum dipanggil UI (T-219).
+**Catatan teknis dan keputusan tertunda:**
+
+- `groupBy` repository memakai `take: 5000` hanya sebagai pagar; bila terlewati, kelompok terpotong diam-diam (belum ada penanda).
+- `CREATE INDEX` migrasi T-218.8 tanpa `CONCURRENTLY` sehingga mengunci tulis tabel selama pembuatan; pertimbangkan jendela terapan atau varian CONCURRENTLY di luar transaksi migrasi saat diterapkan.
+- Indeks `(workspace_id)` lama kini redundan terhadap indeks baru; tiket terpisah untuk menghapusnya, setelah diukur.
+- Batas 50 posting per akun pada JOB-03 (T-218.7) berdampak produk: komentar baru di posting yang lebih lama tidak ikut ditarik. Butuh konfirmasi King Rezi, kemungkinan amandemen ADR-157, sebelum dianggap final.
+
+**Belum terbukti:** (0) T-218.5 belum dicentang: tes integrasi DB `aggregate-inbox-by-post.integration.test.ts` ditulis tetapi belum dijalankan (belum terverifikasi); isolasi workspace/RLS di Postgres dan manfaat indeks belum terbukti; (1) performa query pada volume besar (ratusan komentar per posting) belum diukur: tes integrasi DB `aggregate-inbox-by-post.integration.test.ts` ditulis tetapi opt-in (`ENGAGEMENT_DB_TEST=1` + `DATABASE_URL`) dan belum dijalankan di lingkungan ini; belum ada `EXPLAIN (ANALYZE)`; (2) migrasi indeks belum diterapkan ke DB manapun; (3) snapshot posting diambil per kelompok (maks 10 konkuren, maks 100 kelompok), belum ada query batch; (4) tes repository unit memakai tabel in-memory, bukan SQL sungguhan; (5) `listInboxByPostAction` belum dipanggil UI (T-219).
 
 **Blocked by:** T-217.
 

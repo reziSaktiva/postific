@@ -12,7 +12,7 @@ import { describe, expect, it } from "vitest";
 import { ValidationError } from "@/lib/utils/errors";
 import type { IEngagementRepository } from "../repositories/engagement.repository";
 import type { EngagementInboxItemRecord, InboxAggregateFilter } from "../types";
-import { EngagementService } from "./engagement.service";
+import { EngagementService, POST_GROUP_LIMIT } from "./engagement.service";
 
 const WS = asWorkspaceId("ws-1");
 const USER = asUserId("user-1");
@@ -161,7 +161,7 @@ describe("EngagementService.listInboxByPost", () => {
       },
     );
 
-    const groups = await service.listInboxByPost(
+    const { groups: groups } = await service.listInboxByPost(
       { workspaceId: WS },
       USER,
       NOW,
@@ -187,20 +187,20 @@ describe("EngagementService.listInboxByPost", () => {
       item({ postId: P3, status: "resolved", receivedAt: day(0.5) }),
     ]);
 
-    const groups = await service.listInboxByPost(
+    const { groups: groups } = await service.listInboxByPost(
       { workspaceId: WS },
       USER,
       NOW,
     );
     expect(groups.map((g) => g.postId)).toEqual([P2, P1, P3]);
 
-    const newest = await service.listInboxByPost(
+    const { groups: newest } = await service.listInboxByPost(
       { workspaceId: WS, sort: "newest" },
       USER,
       NOW,
     );
     expect(newest.map((g) => g.postId)).toEqual([P3, P1, P2]);
-    const oldest = await service.listInboxByPost(
+    const { groups: oldest } = await service.listInboxByPost(
       { workspaceId: WS, sort: "oldest" },
       USER,
       NOW,
@@ -215,21 +215,21 @@ describe("EngagementService.listInboxByPost", () => {
       item({ postId: P2, receivedAt: day(400) }),
     ]);
 
-    const week = await service.listInboxByPost(
+    const { groups: week } = await service.listInboxByPost(
       { workspaceId: WS, dateRange: "7d" },
       USER,
       NOW,
     );
     expect(week.map((g) => [g.postId, g.totalCount])).toEqual([[P1, 1]]);
 
-    const month = await service.listInboxByPost(
+    const { groups: month } = await service.listInboxByPost(
       { workspaceId: WS, dateRange: "30d" },
       USER,
       NOW,
     );
     expect(month[0].totalCount).toBe(2);
 
-    const byDefault = await service.listInboxByPost(
+    const { groups: byDefault } = await service.listInboxByPost(
       { workspaceId: WS },
       USER,
       NOW,
@@ -252,14 +252,14 @@ describe("EngagementService.listInboxByPost", () => {
       }),
     ]);
 
-    const byAccount = await service.listInboxByPost(
+    const { groups: byAccount } = await service.listInboxByPost(
       { workspaceId: WS, connectedAccountId: ACC_IG },
       USER,
       NOW,
     );
     expect(byAccount.map((g) => [g.postId, g.totalCount])).toEqual([[P1, 1]]);
 
-    const byPlatform = await service.listInboxByPost(
+    const { groups: byPlatform } = await service.listInboxByPost(
       { workspaceId: WS, platform: SocialPlatform.Facebook },
       USER,
       NOW,
@@ -274,7 +274,7 @@ describe("EngagementService.listInboxByPost", () => {
       item({ postId: P2, status: "resolved" }),
     ]);
 
-    const groups = await service.listInboxByPost(
+    const { groups: groups } = await service.listInboxByPost(
       { workspaceId: WS, status: "unread" },
       USER,
       NOW,
@@ -287,14 +287,14 @@ describe("EngagementService.listInboxByPost", () => {
       syncable: { [ACC_IG]: [P1, P2], [ACC_FB]: [P3] },
     });
 
-    const hidden = await service.listInboxByPost(
+    const { groups: hidden } = await service.listInboxByPost(
       { workspaceId: WS },
       USER,
       NOW,
     );
     expect(hidden.map((g) => g.postId)).toEqual([P1]);
 
-    const all = await service.listInboxByPost(
+    const { groups: all } = await service.listInboxByPost(
       { workspaceId: WS, includeEmpty: true },
       USER,
       NOW,
@@ -306,7 +306,7 @@ describe("EngagementService.listInboxByPost", () => {
       connectedAccountId: ACC_IG,
     });
 
-    const fbOnly = await service.listInboxByPost(
+    const { groups: fbOnly } = await service.listInboxByPost(
       { workspaceId: WS, includeEmpty: true, connectedAccountId: ACC_FB },
       USER,
       NOW,
@@ -337,5 +337,80 @@ describe("EngagementService.listInboxByPost", () => {
         NOW,
       ),
     ).rejects.toBeInstanceOf(ValidationError);
+  });
+
+  it("kelompok Tanpa posting tetap di dasar untuk ketiga sort, walau paling banyak belum dibalas dan terbaru", async () => {
+    const { service } = makeService(
+      [
+        item({ postId: null, receivedAt: day(0.1) }),
+        item({ postId: null, receivedAt: day(0.2) }),
+        item({ postId: null, receivedAt: day(0.3) }),
+        item({ postId: P1, receivedAt: day(2) }),
+        item({ postId: P2, receivedAt: day(9) }),
+      ],
+      { syncable: { [ACC_IG]: [P3] } },
+    );
+
+    for (const sort of ["unreplied_first", "newest", "oldest"] as const) {
+      const { groups } = await service.listInboxByPost(
+        { workspaceId: WS, sort },
+        USER,
+        NOW,
+      );
+      expect(groups.at(-1)?.postId).toBeNull();
+      expect(groups.filter((g) => g.postId === null)).toHaveLength(1);
+
+      const withEmpty = await service.listInboxByPost(
+        { workspaceId: WS, sort, includeEmpty: true },
+        USER,
+        NOW,
+      );
+      const ids = withEmpty.groups.map((g) => g.postId);
+      expect(ids.at(-1)).toBeNull();
+      // Posting kosong di bawah posting berkomentar untuk sort apa pun.
+      expect(ids.indexOf(P3)).toBeGreaterThan(ids.indexOf(P1));
+      expect(ids.indexOf(P3)).toBeGreaterThan(ids.indexOf(P2));
+    }
+  });
+
+  it("batas posting memotong posting bernomor dan menandai truncated, tanpa membuang kelompok Tanpa posting", async () => {
+    const many = Array.from({ length: POST_GROUP_LIMIT + 5 }, (_, i) =>
+      item({ postId: asPostId(`bulk-${i}`), receivedAt: day(1 + i / 1000) }),
+    );
+    const { service } = makeService([
+      ...many,
+      item({ postId: null, receivedAt: day(300) }),
+    ]);
+
+    const result = await service.listInboxByPost(
+      { workspaceId: WS, sort: "newest" },
+      USER,
+      NOW,
+    );
+
+    expect(result.truncated).toBe(true);
+    expect(result.groups).toHaveLength(POST_GROUP_LIMIT + 1);
+    expect(result.groups.at(-1)?.postId).toBeNull();
+  });
+
+  it("posting kosong dipotong lebih dulu dan ditandai truncated; tanpa pemotongan truncated false", async () => {
+    const empties = Array.from({ length: POST_GROUP_LIMIT }, (_, i) =>
+      asPostId(`empty-${i}`),
+    );
+    const { service } = makeService([item({ postId: P1 })], {
+      syncable: { [ACC_IG]: empties },
+    });
+
+    const result = await service.listInboxByPost(
+      { workspaceId: WS, includeEmpty: true },
+      USER,
+      NOW,
+    );
+    expect(result.truncated).toBe(true);
+    expect(result.groups[0].postId).toBe(P1);
+    expect(result.groups).toHaveLength(POST_GROUP_LIMIT);
+
+    const small = await service.listInboxByPost({ workspaceId: WS }, USER, NOW);
+    expect(small.truncated).toBe(false);
   });
 });

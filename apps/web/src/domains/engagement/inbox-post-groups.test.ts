@@ -67,6 +67,31 @@ describe("buildInboxPostGroups", () => {
     expect(groups).toHaveLength(2);
   });
 
+  it("kelompok tanpa posting tidak ikut sort: selalu terakhir untuk ketiga sort", () => {
+    const rows = [
+      row({
+        postId: null,
+        count: 9,
+        latestReceivedAt: new Date("2026-10-20T00:00:00Z"),
+      }),
+      row({
+        postId: P1,
+        count: 1,
+        latestReceivedAt: new Date("2026-10-02T00:00:00Z"),
+      }),
+      row({
+        postId: P2,
+        count: 2,
+        latestReceivedAt: new Date("2026-10-01T00:00:00Z"),
+      }),
+    ];
+    for (const sort of ["unreplied_first", "newest", "oldest"] as const) {
+      const groups = buildInboxPostGroups(rows, { sort });
+      expect(groups.map((g) => g.postId).at(-1)).toBeNull();
+      expect(groups).toHaveLength(3);
+    }
+  });
+
   it("belum dibalas dulu: urut jumlah belum dibalas, lalu komentar terbaru", () => {
     const groups = buildInboxPostGroups(
       [
