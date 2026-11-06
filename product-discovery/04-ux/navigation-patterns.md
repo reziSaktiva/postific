@@ -117,7 +117,7 @@ Primary navigation terdiri dari empat zona vertikal:
 ## Active State dan Visual Feedback
 
 - Item navigasi aktif ditandai secara visual (highlight / indicator) — pengguna selalu tahu posisi mereka.
-- **Engage** memiliki notification badge yang menampilkan jumlah komentar `unread` (belum dibalas; `replied`, `resolved`, `dismissed` tidak dihitung) — terlihat dari section manapun (mendukung UF-04 Alternate Path).
+- **Engage** memiliki notification badge yang menampilkan jumlah komentar `unread` dalam 12 bulan terakhir (belum dibalas; `replied`, `resolved`, `dismissed` tidak dihitung) — terlihat dari section manapun (mendukung UF-04 Alternate Path).
 - Tidak ada loading state yang memblokir sidebar — sidebar tetap interaktif saat konten dimuat.
 
 ---
@@ -381,7 +381,7 @@ Notification badge pada item Engage di sidebar menginformasikan pengguna bahwa p
 ```
 Badge behavior:
 ├── Muncul: setelah sinkronisasi menemukan komentar unread baru di Inbox
-├── Angka: menampilkan jumlah unread, yaitu komentar belum dibalas (cap di angka 99+)
+├── Angka: menampilkan jumlah unread dalam 12 bulan terakhir, yaitu komentar belum dibalas (cap di angka 99+; batas 12 bulan sama dengan Date Range bawaan Inbox)
 ├── Hilang: ketika tidak ada lagi komentar unread (semua dibalas, Resolve, atau Dismiss)
 └── Tetap terlihat dari section manapun (sidebar persisten)
 ```

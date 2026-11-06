@@ -201,6 +201,8 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 | 6   | Cakupan Reset filters      | Semua filter (Akun, Status, Platform, Sort, Date Range)                                                    |
 | 7   | Arti "x dibalas / y total" | x = status Dibalas saja; progress bar memakai rasio ditangani; teks kecil "n dari y ditangani" ditambahkan |
 
+**Tindak lanjut rancangan (2026-11-06, audit docs-consistency B1 dan B8):** tag "draft" entri galeri diubah menjadi terkonfirmasi dan komposer pada kelompok "Tanpa posting" dirancang nonaktif dengan pesan, lewat Neymar tanpa menyentuh layar atau kartu lain. Hasilnya dicatat di bawah setelah dikerjakan.
+
 **Keputusan Neymar yang belum dikonfirmasi eksplisit (diperiksa saat konfirmasi galeri):** tampilan List adalah usulan (mode List Buffer belum teramati); Date Range bawaan 12 bulan; Sort bawaan "Belum dibalas dulu"; "Tanpa posting" di dasar daftar dan tidak ikut sort; posting tanpa komentar disembunyikan dan ditampilkan lewat toggle ikon.
 
 **Belum terbukti:** komposer balasan, aksi hover, mode List, dan layar sempit Buffer belum teramati; rancangan memutuskannya sendiri, bukan meniru.
@@ -228,6 +230,8 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 - [ ] **T-217.4** Migrasi data baris `done` menjadi `resolved` (jawaban Q1, 2026-11-05). Migrasi ditulis, ditinjau, dan diterapkan ke DB bersama hanya atas izin King Rezi.
 - [ ] **T-217.5** Server Action di `engage/actions.ts` hanya memanggil service (aturan keras no. 3). Domain tidak mengimpor Prisma (aturan keras no. 4).
 - [ ] **T-217.6** Tes unit (double lokal di berkas tes), `typecheck`, `lint`, tes hijau.
+- [ ] **T-217.7** Hitungan badge sidebar dan Engagement Snapshot di Home dibatasi 12 bulan terakhir (keputusan King Rezi 2026-11-06, audit docs-consistency B2), sama dengan Date Range bawaan daftar posting; tes menegaskan komentar `unread` lebih tua dari 12 bulan tidak dihitung.
+- [ ] **T-217.8** Tool MCP `list_comments`: filter `status` menerima `unread`, `replied`, `resolved`, `dismissed`, dan `done` tetap diterima sebagai alias `resolved` (keputusan King Rezi 2026-11-06, B3). Tes kontrak diperbarui; amandemen ADR MCP dicatat bila kontraknya dianggap berubah.
 
 **Belum terbukti:** perilaku badge sidebar dan Home setelah status baru; dicek di T-217.1 dan T-222.
 
@@ -254,6 +258,8 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 - [ ] **T-218.4** Posting tanpa komentar disembunyikan secara bawaan; parameter menampilkan semuanya.
 - [ ] **T-218.5** Tes unit dan integrasi DB; indeks DB diperiksa (kandidat: `workspace_id`, `post_id`, `status`, `received_at`) sebelum menambah migrasi.
 - [ ] **T-218.6** `typecheck`, `lint`, tes hijau.
+- [ ] **T-218.7** Jelaskan dan putuskan cara JOB-03 menarik komentar per akun memakai endpoint Outstand per posting (`GET /v1/posts/{id}/replies`): iterasi posting terbit per akun dan batas posting yang ditarik; tulis hasilnya di `integration-layer.md` dan `background-jobs.md` (keputusan King Rezi 2026-11-06, B7).
+- [ ] **T-218.8** Putuskan indeks untuk query per posting (kandidat `post_id` dan `received_at`) dan tulis di `database-strategy.md` bersama migrasinya bila perlu (B7).
 
 **Belum terbukti:** performa query pada volume besar (ratusan komentar per posting); dicek di T-218.5.
 
@@ -277,7 +283,7 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 **What to build:** tata letak dua panel Engage per posting dan aksi status per komentar, sesuai rancangan. Komponen shadcn diverifikasi dulu lewat MCP shadcn (workflow discover-first); jangan menebak nama komponen atau props.
 
 - [ ] **T-219.1** Panel daftar posting (kartu dengan badge, progress, kelompok "tanpa posting", panel bisa dilipat) menggantikan daftar item datar di `EngageInboxView.tsx`. Berkas besar (800 baris) dipecah menjadi komponen modul tanpa mengubah perilaku, seperti T-199.
-- [ ] **T-219.2** Panel komentar: kartu pratinjau posting, ringkasan "x dibalas / y total", daftar komentar, area balas yang sudah ada (T-054) dipertahankan.
+- [ ] **T-219.2** Panel komentar: kartu pratinjau posting, ringkasan "x dibalas / y total", daftar komentar, area balas yang sudah ada (T-054) dipertahankan. Untuk kelompok "Tanpa posting" komposer nonaktif dengan pesan jelas (Outstand hanya membalas per posting, ADR-113; keputusan King Rezi 2026-11-06, B1); Resolve dan Dismiss tetap tersedia.
 - [ ] **T-219.3** Aksi hover per komentar: Resolve, Dismiss, buka kembali; Reply membuka area balas. Optimistic update dan error ditangani; Server Action hanya memanggil service.
 - [ ] **T-219.4** State: kosong, filter tanpa hasil, refresh berjalan dan gagal, selaras KSP-06 yang diperbarui. Zona sinkronisasi (KSP-06-F07, F08) dipertahankan.
 - [ ] **T-219.5** Perilaku yang sudah ada tidak regresi: filter akun/platform/status, reply, post asal (T-056), badge sidebar, manual refresh. Terang, gelap, 375px diamati di browser.

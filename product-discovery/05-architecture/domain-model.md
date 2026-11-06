@@ -363,7 +363,7 @@ Mengelola komentar audiens dan reply dari akun media sosial yang terhubung. Enga
 - `status: InboxItemStatus` — `unread | replied | resolved | dismissed` (ADR-157; sebelumnya ditulis `unread | read | replied | archived` dan di kode `unread | done`, keduanya usang)
 - `postId: PostId?` — jika komentar terikat ke post tertentu (referensi ke Publishing BC)
 - `receivedAt: Date`
-- `readAt: Date?`
+- `readAt: Date?` — dipertahankan tetapi tidak dipakai; tidak terkait status `read` yang sudah tidak ada (ADR-157, keputusan King Rezi 2026-11-06)
 
 **Reply**
 - `id: ReplyId`

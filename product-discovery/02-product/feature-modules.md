@@ -75,6 +75,8 @@ Responsibilities:
 * Periodic Sync setiap 30 menit
 * Manual Refresh
 
+Peningkatan setelah MVP (Should Have, ADR-157): status komentar dan pengelompokan per posting.
+
 Direct Message, mention, dan webhook engagement bukan responsibility MVP modul ini (ADR-040).
 
 ---

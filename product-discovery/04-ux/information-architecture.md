@@ -68,7 +68,7 @@ Primary navigation adalah navigasi utama yang selalu terlihat dan dapat diakses 
 | - | ----- | --------- |
 | 1 | Home | Ringkasan status dan aktivitas terkini |
 | 2 | Publish | Seluruh area kerja publishing konten |
-| 3 | Engage | Inbox interaksi audiens |
+| 3 | Engage | Inbox komentar audiens |
 | 4 | Analyze | Dashboard performa |
 | 5 | Start Page | Manajemen halaman publik |
 
@@ -108,7 +108,7 @@ Entry point yang memberi ringkasan status lintas domain.
 Home
 ├── Today's Schedule          — konten yang terjadwal hari ini
 ├── Recent Activity           — aktivitas publikasi terbaru (sukses / gagal)
-├── Engagement Snapshot       — jumlah komentar unread dari sinkronisasi terakhir
+├── Engagement Snapshot       — jumlah komentar unread (12 bulan terakhir) dari sinkronisasi terakhir
 └── Analytics Snapshot        — highlight performa minggu ini
 ```
 

@@ -59,3 +59,16 @@ Cek docs Outstand (`outstand.so/docs`, 2026-11-05): komentar didukung (`GET`/`PO
 - KSP-06 dan KSP-D06 diselaraskan di tiket T-221 setelah rancangan dikonfirmasi, bukan sekarang.
 - `InboxItemStatus` di `apps/web/src/domains/engagement/types.ts` dan konsumen status di Engage, badge sidebar, dan Home diperiksa di T-217.
 - Tab Mentions tercatat sebagai T-223 (⏸️ Deferred).
+
+### Addendum 2026-11-06: keputusan King Rezi atas audit docs-consistency (topik engage)
+
+Keputusan tambahan, semuanya mengikuti rekomendasi agen; tidak mengubah keputusan di atas.
+
+- **Balasan di kelompok "Tanpa posting":** komposer nonaktif dengan pesan jelas karena Outstand hanya membalas per posting (ADR-113); Resolve dan Dismiss tetap tersedia.
+- **Badge dan Snapshot:** menghitung `unread` dalam 12 bulan terakhir, sama dengan Date Range bawaan daftar posting (menyempurnakan Q4).
+- **Tool MCP `list_comments`:** filter `status` menerima empat status baru; `done` tetap diterima sebagai alias `resolved`.
+- **`read_at`:** dipertahankan, tidak dipakai, tanpa migrasi.
+- **Prioritas produk:** status komentar dan pengelompokan per posting adalah Should Have (peningkatan setelah MVP).
+- **Webhook `comment.received`:** tersedia di vendor tetapi tidak dipakai MVP; ADR-040 tidak diedit, catatan ada di `integration-layer.md`.
+- **Pull per akun vs endpoint per posting, dan indeks DB:** diputuskan di T-218 (T-218.7, T-218.8).
+- Tindak lanjut tiket: T-217.7, T-217.8, T-218.7, T-218.8, dan catatan di T-219.2.

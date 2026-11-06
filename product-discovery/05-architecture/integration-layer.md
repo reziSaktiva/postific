@@ -308,7 +308,7 @@ Request masuk
 | `post.error` | Semua target gagal setelah retry Outstand; ACL memetakan outcome per akun ke status domain `failed` | Publishing BC, Notification BC |
 | `account.token_expired` | Token akun kedaluwarsa; ACL memetakan akun ke `error` dan membutuhkan reconnect | Workspace BC, Notification BC |
 
-Event `comment.received`, `message.received`, mention, dan webhook engagement lainnya **bukan kontrak MVP**.
+Event `comment.received`, `message.received`, mention, dan webhook engagement lainnya **bukan kontrak MVP**. Catatan (2026-11-06): dokumentasi vendor per 2026-11-05 memang memuat `comment.received` dan `message.received`; keduanya tersedia tetapi **tidak dipakai** MVP (ADR-040, ADR-157). Kolom "alasan" ADR-040 yang menyebut webhook komentar tidak ada adalah catatan historis atas dokumentasi saat itu.
 
 ## Alur Pemrosesan Webhook
 

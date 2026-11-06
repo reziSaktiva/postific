@@ -70,7 +70,7 @@ Home **bukan** layar kerja. Tidak ada aksi berat yang diselesaikan dari sini.
 | -- | ------ | --------- | ------- |
 | KSP-01-F01 | Today's Schedule | Daftar konten yang terjadwal untuk hari ini, per akun, dengan status | UXP-02, UXP-04 |
 | KSP-01-F02 | Recent Activity | Riwayat aksi terbaru: post berhasil dipublish, post gagal, akun disconnected | UXP-04, UXP-06 |
-| KSP-01-F03 | Engagement Snapshot | Jumlah komentar unread dari sinkronisasi terakhir — mendorong Raka ke Engage | UXP-07 |
+| KSP-01-F03 | Engagement Snapshot | Jumlah komentar unread (12 bulan terakhir, sama dengan Date Range bawaan Engage, ADR-157) dari sinkronisasi terakhir — mendorong Raka ke Engage | UXP-07 |
 | KSP-01-F04 | Analytics Snapshot | Highlight performa minggu ini: total posts, total reach, engagement rate | UXP-02, UXP-07 |
 | KSP-01-F05 | Deep Link ke Section | Setiap item/snapshot dapat diklik dan membawa pengguna ke layar yang relevan | UXP-01 |
 
@@ -546,7 +546,7 @@ Inbox adalah pusat triage komentar — Raka membaca dan membalas komentar dari s
 | KSP-06-F03 | Komentar Posting Terpilih | Pilih posting membuka komentarnya di panel kanan — tidak membuka layar baru. Panel memuat kartu pratinjau posting (konteks post asal), ringkasan "x dibalas / y total komentar" (x = status Dibalas saja) dengan teks kecil "n dari y ditangani", dan daftar komentar | UXP-03 |
 | KSP-06-F04 | Konteks Post Asal | Kartu pratinjau posting (platform, akun, tanggal, media, caption terpotong) di atas daftar komentar | UXP-01 |
 | KSP-06-F05 | Reply Action | Membalas komentar dari Inbox. Komposer docked di bawah panel kanan pada tampilan By post; inline di bawah komentar pada tampilan List. Balasan yang terkirim menandai komentar `Dibalas` bila sebelumnya `Belum dibalas` | UXP-01 |
-| KSP-06-F06 | Status Komentar | Aksi per komentar (muncul saat hover; selalu tampil di layar sempit): Resolve (→ `Selesai`), Dismiss (→ `Diabaikan`), dan Buka kembali (→ `Belum dibalas`) untuk komentar `Selesai` atau `Diabaikan`. Reply tersedia di semua status. Aksi ini reversibel dan low-stakes | UXP-06 |
+| KSP-06-F06 | Status Komentar | Aksi per komentar (muncul saat hover; selalu tampil di layar sempit): Resolve (→ `Selesai`), Dismiss (→ `Diabaikan`), dan Buka kembali (→ `Belum dibalas`) untuk komentar `Selesai` atau `Diabaikan`. Reply tersedia di semua status, kecuali untuk kelompok "Tanpa posting": Outstand hanya membalas per posting (ADR-113), jadi komposer nonaktif dengan pesan jelas; Resolve dan Dismiss tetap tersedia di kelompok itu. Aksi ini reversibel dan low-stakes | UXP-06 |
 | KSP-06-F07 | Sync Status | Menampilkan waktu sinkronisasi terakhir dan state sinkronisasi | UXP-03, UXP-06 |
 | KSP-06-F08 | Manual Refresh | Mengambil komentar terbaru tanpa menunggu periodic pull 30 menit berikutnya | UXP-03 |
 | KSP-06-F09 | Pilihan Tampilan | Toggle By post (bawaan) / List di header. List menampilkan komentar sebagai daftar datar lintas posting dengan baris konteks "Pada posting: …" yang membawa pengguna ke tampilan By post; sort, filter, dan aksi status sama dengan By post. Isi tampilan List adalah usulan rancangan (mode List Buffer belum teramati) | UXP-03 |
@@ -604,7 +604,7 @@ Inbox pada tampilan By post memakai pola **dua panel**: daftar posting di kiri (
 | Filter aktif — tidak ada hasil | _"Tidak ada interaksi untuk filter ini"_ + aksi Reset filters |
 | Posting terpilih | Komentar tampil di panel kanan; daftar posting tetap terlihat (atau terlipat) |
 | Panel daftar terlipat | Panel kanan memakai lebar penuh; tombol lipat membukanya kembali |
-| Kelompok "Tanpa posting" dipilih | Komentar tanpa `postId` tampil tanpa kartu pratinjau posting |
+| Kelompok "Tanpa posting" dipilih | Komentar tanpa `postId` tampil tanpa kartu pratinjau posting; komposer balasan nonaktif dengan pesan bahwa komentar ini tidak terkait posting sehingga tidak dapat dibalas dari Postific; Resolve dan Dismiss tetap tersedia |
 | Manual refresh berjalan | Tombol Refresh loading; data yang sudah ada tetap terlihat |
 | Refresh gagal | Pesan ringkas _"Komentar terbaru belum dapat diambil"_ + aksi Coba Lagi; data sinkronisasi terakhir tetap terlihat |
 | Balasan terkirim | Baris status di komposer: _"Balasan terkirim. Komentar ditandai Dibalas."_; badge dan hitungan diperbarui |
@@ -623,7 +623,7 @@ Badge muncul → Raka menyelesaikan pekerjaan saat ini (tidak interrupt)
              → Badge hilang saat tidak ada lagi komentar belum dibalas
 ```
 
-Badge tidak memaksa Raka interrupt alur yang sedang berjalan. Badge menghitung komentar `unread` saja (`replied`, `resolved`, `dismissed` tidak dihitung) dan diperbarui setelah periodic pull atau manual refresh selesai; ia bukan indikator webhook real-time. Badge adalah sinyal, bukan perintah. (UXP-01, UXP-03)
+Badge tidak memaksa Raka interrupt alur yang sedang berjalan. Badge menghitung komentar `unread` saja (`replied`, `resolved`, `dismissed` tidak dihitung) yang diterima dalam 12 bulan terakhir, sama dengan Date Range bawaan daftar posting (keputusan King Rezi 2026-11-06), dan diperbarui setelah periodic pull atau manual refresh selesai; ia bukan indikator webhook real-time. Badge adalah sinyal, bukan perintah. (UXP-01, UXP-03)
 
 **Batas MVP:** KSP-06 hanya menampilkan komentar dan reply. Tidak ada tab atau state untuk Direct Message, mention (termasuk story mention Instagram, T-223), maupun webhook engagement (ADR-040). Tampilan List adalah usulan rancangan yang belum punya padanan teramati di Buffer.
 
