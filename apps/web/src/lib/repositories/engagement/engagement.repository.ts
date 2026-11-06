@@ -52,8 +52,8 @@ function mapReply(reply: EngagementReply): EngagementReplyRecord {
   };
 }
 
-// Cap query/payload growth — inbox item terus terakumulasi (`markAsDone`
-// hanya ubah status, tidak archive/delete), tanpa batas ini `listInboxItems`
+// Cap query/payload growth — inbox item terus terakumulasi (perubahan status
+// tidak archive/delete), tanpa batas ini `listInboxItems`
 // tumbuh tak terbatas seiring volume histori workspace.
 const LIST_INBOX_ITEMS_LIMIT = 200;
 
@@ -162,40 +162,45 @@ export const engagementRepository: IEngagementRepository = {
     });
   },
 
-  async markInboxItemStatus({ workspaceId, inboxItemId, status }, userId) {
+  async markInboxItemStatus(
+    { workspaceId, inboxItemId, status, onlyFromStatus },
+    userId,
+  ) {
     const item = await withCurrentUser(userId, async (tx) => {
-      const { count } = await tx.engagementInboxItem.updateMany({
+      await tx.engagementInboxItem.updateMany({
         where: {
           id: inboxItemId,
           workspaceId,
-          // Kalau target status "done", hanya sentuh baris yang BELUM
-          // punya `readAt` — mencegah re-mark item yang sudah "done"
-          // menimpa timestamp "pertama kali dibaca" yang asli (mis. dua
-          // tab / double-submit form yang sama).
-          ...(status === "done" ? { readAt: null } : {}),
+          ...(onlyFromStatus ? { status: onlyFromStatus } : {}),
         },
-        data: {
-          status,
-          ...(status === "done" ? { readAt: new Date() } : {}),
-        },
+        data: { status },
       });
 
-      if (count === 0) {
-        // `count === 0` bisa berarti "tidak ditemukan" ATAU "sudah dalam
-        // status `done` itu juga (readAt sudah terisi)" — bedakan supaya
-        // re-mark item yang sudah done tetap idempotent (return record
-        // apa adanya), bukan `NotFoundError` palsu di `EngagementService`.
-        return tx.engagementInboxItem.findFirst({
-          where: { id: inboxItemId, workspaceId },
+      // `readAt` = kapan status pertama kali keluar dari `unread`; hanya
+      // diisi bila masih kosong supaya tidak tertimpa tindakan berikutnya.
+      if (status !== "unread") {
+        await tx.engagementInboxItem.updateMany({
+          where: { id: inboxItemId, workspaceId, readAt: null, status },
+          data: { readAt: new Date() },
         });
       }
 
-      return tx.engagementInboxItem.findUniqueOrThrow({
-        where: { id: inboxItemId },
+      // Tidak cocok `onlyFromStatus` / sudah berstatus sama: kembalikan baris
+      // apa adanya (idempoten); `null` hanya bila memang tidak ditemukan.
+      return tx.engagementInboxItem.findFirst({
+        where: { id: inboxItemId, workspaceId },
       });
     });
 
     return item ? mapInboxItem(item) : null;
+  },
+
+  async countUnreadInboxItems({ workspaceId, since }, userId) {
+    return withCurrentUser(userId, (tx) =>
+      tx.engagementInboxItem.count({
+        where: { workspaceId, status: "unread", receivedAt: { gte: since } },
+      }),
+    );
   },
 
   async createReply(

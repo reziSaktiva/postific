@@ -11,12 +11,10 @@ import type {
 
 /**
  * Status `EngagementInboxItem` (schema.prisma § BC-05 — Engagement, kolom
- * `status`, default `"unread"`). T-050 hanya butuh 2 nilai sesuai scope
- * `EngagementService.markAsDone` — kalau kebutuhan status lain muncul
- * (mis. "in_progress") saat T-053/T-054 dikerjakan, perluas union ini di
- * task itu, bukan di T-050.
+ * `status` TEXT, default `"unread"`). T-217 (ADR-157): `done` lama menjadi
+ * `resolved`; transisi diatur di `inbox-status.ts`.
  */
-export type InboxItemStatus = "unread" | "done";
+export type InboxItemStatus = "unread" | "replied" | "resolved" | "dismissed";
 
 /**
  * Satu `EngagementInboxItem` — field mengikuti model Prisma persis

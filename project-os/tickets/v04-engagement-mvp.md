@@ -215,7 +215,7 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 | Field       | Value                                                                                                                   |
 | ----------- | ----------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | ⏳ Not Started                                                                                                          |
+| **Status**  | 🟡 In Progress                                                                                                          |
 | **Mode**    | AFK (migrasi data `done` butuh izin King Rezi sebelum diterapkan ke DB bersama)                                         |
 | **Domain**  | engagement · backend                                                                                                    |
 | **Spec**    | S-006                                                                                                                   |
@@ -224,16 +224,20 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 **What to build:** `InboxItemStatus` dari `"unread" | "done"` menjadi `unread | replied | resolved | dismissed`, dengan transisi yang jelas, tanpa kolom atau tabel baru (kolom `status` adalah `TEXT` tanpa constraint).
 
-- [ ] **T-217.1** Inventarisasi semua pemakai status `done` dan `unread` (service, repository, `EngageInboxView`, badge sidebar, Engagement Snapshot di Home, dan tool MCP `list_comments` yang memakai filter `status` `"unread"|"done"`, `application-layer.md`) sebelum mengubah apa pun. Hasilnya dicatat di tiket ini.
-- [ ] **T-217.2** Tipe dan aturan transisi di domain `engagement` (mis. `unread` → `replied` / `resolved` / `dismissed`; `resolved` dan `dismissed` → `unread`), sesuai jawaban Q2 dan Q3 (`replied` otomatis saat balasan terkirim, status reversibel). Nama method `markAsDone` ditinjau.
-- [ ] **T-217.3** `EngagementService.reply` menandai `replied` saat balasan berhasil terkirim bila status `unread`; tidak menurunkan status lain.
-- [ ] **T-217.4** Migrasi data baris `done` menjadi `resolved` (jawaban Q1, 2026-11-05). Migrasi ditulis, ditinjau, dan diterapkan ke DB bersama hanya atas izin King Rezi.
-- [ ] **T-217.5** Server Action di `engage/actions.ts` hanya memanggil service (aturan keras no. 3). Domain tidak mengimpor Prisma (aturan keras no. 4).
-- [ ] **T-217.6** Tes unit (double lokal di berkas tes), `typecheck`, `lint`, tes hijau.
-- [ ] **T-217.7** Hitungan badge sidebar dan Engagement Snapshot di Home dibatasi 12 bulan terakhir (keputusan King Rezi 2026-11-06, audit docs-consistency B2), sama dengan Date Range bawaan daftar posting; tes menegaskan komentar `unread` lebih tua dari 12 bulan tidak dihitung.
-- [ ] **T-217.8** Tool MCP `list_comments`: filter `status` menerima `unread`, `replied`, `resolved`, `dismissed`, dan `done` tetap diterima sebagai alias `resolved` (keputusan King Rezi 2026-11-06, B3). Tes kontrak diperbarui; amandemen ADR MCP dicatat bila kontraknya dianggap berubah.
+- [x] **T-217.1** Inventarisasi semua pemakai status `done` dan `unread` (service, repository, `EngageInboxView`, badge sidebar, Engagement Snapshot di Home, dan tool MCP `list_comments` yang memakai filter `status` `"unread"|"done"`, `application-layer.md`) sebelum mengubah apa pun. Hasilnya dicatat di tiket ini.
+- [x] **T-217.2** Tipe dan aturan transisi di domain `engagement` (mis. `unread` → `replied` / `resolved` / `dismissed`; `resolved` dan `dismissed` → `unread`), sesuai jawaban Q2 dan Q3 (`replied` otomatis saat balasan terkirim, status reversibel). Nama method `markAsDone` ditinjau.
+- [x] **T-217.3** `EngagementService.reply` menandai `replied` saat balasan berhasil terkirim bila status `unread`; tidak menurunkan status lain.
+- [ ] **T-217.4** (migrasi ditulis di `apps/web/prisma/migrations/20261106100000_t217_engagement_done_to_resolved/migration.sql`, BELUM diterapkan; menunggu izin King Rezi) Migrasi data baris `done` menjadi `resolved` (jawaban Q1, 2026-11-05). Migrasi ditulis, ditinjau, dan diterapkan ke DB bersama hanya atas izin King Rezi.
+- [x] **T-217.5** Server Action di `engage/actions.ts` hanya memanggil service (aturan keras no. 3). Domain tidak mengimpor Prisma (aturan keras no. 4).
+- [x] **T-217.6** Tes unit (double lokal di berkas tes), `typecheck`, `lint`, tes hijau.
+- [x] **T-217.7** Hitungan badge sidebar dan Engagement Snapshot di Home dibatasi 12 bulan terakhir (keputusan King Rezi 2026-11-06, audit docs-consistency B2), sama dengan Date Range bawaan daftar posting; tes menegaskan komentar `unread` lebih tua dari 12 bulan tidak dihitung.
+- [x] **T-217.8** Tool MCP `list_comments`: filter `status` menerima `unread`, `replied`, `resolved`, `dismissed`, dan `done` tetap diterima sebagai alias `resolved` (keputusan King Rezi 2026-11-06, B3). Tes kontrak diperbarui; amandemen ADR MCP dicatat bila kontraknya dianggap berubah.
 
-**Belum terbukti:** perilaku badge sidebar dan Home setelah status baru; dicek di T-217.1 dan T-222.
+**Hasil inventaris T-217.1 (2026-11-06):** pemakai status `unread`/`done`: `domains/engagement/types.ts` (`InboxItemStatus`), repository (`markInboxItemStatus`, `listInboxItems`), `EngagementService.markAsDone` (diganti `changeStatus`), `engage/actions.ts` (`markAsDoneAction`, `listInboxAction`), `EngageInboxView` (opsi filter, titik belum dibaca, tombol Mark as Done), tool MCP `list_comments` (`COMMENT_STATUSES`), dan tes terkait. **Badge sidebar dan Engagement Snapshot di Home TIDAK memakai hitungan komentar saat ini:** `initialUnreadCount` di sidebar adalah hitungan notifikasi, dan Home hanya menampilkan Analytics Snapshot. Maka T-217.7 diselesaikan di lapisan data: `EngagementService.countUnread` (jendela 12 bulan, `inboxCountWindowStart`) dan `countUnreadInboxItems` di repository, dengan tes; penyambungan ke badge dan Snapshot menunggu konsumennya dibangun (bukan T-217).
+
+**Perubahan:** `markAsDone` diganti `changeStatus` (transisi di `domains/engagement/inbox-status.ts`; transisi ilegal `ConflictError`; status sama idempoten); `reply` menandai `replied` dari `unread` saja; `readAt` kini terisi saat pertama keluar dari `unread`; `done` di MCP menjadi alias `resolved` (enum skema tetap memuat `done`). `markAsDoneAction` dipertahankan (kini `resolved`) agar `EngageInboxView` tetap jalan sampai T-219.
+
+**Belum terbukti:** migrasi data belum dijalankan ke DB mana pun; query `countUnreadInboxItems` belum dicoba terhadap Postgres sungguhan (tes memakai repository in-memory sesuai kontrak); perilaku badge dan Home setelah status baru belum ada konsumennya (T-222). Kontrak MCP `list_comments` berubah (enum bertambah, `done` alias); amandemen ADR MCP/`application-layer.md` belum ditulis (di luar scope sesi ini). Transisi `resolved`↔`dismissed` langsung dan `replied`→`unread` ditolak mengikuti butir tiket secara harfiah; perlu konfirmasi King Rezi bila tidak diinginkan.
 
 **Blocked by:** tidak ada (ADR-157 Accepted 2026-11-05).
 

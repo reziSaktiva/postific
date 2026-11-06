@@ -13,10 +13,16 @@ import {
   ValidationError,
 } from "@/lib/utils/errors";
 import type { IEngagementRepository } from "../repositories/engagement.repository";
+import {
+  INBOX_ITEM_STATUSES,
+  canTransitionInboxStatus,
+  inboxCountWindowStart,
+} from "../inbox-status";
 import type {
   EngagementInboxItemRecord,
   EngagementReplyRecord,
   InboxItemFilter,
+  InboxItemStatus,
 } from "../types";
 
 /**
@@ -112,7 +118,7 @@ export interface InboxItemDetail extends EngagementInboxItemRecord {
  * SEKARANG ditambahkan di sini sebagai method `reply` — bukan use-case
  * terpisah seperti sync — karena scope-nya kecil (satu panggilan adapter +
  * satu persist) dan sepenuhnya milik lifecycle `EngagementInboxItem`/
- * `EngagementReply`, konsisten dengan `getInboxItemDetail`/`markAsDone` yang
+ * `EngagementReply`, konsisten dengan `getInboxItemDetail`/`changeStatus` yang
  * sudah ada di sini.
  */
 export class EngagementService {
@@ -167,23 +173,70 @@ export class EngagementService {
   }
 
   /**
-   * Tandai satu inbox item sebagai sudah dibalas/selesai ("done"). Tidak
-   * memanggil `OutstandAdapter` apa pun — murni perubahan status lokal.
-   * `NotFoundError` kalau item tidak ditemukan atau bukan milik
-   * `workspaceId` ini.
+   * Ubah status satu komentar (T-217; menggantikan `markAsDone`). Murni
+   * perubahan status lokal, tidak memanggil Outstand. Transisi mengikuti
+   * `canTransitionInboxStatus`; status yang sama idempoten (item
+   * dikembalikan apa adanya). `NotFoundError` kalau item tidak ditemukan,
+   * `ConflictError` kalau transisi tidak diizinkan.
    */
-  async markAsDone(
-    input: { workspaceId: WorkspaceId; inboxItemId: InboxItemId },
+  async changeStatus(
+    input: {
+      workspaceId: WorkspaceId;
+      inboxItemId: InboxItemId;
+      status: InboxItemStatus;
+    },
     userId: UserId,
   ): Promise<EngagementInboxItemRecord> {
-    const item = await this.repository.markInboxItemStatus(
-      { ...input, status: "done" },
+    if (!INBOX_ITEM_STATUSES.includes(input.status)) {
+      throw new ValidationError("Status komentar tidak dikenal.");
+    }
+    const current = await this.repository.findInboxItemById(
+      { workspaceId: input.workspaceId, inboxItemId: input.inboxItemId },
       userId,
     );
-    if (!item) {
+    if (!current) {
       throw new NotFoundError("Komentar tidak ditemukan.");
     }
-    return item;
+    if (current.status === input.status) {
+      return current;
+    }
+    if (!canTransitionInboxStatus(current.status, input.status)) {
+      throw new ConflictError(
+        `Status komentar tidak bisa diubah dari "${current.status}" ke "${input.status}".`,
+      );
+    }
+
+    const updated = await this.repository.markInboxItemStatus(
+      { ...input, onlyFromStatus: current.status },
+      userId,
+    );
+    if (!updated) {
+      throw new NotFoundError("Komentar tidak ditemukan.");
+    }
+    // Balapan: `onlyFromStatus` tidak cocok (status berubah di antara baca dan
+    // tulis) sehingga repository mengembalikan baris tanpa perubahan.
+    if (updated.status !== input.status) {
+      throw new ConflictError(
+        "Status komentar baru saja berubah; muat ulang lalu coba lagi.",
+      );
+    }
+    return updated;
+  }
+
+  /**
+   * Jumlah komentar `unread` dalam 12 bulan terakhir (T-217.7) untuk badge
+   * sidebar dan Engagement Snapshot di Home. `now` bisa disuplai agar
+   * deterministik di tes.
+   */
+  async countUnread(
+    workspaceId: WorkspaceId,
+    userId: UserId,
+    now: Date = new Date(),
+  ): Promise<number> {
+    return this.repository.countUnreadInboxItems(
+      { workspaceId, since: inboxCountWindowStart(now) },
+      userId,
+    );
   }
 
   /**
@@ -198,7 +251,7 @@ export class EngagementService {
    * Urutan: validasi `content` (pola sama `IdentityService.updateProfile` —
    * trim lalu tolak string kosong/whitespace-only) → `findInboxItemById`
    * (guard `NotFoundError` kalau tidak ketemu/bukan milik `workspaceId` ini,
-   * pola sama `getInboxItemDetail`/`markAsDone`) → resolve `outstandPostId`
+   * pola sama `getInboxItemDetail`/`changeStatus`) → resolve `outstandPostId`
    * lewat `item.postId` (uuid internal `PublishingPost`, `ConflictError`
    * kalau `null` — data lama sebelum redesain KI-068/T-051 yang belum
    * pernah mengisi kolom ini, ATAU post terkait belum pernah publish di
@@ -286,7 +339,7 @@ export class EngagementService {
       parentOutstandCommentId: item.externalId,
     });
 
-    return this.repository.createReply(
+    const reply = await this.repository.createReply(
       {
         inboxItemId: item.id,
         userId,
@@ -295,5 +348,31 @@ export class EngagementService {
       },
       userId,
     );
+
+    // T-217.3: balasan terkirim menandai `replied` hanya dari `unread`;
+    // `onlyFromStatus` menjaga agar `resolved`/`dismissed` tidak turun bila
+    // status berubah di antara baca dan tulis. Kegagalan di sini tidak boleh
+    // membuat balasan yang sudah terkirim tampak gagal (pengguna akan
+    // mengirim ulang), jadi hanya dicatat ke log.
+    if (item.status === "unread") {
+      try {
+        await this.repository.markInboxItemStatus(
+          {
+            workspaceId: input.workspaceId,
+            inboxItemId: item.id,
+            status: "replied",
+            onlyFromStatus: "unread",
+          },
+          userId,
+        );
+      } catch (error) {
+        console.error(
+          `[EngagementService] reply terkirim tetapi penandaan "replied" gagal untuk inboxItemId=${item.id} (workspace ${input.workspaceId}):`,
+          error,
+        );
+      }
+    }
+
+    return reply;
   }
 }

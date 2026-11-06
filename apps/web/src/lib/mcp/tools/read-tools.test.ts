@@ -619,6 +619,15 @@ describe("list_comments", () => {
     ]);
   });
 
+  it("accepts the new statuses and treats legacy done as an alias of resolved (T-217.8)", async () => {
+    for (const status of ["replied", "resolved", "dismissed"]) {
+      const { calls } = await run("list_comments", { status });
+      expect(calls[0].args[0]).toMatchObject({ status });
+    }
+    const { calls } = await run("list_comments", { status: "done" });
+    expect(calls[0].args[0]).toMatchObject({ status: "resolved" });
+  });
+
   it("rejects an invalid status and a cursor issued for another filter", async () => {
     await expect(run("list_comments", { status: "archived" })).rejects.toThrow(
       McpToolInputError,
