@@ -3511,6 +3511,30 @@ Alasan A: pemilih ini hanya mengganti kartu yang ditampilkan, bukan berpindah an
 
 ---
 
+### T-228 · Import Posts: media expiry and storage for imported posts (investigation)
+
+| Field       | Value                                          |
+| ----------- | ---------------------------------------------- |
+| **Status**  | ⏳ Not Started                                 |
+| **Mode**    | HITL (keputusan King Rezi)                     |
+| **Domain**  | publishing · integration                       |
+| **Spec**    | S-006 (konteks)                                |
+| **Docs**    | ADR-040, ADR-093, ADR-135, T-115, T-131, T-227 |
+| **Depends** | T-227 untuk konteks (tidak memblokir)          |
+
+**Penempatan:** file `v02-publishing-mvp.md` karena yang dibahas adalah alur Import Posts (T-090, T-115, T-131, T-132 di file yang sama; `upsert-imported-posts.ts` dan `ImportPostsProcessUseCase` ada di domain publishing). Gejala yang memicunya muncul di Engage (T-227), tetapi akar penyimpanan media ada di Import.
+
+**Latar belakang (terverifikasi 2026-11-06):** posting hasil Import tidak menyimpan media di `publishing_posts.media_ids` (kosong), hanya URL CDN platform di `publishing_post_targets.platform_options.mediaUrls` (1 URL tiap target; contoh CDN Instagram `scontent-...cdninstagram.com` dan TikTok `p16-common-sign.tiktokcdn.com`, bertanda tangan). Tiket T-227 memakai URL itu sebagai cadangan thumbnail di Engage, yang bersifat sementara bila URL kedaluwarsa. Belum diverifikasi: masa berlaku URL, kemampuan browser memuatnya (hotlink, CORS/Referer), dan hak atau kebijakan menyimpan media impor.
+
+- [ ] **T-228.1** Investigasi baca-saja: apakah URL CDN Instagram, TikTok, dan Facebook hasil Import masih valid, berapa lama (cek tanda tangan/expiry di URL), dan apakah bisa dimuat dari browser.
+- [ ] **T-228.2** Apakah Outstand menyediakan URL media permanen atau endpoint media untuk posting impor.
+- [ ] **T-228.3** Susun opsi: unduh dan simpan ke Supabase Storage/tabel media Postific saat Import (ukuran, biaya, hak/kebijakan platform, ADR-040, ADR-135), atau tetap hotlink.
+- [ ] **T-228.4** Keputusan King Rezi atas opsi. Bila mengubah arsitektur atau baseline, ADR baru sebelum kode (AGENTS.md aturan 2). Tiket implementasi dibuat setelah keputusan; tiket ini tidak berisi kode.
+
+**Blocked by:** keputusan King Rezi (T-228.4).
+
+---
+
 ## Dari Known Issue
 
 Tiket yang lahir sebagai pelacak Known Issue ada di [`known-issues.md`](known-issues.md) (ADR-134); daftar lengkapnya hanya di file itu, tidak disalin ke sini.

@@ -496,6 +496,42 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 ---
 
+### T-227 · Engage: imported post thumbnails use `platformOptions.mediaUrls`, with an icon placeholder on list cards
+
+| Field       | Value                                                                                                                          |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| **Status**  | ⏳ Not Started                                                                                                                 |
+| **Mode**    | AFK                                                                                                                            |
+| **Domain**  | engagement · UI (UI/UX-related)                                                                                                |
+| **Spec**    | S-006                                                                                                                          |
+| **Docs**    | ADR-097, ADR-140, ADR-149, `apps/web/.claude/CLAUDE.md`, artifact Postific (kartu `ScreenEngagePerPosting`), AGENTS.md no. 3-5 |
+| **Depends** | T-219 (Done (code)). Konteks: T-228 (tidak memblokir)                                                                          |
+
+**Ditemukan (2026-11-06, King Rezi, halaman Engage workspace dengan akun Instagram "cookitrealgood" dan Facebook "Cook It Real Good"):** 6 kartu posting tampil tanpa thumbnail sama sekali dan tanpa ikon pengganti. Posting itu berstatus `imported` (hasil Import Posts, `authorId` null).
+
+**Fakta terverifikasi:**
+
+- DB: `publishing_posts.media_ids` kosong (0), tetapi `publishing_post_targets.platform_options.mediaUrls` berisi 1 URL tiap target, dari CDN Instagram (`scontent-...cdninstagram.com`) dan TikTok (`p16-common-sign.tiktokcdn.com`, bertanda tangan).
+- Kode: `ImportPostsProcessUseCase` meneruskan `mediaUrls`, dan `lib/repositories/publishing/upsert-imported-posts.ts` menyimpannya di `platformOptions.mediaUrls` (bukan `media_ids`).
+- `listInboxByPostAction` (`apps/web/src/app/(app)/engage/actions.ts`) meresolve thumbnail hanya dari `postSnapshot.mediaIds[0]` lewat `MediaService.resolveThumbnails`, sehingga `thumbnail = null` untuk posting impor.
+- `PostCard.tsx` hanya merender `PostThumb` bila thumbnail ada, jadi posting tanpa media tidak punya placeholder. Di `PostPreviewCard`/`PostThumb` ikon gambar sudah ada.
+- Pencarian di `apps/web/src/app` tidak menemukan layar yang membaca `mediaUrls`.
+
+**Belum diverifikasi:** apakah URL CDN itu masih valid atau sudah kedaluwarsa, apakah browser bisa memuatnya (hotlink, CORS/Referer), dan apakah hak atau kebijakan platform mengizinkan menyimpan media impor (dibahas di T-228).
+
+**Gate rancangan (AGENTS.md aturan 10):** sebelum kode, cek kartu `ScreenEngagePerPosting` di artifact Postific (tool `Artifact` action `read`, pointer di `context/ctx-design.md`) apakah placeholder di kartu daftar dan gambar eksternal sudah dirancang. Bila belum ada atau ambigu, **STOP** dan tanya King Rezi; jangan menebak.
+
+**Risiko:** URL CDN bisa kedaluwarsa (TikTok bertanda tangan), sehingga hasil perbaikan ini bersifat sementara sampai T-228 diputuskan dan dikerjakan.
+
+- [ ] **T-227.1** Snapshot posting Engage (service/action, `InboxPostSnapshot` / `InboxPostGroupSnapshotDto`) memakai `platformOptions.mediaUrls[0]` sebagai cadangan bila `mediaIds` kosong. Tanpa mengubah kontrak domain tanpa alasan. Patuhi AGENTS.md no. 3-5: entry point tanpa business logic, domain tanpa Prisma, cross-domain lewat public API module.
+- [ ] **T-227.2** `PostCard` menampilkan ikon gambar (`PostThumb` tanpa thumbnail) untuk posting tanpa media.
+- [ ] **T-227.3** Kegagalan memuat gambar eksternal (URL kedaluwarsa) jatuh ke placeholder, tanpa merusak tata letak.
+- [ ] **T-227.4** Tes unit/komponen; E2E Engage (`apps/web/e2e/engage-per-post.e2e.ts`, ADR-149) diperluas bila perlu; `typecheck`, `lint`, tes hijau; amati terang, gelap, dan 375px.
+
+**Blocked by:** gate rancangan (di atas).
+
+---
+
 ## Catatan Rilis
 
 - T-216 sampai T-223 (Engage per posting, spec S-006, ADR-157) ditambahkan 2026-11-05 setelah rilis v0.4 selesai; ADR-040 tetap berlaku (Mentions dan DM di luar).
