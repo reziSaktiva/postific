@@ -86,6 +86,7 @@ export function CommentRow({
   canReply,
   onReply,
   onChangeStatus,
+  context,
   inline,
 }: {
   comment: EngagementInboxItemRecord;
@@ -93,6 +94,8 @@ export function CommentRow({
   canReply: boolean;
   onReply: () => void;
   onChangeStatus: (status: InboxItemStatus) => void;
+  /** Baris konteks "Pada posting: …" (tampilan List). */
+  context?: React.ReactNode;
   inline?: React.ReactNode;
 }) {
   const actions = availableStatusActions(comment.status);
@@ -139,6 +142,7 @@ export function CommentRow({
         >
           {comment.content}
         </p>
+        {context}
         <div
           role="group"
           aria-label={`Aksi untuk komentar ${comment.authorHandle}`}

@@ -46,6 +46,16 @@ export function countPanelFilters(f: {
   );
 }
 
+/** Tampilan Engage (ADR-157 Q5, KSP-06-F09): By post bawaan, List = daftar datar lintas posting. */
+export type EngageView = "post" | "list";
+
+/**
+ * Batas komentar yang dimuat tampilan List: mengikuti batas repository
+ * `listInboxItems` (200, tanpa filter `postId`). Dicerminkan di sini hanya
+ * untuk memberi tahu pengguna bahwa daftar terpotong; ubah bersama repository.
+ */
+export const LIST_VIEW_FETCH_LIMIT = 200;
+
 /** Kunci kelompok "Tanpa posting" (`postId` kosong) pada pilihan dan `key` React. */
 export const NO_POST_KEY = "none";
 

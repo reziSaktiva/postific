@@ -136,7 +136,7 @@ function renderView(
 }
 
 const rowOf = (handle: string) =>
-  screen.getByText(handle).closest("[data-status]") as HTMLElement;
+  screen.getAllByText(handle)[0].closest("[data-status]") as HTMLElement;
 
 beforeEach(() => {
   Element.prototype.hasPointerCapture ??= () => false;
@@ -147,7 +147,10 @@ beforeEach(() => {
   mocks.toast.error.mockReset();
   mocks.listInboxAction.mockImplementation(
     async (filter: { postId?: string | null }) => ({
-      data: COMMENTS[filter.postId ?? "none"] ?? [],
+      data:
+        filter.postId === undefined
+          ? Object.values(COMMENTS).flat()
+          : (COMMENTS[filter.postId ?? "none"] ?? []),
     }),
   );
   mocks.listInboxByPostAction.mockResolvedValue({ data: GROUPS });
@@ -370,5 +373,144 @@ describe("EngageInboxView per posting (T-219)", () => {
     expect(
       screen.getByText("Komentar terbaru belum dapat diambil"),
     ).toBeTruthy();
+  });
+
+  describe("tampilan List (T-224)", () => {
+    async function openList() {
+      renderView();
+      await screen.findByText("@maya");
+      fireEvent.click(screen.getByRole("radio", { name: "List" }));
+      await screen.findByText("@bayu");
+    }
+
+    it("By post tetap bawaan dan List baru memuat daftar datar saat dibuka", async () => {
+      renderView();
+      await screen.findByText("@maya");
+      expect(
+        screen
+          .getByRole("radio", { name: "By post" })
+          .getAttribute("data-state"),
+      ).toBe("on");
+      expect(mocks.listInboxAction).toHaveBeenCalledTimes(1);
+
+      fireEvent.click(screen.getByRole("radio", { name: "List" }));
+      await screen.findByText("@bayu");
+      const flatCall = mocks.listInboxAction.mock.calls.at(-1)?.[0];
+      expect(flatCall).not.toHaveProperty("postId");
+      expect(flatCall).toEqual(expect.objectContaining({ dateRange: "12m" }));
+    });
+
+    it("menampilkan komentar lintas posting dengan ringkasan dan baris konteks", async () => {
+      await openList();
+      // c1, c2, c3, c4, c5 = 5 komentar; unread: c1 dan c5.
+      expect(screen.getByText("2 belum dibalas")).toBeTruthy();
+      expect(screen.getByText(/5 komentar/)).toBeTruthy();
+      expect(
+        screen.getByText(/Urut: Belum dibalas dulu · 12 bulan terakhir/),
+      ).toBeTruthy();
+      expect(
+        within(rowOf("@maya")).getByText("Pada posting: Kopi susu gula aren"),
+      ).toBeTruthy();
+      expect(within(rowOf("@bayu")).getByText("Tanpa posting")).toBeTruthy();
+      expect(screen.queryByLabelText("Balasan")).toBeNull();
+    });
+
+    it("filter Date Range berlaku di List dan memuat ulang daftar datar", async () => {
+      await openList();
+      fireEvent.click(
+        screen.getByRole("button", { name: /Filter dan urutan/ }),
+      );
+      await act(async () =>
+        fireEvent.click(screen.getByRole("radio", { name: "7 hari terakhir" })),
+      );
+      await waitFor(() => {
+        const last = mocks.listInboxAction.mock.calls.at(-1)?.[0];
+        expect(last).toEqual(expect.objectContaining({ dateRange: "7d" }));
+        expect(last).not.toHaveProperty("postId");
+      });
+    });
+
+    it("Resolve di List mengubah status seketika dan memanggil action", async () => {
+      await openList();
+      fireEvent.click(
+        within(rowOf("@maya")).getByRole("button", { name: "Resolve" }),
+      );
+      expect(within(rowOf("@maya")).getByText("Selesai")).toBeTruthy();
+      expect(mocks.changeInboxItemStatusAction).toHaveBeenCalledWith(
+        "c1",
+        "resolved",
+      );
+    });
+
+    it("Reply membuka komposer inline di bawah komentar itu dan mengirim balasan", async () => {
+      await openList();
+      fireEvent.click(
+        within(rowOf("@maya")).getByRole("button", { name: "Reply" }),
+      );
+      const box = within(rowOf("@maya")).getByLabelText("Balasan");
+      fireEvent.change(box, { target: { value: "Halo" } });
+      await act(async () =>
+        fireEvent.click(
+          within(rowOf("@maya")).getByRole("button", { name: "Kirim" }),
+        ),
+      );
+      expect(mocks.replyToCommentAction).toHaveBeenCalledWith("c1", "Halo");
+      expect(within(rowOf("@maya")).getByText("Dibalas")).toBeTruthy();
+    });
+
+    it("Reply nonaktif untuk komentar Tanpa posting, Resolve tetap ada", async () => {
+      await openList();
+      const row = rowOf("@bayu");
+      expect(
+        (
+          within(row).getByRole("button", {
+            name: "Reply",
+          }) as HTMLButtonElement
+        ).disabled,
+      ).toBe(true);
+      expect(within(row).getByRole("button", { name: "Resolve" })).toBeTruthy();
+    });
+
+    it("baris konteks membuka posting itu di By post", async () => {
+      await openList();
+      fireEvent.click(
+        within(rowOf("@raras")).getByRole("button", {
+          name: /Pada posting: Latte art/,
+        }),
+      );
+      expect(await screen.findByLabelText("Balasan")).toBeTruthy();
+      expect(
+        screen
+          .getByRole("radio", { name: "By post" })
+          .getAttribute("data-state"),
+      ).toBe("on");
+      await waitFor(() =>
+        expect(mocks.listInboxAction).toHaveBeenLastCalledWith(
+          expect.objectContaining({ postId: "p2" }),
+        ),
+      );
+    });
+
+    it("memberi tahu bila daftar terpotong di batas muat", async () => {
+      mocks.listInboxAction.mockImplementation(async () => ({
+        data: Array.from({ length: 200 }, (_, i) =>
+          comment(`x${i}`, `@u${i}`, "replied", "p1", i + 1),
+        ),
+      }));
+      renderView();
+      await waitFor(() => expect(mocks.listInboxAction).toHaveBeenCalled());
+      fireEvent.click(screen.getByRole("radio", { name: "List" }));
+      expect(
+        await screen.findByText(/Menampilkan 200 komentar terbaru/),
+      ).toBeTruthy();
+    });
+
+    it("kosong di List dengan filter aktif menawarkan Reset filters", async () => {
+      renderView();
+      await screen.findByText("@maya");
+      mocks.listInboxAction.mockResolvedValue({ data: [] });
+      fireEvent.click(screen.getByRole("radio", { name: "List" }));
+      expect(await screen.findByText("Belum ada interaksi")).toBeTruthy();
+    });
   });
 });

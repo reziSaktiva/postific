@@ -421,7 +421,7 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 | Field       | Value                                                                                                          |
 | ----------- | -------------------------------------------------------------------------------------------------------------- |
-| **Status**  | ⏳ Not Started                                                                                                 |
+| **Status**  | 🟡 In Progress                                                                                                 |
 | **Mode**    | AFK setelah T-216 dikonfirmasi                                                                                 |
 | **Domain**  | engagement · UI (UI/UX-related)                                                                                |
 | **Spec**    | S-006                                                                                                          |
@@ -432,12 +432,12 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 **What to build:** toggle By post / List di header (komponen diverifikasi lewat MCP shadcn) dan tampilan List sesuai rancangan. Menyentuh berkas yang sama dengan T-219 dan T-220: kerjakan setelah T-219, bukan paralel.
 
-- [ ] **T-224.1** Toggle By post / List di header; By post tetap bawaan. Pilihan tampilan boleh diingat per pengguna hanya bila rancangan menyebutnya.
-- [ ] **T-224.2** Tampilan List sesuai rancangan T-216.5, memakai query T-218 (tanpa query baru kecuali rancangan menuntutnya).
-- [ ] **T-224.3** Filter utama dan panel Filter & Sort (T-220) berlaku konsisten di kedua tampilan; aksi status per komentar (T-219.3) juga tersedia di List.
-- [ ] **T-224.4** Tes komponen; terang, gelap, 375px diamati; `typecheck`, `lint`, tes hijau.
+- [x] **T-224.1** Toggle By post / List di header; By post tetap bawaan. Pilihan tampilan boleh diingat per pengguna hanya bila rancangan menyebutnya.
+- [x] **T-224.2** Tampilan List sesuai rancangan T-216.5, memakai query T-218 (tanpa query baru kecuali rancangan menuntutnya).
+- [x] **T-224.3** Filter utama dan panel Filter & Sort (T-220) berlaku konsisten di kedua tampilan; aksi status per komentar (T-219.3) juga tersedia di List.
+- [x] **T-224.4** Tes komponen; terang, gelap, 375px diamati; `typecheck`, `lint`, tes hijau.
 
-**Belum terbukti:** perilaku List dengan volume komentar besar (paginasi atau pengguliran); dicek di T-224.4 dan T-222.
+**Belum terbukti (jalur A, 2026-11-06):** volume besar di List: dimuat satu query tanpa filter `postId` (batas repository 200 komentar terbaru, filter Status/Akun/Platform/Date Range dikirim ke server agar batas menimpa himpunan yang relevan), digulir dalam wadah, dengan catatan "Menampilkan 200 komentar terbaru" bila terpotong; tidak ada paginasi, dan sort "Belum dibalas dulu" hanya berlaku di dalam 200 itu. Tampilan tidak diingat antarsesi (rancangan tidak menyebutnya). Terang/gelap/375px hanya pada harness sementara (komponen `CommentListView`, toggle, dan toolbar asli, data statis, dihapus sebelum commit): gelap desktop, gelap dan terang 375px; terang desktop dan 375px dengan data/login/server action sungguhan tidak diamati, juga hover dan E2E.
 
 **Blocked by:** T-216, T-218, T-219.
 

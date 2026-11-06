@@ -24,6 +24,7 @@ import {
   ALL_FILTER_VALUE,
   DEFAULT_DATE_RANGE,
   DEFAULT_SORT,
+  type EngageView,
   NO_POST_KEY,
   applyStatusToGroup,
   groupKey,
@@ -82,6 +83,12 @@ export function useEngageInbox({
   } | null>(null);
   const [isLoadingComments, setIsLoadingComments] = useState(false);
   const [commentsTick, setCommentsTick] = useState(0);
+
+  // Tampilan List (T-224): daftar datar lintas posting, dimuat hanya saat
+  // List dibuka (tidak ada query tambahan di render awal By post).
+  const [view, setViewState] = useState<EngageView>("post");
+  const [flat, setFlat] = useState<EngagementInboxItemRecord[] | null>(null);
+  const [isLoadingFlat, setIsLoadingFlat] = useState(false);
 
   const [replyTargetId, setReplyTargetId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
@@ -182,6 +189,31 @@ export function useEngageInbox({
     };
   }, [effectiveKey, accountId, platform, dateRange, commentsTick]);
 
+  useEffect(() => {
+    if (view !== "list") return;
+    let cancelled = false;
+    void (async () => {
+      setIsLoadingFlat(true);
+      const result = await listInboxAction({
+        dateRange,
+        ...(accountId && { connectedAccountId: accountId }),
+        ...(platform && { platform }),
+        ...(status && { status }),
+      });
+      if (cancelled) return;
+      if (result.error) {
+        toast.error(result.error);
+        setFlat([]);
+      } else {
+        setFlat(result.data ?? []);
+      }
+      setIsLoadingFlat(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [view, accountId, platform, status, dateRange, commentsTick]);
+
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
     const refreshResult = await refreshInboxAction();
@@ -227,6 +259,13 @@ export function useEngageInbox({
             }
           : prev,
       );
+      setFlat((prev) =>
+        prev
+          ? prev.map((item) =>
+              item.id === comment.id ? { ...item, status: to } : item,
+            )
+          : prev,
+      );
       const key = comment.postId ?? NO_POST_KEY;
       setGroups((prev) =>
         prev.map((group) =>
@@ -262,7 +301,24 @@ export function useEngageInbox({
   );
 
   const replyTarget =
-    comments?.items.find((item) => item.id === replyTargetId) ?? null;
+    (view === "list"
+      ? flat?.find((item) => item.id === replyTargetId)
+      : comments?.items.find((item) => item.id === replyTargetId)) ?? null;
+
+  const setView = useCallback((next: EngageView) => {
+    setViewState(next);
+    setReplyTargetId(null);
+    setDraft("");
+  }, []);
+
+  /** Dari baris konteks tampilan List: buka posting itu di By post (KSP-06-F09). */
+  const openPostFromList = useCallback((comment: EngagementInboxItemRecord) => {
+    setViewState("post");
+    setSelectedKey(comment.postId ?? NO_POST_KEY);
+    setMobileView("detail");
+    setReplyTargetId(null);
+    setDraft("");
+  }, []);
 
   const startReply = useCallback((comment: EngagementInboxItemRecord) => {
     setReplyTargetId(comment.id);
@@ -326,6 +382,11 @@ export function useEngageInbox({
     dateRange !== DEFAULT_DATE_RANGE;
 
   return {
+    view,
+    setView,
+    openPostFromList,
+    flat,
+    isLoadingFlat,
     sort,
     setSort,
     dateRange,

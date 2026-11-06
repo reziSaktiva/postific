@@ -35,8 +35,10 @@ import { Text } from "@/components/ui/text";
 import type { InboxPostGroupDto } from "../actions";
 import { PostCommentsPanel } from "./PostCommentsPanel";
 import { PostListPanel } from "./PostListPanel";
-import { ALL_FILTER_VALUE } from "./engage-model";
+import { ALL_FILTER_VALUE, filterByStatus } from "./engage-model";
+import { CommentListView } from "./CommentListView";
 import { EngageToolbar } from "./EngageToolbar";
+import { EngageViewToggle } from "./EngageViewToggle";
 import { useEngageInbox } from "./useEngageInbox";
 
 /** Jam + singkatan zona pengguna dari Intl ("10.30 WIB", "05.30 GMT-4") — T-147. */
@@ -82,12 +84,26 @@ export function EngageInboxView({
     initialLoadFailed,
   });
 
-  const inDetail = inbox.mobileView === "detail";
+  const isList = inbox.view === "list";
+  // Layar detail penuh di layar sempit hanya berlaku di By post.
+  const inDetail = !isList && inbox.mobileView === "detail";
   const totalUnread = inbox.groups.reduce(
     (sum, group) => sum + group.unrepliedCount,
     0,
   );
-  const isEmpty = inbox.groups.length === 0;
+  const statusValue =
+    inbox.statusFilter === ALL_FILTER_VALUE
+      ? "all"
+      : (inbox.statusFilter as InboxItemStatus);
+  const listEmpty =
+    inbox.flat !== null &&
+    !inbox.isLoadingFlat &&
+    filterByStatus(inbox.flat, statusValue).length === 0;
+  const isEmpty = isList
+    ? listEmpty
+    : inbox.groups.length === 0 &&
+      !inbox.showEmptyPosts &&
+      !inbox.isLoadingList;
   const updatedAt = formatUpdatedAtLabel(inbox.lastUpdatedAt, timeZone);
 
   return (
@@ -161,11 +177,12 @@ export function EngageInboxView({
         onDateRangeChange={inbox.setDateRange}
         hasActiveFilter={inbox.hasActiveFilter}
         onReset={inbox.resetFilters}
-        // Titik pasang toggle By post / List: diisi T-224.
-        viewToggleSlot={undefined}
+        viewToggleSlot={
+          <EngageViewToggle value={inbox.view} onChange={inbox.setView} />
+        }
       />
 
-      {isEmpty && !inbox.showEmptyPosts && !inbox.isLoadingList ? (
+      {isEmpty ? (
         <div className="flex min-h-0 flex-1 items-center justify-center rounded-xl border border-border bg-card p-4">
           <Empty>
             <EmptyHeader>
@@ -200,6 +217,28 @@ export function EngageInboxView({
             </EmptyContent>
           </Empty>
         </div>
+      ) : isList ? (
+        <CommentListView
+          comments={inbox.flat}
+          isLoading={inbox.isLoadingFlat}
+          groups={inbox.groups}
+          statusFilter={statusValue}
+          sort={inbox.sort}
+          dateRange={inbox.dateRange}
+          timeZone={timeZone}
+          replyTarget={inbox.replyTarget}
+          draft={inbox.draft}
+          isSending={inbox.isSending}
+          justSent={inbox.justSent}
+          onOpenPost={inbox.openPostFromList}
+          onReply={inbox.startReply}
+          onChangeStatus={(comment, status) =>
+            void inbox.changeStatus(comment, status)
+          }
+          onDraftChange={inbox.setDraft}
+          onCancelReply={inbox.cancelReply}
+          onSend={() => void inbox.sendReply()}
+        />
       ) : (
         <div
           className={cn(

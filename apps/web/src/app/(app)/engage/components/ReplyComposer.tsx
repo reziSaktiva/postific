@@ -21,6 +21,7 @@ export function ReplyComposer({
   blocked,
   isSending,
   justSent,
+  inline = false,
   onDraftChange,
   onCancel,
   onSend,
@@ -30,14 +31,28 @@ export function ReplyComposer({
   blocked: boolean;
   isSending: boolean;
   justSent: boolean;
+  /** Komposer inline di bawah komentar (tampilan List, keputusan King Rezi #4); bawaan docked. */
+  inline?: boolean;
   onDraftChange: (value: string) => void;
   onCancel: () => void;
   onSend: () => void;
 }) {
   const disabled = blocked || !target;
   return (
-    <div className="shrink-0 border-t border-border bg-card px-3 py-2 md:px-4 md:pt-2.5 md:pb-3">
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-2">
+    <div
+      className={
+        inline
+          ? "mt-1.5 flex flex-col gap-2"
+          : "shrink-0 border-t border-border bg-card px-3 py-2 md:px-4 md:pt-2.5 md:pb-3"
+      }
+    >
+      <div
+        className={
+          inline
+            ? "flex flex-col gap-2"
+            : "mx-auto flex w-full max-w-3xl flex-col gap-2"
+        }
+      >
         <div
           aria-live="polite"
           className="flex min-h-6 items-center gap-2 text-xs text-muted-foreground"
@@ -72,6 +87,7 @@ export function ReplyComposer({
         <div className="flex items-end gap-2">
           <Textarea
             rows={2}
+            autoFocus={inline}
             placeholder="Balas komentar..."
             aria-label="Balasan"
             value={draft}
