@@ -3513,14 +3513,14 @@ Alasan A: pemilih ini hanya mengganti kartu yang ditampilkan, bukan berpindah an
 
 ### T-228 · Import Posts: media expiry and storage for imported posts (investigation)
 
-| Field       | Value                                          |
-| ----------- | ---------------------------------------------- |
-| **Status**  | ⏳ Not Started                                 |
-| **Mode**    | HITL (keputusan King Rezi)                     |
-| **Domain**  | publishing · integration                       |
-| **Spec**    | S-006 (konteks)                                |
-| **Docs**    | ADR-040, ADR-093, ADR-135, T-115, T-131, T-227 |
-| **Depends** | T-227 untuk konteks (tidak memblokir)          |
+| Field       | Value                                                                            |
+| ----------- | -------------------------------------------------------------------------------- |
+| **Status**  | ✅ Done (2026-11-06, investigasi dan keputusan; implementasi di T-229 dan T-230) |
+| **Mode**    | HITL (keputusan King Rezi)                                                       |
+| **Domain**  | publishing · integration                                                         |
+| **Spec**    | S-006 (konteks)                                                                  |
+| **Docs**    | ADR-040, ADR-093, ADR-135, T-115, T-131, T-227                                   |
+| **Depends** | T-227 untuk konteks (tidak memblokir)                                            |
 
 **Penempatan:** file `v02-publishing-mvp.md` karena yang dibahas adalah alur Import Posts (T-090, T-115, T-131, T-132 di file yang sama; `upsert-imported-posts.ts` dan `ImportPostsProcessUseCase` ada di domain publishing). Gejala yang memicunya muncul di Engage (T-227), tetapi akar penyimpanan media ada di Import.
 
@@ -3531,7 +3531,71 @@ Alasan A: pemilih ini hanya mengganti kartu yang ditampilkan, bukan berpindah an
 - [ ] **T-228.3** Susun opsi: unduh dan simpan ke Supabase Storage/tabel media Postific saat Import (ukuran, biaya, hak/kebijakan platform, ADR-040, ADR-135), atau tetap hotlink.
 - [ ] **T-228.4** Keputusan King Rezi atas opsi. Bila mengubah arsitektur atau baseline, ADR baru sebelum kode (AGENTS.md aturan 2). Tiket implementasi dibuat setelah keputusan; tiket ini tidak berisi kode.
 
-**Blocked by:** keputusan King Rezi (T-228.4).
+**Hasil investigasi (2026-11-06, workspace Cook It Real Good, 492 posting impor):**
+
+- **T-228.1:** semua posting impor punya `media_ids` kosong dan satu URL di `platform_options.mediaUrls`. Dari tanda tangan URL: 118 URL TikTok kedaluwarsa 2026-10-23; 182 URL Instagram kedaluwarsa paling lambat 2026-10-26 (sekitar 70% adalah `.mp4` Reel, bukan gambar); sekitar 188 dari 192 URL Facebook sudah lewat (sisanya berlaku sampai 4 sampai 9 Nov). Uji `HEAD`: URL Facebook yang masih berlaku memberi 200 `image/jpeg` dengan maupun tanpa Referer (bukan masalah hotlink/CORS); URL TikTok dan Instagram kedaluwarsa memberi 403.
+- **T-228.2:** Outstand tidak menyediakan URL permanen. `GET /v1/posts/{id}` untuk posting `source: "imported"` mengembalikan URL CDN yang sama persis (`processing: null`); penyimpanan media Outstand (`media.outstand.so`, berlaku 60 hari) hanya berisi file yang diunggah lewat Postific.
+- **Import ulang:** Sync Now untuk akun Facebook ditolak cooldown 24 jam (ADR-093 butir 9) karena import periodik harian baru berjalan; tidak ada job, tidak ada biaya. Belum terbukti apakah import ulang memberi URL segar; bukti tidak langsung menunjukkan Outstand menyimpan URL dari saat import pertama.
+- **Temuan sampingan:** import periodik akun Instagram dan TikTok Cook It Real Good berstatus `failed` setiap hari karena job masih diproses di Outstand setelah 25 detik (`IMPORT_STATUS_POLL_TIMEOUT_MS`); dibahas setelah T-230 selesai (keputusan King Rezi 2026-11-06), belum punya tiket.
+- **T-228.3 dan T-228.4:** opsi A (hotlink), B (simpan media penuh), C (simpan thumbnail kecil dan poster video). **Keputusan King Rezi: C** → ADR-158. Tiket implementasi: T-229 (spike dan desain) dan T-230.
+
+### T-229 · Import Posts: spike on storing imported-post thumbnails and video posters (option C, ADR-158)
+
+| Field       | Value                                                                                               |
+| ----------- | --------------------------------------------------------------------------------------------------- |
+| **Status**  | ✅ Done (2026-11-06, spike dan keputusan skema; bagian "Belum terbukti" menunggu T-230 dan staging) |
+| **Mode**    | HITL (keputusan skema)                                                                              |
+| **Domain**  | publishing · media · integration                                                                    |
+| **Spec**    | S-006 (konteks)                                                                                     |
+| **Docs**    | ADR-158, ADR-093, ADR-040, ADR-135, T-228, T-227, BG-D05                                            |
+| **Depends** | T-228 (Done)                                                                                        |
+
+**Tujuan:** menjawab hal yang belum terbukti sebelum T-230 ditulis. Tiket ini tidak berisi kode produk.
+
+- [x] **T-229.1** Poster video: apakah frame pertama mp4 Instagram bisa diambil di Railway tanpa mengunduh berkas penuh (mis. `ffmpeg` membaca URL HTTP dan mengambil satu frame), atau opsi lain. Ukur waktu dan data per posting.
+- [x] **T-229.2** Anggaran waktu: unduh-dan-simpan di dalam job Import vs tahap terpisah (job lanjutan). Import Instagram dan TikTok sudah melewati batas 25 detik (temuan T-228); jangan memperburuknya.
+- [x] **T-229.3** Skema: pakai `media_ids` pada posting impor (agar `MediaService.resolveThumbnails` dan UI Engage bekerja apa adanya) atau field terpisah; periksa dampak ke jalur yang membaca `media_ids` (publish, edit, analytics) dan invariant read-only ADR-093.
+- [x] **T-229.4** Ukuran dan format thumbnail (sisi terpanjang, format, batas byte), batas jumlah media per posting, dan kebijakan bucket Storage (RLS ADR-141 dan DB-D05).
+- [x] **T-229.5** Hak dan kebijakan platform (Meta, TikTok): King Rezi menerima risikonya (2026-11-06, dasar: Buffer juga menyimpan media; ADR-158 butir 6). Tugas di sini hanya mencatat dasar itu dan menandai bila ditemukan ketentuan resmi yang jelas bertentangan (amandemen ADR-158 bila perlu); tidak memblokir.
+- [x] **T-229.6** Pemulihan posting lama: uji apakah import ulang (setelah cooldown) memberi URL segar untuk satu akun; bila tidak, putuskan bahwa posting lama tetap memakai fallback T-227.
+- [x] **T-229.7** Hasil dan rekomendasi ditulis di tiket ini; bila ada penyimpangan dari ADR-158, ADR baru sebelum T-230.
+
+**Hasil spike (2026-11-06):**
+
+- **T-229.1, poster video:** `ffmpeg` membaca URL HTTP dan mengambil satu frame tanpa mengunduh berkas penuh. Contoh nyata (mp4 9:16 720x1280, 6,7 MB, `media.outstand.so`): 0,66 detik, sekitar 206 KB ditarik (3% berkas), poster jpeg 640 px sekitar 99 KB. `ffmpeg` memakai `Range`, jadi mp4 dengan metadata di akhir berkas lebih mahal; pagar wajib: `HEAD` dulu, lewati bila `Content-Length` melebihi batas (usulan 30 MB) atau waktu melebihi batas per media. Gambar: `sharp` (sudah ikut sebagai dependensi Next, perlu dideklarasikan eksplisit) membuat webp 640 px q75 sekitar 28 KB dalam 26 ms, 480 px sekitar 17 KB.
+- **T-229.2, anggaran waktu:** satu media sekitar 0,3 sampai 1 detik. Import pertama bisa 1000 posting (`AUTO_MANUAL_IMPORT_LIMIT`), jadi unduh sinkron di dalam job Import pasti melewati 25 detik (`IMPORT_STATUS_POLL_TIMEOUT_MS`) dan batas 30 detik per request job. **Rekomendasi:** tahap terpisah: setelah upsert, antrikan job `import.media` per batch kecil (sekitar 10 posting, konkurensi 5) lewat `background_jobs`; runner berjalan tiap menit dengan maksimum 10 job per run (BG-D05), sehingga sekitar 100 posting per menit dan 1000 posting sekitar 10 menit. Kegagalan satu media tidak menggagalkan batch, dan job idempoten.
+- **T-229.3, skema (keputusan King Rezi, 2026-11-06):** kolom baru di `publishing_post_targets` (`thumbnail_storage_path`, `thumbnail_kind` = `image` atau `video_poster`), bukan `media_items`/`media_ids`. Alasan: `media_items` tidak punya kolom penanda sumber, jadi thumbnail akan muncul di Media Library dan MCP `list_media`, butuh `uploaderId` palsu, dan bisa dihapus pengguna. File disimpan di bucket `media` (privat) dengan awalan path sendiri (`{workspaceId}/imports/...`); URL ditandatangani saat dibaca lewat `MediaService` (cross-domain lewat public API). Migrasi kecil diperlukan; pembersihan file saat posting dihapus masuk T-230.
+- **T-229.4, ukuran dan bucket:** thumbnail webp 640 px sisi terpanjang (sekitar 17 sampai 30 KB), satu thumbnail per target (media pertama). 492 posting sekitar 15 MB saja. Bucket `media` sudah mengizinkan `image/webp` dan `image/jpeg` (batas 50 MB), tanpa perubahan bucket.
+- **T-229.5, hak platform:** diterima King Rezi (dasar: Buffer juga menyimpan media); tidak ada ketentuan resmi yang diperiksa.
+- **T-229.6, posting lama:** tidak bisa diuji. Sync Now ditolak cooldown 24 jam karena import periodik harian memperbarui `lastImportRequestedAt` setiap hari (`import-posts-trigger.use-case.ts`), jadi jendela manual praktis tidak pernah terbuka untuk akun yang ikut periodik (temuan sampingan, dibahas setelah T-230 bersama temuan import Instagram/TikTok). Bukti tidak langsung: Outstand mengembalikan URL yang sama persis dengan yang tersimpan. **Keputusan:** posting lama yang URL-nya sudah mati tidak dipulihkan dan tetap memakai fallback T-227; posting yang URL-nya masih hidup saat T-230 dirilis dapat diisi lewat backfill sekali jalan.
+- **T-229.7:** tidak ada penyimpangan dari ADR-158; addendum skema ditambahkan di ADR-158.
+
+**Belum terbukti:** `ffmpeg` tersedia dan cukup cepat di Railway (builder NIXPACKS; perlu `nixpacks.toml` atau paket seperti `ffmpeg-static`), perilaku nyata pada mp4 Instagram (semua URL Instagram di DB sudah kedaluwarsa, uji memakai mp4 dari `media.outstand.so`), dan RLS/izin bucket untuk jalur baru. Semuanya diverifikasi di T-230 dan Verified (staging).
+
+---
+
+### T-230 · Import Posts: download and store thumbnails and video posters during Import (option C, ADR-158)
+
+| Field       | Value                                                          |
+| ----------- | -------------------------------------------------------------- |
+| **Status**  | ⏳ Not Started                                                 |
+| **Mode**    | AFK setelah T-229                                              |
+| **Domain**  | publishing · media · integration                               |
+| **Spec**    | S-006 (konteks)                                                |
+| **Docs**    | ADR-158, ADR-093, ADR-040, T-229, T-227, AGENTS.md no. 3-6, 13 |
+| **Depends** | T-229                                                          |
+
+Rincian mengikuti hasil T-229 (skema kolom baru di `publishing_post_targets`, job `import.media` per batch, `sharp` untuk gambar, `ffmpeg` untuk poster video):
+
+- [ ] **T-230.0** Migrasi: `thumbnail_storage_path` dan `thumbnail_kind` di `publishing_post_targets` (nullable), tanpa perubahan bucket; deklarasikan `sharp` dan siapkan `ffmpeg` di build Railway.
+- [ ] **T-230.1** Setelah `upsertImportedPosts`, antrikan job `import.media` per batch kecil (sekitar 10 posting); handler mengunduh media baru, membuat thumbnail kecil (gambar) atau poster (video), dan menyimpannya lewat domain `media` (Supabase Storage lewat adapter; domain tanpa import Prisma/Supabase, AGENTS.md no. 4 dan 6).
+- [ ] **T-230.2** Kegagalan satu media tidak menggagalkan import posting; posting tetap tampil dengan fallback T-227.
+- [ ] **T-230.3** Idempotensi: import ulang tidak menduplikasi thumbnail (kunci `connectedAccountId` + `platformPostId`, ADR-093 butir 4); posting yang sudah punya thumbnail tidak diunduh ulang.
+- [ ] **T-230.4** Batas ukuran, waktu, dan konkurensi unduhan; validasi URL sumber (hanya `https`, host CDN yang dikenal) untuk mencegah SSRF.
+- [ ] **T-230.5** Engage (T-227) memakai thumbnail tersimpan lebih dulu (snapshot membawa `thumbnailStoragePath`, URL ditandatangani lewat `MediaService`), lalu URL eksternal, lalu ikon. Pembersihan file thumbnail saat posting dihapus, dan backfill sekali jalan untuk posting yang URL-nya masih hidup.
+- [ ] **T-230.6** Tes unit dan integrasi; E2E Import dan Engage (ADR-149); `typecheck`, `lint`, tes hijau.
+
+**Blocked by:** T-229.
 
 ---
 
