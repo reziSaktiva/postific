@@ -117,7 +117,7 @@ Primary navigation terdiri dari empat zona vertikal:
 ## Active State dan Visual Feedback
 
 - Item navigasi aktif ditandai secara visual (highlight / indicator) — pengguna selalu tahu posisi mereka.
-- **Engage** memiliki notification badge yang menampilkan jumlah interaksi unread — terlihat dari section manapun (mendukung UF-04 Alternate Path).
+- **Engage** memiliki notification badge yang menampilkan jumlah komentar `unread` (belum dibalas; `replied`, `resolved`, `dismissed` tidak dihitung) — terlihat dari section manapun (mendukung UF-04 Alternate Path).
 - Tidak ada loading state yang memblokir sidebar — sidebar tetap interaktif saat konten dimuat.
 
 ---
@@ -211,11 +211,12 @@ Publish
 
 ## Engage — Single Screen
 
-Engage hanya memiliki satu layar: Inbox. Tidak ada tab navigation di dalam Engage.
+Engage hanya memiliki satu layar: Inbox. Tidak ada tab navigation di dalam Engage. Toggle **By post / List** di header Inbox adalah pilihan tampilan dalam layar yang sama (bukan navigasi tab dan bukan layar baru); By post adalah bawaan (ADR-157).
 
 ```
 Engage
 └── Inbox  ← langsung tampil tanpa sub-navigasi tambahan
+    └── [By post | List]  ← pilihan tampilan, bukan tab
 ```
 
 ---
@@ -324,14 +325,16 @@ Terjadi ketika pengguna menyelesaikan salah satu dari tiga aksi terminal di Draf
 
 ## Pola: Thread Expansion
 
-Terjadi di Engage. Klik satu thread komentar membuka detail thread di dalam Inbox — tidak membuka layar baru.
+Terjadi di Engage. Memilih satu posting membuka komentarnya di dalam Inbox — tidak membuka layar baru.
 
 ```
-Engage → Inbox → [klik thread]  → Thread detail muncul di panel kanan / inline
-                                   (sidebar tetap terlihat, Inbox tetap terlihat di kiri)
+Engage → Inbox → [pilih posting]  → Komentar posting muncul di panel kanan
+                                    (sidebar tetap terlihat, daftar posting tetap terlihat di kiri)
 ```
 
-**Alasan:** Volume triage komentar dapat tinggi — pengguna perlu berpindah cepat antar thread tanpa full-page navigation setiap kali.
+Di layar sempit (375px) daftar posting dan komentar dipisah dengan push navigation (daftar → komentar, tombol kembali). Pada tampilan List tidak ada panel kanan; komposer balasan tampil inline.
+
+**Alasan:** Volume triage komentar dapat tinggi — pengguna perlu berpindah cepat antar posting tanpa full-page navigation setiap kali.
 
 ---
 
@@ -378,8 +381,8 @@ Notification badge pada item Engage di sidebar menginformasikan pengguna bahwa p
 ```
 Badge behavior:
 ├── Muncul: setelah sinkronisasi menemukan komentar unread baru di Inbox
-├── Angka: menampilkan jumlah unread (cap di angka 99+)
-├── Hilang: ketika semua item di Inbox ditandai Done atau dibuka
+├── Angka: menampilkan jumlah unread, yaitu komentar belum dibalas (cap di angka 99+)
+├── Hilang: ketika tidak ada lagi komentar unread (semua dibalas, Resolve, atau Dismiss)
 └── Tetap terlihat dari section manapun (sidebar persisten)
 ```
 

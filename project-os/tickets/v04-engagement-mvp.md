@@ -315,7 +315,7 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 | Field       | Value                                                                                                                                                                                                                                           |
 | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | ⏳ Not Started                                                                                                                                                                                                                                  |
+| **Status**  | ✅ Done (2026-11-06, dokumentasi)                                                                                                                                                                                                               |
 | **Mode**    | AFK (dokumentasi)                                                                                                                                                                                                                               |
 | **Domain**  | dokumentasi · UX · arsitektur                                                                                                                                                                                                                   |
 | **Spec**    | S-006                                                                                                                                                                                                                                           |
@@ -335,13 +335,15 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 | `05-architecture/domain-model.md` (363)                | `InboxItemStatus` ditulis `unread \| read \| replied \| archived`; **sudah menyimpang dari kode** (`unread \| done`) sebelum ADR-157. Jadikan `unread \| replied \| resolved \| dismissed` dan sebut transisinya |
 | `context/ctx-domain.md`, `context/ctx-design.md`       | Hanya diubah bila penunjuknya berubah; kemungkinan tidak perlu                                                                                                                                                   |
 
-- [ ] **T-221.1** KSP-06 dan KSP-D06 diperbarui (Critical Functions, Zona Fungsional, State Handling, Pola Notification Badge); tag amandemen ADR-157 ditambahkan.
+- [x] **T-221.1** KSP-06 dan KSP-D06 diperbarui (Critical Functions, Zona Fungsional, State Handling, Pola Notification Badge); tag amandemen ADR-157 ditambahkan.
 - [x] **T-221.2** ADR-157 `Proposed` → `Accepted` (2026-11-05, setelah Q1 sampai Q5 dijawab King Rezi); indeks `DECISIONS.md` ikut.
-- [ ] **T-221.3** `user-flows.md` UF-04 (dan tabel ringkasnya) disesuaikan: pilih posting, status baru, Resolve / Dismiss / buka kembali, panel Filter & Sort.
-- [ ] **T-221.4** `navigation-patterns.md` dan `information-architecture.md` disesuaikan: Engage tetap satu layar tanpa tab navigasi, dengan pilihan tampilan By post / List di dalamnya; peta konten diperbarui.
-- [ ] **T-221.5** `domain-model.md` BC Engagement: `InboxItemStatus` dan aturan transisi diselaraskan dengan ADR-157 (koreksi drift lama ikut).
-- [ ] **T-221.6** Tinjau `context/ctx-domain.md` dan `context/ctx-design.md`; ubah hanya bila penunjuknya berubah.
-- [ ] **T-221.7** `bun run docs:check` hijau.
+- [x] **T-221.3** `user-flows.md` UF-04 (dan tabel ringkasnya) disesuaikan: pilih posting, status baru, Resolve / Dismiss / buka kembali, panel Filter & Sort.
+- [x] **T-221.4** `navigation-patterns.md` dan `information-architecture.md` disesuaikan: Engage tetap satu layar tanpa tab navigasi, dengan pilihan tampilan By post / List di dalamnya; peta konten diperbarui.
+- [x] **T-221.5** `domain-model.md` BC Engagement: `InboxItemStatus` dan aturan transisi diselaraskan dengan ADR-157 (koreksi drift lama ikut).
+- [x] **T-221.6** Tinjau `context/ctx-domain.md` dan `context/ctx-design.md`; ubah hanya bila penunjuknya berubah.
+- [x] **T-221.7** `bun run docs:check` hijau.
+
+**Hasil (2026-11-06):** KSP-06 ditulis ulang (Critical Functions F01 sampai F09, tabel status dan transisi, zona, state, pola badge) dan KSP-D06 serta baris konfirmasi "Resolve / Dismiss" diselaraskan; UF-04 (langkah, alternate path, UXP-03), `navigation-patterns.md` (badge, Engage satu layar dengan pilihan tampilan, pola ekspansi), `information-architecture.md` (struktur Engage, peta konten), dan `domain-model.md` (`InboxItemStatus`, transisi, query per posting; drift lama `unread | read | replied | archived` terkoreksi) diperbarui. `ctx-domain.md` dan `ctx-design.md` ditinjau dan tidak diubah: penunjuknya tidak berubah. Baris Engagement Snapshot di IA dan KSP-01-F03 tetap benar (menghitung `unread`, Q4).
 
 **Belum terbukti:** apakah ada dokumen lain yang menyebut model lama dengan istilah berbeda; audit memakai grep istilah (`Mark as Done`, `Unread / Done`, `KSP-06`, `Comments Inbox`, `InboxItem`), bukan pembacaan semua berkas.
 
