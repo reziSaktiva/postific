@@ -140,7 +140,7 @@ test("daftar posting, komentar posting terpilih, dan post asal", async ({
 
   // Pilih posting satu: ringkasan, urutan bawaan (belum dibalas dulu), post asal.
   await selectPost(page, seed.captions.p1);
-  await expect(page.getByText("1 dibalas")).toBeVisible();
+  await expect(page.getByText("1 dibalas", { exact: true })).toBeVisible();
   await expect(page.getByText("/ 3 total komentar")).toBeVisible();
   await expect(row(page, "c1")).toBeVisible();
   await expect

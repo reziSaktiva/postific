@@ -59,7 +59,7 @@ export function PostCard({
       size="sm"
       data-selected={selected}
       className={cn(
-        "relative gap-2 py-2.5 transition-colors hover:bg-muted/45",
+        "relative shrink-0 gap-2 py-2.5 transition-colors hover:bg-muted/45",
         selected && "bg-muted/55 ring-2 ring-ring",
       )}
     >
