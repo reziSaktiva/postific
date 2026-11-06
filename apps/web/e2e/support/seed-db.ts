@@ -69,7 +69,7 @@ function code(error: unknown): string {
       : "tidak diketahui";
 }
 
-async function withTx<T>(
+export async function withTx<T>(
   fn: (
     client: Client,
     ctx: { workspaceId: string; actorId: string },
