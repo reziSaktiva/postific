@@ -156,7 +156,7 @@ export class MediaService {
    * Resolve media PERTAMA dari satu set `mediaIds` jadi thumbnail
    * siap-render — satu tempat untuk pola "ambil media pertama, regenerate
    * signed URL, map ke `{url, type}`" yang sebelumnya diduplikasi di
-   * `getInboxItemDetailAction` (T-056) dan History Detail (KI-082).
+   * Engage (T-056, sebelum T-219 menghapus detail per komentar) dan History Detail (KI-082).
    * Kegagalan apa pun saat resolve (termasuk error dari `listByIds`
    * sendiri, bukan cuma regenerate-URL per-item yang sudah di-guard
    * `withFreshUrls`) TIDAK dilempar ke caller — dikembalikan `null`

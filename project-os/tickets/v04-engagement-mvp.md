@@ -305,7 +305,7 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 | Field       | Value                                                                                                     |
 | ----------- | --------------------------------------------------------------------------------------------------------- |
-| **Status**  | ⏳ Not Started                                                                                            |
+| **Status**  | 🟡 In Progress                                                                                            |
 | **Mode**    | AFK setelah T-216 dikonfirmasi                                                                            |
 | **Domain**  | engagement · UI (UI/UX-related)                                                                           |
 | **Spec**    | S-006                                                                                                     |
@@ -316,14 +316,16 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 **What to build:** tata letak dua panel Engage per posting dan aksi status per komentar, sesuai rancangan. Komponen shadcn diverifikasi dulu lewat MCP shadcn (workflow discover-first); jangan menebak nama komponen atau props.
 
-- [ ] **T-219.1** Panel daftar posting (kartu dengan badge, progress, kelompok "tanpa posting", panel bisa dilipat) menggantikan daftar item datar di `EngageInboxView.tsx`. Berkas besar (800 baris) dipecah menjadi komponen modul tanpa mengubah perilaku, seperti T-199.
-- [ ] **T-219.2** Panel komentar: kartu pratinjau posting, ringkasan "x dibalas / y total", daftar komentar, area balas yang sudah ada (T-054) dipertahankan. Untuk kelompok "Tanpa posting" komposer nonaktif dengan pesan jelas (Outstand hanya membalas per posting, ADR-113; keputusan King Rezi 2026-11-06, B1); Resolve dan Dismiss tetap tersedia.
-- [ ] **T-219.3** Aksi hover per komentar: Resolve, Dismiss, buka kembali; Reply membuka area balas. Optimistic update dan error ditangani; Server Action hanya memanggil service.
-- [ ] **T-219.4** State: kosong, filter tanpa hasil, refresh berjalan dan gagal, selaras KSP-06 yang diperbarui. Zona sinkronisasi (KSP-06-F07, F08) dipertahankan.
+- [x] **T-219.1** Panel daftar posting (kartu dengan badge, progress, kelompok "tanpa posting", panel bisa dilipat) menggantikan daftar item datar di `EngageInboxView.tsx`. Berkas besar (800 baris) dipecah menjadi komponen modul tanpa mengubah perilaku, seperti T-199.
+- [x] **T-219.2** Panel komentar: kartu pratinjau posting, ringkasan "x dibalas / y total", daftar komentar, area balas yang sudah ada (T-054) dipertahankan. Untuk kelompok "Tanpa posting" komposer nonaktif dengan pesan jelas (Outstand hanya membalas per posting, ADR-113; keputusan King Rezi 2026-11-06, B1); Resolve dan Dismiss tetap tersedia.
+- [x] **T-219.3** Aksi hover per komentar: Resolve, Dismiss, buka kembali; Reply membuka area balas. Optimistic update dan error ditangani; Server Action hanya memanggil service.
+- [x] **T-219.4** State: kosong, filter tanpa hasil, refresh berjalan dan gagal, selaras KSP-06 yang diperbarui. Zona sinkronisasi (KSP-06-F07, F08) dipertahankan.
 - [ ] **T-219.5** Perilaku yang sudah ada tidak regresi: filter akun/platform/status, reply, post asal (T-056), badge sidebar, manual refresh. Terang, gelap, 375px diamati di browser.
-- [ ] **T-219.6** Tes komponen dan unit; `typecheck`, `lint`, tes hijau.
+- [x] **T-219.6** Tes komponen dan unit; `typecheck`, `lint`, tes hijau.
 
-**Belum terbukti:** perilaku di layar sempit (375px) dan keyboard/fokus aksi hover; dicek di T-219.5 dan T-222.
+**Belum terbukti (jalur A, 2026-11-06):** T-219.5 belum dicentang. Layar belum diamati dengan data dan login sungguhan (DB dan sesi tidak dipakai di jalur ini); terang, gelap, dan 375px hanya diamati pada harness sementara (komponen panel asli, data statis, dihapus sebelum commit). Hover nyata tidak teramati di panel browser (`:hover` tidak terdaftar); yang terbukti: fokus keyboard memunculkan aksi, aksi selalu tampil di 375px dan perangkat sentuh. Tidak ada E2E Playwright (T-222). Belum tampil: tanggal posting di kartu pratinjau (snapshot domain tidak membawanya) dan riwayat balasan tim per komentar (tampilan lama T-053 menampilkannya, rancangan T-216 tidak). Panel komentar dibatasi 1000 komentar per posting (paginasi belum ada). Carousel multi-media "Post asal" (T-111) ikut hilang karena kartu pratinjau rancangan T-216 hanya menampilkan satu thumbnail (belum diakui sebelumnya).
+
+**Catatan review Ridwan (jalur A, menunggu keputusan King Rezi, tidak dikerjakan):** aturan rentang tanggal dan transisi status ada di dua tempat (S1, S2); S6; `revalidatePath` pada action status (S7); batas 200 (List) dan 1000 (per posting) serta sort "Belum dibalas dulu" hanya di dalam batas itu (K5); tanggal posting, riwayat Balasan tim, dan carousel multi-media (K6); K7 dan K8. Sudah diperbaiki di commit review: race Refresh vs filter, rollback hitungan kartu, draf balasan, toggle posting tanpa komentar, muat awal gagal, tautan konteks List untuk posting di luar 100 teratas, markup mentah, kode mati.
 
 **Blocked by:** T-216 (konfirmasi rancangan), T-217, T-218.
 
@@ -333,7 +335,7 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 | Field       | Value                                                                                                |
 | ----------- | ---------------------------------------------------------------------------------------------------- |
-| **Status**  | ⏳ Not Started                                                                                       |
+| **Status**  | 🟡 In Progress                                                                                       |
 | **Mode**    | AFK setelah T-216 dikonfirmasi                                                                       |
 | **Domain**  | engagement · UI (UI/UX-related)                                                                      |
 | **Spec**    | S-006                                                                                                |
@@ -342,10 +344,13 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 **What to build:** filter utama di header (Akun, Status) dan satu panel sekunder (Sort By, Date Range, Reset filters), menggantikan tiga `Select` sejajar. Menyentuh berkas yang sama dengan T-219 (`EngageInboxView` dan turunannya): kerjakan setelah T-219.1 memecah berkas, bukan paralel.
 
-- [ ] **T-220.1** Dropdown Akun/Channels dan Status (single-select bercentang) di header.
-- [ ] **T-220.2** Panel Filter & Sort (komponen ditentukan rancangan, diverifikasi lewat MCP shadcn): Sort By, Date Range, Reset filters. Filter Platform berada di panel ini (keputusan King Rezi 2026-11-05 atas rancangan T-216).
-- [ ] **T-220.3** Filter memicu query T-218 server-side seperti pola sekarang (`listInboxAction`); tanpa request ganda saat render awal.
-- [ ] **T-220.4** Tes komponen; terang, gelap, 375px diamati; `typecheck`, `lint`, tes hijau.
+- [x] **T-220.1** Dropdown Akun/Channels dan Status (single-select bercentang) di header.
+- [x] **T-220.2** Panel Filter & Sort (komponen ditentukan rancangan, diverifikasi lewat MCP shadcn): Sort By, Date Range, Reset filters. Filter Platform berada di panel ini (keputusan King Rezi 2026-11-05 atas rancangan T-216).
+- [x] **T-220.3** Filter memicu query T-218 server-side seperti pola sekarang (`listInboxAction`); tanpa request ganda saat render awal.
+- [x] **T-220.4a** Tes komponen; `typecheck`, `lint`, tes hijau.
+- [ ] **T-220.4b** Terang, gelap, 375px diamati di layar sungguhan (sementara hanya harness statis, lihat "Belum terbukti").
+
+**Belum terbukti (jalur A, 2026-11-06):** tidak diamati dengan data, login, dan server action sungguhan; terang/gelap/375px hanya pada harness sementara (komponen `EngageToolbar` asli, state lokal, dihapus sebelum commit; gelap desktop dan 375, terang 375, panel terbuka; terang desktop tidak diamati). Dropdown Akun dan Status dibuka hanya lewat tes jsdom (Status), bukan di browser; hover tidak diuji. Titik pasang toggle `viewToggleSlot` kosong sampai T-224. Rentang Date Range juga menyaring daftar komentar panel kanan (disamakan dengan hitungan kartu).
 
 **Blocked by:** T-219 (berkas bersama; T-216 dan T-218 sudah/segera terpenuhi).
 
@@ -419,7 +424,7 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 | Field       | Value                                                                                                          |
 | ----------- | -------------------------------------------------------------------------------------------------------------- |
-| **Status**  | ⏳ Not Started                                                                                                 |
+| **Status**  | 🟡 In Progress                                                                                                 |
 | **Mode**    | AFK setelah T-216 dikonfirmasi                                                                                 |
 | **Domain**  | engagement · UI (UI/UX-related)                                                                                |
 | **Spec**    | S-006                                                                                                          |
@@ -430,12 +435,13 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 **What to build:** toggle By post / List di header (komponen diverifikasi lewat MCP shadcn) dan tampilan List sesuai rancangan. Menyentuh berkas yang sama dengan T-219 dan T-220: kerjakan setelah T-219, bukan paralel.
 
-- [ ] **T-224.1** Toggle By post / List di header; By post tetap bawaan. Pilihan tampilan boleh diingat per pengguna hanya bila rancangan menyebutnya.
-- [ ] **T-224.2** Tampilan List sesuai rancangan T-216.5, memakai query T-218 (tanpa query baru kecuali rancangan menuntutnya).
-- [ ] **T-224.3** Filter utama dan panel Filter & Sort (T-220) berlaku konsisten di kedua tampilan; aksi status per komentar (T-219.3) juga tersedia di List.
-- [ ] **T-224.4** Tes komponen; terang, gelap, 375px diamati; `typecheck`, `lint`, tes hijau.
+- [x] **T-224.1** Toggle By post / List di header; By post tetap bawaan. Pilihan tampilan boleh diingat per pengguna hanya bila rancangan menyebutnya.
+- [x] **T-224.2** Tampilan List sesuai rancangan T-216.5, memakai query T-218 (tanpa query baru kecuali rancangan menuntutnya).
+- [x] **T-224.3** Filter utama dan panel Filter & Sort (T-220) berlaku konsisten di kedua tampilan; aksi status per komentar (T-219.3) juga tersedia di List.
+- [x] **T-224.4a** Tes komponen; `typecheck`, `lint`, tes hijau.
+- [ ] **T-224.4b** Terang, gelap, 375px diamati di layar sungguhan (sementara hanya harness statis, lihat "Belum terbukti").
 
-**Belum terbukti:** perilaku List dengan volume komentar besar (paginasi atau pengguliran); dicek di T-224.4 dan T-222.
+**Belum terbukti (jalur A, 2026-11-06):** volume besar di List: dimuat satu query tanpa filter `postId` (batas repository 200 komentar terbaru, filter Status/Akun/Platform/Date Range dikirim ke server agar batas menimpa himpunan yang relevan), digulir dalam wadah, dengan catatan "Menampilkan 200 komentar terbaru" bila terpotong; tidak ada paginasi, dan sort "Belum dibalas dulu" hanya berlaku di dalam 200 itu. Tampilan tidak diingat antarsesi (rancangan tidak menyebutnya). Terang/gelap/375px hanya pada harness sementara (komponen `CommentListView`, toggle, dan toolbar asli, data statis, dihapus sebelum commit): gelap desktop, gelap dan terang 375px; terang desktop dan 375px dengan data/login/server action sungguhan tidak diamati, juga hover dan E2E.
 
 **Blocked by:** T-216, T-218, T-219.
 

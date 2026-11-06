@@ -4,6 +4,7 @@ import {
   SocialPlatform,
   asConnectedAccountId,
   asInboxItemId,
+  asPostId,
   asUserId,
 } from "@postific/shared";
 import { revalidatePath } from "next/cache";
@@ -11,12 +12,14 @@ import { redirect } from "next/navigation";
 
 import {
   EngagementService,
+  INBOX_DATE_RANGES,
+  inboxDateRangeStart,
   RefreshInboxUseCase,
   SyncCommentsUseCase,
   type EngagementInboxItemRecord,
   type EngagementReplyRecord,
-  type InboxItemDetail,
   type InboxItemFilter,
+  type InboxDateRange,
   type InboxItemStatus,
   type InboxPostGroup,
   type ListInboxByPostInput,
@@ -104,6 +107,10 @@ export interface ListInboxActionFilter {
   connectedAccountId?: string;
   platform?: string;
   status?: InboxItemStatus;
+  /** T-219: komentar satu posting; `null` = kelompok "Tanpa posting". */
+  postId?: string | null;
+  /** T-219: batasi `receivedAt` (rentang sama dengan daftar posting). */
+  dateRange?: InboxDateRange;
 }
 
 /**
@@ -130,6 +137,10 @@ export async function listInboxAction(
     workspaceRepository,
   );
 
+  if (filter?.dateRange && !INBOX_DATE_RANGES.includes(filter.dateRange)) {
+    return { error: "Rentang tanggal tidak dikenal." };
+  }
+
   try {
     const inboxFilter: InboxItemFilter = {
       workspaceId,
@@ -140,99 +151,14 @@ export async function listInboxAction(
         platform: filter.platform as SocialPlatform,
       }),
       ...(filter?.status && { status: filter.status }),
+      ...(filter?.postId !== undefined && {
+        postId: filter.postId === null ? null : asPostId(filter.postId),
+      }),
+      ...(filter?.dateRange && {
+        receivedSince: inboxDateRangeStart(filter.dateRange, new Date()),
+      }),
     };
     const data = await engagementService.listInbox(inboxFilter, userId);
-    return { data };
-  } catch (error) {
-    return toActionError(error);
-  }
-}
-
-/**
- * Snapshot post asli (T-056, KI-065) siap-render — `mediaIds` domain diganti
- * `thumbnail` tunggal yang sudah di-resolve URL-nya.
- *
- * `thumbnails` (T-111.4, array SELURUH media) ditambahkan DI SAMPING
- * `thumbnail` (dipertahankan, masih dipakai `EngageInboxView.tsx`) untuk
- * kartu "Post asal" bergaya Instagram dengan carousel (T-111.3, LOCKED
- * PATTERN Claude Design `templates/engage-inbox.html` § `.post-context`).
- */
-export interface InboxDetailPostSnapshotDto {
-  caption: string;
-  platformPostUrl: string | null;
-  thumbnail: MediaThumbnailDto | null;
-  thumbnails: MediaThumbnailDto[];
-}
-
-/** `InboxItemDetail` domain + `postSnapshot` yang sudah dipetakan ke bentuk siap-render (T-056). */
-export type InboxItemDetailDto = Omit<InboxItemDetail, "postSnapshot"> & {
-  postSnapshot: InboxDetailPostSnapshotDto | null;
-};
-
-/**
- * Detail satu inbox item + seluruh balasannya (T-053; T-056/KI-065 menambah
- * `postSnapshot` siap-render untuk kotak "Post asal"). Murni wiring —
- * resolve workspace/session, delegasi ke
- * `EngagementService.getInboxItemDetail` untuk data domain, lalu (kalau
- * `postSnapshot.mediaIds` tidak kosong) resolve media PERTAMA (`thumbnail`,
- * `MediaService.resolveFirstThumbnail`) MAUPUN seluruh media (`thumbnails`,
- * `MediaService.resolveThumbnails`, T-111.4 — kartu "Post asal" carousel
- * T-111.3) ke URL tampil — pola sama `getDraftAction`
- * (`draft-editor/actions.ts`): kombinasi dua Application Service lalu
- * dipetakan jadi DTO siap-konsumsi client, BUKAN keputusan bisnis baru
- * (AGENTS.md #5).
- */
-export async function getInboxItemDetailAction(
-  inboxItemId: string,
-): Promise<{ data?: InboxItemDetailDto; error?: string }> {
-  const { workspaceId } = await getWorkspaceContext();
-  const session = await getCachedSession();
-  if (!session) {
-    redirect("/login");
-  }
-  const userId = asUserId(session.user.id);
-
-  const engagementService = new EngagementService(
-    engagementRepository,
-    getOutstandAdapter(),
-    publishingRepository,
-    workspaceRepository,
-  );
-
-  try {
-    const detail = await engagementService.getInboxItemDetail(
-      { workspaceId, inboxItemId: asInboxItemId(inboxItemId) },
-      userId,
-    );
-
-    // `supabaseMediaStorageAdapter` disuplai (bug fix QA T-056, 2026-10-06)
-    // — komentar inbox bisa dilihat lama setelah post dipublish, jadi `url`
-    // yang di-cache dari waktu upload media hampir pasti sudah expired;
-    // `MediaService.resolveFirstThumbnail` meregenerate signed URL baru
-    // dari `storagePath` setiap panggilan supaya thumbnail "Post asal"
-    // selalu valid (shared dengan History Detail, KI-082/KI-083).
-    const mediaService = new MediaService(
-      mediaRepository,
-      supabaseMediaStorageAdapter,
-    );
-    const mediaIds = detail.postSnapshot?.mediaIds ?? [];
-    const thumbnails = await mediaService.resolveThumbnails(
-      { workspaceId, mediaIds },
-      userId,
-    );
-    const thumbnail = thumbnails[0] ?? null;
-
-    const data: InboxItemDetailDto = {
-      ...detail,
-      postSnapshot: detail.postSnapshot
-        ? {
-            caption: detail.postSnapshot.caption,
-            platformPostUrl: detail.postSnapshot.platformPostUrl,
-            thumbnail,
-            thumbnails,
-          }
-        : null,
-    };
     return { data };
   } catch (error) {
     return toActionError(error);
@@ -371,16 +297,6 @@ export async function changeInboxItemStatusAction(
   } catch (error) {
     return toActionError(error);
   }
-}
-
-/**
- * Tandai komentar selesai (T-053): sejak T-217 berarti status `resolved`.
- * Dipertahankan agar `EngageInboxView` tetap berfungsi sampai UI T-219.
- */
-export async function markAsDoneAction(
-  inboxItemId: string,
-): Promise<{ data?: EngagementInboxItemRecord; error?: string }> {
-  return changeInboxItemStatusAction(inboxItemId, "resolved");
 }
 
 /**
