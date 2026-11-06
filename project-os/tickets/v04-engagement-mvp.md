@@ -215,7 +215,7 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 | Field       | Value                                                                                                                   |
 | ----------- | ----------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | 🟡 In Progress                                                                                                          |
+| **Status**  | 🟡 Done (code) 2026-11-06, menunggu Verified (staging)                                                                  |
 | **Mode**    | AFK (migrasi data `done` butuh izin King Rezi sebelum diterapkan ke DB bersama)                                         |
 | **Domain**  | engagement · backend                                                                                                    |
 | **Spec**    | S-006                                                                                                                   |
@@ -227,7 +227,7 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 - [x] **T-217.1** Inventarisasi semua pemakai status `done` dan `unread` (service, repository, `EngageInboxView`, badge sidebar, Engagement Snapshot di Home, dan tool MCP `list_comments` yang memakai filter `status` `"unread"|"done"`, `application-layer.md`) sebelum mengubah apa pun. Hasilnya dicatat di tiket ini.
 - [x] **T-217.2** Tipe dan aturan transisi di domain `engagement` (mis. `unread` → `replied` / `resolved` / `dismissed`; `resolved` dan `dismissed` → `unread`), sesuai jawaban Q2 dan Q3 (`replied` otomatis saat balasan terkirim, status reversibel). Nama method `markAsDone` ditinjau.
 - [x] **T-217.3** `EngagementService.reply` menandai `replied` saat balasan berhasil terkirim bila status `unread`; tidak menurunkan status lain.
-- [ ] **T-217.4** (migrasi ditulis di `apps/web/prisma/migrations/20261106100000_t217_engagement_done_to_resolved/migration.sql`, BELUM diterapkan; menunggu izin King Rezi) Migrasi data baris `done` menjadi `resolved` (jawaban Q1, 2026-11-05). Migrasi ditulis, ditinjau, dan diterapkan ke DB bersama hanya atas izin King Rezi.
+- [x] **T-217.4** (migrasi `apps/web/prisma/migrations/20261106100000_t217_engagement_done_to_resolved/migration.sql` sudah terpasang di DB bersama, terlihat lewat `prisma migrate status` 2026-11-06) Migrasi data baris `done` menjadi `resolved` (jawaban Q1, 2026-11-05). Migrasi ditulis, ditinjau, dan diterapkan ke DB bersama hanya atas izin King Rezi.
 - [x] **T-217.5** Server Action di `engage/actions.ts` hanya memanggil service (aturan keras no. 3). Domain tidak mengimpor Prisma (aturan keras no. 4).
 - [x] **T-217.6** Tes unit (double lokal di berkas tes), `typecheck`, `lint`, tes hijau.
 - [x] **T-217.7** Hitungan badge sidebar dan Engagement Snapshot di Home dibatasi 12 bulan terakhir (keputusan King Rezi 2026-11-06, audit docs-consistency B2), sama dengan Date Range bawaan daftar posting; tes menegaskan komentar `unread` lebih tua dari 12 bulan tidak dihitung.
@@ -247,7 +247,7 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 | Field       | Value                                                                                                   |
 | ----------- | ------------------------------------------------------------------------------------------------------- |
-| **Status**  | 🟡 In Progress                                                                                          |
+| **Status**  | 🟡 Done (code) 2026-11-06, menunggu Verified (staging)                                                  |
 | **Mode**    | AFK                                                                                                     |
 | **Domain**  | engagement · backend                                                                                    |
 | **Spec**    | S-006                                                                                                   |

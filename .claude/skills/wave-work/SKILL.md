@@ -39,9 +39,9 @@ milik King Rezi. Commit dan push hanya atas permintaan King Rezi (`AGENTS.md` at
    - **Spec:** kesesuaian dengan acceptance tiket dan spec.
    Setiap temuan diberi label **pelanggaran keras** atau **pertimbangan**, diperbaiki, lalu dilaporkan per temuan (diperbaiki lewat commit apa, atau tidak dan alasannya). Tes diperiksa dengan daftar anti-pola di template brief.
 5. **Gabungkan jalur ke branch integrasi** satu per satu; setelah tiap penggabungan jalankan `typecheck`, `lint`, dan tes. Di worktree baru jalankan `bun install` dulu agar hook pre-commit jalan; hook tidak dilewati.
-6. **Satu PR integrasi ke `staging`**, squash, dari [`integration-pr-template.md`](integration-pr-template.md) (Summary, Evidence, Merge Danger). Satu PR berarti satu build dan satu deploy.
-7. **Done (code)** per tiket menurut ADR-153; tandai ✅ tanpa menunggu deploy. Butir yang hanya terbukti di staging tetap di "Belum terbukti".
-8. **Verified (staging):** setelah deploy sukses, satu verifikasi gelombang; catat hasil di tiket verifikasi gelombang dan coret butir yang lulus.
+6. **Satu PR integrasi ke `staging`** (setelah langkah 7: status sudah ditulis di branch integrasi), squash, dari [`integration-pr-template.md`](integration-pr-template.md) (Summary, Evidence, Merge Danger). Satu PR berarti satu build dan satu deploy.
+7. **Done (code)** per tiket menurut ADR-153, **ditulis di branch integrasi sebelum PR dibuka** (kerjakan sebelum langkah 6) supaya status ikut di PR dan benar saat merge, tanpa PR status terpisah (addendum ADR-153 2026-11-06); tandai tanpa menunggu deploy. Butir yang hanya terbukti di staging tetap di "Belum terbukti".
+8. **Verified (staging):** setelah deploy sukses, satu verifikasi gelombang; catat hasil di tiket verifikasi gelombang dan coret butir yang lulus. Pembukuannya ikut di PR integrasi gelombang berikutnya, bukan PR tersendiri (addendum ADR-153).
 9. **Bersihkan:** tutup PR jalur dengan komentar yang menunjuk PR integrasi (hanya atas izin King Rezi), hapus worktree jalur.
 10. **Retro** (hanya saran, tanpa mengedit): kandidat perbaikan lingkungan agen per kategori, diurutkan menurut keparahan. Bentuk dan kategori di [`retro.md`](retro.md).
 

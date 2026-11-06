@@ -47,3 +47,11 @@ Gelombang A MCP v0.5 (PR 222 dan PR 227) membuat beberapa tiket menggantung 🟡
 - Tiket gelombang A MCP T-151, T-152, T-154, dan T-180 berpindah ke tangga baru; penutupan Verified lewat T-189. T-155, T-156, dan T-157 menyusul setelah tes E2E golden path-nya hijau di lokal.
 - Tidak ada perubahan di `apps/` atau `packages/`; tidak ada migrasi.
 - Bila ADR ini kelak diubah, T-182, T-183, dan T-190 disesuaikan.
+
+### Addendum 2026-11-06: status ditulis di PR yang sama, tanpa PR khusus status
+
+Usulan King Rezi 2026-11-06 (gelombang 2 S-006): menandai status setelah merge butuh PR tambahan yang tidak efektif. Tangga status di atas tidak berubah; yang berubah urutan kerjanya.
+
+- **Done (code)** ditulis di tiket dan `AVAILABLE_TICKETS.md` di dalam PR integrasi, sebelum PR dibuka, sehingga status menjadi benar tepat saat merge ke `staging`. Tidak ada PR khusus untuk menandai Done (code).
+- **Verified (staging)** dicatat di PR integrasi gelombang berikutnya (atau PR berikutnya yang menyentuh dokumen tiket), bukan PR tersendiri. Selama menunggu, tiket tetap `🟡 Done (code), menunggu Verified (staging)`.
+- Pengecualian: bila tidak ada PR berikutnya dalam waktu dekat, boleh satu PR dokumen kecil untuk Verified (staging).
