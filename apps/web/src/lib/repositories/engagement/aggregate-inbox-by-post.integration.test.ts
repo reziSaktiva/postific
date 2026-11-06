@@ -36,6 +36,7 @@ describe.skipIf(!enabled)("engagement per posting (Postgres, T-218.5)", () => {
   const otherOwner: UserId = asUserId(`${prefix}-other-owner`);
 
   let prisma: typeof prismaClient;
+  let withCurrentUser: typeof import("@/lib/prisma/with-current-user").withCurrentUser;
   let repo: typeof import("./engagement.repository").engagementRepository;
   let wsA: WorkspaceId;
   let wsB: WorkspaceId;
@@ -57,23 +58,28 @@ describe.skipIf(!enabled)("engagement per posting (Postgres, T-218.5)", () => {
     receivedAt: Date;
   }) {
     externalSeq += 1;
-    await prisma.engagementInboxItem.create({
-      data: {
-        workspaceId: options.workspace,
-        connectedAccountId: options.account,
-        platform: options.platform,
-        externalId: `${prefix}-${externalSeq}`,
-        authorHandle: "@tester",
-        content: "komentar uji",
-        status: options.status ?? "unread",
-        postId: options.postId,
-        receivedAt: options.receivedAt,
-      },
-    });
+    // RLS `engagement_inbox_items`: insert lewat konteks pemilik workspace.
+    const actor = options.workspace === wsA ? owner : otherOwner;
+    await withCurrentUser(actor, (tx) =>
+      tx.engagementInboxItem.create({
+        data: {
+          workspaceId: options.workspace,
+          connectedAccountId: options.account,
+          platform: options.platform,
+          externalId: `${prefix}-${externalSeq}`,
+          authorHandle: "@tester",
+          content: "komentar uji",
+          status: options.status ?? "unread",
+          postId: options.postId,
+          receivedAt: options.receivedAt,
+        },
+      }),
+    );
   }
 
   beforeAll(async () => {
     ({ prisma } = await import("@/lib/prisma/client"));
+    ({ withCurrentUser } = await import("@/lib/prisma/with-current-user"));
     ({ engagementRepository: repo } = await import("./engagement.repository"));
 
     const a = await prisma.workspace.create({
@@ -114,27 +120,40 @@ describe.skipIf(!enabled)("engagement per posting (Postgres, T-218.5)", () => {
     const account = (
       workspaceId: string,
       platform: SocialPlatform,
+      actor: UserId,
       key: string,
     ) =>
-      prisma.workspaceConnectedAccount
-        .create({
+      // RLS `workspace_connected_accounts` menolak insert tanpa konteks
+      // pengguna: buat lewat `withCurrentUser` (pola tes integrasi publishing).
+      withCurrentUser(actor, (tx) =>
+        tx.workspaceConnectedAccount.create({
           data: {
             workspaceId,
             platform,
             outstandAccountId: `${prefix}-${key}`,
             handle: `${prefix}-${key}`,
           },
-        })
-        .then((row) => row.id);
-    igId = await account(a.id, SocialPlatform.Instagram, "ig");
-    fbId = await account(a.id, SocialPlatform.Facebook, "fb");
-    foreignId = await account(b.id, SocialPlatform.Instagram, "foreign");
+        }),
+      ).then((row) => row.id);
+    igId = await account(a.id, SocialPlatform.Instagram, owner, "ig");
+    fbId = await account(a.id, SocialPlatform.Facebook, owner, "fb");
+    foreignId = await account(
+      b.id,
+      SocialPlatform.Instagram,
+      otherOwner,
+      "foreign",
+    );
   });
 
   beforeEach(async () => {
-    await prisma.engagementInboxItem.deleteMany({
-      where: { workspaceId: { in: [wsA, wsB] } },
-    });
+    for (const [actor, workspaceId] of [
+      [owner, wsA],
+      [otherOwner, wsB],
+    ] as const) {
+      await withCurrentUser(actor, (tx) =>
+        tx.engagementInboxItem.deleteMany({ where: { workspaceId } }),
+      );
+    }
   });
 
   afterAll(async () => {
