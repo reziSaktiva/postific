@@ -30,6 +30,7 @@ export function PostListPanel({
   selectedKey,
   collapsed,
   showEmptyPosts,
+  showEmptyPostsDisabledReason,
   totalUnread,
   hiddenOnMobile,
   truncated,
@@ -42,6 +43,8 @@ export function PostListPanel({
   selectedKey: string | null;
   collapsed: boolean;
   showEmptyPosts: boolean;
+  /** Bila terisi, toggle nonaktif dan alasan ini tampil di tooltip. */
+  showEmptyPostsDisabledReason?: string;
   totalUnread: number;
   hiddenOnMobile: boolean;
   truncated: boolean;
@@ -99,17 +102,22 @@ export function PostListPanel({
         <span className="flex gap-0.5">
           <Tooltip>
             <TooltipTrigger asChild>
-              <Toggle
-                size="sm"
-                pressed={showEmptyPosts}
-                onPressedChange={onShowEmptyPostsChange}
-                aria-label="Tampilkan semua posting, termasuk yang belum punya komentar"
-              >
-                <HugeiconsIcon icon={Comment01Icon} strokeWidth={2} />
-              </Toggle>
+              {/* Toggle nonaktif tidak memicu tooltip; dibungkus span yang bisa difokus. */}
+              <span className="inline-flex rounded-full" tabIndex={0}>
+                <Toggle
+                  size="sm"
+                  pressed={showEmptyPosts}
+                  disabled={Boolean(showEmptyPostsDisabledReason)}
+                  onPressedChange={onShowEmptyPostsChange}
+                  aria-label="Tampilkan semua posting, termasuk yang belum punya komentar"
+                >
+                  <HugeiconsIcon icon={Comment01Icon} strokeWidth={2} />
+                </Toggle>
+              </span>
             </TooltipTrigger>
             <TooltipContent>
-              Tampilkan semua posting, termasuk tanpa komentar
+              {showEmptyPostsDisabledReason ??
+                "Tampilkan semua posting, termasuk tanpa komentar"}
             </TooltipContent>
           </Tooltip>
           <Tooltip>

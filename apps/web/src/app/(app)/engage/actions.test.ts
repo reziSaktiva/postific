@@ -61,10 +61,8 @@ vi.mock("@/lib/repositories/notification", () => ({
 // repository lain di atas supaya import module ini tidak menyentuh
 // PrismaClient sungguhan (butuh `DATABASE_URL`).
 vi.mock("@/lib/repositories/publishing", () => ({ publishingRepository: {} }));
-// T-056/KI-065 — `getInboxItemDetailAction` sekarang juga merakit
-// `MediaService` untuk resolve thumbnail post asli; di-stub sama seperti
-// repository lain di atas (tidak diuji di file ini, fokus tetap
-// `refreshInboxAction`).
+// `listInboxByPostAction` merakit `MediaService` untuk thumbnail posting;
+// repository media di-stub sama seperti repository lain di atas.
 vi.mock("@/lib/repositories/media", () => ({ mediaRepository: {} }));
 vi.mock("@/lib/adapters/outstand", () => ({
   getOutstandAdapter: () => ({}),

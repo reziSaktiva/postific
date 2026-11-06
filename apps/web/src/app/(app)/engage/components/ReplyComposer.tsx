@@ -79,7 +79,9 @@ export function ReplyComposer({
               </Button>
             </>
           ) : justSent ? (
-            <span className="text-success">Balasan terkirim.</span>
+            <span className="text-success">
+              Balasan terkirim. Komentar ditandai Dibalas.
+            </span>
           ) : (
             <span>Pilih Reply pada sebuah komentar untuk membalas.</span>
           )}

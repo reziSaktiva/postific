@@ -85,8 +85,8 @@ export default async function Page({
 
   // Thumbnail media post asli (KI-082) — media PERTAMA saja, satu per post
   // (ADR-107, bukan per target row). Resolve lewat
-  // `MediaService.resolveFirstThumbnail` (shared dengan
-  // `getInboxItemDetailAction`, T-056, `engage/actions.ts`): kombinasi dua
+  // `MediaService.resolveFirstThumbnail` (dulu juga dipakai
+  // detail komentar Engage, T-056, dihapus T-219): kombinasi dua
   // Application Service lalu dipetakan jadi DTO siap-render, bukan
   // keputusan bisnis baru (AGENTS.md #5). `supabaseMediaStorageAdapter`
   // diteruskan supaya `url` diregenerasi (signed URL) setiap request, bukan

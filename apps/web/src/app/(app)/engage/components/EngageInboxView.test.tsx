@@ -135,6 +135,9 @@ function renderView(
   );
 }
 
+const cardOf = (caption: string) =>
+  screen.getAllByText(caption)[0].closest('[data-slot="card"]') as HTMLElement;
+
 const rowOf = (handle: string) =>
   screen.getAllByText(handle)[0].closest("[data-status]") as HTMLElement;
 
@@ -256,6 +259,9 @@ describe("EngageInboxView per posting (T-219)", () => {
     expect(mocks.replyToCommentAction).toHaveBeenCalledWith("c1", "Halo Maya");
     expect(within(rowOf("@maya")).getByText("Dibalas")).toBeTruthy();
     expect(mocks.toast).toHaveBeenCalledWith("Balasan terkirim");
+    expect(
+      screen.getByText("Balasan terkirim. Komentar ditandai Dibalas."),
+    ).toBeTruthy();
   });
 
   it("kelompok Tanpa posting: komposer dan Reply nonaktif dengan pesan, Resolve tetap ada", async () => {
@@ -362,17 +368,204 @@ describe("EngageInboxView per posting (T-219)", () => {
     );
   });
 
-  it("kosong tanpa filter: ajakan Buka Publish; dengan filter aktif: Reset filters", async () => {
+  it("kosong tanpa filter: ajakan Buka Publish dan akses ke posting tanpa komentar", async () => {
     renderView({ initialGroups: [] });
     expect(screen.getByText("Belum ada interaksi")).toBeTruthy();
     expect(screen.getByRole("link", { name: "Buka Publish" })).toBeTruthy();
+
+    mocks.listInboxByPostAction.mockResolvedValue({ data: [] });
+    await act(async () =>
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: "Tampilkan posting tanpa komentar",
+        }),
+      ),
+    );
+    expect(mocks.listInboxByPostAction).toHaveBeenLastCalledWith(
+      expect.objectContaining({ includeEmpty: true }),
+    );
   });
 
-  it("memuat awal gagal menampilkan state refresh gagal, bukan kosong palsu", () => {
+  it("filter aktif tanpa hasil: pesan filter dan Reset filters memulihkan bawaan", async () => {
+    renderView({ initialGroups: [] });
+    mocks.listInboxByPostAction.mockResolvedValue({ data: [] });
+    fireEvent.click(screen.getByRole("button", { name: /Filter dan urutan/ }));
+    await act(async () =>
+      fireEvent.click(screen.getByRole("radio", { name: "Terbaru" })),
+    );
+    expect(
+      screen.getByText("Tidak ada interaksi untuk filter ini"),
+    ).toBeTruthy();
+    expect(screen.queryByText("Belum ada interaksi")).toBeNull();
+
+    await act(async () =>
+      fireEvent.click(
+        screen.getAllByRole("button", { name: "Reset filters" })[0],
+      ),
+    );
+    expect(mocks.listInboxByPostAction).toHaveBeenLastCalledWith(
+      expect.objectContaining({ sort: "unreplied_first", dateRange: "12m" }),
+    );
+    expect(screen.getByText("Belum ada interaksi")).toBeTruthy();
+  });
+
+  it("memuat awal gagal hanya menampilkan Alert, bukan Belum ada interaksi", () => {
     renderView({ initialGroups: [], initialLoadFailed: true });
     expect(
       screen.getByText("Komentar terbaru belum dapat diambil"),
     ).toBeTruthy();
+    expect(screen.queryByText("Belum ada interaksi")).toBeNull();
+    expect(
+      screen.queryByText("Tidak ada interaksi untuk filter ini"),
+    ).toBeNull();
+  });
+
+  it("toggle posting tanpa komentar nonaktif dengan alasan saat filter Status aktif", async () => {
+    renderView();
+    await screen.findByText("@maya");
+    const toggle = () =>
+      screen.getByRole("button", {
+        name: /Tampilkan semua posting, termasuk yang belum punya komentar/,
+      }) as HTMLButtonElement;
+    expect(toggle().disabled).toBe(false);
+
+    fireEvent.keyDown(screen.getByLabelText("Filter status komentar"), {
+      key: "ArrowDown",
+    });
+    await act(async () =>
+      fireEvent.click(screen.getByRole("option", { name: "Selesai" })),
+    );
+    expect(toggle().disabled).toBe(true);
+  });
+
+  it("balasan yang gagal terkirim mempertahankan draf dan komposer", async () => {
+    mocks.replyToCommentAction.mockResolvedValue({ error: "Gagal kirim." });
+    renderView();
+    await screen.findByText("@maya");
+    fireEvent.click(
+      within(rowOf("@maya")).getByRole("button", { name: "Reply" }),
+    );
+    fireEvent.change(screen.getByLabelText("Balasan"), {
+      target: { value: "Draf penting" },
+    });
+    await act(async () =>
+      fireEvent.click(screen.getByRole("button", { name: "Kirim" })),
+    );
+    expect(mocks.toast.error).toHaveBeenCalledWith("Gagal kirim.");
+    expect(
+      (screen.getByLabelText("Balasan") as HTMLTextAreaElement).value,
+    ).toBe("Draf penting");
+    expect(within(rowOf("@maya")).getByText("Belum dibalas")).toBeTruthy();
+  });
+
+  it("Resolve yang gagal mengembalikan hitungan kartu dan tidak membuang draf", async () => {
+    let fail: (v: object) => void = () => {};
+    mocks.changeInboxItemStatusAction.mockReturnValue(
+      new Promise((resolve) => (fail = resolve)),
+    );
+    renderView();
+    await screen.findByText("@maya");
+    fireEvent.click(
+      within(rowOf("@maya")).getByRole("button", { name: "Reply" }),
+    );
+    fireEvent.change(screen.getByLabelText("Balasan"), {
+      target: { value: "Draf" },
+    });
+
+    fireEvent.click(
+      within(rowOf("@maya")).getByRole("button", { name: "Dismiss" }),
+    );
+    // Optimistis: satu-satunya komentar belum dibalas posting ini ditangani.
+    expect(
+      within(cardOf("Kopi susu gula aren")).getByLabelText(
+        "Semua komentar sudah ditangani",
+      ),
+    ).toBeTruthy();
+
+    await act(async () => fail({ error: "Ditolak." }));
+    expect(
+      within(cardOf("Kopi susu gula aren")).getByLabelText("1 belum dibalas"),
+    ).toBeTruthy();
+    expect(within(rowOf("@maya")).getByText("Belum dibalas")).toBeTruthy();
+    expect(
+      (screen.getByLabelText("Balasan") as HTMLTextAreaElement).value,
+    ).toBe("Draf");
+  });
+
+  it("Resolve yang berhasil pada komentar yang sedang dibalas menutup komposer", async () => {
+    renderView();
+    await screen.findByText("@maya");
+    fireEvent.click(
+      within(rowOf("@maya")).getByRole("button", { name: "Reply" }),
+    );
+    fireEvent.change(screen.getByLabelText("Balasan"), {
+      target: { value: "Draf" },
+    });
+    await act(async () =>
+      fireEvent.click(
+        within(rowOf("@maya")).getByRole("button", { name: "Resolve" }),
+      ),
+    );
+    expect(
+      (screen.getByLabelText("Balasan") as HTMLTextAreaElement).value,
+    ).toBe("");
+  });
+
+  it("rollback tidak menghitung ganda bila daftar posting diganti fetch lain saat menunggu", async () => {
+    let fail: (v: object) => void = () => {};
+    mocks.changeInboxItemStatusAction.mockReturnValue(
+      new Promise((resolve) => (fail = resolve)),
+    );
+    renderView();
+    await screen.findByText("@maya");
+    fireEvent.click(
+      within(rowOf("@maya")).getByRole("button", { name: "Dismiss" }),
+    );
+
+    // Refresh membawa hitungan server (belum memuat perubahan): unread = 1.
+    await act(async () =>
+      fireEvent.click(screen.getByRole("button", { name: /Refresh/ })),
+    );
+    expect(
+      within(cardOf("Kopi susu gula aren")).getByLabelText("1 belum dibalas"),
+    ).toBeTruthy();
+
+    await act(async () => fail({ error: "Ditolak." }));
+    expect(
+      within(cardOf("Kopi susu gula aren")).getByLabelText("1 belum dibalas"),
+    ).toBeTruthy();
+    expect(screen.queryByLabelText("2 belum dibalas")).toBeNull();
+  });
+
+  it("Refresh yang selesai setelah filter berubah tidak menimpa daftar dengan filter lama", async () => {
+    let finishRefresh: (v: object) => void = () => {};
+    mocks.refreshInboxAction.mockReturnValue(
+      new Promise((resolve) => (finishRefresh = resolve)),
+    );
+    mocks.listInboxByPostAction.mockImplementation(
+      async (input: { sort?: string }) => ({
+        data: input.sort === "newest" ? [GROUPS[1]] : GROUPS,
+      }),
+    );
+    renderView();
+    await screen.findByText("@maya");
+
+    fireEvent.click(screen.getByRole("button", { name: /Refresh/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Filter dan urutan/ }));
+    await act(async () =>
+      fireEvent.click(screen.getByRole("radio", { name: "Terbaru" })),
+    );
+    await waitFor(() =>
+      expect(screen.queryAllByText("Kopi susu gula aren")).toHaveLength(0),
+    );
+
+    // Refresh memanggil ulang daftar dengan filter lama (bawaan); hasilnya dibuang.
+    await act(async () => finishRefresh({ newCommentsCount: 0 }));
+    expect(mocks.listInboxByPostAction).toHaveBeenLastCalledWith(
+      expect.objectContaining({ sort: "unreplied_first" }),
+    );
+    expect(screen.queryAllByText("Kopi susu gula aren")).toHaveLength(0);
+    expect(screen.getAllByText("Latte art 60 detik").length).toBeGreaterThan(0);
   });
 
   describe("tampilan List (T-224)", () => {
@@ -505,12 +698,66 @@ describe("EngageInboxView per posting (T-219)", () => {
       ).toBeTruthy();
     });
 
-    it("kosong di List dengan filter aktif menawarkan Reset filters", async () => {
+    it("kosong di List: tanpa filter Belum ada interaksi; filter aktif menawarkan Reset filters", async () => {
       renderView();
       await screen.findByText("@maya");
-      mocks.listInboxAction.mockResolvedValue({ data: [] });
+      mocks.listInboxAction.mockImplementation(
+        async (f: { postId?: string | null; dateRange?: string }) => ({
+          data:
+            f.postId === undefined
+              ? f.dateRange === "7d"
+                ? []
+                : Object.values(COMMENTS).flat()
+              : (COMMENTS[f.postId ?? "none"] ?? []),
+        }),
+      );
       fireEvent.click(screen.getByRole("radio", { name: "List" }));
-      expect(await screen.findByText("Belum ada interaksi")).toBeTruthy();
+      await screen.findByText("@bayu");
+
+      fireEvent.click(
+        screen.getByRole("button", { name: /Filter dan urutan/ }),
+      );
+      await act(async () =>
+        fireEvent.click(screen.getByRole("radio", { name: "7 hari terakhir" })),
+      );
+      expect(
+        await screen.findByText("Tidak ada interaksi untuk filter ini"),
+      ).toBeTruthy();
+      expect(screen.queryByText("Belum ada interaksi")).toBeNull();
+
+      await act(async () =>
+        fireEvent.click(
+          screen.getAllByRole("button", { name: "Reset filters" })[0],
+        ),
+      );
+      expect(await screen.findByText("@bayu")).toBeTruthy();
+    });
+
+    it("komentar dari posting di luar daftar tidak membuka posting lain dan ada catatan 100 posting", async () => {
+      mocks.listInboxAction.mockImplementation(
+        async (f: { postId?: string | null }) => ({
+          data:
+            f.postId === undefined
+              ? [comment("c9", "@jauh", "unread", "p9", 2)]
+              : (COMMENTS[f.postId ?? "none"] ?? []),
+        }),
+      );
+      renderView({ initialTruncated: true });
+      await screen.findByText("@maya");
+      fireEvent.click(screen.getByRole("radio", { name: "List" }));
+      await screen.findByText("@jauh");
+
+      expect(
+        screen.getByText(
+          /Posting tidak ada di daftar \(hanya 100 posting terbaru\)/,
+        ),
+      ).toBeTruthy();
+      expect(
+        screen.getByText(/Hanya 100 posting terbaru yang bisa dibuka/),
+      ).toBeTruthy();
+      expect(
+        within(rowOf("@jauh")).queryByRole("button", { name: /Pada posting/ }),
+      ).toBeNull();
     });
   });
 });

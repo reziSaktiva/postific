@@ -121,8 +121,12 @@ describe("EngageToolbar (T-220)", () => {
     expect(base.onReset).toHaveBeenCalled();
   });
 
-  it("menyediakan titik pasang toggle tampilan di sisi kiri", () => {
+  it("menaruh slot toggle tampilan sebelum filter Akun (sisi kiri)", () => {
     renderToolbar({ viewToggleSlot: <span>slot-toggle</span> });
-    expect(screen.getByText("slot-toggle")).toBeTruthy();
+    const slot = screen.getByText("slot-toggle");
+    const account = screen.getByLabelText("Filter akun atau channel");
+    expect(
+      slot.compareDocumentPosition(account) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 });

@@ -40,17 +40,17 @@ const STATUS_TOAST: Record<InboxItemStatus, string> = {
 export interface UseEngageInboxArgs {
   initialGroups: InboxPostGroupDto[];
   initialTruncated: boolean;
-  /** Muat awal daftar posting gagal: tampilkan state refresh gagal, bukan "kosong". */
+  /** Muat awal daftar posting gagal: tampilkan Alert gagal, bukan state "kosong". */
   initialLoadFailed: boolean;
 }
 
 /**
- * State dan efek tampilan Engage per posting (T-219). Dipisah dari
- * `EngageInboxView` (T-219.1) tanpa mengubah pola sebelumnya: tanpa Supabase
- * Realtime (ADR-023), data diambil lewat Server Action saat filter berubah,
- * Refresh diklik, atau posting dipilih. Filter Akun/Platform/Status tetap
- * seperti sebelumnya (diganti T-220); struktur ini hanya menyediakan
- * `listInboxByPostAction` dengan masukan yang dibangun dari filter itu.
+ * State dan efek Engage (T-219, T-220, T-224). Dipisah dari
+ * `EngageInboxView` (T-219.1). Tanpa Supabase Realtime (ADR-023): data
+ * diambil lewat Server Action saat filter berubah, tampilan List dibuka,
+ * posting dipilih, atau Refresh diklik. Pengambilan daftar posting memakai
+ * penjaga versi filter (`filterVersionRef`): hasil Refresh yang dimulai dengan
+ * filter lama dibuang bila filter berubah selama Refresh berjalan.
  */
 export function useEngageInbox({
   initialGroups,
@@ -95,6 +95,12 @@ export function useEngageInbox({
   const [isSending, setIsSending] = useState(false);
   const [justSent, setJustSent] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
+  // Naik setiap filter yang memengaruhi daftar posting berubah: Refresh yang
+  // dimulai dengan filter lama membuang hasilnya.
+  const filterVersionRef = useRef(0);
+  // Naik setiap daftar posting diganti hasil fetch: rollback hitungan kartu
+  // dilewati bila daftar sudah diganti (hitungan server sudah masuk).
+  const groupsEpochRef = useRef(0);
   const justSentTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const accountId =
@@ -130,6 +136,7 @@ export function useEngageInbox({
       return;
     }
     let cancelled = false;
+    filterVersionRef.current += 1;
     void (async () => {
       setIsLoadingList(true);
       const result = await fetchGroups();
@@ -137,6 +144,7 @@ export function useEngageInbox({
       if (result.error) {
         toast.error(result.error);
       } else {
+        groupsEpochRef.current += 1;
         setGroups(result.data ?? []);
         setTruncated(result.truncated ?? false);
       }
@@ -215,6 +223,7 @@ export function useEngageInbox({
   }, [view, accountId, platform, status, dateRange, commentsTick]);
 
   const handleRefresh = useCallback(async () => {
+    const filterVersion = filterVersionRef.current;
     setIsRefreshing(true);
     const refreshResult = await refreshInboxAction();
     if (refreshResult.error) {
@@ -225,12 +234,19 @@ export function useEngageInbox({
     setRefreshFailed(false);
 
     const listResult = await fetchGroups();
-    if (listResult.error) {
-      toast.error(listResult.error);
-    } else {
-      setGroups(listResult.data ?? []);
-      setTruncated(listResult.truncated ?? false);
-      setCommentsTick((tick) => tick + 1);
+    // Filter berubah selama Refresh berjalan (termasuk selama aksi refresh di
+    // server): hasil ini dibuat dengan filter lama, jadi tidak boleh menimpa
+    // daftar. Fetch milik filter baru sudah berjalan sendiri.
+    if (filterVersion === filterVersionRef.current) {
+      if (listResult.error) {
+        toast.error(listResult.error);
+      } else {
+        groupsEpochRef.current += 1;
+        setGroups(listResult.data ?? []);
+        setTruncated(listResult.truncated ?? false);
+        setCommentsTick((tick) => tick + 1);
+      }
+      setIsLoadingList(false);
     }
     setLastUpdatedAt(new Date());
     setIsRefreshing(false);
@@ -248,24 +264,15 @@ export function useEngageInbox({
       comment: EngagementInboxItemRecord,
       from: InboxItemStatus,
       to: InboxItemStatus,
+      { adjustGroup = true }: { adjustGroup?: boolean } = {},
     ) => {
+      const apply = (item: EngagementInboxItemRecord) =>
+        item.id === comment.id ? { ...item, status: to } : item;
       setComments((prev) =>
-        prev
-          ? {
-              ...prev,
-              items: prev.items.map((item) =>
-                item.id === comment.id ? { ...item, status: to } : item,
-              ),
-            }
-          : prev,
+        prev ? { ...prev, items: prev.items.map(apply) } : prev,
       );
-      setFlat((prev) =>
-        prev
-          ? prev.map((item) =>
-              item.id === comment.id ? { ...item, status: to } : item,
-            )
-          : prev,
-      );
+      setFlat((prev) => (prev ? prev.map(apply) : prev));
+      if (!adjustGroup) return;
       const key = comment.postId ?? NO_POST_KEY;
       setGroups((prev) =>
         prev.map((group) =>
@@ -276,28 +283,44 @@ export function useEngageInbox({
     [],
   );
 
-  /** Resolve, Dismiss, atau Buka kembali: pembaruan optimistis, kembali bila server menolak. */
+  // Sinkron dengan state agar callback async (setelah `await`) membaca
+  // target balasan terbaru, bukan nilai saat klik.
+  const replyTargetIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    replyTargetIdRef.current = replyTargetId;
+  }, [replyTargetId]);
+
+  /**
+   * Resolve, Dismiss, atau Buka kembali: pembaruan optimistis. Bila server
+   * menolak, status komentar dikembalikan; hitungan kartu hanya dikembalikan
+   * bila daftar posting belum diganti fetch lain sejak patch (epoch sama),
+   * karena fetch yang masuk sudah membawa hitungan server dan pembalikan
+   * kedua akan menghitung ganda. Draf balasan baru dibuang setelah server sukses.
+   */
   const changeStatus = useCallback(
     async (comment: EngagementInboxItemRecord, to: InboxItemStatus) => {
       const from = comment.status;
       if (from === to) return;
+      const epochAtPatch = groupsEpochRef.current;
       patchStatus(comment, from, to);
+      const result = await changeInboxItemStatusAction(comment.id, to);
+      if (result.error) {
+        patchStatus(comment, to, from, {
+          adjustGroup: groupsEpochRef.current === epochAtPatch,
+        });
+        toast.error(result.error);
+        return;
+      }
       if (
-        replyTargetId === comment.id &&
+        replyTargetIdRef.current === comment.id &&
         (to === "resolved" || to === "dismissed")
       ) {
         setReplyTargetId(null);
         setDraft("");
       }
-      const result = await changeInboxItemStatusAction(comment.id, to);
-      if (result.error) {
-        patchStatus(comment, to, from);
-        toast.error(result.error);
-        return;
-      }
       toast(STATUS_TOAST[to]);
     },
-    [patchStatus, replyTargetId],
+    [patchStatus],
   );
 
   const replyTarget =
@@ -312,13 +335,20 @@ export function useEngageInbox({
   }, []);
 
   /** Dari baris konteks tampilan List: buka posting itu di By post (KSP-06-F09). */
-  const openPostFromList = useCallback((comment: EngagementInboxItemRecord) => {
-    setViewState("post");
-    setSelectedKey(comment.postId ?? NO_POST_KEY);
-    setMobileView("detail");
-    setReplyTargetId(null);
-    setDraft("");
-  }, []);
+  const openPostFromList = useCallback(
+    (comment: EngagementInboxItemRecord) => {
+      const key = comment.postId ?? NO_POST_KEY;
+      // Posting di luar daftar (mis. lewat batas 100 posting): jangan membuka
+      // posting lain lewat fallback pilihan efektif.
+      if (!groups.some((group) => groupKey(group) === key)) return;
+      setViewState("post");
+      setSelectedKey(key);
+      setMobileView("detail");
+      setReplyTargetId(null);
+      setDraft("");
+    },
+    [groups],
+  );
 
   const startReply = useCallback((comment: EngagementInboxItemRecord) => {
     setReplyTargetId(comment.id);

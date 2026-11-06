@@ -62,14 +62,12 @@ export interface EngageInboxViewProps {
 }
 
 /**
- * Engage per posting (T-219, ADR-157, KSP-06): dua panel, daftar posting di
- * kiri dan komentar posting terpilih di kanan, sesuai kartu Postific
- * `ScreenEngagePerPosting` (T-216, dikonfirmasi King Rezi). State dan efek ada
- * di `useEngageInbox`; berkas ini hanya menyusun tata letak.
- *
- * Belum di tiket ini: filter utama dan panel Filter & Sort (T-220) serta
- * tampilan List (T-224). Filter Akun/Platform/Status lama dipertahankan
- * di baris filter sampai T-220 menggantinya.
+ * Engage (T-219, T-220, T-224; ADR-157, KSP-06) sesuai kartu Postific
+ * `ScreenEngagePerPosting` (T-216, dikonfirmasi King Rezi): toolbar (toggle
+ * By post / List, Akun, Status, panel Filter & Sort), lalu tampilan By post
+ * (daftar posting di kiri, komentar posting terpilih di kanan) atau List
+ * (daftar datar). State dan efek ada di `useEngageInbox`; berkas ini hanya
+ * menyusun tata letak dan state kosong/gagal.
  */
 export function EngageInboxView({
   initialGroups,
@@ -104,6 +102,12 @@ export function EngageInboxView({
     : inbox.groups.length === 0 &&
       !inbox.showEmptyPosts &&
       !inbox.isLoadingList;
+  // Muat awal (atau Refresh) gagal tanpa data apa pun: hanya Alert gagal yang
+  // tampil; "Belum ada interaksi" akan menyesatkan.
+  const loadFailedEmpty =
+    inbox.refreshFailed &&
+    (isList ? (inbox.flat?.length ?? 0) === 0 : inbox.groups.length === 0);
+  const statusFilterActive = inbox.statusFilter !== ALL_FILTER_VALUE;
   const updatedAt = formatUpdatedAtLabel(inbox.lastUpdatedAt, timeZone);
 
   return (
@@ -182,7 +186,7 @@ export function EngageInboxView({
         }
       />
 
-      {isEmpty ? (
+      {loadFailedEmpty ? null : isEmpty ? (
         <div className="flex min-h-0 flex-1 items-center justify-center rounded-xl border border-border bg-card p-4">
           <Empty>
             <EmptyHeader>
@@ -214,6 +218,15 @@ export function EngageInboxView({
                   <Link href="/publish">Buka Publish</Link>
                 </Button>
               )}
+              {!isList && !statusFilterActive ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => inbox.setShowEmptyPosts(true)}
+                >
+                  Tampilkan posting tanpa komentar
+                </Button>
+              ) : null}
             </EmptyContent>
           </Empty>
         </div>
@@ -222,6 +235,7 @@ export function EngageInboxView({
           comments={inbox.flat}
           isLoading={inbox.isLoadingFlat}
           groups={inbox.groups}
+          groupsTruncated={inbox.truncated}
           statusFilter={statusValue}
           sort={inbox.sort}
           dateRange={inbox.dateRange}
@@ -252,6 +266,11 @@ export function EngageInboxView({
             selectedKey={inbox.effectiveKey}
             collapsed={inbox.collapsed}
             showEmptyPosts={inbox.showEmptyPosts}
+            showEmptyPostsDisabledReason={
+              statusFilterActive
+                ? "Tidak berlaku saat filter Status aktif: posting tanpa komentar tidak punya status."
+                : undefined
+            }
             totalUnread={totalUnread}
             hiddenOnMobile={inDetail}
             truncated={inbox.truncated}

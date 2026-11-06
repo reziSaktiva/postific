@@ -1,4 +1,5 @@
 /* eslint-disable no-restricted-syntax -- T-220: dikomposisi Tailwind langsung di atas shadcn/ui (ADR-097); layout-only, mengikuti kartu Postific ScreenEngagePerPosting */
+import { useId } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { FilterHorizontalIcon } from "@hugeicons/core-free-icons";
 
@@ -17,6 +18,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Field,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from "@/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
@@ -53,9 +60,24 @@ export interface EngageToolbarProps {
   onDateRangeChange: (value: InboxDateRange) => void;
   hasActiveFilter: boolean;
   onReset: () => void;
-  /** Titik pasang toggle By post / List (T-224); kosong sampai tiket itu. */
+  /** Titik pasang toggle By post / List (T-224): diisi `EngageViewToggle`. */
   viewToggleSlot?: React.ReactNode;
   className?: string;
+}
+
+function RadioOption({ value, label }: { value: string; label: string }) {
+  const id = useId();
+  return (
+    <Field
+      orientation="horizontal"
+      className="items-center gap-2 rounded-lg px-1 py-1.5 hover:bg-muted"
+    >
+      <RadioGroupItem value={value} id={id} />
+      <FieldLabel htmlFor={id} className="flex-1 cursor-pointer font-normal">
+        {label}
+      </FieldLabel>
+    </Field>
+  );
 }
 
 /**
@@ -82,6 +104,7 @@ export function EngageToolbar({
   viewToggleSlot,
   className,
 }: EngageToolbarProps) {
+  const platformId = useId();
   const activeAccount = accounts.find((a) => a.id === accountFilter);
   const panelCount = countPanelFilters({
     sort,
@@ -166,58 +189,59 @@ export function EngageToolbar({
           </PopoverTrigger>
           <PopoverContent align="end" className="w-72">
             <div className="flex flex-col gap-2.5">
-              <fieldset className="flex flex-col gap-1">
-                <legend className="mb-1 text-xs font-semibold text-muted-foreground">
+              <FieldSet className="gap-1">
+                <FieldLegend
+                  variant="label"
+                  className="mb-1 text-xs text-muted-foreground"
+                >
                   Sort By
-                </legend>
+                </FieldLegend>
                 <RadioGroup
                   value={sort}
                   onValueChange={(v) => onSortChange(v as InboxPostSort)}
                   className="gap-0"
                 >
                   {SORT_OPTIONS.map((option) => (
-                    <label
+                    <RadioOption
                       key={option.value}
-                      className="flex cursor-pointer items-center gap-2 rounded-lg px-1 py-1.5 text-sm hover:bg-muted"
-                    >
-                      <RadioGroupItem value={option.value} />
-                      {option.label}
-                    </label>
+                      value={option.value}
+                      label={option.label}
+                    />
                   ))}
                 </RadioGroup>
-              </fieldset>
+              </FieldSet>
               <Separator />
-              <fieldset className="flex flex-col gap-1">
-                <legend className="mb-1 text-xs font-semibold text-muted-foreground">
+              <FieldSet className="gap-1">
+                <FieldLegend
+                  variant="label"
+                  className="mb-1 text-xs text-muted-foreground"
+                >
                   Date Range
-                </legend>
+                </FieldLegend>
                 <RadioGroup
                   value={dateRange}
                   onValueChange={(v) => onDateRangeChange(v as InboxDateRange)}
                   className="gap-0"
                 >
                   {DATE_RANGE_OPTIONS.map((option) => (
-                    <label
+                    <RadioOption
                       key={option.value}
-                      className="flex cursor-pointer items-center gap-2 rounded-lg px-1 py-1.5 text-sm hover:bg-muted"
-                    >
-                      <RadioGroupItem value={option.value} />
-                      {option.label}
-                    </label>
+                      value={option.value}
+                      label={option.label}
+                    />
                   ))}
                 </RadioGroup>
-              </fieldset>
+              </FieldSet>
               <Separator />
-              <div className="flex flex-col gap-1">
-                <h4 className="mb-1 text-xs font-semibold text-muted-foreground">
+              <Field className="gap-1">
+                <FieldLabel
+                  htmlFor={platformId}
+                  className="text-xs text-muted-foreground"
+                >
                   Platform
-                </h4>
+                </FieldLabel>
                 <Select value={platformFilter} onValueChange={onPlatformChange}>
-                  <SelectTrigger
-                    size="sm"
-                    className="w-full"
-                    aria-label="Filter platform"
-                  >
+                  <SelectTrigger id={platformId} size="sm" className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -231,7 +255,7 @@ export function EngageToolbar({
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
+              </Field>
               <Button
                 type="button"
                 variant="ghost"

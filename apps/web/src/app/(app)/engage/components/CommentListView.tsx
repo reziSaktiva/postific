@@ -5,8 +5,8 @@ import type {
   InboxItemStatus,
   InboxPostSort,
 } from "@/domains/engagement";
-import { cn } from "@/lib/utils";
 
+import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 
 import type { InboxPostGroupDto } from "../actions";
@@ -32,6 +32,7 @@ export function CommentListView({
   comments,
   isLoading,
   groups,
+  groupsTruncated,
   statusFilter,
   sort,
   dateRange,
@@ -50,6 +51,8 @@ export function CommentListView({
   comments: EngagementInboxItemRecord[] | null;
   isLoading: boolean;
   groups: InboxPostGroupDto[];
+  /** Daftar posting terpotong di 100 teratas: sebagian komentar tidak bisa dibuka posting-nya. */
+  groupsTruncated: boolean;
   statusFilter: InboxItemStatus | "all";
   sort: InboxPostSort;
   dateRange: InboxDateRange;
@@ -107,21 +110,27 @@ export function CommentListView({
                   onReply={() => onReply(comment)}
                   onChangeStatus={(status) => onChangeStatus(comment, status)}
                   context={
-                    <button
-                      type="button"
-                      onClick={() => onOpenPost(comment)}
-                      className={cn(
-                        "inline-flex max-w-full items-center gap-1.5 self-start rounded text-left text-xs text-muted-foreground outline-none",
-                        "hover:text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring",
-                      )}
-                    >
-                      <PlatformGlyph platform={comment.platform} size={11} />
-                      <span className="min-w-0 truncate">
-                        {comment.postId === null
-                          ? "Tanpa posting"
-                          : `Pada posting: ${caption || "(Tanpa caption)"}`}
+                    comment.postId !== null && !group ? (
+                      <span className="inline-flex items-center gap-1.5 self-start text-xs text-muted-foreground">
+                        <PlatformGlyph platform={comment.platform} size={11} />
+                        Posting tidak ada di daftar (hanya 100 posting terbaru)
                       </span>
-                    </button>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="link"
+                        size="xs"
+                        onClick={() => onOpenPost(comment)}
+                        className="h-auto max-w-full justify-start gap-1.5 p-0 text-xs font-normal text-muted-foreground hover:text-foreground"
+                      >
+                        <PlatformGlyph platform={comment.platform} size={11} />
+                        <span className="min-w-0 truncate">
+                          {comment.postId === null
+                            ? "Tanpa posting"
+                            : `Pada posting: ${caption || "(Tanpa caption)"}`}
+                        </span>
+                      </Button>
+                    )
                   }
                   inline={
                     replyTarget?.id === comment.id ? (
@@ -141,6 +150,12 @@ export function CommentListView({
                 />
               );
             })}
+            {groupsTruncated ? (
+              <p className="border-t border-border p-3 text-xs text-muted-foreground">
+                Hanya 100 posting terbaru yang bisa dibuka dari daftar ini.
+                Persempit filter untuk membuka posting lain.
+              </p>
+            ) : null}
             {truncated ? (
               <p className="border-t border-border p-3 text-xs text-muted-foreground">
                 Menampilkan {LIST_VIEW_FETCH_LIMIT} komentar terbaru. Persempit
