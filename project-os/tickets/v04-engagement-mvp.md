@@ -500,7 +500,7 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 | Field       | Value                                                                                                                          |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| **Status**  | 🟡 In Progress (kode, tes unit/komponen, typecheck, lint hijau; E2E dan amatan visual belum)                                   |
+| **Status**  | 🟡 Done (code) 2026-11-06 (branch `feature/s006-engage-thumbnail-posting-impor`), menunggu Verified (staging)                  |
 | **Mode**    | AFK                                                                                                                            |
 | **Domain**  | engagement · UI (UI/UX-related)                                                                                                |
 | **Spec**    | S-006                                                                                                                          |
@@ -528,9 +528,9 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 - [x] **T-227.1** Snapshot posting Engage (service/action, `InboxPostSnapshot` / `InboxPostGroupSnapshotDto`) memakai `platformOptions.mediaUrls[0]` sebagai cadangan bila `mediaIds` kosong. Tanpa mengubah kontrak domain tanpa alasan. Patuhi AGENTS.md no. 3-5: entry point tanpa business logic, domain tanpa Prisma, cross-domain lewat public API module.
 - [~] **T-227.2** (gugur, lihat keputusan gate) `PostCard` menampilkan ikon gambar (`PostThumb` tanpa thumbnail) untuk posting tanpa media.
 - [x] **T-227.3** Kegagalan memuat gambar eksternal (URL kedaluwarsa) jatuh ke placeholder, tanpa merusak tata letak.
-- [ ] **T-227.4** (tes unit/komponen, typecheck, lint hijau; E2E dan amatan terang/gelap/375px belum) Tes unit/komponen; E2E Engage (`apps/web/e2e/engage-per-post.e2e.ts`, ADR-149) diperluas bila perlu; `typecheck`, `lint`, tes hijau; amati terang, gelap, dan 375px.
+- [x] **T-227.4** Tes unit/komponen (PostThumb, snapshot-thumbnail, first-external-media-url); E2E `engage-per-post.e2e.ts` diperluas dengan fixture media eksternal (12 tes hijau); `typecheck`, `lint` hijau; amati terang, gelap, dan 375px lewat screenshot (kartu bergambar, kartu jatuh ke ikon, tinggi kartu tetap, tanpa luapan horizontal).
 
-**Implementasi:** `externalMediaUrl` ditambahkan ke snapshot (`PostSnapshotForEngagementRecord`, `InboxItemPostSnapshot`), diisi `firstExternalMediaUrl` (hanya http/https) di repository; `resolveSnapshotThumbnail` (`engage/snapshot-thumbnail.ts`) memakai media Postific dulu, lalu URL eksternal bertipe gambar; `PostThumb` menjadi client component dengan `onError` dan `referrerPolicy=no-referrer`. Belum terbukti: apakah browser memuat URL CDN itu (hotlink) dan masa berlakunya (T-228).
+**Implementasi:** `externalMediaUrl` ditambahkan ke snapshot (`PostSnapshotForEngagementRecord`, `InboxItemPostSnapshot`), diisi `firstExternalMediaUrl` (hanya http/https) di repository; `resolveSnapshotThumbnail` (`engage/snapshot-thumbnail.ts`) memakai media Postific dulu, lalu URL eksternal bertipe gambar; `PostThumb` menjadi client component dengan `onError` dan `referrerPolicy=no-referrer`. **Temuan E2E:** gambar bisa gagal sebelum hydration sehingga `onError` React tidak terpanggil; `PostThumb` memeriksa `complete && naturalWidth === 0` setelah mount. Belum terbukti: apakah browser memuat URL CDN sungguhan (hotlink; E2E memakai route mocking) dan masa berlakunya (T-228), jadi masuk Verified (staging).
 
 ---
 

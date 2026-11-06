@@ -449,3 +449,43 @@ test("regresi: Refresh manual tidak gagal dan data semai tetap ada", async ({
   await selectPost(page, seed.captions.p1);
   await expect(row(page, "c1")).toBeVisible();
 });
+
+/** PNG 1x1 transparan untuk gambar eksternal semai (tanpa jaringan sungguhan). */
+const PIXEL_PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+  "base64",
+);
+
+test("T-227: thumbnail dari media eksternal; gagal muat jatuh ke ikon", async ({
+  page,
+}) => {
+  await page.route(seed.externalMedia.p2, (route) =>
+    route.fulfill({ status: 200, contentType: "image/png", body: PIXEL_PNG }),
+  );
+  await page.route(seed.externalMedia.p3, (route) => route.abort());
+
+  await openEngage(page);
+
+  // P2 (media_ids kosong, URL eksternal valid): gambar eksternal tampil.
+  await expect(
+    card(page, seed.captions.p2).locator(`img[src="${seed.externalMedia.p2}"]`),
+  ).toHaveCount(1);
+
+  // P3 (URL eksternal gagal dimuat): gambar dibuang, ikon pengganti tampil.
+  const p3 = card(page, seed.captions.p3);
+  await expect(p3.locator("img")).toHaveCount(0);
+  await expect(p3.locator("[aria-hidden=true] svg").first()).toBeVisible();
+
+  // P1 (tanpa media sama sekali): tetap tanpa thumbnail, sesuai rancangan.
+  await expect(card(page, seed.captions.p1).locator("img")).toHaveCount(0);
+
+  // Layar sempit: kartu tetap terbaca, tanpa luapan horizontal.
+  await page.setViewportSize({ width: 375, height: 812 });
+  await expect(card(page, seed.captions.p2)).toBeVisible();
+  const overflow = await page.evaluate(
+    () =>
+      document.documentElement.scrollWidth -
+      document.documentElement.clientWidth,
+  );
+  expect(overflow).toBeLessThanOrEqual(0);
+});

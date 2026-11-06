@@ -29,6 +29,12 @@ export interface EngageSeed {
   captions: { p1: string; p2: string; p3: string };
   /** `https://...` yang disemai sebagai `platform_post_url` P1. */
   p1Url: string;
+  /**
+   * URL media eksternal (T-227) di `platform_options.mediaUrls` target P2 dan
+   * P3 (`media_ids` kosong, seperti posting impor). Domain `.invalid`: tidak
+   * pernah dimuat sungguhan, tes mencegatnya lewat route mocking.
+   */
+  externalMedia: { p2: string; p3: string };
   /** Tiap komentar: handle penulis (unik) dan isi. */
   comments: Record<
     "c1" | "c2" | "c3" | "c4" | "c5" | "c6",
@@ -51,6 +57,10 @@ export async function seedEngageFixtures(): Promise<EngageSeed> {
       p3: `${ENGAGE_PREFIX}${stamp} posting tiga facebook`,
     },
     p1Url: `https://www.instagram.com/p/${ENGAGE_PREFIX}${stamp}/`,
+    externalMedia: {
+      p2: `https://e2e-cdn.invalid/${ENGAGE_PREFIX}${stamp}-p2-ok.png`,
+      p3: `https://e2e-cdn.invalid/${ENGAGE_PREFIX}${stamp}-p3-rusak.png`,
+    },
     comments: {
       c1: { handle: handle("c1"), content: `komentar c1 ${stamp} belum` },
       c2: { handle: handle("c2"), content: `komentar c2 ${stamp} lawas` },
@@ -79,6 +89,7 @@ export async function seedEngageFixtures(): Promise<EngageSeed> {
       accountId: string,
       platform: string,
       url: string,
+      mediaUrl?: string,
     ) => {
       const post = await client.query<{ id: string }>(
         `INSERT INTO publishing_posts
@@ -89,9 +100,15 @@ export async function seedEngageFixtures(): Promise<EngageSeed> {
       await client.query(
         `INSERT INTO publishing_post_targets
            (post_id, connected_account_id, platform, status, content_format,
-            platform_post_url, updated_at)
-         VALUES ($1, $2, $3, 'published', 'post', $4, now())`,
-        [post.rows[0].id, accountId, platform, url],
+            platform_post_url, platform_options, updated_at)
+         VALUES ($1, $2, $3, 'published', 'post', $4, $5::jsonb, now())`,
+        [
+          post.rows[0].id,
+          accountId,
+          platform,
+          url,
+          mediaUrl ? JSON.stringify({ mediaUrls: [mediaUrl] }) : null,
+        ],
       );
       return post.rows[0].id;
     };
@@ -106,12 +123,14 @@ export async function seedEngageFixtures(): Promise<EngageSeed> {
       igId,
       "instagram",
       `https://www.instagram.com/p/${ENGAGE_PREFIX}${stamp}-dua/`,
+      seed.externalMedia.p2,
     );
     const p3 = await insertPost(
       seed.captions.p3,
       fbId,
       "facebook",
       `https://www.facebook.com/${ENGAGE_PREFIX}${stamp}-tiga`,
+      seed.externalMedia.p3,
     );
 
     const now = Date.now();

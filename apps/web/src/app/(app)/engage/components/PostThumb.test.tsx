@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { MediaType } from "@postific/shared";
 import { cleanup, fireEvent, render } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { PostThumb } from "./PostThumb";
 
@@ -35,6 +35,23 @@ describe("PostThumb (T-227)", () => {
     expect(container.querySelector("img")?.getAttribute("src")).toBe(
       "https://cdn.example/b.jpg",
     );
+  });
+
+  it("jatuh ke ikon bila gambar sudah gagal sebelum hydration (tanpa event error)", () => {
+    const complete = vi
+      .spyOn(HTMLImageElement.prototype, "complete", "get")
+      .mockReturnValue(true);
+    const width = vi
+      .spyOn(HTMLImageElement.prototype, "naturalWidth", "get")
+      .mockReturnValue(0);
+    try {
+      const { container } = render(<PostThumb thumbnail={external} />);
+      expect(container.querySelector("img")).toBeNull();
+      expect(container.querySelector("svg")).not.toBeNull();
+    } finally {
+      complete.mockRestore();
+      width.mockRestore();
+    }
   });
 
   it("tanpa thumbnail menampilkan ikon", () => {
