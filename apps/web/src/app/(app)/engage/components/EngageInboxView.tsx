@@ -617,7 +617,8 @@ export function EngageInboxView({
             <ItemGroup className="gap-0 has-data-[size=sm]:gap-0">
               {items.map((item) => {
                 const isSelected = item.id === effectiveSelectedId;
-                const isDone = item.status !== "unread";
+                const isDone =
+                  item.status === "resolved" || item.status === "dismissed";
                 return (
                   <Item
                     key={item.id}

@@ -5,7 +5,11 @@ import {
   asPostId,
 } from "@postific/shared";
 import { getAllowedContentFormats } from "@/domains/publishing";
-import type { InboxItemStatus } from "@/domains/engagement";
+import {
+  INBOX_ITEM_STATUSES,
+  resolveInboxStatusAlias,
+  type InboxItemStatus,
+} from "@/domains/engagement";
 import { NotFoundError } from "@/lib/utils/errors";
 
 import { paginate } from "../cursor";
@@ -53,19 +57,10 @@ const PAGE_NOTE =
 
 const ANALYTICS_PERIODS = ["weekly", "monthly"] as const;
 // `done` = alias `resolved` (T-217.8, ADR-157); dinormalisasi sebelum memanggil service.
-const COMMENT_STATUS_FILTERS = [
-  "unread",
-  "replied",
-  "resolved",
-  "dismissed",
+const COMMENT_STATUS_FILTERS: readonly (InboxItemStatus | "done")[] = [
+  ...INBOX_ITEM_STATUSES,
   "done",
-] as const satisfies readonly (InboxItemStatus | "done")[];
-
-function normalizeCommentStatus(
-  status: (typeof COMMENT_STATUS_FILTERS)[number] | undefined,
-): InboxItemStatus | undefined {
-  return status === "done" ? "resolved" : status;
-}
+];
 
 function cursorOf(args: Record<string, unknown>): string | undefined {
   // Cursor kosong = halaman pertama (deskripsi skema: "Kosongkan untuk halaman pertama").
@@ -355,7 +350,7 @@ const listComments: McpToolDefinition = {
   async handler(context, args) {
     assertKnownArgs(args, ["cursor", "status", "accountId"]);
     const cursor = cursorOf(args);
-    const status = normalizeCommentStatus(
+    const status = resolveInboxStatusAlias(
       readOptionalEnum(args, "status", COMMENT_STATUS_FILTERS),
     );
     const accountId = readOptionalUuid(args, "accountId");
