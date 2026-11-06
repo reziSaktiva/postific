@@ -215,7 +215,7 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 | Field       | Value                                                                                                                   |
 | ----------- | ----------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | 🟡 In Progress                                                                                                          |
+| **Status**  | 🟡 Done (code) 2026-11-06, menunggu Verified (staging)                                                                  |
 | **Mode**    | AFK (migrasi data `done` butuh izin King Rezi sebelum diterapkan ke DB bersama)                                         |
 | **Domain**  | engagement · backend                                                                                                    |
 | **Spec**    | S-006                                                                                                                   |
@@ -227,7 +227,7 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 - [x] **T-217.1** Inventarisasi semua pemakai status `done` dan `unread` (service, repository, `EngageInboxView`, badge sidebar, Engagement Snapshot di Home, dan tool MCP `list_comments` yang memakai filter `status` `"unread"|"done"`, `application-layer.md`) sebelum mengubah apa pun. Hasilnya dicatat di tiket ini.
 - [x] **T-217.2** Tipe dan aturan transisi di domain `engagement` (mis. `unread` → `replied` / `resolved` / `dismissed`; `resolved` dan `dismissed` → `unread`), sesuai jawaban Q2 dan Q3 (`replied` otomatis saat balasan terkirim, status reversibel). Nama method `markAsDone` ditinjau.
 - [x] **T-217.3** `EngagementService.reply` menandai `replied` saat balasan berhasil terkirim bila status `unread`; tidak menurunkan status lain.
-- [ ] **T-217.4** (migrasi ditulis di `apps/web/prisma/migrations/20261106100000_t217_engagement_done_to_resolved/migration.sql`, BELUM diterapkan; menunggu izin King Rezi) Migrasi data baris `done` menjadi `resolved` (jawaban Q1, 2026-11-05). Migrasi ditulis, ditinjau, dan diterapkan ke DB bersama hanya atas izin King Rezi.
+- [x] **T-217.4** (migrasi `apps/web/prisma/migrations/20261106100000_t217_engagement_done_to_resolved/migration.sql` sudah terpasang di DB bersama, terlihat lewat `prisma migrate status` 2026-11-06) Migrasi data baris `done` menjadi `resolved` (jawaban Q1, 2026-11-05). Migrasi ditulis, ditinjau, dan diterapkan ke DB bersama hanya atas izin King Rezi.
 - [x] **T-217.5** Server Action di `engage/actions.ts` hanya memanggil service (aturan keras no. 3). Domain tidak mengimpor Prisma (aturan keras no. 4).
 - [x] **T-217.6** Tes unit (double lokal di berkas tes), `typecheck`, `lint`, tes hijau.
 - [x] **T-217.7** Hitungan badge sidebar dan Engagement Snapshot di Home dibatasi 12 bulan terakhir (keputusan King Rezi 2026-11-06, audit docs-consistency B2), sama dengan Date Range bawaan daftar posting; tes menegaskan komentar `unread` lebih tua dari 12 bulan tidak dihitung.
@@ -236,6 +236,8 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 **Hasil inventaris T-217.1 (2026-11-06):** pemakai status `unread`/`done`: `domains/engagement/types.ts` (`InboxItemStatus`), repository (`markInboxItemStatus`, `listInboxItems`), `EngagementService.markAsDone` (diganti `changeStatus`), `engage/actions.ts` (`markAsDoneAction`, `listInboxAction`), `EngageInboxView` (opsi filter, titik belum dibaca, tombol Mark as Done), tool MCP `list_comments` (`COMMENT_STATUSES`), dan tes terkait. **Badge sidebar dan Engagement Snapshot di Home TIDAK memakai hitungan komentar saat ini:** `initialUnreadCount` di sidebar adalah hitungan notifikasi, dan Home hanya menampilkan Analytics Snapshot. Maka T-217.7 diselesaikan di lapisan data: `EngagementService.countUnread` (jendela 12 bulan, `inboxCountWindowStart`) dan `countUnreadInboxItems` di repository, dengan tes; penyambungan ke badge dan Snapshot menunggu konsumennya dibangun (bukan T-217).
 
 **Perubahan:** `markAsDone` diganti `changeStatus` (transisi di `domains/engagement/inbox-status.ts`; transisi ilegal `ConflictError`; status sama idempoten); `reply` menandai `replied` dari `unread` saja; `readAt` kini terisi saat pertama keluar dari `unread`; `done` di MCP menjadi alias `resolved` (enum skema tetap memuat `done`). `markAsDoneAction` dipertahankan (kini `resolved`) agar `EngageInboxView` tetap jalan sampai T-219.
+
+**Pengecualian E2E golden path (ADR-149, 2026-11-06, atas persetujuan merge King Rezi):** perubahan belum punya tampilan baru (UI "By post" ada di T-219 sampai T-224), jadi E2E golden path Engage digabung ke T-222. Suite E2E lokal yang ada hijau tanpa regresi (51 lulus; satu kegagalan CSP `next-devtools` di `next dev` sudah diperbaiki di `theme.e2e.ts`).
 
 **Belum terbukti:** migrasi data belum dijalankan ke DB mana pun; query `countUnreadInboxItems` belum dicoba terhadap Postgres sungguhan (tes memakai repository in-memory sesuai kontrak); perilaku badge dan Home setelah status baru belum ada konsumennya (T-222). Kontrak MCP `list_comments` berubah (enum bertambah, `done` alias); amandemen ADR MCP/`application-layer.md` belum ditulis (di luar scope sesi ini). Transisi `resolved`↔`dismissed` langsung dan `replied`→`unread` ditolak mengikuti butir tiket secara harfiah; perlu konfirmasi King Rezi bila tidak diinginkan.
 
@@ -247,7 +249,7 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 | Field       | Value                                                                                                   |
 | ----------- | ------------------------------------------------------------------------------------------------------- |
-| **Status**  | 🟡 In Progress                                                                                          |
+| **Status**  | 🟡 Done (code) 2026-11-06, menunggu Verified (staging)                                                  |
 | **Mode**    | AFK                                                                                                     |
 | **Domain**  | engagement · backend                                                                                    |
 | **Spec**    | S-006                                                                                                   |
@@ -260,7 +262,7 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 - [x] **T-218.2** Sort: belum dibalas dulu (bawaan), terbaru, terlama. Rentang tanggal (7 hari, 30 hari, 6 bulan, 12 bulan) atas `receivedAt`. Filter akun, platform, dan status tetap berfungsi.
 - [x] **T-218.3** Snapshot posting (caption, thumbnail, platform, akun) memakai jalur yang sudah ada (`PublishingPostSnapshotPort`, T-056), tanpa import lintas domain (aturan keras no. 5). Thumbnail memakai signed URL yang diregenerasi.
 - [x] **T-218.4** Posting tanpa komentar disembunyikan secara bawaan; parameter menampilkan semuanya.
-- [ ] **T-218.5** Tes unit dan integrasi DB; indeks DB diperiksa (kandidat: `workspace_id`, `post_id`, `status`, `received_at`) sebelum menambah migrasi.
+- [x] **T-218.5** Tes unit dan integrasi DB (4 tes integrasi lulus di Postgres staging 2026-11-06, tanpa data sisa; `EXPLAIN (ANALYZE)` belum); indeks DB diperiksa (kandidat: `workspace_id`, `post_id`, `status`, `received_at`) sebelum menambah migrasi.
 - [x] **T-218.6** `typecheck`, `lint`, tes hijau.
 - [x] **T-218.7** Jelaskan dan putuskan cara JOB-03 menarik komentar per akun memakai endpoint Outstand per posting (`GET /v1/posts/{id}/replies`): iterasi posting terbit per akun dan batas posting yang ditarik; tulis hasilnya di `integration-layer.md` dan `background-jobs.md` (keputusan King Rezi 2026-11-06, B7).
 - [x] **T-218.8** Putuskan indeks untuk query per posting (kandidat `post_id` dan `received_at`) dan tulis di `database-strategy.md` bersama migrasinya bila perlu (B7).
@@ -287,7 +289,11 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 - Indeks `(workspace_id)` lama kini redundan terhadap indeks baru; tiket terpisah untuk menghapusnya, setelah diukur.
 - Batas 50 posting per akun pada JOB-03 (T-218.7) berdampak produk: komentar baru di posting yang lebih lama tidak ikut ditarik. Butuh konfirmasi King Rezi, kemungkinan amandemen ADR-157, sebelum dianggap final.
 
+**Pengecualian E2E golden path (ADR-149, 2026-11-06, atas persetujuan merge King Rezi):** perubahan belum punya tampilan baru (UI "By post" ada di T-219 sampai T-224), jadi E2E golden path Engage digabung ke T-222. Suite E2E lokal yang ada hijau tanpa regresi (51 lulus; satu kegagalan CSP `next-devtools` di `next dev` sudah diperbaiki di `theme.e2e.ts`).
+
 **Belum terbukti:** (0) T-218.5 belum dicentang: tes integrasi DB `aggregate-inbox-by-post.integration.test.ts` ditulis tetapi belum dijalankan (belum terverifikasi); isolasi workspace/RLS di Postgres dan manfaat indeks belum terbukti; (1) performa query pada volume besar (ratusan komentar per posting) belum diukur: tes integrasi DB `aggregate-inbox-by-post.integration.test.ts` ditulis tetapi opt-in (`ENGAGEMENT_DB_TEST=1` + `DATABASE_URL`) dan belum dijalankan di lingkungan ini; belum ada `EXPLAIN (ANALYZE)`; (2) migrasi indeks belum diterapkan ke DB manapun; (3) snapshot posting diambil per kelompok (maks 10 konkuren, maks 100 kelompok), belum ada query batch; (4) tes repository unit memakai tabel in-memory, bukan SQL sungguhan; (5) `listInboxByPostAction` belum dipanggil UI (T-219).
+
+**Bukti DB (2026-11-06):** migrasi `20261106120000_t218_engagement_inbox_post_index` diterapkan King Rezi ke DB bersama; `aggregate-inbox-by-post.integration.test.ts` dijalankan (`ENGAGEMENT_DB_TEST=1`), 4 tes lulus (agregasi, filter, `listInboxItems` per posting, RLS antar-workspace). Fixture diperbaiki memakai `withCurrentUser` karena RLS. Manfaat indeks belum terukur (`EXPLAIN (ANALYZE)`; data staging kecil); butir (0), (2), dan bukti RLS pada daftar "Belum terbukti" di bawah sudah terpenuhi.
 
 **Tindak lanjut review PR 264 (2026-11-06):** diperbaiki: posting kosong multi-akun satu kali, NULL `postId` lebih dulu pada pagar 5000, batas daftar per posting 1000 (pagination di T-219), akun utama kartu stabil (id terkecil), `done` dihitung `resolved` di filter status, validasi input pindah ke service. Belum dikerjakan: snapshot posting batch (satu query, butuh port baru di `publishing`), `includeEmpty` mengikuti rentang tanggal dan lebih dari 50 posting per akun, serta bukti isolasi RLS lewat tes integrasi DB (dijalankan setelah migrasi diterapkan).
 

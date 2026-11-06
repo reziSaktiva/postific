@@ -43,7 +43,12 @@ for (const path of ["/login", PUBLIC_PAGE_PATH]) {
     }) => {
       const cspViolations: string[] = [];
       page.on("console", (message) => {
-        if (message.text().includes("Content Security Policy")) {
+        // Indikator dev Next (`next-devtools`, hanya ada di `next dev`) menyuntik
+        // inline style tanpa nonce; itu bukan kode kita, jadi tidak dihitung.
+        if (
+          message.text().includes("Content Security Policy") &&
+          !message.location().url.includes("next-devtools")
+        ) {
           cspViolations.push(message.text());
         }
       });
