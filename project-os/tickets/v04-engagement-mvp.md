@@ -237,6 +237,8 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 **Perubahan:** `markAsDone` diganti `changeStatus` (transisi di `domains/engagement/inbox-status.ts`; transisi ilegal `ConflictError`; status sama idempoten); `reply` menandai `replied` dari `unread` saja; `readAt` kini terisi saat pertama keluar dari `unread`; `done` di MCP menjadi alias `resolved` (enum skema tetap memuat `done`). `markAsDoneAction` dipertahankan (kini `resolved`) agar `EngageInboxView` tetap jalan sampai T-219.
 
+**Pengecualian E2E golden path (ADR-149, 2026-11-06, atas persetujuan merge King Rezi):** perubahan belum punya tampilan baru (UI "By post" ada di T-219 sampai T-224), jadi E2E golden path Engage digabung ke T-222. Suite E2E lokal yang ada hijau tanpa regresi (51 lulus; satu kegagalan CSP `next-devtools` di `next dev` sudah diperbaiki di `theme.e2e.ts`).
+
 **Belum terbukti:** migrasi data belum dijalankan ke DB mana pun; query `countUnreadInboxItems` belum dicoba terhadap Postgres sungguhan (tes memakai repository in-memory sesuai kontrak); perilaku badge dan Home setelah status baru belum ada konsumennya (T-222). Kontrak MCP `list_comments` berubah (enum bertambah, `done` alias); amandemen ADR MCP/`application-layer.md` belum ditulis (di luar scope sesi ini). Transisi `resolved`↔`dismissed` langsung dan `replied`→`unread` ditolak mengikuti butir tiket secara harfiah; perlu konfirmasi King Rezi bila tidak diinginkan.
 
 **Blocked by:** tidak ada (ADR-157 Accepted 2026-11-05).
@@ -286,6 +288,8 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 - `CREATE INDEX` migrasi T-218.8 tanpa `CONCURRENTLY` sehingga mengunci tulis tabel selama pembuatan; pertimbangkan jendela terapan atau varian CONCURRENTLY di luar transaksi migrasi saat diterapkan.
 - Indeks `(workspace_id)` lama kini redundan terhadap indeks baru; tiket terpisah untuk menghapusnya, setelah diukur.
 - Batas 50 posting per akun pada JOB-03 (T-218.7) berdampak produk: komentar baru di posting yang lebih lama tidak ikut ditarik. Butuh konfirmasi King Rezi, kemungkinan amandemen ADR-157, sebelum dianggap final.
+
+**Pengecualian E2E golden path (ADR-149, 2026-11-06, atas persetujuan merge King Rezi):** perubahan belum punya tampilan baru (UI "By post" ada di T-219 sampai T-224), jadi E2E golden path Engage digabung ke T-222. Suite E2E lokal yang ada hijau tanpa regresi (51 lulus; satu kegagalan CSP `next-devtools` di `next dev` sudah diperbaiki di `theme.e2e.ts`).
 
 **Belum terbukti:** (0) T-218.5 belum dicentang: tes integrasi DB `aggregate-inbox-by-post.integration.test.ts` ditulis tetapi belum dijalankan (belum terverifikasi); isolasi workspace/RLS di Postgres dan manfaat indeks belum terbukti; (1) performa query pada volume besar (ratusan komentar per posting) belum diukur: tes integrasi DB `aggregate-inbox-by-post.integration.test.ts` ditulis tetapi opt-in (`ENGAGEMENT_DB_TEST=1` + `DATABASE_URL`) dan belum dijalankan di lingkungan ini; belum ada `EXPLAIN (ANALYZE)`; (2) migrasi indeks belum diterapkan ke DB manapun; (3) snapshot posting diambil per kelompok (maks 10 konkuren, maks 100 kelompok), belum ada query batch; (4) tes repository unit memakai tabel in-memory, bukan SQL sungguhan; (5) `listInboxByPostAction` belum dipanggil UI (T-219).
 
