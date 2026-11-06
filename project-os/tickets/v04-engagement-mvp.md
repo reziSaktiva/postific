@@ -311,22 +311,39 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 ---
 
-### T-221 · Align KSP-06 and KSP-D06 baseline with the confirmed Engage by-post design
+### T-221 · Align UX and architecture baseline with the confirmed Engage by-post design
 
-| Field       | Value                                                                              |
-| ----------- | ---------------------------------------------------------------------------------- |
-| **Status**  | ⏳ Not Started                                                                     |
-| **Mode**    | AFK (dokumentasi)                                                                  |
-| **Domain**  | dokumentasi · UX                                                                   |
-| **Spec**    | S-006                                                                              |
-| **Docs**    | ADR-157, `product-discovery/04-ux/key-screen-patterns.md`, `context/ctx-design.md` |
-| **Depends** | T-216                                                                              |
+| Field       | Value                                                                                                                                                                                                                                           |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**  | ⏳ Not Started                                                                                                                                                                                                                                  |
+| **Mode**    | AFK (dokumentasi)                                                                                                                                                                                                                               |
+| **Domain**  | dokumentasi · UX · arsitektur                                                                                                                                                                                                                   |
+| **Spec**    | S-006                                                                                                                                                                                                                                           |
+| **Docs**    | ADR-157, `product-discovery/04-ux/` (`key-screen-patterns.md`, `user-flows.md`, `navigation-patterns.md`, `information-architecture.md`), `product-discovery/05-architecture/domain-model.md`, `context/ctx-design.md`, `context/ctx-domain.md` |
+| **Depends** | T-216                                                                                                                                                                                                                                           |
 
-**What to build:** perbarui KSP-06 (Critical Functions, Zona Fungsional, State Handling) dan KSP-D06 agar sesuai rancangan yang dikonfirmasi: unit per posting, status baru, panel Filter & Sort, batas MVP tetap menyebut Mentions dan DM di luar (ADR-040). Urutan tulis: `product-discovery/` dulu, lalu `context/` hanya bila penunjuknya berubah (`AGENTS.md` aturan 14).
+**What to build:** selaraskan semua dokumen baseline yang masih menggambarkan Engage lama (master-detail per item inbox, status `Unread` / `Done`, satu layar tanpa pilihan tampilan) dengan rancangan yang dikonfirmasi dan ADR-157: unit per posting, status `unread` / `replied` / `resolved` / `dismissed`, panel Filter & Sort, toggle By post / List. Batas MVP tetap menyebut Mentions dan DM di luar (ADR-040). Urutan tulis: `product-discovery/` dulu, lalu `context/` hanya bila penunjuknya berubah (`AGENTS.md` aturan 14). Jangan menyalin paragraf yang sama ke banyak berkas; rujuk KSP-06 sebagai rumah rinciannya.
 
-- [ ] **T-221.1** KSP-06 dan KSP-D06 diperbarui; tag amandemen ADR-157 ditambahkan.
+**Hasil audit (2026-11-06, grep atas `product-discovery/` dan `context/`):**
+
+| Dokumen                                                | Yang usang                                                                                                                                                                                                       |
+| ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `04-ux/key-screen-patterns.md` (KSP-06, D06)           | Master-detail per item, tiga filter, status Unread/Done, "Mark as Done", Critical Functions F01 sampai F08, State Handling                                                                                       |
+| `04-ux/user-flows.md` (UF-04, baris 214-259)           | Filter `Unread / Done`, tandai `Done`, antrean urut waktu masuk; alur badge ke Inbox                                                                                                                             |
+| `04-ux/navigation-patterns.md` (214, 327-331)          | "Engage hanya satu layar: Inbox, tanpa tab"; pola master-detail inline. Toggle By post / List bukan navigasi tab; kalimatnya perlu disesuaikan                                                                   |
+| `04-ux/information-architecture.md` (152-167, 254-255) | Struktur Engage dan peta "Comments (view + reply)"; Engagement Snapshot (baris 111) tetap menghitung `unread` (Q4), cukup dicek                                                                                  |
+| `05-architecture/domain-model.md` (363)                | `InboxItemStatus` ditulis `unread \| read \| replied \| archived`; **sudah menyimpang dari kode** (`unread \| done`) sebelum ADR-157. Jadikan `unread \| replied \| resolved \| dismissed` dan sebut transisinya |
+| `context/ctx-domain.md`, `context/ctx-design.md`       | Hanya diubah bila penunjuknya berubah; kemungkinan tidak perlu                                                                                                                                                   |
+
+- [ ] **T-221.1** KSP-06 dan KSP-D06 diperbarui (Critical Functions, Zona Fungsional, State Handling, Pola Notification Badge); tag amandemen ADR-157 ditambahkan.
 - [x] **T-221.2** ADR-157 `Proposed` → `Accepted` (2026-11-05, setelah Q1 sampai Q5 dijawab King Rezi); indeks `DECISIONS.md` ikut.
-- [ ] **T-221.3** `bun run docs:check` hijau.
+- [ ] **T-221.3** `user-flows.md` UF-04 (dan tabel ringkasnya) disesuaikan: pilih posting, status baru, Resolve / Dismiss / buka kembali, panel Filter & Sort.
+- [ ] **T-221.4** `navigation-patterns.md` dan `information-architecture.md` disesuaikan: Engage tetap satu layar tanpa tab navigasi, dengan pilihan tampilan By post / List di dalamnya; peta konten diperbarui.
+- [ ] **T-221.5** `domain-model.md` BC Engagement: `InboxItemStatus` dan aturan transisi diselaraskan dengan ADR-157 (koreksi drift lama ikut).
+- [ ] **T-221.6** Tinjau `context/ctx-domain.md` dan `context/ctx-design.md`; ubah hanya bila penunjuknya berubah.
+- [ ] **T-221.7** `bun run docs:check` hijau.
+
+**Belum terbukti:** apakah ada dokumen lain yang menyebut model lama dengan istilah berbeda; audit memakai grep istilah (`Mark as Done`, `Unread / Done`, `KSP-06`, `Comments Inbox`, `InboxItem`), bukan pembacaan semua berkas.
 
 **Blocked by:** T-216.
 
