@@ -98,6 +98,7 @@ function createFakeRepository(
     createReply: async () => {
       throw new Error("not used in this test");
     },
+    aggregateInboxByPost: async () => [],
     listRepliesByInboxItemId: async () => [],
     ...overrides,
   };

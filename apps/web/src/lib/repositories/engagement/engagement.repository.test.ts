@@ -1,9 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  asConnectedAccountId,
   asInboxItemId,
   asUserId,
   asWorkspaceId,
   type InboxItemId,
+  type PostId,
+  type SocialPlatform,
 } from "@postific/shared";
 
 type Row = {
@@ -32,6 +35,9 @@ type Where = {
   status?: string;
   readAt?: null;
   receivedAt?: { gte: Date };
+  connectedAccountId?: string;
+  platform?: string;
+  postId?: string | null;
 };
 
 function matches(row: Row, where: Where): boolean {
@@ -41,7 +47,12 @@ function matches(row: Row, where: Where): boolean {
       row.workspaceId === where.workspaceId) &&
     (where.status === undefined || row.status === where.status) &&
     (where.readAt === undefined || row.readAt === null) &&
-    (where.receivedAt === undefined || row.receivedAt >= where.receivedAt.gte)
+    (where.receivedAt === undefined ||
+      row.receivedAt >= where.receivedAt.gte) &&
+    (where.connectedAccountId === undefined ||
+      row.connectedAccountId === where.connectedAccountId) &&
+    (where.platform === undefined || row.platform === where.platform) &&
+    (where.postId === undefined || row.postId === where.postId)
   );
 }
 
@@ -64,6 +75,28 @@ const tx = {
       rows.find((row) => matches(row, where)) ?? null,
     count: async ({ where }: { where: Where }) =>
       rows.filter((row) => matches(row, where)).length,
+    findMany: async ({ where }: { where: Where }) =>
+      rows
+        .filter((row) => matches(row, where))
+        .sort((a, b) => b.receivedAt.getTime() - a.receivedAt.getTime()),
+    // `GROUP BY` ala Prisma: kunci = kombinasi kolom `by`, `_count` dan
+    // `_max.receivedAt` dihitung per kunci.
+    groupBy: async ({ by, where }: { by: (keyof Row)[]; where: Where }) => {
+      const groups = new Map<string, Row[]>();
+      for (const row of rows.filter((r) => matches(r, where))) {
+        const key = JSON.stringify(by.map((column) => row[column]));
+        groups.set(key, [...(groups.get(key) ?? []), row]);
+      }
+      return [...groups.values()].map((members) => ({
+        ...Object.fromEntries(by.map((column) => [column, members[0][column]])),
+        _count: { _all: members.length },
+        _max: {
+          receivedAt: new Date(
+            Math.max(...members.map((m) => m.receivedAt.getTime())),
+          ),
+        },
+      }));
+    },
   },
 };
 
@@ -196,5 +229,119 @@ describe("engagementRepository.countUnreadInboxItems", () => {
         USER,
       ),
     ).resolves.toBe(2);
+  });
+});
+
+describe("engagementRepository.aggregateInboxByPost", () => {
+  const POST_1 = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+  const POST_2 = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+
+  beforeEach(() => {
+    rows.length = 0;
+  });
+
+  it("mengelompokkan per posting dan status dengan jumlah dan komentar terbaru, termasuk tanpa posting", async () => {
+    seed("a", { postId: POST_1, receivedAt: new Date("2026-10-01T00:00:00Z") });
+    seed("b", { postId: POST_1, receivedAt: new Date("2026-10-03T00:00:00Z") });
+    seed("c", { postId: POST_1, status: "resolved" });
+    seed("d", { postId: null });
+    seed("e", { postId: POST_2 });
+
+    const result = await engagementRepository.aggregateInboxByPost(
+      { workspaceId: WORKSPACE },
+      USER,
+    );
+
+    const unreadPost1 = result.find(
+      (r) => r.postId === POST_1 && r.status === "unread",
+    );
+    expect(unreadPost1).toMatchObject({
+      count: 2,
+      latestReceivedAt: new Date("2026-10-03T00:00:00Z"),
+    });
+    expect(
+      result.find((r) => r.postId === POST_1 && r.status === "resolved")?.count,
+    ).toBe(1);
+    expect(result.find((r) => r.postId === null)?.count).toBe(1);
+    expect(result.find((r) => r.postId === POST_2)?.count).toBe(1);
+  });
+
+  it("menghormati workspace, akun, platform, dan rentang tanggal", async () => {
+    const since = new Date("2026-09-01T00:00:00Z");
+    seed("in", { postId: POST_1 });
+    seed("old", {
+      postId: POST_1,
+      receivedAt: new Date("2026-08-01T00:00:00Z"),
+    });
+    seed("other-ws", { postId: POST_1, workspaceId: OTHER_WORKSPACE });
+    seed("other-acc", {
+      postId: POST_1,
+      connectedAccountId: "33333333-3333-4333-8333-333333333333",
+    });
+    seed("other-platform", { postId: POST_1, platform: "facebook" });
+
+    const result = await engagementRepository.aggregateInboxByPost(
+      {
+        workspaceId: WORKSPACE,
+        connectedAccountId: asConnectedAccountId(
+          "22222222-2222-4222-8222-222222222222",
+        ),
+        platform: "instagram" as SocialPlatform,
+        receivedSince: since,
+      },
+      USER,
+    );
+
+    expect(result).toHaveLength(1);
+    expect(result[0].count).toBe(1);
+  });
+});
+
+describe("engagementRepository.listInboxItems (T-218)", () => {
+  const POST_1 = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+
+  beforeEach(() => {
+    rows.length = 0;
+  });
+
+  it("memfilter satu posting, kelompok tanpa posting (null), dan rentang tanggal", async () => {
+    seed("p1", { postId: POST_1 });
+    seed("none", { postId: null });
+    seed("old", {
+      postId: POST_1,
+      receivedAt: new Date("2026-01-01T00:00:00Z"),
+    });
+
+    const forPost = await engagementRepository.listInboxItems(
+      { workspaceId: WORKSPACE, postId: POST_1 as PostId },
+      USER,
+    );
+    expect(forPost.map((i) => i.id).sort()).toEqual(["old", "p1"]);
+
+    const noPost = await engagementRepository.listInboxItems(
+      { workspaceId: WORKSPACE, postId: null },
+      USER,
+    );
+    expect(noPost.map((i) => i.id)).toEqual(["none"]);
+
+    const recent = await engagementRepository.listInboxItems(
+      {
+        workspaceId: WORKSPACE,
+        postId: POST_1 as PostId,
+        receivedSince: new Date("2026-06-01T00:00:00Z"),
+      },
+      USER,
+    );
+    expect(recent.map((i) => i.id)).toEqual(["p1"]);
+  });
+
+  it("tanpa filter posting mengembalikan semua komentar workspace", async () => {
+    seed("p1", { postId: POST_1 });
+    seed("none", { postId: null });
+    const all = await engagementRepository.listInboxItems(
+      { workspaceId: WORKSPACE },
+      USER,
+    );
+    expect(all).toHaveLength(2);
   });
 });

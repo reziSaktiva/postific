@@ -8,7 +8,9 @@ import {
   asWorkspaceId,
   SocialPlatform,
   type IOutstandAdapter,
+  type ConnectedAccountId,
   type MediaId,
+  type PostId,
   type ReplyToCommentResult,
 } from "@postific/shared";
 import { describe, expect, it, vi } from "vitest";
@@ -73,6 +75,7 @@ function createFakeRepository(
       createdAt: new Date(0),
       updatedAt: new Date(0),
     }),
+    aggregateInboxByPost: async () => [],
     listRepliesByInboxItemId: async () => [],
     ...overrides,
   };
@@ -158,6 +161,12 @@ function createFakePublishingPosts(
       mediaIds: MediaId[];
       platformPostUrl: string | null;
     } | null>;
+    listSyncablePostsByConnectedAccount: (
+      input: unknown,
+      userId: unknown,
+    ) => Promise<
+      { postId: PostId; outstandPostId: string; platform: SocialPlatform }[]
+    >;
   }> = {},
 ) {
   return {
@@ -168,6 +177,7 @@ function createFakePublishingPosts(
      * eksplisit.
      */
     findPostSnapshotForEngagement: async () => null,
+    listSyncablePostsByConnectedAccount: async () => [],
     ...overrides,
   };
 }
@@ -180,6 +190,10 @@ function createFakePublishingPosts(
  */
 function createFakeConnectedAccounts(
   overrides: Partial<{
+    listConnectedAccounts: (
+      workspaceId: unknown,
+      userId: unknown,
+    ) => Promise<{ id: ConnectedAccountId; platform: SocialPlatform }[]>;
     findConnectedAccountById: (
       workspaceId: unknown,
       connectedAccountId: unknown,
@@ -188,6 +202,7 @@ function createFakeConnectedAccounts(
   }> = {},
 ) {
   return {
+    listConnectedAccounts: async () => [],
     findConnectedAccountById: async () => ({ handle: "@acme" }),
     ...overrides,
   };

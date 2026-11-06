@@ -449,6 +449,8 @@ Diputuskan King Rezi 2026-10-26 dan dicatat di ADR-141 (pengecualian DB-D05). Po
 
 **Constraint:** `UNIQUE(workspace_id, connected_account_id, external_id)` — menjaga upsert periodic/manual sync tetap idempoten.
 
+**Indeks (T-218.8, keputusan agen untuk ditinjau King Rezi, 2026-11-06):** sebelumnya `(workspace_id)`, `(workspace_id, status)`, `(external_id)`, dan unique di atas. Engage per posting (ADR-157) menambah dua pola query: agregasi `GROUP BY post_id, connected_account_id, platform, status` dengan filter `workspace_id` dan `received_at >= since`, serta daftar komentar satu posting (`workspace_id` + `post_id`, urut `received_at DESC`). Keputusan: satu indeks komposit baru `(workspace_id, post_id, received_at DESC)` (`engagement_inbox_items_workspace_id_post_id_received_at_idx`, migrasi `20261106120000_t218_engagement_inbox_post_index`, belum diterapkan ke DB mana pun). Alasan: melayani daftar komentar per posting tanpa sort, agregasi terkelompok per posting, dan `post_id IS NULL` (kelompok "Tanpa posting"). Tidak ditambah `(workspace_id, received_at)` karena rentang bawaan 12 bulan mencakup hampir seluruh baris sehingga manfaatnya kecil, dan setiap indeks menambah biaya tulis upsert sync; `(workspace_id, status)` yang ada tetap melayani hitungan `unread` (badge, T-217.7). **Belum terbukti:** manfaat sebenarnya pada volume besar belum diukur dengan `EXPLAIN (ANALYZE)` pada data nyata; ukur sebelum dianggap final.
+
 **Catatan:** `post_id` tidak menggunakan FOREIGN KEY karena merupakan soft reference — post yang direferensi bisa tidak ada (dihapus) tanpa harus menghapus inbox item.
 
 ### `engagement_replies`

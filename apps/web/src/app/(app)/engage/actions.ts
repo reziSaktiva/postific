@@ -18,6 +18,8 @@ import {
   type InboxItemDetail,
   type InboxItemFilter,
   type InboxItemStatus,
+  type InboxPostGroup,
+  type ListInboxByPostInput,
 } from "@/domains/engagement";
 import { MediaService, type MediaThumbnailDto } from "@/domains/media";
 import { NotificationService } from "@/domains/notification";
@@ -232,6 +234,105 @@ export async function getInboxItemDetailAction(
         : null,
     };
     return { data };
+  } catch (error) {
+    return toActionError(error);
+  }
+}
+
+/** Snapshot posting siap-render untuk kartu posting (T-218): `mediaIds` diganti thumbnail ber-signed URL. */
+export interface InboxPostGroupSnapshotDto {
+  caption: string;
+  platformPostUrl: string | null;
+  thumbnail: MediaThumbnailDto | null;
+}
+
+/** Kelompok posting siap-render (T-218). */
+export type InboxPostGroupDto = Omit<InboxPostGroup, "postSnapshot"> & {
+  postSnapshot: InboxPostGroupSnapshotDto | null;
+};
+
+/**
+ * Daftar posting beserta ringkasan komentarnya (T-218) untuk tampilan "By
+ * post". Murni wiring — delegasi ke `EngagementService.listInboxByPost`,
+ * lalu meregenerasi signed URL thumbnail (media pertama tiap posting) lewat
+ * `MediaService.resolveThumbnails`, pola sama `getInboxItemDetailAction`
+ * (URL yang tersimpan sudah kedaluwarsa saat komentar dibuka lama setelah
+ * tayang). Satu panggilan media untuk seluruh kelompok, bukan satu per
+ * kelompok.
+ */
+export async function listInboxByPostAction(
+  input?: Omit<ListInboxByPostInput, "workspaceId">,
+): Promise<{
+  data?: InboxPostGroupDto[];
+  truncated?: boolean;
+  error?: string;
+}> {
+  const { workspaceId } = await getWorkspaceContext();
+  const session = await getCachedSession();
+  if (!session) {
+    redirect("/login");
+  }
+  const userId = asUserId(session.user.id);
+
+  const engagementService = new EngagementService(
+    engagementRepository,
+    getOutstandAdapter(),
+    publishingRepository,
+    workspaceRepository,
+  );
+
+  try {
+    const { groups, truncated } = await engagementService.listInboxByPost(
+      { ...input, workspaceId },
+      userId,
+    );
+
+    const mediaService = new MediaService(
+      mediaRepository,
+      supabaseMediaStorageAdapter,
+    );
+    const firstMediaIds = [
+      ...new Set(
+        groups.flatMap((group) => {
+          const first = group.postSnapshot?.mediaIds[0];
+          return first ? [first] : [];
+        }),
+      ),
+    ];
+    // `listByIds` = satu query untuk seluruh media pertama dan meregenerasi
+    // signed URL dari `storagePath`. Kegagalan resolve thumbnail tidak boleh
+    // menggagalkan daftar posting: turun ke kartu tanpa thumbnail.
+    const thumbnailByMediaId = new Map<string, MediaThumbnailDto>();
+    try {
+      const items = await mediaService.listByIds(
+        { workspaceId, mediaIds: firstMediaIds },
+        userId,
+      );
+      for (const item of items) {
+        if (item.url) {
+          thumbnailByMediaId.set(item.id, { url: item.url, type: item.type });
+        }
+      }
+    } catch (error) {
+      console.error("listInboxByPostAction: gagal resolve thumbnail", error);
+    }
+
+    const data: InboxPostGroupDto[] = groups.map((group) => {
+      const { postSnapshot, ...summary } = group;
+      return {
+        ...summary,
+        postSnapshot: postSnapshot
+          ? {
+              caption: postSnapshot.caption,
+              platformPostUrl: postSnapshot.platformPostUrl,
+              thumbnail: postSnapshot.mediaIds[0]
+                ? (thumbnailByMediaId.get(postSnapshot.mediaIds[0]) ?? null)
+                : null,
+            }
+          : null,
+      };
+    });
+    return { data, truncated };
   } catch (error) {
     return toActionError(error);
   }

@@ -72,3 +72,11 @@ Keputusan tambahan, semuanya mengikuti rekomendasi agen; tidak mengubah keputusa
 - **Webhook `comment.received`:** tersedia di vendor tetapi tidak dipakai MVP; ADR-040 tidak diedit, catatan ada di `integration-layer.md`.
 - **Pull per akun vs endpoint per posting, dan indeks DB:** diputuskan di T-218 (T-218.7, T-218.8).
 - Tindak lanjut tiket: T-217.7, T-217.8, T-218.7, T-218.8, dan catatan di T-219.2.
+
+### Addendum 2026-11-06 (2): keputusan T-218.7 dan T-218.8, dikonfirmasi King Rezi
+
+Mengikuti rekomendasi agen pada gelombang 2 S-006; tidak mengubah keputusan di atas.
+
+- **JOB-03 (T-218.7):** pull komentar tetap per akun lewat endpoint per posting (`GET /v1/posts/{id}/replies`, ADR-113), berurutan, maksimum 50 posting terbit terbaru per akun, kegagalan satu posting dilewati. Konsekuensi produk: komentar baru di posting yang lebih lama dari 50 terbaru per akun tidak ditarik. Batas ini belum diukur terhadap kuota Outstand dan ditinjau ulang bila terukur terlalu ketat. Rincian ada di `integration-layer.md` dan `background-jobs.md`.
+- **Indeks (T-218.8):** satu indeks `(workspace_id, post_id, received_at DESC)` pada `engagement_inbox_items`; tanpa `(workspace_id, received_at)`. Manfaatnya diukur dengan `EXPLAIN (ANALYZE)` di staging; indeks `(workspace_id)` lama dibuang lewat tiket terpisah setelah terukur. Rincian di `database-strategy.md`.
+- **Penerapan migrasi:** King Rezi mengizinkan penerapan migrasi T-217.4 dan indeks T-218 ke DB bersama (ADR-081), dijalankan setelah PR gelombang ini merge.

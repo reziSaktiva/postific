@@ -7,6 +7,7 @@ import type {
   UserId,
   WorkspaceId,
 } from "@postific/shared";
+import { SocialPlatform } from "@postific/shared";
 import {
   ConflictError,
   NotFoundError,
@@ -18,11 +19,21 @@ import {
   canTransitionInboxStatus,
   inboxCountWindowStart,
 } from "../inbox-status";
+import {
+  INBOX_DATE_RANGES,
+  INBOX_POST_SORTS,
+  buildInboxPostGroups,
+  inboxDateRangeStart,
+} from "../inbox-post-groups";
 import type {
   EngagementInboxItemRecord,
   EngagementReplyRecord,
+  InboxDateRange,
   InboxItemFilter,
   InboxItemStatus,
+  InboxPostGroupSummary,
+  InboxPostSort,
+  InboxPublishedPostRef,
 } from "../types";
 
 /**
@@ -66,6 +77,19 @@ interface PublishingPostReferencePort {
     mediaIds: MediaId[];
     platformPostUrl: string | null;
   } | null>;
+
+  /**
+   * T-218.4 — posting terbit (sudah punya `outstandPostId`) satu akun, terbaru
+   * dulu, dibatasi sisi repository. Sumber yang sama dengan JOB-03 (hanya
+   * posting ini yang komentarnya ditarik), dipakai untuk menampilkan posting
+   * tanpa komentar.
+   */
+  listSyncablePostsByConnectedAccount(
+    input: { workspaceId: WorkspaceId; connectedAccountId: ConnectedAccountId },
+    userId: UserId,
+  ): Promise<
+    { postId: PostId; outstandPostId: string; platform: SocialPlatform }[]
+  >;
 }
 
 /**
@@ -79,6 +103,12 @@ interface PublishingPostReferencePort {
  * typing (pola sama `ConnectedAccountsPort` di `refresh-inbox.use-case.ts`).
  */
 interface ConnectedAccountHandlePort {
+  /** T-218.4 — daftar akun workspace untuk menelusuri posting tanpa komentar. */
+  listConnectedAccounts(
+    workspaceId: WorkspaceId,
+    userId: UserId,
+  ): Promise<{ id: ConnectedAccountId; platform: SocialPlatform }[]>;
+
   findConnectedAccountById(
     workspaceId: WorkspaceId,
     connectedAccountId: ConnectedAccountId,
@@ -111,6 +141,43 @@ export interface InboxItemDetail extends EngagementInboxItemRecord {
   postSnapshot: InboxItemPostSnapshot | null;
 }
 
+/** Kelompok posting siap-render (T-218): ringkasan komentar + snapshot posting. */
+export interface InboxPostGroup extends InboxPostGroupSummary {
+  /** `null` untuk kelompok "Tanpa posting" atau posting yang sudah tidak ada. */
+  postSnapshot: InboxItemPostSnapshot | null;
+}
+
+export interface ListInboxByPostInput {
+  workspaceId: WorkspaceId;
+  connectedAccountId?: ConnectedAccountId;
+  platform?: SocialPlatform;
+  /** Hanya kelompok yang punya minimal satu komentar berstatus ini; hitungan tetap atas semua komentar. */
+  status?: InboxItemStatus;
+  /** Bawaan `unreplied_first`. */
+  sort?: InboxPostSort;
+  /** Atas `receivedAt`; bawaan `12m` (S-006). */
+  dateRange?: InboxDateRange;
+  /** `true` menampilkan juga posting terbit tanpa komentar (T-218.4). */
+  includeEmpty?: boolean;
+}
+
+/**
+ * Hasil `listInboxByPost`. `truncated` = ada posting bernomor (berkomentar atau
+ * `includeEmpty`) yang dibuang karena melewati `POST_GROUP_LIMIT`; kelompok
+ * "Tanpa posting" tidak pernah dibuang.
+ */
+export interface InboxPostGroupsResult {
+  groups: InboxPostGroup[];
+  truncated: boolean;
+}
+
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Jumlah posting bernomor maksimum per panggilan dan konkurensi pengambilan snapshot. */
+export const POST_GROUP_LIMIT = 100;
+const SNAPSHOT_CONCURRENCY = 10;
+
 /**
  * Application Service untuk domain `engagement` (T-050). Scope awalnya
  * dibatasi ke 3 use-case baca/tulis dasar — sync (T-051) dan manual refresh
@@ -139,6 +206,151 @@ export class EngagementService {
     userId: UserId,
   ): Promise<EngagementInboxItemRecord[]> {
     return this.repository.listInboxItems(filter, userId);
+  }
+
+  /**
+   * Daftar posting beserta ringkasan komentarnya (T-218, ADR-157, S-006) —
+   * dasar tampilan "By post". Dikelompokkan per `postId` (komentar tanpa
+   * `postId` menjadi satu kelompok `postId: null`), dengan hitungan total,
+   * belum dibalas (`unread`), ditangani (sisanya), dan waktu komentar
+   * terbaru. Semua hitungan hanya atas komentar dalam rentang tanggal (dan
+   * filter akun/platform). Kelompok "Tanpa posting" selalu di dasar dan tidak
+   * ikut sort. Posting tanpa komentar disembunyikan kecuali `includeEmpty`;
+   * "kosong" berarti tanpa komentar DALAM rentang. `includeEmpty` diabaikan
+   * saat filter status aktif, dan posting kosong selalu di bawah posting
+   * berkomentar untuk sort apa pun. Maksimum `POST_GROUP_LIMIT` posting
+   * bernomor; `truncated` menandai ada yang dibuang.
+   * Snapshot posting diambil lewat port `publishing` (T-056); `mediaIds`
+   * dibawa mentah, signed URL thumbnail diregenerasi composition root
+   * (`MediaService.resolveThumbnails`), seperti `getInboxItemDetail`.
+   */
+  async listInboxByPost(
+    input: ListInboxByPostInput,
+    userId: UserId,
+    now: Date = new Date(),
+  ): Promise<InboxPostGroupsResult> {
+    const sort = input.sort ?? "unreplied_first";
+    const dateRange = input.dateRange ?? "12m";
+    if (!INBOX_POST_SORTS.includes(sort)) {
+      throw new ValidationError("Urutan daftar posting tidak dikenal.");
+    }
+    if (!INBOX_DATE_RANGES.includes(dateRange)) {
+      throw new ValidationError("Rentang tanggal tidak dikenal.");
+    }
+    if (input.status && !INBOX_ITEM_STATUSES.includes(input.status)) {
+      throw new ValidationError("Status komentar tidak dikenal.");
+    }
+    if (
+      input.connectedAccountId !== undefined &&
+      !UUID_PATTERN.test(input.connectedAccountId)
+    ) {
+      throw new ValidationError("Akun tidak valid.");
+    }
+    if (
+      input.platform !== undefined &&
+      !(Object.values(SocialPlatform) as string[]).includes(input.platform)
+    ) {
+      throw new ValidationError("Platform tidak dikenal.");
+    }
+
+    const since = inboxDateRangeStart(dateRange, now);
+    const { workspaceId, connectedAccountId, platform } = input;
+    const scope = {
+      workspaceId,
+      ...(connectedAccountId ? { connectedAccountId } : {}),
+      ...(platform ? { platform } : {}),
+    };
+
+    const [rows, emptyPosts] = await Promise.all([
+      this.repository.aggregateInboxByPost(
+        { ...scope, receivedSince: since },
+        userId,
+      ),
+      input.includeEmpty && !input.status
+        ? this.listPublishedPostRefs(scope, userId)
+        : Promise.resolve([]),
+    ]);
+
+    const built = buildInboxPostGroups(rows, {
+      sort,
+      status: input.status,
+      emptyPosts,
+    });
+    // Batas hanya untuk posting bernomor (urutan builder: berkomentar, lalu
+    // posting kosong, jadi yang kosong terbuang lebih dulu); "Tanpa posting"
+    // selalu dipertahankan di dasar.
+    const numbered = built.filter((group) => group.postId !== null);
+    const groups = [
+      ...numbered.slice(0, POST_GROUP_LIMIT),
+      ...built.filter((group) => group.postId === null),
+    ];
+    const truncated = numbered.length > POST_GROUP_LIMIT;
+
+    const result: InboxPostGroup[] = [];
+    for (let i = 0; i < groups.length; i += SNAPSHOT_CONCURRENCY) {
+      const chunk = groups.slice(i, i + SNAPSHOT_CONCURRENCY);
+      const snapshots = await Promise.all(
+        chunk.map((group) =>
+          group.postId
+            ? this.publishingPosts.findPostSnapshotForEngagement(
+                {
+                  workspaceId,
+                  postId: group.postId,
+                  connectedAccountId: group.connectedAccountId,
+                },
+                userId,
+              )
+            : Promise.resolve(null),
+        ),
+      );
+      chunk.forEach((group, index) =>
+        result.push({ ...group, postSnapshot: snapshots[index] }),
+      );
+    }
+    return { groups: result, truncated };
+  }
+
+  /**
+   * Posting terbit per akun (sumber sama JOB-03: maksimum 50 terbaru per
+   * akun) untuk `includeEmpty`. Filter akun/platform diterapkan di sini.
+   */
+  private async listPublishedPostRefs(
+    scope: {
+      workspaceId: WorkspaceId;
+      connectedAccountId?: ConnectedAccountId;
+      platform?: SocialPlatform;
+    },
+    userId: UserId,
+  ): Promise<InboxPublishedPostRef[]> {
+    const accounts = (
+      await this.connectedAccounts.listConnectedAccounts(
+        scope.workspaceId,
+        userId,
+      )
+    ).filter(
+      (account) =>
+        (!scope.connectedAccountId ||
+          account.id === scope.connectedAccountId) &&
+        (!scope.platform || account.platform === scope.platform),
+    );
+    const perAccount = await Promise.all(
+      accounts.map(async (account) =>
+        (
+          await this.publishingPosts.listSyncablePostsByConnectedAccount(
+            {
+              workspaceId: scope.workspaceId,
+              connectedAccountId: account.id,
+            },
+            userId,
+          )
+        ).map((post) => ({
+          postId: post.postId,
+          connectedAccountId: account.id,
+          platform: post.platform,
+        })),
+      ),
+    );
+    return perAccount.flat();
   }
 
   /**
