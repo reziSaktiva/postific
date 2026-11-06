@@ -8,6 +8,7 @@ import type {
   EngagementInboxItemRecord,
   InboxDateRange,
   InboxItemStatus,
+  InboxPostSort,
 } from "@/domains/engagement";
 
 import {
@@ -19,12 +20,14 @@ import {
   type InboxPostGroupDto,
   type ListInboxActionFilter,
 } from "../actions";
-import { NO_POST_KEY, applyStatusToGroup, groupKey } from "./engage-model";
-
-export const ALL_FILTER_VALUE = "all";
-
-/** Rentang bawaan (S-006, ADR-157); T-220 menjadikannya filter yang bisa diubah. */
-export const DEFAULT_DATE_RANGE: InboxDateRange = "12m";
+import {
+  ALL_FILTER_VALUE,
+  DEFAULT_DATE_RANGE,
+  DEFAULT_SORT,
+  NO_POST_KEY,
+  applyStatusToGroup,
+  groupKey,
+} from "./engage-model";
 
 const STATUS_TOAST: Record<InboxItemStatus, string> = {
   unread: "Komentar dibuka kembali",
@@ -58,6 +61,9 @@ export function useEngageInbox({
   const [accountFilter, setAccountFilter] = useState(ALL_FILTER_VALUE);
   const [platformFilter, setPlatformFilter] = useState(ALL_FILTER_VALUE);
   const [statusFilter, setStatusFilter] = useState(ALL_FILTER_VALUE);
+  const [sort, setSort] = useState<InboxPostSort>(DEFAULT_SORT);
+  const [dateRange, setDateRange] =
+    useState<InboxDateRange>(DEFAULT_DATE_RANGE);
   const [showEmptyPosts, setShowEmptyPosts] = useState(false);
   const [isLoadingList, setIsLoadingList] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -103,10 +109,11 @@ export function useEngageInbox({
       ...(platform && { platform }),
       ...(status && { status }),
       includeEmpty: showEmptyPosts,
-      dateRange: DEFAULT_DATE_RANGE,
+      sort,
+      dateRange,
     });
     return result;
-  }, [accountId, platform, status, showEmptyPosts]);
+  }, [accountId, platform, status, showEmptyPosts, sort, dateRange]);
 
   // Lewati fetch pertama: `initialGroups` sudah state filter bawaan.
   const skipNextFetchRef = useRef(true);
@@ -156,7 +163,7 @@ export function useEngageInbox({
       setIsLoadingComments(true);
       const filter: ListInboxActionFilter = {
         postId: effectiveKey === NO_POST_KEY ? null : effectiveKey,
-        dateRange: DEFAULT_DATE_RANGE,
+        dateRange,
         ...(accountId && { connectedAccountId: accountId }),
         ...(platform && { platform }),
       };
@@ -173,7 +180,7 @@ export function useEngageInbox({
     return () => {
       cancelled = true;
     };
-  }, [effectiveKey, accountId, platform, commentsTick]);
+  }, [effectiveKey, accountId, platform, dateRange, commentsTick]);
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
@@ -307,14 +314,22 @@ export function useEngageInbox({
     setAccountFilter(ALL_FILTER_VALUE);
     setPlatformFilter(ALL_FILTER_VALUE);
     setStatusFilter(ALL_FILTER_VALUE);
+    setSort(DEFAULT_SORT);
+    setDateRange(DEFAULT_DATE_RANGE);
   }, []);
 
   const hasActiveFilter =
     accountFilter !== ALL_FILTER_VALUE ||
     platformFilter !== ALL_FILTER_VALUE ||
-    statusFilter !== ALL_FILTER_VALUE;
+    statusFilter !== ALL_FILTER_VALUE ||
+    sort !== DEFAULT_SORT ||
+    dateRange !== DEFAULT_DATE_RANGE;
 
   return {
+    sort,
+    setSort,
+    dateRange,
+    setDateRange,
     groups,
     truncated,
     accountFilter,

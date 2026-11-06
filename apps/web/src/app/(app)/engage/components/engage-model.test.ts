@@ -5,6 +5,7 @@ import type { InboxItemStatus } from "@/domains/engagement";
 import type { InboxPostGroupDto } from "../actions";
 import {
   applyStatusToGroup,
+  countPanelFilters,
   availableStatusActions,
   filterByStatus,
   handledPercent,
@@ -112,5 +113,24 @@ describe("hasStaleComments", () => {
     expect(hasStaleComments([item("unread", "2026-09-01")], now)).toBe(true);
     expect(hasStaleComments([item("unread", "2026-10-20")], now)).toBe(false);
     expect(hasStaleComments([], now)).toBe(false);
+  });
+});
+
+describe("countPanelFilters", () => {
+  it("menghitung hanya yang menyimpang dari bawaan", () => {
+    const d = {
+      sort: "unreplied_first",
+      dateRange: "12m",
+      platform: "all",
+    } as const;
+    expect(countPanelFilters(d)).toBe(0);
+    expect(countPanelFilters({ ...d, sort: "oldest" })).toBe(1);
+    expect(
+      countPanelFilters({
+        sort: "newest",
+        dateRange: "7d",
+        platform: "tiktok",
+      }),
+    ).toBe(3);
   });
 });

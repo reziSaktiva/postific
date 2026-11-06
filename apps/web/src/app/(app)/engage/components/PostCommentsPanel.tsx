@@ -10,6 +10,7 @@ import {
 import type {
   EngagementInboxItemRecord,
   InboxItemStatus,
+  InboxPostSort,
 } from "@/domains/engagement";
 import type { ConnectedAccountRecord } from "@/domains/workspace";
 import { cn } from "@/lib/utils";
@@ -47,6 +48,7 @@ export function PostCommentsPanel({
   comments,
   isLoading,
   statusFilter,
+  sort,
   timeZone,
   hiddenOnMobile,
   bannerDismissed,
@@ -67,6 +69,7 @@ export function PostCommentsPanel({
   comments: EngagementInboxItemRecord[] | null;
   isLoading: boolean;
   statusFilter: InboxItemStatus | "all";
+  sort: InboxPostSort;
   timeZone: string;
   hiddenOnMobile: boolean;
   bannerDismissed: boolean;
@@ -88,7 +91,7 @@ export function PostCommentsPanel({
   const isNoPost = group.postId === null;
   const all = comments ?? [];
   const summary = summarizeComments(all);
-  const shown = sortComments(filterByStatus(all, statusFilter));
+  const shown = sortComments(filterByStatus(all, statusFilter), sort);
   const showBanner = !bannerDismissed && hasStaleComments(all);
 
   return (

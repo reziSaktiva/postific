@@ -1,5 +1,6 @@
 import type {
   EngagementInboxItemRecord,
+  InboxDateRange,
   InboxItemStatus,
   InboxPostSort,
 } from "@/domains/engagement";
@@ -11,6 +12,39 @@ import type { InboxPostGroupDto } from "../actions";
  * urutan, dan pembaruan optimistis. Tanpa React dan tanpa IO supaya mudah
  * diuji lewat batas publiknya.
  */
+
+/** Nilai "semua" pada Select filter (Akun, Status, Platform). */
+export const ALL_FILTER_VALUE = "all";
+
+/** Bawaan filter sekunder (S-006, ADR-157, keputusan King Rezi T-216). */
+export const DEFAULT_SORT: InboxPostSort = "unreplied_first";
+export const DEFAULT_DATE_RANGE: InboxDateRange = "12m";
+
+export const SORT_OPTIONS: { value: InboxPostSort; label: string }[] = [
+  { value: "unreplied_first", label: "Belum dibalas dulu" },
+  { value: "newest", label: "Terbaru" },
+  { value: "oldest", label: "Terlama" },
+];
+
+export const DATE_RANGE_OPTIONS: { value: InboxDateRange; label: string }[] = [
+  { value: "7d", label: "7 hari terakhir" },
+  { value: "30d", label: "30 hari terakhir" },
+  { value: "6m", label: "6 bulan terakhir" },
+  { value: "12m", label: "12 bulan terakhir" },
+];
+
+/** Jumlah filter di panel Filter & Sort yang menyimpang dari bawaan (titik angka pada tombol). */
+export function countPanelFilters(f: {
+  sort: InboxPostSort;
+  dateRange: InboxDateRange;
+  platform: string;
+}): number {
+  return (
+    (f.sort !== DEFAULT_SORT ? 1 : 0) +
+    (f.dateRange !== DEFAULT_DATE_RANGE ? 1 : 0) +
+    (f.platform !== ALL_FILTER_VALUE ? 1 : 0)
+  );
+}
 
 /** Kunci kelompok "Tanpa posting" (`postId` kosong) pada pilihan dan `key` React. */
 export const NO_POST_KEY = "none";

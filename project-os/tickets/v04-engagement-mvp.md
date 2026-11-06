@@ -333,7 +333,7 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 | Field       | Value                                                                                                |
 | ----------- | ---------------------------------------------------------------------------------------------------- |
-| **Status**  | ⏳ Not Started                                                                                       |
+| **Status**  | 🟡 In Progress                                                                                       |
 | **Mode**    | AFK setelah T-216 dikonfirmasi                                                                       |
 | **Domain**  | engagement · UI (UI/UX-related)                                                                      |
 | **Spec**    | S-006                                                                                                |
@@ -342,10 +342,12 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 **What to build:** filter utama di header (Akun, Status) dan satu panel sekunder (Sort By, Date Range, Reset filters), menggantikan tiga `Select` sejajar. Menyentuh berkas yang sama dengan T-219 (`EngageInboxView` dan turunannya): kerjakan setelah T-219.1 memecah berkas, bukan paralel.
 
-- [ ] **T-220.1** Dropdown Akun/Channels dan Status (single-select bercentang) di header.
-- [ ] **T-220.2** Panel Filter & Sort (komponen ditentukan rancangan, diverifikasi lewat MCP shadcn): Sort By, Date Range, Reset filters. Filter Platform berada di panel ini (keputusan King Rezi 2026-11-05 atas rancangan T-216).
-- [ ] **T-220.3** Filter memicu query T-218 server-side seperti pola sekarang (`listInboxAction`); tanpa request ganda saat render awal.
-- [ ] **T-220.4** Tes komponen; terang, gelap, 375px diamati; `typecheck`, `lint`, tes hijau.
+- [x] **T-220.1** Dropdown Akun/Channels dan Status (single-select bercentang) di header.
+- [x] **T-220.2** Panel Filter & Sort (komponen ditentukan rancangan, diverifikasi lewat MCP shadcn): Sort By, Date Range, Reset filters. Filter Platform berada di panel ini (keputusan King Rezi 2026-11-05 atas rancangan T-216).
+- [x] **T-220.3** Filter memicu query T-218 server-side seperti pola sekarang (`listInboxAction`); tanpa request ganda saat render awal.
+- [x] **T-220.4** Tes komponen; terang, gelap, 375px diamati; `typecheck`, `lint`, tes hijau.
+
+**Belum terbukti (jalur A, 2026-11-06):** tidak diamati dengan data, login, dan server action sungguhan; terang/gelap/375px hanya pada harness sementara (komponen `EngageToolbar` asli, state lokal, dihapus sebelum commit; gelap desktop dan 375, terang 375, panel terbuka; terang desktop tidak diamati). Dropdown Akun dan Status dibuka hanya lewat tes jsdom (Status), bukan di browser; hover tidak diuji. Titik pasang toggle `viewToggleSlot` kosong sampai T-224. Rentang Date Range juga menyaring daftar komentar panel kanan (disamakan dengan hitungan kartu).
 
 **Blocked by:** T-219 (berkas bersama; T-216 dan T-218 sudah/segera terpenuhi).
 

@@ -139,6 +139,10 @@ const rowOf = (handle: string) =>
   screen.getByText(handle).closest("[data-status]") as HTMLElement;
 
 beforeEach(() => {
+  Element.prototype.hasPointerCapture ??= () => false;
+  Element.prototype.setPointerCapture ??= () => {};
+  Element.prototype.releasePointerCapture ??= () => {};
+  Element.prototype.scrollIntoView ??= () => {};
   Object.values(mocks).forEach((m) => "mockReset" in m && m.mockReset());
   mocks.toast.error.mockReset();
   mocks.listInboxAction.mockImplementation(
@@ -301,6 +305,58 @@ describe("EngageInboxView per posting (T-219)", () => {
       screen.getByText("Komentar terbaru belum dapat diambil"),
     ).toBeTruthy();
     expect(screen.getByText("@maya")).toBeTruthy();
+  });
+
+  it("render awal tidak meminta daftar posting lagi; komentar dimuat sekali", async () => {
+    renderView();
+    await screen.findByText("@maya");
+    expect(mocks.listInboxByPostAction).not.toHaveBeenCalled();
+    expect(mocks.listInboxAction).toHaveBeenCalledTimes(1);
+  });
+
+  it("mengubah Sort By memicu query server-side dengan sort baru dan rentang bawaan", async () => {
+    renderView();
+    await screen.findByText("@maya");
+    fireEvent.click(screen.getByRole("button", { name: /Filter dan urutan/ }));
+    await act(async () =>
+      fireEvent.click(screen.getByRole("radio", { name: "Terbaru" })),
+    );
+    expect(mocks.listInboxByPostAction).toHaveBeenCalledTimes(1);
+    expect(mocks.listInboxByPostAction).toHaveBeenCalledWith(
+      expect.objectContaining({ sort: "newest", dateRange: "12m" }),
+    );
+  });
+
+  it("mengubah Date Range memuat ulang daftar dan komentar dengan rentang itu", async () => {
+    renderView();
+    await screen.findByText("@maya");
+    fireEvent.click(screen.getByRole("button", { name: /Filter dan urutan/ }));
+    await act(async () =>
+      fireEvent.click(screen.getByRole("radio", { name: "7 hari terakhir" })),
+    );
+    expect(mocks.listInboxByPostAction).toHaveBeenLastCalledWith(
+      expect.objectContaining({ dateRange: "7d" }),
+    );
+    await waitFor(() =>
+      expect(mocks.listInboxAction).toHaveBeenLastCalledWith(
+        expect.objectContaining({ postId: "p1", dateRange: "7d" }),
+      ),
+    );
+  });
+
+  it("Reset filters mengembalikan Sort dan Date Range ke bawaan", async () => {
+    renderView();
+    await screen.findByText("@maya");
+    fireEvent.click(screen.getByRole("button", { name: /Filter dan urutan/ }));
+    await act(async () =>
+      fireEvent.click(screen.getByRole("radio", { name: "Terlama" })),
+    );
+    await act(async () =>
+      fireEvent.click(screen.getByRole("button", { name: "Reset filters" })),
+    );
+    expect(mocks.listInboxByPostAction).toHaveBeenLastCalledWith(
+      expect.objectContaining({ sort: "unreplied_first", dateRange: "12m" }),
+    );
   });
 
   it("kosong tanpa filter: ajakan Buka Publish; dengan filter aktif: Reset filters", async () => {

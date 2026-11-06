@@ -10,7 +10,6 @@ import {
   Refresh01Icon,
 } from "@hugeicons/core-free-icons";
 
-import { SocialPlatform } from "@postific/shared";
 import type { ConnectedAccountRecord } from "@/domains/workspace";
 import type { InboxItemStatus } from "@/domains/engagement";
 import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
@@ -31,29 +30,14 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Text } from "@/components/ui/text";
 
-import { PLATFORM_ICON } from "../../components/platform-icons";
 import type { InboxPostGroupDto } from "../actions";
-import { STATUS_LABEL } from "./engage-model";
 import { PostCommentsPanel } from "./PostCommentsPanel";
 import { PostListPanel } from "./PostListPanel";
-import { ALL_FILTER_VALUE, useEngageInbox } from "./useEngageInbox";
-
-const STATUS_OPTIONS: { value: string; label: string }[] = [
-  { value: ALL_FILTER_VALUE, label: "Semua Status" },
-  ...(Object.keys(STATUS_LABEL) as InboxItemStatus[]).map((value) => ({
-    value,
-    label: STATUS_LABEL[value],
-  })),
-];
+import { ALL_FILTER_VALUE } from "./engage-model";
+import { EngageToolbar } from "./EngageToolbar";
+import { useEngageInbox } from "./useEngageInbox";
 
 /** Jam + singkatan zona pengguna dari Intl ("10.30 WIB", "05.30 GMT-4") — T-147. */
 function formatUpdatedAtLabel(date: Date, timeZone: string): string {
@@ -97,21 +81,6 @@ export function EngageInboxView({
     initialTruncated,
     initialLoadFailed,
   });
-
-  const accountOptions = [
-    { value: ALL_FILTER_VALUE, label: "Semua Akun" },
-    ...accounts.map((account) => ({
-      value: account.id as string,
-      label: account.handle,
-    })),
-  ];
-  const platformOptions = [
-    { value: ALL_FILTER_VALUE, label: "Semua Platform" },
-    ...Object.values(SocialPlatform).map((platform) => ({
-      value: platform as string,
-      label: PLATFORM_ICON[platform].label,
-    })),
-  ];
 
   const inDetail = inbox.mobileView === "detail";
   const totalUnread = inbox.groups.reduce(
@@ -177,57 +146,24 @@ export function EngageInboxView({
         </Alert>
       ) : null}
 
-      <div className={cn("flex flex-wrap gap-2", inDetail && "max-md:hidden")}>
-        <Select
-          value={inbox.accountFilter}
-          onValueChange={inbox.setAccountFilter}
-        >
-          <SelectTrigger size="sm" aria-label="Filter akun" className="w-44">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {accountOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
-          value={inbox.platformFilter}
-          onValueChange={inbox.setPlatformFilter}
-        >
-          <SelectTrigger
-            size="sm"
-            aria-label="Filter platform"
-            className="w-44"
-          >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {platformOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
-          value={inbox.statusFilter}
-          onValueChange={inbox.setStatusFilter}
-        >
-          <SelectTrigger size="sm" aria-label="Filter status" className="w-44">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {STATUS_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <EngageToolbar
+        className={cn(inDetail && "max-md:hidden")}
+        accounts={accounts}
+        accountFilter={inbox.accountFilter}
+        onAccountChange={inbox.setAccountFilter}
+        statusFilter={inbox.statusFilter}
+        onStatusChange={inbox.setStatusFilter}
+        platformFilter={inbox.platformFilter}
+        onPlatformChange={inbox.setPlatformFilter}
+        sort={inbox.sort}
+        onSortChange={inbox.setSort}
+        dateRange={inbox.dateRange}
+        onDateRangeChange={inbox.setDateRange}
+        hasActiveFilter={inbox.hasActiveFilter}
+        onReset={inbox.resetFilters}
+        // Titik pasang toggle By post / List: diisi T-224.
+        viewToggleSlot={undefined}
+      />
 
       {isEmpty && !inbox.showEmptyPosts && !inbox.isLoadingList ? (
         <div className="flex min-h-0 flex-1 items-center justify-center rounded-xl border border-border bg-card p-4">
@@ -290,6 +226,7 @@ export function EngageInboxView({
               accounts={accounts}
               comments={inbox.comments}
               isLoading={inbox.isLoadingComments}
+              sort={inbox.sort}
               statusFilter={
                 inbox.statusFilter === ALL_FILTER_VALUE
                   ? "all"
