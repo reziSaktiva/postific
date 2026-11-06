@@ -47,7 +47,11 @@ type CommentKey = keyof EngageSeed["comments"];
 
 /** Kartu posting di panel kiri, dicari lewat caption semai. */
 function card(page: Page, caption: string): Locator {
-  return page.locator("[data-slot=card]").filter({ hasText: caption });
+  // Hanya kartu daftar (punya progress bar), bukan kartu pratinjau post asal.
+  return page
+    .locator("[data-slot=card]")
+    .filter({ has: page.getByRole("progressbar") })
+    .filter({ hasText: caption });
 }
 
 /** Satu baris komentar (By post maupun List), dicari lewat handle penulis. */
@@ -139,7 +143,9 @@ test("daftar posting, komentar posting terpilih, dan post asal", async ({
   await expect(page.getByText("1 dibalas")).toBeVisible();
   await expect(page.getByText("/ 3 total komentar")).toBeVisible();
   await expect(row(page, "c1")).toBeVisible();
-  expect(await visibleCommentOrder(page)).toEqual(["c1", "c2", "c3"]);
+  await expect
+    .poll(() => visibleCommentOrder(page))
+    .toEqual(["c1", "c2", "c3"]);
   await expect(
     page.getByRole("link", { name: "Buka posting" }),
   ).toHaveAttribute("href", seed.p1Url);
@@ -268,7 +274,9 @@ test("filter Status menyaring komentar posting terpilih", async ({ page }) => {
 test("Sort mengubah urutan komentar", async ({ page }) => {
   await openEngage(page);
   await selectPost(page, seed.captions.p1);
-  expect(await visibleCommentOrder(page)).toEqual(["c1", "c2", "c3"]);
+  await expect
+    .poll(() => visibleCommentOrder(page))
+    .toEqual(["c1", "c2", "c3"]);
 
   await chooseSort(page, "Terbaru");
   await expect
@@ -317,7 +325,7 @@ test("Reset mengembalikan Sort, Date Range, dan Platform ke bawaan", async ({
   await page
     .getByRole("radio", { name: "7 hari terakhir", exact: true })
     .click();
-  await page.getByRole("combobox", { name: "Filter platform" }).click();
+  await page.getByRole("combobox", { name: "Platform", exact: true }).click();
   await page.getByRole("option", { name: "Facebook", exact: true }).click();
 
   await expect(card(page, seed.captions.p1)).toHaveCount(0);
@@ -361,7 +369,7 @@ test("regresi: filter Akun dan Platform", async ({ page }) => {
   await expect(card(page, seed.captions.p3)).toBeVisible();
 
   await openFilterPanel(page);
-  await page.getByRole("combobox", { name: "Filter platform" }).click();
+  await page.getByRole("combobox", { name: "Platform", exact: true }).click();
   await page.getByRole("option", { name: "Facebook", exact: true }).click();
   await page.keyboard.press("Escape");
   await expect(card(page, seed.captions.p1)).toHaveCount(0);

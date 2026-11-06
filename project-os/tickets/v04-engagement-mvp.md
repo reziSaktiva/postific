@@ -412,7 +412,8 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 **What to build:** bukti bahwa Engage per posting bekerja dan tidak merusak yang sudah ada.
 
 - [ ] **T-222.1** E2E Playwright golden path (ADR-149): buka Engage, pilih posting, balas komentar, Resolve, Dismiss, buka kembali, filter status, Sort, Date Range, Reset, dan pindah By post / List. Hijau tiga run di `local`. Konvensi `e2e-data.ts` (workspace E2E Sandbox) diikuti; tes tidak memublikasikan di workspace produksi.
-- [ ] **T-222.2** Regresi: filter akun/platform, reply (T-054), post asal (T-056), badge sidebar, Engagement Snapshot Home, manual refresh.
+      Bukti 2026-11-06: `apps/web/e2e/engage-per-post.e2e.ts`, hijau 3 run berturut-turut (11/11 lulus tiap run, target `local` via server dev port 3000). Belum terbukti: pengiriman balasan sungguhan (Server Action memanggil Outstand, tidak bisa dicegat Playwright; tes hanya membuka komposer dan tidak menekan Kirim), jadi butir belum dicentang.
+- [ ] **T-222.2** Regresi: filter akun/platform, reply (T-054), post asal (T-056), manual refresh. Hijau 3 run (E2E yang sama) untuk filter akun/platform, post asal (href "Buka posting"), dan manual refresh. Reply (T-054) hanya komposernya yang terbukti, pengiriman belum (lihat T-222.1), jadi belum dicentang. ~~Badge sidebar, Engagement Snapshot Home~~: dicoret, konsumennya belum dibangun (tidak ada badge unread Engage di sidebar dan tidak ada widget Snapshot); tindak lanjut, bukan dipindahkan.
 - [ ] **T-222.3** Review arsitektur Ridwan dan QA Najwa tanpa temuan terbuka; `/code-review`; `typecheck`, `lint`, tes hijau.
 - [ ] **T-222.4** Done (code). Verified (staging) satu kali per gelombang (ADR-153) untuk hal yang tidak bisa dibuktikan lokal; bagian "Belum terbukti" tiket T-217 sampai T-220 dan T-224 tetap wajib sampai butirnya lulus.
 
