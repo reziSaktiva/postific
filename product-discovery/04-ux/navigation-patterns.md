@@ -117,7 +117,7 @@ Primary navigation terdiri dari empat zona vertikal:
 ## Active State dan Visual Feedback
 
 - Item navigasi aktif ditandai secara visual (highlight / indicator) — pengguna selalu tahu posisi mereka.
-- **Engage** memiliki notification badge yang menampilkan jumlah interaksi unread — terlihat dari section manapun (mendukung UF-04 Alternate Path).
+- **Engage** memiliki notification badge yang menampilkan jumlah komentar `unread` dalam 12 bulan terakhir (belum dibalas; `replied`, `resolved`, `dismissed` tidak dihitung) — terlihat dari section manapun (mendukung UF-04 Alternate Path).
 - Tidak ada loading state yang memblokir sidebar — sidebar tetap interaktif saat konten dimuat.
 
 ---
@@ -211,11 +211,12 @@ Publish
 
 ## Engage — Single Screen
 
-Engage hanya memiliki satu layar: Inbox. Tidak ada tab navigation di dalam Engage.
+Engage hanya memiliki satu layar: Inbox. Tidak ada tab navigation di dalam Engage. Toggle **By post / List** di header Inbox adalah pilihan tampilan dalam layar yang sama (bukan navigasi tab dan bukan layar baru); By post adalah bawaan (ADR-157).
 
 ```
 Engage
 └── Inbox  ← langsung tampil tanpa sub-navigasi tambahan
+    └── [By post | List]  ← pilihan tampilan, bukan tab
 ```
 
 ---
@@ -322,16 +323,18 @@ Terjadi ketika pengguna menyelesaikan salah satu dari tiga aksi terminal di Draf
 
 ---
 
-## Pola: Thread Expansion
+## Pola: Komentar Posting Terpilih (Thread Expansion)
 
-Terjadi di Engage. Klik satu thread komentar membuka detail thread di dalam Inbox — tidak membuka layar baru.
+Terjadi di Engage. Memilih satu posting membuka komentarnya di dalam Inbox — tidak membuka layar baru.
 
 ```
-Engage → Inbox → [klik thread]  → Thread detail muncul di panel kanan / inline
-                                   (sidebar tetap terlihat, Inbox tetap terlihat di kiri)
+Engage → Inbox → [pilih posting]  → Komentar posting muncul di panel kanan
+                                    (sidebar tetap terlihat, daftar posting tetap terlihat di kiri)
 ```
 
-**Alasan:** Volume triage komentar dapat tinggi — pengguna perlu berpindah cepat antar thread tanpa full-page navigation setiap kali.
+Di layar sempit (375px) daftar posting dan komentar dipisah dengan push navigation (daftar → komentar, tombol kembali). Pada tampilan List tidak ada panel kanan; komposer balasan tampil inline.
+
+**Alasan:** Volume triage komentar dapat tinggi — pengguna perlu berpindah cepat antar posting tanpa full-page navigation setiap kali.
 
 ---
 
@@ -378,8 +381,8 @@ Notification badge pada item Engage di sidebar menginformasikan pengguna bahwa p
 ```
 Badge behavior:
 ├── Muncul: setelah sinkronisasi menemukan komentar unread baru di Inbox
-├── Angka: menampilkan jumlah unread (cap di angka 99+)
-├── Hilang: ketika semua item di Inbox ditandai Done atau dibuka
+├── Angka: menampilkan jumlah unread dalam 12 bulan terakhir, yaitu komentar belum dibalas (cap di angka 99+; batas 12 bulan sama dengan Date Range bawaan Inbox)
+├── Hilang: ketika tidak ada lagi komentar unread (semua dibalas, Resolve, atau Dismiss)
 └── Tetap terlihat dari section manapun (sidebar persisten)
 ```
 
@@ -425,7 +428,7 @@ Keputusan navigasi yang dibuat dalam dokumen ini.
 | -- | --------- | ------ | ------- |
 | NP-D01 | Model navigasi: Persistent Sidebar | Web app; sidebar memberikan akses cepat antar section tanpa kehilangan konteks | UXP-01, NP-P01 |
 | NP-D02 | ~~Draft Editor ditampilkan sebagai panel/layar penuh dalam Publish, bukan modal overlay~~ — **Dioverride oleh NP-D11 (ADR-052)** | Alasan asli: modal menutupi Calendar/Queue, pengguna kehilangan konteks jadwal saat mengedit. Trade-off ini kemudian disadari & diterima demi kecepatan alur kerja — lihat NP-D11 | NP-P02, UXP-04 |
-| NP-D03 | Thread Inbox: inline expansion, bukan layar baru | Volume triage tinggi; pengguna perlu berpindah thread dengan cepat tanpa full-page nav | UXP-03, NP-P03 |
+| NP-D03 | Komentar Inbox per posting: inline expansion, bukan layar baru (diamandemen ADR-157; sebelumnya "Thread Inbox") | Volume triage tinggi; pengguna perlu berpindah posting dengan cepat tanpa full-page nav | UXP-03, NP-P03 |
 | NP-D04 | Notification badge hanya pada Engage | Hanya Engage yang memerlukan respons segera; badge di semua section menambah noise | UXP-03, UXP-07 |
 | NP-D05 | Tidak ada redirect otomatis setelah cross-section navigation | State layar asal mungkin sudah berubah; redirect otomatis menciptakan kebingungan | NP-P02 |
 | NP-D06 | Publish default ke tab Calendar | Calendar memberi overview jadwal terbaik untuk Raka dan Maya (IA-D04) | UXP-02, P-IA-02 |
@@ -451,7 +454,7 @@ Keputusan navigasi yang dibuat dalam dokumen ini.
 | Buat post baru dari Calendar atau Queue | Klik CTA "New Post" | Buka Draft Editor (modal) kosong; Close menutup modal kembali ke sub-screen asal tanpa navigasi URL |
 | Buat post baru dari section manapun | Klik CTA "+ New Post" di Sidebar | Buka Draft Editor (modal) kosong, sama seperti CTA di Calendar/Queue/Drafts (NP-D12) |
 | Selesaikan aksi terminal di Draft Editor | Klik Save as Draft / Schedule / Publish Now | Modal tertutup, redirect ke Publish → Drafts / Queue / History-sementara-Calendar (NP-D13) |
-| Buka thread dari Inbox | Klik thread | Expand inline panel kanan dalam Inbox |
+| Buka komentar posting dari Inbox | Pilih posting | Komentar tampil inline di panel kanan dalam Inbox |
 | Akses Settings | Klik User Avatar → dropdown | Navigasi ke Settings (Organization / Account); sidebar persistent digantikan sidebar khusus Settings + tombol back (ADR-077) |
 | Buka Notifications | Klik Notifications icon | Buka Notifications Panel (overlay) |
 | Error status → Settings | Klik indikator error / tautan aksi | Navigasi ke Settings → Organization → Connected Accounts |

@@ -70,7 +70,7 @@ Home **bukan** layar kerja. Tidak ada aksi berat yang diselesaikan dari sini.
 | -- | ------ | --------- | ------- |
 | KSP-01-F01 | Today's Schedule | Daftar konten yang terjadwal untuk hari ini, per akun, dengan status | UXP-02, UXP-04 |
 | KSP-01-F02 | Recent Activity | Riwayat aksi terbaru: post berhasil dipublish, post gagal, akun disconnected | UXP-04, UXP-06 |
-| KSP-01-F03 | Engagement Snapshot | Jumlah komentar unread dari sinkronisasi terakhir — mendorong Raka ke Engage | UXP-07 |
+| KSP-01-F03 | Engagement Snapshot | Jumlah komentar unread (12 bulan terakhir, sama dengan Date Range bawaan Engage, ADR-157) dari sinkronisasi terakhir — mendorong Raka ke Engage | UXP-07 |
 | KSP-01-F04 | Analytics Snapshot | Highlight performa minggu ini: total posts, total reach, engagement rate | UXP-02, UXP-07 |
 | KSP-01-F05 | Deep Link ke Section | Setiap item/snapshot dapat diklik dan membawa pengguna ke layar yang relevan | UXP-01 |
 
@@ -520,6 +520,8 @@ Confirmation Summary ini adalah pola konfirmasi **paling lengkap** yang didokume
 
 ## KSP-06 — Engage — Inbox
 
+> **Diamandemen ADR-157 (2026-11-05, T-221):** unit utama Engage adalah posting (bukan item inbox), status komentar menjadi `unread` / `replied` / `resolved` / `dismissed`, filter dibagi menjadi filter utama di header dan panel Filter & Sort, dan ada pilihan tampilan By post / List. Rancangan visual: kartu `ScreenEngagePerPosting` di artifact Postific dan entri "Engage: per posting" di galeri Postific Design Review (T-216, dikonfirmasi King Rezi 2026-11-05). Tab Mentions dan DM ditunda (T-223, ADR-040).
+
 ### Identitas
 
 | Field | Value |
@@ -531,7 +533,7 @@ Confirmation Summary ini adalah pola konfirmasi **paling lengkap** yang didokume
 
 ### Tujuan
 
-Inbox adalah pusat triage komentar — Raka membaca dan membalas komentar dari semua akun dalam satu tempat, tanpa harus membuka native app per platform. Data diperbarui melalui periodic pull setiap 30 menit atau manual refresh.
+Inbox adalah pusat triage komentar — Raka membaca dan membalas komentar dari semua akun dalam satu tempat, tanpa harus membuka native app per platform. Komentar dikelompokkan per posting karena triage alaminya mengikuti posting yang memicu komentar. Data diperbarui melalui periodic pull setiap 30 menit atau manual refresh.
 
 ---
 
@@ -539,47 +541,56 @@ Inbox adalah pusat triage komentar — Raka membaca dan membalas komentar dari s
 
 | ID | Fungsi | Deskripsi | Prinsip |
 | -- | ------ | --------- | ------- |
-| KSP-06-F01 | Thread List | Daftar thread komentar berurutan berdasarkan waktu masuk, dengan status Unread/Done | UXP-06 |
-| KSP-06-F02 | Filter | Filter berdasarkan akun, platform, atau status (Unread / Done) | UXP-03 |
-| KSP-06-F03 | Thread Expansion Inline | Klik thread membuka detail di panel kanan atau inline — tidak membuka layar baru | UXP-03 |
-| KSP-06-F04 | Konteks Post Asal | Thread menampilkan preview post yang memicu komentar tersebut | UXP-01 |
-| KSP-06-F05 | Reply Action | Pengguna dapat membalas komentar langsung dari Inbox | UXP-01 |
-| KSP-06-F06 | Mark as Done | Pengguna menandai komentar sebagai selesai — item hilang dari antrian Unread | UXP-06 |
+| KSP-06-F01 | Daftar Posting | Daftar posting yang punya komentar. Kartu memuat ikon platform, nama akun, cuplikan caption, thumbnail bila ada, badge jumlah komentar belum dibalas, dan progress bar rasio komentar yang sudah ditangani. Komentar tanpa `postId` masuk satu kelompok "Tanpa posting" di dasar daftar. Posting tanpa komentar disembunyikan; satu toggle menampilkannya | UXP-06 |
+| KSP-06-F02 | Filter dan Sort | Filter utama di header: Akun dan Status (dropdown single-select bercentang: Semua, Belum dibalas, Dibalas, Selesai, Diabaikan). Satu tombol ikon membuka panel Filter & Sort: Platform, Sort By (belum dibalas dulu = bawaan, terbaru, terlama), Date Range (7 hari, 30 hari, 6 bulan, 12 bulan = bawaan), dan Reset filters (mengembalikan semua filter ke bawaan) | UXP-03 |
+| KSP-06-F03 | Komentar Posting Terpilih | Pilih posting membuka komentarnya di panel kanan — tidak membuka layar baru. Panel memuat kartu pratinjau posting (konteks post asal), ringkasan "x dibalas / y total komentar" (x = status Dibalas saja) dengan teks kecil "n dari y ditangani", dan daftar komentar | UXP-03 |
+| KSP-06-F04 | Konteks Post Asal | Kartu pratinjau posting (platform, akun, tanggal, media, caption terpotong) di atas daftar komentar | UXP-01 |
+| KSP-06-F05 | Reply Action | Membalas komentar dari Inbox. Komposer docked di bawah panel kanan pada tampilan By post; inline di bawah komentar pada tampilan List. Balasan yang terkirim menandai komentar `Dibalas` bila sebelumnya `Belum dibalas` | UXP-01 |
+| KSP-06-F06 | Status Komentar | Aksi per komentar (muncul saat hover; selalu tampil di layar sempit): Resolve (→ `Selesai`), Dismiss (→ `Diabaikan`), dan Buka kembali (→ `Belum dibalas`) untuk komentar `Selesai` atau `Diabaikan`. Reply tersedia di semua status, kecuali untuk kelompok "Tanpa posting": Outstand hanya membalas per posting (ADR-113), jadi komposer nonaktif dengan pesan jelas; Resolve dan Dismiss tetap tersedia di kelompok itu. Aksi ini reversibel dan low-stakes | UXP-06 |
 | KSP-06-F07 | Sync Status | Menampilkan waktu sinkronisasi terakhir dan state sinkronisasi | UXP-03, UXP-06 |
 | KSP-06-F08 | Manual Refresh | Mengambil komentar terbaru tanpa menunggu periodic pull 30 menit berikutnya | UXP-03 |
+| KSP-06-F09 | Pilihan Tampilan | Toggle By post (bawaan) / List di header. List menampilkan komentar sebagai daftar datar lintas posting dengan baris konteks "Pada posting: …" yang membawa pengguna ke tampilan By post; sort, filter, dan aksi status sama dengan By post. Isi tampilan List adalah usulan rancangan (mode List Buffer belum teramati) | UXP-03 |
+
+### Status Komentar
+
+| Status | Arti | Masuk dari | Keluar ke |
+| ------ | ---- | ---------- | --------- |
+| `unread` (Belum dibalas) | Komentar baru dari sinkronisasi, belum ditangani | Sinkronisasi; Buka kembali dari `resolved` / `dismissed` | `replied`, `resolved`, `dismissed` |
+| `replied` (Dibalas) | Balasan berhasil terkirim dari Inbox | `unread`, otomatis saat balasan terkirim | `resolved`, `dismissed` |
+| `resolved` (Selesai) | Sudah ditangani | `unread`, `replied` | `unread` (Buka kembali) |
+| `dismissed` (Diabaikan) | Tidak perlu ditindaklanjuti | `unread`, `replied` | `unread` (Buka kembali) |
+
+Balasan terkirim tidak menurunkan `resolved` atau `dismissed`. Baris lama berstatus `done` dimigrasi menjadi `resolved` (T-217.4). Badge sidebar dan Engagement Snapshot di Home tetap menghitung `unread` saja.
 
 ---
 
 ### Zona Fungsional
 
-Inbox menggunakan pola **master-detail**: daftar thread di kiri, detail thread di kanan.
+Inbox pada tampilan By post memakai pola **dua panel**: daftar posting di kiri (bisa dilipat), komentar posting terpilih di kanan.
 
 ```
-┌────────────────────────────────────────────────────────┐
-│  Diperbarui 10:30  [Refresh]                           │
-│  Filter: [Semua Akun ▼] [Semua Platform ▼] [Unread ▼] │
-├───────────────────────────┬────────────────────────────┤
-│  THREAD LIST              │  THREAD DETAIL             │
-│                           │                            │
-│  ● @user1 — Komentar...   │  Post: "Selamat pagi..."   │
-│    Instagram · 5 mnt lalu │  [preview gambar]          │
-│                           │                            │
-│  ● @user2 — Komentar...   │  @user1: Komentar asli     │
-│    X · 12 mnt lalu        │                            │
-│                           │  [Balas...]                │
-│  ○ @user3 — Komentar...   │                            │
-│    LinkedIn · 1 jam lalu  │  [Mark as Done]            │
-│    (Done)                 │                            │
-└───────────────────────────┴────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────┐
+│  Engage   Diperbarui 10:30 [Refresh]      [By post | List]         │
+│  [Semua Akun ▼] [Semua Status ▼]                    [⚙ Filter&Sort]│
+├──────────────────────────┬─────────────────────────────────────────┤
+│  DAFTAR POSTING     [⊟]  │  KARTU PRATINJAU POSTING                │
+│                          │  9 dibalas / 21 total komentar          │
+│  [▣] @akun — caption…  6 │                                         │
+│      Instagram  ▬▬▬▬░░   │  @user1: Komentar…          [Belum dibalas]
+│                          │      [Reply] [Resolve] [Dismiss]  (hover)│
+│  [▣] Fan page — …      1 │  @user2: Komentar…              [Dibalas]│
+│                          │                                         │
+│  Tanpa posting         2 │  [Balas…]  (komposer docked)            │
+└──────────────────────────┴─────────────────────────────────────────┘
 ```
 
-**Zona filter:** Memfilter Thread List berdasarkan akun, platform, atau status.
+**Zona header:** Zona sinkronisasi, toggle By post / List, filter utama (Akun, Status), dan tombol Filter & Sort.
 
-**Zona sinkronisasi:** Menampilkan waktu sinkronisasi terakhir dan tombol Refresh. Saat refresh berjalan, tombol masuk state loading dan tidak memulai refresh kedua.
+**Zona Daftar Posting:** Setiap kartu menampilkan platform, akun, cuplikan caption, thumbnail, badge belum dibalas, dan progress bar ditangani. Posting dengan komentar belum dibalas tampil lebih dulu (sort bawaan); kelompok "Tanpa posting" tetap di dasar dan tidak ikut sort.
 
-**Zona Thread List:** Setiap item menampilkan nama pengguna, potongan komentar, platform, waktu, dan status (Unread ditandai berbeda dari Done).
+**Zona Komentar:** Muncul saat posting dipilih. Menampilkan konteks post asal, daftar komentar dengan badge status, aksi hover, dan area balas. Banner informasi yang bisa ditutup boleh tampil di atas panel ini (teks persis ditentukan rancangan).
 
-**Zona Thread Detail:** Muncul saat thread diklik. Menampilkan konteks post asal, thread komentar, area balas, dan tombol Mark as Done.
+**Layar sempit (375px):** daftar posting dan komentar dipisah (push navigation: daftar → komentar dengan tombol kembali), aksi status selalu tampil.
 
 ---
 
@@ -587,13 +598,16 @@ Inbox menggunakan pola **master-detail**: daftar thread di kiri, detail thread d
 
 | State | Tampilan |
 | ----- | -------- |
-| Ada interaksi unread | Thread List terisi; item Unread tampil di atas atau dengan penanda berbeda |
-| Semua sudah Done | Thread List menampilkan item Done; filter Unread menghasilkan daftar kosong |
-| Inbox kosong (tidak ada interaksi) | _"Belum ada interaksi"_ + pesan _"Mulai publish konten untuk melihat engagement"_ + CTA ke Publish |
-| Filter aktif — tidak ada hasil | _"Tidak ada interaksi untuk filter ini"_ |
-| Thread terbuka | Thread Detail tampil di panel kanan; Thread List tetap terlihat |
-| Manual refresh berjalan | Tombol Refresh loading; thread yang sudah ada tetap terlihat |
+| Ada komentar belum dibalas | Daftar posting terisi; posting dengan komentar belum dibalas di atas, badge menunjukkan jumlahnya |
+| Semua komentar sudah ditangani | Kartu posting menampilkan penanda selesai alih-alih badge; filter `Belum dibalas` menghasilkan daftar kosong |
+| Inbox kosong (tidak ada interaksi) | _"Belum ada interaksi"_ + pesan _"Mulai publish konten untuk melihat engagement"_ + CTA Buka Publish |
+| Filter aktif — tidak ada hasil | _"Tidak ada interaksi untuk filter ini"_ + aksi Reset filters |
+| Posting terpilih | Komentar tampil di panel kanan; daftar posting tetap terlihat (atau terlipat) |
+| Panel daftar terlipat | Panel kanan memakai lebar penuh; tombol lipat membukanya kembali |
+| Kelompok "Tanpa posting" dipilih | Komentar tanpa `postId` tampil tanpa kartu pratinjau posting; komposer balasan nonaktif dengan pesan bahwa komentar ini tidak terkait posting sehingga tidak dapat dibalas dari Postific; Resolve dan Dismiss tetap tersedia |
+| Manual refresh berjalan | Tombol Refresh loading; data yang sudah ada tetap terlihat |
 | Refresh gagal | Pesan ringkas _"Komentar terbaru belum dapat diambil"_ + aksi Coba Lagi; data sinkronisasi terakhir tetap terlihat |
+| Balasan terkirim | Baris status di komposer: _"Balasan terkirim. Komentar ditandai Dibalas."_; badge dan hitungan diperbarui |
 
 ---
 
@@ -604,14 +618,14 @@ Badge pada Engage di sidebar:
 ```
 Badge muncul → Raka menyelesaikan pekerjaan saat ini (tidak interrupt)
              → Raka klik Engage di sidebar
-             → Inbox terbuka dengan item Unread baru di atas
-             → Raka tangani satu per satu → Mark as Done
-             → Badge hilang saat semua Unread sudah Done
+             → Inbox terbuka dengan posting yang punya komentar belum dibalas di atas
+             → Raka tangani satu per satu → Reply / Resolve / Dismiss
+             → Badge hilang saat tidak ada lagi komentar belum dibalas
 ```
 
-Badge tidak memaksa Raka interrupt alur yang sedang berjalan. Badge diperbarui setelah periodic pull atau manual refresh selesai; ia bukan indikator webhook real-time. Badge adalah sinyal, bukan perintah. (UXP-01, UXP-03)
+Badge tidak memaksa Raka interrupt alur yang sedang berjalan. Badge menghitung komentar `unread` saja (`replied`, `resolved`, `dismissed` tidak dihitung) yang diterima dalam 12 bulan terakhir, sama dengan Date Range bawaan daftar posting (keputusan King Rezi 2026-11-06), dan diperbarui setelah periodic pull atau manual refresh selesai; ia bukan indikator webhook real-time. Badge adalah sinyal, bukan perintah. (UXP-01, UXP-03)
 
-**Batas MVP:** KSP-06 hanya menampilkan komentar dan reply. Tidak ada tab atau state untuk Direct Message, mention, maupun webhook engagement (ADR-040).
+**Batas MVP:** KSP-06 hanya menampilkan komentar dan reply. Tidak ada tab atau state untuk Direct Message, mention (termasuk story mention Instagram, T-223), maupun webhook engagement (ADR-040). Tampilan List adalah usulan rancangan yang belum punya padanan teramati di Buffer.
 
 ---
 
@@ -1001,7 +1015,7 @@ Aksi yang reversibel, low-stakes, atau berfrekuensi tinggi (bagian dari alur ker
 | **Logout** | **Tier 2** | Keputusan produk (2026-07-29): melindungi dari interupsi pekerjaan yang belum tersimpan, walau aksi ini sendiri reversibel (beda dari rekomendasi awal — lihat Alternatives di ADR-049) |
 | Save as Draft | Tidak wajib | Reversibel, low-stakes |
 | Kirim ke Review (Creator) | Tidak wajib | Reversibel — bisa kembali ke Draft |
-| Mark as Done (Engage) | Tidak wajib | Reversibel, low-stakes |
+| Resolve / Dismiss komentar (Engage) | Tidak wajib | Reversibel (Buka kembali), low-stakes (ADR-157) |
 | Reply/Kirim komentar (Engage) | Tidak wajib | Frekuensi tinggi — bagian dari alur kerja inti harian (UXP-03) |
 | Connect Account | Tidak wajib | Sudah ada consent OAuth dari provider |
 | Reconnect | Tidak wajib | Sudah ada consent OAuth dari provider |
@@ -1027,7 +1041,7 @@ Keputusan desain yang dibuat dalam dokumen ini.
 | KSP-D03 | ~~AI Assist tampil sebagai trigger di dalam Caption Editor, bukan panel terpisah yang dibuka secara sengaja~~ — **Dicabut ADR-138**. AI bawaan dicabut; tidak ada trigger AI di Caption Editor | ~~AI paling berguna saat muncul tepat di momen penulisan, bukan sebagai destinasi navigasi (UXP-05, I-06)~~ | UXP-05 |
 | KSP-D04 | Account Selector menampilkan akun Disconnected — tidak disembunyikan | Pengguna harus melihat masalah di titik keputusan, bukan setelah post gagal | UXP-04 |
 | KSP-D05 | Confirmation summary muncul sebelum tombol Schedule **atau Publish Now** dieksekusi (ADR-047) | Membangun kepercayaan bahwa konten akan terbit ke akun dan waktu yang benar (UXP-04) | UXP-04 |
-| KSP-D06 | Engage Inbox menggunakan master-detail (thread list + thread detail di panel kanan) | Volume triage tinggi; pengguna perlu berpindah thread tanpa full-page navigation (NP-D03) | UXP-03 |
+| KSP-D06 | Engage Inbox mengelompokkan komentar per posting dalam dua panel (daftar posting di kiri, komentar posting terpilih di kanan), dengan toggle By post / List (diamandemen ADR-157) | Triage komentar mengikuti posting yang memicunya; volume tinggi, pengguna perlu berpindah antar posting tanpa full-page navigation (NP-D03) | UXP-03 |
 | KSP-D07 | Analytics Dashboard menampilkan Summary Row sebagai zona teratas | Maya membaca angka agregat pertama — bukan tabel detail yang mengharuskan scanning panjang | UXP-02, UXP-03 |
 | KSP-D08 | Empty state Analytics menampilkan dua CTA, bukan angka nol atau grafik kosong | Angka nol atau grafik tanpa data misleading dan tidak membantu; CTA mengarahkan ke aksi yang bermakna (UXD-03) | UXP-03 |
 | KSP-D09 | Post terjadwal tidak dibatalkan otomatis saat akun disconnect | Pembatalan otomatis lebih merusak daripada membiarkan post dalam antrean dan menunggu reconnect | UXP-04 |
@@ -1057,7 +1071,7 @@ Keputusan desain yang dibuat dalam dokumen ini.
 | KSP-03 Queue | Daftar linear berurutan (grouped by tanggal) + 1 card per item + filter | Queue kosong, filter tidak ada hasil (Item Failed pindah ke History) |
 | KSP-04 Drafts | Daftar draft + CTA New Post | Drafts kosong |
 | KSP-05 Draft Editor | Dua zona (Baris Channel + Editor + Blok per Jaringan / Pratinjau) + footer aksi + Confirmation Summary | Akun Disconnected, Status Failed |
-| KSP-06 Inbox | Master-detail + sync status + Manual Refresh | Badge setelah sync, refresh gagal, Inbox kosong |
+| KSP-06 Inbox | Dua panel per posting (By post / List) + filter utama + panel Filter & Sort + sync status + Manual Refresh | Badge setelah sync, refresh gagal, Inbox kosong, filter tanpa hasil |
 | KSP-07 Dashboard | Summary Row + Account Overview + Post Performance | Empty state (belum ada data) |
 | KSP-08 Connected Accounts | Daftar akun + status + aksi kontekstual | Disconnected → Reconnect |
 | KSP-09 Persetujuan OAuth | Dua langkah (workspace, scope) di luar app shell | Tanpa workspace, klien tanpa nama, error, menyimpan |

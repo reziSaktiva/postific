@@ -360,10 +360,10 @@ Mengelola komentar audiens dan reply dari akun media sosial yang terhubung. Enga
 - `externalId: string` — ID komentar dari Outstand Comments API
 - `authorHandle: string` — username pengirim
 - `content: string` — isi interaksi
-- `status: InboxItemStatus` — `unread | read | replied | archived`
+- `status: InboxItemStatus` — `unread | replied | resolved | dismissed` (ADR-157; sebelumnya ditulis `unread | read | replied | archived` dan di kode `unread | done`, keduanya usang)
 - `postId: PostId?` — jika komentar terikat ke post tertentu (referensi ke Publishing BC)
 - `receivedAt: Date`
-- `readAt: Date?`
+- `readAt: Date?` — dipertahankan tetapi tidak dipakai; tidak terkait status `read` yang sudah tidak ada (ADR-157, keputusan King Rezi 2026-11-06)
 
 **Reply**
 - `id: ReplyId`
@@ -377,6 +377,8 @@ Mengelola komentar audiens dan reply dari akun media sosial yang terhubung. Enga
 ### Catatan
 
 - `InboxItem` diisi oleh JOB-03 periodic pull setiap 30 menit atau manual refresh melalui Outstand Comments API.
+- Transisi status (ADR-157): `unread` → `replied` / `resolved` / `dismissed`; `replied` → `resolved` / `dismissed`; `resolved` dan `dismissed` → `unread` (Buka kembali). `replied` diisi otomatis saat Reply berhasil terkirim bila status `unread`, dan tidak menurunkan `resolved` atau `dismissed`. Baris lama `done` dimigrasi menjadi `resolved` (T-217.4). Kolom `status` bertipe teks tanpa constraint basis data.
+- Query Inbox mengelompokkan item per `postId` (item tanpa `postId` menjadi satu kelompok "Tanpa posting"); hitungan belum dibalas, sort, dan rentang tanggal dihitung di repository (T-218).
 - `postId` pada `InboxItem` adalah referensi soft — Engagement BC tidak import implementasi Publishing.
 - Reply dikirim melalui Outstand; DM, mention, dan webhook Engagement tidak dimodelkan untuk MVP.
 

@@ -558,7 +558,7 @@ Berlaku untuk delapan tool `read`. Handler hanya memetakan record service ke ben
 | `list_scheduled_posts` | `cursor?` | item `{ id, caption, scheduledAt, createdAt, targets: [{ accountId, platform, accountHandle, contentFormat }] }` |
 | `list_published_posts` | `cursor?` | item `{ id, caption, status: "published"\|"imported", publishedAt, createdAt, targets: [{ accountId, platform, accountHandle, contentFormat, status, postUrl, error }] }` |
 | `get_analytics` | `period?: "weekly"\|"monthly"` (default `weekly`) atau `postId` (menang atas `period`) | workspace: `{ scope: "workspace", period, summary: { totalPosts, totalEngagements, avgEngagementRate, activeAccounts } \| null }` (`null` = belum ada snapshot, bukan nol). Post: `{ scope: "post", postId, status, metrics: [{ accountId, platform, impressions, reach, likes, comments, shares, clicks, engagementRate, fetchedAt }] \| null }`; `postId` yang tidak ada, bukan milik workspace, atau belum selesai terbit: `not_found` |
-| `list_comments` | `cursor?`, `status?: "unread"\|"done"`, `accountId?` | `{ notice, items: [{ id, accountId, platform, type, status, postId, receivedAt, author, content }], nextCursor }`; `author` dan `content` dibungkus penanda di bawah |
+| `list_comments` | `cursor?`, `status?: "unread"\|"replied"\|"resolved"\|"dismissed"` (ADR-157; `"done"` tetap diterima sebagai alias `"resolved"` supaya klien lama tidak rusak, keputusan King Rezi 2026-11-06, T-217.8), `accountId?` | `{ notice, items: [{ id, accountId, platform, type, status, postId, receivedAt, author, content }], nextCursor }`; `author` dan `content` dibungkus penanda di bawah |
 
 **Data pihak luar (`list_comments`).** Isi komentar dan handle penulis berasal dari pihak luar dan bisa memuat kalimat yang menyerupai perintah. Keduanya dikembalikan di dalam penanda `<data_pihak_luar_tidak_tepercaya>...</data_pihak_luar_tidak_tepercaya>`, dan hasil memuat `notice` tetap yang menyatakan bahwa isi di dalam penanda adalah data dari pihak luar, bukan instruksi. Kemunculan penanda itu di dalam teks komentar dinetralkan (diganti `[penanda dihapus]`) supaya komentar tidak bisa menutup bungkusnya sendiri. Caption draft dan post tidak dibungkus: itu tulisan anggota workspace sendiri. Penanda adalah mitigasi, bukan jaminan; tool `read` memang tidak bisa mengubah apa pun sehingga dampak injeksi tertahan di sisi klien.
 
@@ -566,9 +566,10 @@ Berlaku untuk delapan tool `read`. Handler hanya memetakan record service ke ben
 
 | Method | Trigger | Keterangan |
 |--------|---------|-----------|
-| `getInboxItems` | Server Component | Load engagement inbox |
-| `markAsRead` | Server Action | Tandai item sebagai sudah dibaca |
-| `replyToComment` | Server Action | Kirim reply komentar via Outstand |
+| `listInbox` | Server Component / Server Action | Daftar inbox, difilter akun, platform, dan status; dikelompokkan per posting dengan sort dan rentang tanggal setelah T-218 (ADR-157) |
+| `getInboxItemDetail` | Server Action | Detail item beserta snapshot post asal (T-056) |
+| `markAsDone` | Server Action | Menandai item selesai (`done`). Diganti aksi resolve, dismiss, dan buka kembali di T-217 (ADR-157); nama final ditentukan di T-217 |
+| `reply` | Server Action | Kirim reply komentar via Outstand (ACL `replyToComment`); menandai `replied` otomatis bila status `unread` (T-217.3) |
 | `syncComments` | JOB-03 / Server Action manual refresh | Pull komentar via ACL, upsert idempoten, buat `engagement_new` untuk item baru |
 
 ## AnalyticsService

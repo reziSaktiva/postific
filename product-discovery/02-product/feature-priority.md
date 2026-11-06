@@ -136,6 +136,10 @@ Bukan berarti fitur tersebut tidak penting, tetapi bukan prioritas untuk mencapa
 * Periodic Sync setiap 30 menit
 * Manual Refresh
 
+### Should Have
+
+* Status komentar (Belum dibalas, Dibalas, Selesai, Diabaikan) dan pengelompokan komentar per posting (ADR-157; peningkatan setelah MVP, DoD v0.4 sudah terpenuhi tanpa ini)
+
 ### Could Have
 
 * Inbox Assignment

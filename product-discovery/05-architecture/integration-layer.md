@@ -308,7 +308,7 @@ Request masuk
 | `post.error` | Semua target gagal setelah retry Outstand; ACL memetakan outcome per akun ke status domain `failed` | Publishing BC, Notification BC |
 | `account.token_expired` | Token akun kedaluwarsa; ACL memetakan akun ke `error` dan membutuhkan reconnect | Workspace BC, Notification BC |
 
-Event `comment.received`, `message.received`, mention, dan webhook engagement lainnya **bukan kontrak MVP**.
+Event `comment.received`, `message.received`, mention, dan webhook engagement lainnya **bukan kontrak MVP**. Catatan (2026-11-06): dokumentasi vendor per 2026-11-05 memang memuat `comment.received` dan `message.received`; keduanya tersedia tetapi **tidak dipakai** MVP (ADR-040, ADR-157). Kolom "alasan" ADR-040 yang menyebut webhook komentar tidak ada adalah catatan historis atas dokumentasi saat itu.
 
 ## Alur Pemrosesan Webhook
 
@@ -359,9 +359,9 @@ Engagement MVP hanya mencakup **komentar dan reply**. Direct Message dan mention
 `OutstandAdapter.fetchComments` mentranslasikan response Outstand menjadi data komentar domain. `EngagementService` melakukan upsert idempoten berdasarkan external comment ID. Jika sync menemukan item baru, service membuat notifikasi internal `engagement_new` secara agregat; notifikasi ini **berasal dari sync**, bukan webhook.
 
 **Atribut `InboxItem` yang berasal dari Outstand:**
-- `outstandItemId` — ID unik dari Outstand, digunakan untuk idempotency check.
+- `externalId` — ID komentar dari Outstand (kolom `external_id`), digunakan untuk idempotency check.
 - `platform` — dari `ConnectedAccount`.
-- `authorName` — nama pengirim komentar.
+- `authorHandle` — username pengirim komentar (kolom `author_handle`).
 - `content` — teks komentar.
 - `postId` — referensi ke `Post` jika komentar terkait post internal (matched via `outstandPostId`, amandemen ADR-092, sebelumnya `outstandJobId`).
 - `receivedAt` — timestamp dari Outstand.

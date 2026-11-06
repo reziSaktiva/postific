@@ -83,6 +83,8 @@ Mencakup:
 * Periodic Pull setiap 30 menit
 * Manual Refresh
 
+Peningkatan setelah MVP (Should Have, ADR-157): status komentar dan pengelompokan per posting.
+
 Direct Message, mention, dan webhook engagement berada di luar scope MVP (ADR-040).
 
 ---

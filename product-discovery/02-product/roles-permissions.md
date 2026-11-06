@@ -44,7 +44,7 @@ Pemilik workspace. Role ini dipegang oleh orang yang mendaftarkan workspace ke p
 | Content | Buat, edit, hapus, jadwalkan, publish semua konten |
 | Start Page | Kelola penuh (profil, tautan, tema, publish/unpublish, lihat analytics) — ADR-144 |
 | Analytics | Akses penuh |
-| Engagement (Comments Inbox) | Baca dan balas semua komentar |
+| Engagement (Comments Inbox) | Baca, balas, dan tangani (Resolve, Dismiss, Buka kembali) semua komentar |
 | Audit Logs | Baca |
 | Transfer Ownership | Ya |
 
@@ -70,7 +70,7 @@ Admin adalah kepercayaan Account Owner. Role ini cocok untuk manajer senior atau
 | Content | Buat, edit, hapus, jadwalkan, publish semua konten |
 | Start Page | Kelola penuh (profil, tautan, tema, publish/unpublish, lihat analytics) — ADR-144 |
 | Analytics | Akses penuh |
-| Engagement (Comments Inbox) | Baca dan balas semua komentar |
+| Engagement (Comments Inbox) | Baca, balas, dan tangani (Resolve, Dismiss, Buka kembali) semua komentar |
 | Audit Logs | Baca |
 | Transfer Ownership | Tidak |
 
@@ -98,7 +98,7 @@ Creator adalah operator konten — mencakup pembuatan draft **dan** eksekusi jad
 | Content | Buat, edit, hapus, jadwalkan, publish semua konten |
 | Start Page | Kelola penuh (profil, tautan, tema, publish/unpublish, lihat analytics) — ADR-144 |
 | Analytics | Baca penuh |
-| Engagement (Comments Inbox) | Baca dan balas semua komentar |
+| Engagement (Comments Inbox) | Baca, balas, dan tangani (Resolve, Dismiss, Buka kembali) semua komentar |
 | Audit Logs | Tidak ada akses |
 | Transfer Ownership | Tidak |
 

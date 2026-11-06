@@ -226,13 +226,13 @@ Setiap flow memiliki struktur:
 ### Happy Path
 
 1. Raka membuka **Engage → Inbox**.
-2. Inbox menampilkan waktu sinkronisasi terakhir dan komentar dari semua akun terhubung, berurutan berdasarkan waktu masuk.
+2. Inbox menampilkan waktu sinkronisasi terakhir dan daftar posting yang punya komentar dari semua akun terhubung. Posting dengan komentar belum dibalas tampil lebih dulu; komentar tanpa posting masuk kelompok "Tanpa posting" (KSP-06, ADR-157).
 3. Jika membutuhkan data terbaru sebelum jadwal periodic pull berikutnya, Raka menekan **Refresh** dan melihat state loading sampai sinkronisasi selesai.
-4. Raka memfilter berdasarkan akun, platform, atau status (`Unread / Done`) jika volume tinggi.
-5. Raka membuka satu thread komentar — komentar ditampilkan bersama konteks post asalnya.
-6. Raka membalas komentar langsung dari dalam Inbox — tanpa membuka native app.
-7. Raka menandai komentar sebagai `Done` — item hilang dari antrian unread.
-8. Raka lanjut ke komentar berikutnya.
+4. Raka memfilter berdasarkan akun atau status (`Belum dibalas / Dibalas / Selesai / Diabaikan`) jika volume tinggi; panel Filter & Sort menambah platform, urutan, dan rentang tanggal, dengan Reset filters untuk kembali ke bawaan. Raka dapat berpindah ke tampilan List bila ingin melihat komentar sebagai daftar datar.
+5. Raka memilih satu posting — komentarnya tampil di panel kanan bersama kartu pratinjau posting sebagai konteks post asal.
+6. Raka membalas komentar langsung dari dalam Inbox — tanpa membuka native app. Balasan yang terkirim menandai komentar `Dibalas`.
+7. Untuk komentar yang tidak perlu dibalas atau sudah selesai, Raka memilih `Resolve` (`Selesai`) atau `Dismiss` (`Diabaikan`); keduanya bisa dibuka kembali. Komentar keluar dari hitungan belum dibalas.
+8. Raka lanjut ke komentar atau posting berikutnya.
 
 **Outcome:** Komentar prioritas selesai ditangani dalam satu session di Inbox, tanpa context switching ke native apps.
 
@@ -245,8 +245,8 @@ Setiap flow memiliki struktur:
 1. Setelah sinkronisasi internal selesai, badge notifikasi muncul pada item **Engage** di primary navigation.
 2. Raka menyelesaikan aksi saat ini terlebih dahulu di Publish — tidak perlu interrupt flow.
 3. Setelah selesai, Raka berpindah ke **Engage → Inbox**.
-4. Komentar baru tampil sebagai `Unread` di atas antrian.
-5. Raka menangani komentar tersebut → tandai `Done`.
+4. Posting dengan komentar baru (`Belum dibalas`) tampil di atas daftar posting.
+5. Raka menangani komentar tersebut → `Reply`, `Resolve`, atau `Dismiss`.
 
 **Outcome:** Engagement tertangani tepat waktu tanpa memotong flow publishing yang sedang berjalan.
 
@@ -255,7 +255,7 @@ Setiap flow memiliki struktur:
 ### UX Principles
 
 * **UXP-01** — Engage adalah tahapan natural setelah Publish dalam satu siklus kerja — navigasi mencerminkan urutan ini.
-* **UXP-03** — Inbox yang terpusat menggantikan kebutuhan membuka multiple native apps; kesederhanaan ini adalah solusi inti, bukan fitur tambahan.
+* **UXP-03** — Inbox yang terpusat menggantikan kebutuhan membuka multiple native apps; kesederhanaan ini adalah solusi inti, bukan fitur tambahan. Pengelompokan per posting menjaga konteks komentar tetap terlihat saat triage.
 * **UXP-07 (I-05)** — Engagement adalah retention layer produk; Inbox yang terkonsolidasi mendorong Raka tetap menggunakan produk setelah fase publishing.
 
 **Batas MVP:** Flow ini hanya mencakup komentar dan reply. Direct Message, mention, dan webhook engagement tidak termasuk MVP. Data diperbarui melalui periodic pull 30 menit atau manual refresh (ADR-040).

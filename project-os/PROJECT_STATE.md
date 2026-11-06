@@ -8,6 +8,7 @@
 - **Blocker:** 1 penghalang aktif — KI-015 (Google OAuth). Migrasi T-051 dan sisa follow-up KI-025 sudah diverifikasi tertutup di staging (2026-10-13). Detail di section **Blockers**.
 - **Pivot v0.5 (2026-10-23, ADR-138, ADR-139 Accepted 2026-10-26):** AI Assistant bawaan diganti MCP Server — AI milik pengguna bekerja di Postific lewat MCP. Tiket **T-148–T-157** di [`tickets/v05-mcp-server-mvp.md`](tickets/v05-mcp-server-mvp.md); T-060–T-065 dibatalkan. Spike T-148 ✅ dan T-149 ✅ (2026-10-26); T-150 🟡 In Progress (2026-10-29): endpoint, 8 tool baca, hook consent permanen, uji SQL staging, review, QA, dan verifikasi di Railway staging (T-150.7) selesai; T-178 ✅ (2026-10-29, tes E2E MCP otomatis di staging; refresh token dan member keluar terbukti); T-150.8 ✅ (2026-10-30; Claude Code dan Cursor terbukti, konektor web Claude.ai ditunda di T-179.7); sisa T-150.9 (pembersihan klien OAuth dinamis dan rate limit pendaftaran tanpa login); temuan T-150.7 yang masih terbuka ada di T-179. **Gelombang 1 (2026-10-30, branch `feature/mcp-v05-gelombang-1`):** kode T-151 (layar persetujuan OAuth), T-152 (tool draft + penanda sumber `created_via`), dan T-154 (rate limit Postgres) selesai dan lolos typecheck, lint, tes unit, serta review Ridwan; tiga migrasi sudah diterapkan ke DB bersama (atas izin King Rezi, 2026-10-30) dan 34 tes integrasi DB lulus, dan ketiganya (bersama T-180) berstatus Done (code), menunggu Verified (staging) lewat T-189 (ADR-153; uji di server lokal terblokir secret berbeda, lihat T-179.4). Keputusan baseline-nya disetujui King Rezi di **ADR-152 (Accepted 2026-11-02)**; tindak lanjut non-blocking di T-180.
 - **Redesain Draft Editor mengikuti pola Buffer (2026-11-03, ADR-155, spec S-005):** rancangan Tahap 1 dikonfirmasi King Rezi di galeri Postific Design Review (addendum ADR-155 menutup pertanyaan terbuka dan menambah aturan Reel wajib video, mengamandemen ADR-154). Tiket **T-199 sampai T-214** (fondasi, aturan Reel, baris channel, editor dan blok jaringan, Pratinjau, footer dan jadwal, varian layar, QA, lalu perbaikan, tindak lanjut review, dan E2E RBAC di T-208 sampai T-214) ada di `AVAILABLE_TICKETS.md`; kode boleh dikerjakan lewat tiket itu. **Gelombang 8 (2026-11-05, PR 258 ter-merge ke staging):** tiket T-213 (sisa review T-212) dan T-214 (E2E RBAC Creator) lahir; T-211 dan T-214 Done (code). **Gelombang 9 (2026-11-05, PR 260 dan 261):** T-207.6 Verified (staging) lewat run E2E staging 41999328811 (67 passed) dan spec QA status post 13 passed; T-214.5 terbukti di CI. Sisa S-005: T-207.7, T-209, T-215, T-204.4, dan T-213/T-208 yang disebut di tiketnya. Status per tiket ada di `AVAILABLE_TICKETS.md`.
+- **Engage per posting mengikuti pola Buffer (2026-11-05, ADR-157 Accepted, spec S-006):** tiket **T-216** ✅ (rancangan dikonfirmasi King Rezi di galeri) dan **T-221** ✅ (baseline UX dan arsitektur diselaraskan, 2026-11-06), T-217 sampai T-220, T-222 dan T-224 di [`tickets/v04-engagement-mvp.md`](tickets/v04-engagement-mvp.md); T-223 (Mentions) ⏸️ Deferred. T-217 (status baru) boleh jalan sekarang; T-219, T-220, T-224 menyusul T-217 dan T-218. Status per tiket ada di `AVAILABLE_TICKETS.md`.
 - **Antrian task:** [`AVAILABLE_TICKETS.md`](AVAILABLE_TICKETS.md). Tiket, termasuk yang selesai, ada di `tickets/`. Jangan cari detail task di file ini.
 - **KI-073–080 Resolved (2026-09-26)** — 4 bug publish Instagram (caption wajib untuk Story, Story publish tanpa media, upload media >1MB gagal, avatar akun tidak tampil di sidebar) diperbaiki + diverifikasi live ke akun Instagram/Facebook real (ADR-120). 2 bug turunan ditemukan saat verifikasi (akun `disconnected` tidak bisa reconnect; callback OAuth silent-success untuk conflict genuine) diperbaiki via **ADR-122**. Plus **KI-080** (baru+langsung Resolved) — Railway staging build gagal (`next.config.ts` tidak bisa resolve import workspace `@social/shared`) diperbaiki di branch terpisah sebelum masuk ke fix KI-078/079.
 - Detail phase/mode/issue ada di section di bawah. Tiket selesai ada di `tickets/`. Keputusan ada di `DECISIONS.md`.
@@ -20,7 +21,7 @@
 | ------------ | ---------- |
 | Version      | 1.1.10     |
 | Status       | Active     |
-| Last Updated | 2026-11-05 |
+| Last Updated | 2026-11-06 |
 
 ---
 
@@ -199,11 +200,11 @@ seluruh daftar Known Issues.
 
 ADR terbaru. Daftar lengkap (indeks + link ke tiap ADR): lihat `DECISIONS.md`.
 
+- **ADR-157** — Engage mengikuti pola Community Buffer: unit utama per posting, status `replied` / `resolved` / `dismissed`, panel Filter & Sort, toggle By post / List; Mentions ditunda (mengamandemen KSP-06 dan KSP-D06 lewat T-221; spec S-006).
+- **ADR-156** — Pemilih Pratinjau per akun di Draft Editor berupa shadcn `Select`, bukan `Tabs` (mengamandemen detail KSP-05-F14 dan KSP-D02 dari ADR-155; T-211).
 - **ADR-155** — Redesain Draft Editor mengikuti pola modal Create Post Buffer, Tahap 1 (tata letak dan perilaku dengan kapabilitas yang ada; Confirmation Summary dipertahankan). Addendum 2026-11-03: rancangan dikonfirmasi, jadwal lewat popover WIB, Create Another di luar Tahap 1, Reel wajib video (mengamandemen ADR-154), lebar Standard 1120px. Spec S-005, tiket T-199 sampai T-207.
 - **ADR-154** — Media wajib per platform dan batas jadwal 30 hari mengikuti aturan Outstand (mengamandemen ADR-121; KI-107, KI-105).
 - **ADR-153** — Tangga status tiket: Done (code) dan Verified (staging) dipisah; verifikasi staging satu kali per gelombang (S-003; mengoreksi catatan konvensi tutup-setelah-staging di tiket MCP).
-- **ADR-152** — Gelombang 1 MCP: penanda sumber `created_via` di `publishing_posts`, pengecualian RLS ADR-141 untuk dua tabel baru, rate limit fixed window (mengamandemen cakupan ADR-141).
-- **ADR-151** — Required check E2E untuk PR `staging` → `main` ditunda sampai MVP public launch (T-088.1; mengamandemen ADR-150 poin 3, CI-D07).
 
 ---
 

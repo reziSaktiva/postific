@@ -74,6 +74,8 @@ Kemampuan berikut wajib tersedia pada MVP.
 * Sinkronisasi komentar berkala setiap 30 menit.
 * Manual refresh untuk mengambil komentar terbaru saat dibutuhkan.
 
+Peningkatan setelah MVP (Should Have, ADR-157): status komentar (Belum dibalas, Dibalas, Selesai, Diabaikan) dan pengelompokan komentar per posting.
+
 Direct Message, mention, dan webhook engagement tidak termasuk MVP (ADR-040).
 
 ---

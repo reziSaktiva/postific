@@ -68,7 +68,7 @@ Primary navigation adalah navigasi utama yang selalu terlihat dan dapat diakses 
 | - | ----- | --------- |
 | 1 | Home | Ringkasan status dan aktivitas terkini |
 | 2 | Publish | Seluruh area kerja publishing konten |
-| 3 | Engage | Inbox interaksi audiens |
+| 3 | Engage | Inbox komentar audiens |
 | 4 | Analyze | Dashboard performa |
 | 5 | Start Page | Manajemen halaman publik |
 
@@ -108,7 +108,7 @@ Entry point yang memberi ringkasan status lintas domain.
 Home
 ├── Today's Schedule          — konten yang terjadwal hari ini
 ├── Recent Activity           — aktivitas publikasi terbaru (sukses / gagal)
-├── Engagement Snapshot       — jumlah komentar unread dari sinkronisasi terakhir
+├── Engagement Snapshot       — jumlah komentar unread (12 bulan terakhir) dari sinkronisasi terakhir
 └── Analytics Snapshot        — highlight performa minggu ini
 ```
 
@@ -157,14 +157,17 @@ Area untuk menangani interaksi audiens yang masuk.
 Engage
 └── Inbox
     ├── Sync Status + Manual Refresh
-    ├── Filter (by account, by platform, by status)
-    ├── Comment Thread        — tampilkan komentar + konteks post
+    ├── Pilihan tampilan      — By post (bawaan) / List
+    ├── Filter utama          — by account, by status
+    ├── Filter & Sort         — platform, sort, date range, Reset filters
+    ├── Daftar Posting        — posting dengan komentar + kelompok "Tanpa posting"
+    ├── Komentar Posting      — kartu posting (konteks) + daftar komentar
     │   └── Reply Action      — balas komentar
-    └── Unread / Done status  — tandai interaksi sebagai selesai
+    └── Status komentar       — unread / replied / resolved / dismissed (Resolve, Dismiss, Buka kembali)
 ```
 
 **Pengguna utama:** Raka / Community Manager.
-**Catatan:** Inbox mengambil komentar melalui periodic pull setiap 30 menit dan menyediakan manual refresh. Direct Message, mention, dan webhook engagement tidak termasuk MVP (ADR-040).
+**Catatan:** Struktur diamandemen ADR-157 (Engage per posting; rincian di KSP-06). Inbox mengambil komentar melalui periodic pull setiap 30 menit dan menyediakan manual refresh. Direct Message, mention, dan webhook engagement tidak termasuk MVP (ADR-040).
 
 ---
 
@@ -251,7 +254,7 @@ Tabel berikut memetakan fitur MVP (Must Have) ke layar spesifik dalam IA.
 | Calendar View | Publish → Calendar |
 | Queue Management | Publish → Queue |
 | Publishing History | Publish → History |
-| Comments (view + reply) | Engage → Inbox → Comment Thread |
+| Comments (view + reply) | Engage → Inbox → Komentar Posting |
 | Inbox | Engage → Inbox |
 | Analytics Dashboard | Analyze → Dashboard |
 | Basic Performance Metrics | Analyze → Dashboard → Post Performance |
