@@ -659,6 +659,9 @@ model EngagementInboxItem {
   @@unique([workspaceId, connectedAccountId, externalId])
   @@index([workspaceId])
   @@index([workspaceId, status])
+  // T-218.8: Engage per posting (GROUP BY post + daftar komentar satu posting
+  // + rentang `received_at`). Lihat database-strategy.md.
+  @@index([workspaceId, postId, receivedAt(sort: Desc)])
   @@index([externalId])
   @@map("engagement_inbox_items")
 }

@@ -121,8 +121,8 @@ OutstandAdapter (Anti-Corruption Layer)
   │     // schedulePost/publishNow sebelumnya (rusak lintas proses/module chunk
   │     // Server Action ↔ Route Handler yang terpisah, ditemukan T-027.5)
   ├── cancelScheduledPost(outstandPostId) → void
-  ├── fetchComments(outstandAccountId, cursor?) → CommentPage
-  ├── replyToComment(outstandCommentId, text) → ReplyResult
+  ├── fetchComments({ outstandPostId, platform, accountUsername }) → { comments }   // ADR-113: per posting, tanpa cursor
+  ├── replyToComment({ outstandPostId, content, accountUsername, parentOutstandCommentId? }) → ReplyResult   // ADR-113, ADR-117
   ├── fetchPostMetrics(outstandPostId) → PostMetricsData
   └── fetchWorkspaceMetrics(outstandAccountId, period) → WorkspaceMetricsData
 ```
@@ -356,7 +356,16 @@ Engagement MVP hanya mencakup **komentar dan reply**. Direct Message dan mention
 | **Periodic pull** | JOB-03 setiap 30 menit | Sumber utama komentar baru/perubahan |
 | **Manual refresh** | Aksi user | Menjalankan sync komentar on-demand lalu memuat data terbaru |
 
-`OutstandAdapter.fetchComments` mentranslasikan response Outstand menjadi data komentar domain. `EngagementService` melakukan upsert idempoten berdasarkan external comment ID. Jika sync menemukan item baru, service membuat notifikasi internal `engagement_new` secara agregat; notifikasi ini **berasal dari sync**, bukan webhook.
+`OutstandAdapter.fetchComments` mentranslasikan response Outstand menjadi data komentar domain.
+
+**Penarikan komentar per posting (T-218.7, keputusan agen untuk ditinjau King Rezi, 2026-11-06).** Outstand hanya menyediakan komentar **per posting** (`GET /v1/posts/{id}/replies`, ADR-113); tidak ada endpoint per akun. Karena itu JOB-03 dan manual refresh menarik komentar per akun dengan menelusuri posting, bukan menarik satu daftar komentar per akun:
+
+1. Daftar posting berasal dari database kita sendiri (`PublishingPost`/`PublishingPostTarget`, bukan endpoint list-posts Outstand): target `published` milik akun itu, `outstandPostId` terisi, belum di-soft-delete, diurutkan terbaru dulu (`publishedAt`, lalu `createdAt`).
+2. **Batas: 50 posting terbaru per akun per siklus.** Posting yang lebih lama dari 50 terbaru tidak ditarik ulang sehingga komentar baru di posting itu tidak masuk sampai ada mekanisme lain. Angka 50 sudah berlaku di kode (`listSyncablePostsByConnectedAccount`); T-218.7 mempertahankannya, bukan mengubahnya.
+3. Satu panggilan `fetchComments` per posting, **berurutan** (tidak paralel) agar beban ke Outstand terkendali. `accountUsername` (= `handle` akun) selalu dikirim untuk disambiguasi posting yang terbit ke lebih dari satu akun di network yang sama (ADR-117).
+4. Kegagalan satu posting (404, galat sementara) dicatat dan dilewati; sync akun tidak gagal seluruhnya. Tiap komentar di-upsert idempoten (`workspace_id, connected_account_id, external_id`) dengan `post_id` internal terisi dari posting yang sedang ditarik, sehingga Engage per posting (ADR-157) dapat mengelompokkan komentar tanpa pencarian terpisah.
+5. Biaya: panggilan Outstand per siklus per akun <= 50 (satu per posting), sehingga untuk N akun aktif paling banyak 50 x N per 30 menit. Bila volume akun/posting tumbuh, opsi berikutnya (butuh keputusan): menurunkan batas, menarik hanya posting yang terbit dalam jendela waktu, atau menarik posting lama lebih jarang. Belum diukur terhadap kuota Outstand nyata.
+6. Komentar tanpa `post_id` (data sebelum KI-068) tidak ikut ditarik ulang dan tampil di kelompok "Tanpa posting"; tidak bisa dibalas dari Postific (ADR-113). `EngagementService` melakukan upsert idempoten berdasarkan external comment ID. Jika sync menemukan item baru, service membuat notifikasi internal `engagement_new` secara agregat; notifikasi ini **berasal dari sync**, bukan webhook.
 
 **Atribut `InboxItem` yang berasal dari Outstand:**
 - `externalId` — ID komentar dari Outstand (kolom `external_id`), digunakan untuk idempotency check.

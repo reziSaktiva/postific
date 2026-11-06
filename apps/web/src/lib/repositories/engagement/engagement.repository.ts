@@ -57,9 +57,20 @@ function mapReply(reply: EngagementReply): EngagementReplyRecord {
 // tumbuh tak terbatas seiring volume histori workspace.
 const LIST_INBOX_ITEMS_LIMIT = 200;
 
+// Batas baris agregat (posting x akun x platform x status). Jauh di atas
+// kebutuhan satu workspace; hanya pagar terhadap data tak terduga.
+const AGGREGATE_ROW_LIMIT = 5000;
+
 export const engagementRepository: IEngagementRepository = {
   async listInboxItems(
-    { workspaceId, connectedAccountId, platform, status },
+    {
+      workspaceId,
+      connectedAccountId,
+      platform,
+      status,
+      postId,
+      receivedSince,
+    },
     userId,
   ) {
     const items = await withCurrentUser(userId, (tx) =>
@@ -69,6 +80,8 @@ export const engagementRepository: IEngagementRepository = {
           ...(connectedAccountId ? { connectedAccountId } : {}),
           ...(platform ? { platform } : {}),
           ...(status ? { status } : {}),
+          ...(postId !== undefined ? { postId } : {}),
+          ...(receivedSince ? { receivedAt: { gte: receivedSince } } : {}),
         },
         orderBy: { receivedAt: "desc" },
         take: LIST_INBOX_ITEMS_LIMIT,
@@ -76,6 +89,42 @@ export const engagementRepository: IEngagementRepository = {
     );
 
     return items.map(mapInboxItem);
+  },
+
+  async aggregateInboxByPost(
+    { workspaceId, connectedAccountId, platform, receivedSince },
+    userId,
+  ) {
+    const rows = await withCurrentUser(userId, (tx) =>
+      tx.engagementInboxItem.groupBy({
+        by: ["postId", "connectedAccountId", "platform", "status"],
+        where: {
+          workspaceId,
+          ...(connectedAccountId ? { connectedAccountId } : {}),
+          ...(platform ? { platform } : {}),
+          ...(receivedSince ? { receivedAt: { gte: receivedSince } } : {}),
+        },
+        _count: { _all: true },
+        _max: { receivedAt: true },
+        orderBy: { postId: "asc" },
+        take: AGGREGATE_ROW_LIMIT,
+      }),
+    );
+
+    return rows.flatMap((row) =>
+      row._max.receivedAt
+        ? [
+            {
+              postId: row.postId ? asPostId(row.postId) : null,
+              connectedAccountId: asConnectedAccountId(row.connectedAccountId),
+              platform: row.platform as SocialPlatform,
+              status: row.status as InboxItemStatus,
+              count: row._count._all,
+              latestReceivedAt: row._max.receivedAt,
+            },
+          ]
+        : [],
+    );
   },
 
   async findInboxItemById({ workspaceId, inboxItemId }, userId) {

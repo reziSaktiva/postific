@@ -247,7 +247,7 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 | Field       | Value                                                                                                   |
 | ----------- | ------------------------------------------------------------------------------------------------------- |
-| **Status**  | ⏳ Not Started                                                                                          |
+| **Status**  | 🟡 In Progress                                                                                          |
 | **Mode**    | AFK                                                                                                     |
 | **Domain**  | engagement · backend                                                                                    |
 | **Spec**    | S-006                                                                                                   |
@@ -256,16 +256,27 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 **What to build:** query yang mengembalikan posting beserta ringkasan komentarnya, bukan hanya daftar item datar.
 
-- [ ] **T-218.1** Repository mengelompokkan item per `postId`: jumlah komentar total, jumlah belum dibalas, jumlah ditangani (untuk progress bar), waktu komentar terbaru. Item tanpa `postId` menjadi satu kelompok "tanpa posting".
-- [ ] **T-218.2** Sort: belum dibalas dulu (bawaan), terbaru, terlama. Rentang tanggal (7 hari, 30 hari, 6 bulan, 12 bulan) atas `receivedAt`. Filter akun, platform, dan status tetap berfungsi.
-- [ ] **T-218.3** Snapshot posting (caption, thumbnail, platform, akun) memakai jalur yang sudah ada (`PublishingPostSnapshotPort`, T-056), tanpa import lintas domain (aturan keras no. 5). Thumbnail memakai signed URL yang diregenerasi.
-- [ ] **T-218.4** Posting tanpa komentar disembunyikan secara bawaan; parameter menampilkan semuanya.
-- [ ] **T-218.5** Tes unit dan integrasi DB; indeks DB diperiksa (kandidat: `workspace_id`, `post_id`, `status`, `received_at`) sebelum menambah migrasi.
-- [ ] **T-218.6** `typecheck`, `lint`, tes hijau.
-- [ ] **T-218.7** Jelaskan dan putuskan cara JOB-03 menarik komentar per akun memakai endpoint Outstand per posting (`GET /v1/posts/{id}/replies`): iterasi posting terbit per akun dan batas posting yang ditarik; tulis hasilnya di `integration-layer.md` dan `background-jobs.md` (keputusan King Rezi 2026-11-06, B7).
-- [ ] **T-218.8** Putuskan indeks untuk query per posting (kandidat `post_id` dan `received_at`) dan tulis di `database-strategy.md` bersama migrasinya bila perlu (B7).
+- [x] **T-218.1** Repository mengelompokkan item per `postId`: jumlah komentar total, jumlah belum dibalas, jumlah ditangani (untuk progress bar), waktu komentar terbaru. Item tanpa `postId` menjadi satu kelompok "tanpa posting".
+- [x] **T-218.2** Sort: belum dibalas dulu (bawaan), terbaru, terlama. Rentang tanggal (7 hari, 30 hari, 6 bulan, 12 bulan) atas `receivedAt`. Filter akun, platform, dan status tetap berfungsi.
+- [x] **T-218.3** Snapshot posting (caption, thumbnail, platform, akun) memakai jalur yang sudah ada (`PublishingPostSnapshotPort`, T-056), tanpa import lintas domain (aturan keras no. 5). Thumbnail memakai signed URL yang diregenerasi.
+- [x] **T-218.4** Posting tanpa komentar disembunyikan secara bawaan; parameter menampilkan semuanya.
+- [x] **T-218.5** Tes unit dan integrasi DB; indeks DB diperiksa (kandidat: `workspace_id`, `post_id`, `status`, `received_at`) sebelum menambah migrasi.
+- [x] **T-218.6** `typecheck`, `lint`, tes hijau.
+- [x] **T-218.7** Jelaskan dan putuskan cara JOB-03 menarik komentar per akun memakai endpoint Outstand per posting (`GET /v1/posts/{id}/replies`): iterasi posting terbit per akun dan batas posting yang ditarik; tulis hasilnya di `integration-layer.md` dan `background-jobs.md` (keputusan King Rezi 2026-11-06, B7).
+- [x] **T-218.8** Putuskan indeks untuk query per posting (kandidat `post_id` dan `received_at`) dan tulis di `database-strategy.md` bersama migrasinya bila perlu (B7).
 
-**Belum terbukti:** performa query pada volume besar (ratusan komentar per posting); dicek di T-218.5.
+**Hasil (2026-11-06, jalur T-218):** `EngagementService.listInboxByPost` + `IEngagementRepository.aggregateInboxByPost` (GROUP BY di DB) + fungsi murni `buildInboxPostGroups`/`inboxDateRangeStart` (`domains/engagement/inbox-post-groups.ts`); filter `postId` (termasuk `null` = tanpa posting) dan `receivedSince` pada `listInboxItems` untuk komentar posting terpilih; Server Action `listInboxByPostAction` meregenerasi signed URL thumbnail. Migrasi indeks `20261106120000_t218_engagement_inbox_post_index` ditulis, belum diterapkan.
+
+**Keputusan agen untuk ditinjau King Rezi:**
+
+- T-218.7: JOB-03 dipertahankan menelusuri posting terbit per akun (maksimum 50 terbaru, berurutan, kegagalan per posting dilewati); ditulis di `integration-layer.md` dan `background-jobs.md`. Tidak ada perubahan kode JOB-03.
+- T-218.8: satu indeks `(workspace_id, post_id, received_at DESC)`; tanpa `(workspace_id, received_at)`; ditulis di `database-strategy.md`.
+- Kelompok = per `postId`. Posting multi-akun menjadi satu kelompok dengan `connectedAccountId`/`platform` dari komentar terbaru (plus `connectedAccountIds`); snapshot diambil untuk akun itu.
+- "Belum dibalas" = `unread`; "ditangani" = `replied` + `resolved` + `dismissed`.
+- Filter status memilih kelompok yang punya minimal satu komentar berstatus itu, tetapi hitungan kelompok tetap atas semua komentar (dalam akun/platform/rentang). Rentang bawaan 12 bulan (S-006).
+- `includeEmpty` memakai sumber posting JOB-03 (maksimum 50 per akun, tanpa filter tanggal terbit); tidak berlaku bersama filter status. Maksimum 100 kelompok per panggilan.
+
+**Belum terbukti:** (1) performa query pada volume besar (ratusan komentar per posting) belum diukur: tes integrasi DB `aggregate-inbox-by-post.integration.test.ts` ditulis tetapi opt-in (`ENGAGEMENT_DB_TEST=1` + `DATABASE_URL`) dan belum dijalankan di lingkungan ini; belum ada `EXPLAIN (ANALYZE)`; (2) migrasi indeks belum diterapkan ke DB manapun; (3) snapshot posting diambil per kelompok (maks 10 konkuren, maks 100 kelompok), belum ada query batch; (4) tes repository unit memakai tabel in-memory, bukan SQL sungguhan; (5) `listInboxByPostAction` belum dipanggil UI (T-219).
 
 **Blocked by:** T-217.
 

@@ -179,12 +179,14 @@ pending → running → done
 ```
 
 **Handler:**
-1. Memanggil `OutstandAdapter.fetchComments(outstandAccountId, cursor?)`.
-2. Membandingkan dengan data yang sudah ada di tabel `engagement_inbox_items`.
-3. Menyimpan/upsert komentar baru melalui `EngagementService`.
+1. Mengambil daftar posting terbit milik akun dari database (maksimum 50 terbaru, hanya yang sudah punya `outstandPostId`), lalu memanggil `OutstandAdapter.fetchComments({ outstandPostId, platform, accountUsername })` **per posting, berurutan** (Outstand hanya menyediakan komentar per posting, ADR-113; tidak ada cursor). Detail dan alasan batas 50: `integration-layer.md` § Sumber Data (T-218.7).
+2. Satu posting gagal ditarik tidak menggagalkan job: dicatat, lanjut ke posting berikutnya.
+3. Upsert idempoten tiap komentar (`workspace_id, connected_account_id, external_id`) dengan `post_id` internal terisi, lewat `SyncCommentsUseCase` (domain `engagement`).
 4. Memanggil `NotificationService.notify(workspaceId, { type: 'engagement_new', ... })` dari hasil sync. Hanya mengirim satu notifikasi aggregate jika banyak komentar baru ditemukan.
 
 **Retry:** Maksimal 2 kali. Interval: 10 menit.
+
+**Catatan (T-218.7):** `outstandAccountId` pada payload dipakai handler untuk menemukan pemilik/member akun (RLS), bukan lagi dipakai sebagai argumen `fetchComments`; yang dikirim ke Outstand adalah `outstandPostId`, `platform`, dan `accountUsername`. Biaya per siklus: paling banyak 50 panggilan per akun aktif.
 
 **Catatan:** JOB-03 adalah sumber utama Engagement MVP dan dibuat per `ConnectedAccount` yang `active`. Manual refresh memicu handler sync yang sama secara on-demand. Tidak ada webhook komentar, DM, atau mention; scope hanya comments/replies.
 

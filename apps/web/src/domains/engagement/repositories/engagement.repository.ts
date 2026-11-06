@@ -9,6 +9,8 @@ import type {
 import type {
   EngagementInboxItemRecord,
   EngagementReplyRecord,
+  InboxAggregateFilter,
+  InboxAggregateRow,
   InboxItemFilter,
   InboxItemStatus,
 } from "../types";
@@ -26,6 +28,19 @@ export interface IEngagementRepository {
     filter: InboxItemFilter,
     userId: UserId,
   ): Promise<EngagementInboxItemRecord[]>;
+
+  /**
+   * Agregasi untuk daftar posting Engage (T-218.1): satu baris per
+   * (posting, akun, platform, status) dengan jumlah dan `receivedAt` terbaru,
+   * dihitung di database (`GROUP BY`) supaya ratusan komentar per posting
+   * tidak ditarik ke memori. Pengelompokan akhir, hitungan, dan sort ada di
+   * `buildInboxPostGroups` (murni). Dibatasi 5000 baris agregat. `userId`
+   * (RLS) — acting user untuk `withCurrentUser`.
+   */
+  aggregateInboxByPost(
+    filter: InboxAggregateFilter,
+    userId: UserId,
+  ): Promise<InboxAggregateRow[]>;
 
   /**
    * Detail satu inbox item — dipakai `EngagementService.getInboxItemDetail`
