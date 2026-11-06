@@ -439,15 +439,44 @@ describe("EngagementService.changeStatus", () => {
     expect(result.status).toBe("resolved");
   });
 
-  it("mengisi readAt saat pertama kali keluar dari unread dan tidak menimpanya saat dibuka kembali", async () => {
-    const { repository, rows } = createStatefulRepository([makeInboxItem()]);
+  it("menolak status tak dikenal dengan ValidationError", async () => {
+    const { repository } = createStatefulRepository([makeInboxItem()]);
     const service = createService(repository);
-    const input = { workspaceId: WORKSPACE_ID, inboxItemId: INBOX_ITEM_ID };
 
-    await service.changeStatus({ ...input, status: "resolved" }, USER_ID);
-    expect(rows.get(INBOX_ITEM_ID)?.readAt).toEqual(new Date(1));
-    await service.changeStatus({ ...input, status: "unread" }, USER_ID);
-    expect(rows.get(INBOX_ITEM_ID)?.readAt).toEqual(new Date(1));
+    await expect(
+      service.changeStatus(
+        {
+          workspaceId: WORKSPACE_ID,
+          inboxItemId: INBOX_ITEM_ID,
+          status: "archived" as InboxItemStatus,
+        },
+        USER_ID,
+      ),
+    ).rejects.toThrow(ValidationError);
+  });
+
+  it("ConflictError bila status berubah di antara baca dan tulis (balapan)", async () => {
+    const { repository, rows } = createStatefulRepository([makeInboxItem()]);
+    const find = repository.findInboxItemById;
+    repository.findInboxItemById = async (input, userId) => {
+      const snapshot = await find(input, userId);
+      // pihak lain menutup komentar tepat setelah service membaca `unread`
+      rows.get(INBOX_ITEM_ID)!.status = "resolved";
+      return snapshot;
+    };
+    const service = createService(repository);
+
+    await expect(
+      service.changeStatus(
+        {
+          workspaceId: WORKSPACE_ID,
+          inboxItemId: INBOX_ITEM_ID,
+          status: "dismissed",
+        },
+        USER_ID,
+      ),
+    ).rejects.toThrow(ConflictError);
+    expect(rows.get(INBOX_ITEM_ID)?.status).toBe("resolved");
   });
 
   it("throw NotFoundError kalau item tidak ditemukan/bukan milik workspace ini", async () => {
@@ -787,7 +816,8 @@ describe("EngagementService.reply menandai replied (T-217.3)", () => {
     expect(rows.get(INBOX_ITEM_ID)?.status).toBe("unread");
   });
 
-  it("balasan tetap sukses walau penandaan replied gagal", async () => {
+  it("balasan tetap sukses walau penandaan replied gagal, dan kegagalan tercatat di log", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const { repository } = createStatefulRepository([
       makeInboxItem({ postId: asPostId("post-1") }),
     ]);
@@ -806,5 +836,9 @@ describe("EngagementService.reply menandai replied (T-217.3)", () => {
         USER_ID,
       ),
     ).resolves.toMatchObject({ content: "Halo" });
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+    expect(String(errorSpy.mock.calls[0][0])).toContain(INBOX_ITEM_ID);
+    expect(errorSpy.mock.calls[0][1]).toEqual(new Error("db down"));
+    errorSpy.mockRestore();
   });
 });

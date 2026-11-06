@@ -14,6 +14,7 @@ import {
 } from "@/lib/utils/errors";
 import type { IEngagementRepository } from "../repositories/engagement.repository";
 import {
+  INBOX_ITEM_STATUSES,
   canTransitionInboxStatus,
   inboxCountWindowStart,
 } from "../inbox-status";
@@ -186,6 +187,9 @@ export class EngagementService {
     },
     userId: UserId,
   ): Promise<EngagementInboxItemRecord> {
+    if (!INBOX_ITEM_STATUSES.includes(input.status)) {
+      throw new ValidationError("Status komentar tidak dikenal.");
+    }
     const current = await this.repository.findInboxItemById(
       { workspaceId: input.workspaceId, inboxItemId: input.inboxItemId },
       userId,
@@ -208,6 +212,13 @@ export class EngagementService {
     );
     if (!updated) {
       throw new NotFoundError("Komentar tidak ditemukan.");
+    }
+    // Balapan: `onlyFromStatus` tidak cocok (status berubah di antara baca dan
+    // tulis) sehingga repository mengembalikan baris tanpa perubahan.
+    if (updated.status !== input.status) {
+      throw new ConflictError(
+        "Status komentar baru saja berubah; muat ulang lalu coba lagi.",
+      );
     }
     return updated;
   }
@@ -342,7 +353,7 @@ export class EngagementService {
     // `onlyFromStatus` menjaga agar `resolved`/`dismissed` tidak turun bila
     // status berubah di antara baca dan tulis. Kegagalan di sini tidak boleh
     // membuat balasan yang sudah terkirim tampak gagal (pengguna akan
-    // mengirim ulang), jadi diabaikan.
+    // mengirim ulang), jadi hanya dicatat ke log.
     if (item.status === "unread") {
       try {
         await this.repository.markInboxItemStatus(
@@ -354,8 +365,11 @@ export class EngagementService {
           },
           userId,
         );
-      } catch {
-        // lihat komentar di atas
+      } catch (error) {
+        console.error(
+          `[EngagementService] reply terkirim tetapi penandaan "replied" gagal untuk inboxItemId=${item.id} (workspace ${input.workspaceId}):`,
+          error,
+        );
       }
     }
 

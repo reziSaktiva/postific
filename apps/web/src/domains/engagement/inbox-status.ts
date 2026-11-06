@@ -12,6 +12,13 @@ import type { InboxItemStatus } from "./types";
  * dipilih manual. Status sama dengan status sekarang bukan transisi (no-op,
  * ditangani pemanggil sebagai idempoten).
  */
+export const INBOX_ITEM_STATUSES: readonly InboxItemStatus[] = [
+  "unread",
+  "replied",
+  "resolved",
+  "dismissed",
+];
+
 const ALLOWED_TRANSITIONS: Record<InboxItemStatus, readonly InboxItemStatus[]> =
   {
     unread: ["replied", "resolved", "dismissed"],
