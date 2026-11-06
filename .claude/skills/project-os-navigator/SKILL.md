@@ -99,7 +99,7 @@ Format entri: bagian "Format Entry" di `project-os/BRAINSTORM.md`.
 2. Cek `Active Conversation Mode` — pastikan action type diizinkan.
 3. Baca dokumen baseline yang relevan sebelum membuat dokumen baru.
 4. Ikuti format dokumen yang konsisten dengan dokumen existing (lihat contoh di folder yang sama).
-5. Setelah selesai, update:
+5. Setelah pekerjaan selesai, **di PR yang sama sebelum merge** (bukan PR terpisah sesudahnya; addendum ADR-153 2026-11-06), update:
    - file tiket (`tickets/vXX-*.md` atau `tickets/known-issues.md`) — ubah status tiket. Jangan menambah cerita sesi
    - `project-os/AVAILABLE_TICKETS.md` — task yang menjadi ✅ keluar dari tabel antrian
    - `project-os/PROJECT_STATE.md` — hanya bila phase / milestone / Known Issues / fokus terdekat berubah. **Jangan** menyalin detail task ke sini (ADR-062)
