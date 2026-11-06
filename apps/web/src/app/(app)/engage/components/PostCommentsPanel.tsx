@@ -30,6 +30,7 @@ import {
   hasStaleComments,
   sortComments,
   summarizeComments,
+  type JustSent,
 } from "./engage-model";
 import { accountLabel } from "./PostCard";
 import { CommentRow } from "./CommentRow";
@@ -76,7 +77,7 @@ export function PostCommentsPanel({
   replyTarget: EngagementInboxItemRecord | null;
   draft: string;
   isSending: boolean;
-  justSent: boolean;
+  justSent: JustSent;
   onBack: () => void;
   onDismissBanner: () => void;
   onReply: (comment: EngagementInboxItemRecord) => void;

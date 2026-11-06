@@ -8,6 +8,7 @@ import { getWorkspaceContext } from "@/lib/workspace/workspace-context";
 
 import { listInboxByPostAction } from "./actions";
 import { EngageInboxView } from "./components/EngageInboxView";
+import { DEFAULT_DATE_RANGE } from "./components/engage-model";
 
 /**
  * `/engage` (KSP-06 Engage, T-219 per posting). Entry point tipis (AGENTS.md
@@ -33,7 +34,7 @@ export default async function Page() {
   // Daftar posting lewat Server Action yang sama dengan re-fetch di client:
   // satu jalur untuk ringkasan kelompok dan thumbnail ber-signed URL baru.
   const [groupsResult, accounts] = await Promise.all([
-    listInboxByPostAction({ dateRange: "12m" }),
+    listInboxByPostAction({ dateRange: DEFAULT_DATE_RANGE }),
     workspaceService.listConnectedAccounts(workspaceId, userId),
   ]);
 

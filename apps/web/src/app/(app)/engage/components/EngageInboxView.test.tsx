@@ -368,6 +368,46 @@ describe("EngageInboxView per posting (T-219)", () => {
     );
   });
 
+  it("Refresh sukses memperbarui daftar dan menampilkan toast jumlah komentar", async () => {
+    mocks.refreshInboxAction.mockResolvedValue({ newCommentsCount: 3 });
+    renderView();
+    await screen.findByText("@maya");
+    await act(async () =>
+      fireEvent.click(screen.getByRole("button", { name: /Refresh/ })),
+    );
+    expect(mocks.listInboxByPostAction).toHaveBeenCalledTimes(1);
+    expect(mocks.toast).toHaveBeenCalledWith("3 komentar baru");
+  });
+
+  it("Refresh server sukses tetapi daftar gagal dimuat: hanya toast error, tanpa toast komentar baru", async () => {
+    mocks.listInboxByPostAction.mockResolvedValue({ error: "Daftar gagal." });
+    renderView();
+    await screen.findByText("@maya");
+    await act(async () =>
+      fireEvent.click(screen.getByRole("button", { name: /Refresh/ })),
+    );
+    expect(mocks.toast.error).toHaveBeenCalledWith("Daftar gagal.");
+    expect(mocks.toast).not.toHaveBeenCalled();
+    expect(screen.getByText("@maya")).toBeTruthy();
+  });
+
+  it("membalas komentar yang bukan Belum dibalas tidak mengklaim ditandai Dibalas", async () => {
+    renderView();
+    await screen.findByText("@anwar");
+    fireEvent.click(
+      within(rowOf("@anwar")).getByRole("button", { name: "Reply" }),
+    );
+    fireEvent.change(screen.getByLabelText("Balasan"), {
+      target: { value: "Terima kasih" },
+    });
+    await act(async () =>
+      fireEvent.click(screen.getByRole("button", { name: "Kirim" })),
+    );
+    expect(screen.getByText("Balasan terkirim.")).toBeTruthy();
+    expect(screen.queryByText(/ditandai Dibalas/)).toBeNull();
+    expect(within(rowOf("@anwar")).getByText("Selesai")).toBeTruthy();
+  });
+
   it("kosong tanpa filter: ajakan Buka Publish dan akses ke posting tanpa komentar", async () => {
     renderView({ initialGroups: [] });
     expect(screen.getByText("Belum ada interaksi")).toBeTruthy();
@@ -566,6 +606,8 @@ describe("EngageInboxView per posting (T-219)", () => {
     );
     expect(screen.queryAllByText("Kopi susu gula aren")).toHaveLength(0);
     expect(screen.getAllByText("Latte art 60 detik").length).toBeGreaterThan(0);
+    // Hasil Refresh dibuang: tidak ada toast "tidak ada komentar baru" yang menyesatkan.
+    expect(mocks.toast).not.toHaveBeenCalledWith("Tidak ada komentar baru");
   });
 
   describe("tampilan List (T-224)", () => {
@@ -731,6 +773,32 @@ describe("EngageInboxView per posting (T-219)", () => {
         ),
       );
       expect(await screen.findByText("@bayu")).toBeTruthy();
+    });
+
+    it("di List tidak memuat komentar per posting; kembali ke By post memuat ulang", async () => {
+      await openList();
+      mocks.listInboxAction.mockClear();
+
+      fireEvent.click(
+        screen.getByRole("button", { name: /Filter dan urutan/ }),
+      );
+      await act(async () =>
+        fireEvent.click(screen.getByRole("radio", { name: "7 hari terakhir" })),
+      );
+      await waitFor(() => expect(mocks.listInboxAction).toHaveBeenCalled());
+      for (const [filter] of mocks.listInboxAction.mock.calls) {
+        expect(filter.postId).toBeUndefined();
+      }
+
+      mocks.listInboxAction.mockClear();
+      fireEvent.keyDown(document.body, { key: "Escape" });
+      fireEvent.click(screen.getByRole("radio", { name: "By post" }));
+      await waitFor(() =>
+        expect(mocks.listInboxAction).toHaveBeenCalledWith(
+          expect.objectContaining({ postId: "p1", dateRange: "7d" }),
+        ),
+      );
+      expect(await screen.findByText("@maya")).toBeTruthy();
     });
 
     it("komentar dari posting di luar daftar tidak membuka posting lain dan ada catatan 100 posting", async () => {

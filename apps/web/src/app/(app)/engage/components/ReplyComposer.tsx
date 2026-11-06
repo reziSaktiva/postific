@@ -7,7 +7,7 @@ import type { EngagementInboxItemRecord } from "@/domains/engagement";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
-import { NO_POST_REPLY_MESSAGE } from "./engage-model";
+import { NO_POST_REPLY_MESSAGE, type JustSent } from "./engage-model";
 
 /**
  * Komposer balasan docked di bawah panel kanan (T-219.2, keputusan King
@@ -30,7 +30,7 @@ export function ReplyComposer({
   draft: string;
   blocked: boolean;
   isSending: boolean;
-  justSent: boolean;
+  justSent: JustSent;
   /** Komposer inline di bawah komentar (tampilan List, keputusan King Rezi #4); bawaan docked. */
   inline?: boolean;
   onDraftChange: (value: string) => void;
@@ -80,7 +80,9 @@ export function ReplyComposer({
             </>
           ) : justSent ? (
             <span className="text-success">
-              Balasan terkirim. Komentar ditandai Dibalas.
+              {justSent === "marked"
+                ? "Balasan terkirim. Komentar ditandai Dibalas."
+                : "Balasan terkirim."}
             </span>
           ) : (
             <span>Pilih Reply pada sebuah komentar untuk membalas.</span>

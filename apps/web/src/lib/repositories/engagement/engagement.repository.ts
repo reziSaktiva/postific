@@ -59,7 +59,9 @@ const LIST_INBOX_ITEMS_LIMIT = 200;
 
 // Daftar komentar satu posting (filter `postId`): hitungan kartu tidak dibatasi,
 // jadi batasnya dilonggarkan agar panel komentar tidak jauh di bawah total.
-// Pagination menyusul di T-219.
+// Catatan: T-219 tidak memuat paginasi dan belum ada tiket paginasi; komentar
+// di atas batas ini (1000 per posting; 200 untuk tampilan List tanpa `postId`)
+// tidak terlihat di UI.
 const LIST_INBOX_ITEMS_BY_POST_LIMIT = 1000;
 
 // Batas baris agregat (posting x akun x platform x status). Jauh di atas

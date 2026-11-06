@@ -25,6 +25,7 @@ import {
   DEFAULT_DATE_RANGE,
   DEFAULT_SORT,
   type EngageView,
+  type JustSent,
   NO_POST_KEY,
   applyStatusToGroup,
   groupKey,
@@ -93,7 +94,7 @@ export function useEngageInbox({
   const [replyTargetId, setReplyTargetId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [isSending, setIsSending] = useState(false);
-  const [justSent, setJustSent] = useState(false);
+  const [justSent, setJustSent] = useState<JustSent>(null);
   const [bannerDismissed, setBannerDismissed] = useState(false);
   // Naik setiap filter yang memengaruhi daftar posting berubah: Refresh yang
   // dimulai dengan filter lama membuang hasilnya.
@@ -168,6 +169,9 @@ export function useEngageInbox({
   // Komentar posting terpilih: semua status (filter status hanya menyaring
   // tampilan, supaya ringkasan "x dibalas / y total" tetap atas semuanya).
   useEffect(() => {
+    // Tampilan List tidak memakai komentar per posting: lewati fetch. Kembali
+    // ke By post menjalankan efek ini lagi (`view` ada di dependensi).
+    if (view === "list") return;
     let cancelled = false;
     void (async () => {
       if (!effectiveKey) {
@@ -195,7 +199,7 @@ export function useEngageInbox({
     return () => {
       cancelled = true;
     };
-  }, [effectiveKey, accountId, platform, dateRange, commentsTick]);
+  }, [view, effectiveKey, accountId, platform, dateRange, commentsTick]);
 
   useEffect(() => {
     if (view !== "list") return;
@@ -237,6 +241,9 @@ export function useEngageInbox({
     // Filter berubah selama Refresh berjalan (termasuk selama aksi refresh di
     // server): hasil ini dibuat dengan filter lama, jadi tidak boleh menimpa
     // daftar. Fetch milik filter baru sudah berjalan sendiri.
+    // Stempel "Diperbarui" dan toast jumlah komentar hanya bila daftar benar-benar
+    // diperbarui; gagal atau dibuang tidak boleh terlihat sebagai sukses.
+    let listApplied = false;
     if (filterVersion === filterVersionRef.current) {
       if (listResult.error) {
         toast.error(listResult.error);
@@ -245,11 +252,13 @@ export function useEngageInbox({
         setGroups(listResult.data ?? []);
         setTruncated(listResult.truncated ?? false);
         setCommentsTick((tick) => tick + 1);
+        listApplied = true;
       }
       setIsLoadingList(false);
     }
-    setLastUpdatedAt(new Date());
     setIsRefreshing(false);
+    if (!listApplied) return;
+    setLastUpdatedAt(new Date());
 
     const newCommentsCount = refreshResult.newCommentsCount ?? 0;
     toast(
@@ -330,6 +339,9 @@ export function useEngageInbox({
 
   const setView = useCallback((next: EngageView) => {
     setViewState(next);
+    // Perubahan status di List tidak menyentuh daftar komentar per posting:
+    // buang agar kembali ke By post tidak menampilkan data basi.
+    setComments(null);
     setReplyTargetId(null);
     setDraft("");
   }, []);
@@ -353,7 +365,7 @@ export function useEngageInbox({
   const startReply = useCallback((comment: EngagementInboxItemRecord) => {
     setReplyTargetId(comment.id);
     setDraft("");
-    setJustSent(false);
+    setJustSent(null);
   }, []);
 
   const cancelReply = useCallback(() => {
@@ -378,14 +390,15 @@ export function useEngageInbox({
       return;
     }
     // Server menandai `replied` hanya dari `unread` (T-217.3); cerminkan itu.
-    if (replyTarget.status === "unread") {
+    const marked = replyTarget.status === "unread";
+    if (marked) {
       patchStatus(replyTarget, "unread", "replied");
     }
     setReplyTargetId(null);
     setDraft("");
-    setJustSent(true);
+    setJustSent(marked ? "marked" : "sent");
     if (justSentTimerRef.current) clearTimeout(justSentTimerRef.current);
-    justSentTimerRef.current = setTimeout(() => setJustSent(false), 2500);
+    justSentTimerRef.current = setTimeout(() => setJustSent(null), 2500);
     toast("Balasan terkirim");
   }, [replyTarget, draft, patchStatus]);
 

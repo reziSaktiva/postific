@@ -56,6 +56,9 @@ export type EngageView = "post" | "list";
  */
 export const LIST_VIEW_FETCH_LIMIT = 200;
 
+/** Hasil balasan terakhir untuk pesan komposer: `marked` = komentar ikut ditandai Dibalas (hanya dari Belum dibalas). */
+export type JustSent = "sent" | "marked" | null;
+
 /** Kunci kelompok "Tanpa posting" (`postId` kosong) pada pilihan dan `key` React. */
 export const NO_POST_KEY = "none";
 

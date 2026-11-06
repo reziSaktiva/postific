@@ -16,6 +16,7 @@ import {
   SORT_OPTIONS,
   filterByStatus,
   sortComments,
+  type JustSent,
 } from "./engage-model";
 import { CommentRow } from "./CommentRow";
 import { PlatformGlyph } from "./PlatformGlyph";
@@ -60,7 +61,7 @@ export function CommentListView({
   replyTarget: EngagementInboxItemRecord | null;
   draft: string;
   isSending: boolean;
-  justSent: boolean;
+  justSent: JustSent;
   onOpenPost: (comment: EngagementInboxItemRecord) => void;
   onReply: (comment: EngagementInboxItemRecord) => void;
   onChangeStatus: (
