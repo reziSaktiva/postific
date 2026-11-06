@@ -4,6 +4,7 @@ import {
   SocialPlatform,
   asConnectedAccountId,
   asInboxItemId,
+  asPostId,
   asUserId,
 } from "@postific/shared";
 import { revalidatePath } from "next/cache";
@@ -11,12 +12,15 @@ import { redirect } from "next/navigation";
 
 import {
   EngagementService,
+  INBOX_DATE_RANGES,
+  inboxDateRangeStart,
   RefreshInboxUseCase,
   SyncCommentsUseCase,
   type EngagementInboxItemRecord,
   type EngagementReplyRecord,
   type InboxItemDetail,
   type InboxItemFilter,
+  type InboxDateRange,
   type InboxItemStatus,
   type InboxPostGroup,
   type ListInboxByPostInput,
@@ -104,6 +108,10 @@ export interface ListInboxActionFilter {
   connectedAccountId?: string;
   platform?: string;
   status?: InboxItemStatus;
+  /** T-219: komentar satu posting; `null` = kelompok "Tanpa posting". */
+  postId?: string | null;
+  /** T-219: batasi `receivedAt` (rentang sama dengan daftar posting). */
+  dateRange?: InboxDateRange;
 }
 
 /**
@@ -130,6 +138,10 @@ export async function listInboxAction(
     workspaceRepository,
   );
 
+  if (filter?.dateRange && !INBOX_DATE_RANGES.includes(filter.dateRange)) {
+    return { error: "Rentang tanggal tidak dikenal." };
+  }
+
   try {
     const inboxFilter: InboxItemFilter = {
       workspaceId,
@@ -140,6 +152,12 @@ export async function listInboxAction(
         platform: filter.platform as SocialPlatform,
       }),
       ...(filter?.status && { status: filter.status }),
+      ...(filter?.postId !== undefined && {
+        postId: filter.postId === null ? null : asPostId(filter.postId),
+      }),
+      ...(filter?.dateRange && {
+        receivedSince: inboxDateRangeStart(filter.dateRange, new Date()),
+      }),
     };
     const data = await engagementService.listInbox(inboxFilter, userId);
     return { data };

@@ -305,7 +305,7 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 | Field       | Value                                                                                                     |
 | ----------- | --------------------------------------------------------------------------------------------------------- |
-| **Status**  | ⏳ Not Started                                                                                            |
+| **Status**  | 🟡 In Progress                                                                                            |
 | **Mode**    | AFK setelah T-216 dikonfirmasi                                                                            |
 | **Domain**  | engagement · UI (UI/UX-related)                                                                           |
 | **Spec**    | S-006                                                                                                     |
@@ -316,14 +316,14 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 **What to build:** tata letak dua panel Engage per posting dan aksi status per komentar, sesuai rancangan. Komponen shadcn diverifikasi dulu lewat MCP shadcn (workflow discover-first); jangan menebak nama komponen atau props.
 
-- [ ] **T-219.1** Panel daftar posting (kartu dengan badge, progress, kelompok "tanpa posting", panel bisa dilipat) menggantikan daftar item datar di `EngageInboxView.tsx`. Berkas besar (800 baris) dipecah menjadi komponen modul tanpa mengubah perilaku, seperti T-199.
-- [ ] **T-219.2** Panel komentar: kartu pratinjau posting, ringkasan "x dibalas / y total", daftar komentar, area balas yang sudah ada (T-054) dipertahankan. Untuk kelompok "Tanpa posting" komposer nonaktif dengan pesan jelas (Outstand hanya membalas per posting, ADR-113; keputusan King Rezi 2026-11-06, B1); Resolve dan Dismiss tetap tersedia.
-- [ ] **T-219.3** Aksi hover per komentar: Resolve, Dismiss, buka kembali; Reply membuka area balas. Optimistic update dan error ditangani; Server Action hanya memanggil service.
-- [ ] **T-219.4** State: kosong, filter tanpa hasil, refresh berjalan dan gagal, selaras KSP-06 yang diperbarui. Zona sinkronisasi (KSP-06-F07, F08) dipertahankan.
+- [x] **T-219.1** Panel daftar posting (kartu dengan badge, progress, kelompok "tanpa posting", panel bisa dilipat) menggantikan daftar item datar di `EngageInboxView.tsx`. Berkas besar (800 baris) dipecah menjadi komponen modul tanpa mengubah perilaku, seperti T-199.
+- [x] **T-219.2** Panel komentar: kartu pratinjau posting, ringkasan "x dibalas / y total", daftar komentar, area balas yang sudah ada (T-054) dipertahankan. Untuk kelompok "Tanpa posting" komposer nonaktif dengan pesan jelas (Outstand hanya membalas per posting, ADR-113; keputusan King Rezi 2026-11-06, B1); Resolve dan Dismiss tetap tersedia.
+- [x] **T-219.3** Aksi hover per komentar: Resolve, Dismiss, buka kembali; Reply membuka area balas. Optimistic update dan error ditangani; Server Action hanya memanggil service.
+- [x] **T-219.4** State: kosong, filter tanpa hasil, refresh berjalan dan gagal, selaras KSP-06 yang diperbarui. Zona sinkronisasi (KSP-06-F07, F08) dipertahankan.
 - [ ] **T-219.5** Perilaku yang sudah ada tidak regresi: filter akun/platform/status, reply, post asal (T-056), badge sidebar, manual refresh. Terang, gelap, 375px diamati di browser.
-- [ ] **T-219.6** Tes komponen dan unit; `typecheck`, `lint`, tes hijau.
+- [x] **T-219.6** Tes komponen dan unit; `typecheck`, `lint`, tes hijau.
 
-**Belum terbukti:** perilaku di layar sempit (375px) dan keyboard/fokus aksi hover; dicek di T-219.5 dan T-222.
+**Belum terbukti (jalur A, 2026-11-06):** T-219.5 belum dicentang. Layar belum diamati dengan data dan login sungguhan (DB dan sesi tidak dipakai di jalur ini); terang, gelap, dan 375px hanya diamati pada harness sementara (komponen panel asli, data statis, dihapus sebelum commit). Hover nyata tidak teramati di panel browser (`:hover` tidak terdaftar); yang terbukti: fokus keyboard memunculkan aksi, aksi selalu tampil di 375px dan perangkat sentuh. Tidak ada E2E Playwright (T-222). Belum tampil: tanggal posting di kartu pratinjau (snapshot domain tidak membawanya) dan riwayat balasan tim per komentar (tampilan lama T-053 menampilkannya, rancangan T-216 tidak). Panel komentar dibatasi 1000 komentar per posting (paginasi belum ada).
 
 **Blocked by:** T-216 (konfirmasi rancangan), T-217, T-218.
 

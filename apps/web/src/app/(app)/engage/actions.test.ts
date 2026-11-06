@@ -73,7 +73,11 @@ vi.mock("@/lib/adapters/outstand", () => ({
 import { EngagementService, SyncCommentsUseCase } from "@/domains/engagement";
 import { MediaService } from "@/domains/media";
 import { WorkspaceService } from "@/domains/workspace";
-import { listInboxByPostAction, refreshInboxAction } from "./actions";
+import {
+  listInboxAction,
+  listInboxByPostAction,
+  refreshInboxAction,
+} from "./actions";
 
 const WORKSPACE_ID = asWorkspaceId("workspace-1");
 const USER_ID = asUserId("user-1");
@@ -231,5 +235,41 @@ describe("listInboxByPostAction (T-218)", () => {
     expect(result.error).toBeUndefined();
     expect(result.data?.[0].postSnapshot?.thumbnail).toBeNull();
     errorSpy.mockRestore();
+  });
+});
+
+describe("listInboxAction filter per posting (T-219)", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    getSessionMock.mockReset();
+    getSessionMock.mockResolvedValue({ user: { id: USER_ID } });
+  });
+
+  it("memetakan postId, null (Tanpa posting), dan dateRange ke filter service", async () => {
+    const listInbox = vi
+      .spyOn(EngagementService.prototype, "listInbox")
+      .mockResolvedValue([]);
+
+    await listInboxAction({ postId: "post-1", dateRange: "30d" });
+    const withPost = listInbox.mock.calls[0][0];
+    expect(withPost.postId).toBe("post-1");
+    const since = withPost.receivedSince as Date;
+    const days = (Date.now() - since.getTime()) / 86_400_000;
+    expect(days).toBeGreaterThan(29.9);
+    expect(days).toBeLessThan(30.1);
+
+    await listInboxAction({ postId: null });
+    expect(listInbox.mock.calls[1][0].postId).toBeNull();
+
+    await listInboxAction({});
+    expect(listInbox.mock.calls[2][0]).not.toHaveProperty("postId");
+    expect(listInbox.mock.calls[2][0]).not.toHaveProperty("receivedSince");
+  });
+
+  it("menolak rentang tanggal tak dikenal tanpa memanggil service", async () => {
+    const listInbox = vi.spyOn(EngagementService.prototype, "listInbox");
+    const result = await listInboxAction({ dateRange: "1y" as never });
+    expect(result.error).toBeTruthy();
+    expect(listInbox).not.toHaveBeenCalled();
   });
 });
