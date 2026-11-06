@@ -1,3 +1,5 @@
+import { createClient } from "@supabase/supabase-js";
+import sharp from "sharp";
 import { withTx } from "./seed-db";
 
 /**
@@ -29,11 +31,98 @@ export interface EngageSeed {
   captions: { p1: string; p2: string; p3: string };
   /** `https://...` yang disemai sebagai `platform_post_url` P1. */
   p1Url: string;
+  /**
+   * URL media eksternal (T-227) di `platform_options.mediaUrls` target P2 dan
+   * P3 (`media_ids` kosong, seperti posting impor). Domain `.invalid`: tidak
+   * pernah dimuat sungguhan, tes mencegatnya lewat route mocking.
+   */
+  externalMedia: { p2: string; p3: string };
+
   /** Tiap komentar: handle penulis (unik) dan isi. */
   comments: Record<
     "c1" | "c2" | "c3" | "c4" | "c5" | "c6",
     { handle: string; content: string }
   >;
+}
+
+function storageClient() {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return null;
+  return createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
+/** Unggah webp kecil sungguhan ke `{workspaceId}/imports/` (sama dengan jalur produksi T-230). */
+async function uploadStoredThumbnail(
+  workspaceId: string,
+  stamp: string,
+): Promise<string | null> {
+  const supabase = storageClient();
+  if (!supabase) return null;
+  const webp = await sharp({
+    create: {
+      width: 96,
+      height: 96,
+      channels: 3,
+      background: { r: 30, g: 144, b: 255 },
+    },
+  })
+    .webp()
+    .toBuffer();
+  const path = `${workspaceId}/imports/${ENGAGE_PREFIX}${stamp}-p1.webp`;
+  const { error } = await supabase.storage
+    .from("media")
+    .upload(path, webp, { contentType: "image/webp", upsert: true });
+  if (error) throw new Error(`gagal menyemai thumbnail: ${error.message}`);
+  return path;
+}
+
+async function removeStoredThumbnails(
+  workspaceId: string,
+  stamp?: string,
+): Promise<number> {
+  const supabase = storageClient();
+  if (!supabase) return 0;
+  const folder = `${workspaceId}/imports`;
+  const { data } = await supabase.storage
+    .from("media")
+    .list(folder, { limit: 1000, search: `${ENGAGE_PREFIX}${stamp ?? ""}` });
+  const names = (data ?? [])
+    .map((file) => file.name)
+    .filter((name) => name.startsWith(`${ENGAGE_PREFIX}${stamp ?? ""}`));
+  if (names.length === 0) return 0;
+  await supabase.storage
+    .from("media")
+    .remove(names.map((name) => `${folder}/${name}`));
+  return names.length;
+}
+
+/**
+ * T-230: beri P1 thumbnail tersimpan sungguhan (webp diunggah ke bucket
+ * `media`, kolom `thumbnail_*` diisi). Dipanggil hanya oleh tes T-230 agar
+ * seed bawaan (P1 tanpa media sama sekali, T-227) tidak berubah. Berkas
+ * dibersihkan oleh `cleanupEngageFixtures` lewat awalan `stamp`.
+ * Mengembalikan `false` bila Supabase Storage tidak tersedia.
+ */
+export async function attachStoredThumbnailToP1(
+  seed: EngageSeed,
+): Promise<boolean> {
+  if (!storageClient()) return false;
+  await withTx(async (client, { workspaceId }) => {
+    const path = await uploadStoredThumbnail(workspaceId, seed.stamp);
+    if (!path) return;
+    await client.query(
+      `UPDATE publishing_post_targets t
+          SET thumbnail_storage_path = $1, thumbnail_kind = 'image',
+              thumbnail_attempted_at = now()
+         FROM publishing_posts p
+        WHERE p.id = t.post_id AND p.workspace_id = $2 AND p.caption = $3`,
+      [path, workspaceId, seed.captions.p1],
+    );
+  });
+  return true;
 }
 
 export async function seedEngageFixtures(): Promise<EngageSeed> {
@@ -51,6 +140,10 @@ export async function seedEngageFixtures(): Promise<EngageSeed> {
       p3: `${ENGAGE_PREFIX}${stamp} posting tiga facebook`,
     },
     p1Url: `https://www.instagram.com/p/${ENGAGE_PREFIX}${stamp}/`,
+    externalMedia: {
+      p2: `https://e2e-cdn.invalid/${ENGAGE_PREFIX}${stamp}-p2-ok.png`,
+      p3: `https://e2e-cdn.invalid/${ENGAGE_PREFIX}${stamp}-p3-rusak.png`,
+    },
     comments: {
       c1: { handle: handle("c1"), content: `komentar c1 ${stamp} belum` },
       c2: { handle: handle("c2"), content: `komentar c2 ${stamp} lawas` },
@@ -79,6 +172,8 @@ export async function seedEngageFixtures(): Promise<EngageSeed> {
       accountId: string,
       platform: string,
       url: string,
+      mediaUrl?: string,
+      thumbnailPath?: string,
     ) => {
       const post = await client.query<{ id: string }>(
         `INSERT INTO publishing_posts
@@ -89,9 +184,19 @@ export async function seedEngageFixtures(): Promise<EngageSeed> {
       await client.query(
         `INSERT INTO publishing_post_targets
            (post_id, connected_account_id, platform, status, content_format,
-            platform_post_url, updated_at)
-         VALUES ($1, $2, $3, 'published', 'post', $4, now())`,
-        [post.rows[0].id, accountId, platform, url],
+            platform_post_url, platform_options, thumbnail_storage_path,
+            thumbnail_kind, thumbnail_attempted_at, updated_at)
+         VALUES ($1, $2, $3, 'published', 'post', $4, $5::jsonb, $6,
+                 CASE WHEN $6::text IS NULL THEN NULL ELSE 'image' END,
+                 CASE WHEN $6::text IS NULL THEN NULL ELSE now() END, now())`,
+        [
+          post.rows[0].id,
+          accountId,
+          platform,
+          url,
+          mediaUrl ? JSON.stringify({ mediaUrls: [mediaUrl] }) : null,
+          thumbnailPath ?? null,
+        ],
       );
       return post.rows[0].id;
     };
@@ -106,12 +211,14 @@ export async function seedEngageFixtures(): Promise<EngageSeed> {
       igId,
       "instagram",
       `https://www.instagram.com/p/${ENGAGE_PREFIX}${stamp}-dua/`,
+      seed.externalMedia.p2,
     );
     const p3 = await insertPost(
       seed.captions.p3,
       fbId,
       "facebook",
       `https://www.facebook.com/${ENGAGE_PREFIX}${stamp}-tiga`,
+      seed.externalMedia.p3,
     );
 
     const now = Date.now();
@@ -204,7 +311,12 @@ export async function seedEngageFixtures(): Promise<EngageSeed> {
  */
 export async function cleanupEngageFixtures(
   options: { stamp?: string } = {},
-): Promise<{ comments: number; posts: number; accounts: number }> {
+): Promise<{
+  comments: number;
+  posts: number;
+  accounts: number;
+  thumbnails: number;
+}> {
   const { stamp } = options;
   const tail = stamp ? `${stamp}%` : "%";
   const stale = (col: string) =>
@@ -220,6 +332,7 @@ export async function cleanupEngageFixtures(
         WHERE workspace_id = $1 AND caption LIKE $2${stale("created_at")}`,
       [workspaceId, `${ENGAGE_PREFIX}${tail}`],
     );
+    const thumbnails = await removeStoredThumbnails(workspaceId, stamp);
     const ids = posts.rows.map((r) => r.id);
     if (ids.length > 0) {
       await client.query(
@@ -240,6 +353,7 @@ export async function cleanupEngageFixtures(
       comments: comments.rowCount ?? 0,
       posts: ids.length,
       accounts: accounts.rowCount ?? 0,
+      thumbnails,
     };
   });
 }

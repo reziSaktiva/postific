@@ -19,7 +19,9 @@ import {
   BackfillOutstandPostIdsUseCase,
   ClassifyImportedPostTargetsUseCase,
   EnqueueImportSyncUseCase,
+  IMPORT_MEDIA_JOB_TYPE,
   IMPORT_SYNC_JOB_TYPE,
+  ImportMediaJobHandler,
   ImportPostsProcessUseCase,
   ImportPostsTriggerUseCase,
   ImportSyncJobHandler,
@@ -38,6 +40,10 @@ import { notificationRepository } from "@/lib/repositories/notification";
 import { analyticsRepository } from "@/lib/repositories/analytics";
 import { createAnalyticsSyncJobsPort } from "@/lib/jobs/analytics-sync-enqueue-port";
 import { createImportSyncJobsPort } from "@/lib/jobs/import-sync-enqueue-port";
+import {
+  createEnqueueImportMediaUseCase,
+  createProcessImportMediaUseCase,
+} from "@/lib/jobs/import-media-composition";
 import { createMcpAuditPurgeJobsPort } from "@/lib/jobs/mcp-audit-purge-enqueue-port";
 import { getMcpAccessService } from "@/lib/mcp-access/get-mcp-access-service";
 import { getMcpConsentService } from "@/lib/mcp-access/get-mcp-consent-service";
@@ -142,6 +148,7 @@ export async function POST(request: Request): Promise<Response> {
     workspaceRepository,
     createImportSyncJobsPort(),
   );
+  const enqueueImportMedia = createEnqueueImportMediaUseCase();
   const importSyncHandler = new ImportSyncJobHandler(
     new ImportPostsTriggerUseCase(
       importJobRepository,
@@ -153,7 +160,12 @@ export async function POST(request: Request): Promise<Response> {
         publishingRepository,
         outstandAdapter,
       ),
+      undefined,
+      enqueueImportMedia,
     ),
+  );
+  const importMediaHandler = new ImportMediaJobHandler(
+    createProcessImportMediaUseCase(),
   );
 
   const mcpAuditPurgeHandler = new McpAuditPurgeJobHandler(
@@ -192,6 +204,16 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 
+  // T-230 (ADR-158): backfill sekali jalan thumbnail posting impor yang URL-nya
+  // masih hidup (`?type=import-media`). Setelah import, antrian dibuat otomatis.
+  if (jobType === "import-media") {
+    try {
+      await enqueueImportMedia.enqueueBackfill();
+    } catch (error) {
+      console.error("[jobs/run] backfill thumbnail impor gagal:", error);
+    }
+  }
+
   try {
     if (jobType === "mcp-audit-purge") {
       await enqueueMcpAuditPurge.execute();
@@ -214,6 +236,7 @@ export async function POST(request: Request): Promise<Response> {
       analyticsSyncHandler.handle(payload),
     [IMPORT_SYNC_JOB_TYPE]: (payload, jobId) =>
       importSyncHandler.handle(payload, jobId),
+    [IMPORT_MEDIA_JOB_TYPE]: (payload) => importMediaHandler.handle(payload),
     [MCP_AUDIT_PURGE_JOB_TYPE]: () => mcpAuditPurgeHandler.handle(),
   };
 
