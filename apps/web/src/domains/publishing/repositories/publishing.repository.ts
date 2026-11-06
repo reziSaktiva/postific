@@ -1373,6 +1373,12 @@ export interface PostSnapshotForEngagementRecord {
   caption: string;
   mediaIds: MediaId[];
   platformPostUrl: string | null;
+  /**
+   * T-227: URL media pertama dari `platformOptions.mediaUrls` target (posting
+   * hasil Import tidak punya `mediaIds`). URL CDN platform, bisa kedaluwarsa;
+   * `null` bila target tidak menyimpannya.
+   */
+  externalMediaUrl: string | null;
 }
 
 /**

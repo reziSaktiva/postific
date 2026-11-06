@@ -14,6 +14,8 @@ export function MediaThumbnail({
   alt,
   className,
   fit = "cover",
+  onError,
+  referrerPolicy,
 }: {
   url: string | null | undefined;
   /** Dibandingkan sebagai string ("video" vs selainnya) supaya cocok dengan kedua caller: `MediaItemRecord.type` (`MediaType` enum, domain `media`) dan `DraftMediaDto.type` (`string` mentah, actions.ts draft-editor). */
@@ -36,6 +38,10 @@ export function MediaThumbnail({
    * seperti `<img class="history-post-media">` di mockup Claude Design.
    */
   fit?: "cover" | "contain" | "natural";
+  /** Dipanggil saat media gagal dimuat (T-227: URL CDN eksternal kedaluwarsa). */
+  onError?: () => void;
+  /** Mis. `no-referrer` untuk URL CDN eksternal yang menolak hotlink ber-Referer. */
+  referrerPolicy?: React.HTMLAttributeReferrerPolicy;
 }) {
   const fitClassName =
     fit === "natural"
@@ -53,6 +59,7 @@ export function MediaThumbnail({
         muted={fit !== "natural"}
         playsInline
         preload="metadata"
+        onError={onError}
       />
     );
   }
@@ -63,6 +70,8 @@ export function MediaThumbnail({
       src={url ?? undefined}
       alt={alt}
       className={cn("block", fitClassName, className)}
+      onError={onError}
+      referrerPolicy={referrerPolicy}
     />
   );
 }

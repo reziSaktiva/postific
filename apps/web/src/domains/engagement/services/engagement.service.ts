@@ -76,6 +76,7 @@ interface PublishingPostReferencePort {
     caption: string;
     mediaIds: MediaId[];
     platformPostUrl: string | null;
+    externalMediaUrl?: string | null;
   } | null>;
 
   /**
@@ -122,11 +123,15 @@ interface ConnectedAccountHandlePort {
  * terkait tidak ditemukan lagi di `publishing` (mis. sudah di-soft-delete).
  * `mediaIds` dibawa mentah — resolusi URL thumbnail (domain `media`) bukan
  * tanggung jawab `engagement`, dilakukan composition root.
+ *
+ * `externalMediaUrl` (T-227) — URL media CDN platform untuk posting hasil
+ * Import (yang `mediaIds`-nya kosong); cadangan thumbnail, bisa kedaluwarsa.
  */
 export interface InboxItemPostSnapshot {
   caption: string;
   mediaIds: MediaId[];
   platformPostUrl: string | null;
+  externalMediaUrl?: string | null;
 }
 
 /**

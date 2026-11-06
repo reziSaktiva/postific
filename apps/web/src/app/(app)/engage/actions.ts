@@ -39,6 +39,8 @@ import { toActionError } from "@/lib/utils/errors";
 import { createActiveWorkspaceMembersPort } from "@/lib/workspace/active-members-port";
 import { getWorkspaceContext } from "@/lib/workspace/workspace-context";
 
+import { resolveSnapshotThumbnail } from "./snapshot-thumbnail";
+
 /**
  * Manual refresh Comments Inbox (T-052, `background-jobs.md` § JOB-03).
  * Reuse `SyncCommentsUseCase.sync` — logic sync (fetch+upsert+notify) yang
@@ -251,9 +253,10 @@ export async function listInboxByPostAction(
           ? {
               caption: postSnapshot.caption,
               platformPostUrl: postSnapshot.platformPostUrl,
-              thumbnail: postSnapshot.mediaIds[0]
-                ? (thumbnailByMediaId.get(postSnapshot.mediaIds[0]) ?? null)
-                : null,
+              thumbnail: resolveSnapshotThumbnail(
+                postSnapshot,
+                thumbnailByMediaId,
+              ),
             }
           : null,
       };

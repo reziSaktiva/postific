@@ -41,6 +41,7 @@ import {
 } from "@/lib/prisma/with-current-user";
 import { backfillImportedPostOutstandIdsTx } from "@/lib/repositories/publishing/backfill-outstand-post-ids";
 import { classifyImportedPostTargetsTx } from "@/lib/repositories/publishing/classify-imported-post-targets";
+import { firstExternalMediaUrl } from "@/lib/repositories/publishing/first-external-media-url";
 import { countTerminalPostsWhere } from "@/lib/repositories/publishing/count-terminal-posts";
 import { replaceDraftTargets } from "@/lib/repositories/publishing/replace-draft-targets";
 import {
@@ -1295,6 +1296,7 @@ export const publishingRepository: IPublishingRepository = {
         },
         select: {
           platformPostUrl: true,
+          platformOptions: true,
           post: { select: { caption: true, mediaIds: true } },
         },
       }),
@@ -1306,6 +1308,7 @@ export const publishingRepository: IPublishingRepository = {
       caption: target.post.caption,
       mediaIds: target.post.mediaIds.map((id) => asMediaId(id)),
       platformPostUrl: target.platformPostUrl,
+      externalMediaUrl: firstExternalMediaUrl(target.platformOptions),
     };
   },
 

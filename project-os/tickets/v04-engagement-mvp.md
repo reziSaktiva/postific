@@ -500,7 +500,7 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 | Field       | Value                                                                                                                          |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| **Status**  | ⏳ Not Started                                                                                                                 |
+| **Status**  | 🟡 In Progress (kode, tes unit/komponen, typecheck, lint hijau; E2E dan amatan visual belum)                                   |
 | **Mode**    | AFK                                                                                                                            |
 | **Domain**  | engagement · UI (UI/UX-related)                                                                                                |
 | **Spec**    | S-006                                                                                                                          |
@@ -519,16 +519,18 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 **Belum diverifikasi:** apakah URL CDN itu masih valid atau sudah kedaluwarsa, apakah browser bisa memuatnya (hotlink, CORS/Referer), dan apakah hak atau kebijakan platform mengizinkan menyimpan media impor (dibahas di T-228).
 
+**Keputusan gate rancangan (2026-11-06, King Rezi):** kartu `ScreenEngagePerPosting` sengaja menampilkan posting tanpa media (mis. LinkedIn teks saja) tanpa thumbnail dan tanpa placeholder, jadi **T-227.2 gugur**: posting tanpa media tetap polos. Gambar eksternal yang gagal dimuat memakai tampilan `PostThumb` yang ada (kotak + ikon gambar, ukuran tetap).
+
 **Gate rancangan (AGENTS.md aturan 10):** sebelum kode, cek kartu `ScreenEngagePerPosting` di artifact Postific (tool `Artifact` action `read`, pointer di `context/ctx-design.md`) apakah placeholder di kartu daftar dan gambar eksternal sudah dirancang. Bila belum ada atau ambigu, **STOP** dan tanya King Rezi; jangan menebak.
 
 **Risiko:** URL CDN bisa kedaluwarsa (TikTok bertanda tangan), sehingga hasil perbaikan ini bersifat sementara sampai T-228 diputuskan dan dikerjakan.
 
-- [ ] **T-227.1** Snapshot posting Engage (service/action, `InboxPostSnapshot` / `InboxPostGroupSnapshotDto`) memakai `platformOptions.mediaUrls[0]` sebagai cadangan bila `mediaIds` kosong. Tanpa mengubah kontrak domain tanpa alasan. Patuhi AGENTS.md no. 3-5: entry point tanpa business logic, domain tanpa Prisma, cross-domain lewat public API module.
-- [ ] **T-227.2** `PostCard` menampilkan ikon gambar (`PostThumb` tanpa thumbnail) untuk posting tanpa media.
-- [ ] **T-227.3** Kegagalan memuat gambar eksternal (URL kedaluwarsa) jatuh ke placeholder, tanpa merusak tata letak.
-- [ ] **T-227.4** Tes unit/komponen; E2E Engage (`apps/web/e2e/engage-per-post.e2e.ts`, ADR-149) diperluas bila perlu; `typecheck`, `lint`, tes hijau; amati terang, gelap, dan 375px.
+- [x] **T-227.1** Snapshot posting Engage (service/action, `InboxPostSnapshot` / `InboxPostGroupSnapshotDto`) memakai `platformOptions.mediaUrls[0]` sebagai cadangan bila `mediaIds` kosong. Tanpa mengubah kontrak domain tanpa alasan. Patuhi AGENTS.md no. 3-5: entry point tanpa business logic, domain tanpa Prisma, cross-domain lewat public API module.
+- [~] **T-227.2** (gugur, lihat keputusan gate) `PostCard` menampilkan ikon gambar (`PostThumb` tanpa thumbnail) untuk posting tanpa media.
+- [x] **T-227.3** Kegagalan memuat gambar eksternal (URL kedaluwarsa) jatuh ke placeholder, tanpa merusak tata letak.
+- [ ] **T-227.4** (tes unit/komponen, typecheck, lint hijau; E2E dan amatan terang/gelap/375px belum) Tes unit/komponen; E2E Engage (`apps/web/e2e/engage-per-post.e2e.ts`, ADR-149) diperluas bila perlu; `typecheck`, `lint`, tes hijau; amati terang, gelap, dan 375px.
 
-**Blocked by:** gate rancangan (di atas).
+**Implementasi:** `externalMediaUrl` ditambahkan ke snapshot (`PostSnapshotForEngagementRecord`, `InboxItemPostSnapshot`), diisi `firstExternalMediaUrl` (hanya http/https) di repository; `resolveSnapshotThumbnail` (`engage/snapshot-thumbnail.ts`) memakai media Postific dulu, lalu URL eksternal bertipe gambar; `PostThumb` menjadi client component dengan `onError` dan `referrerPolicy=no-referrer`. Belum terbukti: apakah browser memuat URL CDN itu (hotlink) dan masa berlakunya (T-228).
 
 ---
 
