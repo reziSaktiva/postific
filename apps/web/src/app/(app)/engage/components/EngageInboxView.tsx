@@ -216,7 +216,9 @@ function PostOriginCard({
 const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: ALL_STATUS_FILTER_VALUE, label: "Semua Status" },
   { value: "unread", label: "Unread" },
-  { value: "done", label: "Done" },
+  { value: "replied", label: "Replied" },
+  { value: "resolved", label: "Resolved" },
+  { value: "dismissed", label: "Dismissed" },
 ];
 
 /** Jam + singkatan zona pengguna dari Intl ("10.30 WIB", "05.30 GMT-4") — T-147. */
@@ -615,7 +617,7 @@ export function EngageInboxView({
             <ItemGroup className="gap-0 has-data-[size=sm]:gap-0">
               {items.map((item) => {
                 const isSelected = item.id === effectiveSelectedId;
-                const isDone = item.status === "done";
+                const isDone = item.status !== "unread";
                 return (
                   <Item
                     key={item.id}
@@ -750,7 +752,7 @@ export function EngageInboxView({
                   </div>
                 ) : null}
 
-                {detail.status !== "done" ? (
+                {detail.status === "unread" || detail.status === "replied" ? (
                   <Button
                     type="button"
                     variant="secondary"

@@ -52,10 +52,20 @@ const PAGE_NOTE =
   "20 item per halaman; gunakan cursor untuk halaman berikutnya.";
 
 const ANALYTICS_PERIODS = ["weekly", "monthly"] as const;
-const COMMENT_STATUSES = [
+// `done` = alias `resolved` (T-217.8, ADR-157); dinormalisasi sebelum memanggil service.
+const COMMENT_STATUS_FILTERS = [
   "unread",
+  "replied",
+  "resolved",
+  "dismissed",
   "done",
-] as const satisfies readonly InboxItemStatus[];
+] as const satisfies readonly (InboxItemStatus | "done")[];
+
+function normalizeCommentStatus(
+  status: (typeof COMMENT_STATUS_FILTERS)[number] | undefined,
+): InboxItemStatus | undefined {
+  return status === "done" ? "resolved" : status;
+}
 
 function cursorOf(args: Record<string, unknown>): string | undefined {
   // Cursor kosong = halaman pertama (deskripsi skema: "Kosongkan untuk halaman pertama").
@@ -332,7 +342,12 @@ const listComments: McpToolDefinition = {
     type: "object",
     properties: {
       ...CURSOR_PROPERTY,
-      status: { type: "string", enum: [...COMMENT_STATUSES] },
+      status: {
+        type: "string",
+        enum: [...COMMENT_STATUS_FILTERS],
+        description:
+          "unread, replied, resolved, dismissed; done diterima sebagai alias resolved.",
+      },
       accountId: { type: "string", description: "Filter satu akun terhubung." },
     },
     additionalProperties: false,
@@ -340,7 +355,9 @@ const listComments: McpToolDefinition = {
   async handler(context, args) {
     assertKnownArgs(args, ["cursor", "status", "accountId"]);
     const cursor = cursorOf(args);
-    const status = readOptionalEnum(args, "status", COMMENT_STATUSES);
+    const status = normalizeCommentStatus(
+      readOptionalEnum(args, "status", COMMENT_STATUS_FILTERS),
+    );
     const accountId = readOptionalUuid(args, "accountId");
 
     const inbox = await context.services.engagement.listInbox(

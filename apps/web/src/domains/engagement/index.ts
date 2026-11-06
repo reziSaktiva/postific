@@ -1,6 +1,7 @@
 /** Public API for engagement domain — import only from this barrel. */
 export * from "./types";
 export * from "./errors";
+export * from "./inbox-status";
 export * from "./adapters/job-scheduler";
 export * from "./repositories/engagement.repository";
 export * from "./services/engagement.service";

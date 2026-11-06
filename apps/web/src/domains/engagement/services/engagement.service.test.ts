@@ -61,6 +61,7 @@ function createFakeRepository(
     findInboxItemById: async () => null,
     upsertInboxItem: async () => ({ item: makeInboxItem(), isNew: true }),
     markInboxItemStatus: async () => null,
+    countUnreadInboxItems: async () => 0,
     createReply: async ({ inboxItemId, userId, content, outstandReplyId }) => ({
       id: asReplyId("reply-1"),
       inboxItemId,
@@ -208,7 +209,7 @@ function createService(
 
 describe("EngagementService.listInbox", () => {
   it("meneruskan filter ke repository dan mengembalikan hasilnya apa adanya", async () => {
-    const items = [makeInboxItem(), makeInboxItem({ status: "done" })];
+    const items = [makeInboxItem(), makeInboxItem({ status: "resolved" })];
     let receivedFilter: unknown;
     const repository = createFakeRepository({
       listInboxItems: async (filter) => {
@@ -343,43 +344,156 @@ describe("EngagementService.getInboxItemDetail", () => {
   });
 });
 
-describe("EngagementService.markAsDone", () => {
-  it("mengubah status inbox item jadi done", async () => {
-    const doneItem = makeInboxItem({ status: "done", readAt: new Date(1) });
-    let receivedStatusInput: unknown;
-    const repository = createFakeRepository({
-      markInboxItemStatus: async (input) => {
-        receivedStatusInput = input;
-        return doneItem;
-      },
-    });
+/**
+ * Repository in-memory yang menghormati kontrak `IEngagementRepository`
+ * (`onlyFromStatus`, `readAt` sekali isi, jendela `since`), supaya tes
+ * status menguji perilaku lewat batas publik service, bukan urutan panggilan.
+ */
+function createStatefulRepository(initial: EngagementInboxItemRecord[]) {
+  const rows = new Map(initial.map((item) => [item.id, { ...item }]));
+  const repository = createFakeRepository({
+    findInboxItemById: async ({ inboxItemId }) => {
+      const row = rows.get(inboxItemId);
+      return row ? { ...row } : null;
+    },
+    markInboxItemStatus: async ({ inboxItemId, status, onlyFromStatus }) => {
+      const row = rows.get(inboxItemId);
+      if (!row) return null;
+      if (!onlyFromStatus || row.status === onlyFromStatus) {
+        row.status = status;
+        if (status !== "unread" && row.readAt === null) {
+          row.readAt = new Date(1);
+        }
+      }
+      return { ...row };
+    },
+    countUnreadInboxItems: async ({ since }) =>
+      [...rows.values()].filter(
+        (row) => row.status === "unread" && row.receivedAt >= since,
+      ).length,
+  });
+  return { repository, rows };
+}
+
+describe("EngagementService.changeStatus", () => {
+  it.each([
+    ["unread", "resolved"],
+    ["unread", "dismissed"],
+    ["unread", "replied"],
+    ["replied", "resolved"],
+    ["replied", "dismissed"],
+    ["resolved", "unread"],
+    ["dismissed", "unread"],
+  ] as const)("mengizinkan transisi %s -> %s", async (from, to) => {
+    const { repository } = createStatefulRepository([
+      makeInboxItem({ status: from }),
+    ]);
     const service = createService(repository);
 
-    const result = await service.markAsDone(
-      { workspaceId: WORKSPACE_ID, inboxItemId: INBOX_ITEM_ID },
+    const result = await service.changeStatus(
+      { workspaceId: WORKSPACE_ID, inboxItemId: INBOX_ITEM_ID, status: to },
       USER_ID,
     );
 
-    expect(result).toBe(doneItem);
-    expect(receivedStatusInput).toEqual({
-      workspaceId: WORKSPACE_ID,
-      inboxItemId: INBOX_ITEM_ID,
-      status: "done",
-    });
+    expect(result.status).toBe(to);
+  });
+
+  it.each([
+    ["resolved", "dismissed"],
+    ["dismissed", "resolved"],
+    ["resolved", "replied"],
+    ["replied", "unread"],
+  ] as const)(
+    "menolak transisi %s -> %s dengan ConflictError",
+    async (from, to) => {
+      const { repository, rows } = createStatefulRepository([
+        makeInboxItem({ status: from }),
+      ]);
+      const service = createService(repository);
+
+      await expect(
+        service.changeStatus(
+          { workspaceId: WORKSPACE_ID, inboxItemId: INBOX_ITEM_ID, status: to },
+          USER_ID,
+        ),
+      ).rejects.toThrow(ConflictError);
+      expect(rows.get(INBOX_ITEM_ID)?.status).toBe(from);
+    },
+  );
+
+  it("idempoten untuk status yang sama", async () => {
+    const { repository } = createStatefulRepository([
+      makeInboxItem({ status: "resolved" }),
+    ]);
+    const service = createService(repository);
+
+    const result = await service.changeStatus(
+      {
+        workspaceId: WORKSPACE_ID,
+        inboxItemId: INBOX_ITEM_ID,
+        status: "resolved",
+      },
+      USER_ID,
+    );
+
+    expect(result.status).toBe("resolved");
+  });
+
+  it("mengisi readAt saat pertama kali keluar dari unread dan tidak menimpanya saat dibuka kembali", async () => {
+    const { repository, rows } = createStatefulRepository([makeInboxItem()]);
+    const service = createService(repository);
+    const input = { workspaceId: WORKSPACE_ID, inboxItemId: INBOX_ITEM_ID };
+
+    await service.changeStatus({ ...input, status: "resolved" }, USER_ID);
+    expect(rows.get(INBOX_ITEM_ID)?.readAt).toEqual(new Date(1));
+    await service.changeStatus({ ...input, status: "unread" }, USER_ID);
+    expect(rows.get(INBOX_ITEM_ID)?.readAt).toEqual(new Date(1));
   });
 
   it("throw NotFoundError kalau item tidak ditemukan/bukan milik workspace ini", async () => {
-    const repository = createFakeRepository({
-      markInboxItemStatus: async () => null,
-    });
-    const service = createService(repository);
+    const service = createService(createStatefulRepository([]).repository);
 
     await expect(
-      service.markAsDone(
-        { workspaceId: WORKSPACE_ID, inboxItemId: INBOX_ITEM_ID },
+      service.changeStatus(
+        {
+          workspaceId: WORKSPACE_ID,
+          inboxItemId: INBOX_ITEM_ID,
+          status: "resolved",
+        },
         USER_ID,
       ),
     ).rejects.toThrow(NotFoundError);
+  });
+});
+
+describe("EngagementService.countUnread (T-217.7)", () => {
+  const NOW = new Date("2026-11-06T00:00:00.000Z");
+
+  it("menghitung unread dalam 12 bulan terakhir dan mengabaikan yang lebih tua atau sudah ditangani", async () => {
+    const { repository } = createStatefulRepository([
+      makeInboxItem({
+        id: asInboxItemId("recent"),
+        receivedAt: new Date("2026-11-01T00:00:00.000Z"),
+      }),
+      makeInboxItem({
+        id: asInboxItemId("edge-inside"),
+        receivedAt: new Date("2025-11-06T00:00:00.000Z"),
+      }),
+      makeInboxItem({
+        id: asInboxItemId("too-old"),
+        receivedAt: new Date("2025-11-05T23:59:59.000Z"),
+      }),
+      makeInboxItem({
+        id: asInboxItemId("resolved"),
+        status: "resolved",
+        receivedAt: new Date("2026-11-01T00:00:00.000Z"),
+      }),
+    ]);
+    const service = createService(repository);
+
+    await expect(service.countUnread(WORKSPACE_ID, USER_ID, NOW)).resolves.toBe(
+      2,
+    );
   });
 });
 
@@ -616,5 +730,81 @@ describe("EngagementService.reply", () => {
       /Komentar tidak bisa dibalas karena akun terhubung tidak punya username/,
     );
     expect(replyToComment).not.toHaveBeenCalled();
+  });
+});
+
+describe("EngagementService.reply menandai replied (T-217.3)", () => {
+  async function replyTo(status: InboxItemStatus) {
+    const { repository, rows } = createStatefulRepository([
+      makeInboxItem({ status, postId: asPostId("post-1") }),
+    ]);
+    const service = createService(repository);
+    await service.reply(
+      {
+        workspaceId: WORKSPACE_ID,
+        inboxItemId: INBOX_ITEM_ID,
+        content: "Terima kasih!",
+      },
+      USER_ID,
+    );
+    return rows.get(INBOX_ITEM_ID)?.status;
+  }
+
+  it("unread menjadi replied setelah balasan terkirim", async () => {
+    await expect(replyTo("unread")).resolves.toBe("replied");
+  });
+
+  it.each(["replied", "resolved", "dismissed"] as const)(
+    "tidak mengubah status %s",
+    async (status) => {
+      await expect(replyTo(status)).resolves.toBe(status);
+    },
+  );
+
+  it("tidak menandai replied bila pengiriman ke Outstand gagal", async () => {
+    const { repository, rows } = createStatefulRepository([
+      makeInboxItem({ postId: asPostId("post-1") }),
+    ]);
+    const service = createService(
+      repository,
+      createFakeAdapter({
+        replyToComment: async () => {
+          throw new Error("Outstand down");
+        },
+      }),
+    );
+
+    await expect(
+      service.reply(
+        {
+          workspaceId: WORKSPACE_ID,
+          inboxItemId: INBOX_ITEM_ID,
+          content: "Halo",
+        },
+        USER_ID,
+      ),
+    ).rejects.toThrow("Outstand down");
+    expect(rows.get(INBOX_ITEM_ID)?.status).toBe("unread");
+  });
+
+  it("balasan tetap sukses walau penandaan replied gagal", async () => {
+    const { repository } = createStatefulRepository([
+      makeInboxItem({ postId: asPostId("post-1") }),
+    ]);
+    repository.markInboxItemStatus = async () => {
+      throw new Error("db down");
+    };
+    const service = createService(repository);
+
+    await expect(
+      service.reply(
+        {
+          workspaceId: WORKSPACE_ID,
+          inboxItemId: INBOX_ITEM_ID,
+          content: "Halo",
+        },
+        USER_ID,
+      ),
+    ).resolves.toMatchObject({ content: "Halo" });
   });
 });

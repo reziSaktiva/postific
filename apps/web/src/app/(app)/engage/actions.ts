@@ -238,12 +238,13 @@ export async function getInboxItemDetailAction(
 }
 
 /**
- * Tandai satu inbox item sebagai "done" (T-053). Murni wiring — resolve
- * workspace/session, delegasi ke `EngagementService.markAsDone`, lalu
+ * Ubah status satu komentar (T-217). Murni wiring — resolve workspace/
+ * session, delegasi ke `EngagementService.changeStatus`, lalu
  * `revalidatePath("/engage")` (pola sama `refreshInboxAction`).
  */
-export async function markAsDoneAction(
+export async function changeInboxItemStatusAction(
   inboxItemId: string,
+  status: InboxItemStatus,
 ): Promise<{ data?: EngagementInboxItemRecord; error?: string }> {
   const { workspaceId } = await getWorkspaceContext();
   const session = await getCachedSession();
@@ -260,8 +261,8 @@ export async function markAsDoneAction(
   );
 
   try {
-    const data = await engagementService.markAsDone(
-      { workspaceId, inboxItemId: asInboxItemId(inboxItemId) },
+    const data = await engagementService.changeStatus(
+      { workspaceId, inboxItemId: asInboxItemId(inboxItemId), status },
       userId,
     );
     revalidatePath("/engage");
@@ -269,6 +270,16 @@ export async function markAsDoneAction(
   } catch (error) {
     return toActionError(error);
   }
+}
+
+/**
+ * Tandai komentar selesai (T-053): sejak T-217 berarti status `resolved`.
+ * Dipertahankan agar `EngageInboxView` tetap berfungsi sampai UI T-219.
+ */
+export async function markAsDoneAction(
+  inboxItemId: string,
+): Promise<{ data?: EngagementInboxItemRecord; error?: string }> {
+  return changeInboxItemStatusAction(inboxItemId, "resolved");
 }
 
 /**
@@ -283,7 +294,7 @@ export async function markAsDoneAction(
  * id untuk `accountUsername`, KI-071), delegasi ke `EngagementService.reply`
  * (validasi `content` kosong/whitespace-only ada di service, bukan di sini —
  * konsisten dengan `IdentityService.updateProfile`), lalu
- * `revalidatePath("/engage")` (pola sama `markAsDoneAction`).
+ * `revalidatePath("/engage")` (pola sama `changeInboxItemStatusAction`).
  */
 export async function replyToCommentAction(
   inboxItemId: string,

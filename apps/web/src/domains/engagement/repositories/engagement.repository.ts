@@ -83,21 +83,32 @@ export interface IEngagementRepository {
   ): Promise<{ item: EngagementInboxItemRecord; isNew: boolean }>;
 
   /**
-   * Ubah status satu inbox item (mis. "unread" -> "done", dipakai
-   * `EngagementService.markAsDone`). `readAt` di-set otomatis oleh
-   * implementasi Prisma saat status berubah jadi `"done"` (pola sama
-   * `readAt` kolom — belum pernah dibaca sebelumnya). Returns `null` kalau
-   * tidak ditemukan/bukan milik `workspaceId` ini. `userId` (RLS) — acting
-   * user untuk `withCurrentUser`.
+   * Ubah status satu inbox item (T-217). `readAt` diisi saat status pertama
+   * kali keluar dari `unread` dan tidak ditimpa lagi. `onlyFromStatus`
+   * (opsional): ubah hanya bila status sekarang sama; bila tidak cocok,
+   * baris dikembalikan apa adanya (dipakai `reply` agar tidak menurunkan
+   * `resolved`/`dismissed` saat ada balapan). Returns `null` kalau tidak
+   * ditemukan/bukan milik `workspaceId` ini. `userId` (RLS) — acting user
+   * untuk `withCurrentUser`.
    */
   markInboxItemStatus(
     input: {
       workspaceId: WorkspaceId;
       inboxItemId: InboxItemId;
       status: InboxItemStatus;
+      onlyFromStatus?: InboxItemStatus;
     },
     userId: UserId,
   ): Promise<EngagementInboxItemRecord | null>;
+
+  /**
+   * Jumlah komentar `unread` dengan `receivedAt >= since` (T-217.7, badge
+   * sidebar dan Engagement Snapshot). `userId` (RLS) — acting user.
+   */
+  countUnreadInboxItems(
+    input: { workspaceId: WorkspaceId; since: Date },
+    userId: UserId,
+  ): Promise<number>;
 
   /**
    * Persist balasan ke `EngagementReply` — disiapkan di T-050, dipakai
