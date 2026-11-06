@@ -7,6 +7,7 @@ import type {
   InboxPostSort,
   InboxPublishedPostRef,
 } from "./types";
+import { resolveInboxStatusAlias } from "./inbox-status";
 
 /**
  * Pengelompokan inbox per posting (T-218.1, ADR-157, S-006). Murni: tanpa
@@ -102,9 +103,14 @@ export function buildInboxPostGroups(
     if (row.status === UNREPLIED_STATUS) acc.unrepliedCount += row.count;
     else acc.handledCount += row.count;
     acc.accountIds.add(row.connectedAccountId);
-    acc.statuses.add(row.status);
+    // Baris `done` lama (sebelum migrasi T-217.4) dihitung sebagai `resolved`.
+    acc.statuses.add(resolveInboxStatusAlias(row.status) ?? row.status);
     if (row.latestReceivedAt > acc.latestReceivedAt) {
       acc.latestReceivedAt = row.latestReceivedAt;
+    }
+    // Akun utama kartu stabil (id terkecil), tidak berganti saat komentar baru
+    // masuk di akun lain pada posting multi-akun.
+    if (row.connectedAccountId < acc.primary.connectedAccountId) {
       acc.primary = {
         connectedAccountId: row.connectedAccountId,
         platform: row.platform,
@@ -142,11 +148,12 @@ export function buildInboxPostGroups(
   // Posting tanpa komentar (dalam rentang) tidak punya status, jadi tidak ikut
   // saat filter status aktif; ditaruh setelah posting berkomentar dengan
   // urutan masukan (terbaru dulu dari sumbernya), apa pun sort-nya.
-  const commented = new Set(posts.map((g) => g.postId));
+  const seen = new Set(posts.map((g) => g.postId));
   const empties: InboxPostGroupSummary[] = status
     ? []
     : emptyPosts
-        .filter((ref) => !commented.has(ref.postId))
+        // Posting terbit ke beberapa akun muncul sekali (satu kelompok per postId).
+        .filter((ref) => !seen.has(ref.postId) && seen.add(ref.postId))
         .map((ref) => ({
           postId: ref.postId,
           connectedAccountId: ref.connectedAccountId,

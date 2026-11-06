@@ -16,8 +16,8 @@ import { EngagementService, POST_GROUP_LIMIT } from "./engagement.service";
 
 const WS = asWorkspaceId("ws-1");
 const USER = asUserId("user-1");
-const ACC_IG = asConnectedAccountId("acc-ig");
-const ACC_FB = asConnectedAccountId("acc-fb");
+const ACC_IG = asConnectedAccountId("00000000-0000-4000-8000-0000000000a1");
+const ACC_FB = asConnectedAccountId("00000000-0000-4000-8000-0000000000b2");
 const NOW = new Date("2026-11-06T00:00:00.000Z");
 const day = (n: number) => new Date(NOW.getTime() - n * 24 * 60 * 60 * 1000);
 
@@ -333,6 +333,20 @@ describe("EngagementService.listInboxByPost", () => {
     await expect(
       service.listInboxByPost(
         { workspaceId: WS, status: "done" as never },
+        USER,
+        NOW,
+      ),
+    ).rejects.toBeInstanceOf(ValidationError);
+    await expect(
+      service.listInboxByPost(
+        { workspaceId: WS, connectedAccountId: "bukan-uuid" as never },
+        USER,
+        NOW,
+      ),
+    ).rejects.toBeInstanceOf(ValidationError);
+    await expect(
+      service.listInboxByPost(
+        { workspaceId: WS, platform: "myspace" as never },
         USER,
         NOW,
       ),

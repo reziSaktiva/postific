@@ -289,6 +289,8 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 **Belum terbukti:** (0) T-218.5 belum dicentang: tes integrasi DB `aggregate-inbox-by-post.integration.test.ts` ditulis tetapi belum dijalankan (belum terverifikasi); isolasi workspace/RLS di Postgres dan manfaat indeks belum terbukti; (1) performa query pada volume besar (ratusan komentar per posting) belum diukur: tes integrasi DB `aggregate-inbox-by-post.integration.test.ts` ditulis tetapi opt-in (`ENGAGEMENT_DB_TEST=1` + `DATABASE_URL`) dan belum dijalankan di lingkungan ini; belum ada `EXPLAIN (ANALYZE)`; (2) migrasi indeks belum diterapkan ke DB manapun; (3) snapshot posting diambil per kelompok (maks 10 konkuren, maks 100 kelompok), belum ada query batch; (4) tes repository unit memakai tabel in-memory, bukan SQL sungguhan; (5) `listInboxByPostAction` belum dipanggil UI (T-219).
 
+**Tindak lanjut review PR 264 (2026-11-06):** diperbaiki: posting kosong multi-akun satu kali, NULL `postId` lebih dulu pada pagar 5000, batas daftar per posting 1000 (pagination di T-219), akun utama kartu stabil (id terkecil), `done` dihitung `resolved` di filter status, validasi input pindah ke service. Belum dikerjakan: snapshot posting batch (satu query, butuh port baru di `publishing`), `includeEmpty` mengikuti rentang tanggal dan lebih dari 50 posting per akun, serta bukti isolasi RLS lewat tes integrasi DB (dijalankan setelah migrasi diterapkan).
+
 **Blocked by:** T-217.
 
 ---

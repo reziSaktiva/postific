@@ -232,19 +232,4 @@ describe("listInboxByPostAction (T-218)", () => {
     expect(result.data?.[0].postSnapshot?.thumbnail).toBeNull();
     errorSpy.mockRestore();
   });
-
-  it("input tidak valid menjadi error validasi tanpa memanggil service", async () => {
-    const spy = vi.spyOn(EngagementService.prototype, "listInboxByPost");
-
-    const badAccount = await listInboxByPostAction({
-      connectedAccountId: "bukan-uuid" as never,
-    });
-    const badPlatform = await listInboxByPostAction({
-      platform: "myspace" as never,
-    });
-
-    expect(badAccount.error).toBeTruthy();
-    expect(badPlatform.error).toBeTruthy();
-    expect(spy).not.toHaveBeenCalled();
-  });
 });

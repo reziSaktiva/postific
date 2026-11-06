@@ -147,7 +147,7 @@ describe("buildInboxPostGroups", () => {
     });
   });
 
-  it("memakai akun dari komentar terbaru dan mencatat semua akun kelompok", () => {
+  it("memakai akun utama yang stabil (id terkecil) dan mencatat semua akun kelompok", () => {
     const [group] = buildInboxPostGroups(
       [
         row({
@@ -162,9 +162,37 @@ describe("buildInboxPostGroups", () => {
       ],
       { sort: "newest" },
     );
-    expect(group.connectedAccountId).toBe(ACC_B);
-    expect(group.platform).toBe(SocialPlatform.Facebook);
+    expect(group.connectedAccountId).toBe(ACC_A);
+    expect(group.platform).toBe(SocialPlatform.Instagram);
     expect([...group.connectedAccountIds].sort()).toEqual([ACC_A, ACC_B]);
+  });
+
+  it("posting kosong yang sama dari beberapa akun hanya muncul sekali", () => {
+    const groups = buildInboxPostGroups([], {
+      sort: "newest",
+      emptyPosts: [
+        {
+          postId: P2,
+          connectedAccountId: ACC_A,
+          platform: SocialPlatform.Instagram,
+        },
+        {
+          postId: P2,
+          connectedAccountId: ACC_B,
+          platform: SocialPlatform.Facebook,
+        },
+      ],
+    });
+    expect(groups.map((g) => g.postId)).toEqual([P2]);
+  });
+
+  it("baris done lama dihitung sebagai resolved pada filter status", () => {
+    const groups = buildInboxPostGroups(
+      [row({ postId: P1, status: "done" as never })],
+      { sort: "newest", status: "resolved" },
+    );
+    expect(groups.map((g) => g.postId)).toEqual([P1]);
+    expect(groups[0].statuses).toEqual(["resolved"]);
   });
 
   it("posting tanpa komentar ikut di akhir hanya bila disuplai, tanpa menggandakan posting berkomentar", () => {

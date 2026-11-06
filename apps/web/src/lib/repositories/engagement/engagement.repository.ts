@@ -57,6 +57,11 @@ function mapReply(reply: EngagementReply): EngagementReplyRecord {
 // tumbuh tak terbatas seiring volume histori workspace.
 const LIST_INBOX_ITEMS_LIMIT = 200;
 
+// Daftar komentar satu posting (filter `postId`): hitungan kartu tidak dibatasi,
+// jadi batasnya dilonggarkan agar panel komentar tidak jauh di bawah total.
+// Pagination menyusul di T-219.
+const LIST_INBOX_ITEMS_BY_POST_LIMIT = 1000;
+
 // Batas baris agregat (posting x akun x platform x status). Jauh di atas
 // kebutuhan satu workspace; hanya pagar terhadap data tak terduga.
 const AGGREGATE_ROW_LIMIT = 5000;
@@ -84,7 +89,10 @@ export const engagementRepository: IEngagementRepository = {
           ...(receivedSince ? { receivedAt: { gte: receivedSince } } : {}),
         },
         orderBy: { receivedAt: "desc" },
-        take: LIST_INBOX_ITEMS_LIMIT,
+        take:
+          postId !== undefined
+            ? LIST_INBOX_ITEMS_BY_POST_LIMIT
+            : LIST_INBOX_ITEMS_LIMIT,
       }),
     );
 
@@ -106,7 +114,8 @@ export const engagementRepository: IEngagementRepository = {
         },
         _count: { _all: true },
         _max: { receivedAt: true },
-        orderBy: { postId: "asc" },
+        // NULL lebih dulu: kelompok "Tanpa posting" tidak pernah terbuang oleh pagar.
+        orderBy: { postId: { sort: "asc", nulls: "first" } },
         take: AGGREGATE_ROW_LIMIT,
       }),
     );

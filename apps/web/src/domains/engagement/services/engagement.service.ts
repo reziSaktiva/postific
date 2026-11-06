@@ -4,10 +4,10 @@ import type {
   MediaId,
   PostId,
   ConnectedAccountId,
-  SocialPlatform,
   UserId,
   WorkspaceId,
 } from "@postific/shared";
+import { SocialPlatform } from "@postific/shared";
 import {
   ConflictError,
   NotFoundError,
@@ -171,6 +171,9 @@ export interface InboxPostGroupsResult {
   truncated: boolean;
 }
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /** Jumlah posting bernomor maksimum per panggilan dan konkurensi pengambilan snapshot. */
 export const POST_GROUP_LIMIT = 100;
 const SNAPSHOT_CONCURRENCY = 10;
@@ -236,6 +239,18 @@ export class EngagementService {
     }
     if (input.status && !INBOX_ITEM_STATUSES.includes(input.status)) {
       throw new ValidationError("Status komentar tidak dikenal.");
+    }
+    if (
+      input.connectedAccountId !== undefined &&
+      !UUID_PATTERN.test(input.connectedAccountId)
+    ) {
+      throw new ValidationError("Akun tidak valid.");
+    }
+    if (
+      input.platform !== undefined &&
+      !(Object.values(SocialPlatform) as string[]).includes(input.platform)
+    ) {
+      throw new ValidationError("Platform tidak dikenal.");
     }
 
     const since = inboxDateRangeStart(dateRange, now);
