@@ -476,6 +476,26 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 ---
 
+### T-226 · Engage E2E: harden selectors and cover card height on narrow screens (S-006 g3 retro follow-up)
+
+| Field       | Value                                                                                       |
+| ----------- | ------------------------------------------------------------------------------------------- |
+| **Status**  | ⏳ Not Started                                                                              |
+| **Mode**    | AFK                                                                                         |
+| **Domain**  | engagement · QA                                                                             |
+| **Spec**    | S-006                                                                                       |
+| **Docs**    | ADR-149, `apps/web/e2e/engage-per-post.e2e.ts`, panduan E2E (lokasi dicari saat dikerjakan) |
+| **Depends** | T-222 (butir E2E yang sama)                                                                 |
+
+**What to build:** tindak lanjut retro gelombang 3 S-006 (disetujui King Rezi 2026-11-06): dua celah yang lolos dari tes unit dan E2E dan baru tertangkap QA.
+
+- [ ] **T-226.1** Aturan di panduan E2E: `getByText` wajib `exact` (atau locator berperan) bila teksnya bisa menjadi substring teks semai. Bukti: run QA Najwa gagal sekali karena selektor "1 dibalas" cocok ke "...1 dibalas" dari stamp semai; diperbaiki di `4abf5a0f`.
+- [ ] **T-226.2** E2E Engage menyemai cukup posting dan memeriksa kartu posting tidak menyusut atau terpotong di 375px dan di viewport pendek (misalnya tinggi kartu tetap sama dengan di desktop). Bukti: kartu menyusut ke 73px dari 111px, lolos semua tes unit dan E2E, ditangkap QA di browser, diperbaiki di `4abf5a0f`.
+
+**Blocked by:** T-222.
+
+---
+
 ## Catatan Rilis
 
 - T-216 sampai T-223 (Engage per posting, spec S-006, ADR-157) ditambahkan 2026-11-05 setelah rilis v0.4 selesai; ADR-040 tetap berlaku (Mentions dan DM di luar).
