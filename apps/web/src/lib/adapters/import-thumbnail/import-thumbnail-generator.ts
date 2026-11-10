@@ -1,5 +1,4 @@
 import { spawn } from "node:child_process";
-import sharp from "sharp";
 import {
   TransientThumbnailError,
   type IImportThumbnailGenerator,
@@ -195,7 +194,9 @@ export function extractVideoFrame(
         "-rw_timeout",
         String(TOTAL_TIMEOUT_MS * 1000),
         // Paksa demuxer MP4/MOV: menolak playlist (HLS/DASH) atau concat yang
-        // memicu permintaan ke host lain (review Ridwan L7).
+        // memicu permintaan ke host lain (review Ridwan L7). Sisa risiko yang
+        // diterima: ffmpeg tetap mengikuti redirect HTTP dari host CDN yang
+        // sudah di-allowlist (ADR-158); `fetch` memakai `redirect: "error"`.
         "-f",
         "mov",
         "-i",
@@ -249,8 +250,20 @@ export function extractVideoFrame(
   });
 }
 
-/** Kecilkan ke webp; `null` bila sumber bukan gambar yang valid. */
+/**
+ * Kecilkan ke webp; `null` bila sumber bukan gambar yang valid. `sharp`
+ * (native) dimuat malas di sini, bukan di puncak modul: modul ini ikut
+ * terimpor oleh route job dan Server Action akun lewat composition root,
+ * jadi libvips yang gagal dimuat hanya menjadi kegagalan SEMENTARA per media
+ * dan tidak menjatuhkan fitur lain.
+ */
 async function toThumbnailWebp(source: Buffer): Promise<Buffer | null> {
+  let sharp: typeof import("sharp");
+  try {
+    sharp = (await import("sharp")).default;
+  } catch (error) {
+    throw transient("sharp tidak dapat dimuat", error);
+  }
   try {
     return await sharp(source, { limitInputPixels: MAX_INPUT_PIXELS })
       .rotate()

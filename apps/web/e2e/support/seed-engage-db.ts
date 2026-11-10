@@ -20,6 +20,7 @@ import { withTx } from "./seed-db";
  */
 export const ENGAGE_PREFIX = "e2e-engage-";
 const STALE_AFTER = "2 hours";
+const STALE_AFTER_MS = 2 * 60 * 60 * 1000;
 
 const MIN = 60_000;
 const HOUR = 60 * MIN;
@@ -89,9 +90,18 @@ async function removeStoredThumbnails(
   const { data } = await supabase.storage
     .from("media")
     .list(folder, { limit: 1000, search: `${ENGAGE_PREFIX}${stamp ?? ""}` });
+  const prefix = `${ENGAGE_PREFIX}${stamp ?? ""}`;
+  // Tanpa `stamp`: hanya sisa lebih tua dari STALE_AFTER (sama seperti baris DB),
+  // supaya run lain di bucket bersama tidak kehilangan fixture yang sedang dipakai.
+  const staleBefore = Date.now() - STALE_AFTER_MS;
   const names = (data ?? [])
-    .map((file) => file.name)
-    .filter((name) => name.startsWith(`${ENGAGE_PREFIX}${stamp ?? ""}`));
+    .filter((file) => file.name.startsWith(prefix))
+    .filter(
+      (file) =>
+        stamp !== undefined ||
+        (file.created_at != null && Date.parse(file.created_at) < staleBefore),
+    )
+    .map((file) => file.name);
   if (names.length === 0) return 0;
   await supabase.storage
     .from("media")

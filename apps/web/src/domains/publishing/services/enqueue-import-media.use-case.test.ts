@@ -31,12 +31,9 @@ function setup(targetIds: string[]) {
 describe("EnqueueImportMediaUseCase (T-230)", () => {
   it("membagi target menjadi job per 5", async () => {
     const { repository, scheduler, scheduleJob } = setup(ids(25));
-    const useCase = new EnqueueImportMediaUseCase(
-      repository,
-      scheduler,
-      undefined,
-      () => now,
-    );
+    const useCase = new EnqueueImportMediaUseCase(repository, scheduler, {
+      now: () => now,
+    });
 
     const count = await useCase.enqueueForAccount({
       workspaceId,
@@ -85,16 +82,18 @@ describe("EnqueueImportMediaUseCase (T-230)", () => {
   it("backfill melewati akun tanpa pemilik dan menjumlahkan antrian", async () => {
     const { repository, scheduler, scheduleJob } = setup(ids(3));
     const useCase = new EnqueueImportMediaUseCase(repository, scheduler, {
-      listAccountsForBackfill: async () => [
-        { workspaceId, connectedAccountId, outstandAccountId: "o1" },
-        {
-          workspaceId,
-          connectedAccountId: asConnectedAccountId("a2"),
-          outstandAccountId: "o2",
-        },
-      ],
-      findOwnerUserId: async (outstandId) =>
-        outstandId === "o1" ? actingUserId : null,
+      backfillAccounts: {
+        listAccountsForBackfill: async () => [
+          { workspaceId, connectedAccountId, outstandAccountId: "o1" },
+          {
+            workspaceId,
+            connectedAccountId: asConnectedAccountId("a2"),
+            outstandAccountId: "o2",
+          },
+        ],
+        findOwnerUserId: async (outstandId) =>
+          outstandId === "o1" ? actingUserId : null,
+      },
     });
 
     const result = await useCase.enqueueBackfill();
@@ -108,5 +107,64 @@ describe("EnqueueImportMediaUseCase (T-230)", () => {
     await expect(
       new EnqueueImportMediaUseCase(repository, scheduler).enqueueBackfill(),
     ).rejects.toThrow(/backfillAccounts/);
+  });
+
+  it("akun yang masih punya job import.media pending/running tidak diantrikan lagi (dedup)", async () => {
+    const { repository, scheduler, scheduleJob, list } = setup(ids(7));
+    const hasPendingJob = vi.fn(async () => true);
+    const useCase = new EnqueueImportMediaUseCase(repository, scheduler, {
+      pendingJobs: { hasPendingJob },
+    });
+
+    const count = await useCase.enqueueForAccount({
+      workspaceId,
+      connectedAccountId,
+      actingUserId,
+    });
+
+    expect(count).toBe(0);
+    expect(hasPendingJob).toHaveBeenCalledWith(connectedAccountId);
+    expect(list).not.toHaveBeenCalled();
+    expect(scheduleJob).not.toHaveBeenCalled();
+  });
+
+  it("tanpa job pending, payload memuat connectedAccountId untuk dedup berikutnya", async () => {
+    const { repository, scheduler, scheduleJob } = setup(ids(2));
+    const useCase = new EnqueueImportMediaUseCase(repository, scheduler, {
+      pendingJobs: { hasPendingJob: async () => false },
+    });
+
+    await useCase.enqueueForAccount({
+      workspaceId,
+      connectedAccountId,
+      actingUserId,
+    });
+
+    const [[job]] = scheduleJob.mock.calls as unknown as [
+      [{ payload: { connectedAccountId: string; targetIds: string[] } }],
+    ];
+    expect(job.payload.connectedAccountId).toBe(connectedAccountId);
+    expect(job.payload.targetIds).toEqual(["t0", "t1"]);
+  });
+
+  it("job batch diantrikan paralel (satu pemanggilan scheduleJob per batch dimulai sebelum yang pertama selesai)", async () => {
+    let running = 0;
+    let peak = 0;
+    const scheduleJob = vi.fn(async () => {
+      running++;
+      peak = Math.max(peak, running);
+      await new Promise((r) => setTimeout(r, 5));
+      running--;
+    });
+    const repository = {
+      listImportedTargetIdsNeedingThumbnail: async () => ids(15),
+    } as unknown as IPublishingRepository;
+
+    await new EnqueueImportMediaUseCase(repository, {
+      scheduleJob,
+    }).enqueueForAccount({ workspaceId, connectedAccountId, actingUserId });
+
+    expect(scheduleJob).toHaveBeenCalledTimes(3);
+    expect(peak).toBeGreaterThan(1);
   });
 });

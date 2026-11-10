@@ -21,6 +21,7 @@ import {
   EnqueueImportSyncUseCase,
   IMPORT_MEDIA_JOB_TYPE,
   IMPORT_SYNC_JOB_TYPE,
+  defaultSleep,
   ImportMediaJobHandler,
   ImportPostsProcessUseCase,
   ImportPostsTriggerUseCase,
@@ -160,7 +161,7 @@ export async function POST(request: Request): Promise<Response> {
         publishingRepository,
         outstandAdapter,
       ),
-      undefined,
+      defaultSleep,
       enqueueImportMedia,
     ),
   );

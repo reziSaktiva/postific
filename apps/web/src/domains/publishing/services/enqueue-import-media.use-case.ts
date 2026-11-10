@@ -15,6 +15,11 @@ export interface BackfillAccount {
   outstandAccountId: string;
 }
 
+/** Dedup antrian: akun yang masih punya job `import.media` pending/running tidak diantrikan lagi. */
+export interface PendingImportMediaPort {
+  hasPendingJob(connectedAccountId: string): Promise<boolean>;
+}
+
 export interface BackfillAccountsPort {
   listAccountsForBackfill(): Promise<BackfillAccount[]>;
   findOwnerUserId(outstandAccountId: string): Promise<UserId | null>;
@@ -26,19 +31,35 @@ export interface BackfillAccountsPort {
  * setelah Import (best-effort) dan oleh backfill sekali jalan.
  */
 export class EnqueueImportMediaUseCase {
+  private readonly backfillAccounts?: BackfillAccountsPort;
+  private readonly pendingJobs?: PendingImportMediaPort;
+  private readonly now: () => Date;
+
   constructor(
     private readonly repository: IPublishingRepository,
     private readonly jobScheduler: IJobScheduler,
-    private readonly backfillAccounts?: BackfillAccountsPort,
-    private readonly now: () => Date = () => new Date(),
-  ) {}
+    options: {
+      backfillAccounts?: BackfillAccountsPort;
+      pendingJobs?: PendingImportMediaPort;
+      now?: () => Date;
+    } = {},
+  ) {
+    this.backfillAccounts = options.backfillAccounts;
+    this.pendingJobs = options.pendingJobs;
+    this.now = options.now ?? (() => new Date());
+  }
 
-  /** Mengembalikan jumlah target yang diantrikan. */
+  /** Mengembalikan jumlah target yang diantrikan (0 bila akun masih punya job pending/running). */
   async enqueueForAccount(input: {
     workspaceId: WorkspaceId;
     connectedAccountId: ConnectedAccountId;
     actingUserId: UserId;
   }): Promise<number> {
+    // Tanpa ini setiap import menggandakan job untuk target yang sama selagi
+    // job sebelumnya belum jalan (unduh dan upload ganda ke path yang sama).
+    if (await this.pendingJobs?.hasPendingJob(input.connectedAccountId)) {
+      return 0;
+    }
     const targetIds =
       await this.repository.listImportedTargetIdsNeedingThumbnail(
         {
@@ -48,17 +69,27 @@ export class EnqueueImportMediaUseCase {
         },
         input.actingUserId,
       );
+    const scheduledAt = this.now();
+    const batches: string[][] = [];
     for (let i = 0; i < targetIds.length; i += IMPORT_MEDIA_BATCH_SIZE) {
-      await this.jobScheduler.scheduleJob({
-        type: IMPORT_MEDIA_JOB_TYPE,
-        payload: {
-          workspaceId: input.workspaceId,
-          actingUserId: input.actingUserId,
-          targetIds: targetIds.slice(i, i + IMPORT_MEDIA_BATCH_SIZE),
-        },
-        scheduledAt: this.now(),
-      });
+      batches.push(targetIds.slice(i, i + IMPORT_MEDIA_BATCH_SIZE));
     }
+    // Paralel (bukan satu per satu): puluhan insert berurutan memperpanjang
+    // jalur import saat DB lambat.
+    await Promise.all(
+      batches.map((batch) =>
+        this.jobScheduler.scheduleJob({
+          type: IMPORT_MEDIA_JOB_TYPE,
+          payload: {
+            workspaceId: input.workspaceId,
+            connectedAccountId: input.connectedAccountId,
+            actingUserId: input.actingUserId,
+            targetIds: batch,
+          },
+          scheduledAt,
+        }),
+      ),
+    );
     return targetIds.length;
   }
 

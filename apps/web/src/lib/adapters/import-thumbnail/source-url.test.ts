@@ -34,6 +34,9 @@ describe("looksLikeVideoUrl", () => {
     );
     expect(looksLikeVideoUrl("https://x.cdninstagram.com/a/b.MOV")).toBe(true);
     expect(looksLikeVideoUrl("https://x.fbcdn.net/a/b.jpg?x=.mp4")).toBe(false);
+    expect(looksLikeVideoUrl("https://x.cdninstagram.com/a/b.webm")).toBe(
+      false,
+    );
     expect(looksLikeVideoUrl("bukan url")).toBe(false);
   });
 });

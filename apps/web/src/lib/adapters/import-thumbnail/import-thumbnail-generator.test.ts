@@ -301,3 +301,27 @@ describe("importThumbnailGenerator (T-230, ADR-158)", () => {
     ).toBeNull();
   });
 });
+
+describe("importThumbnailGenerator tanpa sharp (review: import malas)", () => {
+  it("sharp gagal dimuat: kegagalan SEMENTARA per media, bukan null permanen", async () => {
+    vi.resetModules();
+    vi.doMock("sharp", () => {
+      throw new Error("libvips tidak termuat");
+    });
+    const { importThumbnailGenerator: generator } =
+      await import("./import-thumbnail-generator");
+    const { TransientThumbnailError: Transient } =
+      await import("@/domains/publishing");
+    fetchMock.mockResolvedValue(
+      new Response(new Uint8Array([1, 2, 3]), {
+        status: 200,
+        headers: { "content-type": "image/jpeg" },
+      }),
+    );
+    await expect(
+      generator.generate({ workspaceId, targetId: "t1", sourceUrl: IMAGE_URL }),
+    ).rejects.toBeInstanceOf(Transient);
+    vi.doUnmock("sharp");
+    vi.resetModules();
+  });
+});

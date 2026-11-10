@@ -1339,7 +1339,7 @@ export const publishingRepository: IPublishingRepository = {
           // posting teks tidak boleh mengisi antrian dan menghalangi yang bermedia.
           platformOptions: {
             path: ["mediaUrls", "0"],
-            string_starts_with: "http",
+            string_starts_with: "https://",
           },
           post: {
             workspaceId,

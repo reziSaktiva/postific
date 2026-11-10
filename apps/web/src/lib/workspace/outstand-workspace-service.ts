@@ -6,6 +6,7 @@ import {
   ClassifyImportedPostTargetsUseCase,
   ImportPostsProcessUseCase,
   ImportPostsTriggerUseCase,
+  defaultSleep,
 } from "@/domains/publishing";
 import { WorkspaceService } from "@/domains/workspace";
 import { getOutstandAdapter } from "@/lib/adapters/outstand";
@@ -49,7 +50,7 @@ export function createImportPostsTriggerUseCase(): ImportPostsTriggerUseCase {
       publishingRepository,
       outstandAdapter,
     ),
-    undefined,
+    defaultSleep,
     createEnqueueImportMediaUseCase(),
   );
 }

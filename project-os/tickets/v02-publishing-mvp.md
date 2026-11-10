@@ -3641,6 +3641,8 @@ Temuan QA yang dicatat (bukan pemblokir):
 
 **Tidak teruji oleh QA:** poster video (`ffmpeg`) di Railway atau staging dan perilaku `HEAD` pada URL bertanda tangan hidup; menekan Sync Now atau menjalankan backfill (sengaja dilarang, endpoint berbayar); pratinjau panel kanan untuk thumbnail tersimpan dan halaman penuh gelap dan 375 px (kartu sudah diamati); akun peran selain Admin dan Owner.
 
+**Tindak lanjut `/code-review` (2026-11-10):** diterapkan: `sharp` dimuat malas (kegagalan memuat menjadi kegagalan sementara per media), `.webm` dikeluarkan dari deteksi video, dedup antrian per akun (job `import.media` pending/running, kunci `connectedAccountId`) dan insert job paralel, enqueue dipindah ke setelah penandaan selesai, predikat daftar dan pencarian disamakan (`https://`), pembersihan Storage E2E tanpa stamp hanya untuk sisa lebih tua dari 2 jam, cast ID bermerek diganti `asWorkspaceId`/`asConnectedAccountId` dan `defaultSleep` eksplisit. **Tidak diterapkan:** (a) batas percobaan untuk kegagalan sementara (butuh kolom penghitung; target yang selalu gagal sementara tetap dicoba tiap import, biayanya kecil tetapi tidak nol); (b) History Detail posting impor belum memakai thumbnail tersimpan (butuh tiket sendiri; bukan regresi); (c) ffmpeg mengikuti redirect HTTP dari host CDN yang sudah di-allowlist (sisa risiko diterima, tercatat di kode); (d) perubahan hoisting `semver` di `bun.lock` akibat `sharp` sebagai dependensi langsung (aman, perlu disebut di deskripsi PR).
+
 **Blocked by:** merge PR 267 ke `staging` dan Verified (staging); variabel `ffmpeg` produksi sebelum rilis ke `main`.
 
 ---

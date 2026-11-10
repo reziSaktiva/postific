@@ -78,7 +78,7 @@ const IMPORT_STATUS_POLL_TIMEOUT_MS = 25_000;
 /** Injectable (test memakai versi instan, bukan `setTimeout` sungguhan) — default sungguhan di bawah. */
 export type SleepFn = (ms: number) => Promise<void>;
 
-const defaultSleep: SleepFn = (ms) =>
+export const defaultSleep: SleepFn = (ms) =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
 /** `since` default untuk trigger auto (on-connect) & manual ("Sync Now") — 1 tahun ke belakang (T-131.1/T-131.2). */
@@ -784,7 +784,6 @@ export class ImportPostsTriggerUseCase {
       // `attemptClassification` — gagal di sini tidak pernah menggagalkan
       // import yang sudah berhasil di atas.
       await this.attemptClassification(input, jobOutcome.posts);
-      await this.attemptEnqueueImportMedia(input);
 
       // Code review PR #149 — `jobOutcome.error` di titik ini (status
       // SUDAH `"completed"`) hanya terisi untuk kasus real API `partial`
@@ -829,6 +828,12 @@ export class ImportPostsTriggerUseCase {
         partialWarning,
         buildImportJobResult(input, jobOutcome, processed),
       );
+
+      // T-230 (ADR-158) — SETELAH watermark dan status selesai tertulis: antrian
+      // thumbnail best-effort tidak boleh menunda atau menggagalkan penandaan
+      // import yang sudah berhasil (review kode: DB lambat bisa melewati batas
+      // 30 detik dan memicu reclaim).
+      await this.attemptEnqueueImportMedia(input);
 
       return {
         outcome: "triggered",

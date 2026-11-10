@@ -26,10 +26,14 @@ export function isAllowedThumbnailSource(rawUrl: string): boolean {
   return ALLOWED_HOST_SUFFIXES.some((suffix) => host.endsWith(suffix));
 }
 
-/** Perkiraan video dari path (ekstensi) karena CDN platform tidak selalu memberi `Content-Type` yang andal pada `HEAD`. */
+/**
+ * Perkiraan video dari path (ekstensi) karena CDN platform tidak selalu memberi
+ * `Content-Type` yang andal pada `HEAD`. Hanya keluarga MP4/MOV, sesuai
+ * demuxer `mov` yang dipaksa pada `extractVideoFrame`.
+ */
 export function looksLikeVideoUrl(rawUrl: string): boolean {
   try {
-    return /\.(mp4|mov|webm|m4v)$/i.test(new URL(rawUrl).pathname);
+    return /\.(mp4|mov|m4v)$/i.test(new URL(rawUrl).pathname);
   } catch {
     return false;
   }

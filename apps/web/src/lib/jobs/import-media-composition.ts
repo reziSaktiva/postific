@@ -1,9 +1,12 @@
+import { asConnectedAccountId, asWorkspaceId } from "@postific/shared";
 import {
   EnqueueImportMediaUseCase,
+  IMPORT_MEDIA_JOB_TYPE,
   ProcessImportMediaUseCase,
   type BackfillAccountsPort,
 } from "@/domains/publishing";
 import { importThumbnailGenerator } from "@/lib/adapters/import-thumbnail/import-thumbnail-generator";
+import { backgroundJobStore } from "@/lib/jobs/background-job-store";
 import { backgroundJobScheduler } from "@/lib/jobs/job-scheduler";
 import { publishingRepository } from "@/lib/repositories/publishing";
 import { workspaceRepository } from "@/lib/repositories/workspace";
@@ -20,12 +23,10 @@ export function createBackfillAccountsPort(): BackfillAccountsPort {
       const accounts =
         await workspaceRepository.listAccountsForPeriodicImportSync();
       return accounts.map((account) => ({
-        workspaceId: account.workspaceId,
-        connectedAccountId: account.connectedAccountId,
+        workspaceId: asWorkspaceId(account.workspaceId),
+        connectedAccountId: asConnectedAccountId(account.connectedAccountId),
         outstandAccountId: account.outstandAccountId,
-      })) as Awaited<
-        ReturnType<BackfillAccountsPort["listAccountsForBackfill"]>
-      >;
+      }));
     },
     async findOwnerUserId(outstandAccountId) {
       const owner =
@@ -41,7 +42,17 @@ export function createEnqueueImportMediaUseCase(): EnqueueImportMediaUseCase {
   return new EnqueueImportMediaUseCase(
     publishingRepository,
     backgroundJobScheduler,
-    createBackfillAccountsPort(),
+    {
+      backfillAccounts: createBackfillAccountsPort(),
+      pendingJobs: {
+        hasPendingJob: (connectedAccountId) =>
+          backgroundJobStore.hasJobMatchingPayloadKey({
+            type: IMPORT_MEDIA_JOB_TYPE,
+            key: "connectedAccountId",
+            value: connectedAccountId,
+          }),
+      },
+    },
   );
 }
 

@@ -69,6 +69,7 @@ vi.mock("@/domains/publishing", () => ({
   },
   IMPORT_SYNC_JOB_TYPE: "import.sync",
   IMPORT_MEDIA_JOB_TYPE: "import.media",
+  defaultSleep: async () => undefined,
   ImportMediaJobHandler: class {
     handle = vi.fn();
   },

@@ -1638,10 +1638,11 @@ describe("ImportPostsTriggerUseCase — T-230 antrian thumbnail posting impor (A
     actingUserId: ACTING_USER_ID,
   };
 
-  it("mengantrikan thumbnail untuk akun ini setelah import selesai", async () => {
+  it("mengantrikan thumbnail untuk akun ini SETELAH status job ditandai selesai", async () => {
     const enqueueForAccount = vi.fn(async () => 1);
+    const importJobs = createFakeImportJobRepository();
     const useCase = new ImportPostsTriggerUseCase(
-      createFakeImportJobRepository(),
+      importJobs,
       completedAdapter(),
       createFakeWatermarkPort(),
       createProcessUseCase(1),
@@ -1659,6 +1660,14 @@ describe("ImportPostsTriggerUseCase — T-230 antrian thumbnail posting impor (A
       connectedAccountId: CONNECTED_ACCOUNT_ID,
       actingUserId: ACTING_USER_ID,
     });
+    // Penandaan "done" (dan watermark) harus lebih dulu: antrian best-effort
+    // tidak boleh menunda penandaan import yang sudah berhasil.
+    const doneCall = (
+      importJobs.markImportSyncJobStatus as ReturnType<typeof vi.fn>
+    ).mock.invocationCallOrder[0];
+    expect(doneCall).toBeLessThan(
+      enqueueForAccount.mock.invocationCallOrder[0],
+    );
   });
 
   it("gagal mengantrikan thumbnail bersifat best-effort: import tetap berhasil", async () => {

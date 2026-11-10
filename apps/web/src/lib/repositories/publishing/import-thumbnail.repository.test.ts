@@ -49,7 +49,10 @@ describe("publishingRepository thumbnail posting impor (T-230)", () => {
       connectedAccountId,
       thumbnailStoragePath: null,
       thumbnailAttemptedAt: null,
-      platformOptions: { path: ["mediaUrls", "0"], string_starts_with: "http" },
+      platformOptions: {
+        path: ["mediaUrls", "0"],
+        string_starts_with: "https://",
+      },
       post: { workspaceId, deletedAt: null, status: ContentStatus.Imported },
     });
     expect(args.orderBy).toEqual({ post: { publishedAt: "desc" } });

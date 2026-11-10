@@ -283,7 +283,7 @@ punya thumbnail; juga backfill sekali jalan lewat `POST /api/jobs/run?type=impor
 
 **Payload:**
 ```
-{ workspaceId, actingUserId, targetIds: string[] }   // paling banyak 5 target
+{ workspaceId, connectedAccountId, actingUserId, targetIds: string[] }   // paling banyak 5 target
 ```
 
 **Handler:** `ImportMediaJobHandler` memanggil `ProcessImportMediaUseCase`: unduh
@@ -291,6 +291,8 @@ media CDN platform (gambar) atau ambil satu frame (video, `ffmpeg`), kecilkan ke
 webp 640 px (`sharp`), simpan di bucket `media` pada
 `{workspaceId}/imports/{targetId}.webp`, lalu isi `thumbnail_storage_path`,
 `thumbnail_kind`, dan `thumbnail_attempted_at` di `publishing_post_targets`.
+
+**Dedup antrian:** akun yang masih punya job `import.media` pending/running tidak diantrikan lagi (kunci payload `connectedAccountId`).
 
 **Anggaran waktu:** 20 detik per job (BG-D05), dibatalkan lewat `AbortSignal`;
 sisa target tetap tertunda untuk job berikutnya.

@@ -23,8 +23,12 @@ describe("firstExternalMediaUrl (T-227)", () => {
     expect(firstExternalMediaUrl({ mediaUrls: [] })).toBeNull();
   });
 
-  it("menolak elemen pertama yang bukan string http(s)", () => {
+  it("menolak elemen pertama yang bukan string https://", () => {
     expect(firstExternalMediaUrl({ mediaUrls: [42] })).toBeNull();
+    expect(
+      firstExternalMediaUrl({ mediaUrls: ["http://x.fbcdn.net/a.jpg"] }),
+    ).toBeNull();
+    expect(firstExternalMediaUrl({ mediaUrls: ["httpx://x/a"] })).toBeNull();
     expect(
       firstExternalMediaUrl({ mediaUrls: ["javascript:alert(1)"] }),
     ).toBeNull();
