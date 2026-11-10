@@ -20,6 +20,7 @@ import type {
 } from "../repositories/import-job.repository";
 import type { BackfillOutstandPostIdsUseCase } from "./backfill-outstand-post-ids.use-case";
 import type { ClassifyImportedPostTargetsUseCase } from "./classify-imported-post-targets.use-case";
+import type { EnqueueImportMediaUseCase } from "./enqueue-import-media.use-case";
 import type { ImportPostsProcessUseCase } from "./import-posts-process.use-case";
 
 /**
@@ -77,7 +78,7 @@ const IMPORT_STATUS_POLL_TIMEOUT_MS = 25_000;
 /** Injectable (test memakai versi instan, bukan `setTimeout` sungguhan) — default sungguhan di bawah. */
 export type SleepFn = (ms: number) => Promise<void>;
 
-const defaultSleep: SleepFn = (ms) =>
+export const defaultSleep: SleepFn = (ms) =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
 /** `since` default untuk trigger auto (on-connect) & manual ("Sync Now") — 1 tahun ke belakang (T-131.1/T-131.2). */
@@ -381,6 +382,15 @@ export class ImportPostsTriggerUseCase {
     private readonly classifyUseCase: ClassifyImportedPostTargetsUseCase,
     /** Injectable sleep (test memakai versi instan) — lihat `SleepFn`/`IMPORT_STATUS_POLL_*` di atas. */
     private readonly sleep: SleepFn = defaultSleep,
+    /**
+     * T-230 (ADR-158) — OPSIONAL (hanya menambah langkah best-effort
+     * setelah import): mengantrikan job `import.media` untuk thumbnail
+     * posting impor. Tanpa ini import berjalan persis seperti sebelumnya.
+     */
+    private readonly importMedia?: Pick<
+      EnqueueImportMediaUseCase,
+      "enqueueForAccount"
+    >,
   ) {}
 
   /**
@@ -819,6 +829,12 @@ export class ImportPostsTriggerUseCase {
         buildImportJobResult(input, jobOutcome, processed),
       );
 
+      // T-230 (ADR-158) — SETELAH watermark dan status selesai tertulis: antrian
+      // thumbnail best-effort tidak boleh menunda atau menggagalkan penandaan
+      // import yang sudah berhasil (review kode: DB lambat bisa melewati batas
+      // 30 detik dan memicu reclaim).
+      await this.attemptEnqueueImportMedia(input);
+
       return {
         outcome: "triggered",
         importedCount: processed.insertedCount,
@@ -907,6 +923,28 @@ export class ImportPostsTriggerUseCase {
     } catch (error) {
       console.warn(
         `[ImportPostsTriggerUseCase] T-132.4 klasifikasi ContentFormat gagal untuk akun ${input.connectedAccountId}: ${error instanceof Error ? error.message : String(error)} — best-effort, tidak menggagalkan sync utama.`,
+      );
+    }
+  }
+
+  /**
+   * T-230 (ADR-158) — antrikan job thumbnail posting impor. Best-effort:
+   * gagal mengantrikan tidak pernah menggagalkan import yang sudah berhasil
+   * (target yang terlewat terambil pada import atau backfill berikutnya).
+   */
+  private async attemptEnqueueImportMedia(
+    input: RunImportSyncInput,
+  ): Promise<void> {
+    if (!this.importMedia) return;
+    try {
+      await this.importMedia.enqueueForAccount({
+        workspaceId: input.workspaceId,
+        connectedAccountId: input.connectedAccountId,
+        actingUserId: input.actingUserId,
+      });
+    } catch (error) {
+      console.warn(
+        `[ImportPostsTriggerUseCase] T-230 antrian thumbnail gagal untuk akun ${input.connectedAccountId}: ${error instanceof Error ? error.message : String(error)} — best-effort, tidak menggagalkan sync utama.`,
       );
     }
   }

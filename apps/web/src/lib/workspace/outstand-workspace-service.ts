@@ -1,10 +1,12 @@
 import { EnqueueAnalyticsSyncUseCase } from "@/domains/analytics";
+import { createEnqueueImportMediaUseCase } from "@/lib/jobs/import-media-composition";
 import { ENGAGEMENT_SYNC_JOB_TYPE } from "@/domains/engagement";
 import {
   BackfillOutstandPostIdsUseCase,
   ClassifyImportedPostTargetsUseCase,
   ImportPostsProcessUseCase,
   ImportPostsTriggerUseCase,
+  defaultSleep,
 } from "@/domains/publishing";
 import { WorkspaceService } from "@/domains/workspace";
 import { getOutstandAdapter } from "@/lib/adapters/outstand";
@@ -48,6 +50,8 @@ export function createImportPostsTriggerUseCase(): ImportPostsTriggerUseCase {
       publishingRepository,
       outstandAdapter,
     ),
+    defaultSleep,
+    createEnqueueImportMediaUseCase(),
   );
 }
 

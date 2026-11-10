@@ -39,6 +39,8 @@ import { toActionError } from "@/lib/utils/errors";
 import { createActiveWorkspaceMembersPort } from "@/lib/workspace/active-members-port";
 import { getWorkspaceContext } from "@/lib/workspace/workspace-context";
 
+import { resolveSnapshotThumbnail } from "./snapshot-thumbnail";
+
 /**
  * Manual refresh Comments Inbox (T-052, `background-jobs.md` § JOB-03).
  * Reuse `SyncCommentsUseCase.sync` — logic sync (fetch+upsert+notify) yang
@@ -243,6 +245,22 @@ export async function listInboxByPostAction(
       console.error("listInboxByPostAction: gagal resolve thumbnail", error);
     }
 
+    // T-230 (ADR-158): thumbnail tersimpan posting impor (path di bucket
+    // `media`) ditandatangani sekali jalan; gagal berarti jatuh ke URL CDN
+    // atau tanpa thumbnail, tidak pernah menggagalkan daftar.
+    const storedPaths = groups.flatMap((group) => {
+      const snapshot = group.postSnapshot;
+      return snapshot &&
+        snapshot.mediaIds.length === 0 &&
+        snapshot.thumbnailStoragePath
+        ? [snapshot.thumbnailStoragePath]
+        : [];
+    });
+    const signedStoragePaths = await mediaService.signStoragePaths(
+      workspaceId,
+      storedPaths,
+    );
+
     const data: InboxPostGroupDto[] = groups.map((group) => {
       const { postSnapshot, ...summary } = group;
       return {
@@ -251,9 +269,11 @@ export async function listInboxByPostAction(
           ? {
               caption: postSnapshot.caption,
               platformPostUrl: postSnapshot.platformPostUrl,
-              thumbnail: postSnapshot.mediaIds[0]
-                ? (thumbnailByMediaId.get(postSnapshot.mediaIds[0]) ?? null)
-                : null,
+              thumbnail: resolveSnapshotThumbnail(
+                postSnapshot,
+                thumbnailByMediaId,
+                signedStoragePaths,
+              ),
             }
           : null,
       };

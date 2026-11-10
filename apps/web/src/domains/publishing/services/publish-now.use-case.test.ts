@@ -79,6 +79,9 @@ function createFakeRepository(
     listSyncablePostsByConnectedAccount: async () => [],
     findPostOutstandId: async () => null,
     findPostSnapshotForEngagement: async () => null,
+    listImportedTargetIdsNeedingThumbnail: async () => [],
+    findImportedTargetsNeedingThumbnail: async () => [],
+    saveImportedTargetThumbnail: async () => undefined,
     upsertImportedPosts: async () => ({
       insertedCount: 0,
       skippedDuplicateCount: 0,

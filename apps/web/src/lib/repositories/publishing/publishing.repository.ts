@@ -41,6 +41,7 @@ import {
 } from "@/lib/prisma/with-current-user";
 import { backfillImportedPostOutstandIdsTx } from "@/lib/repositories/publishing/backfill-outstand-post-ids";
 import { classifyImportedPostTargetsTx } from "@/lib/repositories/publishing/classify-imported-post-targets";
+import { firstExternalMediaUrl } from "@/lib/repositories/publishing/first-external-media-url";
 import { countTerminalPostsWhere } from "@/lib/repositories/publishing/count-terminal-posts";
 import { replaceDraftTargets } from "@/lib/repositories/publishing/replace-draft-targets";
 import {
@@ -1295,6 +1296,9 @@ export const publishingRepository: IPublishingRepository = {
         },
         select: {
           platformPostUrl: true,
+          platformOptions: true,
+          thumbnailStoragePath: true,
+          thumbnailKind: true,
           post: { select: { caption: true, mediaIds: true } },
         },
       }),
@@ -1306,7 +1310,104 @@ export const publishingRepository: IPublishingRepository = {
       caption: target.post.caption,
       mediaIds: target.post.mediaIds.map((id) => asMediaId(id)),
       platformPostUrl: target.platformPostUrl,
+      externalMediaUrl: firstExternalMediaUrl(target.platformOptions),
+      thumbnailStoragePath: target.thumbnailStoragePath,
+      thumbnailKind:
+        target.thumbnailKind === "image" ||
+        target.thumbnailKind === "video_poster"
+          ? target.thumbnailKind
+          : null,
     };
+  },
+
+  /**
+   * T-230 (ADR-158) — lihat `IPublishingRepository.listImportedTargetIdsNeedingThumbnail`.
+   * Hanya target posting `imported` yang belum punya thumbnail, belum pernah
+   * dicoba, dan punya `platformOptions` (URL media), terbaru dulu.
+   */
+  async listImportedTargetIdsNeedingThumbnail(
+    { workspaceId, connectedAccountId, limit },
+    userId,
+  ) {
+    const rows = await withCurrentUser(userId, (tx) =>
+      tx.publishingPostTarget.findMany({
+        where: {
+          connectedAccountId,
+          thumbnailStoragePath: null,
+          thumbnailAttemptedAt: null,
+          // Hanya target yang benar-benar punya URL media (review Ridwan M3):
+          // posting teks tidak boleh mengisi antrian dan menghalangi yang bermedia.
+          platformOptions: {
+            path: ["mediaUrls", "0"],
+            string_starts_with: "https://",
+          },
+          post: {
+            workspaceId,
+            deletedAt: null,
+            status: ContentStatus.Imported,
+          },
+        },
+        select: { id: true },
+        orderBy: { post: { publishedAt: "desc" } },
+        take: limit,
+      }),
+    );
+    return rows.map((row) => row.id);
+  },
+
+  /** T-230 — lihat `IPublishingRepository.findImportedTargetsNeedingThumbnail`. */
+  async findImportedTargetsNeedingThumbnail(
+    { workspaceId, targetIds },
+    userId,
+  ) {
+    const rows = await withCurrentUser(userId, (tx) =>
+      tx.publishingPostTarget.findMany({
+        where: {
+          id: { in: targetIds },
+          thumbnailStoragePath: null,
+          thumbnailAttemptedAt: null,
+          post: {
+            workspaceId,
+            deletedAt: null,
+            status: ContentStatus.Imported,
+          },
+        },
+        select: { id: true, platformOptions: true },
+      }),
+    );
+    const result: { targetId: string; sourceUrl: string }[] = [];
+    for (const row of rows) {
+      const sourceUrl = firstExternalMediaUrl(row.platformOptions);
+      if (sourceUrl) result.push({ targetId: row.id, sourceUrl });
+    }
+    return result;
+  },
+
+  /** T-230 — lihat `IPublishingRepository.saveImportedTargetThumbnail`. */
+  async saveImportedTargetThumbnail(
+    { workspaceId, targetId, thumbnail },
+    userId,
+  ) {
+    await withCurrentUser(userId, (tx) =>
+      tx.publishingPostTarget.updateMany({
+        where: {
+          id: targetId,
+          post: {
+            workspaceId,
+            deletedAt: null,
+            status: ContentStatus.Imported,
+          },
+          // Hasil gagal tidak boleh menimpa thumbnail yang sudah tersimpan oleh
+          // job duplikat (review Ridwan L9).
+          ...(thumbnail ? {} : { thumbnailStoragePath: null }),
+        },
+        data: {
+          thumbnailAttemptedAt: new Date(),
+          thumbnailStoragePath: thumbnail?.storagePath ?? null,
+          thumbnailKind: thumbnail?.kind ?? null,
+        },
+      }),
+    );
   },
 
   /**

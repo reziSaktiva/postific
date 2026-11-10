@@ -4,7 +4,7 @@ import {
   asWorkspaceId,
   MediaType,
 } from "@postific/shared";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { NotFoundError } from "@/lib/utils/errors";
 import type { IMediaStorageAdapter } from "../adapters/media-storage-adapter";
 import type { IMediaRepository } from "../repositories/media.repository";
@@ -348,6 +348,96 @@ describe("MediaService", () => {
   // T-111.4: varian multi-item dari `resolveFirstThumbnail`, dipakai kartu
   // "Post asal" carousel (T-111.3) yang perlu SEMUA media, bukan cuma yang
   // pertama.
+  describe("signStoragePaths() (T-230, ADR-158)", () => {
+    const workspaceId = asWorkspaceId("workspace-1");
+    const own = (name: string) => `workspace-1/imports/${name}`;
+
+    it("menandatangani path unik milik workspace dan mengembalikan peta path → url", async () => {
+      const calls: string[] = [];
+      const service = new MediaService(
+        createFakeRepository(),
+        createFakeStorageAdapter({
+          getSignedUrl: async (path) => {
+            calls.push(path);
+            return `https://signed/${path}`;
+          },
+        }),
+      );
+
+      const result = await service.signStoragePaths(workspaceId, [
+        own("a.webp"),
+        own("b.webp"),
+        own("a.webp"),
+      ]);
+
+      expect(result.get(own("a.webp"))).toBe(`https://signed/${own("a.webp")}`);
+      expect(result.get(own("b.webp"))).toBe(`https://signed/${own("b.webp")}`);
+      expect(calls).toHaveLength(2);
+    });
+
+    it("menolak path workspace lain, di luar imports/, atau mengandung ..", async () => {
+      const calls: string[] = [];
+      const service = new MediaService(
+        createFakeRepository(),
+        createFakeStorageAdapter({
+          getSignedUrl: async (path) => {
+            calls.push(path);
+            return "https://signed";
+          },
+        }),
+      );
+
+      const result = await service.signStoragePaths(workspaceId, [
+        "workspace-2/imports/x.webp",
+        "workspace-1/2026/11/foto.jpg",
+        "workspace-1/imports/../../workspace-2/imports/x.webp",
+      ]);
+
+      expect(result.size).toBe(0);
+      expect(calls).toHaveLength(0);
+    });
+
+    it("path yang gagal ditandatangani dilewati, tidak melempar", async () => {
+      const service = new MediaService(
+        createFakeRepository(),
+        createFakeStorageAdapter({
+          getSignedUrl: async (path) => {
+            if (path === own("rusak.webp")) throw new Error("tidak ada");
+            return `https://signed/${path}`;
+          },
+        }),
+      );
+
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const result = await service.signStoragePaths(workspaceId, [
+        own("ok.webp"),
+        own("rusak.webp"),
+      ]);
+      errorSpy.mockRestore();
+
+      expect([...result.keys()]).toEqual([own("ok.webp")]);
+    });
+
+    it("tanpa storage adapter atau tanpa path: peta kosong", async () => {
+      expect(
+        (
+          await new MediaService(createFakeRepository()).signStoragePaths(
+            workspaceId,
+            [own("a")],
+          )
+        ).size,
+      ).toBe(0);
+      expect(
+        (
+          await new MediaService(
+            createFakeRepository(),
+            createFakeStorageAdapter(),
+          ).signStoragePaths(workspaceId, [])
+        ).size,
+      ).toBe(0);
+    });
+  });
+
   describe("resolveThumbnails() (T-111.4)", () => {
     it("mengembalikan [] tanpa memanggil repository kalau mediaIds kosong", async () => {
       let called = false;

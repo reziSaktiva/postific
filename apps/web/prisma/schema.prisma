@@ -486,6 +486,13 @@ model PublishingPostTarget {
   platform            String
   contentFormat       String   @default("post") @map("content_format")
   platformOptions     Json?    @map("platform_options")
+  // T-230 (ADR-158) — thumbnail kecil posting impor di bucket `media`:
+  // `thumbnailStoragePath` (webp), `thumbnailKind` ("image" | "video_poster"),
+  // `thumbnailAttemptedAt` (percobaan PERMANEN sudah dilakukan, hasil ada atau
+  // tidak; kegagalan sementara tidak mengisinya). Semuanya nullable.
+  thumbnailStoragePath String?   @map("thumbnail_storage_path")
+  thumbnailKind        String?   @map("thumbnail_kind")
+  thumbnailAttemptedAt DateTime? @map("thumbnail_attempted_at") @db.Timestamptz(6)
   // Redesain ACL Outstand (2026-08-26, ADR baru): `outstandJobId` (dulu
   // per-target job id, model yang salah — Outstand tidak punya job per
   // akun) diganti `platformPostId` — ID post di platform ASLI (Instagram,
