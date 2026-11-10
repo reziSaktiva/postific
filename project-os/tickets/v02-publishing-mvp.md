@@ -3576,14 +3576,14 @@ Alasan A: pemilih ini hanya mengganti kartu yang ditampilkan, bukan berpindah an
 
 ### T-230 · Import Posts: download and store thumbnails and video posters during Import (option C, ADR-158)
 
-| Field       | Value                                                                                                                                                         |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | 🟡 Done (code) 2026-11-10 (PR 267 dan 268 ter-merge ke `staging`), menunggu Verified (staging) untuk poster video dan Engage; sisa operasi: `ffmpeg` produksi |
-| **Mode**    | AFK setelah T-229                                                                                                                                             |
-| **Domain**  | publishing · media · integration                                                                                                                              |
-| **Spec**    | S-006 (konteks)                                                                                                                                               |
-| **Docs**    | ADR-158, ADR-093, ADR-040, T-229, T-227, AGENTS.md no. 3-6, 13                                                                                                |
-| **Depends** | T-229                                                                                                                                                         |
+| Field       | Value                                                                                                                                                                   |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**  | 🟡 Done (code) 2026-11-10 (PR 267 dan 268 ter-merge ke `staging`), Verified (staging) sebagian: Engage terbukti; menunggu poster video; sisa operasi: `ffmpeg` produksi |
+| **Mode**    | AFK setelah T-229                                                                                                                                                       |
+| **Domain**  | publishing · media · integration                                                                                                                                        |
+| **Spec**    | S-006 (konteks)                                                                                                                                                         |
+| **Docs**    | ADR-158, ADR-093, ADR-040, T-229, T-227, AGENTS.md no. 3-6, 13                                                                                                          |
+| **Depends** | T-229                                                                                                                                                                   |
 
 Rincian mengikuti hasil T-229 (skema kolom baru di `publishing_post_targets`, job `import.media` per batch, `sharp` untuk gambar, `ffmpeg` untuk poster video):
 
@@ -3593,7 +3593,11 @@ Rincian mengikuti hasil T-229 (skema kolom baru di `publishing_post_targets`, jo
 
 **Temuan staging:** satu target Instagram (mp4, host `scontent-sjc3-1.cdninstagram.com`, URL berlaku sampai 2026-10-24) ditunda dengan pesan `HEAD video gagal` dan tetap menunggu, sehingga dicoba lagi di setiap import (skenario T-233). Penyebab pastinya belum diketahui (dugaan, belum terbukti: `HEAD` memakai `redirect: "error"` sehingga balasan redirect melempar galat, sedangkan URL mati lain membalas 403 dan ditandai permanen). Pesan log tidak memuat penyebab galat; dicatat di T-233.
 
-**Belum terbukti di staging:** poster video (`ffmpeg` terpasang tetapi tidak pernah dijalankan, karena semua URL Instagram sudah mati sebelum sampai ke `ffmpeg`; baru terbukti bila ada posting Instagram baru yang URL-nya hidup, bergantung pada import periodik Instagram yang gagal harian), dan halaman Engage di staging di browser (jalurnya terbukti lokal dengan webp sungguhan dari Storage).
+**Verified (staging), Engage (2026-11-10):** E2E `engage-per-post` dijalankan terhadap aplikasi staging (`E2E_BASE_URL=https://web-staging-60d7.up.railway.app`, akun uji E2E, workspace E2E Sandbox): **13 dari 13 lolos**, termasuk tes T-227 (gambar eksternal dan jatuh ke ikon) dan tes T-230 (webp sungguhan di bucket `media`, signed URL tampil dan termuat); log HTTP Railway mengonfirmasi `GET` dan `POST /engage` berstatus 200 ke `web-staging-60d7.up.railway.app`. E2E lokal pada kode setelah perbaikan `/code-review` juga **13 dari 13** (QA Najwa sebelumnya dijalankan sebelum perbaikan itu).
+
+**Belum terbukti di staging:** poster video (`ffmpeg` terpasang tetapi tidak pernah dijalankan, karena semua URL Instagram sudah mati sebelum sampai ke `ffmpeg`; baru terbukti bila ada posting Instagram baru yang URL-nya hidup, bergantung pada import periodik Instagram yang gagal harian).
+
+**Catatan ADR-153 (syarat Done (code)):** tidak ada temuan `/code-review` atau review Ridwan yang diabaikan tanpa catatan, tetapi beberapa masih terbuka dan dilacak: T-231 (pembersihan berkas, Ridwan M5), T-232 (History Detail), T-233 (batas percobaan dan log penyebab), ffmpeg mengikuti redirect (risiko diterima), dan churn `semver` di `bun.lock` (aman, disebut di deskripsi PR 267). Dibaca ketat, "tanpa temuan terbuka" tidak terpenuhi untuk kelima butir itu; dibaca sebagai "tanpa temuan yang belum dipetakan", terpenuhi. Keputusan memakai bacaan kedua ada di King Rezi.
 
 - [x] **T-230.1** Setelah `upsertImportedPosts`, antrikan job `import.media` per batch kecil (sekitar 10 posting); handler mengunduh media baru, membuat thumbnail kecil (gambar) atau poster (video), dan menyimpannya lewat domain `media` (Supabase Storage lewat adapter; domain tanpa import Prisma/Supabase, AGENTS.md no. 4 dan 6).
 - [x] **T-230.2** Kegagalan satu media tidak menggagalkan import posting; posting tetap tampil dengan fallback T-227.
@@ -3650,7 +3654,7 @@ Temuan QA yang dicatat (bukan pemblokir):
 
 **Tindak lanjut `/code-review` (2026-11-10):** diterapkan: `sharp` dimuat malas (kegagalan memuat menjadi kegagalan sementara per media), `.webm` dikeluarkan dari deteksi video, dedup antrian per akun (job `import.media` pending/running, kunci `connectedAccountId`) dan insert job paralel, enqueue dipindah ke setelah penandaan selesai, predikat daftar dan pencarian disamakan (`https://`), pembersihan Storage E2E tanpa stamp hanya untuk sisa lebih tua dari 2 jam, cast ID bermerek diganti `asWorkspaceId`/`asConnectedAccountId` dan `defaultSleep` eksplisit. **Tidak diterapkan:** (a) batas percobaan untuk kegagalan sementara (butuh kolom penghitung; target yang selalu gagal sementara tetap dicoba tiap import, biayanya kecil tetapi tidak nol; tiket T-233); (b) History Detail posting impor belum memakai thumbnail tersimpan (bukan regresi; tiket T-232); (c) ffmpeg mengikuti redirect HTTP dari host CDN yang sudah di-allowlist (sisa risiko diterima, tercatat di kode); (d) perubahan hoisting `semver` di `bun.lock` akibat `sharp` sebagai dependensi langsung (aman, perlu disebut di deskripsi PR).
 
-**Blocked by:** Verified (staging) poster video dan Engage (bergantung pada posting Instagram baru yang URL-nya hidup); variabel `NIXPACKS_APT_PKGS=ffmpeg` produksi sebelum rilis ke `main`; hapus variabel `RAILPACK_DEPLOY_APT_PACKAGES` di dasbor staging.
+**Blocked by:** Verified (staging) poster video (bergantung pada posting Instagram baru yang URL-nya hidup); variabel `NIXPACKS_APT_PKGS=ffmpeg` produksi sebelum rilis ke `main`; hapus variabel `RAILPACK_DEPLOY_APT_PACKAGES` di dasbor staging.
 
 ---
 
