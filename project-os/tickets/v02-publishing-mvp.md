@@ -3641,7 +3641,7 @@ Temuan QA yang dicatat (bukan pemblokir):
 
 **Tidak teruji oleh QA:** poster video (`ffmpeg`) di Railway atau staging dan perilaku `HEAD` pada URL bertanda tangan hidup; menekan Sync Now atau menjalankan backfill (sengaja dilarang, endpoint berbayar); pratinjau panel kanan untuk thumbnail tersimpan dan halaman penuh gelap dan 375 px (kartu sudah diamati); akun peran selain Admin dan Owner.
 
-**Tindak lanjut `/code-review` (2026-11-10):** diterapkan: `sharp` dimuat malas (kegagalan memuat menjadi kegagalan sementara per media), `.webm` dikeluarkan dari deteksi video, dedup antrian per akun (job `import.media` pending/running, kunci `connectedAccountId`) dan insert job paralel, enqueue dipindah ke setelah penandaan selesai, predikat daftar dan pencarian disamakan (`https://`), pembersihan Storage E2E tanpa stamp hanya untuk sisa lebih tua dari 2 jam, cast ID bermerek diganti `asWorkspaceId`/`asConnectedAccountId` dan `defaultSleep` eksplisit. **Tidak diterapkan:** (a) batas percobaan untuk kegagalan sementara (butuh kolom penghitung; target yang selalu gagal sementara tetap dicoba tiap import, biayanya kecil tetapi tidak nol); (b) History Detail posting impor belum memakai thumbnail tersimpan (butuh tiket sendiri; bukan regresi); (c) ffmpeg mengikuti redirect HTTP dari host CDN yang sudah di-allowlist (sisa risiko diterima, tercatat di kode); (d) perubahan hoisting `semver` di `bun.lock` akibat `sharp` sebagai dependensi langsung (aman, perlu disebut di deskripsi PR).
+**Tindak lanjut `/code-review` (2026-11-10):** diterapkan: `sharp` dimuat malas (kegagalan memuat menjadi kegagalan sementara per media), `.webm` dikeluarkan dari deteksi video, dedup antrian per akun (job `import.media` pending/running, kunci `connectedAccountId`) dan insert job paralel, enqueue dipindah ke setelah penandaan selesai, predikat daftar dan pencarian disamakan (`https://`), pembersihan Storage E2E tanpa stamp hanya untuk sisa lebih tua dari 2 jam, cast ID bermerek diganti `asWorkspaceId`/`asConnectedAccountId` dan `defaultSleep` eksplisit. **Tidak diterapkan:** (a) batas percobaan untuk kegagalan sementara (butuh kolom penghitung; target yang selalu gagal sementara tetap dicoba tiap import, biayanya kecil tetapi tidak nol; tiket T-233); (b) History Detail posting impor belum memakai thumbnail tersimpan (bukan regresi; tiket T-232); (c) ffmpeg mengikuti redirect HTTP dari host CDN yang sudah di-allowlist (sisa risiko diterima, tercatat di kode); (d) perubahan hoisting `semver` di `bun.lock` akibat `sharp` sebagai dependensi langsung (aman, perlu disebut di deskripsi PR).
 
 **Blocked by:** merge PR 267 ke `staging` dan Verified (staging); variabel `ffmpeg` produksi sebelum rilis ke `main`.
 
@@ -3663,5 +3663,50 @@ Berkas `{workspaceId}/imports/{targetId}.webp` tidak ikut terhapus bila posting 
 - [ ] **T-231.1** Hapus berkas thumbnail saat posting impor di-soft-delete atau target dihapus (best-effort lewat adapter storage; domain tanpa import Supabase).
 - [ ] **T-231.2** Pembersihan saat akun diputus dan workspace dihapus (cascade atau job).
 - [ ] **T-231.3** Job sapu berkala (atau skrip) untuk berkas `imports/` yang tidak lagi dirujuk `thumbnail_storage_path`; tes dan dokumentasi.
+
+**Blocked by:** T-230.
+
+---
+
+### T-232 · Import Posts: show the stored thumbnail on History Detail for imported posts (ADR-158)
+
+| Field       | Value                                                                                    |
+| ----------- | ---------------------------------------------------------------------------------------- |
+| **Status**  | ⏳ Not Started                                                                           |
+| **Mode**    | AFK (UI/UX-related: gate rancangan berlaku sebelum kode)                                 |
+| **Domain**  | publishing · media · UI                                                                  |
+| **Spec**    | S-006 (konteks)                                                                          |
+| **Docs**    | ADR-158, ADR-093, ADR-097, ADR-140, T-227, T-230, `/code-review` T-230 (temuan altitude) |
+| **Depends** | T-230                                                                                    |
+
+Halaman History Detail (`apps/web/src/app/(app)/publish/history/[postId]/page.tsx`) hanya meresolve `item.mediaIds` lewat `MediaService.resolveFirstThumbnail`, yang kosong untuk posting impor. Setelah T-230, thumbnail posting impor terlihat di Engage tetapi halaman detailnya tetap tanpa media (ADR-093 mewajibkan History menampilkan posting Imported). Bukan regresi T-230; ketidakkonsistenan yang perlu ditutup.
+
+**Gate rancangan (AGENTS.md aturan 10):** cek dulu kartu History Detail di artifact Postific apakah posting impor tanpa `media_ids` sudah dirancang (ukuran, penempatan, fallback). Bila belum ada atau ambigu, berhenti dan tanya King Rezi; jangan menebak.
+
+- [ ] **T-232.1** Alirkan `thumbnailStoragePath` (dan URL CDN T-227 sebagai cadangan) ke History Detail lewat satu resolver bersama dengan Engage (mis. `resolveSnapshotThumbnail`), bukan salinan logika kedua. Pilih target yang dipakai bila satu posting impor punya beberapa target.
+- [ ] **T-232.2** Tanda tangan URL lewat `MediaService.signStoragePaths(workspaceId, paths)` (workspace-scoped); gagal tanda tangan jatuh ke URL CDN atau tanpa thumbnail, tidak melempar.
+- [ ] **T-232.3** Tes unit/komponen; E2E History (ADR-149) diperluas bila perlu; `typecheck`, `lint`, tes hijau; amati terang, gelap, dan 375px.
+
+**Blocked by:** gate rancangan (di atas); T-230.
+
+---
+
+### T-233 · Import Posts: bound retries of transiently failing imported-post thumbnails (ADR-158)
+
+| Field       | Value                                                                    |
+| ----------- | ------------------------------------------------------------------------ |
+| **Status**  | ⏳ Not Started                                                           |
+| **Mode**    | AFK                                                                      |
+| **Domain**  | publishing · integration                                                 |
+| **Spec**    | S-006 (konteks)                                                          |
+| **Docs**    | ADR-158, T-229, T-230, BG-D05, `/code-review` T-230 (temuan correctness) |
+| **Depends** | T-230                                                                    |
+
+Kegagalan **sementara** (timeout, 408/429/5xx, galat jaringan, `ffmpeg` belum terpasang, galat Storage, anggaran waktu habis) sengaja tidak mengisi `thumbnail_attempted_at` (T-230), jadi target itu muncul lagi di `listImportedTargetIdsNeedingThumbnail` pada setiap import (periodik harian tiap akun dan setiap Sync Now). T-230 sudah men-dedup job `import.media` yang masih pending/running per akun, tetapi target yang selalu gagal sementara (mis. CDN yang selalu melewati batas 9 detik) tetap dicoba tanpa batas: sampai 200 target diantrikan lagi tiap import. Biayanya kecil tetapi tidak nol dan tidak berhenti sendiri.
+
+- [ ] **T-233.1** Keputusan: pakai penghitung percobaan (kolom nullable/default 0 di `publishing_post_targets`, mis. `thumbnail_attempts`) dengan batas (usulan 5), atau jeda coba ulang (`thumbnail_next_attempt_at`). Migrasi aditif; `prisma migrate deploy` otomatis lewat `preDeployCommand`. Addendum ADR-158 bila perilaku berubah.
+- [ ] **T-233.2** `saveImportedTargetThumbnail` (atau method baru) menaikkan penghitung pada kegagalan sementara dan menandai target sebagai permanen (`thumbnail_attempted_at`) setelah batas; `listImportedTargetIdsNeedingThumbnail` dan `findImportedTargetsNeedingThumbnail` menghormati batas/jeda.
+- [ ] **T-233.3** Tes unit (use case dan repository) untuk: naik penghitung, batas tercapai, sukses setelah beberapa gagal; jangan menimpa thumbnail yang sudah tersimpan oleh job duplikat.
+- [ ] **T-233.4** `typecheck`, `lint`, tes hijau; catat di JOB-09 (`background-jobs.md`).
 
 **Blocked by:** T-230.
