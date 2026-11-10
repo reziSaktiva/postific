@@ -3576,18 +3576,18 @@ Alasan A: pemilih ini hanya mengganti kartu yang ditampilkan, bukan berpindah an
 
 ### T-230 · Import Posts: download and store thumbnails and video posters during Import (option C, ADR-158)
 
-| Field       | Value                                                                                                                                                         |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | 🟡 In Progress (kode, tes, E2E, amatan visual, uji job langsung, review Ridwan selesai; sisa: QA Najwa, `ffmpeg` di build Railway (HITL), Verified (staging)) |
-| **Mode**    | AFK setelah T-229                                                                                                                                             |
-| **Domain**  | publishing · media · integration                                                                                                                              |
-| **Spec**    | S-006 (konteks)                                                                                                                                               |
-| **Docs**    | ADR-158, ADR-093, ADR-040, T-229, T-227, AGENTS.md no. 3-6, 13                                                                                                |
-| **Depends** | T-229                                                                                                                                                         |
+| Field       | Value                                                                                                                                                |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**  | 🟡 In Progress (kode, tes, E2E, visual, review Ridwan, QA Najwa selesai; `ffmpeg` staging disiapkan; sisa: Verified (staging) dan `ffmpeg` produksi) |
+| **Mode**    | AFK setelah T-229                                                                                                                                    |
+| **Domain**  | publishing · media · integration                                                                                                                     |
+| **Spec**    | S-006 (konteks)                                                                                                                                      |
+| **Docs**    | ADR-158, ADR-093, ADR-040, T-229, T-227, AGENTS.md no. 3-6, 13                                                                                       |
+| **Depends** | T-229                                                                                                                                                |
 
 Rincian mengikuti hasil T-229 (skema kolom baru di `publishing_post_targets`, job `import.media` per batch, `sharp` untuk gambar, `ffmpeg` untuk poster video):
 
-- [~] **T-230.0** Migrasi `20261106140000_t230_import_thumbnail_columns` (tiga kolom nullable plus CHECK jenis) **sudah diterapkan** ke DB bersama (2026-11-06, izin King Rezi) dan `sharp` dideklarasikan. **Belum:** menyediakan `ffmpeg` di build Railway (NIXPACKS belum punya `nixpacks.toml`; perlu keputusan dan diverifikasi di staging). Tanpa `ffmpeg`, poster video ditunda (bukan ditandai), jadi aman dideploy dulu.
+- [~] **T-230.0** Migrasi `20261106140000_t230_import_thumbnail_columns` (tiga kolom nullable plus CHECK jenis) **sudah diterapkan** ke DB bersama (2026-11-06, izin King Rezi) dan `sharp` dideklarasikan. **`ffmpeg` di Railway (2026-11-10):** builder layanan `web` ternyata **Railpack** (bukan Nixpacks; `railway.json` di repo masih menulis `NIXPACKS`, ketidakcocokan belum dipahami). Variabel `RAILPACK_DEPLOY_APT_PACKAGES=ffmpeg` sudah dipasang di layanan `web` **staging** (persetujuan King Rezi); redeploy setelahnya tidak membangun ulang image (log build hanya health check), jadi `ffmpeg` baru terpasang pada build berikutnya, yaitu saat PR 267 di-merge ke `staging`. **Belum:** produksi (set variabel yang sama sebelum rilis ke `main`), dan bukti bahwa `ffmpeg` ada di image (cari langkah apt di log build setelah merge; adapter mencatat galat sekali bila `ffmpeg` tidak ditemukan). Layanan `cron` dan `cron-analytics` hanya memicu HTTP, tidak butuh `ffmpeg`. Tanpa `ffmpeg`, poster video ditunda (bukan ditandai), jadi aman dideploy lebih dulu.
 - [x] **T-230.1** Setelah `upsertImportedPosts`, antrikan job `import.media` per batch kecil (sekitar 10 posting); handler mengunduh media baru, membuat thumbnail kecil (gambar) atau poster (video), dan menyimpannya lewat domain `media` (Supabase Storage lewat adapter; domain tanpa import Prisma/Supabase, AGENTS.md no. 4 dan 6).
 - [x] **T-230.2** Kegagalan satu media tidak menggagalkan import posting; posting tetap tampil dengan fallback T-227.
 - [x] **T-230.3** Idempotensi: import ulang tidak menduplikasi thumbnail (kunci `connectedAccountId` + `platformPostId`, ADR-093 butir 4); posting yang sudah punya thumbnail tidak diunduh ulang.
@@ -3631,7 +3631,17 @@ Tiket yang lahir sebagai pelacak Known Issue ada di [`known-issues.md`](known-is
 
 **Catatan E2E (2026-11-06):** tes lama "Reset mengembalikan Sort, Date Range, dan Platform" (dan sesekali "Resolve, Dismiss...") gagal intermiten ketika DB bersama lambat, karena aksi server berurutan melewati asersi 5 detik; tes yang sama gagal juga pada kode sebelum T-230 (diuji dengan stash), jadi bukan regresi T-230. Penguatan selektor dan waktu tunggu masuk lingkup T-226.
 
-**Blocked by:** keputusan `ffmpeg` di build Railway; QA Najwa; Verified (staging).
+**QA Najwa (2026-11-10): lolos, tanpa bug pemblokir.** `vitest` 2689 tes, `typecheck`, `lint` hijau; E2E `engage-per-post` 13 dari 13 lolos (termasuk tes "Reset" dan "Resolve..." yang sebelumnya intermiten, DB kali ini lebih cepat). Di browser (Cook It Real Good, `/engage`, tampilkan semua posting): dua posting punya thumbnail tersimpan sungguhan dari `*.supabase.co/storage/v1/object/sign/media/.../imports/...` (HTTP 200, 360 dan 640 px) di desktop dan 375 px; sekitar 93 kartu yang URL CDN-nya mati (403) jatuh ke kotak berikon tanpa ikon gambar rusak; tanpa galat halaman. Halaman lain (`/`, Publish, Drafts, History, Queue, Calendar, Connected Accounts, Analyze) HTTP 200 tanpa galat. Media Library tidak menampilkan thumbnail impor (dibuktikan lewat kode: tabel `media_items` tidak dipakai). Sesuai desain kartu `ScreenEngagePerPosting` (48 px di kartu, 72 px di pratinjau).
+
+Temuan QA yang dicatat (bukan pemblokir):
+
+- Allowlist host hanya `fbcdn.net`, `cdninstagram.com`, `tiktokcdn*.com`. Kanal YouTube (ada di Cook It Real Good) tidak akan mendapat thumbnail tersimpan sampai allowlist diperluas (mis. `ytimg.com`); belum diperiksa apakah YouTube ikut Import Posts. Sesuai ADR-158 (Facebook, Instagram, TikTok).
+- Posting yang sudah ditandai gagal permanen tidak dicoba ulang walau `targetFillData` memperbarui `mediaUrls` pada import ulang; sesuai keputusan T-229.6.
+- Satu pemuatan `/engage` dengan "tampilkan semua" menembak sekitar 90 permintaan gambar ke CDN yang pasti 403 (perilaku T-227); berkurang setelah backfill mengisi thumbnail.
+
+**Tidak teruji oleh QA:** poster video (`ffmpeg`) di Railway atau staging dan perilaku `HEAD` pada URL bertanda tangan hidup; menekan Sync Now atau menjalankan backfill (sengaja dilarang, endpoint berbayar); pratinjau panel kanan untuk thumbnail tersimpan dan halaman penuh gelap dan 375 px (kartu sudah diamati); akun peran selain Admin dan Owner.
+
+**Blocked by:** merge PR 267 ke `staging` dan Verified (staging); variabel `ffmpeg` produksi sebelum rilis ke `main`.
 
 ---
 
