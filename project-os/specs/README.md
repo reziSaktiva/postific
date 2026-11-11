@@ -68,7 +68,7 @@ Tiket rilis tetap di `tickets/vXX-*.md`, termasuk setelah selesai. Tiket yang la
 
 **Mode (ADR-153, S-003):** **AFK** berarti agen dapat menyelesaikan tiket secara mandiri; **HITL** berarti ada butir yang butuh jawaban atau keputusan King Rezi (persetujuan ADR, izin migrasi, verifikasi manual). Hanya tiket AFK yang boleh menjadi jalur paralel gelombang; tiket HITL ditandai dan tidak dijalankan agen. Tiket yang belum punya penanda diklasifikasi oleh `wave-plan` dari isinya dan hasilnya disodorkan ke King Rezi. Penanda ditulis di baris status tiket, mis. `⏳ Not Started` · **Mode** AFK.
 
-**Status tiket:** tiket yang kodenya selesai tetapi butirnya masih menunggu staging ditulis `🟡 Done (code), menunggu Verified (staging)`. Arti status dan aturannya: skill `project-os-navigator` § Pekerjaan Baru (ADR-153).
+**Status tiket:** tiket yang kodenya selesai tetapi butirnya masih menunggu staging ditulis `🟡 Done (code), menunggu Verified (staging)`. Arti status dan aturannya: skill `project-os-navigator` § New Work (ADR-153).
 
 Jangan menulis path file, jumlah tes, nama subagent, atau cerita sesi ke dalam tiket. Itu milik commit.
 

@@ -1,92 +1,93 @@
 ---
 name: claude-design-scope-discipline
-description: Mencegah AI mengubah default/state yang sudah disetujui user sebagai efek samping saat mengimplementasikan perubahan di artifact desain Postific (toggle, switch, variant pembanding, dsb). Gunakan skill ini SEBELUM melakukan perubahan apapun di artifact desain lewat tool Artifact (ADR-140) — terutama saat diminta menambah kontrol pembanding antar dua tampilan/variant, atau saat permintaan user berpotensi diartikan lebih dari satu cara.
+description: Prevents the AI from changing user-approved defaults/state as a side effect when implementing a change in the Postific design artifact (toggle, switch, comparison variant, etc.). Use this skill BEFORE making any change to the design artifact through the Artifact tool (ADR-140) — especially when asked to add a control that compares two views/variants, or when the user's request could be read in more than one way.
 ---
 
-# Artifact Desain — Scope Discipline
+# Design Artifact — Scope Discipline
 
-Skill ini mengunci satu prinsip: **implementasi fitur baru tidak boleh diam-diam mengubah state/tampilan yang sudah disetujui user.** Ditulis setelah insiden nyata di ADR-052 (lihat `project-os/DECISIONS.md`).
-
----
-
-## Kapan Wajib Pakai Skill Ini
-
-- Sebelum melakukan perubahan apapun di artifact desain Postific atau galeri Postific Design Review (via tool `Artifact`, ADR-140).
-- Khususnya saat user meminta **kontrol pembanding** antar dua tampilan/variant — toggle, switch, A/B, dsb.
-- Saat permintaan user bisa diartikan lebih dari satu cara (ambigu antara "tambahkan alat bantu" vs "ganti tampilan aktif").
-- Berlaku juga untuk implementasi kode di `apps/web` yang menyentuh state/default UI yang sudah pernah di-approve — bukan cuma khusus artifact desain.
+This skill locks in one principle: **implementing a new feature must not quietly change state/appearance the user has already approved.** Written after a real incident in ADR-052 (see `project-os/DECISIONS.md`).
 
 ---
 
-## Insiden yang Melatarbelakangi (ADR-052)
+## When This Skill Is Mandatory
 
-Kronologi singkat (detail lengkap: `DECISIONS.md` ADR-052, addendum "Variant Dialog dibuka kembali untuk perbandingan" dan "Koreksi: default dikembalikan ke Fullscreen"):
-
-1. User minta Draft Editor (Create Post/Update Draft) diubah dari halaman penuh menjadi dialog. Hasilnya dialog `variant="fullscreen"` — sengaja tanpa backdrop gelap (desain asli Astryx), sehingga user sempat tidak sadar itu sudah jadi dialog.
-2. User minta: tambahkan **toggle** supaya ada dua versi (Fullscreen & Standard) untuk dibandingkan langsung.
-3. **Kesalahan:** toggle-nya berhasil ditambahkan dan berfungsi benar — tapi default tampilan diam-diam diubah dari Fullscreen → Standard sebagai bagian dari implementasi, padahal user tidak pernah minta default-nya berubah. Karena Standard vs Fullscreen punya struktur berbeda (card mengambang vs full-viewport), semua elemen di dalamnya (termasuk Media/Account Selector) ikut terlihat berubah layout-nya walau class CSS-nya sendiri tidak disentuh.
-4. Root cause: AI menganggap tugas selesai begitu "fitur baru (toggle) berfungsi", tanpa memverifikasi apakah ada efek samping pada state yang sudah disetujui sebelumnya.
+- Before making any change to the Postific design artifact or the Postific Design Review gallery (via the `Artifact` tool, ADR-140).
+- Especially when the user asks for a **comparison control** between two views/variants — toggle, switch, A/B, etc.
+- When the user's request can be read in more than one way (ambiguous between "add a helper tool" and "replace the active view").
+- Also applies to code implementation in `apps/web` that touches UI state/defaults that were already approved — not only the design artifact.
 
 ---
 
-## Aturan Wajib
+## The Incident Behind This Skill (ADR-052)
 
-1. **Jangan pernah mengubah default/state/tampilan yang sudah disetujui user sebagai efek samping dari fitur baru** — termasuk saat menambah kontrol pembanding. Kalau permintaan adalah "tambahkan toggle A/B", itu berarti **hanya menambahkan alat untuk berpindah antara A dan B** — bukan izin untuk mengganti mana yang aktif secara default.
+Short timeline (full detail: `DECISIONS.md` ADR-052, addenda "Variant Dialog dibuka kembali untuk perbandingan" and "Koreksi: default dikembalikan ke Fullscreen"):
 
-2. **Sebelum eksekusi**, kalau scope perubahan berpotensi ambigu, nyatakan ringkas ke user:
-   - Apa yang akan **berubah**.
-   - Apa yang **tetap sama** (termasuk default/state aktif saat ini).
-
-   Contoh kalimat: "Saya akan tambahkan toggle Fullscreen/Standard di header dialog. Default tetap Fullscreen seperti sekarang — toggle cuma alat bantu untuk lihat versi Standard saat diklik, tidak mengubah tampilan default. Betul begitu?"
-
-3. **Kalau ambigu, tanya dulu** sebelum eksekusi (lihat skill `proactive-clarification`). Jangan berasumsi salah satu interpretasi lebih "masuk akal" tanpa konfirmasi — terutama kalau efeknya mengubah tampilan yang sudah di-approve.
-
-4. **Definisi selesai bukan cuma "fitur baru berfungsi".** Verifikasi eksplisit dua hal:
-   - Fitur yang diminta bekerja dengan benar.
-   - **Tidak ada perubahan tak diminta** pada tampilan/behavior existing (bandingkan state sebelum vs sesudah, screenshot/diff visual bila memungkinkan).
-
-5. **Kalau terlanjur mengubah sesuatu di luar scope** (sengaja atau tidak sengaja), sebutkan secara eksplisit ke user sebagai bagian dari laporan — jangan diamkan, walau perubahannya terlihat kecil atau "lebih baik". User yang berhak memutuskan apakah perubahan tambahan itu diterima atau di-revert.
-
-6. **Selalu baca versi terbaru sebelum publish ulang** — King Rezi dan sesi
-   lain bisa mengubah artifact langsung, jadi isi di artifact sering lebih
-   baru dari salinan lokal atau rencana mana pun. Sebelum `Artifact` publish
-   apa pun: (1) `read` file target (dan indeks `project/design-system.json`)
-   dari artifact dulu, (2) bandingkan dengan yang akan dipublish, (3) kalau
-   artifact lebih maju, batalkan rencana "kirim ulang utuh" dan terapkan
-   perubahan **minimal** di atas isi terbaru — susun file gabungan lewat
-   script, bukan diketik ulang manual (file sering berisi path SVG inline
-   panjang yang typo-nya tidak kelihatan saat review), pertahankan
-   indentasi apa adanya supaya diff hanya berisi perubahan yang dimaksud,
-   lalu baca ulang artifact setelah publish untuk verifikasi. Tool menolak
-   publish bila versi yang dibaca sudah tertinggal; ikuti penolakannya, jangan
-   memakai `force`. Kasus asal aturan ini (T-010.3, 2026-08-04, saat masih
-   Claude Design): task backlog bilang `components/navigation.html` "tinggal
-   push dari scratchpad", tapi remote sudah punya 5 baris Channels yang
-   ditambahkan King Rezi sendiri — push tanpa verifikasi akan menghapus
-   kerja King Rezi.
+1. The user asked for the Draft Editor (Create Post/Update Draft) to change from a full page into a dialog. The result was a `variant="fullscreen"` dialog — deliberately without a dark backdrop (the original Astryx design), so the user did not realize for a while that it had become a dialog.
+2. The user asked: add a **toggle** so there are two versions (Fullscreen & Standard) to compare side by side.
+3. **The mistake:** the toggle was added and worked correctly — but the default view was quietly changed from Fullscreen to Standard as part of the implementation, even though the user never asked for the default to change. Because Standard and Fullscreen have different structures (floating card vs full viewport), every element inside (including the Media/Account Selector) also appeared to change layout even though its own CSS classes were not touched.
+4. Root cause: the AI treated the task as done as soon as "the new feature (toggle) works", without checking for side effects on previously approved state.
 
 ---
 
-## Contoh
+## Mandatory Rules
 
-**Salah (yang terjadi di insiden ADR-052):**
+1. **Never change a user-approved default/state/appearance as a side effect of a new feature** — including when adding a comparison control. If the request is "add an A/B toggle", that means **only adding a tool to switch between A and B** — it is not permission to change which one is active by default.
 
-> User: "Buat toggle biar ada dua versi, Fullscreen dan Standard, biar bisa dibandingkan."
+2. **Before executing**, if the scope of the change is potentially ambiguous, state briefly to the user:
+   - What will **change**.
+   - What stays the **same** (including the current default/active state).
+
+   Example sentence: "I will add a Fullscreen/Standard toggle in the dialog header. The default stays Fullscreen as it is now — the toggle is only a helper for viewing the Standard version when clicked, it does not change the default view. Is that right?"
+
+3. **If it is ambiguous, ask first** before executing (see the `proactive-clarification` skill). Do not assume one interpretation is more "reasonable" without confirmation — especially when the effect would change an already approved view.
+
+4. **The definition of done is not just "the new feature works".** Explicitly verify two things:
+   - The requested feature works correctly.
+   - There is **no unrequested change** to existing appearance/behavior (compare the state before vs after, with a screenshot/visual diff when possible).
+
+5. **If you already changed something outside the scope** (on purpose or by accident), say so explicitly to the user as part of the report — do not stay silent, even when the change looks small or "better". The user decides whether the extra change is accepted or reverted.
+
+6. **Always read the latest version before republishing** — King Rezi and
+   other sessions can change the artifact directly, so what is in the
+   artifact is often newer than any local copy or plan. Before any `Artifact`
+   publish: (1) `read` the target file (and the index
+   `project/design-system.json`) from the artifact first, (2) compare it with
+   what you are about to publish, (3) if the artifact is ahead, drop the
+   "resend the whole file" plan and apply a **minimal** change on top of the
+   latest content — build the combined file with a script, not by retyping
+   it by hand (files often contain long inline SVG paths whose typos are
+   invisible in review), keep the indentation as it is so the diff contains
+   only the intended change, then re-read the artifact after publishing to
+   verify. The tool refuses a publish when the version you read is already
+   behind; follow its refusal, do not use `force`. The case this rule came
+   from (T-010.3, 2026-08-04, while it was still Claude Design): a backlog
+   task said `components/navigation.html` was "just a push from the
+   scratchpad", but the remote already had 5 Channels lines added by King
+   Rezi himself — pushing without verification would have erased King Rezi's
+   work.
+
+---
+
+## Examples
+
+**Wrong (what happened in the ADR-052 incident):**
+
+> User: "Make a toggle so there are two versions, Fullscreen and Standard, so they can be compared."
 >
-> AI: _menambahkan toggle, sekaligus mengganti default state ke Standard tanpa bilang_ → dilaporkan sebagai "toggle sudah ditambahkan" tanpa menyebut default ikut berubah.
+> AI: _adds the toggle and also changes the default state to Standard without saying so_ → reported as "the toggle has been added" without mentioning that the default changed too.
 
-**Benar:**
+**Right:**
 
-> User: "Buat toggle biar ada dua versi, Fullscreen dan Standard, biar bisa dibandingkan."
+> User: "Make a toggle so there are two versions, Fullscreen and Standard, so they can be compared."
 >
-> AI: "Saya tambahkan toggle di header dialog. Default tetap Fullscreen (tidak berubah dari sekarang) — klik toggle untuk preview Standard, klik lagi untuk kembali. Lanjutkan dengan asumsi ini?" → baru eksekusi setelah dikonfirmasi (atau langsung eksekusi dengan asumsi eksplisit ini dinyatakan di laporan akhir, kalau task cukup jelas untuk tidak perlu menunggu jawaban).
+> AI: "I'll add a toggle in the dialog header. The default stays Fullscreen (unchanged from now) — click the toggle to preview Standard, click again to go back. Proceed with this assumption?" → only then execute after confirmation (or execute right away with this assumption stated explicitly in the final report, if the task is clear enough not to need waiting for an answer).
 
 ---
 
 ## Related
 
-- `project-os/DECISIONS.md` — ADR-052 (insiden asal + kronologi lengkap).
-- `context/ctx-design.md` — Aturan operasional artifact desain (pointer ke skill ini).
-- `.claude/skills/proactive-clarification/SKILL.md` — cara bertanya saat ada fork keputusan/ambiguitas.
-- `AGENTS.md` — Aturan keras project.
-- `project-os/DECISIONS.md` — ADR-140 (alat desain pindah dari Claude Design ke artifact; aturan skill ini tetap berlaku).
+- `project-os/DECISIONS.md` — ADR-052 (origin incident + full timeline).
+- `context/ctx-design.md` — Operational rules for the design artifact (pointer to this skill).
+- `.claude/skills/proactive-clarification/SKILL.md` — how to ask when there is a decision fork/ambiguity.
+- `AGENTS.md` — The project's hard rules.
+- `project-os/DECISIONS.md` — ADR-140 (design tool moved from Claude Design to the artifact; this skill's rules still apply).

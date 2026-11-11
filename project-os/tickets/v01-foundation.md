@@ -841,14 +841,14 @@ Hasil: `e2e/start-page.e2e.ts` (3 tes serial). Berjalan di workspace khusus **E2
 `✅ Done` (2026-10-29) · **Domain** project-os, agen · **ADR** ADR-149 · **Spec** S-002 · **Depends** T-172
 **Baca dulu:** `.claude/skills/project-os-navigator/SKILL.md` · `.claude/agents/README.md` · `.claude/agents/najwa-qa-engineer.md`
 
-- [x] **T-176.1** Navigator/aturan kerja: tiket fitur selesai bila ada tes E2E golden path dan suite hijau di local; hasil dilaporkan di deskripsi PR. → ditambahkan di navigator § Pekerjaan Baru, dengan pengecualian dokumentasi, perubahan sepele, dan tooling
+- [x] **T-176.1** Navigator/aturan kerja: tiket fitur selesai bila ada tes E2E golden path dan suite hijau di local; hasil dilaporkan di deskripsi PR. → ditambahkan di navigator § New Work, dengan pengecualian dokumentasi, perubahan sepele, dan tooling
 - [x] **T-176.2** Perbarui definisi Najwa memakai Playwright. `.claude/agents/*.md` adalah Static Reference: hanya diubah atas permintaan eksplisit King Rezi, jadi minta konfirmasi saat tiket ini dikerjakan. → King Rezi mengizinkan (2026-10-29); langkah E2E ditambahkan, bagian lain tidak diubah
 - [x] **T-176.3** `AGENTS.md`: cukup satu penunjuk (ADR-133), tanpa menyalin aturan
 
 ### T-181 · Draft ADR-153: Done (code) and Verified (staging) status ladder
 
 `✅ Done (2026-11-02)` · **Mode** HITL (T-181.2) · **Domain** project-os, agen · **ADR** ADR-153 (Accepted), ADR-149 · **Spec** S-003 · **Depends** —
-**Baca dulu:** `project-os/specs/S-003.md` § Perilaku 1 · `.claude/skills/project-os-navigator/SKILL.md` § Pekerjaan Baru
+**Baca dulu:** `project-os/specs/S-003.md` § Perilaku 1 · `.claude/skills/project-os-navigator/SKILL.md` § New Work
 
 Memisahkan "kode selesai" dari "terbukti di staging" (keputusan King Rezi 2026-10-30). Mengubah definisi selesai, jadi butuh ADR baru (AGENTS.md aturan 2).
 
@@ -862,7 +862,7 @@ Memisahkan "kode selesai" dari "terbukti di staging" (keputusan King Rezi 2026-1
 
 Pemilik: Gibran (dokumen proyek), sekuensial di akhir.
 
-- [x] **T-182.1** `✅ Done (2026-11-02)` Navigator § Pekerjaan Baru: tambahkan definisi Done (code) dan Verified (staging) di samping definisi ADR-149; satu sumber, tanpa menyalin paragraf ke dokumen lain (ADR-133).
+- [x] **T-182.1** `✅ Done (2026-11-02)` Navigator § New Work: tambahkan definisi Done (code) dan Verified (staging) di samping definisi ADR-149; satu sumber, tanpa menyalin paragraf ke dokumen lain (ADR-133).
 - [x] **T-182.2** `✅ Done (2026-11-02)` `AVAILABLE_TICKETS.md` dan bentuk tiket di `specs/README.md`: legenda dan penanda untuk Done (code) versus Verified (staging).
 - [x] **T-182.3** `✅ Done (2026-11-02)` Pindahkan tiket MCP yang kini 🟡 hanya karena menunggu staging ke tangga baru, dengan butir verifikasi gelombang yang eksplisit; jangan menghapus bagian "Belum terbukti".
 - [x] **T-182.4** `✅ Done (2026-11-02)` `AGENTS.md`: cukup satu penunjuk ke definisi di navigator (ADR-133).

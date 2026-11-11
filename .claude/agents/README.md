@@ -102,7 +102,7 @@ verifikasi `Artifact` termuat di sana, lalu lanjut.
 ## Kapan WAJIB dievaluasi (bukan opsional)
 
 Ini bukan sekadar referensi pasif — `AGENTS.md` ("Wajib di awal sesi") dan
-`.claude/skills/project-os-navigator/SKILL.md` (behavior "Pekerjaan Baru")
+`.claude/skills/project-os-navigator/SKILL.md` (behavior "New Work")
 mewajibkan AI berhenti di titik ini **sebelum** mulai implementasi kode:
 
 1. Task punya field **Domain** (di file tiketnya) yang scope-nya

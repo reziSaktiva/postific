@@ -1,42 +1,43 @@
 ---
 name: wave-plan
 description: >-
-  Menyiapkan gelombang kerja dari graf tiket: menghitung frontier (tiket tanpa
-  blocker) dari field Depends, memisahkan tiket AFK dan HITL, memeriksa bentrok
-  berkas, lalu berhenti di daftar bernomor untuk disetujui King Rezi. Hanya
-  membaca dokumen; aman dan murah dipanggil kapan saja, termasuk untuk sekadar
-  melihat gelombang yang tersedia. Eksekusinya memakai skill wave-work.
+  Prepares a wave of work from the ticket graph: computes the frontier
+  (tickets with no blockers) from the Depends field, separates AFK and HITL
+  tickets, checks for file conflicts, then stops at a numbered list for King
+  Rezi to approve. Reads documents only; safe and cheap to call at any time,
+  including just to see which waves are available. Execution uses the
+  wave-work skill.
 ---
 
 # Wave Plan
 
-Langkah 1 alur gelombang (S-003 § Perilaku 2). Spec adalah unit perencanaan;
-gelombang adalah frontier saat itu dan boleh lintas spec. Dasar: ADR-153, ADR-132.
+Step 1 of the wave flow (S-003 § Perilaku 2). A spec is the planning unit;
+a wave is the frontier at that moment and may cross specs. Basis: ADR-153, ADR-132.
 
-## Batas
+## Boundaries
 
-- **Hanya membaca dokumen.** Tidak membuat branch, worktree, commit, atau mengubah berkas.
-- Berhenti di daftar bernomor yang disetujui King Rezi. Eksekusi dimulai oleh skill `wave-work`, hanya atas permintaan King Rezi.
+- **Reads documents only.** Does not create branches, worktrees, or commits, and does not change files.
+- Stops at the numbered list King Rezi approves. Execution is started by the `wave-work` skill, only at King Rezi's request.
 
-## Langkah
+## Steps
 
-1. **Kumpulkan kandidat:** buka `project-os/AVAILABLE_TICKETS.md` dan berhenti di situ untuk memilih ID. Baca bagian tiket dengan `offset` dan `limit` (atau `bun run docs:where` bila sudah tersedia, T-186), bukan seluruh berkas tiket. Baris antrian saja tidak cukup untuk menyebut tiket sisa; centang butir diperiksa di langkah 2.
-2. **Hitung frontier:** field **Depends** dibaca sebagai blocking edge. Tiket tanpa blocker, atau yang blocker-nya sudah ✅ (atau Accepted untuk ADR), masuk frontier. Boleh lintas spec. Tiket 🚫 dan yang blocker-nya belum selesai ditandai dan tidak masuk jalur. Sebelum tiket disebut sisa atau masuk daftar gelombang, baca centang butir di berkas tiket (`- [ ]` masih terbuka, `- [x]` sudah selesai), bukan hanya baris antrian. Tiket yang semua butirnya sudah `- [x]` tidak masuk daftar. Butir yang sudah `- [x]` tidak menjadi lingkup jalur. Bukti: T-225.2 (`project-os/tickets/v01-foundation.md`).
-3. **Pisahkan AFK dan HITL** dari field **Mode** di tiket (bentuknya di `project-os/specs/README.md`). Tiket tanpa penanda diklasifikasi dari isinya: ada butir keputusan, izin migrasi, atau verifikasi manual King Rezi berarti HITL. Hanya tiket AFK yang boleh menjadi jalur; HITL ditandai dan tidak dijalankan agen.
-4. **Periksa bentrok berkas** antar tiket AFK dari bagian "Baca dulu" dan butir tiket. Jalur paralel hanya untuk tiket yang tidak menyentuh berkas yang sama dan tidak saling bergantung; selain itu urutkan sekuensial dalam satu jalur.
-5. **Irisan vertikal:** satu jalur menghasilkan hasil yang bisa dilihat dan dites, bukan lapisan teknis. Perubahan lebar memakai expand, migrate, contract.
-6. **Ekonomi token:** batasi jalur serentak, tandai jalur mekanis yang boleh memakai model dan effort lebih rendah, dan cek kuota sebelum gelombang dimulai.
+1. **Collect candidates:** open `project-os/AVAILABLE_TICKETS.md` and stop there to choose an ID. Read ticket sections with `offset` and `limit` (or `bun run docs:where` when available, T-186), not the whole ticket file. The queue row alone is not enough to call a ticket remaining; the checkboxes are checked in step 2.
+2. **Compute the frontier:** read the **Depends** field as a blocking edge. A ticket with no blockers, or whose blockers are already ✅ (or Accepted for an ADR), enters the frontier. It may cross specs. Tickets marked 🚫, and tickets whose blockers are not finished, are flagged and get no lane. Before a ticket is called remaining or enters the wave list, read the item checkboxes in the ticket file (`- [ ]` still open, `- [x]` done), not just the queue row. A ticket whose items are all `- [x]` is left off the list. An item already `- [x]` is not part of a lane's scope. Evidence: T-225.2 (`project-os/tickets/v01-foundation.md`).
+3. **Separate AFK and HITL** from the **Mode** field in the ticket (its shape is in `project-os/specs/README.md`). A ticket with no marker is classified from its content: a decision item, migration permission, or manual verification by King Rezi means HITL. Only AFK tickets may become lanes; HITL tickets are flagged and not run by an agent.
+4. **Check for file conflicts** between AFK tickets from the "Baca dulu" section and the ticket items. Parallel lanes are only for tickets that do not touch the same files and do not depend on each other; otherwise order them sequentially within one lane.
+5. **Vertical slices:** one lane produces a result that can be seen and tested, not a technical layer. A wide change uses expand, migrate, contract.
+6. **Token economy:** limit concurrent lanes, flag mechanical lanes that may use a lower model and effort, and check the quota before the wave starts.
 
-## Keluaran
+## Output
 
-Daftar bernomor untuk King Rezi, tiap baris memuat:
+A numbered list for King Rezi, each row containing:
 
-| Kolom | Isi |
+| Column | Content |
 | --- | --- |
-| Judul | ID dan judul tiket |
-| Blocker | tiket atau keputusan yang menahan, atau tidak ada |
-| Hasil | apa yang ada saat selesai |
-| Mode | AFK atau HITL |
-| Jalur | jalur yang diusulkan; tiket HITL tidak dapat jalur |
+| Title | ticket ID and title |
+| Blocker | the ticket or decision holding it, or none |
+| Result | what exists when it is done |
+| Mode | AFK or HITL |
+| Lane | the proposed lane; HITL tickets get no lane |
 
-Sertakan juga: urutan gerbang King Rezi (persetujuan ADR, izin migrasi, merge), pertanyaan granularitas yang perlu dijawab, dan perkiraan jumlah jalur serentak. Lalu **berhenti** dan tunggu persetujuan King Rezi.
+Also include: the order of King Rezi's gates (ADR approval, migration permission, merge), the granularity questions that need an answer, and the estimated number of concurrent lanes. Then **stop** and wait for King Rezi's approval.

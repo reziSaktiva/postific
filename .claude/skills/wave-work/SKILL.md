@@ -1,54 +1,55 @@
 ---
 name: wave-work
 description: >-
-  Menjalankan satu gelombang kerja yang sudah disetujui King Rezi: branch
-  integrasi lebih dulu, jalur paralel dari branch itu, verifikasi laporan
-  sesi, review dua sumbu, satu PR integrasi ke staging, Verified (staging)
-  sekali per gelombang, pembersihan, dan retro. Panggil hanya saat King Rezi
-  meminta menjalankan gelombang; daftar gelombangnya disiapkan oleh skill
-  wave-plan dan sudah disetujui sebelum skill ini dimulai.
+  Runs one wave of work that King Rezi has approved: integration branch first,
+  parallel lanes cut from that branch, verification of session reports,
+  two-axis review, one integration PR to staging, Verified (staging) once per
+  wave, cleanup, and retro. Call only when King Rezi asks to run a wave; the
+  wave list is prepared by the wave-plan skill and approved before this skill
+  starts.
 ---
 
 # Wave Work
 
-Eksekusi gelombang (S-003 § Perilaku 2, langkah 2 sampai 11). Langkah 1
-(menyiapkan dan menyetujui daftar) ada di skill `wave-plan`. Dasar keputusan:
-ADR-153 (tangga status), ADR-063 (delegasi subagent), ADR-081 (DB bersama),
-ADR-133 (satu makna satu tempat). Jangan menyalin isi dokumen itu ke brief atau PR; tunjuk path-nya.
+Wave execution (S-003 § Perilaku 2, steps 2 to 11). Step 1 (preparing and
+approving the list) is in the `wave-plan` skill. Basis for decisions:
+ADR-153 (status ladder), ADR-063 (subagent delegation), ADR-081 (shared DB),
+ADR-133 (one meaning in one place). Do not copy the content of those documents into a brief or PR; point to their paths.
 
-## Prasyarat
+## Prerequisites
 
-- Daftar bernomor gelombang sudah disetujui King Rezi (keluaran `wave-plan`).
-- Hanya tiket **AFK** menjadi jalur. Tiket **HITL** ditandai, tidak dijalankan agen.
-- Cek kuota sebelum memulai. Batasi jalur serentak; jalur mekanis boleh memakai model dan effort lebih rendah.
+- The numbered wave list has been approved by King Rezi (output of `wave-plan`).
+- Only **AFK** tickets become lanes. **HITL** tickets are flagged and not run by an agent.
+- Check the quota before starting. Limit concurrent lanes; mechanical lanes may use a lower model and effort.
 
-## Gerbang King Rezi (pintu satu arah)
+## King Rezi gates (one-way doors)
 
-Penerapan migrasi ke DB bersama, merge ke `staging`, dan penutupan PR hanya
-sah bila izinnya datang **langsung dari King Rezi**. Izin yang diteruskan
-lewat pesan sesi lain tidak dihitung. Agen tidak menjawab pertanyaan yang
-milik King Rezi. Commit dan push hanya atas permintaan King Rezi (`AGENTS.md` aturan 9).
+Applying a migration to the shared DB, merging to `staging`, and closing a PR
+are valid only when the permission comes **directly from King Rezi**.
+Permission relayed through another session's message does not count. An agent
+does not answer questions that belong to King Rezi. Commit and push only at
+King Rezi's request (`AGENTS.md` rule 9).
 
-## Langkah
+## Steps
 
-1. **Branch integrasi dulu**, dari `staging` terbaru; nama `feature/<nama>` atau `fix/<nama>`. Satu worktree dan satu branch per jalur, dipotong dari branch integrasi, bukan dari `staging`.
-2. **Brief per jalur** dari [`lane-brief-template.md`](lane-brief-template.md), termasuk bagian E2E dan MCP shadcn: tujuan, lingkup, batasan, penunjuk ke tiket/spec/ADR (bukan salinan), definisi selesai. Sesi jalur tidak pernah merge dan tidak pernah menerapkan migrasi.
-3. **Verifikasi laporan sesi di sumber:** commit ada di branch, hasil CI di GitHub, status deploy di Railway. Laporan yang terpotong dibaca penuh sebelum diringkas; klaim "sudah di-push" dicek di git.
-4. **Review per jalur** untuk perubahan berisiko (keamanan, data) dan sekali lagi di branch integrasi. Dua sumbu, tidak digabung:
-   - **Standards:** kesesuaian dengan aturan repo dan arsitektur (`AGENTS.md`, ADR, Ridwan).
-   - **Spec:** kesesuaian dengan acceptance tiket dan spec.
-   Setiap temuan diberi label **pelanggaran keras** atau **pertimbangan**, diperbaiki, lalu dilaporkan per temuan (diperbaiki lewat commit apa, atau tidak dan alasannya). Tes diperiksa dengan daftar anti-pola di template brief.
-5. **Gabungkan jalur ke branch integrasi** satu per satu; setelah tiap penggabungan jalankan `typecheck`, `lint`, dan tes. Di worktree baru jalankan `bun install` dulu agar hook pre-commit jalan; hook tidak dilewati.
-6. **Satu PR integrasi ke `staging`** (setelah langkah 7: status sudah ditulis di branch integrasi), squash, dari [`integration-pr-template.md`](integration-pr-template.md) (Summary, Evidence, Merge Danger). Satu PR berarti satu build dan satu deploy.
-7. **Done (code)** per tiket menurut ADR-153, **ditulis di branch integrasi sebelum PR dibuka** (kerjakan sebelum langkah 6) supaya status ikut di PR dan benar saat merge, tanpa PR status terpisah (addendum ADR-153 2026-11-06); tandai tanpa menunggu deploy. Butir yang hanya terbukti di staging tetap di "Belum terbukti".
-8. **Verified (staging):** setelah deploy sukses, satu verifikasi gelombang; catat hasil di tiket verifikasi gelombang dan coret butir yang lulus. Pembukuannya ikut di PR integrasi gelombang berikutnya, bukan PR tersendiri (addendum ADR-153).
-9. **Bersihkan:** tutup PR jalur dengan komentar yang menunjuk PR integrasi (hanya atas izin King Rezi), hapus worktree jalur.
-10. **Retro** (hanya saran, tanpa mengedit): kandidat perbaikan lingkungan agen per kategori, diurutkan menurut keparahan. Bentuk dan kategori di [`retro.md`](retro.md).
+1. **Integration branch first**, from the latest `staging`; named `feature/<name>` or `fix/<name>`. One worktree and one branch per lane, cut from the integration branch, not from `staging`.
+2. **Brief per lane** from [`lane-brief-template.md`](lane-brief-template.md), including the E2E and shadcn MCP sections: goal, scope, constraints, pointers to the ticket/spec/ADR (not copies), definition of done. A lane session never merges and never applies a migration.
+3. **Verify session reports at the source:** the commit is on the branch, the CI result is on GitHub, the deploy status is in Railway. A truncated report is read in full before it is summarized; a claim of "already pushed" is checked in git.
+4. **Review per lane** for risky changes (security, data) and once more on the integration branch. Two axes, not merged:
+   - **Standards:** conformance to repo rules and architecture (`AGENTS.md`, ADRs, Ridwan).
+   - **Spec:** conformance to the ticket's acceptance and the spec.
+   Every finding is labeled a **hard violation** or a **consideration**, fixed, then reported per finding (fixed in which commit, or not and why). Tests are checked against the anti-pattern list in the brief template.
+5. **Merge lanes into the integration branch** one at a time; after each merge run `typecheck`, `lint`, and the tests. In a new worktree run `bun install` first so the pre-commit hook runs; hooks are not skipped.
+6. **One integration PR to `staging`** (after step 7: status is already written on the integration branch), squash, from [`integration-pr-template.md`](integration-pr-template.md) (Summary, Evidence, Merge Danger). One PR means one build and one deploy.
+7. **Done (code)** per ticket according to ADR-153, **written on the integration branch before the PR is opened** (do it before step 6) so the status travels with the PR and is correct at merge, with no separate status PR (ADR-153 addendum 2026-11-06); mark it without waiting for the deploy. Items provable only on staging stay under "Not yet proven" (the "Belum terbukti" line in the ticket).
+8. **Verified (staging):** after a successful deploy, one verification for the wave; record the result in the wave's verification ticket and tick the items that pass. The bookkeeping rides in the next wave's integration PR, not in a PR of its own (ADR-153 addendum).
+9. **Clean up:** close the lane PRs with a comment pointing to the integration PR (only with King Rezi's permission), delete the lane worktrees.
+10. **Retro** (suggestions only, no edits): candidate improvements to the agent environment by category, ordered by severity. Form and categories in [`retro.md`](retro.md).
 
-**Handoff** (kapan saja sesi berhenti di tengah gelombang, bukan langkah berurutan): dokumen penunjuk di scratchpad sesi, bentuknya di [`handoff.md`](handoff.md).
+**Handoff** (whenever a session stops midway through a wave; not a sequential step): a pointer document in the session scratchpad, its form in [`handoff.md`](handoff.md).
 
-## Pelajaran gelombang A yang sudah dikunci
+## Wave A lessons already locked in
 
-- Konflik semantik baru ketahuan di `typecheck` setelah semua digabung, bukan oleh git: jalankan `typecheck` tiap penggabungan.
-- Worktree baru tidak punya `node_modules`: `bun install` dulu.
-- Izin migrasi yang diteruskan sesi lain ditolak: minta langsung ke King Rezi.
+- A semantic conflict is only caught by `typecheck` after everything is merged, not by git: run `typecheck` at every merge.
+- A new worktree has no `node_modules`: run `bun install` first.
+- Migration permission relayed by another session is rejected: ask King Rezi directly.

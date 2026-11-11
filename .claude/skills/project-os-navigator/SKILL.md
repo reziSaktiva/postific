@@ -1,41 +1,41 @@
 ---
 name: project-os-navigator
-description: Project OS navigator untuk Social Media Management project. Memandu AI dalam memahami cara kerja, aturan dokumentasi, dan behavior yang tepat untuk setiap jenis interaksi — diskusi, planning change, pekerjaan baru, dan bug. Gunakan skill ini di awal setiap sesi kerja pada project ini, atau ketika context project dibutuhkan.
+description: Project OS navigator for the Social Media Management project. Guides the AI on how to work, the documentation rules, and the right behavior for each kind of interaction — discussion, planning a change, new work, and bugs. Use this skill at the start of every working session on this project, or whenever project context is needed.
 ---
 
 # Project OS Navigator — Social Media Management
 
-Skill ini mendefinisikan cara AI berperilaku saat bekerja pada project Social Media Management. Ikuti panduan ini untuk setiap jenis interaksi.
+This skill defines how the AI behaves when working on the Social Media Management project. Follow this guide for every kind of interaction.
 
-## Langkah Pertama: Load Context (Cascade 3 Tingkat)
+## First Step: Load Context (3-Level Cascade)
 
-Jangan langsung baca semua dokumen `project-os/` secara penuh untuk setiap pesan — itu boros token untuk pertanyaan sederhana. Eskalasi bertahap, berhenti secepat mungkin begitu informasi sudah cukup untuk menjawab:
+Do not read all the `project-os/` documents in full for every message — that wastes tokens on simple questions. Escalate step by step, and stop as soon as the information is enough to answer:
 
-**Tingkat 1 — Fakta cepat / lookup teknis** (stack, konvensi, boundary domain, pola implementasi, dsb — bukan soal status/keputusan):
+**Level 1 — Quick facts / technical lookup** (stack, conventions, domain boundaries, implementation patterns, etc. — not about status/decisions):
 
-- Cukup baca `context/ctx-*.md` yang relevan (lihat `context/README.md` untuk peta file). Tidak perlu buka `project-os/` sama sekali.
+- Reading the relevant `context/ctx-*.md` is enough (see `context/README.md` for the file map). There is no need to open `project-os/` at all.
 
-**Tingkat 2 — Status / progress / pertanyaan umum** (fase sekarang, next task, kenapa satu keputusan diambil, dsb — bukan minta kerjaan):
+**Level 2 — Status / progress / general questions** (current phase, next task, why a decision was made, etc. — not a request for work):
 
-- Baca **section "Snapshot"** di paling atas `project-os/PROJECT_STATE.md` (~15-20 baris — phase/milestone, active mode, top next tasks, top blocker). Jangan baca seluruh isi `PROJECT_STATE.md`.
-- Kalau pertanyaan soal **task yang tersedia / apa yang berikutnya**, baca `project-os/AVAILABLE_TICKETS.md` saja. Jangan membuka `project-os/tickets/` untuk mencari antrian.
-- Kalau ID-nya sudah dipilih, buka **hanya section tiket itu** di satu file: `tickets/vXX-*.md` untuk tiket rilis, `tickets/known-issues.md` untuk tiket dari Known Issue (ADR-134), atau `tickets/s004-orchestration-language.md` untuk S-004.
-- Kalau pertanyaan menyebut ADR spesifik, buka **hanya** file `project-os/decisions/ADR-XXX-*.md` itu (lihat indeksnya di `project-os/DECISIONS.md`). Jangan baca seluruh isi folder `project-os/decisions/`.
+- Read the **"Snapshot" section** at the very top of `project-os/PROJECT_STATE.md` (~15-20 lines — phase/milestone, active mode, top next tasks, top blocker). Do not read the whole of `PROJECT_STATE.md`.
+- If the question is about **available tasks / what comes next**, read `project-os/AVAILABLE_TICKETS.md` only. Do not open `project-os/tickets/` to look for the queue.
+- If the ID has already been chosen, open **only that ticket's section** in one file: `tickets/vXX-*.md` for release tickets, `tickets/known-issues.md` for tickets born from a Known Issue (ADR-134), or `tickets/s004-orchestration-language.md` for S-004.
+- If the question names a specific ADR, open **only** that `project-os/decisions/ADR-XXX-*.md` file (see its index in `project-os/DECISIONS.md`). Do not read the whole `project-os/decisions/` folder.
 
-**Tingkat 3 — Task nyata** (Pekerjaan Baru, Planning Change, Bug/Inkonsistensi — mode 3/4/5 di bawah): baca berurutan:
+**Level 3 — Real task** (New Work, Planning Change, Bug/Document Inconsistency — modes 3/4/5 below): read in order:
 
-1. `project-os/PROJECT_STATE.md` — phase, milestone, Active Conversation Mode, Known Issues, blockers (baca Snapshot dulu supaya konteks ini tersedia sebelum memilih/merencanakan task)
-2. `project-os/AVAILABLE_TICKETS.md` — antrian; temukan ID task yang relevan
-3. File tiket yang disebut kolom File — `tickets/vXX-*.md`, `tickets/known-issues.md` (ADR-134), atau `tickets/s004-orchestration-language.md` untuk S-004 — **hanya section tiket itu**. Lalu buka dokumen yang disebut di field **Docs** / **Baca dulu** (ADR-131)
-4. `project-os/PROJECT_RULES.md` — aturan dan prinsip project
-5. `project-os/DECISIONS.md` — indeks ADR; buka file `project-os/decisions/ADR-XXX-*.md` spesifik yang relevan dengan task ini
-6. `project-os/PROJECT_OVERVIEW.md` — gambaran project
+1. `project-os/PROJECT_STATE.md` — phase, milestone, Active Conversation Mode, Known Issues, blockers (read the Snapshot first so this context is available before choosing/planning a task)
+2. `project-os/AVAILABLE_TICKETS.md` — the queue; find the relevant task ID
+3. The ticket file named in the File column — `tickets/vXX-*.md`, `tickets/known-issues.md` (ADR-134), or `tickets/s004-orchestration-language.md` for S-004 — **only that ticket's section**. Then open the documents named in the **Docs** / **Baca dulu** field (ADR-131)
+4. `project-os/PROJECT_RULES.md` — project rules and principles
+5. `project-os/DECISIONS.md` — the ADR index; open the specific `project-os/decisions/ADR-XXX-*.md` file relevant to this task
+6. `project-os/PROJECT_OVERVIEW.md` — project overview
 
-Kalau pekerjaannya belum punya ID task di backlog, itu sendiri sinyal: tanyakan ke King Rezi apakah perlu ditambahkan sebagai task baru lebih dulu.
+If the work does not have a task ID in the backlog yet, that is a signal in itself: ask King Rezi whether it should be added as a new task first.
 
-Sebelum eksekusi (khusus mode 3/4/5 yang scope-nya implementasi kode): cek `.claude/agents/README.md` → pemetaan **Domain → Subagent** dan evaluasi delegasi (lihat behavior "Pekerjaan Baru" di bawah, poin 1a). Jangan asumsikan default-nya "kerjakan sendiri".
+Before execution (specifically modes 3/4/5 whose scope is code implementation): check `.claude/agents/README.md` → the **Domain → Subagent** map and evaluate delegation (see the "New Work" behavior below, point 1a). Do not assume the default is "do it yourself".
 
-Jika diskusi menyentuh domain spesifik, baca juga dokumen relevan dari:
+If the discussion touches a specific domain, also read the relevant documents from:
 
 - `product-discovery/01-business/` — Business Baseline v1.0
 - `product-discovery/02-product/` — Product Baseline v1.0
@@ -44,144 +44,146 @@ Jika diskusi menyentuh domain spesifik, baca juga dokumen relevan dari:
 - `product-discovery/05-architecture/` — System Architecture Baseline v1.0
 - `product-discovery/06-engineering/` — Engineering Planning Baseline v1.0
 
-`product-discovery/` adalah **Source of Truth produk** dan berada sejajar (sibling) dengan `project-os/`, bukan di dalamnya.
+`product-discovery/` is the **product Source of Truth** and sits alongside (as a sibling of) `project-os/`, not inside it.
 
 ### Proactive Consistency Check
 
-Setiap kali membaca dokumen bertipe **Static Reference** (README, `PROJECT_OVERVIEW.md`, `PROJECT_RULES.md`, `SKILL.md`, atau dokumen baseline), periksa apakah dokumen tersebut memuat informasi yang seharusnya hanya ada di **Living Document** (`PROJECT_STATE.md`) — seperti status (✅ 🟡 ⏳), progress (%), atau phase/milestone aktif.
+Whenever you read a **Static Reference** document (README, `PROJECT_OVERVIEW.md`, `PROJECT_RULES.md`, `SKILL.md`, or a baseline document), check whether it contains information that should live only in a **Living Document** (`PROJECT_STATE.md`) — such as status (✅ 🟡 ⏳), progress (%), or the active phase/milestone.
 
-Jika ditemukan, **jangan diamkan atau perbaiki secara diam-diam**. Sebutkan secara eksplisit ke user sebagai inkonsistensi sebelum melanjutkan pekerjaan, lalu tawarkan untuk memperbaikinya (lihat behavior **Bug / Inkonsistensi Dokumen**).
+If you find any, **do not ignore it or fix it silently**. State it explicitly to the user as an inconsistency before continuing the work, then offer to fix it (see the **Bug / Document Inconsistency** behavior).
 
-Lihat `project-os/PROJECT_RULES.md` bagian **Document Type Classification** untuk aturan lengkapnya.
+See `project-os/PROJECT_RULES.md` section **Document Type Classification** for the full rules.
 
 ---
 
-## Behavior per Jenis Interaksi
+## Behavior per Interaction Type
 
-### 1. Diskusi / Tanya Jawab
+### 1. Discussion / Q&A
 
-**Trigger:** User bertanya, mendiskusikan ide, atau meminta pendapat.
+**Trigger:** The user asks a question, discusses an idea, or asks for an opinion.
 
 **Steps:**
 
-1. Pastikan jawaban selaras dengan baseline yang sudah ada (Business, Product, User).
-2. Jika ada potensi konflik dengan keputusan sebelumnya, sebutkan ADR yang relevan.
-3. Jangan menyarankan solusi yang keluar dari scope phase aktif (lihat `Active Conversation Mode` di PROJECT_STATE.md).
-4. Jika diskusi menghasilkan insight penting, catat di `project-os/CONVERSATIONS.md`.
+1. Make sure the answer is aligned with the existing baselines (Business, Product, User).
+2. If there is a potential conflict with an earlier decision, name the relevant ADR.
+3. Do not suggest solutions outside the scope of the active phase (see `Active Conversation Mode` in PROJECT_STATE.md).
+4. If the discussion produces an important insight, record it in `project-os/CONVERSATIONS.md`.
 
-Format entri: bagian "Format Entry" di `project-os/CONVERSATIONS.md`.
+Entry format: the "Format Entry" section in `project-os/CONVERSATIONS.md`.
 
 ---
 
 ### 2. Brainstorming
 
-**Trigger:** User ingin explore ide, kemungkinan, atau alternatif baru.
+**Trigger:** The user wants to explore new ideas, possibilities, or alternatives.
 
 **Steps:**
 
-1. Ikuti mode brainstorm secara bebas — jangan terlalu terikat baseline di fase ini.
-2. Tandai jelas mana yang "spekulatif" vs "selaras dengan baseline".
-3. Setelah brainstorm selesai, evaluasi hasilnya terhadap baseline yang ada.
-4. Jika ada ide yang layak dipertimbangkan, catat di `project-os/BRAINSTORM.md`.
+1. Follow brainstorm mode freely — do not be too tied to the baselines at this stage.
+2. Mark clearly which items are "speculative" and which are "aligned with the baseline".
+3. After the brainstorm ends, evaluate the results against the existing baselines.
+4. If an idea is worth considering, record it in `project-os/BRAINSTORM.md`.
 
-Format entri: bagian "Format Entry" di `project-os/BRAINSTORM.md`.
+Entry format: the "Format Entry" section in `project-os/BRAINSTORM.md`.
 
 ---
 
-### 3. Pekerjaan Baru / Pembuatan Dokumen
+### 3. New Work / Document Creation
 
-**Trigger:** User meminta membuat dokumen baru, mengerjakan task, atau melanjutkan progress.
+**Trigger:** The user asks to create a new document, work on a task, or continue progress.
 
 **Steps:**
 
-1. Cek `PROJECT_STATE.md` — pastikan task ini sesuai phase aktif.
-   1a. **Kalau task ini scope implementasi kode** (bukan dokumentasi/diskusi): pastikan ada tiketnya dulu (ADR-132). Kalau belum ada, tulis tiketnya sebelum baris kode pertama — tiket rilis di `tickets/vXX-*.md`, tiket yang lahir dari Known Issue di `tickets/known-issues.md` (ADR-134), tiket S-004 di `tickets/s004-orchestration-language.md`. Lalu cek field **Domain** tiket itu terhadap pemetaan Domain → Subagent di `.claude/agents/README.md`. Tentukan salah satu — kerjakan sendiri (scope trivial/dokumentasi), delegasikan ke satu subagent, atau jalankan **beberapa subagent paralel** kalau ada tiket independen (domain/file berbeda) yang tidak saling menyentuh. Ini langkah wajib (ADR-063), bukan opsional.
-2. Cek `Active Conversation Mode` — pastikan action type diizinkan.
-3. Baca dokumen baseline yang relevan sebelum membuat dokumen baru.
-4. Ikuti format dokumen yang konsisten dengan dokumen existing (lihat contoh di folder yang sama).
-5. Setelah pekerjaan selesai, **di PR yang sama sebelum merge** (bukan PR terpisah sesudahnya; addendum ADR-153 2026-11-06), update:
-   - file tiket (`tickets/vXX-*.md`, `tickets/known-issues.md`, atau `tickets/s004-orchestration-language.md`) — ubah status tiket. Jangan menambah cerita sesi
-   - `project-os/AVAILABLE_TICKETS.md` — task yang menjadi ✅ keluar dari tabel antrian
-   - `project-os/PROJECT_STATE.md` — hanya bila phase / milestone / Known Issues / fokus terdekat berubah. **Jangan** menyalin detail task ke sini (ADR-062)
+1. Check `PROJECT_STATE.md` — make sure the task fits the active phase.
+   1a. **If the task is code implementation in scope** (not documentation/discussion): make sure its ticket exists first (ADR-132). If it does not, write the ticket before the first line of code — release tickets in `tickets/vXX-*.md`, tickets born from a Known Issue in `tickets/known-issues.md` (ADR-134), S-004 tickets in `tickets/s004-orchestration-language.md`. Then check that ticket's **Domain** field against the Domain → Subagent map in `.claude/agents/README.md`. Decide one of: do it yourself (trivial/documentation scope), delegate to one subagent, or run **several parallel subagents** when there are independent tickets (different domains/files) that do not touch each other. This is a mandatory step (ADR-063), not optional.
+2. Check `Active Conversation Mode` — make sure the action type is allowed.
+3. Read the relevant baseline documents before creating a new document.
+4. Follow a document format consistent with existing documents (see examples in the same folder).
+5. After the work is done, **in the same PR before merge** (not in a separate PR afterward; ADR-153 addendum 2026-11-06), update:
+   - the ticket file (`tickets/vXX-*.md`, `tickets/known-issues.md`, or `tickets/s004-orchestration-language.md`) — change the ticket status. Do not add session stories
+   - `project-os/AVAILABLE_TICKETS.md` — a task that becomes ✅ leaves the queue table
+   - `project-os/PROJECT_STATE.md` — only when the phase / milestone / Known Issues / nearest focus changes. **Do not** copy task details here (ADR-062)
 
-**Definisi "tiket fitur selesai" (ADR-149, S-002):** tiket yang mengubah
-perilaku produk (`apps/`, `packages/`) baru boleh `✅` bila ada tes E2E
-Playwright golden path untuk fiturnya dan seluruh suite hijau di `local`
-(`bun run test:e2e`). Hasilnya dilaporkan di deskripsi PR `feature/*` →
-`staging`. Berlaku di semua mode, termasuk tiket dari Known Issue
-(`known-issues.md`, ADR-134) yang mengubah `apps/` atau `packages/`.
-**Berlaku efektif setelah T-174 ✅** (akun test T-173 dan tes E2E pertama
-sudah ada); sebelum itu tiket fitur tidak diblok oleh gerbang ini.
-Pengecualian: tiket dokumentasi, perubahan sepele tanpa perilaku yang
-terlihat user, dan tiket tooling. Backend/API/cron/migrasi tanpa perubahan
-UI **bukan** pengecualian otomatis; King Rezi yang memutuskan setiap
-pengecualian, dan agen mencatat alasannya di tiket. Gerbang CI terhadap
-staging untuk PR `staging` → `main` diatur di CI-D07, bukan di sini.
+**Definition of a "finished feature ticket" (ADR-149, S-002):** a ticket that
+changes product behavior (`apps/`, `packages/`) may only be `✅` when there is
+a Playwright golden-path E2E test for its feature and the whole suite is green
+on `local` (`bun run test:e2e`). The result is reported in the description of
+the `feature/*` → `staging` PR. It applies in every mode, including tickets
+born from a Known Issue (`known-issues.md`, ADR-134) that change `apps/` or
+`packages/`.
+**Effective after T-174 ✅** (the T-173 test account and the first E2E test
+exist); before that, feature tickets are not blocked by this gate.
+Exceptions: documentation tickets, trivial changes with no user-visible
+behavior, and tooling tickets. Backend/API/cron/migrations without a UI change
+are **not** an automatic exception; King Rezi decides every exception, and the
+agent records the reason in the ticket. The CI gate against staging for
+`staging` → `main` PRs is set in CI-D07, not here.
 
-**Tangga status tiket (ADR-153, S-003):** tiket punya dua tahap. **Done (code)**
-mencakup definisi ADR-149 di atas, `/code-review` dan review arsitektur
-(Ridwan) tanpa temuan terbuka, QA (Najwa) lolos, serta `typecheck`, `lint`,
-dan tes hijau; tiket boleh `✅` di tahap ini tanpa menunggu merge atau deploy.
-**Verified (staging)** adalah satu verifikasi per gelombang setelah satu deploy
-gelombang itu, untuk hal yang tidak bisa dibuktikan lokal (OAuth di balik
-proxy Railway, RLS `app_runtime`, klien MCP nyata, multi-instance). Bagian
-"Belum terbukti" di tiket tetap wajib sampai butir verifikasinya lulus; `✅`
-tidak boleh menyembunyikan klaim yang belum teruji. Tiket yang kodenya selesai
-tetapi butirnya masih menunggu staging ditulis `🟡 Done (code), menunggu
-Verified (staging)` dan menunjuk tiket verifikasi gelombangnya.
+**Ticket status ladder (ADR-153, S-003):** a ticket has two stages. **Done (code)**
+covers the ADR-149 definition above, `/code-review` and architecture review
+(Ridwan) with no open findings, QA (Najwa) passed, and `typecheck`, `lint`,
+and tests green; a ticket may be `✅` at this stage without waiting for merge
+or deploy. **Verified (staging)** is one verification per wave after one
+deploy of that wave, for things that cannot be proven locally (OAuth behind
+the Railway proxy, `app_runtime` RLS, a real MCP client, multi-instance). The
+"Belum terbukti" section in the ticket stays mandatory until its verification
+items pass; `✅` must not hide a claim that has not been tested. A ticket whose
+code is finished but whose items are still waiting for staging is written as
+`🟡 Done (code), menunggu Verified (staging)` and points to the wave's
+verification ticket.
 
-**Aturan verifikasi: otomatis dulu, manual untuk sisanya.** Sebelum
-menyerahkan verifikasi ke King Rezi sebagai langkah manual, atau menulis
-"tidak bisa dari sesi AI":
+**Verification rule: automate first, manual for the rest.** Before handing
+verification to King Rezi as a manual step, or writing "cannot be done from an
+AI session":
 
-1. **Inventarisasi tooling yang ada**, jangan menyimpulkan dari ingatan:
-   setup Playwright (`apps/web/playwright.config.ts`, `apps/web/e2e/`),
-   browser preview, Supabase MCP read-only, Postgres lokal sementara
-   (PGlite) untuk SQL, dan skrip di scratchpad.
-2. **Pecah verifikasi** jadi bagian yang bisa diotomatisasi dan bagian yang
-   benar-benar hanya manual (perangkat fisik, Safari asli, akun atau data
-   produksi). Jalankan bagian otomatis lebih dulu; jangan menunggu manual
-   untuk bagian yang bisa dibuktikan sekarang.
-3. **Aksi yang butuh izin** (menulis ke staging, mengunduh browser,
-   menyentuh DB bersama) tetap ditanyakan ke King Rezi dengan rincian apa
-   yang akan dijalankan. Butuh izin bukan alasan untuk melewati langkahnya.
-4. **Laporkan jujur:** tulis apa yang sudah diotomatisasi, apa hasilnya,
-   alat apa yang dicek dan kenapa tidak cukup untuk sisanya. Uji otomatis
-   berlabel sebagai uji otomatis, bukan pengganti perangkat asli (mis.
-   WebKit Playwright bukan Safari asli). Sisa manual ditulis sebagai
-   runbook dengan tabel hasil di tiketnya.
+1. **Inventory the existing tooling**, do not conclude from memory:
+   the Playwright setup (`apps/web/playwright.config.ts`, `apps/web/e2e/`),
+   browser preview, read-only Supabase MCP, a temporary local Postgres
+   (PGlite) for SQL, and scripts in the scratchpad.
+2. **Split the verification** into the part that can be automated and the part
+   that is truly manual only (physical devices, real Safari, production
+   accounts or data). Run the automated part first; do not wait for the manual
+   part when something can be proven now.
+3. **Actions that need permission** (writing to staging, downloading a browser,
+   touching a shared DB) are still asked of King Rezi, with details of what
+   will be run. Needing permission is not a reason to skip the step.
+4. **Report honestly:** write what was automated, what the result was, which
+   tools were checked and why they are not enough for the rest. An automated
+   test is labeled as an automated test, not a substitute for a real device
+   (e.g. Playwright WebKit is not real Safari). The manual remainder is written
+   as a runbook with a results table in its ticket.
 
-Jejak sesi adalah commit git. Tidak ada file changelog terpisah (ADR-131).
+The session trail is the git commits. There is no separate changelog file (ADR-131).
 
 ---
 
-### 4. Planning Change / Perubahan Keputusan
+### 4. Planning Change / Decision Change
 
-**Trigger:** User ingin mengubah arah, scope, keputusan, atau baseline.
+**Trigger:** The user wants to change direction, scope, a decision, or a baseline.
 
 **Steps:**
 
-1. Identifikasi apa yang berubah dan dampaknya terhadap dokumen yang sudah ada.
-2. Evaluasi apakah perubahan ini memerlukan ADR baru di `DECISIONS.md`.
+1. Identify what changes and its impact on the existing documents.
+2. Evaluate whether this change needs a new ADR in `DECISIONS.md`.
 
-**Perubahan yang WAJIB masuk DECISIONS.md:**
+**Changes that MUST go into DECISIONS.md:**
 
 - Target market / user segment
 - Problem statement
 - Product vision / scope
 - MVP definition
-- Arsitektur sistem
+- System architecture
 - Tech stack
 - Repository strategy
 - Domain / bounded context
 
-3. Buat file ADR baru `project-os/decisions/ADR-[NNN]-[slug-judul].md` (satu file per ADR, bukan lagi append inline ke `DECISIONS.md`) dengan format:
+3. Create a new ADR file `project-os/decisions/ADR-[NNN]-[title-slug].md` (one file per ADR, no longer appended inline to `DECISIONS.md`) in this format:
 
 ```
 ## Decision ADR-[NNN]
 
 ### Title
-[nama keputusan]
+[name of the decision]
 
 ### Status
 Accepted
@@ -190,75 +192,75 @@ Accepted
 [YYYY-MM-DD]
 
 ### Decision
-[apa yang diputuskan]
+[what was decided]
 
 ### Reason
-- [alasan 1]
-- [alasan 2]
+- [reason 1]
+- [reason 2]
 
 ### Alternatives Considered
-- [alternatif yang tidak dipilih]
+- [alternative not chosen]
 ```
 
-Lalu tambahkan satu baris ke tabel indeks di `project-os/DECISIONS.md` (ADR# | Title | Status | Date | Ringkasan 1-baris | link file), di baris paling atas (indeks terurut terbaru-di-atas).
+Then add one row to the index table in `project-os/DECISIONS.md` (ADR# | Title | Status | Date | 1-line summary | file link), at the very top row (the index is ordered newest-on-top).
 
-4. Update dokumen yang terdampak.
-5. Update `PROJECT_STATE.md` — section **Snapshot** (kalau relevan dengan next tasks/blocker) dan **Recent Decisions (Ringkasan)** (geser satu ADR terlama keluar dari daftar 5 kalau sudah penuh).
+4. Update the affected documents.
+5. Update `PROJECT_STATE.md` — the **Snapshot** section (if relevant to next tasks/blockers) and **Recent Decisions (Ringkasan)** (push the oldest ADR out of the list of 5 once it is full).
 
 ---
 
-### 5. Bug / Inkonsistensi Dokumen
+### 5. Bug / Document Inconsistency
 
-**Trigger:** Ditemukan konflik, inkonsistensi, atau kesalahan antar dokumen.
+**Trigger:** A conflict, inconsistency, or error between documents is found.
 
 **Steps:**
 
-1. Identifikasi dokumen mana yang terlibat dan apa yang bertentangan.
-2. Tentukan dokumen mana yang menjadi **Source of Truth** (biasanya baseline yang lebih awal atau yang sudah di-ADR).
-3. Perbaiki dokumen yang bertentangan agar selaras dengan Source of Truth.
-4. Jika bug mengindikasikan keputusan yang belum terdokumentasi, buat ADR.
+1. Identify which documents are involved and what contradicts.
+2. Determine which document is the **Source of Truth** (usually the earlier baseline or the one already covered by an ADR).
+3. Fix the conflicting document so it aligns with the Source of Truth.
+4. If the bug indicates an undocumented decision, create an ADR.
 
 ---
 
-## Aturan Context (Jangan Dilanggar)
+## Context Rules (Do Not Violate)
 
-- Jangan menyarankan implementasi kode jika `PROJECT_STATE.md` belum di phase Development.
-- Jangan mengubah baseline (Business, Product, User) tanpa ADR baru.
-- Jangan membuat dokumen di luar scope phase aktif.
-- Selalu gunakan nama persona yang sudah ditetapkan: Raka, Maya, Sinta, Dimas, Lara.
-- Selalu gunakan ID yang sudah ada (ADR-XXX, I-XX, A-XX, dll.) saat mereferensikan keputusan.
-- Jika ada gap antara dokumen dengan realita phase, tanyakan ke user sebelum asumsi.
-- Jangan memperbaiki inkonsistensi dokumen secara diam-diam — selalu sebutkan temuannya ke user (lihat **Proactive Consistency Check**).
-- Jangan menyalin detail task (subtask, dependency, catatan teknis) ke `PROJECT_STATE.md` — tempatnya di `tickets/vXX-*.md`, `tickets/known-issues.md` (ADR-134), atau `tickets/s004-orchestration-language.md`. `PROJECT_STATE.md` hanya menyebut ID + judul singkat (ADR-062).
-- Jangan mendaur ulang ID task. Task yang dibatalkan ditandai `⏸️ Deferred` beserta alasannya, bukan dihapus.
-- Ikuti preferensi kerja yang tercatat di `project-os/PROJECT_OVERVIEW.md` bagian **Developer Profile & Working Preferences**, dan tambahkan preferensi baru yang ditemukan ke sana.
+- Do not suggest code implementation if `PROJECT_STATE.md` is not yet in the Development phase.
+- Do not change a baseline (Business, Product, User) without a new ADR.
+- Do not create documents outside the scope of the active phase.
+- Always use the established persona names: Raka, Maya, Sinta, Dimas, Lara.
+- Always use existing IDs (ADR-XXX, I-XX, A-XX, etc.) when referencing decisions.
+- If there is a gap between the documents and the reality of the phase, ask the user before assuming.
+- Do not fix document inconsistencies silently — always state the finding to the user (see **Proactive Consistency Check**).
+- Do not copy task details (subtasks, dependencies, technical notes) into `PROJECT_STATE.md` — their place is `tickets/vXX-*.md`, `tickets/known-issues.md` (ADR-134), or `tickets/s004-orchestration-language.md`. `PROJECT_STATE.md` only names the ID + a short title (ADR-062).
+- Do not recycle task IDs. A cancelled task is marked `⏸️ Deferred` with its reason, not deleted.
+- Follow the working preferences recorded in `project-os/PROJECT_OVERVIEW.md` section **Developer Profile & Working Preferences**, and add any new preferences you discover there.
 
 ---
 
 ## File Map (Source of Truth)
 
-`project-os/` dan `product-discovery/` adalah folder top-level yang sejajar (sibling), masing-masing dengan tanggung jawab berbeda:
+`project-os/` and `product-discovery/` are top-level sibling folders, each with a different responsibility:
 
 ```
 social-media-management/
-├── project-os/         → Cara kerja: proses, aturan, keputusan, status
-│   ├── README.md            → Penjelasan project OS
-│   ├── PROJECT_OVERVIEW.md  → Apa yang dibangun
-│   ├── ARCHITECTURE_OVERVIEW.md → High-level architecture (blueprint Figma)
-│   ├── PROJECT_RULES.md     → Cara bekerja
-│   ├── PROJECT_STATE.md     → Phase, milestone, Known Issues ← update setiap ada
-│   │                           perubahan (baca "Snapshot" dulu untuk lookup cepat)
-│   ├── AVAILABLE_TICKETS.md   → Antrian task yang belum selesai ← berhenti di sini
-│   ├── tickets/             → Tiket per rilis (`vXX-*.md`),
-│   │                           `known-issues.md` (ADR-134), dan
+├── project-os/         → How we work: process, rules, decisions, status
+│   ├── README.md            → Explanation of the project OS
+│   ├── PROJECT_OVERVIEW.md  → What is being built
+│   ├── ARCHITECTURE_OVERVIEW.md → High-level architecture (Figma blueprint)
+│   ├── PROJECT_RULES.md     → How to work
+│   ├── PROJECT_STATE.md     → Phase, milestone, Known Issues ← update on every
+│   │                           change (read "Snapshot" first for quick lookup)
+│   ├── AVAILABLE_TICKETS.md   → Queue of unfinished tasks ← stop here
+│   ├── tickets/             → Tickets per release (`vXX-*.md`),
+│   │                           `known-issues.md` (ADR-134), and
 │   │                           `s004-orchestration-language.md` (S-004)
-│   │                           ← buka hanya section yang ID-nya sudah dipilih
-│   ├── specs/               → Spec untuk kerja multi-sesi (ADR-131)
-│   ├── DECISIONS.md         → Indeks ringkas ADR ← tambah 1 baris index per ADR baru
-│   ├── decisions/           → Satu file per ADR (ADR-XXX-slug.md) ← full text di sini
-│   ├── CONVERSATIONS.md     → Log diskusi penting ← update jika ada insight
-│   └── BRAINSTORM.md        → Bank ide ← update dari sesi brainstorm
-└── product-discovery/       → Source of Truth produk: business s/d engineering
+│   │                           ← open only the section whose ID has been chosen
+│   ├── specs/               → Specs for multi-session work (ADR-131)
+│   ├── DECISIONS.md         → Compact ADR index ← add 1 index row per new ADR
+│   ├── decisions/           → One file per ADR (ADR-XXX-slug.md) ← full text here
+│   ├── CONVERSATIONS.md     → Log of important discussions ← update if there is an insight
+│   └── BRAINSTORM.md        → Idea bank ← update from brainstorm sessions
+└── product-discovery/       → Product Source of Truth: business through engineering
     ├── README.md
     ├── 01-business/         → Business Discovery
     ├── 02-product/          → Product Planning
@@ -270,76 +272,75 @@ social-media-management/
 
 ---
 
-## Mapping task → baca dulu
+## Mapping task → read first
 
-| Jenis task                   | Context dulu                                 | Baseline minimal                                                                                       |
+| Task type                    | Context first                                | Minimum baseline                                                                                       |
 | ---------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| Fitur / use-case             | `ctx-domain` + `ctx-implementation`          | BC di `05-architecture/` + UX di `04-ux/` + `rendering-strategy.md` (+ `ctx-business` untuk roles/MVP) |
-| Schema / migrasi             | `ctx-architecture` + `ctx-technical-context` | `database-strategy.md` + `database-orm.md` + `apps/web/prisma/schema.prisma`                           |
+| Feature / use case           | `ctx-domain` + `ctx-implementation`          | BC in `05-architecture/` + UX in `04-ux/` + `rendering-strategy.md` (+ `ctx-business` for roles/MVP)   |
+| Schema / migration           | `ctx-architecture` + `ctx-technical-context` | `database-strategy.md` + `database-orm.md` + `apps/web/prisma/schema.prisma`                           |
 | Auth / session               | `ctx-architecture` + `ctx-technical-context` | `auth-architecture.md` + `auth-strategy.md`                                                            |
 | Outstand / webhook / publish | `ctx-architecture`                           | `integration-layer.md`                                                                                 |
 | Jobs / cron                  | `ctx-architecture`                           | `background-jobs.md`                                                                                   |
 | Env / deploy / CI            | `ctx-technical-context`                      | `environment-management.md`, `deployment-infrastructure.md`, `cicd-pipeline.md`                        |
 | Coding conventions / DX      | `ctx-development`                            | `dx-tooling.md` + `code-conventions.md`                                                                |
 | UI component / styling       | `ctx-design` + `ctx-implementation`          | `apps/web/.claude/CLAUDE.md` + `monorepo-setup.md` + `design-tokens.md` + ADR-097                      |
-| Desain / handoff UI          | `ctx-design`                                 | `04-ux/` + pointer artifact desain Postific (ADR-140; folder `design/` dihapus, ADR-045)               |
+| Design / UI handoff          | `ctx-design`                                 | `04-ux/` + pointer to the Postific design artifact (ADR-140; `design/` folder removed, ADR-045)        |
 
 ---
 
 ## Skills & subagent housekeeping
 
-**Satu-satunya folder skill di project ini adalah `.claude/skills/<nama>/`.**
-`.agents/skills/` sudah dihapus (ADR-064) supaya tidak ada dua salinan fisik
-yang bisa divergen. Claude Code hanya membaca `.claude/skills/`; Cursor tetap
-membaca folder yang sama lewat jalur kompatibilitasnya. Jalur kompatibilitas
-itu adalah fallback, bukan mekanisme native utama — evaluasi ulang kalau di
-masa depan pindah ke tool AI lain yang hanya comply ke standar terbuka
-[Agent Skills](https://agentskills.io) (lokasi native: `.agents/skills/`)
-tanpa special-case Claude.
+**The only skill folder in this project is `.claude/skills/<name>/`.**
+`.agents/skills/` has been removed (ADR-064) so there are no two physical
+copies that can diverge. Claude Code only reads `.claude/skills/`; Cursor still
+reads the same folder through its compatibility path. That compatibility path
+is a fallback, not the main native mechanism — re-evaluate if in the future
+we move to another AI tool that only complies with the open
+[Agent Skills](https://agentskills.io) standard (native location:
+`.agents/skills/`) without a Claude special case.
 
-Aturan untuk mencegah duplikasi/divergensi terulang:
+Rules to keep duplication/divergence from recurring:
 
-1. **Jangan buat ulang folder `.agents/skills/`** kecuali ada keputusan baru
-   yang eksplisit dari King Rezi untuk kembali memakainya.
-2. Skill vendor/third-party (Prisma, Supabase, Vercel, Better Auth, dst.)
-   biasanya dipasang lewat installer resmi (`npx skills add ...`) yang
-   **defaultnya menulis ke `.agents/skills/`** — kalau itu terjadi lagi,
-   pindahkan manual hasilnya ke `.claude/skills/<nama>` (bukan dibiarkan
-   berdampingan dengan folder lain), lalu hapus folder `.agents/skills/`
-   yang baru terbentuk itu.
-3. Edit/tambah skill custom project langsung di `.claude/skills/<nama>/`.
+1. **Do not recreate the `.agents/skills/` folder** unless King Rezi makes a
+   new, explicit decision to use it again.
+2. Vendor/third-party skills (Prisma, Supabase, Vercel, Better Auth, etc.)
+   are usually installed through the official installer (`npx skills add ...`)
+   which **defaults to writing into `.agents/skills/`** — if that happens
+   again, manually move the result to `.claude/skills/<name>` (do not leave it
+   side by side with another folder), then delete the newly created
+   `.agents/skills/` folder.
+3. Edit/add custom project skills directly in `.claude/skills/<name>/`.
 
-Berkas panduan vendor panjang di dalam sebuah skill (mis. rules lengkap)
-dinamai `REFERENCE.md`, bukan `AGENTS.md` — Cursor menyuntikkan setiap berkas
-bernama `AGENTS.md` ke setiap pesan, jadi nama itu dicadangkan untuk pintu
-masuk repo di root (T-116).
+A long vendor guide file inside a skill (e.g. the full rules) is named
+`REFERENCE.md`, not `AGENTS.md` — Cursor injects every file named `AGENTS.md`
+into every message, so that name is reserved for the repo entry point at the
+root (T-116).
 
-**Gelombang kerja multi-sesi (S-003, ADR-153):** menjalankan gelombang yang
-sudah disetujui memakai skill `wave-work`; dipanggil hanya saat King Rezi
-meminta.
-Menyiapkan daftar gelombang (hanya membaca dokumen, berhenti di persetujuan
-King Rezi) memakai skill `wave-plan`; aman dipanggil kapan saja.
+**Multi-session work waves (S-003, ADR-153):** running an approved wave uses
+the `wave-work` skill; it is called only when King Rezi asks for it.
+Preparing the wave list (reads documents only, stops at King Rezi's approval)
+uses the `wave-plan` skill; it is safe to call at any time.
 
-**Delegasi subagent (ADR-063):** perubahan sepele — satu berkas, tanpa batas
-domain, tanpa permukaan UI (contoh: rename file, perbaikan satu baris di
-dokumen, typo) — dikerjakan agen utama langsung, tidak perlu melalui evaluasi
-Domain → Subagent di `.claude/agents/README.md`. Rantai delegasi (termasuk
-Ridwan → Najwa → Gibran untuk implementasi fitur) tetap wajib begitu
-pekerjaannya menyentuh domain kode (`apps/`, `packages/`) atau permukaan UI.
-Kalau ragu apakah sebuah perubahan "sepele", perlakukan sebagai tidak sepele
-dan jalankan evaluasi delegasi seperti biasa.
+**Subagent delegation (ADR-063):** a trivial change — one file, no domain
+boundary, no UI surface (examples: renaming a file, a one-line fix in a
+document, a typo) — is done by the main agent directly, with no need to go
+through the Domain → Subagent evaluation in `.claude/agents/README.md`. The
+delegation chain (including Ridwan → Najwa → Gibran for feature
+implementation) remains mandatory once the work touches a code domain
+(`apps/`, `packages/`) or a UI surface. If in doubt whether a change is
+"trivial", treat it as not trivial and run the delegation evaluation as usual.
 
-**Higiene sesi:** satu task per percakapan. Kalau sebuah sesi sudah
-mengerjakan satu task sampai selesai dan diminta task baru yang tidak
-berhubungan, catat ringkas task yang baru selesai di `CONVERSATIONS.md` (atau
-pastikan sudah tercermin di status tiket/`PROJECT_STATE.md`), lalu sarankan
-melanjutkan di sesi baru untuk task berikutnya — riwayat percakapan yang
-panjang ikut terbayar di setiap giliran berikutnya di sesi yang sama.
+**Session hygiene:** one task per conversation. If a session has already
+finished one task and is asked for a new unrelated task, briefly record the
+task just finished in `CONVERSATIONS.md` (or make sure it is already reflected
+in the ticket status/`PROJECT_STATE.md`), then suggest continuing in a new
+session for the next task — a long conversation history is paid for again on
+every later turn in the same session.
 
 ---
 
 ## Additional Resources
 
-- Untuk detail dokumen UX Planning: `product-discovery/04-ux/README.md`
-- Untuk detail dokumen Engineering Planning: `product-discovery/06-engineering/README.md`
-- Untuk aturan lengkap: `project-os/PROJECT_RULES.md`
+- For UX Planning document details: `product-discovery/04-ux/README.md`
+- For Engineering Planning document details: `product-discovery/06-engineering/README.md`
+- For the full rules: `project-os/PROJECT_RULES.md`

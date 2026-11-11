@@ -1,119 +1,119 @@
 ---
 name: proactive-clarification
 description: >-
-  Memandu AI untuk secara proaktif mengidentifikasi keputusan yang belum ditentukan
-  sebelum mengeksekusi tugas apapun — dokumentasi, fitur, arsitektur, konfigurasi,
-  atau interaksi lain. AI harus bertanya terlebih dahulu dengan pilihan-pilihan
-  terbaik di kelasnya, bukan langsung berasumsi. Gunakan skill ini sebelum
-  mengerjakan tugas apapun yang memiliki fork keputusan yang belum jelas.
+  Guides the AI to proactively identify undecided decisions before executing any
+  task: documentation, features, architecture, configuration, or any other
+  interaction. The AI must ask first, offering the best-in-class options, rather
+  than assume. Use this skill before working on any task that has an unclear
+  decision fork.
 ---
 
 # Proactive Clarification
 
-Sebelum mengerjakan tugas apapun, AI harus mengidentifikasi apakah ada keputusan penting yang belum ditentukan — yang kalau diasumsikan bisa menghasilkan output yang salah arah. Jika ada, tanya dulu. Baru kerjakan.
+Before working on any task, the AI must identify whether an important decision is still undecided, one that would send the output in the wrong direction if assumed. If there is one, ask first. Only then do the work.
 
 ---
 
-## Prinsip Dasar
+## Core Principle
 
-**Jangan berasumsi, tanya dulu** — berlaku untuk SEMUA jenis tugas:
+**Do not assume, ask first.** This applies to ALL kinds of tasks:
 
-- Membuat atau merevisi dokumentasi
-- Membangun fitur atau komponen
-- Memilih library, tool, atau service
-- Merancang arsitektur atau flow
-- Konfigurasi environment atau infrastruktur
-- Keputusan desain UX/UI
+- Writing or revising documentation
+- Building a feature or component
+- Choosing a library, tool, or service
+- Designing an architecture or flow
+- Configuring an environment or infrastructure
+- UX/UI design decisions
 
-**Pengecualian:** Jika keputusan sudah terdokumentasi di baseline project (ADR, `DECISIONS.md`, atau dokumen baseline yang relevan), gunakan keputusan tersebut — jangan tanya ulang.
-
----
-
-## Kapan Harus Bertanya
-
-Tanya sebelum eksekusi jika ada **fork keputusan** yang:
-
-1. **Belum ada di baseline project** — tidak ada di `DECISIONS.md`, ADR, atau dokumen yang relevan
-2. **Berdampak signifikan pada output** — pilihan yang berbeda menghasilkan dokumen / kode / struktur yang berbeda secara substansial
-3. **Memiliki opsi-opsi valid yang setara** — tidak ada satu jawaban yang "jelas benar"
-
-### Contoh Fork yang Harus Ditanyakan
-
-| Konteks          | Contoh pertanyaan                                               |
-| ---------------- | --------------------------------------------------------------- |
-| Auth feature     | Provider mana? (Supabase Auth, Better Auth, NextAuth, Clerk)    |
-| Database         | ORM mana? (Prisma, Drizzle, Kysely)                             |
-| State management | Pendekatan apa? (Zustand, Jotai, React Query, Context API)      |
-| Dokumentasi flow | Sudut pandang siapa yang jadi fokus utama? (persona tertentu)   |
-| Deployment       | Target platform? (Vercel, Railway, Fly.io, self-hosted VPS)     |
-| Testing          | Framework apa? (Vitest, Jest, Playwright, Cypress)              |
-| UX pattern       | Paradigma navigasi yang dipakai? (tab bar, sidebar, breadcrumb) |
+**Exception:** If the decision is already documented in the project baseline (an ADR, `DECISIONS.md`, or the relevant baseline document), use that decision. Do not ask again.
 
 ---
 
-## Cara Bertanya
+## When to Ask
 
-### 1. Identifikasi Fork-nya
+Ask before execution when there is a **decision fork** that:
 
-Sebelum bertanya, tentukan:
+1. **Is not in the project baseline yet.** It is not in `DECISIONS.md`, an ADR, or a relevant document.
+2. **Has a significant impact on the output.** Different choices produce substantially different documents / code / structure.
+3. **Has equally valid options.** No single answer is "clearly right".
 
-- Apa yang belum jelas?
-- Apa dampaknya terhadap output?
-- Apa saja opsi terbaik yang relevan?
+### Examples of Forks to Ask About
 
-### 2. Sajikan Pilihan Terbaik
-
-Berikan opsi yang **benar-benar terbaik di kelasnya** — bukan daftar semua yang ada. Kuasi: maks 4 pilihan yang paling relevan dan teruji. Sertakan konteks singkat mengapa masing-masing menarik.
-
-**Format saat menggunakan tool `AskUserQuestion`:**
-Gunakan `AskUserQuestion` untuk mengumpulkan jawaban secara terstruktur. Batas tool: 1 sampai 4 pertanyaan per panggilan dan 2 sampai 4 opsi per pertanyaan; opsi "Other" ditambahkan otomatis, jangan dibuat sendiri. Frontier yang lebih dari 4 fork dipecah menjadi beberapa panggilan berurutan, tetap diurutkan dari yang paling berdampak.
-
-**Format saat bertanya secara conversational:**
-
-```
-Sebelum saya mulai, ada satu keputusan yang perlu kamu tentukan dulu:
-
-**[Aspek yang perlu diputuskan]**
-
-Pilihan terbaik:
-- **[Opsi A]** — [mengapa menarik, kapan cocok]
-- **[Opsi B]** — [mengapa menarik, kapan cocok]
-- **[Opsi C]** — [mengapa menarik, kapan cocok]
-
-Mana yang ingin kamu gunakan?
-```
-
-### 3. Pertanyaan per Ronde
-
-Tanya per **ronde**, bukan satu per satu dan bukan semua sekaligus tanpa urutan:
-
-- **Frontier keputusan** = semua fork yang sudah bisa dijawab sekarang, yaitu yang tidak bergantung pada jawaban fork lain. Satu ronde memuat seluruh frontier itu (batch dalam satu panggilan `AskUserQuestion` bila memakai tool), diurutkan dari yang paling berdampak.
-- Fork yang bergantung pada jawaban ronde ini masuk ronde berikutnya; jangan ditanyakan sebelum waktunya.
-- **Rekomendasi di depan:** tiap fork ditulis dengan opsi yang direkomendasikan lebih dulu, bertanda "(Recommended)" pada label bila memakai tool (atau "(rekomendasi)" bila bertanya di teks), beserta satu kalimat alasannya. King Rezi tinggal menyetujui atau menggantinya.
-- **Cari fakta sendiri:** hal yang bisa dijawab dengan membaca baseline, kode, atau dokumen tidak ditanyakan; baca, lalu sebut temuannya sebagai dasar rekomendasi. Hanya keputusan (pilihan yang memang milik King Rezi) yang ditanyakan.
-- **Selesai bila frontier kosong:** ulangi ronde sampai tidak ada fork yang tersisa, baik yang sedang terbuka maupun yang baru muncul dari jawaban sebelumnya.
+| Context          | Example question                                                  |
+| ---------------- | ----------------------------------------------------------------- |
+| Auth feature     | Which provider? (Supabase Auth, Better Auth, NextAuth, Clerk)     |
+| Database         | Which ORM? (Prisma, Drizzle, Kysely)                              |
+| State management | Which approach? (Zustand, Jotai, React Query, Context API)        |
+| Flow docs        | Whose point of view is the main focus? (a specific persona)       |
+| Deployment       | Target platform? (Vercel, Railway, Fly.io, self-hosted VPS)       |
+| Testing          | Which framework? (Vitest, Jest, Playwright, Cypress)              |
+| UX pattern       | Which navigation paradigm is used? (tab bar, sidebar, breadcrumb) |
 
 ---
 
-## Kualitas Pilihan yang Disajikan
+## How to Ask
 
-Pilihan yang disajikan harus:
+### 1. Identify the Fork
 
-- **Relevan** — sesuai konteks project (tech stack, fase, skala)
-- **Terbaik di kelasnya** — bukan sekadar populer, tapi memang proven dan aktif digunakan
-- **Dikurasi** — hanya tampilkan yang benar-benar bersaing; buang yang sudah outdated atau tidak relevan
-- **Berisi konteks** — setiap opsi punya satu kalimat mengapa ia menarik atau kapan ia paling cocok
+Before asking, determine:
 
-### Contoh Pilihan yang Baik (Auth)
+- What is unclear?
+- What is the impact on the output?
+- What are the best relevant options?
+
+### 2. Present the Best Options
+
+Give options that are **truly the best in their class**, not a list of everything that exists. Quota: at most 4 of the most relevant and proven options. Include a short note on why each one is attractive.
+
+**Format when using the `AskUserQuestion` tool:**
+Use `AskUserQuestion` to collect answers in a structured way. Tool limits: 1 to 4 questions per call and 2 to 4 options per question; the "Other" option is added automatically, so do not create it yourself. A frontier of more than 4 forks is split into several sequential calls, still ordered from the highest impact down.
+
+**Format when asking conversationally:**
 
 ```
-- **Supabase Auth** — sudah terintegrasi jika pakai Supabase sebagai DB; zero config
-- **Better Auth** — framework-agnostic, self-hostable, fitur enterprise lengkap
-- **Clerk** — DX terbaik dengan UI komponen siap pakai; cocok jika auth bukan fokus engineering
-- **NextAuth v5** — pilihan standar Next.js; fleksibel tapi butuh lebih banyak setup
+Before I start, there is one decision you need to make first:
+
+**[Aspect to decide]**
+
+Best options:
+- **[Option A]** — [why it is attractive, when it fits]
+- **[Option B]** — [why it is attractive, when it fits]
+- **[Option C]** — [why it is attractive, when it fits]
+
+Which one do you want to use?
 ```
 
-### Contoh Pilihan yang Buruk (jangan lakukan ini)
+### 3. Questions per Round
+
+Ask per **round**, not one at a time and not everything at once without order:
+
+- **Decision frontier** = all forks that can be answered now, meaning those that do not depend on the answer to another fork. One round contains that whole frontier (batched into one `AskUserQuestion` call when using the tool), ordered from the highest impact down.
+- A fork that depends on the answer from this round goes into the next round; do not ask it before its time.
+- **Recommendation first:** write each fork with the recommended option first, marked "(Recommended)" on the label when using the tool (or "(recommended)" when asking in text), together with a one-sentence reason. King Rezi only needs to approve it or replace it.
+- **Find facts yourself:** anything that can be answered by reading the baseline, code, or documents is not asked; read it, then state the finding as the basis for the recommendation. Only decisions (choices that truly belong to King Rezi) are asked.
+- **Done when the frontier is empty:** repeat rounds until no fork remains, whether one still open or one newly raised by an earlier answer.
+
+---
+
+## Quality of the Options Presented
+
+The options presented must be:
+
+- **Relevant:** fit the project context (tech stack, phase, scale)
+- **Best in class:** not merely popular, but proven and actively used
+- **Curated:** show only those that truly compete; drop what is outdated or irrelevant
+- **Contextual:** every option has one sentence on why it is attractive or when it fits best
+
+### Example of Good Options (Auth)
+
+```
+- **Supabase Auth** — already integrated if you use Supabase as the DB; zero config
+- **Better Auth** — framework-agnostic, self-hostable, full enterprise features
+- **Clerk** — best DX with ready-made UI components; fits when auth is not an engineering focus
+- **NextAuth v5** — the standard Next.js choice; flexible but needs more setup
+```
+
+### Example of Bad Options (do not do this)
 
 ```
 - Supabase
@@ -125,23 +125,23 @@ Pilihan yang disajikan harus:
 - ...
 ```
 
-Terlalu banyak, tidak ada konteks, tidak dikurasi.
+Too many, no context, not curated.
 
 ---
 
-## Setelah Mendapat Jawaban
+## After Getting an Answer
 
-1. Konfirmasi pilihan yang diambil dalam satu kalimat.
-2. Jika pilihan berpengaruh pada dokumen atau keputusan project, tanyakan apakah perlu dicatat di `DECISIONS.md`.
-3. Bila jawaban membuka fork baru, ajukan ronde berikutnya (lihat "Pertanyaan per Ronde").
-4. Bila frontier sudah kosong, ringkas pemahaman bersama (keputusan yang diambil dan yang dipakai dari baseline) dalam beberapa baris, lalu **tunggu King Rezi mengonfirmasi**. Jangan bertindak sebelum konfirmasi itu.
-5. Setelah dikonfirmasi, lanjutkan eksekusi tugas.
+1. Confirm the chosen option in one sentence.
+2. If the choice affects a document or a project decision, ask whether it should be recorded in `DECISIONS.md`.
+3. If the answer opens a new fork, ask the next round (see "Questions per Round").
+4. When the frontier is empty, summarize the shared understanding (the decisions taken and those taken from the baseline) in a few lines, then **wait for King Rezi to confirm**. Do not act before that confirmation.
+5. After confirmation, continue executing the task.
 
 ---
 
-## Aturan Kritis
+## Critical Rules
 
-- Jangan skip pertanyaan meski merasa sudah tahu jawabannya — kecuali sudah ada di baseline.
-- Jangan ajukan pertanyaan untuk hal-hal trivial yang tidak mempengaruhi output secara substansial.
-- Jangan listing opsi yang sudah outdated, tidak relevan, atau tidak direkomendasikan untuk konteks ini.
-- Jika user merespons dengan "terserah kamu" atau "kamu yang putuskan" — pilihkan opsi terbaik dengan alasannya, lalu konfirmasi sebelum jalan.
+- Do not skip a question just because you feel you already know the answer, unless it is already in the baseline.
+- Do not ask about trivial matters that do not substantially affect the output.
+- Do not list options that are outdated, irrelevant, or not recommended for this context.
+- If the user responds with "up to you" or "you decide", pick the best option with its reason, then confirm before proceeding.
