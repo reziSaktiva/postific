@@ -32,7 +32,7 @@ milik King Rezi. Commit dan push hanya atas permintaan King Rezi (`AGENTS.md` at
 ## Langkah
 
 1. **Branch integrasi dulu**, dari `staging` terbaru; nama `feature/<nama>` atau `fix/<nama>`. Satu worktree dan satu branch per jalur, dipotong dari branch integrasi, bukan dari `staging`.
-2. **Brief per jalur** dari [`lane-brief-template.md`](lane-brief-template.md): tujuan, lingkup, batasan, penunjuk ke tiket/spec/ADR (bukan salinan), definisi selesai. Sesi jalur tidak pernah merge dan tidak pernah menerapkan migrasi.
+2. **Brief per jalur** dari [`lane-brief-template.md`](lane-brief-template.md), termasuk bagian E2E dan MCP shadcn: tujuan, lingkup, batasan, penunjuk ke tiket/spec/ADR (bukan salinan), definisi selesai. Sesi jalur tidak pernah merge dan tidak pernah menerapkan migrasi.
 3. **Verifikasi laporan sesi di sumber:** commit ada di branch, hasil CI di GitHub, status deploy di Railway. Laporan yang terpotong dibaca penuh sebelum diringkas; klaim "sudah di-push" dicek di git.
 4. **Review per jalur** untuk perubahan berisiko (keamanan, data) dan sekali lagi di branch integrasi. Dua sumbu, tidak digabung:
    - **Standards:** kesesuaian dengan aturan repo dan arsitektur (`AGENTS.md`, ADR, Ridwan).
