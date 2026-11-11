@@ -31,8 +31,9 @@ Satu kalimat: hasil yang harus ada saat jalur selesai.
 Bila jalur mengubah perilaku produk (ADR-149):
 
 - Jalankan E2E di checkout utama. `E2E_BASE_URL` menunjuk ke dev server yang sudah berjalan di checkout itu.
-- Worktree jalur tidak punya `apps/web/.env.local`. Berkas itu diabaikan git.
-- Jangan menjalankan `next dev` kedua di worktree jalur. `next dev` mengunci `.next/dev` per direktori, sehingga dev server kedua di worktree gagal. Bukti: T-225.1 (`project-os/tickets/v01-foundation.md`).
+- E2E golden path hanya sah bila checkout yang menyajikan `E2E_BASE_URL` sedang berada di commit jalur. Server di checkout lain menguji kode checkout itu. Playwright memakai server yang sudah hidup (`reuseExistingServer` di `apps/web/playwright.config.ts`).
+- Worktree jalur tidak punya `apps/web/.env.local`. Berkas itu diabaikan git. Playwright memuat berkas itu di samping config, jadi E2E dari worktree jalur tidak membawa env checkout utama.
+- Jangan menjalankan `next dev` kedua di direktori yang sama. `next dev` mengunci `.next/dev` per direktori, jadi kunci checkout utama tidak menahan worktree lain. Bukti: T-225.1 (`project-os/tickets/v01-foundation.md`).
 
 ## MCP shadcn
 
