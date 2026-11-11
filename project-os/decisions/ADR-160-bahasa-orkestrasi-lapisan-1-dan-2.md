@@ -6,7 +6,7 @@ Bahasa orkestrasi: lapisan 1 dan 2 pindah ke bahasa Inggris (S-004, T-234)
 
 ### Status
 
-**Proposed** (menunggu penerimaan King Rezi, T-234.6). Belum Accepted.
+**Accepted** (King Rezi, 2026-11-11, T-234.6).
 
 ### Date
 
