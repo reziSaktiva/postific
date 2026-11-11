@@ -19,14 +19,14 @@ Jangan langsung baca semua dokumen `project-os/` secara penuh untuk setiap pesan
 
 - Baca **section "Snapshot"** di paling atas `project-os/PROJECT_STATE.md` (~15-20 baris — phase/milestone, active mode, top next tasks, top blocker). Jangan baca seluruh isi `PROJECT_STATE.md`.
 - Kalau pertanyaan soal **task yang tersedia / apa yang berikutnya**, baca `project-os/AVAILABLE_TICKETS.md` saja. Jangan membuka `project-os/tickets/` untuk mencari antrian.
-- Kalau ID-nya sudah dipilih, buka **hanya section tiket itu** di satu file: `tickets/vXX-*.md` untuk tiket rilis, atau `tickets/known-issues.md` untuk tiket dari Known Issue (ADR-134).
+- Kalau ID-nya sudah dipilih, buka **hanya section tiket itu** di satu file: `tickets/vXX-*.md` untuk tiket rilis, `tickets/known-issues.md` untuk tiket dari Known Issue (ADR-134), atau `tickets/s004-orchestration-language.md` untuk S-004.
 - Kalau pertanyaan menyebut ADR spesifik, buka **hanya** file `project-os/decisions/ADR-XXX-*.md` itu (lihat indeksnya di `project-os/DECISIONS.md`). Jangan baca seluruh isi folder `project-os/decisions/`.
 
 **Tingkat 3 — Task nyata** (Pekerjaan Baru, Planning Change, Bug/Inkonsistensi — mode 3/4/5 di bawah): baca berurutan:
 
 1. `project-os/PROJECT_STATE.md` — phase, milestone, Active Conversation Mode, Known Issues, blockers (baca Snapshot dulu supaya konteks ini tersedia sebelum memilih/merencanakan task)
 2. `project-os/AVAILABLE_TICKETS.md` — antrian; temukan ID task yang relevan
-3. File tiket yang disebut kolom File — `tickets/vXX-*.md` atau `tickets/known-issues.md` (ADR-134) — **hanya section tiket itu**. Lalu buka dokumen yang disebut di field **Docs** / **Baca dulu** (ADR-131)
+3. File tiket yang disebut kolom File — `tickets/vXX-*.md`, `tickets/known-issues.md` (ADR-134), atau `tickets/s004-orchestration-language.md` untuk S-004 — **hanya section tiket itu**. Lalu buka dokumen yang disebut di field **Docs** / **Baca dulu** (ADR-131)
 4. `project-os/PROJECT_RULES.md` — aturan dan prinsip project
 5. `project-os/DECISIONS.md` — indeks ADR; buka file `project-os/decisions/ADR-XXX-*.md` spesifik yang relevan dengan task ini
 6. `project-os/PROJECT_OVERVIEW.md` — gambaran project
@@ -95,12 +95,12 @@ Format entri: bagian "Format Entry" di `project-os/BRAINSTORM.md`.
 **Steps:**
 
 1. Cek `PROJECT_STATE.md` — pastikan task ini sesuai phase aktif.
-   1a. **Kalau task ini scope implementasi kode** (bukan dokumentasi/diskusi): pastikan ada tiketnya dulu (ADR-132). Kalau belum ada, tulis tiketnya sebelum baris kode pertama — tiket rilis di `tickets/vXX-*.md`, tiket yang lahir dari Known Issue di `tickets/known-issues.md` (ADR-134). Lalu cek field **Domain** tiket itu terhadap pemetaan Domain → Subagent di `.claude/agents/README.md`. Tentukan salah satu — kerjakan sendiri (scope trivial/dokumentasi), delegasikan ke satu subagent, atau jalankan **beberapa subagent paralel** kalau ada tiket independen (domain/file berbeda) yang tidak saling menyentuh. Ini langkah wajib (ADR-063), bukan opsional.
+   1a. **Kalau task ini scope implementasi kode** (bukan dokumentasi/diskusi): pastikan ada tiketnya dulu (ADR-132). Kalau belum ada, tulis tiketnya sebelum baris kode pertama — tiket rilis di `tickets/vXX-*.md`, tiket yang lahir dari Known Issue di `tickets/known-issues.md` (ADR-134), tiket S-004 di `tickets/s004-orchestration-language.md`. Lalu cek field **Domain** tiket itu terhadap pemetaan Domain → Subagent di `.claude/agents/README.md`. Tentukan salah satu — kerjakan sendiri (scope trivial/dokumentasi), delegasikan ke satu subagent, atau jalankan **beberapa subagent paralel** kalau ada tiket independen (domain/file berbeda) yang tidak saling menyentuh. Ini langkah wajib (ADR-063), bukan opsional.
 2. Cek `Active Conversation Mode` — pastikan action type diizinkan.
 3. Baca dokumen baseline yang relevan sebelum membuat dokumen baru.
 4. Ikuti format dokumen yang konsisten dengan dokumen existing (lihat contoh di folder yang sama).
 5. Setelah pekerjaan selesai, **di PR yang sama sebelum merge** (bukan PR terpisah sesudahnya; addendum ADR-153 2026-11-06), update:
-   - file tiket (`tickets/vXX-*.md` atau `tickets/known-issues.md`) — ubah status tiket. Jangan menambah cerita sesi
+   - file tiket (`tickets/vXX-*.md`, `tickets/known-issues.md`, atau `tickets/s004-orchestration-language.md`) — ubah status tiket. Jangan menambah cerita sesi
    - `project-os/AVAILABLE_TICKETS.md` — task yang menjadi ✅ keluar dari tabel antrian
    - `project-os/PROJECT_STATE.md` — hanya bila phase / milestone / Known Issues / fokus terdekat berubah. **Jangan** menyalin detail task ke sini (ADR-062)
 
@@ -229,7 +229,7 @@ Lalu tambahkan satu baris ke tabel indeks di `project-os/DECISIONS.md` (ADR# | T
 - Selalu gunakan ID yang sudah ada (ADR-XXX, I-XX, A-XX, dll.) saat mereferensikan keputusan.
 - Jika ada gap antara dokumen dengan realita phase, tanyakan ke user sebelum asumsi.
 - Jangan memperbaiki inkonsistensi dokumen secara diam-diam — selalu sebutkan temuannya ke user (lihat **Proactive Consistency Check**).
-- Jangan menyalin detail task (subtask, dependency, catatan teknis) ke `PROJECT_STATE.md` — tempatnya di `tickets/vXX-*.md` atau `tickets/known-issues.md` (ADR-134). `PROJECT_STATE.md` hanya menyebut ID + judul singkat (ADR-062).
+- Jangan menyalin detail task (subtask, dependency, catatan teknis) ke `PROJECT_STATE.md` — tempatnya di `tickets/vXX-*.md`, `tickets/known-issues.md` (ADR-134), atau `tickets/s004-orchestration-language.md`. `PROJECT_STATE.md` hanya menyebut ID + judul singkat (ADR-062).
 - Jangan mendaur ulang ID task. Task yang dibatalkan ditandai `⏸️ Deferred` beserta alasannya, bukan dihapus.
 - Ikuti preferensi kerja yang tercatat di `project-os/PROJECT_OVERVIEW.md` bagian **Developer Profile & Working Preferences**, dan tambahkan preferensi baru yang ditemukan ke sana.
 
@@ -249,9 +249,10 @@ social-media-management/
 │   ├── PROJECT_STATE.md     → Phase, milestone, Known Issues ← update setiap ada
 │   │                           perubahan (baca "Snapshot" dulu untuk lookup cepat)
 │   ├── AVAILABLE_TICKETS.md   → Antrian task yang belum selesai ← berhenti di sini
-│   ├── tickets/             → Tiket per rilis (`vXX-*.md`) plus
-│   │                           `known-issues.md` (ADR-134) ← buka hanya
-│   │                           section tiket yang ID-nya sudah dipilih
+│   ├── tickets/             → Tiket per rilis (`vXX-*.md`),
+│   │                           `known-issues.md` (ADR-134), dan
+│   │                           `s004-orchestration-language.md` (S-004)
+│   │                           ← buka hanya section yang ID-nya sudah dipilih
 │   ├── specs/               → Spec untuk kerja multi-sesi (ADR-131)
 │   ├── DECISIONS.md         → Indeks ringkas ADR ← tambah 1 baris index per ADR baru
 │   ├── decisions/           → Satu file per ADR (ADR-XXX-slug.md) ← full text di sini

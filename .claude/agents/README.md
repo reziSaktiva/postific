@@ -118,7 +118,7 @@ mewajibkan AI berhenti di titik ini **sebelum** mulai implementasi kode:
 
 ## Pemetaan Domain → Subagent
 
-Field **Domain** tiap task di file tiketnya (`tickets/vXX-*.md` atau `tickets/known-issues.md`) bisa langsung dipetakan ke
+Field **Domain** tiap task di file tiketnya (`tickets/vXX-*.md`, `tickets/known-issues.md`, atau `tickets/s004-orchestration-language.md` untuk S-004, ADR-159) bisa langsung dipetakan ke
 subagent implementasi berikut sebagai titik awal (bukan aturan kaku — cek
 juga `description` di frontmatter masing-masing file peran untuk keputusan
 akhir):

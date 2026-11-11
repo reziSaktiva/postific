@@ -6,7 +6,7 @@ Tiket yang lahir dari Known Issue pindah ke `tickets/known-issues.md` (amandemen
 
 ### Status
 
-Accepted
+Accepted — Amended by ADR-159 (2026-11-11)
 
 ### Date
 
