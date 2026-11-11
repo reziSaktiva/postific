@@ -2,20 +2,20 @@
 
 > Rumah tiket spec S-004 (ADR-159). Antrian yang belum selesai ada di [`../AVAILABLE_TICKETS.md`](../AVAILABLE_TICKETS.md). Spec: [`../specs/S-004.md`](../specs/S-004.md).
 
-Keputusan King Rezi 2026-11-11. Satu berkas utuh per tiket. ADR dan terjemahan belum dimulai.
+Keputusan King Rezi 2026-11-11. Satu berkas utuh per tiket. ADR-160 berstatus Proposed. Penerimaan menunggu T-234.6.
 
 ### T-234 · Record the next ADR and translate AGENTS.md
 
-`⏳ Not Started` · **Mode** HITL · **Domain** project-os, agen · **ADR** ADR-133, ADR-158 · **Spec** S-004 · **Depends** —
+`🟡 In Progress` · **Mode** HITL · **Domain** project-os, agen · **ADR** ADR-133, ADR-160 · **Spec** S-004 · **Depends** —
 **Baca dulu:** `project-os/specs/S-004.md` · `AGENTS.md` aturan 1, 2, dan 8 · `context/ctx-project.md`
 
 Gerbang bahasa orkestrasi. Menulis ADR baru (nomor berikutnya setelah ADR-159, prosa Indonesia) dan menerjemahkan `AGENTS.md` utuh. Berhenti sampai King Rezi menerima ADR itu. Tiket AFK di spec ini tidak dimulai sebelum Accepted.
 
-- [ ] **T-234.1** ADR mencatat tujuan (keselarasan skill Inggris dan kolaborator baru), cakupan lapisan 1 dan 2, lapisan 3 tidak diterjemahkan, delapan berkas agen tidak diubah, sebutan King Rezi tetap, dan **5 Magic Words**: please, sorry, thank you, excuse me, go ahead. Teks aturan hanya di `AGENTS.md`.
-- [ ] **T-234.2** `AGENTS.md` utuh dalam bahasa Inggris. Aturan bahasa: default bahasa Inggris, dengan klausul King Rezi dapat meminta bahasa lain. Aturan sapaan: King Rezi tetap, **5 Magic Words** dalam bahasa Inggris.
-- [ ] **T-234.3** Kalimat bahasa di `context/ctx-project.md` menjadi penunjuk ke aturan 8. Sisa berkas itu tetap Bahasa Indonesia.
-- [ ] **T-234.4** S-004 menunjuk ADR yang sudah ada, tanpa menyalin ulang aturan (ADR-133).
-- [ ] **T-234.5** Audit topik language. Salinan aturan di `.claude/agents/` dilaporkan sebagai utang dan tidak diubah di tiket ini.
+- [x] **T-234.1** `🟡 (2026-11-11, ADR-160 Proposed)` ADR mencatat tujuan (keselarasan skill Inggris dan kolaborator baru), cakupan lapisan 1 dan 2, lapisan 3 tidak diterjemahkan, delapan berkas agen tidak diubah, sebutan King Rezi tetap, dan **5 Magic Words**: please, sorry, thank you, excuse me, go ahead. Teks aturan hanya di `AGENTS.md`.
+- [x] **T-234.2** `🟡 (2026-11-11)` `AGENTS.md` utuh dalam bahasa Inggris. Aturan bahasa: default bahasa Inggris, dengan klausul King Rezi dapat meminta bahasa lain. Aturan sapaan: King Rezi tetap, **5 Magic Words** dalam bahasa Inggris.
+- [x] **T-234.3** `🟡 (2026-11-11)` Kalimat bahasa di `context/ctx-project.md` menjadi penunjuk ke aturan 8. Sisa berkas itu tetap Bahasa Indonesia.
+- [x] **T-234.4** `🟡 (2026-11-11)` S-004 menunjuk ADR yang sudah ada, tanpa menyalin ulang aturan (ADR-133).
+- [x] **T-234.5** `🟡 (2026-11-11)` Audit topik language. Salinan aturan di `.claude/agents/` dilaporkan sebagai utang dan tidak diubah di tiket ini. Utang: tujuh berkas peran menyalin kalimat sapaan King Rezi (`prabowo-feature-engineer.md`, `mark-ui-engineer.md`, `neymar-product-designer.md`, `elon-backend-engineer.md`, `ridwan-architecture-reviewer.md`, `najwa-qa-engineer.md`, `gibran-project-manager.md`). `gibran-project-manager.md` juga menyalin "Bahasa dokumentasi: Bahasa Indonesia." `mark-ui-engineer.md` menunjuk aturan 8, bukan salinan teksnya. `README.md` tidak memuat aturan bahasa. Berkas itu tidak diubah.
 - [ ] **T-234.6** Status ADR menjadi Accepted hanya setelah King Rezi menerimanya.
 
 **Blocked by:** tidak ada
