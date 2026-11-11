@@ -3662,7 +3662,7 @@ Temuan QA yang dicatat (bukan pemblokir):
 
 | Field       | Value                                   |
 | ----------- | --------------------------------------- |
-| **Status**  | ⏳ Not Started                          |
+| **Status**  | 🟡 In Progress                          |
 | **Mode**    | AFK                                     |
 | **Domain**  | publishing · media                      |
 | **Spec**    | S-006 (konteks)                         |
@@ -3706,7 +3706,7 @@ Halaman History Detail (`apps/web/src/app/(app)/publish/history/[postId]/page.ts
 
 | Field       | Value                                                                    |
 | ----------- | ------------------------------------------------------------------------ |
-| **Status**  | ⏳ Not Started                                                           |
+| **Status**  | 🟡 In Progress                                                           |
 | **Mode**    | AFK                                                                      |
 | **Domain**  | publishing · integration                                                 |
 | **Spec**    | S-006 (konteks)                                                          |

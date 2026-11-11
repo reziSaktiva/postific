@@ -2,13 +2,20 @@ import { asConnectedAccountId, asWorkspaceId } from "@postific/shared";
 import {
   EnqueueImportMediaUseCase,
   IMPORT_MEDIA_JOB_TYPE,
+  IMPORT_THUMBNAIL_SWEEP_JOB_TYPE,
   ProcessImportMediaUseCase,
+  PurgeImportThumbnailsUseCase,
   type BackfillAccountsPort,
+  type EnqueueImportThumbnailSweepJobsPort,
 } from "@/domains/publishing";
 import { importThumbnailGenerator } from "@/lib/adapters/import-thumbnail/import-thumbnail-generator";
+import { supabaseImportThumbnailStorage } from "@/lib/adapters/import-thumbnail/supabase-import-thumbnail-storage";
 import { backgroundJobStore } from "@/lib/jobs/background-job-store";
 import { backgroundJobScheduler } from "@/lib/jobs/job-scheduler";
-import { publishingRepository } from "@/lib/repositories/publishing";
+import {
+  importThumbnailReferenceRepository,
+  publishingRepository,
+} from "@/lib/repositories/publishing";
 import { workspaceRepository } from "@/lib/repositories/workspace";
 
 /**
@@ -61,4 +68,24 @@ export function createProcessImportMediaUseCase(): ProcessImportMediaUseCase {
     publishingRepository,
     importThumbnailGenerator,
   );
+}
+
+/** T-231 (ADR-158): pemurni thumbnail impor (hapus per workspace dan sapuan yatim). */
+export function createPurgeImportThumbnailsUseCase(): PurgeImportThumbnailsUseCase {
+  return new PurgeImportThumbnailsUseCase(
+    supabaseImportThumbnailStorage,
+    importThumbnailReferenceRepository,
+  );
+}
+
+/** T-231: port antrian sapuan harian (JOB-10); payload kosong, dedup berbasis tipe job. */
+export function createImportThumbnailSweepJobsPort(): EnqueueImportThumbnailSweepJobsPort {
+  return {
+    hasJob: (createdSince) =>
+      backgroundJobStore.hasJobOfType({
+        type: IMPORT_THUMBNAIL_SWEEP_JOB_TYPE,
+        createdSince,
+      }),
+    scheduleJob: (input) => backgroundJobScheduler.scheduleJob(input),
+  };
 }
