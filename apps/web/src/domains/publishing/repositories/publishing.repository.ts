@@ -1165,6 +1165,22 @@ export interface IPublishingRepository {
   ): Promise<void>;
 
   /**
+   * T-233 (ADR-158, addendum): catat satu kegagalan SEMENTARA thumbnail target
+   * (naikkan `thumbnailAttempts`). Begitu penghitung mencapai `maxAttempts`,
+   * target ditandai permanen lewat `thumbnailAttemptedAt` (tidak dicoba lagi)
+   * dan `exhausted` bernilai `true`. Tidak menyentuh target yang sudah punya
+   * thumbnail atau sudah ditandai (job duplikat).
+   */
+  recordImportedTargetThumbnailFailure(
+    input: {
+      workspaceId: WorkspaceId;
+      targetId: string;
+      maxAttempts: number;
+    },
+    userId: UserId,
+  ): Promise<{ exhausted: boolean }>;
+
+  /**
    * Preview post asli (T-056, KI-065) — snapshot caption/media/
    * `platformPostUrl` untuk kotak "Post asal" di detail panel Comments
    * Inbox (`engagement.EngagementService.getInboxItemDetail`). Query lewat

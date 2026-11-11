@@ -299,8 +299,12 @@ sisa target tetap tertunda untuk job berikutnya.
 
 **Idempotensi:** Hanya target yang belum punya thumbnail dan belum pernah dicoba
 yang diproses. Kegagalan permanen (URL kedaluwarsa, host tidak dikenal, terlalu
-besar) ditandai `thumbnail_attempted_at`; kegagalan sementara (timeout, 5xx,
-`ffmpeg` belum terpasang) tidak ditandai dan dicoba lagi pada pemicu berikutnya.
+besar, redirect pada `HEAD` video) ditandai `thumbnail_attempted_at`; kegagalan
+sementara (timeout, 5xx, `ffmpeg` belum terpasang) menaikkan
+`thumbnail_attempts` dan dicoba lagi pada pemicu berikutnya, sampai batas 5
+(`MAX_THUMBNAIL_ATTEMPTS`, T-233), lalu ditandai permanen seperti kegagalan
+permanen. Pembatalan karena anggaran waktu job tidak menaikkan penghitung.
+Log peringatan memuat penyebab bertingkat galat.
 
 **Retry:** Mengikuti retry generik job runner (lihat § Retry Strategy di bawah).
 
