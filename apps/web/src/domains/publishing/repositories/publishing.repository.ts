@@ -258,6 +258,14 @@ export interface HistoryItemTargetRecord extends QueueItemTargetRecord {
   status: PublishingPostTargetStatus;
   platformPostUrl: string | null;
   error: string | null;
+  /**
+   * T-232 (ADR-158) — thumbnail tersimpan posting impor (path di bucket
+   * `media`, T-230) dan URL CDN platform (T-227, cadangan). Opsional di
+   * tipe (fixture lama); repository selalu mengisinya, `null` untuk target non-impor; dipakai History Detail lewat resolver bersama
+   * dengan Engage.
+   */
+  thumbnailStoragePath?: string | null;
+  externalMediaUrl?: string | null;
 }
 
 /**
