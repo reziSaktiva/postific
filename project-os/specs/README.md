@@ -44,7 +44,7 @@ ID spec global, tidak didaur ulang. Nomor berikutnya dicatat di `AVAILABLE_TICKE
 
 ## Bentuk tiket
 
-Tiket rilis tetap di `tickets/vXX-*.md`, termasuk setelah selesai. Tiket yang lahir dari Known Issue ada di `tickets/known-issues.md` (ADR-134), bentuknya sama.
+Tiket rilis tetap di `tickets/vXX-*.md`, termasuk setelah selesai. Tiket yang lahir dari Known Issue ada di `tickets/known-issues.md` (ADR-134), bentuknya sama. Tiket S-004 ada di `tickets/s004-orchestration-language.md` (keputusan King Rezi 2026-11-11).
 
 ```markdown
 ### T-xxx · Judul
