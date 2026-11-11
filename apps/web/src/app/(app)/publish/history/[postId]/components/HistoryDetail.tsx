@@ -244,9 +244,12 @@ export function HistoryDetail({ item, thumbnail }: HistoryDetailProps) {
 
         {/* Satu-satunya scroll area di dalam Dialog (LOCKED PATTERN
             T-111.1) — caption, media, divider, "Hasil per Akun" semua di
-            sini, bukan dipecah jadi beberapa area scroll. */}
+            sini, bukan dipecah jadi beberapa area scroll. `*:shrink-0`:
+            isi modal menggulung, bukan menyusut; anak ber-`overflow-hidden`
+            (wrapper media) kalau tidak akan menyusut dan terpotong jadi
+            strip di layar sempit (T-232, 375px). */}
         {/* eslint-disable-next-line no-restricted-syntax -- layout-only */}
-        <div className="flex flex-col gap-4 overflow-x-hidden overflow-y-auto px-8 py-6">
+        <div className="flex flex-col gap-4 overflow-x-hidden overflow-y-auto px-8 py-6 *:shrink-0">
           {/* eslint-disable-next-line no-restricted-syntax -- layout-only */}
           <div className="flex flex-col gap-1">
             <Text
