@@ -31,7 +31,7 @@ referenced document wins.
 4. Follow the project skill: `.claude/skills/project-os-navigator/SKILL.md` — read cascade, task → document mapping, session hygiene, and skill/subagent housekeeping live there.
 5. For a decision that is not in the baseline yet: follow `.claude/skills/proactive-clarification/SKILL.md`.
 6. After the work is finished: follow `.claude/skills/work-report-simple/SKILL.md`.
-   Definition of a finished feature ticket (E2E, ADR-149) and the Done (code) / Verified (staging) ladder (ADR-153): see the navigator § Pekerjaan Baru.
+   Definition of a finished feature ticket (E2E, ADR-149) and the Done (code) / Verified (staging) ladder (ADR-153): see the navigator § New Work.
 7. For technical context per domain: open the relevant `context/ctx-*.md` file — the full map and the boundary between files are in `context/README.md`.
 
 ## Hard rules (do not break)

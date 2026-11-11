@@ -11,113 +11,113 @@ description: >-
 
 # Work Report — Plain Language
 
-Setelah menyelesaikan pekerjaan apapun, selalu buat laporan singkat dengan bahasa yang mudah dipahami siapapun — layaknya seorang bawahan yang melaporkan hasil pekerjaannya kepada atasan.
+After finishing any piece of work, always write a short report in language anyone can understand — the way a subordinate reports results to their boss.
 
 ---
 
-## Kapan Digunakan
+## When to Use
 
-Otomatis setelah:
+Automatically after:
 
-- Membuat atau mengedit dokumen / file
-- Menyelesaikan task atau tugas tertentu
-- Melakukan perubahan pada kode, konfigurasi, atau struktur project
-- Mengakhiri sesi kerja
+- Creating or editing a document / file
+- Finishing a task or assignment
+- Changing code, configuration, or project structure
+- Ending a work session
 
 ---
 
-## Format Laporan
+## Report Format
 
-Gunakan struktur berikut, dengan bahasa conversational dan analoginya bila perlu:
+Use the structure below, in conversational language, with analogies where they help.
 
-### 1. Dikerjakan oleh (WAJIB, baris paling atas laporan)
+### 1. Done by (REQUIRED, top line of the report)
 
-Sebutkan nama persona yang mengerjakan — nama subagent kalau dikerjakan lewat
-subagent bernama di `.claude/agents/` (mis. "Prabowo Feature Engineer", "Elon
-Backend Engineer"), atau **"AI utama"** kalau dikerjakan langsung tanpa
-delegasi ke subagent tertentu. Kalau beberapa subagent terlibat dalam satu
-sesi, sebutkan semuanya (mis. "Elon Backend Engineer + Ridwan Architecture
+Name the persona who did the work — the subagent name if it was done through a
+named subagent in `.claude/agents/` (e.g. "Prabowo Feature Engineer", "Elon
+Backend Engineer"), or **"Main AI"** if it was done directly without
+delegating to a specific subagent. If several subagents took part in one
+session, name them all (e.g. "Elon Backend Engineer + Ridwan Architecture
 Reviewer").
 
-### 2. Apa yang Sudah Dikerjakan
+### 2. What Was Done
 
-2–4 kalimat. Jelaskan pekerjaan yang selesai seperti sedang bercerita kepada orang yang tidak tahu konteks teknisnya. Gunakan analogi bila membantu.
+2–4 sentences. Explain the finished work as if telling a story to someone who does not know the technical context. Use an analogy when it helps.
 
-### 3. Isi / Poin Utama
+### 3. Contents / Key Points
 
-Jelaskan poin-poin kunci dari hasil pekerjaan. Gunakan bullet points atau tabel sederhana. Setiap poin harus bisa dipahami tanpa harus membuka file-nya.
+Explain the key points of the result. Use bullet points or a simple table. Each point must be understandable without opening the file.
 
-### 4. Mengapa Ini Penting
+### 4. Why This Matters
 
-Satu atau dua kalimat tentang dampaknya terhadap project atau pekerjaan berikutnya.
+One or two sentences on the impact on the project or on the next piece of work.
 
-### 5. Pekerjaan Berikutnya
+### 5. Next Steps
 
-Sebutkan task selanjutnya secara singkat dan jelas.
-
----
-
-## Aturan Gaya Bahasa
-
-- Gunakan Bahasa Indonesia (kecuali user meminta bahasa lain).
-- Hindari jargon teknis tanpa penjelasan. Jika harus menyebut istilah teknis, jelaskan dalam satu kata di sampingnya — contoh: "Information Architecture (denah aplikasi)".
-- Boleh gunakan analogi sehari-hari untuk memperjelas konsep abstrak.
-- Tone: hangat, profesional, langsung ke inti — tidak kaku, tidak bertele-tele.
-- Panjang laporan proporsional dengan ukuran pekerjaan. Pekerjaan kecil → laporan singkat. Pekerjaan besar → laporan lebih detail, tetapi tetap ringkas.
-- Jangan ucapkan "Saya menggunakan skill X" atau sebutkan nama skill. Langsung laporkan hasil kerjanya.
-- Baris "Dikerjakan oleh" tetap wajib ada meski laporan sangat singkat.
+Name the next task briefly and clearly.
 
 ---
 
-## Contoh Output
+## Style Rules
 
-**Setelah membuat `information-architecture.md`:**
-
----
-
-`information-architecture.md` selesai. Berikut ringkasan apa yang dibuat:
-
-**Dikerjakan oleh:** AI utama
-
-**Apa yang dikerjakan:**
-Saya membuat "denah aplikasi" — dokumen yang menentukan menu apa saja yang ada, halaman apa yang ada di dalam setiap menu, dan dari mana masing-masing pengguna masuk ke aplikasi.
-
-**Poin utama:**
-
-- Menu utama ada 5: **Home, Publish, Engage, Analyze, Start Page** — urutan mengikuti alur kerja nyata, bukan daftar fitur
-- AI tidak punya menu sendiri — ia muncul di dalam editor caption saat dibutuhkan
-- Raka (yang kerja sehari-hari) masuk langsung ke Publish; Maya (manager) masuk lewat Home untuk lihat status
-- Semua fitur Must Have MVP sudah dipetakan ke layar spesifik
-
-**Mengapa penting:**
-Ini adalah fondasi sebelum kita merancang alur kerja pengguna dan tampilan layar.
-
-**Selanjutnya:**
-`user-flows.md` — alur solusi untuk pekerjaan inti pengguna.
+- Language: follow `AGENTS.md` rule 8.
+- Avoid technical jargon without explanation. When a technical term is unavoidable, explain it in a few words next to it — for example: "Information Architecture (the app's floor plan)".
+- Everyday analogies are welcome for clarifying abstract concepts.
+- Tone: warm, professional, straight to the point — not stiff, not long-winded.
+- Report length is proportional to the size of the work. Small work → short report. Large work → more detailed report, but still concise.
+- Do not say "I used skill X" or mention the skill name. Report the result directly.
+- The "Done by" line is required even when the report is very short.
 
 ---
 
-**Setelah membuat file konfigurasi:**
+## Example Output
+
+**After creating `information-architecture.md`:**
 
 ---
 
-`docker-compose.yml` selesai. Berikut ringkasan apa yang dibuat:
+`information-architecture.md` is done. Here is a summary of what was made:
 
-**Dikerjakan oleh:** Elon Backend Engineer
+**Done by:** Main AI
 
-**Apa yang dikerjakan:**
-Saya membuat file "resep" yang memberitahu Docker bagaimana cara menjalankan seluruh komponen aplikasi sekaligus — database, backend, dan frontend — cukup dengan satu perintah.
+**What was done:**
+I made the "floor plan of the app" — a document that decides which menus exist, which pages sit inside each menu, and where each kind of user enters the app.
 
-**Poin utama:**
+**Key points:**
 
-- 3 service: PostgreSQL (database), API server, dan Next.js frontend
-- Semua sudah terhubung satu sama lain lewat internal network
-- Data database disimpan di volume agar tidak hilang saat container dimatikan
+- There are 5 main menus: **Home, Publish, Engage, Analyze, Start Page** — the order follows the real workflow, not a feature list
+- The AI has no menu of its own — it appears inside the caption editor when needed
+- Raka (who works day to day) goes straight to Publish; Maya (the manager) enters through Home to check status
+- Every Must Have MVP feature is mapped to a specific screen
 
-**Mengapa penting:**
-Developer lain bisa langsung jalankan project tanpa setup manual yang rumit.
+**Why it matters:**
+This is the foundation before we design the user flows and the screen layouts.
 
-**Selanjutnya:**
-Uji coba jalankan dengan `docker compose up` dan pastikan semua service berjalan normal.
+**Next:**
+`user-flows.md` — the solution flows for the users' core jobs.
+
+---
+
+**After creating a configuration file:**
+
+---
+
+`docker-compose.yml` is done. Here is a summary of what was made:
+
+**Done by:** Elon Backend Engineer
+
+**What was done:**
+I made a "recipe" file that tells Docker how to run every part of the application at once — database, backend, and frontend — with a single command.
+
+**Key points:**
+
+- 3 services: PostgreSQL (database), API server, and Next.js frontend
+- All of them are connected to each other over an internal network
+- Database data is kept in a volume so it is not lost when the container is shut down
+
+**Why it matters:**
+Other developers can run the project right away without a complicated manual setup.
+
+**Next:**
+Try it with `docker compose up` and make sure all services run normally.
 
 ---
