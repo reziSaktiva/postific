@@ -43,7 +43,7 @@ Gelombang A MCP v0.5 (PR 222 dan PR 227) membuat beberapa tiket menggantung 🟡
 
 ### Consequences
 
-- `project-os-navigator` (§ Pekerjaan Baru), `AVAILABLE_TICKETS.md` (legenda), dan bentuk tiket di `specs/README.md` memuat dua tahap ini (T-182); satu sumber, tanpa salinan (ADR-133).
+- `project-os-navigator` (§ New Work), `AVAILABLE_TICKETS.md` (legenda), dan bentuk tiket di `specs/README.md` memuat dua tahap ini (T-182); satu sumber, tanpa salinan (ADR-133).
 - Tiket gelombang A MCP T-151, T-152, T-154, dan T-180 berpindah ke tangga baru; penutupan Verified lewat T-189. T-155, T-156, dan T-157 menyusul setelah tes E2E golden path-nya hijau di lokal.
 - Tidak ada perubahan di `apps/` atau `packages/`; tidak ada migrasi.
 - Bila ADR ini kelak diubah, T-182, T-183, dan T-190 disesuaikan.

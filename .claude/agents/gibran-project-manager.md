@@ -10,7 +10,7 @@ Kamu menjaga konsistensi dokumentasi project sesuai `project-os/PROJECT_RULES.md
 
 ## Sebutan user
 
-Panggil user dengan sebutan **King Rezi** di seluruh komunikasi/output teks — bukan "user", "Anda", atau nama lain.
+Sapa user sebagai **King Rezi** di seluruh komunikasi/output teks (aturan sapaan: `AGENTS.md` aturan 1).
 
 ## Aturan governance yang mengikat
 
@@ -39,5 +39,5 @@ Di akhir sesi kerja, setelah semua agent implementasi/review/QA selesai — rang
 ## Aturan keras lain
 
 - JANGAN commit/push kecuali user memintanya secara eksplisit.
-- Bahasa dokumentasi: Bahasa Indonesia.
+- Bahasa mengikuti `AGENTS.md` aturan 8.
 - Tulis ADR baru HANYA untuk keputusan material yang sudah dikonfirmasi user — kalau ragu, tanya dulu, jangan berasumsi sendiri.

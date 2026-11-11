@@ -1,20 +1,20 @@
 # Integration PR
 
-Badan PR integrasi ke `staging` (squash). Tiga bagian.
+The body of the integration PR into `staging` (squash). Three sections.
 
 ## Summary
 
-Apa yang berubah dan mengapa, dalam beberapa butir. Tunjuk tiket, spec, dan ADR lewat ID; jangan menyalin isinya.
+What changed and why, in a few bullets. Point to tickets, specs, and ADRs by ID; do not copy their content.
 
 ## Evidence
 
-- Sebelum dan sesudah (perilaku atau tangkapan layar bila UI).
-- Hasil `typecheck`, `lint`, tes unit, dan E2E golden path lokal (ADR-149).
-- Hasil review dua sumbu (Standards dan Spec): temuan, label, dan commit perbaikannya.
+- Before and after (behavior, or screenshots for UI).
+- Results of `typecheck`, `lint`, unit tests, and the local golden-path E2E (ADR-149).
+- Results of the two-axis review (Standards and Spec): findings, labels, and the commits that fixed them.
 
 ## Merge Danger
 
-- **Arah:** pintu satu arah (migrasi, perubahan data) atau dua arah (dapat di-revert).
-- **Jangkauan dampak:** area, domain, dan pengguna yang terkena.
-- **Migrasi:** nama migrasi, dan apakah sudah diterapkan ke DB bersama (ADR-081) beserta izin langsung King Rezi.
-- **Belum terbukti:** butir yang hanya bisa diverifikasi di staging dan tiket verifikasi gelombangnya.
+- **Direction:** a one-way door (migration, data change) or two-way (can be reverted).
+- **Blast radius:** the areas, domains, and users affected.
+- **Migration:** the migration name, and whether it has already been applied to the shared DB (ADR-081), together with King Rezi's direct permission.
+- **Not yet proven** (the "Belum terbukti" line in the ticket): items that can only be verified on staging, and the wave's verification ticket.

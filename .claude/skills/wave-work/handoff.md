@@ -1,44 +1,42 @@
 # Handoff
 
-Dipakai saat sesi gelombang berhenti di tengah jalan (batas pemakaian, idle,
-ganti agen). Dasar: `project-os/specs/S-003.md` § 3, ADR-133. Dokumen ini
-hanya **menunjuk**; isi spec, tiket, ADR, dan diff tidak disalin.
+Used when a wave session stops midway (usage limit, idle, change of agent). Basis: `project-os/specs/S-003.md` § 3, ADR-133. This document only **points**; the content of the spec, ticket, ADR, and diff is not copied.
 
-## Aturan
+## Rules
 
-- **Simpan di scratchpad sesi**, bukan di repo dan tidak di-commit.
-- **Penunjuk, bukan salinan:** spec, tiket, ADR, commit, dan PR ditulis lewat path, hash, atau URL. Agen berikutnya membuka sumbernya sendiri.
-- **Tanpa rahasia dan data pribadi:** tidak ada isi `.env.local`, token, kredensial, email, atau data pengguna. Bila sebuah nilai harus disebut, tulis letaknya, bukan nilainya.
-- **Ringkas:** cukup agar agen berikutnya bisa lanjut tanpa membaca ulang percakapan.
-- Izin gerbang King Rezi (migrasi, merge ke `staging`, tutup PR) tidak ikut berpindah lewat handoff. Agen berikutnya memintanya langsung ke King Rezi (lihat `SKILL.md` § Gerbang King Rezi).
+- **Keep it in the session scratchpad**, not in the repo, and do not commit it.
+- **Pointers, not copies:** spec, ticket, ADR, commit, and PR are written as a path, hash, or URL. The next agent opens the sources itself.
+- **No secrets or personal data:** no `.env.local` content, tokens, credentials, emails, or user data. If a value must be mentioned, write where it lives, not the value.
+- **Brief:** enough for the next agent to continue without rereading the conversation.
+- King Rezi's gate permissions (migration, merge to `staging`, close a PR) do not carry over through a handoff. The next agent asks King Rezi directly (see `SKILL.md` § King Rezi gates).
 
-## Bentuk
+## Form
 
 ```markdown
-# Handoff <nama gelombang atau jalur> · <tanggal>
+# Handoff <wave or lane name> · <date>
 
-## Tujuan lanjutan
+## Follow-up goal
 
-Satu sampai tiga kalimat: apa yang harus selesai dan tiket mana (ID, path section).
+One to three sentences: what must be finished and which ticket (ID, section path).
 
-## Keadaan terakhir
+## Last state
 
-- Branch integrasi dan branch jalur: <nama>; worktree: <path>
-- Commit terakhir per branch: <hash>
-- PR dan hasil CI: <URL>
-- Yang sudah selesai (✅) dan yang belum, per butir tiket
-- Yang belum terbukti (mis. butir yang hanya bisa dicek di staging)
+- Integration branch and lane branch: <name>; worktree: <path>
+- Last commit per branch: <hash>
+- PR and CI result: <URL>
+- What is done (✅) and what is not, per ticket item
+- What is not yet proven (e.g. items that can only be checked on staging)
 
-## Keputusan yang sudah diambil
+## Decisions already made
 
-Satu baris per keputusan, dengan penunjuk (ADR, komentar PR, atau pesan King Rezi
-yang dikutip singkat). Tandai pertanyaan yang masih milik King Rezi.
+One line per decision, with a pointer (ADR, PR comment, or a short quote of King Rezi's
+message). Mark questions that still belong to King Rezi.
 
-## Skill yang harus dipanggil agen berikutnya
+## Skills the next agent must call
 
-Nama skill dan alasan (mis. `wave-work` mulai dari langkah "Gabungkan jalur").
+Skill name and reason (e.g. `wave-work` starting from the step "Merge lanes into the integration branch").
 
-## Penunjuk bacaan
+## Reading pointers
 
-Path yang dibuka lebih dulu: spec, section tiket, brief jalur.
+Paths to open first: spec, ticket section, lane brief.
 ```

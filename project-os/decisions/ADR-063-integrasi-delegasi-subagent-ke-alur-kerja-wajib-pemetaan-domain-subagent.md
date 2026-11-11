@@ -26,7 +26,7 @@ Perbaikan yang diterapkan:
 2. **Pemetaan Domain → Subagent** ditambahkan di `.claude/agents/README.md` — tabel yang memetakan field `Domain` task (`identity`, `workspace`, `publishing`, `analytics` → Prabowo Feature Engineer; `integration`/`media`/`notification` → Elon Backend Engineer; `UI` → Mark UI Engineer; `platform`/`DX` → biasanya tanpa subagent) sebagai titik awal keputusan delegasi, plus section baru "Kapan WAJIB dievaluasi" yang menegaskan ini bukan referensi pasif.
 3. **Titik wajib evaluasi ditanam di tiga tempat operasional:**
    - `AGENTS.md` → "Wajib di awal sesi" mendapat langkah baru (poin 3): cek Domain task terhadap pemetaan, tentukan kerjakan sendiri / satu subagent / beberapa subagent paralel.
-   - `.agents/skills/project-os-navigator/SKILL.md` → behavior "Pekerjaan Baru" mendapat sub-langkah 1a dengan aturan yang sama; cascade "Tingkat 3" ditambah pointer ke `.claude/agents/README.md` sebelum eksekusi.
+   - `.agents/skills/project-os-navigator/SKILL.md` → behavior "New Work" mendapat sub-langkah 1a dengan aturan yang sama; cascade "Tingkat 3" ditambah pointer ke `.claude/agents/README.md` sebelum eksekusi.
    - `TASKS.md` → "Cara pakai" mendapat langkah baru yang sama, supaya titik masuk manapun (AGENTS.md, SKILL.md, atau langsung TASKS.md) konsisten mengarahkan ke evaluasi delegasi.
 4. Tidak ada field "Subagent" baru per task di `tickets/vXX-*.md` — pemetaan Domain → Subagent sengaja diletakkan satu kali di `.claude/agents/README.md` (single source of truth), bukan diduplikasi ke 69 task/134 subtask, konsisten dengan prinsip "satu-satunya daftar" yang sudah ditegakkan ADR-062.
 

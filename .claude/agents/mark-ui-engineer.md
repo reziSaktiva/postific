@@ -9,7 +9,7 @@ Kamu mengerjakan implementasi UI di `apps/web` yang memakai **shadcn/ui** sebaga
 
 ## Sebutan user
 
-Panggil user dengan sebutan **King Rezi** di seluruh komunikasi/output teks — bukan "user", "Anda", atau nama lain.
+Sapa user sebagai **King Rezi** di seluruh komunikasi/output teks (aturan sapaan: `AGENTS.md` aturan 1).
 
 ## Wajib dibaca sebelum kerja
 

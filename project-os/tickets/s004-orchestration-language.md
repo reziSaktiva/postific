@@ -119,41 +119,49 @@ Menunggu T-225 karena berkas yang sama. Istilah di berkas ini menjadi acuan empa
 
 ### T-242 · Translate the wave-work lane brief template
 
-`⏳ Not Started` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133 · **Spec** S-004 · **Depends** T-241, T-225
+`🟡 Done (code), menunggu Verified (staging) (2026-11-11)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133, ADR-153 · **Spec** S-004 · **Depends** T-241, T-225
 **Baca dulu:** `project-os/specs/S-004.md` · `.claude/skills/wave-work/lane-brief-template.md` · `.claude/skills/wave-work/SKILL.md`
 
-- [ ] **T-242.1** Berkas template utuh dalam bahasa Inggris. Bagian brief dan istilahnya mengikuti T-241.
-- [ ] **T-242.2** Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
+- [x] **T-242.1** Berkas template utuh dalam bahasa Inggris. Bagian brief dan istilahnya mengikuti T-241.
+- [x] **T-242.2** Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
+
+**Belum terbukti:** tidak ada butir runtime. Yang belum teruji: skill wave-work belum dipakai di gelombang nyata berikutnya, jadi belum terbukti ia mematuhi template terjemahan ini.
 
 **Blocked by:** T-241, T-225
 
 ### T-243 · Translate the wave-work handoff note
 
-`⏳ Not Started` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133 · **Spec** S-004 · **Depends** T-241
+`🟡 Done (code), menunggu Verified (staging) (2026-11-11)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133, ADR-153 · **Spec** S-004 · **Depends** T-241
 **Baca dulu:** `project-os/specs/S-004.md` · `.claude/skills/wave-work/handoff.md` · `.claude/skills/wave-work/SKILL.md`
 
-- [ ] **T-243.1** Berkas utuh dalam bahasa Inggris. Bentuk handoff (penunjuk, tanpa rahasia) tidak berubah. Istilah mengikuti T-241.
-- [ ] **T-243.2** Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
+- [x] **T-243.1** Berkas utuh dalam bahasa Inggris. Bentuk handoff (penunjuk, tanpa rahasia) tidak berubah. Istilah mengikuti T-241.
+- [x] **T-243.2** Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
+
+**Belum terbukti:** tidak ada butir runtime. Yang belum teruji: skill wave-work belum dipakai di gelombang nyata berikutnya, jadi belum terbukti ia mematuhi template terjemahan ini.
 
 **Blocked by:** T-241
 
 ### T-244 · Translate the wave-work retro note
 
-`⏳ Not Started` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133 · **Spec** S-004 · **Depends** T-241
+`🟡 Done (code), menunggu Verified (staging) (2026-11-11)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133, ADR-153 · **Spec** S-004 · **Depends** T-241
 **Baca dulu:** `project-os/specs/S-004.md` · `.claude/skills/wave-work/retro.md` · `.claude/skills/wave-work/SKILL.md`
 
-- [ ] **T-244.1** Berkas utuh dalam bahasa Inggris. Kategori saran retro tidak berubah. Istilah mengikuti T-241.
-- [ ] **T-244.2** Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
+- [x] **T-244.1** Berkas utuh dalam bahasa Inggris. Kategori saran retro tidak berubah. Istilah mengikuti T-241.
+- [x] **T-244.2** Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
+
+**Belum terbukti:** tidak ada butir runtime. Yang belum teruji: skill wave-work belum dipakai di gelombang nyata berikutnya, jadi belum terbukti ia mematuhi template terjemahan ini.
 
 **Blocked by:** T-241
 
 ### T-245 · Translate the wave-work integration pull request template
 
-`⏳ Not Started` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133 · **Spec** S-004 · **Depends** T-241
+`🟡 Done (code), menunggu Verified (staging) (2026-11-11)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133, ADR-153 · **Spec** S-004 · **Depends** T-241
 **Baca dulu:** `project-os/specs/S-004.md` · `.claude/skills/wave-work/integration-pr-template.md` · `.claude/skills/wave-work/SKILL.md`
 
-- [ ] **T-245.1** Berkas template utuh dalam bahasa Inggris. Bagian Summary, Evidence, dan Merge Danger tetap ada. Istilah mengikuti T-241.
-- [ ] **T-245.2** Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
+- [x] **T-245.1** Berkas template utuh dalam bahasa Inggris. Bagian Summary, Evidence, dan Merge Danger tetap ada. Istilah mengikuti T-241.
+- [x] **T-245.2** Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
+
+**Belum terbukti:** tidak ada butir runtime. Yang belum teruji: skill wave-work belum dipakai di gelombang nyata berikutnya, jadi belum terbukti ia mematuhi template terjemahan ini.
 
 **Blocked by:** T-241
 
@@ -166,8 +174,9 @@ Terjemahan T-235 mengubah judul section navigator ("Pekerjaan Baru" menjadi "New
 
 - [x] **T-246.1** Penunjuk ke judul section navigator memakai judul bahasa Inggris yang baru.
 - [x] **T-246.2** `bun run docs:check` bersih.
+- [x] **T-246.3** Audit topik language (2026-11-11): `project-os/PROJECT_OVERVIEW.md` baris "Bahasa komunikasi dan dokumentasi" menjadi penunjuk ke `AGENTS.md` aturan 8, dan rentang S-004 di `project-os/tickets/v01-foundation.md` menjadi T-234 sampai T-246. Atas keputusan King Rezi: berkas agen `ridwan-architecture-reviewer.md` dan `najwa-qa-engineer.md` memakai "Done by"; tujuh berkas agen menunjuk `AGENTS.md` aturan 1 (dan gibran aturan 8) alih-alih menyalin kalimatnya; penunjuk "§ New Work" di ADR-153 dan ADR-063.
 
-**Utang yang dicatat (tidak diperbaiki, keputusan King Rezi):** (a) `.claude/agents/ridwan-architecture-reviewer.md` baris 33 dan `najwa-qa-engineer.md` baris 68 masih menulis "Dikerjakan oleh", sedangkan `work-report-simple` kini "Done by". Masuk utang berkas agen T-234.5. (b) ADR-153 baris 46 masih menunjuk "§ Pekerjaan Baru". ADR adalah lapisan 3 historis dan tidak diedit.
+**Utang yang dicatat:** tidak ada tersisa. Selisih "Dikerjakan oleh" di berkas agen Ridwan dan Najwa, salinan kalimat sapaan di tujuh berkas agen, dan penunjuk "Pekerjaan Baru" di ADR-153 dan ADR-063 diperbaiki atas keputusan King Rezi setelah audit topik language (T-246.3).
 
 **Belum terbukti:** tidak ada butir runtime. Kata kunci status "Belum terbukti" dan "menunggu Verified (staging)" dipertahankan apa adanya sesuai S-004.
 
