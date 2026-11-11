@@ -253,7 +253,7 @@ describe("importThumbnailGenerator (T-230, ADR-158)", () => {
     ).toBeNull();
     expect(fetchMock).toHaveBeenCalledWith(
       VIDEO_URL,
-      expect.objectContaining({ method: "HEAD", redirect: "error" }),
+      expect.objectContaining({ method: "HEAD", redirect: "manual" }),
     );
   });
 
@@ -288,6 +288,42 @@ describe("importThumbnailGenerator (T-230, ADR-158)", () => {
         sourceUrl: VIDEO_URL,
       }),
     ).rejects.toBeInstanceOf(TransientThumbnailError);
+  });
+
+  it("T-233.0: HEAD dibalas redirect (302) adalah kegagalan PERMANEN (null), bukan sementara", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(null, {
+        status: 302,
+        headers: { location: "https://other.example/v.mp4" },
+      }),
+    );
+    process.env.FFMPEG_PATH = "/tidak/ada/ffmpeg";
+    expect(
+      await importThumbnailGenerator.generate({
+        workspaceId,
+        targetId: "t1",
+        sourceUrl: VIDEO_URL,
+      }),
+    ).toBeNull();
+    expect(upload).not.toHaveBeenCalled();
+  });
+
+  it("T-233.0: galat HEAD membawa penyebab di cause dan bukan kegagalan lingkungan", async () => {
+    const cause = new TypeError("fetch failed", {
+      cause: new Error("connect ETIMEDOUT 1.2.3.4:443"),
+    });
+    fetchMock.mockRejectedValue(cause);
+    await expect(
+      importThumbnailGenerator.generate({
+        workspaceId,
+        targetId: "t1",
+        sourceUrl: VIDEO_URL,
+      }),
+    ).rejects.toMatchObject({
+      message: "HEAD video gagal",
+      cause,
+      environment: false,
+    });
   });
 
   it("video: HEAD ditolak (403): null", async () => {

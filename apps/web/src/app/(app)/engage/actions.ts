@@ -39,7 +39,7 @@ import { toActionError } from "@/lib/utils/errors";
 import { createActiveWorkspaceMembersPort } from "@/lib/workspace/active-members-port";
 import { getWorkspaceContext } from "@/lib/workspace/workspace-context";
 
-import { resolveSnapshotThumbnail } from "./snapshot-thumbnail";
+import { resolveSnapshotThumbnail } from "../components/snapshot-thumbnail";
 
 /**
  * Manual refresh Comments Inbox (T-052, `background-jobs.md` § JOB-03).

@@ -218,6 +218,7 @@ function mapHistoryItem(post: QueuePostWithTargets): HistoryItemRecord {
       status: target.status as PublishingPostTargetStatus,
       platformPostUrl: target.platformPostUrl,
       error: target.error,
+      thumbnailStoragePath: target.thumbnailStoragePath,
     })),
   };
 }
@@ -1408,6 +1409,36 @@ export const publishingRepository: IPublishingRepository = {
         },
       }),
     );
+  },
+
+  /** T-233 — lihat `IPublishingRepository.recordImportedTargetThumbnailFailure`. */
+  async recordImportedTargetThumbnailFailure(
+    { workspaceId, targetId, maxAttempts },
+    userId,
+  ) {
+    return withCurrentUser(userId, async (tx) => {
+      const pending = {
+        id: targetId,
+        // Tidak menyentuh target yang sudah punya thumbnail atau sudah ditandai
+        // permanen oleh job duplikat.
+        thumbnailStoragePath: null,
+        thumbnailAttemptedAt: null,
+        post: {
+          workspaceId,
+          deletedAt: null,
+          status: ContentStatus.Imported,
+        },
+      };
+      await tx.publishingPostTarget.updateMany({
+        where: pending,
+        data: { thumbnailAttempts: { increment: 1 } },
+      });
+      const { count } = await tx.publishingPostTarget.updateMany({
+        where: { ...pending, thumbnailAttempts: { gte: maxAttempts } },
+        data: { thumbnailAttemptedAt: new Date() },
+      });
+      return { exhausted: count > 0 };
+    });
   },
 
   /**

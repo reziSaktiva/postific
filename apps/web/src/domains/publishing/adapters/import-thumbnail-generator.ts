@@ -21,9 +21,20 @@ export interface GenerateImportThumbnailInput {
  * rusak) yang dikembalikan sebagai `null` dan ditandai.
  */
 export class TransientThumbnailError extends Error {
-  constructor(message: string, options?: { cause?: unknown }) {
-    super(message, options);
+  /**
+   * `true` bila penyebabnya lingkungan, bukan target (`ffmpeg`/`sharp` tidak
+   * bisa dijalankan, gagal menyimpan ke Storage, dibatalkan): kegagalan itu
+   * tidak menghitung sebagai percobaan target (T-233, review code-review).
+   */
+  readonly environment: boolean;
+
+  constructor(
+    message: string,
+    options?: { cause?: unknown; environment?: boolean },
+  ) {
+    super(message, { cause: options?.cause });
     this.name = "TransientThumbnailError";
+    this.environment = options?.environment ?? false;
   }
 }
 

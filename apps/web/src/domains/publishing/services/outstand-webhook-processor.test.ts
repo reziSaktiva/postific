@@ -103,6 +103,7 @@ function createFakeRepository(
     listImportedTargetIdsNeedingThumbnail: async () => [],
     findImportedTargetsNeedingThumbnail: async () => [],
     saveImportedTargetThumbnail: async () => undefined,
+    recordImportedTargetThumbnailFailure: async () => ({ exhausted: false }),
     upsertImportedPosts: async () => ({
       insertedCount: 0,
       skippedDuplicateCount: 0,

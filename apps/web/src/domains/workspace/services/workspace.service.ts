@@ -212,6 +212,16 @@ interface AnalyticsRecomputePort {
 }
 
 /**
+ * Port lokal cross-domain `workspace` → `publishing`/Storage (T-231, ADR-158):
+ * setelah workspace dihapus, berkas thumbnail posting impornya di bucket
+ * `media` dibersihkan. Opsional (`undefined` di test/caller lama), dipanggil
+ * BEST-EFFORT: kegagalan hanya dicatat, berkas yatim disapu job harian JOB-10.
+ */
+export interface WorkspaceDeletionCleanupPort {
+  onWorkspaceDeleted(workspaceId: WorkspaceId): Promise<void>;
+}
+
+/**
  * Port lokal untuk cross-domain/infra `workspace` → email transactional
  * (T-110, KI-053, AGENTS.md #6) — `WorkspaceService` TIDAK BOLEH mengimpor
  * Resend SDK/HTTP client langsung. Implementasi konkret ada di
@@ -339,6 +349,12 @@ export class WorkspaceService {
      * bukan menunggu fan-out harian JOB-04.
      */
     private readonly analyticsRecompute?: AnalyticsRecomputePort,
+    /**
+     * Pembersihan berkas thumbnail posting impor saat workspace dihapus
+     * (T-231, ADR-158). Opsional; wajib disuplai di composition root
+     * `deleteWorkspaceAction`.
+     */
+    private readonly workspaceDeletionCleanup?: WorkspaceDeletionCleanupPort,
   ) {}
 
   async createWorkspace(input: {
@@ -1443,6 +1459,18 @@ export class WorkspaceService {
     );
 
     await this.repository.deleteWorkspace(workspaceId, actorUserId);
+
+    // T-231 (ADR-158): baris DB sudah hilang (cascade); berkas thumbnail di
+    // Storage dibersihkan best-effort SESUDAH itu, supaya kegagalan hapus
+    // workspace tidak pernah menghilangkan berkas yang masih dirujuk.
+    try {
+      await this.workspaceDeletionCleanup?.onWorkspaceDeleted(workspaceId);
+    } catch (error) {
+      console.error(
+        "[WorkspaceService.deleteWorkspace] gagal membersihkan thumbnail impor; disapu job harian",
+        error,
+      );
+    }
   }
 
   /**

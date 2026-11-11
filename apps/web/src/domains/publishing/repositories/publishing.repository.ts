@@ -258,6 +258,13 @@ export interface HistoryItemTargetRecord extends QueueItemTargetRecord {
   status: PublishingPostTargetStatus;
   platformPostUrl: string | null;
   error: string | null;
+  /**
+   * T-232 (ADR-158) — thumbnail tersimpan posting impor (path di bucket
+   * `media`, T-230). Opsional di tipe (fixture lama); repository selalu
+   * mengisinya, `null` untuk target non-impor; dipakai History Detail lewat
+   * resolver bersama dengan Engage.
+   */
+  thumbnailStoragePath?: string | null;
 }
 
 /**
@@ -1163,6 +1170,22 @@ export interface IPublishingRepository {
     },
     userId: UserId,
   ): Promise<void>;
+
+  /**
+   * T-233 (ADR-158, addendum): catat satu kegagalan SEMENTARA thumbnail target
+   * (naikkan `thumbnailAttempts`). Begitu penghitung mencapai `maxAttempts`,
+   * target ditandai permanen lewat `thumbnailAttemptedAt` (tidak dicoba lagi)
+   * dan `exhausted` bernilai `true`. Tidak menyentuh target yang sudah punya
+   * thumbnail atau sudah ditandai (job duplikat).
+   */
+  recordImportedTargetThumbnailFailure(
+    input: {
+      workspaceId: WorkspaceId;
+      targetId: string;
+      maxAttempts: number;
+    },
+    userId: UserId,
+  ): Promise<{ exhausted: boolean }>;
 
   /**
    * Preview post asli (T-056, KI-065) — snapshot caption/media/

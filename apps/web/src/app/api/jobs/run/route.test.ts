@@ -13,6 +13,9 @@ const {
   executeImportSyncIfDue,
   enqueueImportMediaBackfill,
   processImportMedia,
+  executeSweep,
+  executeSweepIfDue,
+  sweepOrphans,
 } = vi.hoisted(() => ({
   getServerEnv: vi.fn(),
   runPendingJobs: vi.fn(),
@@ -33,6 +36,13 @@ const {
   executeImportSyncIfDue: vi.fn(async () => ({ enqueued: 0, skipped: true })),
   enqueueImportMediaBackfill: vi.fn(async () => ({ accounts: 0, enqueued: 0 })),
   processImportMedia: vi.fn(async () => ({})),
+  executeSweep: vi.fn(async () => ({ enqueued: 0 })),
+  executeSweepIfDue: vi.fn(async () => ({ enqueued: 0, skipped: true })),
+  sweepOrphans: vi.fn(async () => ({
+    scanned: 0,
+    removed: 0,
+    incomplete: false,
+  })),
 }));
 vi.mock("@/lib/env", () => ({ getServerEnv }));
 
@@ -69,6 +79,14 @@ vi.mock("@/domains/publishing", () => ({
   },
   IMPORT_SYNC_JOB_TYPE: "import.sync",
   IMPORT_MEDIA_JOB_TYPE: "import.media",
+  IMPORT_THUMBNAIL_SWEEP_JOB_TYPE: "import.media.sweep",
+  EnqueueImportThumbnailSweepUseCase: class {
+    execute = executeSweep;
+    executeIfDue = executeSweepIfDue;
+  },
+  ImportThumbnailSweepJobHandler: class {
+    handle = vi.fn();
+  },
   defaultSleep: async () => undefined,
   ImportMediaJobHandler: class {
     handle = vi.fn();
@@ -91,6 +109,8 @@ vi.mock("@/lib/jobs/import-media-composition", () => ({
     enqueueForAccount: vi.fn(),
   }),
   createProcessImportMediaUseCase: () => ({ process: processImportMedia }),
+  createImportThumbnailSweepJobsPort: () => ({}),
+  createPurgeImportThumbnailsUseCase: () => ({ sweepOrphans }),
 }));
 vi.mock("@/domains/notification", () => ({
   NotificationService: class {},
@@ -498,6 +518,46 @@ describe("POST /api/jobs/run (T-027.1/.2)", () => {
       >;
       await handlers["mcp.audit.purge"]?.({}, "job-1");
       expect(purgeExpiredWorkspaceChoices).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("JOB-10 sapuan thumbnail impor (T-231)", () => {
+    it("runs the daily fan-out through executeIfDue", async () => {
+      const { POST } = await import("./route");
+
+      await POST(buildRequest(SECRET));
+
+      expect(executeSweepIfDue).toHaveBeenCalledTimes(1);
+      expect(executeSweep).not.toHaveBeenCalled();
+    });
+
+    it("forces a sweep with ?type=import-media-sweep", async () => {
+      const { POST } = await import("./route");
+
+      await POST(
+        buildRequest(
+          SECRET,
+          "http://localhost/api/jobs/run?type=import-media-sweep",
+        ),
+      );
+
+      expect(executeSweep).toHaveBeenCalledTimes(1);
+      expect(executeSweepIfDue).not.toHaveBeenCalled();
+    });
+
+    it("keeps running pending jobs when the sweep fan-out fails", async () => {
+      executeSweepIfDue.mockRejectedValueOnce(new Error("db down"));
+      const { POST } = await import("./route");
+
+      const response = await POST(buildRequest(SECRET));
+
+      expect(response.status).toBe(200);
+      expect(runPendingJobs).toHaveBeenCalledTimes(1);
+      const handlers = runPendingJobs.mock.calls[0]?.[1] as Record<
+        string,
+        unknown
+      >;
+      expect(typeof handlers["import.media.sweep"]).toBe("function");
     });
   });
 });

@@ -125,6 +125,61 @@ describe("publishingRepository thumbnail posting impor (T-230)", () => {
     expect(data.thumbnailAttemptedAt).toBeInstanceOf(Date);
   });
 
+  it("recordImportedTargetThumbnailFailure: menaikkan penghitung hanya untuk target yang belum punya thumbnail dan belum ditandai", async () => {
+    updateMany.mockResolvedValue({ count: 1 });
+
+    await publishingRepository.recordImportedTargetThumbnailFailure(
+      { workspaceId, targetId: "t1", maxAttempts: 5 },
+      userId,
+    );
+
+    const first = updateMany.mock.calls[0][0];
+    expect(first.where).toMatchObject({
+      id: "t1",
+      thumbnailStoragePath: null,
+      thumbnailAttemptedAt: null,
+      post: { workspaceId, status: ContentStatus.Imported },
+    });
+    expect(first.data).toEqual({ thumbnailAttempts: { increment: 1 } });
+  });
+
+  it("recordImportedTargetThumbnailFailure: di bawah batas tidak menandai permanen", async () => {
+    // Update kedua (penanda batas) tidak mengenai baris apa pun.
+    updateMany
+      .mockResolvedValueOnce({ count: 1 })
+      .mockResolvedValueOnce({ count: 0 });
+
+    const result =
+      await publishingRepository.recordImportedTargetThumbnailFailure(
+        { workspaceId, targetId: "t1", maxAttempts: 5 },
+        userId,
+      );
+
+    expect(result).toEqual({ exhausted: false });
+    const second = updateMany.mock.calls[1][0];
+    expect(second.where.thumbnailAttempts).toEqual({ gte: 5 });
+  });
+
+  it("recordImportedTargetThumbnailFailure: mencapai batas mengisi thumbnailAttemptedAt dan melapor exhausted", async () => {
+    updateMany
+      .mockResolvedValueOnce({ count: 1 })
+      .mockResolvedValueOnce({ count: 1 });
+
+    const result =
+      await publishingRepository.recordImportedTargetThumbnailFailure(
+        { workspaceId, targetId: "t1", maxAttempts: 5 },
+        userId,
+      );
+
+    expect(result).toEqual({ exhausted: true });
+    const second = updateMany.mock.calls[1][0];
+    expect(second.data.thumbnailAttemptedAt).toBeInstanceOf(Date);
+    // Tidak menyentuh path thumbnail (tidak menimpa hasil job duplikat).
+    expect(second.data).not.toHaveProperty("thumbnailStoragePath");
+    expect(second.where.thumbnailStoragePath).toBeNull();
+    expect(second.where.thumbnailAttemptedAt).toBeNull();
+  });
+
   it("findPostSnapshotForEngagement: membawa thumbnail tersimpan dan menormalkan jenis tak dikenal", async () => {
     findFirst.mockResolvedValue({
       platformPostUrl: "https://ig/p/1",

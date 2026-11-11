@@ -47,7 +47,7 @@ Sistem membutuhkan dua kategori background job:
 
 Sistem menggunakan **PostgreSQL-backed job queue** dengan tabel `background_jobs` sebagai sumber kebenaran status job. Eksekusi job dipicu oleh:
 
-1. **Railway Cron** — memanggil Route Handler `/api/jobs/run` pada interval tertentu (setiap menit untuk event-driven jobs dan setiap 30 menit untuk JOB-03 Engagement sync; Analytics dan JOB-08 purge audit MCP memiliki jadwal harian tersendiri).
+1. **Railway Cron** — memanggil Route Handler `/api/jobs/run` pada interval tertentu (setiap menit untuk event-driven jobs dan setiap 30 menit untuk JOB-03 Engagement sync; Analytics, JOB-08 purge audit MCP, dan JOB-10 sapuan thumbnail impor memiliki jadwal harian tersendiri).
 2. **Ingestion/Application Service** — menulis job baru ke tabel `background_jobs` saat ada receipt webhook baru atau operasi async lain.
 
 ```
@@ -299,10 +299,39 @@ sisa target tetap tertunda untuk job berikutnya.
 
 **Idempotensi:** Hanya target yang belum punya thumbnail dan belum pernah dicoba
 yang diproses. Kegagalan permanen (URL kedaluwarsa, host tidak dikenal, terlalu
-besar) ditandai `thumbnail_attempted_at`; kegagalan sementara (timeout, 5xx,
-`ffmpeg` belum terpasang) tidak ditandai dan dicoba lagi pada pemicu berikutnya.
+besar, redirect pada `HEAD` video) ditandai `thumbnail_attempted_at`; kegagalan
+sementara (timeout, 5xx, `ffmpeg` belum terpasang) menaikkan
+`thumbnail_attempts` dan dicoba lagi pada pemicu berikutnya, sampai batas 5
+(`MAX_THUMBNAIL_ATTEMPTS`, T-233), lalu ditandai permanen seperti kegagalan
+permanen. Pembatalan karena anggaran waktu job tidak menaikkan penghitung.
+Log peringatan memuat penyebab bertingkat galat.
 
 **Retry:** Mengikuti retry generik job runner (lihat § Retry Strategy di bawah).
+
+## JOB-10 — Sapuan Thumbnail Impor Yatim
+
+**Trigger:** Fan-out harian (sekali per hari UTC, menumpang cron menit yang
+sudah hidup lewat `executeIfDue`), atau paksa lewat
+`POST /api/jobs/run?type=import-media-sweep` (ADR-158, T-231).
+
+**Tipe:** `import.media.sweep` — payload kosong.
+
+**Handler:** `ImportThumbnailSweepJobHandler` memanggil
+`PurgeImportThumbnailsUseCase.sweepOrphans`: untuk tiap workspace, daftar berkas
+`{workspaceId}/imports/` di bucket `media`, tanya DB path mana yang masih
+dirujuk `thumbnail_storage_path` (fungsi SECURITY DEFINER
+`import_thumbnail_referenced_paths`), lalu hapus yang tidak dirujuk. Berkas yang
+lebih muda dari 1 jam dilewati (unggahan mendahului penyimpanan path di DB).
+Anggaran 20 detik; titik awal workspace diputar per hari UTC; kegagalan satu
+workspace tidak menahan yang lain. Idempoten.
+
+**Pembersihan langsung (bukan job):** `WorkspaceService.deleteWorkspace`
+memanggil `PurgeImportThumbnailsUseCase.purgeWorkspace` best-effort SESUDAH
+baris workspace terhapus (cascade); kegagalannya hanya dicatat dan disapu job
+ini. Memutus akun (`disconnectAccount`) hanya mengubah status dan tidak
+menghapus target, jadi thumbnail posting impor akun itu TETAP disimpan (riwayat
+posting impor tetap tampil); posting impor tidak bisa di-soft-delete (hanya
+Draft yang bisa, T-091.1).
 
 ---
 

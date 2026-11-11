@@ -3928,6 +3928,82 @@ describe("WorkspaceService.deleteWorkspace", () => {
     expect(deleted).toBe(1);
   });
 
+  it("cleans up the workspace thumbnails after the DB delete (T-231)", async () => {
+    const order: string[] = [];
+    const service = new WorkspaceService(
+      createFakeRepository({
+        ...seedMembers(baseSeed()),
+        deleteWorkspace: async () => {
+          order.push("db");
+        },
+      }),
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      {
+        onWorkspaceDeleted: async (id) => {
+          order.push(`cleanup:${id}`);
+        },
+      },
+    );
+
+    await service.deleteWorkspace(WORKSPACE_ID, OWNER_USER);
+
+    expect(order).toEqual(["db", `cleanup:${WORKSPACE_ID}`]);
+  });
+
+  it("still succeeds when the thumbnail cleanup fails (T-231)", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const service = new WorkspaceService(
+      createFakeRepository(seedMembers(baseSeed())),
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      {
+        onWorkspaceDeleted: async () => {
+          throw new Error("storage down");
+        },
+      },
+    );
+
+    await expect(
+      service.deleteWorkspace(WORKSPACE_ID, OWNER_USER),
+    ).resolves.toBeUndefined();
+    expect(error).toHaveBeenCalled();
+    error.mockRestore();
+  });
+
+  it("does not clean up when a non-Owner is rejected (T-231)", async () => {
+    const cleanup = vi.fn(async () => undefined);
+    const service = new WorkspaceService(
+      createFakeRepository(seedMembers(baseSeed())),
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      { onWorkspaceDeleted: cleanup },
+    );
+
+    await expect(
+      service.deleteWorkspace(WORKSPACE_ID, ADMIN_USER),
+    ).rejects.toThrow(AuthorizationError);
+    expect(cleanup).not.toHaveBeenCalled();
+  });
+
   it("rejects Admin trying to delete the workspace", async () => {
     let deleted = 0;
     const service = new WorkspaceService(

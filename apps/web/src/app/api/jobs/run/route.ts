@@ -19,7 +19,10 @@ import {
   BackfillOutstandPostIdsUseCase,
   ClassifyImportedPostTargetsUseCase,
   EnqueueImportSyncUseCase,
+  EnqueueImportThumbnailSweepUseCase,
   IMPORT_MEDIA_JOB_TYPE,
+  IMPORT_THUMBNAIL_SWEEP_JOB_TYPE,
+  ImportThumbnailSweepJobHandler,
   IMPORT_SYNC_JOB_TYPE,
   defaultSleep,
   ImportMediaJobHandler,
@@ -43,6 +46,8 @@ import { createAnalyticsSyncJobsPort } from "@/lib/jobs/analytics-sync-enqueue-p
 import { createImportSyncJobsPort } from "@/lib/jobs/import-sync-enqueue-port";
 import {
   createEnqueueImportMediaUseCase,
+  createImportThumbnailSweepJobsPort,
+  createPurgeImportThumbnailsUseCase,
   createProcessImportMediaUseCase,
 } from "@/lib/jobs/import-media-composition";
 import { createMcpAuditPurgeJobsPort } from "@/lib/jobs/mcp-audit-purge-enqueue-port";
@@ -169,6 +174,13 @@ export async function POST(request: Request): Promise<Response> {
     createProcessImportMediaUseCase(),
   );
 
+  const enqueueImportThumbnailSweep = new EnqueueImportThumbnailSweepUseCase(
+    createImportThumbnailSweepJobsPort(),
+  );
+  const importThumbnailSweepHandler = new ImportThumbnailSweepJobHandler(
+    createPurgeImportThumbnailsUseCase(),
+  );
+
   const mcpAuditPurgeHandler = new McpAuditPurgeJobHandler(
     getMcpAccessService(),
     getMcpConsentService(),
@@ -215,6 +227,20 @@ export async function POST(request: Request): Promise<Response> {
     }
   }
 
+  // T-231 (ADR-158, JOB-10): sapuan harian berkas thumbnail impor yang yatim.
+  try {
+    if (jobType === "import-media-sweep") {
+      await enqueueImportThumbnailSweep.execute();
+    } else {
+      await enqueueImportThumbnailSweep.executeIfDue();
+    }
+  } catch (error) {
+    console.error(
+      "[jobs/run] fan-out sapuan thumbnail impor gagal, job lain tetap dijalankan:",
+      error,
+    );
+  }
+
   try {
     if (jobType === "mcp-audit-purge") {
       await enqueueMcpAuditPurge.execute();
@@ -238,6 +264,8 @@ export async function POST(request: Request): Promise<Response> {
     [IMPORT_SYNC_JOB_TYPE]: (payload, jobId) =>
       importSyncHandler.handle(payload, jobId),
     [IMPORT_MEDIA_JOB_TYPE]: (payload) => importMediaHandler.handle(payload),
+    [IMPORT_THUMBNAIL_SWEEP_JOB_TYPE]: () =>
+      importThumbnailSweepHandler.handle(),
     [MCP_AUDIT_PURGE_JOB_TYPE]: () => mcpAuditPurgeHandler.handle(),
   };
 
