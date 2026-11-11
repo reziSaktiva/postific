@@ -3683,7 +3683,7 @@ Berkas `{workspaceId}/imports/{targetId}.webp` tidak ikut terhapus bila posting 
 
 | Field       | Value                                                                                    |
 | ----------- | ---------------------------------------------------------------------------------------- |
-| **Status**  | ⏳ Not Started                                                                           |
+| **Status**  | 🟡 In Progress                                                                           |
 | **Mode**    | AFK (UI/UX-related: gate rancangan berlaku sebelum kode)                                 |
 | **Domain**  | publishing · media · UI                                                                  |
 | **Spec**    | S-006 (konteks)                                                                          |
@@ -3698,7 +3698,17 @@ Halaman History Detail (`apps/web/src/app/(app)/publish/history/[postId]/page.ts
 - [ ] **T-232.2** Tanda tangan URL lewat `MediaService.signStoragePaths(workspaceId, paths)` (workspace-scoped); gagal tanda tangan jatuh ke URL CDN atau tanpa thumbnail, tidak melempar.
 - [ ] **T-232.3** Tes unit/komponen; E2E History (ADR-149) diperluas bila perlu; `typecheck`, `lint`, tes hijau; amati terang, gelap, dan 375px.
 
-**Blocked by:** gate rancangan (di atas); T-230.
+**Putusan gate (King Rezi, langsung di chat, 2026-11-11):** kartu `ScreenPublishHistoryDetail` belum merancang posting impor, jadi pola ditetapkan lewat putusan King Rezi, bukan LOCKED PATTERN baru: (1a) thumbnail impor tampil seperti media biasa (`MediaThumbnail fit="natural"`, lebar penuh, antara caption dan divider); (2a) tanpa thumbnail, bagian media dihilangkan seperti sekarang; (3a) multi-target memakai target pertama yang punya `thumbnailStoragePath`, urut menurut target di `item` (bila tak ada, target pertama yang punya URL CDN). Kartu artifact dicatat belakangan (artifact tidak diubah di tiket ini).
+
+**Implementasi (Jalur B):** resolver `resolveSnapshotThumbnail` dipindah ke `app/(app)/components/snapshot-thumbnail.ts` (dipakai Engage dan History); `HistoryItemTargetRecord` membawa `thumbnailStoragePath` dan `externalMediaUrl` (opsional di tipe, selalu diisi `mapHistoryItem`); `publish/history/[postId]/history-thumbnail.ts` memilih target dan memanggil resolver + `MediaService.signStoragePaths`.
+
+- [x] **T-232.1** (kode + tes unit)
+- [x] **T-232.2** (gagal tanda tangan, melempar maupun peta kosong, jatuh ke CDN atau null)
+- [~] **T-232.3** `typecheck`, `lint`, tes unit hijau (1246 lulus). Struktur `HistoryDetail.tsx` tidak diubah (hanya data thumbnail yang mengalir), jadi tidak ada deviasi struktural dari kartu T-111.1.
+
+**Belum terbukti:** E2E History tidak ada di `apps/web/e2e` dan tidak diperluas; worktree tanpa `.env.local`/DB lokal, sehingga pengamatan terang, gelap, 375px dengan posting impor bertumbuh thumbnail nyata belum dilakukan. Tidak ada tes repository untuk `mapHistoryItem` (pemetaan dua field baru hanya terbukti lewat typecheck). Perlu dicek di staging (Verified).
+
+**Blocked by:** gate rancangan (lolos lewat putusan King Rezi di atas); T-230.
 
 ---
 

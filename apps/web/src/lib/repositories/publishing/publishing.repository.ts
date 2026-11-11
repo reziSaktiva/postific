@@ -218,6 +218,8 @@ function mapHistoryItem(post: QueuePostWithTargets): HistoryItemRecord {
       status: target.status as PublishingPostTargetStatus,
       platformPostUrl: target.platformPostUrl,
       error: target.error,
+      thumbnailStoragePath: target.thumbnailStoragePath,
+      externalMediaUrl: firstExternalMediaUrl(target.platformOptions),
     })),
   };
 }

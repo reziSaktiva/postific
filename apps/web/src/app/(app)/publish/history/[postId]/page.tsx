@@ -17,6 +17,7 @@ import { supabaseMediaStorageAdapter } from "@/lib/adapters/media-storage/supaba
 import { NotFoundError } from "@/lib/utils/errors";
 
 import { HistoryDetail } from "./components/HistoryDetail";
+import { resolveHistoryThumbnail } from "./history-thumbnail";
 
 /**
  * `/publish/history/[postId]` (T-034.3, KSP-D10) — entry point tipis:
@@ -99,9 +100,13 @@ export default async function Page({
     mediaRepository,
     supabaseMediaStorageAdapter,
   );
-  const thumbnail = await mediaService.resolveFirstThumbnail(
-    { workspaceId, mediaIds: item.mediaIds },
+  // T-232 (ADR-158): posting impor tanpa `mediaIds` memakai thumbnail
+  // tersimpan lewat resolver bersama dengan Engage (lihat `history-thumbnail`).
+  const thumbnail = await resolveHistoryThumbnail(
+    item,
+    workspaceId,
     userId,
+    mediaService,
   );
 
   return <HistoryDetail item={item} thumbnail={thumbnail} />;
