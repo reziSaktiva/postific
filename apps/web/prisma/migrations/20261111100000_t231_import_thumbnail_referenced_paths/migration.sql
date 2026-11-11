@@ -23,8 +23,17 @@ $$;
 
 REVOKE ALL ON FUNCTION "public"."import_thumbnail_referenced_paths"(text[]) FROM PUBLIC;
 
+-- Grant default Supabase ke `anon` dan `authenticated` tidak tercabut oleh
+-- REVOKE FROM PUBLIC (pola T-070/T-074, review Ridwan H1). Dicek lewat
+-- pg_roles agar tidak gagal di shadow/local DB.
 DO $$
 BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
+    REVOKE ALL ON FUNCTION "public"."import_thumbnail_referenced_paths"(text[]) FROM "anon";
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+    REVOKE ALL ON FUNCTION "public"."import_thumbnail_referenced_paths"(text[]) FROM "authenticated";
+  END IF;
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app_runtime') THEN
     GRANT EXECUTE ON FUNCTION "public"."import_thumbnail_referenced_paths"(text[]) TO "app_runtime";
   END IF;

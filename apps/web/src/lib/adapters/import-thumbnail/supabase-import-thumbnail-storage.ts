@@ -8,6 +8,16 @@ const MEDIA_BUCKET = "media";
 const LIST_PAGE = 1000;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/** Waktu terbaru dari dua stempel opsional; `null` bila keduanya tak terbaca. */
+export function latestTimestamp(
+  ...values: Array<string | null | undefined>
+): Date | null {
+  const times = values
+    .map((value) => (value ? new Date(value).getTime() : Number.NaN))
+    .filter((time) => !Number.isNaN(time));
+  return times.length > 0 ? new Date(Math.max(...times)) : null;
+}
+
 /**
  * Implementasi pembersihan thumbnail posting impor di Supabase Storage
  * (T-231, ADR-158). Bucket `media` Private; path
@@ -51,7 +61,9 @@ export const supabaseImportThumbnailStorage: IImportThumbnailStorage = {
       .filter((entry) => entry.id !== null)
       .map((entry): StoredImportThumbnail => ({
         path: `${workspaceId}/imports/${entry.name}`,
-        createdAt: entry.created_at ? new Date(entry.created_at) : null,
+        // Waktu terakhir berkas disentuh: upload ulang (upsert) mengubah
+        // `updated_at` tetapi tidak `created_at` (review Ridwan P1).
+        createdAt: latestTimestamp(entry.created_at, entry.updated_at),
       }));
   },
 
