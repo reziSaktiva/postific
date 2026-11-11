@@ -24,150 +24,150 @@ Gerbang bahasa orkestrasi. Menulis ADR baru (nomor berikutnya setelah ADR-159, p
 
 ### T-235 · Translate the project-os-navigator skill
 
-`🟡 Done (code), menunggu Verified (staging) (2026-11-11)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133 · **Spec** S-004 · **Depends** T-234
+`✅ Done (2026-11-11)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133 · **Spec** S-004 · **Depends** T-234
 **Baca dulu:** `project-os/specs/S-004.md` · `.claude/skills/project-os-navigator/SKILL.md`
 
 - [x] **T-235.1** Berkas skill utuh dalam bahasa Inggris. Arti gerbang dan kata kunci status tidak berubah. Sebutan King Rezi tetap. **5 Magic Words** mengikuti ADR T-234.
 - [x] **T-235.2** Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
-- [ ] **T-235.3** Satu sesi uji mematuhi gerbang yang sama dengan versi sebelumnya.
+- [x] **T-235.3** `(2026-11-11, perbandingan skill Indonesia git eed07936 dengan versi Inggris oleh agen independen)` Satu sesi uji mematuhi gerbang yang sama dengan versi sebelumnya.
 
-**Belum terbukti:** T-235.3, satu sesi uji belum dijalankan. Butir ini sisa verifikasinya.
+**Belum terbukti:** tidak ada. T-235.3 terverifikasi lewat sesi uji kesetaraan gerbang 2026-11-11: PASS, tidak ada gerbang yang hilang, bertambah, atau tertukar.
 
 **Blocked by:** T-234
 
 ### T-236 · Translate the proactive-clarification skill
 
-`🟡 Done (code), menunggu Verified (staging) (2026-11-11)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133 · **Spec** S-004 · **Depends** T-234
+`✅ Done (2026-11-11)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133 · **Spec** S-004 · **Depends** T-234
 **Baca dulu:** `project-os/specs/S-004.md` · `.claude/skills/proactive-clarification/SKILL.md`
 
 - [x] **T-236.1** Berkas skill utuh dalam bahasa Inggris. Cara bertanya per ronde tidak berubah. Sebutan King Rezi tetap. **5 Magic Words** mengikuti ADR T-234.
 - [x] **T-236.2** Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
-- [ ] **T-236.3** Satu sesi uji mematuhi gerbang yang sama dengan versi sebelumnya.
+- [x] **T-236.3** `(2026-11-11, perbandingan skill Indonesia git eed07936 dengan versi Inggris oleh agen independen)` Satu sesi uji mematuhi gerbang yang sama dengan versi sebelumnya.
 
-**Belum terbukti:** T-236.3, satu sesi uji belum dijalankan. Butir ini sisa verifikasinya.
+**Belum terbukti:** tidak ada. T-236.3 terverifikasi lewat sesi uji kesetaraan gerbang 2026-11-11: PASS, tidak ada gerbang yang hilang, bertambah, atau tertukar.
 
 **Blocked by:** T-234
 
 ### T-237 · Translate the docs-consistency-audit skill
 
-`🟡 Done (code), menunggu Verified (staging) (2026-11-11)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133 · **Spec** S-004 · **Depends** T-234
+`✅ Done (2026-11-11)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133 · **Spec** S-004 · **Depends** T-234
 **Baca dulu:** `project-os/specs/S-004.md` · `.claude/skills/docs-consistency-audit/SKILL.md`
 
 - [x] **T-237.1** Berkas skill utuh dalam bahasa Inggris. Cakupan audit tidak berubah. Sebutan King Rezi tetap. **5 Magic Words** mengikuti ADR T-234.
 - [x] **T-237.2** Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
-- [ ] **T-237.3** Satu sesi uji mematuhi gerbang yang sama dengan versi sebelumnya.
+- [x] **T-237.3** `(2026-11-11, perbandingan skill Indonesia git eed07936 dengan versi Inggris oleh agen independen)` Satu sesi uji mematuhi gerbang yang sama dengan versi sebelumnya.
 
-**Belum terbukti:** T-237.3, satu sesi uji belum dijalankan. Butir ini sisa verifikasinya.
+**Belum terbukti:** tidak ada. T-237.3 terverifikasi lewat sesi uji kesetaraan gerbang 2026-11-11: PASS, tidak ada gerbang yang hilang, bertambah, atau tertukar.
 
 **Blocked by:** T-234
 
 ### T-238 · Translate the work-report-simple skill
 
-`🟡 Done (code), menunggu Verified (staging) (2026-11-11)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133 · **Spec** S-004 · **Depends** T-234
+`✅ Done (2026-11-11)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133 · **Spec** S-004 · **Depends** T-234
 **Baca dulu:** `project-os/specs/S-004.md` · `.claude/skills/work-report-simple/SKILL.md`
 
 - [x] **T-238.1** Berkas skill utuh dalam bahasa Inggris. Isi laporan (siapa mengerjakan, apa yang selesai, mengapa penting, langkah berikutnya) tidak berubah. Sebutan King Rezi tetap.
 - [x] **T-238.2** Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
-- [ ] **T-238.3** Satu sesi uji menyusun laporan dengan bagian yang sama seperti versi sebelumnya.
+- [x] **T-238.3** `(2026-11-11, perbandingan skill Indonesia git eed07936 dengan versi Inggris oleh agen independen)` Satu sesi uji menyusun laporan dengan bagian yang sama seperti versi sebelumnya.
 
-**Belum terbukti:** T-238.3, satu sesi uji belum dijalankan. Butir ini sisa verifikasinya.
+**Belum terbukti:** tidak ada. T-238.3 terverifikasi lewat sesi uji kesetaraan gerbang 2026-11-11: PASS, tidak ada gerbang yang hilang, bertambah, atau tertukar.
 
 **Blocked by:** T-234
 
 ### T-239 · Translate the claude-design-scope-discipline skill
 
-`🟡 Done (code), menunggu Verified (staging) (2026-11-11)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133 · **Spec** S-004 · **Depends** T-234
+`✅ Done (2026-11-11)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133 · **Spec** S-004 · **Depends** T-234
 **Baca dulu:** `project-os/specs/S-004.md` · `.claude/skills/claude-design-scope-discipline/SKILL.md`
 
 - [x] **T-239.1** Berkas skill utuh dalam bahasa Inggris. Larangan mengubah default yang sudah disetujui tidak berubah. Sebutan King Rezi tetap.
 - [x] **T-239.2** Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
-- [ ] **T-239.3** Satu sesi uji mematuhi gerbang yang sama dengan versi sebelumnya.
+- [x] **T-239.3** `(2026-11-11, perbandingan skill Indonesia git eed07936 dengan versi Inggris oleh agen independen)` Satu sesi uji mematuhi gerbang yang sama dengan versi sebelumnya.
 
-**Belum terbukti:** T-239.3, satu sesi uji belum dijalankan. Butir ini sisa verifikasinya.
+**Belum terbukti:** tidak ada. T-239.3 terverifikasi lewat sesi uji kesetaraan gerbang 2026-11-11: PASS, tidak ada gerbang yang hilang, bertambah, atau tertukar.
 
 **Blocked by:** T-234
 
 ### T-240 · Translate the wave-plan skill
 
-`🟡 Done (code), menunggu Verified (staging) (2026-11-11)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133, ADR-153 · **Spec** S-004 · **Depends** T-234, T-225
+`✅ Done (2026-11-11)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133, ADR-153 · **Spec** S-004 · **Depends** T-234, T-225
 **Baca dulu:** `project-os/specs/S-004.md` · `.claude/skills/wave-plan/SKILL.md`
 
 Menunggu T-225 karena berkas yang sama. Setelah T-225 selesai, berkas diterjemahkan utuh.
 
 - [x] **T-240.1** Berkas skill utuh dalam bahasa Inggris. Langkah menyiapkan gelombang dan berhenti untuk persetujuan King Rezi tidak berubah.
 - [x] **T-240.2** Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
-- [ ] **T-240.3** Satu sesi uji mematuhi gerbang yang sama dengan versi sebelumnya.
+- [x] **T-240.3** `(2026-11-11, perbandingan skill Indonesia git eed07936 dengan versi Inggris oleh agen independen)` Satu sesi uji mematuhi gerbang yang sama dengan versi sebelumnya.
 
-**Belum terbukti:** T-240.3, satu sesi uji belum dijalankan. Butir ini sisa verifikasinya.
+**Belum terbukti:** tidak ada. T-240.3 terverifikasi lewat sesi uji kesetaraan gerbang 2026-11-11: PASS, tidak ada gerbang yang hilang, bertambah, atau tertukar.
 
 **Blocked by:** T-234, T-225
 
 ### T-241 · Translate the wave-work skill
 
-`🟡 Done (code), menunggu Verified (staging) (2026-11-11)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133, ADR-153 · **Spec** S-004 · **Depends** T-234, T-225
+`✅ Done (2026-11-11)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133, ADR-153 · **Spec** S-004 · **Depends** T-234, T-225
 **Baca dulu:** `project-os/specs/S-004.md` · `.claude/skills/wave-work/SKILL.md`
 
 Menunggu T-225 karena berkas yang sama. Istilah di berkas ini menjadi acuan empat berkas pendamping.
 
 - [x] **T-241.1** Berkas skill utuh dalam bahasa Inggris. Gerbang King Rezi (migrasi, merge, commit) tidak berubah.
 - [x] **T-241.2** Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
-- [ ] **T-241.3** Satu sesi uji mematuhi gerbang yang sama dengan versi sebelumnya.
+- [x] **T-241.3** `(2026-11-11, perbandingan skill Indonesia git eed07936 dengan versi Inggris oleh agen independen)` Satu sesi uji mematuhi gerbang yang sama dengan versi sebelumnya.
 
-**Belum terbukti:** T-241.3, satu sesi uji belum dijalankan. Butir ini sisa verifikasinya.
+**Belum terbukti:** tidak ada. T-241.3 terverifikasi lewat sesi uji kesetaraan gerbang 2026-11-11: PASS, tidak ada gerbang yang hilang, bertambah, atau tertukar.
 
 **Blocked by:** T-234, T-225
 
 ### T-242 · Translate the wave-work lane brief template
 
-`🟡 Done (code), menunggu Verified (staging) (2026-11-11)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133, ADR-153 · **Spec** S-004 · **Depends** T-241, T-225
+`✅ Done (2026-11-11)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133, ADR-153 · **Spec** S-004 · **Depends** T-241, T-225
 **Baca dulu:** `project-os/specs/S-004.md` · `.claude/skills/wave-work/lane-brief-template.md` · `.claude/skills/wave-work/SKILL.md`
 
 - [x] **T-242.1** Berkas template utuh dalam bahasa Inggris. Bagian brief dan istilahnya mengikuti T-241.
 - [x] **T-242.2** Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
 
-**Belum terbukti:** tidak ada butir runtime. Yang belum teruji: skill wave-work belum dipakai di gelombang nyata berikutnya, jadi belum terbukti ia mematuhi template terjemahan ini.
+**Belum terbukti:** tidak ada butir runtime, tidak ada sesi uji .3 untuk tiket ini. Skill wave-work belum dipakai di gelombang nyata berikutnya, jadi belum terbukti ia mematuhi template terjemahan ini. Itu bukan penghambat.
 
 **Blocked by:** T-241, T-225
 
 ### T-243 · Translate the wave-work handoff note
 
-`🟡 Done (code), menunggu Verified (staging) (2026-11-11)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133, ADR-153 · **Spec** S-004 · **Depends** T-241
+`✅ Done (2026-11-11)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133, ADR-153 · **Spec** S-004 · **Depends** T-241
 **Baca dulu:** `project-os/specs/S-004.md` · `.claude/skills/wave-work/handoff.md` · `.claude/skills/wave-work/SKILL.md`
 
 - [x] **T-243.1** Berkas utuh dalam bahasa Inggris. Bentuk handoff (penunjuk, tanpa rahasia) tidak berubah. Istilah mengikuti T-241.
 - [x] **T-243.2** Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
 
-**Belum terbukti:** tidak ada butir runtime. Yang belum teruji: skill wave-work belum dipakai di gelombang nyata berikutnya, jadi belum terbukti ia mematuhi template terjemahan ini.
+**Belum terbukti:** tidak ada butir runtime, tidak ada sesi uji .3 untuk tiket ini. Skill wave-work belum dipakai di gelombang nyata berikutnya, jadi belum terbukti ia mematuhi template terjemahan ini. Itu bukan penghambat.
 
 **Blocked by:** T-241
 
 ### T-244 · Translate the wave-work retro note
 
-`🟡 Done (code), menunggu Verified (staging) (2026-11-11)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133, ADR-153 · **Spec** S-004 · **Depends** T-241
+`✅ Done (2026-11-11)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133, ADR-153 · **Spec** S-004 · **Depends** T-241
 **Baca dulu:** `project-os/specs/S-004.md` · `.claude/skills/wave-work/retro.md` · `.claude/skills/wave-work/SKILL.md`
 
 - [x] **T-244.1** Berkas utuh dalam bahasa Inggris. Kategori saran retro tidak berubah. Istilah mengikuti T-241.
 - [x] **T-244.2** Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
 
-**Belum terbukti:** tidak ada butir runtime. Yang belum teruji: skill wave-work belum dipakai di gelombang nyata berikutnya, jadi belum terbukti ia mematuhi template terjemahan ini.
+**Belum terbukti:** tidak ada butir runtime, tidak ada sesi uji .3 untuk tiket ini. Skill wave-work belum dipakai di gelombang nyata berikutnya, jadi belum terbukti ia mematuhi template terjemahan ini. Itu bukan penghambat.
 
 **Blocked by:** T-241
 
 ### T-245 · Translate the wave-work integration pull request template
 
-`🟡 Done (code), menunggu Verified (staging) (2026-11-11)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133, ADR-153 · **Spec** S-004 · **Depends** T-241
+`✅ Done (2026-11-11)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133, ADR-153 · **Spec** S-004 · **Depends** T-241
 **Baca dulu:** `project-os/specs/S-004.md` · `.claude/skills/wave-work/integration-pr-template.md` · `.claude/skills/wave-work/SKILL.md`
 
 - [x] **T-245.1** Berkas template utuh dalam bahasa Inggris. Bagian Summary, Evidence, dan Merge Danger tetap ada. Istilah mengikuti T-241.
 - [x] **T-245.2** Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
 
-**Belum terbukti:** tidak ada butir runtime. Yang belum teruji: skill wave-work belum dipakai di gelombang nyata berikutnya, jadi belum terbukti ia mematuhi template terjemahan ini.
+**Belum terbukti:** tidak ada butir runtime, tidak ada sesi uji .3 untuk tiket ini. Skill wave-work belum dipakai di gelombang nyata berikutnya, jadi belum terbukti ia mematuhi template terjemahan ini. Itu bukan penghambat.
 
 **Blocked by:** T-241
 
 ### T-246 · Fix navigator heading pointers after translation
 
-`🟡 Done (code), menunggu Verified (staging) (2026-11-11)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133, ADR-160 · **Spec** S-004 · **Depends** T-235
+`✅ Done (2026-11-11)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133, ADR-160 · **Spec** S-004 · **Depends** T-235
 **Baca dulu:** `project-os/specs/S-004.md` · `.claude/skills/project-os-navigator/SKILL.md`
 
 Terjemahan T-235 mengubah judul section navigator ("Pekerjaan Baru" menjadi "New Work / Document Creation", "Bug / Inkonsistensi Dokumen" menjadi "Bug / Document Inconsistency"). Penunjuk ke judul lama diperbarui di `AGENTS.md`, `.claude/agents/README.md`, `project-os/PROJECT_RULES.md`, `project-os/specs/README.md`, `project-os/specs/S-003.md`, `project-os/tickets/v01-foundation.md` (baca-dulu T-176.1 dan T-182), dan skill `docs-consistency-audit`. Disetujui King Rezi 2026-11-11.
@@ -178,6 +178,6 @@ Terjemahan T-235 mengubah judul section navigator ("Pekerjaan Baru" menjadi "New
 
 **Utang yang dicatat:** tidak ada tersisa. Selisih "Dikerjakan oleh" di berkas agen Ridwan dan Najwa, salinan kalimat sapaan di tujuh berkas agen, dan penunjuk "Pekerjaan Baru" di ADR-153 dan ADR-063 diperbaiki atas keputusan King Rezi setelah audit topik language (T-246.3).
 
-**Belum terbukti:** tidak ada butir runtime. Kata kunci status "Belum terbukti" dan "menunggu Verified (staging)" dipertahankan apa adanya sesuai S-004.
+**Belum terbukti:** tidak ada butir runtime, tidak ada sesi uji .3 untuk tiket ini. Verified lewat `bun run docs:check` bersih di branch closeout (pengecualian S-004, lihat spec).
 
 **Blocked by:** T-235
