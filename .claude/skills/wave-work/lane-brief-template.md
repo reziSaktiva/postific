@@ -1,55 +1,55 @@
 # Lane brief
 
-Satu brief per jalur. Isi dengan penunjuk (path atau URL), bukan salinan dokumen (ADR-133).
+One brief per lane. Fill it with pointers (path or URL), not copies of documents (ADR-133).
 
-## Tujuan
+## Goal
 
-Satu kalimat: hasil yang harus ada saat jalur selesai.
+One sentence: the result that must exist when the lane is done.
 
-## Lingkup
+## Scope
 
-- Tiket: `T-xxx` (`project-os/tickets/...`), butir yang dikerjakan.
-- Spec dan ADR yang berlaku: `specs/S-NNN.md`, `ADR-xxx`.
-- Berkas yang boleh diubah, dan berkas yang tidak boleh disentuh jalur lain.
+- Ticket: `T-xxx` (`project-os/tickets/...`), the items being worked.
+- Applicable spec and ADRs: `specs/S-NNN.md`, `ADR-xxx`.
+- Files the lane may change, and files that no other lane may touch.
 
-## Batasan
+## Constraints
 
-- Branch dan worktree jalur dipotong dari branch integrasi `<nama>`.
-- Jangan merge. Jangan menerapkan migrasi. Jangan commit atau push kecuali diminta King Rezi.
-- Pertanyaan yang milik King Rezi dikembalikan, tidak dijawab sendiri.
-- Di worktree baru jalankan `bun install` dulu; hook pre-commit tidak dilewati.
+- The lane's branch and worktree are cut from the integration branch `<name>`.
+- Do not merge. Do not apply a migration. Do not commit or push unless King Rezi asks.
+- A question that belongs to King Rezi is handed back, not answered by the lane.
+- In a new worktree run `bun install` first; the pre-commit hook is not skipped.
 
-## Definisi selesai
+## Definition of done
 
-- [ ] Acceptance tiket terpenuhi (sumbu Spec).
-- [ ] Sesuai aturan repo dan arsitektur (sumbu Standards).
-- [ ] `typecheck`, `lint`, dan tes hijau; E2E golden path bila tiket mengubah perilaku produk (ADR-149). Aturan menjalankannya ada di bagian E2E.
-- [ ] Bagian "Belum terbukti" di tiket diperbarui dengan jujur.
+- [ ] The ticket's acceptance is met (Spec axis).
+- [ ] Conforms to repo rules and architecture (Standards axis).
+- [ ] `typecheck`, `lint`, and tests are green; E2E golden path when the ticket changes product behavior (ADR-149). The rules for running it are in the E2E section.
+- [ ] The "Belum terbukti" (not yet proven) section in the ticket is updated honestly.
 
 ## E2E
 
-Bila jalur mengubah perilaku produk (ADR-149):
+When the lane changes product behavior (ADR-149):
 
-- Jalankan E2E di checkout utama. `E2E_BASE_URL` menunjuk ke dev server yang sudah berjalan di checkout itu.
-- E2E golden path hanya sah bila checkout yang menyajikan `E2E_BASE_URL` sedang berada di commit jalur. Server di checkout lain menguji kode checkout itu. Playwright memakai server yang sudah hidup (`reuseExistingServer` di `apps/web/playwright.config.ts`).
-- Worktree jalur tidak punya `apps/web/.env.local`. Berkas itu diabaikan git. Playwright memuat berkas itu di samping config, jadi E2E dari worktree jalur tidak membawa env checkout utama.
-- Jangan menjalankan `next dev` kedua di direktori yang sama. `next dev` mengunci `.next/dev` per direktori, jadi kunci checkout utama tidak menahan worktree lain. Bukti: T-225.1 (`project-os/tickets/v01-foundation.md`).
+- Run E2E in the main checkout. `E2E_BASE_URL` points to the dev server already running in that checkout.
+- A golden path E2E is valid only when the checkout serving `E2E_BASE_URL` is at the lane's commit. A server in another checkout tests that checkout's code. Playwright uses the server that is already running (`reuseExistingServer` in `apps/web/playwright.config.ts`).
+- A lane worktree has no `apps/web/.env.local`. Git ignores that file. Playwright loads it next to the config, so E2E from a lane worktree does not carry the main checkout's env.
+- Do not run a second `next dev` in the same directory. `next dev` locks `.next/dev` per directory, so the main checkout's lock does not hold back another worktree. Evidence: T-225.1 (`project-os/tickets/v01-foundation.md`).
 
 ## MCP shadcn
 
-- `.mcp.json`, `.cursor/mcp.json`, dan `apps/web/components.json` terlacak git, jadi worktree jalur sudah memilikinya. Jangan menyalin atau menautkannya. `.mcp.json` dan `.cursor/mcp.json` pasangan kembar (`AGENTS.md` aturan 12); bila perlu diubah, ubah bersamaan, dan itu di luar jalur kecuali tiketnya menyebut berkas itu.
-- `apps/web/components.json` memakai `"registries": {}`. `search_items_in_registries` menjawab tidak ada registry terkonfigurasi bila objek itu kosong, atau bila pencarian dijalankan dari akar repo, bukan dari `apps/web`. Bukti: T-225.3 (`project-os/tickets/v01-foundation.md`).
-- Penanganan: jalankan pencarian shadcn dengan direktori kerja `apps/web` di worktree jalur. Bila registry tetap kosong, baca sumber komponen lokal di worktree itu. Sesi MCP IDE melekat pada workspace yang dibuka, bukan pada worktree kedua.
+- `.mcp.json`, `.cursor/mcp.json`, and `apps/web/components.json` are tracked by git, so a lane worktree already has them. Do not copy or link them. `.mcp.json` and `.cursor/mcp.json` are twin files (`AGENTS.md` rule 12); if they need to change, change them together, and that is outside the lane unless the ticket names those files.
+- `apps/web/components.json` uses `"registries": {}`. `search_items_in_registries` answers that no registry is configured when that object is empty, or when the search runs from the repo root instead of `apps/web`. Evidence: T-225.3 (`project-os/tickets/v01-foundation.md`).
+- Handling: run the shadcn search with working directory `apps/web` in the lane worktree. If the registry is still empty, read the local component source in that worktree. An IDE MCP session is bound to the workspace that was opened, not to a second worktree.
 
-## Daftar periksa tes (anti-pola)
+## Test checklist (anti-patterns)
 
-Tolak tes yang:
+Reject a test that is:
 
-- **Terikat implementasi:** gagal saat refactor tanpa perubahan perilaku (mengintip fungsi privat, urutan panggilan, atau struktur internal).
-- **Tautologis:** membuktikan sesuatu yang selalu benar (menegaskan nilai yang baru saja diatur, atau mock yang mengembalikan jawabannya sendiri).
+- **Implementation-bound:** it fails on a refactor with no behavior change (peeking at private functions, call order, or internal structure).
+- **Tautological:** it proves something that is always true (asserting a value that was just set, or a mock that returns its own answer).
 
-Tes yang baik menembus batas publik (use case, repository, route) dan gagal bila perilaku berubah.
+A good test crosses a public boundary (use case, repository, route) and fails when behavior changes.
 
-## Laporan jalur
+## Lane report
 
-Tulis hasil sebagai penunjuk: commit, tes yang dijalankan, temuan terbuka. Jangan melaporkan "sudah di-push" tanpa nama commit.
+Write the result as pointers: commit, tests run, open findings. Do not report "already pushed" without naming the commit.

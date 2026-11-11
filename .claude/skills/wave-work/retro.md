@@ -1,42 +1,43 @@
-# Retro gelombang
+# Wave retro
 
-Langkah terakhir `wave-work` (S-003 § Perilaku 2 poin 11). **Hanya saran:**
-retro tidak mengedit aturan, skill, skrip, atau tiket. King Rezi memutuskan
-mana yang dikerjakan, lalu menjadi tiket sendiri (ADR-132, ADR-133).
+The last step of `wave-work` (S-003 § Perilaku 2, step 11). **Suggestions
+only:** the retro does not edit rules, skills, scripts, or tickets. King Rezi
+decides which ones to act on, and each becomes its own ticket (ADR-132,
+ADR-133).
 
-## Cara menyusun
+## How to compile it
 
-1. Kumpulkan kejadian gelombang yang memakan waktu atau token, atau hampir salah: laporan sesi, hasil `typecheck`/CI, penolakan izin, pembacaan berulang.
-2. Masukkan tiap kejadian ke satu kategori di bawah, tulis sebagai saran (apa yang diubah, di berkas mana, bukti kejadiannya).
-3. **Urutkan menurut keparahan** dalam satu daftar: yang bisa memunculkan hasil salah atau tindakan tak sah lebih dulu, lalu yang membuang waktu atau token, lalu kenyamanan.
-4. Saran yang sudah punya rumah (aturan atau skill yang ada) cukup menunjuk rumahnya; jangan menyalin isinya.
+1. Collect the wave events that cost time or tokens, or nearly went wrong: session reports, `typecheck`/CI results, permission denials, repeated reads.
+2. Put each event into one category below and write it as a suggestion (what to change, in which file, and the evidence from the event).
+3. **Order by severity** in a single list: what could produce a wrong result or an unauthorized action comes first, then what wastes time or tokens, then convenience.
+4. A suggestion that already has a home (an existing rule or skill) only points to that home; do not copy its content.
 
-## Kategori
+## Categories
 
-| Kategori                     | Pertanyaan pemandu                                                          |
+| Category                     | Guiding question                                                            |
 | ---------------------------- | --------------------------------------------------------------------------- |
-| Navigasi                     | Dokumen atau bagian mana yang dicari berulang atau salah dibaca?            |
-| Pengecekan otomatis          | Kesalahan apa yang baru ketahuan terlambat dan bisa ditangkap skrip/hook?   |
-| Ekonomi tool                 | Pembacaan, panggilan, atau model apa yang lebih mahal dari yang diperlukan? |
-| Instruksi yang tidak berpengaruh | Instruksi mana yang dibaca tetapi tidak mengubah perilaku, atau bertabrakan? |
-| Akses informasi              | Informasi apa yang tidak terjangkau agen (izin, jaringan, MCP) saat perlu?  |
+| Navigation                   | Which document or section was searched for repeatedly or misread?           |
+| Automated checks             | Which mistake was caught too late and could be caught by a script or hook?  |
+| Tool economy                 | Which read, call, or model cost more than it needed to?                     |
+| Instructions with no effect  | Which instruction was read but changed no behavior, or collided with another? |
+| Information access           | What information was out of the agent's reach (permission, network, MCP) when needed? |
 
-## Format keluaran
+## Output format
 
 ```markdown
-# Retro <nama gelombang> · <tanggal>
+# Retro <wave name> · <date>
 
-1. [<kategori>] <saran> · Bukti: <kejadian, path atau URL> · Keparahan: tinggi | sedang | rendah
+1. [<category>] <suggestion> · Evidence: <event, path or URL> · Severity: high | medium | low
 2. ...
 ```
 
-## Isi awal: pelajaran gelombang A
+## Starting content: wave A lessons
 
-Sudah dikunci di `SKILL.md` § Pelajaran gelombang A; berikut bentuk sarannya
-bila ingin dibawa ke gelombang berikutnya.
+Already locked in at `SKILL.md` § Wave A lessons already locked in; below is the
+form the suggestions take if they are carried into the next wave.
 
-1. [Pengecekan otomatis] `typecheck` menangkap konflik semantik yang lolos dari git setelah jalur digabung. Saran: jalankan `typecheck` setelah tiap penggabungan, bukan hanya di akhir. Keparahan: tinggi.
-2. [Akses informasi] Izin migrasi yang diteruskan lewat sesi lain ditolak. Saran: minta izin langsung ke King Rezi sebelum jalur mencapai langkah itu. Keparahan: tinggi.
-3. [Navigasi] Laporan sesi terpotong lalu diringkas apa adanya. Saran: baca laporan penuh dan cek commit, CI, dan deploy di sumber sebelum meringkas (`SKILL.md` langkah 3). Keparahan: sedang.
-4. [Pengecekan otomatis] Worktree baru tanpa `node_modules` membuat hook pre-commit tidak jalan. Saran: `bun install` dulu di tiap worktree; pertimbangkan pengingat di template brief. Keparahan: sedang.
-5. [Ekonomi tool] Satu build dan satu deploy per gelombang menghemat Railway dan verifikasi. Saran: pertahankan satu PR integrasi dan satu Verified (staging) per gelombang. Keparahan: rendah.
+1. [Automated checks] `typecheck` caught a semantic conflict that git let through after the lanes were merged. Suggestion: run `typecheck` after every merge, not only at the end. Severity: high.
+2. [Information access] A migration permission relayed through another session was denied. Suggestion: ask King Rezi for the permission directly before a lane reaches that step. Severity: high.
+3. [Navigation] A session report was cut off and then summarized as-is. Suggestion: read the full report and check commits, CI, and deploys at the source before summarizing (`SKILL.md` step 3). Severity: medium.
+4. [Automated checks] A fresh worktree without `node_modules` kept the pre-commit hook from running. Suggestion: run `bun install` first in every worktree; consider a reminder in the brief template. Severity: medium.
+5. [Tool economy] One build and one deploy per wave saves Railway and verification effort. Suggestion: keep one integration PR and one Verified (staging) per wave. Severity: low.
