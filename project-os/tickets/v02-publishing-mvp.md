@@ -3660,22 +3660,28 @@ Temuan QA yang dicatat (bukan pemblokir):
 
 ### T-231 · Import Posts: purge imported-post thumbnails when posts, accounts, or workspaces are deleted (ADR-158)
 
-| Field       | Value                                   |
-| ----------- | --------------------------------------- |
-| **Status**  | 🟡 In Progress                          |
-| **Mode**    | AFK                                     |
-| **Domain**  | publishing · media                      |
-| **Spec**    | S-006 (konteks)                         |
-| **Docs**    | ADR-158, T-229, T-230, review Ridwan M5 |
-| **Depends** | T-230                                   |
+| Field       | Value                                       |
+| ----------- | ------------------------------------------- |
+| **Status**  | 🟡 Done (code), menunggu Verified (staging) |
+| **Mode**    | AFK                                         |
+| **Domain**  | publishing · media                          |
+| **Spec**    | S-006 (konteks)                             |
+| **Docs**    | ADR-158, T-229, T-230, review Ridwan M5     |
+| **Depends** | T-230                                       |
 
 Berkas `{workspaceId}/imports/{targetId}.webp` tidak ikut terhapus bila posting impor dihapus, akun diputus, atau workspace dihapus, sehingga berkas yatim menumpuk di bucket privat `media`.
 
-- [ ] **T-231.1** Hapus berkas thumbnail saat posting impor di-soft-delete atau target dihapus (best-effort lewat adapter storage; domain tanpa import Supabase).
-- [ ] **T-231.2** Pembersihan saat akun diputus dan workspace dihapus (cascade atau job).
-- [ ] **T-231.3** Job sapu berkala (atau skrip) untuk berkas `imports/` yang tidak lagi dirujuk `thumbnail_storage_path`; tes dan dokumentasi.
+- [~] **T-231.1** Hapus berkas thumbnail saat posting impor di-soft-delete atau target dihapus (best-effort lewat adapter storage; domain tanpa import Supabase).
+- [~] **T-231.2** Pembersihan saat akun diputus dan workspace dihapus (cascade atau job).
+- [x] **T-231.3** Job sapu berkala (atau skrip) untuk berkas `imports/` yang tidak lagi dirujuk `thumbnail_storage_path`; tes dan dokumentasi.
 
-**Blocked by:** T-230.
+**Catatan implementasi:** penghapusan posting dan pemutusan akun tidak punya pemicu langsung: posting impor tidak bisa dihapus dan `disconnectAccount` hanya mengubah status (KSP-D09), jadi T-231.1 dan T-231.2 hanya tercakup lewat dua jalur: workspace dihapus (port `WorkspaceDeletionCleanupPort`) dan sapuan harian JOB-10. Sapuan memakai waktu sentuh terbaru (`updated_at`) dengan tenggang 1 jam. Migrasi `20261111100000_t231_import_thumbnail_referenced_paths` (fungsi SECURITY DEFINER; setelah review Ridwan H1, EXECUTE dicabut dari `anon` dan `authenticated`).
+
+**Belum terbukti:** migrasi `20261111100000_t231_import_thumbnail_referenced_paths` belum diterapkan ke DB mana pun, menunggu izin langsung King Rezi (ADR-081). Semantik SQL nyata, adapter Supabase Storage terhadap bucket nyata, dan fungsi rujukan DB belum diuji (tes memakai tiruan). Bukti hijau di branch integrasi: typecheck, lint, docs:check, vitest 2728+ lulus.
+
+**Tindak lanjut non-blocking (review Ridwan):** P3, filter pola path di fungsi SQL; P5, purge sinkron di request hapus workspace (composition settings menarik generator). Keduanya tidak dikerjakan.
+
+**Blocked by:** T-230; Verified (staging) menunggu penerapan migrasi.
 
 ---
 
@@ -3683,7 +3689,7 @@ Berkas `{workspaceId}/imports/{targetId}.webp` tidak ikut terhapus bila posting 
 
 | Field       | Value                                                                                    |
 | ----------- | ---------------------------------------------------------------------------------------- |
-| **Status**  | 🟡 In Progress                                                                           |
+| **Status**  | 🟡 Done (code), menunggu Verified (staging)                                              |
 | **Mode**    | AFK (UI/UX-related: gate rancangan berlaku sebelum kode)                                 |
 | **Domain**  | publishing · media · UI                                                                  |
 | **Spec**    | S-006 (konteks)                                                                          |
@@ -3706,7 +3712,7 @@ Halaman History Detail (`apps/web/src/app/(app)/publish/history/[postId]/page.ts
 - [x] **T-232.2** (gagal tanda tangan, melempar maupun peta kosong, jatuh ke CDN atau null)
 - [~] **T-232.3** `typecheck`, `lint`, tes unit hijau (1246 lulus). Struktur `HistoryDetail.tsx` tidak diubah (hanya data thumbnail yang mengalir), jadi tidak ada deviasi struktural dari kartu T-111.1.
 
-**Belum terbukti:** E2E History tidak ada di `apps/web/e2e` dan tidak diperluas; worktree tanpa `.env.local`/DB lokal, sehingga pengamatan terang, gelap, 375px dengan posting impor bertumbuh thumbnail nyata belum dilakukan. Tidak ada tes repository untuk `mapHistoryItem` (pemetaan dua field baru hanya terbukti lewat typecheck). Perlu dicek di staging (Verified).
+**Belum terbukti:** E2E History tidak ada di `apps/web/e2e` dan tidak diperluas; worktree tanpa `.env.local`/DB lokal, sehingga pengamatan terang, gelap, 375px dengan posting impor bertumbuh thumbnail nyata belum dilakukan. Tidak ada tes repository untuk `mapHistoryItem` (pemetaan dua field baru hanya terbukti lewat typecheck). Perlu dicek di staging (Verified). Bukti hijau di branch integrasi: typecheck, lint, docs:check, vitest 2728+ lulus.
 
 **Blocked by:** gate rancangan (lolos lewat putusan King Rezi di atas); T-230.
 
@@ -3716,7 +3722,7 @@ Halaman History Detail (`apps/web/src/app/(app)/publish/history/[postId]/page.ts
 
 | Field       | Value                                                                    |
 | ----------- | ------------------------------------------------------------------------ |
-| **Status**  | 🟡 In Progress                                                           |
+| **Status**  | 🟡 Done (code), menunggu Verified (staging)                              |
 | **Mode**    | AFK                                                                      |
 | **Domain**  | publishing · integration                                                 |
 | **Spec**    | S-006 (konteks)                                                          |
@@ -3733,6 +3739,6 @@ Kegagalan **sementara** (timeout, 408/429/5xx, galat jaringan, `ffmpeg` belum te
 
 **Keputusan (King Rezi):** penghitung `thumbnail_attempts` (`INTEGER NOT NULL DEFAULT 0`) dengan batas 5; addendum ADR-158 2026-11-11 dan JOB-09 diperbarui. Implementasi: `recordImportedTargetThumbnailFailure` (repository, dua `updateMany` dalam satu transaksi RLS), `MAX_THUMBNAIL_ATTEMPTS`, `ProcessImportMediaUseCase` (batas tercapai dihitung `skipped`; pembatalan anggaran waktu tidak menaikkan penghitung), `HEAD` video memakai `redirect: "manual"` dan 3xx permanen, pesan galat sementara membawa penyebab. Migrasi `20261111110000_t233_import_thumbnail_attempts`.
 
-**Belum terbukti:** migrasi `20261111110000_t233_import_thumbnail_attempts` belum diterapkan ke DB mana pun (izin King Rezi diperlukan, ADR-081; `railway.json` `preDeployCommand` akan menerapkannya saat rilis); kode memakai kolom `thumbnail_attempts`, jadi harus diterapkan sebelum rilis kode ini. Tes repository memakai `tx` palsu (memeriksa klausa `where`/`data`, bukan semantik SQL nyata); naiknya penghitung lalu penandaan pada percobaan ke-5 di PostgreSQL nyata, dan sukses setelah beberapa gagal terhadap baris nyata, belum diuji. Perilaku `redirect: "manual"` pada `HEAD` terhadap CDN Instagram hidup belum diamati.
+**Belum terbukti:** migrasi `20261111110000_t233_import_thumbnail_attempts` belum diterapkan ke DB mana pun (izin King Rezi diperlukan, ADR-081; `railway.json` `preDeployCommand` akan menerapkannya saat rilis); kode memakai kolom `thumbnail_attempts`, jadi harus diterapkan sebelum rilis kode ini. Tes repository memakai `tx` palsu (memeriksa klausa `where`/`data`, bukan semantik SQL nyata); naiknya penghitung lalu penandaan pada percobaan ke-5 di PostgreSQL nyata, dan sukses setelah beberapa gagal terhadap baris nyata, belum diuji. Perilaku `redirect: "manual"` pada `HEAD` terhadap CDN Instagram hidup belum diamati. Batas 5, pembatalan karena anggaran waktu job tidak menaikkan penghitung, 3xx pada `HEAD` dianggap gagal permanen. Bukti hijau di branch integrasi: typecheck, lint, docs:check, vitest 2728+ lulus.
 
 **Blocked by:** T-230.
