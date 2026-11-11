@@ -266,8 +266,9 @@ export function HistoryDetail({ item, thumbnail }: HistoryDetailProps) {
           </div>
 
           {thumbnail ? (
+            // `shrink-0`: wrapper ini anak kolom flex ber-`overflow-y-auto` di modal; tanpa itu ia menyusut dan `overflow-hidden` memotong media jadi strip di layar sempit (T-232, 375px).
             // eslint-disable-next-line no-restricted-syntax -- T-111.1/T-111.2: media natural-size (`fit="natural"`, lebar penuh + tinggi mengikuti aspect ratio asli) — media di-omit sepenuhnya kalau post tidak bermedia (bukan kotak kosong), sama pola T-056/KI-082.
-            <div className="overflow-hidden rounded-lg border border-border bg-muted">
+            <div className="shrink-0 overflow-hidden rounded-lg border border-border bg-muted">
               <MediaThumbnail
                 url={thumbnail.url}
                 type={thumbnail.type}
