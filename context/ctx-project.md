@@ -30,7 +30,7 @@ subagent lewat pemetaan Domain → Subagent di
 3. Task implementasi kode → **evaluasi delegasi subagent dulu** (`../AGENTS.md` poin 3, ADR-063) — lihat pemetaan Domain → Subagent di `.claude/agents/README.md`.
 4. Insight diskusi penting → `CONVERSATIONS.md`; ide spekulatif → `BRAINSTORM.md`.
 5. Setelah pekerjaan selesai → ubah status tiket di `tickets/vXX-*.md` dan keluarkan barisnya dari `AVAILABLE_TICKETS.md` kalau sudah ✅. Update `PROJECT_STATE.md` hanya bila phase/milestone/Known Issues berubah. Jangan menyalin detail task ke `PROJECT_STATE.md`. Jejak sesi adalah commit git (ADR-131). Perubahan kode wajib punya tiket. KI terbuka punya tiket. Urutan tulis kebenaran produk: `product-discovery/` → `context/` (hanya penunjuk) → `project-os/` (ADR-132).
-6. Bahasa dokumentasi & komunikasi project: **Bahasa Indonesia** (kecuali diminta lain).
+6. Bahasa dokumentasi dan komunikasi mengikuti `AGENTS.md` aturan 8.
 7. Jangan commit/push kecuali user meminta eksplisit. Jangan commit secret (`.env.local`, kredensial).
 8. Untuk implementasi Outstand M8, ADR-040 mengamendemen kontrak lama. Baca
    `DECISIONS.md` + `ctx-architecture.md`; jangan menyimpulkan handler/job

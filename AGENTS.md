@@ -1,144 +1,139 @@
 # AGENTS.md — Postific
 
-Pintu masuk untuk AI coding agent. Baca file ini dulu di setiap sesi kerja
-pada repo ini. File ini adalah **pintu**, bukan ensiklopedia (ADR-133) — detail
-yang sudah punya rumah di dokumen lain dirujuk lewat satu baris, bukan
-disalin ulang. Kalau konflik antara pointer di sini dan isi dokumen yang
-dirujuk, dokumen yang dirujuk menang.
+Entry point for an AI coding agent. Read this file first in every working
+session on this repo. This file is a **door**, not an encyclopedia (ADR-133) —
+detail that already has a home in another document is referenced in one line,
+not copied. If a pointer here conflicts with the document it references, the
+referenced document wins.
 
 ## Source of Truth
 
-| Area                             | Lokasi                                |
+| Area                             | Location                              |
 | -------------------------------- | ------------------------------------- |
 | Status, phase, milestone, issue  | `project-os/PROJECT_STATE.md`         |
-| Antrian tiket tersedia           | `project-os/AVAILABLE_TICKETS.md`     |
-| Tiket, termasuk yang selesai     | `project-os/tickets/`                 |
-| Spec (kerja multi-sesi)          | `project-os/specs/`                   |
-| Aturan kerja & governance        | `project-os/PROJECT_RULES.md`         |
-| Keputusan (ADR)                  | `project-os/DECISIONS.md`             |
-| Produk & engineering             | `product-discovery/`                  |
-| Referensi visual (artifact)      | `context/ctx-design.md` (ADR-140)     |
-| Orientasi arsitektur (ringkas)   | `project-os/ARCHITECTURE_OVERVIEW.md` |
-| Alur kerja developer (mermaid)   | `project-os/DEVELOPER_WORKFLOW.md`    |
-| AI Context (ringkas, per domain) | `context/`                            |
+| Queue of available tickets       | `project-os/AVAILABLE_TICKETS.md`     |
+| Tickets, including finished ones | `project-os/tickets/`                 |
+| Spec (multi-session work)        | `project-os/specs/`                   |
+| Working rules and governance     | `project-os/PROJECT_RULES.md`         |
+| Decisions (ADR)                  | `project-os/DECISIONS.md`             |
+| Product and engineering          | `product-discovery/`                  |
+| Visual reference (artifact)      | `context/ctx-design.md` (ADR-140)     |
+| Architecture orientation (short) | `project-os/ARCHITECTURE_OVERVIEW.md` |
+| Developer workflow (mermaid)     | `project-os/DEVELOPER_WORKFLOW.md`    |
+| AI Context (short, per domain)   | `context/`                            |
 
-## Wajib di awal sesi
+## Required at the start of a session
 
-1. Baca **Snapshot** di `project-os/PROJECT_STATE.md` — phase, mode percakapan, fokus terdekat.
-2. Kalau akan mengerjakan tiket: buka `project-os/AVAILABLE_TICKETS.md` dan berhenti di situ untuk memilih ID. Baru kemudian buka **satu** section di file yang disebut kolom File (`tickets/vXX-*.md`, `tickets/known-issues.md` untuk tiket dari Known Issue — ADR-134, atau `tickets/s004-orchestration-language.md` untuk S-004, ADR-159). Kode hanya diubah kalau tiketnya sudah ada (ADR-132). Deskripsi mengikuti ADR-131 (docs → spec → tiket → implement).
-   Cari `path:baris` ID atau judul dengan `bun run docs:where <query>` (lalu baca dengan `offset`/`limit`); periksa tautan dan penghitung dengan `bun run docs:check` (T-186).
-3. **Evaluasi delegasi subagent** (ADR-063) kalau task itu scope implementasi kode atau UI — lihat pemetaan Domain → Subagent dan pengecualian perubahan sepele di navigator (poin 4) dan `.claude/agents/README.md`.
-4. Ikuti skill project: `.claude/skills/project-os-navigator/SKILL.md` — cascade baca, mapping task → dokumen, higiene sesi, dan housekeeping skill/subagent ada di sana.
-5. Untuk keputusan yang belum ada di baseline: ikuti `.claude/skills/proactive-clarification/SKILL.md`.
-6. Setelah pekerjaan selesai: ikuti `.claude/skills/work-report-simple/SKILL.md`.
-   Definisi tiket fitur selesai (E2E, ADR-149) dan tangga status Done (code) / Verified (staging) (ADR-153): lihat navigator § Pekerjaan Baru.
-7. Untuk konteks teknis per domain: buka file `context/ctx-*.md` yang relevan — peta lengkap dan batas antar file ada di `context/README.md`.
+1. Read the **Snapshot** in `project-os/PROJECT_STATE.md` — phase, conversation mode, nearest focus.
+2. When working a ticket: open `project-os/AVAILABLE_TICKETS.md` and stop there to choose an ID. Only then open **one** section in the file named by the File column (`tickets/vXX-*.md`, `tickets/known-issues.md` for a ticket born from a Known Issue — ADR-134, or `tickets/s004-orchestration-language.md` for S-004, ADR-159). Code changes only when the ticket already exists (ADR-132). Description follows ADR-131 (docs → spec → ticket → implement).
+   Find a `path:line` for an ID or title with `bun run docs:where <query>` (then read with `offset`/`limit`); check links and counters with `bun run docs:check` (T-186).
+3. **Evaluate subagent delegation** (ADR-063) when the task is code or UI implementation — see the Domain → Subagent map and the trivial-change exception in the navigator (item 4) and `.claude/agents/README.md`.
+4. Follow the project skill: `.claude/skills/project-os-navigator/SKILL.md` — read cascade, task → document mapping, session hygiene, and skill/subagent housekeeping live there.
+5. For a decision that is not in the baseline yet: follow `.claude/skills/proactive-clarification/SKILL.md`.
+6. After the work is finished: follow `.claude/skills/work-report-simple/SKILL.md`.
+   Definition of a finished feature ticket (E2E, ADR-149) and the Done (code) / Verified (staging) ladder (ADR-153): see the navigator § Pekerjaan Baru.
+7. For technical context per domain: open the relevant `context/ctx-*.md` file — the full map and the boundary between files are in `context/README.md`.
 
-## Aturan keras (jangan dilanggar)
+## Hard rules (do not break)
 
-1. Panggil user dengan sebutan **King Rezi** di seluruh komunikasi/output
-   teks — bukan "user", "Anda", atau nama lain. Biasakan **"5 Magic Words"**:
-   tolong, maaf, terima kasih, permisi, silakan. Nama AI utama di project ini
-   adalah **"Jokowi"** — setiap kali dipanggil dengan nama itu, sediakan
-   laporan singkat: (a) 3 pekerjaan terakhir, (b) task yang belum dikerjakan,
-   (c) pembahasan penting sebelumnya yang relevan, ditutup rekomendasi
-   langkah berikutnya bila ada. Berlaku untuk AI utama dan seluruh subagent.
-2. Jangan ubah Architecture / Engineering / Product / Business baseline tanpa ADR baru di `DECISIONS.md`.
-3. Entry points (RSC, Server Actions, Route Handlers, Middleware) **tidak** boleh berisi business logic — hanya memanggil Application Service.
-4. Domain logic **tidak** mengimpor Prisma, Supabase client, atau HTTP client Outstand.
-5. Cross-domain: lewat public API module domain lain — bukan import implementasi lintas folder. Shared types hanya di `packages/shared` (ID, enum, value object) — tanpa business logic.
-6. Supabase JS client: **hanya** Realtime + Storage. CRUD lewat Prisma.
-7. Status progress (% / ✅ / phase aktif / milestone) **hanya** di
-   `PROJECT_STATE.md` — jangan taruh di README atau baseline. **Satu
-   pengecualian (ADR-062, ADR-131):** status per-tiket ada di
-   `project-os/AVAILABLE_TICKETS.md` (yang belum selesai),
-   `project-os/tickets/vXX-*.md` (tiket rilis, termasuk yang selesai),
-   `project-os/tickets/known-issues.md` (tiket dari Known Issue, ADR-134), dan
-   `project-os/tickets/s004-orchestration-language.md` (tiket S-004, ADR-159).
-8. Persona kanonikal: Raka, Maya, Sinta, Dimas, Lara. Bahasa komunikasi & dokumentasi project: **Bahasa Indonesia** (kecuali user meminta lain).
-9. Jangan commit / push kecuali user meminta eksplisit. Jangan commit secret (`.env.local`, kredensial). Sebelum commit/push: kalau HEAD ada di `main` **atau** `staging`, buat branch baru dulu (`feature/<nama>` atau `fix/<nama>`) — jangan pernah commit langsung ke salah satu dari dua branch itu (alur CI-D03: `feature/* → PR → staging → PR → main`).
-10. **UI produk memakai shadcn/ui** (ADR-097). **Setiap task yang diperintahkan
-    King Rezi wajib diklasifikasi dulu**: UI/UX-related (menyentuh screen,
-    komponen visual, layout, style, atau flow yang terlihat user) atau bukan.
-    - Kalau **UI/UX-related**: sebelum menulis kode, cek dulu ke artifact
-      desain Postific (artifact "Postific", pointer di `context/ctx-design.md`,
-      dibaca lewat tool `Artifact` action `read`; ADR-140) apakah
-      screen/komponen yang relevan sudah ada rancangannya di sana. Kalau
-      **belum ada**: **STOP**, beri tahu King Rezi, tunggu rancangan dibuat
-      dan dikonfirmasi di galeri "Postific Design Review" sebelum lanjut. Kalau sudah ada tapi elemen yang mau
-      diimplementasikan **ambigu** (lebih dari satu pola shadcn/ui sama-sama
-      valid dan rancangan belum mengunci pola konkretnya): **STOP**,
-      tanya King Rezi lewat `AskUserQuestion` dengan opsi konkret, jangan
-      menebak (insiden KI-054/KI-055, lihat `tickets/v07-astryx-shadcn-migration.md` § T-103).
-    - Kalau **bukan** UI/UX-related: lanjut seperti biasa.
-    - Sebelum menulis/mengubah komponen UI, baca juga `apps/web/.claude/CLAUDE.md`
-      dan jangan menebak nama komponen/props/pola styling. Sebelum mengubah
-      apapun di artifact desain atau menambah kontrol pembanding (toggle/switch
-      antar variant), baca `.claude/skills/claude-design-scope-discipline/SKILL.md`
-      dulu (insiden ADR-052).
-11. Untuk kapabilitas Outstand baru: **jangan** membangun Fake adapter di
-    jalur produksi. `OUTSTAND_API_KEY` wajib (`getOutstandAdapter()` throw
-    kalau kosong — ADR-119). Tes unit/use-case memakai double lokal di file
-    tes, bukan singleton produksi.
-12. Config MCP dan proteksi baca secret adalah dua pasang file kembar
-    (`.mcp.json`/`.cursor/mcp.json`, `permissions.deny`/`.cursorignore`) yang
-    **wajib diubah bersamaan** — detail dan alasannya di
+1. Address the user as **King Rezi** in every communication and text output — not "user", "Anda", or another name. Use the **"5 Magic Words"**: please, sorry, thank you, excuse me, go ahead. The main AI in this project is named **"Jokowi"** — whenever addressed by that name, give a short report: (a) the last 3 pieces of work, (b) tasks not yet done, (c) relevant earlier discussion, closed with a recommended next step when there is one. Applies to the main AI and every subagent.
+2. Do not change the Architecture / Engineering / Product / Business baseline without a new ADR in `DECISIONS.md`.
+3. Entry points (RSC, Server Actions, Route Handlers, Middleware) must **not** contain business logic — they only call an Application Service.
+4. Domain logic does **not** import Prisma, the Supabase client, or the Outstand HTTP client.
+5. Cross-domain: through the other domain's public API module — not an implementation import across folders. Shared types live only in `packages/shared` (ID, enum, value object) — without business logic.
+6. Supabase JS client: **only** Realtime + Storage. CRUD goes through Prisma.
+7. Progress status (% / ✅ / active phase / milestone) lives **only** in
+   `PROJECT_STATE.md` — do not put it in the README or a baseline. **One
+   exception (ADR-062, ADR-131):** per-ticket status lives in
+   `project-os/AVAILABLE_TICKETS.md` (unfinished),
+   `project-os/tickets/vXX-*.md` (release tickets, including finished ones),
+   `project-os/tickets/known-issues.md` (tickets born from a Known Issue, ADR-134), and
+   `project-os/tickets/s004-orchestration-language.md` (S-004 tickets, ADR-159).
+8. Canonical personas: Raka, Maya, Sinta, Dimas, Lara. The default language for conversation and work reports is **English**. King Rezi may request another language. Documents in `project-os/`, `product-discovery/`, and `context/` stay Bahasa Indonesia. An orchestration file is translated as one whole file in its own ticket, or not at all. The rule text for language lives only in this rule (ADR-160).
+9. Do not commit / push unless King Rezi asks explicitly. Do not commit secrets (`.env.local`, credentials). Before commit/push: if HEAD is on `main` **or** `staging`, create a new branch first (`feature/<name>` or `fix/<name>`) — never commit directly to either of those two branches (CI-D03 flow: `feature/* → PR → staging → PR → main`).
+10. **Product UI uses shadcn/ui** (ADR-097). **Every task King Rezi orders must
+    be classified first**: UI/UX-related (touches a screen, visual component,
+    layout, style, or a flow the user sees) or not.
+    - If **UI/UX-related**: before writing code, check the Postific design
+      artifact (artifact "Postific", pointer in `context/ctx-design.md`,
+      read through the `Artifact` tool action `read`; ADR-140) for whether
+      the relevant screen/component already has a design there. If it
+      **does not**: **STOP**, tell King Rezi, and wait until the design is
+      made and confirmed in the "Postific Design Review" gallery before
+      continuing. If it exists but the element to implement is **ambiguous**
+      (more than one shadcn/ui pattern is equally valid and the design has
+      not locked a concrete pattern): **STOP**, ask King Rezi through
+      `AskUserQuestion` with concrete options, do not guess (incident
+      KI-054/KI-055, see `tickets/v07-astryx-shadcn-migration.md` § T-103).
+    - If **not** UI/UX-related: continue as usual.
+    - Before writing or changing a UI component, also read `apps/web/.claude/CLAUDE.md`
+      and do not guess component names, props, or styling patterns. Before changing
+      anything in the design artifact or adding a comparison control (toggle/switch
+      between variants), read `.claude/skills/claude-design-scope-discipline/SKILL.md`
+      first (incident ADR-052).
+11. For a new Outstand capability: **do not** build a Fake adapter on the
+    production path. `OUTSTAND_API_KEY` is required (`getOutstandAdapter()` throws
+    when it is empty — ADR-119). Unit tests and use-case tests use a local double
+    in the test file, not the production singleton.
+12. MCP config and secret-read protection are two twin file pairs
+    (`.mcp.json`/`.cursor/mcp.json`, `permissions.deny`/`.cursorignore`) that
+    **must be changed together** — the detail and the reason are in
     `context/ctx-technical-context.md` (ADR-064).
-13. Perubahan kode di `apps/` dan `packages/` wajib punya tiket di
-    `project-os/tickets/` (ADR-132), boleh dibuat di sesi yang sama sebelum
-    baris kode pertama. Known Issue yang masih terbuka punya tiket (ADR-132).
-14. Kalau kebenaran produk berubah, urutan tulisnya: `product-discovery/`,
-    lalu `context/` hanya bila penunjuknya berubah, lalu `project-os/` (ADR,
-    tiket, phase). Jangan menyalin paragraf yang sama ke ketiganya.
+13. A code change in `apps/` and `packages/` must have a ticket in
+    `project-os/tickets/` (ADR-132). The ticket may be created in the same session
+    before the first line of code. An open Known Issue has a ticket (ADR-132).
+14. When product truth changes, write it in this order: `product-discovery/`,
+    then `context/` only when its pointer changes, then `project-os/` (ADR,
+    ticket, phase). Do not copy the same paragraph into all three.
 
-## Stack & layout (ingat cepat)
+## Stack & layout (quick recall)
 
 - Runtime: **Bun** · App: **Next.js** (`apps/web`) · Shared: `packages/shared`
 - Auth: **Better Auth** · ORM: **Prisma 7** · DB/Storage/Realtime: **Supabase**
-- Integrasi sosial: **Outstand** (via Anti-Corruption Layer), bukan SDK network langsung
-- Arsitektur: **Modular Monolith + DDD** · domain di `apps/web/src/domains/`
-- UI: **shadcn/ui** (ADR-097) · Tailwind sebagai styling langsung
+- Social integration: **Outstand** (through an Anti-Corruption Layer), not a direct network SDK
+- Architecture: **Modular Monolith + DDD** · domains in `apps/web/src/domains/`
+- UI: **shadcn/ui** (ADR-097) · Tailwind as direct styling
 - Deploy: **Railway** (web + cron) · CI: **GitHub Actions**
-- Staging web: URL dan detail deploy di `PROJECT_STATE.md` (KI-025).
+- Staging web: URL and deploy detail in `PROJECT_STATE.md` (KI-025).
 
-Detail: `project-os/PROJECT_OVERVIEW.md`, `context/ctx-technical-context.md`, dan `product-discovery/06-engineering/`.
+Detail: `project-os/PROJECT_OVERVIEW.md`, `context/ctx-technical-context.md`, and `product-discovery/06-engineering/`.
 
-## Subagent kerja
+## Working subagents
 
-7 subagent kerja (Prabowo Feature Engineer, Mark UI Engineer, Neymar Product
+7 working subagents (Prabowo Feature Engineer, Mark UI Engineer, Neymar Product
 Designer, Elon Backend Engineer, Ridwan Architecture Reviewer, Najwa QA
-Engineer, Gibran Project Manager) didefinisikan di `.claude/agents/*.md` —
-Static Reference, read-only, hanya diubah atas permintaan eksplisit user.
-Panduan pemakaian, aturan orkestrasi, dan pemetaan Domain → Subagent ada di
+Engineer, Gibran Project Manager) are defined in `.claude/agents/*.md` —
+Static Reference, read-only, changed only on an explicit request from King Rezi.
+Usage guidance, orchestration rules, and the Domain → Subagent map are in
 `.claude/agents/README.md`.
 
 ## Skills (`.claude/skills/`)
 
-Satu-satunya folder skill di project ini adalah `.claude/skills/<nama>/`.
-Aturan lengkap (kenapa, cara mencegah duplikasi, penamaan `REFERENCE.md`
-untuk panduan vendor panjang) ada di `.claude/skills/project-os-navigator/SKILL.md`
-bagian **Skills & subagent housekeeping**.
+The only skill folder in this project is `.claude/skills/<name>/`.
+The full rules (why, how to prevent duplication, naming `REFERENCE.md`
+for a long vendor guide) are in `.claude/skills/project-os-navigator/SKILL.md`
+under **Skills & subagent housekeeping**.
 
-## Workflow shadcn/ui (ADR-097)
+## shadcn/ui workflow (ADR-097)
 
-Untuk setiap task UI di `apps/web`: baca `apps/web/.claude/CLAUDE.md` dulu —
-dokumen itu adalah sumber kebenaran untuk workflow CLI/MCP shadcn yang
-berlaku. Jangan menebak command di sini.
+For every UI task in `apps/web`: read `apps/web/.claude/CLAUDE.md` first —
+that document is the source of truth for the shadcn CLI/MCP workflow that
+applies. Do not guess a command here.
 
-## Mode kerja
+## Working mode
 
-Lihat `Active Conversation Mode` di `PROJECT_STATE.md` untuk fase, objective,
-action yang diizinkan, dan pembatasan terkini.
+See `Active Conversation Mode` in `PROJECT_STATE.md` for the current phase,
+objective, allowed actions, and restrictions.
 
-## Mapping task → baca dulu, dan setelah mengubah sesuatu
+## Mapping task → read first, and after changing something
 
-Tabel "task → context/baseline" dan checklist "setelah mengubah sesuatu" ada
-di `.claude/skills/project-os-navigator/SKILL.md` — jangan diduplikasi di
-sini.
+The "task → context/baseline" table and the "after changing something" checklist
+are in `.claude/skills/project-os-navigator/SKILL.md` — do not duplicate them
+here.
 
 ## Related
 
 - Root setup: `README.md`
 - Skills: `.claude/skills/`
 - AI Context index: `context/README.md`
-- Alur kerja developer (mermaid): `project-os/DEVELOPER_WORKFLOW.md`
+- Developer workflow (mermaid): `project-os/DEVELOPER_WORKFLOW.md`
