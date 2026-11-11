@@ -6,17 +6,13 @@ import { resolveHistoryThumbnail } from "./history-thumbnail";
 const workspaceId = asWorkspaceId("11111111-1111-4111-8111-111111111111");
 const userId = asUserId("22222222-2222-4222-8222-222222222222");
 
-type Target = {
-  thumbnailStoragePath: string | null;
-  externalMediaUrl: string | null;
-};
+type Target = { thumbnailStoragePath: string | null };
 type Sign = (
   workspaceId: unknown,
   paths: string[],
 ) => Promise<Map<string, string>>;
 const target = (t: Partial<Target> = {}): Target => ({
   thumbnailStoragePath: null,
-  externalMediaUrl: null,
   ...t,
 });
 
@@ -75,7 +71,7 @@ describe("resolveHistoryThumbnail (T-232)", () => {
       asItem(
         [],
         [
-          target({ externalMediaUrl: "https://cdn/x.jpg" }),
+          target(),
           target({ thumbnailStoragePath: "w/imports/second.webp" }),
           target({ thumbnailStoragePath: "w/imports/third.webp" }),
         ],
@@ -90,26 +86,18 @@ describe("resolveHistoryThumbnail (T-232)", () => {
     ]);
   });
 
-  it("gagal tanda tangan (peta kosong) jatuh ke URL CDN", async () => {
+  it("gagal tanda tangan (peta kosong): null, bukan URL CDN yang bisa kedaluwarsa", async () => {
     const svc = service({ sign: async () => new Map() });
     const result = await resolveHistoryThumbnail(
-      asItem(
-        [],
-        [
-          target({
-            thumbnailStoragePath: "w/imports/a.webp",
-            externalMediaUrl: "https://cdn/x.jpg",
-          }),
-        ],
-      ),
+      asItem([], [target({ thumbnailStoragePath: "w/imports/a.webp" })]),
       workspaceId,
       userId,
       svc,
     );
-    expect(result).toEqual({ url: "https://cdn/x.jpg", type: MediaType.Image });
+    expect(result).toBeNull();
   });
 
-  it("tanda tangan melempar: tidak melempar, jatuh ke CDN atau null", async () => {
+  it("tanda tangan melempar: tidak melempar, hasilnya null", async () => {
     const svc = service({
       sign: async () => {
         throw new Error("boom");
@@ -127,7 +115,7 @@ describe("resolveHistoryThumbnail (T-232)", () => {
     spy.mockRestore();
   });
 
-  it("tanpa thumbnail maupun URL CDN: null (media dihilangkan)", async () => {
+  it("tanpa thumbnail tersimpan: null (media dihilangkan) tanpa memanggil sign", async () => {
     const svc = service();
     expect(
       await resolveHistoryThumbnail(
@@ -137,17 +125,6 @@ describe("resolveHistoryThumbnail (T-232)", () => {
         svc,
       ),
     ).toBeNull();
-  });
-
-  it("hanya URL CDN (belum ada thumbnail tersimpan): memakai CDN tanpa tanda tangan", async () => {
-    const svc = service();
-    const result = await resolveHistoryThumbnail(
-      asItem([], [target({ externalMediaUrl: "https://cdn/x.jpg" })]),
-      workspaceId,
-      userId,
-      svc,
-    );
-    expect(result).toEqual({ url: "https://cdn/x.jpg", type: MediaType.Image });
     expect(svc.signStoragePaths).not.toHaveBeenCalled();
   });
 });

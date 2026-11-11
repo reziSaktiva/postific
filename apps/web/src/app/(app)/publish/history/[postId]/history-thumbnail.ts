@@ -9,10 +9,14 @@ import { resolveSnapshotThumbnail } from "../../../components/snapshot-thumbnail
  * posting impor). Satu thumbnail per post (ADR-107):
  * - post punya `mediaIds`: media pertama lewat `resolveFirstThumbnail`;
  * - posting impor (`mediaIds` kosong): target PERTAMA (urutan `item.targets`)
- *   yang punya `thumbnailStoragePath`; bila tak ada, target pertama yang punya
- *   URL CDN. Resolver yang dipakai sama dengan Engage
- *   (`resolveSnapshotThumbnail`), bukan salinan logika.
- * Kegagalan resolve tidak pernah melempar: hasilnya `null` (media dihilangkan).
+ *   yang punya `thumbnailStoragePath`, ditandatangani lewat `signStoragePaths`.
+ *   Resolver yang dipakai sama dengan Engage (`resolveSnapshotThumbnail`),
+ *   bukan salinan logika.
+ * URL CDN platform sengaja TIDAK dipakai sebagai cadangan di sini: bisa
+ * kedaluwarsa (T-228) dan `MediaThumbnail` tidak punya penanganan gambar
+ * gagal seperti `PostThumb` Engage, jadi hasilnya gambar pecah. Tanpa
+ * thumbnail tersimpan atau tanda tangan gagal: `null` (media dihilangkan).
+ * Kegagalan resolve tidak pernah melempar.
  */
 export async function resolveHistoryThumbnail(
   item: Pick<HistoryDetailItem, "mediaIds" | "targets">,
@@ -30,27 +34,21 @@ export async function resolveHistoryThumbnail(
     );
   }
 
-  const source =
-    item.targets.find((target) => target.thumbnailStoragePath) ??
-    item.targets.find((target) => target.externalMediaUrl);
-  if (!source) return null;
+  const storagePath = item.targets.find(
+    (target) => target.thumbnailStoragePath,
+  )?.thumbnailStoragePath;
+  if (!storagePath) return null;
 
   let signedStoragePaths = new Map<string, string>();
-  if (source.thumbnailStoragePath) {
-    try {
-      signedStoragePaths = await mediaService.signStoragePaths(workspaceId, [
-        source.thumbnailStoragePath,
-      ]);
-    } catch (error) {
-      console.error("resolveHistoryThumbnail: gagal tanda tangan", error);
-    }
+  try {
+    signedStoragePaths = await mediaService.signStoragePaths(workspaceId, [
+      storagePath,
+    ]);
+  } catch (error) {
+    console.error("resolveHistoryThumbnail: gagal tanda tangan", error);
   }
   return resolveSnapshotThumbnail(
-    {
-      mediaIds: [],
-      externalMediaUrl: source.externalMediaUrl,
-      thumbnailStoragePath: source.thumbnailStoragePath,
-    },
+    { mediaIds: [], thumbnailStoragePath: storagePath },
     new Map(),
     signedStoragePaths,
   );

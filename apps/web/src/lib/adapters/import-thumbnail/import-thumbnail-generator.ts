@@ -50,7 +50,9 @@ class Semaphore {
           const index = this.waiters.indexOf(wake);
           if (index >= 0) this.waiters.splice(index, 1);
           reject(
-            new TransientThumbnailError("dibatalkan saat menunggu giliran"),
+            new TransientThumbnailError("dibatalkan saat menunggu giliran", {
+              environment: true,
+            }),
           );
         };
         const wake = () => {
@@ -79,18 +81,17 @@ function ffmpegBinary(): string {
 
 let ffmpegMissingLogged = false;
 
-function transient(message: string, cause?: unknown): TransientThumbnailError {
-  // Penyebab ikut ke pesan supaya log peringatan menunjukkan akar masalah
-  // (T-233.0), bukan hanya "HEAD video gagal".
-  const detail =
-    cause instanceof Error && cause.message
-      ? `${message}: ${cause.message}${
-          cause.cause instanceof Error && cause.cause.message
-            ? ` (${cause.cause.message})`
-            : ""
-        }`
-      : message;
-  return new TransientThumbnailError(detail, { cause });
+/**
+ * Penyebab ada di `cause`; rantainya dicatat oleh `describeError` di use case
+ * (T-233.0), jadi pesan di sini tidak perlu mengulanginya. `environment`:
+ * kegagalan lingkungan (bukan target) yang tidak menghitung sebagai percobaan.
+ */
+function transient(
+  message: string,
+  cause?: unknown,
+  environment = false,
+): TransientThumbnailError {
+  return new TransientThumbnailError(message, { cause, environment });
 }
 
 /** 408, 429, dan 5xx sementara; 4xx lain (403/404/410, dst.) permanen. */
@@ -229,7 +230,7 @@ export function extractVideoFrame(
     let total = 0;
     const onAbort = () => {
       child.kill("SIGKILL");
-      settle(() => reject(transient("ffmpeg dibatalkan")));
+      settle(() => reject(transient("ffmpeg dibatalkan", undefined, true)));
     };
     const timer = setTimeout(() => {
       child.kill("SIGKILL");
@@ -254,7 +255,9 @@ export function extractVideoFrame(
           `[importThumbnailGenerator] ffmpeg tidak ditemukan ("${ffmpegBinary()}"): poster video ditunda sampai ffmpeg tersedia (set FFMPEG_PATH atau pasang ffmpeg di build).`,
         );
       }
-      settle(() => reject(transient("ffmpeg tidak dapat dijalankan", error)));
+      settle(() =>
+        reject(transient("ffmpeg tidak dapat dijalankan", error, true)),
+      );
     });
     child.on("close", (code) =>
       settle(() =>
@@ -276,7 +279,7 @@ async function toThumbnailWebp(source: Buffer): Promise<Buffer | null> {
   try {
     sharp = (await import("sharp")).default;
   } catch (error) {
-    throw transient("sharp tidak dapat dimuat", error);
+    throw transient("sharp tidak dapat dimuat", error, true);
   }
   try {
     return await sharp(source, { limitInputPixels: MAX_INPUT_PIXELS })
@@ -302,7 +305,8 @@ async function upload(
   const supabase = createServerSupabaseClient();
   const result = await new Promise<{ error: { message: string } | null }>(
     (resolve, reject) => {
-      const onAbort = () => reject(transient("upload dibatalkan"));
+      const onAbort = () =>
+        reject(transient("upload dibatalkan", undefined, true));
       if (signal.aborted) return onAbort();
       signal.addEventListener("abort", onAbort, { once: true });
       supabase.storage
@@ -313,7 +317,11 @@ async function upload(
     },
   );
   if (result.error) {
-    throw transient(`gagal menyimpan thumbnail: ${result.error.message}`);
+    throw transient(
+      `gagal menyimpan thumbnail: ${result.error.message}`,
+      undefined,
+      true,
+    );
   }
 }
 

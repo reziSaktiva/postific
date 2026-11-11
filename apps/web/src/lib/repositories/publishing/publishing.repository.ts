@@ -219,7 +219,6 @@ function mapHistoryItem(post: QueuePostWithTargets): HistoryItemRecord {
       platformPostUrl: target.platformPostUrl,
       error: target.error,
       thumbnailStoragePath: target.thumbnailStoragePath,
-      externalMediaUrl: firstExternalMediaUrl(target.platformOptions),
     })),
   };
 }

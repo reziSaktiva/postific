@@ -308,19 +308,22 @@ describe("importThumbnailGenerator (T-230, ADR-158)", () => {
     expect(upload).not.toHaveBeenCalled();
   });
 
-  it("T-233.0: galat HEAD membawa penyebab di pesan kegagalan sementara", async () => {
-    fetchMock.mockRejectedValue(
-      new TypeError("fetch failed", {
-        cause: new Error("connect ETIMEDOUT 1.2.3.4:443"),
-      }),
-    );
+  it("T-233.0: galat HEAD membawa penyebab di cause dan bukan kegagalan lingkungan", async () => {
+    const cause = new TypeError("fetch failed", {
+      cause: new Error("connect ETIMEDOUT 1.2.3.4:443"),
+    });
+    fetchMock.mockRejectedValue(cause);
     await expect(
       importThumbnailGenerator.generate({
         workspaceId,
         targetId: "t1",
         sourceUrl: VIDEO_URL,
       }),
-    ).rejects.toThrow(/HEAD video gagal: fetch failed .*ETIMEDOUT/);
+    ).rejects.toMatchObject({
+      message: "HEAD video gagal",
+      cause,
+      environment: false,
+    });
   });
 
   it("video: HEAD ditolak (403): null", async () => {

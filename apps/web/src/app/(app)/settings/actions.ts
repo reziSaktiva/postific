@@ -7,10 +7,10 @@ import {
   type WorkspaceId,
 } from "@postific/shared";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { NotificationService } from "@/domains/notification";
 import { WorkspaceService } from "@/domains/workspace";
 import { getCachedSession } from "@/lib/better-auth/session";
-import { createPurgeImportThumbnailsUseCase } from "@/lib/jobs/import-media-composition";
 import { notificationRepository } from "@/lib/repositories/notification";
 import { workspaceRepository } from "@/lib/repositories/workspace";
 import { getWorkspaceContext } from "@/lib/workspace/workspace-context";
@@ -51,7 +51,6 @@ async function requireActionContext(): Promise<{
  */
 function createWorkspaceService(): WorkspaceService {
   const notificationService = new NotificationService(notificationRepository);
-  const purgeThumbnails = createPurgeImportThumbnailsUseCase();
   return new WorkspaceService(
     workspaceRepository,
     undefined,
@@ -62,9 +61,26 @@ function createWorkspaceService(): WorkspaceService {
     undefined,
     undefined,
     undefined,
+    // Parameter ke-10: `WorkspaceDeletionCleanupPort` (T-231). Dijalankan
+    // SESUDAH respons lewat `after`, dan komposisi thumbnail (sharp/ffmpeg)
+    // dimuat malas hanya saat workspace benar-benar dihapus, bukan ikut
+    // bundle semua action settings.
     {
       onWorkspaceDeleted: async (workspaceId) => {
-        await purgeThumbnails.purgeWorkspace(workspaceId);
+        after(async () => {
+          try {
+            const { createPurgeImportThumbnailsUseCase } =
+              await import("@/lib/jobs/import-media-composition");
+            await createPurgeImportThumbnailsUseCase().purgeWorkspace(
+              workspaceId,
+            );
+          } catch (error) {
+            console.error(
+              "[deleteWorkspaceAction] gagal membersihkan thumbnail impor; disapu job harian",
+              error,
+            );
+          }
+        });
       },
     },
   );

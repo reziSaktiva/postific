@@ -174,10 +174,15 @@ describe("PurgeImportThumbnailsUseCase.sweepOrphans", () => {
   });
 
   it("stops at the time budget and reports incomplete", async () => {
-    const { storage } = createStorage({
-      [path(WS_A, "a")]: OLD,
-      [path(WS_B, "b")]: OLD,
-    });
+    // Lebih banyak workspace daripada konkurensi sapuan (5), supaya anggaran
+    // waktu bisa habis di antara dua kelompok.
+    const workspaceIds = Array.from(
+      { length: 6 },
+      (_, i) => `00000000-0000-4000-8000-00000000000${i}`,
+    );
+    const { storage } = createStorage(
+      Object.fromEntries(workspaceIds.map((ws) => [path(ws, "a"), OLD])),
+    );
     let tick = 0;
     const clock = () => new Date(NOW.getTime() + tick++ * 10_000);
     const useCase = new PurgeImportThumbnailsUseCase(
@@ -190,7 +195,7 @@ describe("PurgeImportThumbnailsUseCase.sweepOrphans", () => {
     const result = await useCase.sweepOrphans();
 
     expect(result.incomplete).toBe(true);
-    expect(result.removed).toBeLessThan(2);
+    expect(result.removed).toBeLessThan(6);
   });
 
   it("does nothing for an empty bucket", async () => {

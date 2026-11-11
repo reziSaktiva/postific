@@ -114,6 +114,62 @@ describe("ProcessImportMediaUseCase (T-230)", () => {
     );
   });
 
+  it("kegagalan lingkungan (ffmpeg tak bisa jalan) tertunda tanpa menaikkan penghitung", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { useCase, record } = setup({
+      pending: [{ targetId: "t1", sourceUrl: "https://a.fbcdn.net/1.jpg" }],
+      generate: async () => {
+        throw new TransientThumbnailError("ffmpeg tidak dapat dijalankan", {
+          environment: true,
+        });
+      },
+      exhausted: () => true,
+    });
+
+    const result = await useCase.process({
+      workspaceId,
+      actingUserId,
+      targetIds: ["t1"],
+    });
+
+    expect(result).toEqual({
+      stored: 0,
+      skipped: 0,
+      deferred: 1,
+      alreadyHandled: 0,
+    });
+    expect(record).not.toHaveBeenCalled();
+  });
+
+  it("galat DB saat mencatat kegagalan tidak menolak batch: target itu tertunda, yang lain tetap diproses", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { useCase, record, save } = setup({
+      pending: [
+        { targetId: "t1", sourceUrl: "https://a.fbcdn.net/1.jpg" },
+        { targetId: "t2", sourceUrl: "https://a.fbcdn.net/2.jpg" },
+      ],
+      generate: async ({ targetId }) => {
+        if (targetId === "t1") throw new TransientThumbnailError("CDN 503");
+        return { storagePath: "w/imports/t2.webp", kind: "image" };
+      },
+    });
+    record.mockRejectedValueOnce(new Error("koneksi DB putus"));
+
+    const result = await useCase.process({
+      workspaceId,
+      actingUserId,
+      targetIds: ["t1", "t2"],
+    });
+
+    expect(result).toEqual({
+      stored: 1,
+      skipped: 0,
+      deferred: 1,
+      alreadyHandled: 0,
+    });
+    expect(save).toHaveBeenCalledTimes(1);
+  });
+
   it("T-233: batas percobaan tercapai menghitung target sebagai dilewati permanen, bukan tertunda", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     const { useCase, save } = setup({

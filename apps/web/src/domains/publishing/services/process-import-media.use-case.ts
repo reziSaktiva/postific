@@ -1,5 +1,8 @@
 import type { UserId, WorkspaceId } from "@postific/shared";
-import type { IImportThumbnailGenerator } from "../adapters/import-thumbnail-generator";
+import {
+  TransientThumbnailError,
+  type IImportThumbnailGenerator,
+} from "../adapters/import-thumbnail-generator";
 import type { IPublishingRepository } from "../repositories/publishing.repository";
 
 /** Unduhan paralel per job; kecil agar tidak membebani jaringan atau CPU (`sharp`/`ffmpeg`). */
@@ -110,17 +113,33 @@ export class ProcessImportMediaUseCase {
       console.warn(
         `[ProcessImportMediaUseCase] thumbnail target ${target.targetId} ditunda: ${describeError(error)}`,
       );
-      // Waktu job habis: tertunda tanpa menghitung sebagai percobaan target.
-      if (signal.aborted) return "deferred";
-      const { exhausted } =
-        await this.repository.recordImportedTargetThumbnailFailure(
-          {
-            workspaceId: input.workspaceId,
-            targetId: target.targetId,
-            maxAttempts: MAX_THUMBNAIL_ATTEMPTS,
-          },
-          input.actingUserId,
+      // Waktu job habis atau kegagalan lingkungan (`ffmpeg`/`sharp` tak bisa
+      // jalan, Storage gagal): tertunda tanpa menghitung sebagai percobaan
+      // target, supaya lingkungan yang diperbaiki kemudian tetap dicoba.
+      if (
+        signal.aborted ||
+        (error instanceof TransientThumbnailError && error.environment)
+      ) {
+        return "deferred";
+      }
+      let exhausted = false;
+      try {
+        ({ exhausted } =
+          await this.repository.recordImportedTargetThumbnailFailure(
+            {
+              workspaceId: input.workspaceId,
+              targetId: target.targetId,
+              maxAttempts: MAX_THUMBNAIL_ATTEMPTS,
+            },
+            input.actingUserId,
+          ));
+      } catch (recordError) {
+        // Galat DB saat mencatat tidak boleh menolak seluruh chunk.
+        console.warn(
+          `[ProcessImportMediaUseCase] gagal mencatat percobaan target ${target.targetId}: ${describeError(recordError)}`,
         );
+        return "deferred";
+      }
       if (exhausted) {
         console.warn(
           `[ProcessImportMediaUseCase] thumbnail target ${target.targetId} dihentikan setelah ${MAX_THUMBNAIL_ATTEMPTS} kegagalan sementara`,

@@ -4,6 +4,9 @@ import type { IImportThumbnailStorage } from "../adapters/import-thumbnail-stora
 /** Ukuran halaman daftar Storage dan batch hapus. */
 const PAGE_SIZE = 100;
 
+/** Workspace yang disapu bersamaan dalam satu sapuan harian. */
+const SWEEP_CONCURRENCY = 5;
+
 /** Pengaman putaran: satu workspace paling banyak membersihkan 50 halaman per pemanggilan. */
 const MAX_PAGES_PER_WORKSPACE = 50;
 
@@ -85,20 +88,26 @@ export class PurgeImportThumbnailsUseCase {
       ...workspaceIds.slice(0, start),
     ];
 
-    for (const workspaceId of ordered) {
+    // Beberapa workspace sekaligus (bukan satu per satu): sebagian besar hanya
+    // butuh satu `list` Storage, jadi sapuan tidak habis di antrean panggilan.
+    for (let i = 0; i < ordered.length; i += SWEEP_CONCURRENCY) {
       if (this.now().getTime() - startedAt >= this.budgetMs) {
         result.incomplete = true;
         break;
       }
-      try {
-        await this.sweepWorkspace(workspaceId, result);
-      } catch (error) {
-        // Satu workspace yang gagal tidak boleh menahan workspace lain.
-        result.incomplete = true;
-        console.warn(
-          `[PurgeImportThumbnailsUseCase] sapuan workspace ${workspaceId} gagal: ${error instanceof Error ? error.message : String(error)}`,
-        );
-      }
+      await Promise.all(
+        ordered.slice(i, i + SWEEP_CONCURRENCY).map(async (workspaceId) => {
+          try {
+            await this.sweepWorkspace(workspaceId, result);
+          } catch (error) {
+            // Satu workspace yang gagal tidak boleh menahan workspace lain.
+            result.incomplete = true;
+            console.warn(
+              `[PurgeImportThumbnailsUseCase] sapuan workspace ${workspaceId} gagal: ${error instanceof Error ? error.message : String(error)}`,
+            );
+          }
+        }),
+      );
     }
     return result;
   }
