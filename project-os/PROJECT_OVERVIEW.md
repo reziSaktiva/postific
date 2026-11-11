@@ -149,7 +149,7 @@ Berbeda dengan section lain di dokumen ini, section ini **boleh bertambah** seir
 
 **Preferensi Kerja yang Terkonfirmasi:**
 
-- Bahasa komunikasi dan dokumentasi: **Bahasa Indonesia**.
+- Bahasa komunikasi dan dokumentasi mengikuti `AGENTS.md` aturan 8.
 - Perubahan struktural (folder, path, aturan) harus dieksekusi lengkap sampai seluruh dokumen terkait konsisten — tidak boleh setengah jalan.
 - Setiap inkonsistensi yang ditemukan AI harus disebutkan secara eksplisit ke user, bukan didiamkan atau diperbaiki secara diam-diam.
 - Lebih menyukai struktur dokumentasi yang rapi dan tidak ambigu dibandingkan kecepatan — good documentation dianggap lebih penting daripada langsung coding.

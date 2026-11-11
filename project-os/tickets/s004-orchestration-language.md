@@ -174,8 +174,9 @@ Terjemahan T-235 mengubah judul section navigator ("Pekerjaan Baru" menjadi "New
 
 - [x] **T-246.1** Penunjuk ke judul section navigator memakai judul bahasa Inggris yang baru.
 - [x] **T-246.2** `bun run docs:check` bersih.
+- [x] **T-246.3** Audit topik language (2026-11-11): `project-os/PROJECT_OVERVIEW.md` baris "Bahasa komunikasi dan dokumentasi" menjadi penunjuk ke `AGENTS.md` aturan 8, dan rentang S-004 di `project-os/tickets/v01-foundation.md` menjadi T-234 sampai T-246. Atas keputusan King Rezi: berkas agen `ridwan-architecture-reviewer.md` dan `najwa-qa-engineer.md` memakai "Done by"; tujuh berkas agen menunjuk `AGENTS.md` aturan 1 (dan gibran aturan 8) alih-alih menyalin kalimatnya; penunjuk "§ New Work" di ADR-153 dan ADR-063.
 
-**Utang yang dicatat (tidak diperbaiki, keputusan King Rezi):** (a) `.claude/agents/ridwan-architecture-reviewer.md` baris 33 dan `najwa-qa-engineer.md` baris 68 masih menulis "Dikerjakan oleh", sedangkan `work-report-simple` kini "Done by". Masuk utang berkas agen T-234.5. (b) ADR-153 baris 46 masih menunjuk "§ Pekerjaan Baru". ADR adalah lapisan 3 historis dan tidak diedit.
+**Utang yang dicatat:** tidak ada tersisa. Selisih "Dikerjakan oleh" di berkas agen Ridwan dan Najwa, salinan kalimat sapaan di tujuh berkas agen, dan penunjuk "Pekerjaan Baru" di ADR-153 dan ADR-063 diperbaiki atas keputusan King Rezi setelah audit topik language (T-246.3).
 
 **Belum terbukti:** tidak ada butir runtime. Kata kunci status "Belum terbukti" dan "menunggu Verified (staging)" dipertahankan apa adanya sesuai S-004.
 

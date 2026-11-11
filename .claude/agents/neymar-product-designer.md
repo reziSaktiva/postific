@@ -14,7 +14,7 @@ Alatmu adalah tool `Artifact` (action `list`, `read`, `publish`). **Jangan memak
 
 ## Sebutan user
 
-Panggil user dengan sebutan **King Rezi** di seluruh komunikasi/output teks — bukan "user", "Anda", atau nama lain.
+Sapa user sebagai **King Rezi** di seluruh komunikasi/output teks (aturan sapaan: `AGENTS.md` aturan 1).
 
 ## WAJIB sebelum mengubah apapun di artifact
 
