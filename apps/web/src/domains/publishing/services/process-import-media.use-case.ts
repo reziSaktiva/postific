@@ -12,12 +12,19 @@ const CONCURRENCY = 5;
  */
 export const IMPORT_MEDIA_JOB_BUDGET_MS = 20_000;
 
+/**
+ * Batas kegagalan SEMENTARA per target (T-233, addendum ADR-158). Setelah
+ * sebanyak ini, target ditandai permanen (`thumbnail_attempted_at`) dan tidak
+ * dicoba lagi pada import berikutnya; thumbnail jatuh ke fallback T-227.
+ */
+export const MAX_THUMBNAIL_ATTEMPTS = 5;
+
 export interface ProcessImportMediaResult {
   /** Target yang thumbnail-nya tersimpan. */
   stored: number;
-  /** Target dengan kegagalan PERMANEN (URL mati, terlalu besar, dst.): ditandai sudah dicoba. */
+  /** Target dengan kegagalan PERMANEN (URL mati, terlalu besar, dst.) atau yang kegagalan sementaranya mencapai `MAX_THUMBNAIL_ATTEMPTS`: ditandai sudah dicoba. */
   skipped: number;
-  /** Target dengan kegagalan SEMENTARA atau waktu habis: tidak ditandai, dicoba lagi nanti. */
+  /** Target dengan kegagalan SEMENTARA (penghitung percobaan naik, belum mencapai batas) atau waktu habis (penghitung tidak naik): dicoba lagi nanti. */
   deferred: number;
   /** Target yang sudah punya thumbnail atau sudah pernah dicoba (idempoten). */
   alreadyHandled: number;
@@ -32,8 +39,11 @@ export interface ProcessImportMediaResult {
  * Kegagalan PERMANEN (`generate` mengembalikan `null`) ditandai sudah dicoba
  * agar URL CDN yang sudah mati tidak dicoba lagi di setiap import. Kegagalan
  * SEMENTARA (`generate` melempar: timeout, 5xx, `ffmpeg` belum terpasang,
- * error Storage, anggaran waktu habis) TIDAK ditandai: dicoba lagi pada
- * import atau backfill berikutnya (review Ridwan H1).
+ * error Storage) tidak langsung ditandai: penghitung percobaan target naik dan
+ * dicoba lagi pada import atau backfill berikutnya (review Ridwan H1), sampai
+ * `MAX_THUMBNAIL_ATTEMPTS`, lalu ditandai permanen (T-233). Pembatalan karena
+ * anggaran waktu job habis BUKAN kesalahan target, jadi tidak menaikkan
+ * penghitung.
  */
 export class ProcessImportMediaUseCase {
   constructor(
@@ -98,8 +108,25 @@ export class ProcessImportMediaUseCase {
       );
     } catch (error) {
       console.warn(
-        `[ProcessImportMediaUseCase] thumbnail target ${target.targetId} ditunda: ${error instanceof Error ? error.message : String(error)}`,
+        `[ProcessImportMediaUseCase] thumbnail target ${target.targetId} ditunda: ${describeError(error)}`,
       );
+      // Waktu job habis: tertunda tanpa menghitung sebagai percobaan target.
+      if (signal.aborted) return "deferred";
+      const { exhausted } =
+        await this.repository.recordImportedTargetThumbnailFailure(
+          {
+            workspaceId: input.workspaceId,
+            targetId: target.targetId,
+            maxAttempts: MAX_THUMBNAIL_ATTEMPTS,
+          },
+          input.actingUserId,
+        );
+      if (exhausted) {
+        console.warn(
+          `[ProcessImportMediaUseCase] thumbnail target ${target.targetId} dihentikan setelah ${MAX_THUMBNAIL_ATTEMPTS} kegagalan sementara`,
+        );
+        return "skipped";
+      }
       return "deferred";
     }
     await this.repository.saveImportedTargetThumbnail(
@@ -112,6 +139,17 @@ export class ProcessImportMediaUseCase {
     );
     return thumbnail ? "stored" : "skipped";
   }
+}
+
+/** Pesan galat beserta penyebab bertingkat (`cause`), agar log menunjukkan akar masalah. */
+function describeError(error: unknown): string {
+  const parts: string[] = [];
+  let current: unknown = error;
+  for (let depth = 0; current !== undefined && depth < 3; depth++) {
+    parts.push(current instanceof Error ? current.message : String(current));
+    current = current instanceof Error ? current.cause : undefined;
+  }
+  return parts.join(" <- ");
 }
 
 function raceAbort<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {

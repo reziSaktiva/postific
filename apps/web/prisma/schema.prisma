@@ -493,6 +493,9 @@ model PublishingPostTarget {
   thumbnailStoragePath String?   @map("thumbnail_storage_path")
   thumbnailKind        String?   @map("thumbnail_kind")
   thumbnailAttemptedAt DateTime? @map("thumbnail_attempted_at") @db.Timestamptz(6)
+  // T-233 (ADR-158 addendum): jumlah kegagalan SEMENTARA thumbnail; mencapai
+  // batas (5) menandai `thumbnailAttemptedAt` sehingga target tidak dicoba lagi.
+  thumbnailAttempts    Int       @default(0) @map("thumbnail_attempts")
   // Redesain ACL Outstand (2026-08-26, ADR baru): `outstandJobId` (dulu
   // per-target job id, model yang salah — Outstand tidak punya job per
   // akun) diganti `platformPostId` — ID post di platform ASLI (Instagram,

@@ -80,7 +80,17 @@ function ffmpegBinary(): string {
 let ffmpegMissingLogged = false;
 
 function transient(message: string, cause?: unknown): TransientThumbnailError {
-  return new TransientThumbnailError(message, { cause });
+  // Penyebab ikut ke pesan supaya log peringatan menunjukkan akar masalah
+  // (T-233.0), bukan hanya "HEAD video gagal".
+  const detail =
+    cause instanceof Error && cause.message
+      ? `${message}: ${cause.message}${
+          cause.cause instanceof Error && cause.cause.message
+            ? ` (${cause.cause.message})`
+            : ""
+        }`
+      : message;
+  return new TransientThumbnailError(detail, { cause });
 }
 
 /** 408, 429, dan 5xx sementara; 4xx lain (403/404/410, dst.) permanen. */
@@ -150,10 +160,14 @@ async function checkVideo(
 ): Promise<"ok" | "refused"> {
   let response: Response;
   try {
-    response = await fetch(url, { method: "HEAD", redirect: "error", signal });
+    // `manual`: balasan redirect dibaca sebagai status 3xx, bukan galat jaringan.
+    response = await fetch(url, { method: "HEAD", redirect: "manual", signal });
   } catch (error) {
     throw transient("HEAD video gagal", error);
   }
+  // CDN yang dialihkan tidak akan berubah pada percobaan berikutnya (kasus
+  // staging 2026-11-10): permanen, bukan sementara (T-233.0).
+  if (response.status >= 300 && response.status < 400) return "refused";
   if (
     response.status === 403 ||
     response.status === 404 ||

@@ -58,3 +58,9 @@ Posting hasil Import Posts (ADR-093) tidak menyimpan media: `publishing_posts.me
 - **Eksekusi:** tahap terpisah lewat job `import.media` per batch kecil, bukan sinkron di dalam job Import (import pertama bisa 1000 posting, melewati batas 25 dan 30 detik).
 - **Terukur (mp4 uji, bukan Instagram):** poster `ffmpeg` 0,66 detik dengan sekitar 3% berkas ditarik; webp `sharp` 640 px sekitar 28 KB.
 - **Posting lama:** tidak dipulihkan; import ulang tidak bisa diuji karena cooldown 24 jam selalu diperbarui import periodik.
+
+### Addendum 2026-11-11: batas percobaan ulang (T-233) dan pembersihan berkas (T-231)
+
+- **Batas percobaan (keputusan King Rezi, T-233.1):** kolom `thumbnail_attempts` (`INTEGER NOT NULL DEFAULT 0`, aditif) di `publishing_post_targets`. Tiap kegagalan SEMENTARA menaikkannya; pada percobaan ke-5 (`MAX_THUMBNAIL_ATTEMPTS`) target ditandai permanen lewat `thumbnail_attempted_at` dan tidak dicoba lagi, jatuh ke fallback T-227. Perilaku baru: kegagalan sementara tidak lagi dicoba tanpa batas. Pembatalan karena anggaran waktu job (20 detik) bukan kesalahan target dan tidak menaikkan penghitung. Target yang sudah ditandai permanen tetap tidak dipulihkan walau `mediaUrls` berubah (sesuai T-229.6).
+- **Redirect pada `HEAD` video** kini kegagalan permanen (bukan sementara), dan pesan kegagalan sementara membawa penyebab (T-233.0).
+- **Pembersihan berkas (T-231):** berkas `{workspaceId}/imports/` dihapus saat workspace dihapus (best-effort setelah cascade) dan oleh job sapu harian JOB-10 untuk berkas yang tidak dirujuk `thumbnail_storage_path` (lebih tua dari 1 jam). Memutus akun TIDAK menghapus thumbnail: baris target dan riwayat posting impor tetap ada (KSP-D09).

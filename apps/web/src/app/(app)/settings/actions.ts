@@ -10,6 +10,7 @@ import { redirect } from "next/navigation";
 import { NotificationService } from "@/domains/notification";
 import { WorkspaceService } from "@/domains/workspace";
 import { getCachedSession } from "@/lib/better-auth/session";
+import { createPurgeImportThumbnailsUseCase } from "@/lib/jobs/import-media-composition";
 import { notificationRepository } from "@/lib/repositories/notification";
 import { workspaceRepository } from "@/lib/repositories/workspace";
 import { getWorkspaceContext } from "@/lib/workspace/workspace-context";
@@ -50,10 +51,22 @@ async function requireActionContext(): Promise<{
  */
 function createWorkspaceService(): WorkspaceService {
   const notificationService = new NotificationService(notificationRepository);
+  const purgeThumbnails = createPurgeImportThumbnailsUseCase();
   return new WorkspaceService(
     workspaceRepository,
     undefined,
     notificationService,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    {
+      onWorkspaceDeleted: async (workspaceId) => {
+        await purgeThumbnails.purgeWorkspace(workspaceId);
+      },
+    },
   );
 }
 
