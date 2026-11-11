@@ -1,6 +1,6 @@
 # S-004 · Orchestration language
 
-> Rumah tiket spec S-004. Keputusan King Rezi 2026-11-11: tiket ini punya berkas sendiri, terpisah dari file rilis. Antrian yang belum selesai ada di [`../AVAILABLE_TICKETS.md`](../AVAILABLE_TICKETS.md). Spec: [`../specs/S-004.md`](../specs/S-004.md).
+> Rumah tiket spec S-004 (ADR-159). Antrian yang belum selesai ada di [`../AVAILABLE_TICKETS.md`](../AVAILABLE_TICKETS.md). Spec: [`../specs/S-004.md`](../specs/S-004.md).
 
 Keputusan King Rezi 2026-11-11. Satu berkas utuh per tiket. ADR dan terjemahan belum dimulai.
 
@@ -9,10 +9,10 @@ Keputusan King Rezi 2026-11-11. Satu berkas utuh per tiket. ADR dan terjemahan b
 `⏳ Not Started` · **Mode** HITL · **Domain** project-os, agen · **ADR** ADR-133, ADR-158 · **Spec** S-004 · **Depends** —
 **Baca dulu:** `project-os/specs/S-004.md` · `AGENTS.md` aturan 1, 2, dan 8 · `context/ctx-project.md`
 
-Gerbang bahasa orkestrasi. Menulis ADR baru (nomor berikutnya setelah ADR-158, prosa Indonesia) dan menerjemahkan `AGENTS.md` utuh. Berhenti sampai King Rezi menerima ADR itu. Tiket AFK di spec ini tidak dimulai sebelum Accepted.
+Gerbang bahasa orkestrasi. Menulis ADR baru (nomor berikutnya setelah ADR-159, prosa Indonesia) dan menerjemahkan `AGENTS.md` utuh. Berhenti sampai King Rezi menerima ADR itu. Tiket AFK di spec ini tidak dimulai sebelum Accepted.
 
-- [ ] **T-234.1** ADR mencatat tujuan (keselarasan skill Inggris dan kolaborator baru), cakupan lapisan 1 dan 2, lapisan 3 tidak diterjemahkan, delapan berkas agen tidak diubah, sebutan King Rezi tetap, dan lima kata etiket: please, sorry, thank you, excuse me, go ahead. Teks aturan hanya di `AGENTS.md`.
-- [ ] **T-234.2** `AGENTS.md` utuh dalam bahasa Inggris. Aturan bahasa: default bahasa Inggris, dengan klausul King Rezi dapat meminta bahasa lain. Aturan sapaan: King Rezi tetap, lima kata etiket dalam bahasa Inggris.
+- [ ] **T-234.1** ADR mencatat tujuan (keselarasan skill Inggris dan kolaborator baru), cakupan lapisan 1 dan 2, lapisan 3 tidak diterjemahkan, delapan berkas agen tidak diubah, sebutan King Rezi tetap, dan **5 Magic Words**: please, sorry, thank you, excuse me, go ahead. Teks aturan hanya di `AGENTS.md`.
+- [ ] **T-234.2** `AGENTS.md` utuh dalam bahasa Inggris. Aturan bahasa: default bahasa Inggris, dengan klausul King Rezi dapat meminta bahasa lain. Aturan sapaan: King Rezi tetap, **5 Magic Words** dalam bahasa Inggris.
 - [ ] **T-234.3** Kalimat bahasa di `context/ctx-project.md` menjadi penunjuk ke aturan 8. Sisa berkas itu tetap Bahasa Indonesia.
 - [ ] **T-234.4** S-004 menunjuk ADR yang sudah ada, tanpa menyalin ulang aturan (ADR-133).
 - [ ] **T-234.5** Audit topik language. Salinan aturan di `.claude/agents/` dilaporkan sebagai utang dan tidak diubah di tiket ini.
@@ -25,7 +25,7 @@ Gerbang bahasa orkestrasi. Menulis ADR baru (nomor berikutnya setelah ADR-158, p
 `⏳ Not Started` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133 · **Spec** S-004 · **Depends** T-234
 **Baca dulu:** `project-os/specs/S-004.md` · `.claude/skills/project-os-navigator/SKILL.md`
 
-- [ ] **T-235.1** Berkas skill utuh dalam bahasa Inggris. Arti gerbang dan kata kunci status tidak berubah. Sebutan King Rezi tetap. Lima kata etiket mengikuti ADR T-234.
+- [ ] **T-235.1** Berkas skill utuh dalam bahasa Inggris. Arti gerbang dan kata kunci status tidak berubah. Sebutan King Rezi tetap. **5 Magic Words** mengikuti ADR T-234.
 - [ ] **T-235.2** Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
 - [ ] **T-235.3** Satu sesi uji mematuhi gerbang yang sama dengan versi sebelumnya.
 
@@ -36,7 +36,7 @@ Gerbang bahasa orkestrasi. Menulis ADR baru (nomor berikutnya setelah ADR-158, p
 `⏳ Not Started` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133 · **Spec** S-004 · **Depends** T-234
 **Baca dulu:** `project-os/specs/S-004.md` · `.claude/skills/proactive-clarification/SKILL.md`
 
-- [ ] **T-236.1** Berkas skill utuh dalam bahasa Inggris. Cara bertanya per ronde tidak berubah. Sebutan King Rezi tetap. Lima kata etiket mengikuti ADR T-234.
+- [ ] **T-236.1** Berkas skill utuh dalam bahasa Inggris. Cara bertanya per ronde tidak berubah. Sebutan King Rezi tetap. **5 Magic Words** mengikuti ADR T-234.
 - [ ] **T-236.2** Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
 - [ ] **T-236.3** Satu sesi uji mematuhi gerbang yang sama dengan versi sebelumnya.
 
@@ -47,7 +47,7 @@ Gerbang bahasa orkestrasi. Menulis ADR baru (nomor berikutnya setelah ADR-158, p
 `⏳ Not Started` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133 · **Spec** S-004 · **Depends** T-234
 **Baca dulu:** `project-os/specs/S-004.md` · `.claude/skills/docs-consistency-audit/SKILL.md`
 
-- [ ] **T-237.1** Berkas skill utuh dalam bahasa Inggris. Cakupan audit tidak berubah. Sebutan King Rezi tetap. Lima kata etiket mengikuti ADR T-234.
+- [ ] **T-237.1** Berkas skill utuh dalam bahasa Inggris. Cakupan audit tidak berubah. Sebutan King Rezi tetap. **5 Magic Words** mengikuti ADR T-234.
 - [ ] **T-237.2** Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
 - [ ] **T-237.3** Satu sesi uji mematuhi gerbang yang sama dengan versi sebelumnya.
 
