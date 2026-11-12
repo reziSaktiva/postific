@@ -1137,9 +1137,12 @@ test("S10 bersihkan draft e2e-qa dan kunci localStorage", async ({ page }) => {
  * T-211.5: tata letak yang diukur, bukan sekadar "terlihat". Tidak membuat atau
  * memublikasikan apa pun: akun hanya dipilih di form lalu dialog ditutup.
  */
+/** Checkbox akun di popover Channels; bukan "Pilih semua". */
+const ACCOUNT_BOX_NAME = /^Pilih (?!semua)/i;
+
 async function pickFirstAccounts(page: Page, dlg: Locator, count: number) {
   await dlg.getByRole("button", { name: "Channels" }).click();
-  const boxes = page.getByRole("checkbox", { name: /^Pilih / });
+  const boxes = page.getByRole("checkbox", { name: ACCOUNT_BOX_NAME });
   await expect(boxes.first()).toBeVisible({ timeout: 15_000 });
   const available = await boxes.count();
   test.skip(
@@ -1232,9 +1235,7 @@ test("S18 T-202.2: blok per jaringan akordeon (2 akun) dan statis (1 akun)", asy
   await expect(dlg).toBeVisible();
   await dlg.getByRole("button", { name: "Channels" }).click();
   // Hanya checkbox akun, bukan "Pilih semua".
-  const accountBoxes = page.getByRole("checkbox", {
-    name: /^Pilih (?!semua)/i,
-  });
+  const accountBoxes = page.getByRole("checkbox", { name: ACCOUNT_BOX_NAME });
   await expect(accountBoxes.first()).toBeVisible({ timeout: 15_000 });
   const available = await accountBoxes.count();
   test.skip(
@@ -1245,8 +1246,12 @@ test("S18 T-202.2: blok per jaringan akordeon (2 akun) dan statis (1 akun)", asy
   await page.keyboard.press("Escape");
   await expect(accountBoxes.first()).toBeHidden();
   const networks = dlg.getByRole("region", { name: "Pengaturan per jaringan" });
-  const triggers = networks.getByRole("button", { expanded: true });
-  const allTriggers = networks.locator("button[aria-expanded]");
+  // Hanya pemicu akordeon: Select Radix (mis. board Pinterest) punya aria-haspopup.
+  const accordionTrigger = "button[aria-expanded]:not([aria-haspopup])";
+  const triggers = networks.locator(
+    `${accordionTrigger}[aria-expanded="true"]`,
+  );
+  const allTriggers = networks.locator(accordionTrigger);
   await expect(allTriggers).toHaveCount(2);
   // Tepat satu blok terbuka.
   await expect(triggers).toHaveCount(1);
@@ -1271,12 +1276,12 @@ test("S18 T-202.2: blok per jaringan akordeon (2 akun) dan statis (1 akun)", asy
 
   // Satu akun: tanpa pemicu akordeon. Lepas satu akun lewat popover Channels.
   await dlg.getByRole("button", { name: "Channels" }).click();
-  const boxes = page.getByRole("checkbox", { name: /^Pilih (?!semua)/i });
+  const boxes = page.getByRole("checkbox", { name: ACCOUNT_BOX_NAME });
   await expect(boxes.first()).toBeVisible();
   await boxes.nth(1).uncheck();
   await page.keyboard.press("Escape");
   await expect(boxes.first()).toBeHidden();
-  await expect(networks.locator("button[aria-expanded]")).toHaveCount(0);
+  await expect(networks.locator(accordionTrigger)).toHaveCount(0);
   await expect(networks).toBeVisible();
   await snap(page, "s18-single-account");
 

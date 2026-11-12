@@ -8,8 +8,8 @@ import type { PublishingPostRealtimeHandlers } from "@/lib/supabase/realtime/pub
 
 /**
  * T-208.1 (KI-108): bukti lintas batas, aksi terminal Draft Editor yang nyata
- * bersama hook Realtime bersama yang nyata. Router tiruan hanya mencatat bahwa
- * `router.push` sedang tertunda; ia TIDAK memodelkan antrean aksi App Router
+ * bersama hook Realtime bersama yang nyata. Router tiruan hanya mencatat tujuan
+ * `router.push` dan tidak pernah menyelesaikannya; ia TIDAK memodelkan antrean aksi App Router
  * (Next 16.2.10, `app-router-instance.js`, `dispatchAction`). Yang diuji adalah
  * hipotesis kerja: server action yang dikirim selagi navigasi tertunda
  * dianggap berbahaya (sebab macetnya belum terbukti). Tes gagal bila server action milik
@@ -29,8 +29,6 @@ const actionMocks = vi.hoisted(() => ({
   deleteMediaAction: vi.fn(),
 }));
 const router = vi.hoisted(() => ({
-  /** `router.push` sudah dipanggil dan path belum berpindah. */
-  navigationInFlight: false,
   pushedTo: undefined as string | undefined,
 }));
 const supabase = vi.hoisted(() => ({
@@ -41,7 +39,6 @@ vi.mock("./actions", () => actionMocks);
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
     push: (to: string) => {
-      router.navigationInFlight = true;
       router.pushedTo = to;
     },
     refresh: () => {},
@@ -55,14 +52,6 @@ vi.mock("@/lib/time/user-time-zone-context", () => ({
   useUserTimeZone: () => "Asia/Jakarta",
 }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
-vi.mock("@/domains/publishing", async () => {
-  const matrix = await import("@/domains/publishing/content-format-matrix");
-  const story = await import("@/domains/publishing/story-caption-constraints");
-  return {
-    maxMediaCountForFormats: matrix.maxMediaCountForFormats,
-    isCaptionRequiredForFormats: story.isCaptionRequiredForFormats,
-  };
-});
 vi.mock("@/lib/supabase/client", () => ({
   createBrowserSupabaseClient: () => ({
     realtime: { setAuth: vi.fn(), disconnect: vi.fn() },
@@ -134,7 +123,6 @@ async function mountOriginScreen(origin: string) {
 beforeEach(() => {
   vi.clearAllMocks();
   supabase.handlers = undefined;
-  router.navigationInFlight = false;
   router.pushedTo = undefined;
   serverActionDispatches.total = 0;
   resetTerminalNavigationForTests();
@@ -187,7 +175,6 @@ describe("Realtime tidak mengirim server action selagi navigasi terminal tertund
 
       // Navigasi berhasil: layar asal unmount, event tertahan dibuang.
       screen.unmount();
-      router.navigationInFlight = false;
       window.history.pushState({}, "", destination);
       await vi.advanceTimersByTimeAsync(5_000);
       expect(serverActionDispatches.total).toBe(0);
