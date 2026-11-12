@@ -1697,14 +1697,14 @@ T-196.1 dan T-196.2 selesai.
 
 ### T-197 · Instagram and other platforms can be scheduled or published without media (KI-107)
 
-| Field       | Value                                                                            |
-| ----------- | -------------------------------------------------------------------------------- |
-| **Status**  | 🟡 Done (code) 2026-11-03; menunggu Verified (staging)                           |
-| **Domain**  | publishing, draft editor, MCP                                                    |
-| **Spec**    | tidak ada                                                                        |
-| **Docs**    | KI-107, ADR-154 (mengamandemen ADR-121), `content-format-matrix.ts`, `Modal.tsx` |
-| **Terkait** | T-198, T-195, T-200 (aturan jenis media Reel)                                    |
-| **Depends** | rancangan UI dikonfirmasi King Rezi (aturan 10 `AGENTS.md`)                      |
+| Field       | Value                                                                             |
+| ----------- | --------------------------------------------------------------------------------- |
+| **Status**  | ✅ Done (code) 2026-11-03; Verifikasi `staging`: butir staging di T-189 (ADR-161) |
+| **Domain**  | publishing, draft editor, MCP                                                     |
+| **Spec**    | tidak ada                                                                         |
+| **Docs**    | KI-107, ADR-154 (mengamandemen ADR-121), `content-format-matrix.ts`, `Modal.tsx`  |
+| **Terkait** | T-198, T-195, T-200 (aturan jenis media Reel)                                     |
+| **Depends** | rancangan UI dikonfirmasi King Rezi (aturan 10 `AGENTS.md`)                       |
 
 **Ditemukan (2026-11-03)** oleh King Rezi: Instagram bisa dijadwalkan tanpa gambar.
 Penyebab: `MEDIA_COUNT_BOUNDS_BY_FORMAT` menetapkan `Post` min 0 untuk semua platform (ADR-121).
@@ -1734,14 +1734,14 @@ Penyebab: `MEDIA_COUNT_BOUNDS_BY_FORMAT` menetapkan `Post` min 0 untuk semua pla
 
 ### T-198 · Scheduling is limited to 30 days ahead (Outstand limit) (KI-105)
 
-| Field       | Value                                                                |
-| ----------- | -------------------------------------------------------------------- |
-| **Status**  | 🟡 Done (code) 2026-11-03, sisa T-198.4; menunggu Verified (staging) |
-| **Domain**  | publishing, draft editor, MCP                                        |
-| **Spec**    | tidak ada                                                            |
-| **Docs**    | KI-105, ADR-154, `schedule-time-constraints.ts`, `Modal.tsx`, T-108  |
-| **Terkait** | T-195, T-197                                                         |
-| **Depends** | rancangan UI dikonfirmasi King Rezi (aturan 10 `AGENTS.md`)          |
+| Field       | Value                                                                          |
+| ----------- | ------------------------------------------------------------------------------ |
+| **Status**  | 🟡 Done (code) 2026-11-03, sisa T-198.4; Verifikasi `staging` (T-189, ADR-161) |
+| **Domain**  | publishing, draft editor, MCP                                                  |
+| **Spec**    | tidak ada                                                                      |
+| **Docs**    | KI-105, ADR-154, `schedule-time-constraints.ts`, `Modal.tsx`, T-108            |
+| **Terkait** | T-195, T-197                                                                   |
+| **Depends** | rancangan UI dikonfirmasi King Rezi (aturan 10 `AGENTS.md`)                    |
 
 Dokumen Outstand "Create a post": `scheduledAt` lebih dari 30 hari ke depan
 mengembalikan HTTP 400 dan tidak ada post terbentuk. Dugaan kuat penyebab 400 di

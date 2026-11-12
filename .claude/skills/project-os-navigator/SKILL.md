@@ -122,15 +122,18 @@ agent records the reason in the ticket. The CI gate against staging for
 **Ticket status ladder (ADR-153, S-003):** a ticket has two stages. **Done (code)**
 covers the ADR-149 definition above, `/code-review` and architecture review
 (Ridwan) with no open findings, QA (Najwa) passed, and `typecheck`, `lint`,
-and tests green; a ticket may be `✅` at this stage without waiting for merge
-or deploy. **Verified (staging)** is one verification per wave after one
+and tests green; a ticket is `✅` at this stage without waiting for merge
+or deploy (ADR-161, amending ADR-153). Each ticket carries a **Verifikasi**
+field: `lokal` (provable locally) or `staging` (some item is provable only
+after a deploy). **Verified (staging)** is one verification per wave after one
 deploy of that wave, for things that cannot be proven locally (OAuth behind
-the Railway proxy, `app_runtime` RLS, a real MCP client, multi-instance). The
-"Belum terbukti" section in the ticket stays mandatory until its verification
-items pass; `✅` must not hide a claim that has not been tested. A ticket whose
-code is finished but whose items are still waiting for staging is written as
-`🟡 Done (code), menunggu Verified (staging)` and points to the wave's
-verification ticket.
+the Railway proxy, `app_runtime` RLS, a real MCP client, multi-instance).
+Staging-only items move to the wave's verification ticket instead of holding
+the originating ticket. The "Belum terbukti" section in the originating ticket
+stays mandatory and points to that verification ticket, so `✅` does not hide a
+claim that has not been tested. There is no intermediate
+`🟡 Done (code), menunggu Verified (staging)` status; the only ticket that
+stays open for staging is the wave's verification ticket.
 
 **Verification rule: automate first, manual for the rest.** Before handing
 verification to King Rezi as a manual step, or writing "cannot be done from an
