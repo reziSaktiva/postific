@@ -961,17 +961,17 @@ Tindak lanjut retro gelombang 3 S-006 (disetujui King Rezi 2026-11-06). Hanya me
 
 ### T-247 · Apply ADR-161: tickets are ✅ at Done (code), staging items move to the wave verification ticket
 
-`⏳ Not Started` · **Mode** HITL · **Domain** project-os, agen (tanpa kode produk) · **ADR** ADR-161, ADR-153 · **Spec** S-003 · **Depends** —
+`✅ Done` · **Mode** HITL · **Verifikasi** lokal · **Domain** project-os, agen (tanpa kode produk) · **ADR** ADR-161, ADR-153 · **Spec** S-003 · **Depends** —
 **Baca dulu:** `project-os/decisions/ADR-161-tiket-selesai-pada-done-code-butir-staging-pindah-ke-tiket-verifikasi.md` · `.claude/skills/project-os-navigator/SKILL.md` § New Work · `project-os/specs/README.md` · `.claude/skills/wave-work/SKILL.md`
 
 Menerapkan ADR-161 (Accepted 2026-11-12). Hanya dokumen dan skill; tidak ada kode produk. HITL karena butir .5 butuh persetujuan King Rezi atas klasifikasi tiap tiket yang kini 🟡. Satu sumber, tanpa salinan teks aturan (ADR-133).
 
-- [ ] **T-247.1** `project-os/specs/README.md`: bentuk tiket memuat field **Verifikasi** (`lokal` atau `staging`) dan menunjuk ADR-161; status antara 🟡 `menunggu Verified (staging)` dihapus dari bentuk tiket.
-- [ ] **T-247.2** `project-os-navigator` § New Work: paragraf Done (code) dan Verified (staging) mengikuti ADR-161 (tiket ✅ pada Done (code), butir staging di tiket verifikasi gelombang, "Belum terbukti" menunjuk tiket itu). Kata kunci "Belum terbukti" tidak berubah.
-- [ ] **T-247.3** Legenda `project-os/AVAILABLE_TICKETS.md`: kalimat status `🟡 Done (code), menunggu Verified (staging)` diganti penunjuk ke ADR-161.
-- [ ] **T-247.4** `wave-work` langkah 7 dan 8 (dan `integration-pr-template.md` bila menyebut status antara) selaras dengan ADR-161.
-- [ ] **T-247.5** HITL: daftar tiket yang kini 🟡 `menunggu Verified (staging)` diklasifikasi `lokal` atau `staging` dan diajukan ke King Rezi; hanya yang disetujui diubah (`lokal` menjadi ✅, `staging` menunjuk tiket verifikasi gelombangnya).
-- [ ] **T-247.6** `bun run docs:check` bersih dan audit topik status (`docs-consistency-audit`) tidak menemukan salinan aturan lama.
+- [x] **T-247.1** `project-os/specs/README.md`: bentuk tiket memuat field **Verifikasi** (`lokal` atau `staging`) dan menunjuk ADR-161; status antara 🟡 `menunggu Verified (staging)` dihapus dari bentuk tiket.
+- [x] **T-247.2** `project-os-navigator` § New Work: paragraf Done (code) dan Verified (staging) mengikuti ADR-161 (tiket ✅ pada Done (code), butir staging di tiket verifikasi gelombang, "Belum terbukti" menunjuk tiket itu). Kata kunci "Belum terbukti" tidak berubah.
+- [x] **T-247.3** Legenda `project-os/AVAILABLE_TICKETS.md`: kalimat status `🟡 Done (code), menunggu Verified (staging)` diganti penunjuk ke ADR-161.
+- [x] **T-247.4** `wave-work` langkah 7 dan 8 (dan `integration-pr-template.md` bila menyebut status antara) selaras dengan ADR-161.
+- [x] **T-247.5** (2026-11-12, disetujui King Rezi: T-197, T-217, T-218, T-219, T-220, T-224 menjadi ✅; T-198 tetap 🟡 sampai T-198.4; T-219.5, T-220.4b, T-224.4b dicentang atas keputusannya) HITL: daftar tiket yang kini 🟡 `menunggu Verified (staging)` diklasifikasi `lokal` atau `staging` dan diajukan ke King Rezi; hanya yang disetujui diubah (`lokal` menjadi ✅, `staging` menunjuk tiket verifikasi gelombangnya).
+- [x] **T-247.6** (2026-11-12; `docs:check` bersih, tidak ada salinan teks aturan lama; sisa kata "menunggu Verified (staging)" hanya status historis per tiket di luar daftar yang disetujui) `bun run docs:check` bersih dan audit topik status (`docs-consistency-audit`) tidak menemukan salinan aturan lama.
 
 **Belum terbukti:** tidak ada butir runtime. Belum terbukti bahwa gelombang berikutnya mengikuti aturan baru.
 

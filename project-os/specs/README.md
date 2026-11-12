@@ -49,14 +49,15 @@ Tiket rilis tetap di `tickets/vXX-*.md`, termasuk setelah selesai. Tiket yang la
 ```markdown
 ### T-xxx · Judul
 
-| Field       | Value                                    |
-| ----------- | ---------------------------------------- |
-| **Status**  | ⏳ Not Started                           |
-| **Mode**    | AFK atau HITL                            |
-| **Domain**  | …                                        |
-| **Spec**    | S-NNN, atau "tidak ada — muat satu sesi" |
-| **Docs**    | ADR / baseline yang berlaku              |
-| **Depends** | T-xxx, atau —                            |
+| Field          | Value                                    |
+| -------------- | ---------------------------------------- |
+| **Status**     | ⏳ Not Started                           |
+| **Mode**       | AFK atau HITL                            |
+| **Verifikasi** | `lokal` atau `staging` (ADR-161)         |
+| **Domain**     | …                                        |
+| **Spec**       | S-NNN, atau "tidak ada — muat satu sesi" |
+| **Docs**       | ADR / baseline yang berlaku              |
+| **Depends**    | T-xxx, atau —                            |
 
 **What to build:** perilaku yang selesai kalau tiket ini beres, dari sisi pemakai.
 
@@ -68,7 +69,7 @@ Tiket rilis tetap di `tickets/vXX-*.md`, termasuk setelah selesai. Tiket yang la
 
 **Mode (ADR-153, S-003):** **AFK** berarti agen dapat menyelesaikan tiket secara mandiri; **HITL** berarti ada butir yang butuh jawaban atau keputusan King Rezi (persetujuan ADR, izin migrasi, verifikasi manual). Hanya tiket AFK yang boleh menjadi jalur paralel gelombang; tiket HITL ditandai dan tidak dijalankan agen. Tiket yang belum punya penanda diklasifikasi oleh `wave-plan` dari isinya dan hasilnya disodorkan ke King Rezi. Penanda ditulis di baris status tiket, mis. `⏳ Not Started` · **Mode** AFK.
 
-**Status tiket:** tiket yang kodenya selesai tetapi butirnya masih menunggu staging ditulis `🟡 Done (code), menunggu Verified (staging)`. Arti status dan aturannya: skill `project-os-navigator` § New Work (ADR-153).
+**Verifikasi dan status tiket (ADR-161):** field **Verifikasi** menjawab sekali di awal: bisa dibuktikan `lokal`, atau ada butir yang hanya terbukti di `staging`. Tiket ✅ pada Done (code); tidak ada status antara menunggu staging. Butir staging pindah ke tiket verifikasi gelombang. Aturannya: ADR-161 dan skill `project-os-navigator` § New Work.
 
 Jangan menulis path file, jumlah tes, nama subagent, atau cerita sesi ke dalam tiket. Itu milik commit.
 

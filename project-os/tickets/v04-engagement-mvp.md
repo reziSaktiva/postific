@@ -215,7 +215,7 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 | Field       | Value                                                                                                                   |
 | ----------- | ----------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | 🟡 Done (code) 2026-11-06, menunggu Verified (staging)                                                                  |
+| **Status**  | ✅ Done (code) 2026-11-06; Verifikasi `lokal` (ADR-161); sisa Belum terbukti ke T-222.4                                 |
 | **Mode**    | AFK (migrasi data `done` butuh izin King Rezi sebelum diterapkan ke DB bersama)                                         |
 | **Domain**  | engagement · backend                                                                                                    |
 | **Spec**    | S-006                                                                                                                   |
@@ -249,7 +249,7 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 | Field       | Value                                                                                                   |
 | ----------- | ------------------------------------------------------------------------------------------------------- |
-| **Status**  | 🟡 Done (code) 2026-11-06, menunggu Verified (staging)                                                  |
+| **Status**  | ✅ Done (code) 2026-11-06; Verifikasi `lokal` (ADR-161); indeks dan volume besar ke T-222.4             |
 | **Mode**    | AFK                                                                                                     |
 | **Domain**  | engagement · backend                                                                                    |
 | **Spec**    | S-006                                                                                                   |
@@ -305,7 +305,7 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 | Field       | Value                                                                                                     |
 | ----------- | --------------------------------------------------------------------------------------------------------- |
-| **Status**  | 🟡 Done (code) 2026-11-06 (branch `feature/s006-gelombang-3-engage-ui`), menunggu Verified (staging)      |
+| **Status**  | ✅ Done (code) 2026-11-06 (branch `feature/s006-gelombang-3-engage-ui`); Verifikasi `lokal` (ADR-161)     |
 | **Mode**    | AFK setelah T-216 dikonfirmasi                                                                            |
 | **Domain**  | engagement · UI (UI/UX-related)                                                                           |
 | **Spec**    | S-006                                                                                                     |
@@ -320,7 +320,7 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 - [x] **T-219.2** Panel komentar: kartu pratinjau posting, ringkasan "x dibalas / y total", daftar komentar, area balas yang sudah ada (T-054) dipertahankan. Untuk kelompok "Tanpa posting" komposer nonaktif dengan pesan jelas (Outstand hanya membalas per posting, ADR-113; keputusan King Rezi 2026-11-06, B1); Resolve dan Dismiss tetap tersedia.
 - [x] **T-219.3** Aksi hover per komentar: Resolve, Dismiss, buka kembali; Reply membuka area balas. Optimistic update dan error ditangani; Server Action hanya memanggil service.
 - [x] **T-219.4** State: kosong, filter tanpa hasil, refresh berjalan dan gagal, selaras KSP-06 yang diperbarui. Zona sinkronisasi (KSP-06-F07, F08) dipertahankan.
-- [ ] **T-219.5** Perilaku yang sudah ada tidak regresi: filter akun/platform/status, reply, post asal (T-056), badge sidebar, manual refresh. Terang, gelap, 375px diamati di browser.
+- [x] **T-219.5** (dicentang atas keputusan King Rezi 2026-11-12, berdasar pengamatan QA Najwa gelombang 3) Perilaku yang sudah ada tidak regresi: filter akun/platform/status, reply, post asal (T-056), badge sidebar, manual refresh. Terang, gelap, 375px diamati di browser.
 - [x] **T-219.6** Tes komponen dan unit; `typecheck`, `lint`, tes hijau.
 
 **Belum terbukti (jalur A, 2026-11-06):** T-219.5 belum dicentang. Layar belum diamati dengan data dan login sungguhan (DB dan sesi tidak dipakai di jalur ini); terang, gelap, dan 375px hanya diamati pada harness sementara (komponen panel asli, data statis, dihapus sebelum commit). Hover nyata tidak teramati di panel browser (`:hover` tidak terdaftar); yang terbukti: fokus keyboard memunculkan aksi, aksi selalu tampil di 375px dan perangkat sentuh. Tidak ada E2E Playwright (T-222). Belum tampil: tanggal posting di kartu pratinjau (snapshot domain tidak membawanya) dan riwayat balasan tim per komentar (tampilan lama T-053 menampilkannya, rancangan T-216 tidak). Panel komentar dibatasi 1000 komentar per posting (paginasi belum ada). Carousel multi-media "Post asal" (T-111) ikut hilang karena kartu pratinjau rancangan T-216 hanya menampilkan satu thumbnail (belum diakui sebelumnya).
@@ -335,14 +335,14 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 ### T-220 · Engage UI: primary filters and the Filter & Sort panel
 
-| Field       | Value                                                                                                |
-| ----------- | ---------------------------------------------------------------------------------------------------- |
-| **Status**  | 🟡 Done (code) 2026-11-06 (branch `feature/s006-gelombang-3-engage-ui`), menunggu Verified (staging) |
-| **Mode**    | AFK setelah T-216 dikonfirmasi                                                                       |
-| **Domain**  | engagement · UI (UI/UX-related)                                                                      |
-| **Spec**    | S-006                                                                                                |
-| **Docs**    | ADR-157, ADR-097, ADR-140, KSP-06-F02, `apps/web/.claude/CLAUDE.md`, artifact Postific (kartu T-216) |
-| **Depends** | T-216, T-218, T-219                                                                                  |
+| Field       | Value                                                                                                 |
+| ----------- | ----------------------------------------------------------------------------------------------------- |
+| **Status**  | ✅ Done (code) 2026-11-06 (branch `feature/s006-gelombang-3-engage-ui`); Verifikasi `lokal` (ADR-161) |
+| **Mode**    | AFK setelah T-216 dikonfirmasi                                                                        |
+| **Domain**  | engagement · UI (UI/UX-related)                                                                       |
+| **Spec**    | S-006                                                                                                 |
+| **Docs**    | ADR-157, ADR-097, ADR-140, KSP-06-F02, `apps/web/.claude/CLAUDE.md`, artifact Postific (kartu T-216)  |
+| **Depends** | T-216, T-218, T-219                                                                                   |
 
 **What to build:** filter utama di header (Akun, Status) dan satu panel sekunder (Sort By, Date Range, Reset filters), menggantikan tiga `Select` sejajar. Menyentuh berkas yang sama dengan T-219 (`EngageInboxView` dan turunannya): kerjakan setelah T-219.1 memecah berkas, bukan paralel.
 
@@ -350,7 +350,7 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 - [x] **T-220.2** Panel Filter & Sort (komponen ditentukan rancangan, diverifikasi lewat MCP shadcn): Sort By, Date Range, Reset filters. Filter Platform berada di panel ini (keputusan King Rezi 2026-11-05 atas rancangan T-216).
 - [x] **T-220.3** Filter memicu query T-218 server-side seperti pola sekarang (`listInboxAction`); tanpa request ganda saat render awal.
 - [x] **T-220.4a** Tes komponen; `typecheck`, `lint`, tes hijau.
-- [ ] **T-220.4b** Terang, gelap, 375px diamati di layar sungguhan (sementara hanya harness statis, lihat "Belum terbukti").
+- [x] **T-220.4b** (dicentang atas keputusan King Rezi 2026-11-12, berdasar pengamatan QA Najwa gelombang 3) Terang, gelap, 375px diamati di layar sungguhan (sementara hanya harness statis, lihat "Belum terbukti").
 
 **Belum terbukti (jalur A, 2026-11-06):** tidak diamati dengan data, login, dan server action sungguhan; terang/gelap/375px hanya pada harness sementara (komponen `EngageToolbar` asli, state lokal, dihapus sebelum commit; gelap desktop dan 375, terang 375, panel terbuka; terang desktop tidak diamati). Dropdown Akun dan Status dibuka hanya lewat tes jsdom (Status), bukan di browser; hover tidak diuji. Titik pasang toggle `viewToggleSlot` kosong sampai T-224. Rentang Date Range juga menyaring daftar komentar panel kanan (disamakan dengan hitungan kartu).
 
@@ -434,7 +434,7 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 | Field       | Value                                                                                                          |
 | ----------- | -------------------------------------------------------------------------------------------------------------- |
-| **Status**  | 🟡 Done (code) 2026-11-06 (branch `feature/s006-gelombang-3-engage-ui`), menunggu Verified (staging)           |
+| **Status**  | ✅ Done (code) 2026-11-06 (branch `feature/s006-gelombang-3-engage-ui`); Verifikasi `lokal` (ADR-161)          |
 | **Mode**    | AFK setelah T-216 dikonfirmasi                                                                                 |
 | **Domain**  | engagement · UI (UI/UX-related)                                                                                |
 | **Spec**    | S-006                                                                                                          |
@@ -449,7 +449,7 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 - [x] **T-224.2** Tampilan List sesuai rancangan T-216.5, memakai query T-218 (tanpa query baru kecuali rancangan menuntutnya).
 - [x] **T-224.3** Filter utama dan panel Filter & Sort (T-220) berlaku konsisten di kedua tampilan; aksi status per komentar (T-219.3) juga tersedia di List.
 - [x] **T-224.4a** Tes komponen; `typecheck`, `lint`, tes hijau.
-- [ ] **T-224.4b** Terang, gelap, 375px diamati di layar sungguhan (sementara hanya harness statis, lihat "Belum terbukti").
+- [x] **T-224.4b** (dicentang atas keputusan King Rezi 2026-11-12, berdasar pengamatan QA Najwa gelombang 3) Terang, gelap, 375px diamati di layar sungguhan (sementara hanya harness statis, lihat "Belum terbukti").
 
 **Belum terbukti (jalur A, 2026-11-06):** volume besar di List: dimuat satu query tanpa filter `postId` (batas repository 200 komentar terbaru, filter Status/Akun/Platform/Date Range dikirim ke server agar batas menimpa himpunan yang relevan), digulir dalam wadah, dengan catatan "Menampilkan 200 komentar terbaru" bila terpotong; tidak ada paginasi, dan sort "Belum dibalas dulu" hanya berlaku di dalam 200 itu. Tampilan tidak diingat antarsesi (rancangan tidak menyebutnya). Terang/gelap/375px hanya pada harness sementara (komponen `CommentListView`, toggle, dan toolbar asli, data statis, dihapus sebelum commit): gelap desktop, gelap dan terang 375px; terang desktop dan 375px dengan data/login/server action sungguhan tidak diamati, juga hover dan E2E.
 
