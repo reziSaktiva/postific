@@ -738,6 +738,7 @@ export async function scheduleDraftAction(
       timeZone: input.timeZone,
       targets,
       actingUserId,
+      actorRole: role,
     });
 
     return { postId: scheduled.id };

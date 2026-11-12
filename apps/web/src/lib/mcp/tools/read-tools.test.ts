@@ -10,6 +10,7 @@ import {
   asPostTargetId,
   asUserId,
   asWorkspaceId,
+  MemberRole,
 } from "@postific/shared";
 import { describe, expect, it, vi } from "vitest";
 import { NotFoundError } from "@/lib/utils/errors";
@@ -235,6 +236,7 @@ function context(
   return {
     workspaceId: WORKSPACE,
     userId: USER,
+    actorRole: MemberRole.Creator,
     clientId: "client-1",
     clientName: "Claude",
     grantScopes: ["read"],

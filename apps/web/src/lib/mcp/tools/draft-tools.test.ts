@@ -11,6 +11,7 @@ import {
   asPostId,
   asUserId,
   asWorkspaceId,
+  MemberRole,
 } from "@postific/shared";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -92,6 +93,7 @@ function context(drafts: McpToolServices["drafts"]): McpToolContext {
   return {
     workspaceId: WORKSPACE,
     userId: USER,
+    actorRole: MemberRole.Creator,
     clientId: CLIENT,
     clientName: "Claude Code",
     grantScopes: ["read", "draft"],
@@ -342,7 +344,12 @@ describe("draft tools behind the real authorization gate", () => {
         },
       } as unknown as IMcpAuditRepository,
       { revokeAtomically: async () => ({ revoked: true }) },
-      { getMembership: async () => ({ status: MemberStatus.Active }) },
+      {
+        getMembership: async () => ({
+          status: MemberStatus.Active,
+          role: MemberRole.Creator,
+        }),
+      },
     );
     const { drafts, createDraft } = fakeDrafts();
     const deps: McpGateDeps = {

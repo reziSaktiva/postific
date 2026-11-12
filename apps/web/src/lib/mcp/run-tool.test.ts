@@ -4,6 +4,7 @@ import {
   asMcpGrantId,
   asUserId,
   asWorkspaceId,
+  MemberRole,
 } from "@postific/shared";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -17,6 +18,7 @@ import {
 } from "@/domains/mcp-access";
 import { PublishingDomainError } from "@/domains/publishing";
 import {
+  AuthorizationError,
   ConflictError,
   NotFoundError,
   ValidationError,
@@ -90,6 +92,7 @@ const authorizedCall = {
   clientId: CLIENT,
   clientName: "Claude",
   grantScopes: ["read", "draft"] as McpScope[],
+  role: MemberRole.Creator,
 };
 
 describe("runMcpTool (scripted access)", () => {
@@ -186,6 +189,7 @@ describe("runMcpTool (scripted access)", () => {
         userId: USER,
         clientId: CLIENT,
         grantScopes: ["read", "draft"],
+        actorRole: MemberRole.Creator,
       }),
       { cursor: "c" },
     );
@@ -337,6 +341,31 @@ describe("runMcpTool (scripted access)", () => {
     );
   });
 
+  it("maps a role refusal from the domain to role_not_permitted (denied, not internal_error)", async () => {
+    const { deps, access, logger } = scriptedDeps(async () => authorizedCall);
+    const result = await runMcpTool(
+      deps,
+      claims,
+      makeTool(async (): Promise<McpToolOutput> => {
+        throw new AuthorizationError("Anda tidak memiliki izin.");
+      }),
+      {},
+    );
+
+    expect(result.isError).toBe(true);
+    expect(parse(result).error).toEqual({
+      code: "role_not_permitted",
+      message: "Anda tidak memiliki izin.",
+    });
+    expect(access.recordAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: "denied",
+        errorCode: "role_not_permitted",
+      }),
+    );
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+
   it("hides unexpected handler errors behind internal_error and logs them", async () => {
     const { deps, logger } = scriptedDeps(async () => authorizedCall);
     const result = await runMcpTool(
@@ -400,7 +429,7 @@ describe("runMcpTool with the real McpAccessService", () => {
           members.some(
             (m) => m.workspaceId === workspaceId && m.userId === userId,
           )
-            ? { status: MemberStatus.Active }
+            ? { status: MemberStatus.Active, role: MemberRole.Creator }
             : null,
       },
     );

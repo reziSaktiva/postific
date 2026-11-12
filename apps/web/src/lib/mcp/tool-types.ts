@@ -1,4 +1,4 @@
-import type { UserId, WorkspaceId } from "@postific/shared";
+import type { MemberRole, UserId, WorkspaceId } from "@postific/shared";
 import type { McpQuotaKind, McpScope } from "@/domains/mcp-access";
 import type { AnalyticsService } from "@/domains/analytics";
 import type { EngagementService } from "@/domains/engagement";
@@ -50,6 +50,12 @@ export interface McpRemoteMediaFetcher {
 export interface McpToolContext {
   workspaceId: WorkspaceId;
   userId: UserId;
+  /**
+   * Role member aktif pengguna di workspace grant, dibaca ulang tiap panggilan
+   * oleh `authorizeCall` (ADR-138, T-252). Dasar RBAC use-case domain; tidak
+   * pernah dari argumen tool.
+   */
+  actorRole: MemberRole;
   /** `clientId` OAuth klien AI dari grant yang lolos; dipakai penanda sumber post (`created_via_client_id`). */
   clientId: string;
   /** Nama klien dari grant (sudah dirapikan); dibekukan di post saat `create_draft`. */

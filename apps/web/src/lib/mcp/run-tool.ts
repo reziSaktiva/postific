@@ -7,6 +7,7 @@ import {
 } from "@/domains/mcp-access";
 import { PublishingDomainError } from "@/domains/publishing";
 import {
+  AuthorizationError,
   ConflictError,
   NotFoundError,
   ValidationError,
@@ -73,6 +74,7 @@ export type McpErrorCode =
   | "token_scope_insufficient"
   | "grant_scope_insufficient"
   | "not_workspace_member"
+  | "role_not_permitted"
   | "invalid_input"
   | "invalid_cursor"
   | "not_found"
@@ -156,6 +158,15 @@ function classify(error: unknown): Failure | null {
     error instanceof PublishingDomainError
   ) {
     return { code: "invalid_input", message: error.message, status: "error" };
+  }
+  // RBAC use-case domain (ADR-138, ADR-074; T-252): role member tidak boleh
+  // melakukan aksi ini. Ditolak, bukan galat internal.
+  if (error instanceof AuthorizationError) {
+    return {
+      code: "role_not_permitted",
+      message: error.message,
+      status: "denied",
+    };
   }
   if (error instanceof ConflictError) {
     return { code: "conflict", message: error.message, status: "error" };
@@ -272,6 +283,7 @@ export async function runMcpTool(
       {
         workspaceId: authorized.workspaceId,
         userId: authorized.userId,
+        actorRole: authorized.role,
         clientId: authorized.clientId,
         clientName: authorized.clientName ?? null,
         grantScopes: authorized.grantScopes,
