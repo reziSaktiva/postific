@@ -8,10 +8,11 @@ import type { PublishingPostRealtimeHandlers } from "@/lib/supabase/realtime/pub
 
 /**
  * T-208.1 (KI-108): bukti lintas batas, aksi terminal Draft Editor yang nyata
- * bersama hook Realtime bersama yang nyata. Router Next dimodelkan menurut
- * antrean aksi App Router (Next 16.2.10, `app-router-instance.js`,
- * `dispatchAction`): server action yang dikirim selagi navigasi masih tertunda
- * ikut antre di belakang navigasi itu. Tes gagal bila server action milik
+ * bersama hook Realtime bersama yang nyata. Router tiruan hanya mencatat bahwa
+ * `router.push` sedang tertunda; ia TIDAK memodelkan antrean aksi App Router
+ * (Next 16.2.10, `app-router-instance.js`, `dispatchAction`). Yang diuji adalah
+ * hipotesis kerja: server action yang dikirim selagi navigasi tertunda
+ * dianggap berbahaya (sebab macetnya belum terbukti). Tes gagal bila server action milik
  * handler Realtime (`getQueuePostAction` di Queue) dikirim selama navigasi
  * `router.push` tertunda. Tidak membuktikan perilaku router sungguhan.
  */
@@ -94,10 +95,9 @@ function inDays(days: number): string {
 }
 
 /** Server action milik layar asal; salah bila dikirim selagi navigasi tertunda. */
-const serverActionDispatches = { total: 0, whileNavigating: 0 };
+const serverActionDispatches = { total: 0 };
 function realtimeServerAction() {
   serverActionDispatches.total += 1;
-  if (router.navigationInFlight) serverActionDispatches.whileNavigating += 1;
 }
 
 async function mountOriginScreen(origin: string) {
@@ -137,7 +137,6 @@ beforeEach(() => {
   router.navigationInFlight = false;
   router.pushedTo = undefined;
   serverActionDispatches.total = 0;
-  serverActionDispatches.whileNavigating = 0;
   resetTerminalNavigationForTests();
   vi.stubGlobal(
     "fetch",
@@ -184,7 +183,6 @@ describe("Realtime tidak mengirim server action selagi navigasi terminal tertund
       supabase.handlers?.onInsert?.({ postId: POST, eventType: "INSERT" });
       supabase.handlers?.onUpdate?.({ postId: POST, eventType: "UPDATE" });
       await vi.advanceTimersByTimeAsync(5_000);
-      expect(serverActionDispatches.whileNavigating).toBe(0);
       expect(serverActionDispatches.total).toBe(0);
 
       // Navigasi berhasil: layar asal unmount, event tertahan dibuang.
