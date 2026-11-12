@@ -40,9 +40,11 @@ export interface UsePublishingPostsRealtimeHandlers {
  *
  * T-208 (KI-108): selama navigasi pascaaksi terminal Draft Editor berjalan
  * dari layar ini, event ditahan dan baru diproses setelah layar ini ditinggal
- * atau batas waktu lewat. Diduga (mekanismenya belum dibaca di router Next,
- * lihat T-208.1) server action milik handler layar ini membuat navigasi itu
- * tidak pernah selesai. Bila navigasi berhasil, layar ini sudah unmount dan
+ * atau batas waktu lewat. Diduga server action milik handler layar ini
+ * membuat navigasi itu tidak pernah selesai. Kode router Next 16.2.10 sudah
+ * dibaca (T-208.1): server action yang dikirim selagi navigasi tertunda
+ * ikut antre di belakangnya, tetapi mengapa navigasi sampai macet belum
+ * terbukti dari sumbernya. Bila navigasi berhasil, layar ini sudah unmount dan
  * event yang tertahan dibuang bersama `dispose`.
  */
 export function usePublishingPostsRealtime(
