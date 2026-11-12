@@ -3141,7 +3141,7 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 **Catatan implementasi (2026-11-04, jalur A gelombang 4, belum di-commit):** `ScheduleSection` kini tombol "Atur jadwal" di footer dengan popover shadcn `Calendar` (locale `id`, `disabled` sebelum hari ini dan setelah batas 30 hari, `startMonth`/`endMonth` membatasi navigasi, "hari ini" dihitung di zona pengguna), input jam, label zona, penjelasan batas, "Hapus jadwal" dan "Selesai"; pilih tanggal tanpa jam memberi jam bawaan 10:00 seperti rancangan. Pesan validasi jadwal pindah dari badan form ke footer (`FormAlerts` tidak lagi memuatnya). Logika murni di `schedule-label.ts` (label tombol, ringkasan, batas Calendar, label zona WIB/WITA/WIT atau nama pendek Intl) dan `footer-actions.ts` (aktif atau nonaktif tombol, jumlah peringatan, teks bantuan, status yang boleh dibuka). `ConfirmationSummary` mengikuti rancangan (kartu Caption, Akun dengan format, Waktu dengan zona) dan panel Pratinjau tetap tampil selama ringkasan. Hook menutup editor bila draft yang dimuat berstatus `Published`, `Failed`, atau `Imported` (pengaman; pintu masuk sudah menyaringnya).
 
-**RBAC (T-205.4), tafsir yang perlu dikonfirmasi:** peran Account Owner, Admin, dan Creator semuanya boleh Schedule dan Publish Now (ADR-074, `roles-permissions.md`), jadi tombol tidak dinonaktifkan per peran; penegakan di server hanya ada untuk Publish Now (`assertActorCanPublishNow`, penolakan tampil sebagai notice galat); **Schedule tidak punya pengecekan peran di server** (temuan review Ridwan 2026-11-04), aman untuk 3 peran sekarang tetapi perlu tiket bila peran baru ditambah. Klien belum punya konteks peran; bila peran baru ditambah, UI perlu sumber peran terlebih dulu.
+**Keputusan King Rezi (2026-11-12):** Schedule mendapat pemeriksaan peran di server seperti Publish Now, dikerjakan di T-251; T-205.4 tetap `[~]` sampai T-251 selesai. **RBAC (T-205.4), tafsir:** peran Account Owner, Admin, dan Creator semuanya boleh Schedule dan Publish Now (ADR-074, `roles-permissions.md`), jadi tombol tidak dinonaktifkan per peran; penegakan di server hanya ada untuk Publish Now (`assertActorCanPublishNow`, penolakan tampil sebagai notice galat); **Schedule tidak punya pengecekan peran di server** (temuan review Ridwan 2026-11-04), aman untuk 3 peran sekarang tetapi perlu tiket bila peran baru ditambah. Klien belum punya konteks peran; bila peran baru ditambah, UI perlu sumber peran terlebih dulu.
 
 **Bukti (unit dan jsdom, belum browser):** tes unit `schedule-label` dan `footer-actions`; tes render `EditorFooter` (label jadwal, popover, hari lampau dan hari setelah batas 30 hari nonaktif, jam bawaan, Hapus jadwal, tanpa Next Available, status read-only mengunci aksi), `ConfirmationSummary`, `DraftEditorForm` (Pratinjau tetap ada saat ringkasan dan setelah Batal), dan hook (pesan jadwal lampau dan lewat 30 hari, Edit Draft per status). **Belum terbukti (diperbarui 2026-11-05):** popover jadwal di layar sempit 375px; Schedule dan Publish Now sampai redirect nyata di browser (menunggu T-195, akan mengirim ke akun nyata); penolakan RBAC (lihat T-205.4). Popover di modal dan mode gelap sudah terbukti (E2E S7b, S11, S16; E2E dijalankan di `local` 2026-11-05).
 
@@ -3290,7 +3290,7 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 **Ditemukan (2026-11-04)** saat cek pedoman merek T-204.4: `PLATFORM_ICON` (`platform-icons.tsx`, react-icons berwarna) dipakai di tab, chip, dan pemilih akun, padahal pedoman Meta mewajibkan file logo resmi dan persetujuan, dan Pinterest, TikTok punya aturan sendiri. **Keputusan King Rezi (2026-11-04):** ganti dengan logo resmi dari kit merek tiap platform; nama platform tetap sebagai teks.
 
-- [ ] **T-209.1** King Rezi mengunduh atau menyetujui unduhan file logo resmi dari kit merek Facebook, Instagram, TikTok, Pinterest (dan platform lain yang tampil: X, LinkedIn, YouTube, Threads, Bluesky bila ada), serta mengurus izin yang disyaratkan (Meta meminta persetujuan). Agen tidak mengunduh tanpa izin eksplisit (nama berkas, sumber, ukuran).
+- [ ] **T-209.1** King Rezi mengunduh atau menyetujui unduhan file logo resmi dari kit merek Facebook, Instagram, TikTok, Pinterest (dan platform lain yang tampil: X, LinkedIn, YouTube, Threads, Bluesky bila ada), serta mengurus izin yang disyaratkan (Meta meminta persetujuan). Agen tidak mengunduh tanpa izin eksplisit (nama berkas, sumber, ukuran). **Keputusan King Rezi (2026-11-12):** agen boleh mengunduh; tetap sebut daftar (nama berkas, sumber, ukuran) dan tunggu persetujuan King Rezi atas daftar itu sebelum unduhan pertama. Persetujuan Meta tetap diurus King Rezi.
 - [ ] **T-209.2** Baca pedoman resmi TikTok secara lengkap (isi aturannya belum terverifikasi di T-204; hanya sumber sekunder) dan catat aturan warna, ruang kosong, dan larangannya di tiket ini.
 - [ ] **T-209.3** Ganti `PLATFORM_ICON` dengan komponen yang memakai file resmi (tanpa pewarnaan ulang, tanpa distorsi, sesuai varian warna penuh atau monokrom yang diizinkan); inventaris pemakai ikon lintas layar dulu (`grep PLATFORM_ICON`).
 - [ ] **T-209.4** Tombol "Simpan" merah di Pratinjau Pinterest dan elemen tiruan merek lain di Pratinjau: nilai risikonya terhadap pedoman (menyiratkan keterkaitan) dan laporkan keputusan ke King Rezi.
@@ -3430,7 +3430,7 @@ Alasan A: pemilih ini hanya mengganti kartu yang ditampilkan, bukan berpindah an
 
 | Field       | Value                                                                                                                                   |
 | ----------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | 🟡 Done (code) T-213.1, .2, .4, .5, .6; T-213.3 terblokir keputusan King Rezi                                                           |
+| **Status**  | ✅ Done (code) T-213.1, .2, .4, .5, .6; T-213.3 DIBATALKAN (gelombang 9, 2026-11-05)                                                    |
 | **Mode**    | AFK untuk butir i, ii, iv, v, vi; butir iii HITL (teks rancangan bertentangan dengan arah T-212.2, keputusan King Rezi)                 |
 | **Domain**  | draft editor · publishing (UI/UX-related)                                                                                               |
 | **Spec**    | S-005 (tindak lanjut review Ridwan T-212, gelombang 8 jalur D)                                                                          |
@@ -3464,7 +3464,7 @@ Alasan A: pemilih ini hanya mengganti kartu yang ditampilkan, bukan berpindah an
 
 **Belum terbukti (jangan diasumsikan):** tampilan di browser (terang, gelap, 375px) untuk butir i, ii, dan v (banner merah hanya lewat atribut varian, bukan piksel); butir iii belum dikerjakan; pertimbangan terbuka Ridwan, tanpa tiket baru: (P3) kode sebab Reel nonaktif masih diturunkan ulang di UI dari media (`getFormatOptionState`), bukan dari `content-format-matrix.ts`; sumber tunggal butuh perubahan domain, di luar lingkup T-213. (P4) `formatScheduleTriggerLabel` melempar untuk zona tak valid karena `zonedLocalToUtc` memvalidasi zona; pra-ada dan di luar diff ini; tidak ada review Ridwan atau QA Najwa atas perubahan tiket ini.
 
-**Blocked by:** T-213.3 menunggu keputusan King Rezi; butir lain tidak terblokir.
+**Blocked by:** tidak ada (T-213.3 dibatalkan, teks pesan batas mengikuti rancangan).
 
 ---
 
@@ -3501,17 +3501,17 @@ Alasan A: pemilih ini hanya mengganti kartu yang ditampilkan, bukan berpindah an
 
 ### T-215 · Align the design artifact to the Draft Editor banner and icon decisions (T-212 follow-up)
 
-| Field       | Value                                                                                |
-| ----------- | ------------------------------------------------------------------------------------ |
-| **Status**  | 🟡 In Progress (T-215.1 dikerjakan 2026-11-12; T-215.2 menunggu King Rezi di galeri) |
-| **Spec**    | S-005                                                                                |
-| **Mode**    | HITL (rancangan di galeri Postific Design Review dikonfirmasi King Rezi)             |
-| **Depends** | T-212                                                                                |
+| Field       | Value                                                                    |
+| ----------- | ------------------------------------------------------------------------ |
+| **Status**  | ✅ Done (2026-11-12; T-215.1 dan T-215.2)                                |
+| **Spec**    | S-005                                                                    |
+| **Mode**    | HITL (rancangan di galeri Postific Design Review dikonfirmasi King Rezi) |
+| **Depends** | T-212                                                                    |
 
 **Ditemukan (2026-11-05)** saat T-212.7: artifact (`ScreenDraftEditorRedesain`, `preview.html`) menampilkan banner pesan akun sebagai `Alert variant="destructive"` tanpa ikon; kode memakai `warning` (kuning) untuk "tanpa media" dan destructive hanya untuk Reel-bukan-video, dengan ikon. Keputusan: kode dipertahankan, artifact diselaraskan (lihat "Keputusan selisih banner" di T-212).
 
 - [x] **T-215.1** `(2026-11-12)` Neymar menyelaraskan artifact (Postific v45, galeri v17; dibaca ulang, belum dirender di browser; entri galeri kembali "menunggu konfirmasi"): banner "tanpa media" memakai varian peringatan, banner Reel-bukan-video destructive, dengan ikon (ikuti `claude-design-scope-discipline`, jangan ubah default lain).
-- [ ] **T-215.2** King Rezi mengonfirmasi di galeri Postific Design Review.
+- [x] **T-215.2** `(2026-11-12)` King Rezi menyetujui banner di galeri Postific Design Review: warna destructive dipertahankan untuk Reel-bukan-video, peringatan untuk "tanpa media". Banner lain disamakan di T-250, bukan di tiket ini.
 
 ---
 
@@ -3528,10 +3528,45 @@ Alasan A: pemilih ini hanya mengganti kartu yang ditampilkan, bukan berpindah an
 Satu verifikasi untuk seluruh gelombang S-005 (ADR-153, ADR-161). Tiket yang dirujuk hanya dianggap Verified (staging) bila butirnya lulus; butir yang lulus dicoret dari "Belum terbukti" di tiket asalnya. Tanpa akun media sosial nyata untuk post Scheduled sebelum T-195 selesai.
 
 - [ ] **T-249.1** (T-208.1) Save as Draft dari Queue pindah ke Drafts di build produksi staging (Realtime aktif). Tanpa bukti apakah bug itu terjadi di staging atau sebelum T-199. Uji manual tanpa gerbang menunjukkan S4 hanya gagal 1 dari 3 run (lihat T-208).
-- [ ] **T-249.2** (T-202.2) Akordeon blok jaringan dengan dua akun atau lebih di browser. Butuh akun kedua di E2E Sandbox atau workspace lain; E2E S18 ada tetapi ter-skip dengan satu akun. Selektor `data-open`/`data-closed` di `accordion.tsx` (T-210) belum diperiksa di browser.
+- [ ] **T-249.2** (T-202.2) Akordeon blok jaringan dengan dua akun atau lebih di browser. **Keputusan King Rezi (2026-11-12):** pakai workspace lain yang sudah punya dua akun atau lebih, baca saja, tanpa publish. E2E S18 ada tetapi ter-skip dengan satu akun. Selektor `data-open`/`data-closed` di `accordion.tsx` (T-210) belum diperiksa di browser.
 - [ ] **T-249.3** Tampilan visual popover Channels, Pratinjau (terang dan 375px), dan chip (T-201, T-203). Hanya mode gelap popover Channels yang pernah diamati manual.
-- [ ] **T-249.4** Perbaiki `pickFirstAccounts` di `draft-editor.e2e.ts`: pola `/^Pilih /` ikut menghitung "Pilih semua", jadi penjaga skip salah menghitung akun (temuan lane B). AFK, boleh dikerjakan sebelum verifikasi.
+- [x] **T-249.4** `(2026-11-12, lane B gelombang 10, PR 282)` Perbaiki `pickFirstAccounts` di `draft-editor.e2e.ts`: pola `/^Pilih /` ikut menghitung "Pilih semua", jadi penjaga skip salah menghitung akun (temuan lane B). AFK, boleh dikerjakan sebelum verifikasi.
 - [ ] **T-249.5** Run E2E staging (`workflow_dispatch`) hijau terhadap deploy gelombang ini.
+
+---
+
+### T-250 · Draft Editor: align the remaining banners to the T-215 variant decision
+
+| Field       | Value                                                                |
+| ----------- | -------------------------------------------------------------------- |
+| **Status**  | ⏳ Not started                                                       |
+| **Spec**    | S-005 (tindak lanjut T-215.2)                                        |
+| **Mode**    | HITL (rancangan galeri dikonfirmasi King Rezi sebelum kode, rule 10) |
+| **Depends** | T-215                                                                |
+
+King Rezi (2026-11-12) menyetujui varian banner T-215 dan meminta banner lain disamakan belakangan. Inventaris semua banner/alert di Draft Editor dan artifact, tentukan varian (peringatan, destructive, info) dan ikon per kasus.
+
+- [ ] **T-250.1** Inventaris banner/alert di Draft Editor (kode) dan di `ScreenDraftEditorRedesain` (artifact); daftar selisih ke King Rezi.
+- [ ] **T-250.2** Neymar menyelaraskan artifact; King Rezi konfirmasi di galeri.
+- [ ] **T-250.3** Kode mengikuti artifact; `typecheck`, `lint`, tes hijau, tampilan di browser (terang dan gelap).
+
+---
+
+### T-251 · Schedule: server-side role check like Publish Now (T-205.4)
+
+| Field       | Value                                                                |
+| ----------- | -------------------------------------------------------------------- |
+| **Status**  | ⏳ Not started                                                       |
+| **Spec**    | S-005 (keputusan King Rezi 2026-11-12, butir T-205.4)                |
+| **Mode**    | AFK                                                                  |
+| **Docs**    | ADR-047, ADR-074, `roles-permissions.md`, `assertActorCanPublishNow` |
+| **Depends** | T-205                                                                |
+
+Schedule tidak punya pemeriksaan peran di server, sementara Publish Now punya (`assertActorCanPublishNow`). Tiga peran (Account Owner, Admin, Creator) tetap boleh Schedule (ADR-074); tujuannya penegakan di server supaya aman bila peran baru ditambah. Tanpa migrasi.
+
+- [ ] **T-251.1** Use case Schedule memakai pemeriksaan peran setara Publish Now; penolakan tampil sebagai notice galat di UI. Entry point tanpa logika bisnis (rule 3).
+- [ ] **T-251.2** Tes use case: peran yang diizinkan lolos, peran tidak sah ditolak (Publish Now dan Schedule); tes UI untuk notice penolakan.
+- [ ] **T-251.3** `typecheck`, `lint`, tes hijau; T-205.4 dicentang bila bukti RBAC lengkap.
 
 ---
 
