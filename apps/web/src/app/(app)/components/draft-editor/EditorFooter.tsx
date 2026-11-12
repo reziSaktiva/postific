@@ -1,3 +1,6 @@
+import { Alert02Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -113,6 +116,7 @@ export function EditorFooter({
     >
       {scheduleTimeMessage ? (
         <Alert variant="destructive" data-testid="schedule-message">
+          <HugeiconsIcon icon={Alert02Icon} strokeWidth={2} />
           <AlertTitle>{scheduleTimeMessage}</AlertTitle>
         </Alert>
       ) : null}

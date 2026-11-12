@@ -13,7 +13,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Text } from "@/components/ui/text";
 
 import type { DraftMediaDto } from "./actions";
-import { ValidationBanner } from "./FormAlerts";
+import { ValidationBanner, WARNING_ALERT_CLASS } from "./FormAlerts";
 import type { ConnectedAccount } from "./form-shared";
 import {
   FORMAT_LABEL,
@@ -164,7 +164,12 @@ export function NetworkBlockBody({
     // eslint-disable-next-line no-restricted-syntax -- T-102: padanan Astryx VStack, murni Tailwind flex.
     <div className="flex flex-col gap-3">
       {isAccountDisconnected(account) ? (
-        <Alert variant="destructive">
+        <Alert
+          variant="default"
+          data-variant="warning"
+          className={WARNING_ALERT_CLASS}
+        >
+          <HugeiconsIcon icon={Alert02Icon} strokeWidth={2} />
           <AlertTitle>Akun ini terputus.</AlertTitle>
           <AlertDescription>
             Sambungkan ulang agar post bisa terkirim.{" "}

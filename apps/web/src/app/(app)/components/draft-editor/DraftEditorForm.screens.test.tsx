@@ -304,6 +304,12 @@ describe("Baris channel (T-201)", () => {
     // Chip memberi peringatan; blok jaringan menawarkan Reconnect.
     expect(within(chips()[0]!).getByText("Akun terputus")).toBeTruthy();
     expect(screen.getByText("Akun ini terputus.")).toBeTruthy();
+    // T-250 (opsi A): akun terputus adalah peringatan (kuning) dengan ikon, bukan destructive.
+    const disconnected = screen
+      .getByText("Akun ini terputus.")
+      .closest('[data-slot="alert"]');
+    expect(disconnected?.getAttribute("data-variant")).toBe("warning");
+    expect(disconnected?.querySelector("svg")).not.toBeNull();
     expect(
       screen
         .getAllByRole("link", { name: "Reconnect" })

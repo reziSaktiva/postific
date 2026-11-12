@@ -12,6 +12,10 @@ import type { CrossNetworkIssue } from "./network-validation";
  * (pelanggaran per jaringan) dan di atas editor (lintas jaringan). Warna dari
  * token `warning`, bukan nilai mentah.
  */
+/** Kelas varian peringatan (kuning) untuk `Alert`; `Alert` hanya punya `default` dan `destructive`. */
+export const WARNING_ALERT_CLASS =
+  "border-warning/40 bg-warning/10 text-warning *:[svg]:text-warning";
+
 export function ValidationBanner({
   message,
   className,
@@ -29,11 +33,7 @@ export function ValidationBanner({
       // (`status`), bukan `alert` yang memotong pembaca layar.
       role="status"
       data-variant={variant}
-      className={cn(
-        variant === "warning" &&
-          "border-warning/40 bg-warning/10 text-warning *:[svg]:text-warning",
-        className,
-      )}
+      className={cn(variant === "warning" && WARNING_ALERT_CLASS, className)}
     >
       <HugeiconsIcon icon={Alert02Icon} strokeWidth={2} />
       <AlertTitle>{message}</AlertTitle>
@@ -60,6 +60,9 @@ export function FormAlerts({
       ))}
       {notice ? (
         <Alert variant={notice.status === "error" ? "destructive" : "default"}>
+          {notice.status === "error" ? (
+            <HugeiconsIcon icon={Alert02Icon} strokeWidth={2} />
+          ) : null}
           <AlertTitle>{notice.title}</AlertTitle>
         </Alert>
       ) : null}
