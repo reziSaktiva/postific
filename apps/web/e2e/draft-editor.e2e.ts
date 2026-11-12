@@ -1223,6 +1223,67 @@ test("S17 T-211: pemilih Pratinjau tidak menimpa kartu (4 akun, desktop)", async
   await expect(dialog(page)).toHaveCount(0);
 });
 
+test("S18 T-202.2: blok per jaringan akordeon (2 akun) dan statis (1 akun)", async ({
+  page,
+}) => {
+  track(page, "S18");
+  await openNewPostFromDrafts(page);
+  const dlg = dialog(page);
+  await expect(dlg).toBeVisible();
+  await dlg.getByRole("button", { name: "Channels" }).click();
+  // Hanya checkbox akun, bukan "Pilih semua".
+  const accountBoxes = page.getByRole("checkbox", {
+    name: /^Pilih (?!semua)/i,
+  });
+  await expect(accountBoxes.first()).toBeVisible({ timeout: 15_000 });
+  const available = await accountBoxes.count();
+  test.skip(
+    available < 2,
+    `Butuh 2 akun terhubung di workspace E2E, hanya ada ${available}`,
+  );
+  for (let i = 0; i < 2; i++) await accountBoxes.nth(i).check();
+  await page.keyboard.press("Escape");
+  await expect(accountBoxes.first()).toBeHidden();
+  const networks = dlg.getByRole("region", { name: "Pengaturan per jaringan" });
+  const triggers = networks.getByRole("button", { expanded: true });
+  const allTriggers = networks.locator("button[aria-expanded]");
+  await expect(allTriggers).toHaveCount(2);
+  // Tepat satu blok terbuka.
+  await expect(triggers).toHaveCount(1);
+  const first = allTriggers.nth(0);
+  const second = allTriggers.nth(1);
+  const openIndex = await allTriggers.evaluateAll((els) =>
+    els.findIndex((e) => e.getAttribute("aria-expanded") === "true"),
+  );
+  const other = openIndex === 0 ? second : first;
+  const opened = allTriggers.nth(openIndex);
+  await snap(page, "s18-accordion-initial");
+  // Klik blok lain: terbuka, yang lama menutup.
+  await other.click();
+  await expect(other).toHaveAttribute("aria-expanded", "true");
+  await expect(opened).toHaveAttribute("aria-expanded", "false");
+  await expect(triggers).toHaveCount(1);
+  // Klik blok yang sudah terbuka tidak menutupnya.
+  await other.click();
+  await expect(other).toHaveAttribute("aria-expanded", "true");
+  await expect(triggers).toHaveCount(1);
+  await snap(page, "s18-accordion-second-open");
+
+  // Satu akun: tanpa pemicu akordeon. Lepas satu akun lewat popover Channels.
+  await dlg.getByRole("button", { name: "Channels" }).click();
+  const boxes = page.getByRole("checkbox", { name: /^Pilih (?!semua)/i });
+  await expect(boxes.first()).toBeVisible();
+  await boxes.nth(1).uncheck();
+  await page.keyboard.press("Escape");
+  await expect(boxes.first()).toBeHidden();
+  await expect(networks.locator("button[aria-expanded]")).toHaveCount(0);
+  await expect(networks).toBeVisible();
+  await snap(page, "s18-single-account");
+
+  await dlg.getByRole("button", { name: "Close" }).click();
+  await expect(dialog(page)).toHaveCount(0);
+});
+
 test("S17b T-211 375px: pemilih Pratinjau rapi dengan 4 akun", async ({
   page,
 }) => {
