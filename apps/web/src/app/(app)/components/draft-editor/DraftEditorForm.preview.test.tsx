@@ -127,6 +127,9 @@ async function pick(
   await user.keyboard("{Escape}");
 }
 
+// Waktu 5 detik bawaan habis saat suite penuh berjalan paralel; tes ini lulus sendirian (retro wave 11).
+vi.setConfig({ testTimeout: 15_000 });
+
 describe("Pratinjau dari form (T-204)", () => {
   it("T-204.2 judul, link, dan board yang diisi di blok Pinterest tampil di kartu pin", async () => {
     const user = await renderCreate();

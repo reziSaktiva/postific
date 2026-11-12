@@ -143,6 +143,11 @@ Aturan di bawah melengkapi hard rules di [`../AGENTS.md`](../AGENTS.md). Detail 
     `apps/web/e2e/support/mcp.ts`, lakukan aksi sekali, lalu verifikasi
     dengan asersi (jangan klik ulang atau `waitForTimeout` buta). Preseden:
     T-193.2, `authorizeInBrowser`.
+    21a. E2E S18 (akordeon blok jaringan, `draft-editor.e2e.ts`) membaca workspace nyata dengan dua akun atau lebih
+    (`MULTI_ACCOUNT_WORKSPACE_NAME` di `e2e/support/workspace.ts`, bawaan "Cook It Real Good",
+    diganti lewat `E2E_MULTI_ACCOUNT_WORKSPACE`) karena "E2E Sandbox" hanya punya satu akun. Tes itu
+    hanya membaca: tanpa caption, simpan, atau publish; ganti nama workspace bila akun uji tidak lagi
+    menjadi anggotanya. Tes baru yang menyentuh workspace nyata mengikuti batas yang sama.
 22. Tes E2E yang menulis ke staging (membuat draft, media, atau post
     sungguhan) wajib opt-in lewat env dan di-skip secara default, dengan
     pembersihan yang gagal dengan jelas bila tidak menemukan datanya.

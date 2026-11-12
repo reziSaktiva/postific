@@ -163,6 +163,9 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
+// Waktu 5 detik bawaan habis saat suite penuh berjalan paralel; tes ini lulus sendirian (retro wave 11).
+vi.setConfig({ testTimeout: 15_000 });
+
 describe("EngageInboxView per posting (T-219)", () => {
   it("memilih posting pertama dan memuat komentarnya dengan ringkasan dibalas/total", async () => {
     renderView();
