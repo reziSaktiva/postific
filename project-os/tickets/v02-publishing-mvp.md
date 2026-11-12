@@ -3302,7 +3302,7 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 | Field       | Value                                                                             |
 | ----------- | --------------------------------------------------------------------------------- |
-| **Status**  | 🟡 Done (code), menunggu Verified (staging)                                       |
+| **Status**  | ✅ Done (code); Verifikasi `lokal` (ADR-161)                                      |
 | **Mode**    | AFK                                                                               |
 | **Domain**  | UI · shadcn components                                                            |
 | **Spec**    | tidak ada (temuan review T-202)                                                   |
@@ -3330,14 +3330,14 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 ### T-211 · Draft Editor: Calendar fills the schedule popover width, and non-overlapping preview account picker
 
-| Field       | Value                                                                                                                                                              |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Status**  | 🟡 Done (code), menunggu Verified (staging); T-211.6 tercentang (E2E S17 sampai S17d hijau 3 run di Cook It Real Good; S17 dan S17b belum terbukti di E2E Sandbox) |
-| **Mode**    | HITL (T-211.2 keputusan komponen dan T-211.3 konfirmasi rancangan di galeri adalah milik King Rezi; T-211.1 bisa AFK setelah tiket disetujui)                      |
-| **Domain**  | draft editor · UI                                                                                                                                                  |
-| **Spec**    | S-005 (temuan review integrasi King Rezi sebelum merge PR 256)                                                                                                     |
-| **Docs**    | ADR-155, ADR-097, ADR-140, KSP-05 dan KSP-D02, `apps/web/.claude/CLAUDE.md`, artifact Postific (kartu `ScreenDraftEditorRedesain`)                                 |
-| **Depends** | T-205 (popover jadwal), T-203 (panel Pratinjau)                                                                                                                    |
+| Field       | Value                                                                                                                                                                                    |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**  | ✅ Done (code); Verifikasi `lokal` (ADR-161), Verified 2026-11-05; T-211.6 tercentang (E2E S17 sampai S17d hijau 3 run di Cook It Real Good; S17 dan S17b belum terbukti di E2E Sandbox) |
+| **Mode**    | HITL (T-211.2 keputusan komponen dan T-211.3 konfirmasi rancangan di galeri adalah milik King Rezi; T-211.1 bisa AFK setelah tiket disetujui)                                            |
+| **Domain**  | draft editor · UI                                                                                                                                                                        |
+| **Spec**    | S-005 (temuan review integrasi King Rezi sebelum merge PR 256)                                                                                                                           |
+| **Docs**    | ADR-155, ADR-097, ADR-140, KSP-05 dan KSP-D02, `apps/web/.claude/CLAUDE.md`, artifact Postific (kartu `ScreenDraftEditorRedesain`)                                                       |
+| **Depends** | T-205 (popover jadwal), T-203 (panel Pratinjau)                                                                                                                                          |
 
 **Ditemukan (2026-11-04)** oleh King Rezi saat meninjau integrasi UI Draft Editor sebelum merge PR 256. Diukur di staging (build gelombang 5) dengan 4 akun terpilih:
 
@@ -3466,14 +3466,14 @@ Alasan A: pemilih ini hanya mengganti kartu yang ditampilkan, bukan berpindah an
 
 ### T-214 · Creator RBAC E2E for the Draft Editor and Settings (T-207.4)
 
-| Field       | Value                                                                                           |
-| ----------- | ----------------------------------------------------------------------------------------------- |
-| **Status**  | 🟡 Done (code), menunggu Verified (staging) dan keputusan King Rezi atas pertanyaan dokumen     |
-| **Mode**    | AFK                                                                                             |
-| **Domain**  | QA · E2E · RBAC                                                                                 |
-| **Spec**    | S-005 (butir "RBAC per peran" pada T-207.4)                                                     |
-| **Docs**    | `product-discovery/02-product/roles-permissions.md` (ADR-012, ADR-074), ADR-047, ADR-149, T-207 |
-| **Depends** | T-207                                                                                           |
+| Field       | Value                                                                                                |
+| ----------- | ---------------------------------------------------------------------------------------------------- |
+| **Status**  | 🟡 Done (code); Verifikasi `staging` (ADR-161); menunggu keputusan King Rezi atas pertanyaan dokumen |
+| **Mode**    | AFK                                                                                                  |
+| **Domain**  | QA · E2E · RBAC                                                                                      |
+| **Spec**    | S-005 (butir "RBAC per peran" pada T-207.4)                                                          |
+| **Docs**    | `product-discovery/02-product/roles-permissions.md` (ADR-012, ADR-074), ADR-047, ADR-149, T-207      |
+| **Depends** | T-207                                                                                                |
 
 **What to build:** bukti E2E di `local` bahwa akun Creator di workspace "E2E Sandbox" berperilaku sesuai matriks peran, lewat sesi login kedua (storage state terpisah dari Owner). Assertion hanya untuk perilaku yang tertulis di `roles-permissions.md`; perilaku yang tidak tertulis dicatat sebagai pertanyaan untuk King Rezi, tidak ditebak.
 
@@ -3660,14 +3660,14 @@ Temuan QA yang dicatat (bukan pemblokir):
 
 ### T-231 · Import Posts: purge imported-post thumbnails when posts, accounts, or workspaces are deleted (ADR-158)
 
-| Field       | Value                                       |
-| ----------- | ------------------------------------------- |
-| **Status**  | 🟡 Done (code), menunggu Verified (staging) |
-| **Mode**    | AFK                                         |
-| **Domain**  | publishing · media                          |
-| **Spec**    | S-006 (konteks)                             |
-| **Docs**    | ADR-158, T-229, T-230, review Ridwan M5     |
-| **Depends** | T-230                                       |
+| Field       | Value                                                                               |
+| ----------- | ----------------------------------------------------------------------------------- |
+| **Status**  | ✅ Done (code); Verifikasi `staging` (ADR-161), butir di tiket verifikasi gelombang |
+| **Mode**    | AFK                                                                                 |
+| **Domain**  | publishing · media                                                                  |
+| **Spec**    | S-006 (konteks)                                                                     |
+| **Docs**    | ADR-158, T-229, T-230, review Ridwan M5                                             |
+| **Depends** | T-230                                                                               |
 
 Berkas `{workspaceId}/imports/{targetId}.webp` tidak ikut terhapus bila posting impor dihapus, akun diputus, atau workspace dihapus, sehingga berkas yatim menumpuk di bucket privat `media`.
 
@@ -3689,7 +3689,7 @@ Berkas `{workspaceId}/imports/{targetId}.webp` tidak ikut terhapus bila posting 
 
 | Field       | Value                                                                                    |
 | ----------- | ---------------------------------------------------------------------------------------- |
-| **Status**  | 🟡 Done (code), menunggu Verified (staging)                                              |
+| **Status**  | 🟡 Done (code); Verifikasi `lokal` (ADR-161), sisa T-232.1 dan T-232.2                   |
 | **Mode**    | AFK (UI/UX-related: gate rancangan berlaku sebelum kode)                                 |
 | **Domain**  | publishing · media · UI                                                                  |
 | **Spec**    | S-006 (konteks)                                                                          |
@@ -3721,14 +3721,14 @@ Halaman History Detail (`apps/web/src/app/(app)/publish/history/[postId]/page.ts
 
 ### T-233 · Import Posts: bound retries of transiently failing imported-post thumbnails (ADR-158)
 
-| Field       | Value                                                                    |
-| ----------- | ------------------------------------------------------------------------ |
-| **Status**  | 🟡 Done (code), menunggu Verified (staging)                              |
-| **Mode**    | AFK                                                                      |
-| **Domain**  | publishing · integration                                                 |
-| **Spec**    | S-006 (konteks)                                                          |
-| **Docs**    | ADR-158, T-229, T-230, BG-D05, `/code-review` T-230 (temuan correctness) |
-| **Depends** | T-230                                                                    |
+| Field       | Value                                                                               |
+| ----------- | ----------------------------------------------------------------------------------- |
+| **Status**  | ✅ Done (code); Verifikasi `staging` (ADR-161), butir di tiket verifikasi gelombang |
+| **Mode**    | AFK                                                                                 |
+| **Domain**  | publishing · integration                                                            |
+| **Spec**    | S-006 (konteks)                                                                     |
+| **Docs**    | ADR-158, T-229, T-230, BG-D05, `/code-review` T-230 (temuan correctness)            |
+| **Depends** | T-230                                                                               |
 
 Kegagalan **sementara** (timeout, 408/429/5xx, galat jaringan, `ffmpeg` belum terpasang, galat Storage, anggaran waktu habis) sengaja tidak mengisi `thumbnail_attempted_at` (T-230), jadi target itu muncul lagi di `listImportedTargetIdsNeedingThumbnail` pada setiap import (periodik harian tiap akun dan setiap Sync Now). T-230 sudah men-dedup job `import.media` yang masih pending/running per akun, tetapi target yang selalu gagal sementara (mis. CDN yang selalu melewati batas 9 detik) tetap dicoba tanpa batas: sampai 200 target diantrikan lagi tiap import. Biayanya kecil tetapi tidak nol dan tidak berhenti sendiri.
 
