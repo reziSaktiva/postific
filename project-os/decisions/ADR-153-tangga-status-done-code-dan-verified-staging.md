@@ -6,7 +6,7 @@ Tangga Status Tiket: Done (code) dan Verified (staging) Dipisah; Verifikasi Stag
 
 ### Status
 
-**Accepted** (disetujui King Rezi, 2026-11-02; T-181.2). Berlaku untuk tiket baru dan tiket yang dipindahkan lewat T-182.3.
+**Accepted — Amended by ADR-161 (2026-11-12)** (status antara 🟡 `menunggu Verified (staging)` dihapus; butir staging pindah ke tiket verifikasi gelombang) (disetujui King Rezi, 2026-11-02; T-181.2). Berlaku untuk tiket baru dan tiket yang dipindahkan lewat T-182.3.
 
 ### Date
 

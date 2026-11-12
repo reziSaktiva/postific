@@ -200,11 +200,11 @@ seluruh daftar Known Issues.
 
 ADR terbaru. Daftar lengkap (indeks + link ke tiap ADR): lihat `DECISIONS.md`.
 
+- **ADR-161** — Tiket ✅ pada Done (code); butir yang butuh staging pindah ke tiket verifikasi gelombang, status antara 🟡 `menunggu Verified (staging)` dihapus, field Verifikasi `lokal` atau `staging` (mengamandemen ADR-153; T-247).
+- **ADR-160** — Bahasa orkestrasi: lapisan 1 dan 2 pindah ke bahasa Inggris; teks aturan hanya di `AGENTS.md` aturan 8 (S-004, T-234).
+- **ADR-159** — Tiket S-004 tinggal di berkas sendiri (mengamandemen ADR-131 dan ADR-134).
+- **ADR-158** — Media posting impor disimpan saat Import sebagai thumbnail kecil, bukan hotlink URL CDN platform (mengamandemen ADR-093; T-228).
 - **ADR-157** — Engage mengikuti pola Community Buffer: unit utama per posting, status `replied` / `resolved` / `dismissed`, panel Filter & Sort, toggle By post / List; Mentions ditunda (mengamandemen KSP-06 dan KSP-D06 lewat T-221; spec S-006).
-- **ADR-156** — Pemilih Pratinjau per akun di Draft Editor berupa shadcn `Select`, bukan `Tabs` (mengamandemen detail KSP-05-F14 dan KSP-D02 dari ADR-155; T-211).
-- **ADR-155** — Redesain Draft Editor mengikuti pola modal Create Post Buffer, Tahap 1 (tata letak dan perilaku dengan kapabilitas yang ada; Confirmation Summary dipertahankan). Addendum 2026-11-03: rancangan dikonfirmasi, jadwal lewat popover WIB, Create Another di luar Tahap 1, Reel wajib video (mengamandemen ADR-154), lebar Standard 1120px. Spec S-005, tiket T-199 sampai T-207.
-- **ADR-154** — Media wajib per platform dan batas jadwal 30 hari mengikuti aturan Outstand (mengamandemen ADR-121; KI-107, KI-105).
-- **ADR-153** — Tangga status tiket: Done (code) dan Verified (staging) dipisah; verifikasi staging satu kali per gelombang (S-003; mengoreksi catatan konvensi tutup-setelah-staging di tiket MCP).
 
 ---
 
