@@ -4,12 +4,12 @@ Rumah lapis **spec** (ADR-131). Bukan rumah docs, bukan rumah tiket, bukan catat
 
 ## Empat lapis
 
-| Lapis     | Rumah                                                                                                                                                     | Agent membuka ini kapan                                              |
-| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| Docs      | `product-discovery/`, `context/`, `decisions/`                                                                                                            | Saat butuh bahasa domain atau keputusan yang sudah ada               |
-| Spec      | `specs/S-NNN.md` di folder ini                                                                                                                            | Saat pekerjaan melewati lebih dari satu sesi                         |
-| Tiket     | `tickets/vXX-*.md`, `tickets/known-issues.md` untuk tiket dari Known Issue (ADR-134), atau `tickets/s004-orchestration-language.md` untuk S-004 (ADR-159) | Setelah ID task dipilih dari `AVAILABLE_TICKETS.md`                  |
-| Implement | kode dan tes                                                                                                                                              | Saat tiket dikerjakan. Hasilnya commit, bukan paragraf baru di tiket |
+| Lapis     | Rumah                                                                                                                                                                                                                     | Agent membuka ini kapan                                              |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Docs      | `product-discovery/`, `context/`, `decisions/`                                                                                                                                                                            | Saat butuh bahasa domain atau keputusan yang sudah ada               |
+| Spec      | `specs/S-NNN.md` di folder ini                                                                                                                                                                                            | Saat pekerjaan melewati lebih dari satu sesi                         |
+| Tiket     | `tickets/vXX-*.md`, `tickets/known-issues.md` untuk tiket dari Known Issue (ADR-134), `tickets/s004-orchestration-language.md` untuk S-004 (ADR-159), atau `tickets/s007-documentation-language.md` untuk S-007 (ADR-164) | Setelah ID task dipilih dari `AVAILABLE_TICKETS.md`                  |
+| Implement | kode dan tes                                                                                                                                                                                                              | Saat tiket dikerjakan. Hasilnya commit, bukan paragraf baru di tiket |
 
 Pekerjaan yang muat satu sesi tidak dibuatkan spec. Tiket menunjuk docs yang berlaku, lalu langsung diimplementasikan.
 
@@ -44,7 +44,7 @@ ID spec global, tidak didaur ulang. Nomor berikutnya dicatat di `AVAILABLE_TICKE
 
 ## Bentuk tiket
 
-Tiket rilis tetap di `tickets/vXX-*.md`, termasuk setelah selesai. Tiket yang lahir dari Known Issue ada di `tickets/known-issues.md` (ADR-134), bentuknya sama. Tiket S-004 ada di `tickets/s004-orchestration-language.md` (ADR-159).
+Tiket rilis tetap di `tickets/vXX-*.md`, termasuk setelah selesai. Tiket yang lahir dari Known Issue ada di `tickets/known-issues.md` (ADR-134), bentuknya sama. Tiket S-004 ada di `tickets/s004-orchestration-language.md` (ADR-159) dan tiket S-007 di `tickets/s007-documentation-language.md` (ADR-164).
 
 ```markdown
 ### T-xxx · Judul

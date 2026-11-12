@@ -118,7 +118,7 @@ require the AI to stop at this point **before** starting code implementation:
 
 ## Domain → Subagent map
 
-The **Domain** field of each task in its ticket file (`tickets/vXX-*.md`, `tickets/known-issues.md`, or `tickets/s004-orchestration-language.md` for S-004, ADR-159) can be mapped directly to the
+The **Domain** field of each task in its ticket file (`tickets/vXX-*.md`, `tickets/known-issues.md`, `tickets/s004-orchestration-language.md` for S-004 (ADR-159), or `tickets/s007-documentation-language.md` for S-007 (ADR-164)) can be mapped directly to the
 following implementation subagents as a starting point (not a rigid rule — also check
 the `description` in each role file's frontmatter for the final decision):
 

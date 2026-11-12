@@ -2,7 +2,7 @@
 
 Antrian tiket yang belum selesai. ADR-131, ADR-132.
 
-Mencari kerja tersedia berhenti di file ini. Tiket ✅ dan ⏸️ ada di `tickets/vXX-*.md`. Tiket yang lahir dari Known Issue ada di `tickets/known-issues.md` (ADR-134). Tiket S-004 ada di `tickets/s004-orchestration-language.md`. Buka file itu hanya setelah ID-nya dipilih, dan hanya section tiket itu.
+Mencari kerja tersedia berhenti di file ini. Tiket ✅ dan ⏸️ ada di `tickets/vXX-*.md`. Tiket yang lahir dari Known Issue ada di `tickets/known-issues.md` (ADR-134). Tiket S-004 ada di `tickets/s004-orchestration-language.md` dan tiket S-007 di `tickets/s007-documentation-language.md`. Buka file itu hanya setelah ID-nya dipilih, dan hanya section tiket itu.
 
 Perubahan kode di `apps/` dan `packages/` wajib punya tiket di sini, di file rilis, atau di `tickets/known-issues.md`. Deskripsi: docs → spec → tiket → implement. Bentuknya di [`specs/README.md`](specs/README.md).
 
@@ -11,7 +11,7 @@ Perubahan kode di `apps/` dan `packages/` wajib punya tiket di sini, di file ril
 ## Cara pakai
 
 1. Pilih satu ID dari tabel di bawah.
-2. Buka **satu** file yang disebut kolom File, lompat ke heading tiket itu. Tiket rilis ada di `tickets/vXX-*.md`. Tiket yang lahir dari Known Issue ada di `tickets/known-issues.md` (ADR-134). Tiket S-004 ada di `tickets/s004-orchestration-language.md`. Ikuti field **Docs** / **Baca dulu**. Jangan menyapu folder `tickets/`.
+2. Buka **satu** file yang disebut kolom File, lompat ke heading tiket itu. Tiket rilis ada di `tickets/vXX-*.md`. Tiket yang lahir dari Known Issue ada di `tickets/known-issues.md` (ADR-134). Tiket S-004 ada di `tickets/s004-orchestration-language.md` dan tiket S-007 di `tickets/s007-documentation-language.md`. Ikuti field **Docs** / **Baca dulu**. Jangan menyapu folder `tickets/`.
 3. Kalau pekerjaannya melewati beberapa sesi dan belum ada spec, tulis `specs/S-NNN.md` dulu. Spec yang ada: S-001 (MCP Server MVP), S-002 (QA E2E Playwright), S-003 (orkestrasi AI bergelombang), S-004 (bahasa orkestrasi AI, keputusan 2026-11-11, T-234 sampai T-246), S-005 (redesain Draft Editor pola Buffer, Tahap 1), S-006 (Engage per posting pola Buffer), S-007 (bahasa dokumen lapisan 3, draf 2026-11-12).
 4. Selesai: status ✅ di file tiketnya, barisnya dihapus dari tabel ini. Jangan menambah catatan sesi.
 
@@ -124,5 +124,6 @@ v0.3 tidak punya tiket terbuka. v0.7 tidak punya tiket terbuka (T-165, T-169 ✅
 | v1.0  | [tickets/v10-public-launch.md](tickets/v10-public-launch.md)                     |
 | KI    | [tickets/known-issues.md](tickets/known-issues.md)                               |
 | S-004 | [tickets/s004-orchestration-language.md](tickets/s004-orchestration-language.md) |
+| S-007 | [tickets/s007-documentation-language.md](tickets/s007-documentation-language.md) |
 
-T-018 (⏸️) ada di v0.1. Bukan antrian. Tiket yang lahir dari Known Issue ada di file KI, bukan di file rilis (ADR-134). Tiket S-004 ada di berkasnya sendiri (ADR-159).
+T-018 (⏸️) ada di v0.1. Bukan antrian. Tiket yang lahir dari Known Issue ada di file KI, bukan di file rilis (ADR-134). Tiket S-004 ada di berkasnya sendiri (ADR-159), begitu juga S-007 (ADR-164).
