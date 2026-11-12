@@ -500,6 +500,12 @@ describe("Editor, media, dan blok jaringan (T-202)", () => {
         screen.getByText(/board/i, { selector: "[role=status] *" }),
       ).toBeTruthy(),
     );
+    // T-250: board Pinterest belum dipilih memblokir, jadi destructive dengan ikon.
+    const boardBanner = screen
+      .getByText(/board/i, { selector: "[role=status] *" })
+      .closest('[data-slot="alert"]');
+    expect(boardBanner?.getAttribute("data-variant")).toBe("destructive");
+    expect(boardBanner?.querySelector("svg")).not.toBeNull();
   });
 
   it("T-212.1 dan T-212.5 media gambar: Reel nonaktif, teks bantuan menjadi deskripsi radio Reel", async () => {

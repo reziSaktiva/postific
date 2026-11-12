@@ -51,7 +51,12 @@ export function FormAlerts({
   return (
     <>
       {crossNetworkIssues.map((issue) => (
-        <ValidationBanner key={issue.code} message={issue.message} />
+        // T-250: pelanggaran lintas jaringan memblokir Schedule/Publish Now, jadi destructive.
+        <ValidationBanner
+          key={issue.code}
+          message={issue.message}
+          variant="destructive"
+        />
       ))}
       {notice ? (
         <Alert variant={notice.status === "error" ? "destructive" : "default"}>

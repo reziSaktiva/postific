@@ -180,10 +180,9 @@ export function NetworkBlockBody({
         <ValidationBanner
           key={issue.code}
           message={issue.message}
-          // T-212.1: rancangan memakai banner destructive untuk Reel dengan media bukan video.
-          variant={
-            issue.code === "reel-requires-video" ? "destructive" : "warning"
-          }
+          // T-212.1, T-250: pelanggaran yang memblokir (Reel bukan video, board Pinterest
+          // belum dipilih) destructive; "tanpa media" tetap peringatan (rancangan galeri v19).
+          variant={issue.code === "media-required" ? "warning" : "destructive"}
         />
       ))}
 
