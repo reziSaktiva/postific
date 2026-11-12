@@ -2966,14 +2966,14 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 ### T-201 · Draft Editor channel row: Channels popover, Last used, All, avatar chips
 
-| Field       | Value                                                                                                             |
-| ----------- | ----------------------------------------------------------------------------------------------------------------- |
-| **Status**  | 🟡 In Progress (kode sudah digabung lewat PR 252; butir yang belum dicentang belum terbukti oleh tes, 2026-11-04) |
-| **Mode**    | AFK                                                                                                               |
-| **Domain**  | draft editor · UI                                                                                                 |
-| **Spec**    | S-005                                                                                                             |
-| **Docs**    | ADR-155 dan addendum 2026-11-03, KSP-05 dan KSP-D04 (hasil pembaruan 2026-11-03), NP-D14, ADR-125, S-005          |
-| **Depends** | T-199                                                                                                             |
+| Field       | Value                                                                                                    |
+| ----------- | -------------------------------------------------------------------------------------------------------- |
+| **Status**  | ✅ Done (code, 2026-11-12); Verifikasi `staging` (ADR-161), butir di T-249                               |
+| **Mode**    | AFK                                                                                                      |
+| **Domain**  | draft editor · UI                                                                                        |
+| **Spec**    | S-005                                                                                                    |
+| **Docs**    | ADR-155 dan addendum 2026-11-03, KSP-05 dan KSP-D04 (hasil pembaruan 2026-11-03), NP-D14, ADR-125, S-005 |
+| **Depends** | T-199                                                                                                    |
 
 **Gate rancangan:** dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review.
 
@@ -2992,6 +2992,7 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 **Belum terbukti (jangan diasumsikan):**
 
+- **Verifikasi staging dan butir browser di bawah dipegang T-249** (ADR-161); coret di sini saat T-249 lulus.
 - Query "Terakhir dipakai": `EXPLAIN (ANALYZE, BUFFERS)` dijalankan di DB staging bersama (2026-11-05, gelombang 9). Pada data sekarang (616 post, terbesar 495) query murah; indeks parsial pertama (`20261105100000`, predikat `status <> 'imported'`) tidak terpakai pada rencana generik, jadi diganti `20261105110000` (lihat bukti pada T-201.2: 60 ms turun ke 2 ms, 562 ke 5 buffer). Belum terbukti: perilaku pada workspace jauh lebih besar dan SQL yang sebenarnya dikirim Prisma (disetarakan dengan tangan). Tes `latest-target-index-migration.test.ts` hanya dokumentasi tekstual migrasi dan repository, bukan bukti planner; migrasi `20261105100000` dibiarkan utuh karena sudah diterapkan (checksum Prisma).
 - Browser hanya dengan satu akun Instagram aktif: popover dengan banyak platform, akun Disconnected, dan chip peringatan hanya terbukti di jsdom (`DraftEditorForm.screens.test.tsx`).
 - Tampilan visual popover dan chip (terang dan 375px) belum diperiksa satu per satu; mode gelap popover tercakup S16. _Review manual King Rezi 2026-11-05, PR 257:_ popover Channels di mode gelap "sudah sesuai" (diamati manual di browser, bukan diukur dan bukan tes otomatis; hanya butir popover Channels mode gelap, bukan terang, 375px, chip, atau Disconnected).
@@ -3016,7 +3017,7 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 **What to build:** bagian kiri modal di bawah baris channel: editor caption, area media, dan blok pengaturan per jaringan dengan validasi inline.
 
 - [x] **T-202.1** Editor caption dan area media (thumbnail plus dropzone); toolbar hanya "Lampirkan media" (tanpa emoji dan hashtag). _Bukti:_ E2E S14 (dropzone, satu aksi "Lampirkan media", tanpa tombol emoji atau hashtag), S3, S11 dan S12 (unggah gambar, thumbnail dengan tombol hapus, hapus lewat dialog konfirmasi), dan `DraftEditorForm.screens.test.tsx` ("T-202.1", unggahan menjadi thumbnail dan hitungan 1/10).
-- [~] **T-202.2** Blok per jaringan berbentuk akordeon (satu terbuka, lainnya baris ringkas); bila hanya satu akun terpilih, blok selalu terbuka tanpa akordeon. _Bukti perilaku (jsdom):_ `DraftEditorForm.screens.test.tsx` (dua akun: tepat satu pemicu `aria-expanded`, klik membuka blok lain dan menutup yang lama, klik blok terbuka tidak menutupnya; satu akun: tanpa pemicu akordeon, blok langsung terlihat; blok aktif yang dibuang mengikuti `network-blocks-state.test.ts`). Satu akun terbukti di browser (S7b, S11). _Tetap `[~]`:_ akordeon dengan dua akun atau lebih belum terlihat di browser (sandbox satu akun), padahal `accordion.tsx` punya cacat selektor yang diakui (T-210).
+- [~] **T-202.2** Blok per jaringan berbentuk akordeon (satu terbuka, lainnya baris ringkas); bila hanya satu akun terpilih, blok selalu terbuka tanpa akordeon. _Bukti perilaku (jsdom):_ `DraftEditorForm.screens.test.tsx` (dua akun: tepat satu pemicu `aria-expanded`, klik membuka blok lain dan menutup yang lama, klik blok terbuka tidak menutupnya; satu akun: tanpa pemicu akordeon, blok langsung terlihat; blok aktif yang dibuang mengikuti `network-blocks-state.test.ts`). Satu akun terbukti di browser (S7b, S11). `(2026-11-12, jalur B gelombang 10)` Tes E2E S18 ditambahkan di `draft-editor.e2e.ts` (dua akun: tepat satu `aria-expanded=true`, klik blok lain membuka dan menutup yang lama, klik blok terbuka tidak menutupnya; satu akun: tanpa pemicu), tetapi workspace "E2E Sandbox" hanya punya satu akun Instagram (`turanilkerl`), jadi S18 terlewati di `local` dan belum pernah lulus maupun diuji gagal (jangan hitung S18 hijau sebelum berjalan tanpa skip sekali; selektor `button[aria-expanded]` bisa ikut menghitung Select Pinterest). _Tetap `[~]`:_ butuh minimal dua akun terhubung di workspace E2E (keputusan King Rezi); akordeon dengan dua akun atau lebih belum terlihat di browser, padahal `accordion.tsx` punya cacat selektor yang diakui (T-210).
 - [x] **T-202.3** Radio format Post/Reel/Story (ADR-039) di dalam blok; opsi yang tidak sah dinonaktifkan; Reel nonaktif dengan pesan dari T-200 bila media bukan satu video.
 - [x] **T-202.4** Field Pinterest (board, judul, link) di dalam blok; perilaku data sama dengan sebelumnya. _Bukti (jsdom):_ `DraftEditorForm.screens.test.tsx` ("T-202.4": Pin Title, Destination Link, dan Board muncul di blok tanpa radio format, board dimuat lewat `listPinterestBoardsAction`, payload `saveDraftAction` memuat `{pinTitle, pinLink, boardId}` dengan format `pin`). Tidak ada bukti browser: workspace E2E tidak punya akun Pinterest.
 - [x] **T-202.5** Banner validasi kuning inline: validasi per jaringan (media wajib, board, Reel) di dalam blok; validasi lintas jaringan (Story dengan caption campur, lebih dari satu akun Pinterest) di atas editor. Aturan tetap ADR-107, ADR-121, ADR-154, dan T-200; hanya letaknya yang pindah. _Bukti:_ `DraftEditorForm.screens.test.tsx` (banner "Instagram tanpa media" tampil sekali dan di dalam blok jaringan; banner lintas jaringan "satu akun Pinterest" tampil sebelum judul "Pengaturan per jaringan", bukan di blok; banner board Pinterest di blok) dan E2E S7b dan S12 (banner Instagram tanpa media dan pesan Reel di browser). Story dengan caption campur hanya terbukti di fungsi murni (`network-validation.test.ts`), belum di komponen.
@@ -3028,7 +3029,7 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 **Belum terbukti (jangan diasumsikan):**
 
-- Tampilan browser akordeon dengan dua akun atau lebih, dan banner kuning di terang (gelap tercakup S8b yang memindai kontras). Blok yang terbuka saat chip diklik: klik chip belum membuka blok jaringannya (butuh perubahan di `ChannelRow.tsx`), tidak ada tes karena perilakunya memang belum ada.
+- Tampilan browser akordeon dengan dua akun atau lebih (S18 siap tetapi terlewati karena sandbox satu akun; selektor `accordion.tsx` belum bisa dinilai di browser), dan banner kuning di terang (gelap tercakup S8b yang memindai kontras). Blok yang terbuka saat chip diklik: klik chip belum membuka blok jaringannya (butuh perubahan di `ChannelRow.tsx`), tidak ada tes karena perilakunya memang belum ada.
 - Blok jaringan di browser hanya satu akun (S7b, S11, S12 menegaskan radio format, banner, dan Reel); Pinterest dan banyak akun hanya jsdom.
 - `accordion.tsx` (T-199) memakai selektor `data-open:`/`data-closed:` yang tidak cocok dengan `data-state` Radix, jadi animasi buka-tutup dan latar item bawaan tidak aktif; latar ditambal di `NetworkBlocks.tsx`. Akar masalahnya di T-210.
 - Impor domain di `network-validation.ts` lewat jalur dalam, bukan barrel `domains/publishing/index.ts` (preseden ada di hook lama); belum diseragamkan.
@@ -3040,14 +3041,14 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 ### T-203 · Draft Editor live preview: panel shell, toggle, empty state, Facebook and Instagram
 
-| Field       | Value                                                                                                             |
-| ----------- | ----------------------------------------------------------------------------------------------------------------- |
-| **Status**  | 🟡 In Progress (kode sudah digabung lewat PR 252; butir yang belum dicentang belum terbukti oleh tes, 2026-11-04) |
-| **Mode**    | AFK                                                                                                               |
-| **Domain**  | draft editor · UI                                                                                                 |
-| **Spec**    | S-005                                                                                                             |
-| **Docs**    | ADR-155 dan addendum 2026-11-03 (Decision 5), KSP-05 dan KSP-D02 (hasil pembaruan 2026-11-03), S-005              |
-| **Depends** | T-199                                                                                                             |
+| Field       | Value                                                                                                |
+| ----------- | ---------------------------------------------------------------------------------------------------- |
+| **Status**  | ✅ Done (code, 2026-11-12); Verifikasi `staging` (ADR-161), butir di T-249                           |
+| **Mode**    | AFK                                                                                                  |
+| **Domain**  | draft editor · UI                                                                                    |
+| **Spec**    | S-005                                                                                                |
+| **Docs**    | ADR-155 dan addendum 2026-11-03 (Decision 5), KSP-05 dan KSP-D02 (hasil pembaruan 2026-11-03), S-005 |
+| **Depends** | T-199                                                                                                |
 
 **Gate rancangan:** dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review.
 
@@ -3064,6 +3065,7 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 **Belum terbukti (jangan diasumsikan):**
 
+- **Verifikasi staging dan butir browser di bawah dipegang T-249** (ADR-161); coret di sini saat T-249 lulus.
 - Tampilan visual Pratinjau di browser (terang, lebar dialog, scroll): E2E menegaskan isi, bukan tampilan; gelap tercakup S8b dan S16. Pratinjau Facebook dan pemilih Pratinjau per akun (kini `Select`, T-211.4) hanya terbukti di jsdom (sandbox satu akun Instagram).
 - Panel dan toggle disembunyikan di bawah `md` dan saat Confirmation Summary: tab "Editor | Pratinjau" 375px ada di T-206, panel tetap terlihat di ringkasan ada di T-205.5.
 - Platform selain Facebook dan Instagram menampilkan kartu netral "belum tersedia" (bukan kartu generik T-204).
@@ -3151,7 +3153,7 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 | Field       | Value                                                                                                           |
 | ----------- | --------------------------------------------------------------------------------------------------------------- |
-| **Status**  | 🟡 In Progress                                                                                                  |
+| **Status**  | ✅ Done (code, 2026-11-12); Verifikasi `staging` (ADR-161), butir di T-249                                      |
 | **Mode**    | AFK                                                                                                             |
 | **Domain**  | draft editor · UI                                                                                               |
 | **Spec**    | S-005                                                                                                           |
@@ -3171,6 +3173,8 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 **Hasil (2026-11-04, jalur A gelombang 5, belum di-commit):** (1) `Modal.tsx`: Standard `min(1120px, 94vw)` dengan tinggi `min(100dvh - 40px, 820px)`; Fullscreen diperbaiki dengan `sm:max-w-none` (akar temuan QA: `sm:max-w-md` bawaan `DialogContent`), terukur 1280x720 di viewport 1280x720. (2) `dialog-layout.ts` (logika murni, 6 tes): layar sempit (viewport 767px atau kurang, setara `md` seperti sebelum redesain; keputusan King Rezi 2026-11-04) memaksa modal penuh, menyembunyikan toggle Pratinjau dan Fullscreen, dan memunculkan tab "Editor | Pratinjau" (kecuali layar konfirmasi). `PreviewPanel` punya `placement` `side` (384px) atau `full` (tab). Footer sempit: help text disembunyikan, trigger jadwal selebar penuh, tiga tombol berbagi baris. (3) `ResumeDialog`: deskripsi "Ada draft New Post yang belum disimpan dari sesi sebelumnya. Hanya caption yang tersimpan; akun dan media perlu dipilih lagi." tanpa ID KSP/ADR (sesuai rancangan Postific). (4) Perbaikan sampingan: `<p>` berisi `<div>` skeleton di Pratinjau Facebook/Instagram/Generic memicu error hydration; diganti `span`. Rancangan acuan: kartu `ScreenDraftEditorRedesain` (skenario 10 sampai 12). **Terbukti:** `bun run typecheck`, `eslint apps/web`, `vitest run` (2411 lulus) hijau; E2E `draft-editor.e2e.ts` terhadap `local` (`E2E_BASE_URL=http://localhost:3000`, `next dev` worktree): 13 passed (login, S1 sampai S10 termasuk S7 dan S7b yang baru pertama kali berjalan, `test.fail` S2 dihapus), S1 menegaskan lebar 1120px, S6 menegaskan teks Resume, S8a menegaskan tab dan toggle di 375px tanpa overflow (daftar elemen meluap kosong), S8b tanpa elemen kontras kurang dari 3. Screenshot di `apps/web/test-results/draft-editor` (terabaikan git). **Belum terbukti:** "tanpa kedipan terang" T-206.4 hanya diukur dari warna latar dialog sesudah render dan tampilan screenshot, bukan rekaman frame saat mount (karena itu `[~]`); ambang 767px viewport menyimpang dari rancangan (ambang 640px pada lebar modal lewat container query), dipilih supaya kolom form tidak menyempit di 641 sampai 767px; belum diverifikasi di browser pada lebar itu; mode gelap Pratinjau tiap jaringan (TikTok, Pinterest, tab Pratinjau 375px) tidak diperiksa satu per satu; tidak diuji di staging dan tidak ada post Scheduled atau publish nyata di E2E (S7b berhenti di Batal).
 
 **Temuan QA lama (Najwa, 2026-11-03, staging, kode sebelum refactor):** Fullscreen di desktop (lebar viewport 640px atau lebih) hanya selebar 448px dan menempel di kiri, bukan menutupi viewport seperti KSP-05. Penyebabnya `DialogContent` bawaan membawa `sm:max-w-md` yang mengalahkan `max-w-none` tanpa prefiks; kode ini sudah ada di `Modal.tsx` lama dan ikut terbawa refactor T-199 tanpa perubahan. Perbaiki di T-206.1 dan buktikan di T-207.1. Pada viewport 375px checkbox akun terukur meluber horizontal sedikit tanpa scroll halaman (aksesibilitas ringan, juga lama).
+
+**Belum terbukti:** tampilan Standard, Fullscreen, dan 375px di browser nyata dan verifikasi staging dipegang T-249 (ADR-161).
 
 **Blocked by:** T-201 sampai T-205
 
@@ -3497,17 +3501,37 @@ Alasan A: pemilih ini hanya mengganti kartu yang ditampilkan, bukan berpindah an
 
 ### T-215 · Align the design artifact to the Draft Editor banner and icon decisions (T-212 follow-up)
 
-| Field       | Value                                                                    |
-| ----------- | ------------------------------------------------------------------------ |
-| **Status**  | ⏳ Not started                                                           |
-| **Spec**    | S-005                                                                    |
-| **Mode**    | HITL (rancangan di galeri Postific Design Review dikonfirmasi King Rezi) |
-| **Depends** | T-212                                                                    |
+| Field       | Value                                                                                |
+| ----------- | ------------------------------------------------------------------------------------ |
+| **Status**  | 🟡 In Progress (T-215.1 dikerjakan 2026-11-12; T-215.2 menunggu King Rezi di galeri) |
+| **Spec**    | S-005                                                                                |
+| **Mode**    | HITL (rancangan di galeri Postific Design Review dikonfirmasi King Rezi)             |
+| **Depends** | T-212                                                                                |
 
 **Ditemukan (2026-11-05)** saat T-212.7: artifact (`ScreenDraftEditorRedesain`, `preview.html`) menampilkan banner pesan akun sebagai `Alert variant="destructive"` tanpa ikon; kode memakai `warning` (kuning) untuk "tanpa media" dan destructive hanya untuk Reel-bukan-video, dengan ikon. Keputusan: kode dipertahankan, artifact diselaraskan (lihat "Keputusan selisih banner" di T-212).
 
-- [ ] **T-215.1** Neymar menyelaraskan artifact: banner "tanpa media" memakai varian peringatan, banner Reel-bukan-video destructive, dengan ikon (ikuti `claude-design-scope-discipline`, jangan ubah default lain).
+- [x] **T-215.1** `(2026-11-12)` Neymar menyelaraskan artifact (Postific v45, galeri v17; dibaca ulang, belum dirender di browser; entri galeri kembali "menunggu konfirmasi"): banner "tanpa media" memakai varian peringatan, banner Reel-bukan-video destructive, dengan ikon (ikuti `claude-design-scope-discipline`, jangan ubah default lain).
 - [ ] **T-215.2** King Rezi mengonfirmasi di galeri Postific Design Review.
+
+---
+
+### T-249 · S-005 wave verification (Draft Editor redesign and KI-108)
+
+| Field       | Value                                                                                   |
+| ----------- | --------------------------------------------------------------------------------------- |
+| **Status**  | ⏳ Not started (menunggu PR integrasi gelombang 10 ter-merge dan deploy staging sukses) |
+| **Spec**    | S-005                                                                                   |
+| **Mode**    | HITL (verifikasi King Rezi di staging)                                                  |
+| **Docs**    | ADR-153, ADR-161, S-003, T-199 sampai T-215, T-208                                      |
+| **Depends** | PR integrasi `feature/s005-gelombang-10` ter-merge ke `staging`                         |
+
+Satu verifikasi untuk seluruh gelombang S-005 (ADR-153, ADR-161). Tiket yang dirujuk hanya dianggap Verified (staging) bila butirnya lulus; butir yang lulus dicoret dari "Belum terbukti" di tiket asalnya. Tanpa akun media sosial nyata untuk post Scheduled sebelum T-195 selesai.
+
+- [ ] **T-249.1** (T-208.1) Save as Draft dari Queue pindah ke Drafts di build produksi staging (Realtime aktif). Tanpa bukti apakah bug itu terjadi di staging atau sebelum T-199. Uji manual tanpa gerbang menunjukkan S4 hanya gagal 1 dari 3 run (lihat T-208).
+- [ ] **T-249.2** (T-202.2) Akordeon blok jaringan dengan dua akun atau lebih di browser. Butuh akun kedua di E2E Sandbox atau workspace lain; E2E S18 ada tetapi ter-skip dengan satu akun. Selektor `data-open`/`data-closed` di `accordion.tsx` (T-210) belum diperiksa di browser.
+- [ ] **T-249.3** Tampilan visual popover Channels, Pratinjau (terang dan 375px), dan chip (T-201, T-203). Hanya mode gelap popover Channels yang pernah diamati manual.
+- [ ] **T-249.4** Perbaiki `pickFirstAccounts` di `draft-editor.e2e.ts`: pola `/^Pilih /` ikut menghitung "Pilih semua", jadi penjaga skip salah menghitung akun (temuan lane B). AFK, boleh dikerjakan sebelum verifikasi.
+- [ ] **T-249.5** Run E2E staging (`workflow_dispatch`) hijau terhadap deploy gelombang ini.
 
 ---
 
