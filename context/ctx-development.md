@@ -148,6 +148,24 @@ Aturan di bawah melengkapi hard rules di [`../AGENTS.md`](../AGENTS.md). Detail 
     diganti lewat `E2E_MULTI_ACCOUNT_WORKSPACE`) karena "E2E Sandbox" hanya punya satu akun. Tes itu
     hanya membaca: tanpa caption, simpan, atau publish; ganti nama workspace bila akun uji tidak lagi
     menjadi anggotanya. Tes baru yang menyentuh workspace nyata mengikuti batas yang sama.
+    21b. Pemeriksaan manual interaktif bersama King Rezi di browser Claude (preseden:
+    T-249.1 dan T-249.3, 2026-11-12). Urutan: (1) tampilkan panel browser
+    (`show_pane` preview) dan cek tab serta login yang sudah ada; (2) tentukan dulu
+    tempatnya: lokal (`next dev`, bukan bukti staging) atau staging, dan workspace
+    aktifnya (workspace nyata atau "E2E Sandbox"); (3) batas keselamatan: tidak
+    menekan Schedule atau Publish Now ke akun nyata (T-195), data uji diberi awalan
+    seperti `uji-249-1` dan dihapus sendiri sesudahnya, penghapusan permanen hanya
+    untuk data buatan sesi itu; (4) satu pemeriksaan per pertanyaan: agen
+    menavigasi dan mengambil tangkapan layar (tunggu 1 sampai 2 detik agar animasi
+    dan daftar akun selesai dimuat), lalu menanyakan lewat `AskUserQuestion` dengan
+    opsi "Ya, rapi" dan "Ada yang janggal"; jawaban bebas King Rezi dicatat apa
+    adanya sebagai temuan; (5) urutan tampilan: gelap, terang, 375px; tema aplikasi
+    diganti lewat ikon di sidebar (emulasi skema warna browser tidak mengubah
+    tema aplikasi), lebar 375px lewat `resize_window` preset mobile dan dikembalikan
+    ke desktop sesudahnya; (6) temuan UI masuk tiket baru (ADR-132) dan tidak
+    diperbaiki langsung, karena rancangan harus dicek di artifact lebih dulu
+    (AGENTS.md rule 10); (7) hasil dicatat di tiket verifikasi (mis. T-249) dengan
+    label tempat uji, dan butir tetap `[~]` bila hanya terbukti di lokal.
 22. Tes E2E yang menulis ke staging (membuat draft, media, atau post
     sungguhan) wajib opt-in lewat env dan di-skip secara default, dengan
     pembersihan yang gagal dengan jelas bila tidak menemukan datanya.
