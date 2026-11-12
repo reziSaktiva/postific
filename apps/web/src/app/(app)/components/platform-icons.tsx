@@ -12,6 +12,10 @@ import type { IconType } from "react-icons";
 
 import { SocialPlatform } from "@postific/shared";
 
+import { withOfficialLogo } from "./platform-logos";
+
+const BRAND_DIR = "/brand/platforms";
+
 /**
  * Mapping platform -> ikon brand (react-icons/fa6) + warna brand asli.
  *
@@ -20,18 +24,31 @@ import { SocialPlatform } from "@postific/shared";
  * tiap platform (bukan token Astryx) — pengecualian yang disengaja per
  * ADR-058 poin 10 ("warna brand tidak berubah"), sama seperti alasan
  * kenapa react-icons dipakai sama sekali.
+ *
+ * T-209.3: Instagram, Facebook, LinkedIn, YouTube, dan Threads memakai logo
+ * resmi (`platform-logos.tsx`) bila ukurannya memenuhi minimum kit merek, selain
+ * itu jatuh ke glif react-icons. X, Pinterest, dan TikTok tetap glif react-icons
+ * sampai aset resmi mereka ada (T-209.1, T-209.2).
  */
 export const PLATFORM_ICON: Record<
   SocialPlatform,
   { Icon: IconType; color: string; colorDark?: string; label: string }
 > = {
   [SocialPlatform.Instagram]: {
-    Icon: FaInstagram,
+    Icon: withOfficialLogo(FaInstagram, {
+      light: `${BRAND_DIR}/instagram-black.svg`,
+      dark: `${BRAND_DIR}/instagram-white.svg`,
+      aspect: 1,
+    }),
     color: "#E4405F",
     label: "Instagram",
   },
   [SocialPlatform.Facebook]: {
-    Icon: FaFacebook,
+    Icon: withOfficialLogo(FaFacebook, {
+      light: `${BRAND_DIR}/facebook.png`,
+      aspect: 1,
+      minWidth: 16,
+    }),
     color: "#1877F2",
     label: "Facebook",
   },
@@ -42,7 +59,11 @@ export const PLATFORM_ICON: Record<
     label: "X (Twitter)",
   },
   [SocialPlatform.LinkedIn]: {
-    Icon: FaLinkedin,
+    Icon: withOfficialLogo(FaLinkedin, {
+      light: `${BRAND_DIR}/linkedin.png`,
+      aspect: 160 / 137,
+      minHeight: 21,
+    }),
     color: "#0A66C2",
     label: "LinkedIn",
   },
@@ -53,12 +74,19 @@ export const PLATFORM_ICON: Record<
     label: "TikTok",
   },
   [SocialPlatform.YouTube]: {
-    Icon: FaYoutube,
+    Icon: withOfficialLogo(FaYoutube, {
+      light: `${BRAND_DIR}/youtube.png`,
+      aspect: 160 / 136,
+    }),
     color: "#FF0000",
     label: "YouTube",
   },
   [SocialPlatform.Threads]: {
-    Icon: FaThreads,
+    Icon: withOfficialLogo(FaThreads, {
+      light: `${BRAND_DIR}/threads-black.svg`,
+      dark: `${BRAND_DIR}/threads-white.svg`,
+      aspect: 976.98 / 1082,
+    }),
     color: "#000000",
     colorDark: "#FFFFFF",
     label: "Threads",

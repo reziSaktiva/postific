@@ -2,7 +2,6 @@ import { Alert02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
 import { Alert, AlertTitle } from "@/components/ui/alert";
-import { cn } from "@/lib/utils";
 
 import type { FormNotice } from "./form-shared";
 import type { CrossNetworkIssue } from "./network-validation";
@@ -24,16 +23,12 @@ export function ValidationBanner({
 }) {
   return (
     <Alert
-      variant={variant === "destructive" ? "destructive" : "default"}
+      variant={variant}
       // Banner inline yang berubah saat pemakai mengetik: pengumuman sopan
       // (`status`), bukan `alert` yang memotong pembaca layar.
       role="status"
       data-variant={variant}
-      className={cn(
-        variant === "warning" &&
-          "border-warning/40 bg-warning/10 text-warning *:[svg]:text-warning",
-        className,
-      )}
+      className={className}
     >
       <HugeiconsIcon icon={Alert02Icon} strokeWidth={2} />
       <AlertTitle>{message}</AlertTitle>
@@ -56,10 +51,18 @@ export function FormAlerts({
   return (
     <>
       {crossNetworkIssues.map((issue) => (
-        <ValidationBanner key={issue.code} message={issue.message} />
+        // T-250: pelanggaran lintas jaringan memblokir Schedule/Publish Now, jadi destructive.
+        <ValidationBanner
+          key={issue.code}
+          message={issue.message}
+          variant="destructive"
+        />
       ))}
       {notice ? (
         <Alert variant={notice.status === "error" ? "destructive" : "default"}>
+          {notice.status === "error" ? (
+            <HugeiconsIcon icon={Alert02Icon} strokeWidth={2} />
+          ) : null}
           <AlertTitle>{notice.title}</AlertTitle>
         </Alert>
       ) : null}

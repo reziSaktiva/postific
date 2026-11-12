@@ -103,6 +103,10 @@ describe("EditorFooter: tombol dan label jadwal", () => {
     );
     expect(screen.getByText("Waktu yang dipilih sudah lewat.")).toBeTruthy();
     expect(button("Schedule")).toHaveProperty("disabled", true);
+    // T-250: pesan jadwal destructive memakai ikon peringatan.
+    const alert = screen.getByTestId("schedule-message");
+    expect(alert.className).toContain("text-destructive");
+    expect(alert.querySelector("svg")).not.toBeNull();
   });
 
   it("teks bantuan menampilkan jumlah akun dan peringatan", () => {

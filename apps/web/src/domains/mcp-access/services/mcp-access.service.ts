@@ -1,5 +1,10 @@
 import { MemberStatus } from "@postific/shared";
-import type { McpGrantId, UserId, WorkspaceId } from "@postific/shared";
+import type {
+  McpGrantId,
+  MemberRole,
+  UserId,
+  WorkspaceId,
+} from "@postific/shared";
 import {
   isMcpAuditStatus,
   type McpAuditEntry,
@@ -63,7 +68,7 @@ interface WorkspaceMembershipPort {
   getMembership(
     workspaceId: WorkspaceId,
     userId: UserId,
-  ): Promise<{ status: MemberStatus } | null>;
+  ): Promise<{ status: MemberStatus; role: MemberRole } | null>;
 }
 
 /**
@@ -214,8 +219,10 @@ export class McpAccessService {
    * 1. Grant aktif untuk (pengguna, klien, workspace) -> `no_active_grant`.
    * 2. `requiredScope` ada di scope token -> `token_scope_insufficient`, lalu
    *    di scope grant di DB -> `grant_scope_insufficient`.
-   * 3. Pengguna member aktif workspace -> `not_workspace_member`. Tanpa
-   *    pembatasan role di MVP.
+   * 3. Pengguna member aktif workspace -> `not_workspace_member`. Tidak ada
+   *    pembatasan scope berdasarkan role di MVP (ADR-139), tetapi role yang
+   *    dibaca ulang di sini ikut dikembalikan (`McpAuthorizedCall.role`) supaya
+   *    use-case domain dapat menegakkan RBAC aksinya (ADR-138, ADR-074; T-252).
    * 4. Rate limit workspace (T-154): `McpRateLimitExceededError` bila kuota
    *    `calls` (dan `write_actions` untuk scope tulis) terlampaui. Hanya
    *    panggilan yang sudah lolos 1-3 yang dihitung, jadi klien yang dicabut
@@ -283,6 +290,7 @@ export class McpAccessService {
       clientId: grant.clientId,
       clientName: grant.clientName,
       grantScopes: grant.scopes,
+      role: membership.role,
     };
   }
 

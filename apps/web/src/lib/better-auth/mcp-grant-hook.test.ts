@@ -10,6 +10,7 @@ import {
   asMcpGrantId,
   asUserId,
   asWorkspaceId,
+  MemberRole,
 } from "@postific/shared";
 
 import {
@@ -199,7 +200,7 @@ function createWorld(options: WorldOptions = {}) {
     {
       getMembership: async (workspaceId, userId) => {
         const status = memberships.get(`${workspaceId}:${userId}`);
-        return status ? { status } : null;
+        return status ? { status, role: MemberRole.Creator } : null;
       },
     },
   );

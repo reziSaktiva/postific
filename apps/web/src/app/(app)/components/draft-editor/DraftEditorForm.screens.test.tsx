@@ -304,6 +304,12 @@ describe("Baris channel (T-201)", () => {
     // Chip memberi peringatan; blok jaringan menawarkan Reconnect.
     expect(within(chips()[0]!).getByText("Akun terputus")).toBeTruthy();
     expect(screen.getByText("Akun ini terputus.")).toBeTruthy();
+    // T-250 (opsi A): akun terputus adalah peringatan (kuning) dengan ikon, bukan destructive.
+    const disconnected = screen
+      .getByText("Akun ini terputus.")
+      .closest('[data-slot="alert"]');
+    expect(disconnected?.getAttribute("data-variant")).toBe("warning");
+    expect(disconnected?.querySelector("svg")).not.toBeNull();
     expect(
       screen
         .getAllByRole("link", { name: "Reconnect" })
@@ -494,6 +500,12 @@ describe("Editor, media, dan blok jaringan (T-202)", () => {
         screen.getByText(/board/i, { selector: "[role=status] *" }),
       ).toBeTruthy(),
     );
+    // T-250: board Pinterest belum dipilih memblokir, jadi destructive dengan ikon.
+    const boardBanner = screen
+      .getByText(/board/i, { selector: "[role=status] *" })
+      .closest('[data-slot="alert"]');
+    expect(boardBanner?.getAttribute("data-variant")).toBe("destructive");
+    expect(boardBanner?.querySelector("svg")).not.toBeNull();
   });
 
   it("T-212.1 dan T-212.5 media gambar: Reel nonaktif, teks bantuan menjadi deskripsi radio Reel", async () => {

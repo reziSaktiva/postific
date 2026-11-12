@@ -77,3 +77,36 @@ export async function ensureE2eWorkspaceActive(
 export function activateExistingE2eWorkspace(page: Page): Promise<void> {
   return ensureE2eWorkspaceActive(page, { createIfMissing: false });
 }
+
+/**
+ * Workspace nyata dengan >=2 akun terhubung untuk tes yang hanya MEMBACA
+ * (T-249.2, S18): tidak menyimpan draft, tidak publish. Dapat diganti lewat
+ * `E2E_MULTI_ACCOUNT_WORKSPACE`. Hanya mengubah cookie workspace aktif milik
+ * konteks tes itu sendiri; tes lain tetap memakai `E2E_WORKSPACE_NAME`.
+ */
+export const MULTI_ACCOUNT_WORKSPACE_NAME =
+  process.env.E2E_MULTI_ACCOUNT_WORKSPACE ?? "Cook It Real Good";
+
+export async function switchToWorkspaceNamed(
+  page: Page,
+  name: string,
+): Promise<void> {
+  await page.goto("/settings/account/workspaces");
+  // Workspace yang sudah aktif: baris `role=row` bertanda "Aktif", tanpa tombol Pindah.
+  const activeRow = page
+    .getByRole("row")
+    .filter({ hasText: name })
+    .getByText("Aktif");
+  if ((await activeRow.count()) > 0) return;
+  // Baris workspace non-aktif bukan `role=row` (tautan ke halaman detail).
+  const entry = page.getByText(name, { exact: true }).first();
+  await expect(
+    entry,
+    `Akun E2E bukan anggota workspace "${name}"`,
+  ).toBeVisible();
+  await entry.click();
+  const move = page.getByRole("button", { name: "Pindah", exact: true });
+  await expect(move).toBeVisible({ timeout: 15_000 });
+  await move.click();
+  await expect(page).toHaveURL(/\/$/, { timeout: 30_000 });
+}

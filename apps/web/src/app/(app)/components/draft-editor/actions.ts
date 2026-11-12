@@ -18,6 +18,7 @@ import { redirect } from "next/navigation";
 import type { ScheduleTargetRequest } from "@/domains/publishing";
 import {
   assertActorCanPublishNow,
+  assertActorCanSchedule,
   assertMediaCountMeetsMinimum,
   assertMediaCountWithinLimit,
   assertReelMediaRule,
@@ -627,7 +628,7 @@ export interface ScheduleDraftInput {
 export async function scheduleDraftAction(
   input: ScheduleDraftInput,
 ): Promise<{ postId: string } | { error: string }> {
-  const { workspaceId } = await getWorkspaceContext();
+  const { workspaceId, role } = await getWorkspaceContext();
   const session = await getCachedSession();
   if (!session) {
     redirect("/login");
@@ -648,6 +649,9 @@ export async function scheduleDraftAction(
   // hanya menerima pesan generik, bukan "Waktu yang dipilih sudah lewat..."
   // dkk). Bungkus di sini, pola sama `uploadMediaAction`/`deleteMediaAction`.
   try {
+    // T-251 (T-205.4): RBAC dulu, sebelum side effect apa pun (saveDraft/updateDraft).
+    assertActorCanSchedule(role);
+
     // T-024.4 (koreksi review Ridwan, temuan MEDIUM): `undefined` (field
     // `mediaIds` tidak dikirim client) HARUS dibedakan dari `[]` (client
     // eksplisit mengosongkan media) — `?? []` di sini akan meng-collapse
@@ -734,6 +738,7 @@ export async function scheduleDraftAction(
       timeZone: input.timeZone,
       targets,
       actingUserId,
+      actorRole: role,
     });
 
     return { postId: scheduled.id };

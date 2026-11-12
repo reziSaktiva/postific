@@ -7,6 +7,7 @@ import {
   type McpGrantId,
   type UserId,
   type WorkspaceId,
+  MemberRole,
 } from "@postific/shared";
 import { describe, expect, it } from "vitest";
 import type {
@@ -198,6 +199,7 @@ function createHarness(
     [`${WS_A}|${USER_1}`, MemberStatus.Active],
     [`${WS_B}|${USER_1}`, MemberStatus.Active],
   ]);
+  const roles = new Map<string, MemberRole>();
   const rateLimitCalls: McpRateLimitContext[] = [];
   let now = T0;
 
@@ -208,7 +210,12 @@ function createHarness(
     {
       getMembership: async (workspaceId, userId) => {
         const status = members.get(`${workspaceId}|${userId}`);
-        return status ? { status } : null;
+        return status
+          ? {
+              status,
+              role: roles.get(`${workspaceId}|${userId}`) ?? MemberRole.Creator,
+            }
+          : null;
       },
     },
     options.now ?? (() => now),
@@ -229,6 +236,7 @@ function createHarness(
     audit,
     revocation,
     members,
+    roles,
     rateLimitCalls,
     setNow: (date: Date) => {
       now = date;
@@ -272,7 +280,23 @@ describe("McpAccessService.authorizeCall", () => {
       clientId: CLIENT,
       clientName: "Claude",
       grantScopes: ["read", "draft"],
+      role: MemberRole.Creator,
     });
+  });
+
+  it("returns the member's current role, read again on every call (T-252, ADR-138)", async () => {
+    const h = createHarness();
+    h.grants.seed();
+    h.roles.set(`${WS_A}|${USER_1}`, MemberRole.Admin);
+
+    expect((await h.service.authorizeCall(callInput)).role).toBe(
+      MemberRole.Admin,
+    );
+
+    h.roles.set(`${WS_A}|${USER_1}`, MemberRole.Owner);
+    expect((await h.service.authorizeCall(callInput)).role).toBe(
+      MemberRole.Owner,
+    );
   });
 
   it("rejects when there is no grant at all", async () => {
@@ -449,7 +473,12 @@ describe("McpAccessService.authorizeCall", () => {
       grants,
       new FakeAuditRepository(),
       new FakeRevocationPort(grants),
-      { getMembership: async () => ({ status: MemberStatus.Active }) },
+      {
+        getMembership: async () => ({
+          status: MemberStatus.Active,
+          role: MemberRole.Creator,
+        }),
+      },
       () => T0,
       {
         assertWithinLimit: async () => {
@@ -471,7 +500,12 @@ describe("McpAccessService.authorizeCall", () => {
       grants,
       new FakeAuditRepository(),
       new FakeRevocationPort(grants),
-      { getMembership: async () => ({ status: MemberStatus.Active }) },
+      {
+        getMembership: async () => ({
+          status: MemberStatus.Active,
+          role: MemberRole.Creator,
+        }),
+      },
       () => T0,
       {
         assertWithinLimit: async () => undefined,

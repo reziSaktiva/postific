@@ -1,6 +1,7 @@
 import type {
   ConnectedAccountId,
   ContentFormat,
+  MemberRole,
   PostId,
   SocialPlatform,
   UserId,
@@ -11,6 +12,7 @@ import type { IOutstandAdapter } from "../adapters/outstand-adapter";
 import type { IJobScheduler } from "../adapters/job-scheduler";
 import { assertContentFormatAllowed } from "../content-format-matrix";
 import { assertPinterestBoardConstraints } from "../pinterest-board-constraints";
+import { assertActorCanSchedule } from "../rbac";
 import { assertPostMutable } from "../readonly-terminal-status";
 import { assertScheduledAtAllowed } from "../schedule-time-constraints";
 import { enqueueResolveOutcomeFallback } from "./enqueue-resolve-outcome-fallback";
@@ -110,7 +112,15 @@ export class SchedulePostsUseCase {
     targets: SchedulePostsTargetInput[];
     /** RLS (KI-026 follow-up) — acting user for `withCurrentUser`. */
     actingUserId: UserId;
+    /**
+     * Role member di workspace (ADR-074). Wajib: RBAC ditegakkan di sini supaya
+     * semua jalur (Server Action dan MCP `schedule_posts`) tertutup (T-252).
+     */
+    actorRole: MemberRole;
   }): Promise<PublishingPostRecord> {
+    // T-252 — RBAC dulu, sebelum pembacaan/penulisan apa pun.
+    assertActorCanSchedule(input.actorRole);
+
     // T-091.1 — tolak post terminal sebelum write, diperiksa sebelum
     // validasi format/board/waktu (code review PR #163) supaya post
     // read-only selalu dapat pesan konflik yang spesifik, bukan error

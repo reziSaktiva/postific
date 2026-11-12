@@ -248,6 +248,7 @@ const schedulePosts: McpToolDefinition = {
     const outcomes = await context.services.scheduleContents.execute({
       workspaceId: context.workspaceId,
       actingUserId: context.userId,
+      actorRole: context.actorRole,
       contents,
       source: {
         createdVia: PostCreatedVia.Mcp,

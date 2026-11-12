@@ -41,6 +41,23 @@ Menggantikan project Claude Design standalone dan tool `DesignSync` (standalone 
 
 **Cara mengubah:** ikuti aturan tipe artifact (baca dulu, ubah seperlunya, publish ulang dengan `files`, indeks `project/design-system.json` paling akhir). Layar yang berubah dipublish ulang ke Postific Design Review dan kartunya diperbarui di artifact Postific. Rancangan baru wajib dikonfirmasi King Rezi di galeri sebelum kode ditulis.
 
+**Peta nama banner Draft Editor (artifact → kode, T-250):** nama di artifact tidak sama dengan nama di kode; cocokkan lewat tabel ini sebelum menafsirkan permintaan.
+
+| Nama di artifact (`ScreenDraftEditorRedesain`) | Isi                                                                                            | Kode (`apps/web/src/app/(app)/components/draft-editor/`)                      | Varian                                                          |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `globalMsgs`                                   | pelanggaran lintas jaringan (mis. Story dengan caption campur, lebih dari satu akun Pinterest) | `FormAlerts.tsx`, `crossNetworkIssues` lewat `ValidationBanner`               | destructive, ikon                                               |
+| `pinBoard`                                     | board Pinterest belum dipilih                                                                  | `NetworkBlock.tsx`, issue `pinterest-board-required` lewat `ValidationBanner` | destructive, ikon                                               |
+| `schedMsg`                                     | pesan batas atau jadwal lampau di footer                                                       | `EditorFooter.tsx`, `scheduleTimeMessage`                                     | destructive, ikon                                               |
+| banner "tanpa media"                           | media wajib                                                                                    | `NetworkBlock.tsx`, issue `media-required`                                    | peringatan (kuning), ikon; tetap memblokir Schedule/Publish Now |
+| banner "Reel bukan video"                      | Reel butuh video                                                                               | `NetworkBlock.tsx`, issue `reel-requires-video`                               | destructive, ikon                                               |
+| blok "Akun terputus"                           | akun perlu Reconnect                                                                           | `NetworkBlock.tsx` (`isAccountDisconnected`)                                  | peringatan (kuning), ikon                                       |
+| `actionErr` (skenario 8c, 8d)                  | galat Schedule atau Publish Now di langkah Konfirmasi                                          | `ConfirmationSummary.tsx`, `notice` berstatus error                           | destructive, ikon                                               |
+| (tanpa padanan di artifact)                    | notice hasil aksi di atas editor                                                               | `FormAlerts.tsx`, `notice`                                                    | destructive dengan ikon untuk galat                             |
+
+Pemetaan ini dibaca dari laporan Neymar dan kode (2026-11-12); bila artifact berubah, perbarui tabel ini.
+
+**Ikon platform (T-209.3):** `PLATFORM_ICON[platform].Icon` (`apps/web/src/app/(app)/components/platform-icons.tsx`) memakai logo resmi kit merek lewat `withOfficialLogo` (`platform-logos.tsx`) untuk Instagram, Facebook, LinkedIn, YouTube, Threads; berkas di `apps/web/public/brand/platforms/`, tidak boleh diwarnai ulang atau diubah bentuknya. Di bawah ukuran minimum merek (Facebook lebar 16 px, LinkedIn tinggi 21 px) komponen jatuh ke glif react-icons. X, Pinterest, TikTok tetap glif react-icons sampai aset resminya ada. Pemakai tidak berubah: tetap `<Icon size={n} aria-hidden />`.
+
 ---
 
 ## Aturan operasional

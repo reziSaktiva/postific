@@ -3,7 +3,11 @@ import fs from "node:fs";
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { AUTH_FILE } from "./support/auth";
-import { E2E_WORKSPACE_NAME } from "./support/workspace";
+import {
+  E2E_WORKSPACE_NAME,
+  MULTI_ACCOUNT_WORKSPACE_NAME,
+  switchToWorkspaceNamed,
+} from "./support/workspace";
 
 const OUT = "test-results/draft-editor";
 const STAMP = Date.now().toString(36);
@@ -1230,7 +1234,15 @@ test("S18 T-202.2: blok per jaringan akordeon (2 akun) dan statis (1 akun)", asy
   page,
 }) => {
   track(page, "S18");
-  await openNewPostFromDrafts(page);
+  // T-249.2: workspace E2E Sandbox hanya punya 1 akun, jadi S18 membaca
+  // workspace nyata dengan >=2 akun. Hanya membuka editor dan menutupnya,
+  // tanpa menyimpan draft dan tanpa publish (cookie hanya milik konteks tes ini).
+  await switchToWorkspaceNamed(page, MULTI_ACCOUNT_WORKSPACE_NAME);
+  await page.goto("/publish/drafts");
+  await expect(
+    page.getByText(MULTI_ACCOUNT_WORKSPACE_NAME).first(),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "New Post" }).last().click();
   const dlg = dialog(page);
   await expect(dlg).toBeVisible();
   await dlg.getByRole("button", { name: "Channels" }).click();
@@ -1238,10 +1250,12 @@ test("S18 T-202.2: blok per jaringan akordeon (2 akun) dan statis (1 akun)", asy
   const accountBoxes = page.getByRole("checkbox", { name: ACCOUNT_BOX_NAME });
   await expect(accountBoxes.first()).toBeVisible({ timeout: 15_000 });
   const available = await accountBoxes.count();
-  test.skip(
-    available < 2,
-    `Butuh 2 akun terhubung di workspace E2E, hanya ada ${available}`,
-  );
+  // Gagal, bukan skip: workspace ini dipilih khusus karena punya >=2 akun; skip diam-diam
+  // membuat CI hijau tanpa cakupan akordeon.
+  expect(
+    available,
+    `S18 butuh >=2 akun terhubung di "${MULTI_ACCOUNT_WORKSPACE_NAME}", hanya ada ${available}`,
+  ).toBeGreaterThanOrEqual(2);
   for (let i = 0; i < 2; i++) await accountBoxes.nth(i).check();
   await page.keyboard.press("Escape");
   await expect(accountBoxes.first()).toBeHidden();
@@ -1268,19 +1282,21 @@ test("S18 T-202.2: blok per jaringan akordeon (2 akun) dan statis (1 akun)", asy
   await expect(other).toHaveAttribute("aria-expanded", "true");
   await expect(opened).toHaveAttribute("aria-expanded", "false");
   await expect(triggers).toHaveCount(1);
-  // Klik blok yang sudah terbuka tidak menutupnya.
-  await other.click();
+  // Blok yang sudah terbuka tidak bisa ditutup: Radix menandainya `aria-disabled`
+  // (accordion `single`, tidak `collapsible`), jadi diperiksa, bukan diklik.
+  await expect(other).toHaveAttribute("aria-disabled", "true");
   await expect(other).toHaveAttribute("aria-expanded", "true");
   await expect(triggers).toHaveCount(1);
   await snap(page, "s18-accordion-second-open");
 
-  // Satu akun: tanpa pemicu akordeon. Lepas satu akun lewat popover Channels.
-  await dlg.getByRole("button", { name: "Channels" }).click();
-  const boxes = page.getByRole("checkbox", { name: ACCOUNT_BOX_NAME });
-  await expect(boxes.first()).toBeVisible();
-  await boxes.nth(1).uncheck();
-  await page.keyboard.press("Escape");
-  await expect(boxes.first()).toBeHidden();
+  // Satu akun: tanpa pemicu akordeon. Lepas satu akun lewat chip "Hapus ..." (T-201.3).
+  await expect(dlg.getByTestId("channel-chip")).toHaveCount(2);
+  await dlg
+    .getByTestId("channel-chip")
+    .nth(1)
+    .getByRole("button", { name: /^Hapus / })
+    .click();
+  await expect(dlg.getByTestId("channel-chip")).toHaveCount(1);
   await expect(networks.locator(accordionTrigger)).toHaveCount(0);
   await expect(networks).toBeVisible();
   await snap(page, "s18-single-account");

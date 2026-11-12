@@ -37,6 +37,19 @@ export function assertActorCanPublishNow(actorRole: MemberRole): void {
   }
 }
 
+/**
+ * RBAC untuk Schedule dari Draft Editor (T-251, T-205.4, ADR-074). Sama dengan
+ * Publish Now: ketiga peran boleh, tetapi penegakan eksplisit di server
+ * supaya peran baru wajib diputuskan secara sadar.
+ */
+export function assertActorCanSchedule(actorRole: MemberRole): void {
+  if (!ROLES_ALLOWED_FOR_CONTENT_ACTIONS.has(actorRole)) {
+    throw new AuthorizationError(
+      "Anda tidak memiliki izin untuk menjadwalkan konten (Schedule).",
+    );
+  }
+}
+
 export function assertActorCanCancelSchedule(actorRole: MemberRole): void {
   if (!ROLES_ALLOWED_FOR_CONTENT_ACTIONS.has(actorRole)) {
     throw new AuthorizationError(
