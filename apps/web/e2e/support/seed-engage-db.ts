@@ -135,6 +135,19 @@ export async function attachStoredThumbnailToP1(
   return true;
 }
 
+/** Id posting P1 hasil semai (untuk membuka History Detail), dicari lewat caption semai. */
+export async function findEngageP1PostId(
+  seed: EngageSeed,
+): Promise<string | null> {
+  return withTx(async (client, { workspaceId }) => {
+    const { rows } = await client.query<{ id: string }>(
+      `SELECT id FROM publishing_posts WHERE workspace_id = $1 AND caption = $2 LIMIT 1`,
+      [workspaceId, seed.captions.p1],
+    );
+    return rows[0]?.id ?? null;
+  });
+}
+
 export async function seedEngageFixtures(): Promise<EngageSeed> {
   const stamp = Date.now().toString(36);
   const handle = (n: string) => `@e2e-eng-${stamp}-${n}`;
