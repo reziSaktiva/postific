@@ -6,7 +6,7 @@ Bahasa orkestrasi: lapisan 1 dan 2 pindah ke bahasa Inggris (S-004, T-234)
 
 ### Status
 
-**Accepted** (King Rezi, 2026-11-11, T-234.6).
+**Accepted — Amended by ADR-162 (2026-11-12), ADR-163 (2026-11-12)** (King Rezi, 2026-11-11, T-234.6).
 
 ### Date
 
