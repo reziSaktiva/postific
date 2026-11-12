@@ -56,6 +56,8 @@ Menggantikan project Claude Design standalone dan tool `DesignSync` (standalone 
 
 Pemetaan ini dibaca dari laporan Neymar dan kode (2026-11-12); bila artifact berubah, perbarui tabel ini.
 
+**Ikon platform (T-209.3):** `PLATFORM_ICON[platform].Icon` (`apps/web/src/app/(app)/components/platform-icons.tsx`) memakai logo resmi kit merek lewat `withOfficialLogo` (`platform-logos.tsx`) untuk Instagram, Facebook, LinkedIn, YouTube, Threads; berkas di `apps/web/public/brand/platforms/`, tidak boleh diwarnai ulang atau diubah bentuknya. Di bawah ukuran minimum merek (Facebook lebar 16 px, LinkedIn tinggi 21 px) komponen jatuh ke glif react-icons. X, Pinterest, TikTok tetap glif react-icons sampai aset resminya ada. Pemakai tidak berubah: tetap `<Icon size={n} aria-hidden />`.
+
 ---
 
 ## Aturan operasional
