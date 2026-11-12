@@ -104,6 +104,8 @@ Dokumen yang hanya bertambah. Entri lama tidak boleh diedit atau dihapus.
 
 **Satu pengecualian eksplisit (ditemukan sebagai gap 2026-08-12, praktik ini sudah berjalan sejak ADR-056/057 sebelum dituliskan di sini):** kolom `Status` pada baris ADR lama di `DECISIONS.md` DAN header `### Status` di file `decisions/ADR-XXX.md` yang bersangkutan **boleh** diedit — tapi **hanya** untuk menambah/melengkapi tag `Accepted — Amended by ADR-YYY (tanggal)` ketika ADR baru mengamandemennya. Ini murni metadata cross-reference dua arah, bukan mengubah keputusan/isi ADR lama. Isi Decision/Reason/Alternatives Considered ADR lama tetap **tidak boleh diubah**. Kalau ADR baru menyatakan "mengamendemen ADR-XXX" di badan teksnya, baris ADR-XXX di `DECISIONS.md` dan header Status di file `decisions/ADR-XXX-*.md` **wajib** diperbarui pada saat yang sama (jangan tunda) — celah ini yang menyebabkan 14 ADR lama (ADR-005 dst.) sempat tidak ter-tag sampai diaudit dan dibackfill.
 
+**Pengecualian eksplisit kedua (ADR-163, 2026-11-12):** pada tiket, ADR, dan dokumen sejarah lain, **hanya kata kunci dokumen** (mis. "Berikutnya", "Belum terbukti", "Baca dulu", legenda status, dan nama kolom; daftar padanannya di tiket skrip S-007) boleh diganti ke bahasa Inggris. Isi keputusan, angka, ID, tautan, dan prosa tetap tidak boleh diubah. Penggantian dilakukan satu kali lewat tiket sendiri dan diperiksa dengan `bun run docs:check` serta `docs-consistency-audit`.
+
 Termasuk:
 
 - `DECISIONS.md` — **indeks ringkas** ADR (tabel ADR#/Title/Status/Date/Ringkasan/link file), satu baris baru per ADR baru. Bukan lagi tempat full-text ADR (lihat `decisions/`).

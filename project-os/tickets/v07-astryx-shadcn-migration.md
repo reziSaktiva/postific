@@ -1220,7 +1220,7 @@ belum dikunci, AI **berhenti dan tanya**, bukan menebak lagi.
       mengedit file read-only — ditambahkan bagian baru "Gate pola ambigu
       shadcn" di `.claude/agents/README.md` dan bullet aturan keras baru
       di `.claude/agents/mark-ui-engineer.md` (chmod 644 → edit → chmod
-      444 lagi sesuai prosedur "Mengubah subagent ini").
+      444 lagi sesuai prosedur "Changing these subagents").
 - [x] **T-103.3** `✅ Done` (2026-09-10) Tambah langkah verifikasi ke checklist Mark UI
       Engineer & Najwa QA Engineer: sebelum task UI ditandai selesai,
       **wajib** `DesignSync get_file` pada template/component Claude
@@ -1229,16 +1229,16 @@ belum dikunci, AI **berhenti dan tanya**, bukan menebak lagi.
       setelah implementasi, melengkapi gate T-103.2 yang di sebelum
       implementasi.
       **Hasil:** King Rezi memberi izin eksplisit untuk mengedit 2 file
-      read-only. `.claude/agents/mark-ui-engineer.md` § Verifikasi —
+      read-only. `.claude/agents/mark-ui-engineer.md` § Verification —
       ditambah paragraf wajib `DesignSync get_file` + bandingkan struktur
       (wrapper, header/caption, klik-penuh, posisi tombol) sebelum lapor
-      selesai. `.claude/agents/najwa-qa-engineer.md` § Langkah kerja —
+      selesai. `.claude/agents/najwa-qa-engineer.md` § Work steps —
       ditambah poin 5 dengan kewajiban sama, **plus** tool `DesignSync`
       ditambahkan ke frontmatter `tools:` Najwa (sebelumnya hanya `Read,
 Bash, Grep, Glob, mcp__Claude_Browser`) supaya gate ini benar-benar
       bisa dieksekusi Najwa sendiri, bukan cuma tertulis di checklist.
-      `.claude/agents/README.md` — section baru "Gate verifikasi struktur
-      setelah implementasi (T-103.3)" + kolom Tools Najwa di tabel
+      `.claude/agents/README.md` — section baru "Post-implementation structure
+      verification gate (T-103.3)" + kolom Tools Najwa di tabel
       diupdate. Kedua file agent dikembalikan ke `chmod 444` setelah edit.
 - [x] **T-103.4** `✅ Done` (2026-09-10) (opsional, follow-up jangka lebih panjang) Retroactive
       pass: screen/komponen yang sudah diimplementasi sebelum T-103 (di

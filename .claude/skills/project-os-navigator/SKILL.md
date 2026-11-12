@@ -19,14 +19,14 @@ Do not read all the `project-os/` documents in full for every message — that w
 
 - Read the **"Snapshot" section** at the very top of `project-os/PROJECT_STATE.md` (~15-20 lines — phase/milestone, active mode, top next tasks, top blocker). Do not read the whole of `PROJECT_STATE.md`.
 - If the question is about **available tasks / what comes next**, read `project-os/AVAILABLE_TICKETS.md` only. Do not open `project-os/tickets/` to look for the queue.
-- If the ID has already been chosen, open **only that ticket's section** in one file: `tickets/vXX-*.md` for release tickets, `tickets/known-issues.md` for tickets born from a Known Issue (ADR-134), or `tickets/s004-orchestration-language.md` for S-004.
+- If the ID has already been chosen, open **only that ticket's section** in one file: `tickets/vXX-*.md` for release tickets, `tickets/known-issues.md` for tickets born from a Known Issue (ADR-134), `tickets/s004-orchestration-language.md` for S-004, or `tickets/s007-documentation-language.md` for S-007.
 - If the question names a specific ADR, open **only** that `project-os/decisions/ADR-XXX-*.md` file (see its index in `project-os/DECISIONS.md`). Do not read the whole `project-os/decisions/` folder.
 
 **Level 3 — Real task** (New Work, Planning Change, Bug/Document Inconsistency — modes 3/4/5 below): read in order:
 
 1. `project-os/PROJECT_STATE.md` — phase, milestone, Active Conversation Mode, Known Issues, blockers (read the Snapshot first so this context is available before choosing/planning a task)
 2. `project-os/AVAILABLE_TICKETS.md` — the queue; find the relevant task ID
-3. The ticket file named in the File column — `tickets/vXX-*.md`, `tickets/known-issues.md` (ADR-134), or `tickets/s004-orchestration-language.md` for S-004 — **only that ticket's section**. Then open the documents named in the **Docs** / **Baca dulu** field (ADR-131)
+3. The ticket file named in the File column — `tickets/vXX-*.md`, `tickets/known-issues.md` (ADR-134), `tickets/s004-orchestration-language.md` for S-004, or `tickets/s007-documentation-language.md` for S-007 — **only that ticket's section**. Then open the documents named in the **Docs** / **Baca dulu** field (ADR-131)
 4. `project-os/PROJECT_RULES.md` — project rules and principles
 5. `project-os/DECISIONS.md` — the ADR index; open the specific `project-os/decisions/ADR-XXX-*.md` file relevant to this task
 6. `project-os/PROJECT_OVERVIEW.md` — project overview
@@ -95,12 +95,12 @@ Entry format: the "Format Entry" section in `project-os/BRAINSTORM.md`.
 **Steps:**
 
 1. Check `PROJECT_STATE.md` — make sure the task fits the active phase.
-   1a. **If the task is in the scope of code implementation** (not documentation/discussion): make sure its ticket exists first (ADR-132). If it does not, write the ticket before the first line of code — release tickets in `tickets/vXX-*.md`, tickets born from a Known Issue in `tickets/known-issues.md` (ADR-134), S-004 tickets in `tickets/s004-orchestration-language.md`. Then check that ticket's **Domain** field against the Domain → Subagent map in `.claude/agents/README.md`. Decide one of: do it yourself (trivial/documentation scope), delegate to one subagent, or run **several parallel subagents** when there are independent tickets (different domains/files) that do not touch each other. This is a mandatory step (ADR-063), not optional.
+   1a. **If the task is in the scope of code implementation** (not documentation/discussion): make sure its ticket exists first (ADR-132). If it does not, write the ticket before the first line of code — release tickets in `tickets/vXX-*.md`, tickets born from a Known Issue in `tickets/known-issues.md` (ADR-134), S-004 tickets in `tickets/s004-orchestration-language.md`, S-007 tickets in `tickets/s007-documentation-language.md`. Then check that ticket's **Domain** field against the Domain → Subagent map in `.claude/agents/README.md`. Decide one of: do it yourself (trivial/documentation scope), delegate to one subagent, or run **several parallel subagents** when there are independent tickets (different domains/files) that do not touch each other. This is a mandatory step (ADR-063), not optional.
 2. Check `Active Conversation Mode` — make sure the action type is allowed.
 3. Read the relevant baseline documents before creating a new document.
 4. Follow a document format consistent with existing documents (see examples in the same folder).
 5. After the work is done, **in the same PR before merge** (not in a separate PR afterward; ADR-153 addendum 2026-11-06), update:
-   - the ticket file (`tickets/vXX-*.md`, `tickets/known-issues.md`, or `tickets/s004-orchestration-language.md`) — change the ticket status. Do not add session stories
+   - the ticket file (`tickets/vXX-*.md`, `tickets/known-issues.md`, `tickets/s004-orchestration-language.md`, or `tickets/s007-documentation-language.md`) — change the ticket status. Do not add session stories
    - `project-os/AVAILABLE_TICKETS.md` — a task that becomes ✅ leaves the queue table
    - `project-os/PROJECT_STATE.md` — only when the phase / milestone / Known Issues / nearest focus changes. **Do not** copy task details here (ADR-062)
 
@@ -234,7 +234,7 @@ Then add one row to the index table in `project-os/DECISIONS.md` (ADR# | Title |
 - Always use existing IDs (ADR-XXX, I-XX, A-XX, etc.) when referencing decisions.
 - If there is a gap between the documents and the reality of the phase, ask the user before assuming.
 - Do not fix document inconsistencies silently — always state the finding to the user (see **Proactive Consistency Check**).
-- Do not copy task details (subtasks, dependencies, technical notes) into `PROJECT_STATE.md` — their place is `tickets/vXX-*.md`, `tickets/known-issues.md` (ADR-134), or `tickets/s004-orchestration-language.md`. `PROJECT_STATE.md` only names the ID + a short title (ADR-062).
+- Do not copy task details (subtasks, dependencies, technical notes) into `PROJECT_STATE.md` — their place is `tickets/vXX-*.md`, `tickets/known-issues.md` (ADR-134), `tickets/s004-orchestration-language.md`, or `tickets/s007-documentation-language.md`. `PROJECT_STATE.md` only names the ID + a short title (ADR-062).
 - Do not recycle task IDs. A cancelled task is marked `⏸️ Deferred` with its reason, not deleted.
 - Follow the working preferences recorded in `project-os/PROJECT_OVERVIEW.md` section **Developer Profile & Working Preferences**, and add any new preferences you discover there.
 
@@ -256,7 +256,8 @@ social-media-management/
 │   ├── AVAILABLE_TICKETS.md   → Queue of unfinished tasks ← stop here
 │   ├── tickets/             → Tickets per release (`vXX-*.md`),
 │   │                           `known-issues.md` (ADR-134), and
-│   │                           `s004-orchestration-language.md` (S-004)
+│   │                           `s004-orchestration-language.md` (S-004), and
+│   │                           `s007-documentation-language.md` (S-007)
 │   │                           ← open only the section whose ID has been chosen
 │   ├── specs/               → Specs for multi-session work (ADR-131)
 │   ├── DECISIONS.md         → Compact ADR index ← add 1 index row per new ADR

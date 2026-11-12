@@ -6,7 +6,7 @@ Tiket S-004 tinggal di berkas sendiri (amandemen ADR-131, ADR-134)
 
 ### Status
 
-**Accepted** (keputusan King Rezi, 2026-11-11)
+**Accepted — Amended by ADR-164 (2026-11-12)** (keputusan King Rezi, 2026-11-11)
 
 ### Date
 

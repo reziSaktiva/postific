@@ -78,5 +78,5 @@ sebagai bagian dari layout ini.
 - Claude Design, project "Postific" — `templates/start-page-option-b-card-stack.html`
   (LOCKED PATTERN) dan 3 opsi lain (A/C/D) sebagai referensi, grup
   `Start Page (Exploration, T-071)`.
-- `.claude/agents/README.md` § "Gate pola ambigu shadcn (T-103.2)" — alasan
+- `.claude/agents/README.md` § "Ambiguous shadcn pattern gate (T-103.2)" — alasan
   pola ini perlu dikunci eksplisit sebelum Mark UI Engineer implementasi.

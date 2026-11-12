@@ -1,195 +1,194 @@
-# Subagent — Social Media Management
+# Subagents — Social Media Management
 
-Panduan penggunaan 7 subagent kerja untuk project ini.
+Guide to using the 7 working subagents for this project.
 
-File peran (semua `*.md` di folder ini **kecuali dokumen ini sendiri**)
-diklasifikasikan **Static Reference** (`project-os/PROJECT_RULES.md`) —
-read-only (chmod 444) dan **hanya boleh diubah atas permintaan eksplisit
-user**, bukan inisiatif AI, karena scope dan batasannya sudah disepakati
-langsung dengan user. Perubahan struktural dicatat sebagai ADR atau di tiket
-yang terkait (ADR-131).
+The role files (all `*.md` in this folder **except this document itself**)
+are classified **Static Reference** (`project-os/PROJECT_RULES.md`) —
+read-only (chmod 444) and **may only be changed on the user's explicit
+request**, not on the AI's initiative, because their scope and limits were agreed
+directly with the user. Structural changes are recorded as an ADR or in the
+related ticket (ADR-131).
 
 ---
 
-## Daftar subagent
+## Subagent list
 
-| File                              | Nama                         | Peran                                                                                   | Tools dibatasi?                                    |
+| File                              | Name                         | Role                                                                                    | Tools restricted?                                  |
 | --------------------------------- | ---------------------------- | --------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| `prabowo-feature-engineer.md`     | Prabowo Feature Engineer     | Implementasi fitur (entry → service → domain → repo)                                    | Tidak (semua tools)                                |
-| `mark-ui-engineer.md`             | Mark UI Engineer             | UI/komponen `apps/web` — komponen shadcn/ui (ADR-097)                  | Tidak                                              |
-| `neymar-product-designer.md`      | Neymar Product Designer      | Artifact desain Postific via tool `Artifact` (ADR-140)                                  | Tidak                                              |
-| `elon-backend-engineer.md`        | Elon Backend Engineer        | Outstand ACL, webhook, background jobs, schema Prisma                                   | Tidak                                              |
-| `ridwan-architecture-reviewer.md` | Ridwan Architecture Reviewer | Review kepatuhan boundary DDD, read-only                                                | Ya — `Read, Bash, Grep, Glob, ReportFindings`      |
-| `najwa-qa-engineer.md`            | Najwa QA Engineer            | Vitest + verifikasi browser end-to-end                                                  | Ya — `Read, Bash, Grep, Glob, mcp__Claude_Browser, Artifact` |
-| `gibran-project-manager.md`       | Gibran Project Manager       | Update `PROJECT_STATE.md` / `AVAILABLE_TICKETS.md` / `tickets/` / `DECISIONS.md` | Ya — `Read, Edit, Write, Bash, Grep, Glob`         |
+| `prabowo-feature-engineer.md`     | Prabowo Feature Engineer     | Feature implementation (entry → service → domain → repo)                                | No (all tools)                                     |
+| `mark-ui-engineer.md`             | Mark UI Engineer             | `apps/web` UI/components — shadcn/ui components (ADR-097)                               | No                                                 |
+| `neymar-product-designer.md`      | Neymar Product Designer      | Postific design artifacts via the `Artifact` tool (ADR-140)                             | No                                                 |
+| `elon-backend-engineer.md`        | Elon Backend Engineer        | Outstand ACL, webhooks, background jobs, Prisma schema                                  | No                                                 |
+| `ridwan-architecture-reviewer.md` | Ridwan Architecture Reviewer | DDD boundary compliance review, read-only                                               | Yes — `Read, Bash, Grep, Glob, ReportFindings`     |
+| `najwa-qa-engineer.md`            | Najwa QA Engineer            | Vitest + end-to-end browser verification                                                | Yes — `Read, Bash, Grep, Glob, mcp__Claude_Browser, Artifact` |
+| `gibran-project-manager.md`       | Gibran Project Manager       | Update `PROJECT_STATE.md` / `AVAILABLE_TICKETS.md` / `tickets/` / `DECISIONS.md`       | Yes — `Read, Edit, Write, Bash, Grep, Glob`        |
 
-**Override model/effort per subagent:** frontmatter tiap file peran boleh
-menambah `effort: <low|medium|high|xhigh|max>` (dipakai `ridwan-architecture-reviewer.md`
-dan `najwa-qa-engineer.md` sebagai quality gate — butuh ketelitian ekstra,
-bukan cuma golden path) dan/atau `model: <sonnet|opus|haiku|fable>` (belum
-dipakai subagent manapun saat ini) untuk menimpa default sesi utama.
-Perubahan ini termasuk "perubahan struktural" (README ini § "Mengubah
-subagent ini") — chmod dance tetap wajib, lalu catat di ADR atau tiket.
-Pertimbangkan risiko sebelum menurunkan `model` pada subagent yang tugasnya
-butuh ketelitian arithmetic/cross-file (mis. Gibran menghitung ulang jumlah
-subtask) — model lebih lemah yang salah hitung berarti sesi tambahan untuk
-memperbaikinya, kadang lebih mahal daripada penghematannya.
-
----
-
-## Cara AI memerintahkan subagent
-
-AI (Claude Code) mendelegasikan lewat `Agent` tool dengan `subagent_type` =
-nama file tanpa `.md` (mis. `subagent_type: "elon-backend-engineer"`). User
-tidak perlu memanggil subagent secara langsung — cukup beri task, AI yang
-memilih subagent yang cocok berdasarkan `description` di frontmatter
-masing-masing file. User juga bisa memaksa subagent tertentu secara eksplisit
-("pakai Ridwan Architecture Reviewer untuk cek ini").
-
-**Penentuan subagent adalah tugas AI, bukan pertanyaan ke user.** Jangan
-pakai `AskUserQuestion` untuk menanyakan "task ini dikerjakan siapa" —
-pemetaan Domain → Subagent di bawah sudah cukup untuk memutuskan sendiri.
-Reservasi `AskUserQuestion` untuk keputusan scope/produk (apa yang dibangun),
-bukan keputusan delegasi (siapa yang membangun).
-
-## Keterbatasan teknis: tool desain di sesi subagent
-
-**`DesignSync` tidak dipakai lagi (ADR-140).** Sebelum itu, `DesignSync` tercatat
-gagal dimuat di sesi subagent sebanyak sembilan kali (Neymar Product Designer
-delapan kali, Najwa QA Engineer sekali; 2026-07-31 sampai 2026-09-28), padahal
-berhasil di sesi utama. Catatan itu tidak berlaku lagi karena alatnya diganti.
-
-Alat desain sekarang adalah tool `Artifact` (ADR-140). **Terbukti termuat di
-sesi subagent (2026-10-26).** Neymar Product Designer dan Najwa QA Engineer
-sama-sama memiliki `Artifact` langsung di daftar tool (tanpa `ToolSearch`) dan
-berhasil memanggil `read` pada artifact Postific Design Review; Neymar juga
-berhasil `list`. Neymar juga berhasil `publish` (versi baru pada artifact uji
-sekali pakai, lalu `read` ulang dan versinya naik), jadi alur tulis terbukti,
-bukan hanya baca. Delegasikan ke `neymar-product-designer` seperti biasa, tanpa
-cara cadangan.
-
-Kalau suatu saat `Artifact` gagal dimuat di sesi subagent (cek lewat
-`ToolSearch`), jangan mengasumsikan itu normal: catat kejadiannya di sini,
-minta izin eksplisit King Rezi untuk mengerjakannya langsung di sesi utama,
-verifikasi `Artifact` termuat di sana, lalu lanjut.
+**Model/effort override per subagent:** the frontmatter of each role file may
+add `effort: <low|medium|high|xhigh|max>` (used by `ridwan-architecture-reviewer.md`
+and `najwa-qa-engineer.md` as quality gates — they need extra rigor,
+not just the golden path) and/or `model: <sonnet|opus|haiku|fable>` (not yet
+used by any subagent at present) to override the main session's defaults.
+This change counts as a "structural change" (this README § "Changing these
+subagents") — the chmod dance is still required, then record it in an ADR or ticket.
+Weigh the risk before lowering `model` on a subagent whose task
+needs arithmetic/cross-file rigor (e.g. Gibran recounting the number of
+subtasks) — a weaker model that miscounts means an extra session to
+fix it, sometimes costing more than the savings.
 
 ---
 
-## Aturan orkestrasi (paralel vs sekuensial)
+## How the AI instructs subagents
 
-- **Boleh paralel** (beda file/domain, tidak saling menyentuh): Prabowo, Mark,
-  Neymar, Elon — bisa dijalankan bersamaan dalam satu giliran `Agent` tool
-  selama task-nya independen (mis. Elon kerjakan `OutstandAdapter` bersamaan
-  Mark kerjakan tombol Publish Now).
-- **Wajib sekuensial, setelah implementasi selesai:**
-  1. **Ridwan** (review arsitektur) — jalan setelah agent implementasi
-     selesai, sebelum QA.
-  2. **Najwa** (QA/testing) — jalan setelah Ridwan (atau langsung setelah
-     implementasi kalau review tidak diminta).
-  3. **Gibran** (governance/docs) — **selalu paling akhir, sendirian**.
-     Jangan dijalankan bersamaan dengan agent lain yang berpotensi menyentuh
+The AI (Claude Code) delegates through the `Agent` tool with `subagent_type` =
+the file name without `.md` (e.g. `subagent_type: "elon-backend-engineer"`). The user
+does not need to call a subagent directly — just give a task, and the AI
+picks the suitable subagent based on the `description` in each file's
+frontmatter. The user can also force a specific subagent explicitly
+("use Ridwan Architecture Reviewer to check this").
+
+**Choosing the subagent is the AI's job, not a question for the user.** Do not
+use `AskUserQuestion` to ask "who should do this task" —
+the Domain → Subagent map below is enough to decide on its own.
+Reserve `AskUserQuestion` for scope/product decisions (what to build),
+not delegation decisions (who builds it).
+
+## Technical limitation: design tools in subagent sessions
+
+**`DesignSync` is no longer used (ADR-140).** Before that, `DesignSync` was recorded
+failing to load in subagent sessions nine times (Neymar Product Designer
+eight times, Najwa QA Engineer once; 2026-07-31 to 2026-09-28), even though it
+worked in the main session. That record no longer applies because the tool was replaced.
+
+The design tool is now the `Artifact` tool (ADR-140). **Proven to load in
+subagent sessions (2026-10-26).** Neymar Product Designer and Najwa QA Engineer
+both have `Artifact` directly in their tool list (without `ToolSearch`) and
+successfully called `read` on the Postific Design Review artifact; Neymar also
+succeeded with `list`. Neymar also succeeded with `publish` (a new version on a
+single-use test artifact, then `read` again and the version went up), so the write
+flow is proven, not just reading. Delegate to `neymar-product-designer` as usual, without a
+fallback.
+
+If at some point `Artifact` fails to load in a subagent session (check through
+`ToolSearch`), do not assume that is normal: record the incident here,
+ask King Rezi for explicit permission to do the work directly in the main session,
+verify `Artifact` loads there, then continue.
+
+---
+
+## Orchestration rules (parallel vs sequential)
+
+- **May run in parallel** (different files/domains, not touching each other): Prabowo, Mark,
+  Neymar, Elon — can run together in one `Agent` tool turn
+  as long as their tasks are independent (e.g. Elon works on `OutstandAdapter` while
+  Mark works on the Publish Now button).
+- **Must run sequentially, after implementation finishes:**
+  1. **Ridwan** (architecture review) — runs after the implementation agents
+     finish, before QA.
+  2. **Najwa** (QA/testing) — runs after Ridwan (or right after
+     implementation if no review was requested).
+  3. **Gibran** (governance/docs) — **always last, alone**.
+     Do not run together with other agents that may touch
      `PROJECT_STATE.md` / `AVAILABLE_TICKETS.md` / `tickets/` / `DECISIONS.md`,
-     untuk mencegah konflik/duplikasi status.
-- Kalau beberapa agent implementasi mengubah file yang berpotensi tumpang
-  tindih, gunakan opsi `isolation: "worktree"` per agent supaya tidak saling
-  menimpa.
-- Gelombang multi-sesi yang melibatkan banyak jalur (branch integrasi, PR
-  integrasi, verifikasi staging): skill `wave-work` (S-003). Menyiapkan
-  daftar gelombangnya: skill `wave-plan`.
+     to prevent status conflicts/duplication.
+- If several implementation agents change files that may overlap,
+  use the `isolation: "worktree"` option per agent so they do not overwrite
+  each other.
+- Multi-session waves involving many lanes (integration branch, integration PR,
+  staging verification): the `wave-work` skill (S-003). Preparing the wave
+  list: the `wave-plan` skill.
 
 ---
 
-## Kapan WAJIB dievaluasi (bukan opsional)
+## When evaluation is REQUIRED (not optional)
 
-Ini bukan sekadar referensi pasif — `AGENTS.md` ("Wajib di awal sesi") dan
-`.claude/skills/project-os-navigator/SKILL.md` (behavior "New Work")
-mewajibkan AI berhenti di titik ini **sebelum** mulai implementasi kode:
+This is not just passive reference — `AGENTS.md` ("Required at the start of a session") and
+`.claude/skills/project-os-navigator/SKILL.md` (the "New Work" behavior)
+require the AI to stop at this point **before** starting code implementation:
 
-1. Task punya field **Domain** (di file tiketnya) yang scope-nya
-   implementasi kode (bukan diskusi/dokumentasi murni)? → cek tabel
-   pemetaan di bawah.
-2. Ada **lebih dari satu task/subtask independen** (domain atau file
-   berbeda, tidak saling menyentuh) yang bisa dikerjakan bersamaan? → jalankan
-   subagent yang relevan secara paralel (lihat "Aturan orkestrasi" di atas)
-   alih-alih mengerjakannya sendiri satu per satu secara sekuensial.
-3. Kalau task match salah satu subagent dan tidak ada alasan kuat untuk
-   dikerjakan sendiri (mis. scope sangat kecil, 1-2 baris, atau murni
-   dokumentasi) → delegasikan lewat `Agent`/`Task` tool.
+1. Does the task have a **Domain** field (in its ticket file) whose scope is
+   code implementation (not pure discussion/documentation)? → check the
+   mapping table below.
+2. Are there **more than one independent task/subtask** (different domains or files,
+   not touching each other) that can be done at the same time? → run the
+   relevant subagents in parallel (see "Orchestration rules" above)
+   instead of doing them yourself one by one sequentially.
+3. If the task matches one of the subagents and there is no strong reason to
+   do it yourself (e.g. very small scope, 1-2 lines, or pure
+   documentation) → delegate through the `Agent`/`Task` tool.
 
-## Pemetaan Domain → Subagent
+## Domain → Subagent map
 
-Field **Domain** tiap task di file tiketnya (`tickets/vXX-*.md`, `tickets/known-issues.md`, atau `tickets/s004-orchestration-language.md` untuk S-004, ADR-159) bisa langsung dipetakan ke
-subagent implementasi berikut sebagai titik awal (bukan aturan kaku — cek
-juga `description` di frontmatter masing-masing file peran untuk keputusan
-akhir):
+The **Domain** field of each task in its ticket file (`tickets/vXX-*.md`, `tickets/known-issues.md`, `tickets/s004-orchestration-language.md` for S-004 (ADR-159), or `tickets/s007-documentation-language.md` for S-007 (ADR-164)) can be mapped directly to the
+following implementation subagents as a starting point (not a rigid rule — also check
+the `description` in each role file's frontmatter for the final decision):
 
-| Domain (field task)                    | Subagent utama              | Catatan                                                                         |
+| Domain (task field)                    | Primary subagent            | Notes                                                                           |
 | -------------------------------------- | --------------------------- | ------------------------------------------------------------------------------- |
-| `identity`                             | Prabowo Feature Engineer    | Auth flows, session, konfigurasi Better Auth                                    |
-| `workspace`                            | Prabowo Feature Engineer    | Workspace, member, roles                                                        |
+| `identity`                             | Prabowo Feature Engineer    | Auth flows, session, Better Auth configuration                                  |
+| `workspace`                            | Prabowo Feature Engineer    | Workspace, members, roles                                                       |
 | `publishing`                           | Prabowo Feature Engineer    | Draft, Schedule, Queue, Publish Now                                             |
-| `analytics`                            | Prabowo Feature Engineer    | Dashboard/metrics — logic; UI-nya lihat baris `UI`                              |
-| `mcp-access`                           | Prabowo Feature Engineer    | OAuth provider, grant, audit, tool MCP — logic domain seperti identity/publishing |
-| `engagement`                           | Prabowo Feature Engineer    | Inbox, reply, engagement — logic domain; sinkron Outstand lihat baris `integration` |
-| `start-page`                           | Prabowo Feature Engineer    | Start Page — logic domain; UI-nya lihat baris `UI`                              |
-| `integration`, `media`, `notification` | Elon Backend Engineer       | Outstand ACL, webhook, background jobs                                          |
-| `UI`                                   | Mark UI Engineer            | Komponen shadcn/ui, styling, layout (ADR-097)      |
-| `platform`, `DX`                       | — (biasanya tanpa subagent) | Tooling/config internal (CI, monorepo) — sering lebih cepat dikerjakan langsung |
+| `analytics`                            | Prabowo Feature Engineer    | Dashboard/metrics — logic; for its UI see the `UI` row                          |
+| `mcp-access`                           | Prabowo Feature Engineer    | OAuth provider, grant, audit, MCP tools — domain logic like identity/publishing |
+| `engagement`                           | Prabowo Feature Engineer    | Inbox, reply, engagement — domain logic; for Outstand sync see the `integration` row |
+| `start-page`                           | Prabowo Feature Engineer    | Start Page — domain logic; for its UI see the `UI` row                          |
+| `integration`, `media`, `notification` | Elon Backend Engineer       | Outstand ACL, webhooks, background jobs                                         |
+| `UI`                                   | Mark UI Engineer            | shadcn/ui components, styling, layout (ADR-097)                                 |
+| `platform`, `DX`                       | — (usually no subagent)     | Internal tooling/config (CI, monorepo) — often faster to do directly            |
 
-Domain gabungan (mis. `workspace · UI`) berarti **dua subagent bisa paralel**
-dalam satu giliran — satu untuk logic domain (Prabowo/Elon), satu untuk UI
-(Mark) — selama file yang disentuh tidak tumpang tindih (lihat "Aturan
-orkestrasi" di atas untuk kapan perlu `isolation: "worktree"`).
+A combined domain (e.g. `workspace · UI`) means **two subagents can run in parallel**
+in one turn — one for domain logic (Prabowo/Elon), one for UI
+(Mark) — as long as the files they touch do not overlap (see "Orchestration
+rules" above for when `isolation: "worktree"` is needed).
 
 ---
 
-## Gate pola ambigu shadcn (T-103.2, AGENTS.md rule 10)
+## Ambiguous shadcn pattern gate (T-103.2, AGENTS.md rule 10)
 
-Sebelum subagent implementasi (terutama **Mark UI Engineer**) menulis kode
-untuk list/komposisi yang punya **lebih dari satu pola shadcn valid** secara
-teknis (mis. `Item`/`ItemGroup` vs `Table`, variant dialog, baris
-klik-penuh atau tidak): cek dulu apakah artifact desain Postific sudah mengunci
-pola konkret-nya (komentar "SYNCED"/"LOCKED PATTERN" di kartu
-`project/components/Screen<Nama>/preview.html` atau komponen terkait, dan
-komponen shadcn di artifact menampilkan pola itu, bukan sekadar "shadcn X"). Kalau
-**belum dikunci** — subagent wajib **STOP dan tanya King Rezi** lewat
-`AskUserQuestion` (bukan menebak salah satu opsi), sertakan opsi konkret
-yang sedang dipertimbangkan. Ini mencegah pengulangan drift KI-054/KI-055
-(AI menebak pola "masuk akal" yang ternyata bukan yang King Rezi mau) — detail
-lengkap di `AGENTS.md` rule 10 dan `tickets/v07-astryx-shadcn-migration.md`
+Before an implementation subagent (especially **Mark UI Engineer**) writes code
+for a list/composition that has **more than one technically valid shadcn
+pattern** (e.g. `Item`/`ItemGroup` vs `Table`, dialog variants, fully
+clickable row or not): first check whether the Postific design artifact has locked a
+concrete pattern ("SYNCED"/"LOCKED PATTERN" comments on the
+`project/components/Screen<Name>/preview.html` card or the related component,
+and the shadcn component in the artifact shows that pattern, not just "shadcn X"). If it is
+**not locked** — the subagent must **STOP and ask King Rezi** through
+`AskUserQuestion` (not guess one of the options), including the concrete options
+under consideration. This prevents a repeat of the KI-054/KI-055 drift
+(the AI guessing a "reasonable" pattern that turned out not to be what King Rezi wanted) — full
+details in `AGENTS.md` rule 10 and `tickets/v07-astryx-shadcn-migration.md`
 § T-103.
 
-## Gate verifikasi struktur setelah implementasi (T-103.3)
+## Post-implementation structure verification gate (T-103.3)
 
-Melengkapi gate di atas (yang berlaku **sebelum** implementasi): setelah
-task UI selesai ditulis, **Mark UI Engineer** dan **Najwa QA Engineer**
-wajib `Artifact` action `read` pada kartu layar atau komponen di artifact
-desain Postific yang relevan dan membandingkan eksplisit strukturnya dengan kode yang baru
-ditulis (wrapper, header/caption, klik-penuh atau tidak, posisi
-tombol/action, dst.) — bukan cuma golden path fungsional. Kalau ditemukan
-perbedaan struktural yang tidak disengaja, perbaiki/laporkan sebelum task
-ditandai selesai. Najwa QA Engineer diberi akses tool `Artifact` khusus
-untuk gate ini (hanya `read`) (lihat kolom "Tools dibatasi?" di tabel atas). Detail:
-`.claude/agents/mark-ui-engineer.md` § Verifikasi,
-`.claude/agents/najwa-qa-engineer.md` § Langkah kerja poin 5, dan
+Complementing the gate above (which applies **before** implementation): after a
+UI task is written, **Mark UI Engineer** and **Najwa QA Engineer**
+must `Artifact` action `read` the relevant screen card or component in the Postific
+design artifact and explicitly compare its structure with the newly
+written code (wrapper, header/caption, fully clickable or not, position of the
+button/action, etc.) — not just the functional golden path. If an
+unintended structural difference is found, fix/report it before the task is
+marked done. Najwa QA Engineer is given `Artifact` tool access specifically
+for this gate (`read` only) (see the "Tools restricted?" column in the table above). Details:
+`.claude/agents/mark-ui-engineer.md` § Verification,
+`.claude/agents/najwa-qa-engineer.md` § Work steps point 5, and
 `tickets/v07-astryx-shadcn-migration.md` § T-103.
 
 ---
 
-## Mengubah subagent ini
+## Changing these subagents
 
-File peran (`*.md` selain dokumen ini) di-chmod read-only (444) sebagai
-pengaman teknis. Untuk mengubah (menambah peran baru, memperbaiki scope yang
-keliru, dst.):
+The role files (`*.md` other than this document) are chmod read-only (444) as a
+technical safeguard. To change them (add a new role, fix a wrongly
+scoped one, etc.):
 
-1. Konfirmasi eksplisit dari user dulu — jangan inisiatif sendiri.
-2. `chmod 644 <file>.md`, edit, lalu `chmod 444 <file>.md` lagi.
-3. Catat perubahan sebagai ADR atau di tiket yang terkait (ADR-131).
+1. Get explicit confirmation from the user first — do not act on your own initiative.
+2. `chmod 644 <file>.md`, edit, then `chmod 444 <file>.md` again.
+3. Record the change as an ADR or in the related ticket (ADR-131).
 
 ---
 
 ## Related
 
-- Entry point agent: `../../AGENTS.md`
-- Governance dokumen: `../../project-os/PROJECT_RULES.md` (klasifikasi
-  Static Reference)
+- Agent entry point: `../../AGENTS.md`
+- Document governance: `../../project-os/PROJECT_RULES.md` (Static Reference
+  classification)

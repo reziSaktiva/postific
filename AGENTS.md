@@ -25,7 +25,7 @@ referenced document wins.
 ## Required at the start of a session
 
 1. Read the **Snapshot** in `project-os/PROJECT_STATE.md` — phase, conversation mode, nearest focus.
-2. When working a ticket: open `project-os/AVAILABLE_TICKETS.md` and stop there to choose an ID. Only then open **one** section in the file named by the File column (`tickets/vXX-*.md`, `tickets/known-issues.md` for a ticket born from a Known Issue — ADR-134, or `tickets/s004-orchestration-language.md` for S-004, ADR-159). Code changes only when the ticket already exists (ADR-132). Description follows ADR-131 (docs → spec → ticket → implement).
+2. When working a ticket: open `project-os/AVAILABLE_TICKETS.md` and stop there to choose an ID. Only then open **one** section in the file named by the File column (`tickets/vXX-*.md`, `tickets/known-issues.md` for a ticket born from a Known Issue — ADR-134, `tickets/s004-orchestration-language.md` for S-004, ADR-159, or `tickets/s007-documentation-language.md` for S-007, ADR-164). Code changes only when the ticket already exists (ADR-132). Description follows ADR-131 (docs → spec → ticket → implement).
    Find a `path:line` for an ID or title with `bun run docs:where <query>` (then read with `offset`/`limit`); check links and counters with `bun run docs:check` (T-186).
 3. **Evaluate subagent delegation** (ADR-063) when the task is code or UI implementation — see the Domain → Subagent map and the trivial-change exception in the navigator (item 4) and `.claude/agents/README.md`.
 4. Follow the project skill: `.claude/skills/project-os-navigator/SKILL.md` — read cascade, task → document mapping, session hygiene, and skill/subagent housekeeping live there.
@@ -48,8 +48,9 @@ referenced document wins.
    `project-os/AVAILABLE_TICKETS.md` (unfinished),
    `project-os/tickets/vXX-*.md` (release tickets, including finished ones),
    `project-os/tickets/known-issues.md` (tickets born from a Known Issue, ADR-134), and
-   `project-os/tickets/s004-orchestration-language.md` (S-004 tickets, ADR-159).
-8. Canonical personas: Raka, Maya, Sinta, Dimas, Lara. The default language for conversation and work reports is **English**. King Rezi may request another language. Documents in `project-os/`, `product-discovery/`, and `context/` stay Bahasa Indonesia. An orchestration file is translated as one whole file in its own ticket, or not at all. The rule text for language lives only in this rule (ADR-160).
+   `project-os/tickets/s004-orchestration-language.md` (S-004 tickets, ADR-159), and
+   `project-os/tickets/s007-documentation-language.md` (S-007 tickets, ADR-164).
+8. Canonical personas: Raka, Maya, Sinta, Dimas, Lara. The default language for conversation and work reports is **English**. King Rezi may request another language. Documents in `project-os/`, `product-discovery/`, and `context/` move to English in stages (ADR-163, S-007); until a file is translated in its own ticket it stays Bahasa Indonesia. New specs and tickets are written in English. History (ADRs, tickets, finished specs, `CONVERSATIONS.md`) keeps its Bahasa Indonesia prose; only its document keywords are replaced, once, in a ticket of their own. A file is translated as one whole file in its own ticket, or not at all. The rule text for language lives only in this rule (ADR-160, ADR-163).
 9. Do not commit / push unless King Rezi asks explicitly. Do not commit secrets (`.env.local`, credentials). Before commit/push: if HEAD is on `main` **or** `staging`, create a new branch first (`feature/<name>` or `fix/<name>`) — never commit directly to either of those two branches (CI-D03 flow: `feature/* → PR → staging → PR → main`).
 10. **Product UI uses shadcn/ui** (ADR-097). **Every task King Rezi orders must
     be classified first**: UI/UX-related (touches a screen, visual component,
