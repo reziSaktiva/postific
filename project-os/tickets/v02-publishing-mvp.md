@@ -3017,7 +3017,7 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 **What to build:** bagian kiri modal di bawah baris channel: editor caption, area media, dan blok pengaturan per jaringan dengan validasi inline.
 
 - [x] **T-202.1** Editor caption dan area media (thumbnail plus dropzone); toolbar hanya "Lampirkan media" (tanpa emoji dan hashtag). _Bukti:_ E2E S14 (dropzone, satu aksi "Lampirkan media", tanpa tombol emoji atau hashtag), S3, S11 dan S12 (unggah gambar, thumbnail dengan tombol hapus, hapus lewat dialog konfirmasi), dan `DraftEditorForm.screens.test.tsx` ("T-202.1", unggahan menjadi thumbnail dan hitungan 1/10).
-- [~] **T-202.2** Blok per jaringan berbentuk akordeon (satu terbuka, lainnya baris ringkas); bila hanya satu akun terpilih, blok selalu terbuka tanpa akordeon. _Bukti perilaku (jsdom):_ `DraftEditorForm.screens.test.tsx` (dua akun: tepat satu pemicu `aria-expanded`, klik membuka blok lain dan menutup yang lama, klik blok terbuka tidak menutupnya; satu akun: tanpa pemicu akordeon, blok langsung terlihat; blok aktif yang dibuang mengikuti `network-blocks-state.test.ts`). Satu akun terbukti di browser (S7b, S11). `(2026-11-12, jalur B gelombang 10)` Tes E2E S18 ditambahkan di `draft-editor.e2e.ts` (dua akun: tepat satu `aria-expanded=true`, klik blok lain membuka dan menutup yang lama, klik blok terbuka tidak menutupnya; satu akun: tanpa pemicu), tetapi workspace "E2E Sandbox" hanya punya satu akun Instagram (`turanilkerl`), jadi S18 terlewati di `local` dan belum pernah lulus maupun diuji gagal (jangan hitung S18 hijau sebelum berjalan tanpa skip sekali; selektor `button[aria-expanded]` bisa ikut menghitung Select Pinterest). _Tetap `[~]`:_ butuh minimal dua akun terhubung di workspace E2E (keputusan King Rezi); akordeon dengan dua akun atau lebih belum terlihat di browser, padahal `accordion.tsx` punya cacat selektor yang diakui (T-210).
+- [x] **T-202.2** `(2026-11-12)` Blok per jaringan berbentuk akordeon (satu terbuka, lainnya baris ringkas); bila hanya satu akun terpilih, blok selalu terbuka tanpa akordeon. _Bukti perilaku (jsdom):_ `DraftEditorForm.screens.test.tsx` (dua akun: tepat satu pemicu `aria-expanded`, klik membuka blok lain dan menutup yang lama, klik blok terbuka tidak menutupnya; satu akun: tanpa pemicu akordeon, blok langsung terlihat; blok aktif yang dibuang mengikuti `network-blocks-state.test.ts`). Satu akun terbukti di browser (S7b, S11). `(2026-11-12, jalur B gelombang 10)` Tes E2E S18 ditambahkan di `draft-editor.e2e.ts` (dua akun: tepat satu `aria-expanded=true`, klik blok lain membuka dan menutup yang lama, klik blok terbuka tidak menutupnya; satu akun: tanpa pemicu), tetapi workspace "E2E Sandbox" hanya punya satu akun Instagram (`turanilkerl`), jadi S18 terlewati di `local` dan belum pernah lulus maupun diuji gagal (jangan hitung S18 hijau sebelum berjalan tanpa skip sekali; selektor `button[aria-expanded]` bisa ikut menghitung Select Pinterest). **Terbukti di browser `local` (2026-11-12, cabang `feature/s005-follow-ups`):** S18 berjalan tanpa skip di workspace nyata "Cook It Real Good" (Facebook dan TikTok; hanya membaca, tanpa simpan atau publish): dua akun menghasilkan dua pemicu akordeon dengan tepat satu `aria-expanded=true`, klik blok lain membuka dan menutup yang lama, pemicu blok yang terbuka `aria-disabled=true` (tidak bisa ditutup, diperiksa bukan diklik), melepas satu akun lewat chip menghapus semua pemicu. Pembaruan: klik blok terbuka sengaja tidak dilakukan karena Radix menonaktifkannya.
 - [x] **T-202.3** Radio format Post/Reel/Story (ADR-039) di dalam blok; opsi yang tidak sah dinonaktifkan; Reel nonaktif dengan pesan dari T-200 bila media bukan satu video.
 - [x] **T-202.4** Field Pinterest (board, judul, link) di dalam blok; perilaku data sama dengan sebelumnya. _Bukti (jsdom):_ `DraftEditorForm.screens.test.tsx` ("T-202.4": Pin Title, Destination Link, dan Board muncul di blok tanpa radio format, board dimuat lewat `listPinterestBoardsAction`, payload `saveDraftAction` memuat `{pinTitle, pinLink, boardId}` dengan format `pin`). Tidak ada bukti browser: workspace E2E tidak punya akun Pinterest.
 - [x] **T-202.5** Banner validasi kuning inline: validasi per jaringan (media wajib, board, Reel) di dalam blok; validasi lintas jaringan (Story dengan caption campur, lebih dari satu akun Pinterest) di atas editor. Aturan tetap ADR-107, ADR-121, ADR-154, dan T-200; hanya letaknya yang pindah. _Bukti:_ `DraftEditorForm.screens.test.tsx` (banner "Instagram tanpa media" tampil sekali dan di dalam blok jaringan; banner lintas jaringan "satu akun Pinterest" tampil sebelum judul "Pengaturan per jaringan", bukan di blok; banner board Pinterest di blok) dan E2E S7b dan S12 (banner Instagram tanpa media dan pesan Reel di browser). Story dengan caption campur hanya terbukti di fungsi murni (`network-validation.test.ts`), belum di komponen.
@@ -3029,7 +3029,7 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 **Belum terbukti (jangan diasumsikan):**
 
-- Tampilan browser akordeon dengan dua akun atau lebih (S18 siap tetapi terlewati karena sandbox satu akun; selektor `accordion.tsx` belum bisa dinilai di browser), dan banner kuning di terang (gelap tercakup S8b yang memindai kontras). Blok yang terbuka saat chip diklik: klik chip belum membuka blok jaringannya (butuh perubahan di `ChannelRow.tsx`), tidak ada tes karena perilakunya memang belum ada.
+- Akordeon dengan dua akun terbukti di browser `local` (S18, 2026-11-12, lihat T-202.2); belum di staging (T-249.5). Tampilan banner kuning di terang (gelap tercakup S8b yang memindai kontras). Blok yang terbuka saat chip diklik: klik chip belum membuka blok jaringannya (butuh perubahan di `ChannelRow.tsx`), tidak ada tes karena perilakunya memang belum ada.
 - Blok jaringan di browser hanya satu akun (S7b, S11, S12 menegaskan radio format, banner, dan Reel); Pinterest dan banyak akun hanya jsdom.
 - `accordion.tsx` (T-199) memakai selektor `data-open:`/`data-closed:` yang tidak cocok dengan `data-state` Radix, jadi animasi buka-tutup dan latar item bawaan tidak aktif; latar ditambal di `NetworkBlocks.tsx`. Akar masalahnya di T-210.
 - Impor domain di `network-validation.ts` lewat jalur dalam, bukan barrel `domains/publishing/index.ts` (preseden ada di hook lama); belum diseragamkan.
@@ -3296,6 +3296,22 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 - [ ] **T-209.4** Tombol "Simpan" merah di Pratinjau Pinterest dan elemen tiruan merek lain di Pratinjau: nilai risikonya terhadap pedoman (menyiratkan keterkaitan) dan laporkan keputusan ke King Rezi.
 - [ ] **T-209.5** `typecheck`, `lint`, tes hijau; tampilan di browser (terang dan gelap) dan E2E bila ada.
 
+**Riset kit merek (2026-11-12, hanya halaman resmi, tidak ada yang diunduh):** (Pinterest, X, YouTube, TikTok sebagian tak terbaca.)
+
+| Platform  | Akses                                                                                           | Berkas                                                  | Catatan aturan                                                                                        |
+| --------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Facebook  | unduh langsung setelah centang persetujuan (`meta.com/brand/resources/facebook/logo/`)          | `Facebook-Brand-Asset-Pack` (ZIP)                       | biru atau putih, min 16px, ruang kosong 1/4 lebar, tanpa warna lain                                   |
+| Instagram | idem (`.../instagram/instagram-brand/`)                                                         | `IG_brand_asset_pack_2023.zip`                          | warna, ukuran minimum, larangan glif: BELUM TERVERIFIKASI                                             |
+| Threads   | idem (`.../threads/`)                                                                           | `Threads-Brand-Resource-Center.zip`                     | pedoman rinci "segera"; ruang kosong lebar ikon/4                                                     |
+| TikTok    | izin tertulis dimuka (developers.tiktok.com); Brand Hub tak terbaca (JavaScript, mungkin login) | `logo-pack.zip`                                         | aturan warna, ukuran, larangan: BELUM TERVERIFIKASI (T-209.2 tetap terbuka)                           |
+| Pinterest | halaman pedoman memuat portal aset                                                              | EPS dan PNG (tanpa SVG)                                 | pakai lencana, dengan ajakan dan tautan ke profil sendiri; tanpa tautan berarti menyiratkan kemitraan |
+| X         | persetujuan Trademark Guidelines (halaman 403, dari snippet)                                    | SVG/PNG hitam atau putih                                | hanya hitam atau putih                                                                                |
+| LinkedIn  | unduh zip setelah menerima perjanjian; panduan menyebut perlu lisensi merek                     | "[in] Logo"                                             | min 21px layar; jangan menyiratkan afiliasi                                                           |
+| YouTube   | `brand.youtube` tak terbaca                                                                     | tidak diketahui                                         | tanpa ubah warna; wajib tertaut ke konten YouTube                                                     |
+| Bluesky   | unduh langsung tanpa persetujuan (`bsky.social/about/support/icons`)                            | `bluesky_media_kit_logo_transparent_1..4` (SVG dan PNG) | boleh sebagai ikon sosial tertaut ke profil; warna biru, putih, hitam                                 |
+
+Meta menyebut jangan memakai logo dari pencarian web, jadi glif react-icons bukan pengganti sah. **Daftar unduhan yang diusulkan (belum ada yang diunduh; menunggu persetujuan King Rezi per daftar):** Tier A: Bluesky `_1.svg` dan `_3/_4.svg`, tiga ZIP Meta, LinkedIn "[in] Logo" (setelah King Rezi menerima soal lisensi). Tier B (King Rezi memastikan di browser lebih dulu): X, YouTube, Pinterest. Tier C (tahan): TikTok `logo-pack.zip` sampai izin dan Brand Hub terbaca. Isi dalam ZIP tidak terlihat, jadi berkas glif yang dipakai dipilih setelah unduhan pertama. Aturan yang tersirat ke produk: platform yang meminta tautan ke profil (Pinterest, YouTube, Bluesky) dapat bertabrakan dengan ikon tanpa tautan di tab, chip, dan pemilih akun; putuskan di T-209.3.
+
 **Belum terbukti (jangan diasumsikan):** apakah pemakaian logo saat ini benar-benar melanggar (tafsir ringkasan, belum dibaca langsung di halaman pedoman); aturan TikTok.
 
 **Blocked by:** T-204
@@ -3528,7 +3544,7 @@ Alasan A: pemilih ini hanya mengganti kartu yang ditampilkan, bukan berpindah an
 Satu verifikasi untuk seluruh gelombang S-005 (ADR-153, ADR-161). Tiket yang dirujuk hanya dianggap Verified (staging) bila butirnya lulus; butir yang lulus dicoret dari "Belum terbukti" di tiket asalnya. Tanpa akun media sosial nyata untuk post Scheduled sebelum T-195 selesai.
 
 - [ ] **T-249.1** (T-208.1) Save as Draft dari Queue pindah ke Drafts di build produksi staging (Realtime aktif). Tanpa bukti apakah bug itu terjadi di staging atau sebelum T-199. Uji manual tanpa gerbang menunjukkan S4 hanya gagal 1 dari 3 run (lihat T-208).
-- [ ] **T-249.2** (T-202.2) Akordeon blok jaringan dengan dua akun atau lebih di browser. **Keputusan King Rezi (2026-11-12):** pakai workspace lain yang sudah punya dua akun atau lebih, baca saja, tanpa publish. E2E S18 ada tetapi ter-skip dengan satu akun. Selektor `data-open`/`data-closed` di `accordion.tsx` (T-210) belum diperiksa di browser.
+- [x] **T-249.2** `(2026-11-12, local)` (T-202.2) Akordeon blok jaringan dengan dua akun atau lebih di browser. **Keputusan King Rezi (2026-11-12):** pakai workspace lain yang sudah punya dua akun atau lebih, baca saja, tanpa publish. **Selesai:** S18 memakai `switchToWorkspaceNamed` ke "Cook It Real Good" (`E2E_MULTI_ACCOUNT_WORKSPACE` mengganti nama) dan lulus tanpa skip di `local`; belum dijalankan di staging (T-249.5). Catatan lama: E2E S18 ada tetapi ter-skip dengan satu akun. Selektor `data-open`/`data-closed` di `accordion.tsx` (T-210) belum diperiksa di browser.
 - [ ] **T-249.3** Tampilan visual popover Channels, Pratinjau (terang dan 375px), dan chip (T-201, T-203). Hanya mode gelap popover Channels yang pernah diamati manual.
 - [x] **T-249.4** `(2026-11-12, lane B gelombang 10, PR 282)` Perbaiki `pickFirstAccounts` di `draft-editor.e2e.ts`: pola `/^Pilih /` ikut menghitung "Pilih semua", jadi penjaga skip salah menghitung akun (temuan lane B). AFK, boleh dikerjakan sebelum verifikasi.
 - [ ] **T-249.5** Run E2E staging (`workflow_dispatch`) hijau terhadap deploy gelombang ini.
@@ -3537,16 +3553,16 @@ Satu verifikasi untuk seluruh gelombang S-005 (ADR-153, ADR-161). Tiket yang dir
 
 ### T-250 · Draft Editor: align the remaining banners to the T-215 variant decision
 
-| Field       | Value                                                                |
-| ----------- | -------------------------------------------------------------------- |
-| **Status**  | ⏳ Not started                                                       |
-| **Spec**    | S-005 (tindak lanjut T-215.2)                                        |
-| **Mode**    | HITL (rancangan galeri dikonfirmasi King Rezi sebelum kode, rule 10) |
-| **Depends** | T-215                                                                |
+| Field       | Value                                                                    |
+| ----------- | ------------------------------------------------------------------------ |
+| **Status**  | 🟡 In Progress (T-250.1 sisi kode selesai; menunggu keputusan King Rezi) |
+| **Spec**    | S-005 (tindak lanjut T-215.2)                                            |
+| **Mode**    | HITL (rancangan galeri dikonfirmasi King Rezi sebelum kode, rule 10)     |
+| **Depends** | T-215                                                                    |
 
 King Rezi (2026-11-12) menyetujui varian banner T-215 dan meminta banner lain disamakan belakangan. Inventaris semua banner/alert di Draft Editor dan artifact, tentukan varian (peringatan, destructive, info) dan ikon per kasus.
 
-- [ ] **T-250.1** Inventaris banner/alert di Draft Editor (kode) dan di `ScreenDraftEditorRedesain` (artifact); daftar selisih ke King Rezi.
+- [~] **T-250.1** `(2026-11-12)` Inventaris sisi kode selesai; sisi artifact belum dibaca (butuh Neymar, tidak ada kode sebelum rancangan, rule 10). Banner di Draft Editor: (1) `ValidationBanner` (`FormAlerts.tsx`): varian peringatan atau destructive, dengan ikon `Alert02Icon`, sudah sesuai T-215. (2) Notice hasil aksi `FormAlerts`: `destructive` untuk galat, `default` untuk lainnya, tanpa ikon. (3) Pesan jadwal di `EditorFooter`: `destructive`, tanpa ikon. (4) Notice galat di `ConfirmationSummary`: `destructive`, tanpa ikon. (5) Akun terputus di `NetworkBlock`: `destructive`, tanpa ikon, dengan judul, deskripsi, tautan Reconnect. Catatan: komponen `Alert` hanya punya varian `default` dan `destructive`; peringatan dibuat lewat kelas di `ValidationBanner`, bukan varian bawaan. Pertanyaan untuk King Rezi: apakah (2) sampai (5) perlu ikon, dan apakah akun terputus (5) peringatan, bukan destructive.
 - [ ] **T-250.2** Neymar menyelaraskan artifact; King Rezi konfirmasi di galeri.
 - [ ] **T-250.3** Kode mengikuti artifact; `typecheck`, `lint`, tes hijau, tampilan di browser (terang dan gelap).
 
@@ -3554,19 +3570,19 @@ King Rezi (2026-11-12) menyetujui varian banner T-215 dan meminta banner lain di
 
 ### T-251 · Schedule: server-side role check like Publish Now (T-205.4)
 
-| Field       | Value                                                                |
-| ----------- | -------------------------------------------------------------------- |
-| **Status**  | ⏳ Not started                                                       |
-| **Spec**    | S-005 (keputusan King Rezi 2026-11-12, butir T-205.4)                |
-| **Mode**    | AFK                                                                  |
-| **Docs**    | ADR-047, ADR-074, `roles-permissions.md`, `assertActorCanPublishNow` |
-| **Depends** | T-205                                                                |
+| Field       | Value                                                                      |
+| ----------- | -------------------------------------------------------------------------- |
+| **Status**  | 🟡 Done (code) T-251.1 sampai .3 di Server Action; celah jalur MCP tersisa |
+| **Spec**    | S-005 (keputusan King Rezi 2026-11-12, butir T-205.4)                      |
+| **Mode**    | AFK                                                                        |
+| **Docs**    | ADR-047, ADR-074, `roles-permissions.md`, `assertActorCanPublishNow`       |
+| **Depends** | T-205                                                                      |
 
 Schedule tidak punya pemeriksaan peran di server, sementara Publish Now punya (`assertActorCanPublishNow`). Tiga peran (Account Owner, Admin, Creator) tetap boleh Schedule (ADR-074); tujuannya penegakan di server supaya aman bila peran baru ditambah. Tanpa migrasi.
 
-- [ ] **T-251.1** Use case Schedule memakai pemeriksaan peran setara Publish Now; penolakan tampil sebagai notice galat di UI. Entry point tanpa logika bisnis (rule 3).
-- [ ] **T-251.2** Tes use case: peran yang diizinkan lolos, peran tidak sah ditolak (Publish Now dan Schedule); tes UI untuk notice penolakan.
-- [ ] **T-251.3** `typecheck`, `lint`, tes hijau; T-205.4 dicentang bila bukti RBAC lengkap.
+- [x] **T-251.1** `(2026-11-12)` `assertActorCanSchedule` di `domains/publishing/rbac.ts`, dipanggil paling awal di `scheduleDraftAction` (sebelum `saveDraft`/`updateDraft`); penolakan kembali sebagai `{ error }` notice. Dikerjakan di tingkat Server Action, tidak di `SchedulePostsUseCase`: use case itu juga dipakai jalur MCP (`schedule_posts`) yang tidak membawa peran workspace (otorisasi MCP lewat grant scope), jadi menambah `actorRole` wajib berarti mengubah kontrak MCP. **Celah yang tersisa, belum ada tiket:** jalur MCP `schedule_posts` tidak memeriksa peran.
+- [x] **T-251.2** `(2026-11-12)` `actions.schedule-rbac.test.ts`: tiga peran sah lolos pemeriksaan peran; peran tak dikenal ditolak sebelum `listConnectedAccounts`, `saveDraft`, dan `SchedulePostsUseCase.execute` (diuji gagal saat guard dimatikan); Publish Now ditolak dengan notice. Tes UI untuk notice tidak ditambah (notice memakai jalur `{ error }` yang sudah ada).
+- [x] **T-251.3** `(2026-11-12)` `typecheck`, `lint`, dan `vitest` hijau (2748 lulus, 52 dilewati). T-205.4 tetap `[~]`: sisa celah jalur MCP di atas dan tes UI penolakan.
 
 ---
 
