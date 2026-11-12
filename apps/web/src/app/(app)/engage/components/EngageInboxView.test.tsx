@@ -163,25 +163,28 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
-// Waktu 5 detik bawaan habis saat suite penuh berjalan paralel; tes ini lulus sendirian (retro wave 11).
-vi.setConfig({ testTimeout: 15_000 });
-
 describe("EngageInboxView per posting (T-219)", () => {
-  it("memilih posting pertama dan memuat komentarnya dengan ringkasan dibalas/total", async () => {
-    renderView();
+  it(
+    "memilih posting pertama dan memuat komentarnya dengan ringkasan dibalas/total",
+    { timeout: 15_000 },
+    async () => {
+      renderView();
 
-    expect(await screen.findByText("@maya")).toBeTruthy();
-    expect(mocks.listInboxAction).toHaveBeenCalledWith(
-      expect.objectContaining({ postId: "p1", dateRange: "12m" }),
-    );
-    expect(screen.getByText("1 dibalas")).toBeTruthy();
-    expect(screen.getByText(/3 total komentar/)).toBeTruthy();
-    expect(
-      screen.getByText(/1 belum dibalas · 2 dari 3 ditangani/),
-    ).toBeTruthy();
-    // Kelompok "Tanpa posting" ada di dasar daftar.
-    expect(screen.getByText("Tanpa posting", { selector: "div" })).toBeTruthy();
-  });
+      expect(await screen.findByText("@maya")).toBeTruthy();
+      expect(mocks.listInboxAction).toHaveBeenCalledWith(
+        expect.objectContaining({ postId: "p1", dateRange: "12m" }),
+      );
+      expect(screen.getByText("1 dibalas")).toBeTruthy();
+      expect(screen.getByText(/3 total komentar/)).toBeTruthy();
+      expect(
+        screen.getByText(/1 belum dibalas · 2 dari 3 ditangani/),
+      ).toBeTruthy();
+      // Kelompok "Tanpa posting" ada di dasar daftar.
+      expect(
+        screen.getByText("Tanpa posting", { selector: "div" }),
+      ).toBeTruthy();
+    },
+  );
 
   it("mengurutkan belum dibalas dulu dan menampilkan label status Indonesia", async () => {
     renderView();

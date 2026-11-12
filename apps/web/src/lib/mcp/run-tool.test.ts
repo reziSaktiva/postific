@@ -341,7 +341,7 @@ describe("runMcpTool (scripted access)", () => {
     );
   });
 
-  it("maps a role refusal from the domain to role_not_permitted (denied, not internal_error)", async () => {
+  it("maps a role refusal from the domain to not_permitted (denied, not internal_error)", async () => {
     const { deps, access, logger } = scriptedDeps(async () => authorizedCall);
     const result = await runMcpTool(
       deps,
@@ -354,13 +354,13 @@ describe("runMcpTool (scripted access)", () => {
 
     expect(result.isError).toBe(true);
     expect(parse(result).error).toEqual({
-      code: "role_not_permitted",
+      code: "not_permitted",
       message: "Anda tidak memiliki izin.",
     });
     expect(access.recordAudit).toHaveBeenCalledWith(
       expect.objectContaining({
         status: "denied",
-        errorCode: "role_not_permitted",
+        errorCode: "not_permitted",
       }),
     );
     expect(logger.error).not.toHaveBeenCalled();

@@ -65,10 +65,9 @@ describe("RBAC server untuk Schedule dan Publish Now (T-251)", () => {
     "Schedule: peran %s lolos pemeriksaan peran",
     async (role) => {
       roleRef.current = role;
-      vi.spyOn(
-        WorkspaceService.prototype,
-        "listConnectedAccounts",
-      ).mockResolvedValue([] as never);
+      const accounts = vi
+        .spyOn(WorkspaceService.prototype, "listConnectedAccounts")
+        .mockResolvedValue([] as never);
       vi.spyOn(PublishingService.prototype, "saveDraft").mockResolvedValue({
         id: asPostId("p1"),
       } as never);
@@ -83,7 +82,9 @@ describe("RBAC server untuk Schedule dan Publish Now (T-251)", () => {
         expect.objectContaining({ actorRole: role }),
       );
 
-      // Lolos RBAC: tidak ada notice izin. (Target kosong boleh gagal validasi lain.)
+      // Lolos RBAC: pekerjaan setelah guard berjalan (baca akun), dan tidak ada notice izin.
+      // (Target kosong boleh gagal validasi lain.)
+      expect(accounts).toHaveBeenCalled();
       if ("error" in result) {
         expect(result.error).not.toMatch(/izin/i);
       }

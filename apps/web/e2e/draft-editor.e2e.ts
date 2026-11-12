@@ -1250,10 +1250,12 @@ test("S18 T-202.2: blok per jaringan akordeon (2 akun) dan statis (1 akun)", asy
   const accountBoxes = page.getByRole("checkbox", { name: ACCOUNT_BOX_NAME });
   await expect(accountBoxes.first()).toBeVisible({ timeout: 15_000 });
   const available = await accountBoxes.count();
-  test.skip(
-    available < 2,
-    `Butuh 2 akun terhubung di workspace E2E, hanya ada ${available}`,
-  );
+  // Gagal, bukan skip: workspace ini dipilih khusus karena punya >=2 akun; skip diam-diam
+  // membuat CI hijau tanpa cakupan akordeon.
+  expect(
+    available,
+    `S18 butuh >=2 akun terhubung di "${MULTI_ACCOUNT_WORKSPACE_NAME}", hanya ada ${available}`,
+  ).toBeGreaterThanOrEqual(2);
   for (let i = 0; i < 2; i++) await accountBoxes.nth(i).check();
   await page.keyboard.press("Escape");
   await expect(accountBoxes.first()).toBeHidden();

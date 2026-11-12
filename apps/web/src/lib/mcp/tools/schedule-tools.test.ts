@@ -548,7 +548,7 @@ describe("schedule_posts through the gate (real McpAccessService and rate limit)
     return { useCase, listConnectedAccounts, createDraft, scheduler };
   }
 
-  it("refuses an unknown member role as role_not_permitted before any account read, draft, quota, or scheduling", async () => {
+  it("refuses an unknown member role as not_permitted before any account read, draft, quota, or scheduling", async () => {
     const repo = counters();
     const real = realUseCase();
     const { deps, audits } = gate(
@@ -562,14 +562,14 @@ describe("schedule_posts through the gate (real McpAccessService and rate limit)
     });
 
     expect(result.isError).toBe(true);
-    expect(parse(result).error).toMatchObject({ code: "role_not_permitted" });
+    expect(parse(result).error).toMatchObject({ code: "not_permitted" });
     expect(real.listConnectedAccounts).not.toHaveBeenCalled();
     expect(real.createDraft).not.toHaveBeenCalled();
     expect(real.scheduler).not.toHaveBeenCalled();
     expect(repo.used.scheduled_contents).toBeUndefined();
     expect(audits.at(-1)).toMatchObject({
       status: "denied",
-      errorCode: "role_not_permitted",
+      errorCode: "not_permitted",
     });
   });
 
@@ -587,7 +587,7 @@ describe("schedule_posts through the gate (real McpAccessService and rate limit)
         posts: [content()],
       });
 
-      expect(parse(result).error?.code).not.toBe("role_not_permitted");
+      expect(parse(result).error?.code).not.toBe("not_permitted");
       expect(real.listConnectedAccounts).toHaveBeenCalled();
     },
   );

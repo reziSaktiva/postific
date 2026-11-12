@@ -23,7 +23,7 @@ import {
   isAccountDisconnected,
 } from "./form-shared";
 import { LabeledControl } from "./LabeledControl";
-import type { NetworkIssue } from "./network-validation";
+import type { NetworkIssue, NetworkIssueCode } from "./network-validation";
 import { getFormatOptionState } from "./network-validation";
 import type { PinterestFieldsValue } from "./PinterestFields";
 import { PinterestFields } from "./PinterestFields";
@@ -122,6 +122,20 @@ export function NetworkBlockSummary({
  * tidak sah dinonaktifkan, dan field khusus Pinterest. Caption dan media
  * sama untuk semua jaringan, jadi tidak ada di sini.
  */
+/**
+ * Varian banner per kode pelanggaran (T-212.1, T-250, rancangan galeri v19). Semua
+ * pelanggaran memblokir aksi; warna hanya pilihan rancangan. `Record` memaksa
+ * kode baru memilih varian secara sadar.
+ */
+const ISSUE_BANNER_VARIANT: Record<
+  NetworkIssueCode,
+  "warning" | "destructive"
+> = {
+  "media-required": "warning",
+  "reel-requires-video": "destructive",
+  "pinterest-board-required": "destructive",
+};
+
 export function NetworkBlockBody({
   account,
   checkboxId,
@@ -180,9 +194,7 @@ export function NetworkBlockBody({
         <ValidationBanner
           key={issue.code}
           message={issue.message}
-          // T-212.1, T-250: pelanggaran yang memblokir (Reel bukan video, board Pinterest
-          // belum dipilih) destructive; "tanpa media" tetap peringatan (rancangan galeri v19).
-          variant={issue.code === "media-required" ? "warning" : "destructive"}
+          variant={ISSUE_BANNER_VARIANT[issue.code]}
         />
       ))}
 

@@ -127,44 +127,49 @@ async function pick(
   await user.keyboard("{Escape}");
 }
 
-// Waktu 5 detik bawaan habis saat suite penuh berjalan paralel; tes ini lulus sendirian (retro wave 11).
-vi.setConfig({ testTimeout: 15_000 });
-
 describe("Pratinjau dari form (T-204)", () => {
-  it("T-204.2 judul, link, dan board yang diisi di blok Pinterest tampil di kartu pin", async () => {
-    const user = await renderCreate();
-    await pick(user, "Pilih Pinterest kopi-pin");
+  it(
+    "T-204.2 judul, link, dan board yang diisi di blok Pinterest tampil di kartu pin",
+    { timeout: 15_000 },
+    async () => {
+      const user = await renderCreate();
+      await pick(user, "Pilih Pinterest kopi-pin");
 
-    const card = within(preview()).getByLabelText("Pratinjau Pinterest Pin");
-    expect(within(card).queryByText(/^Board:/)).toBeNull();
+      const card = within(preview()).getByLabelText("Pratinjau Pinterest Pin");
+      expect(within(card).queryByText(/^Board:/)).toBeNull();
 
-    await user.type(screen.getByLabelText(/Pin Title/), "Resep kopi susu");
-    await user.type(
-      screen.getByLabelText(/Destination Link/),
-      "https://kopi.example.test/resep",
-    );
-    await user.click(screen.getByRole("combobox", { name: "Board" }));
-    await user.click(
-      await screen.findByRole("option", { name: "Inspirasi Kafe" }),
-    );
-    await user.type(screen.getByLabelText("Caption"), "Seduh sempurna");
+      await user.type(screen.getByLabelText(/Pin Title/), "Resep kopi susu");
+      await user.type(
+        screen.getByLabelText(/Destination Link/),
+        "https://kopi.example.test/resep",
+      );
+      await user.click(screen.getByRole("combobox", { name: "Board" }));
+      await user.click(
+        await screen.findByRole("option", { name: "Inspirasi Kafe" }),
+      );
+      await user.type(screen.getByLabelText("Caption"), "Seduh sempurna");
 
-    expect(within(card).getByText("Resep kopi susu")).toBeTruthy();
-    expect(within(card).getByText("kopi.example.test")).toBeTruthy();
-    expect(within(card).getByText("Board: Inspirasi Kafe")).toBeTruthy();
-    expect(within(card).getByText("Seduh sempurna")).toBeTruthy();
-    expect(within(preview()).getByText("Pinterest · Pin")).toBeTruthy();
-  });
+      expect(within(card).getByText("Resep kopi susu")).toBeTruthy();
+      expect(within(card).getByText("kopi.example.test")).toBeTruthy();
+      expect(within(card).getByText("Board: Inspirasi Kafe")).toBeTruthy();
+      expect(within(card).getByText("Seduh sempurna")).toBeTruthy();
+      expect(within(preview()).getByText("Pinterest · Pin")).toBeTruthy();
+    },
+  );
 
-  it("T-204.1 akun TikTok menampilkan kartu TikTok dengan caption yang diketik", async () => {
-    const user = await renderCreate();
-    await pick(user, "Pilih TikTok @kopitt");
-    await user.type(screen.getByLabelText("Caption"), "Seduh pagi");
+  it(
+    "T-204.1 akun TikTok menampilkan kartu TikTok dengan caption yang diketik",
+    { timeout: 15_000 },
+    async () => {
+      const user = await renderCreate();
+      await pick(user, "Pilih TikTok @kopitt");
+      await user.type(screen.getByLabelText("Caption"), "Seduh pagi");
 
-    const card = within(preview()).getByLabelText("Pratinjau TikTok");
-    expect(within(card).getByText("Seduh pagi")).toBeTruthy();
-    expect(within(card).getByText("TikTok membutuhkan media")).toBeTruthy();
-  });
+      const card = within(preview()).getByLabelText("Pratinjau TikTok");
+      expect(within(card).getByText("Seduh pagi")).toBeTruthy();
+      expect(within(card).getByText("TikTok membutuhkan media")).toBeTruthy();
+    },
+  );
 
   it("T-204.3 akun X menampilkan kartu umum dengan nama platform dan caption", async () => {
     const user = await renderCreate();

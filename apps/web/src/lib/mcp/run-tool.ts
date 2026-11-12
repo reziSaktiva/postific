@@ -74,7 +74,7 @@ export type McpErrorCode =
   | "token_scope_insufficient"
   | "grant_scope_insufficient"
   | "not_workspace_member"
-  | "role_not_permitted"
+  | "not_permitted"
   | "invalid_input"
   | "invalid_cursor"
   | "not_found"
@@ -159,11 +159,12 @@ function classify(error: unknown): Failure | null {
   ) {
     return { code: "invalid_input", message: error.message, status: "error" };
   }
-  // RBAC use-case domain (ADR-138, ADR-074; T-252): role member tidak boleh
-  // melakukan aksi ini. Ditolak, bukan galat internal.
+  // RBAC dan aturan izin domain (ADR-138, ADR-074; T-252): aksi ditolak, bukan
+  // galat internal. Kode `not_permitted` netral: berlaku untuk setiap
+  // `AuthorizationError`, tidak hanya penolakan role.
   if (error instanceof AuthorizationError) {
     return {
-      code: "role_not_permitted",
+      code: "not_permitted",
       message: error.message,
       status: "denied",
     };

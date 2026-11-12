@@ -92,6 +92,12 @@ export async function switchToWorkspaceNamed(
   name: string,
 ): Promise<void> {
   await page.goto("/settings/account/workspaces");
+  // Workspace yang sudah aktif: baris `role=row` bertanda "Aktif", tanpa tombol Pindah.
+  const activeRow = page
+    .getByRole("row")
+    .filter({ hasText: name })
+    .getByText("Aktif");
+  if ((await activeRow.count()) > 0) return;
   // Baris workspace non-aktif bukan `role=row` (tautan ke halaman detail).
   const entry = page.getByText(name, { exact: true }).first();
   await expect(

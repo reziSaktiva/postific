@@ -9,6 +9,8 @@ const alertVariants = cva(
     variants: {
       variant: {
         default: "bg-card text-card-foreground",
+        // Varian lokal (T-250), bukan dari registry shadcn: `shadcn add alert --overwrite`
+        // akan menghapusnya dan merusak ValidationBanner serta blok akun terputus.
         warning:
           "border-warning/40 bg-warning/10 text-warning *:[svg]:text-warning",
         destructive:
