@@ -2,7 +2,6 @@ import { Alert02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
 import { Alert, AlertTitle } from "@/components/ui/alert";
-import { cn } from "@/lib/utils";
 
 import type { FormNotice } from "./form-shared";
 import type { CrossNetworkIssue } from "./network-validation";
@@ -12,10 +11,6 @@ import type { CrossNetworkIssue } from "./network-validation";
  * (pelanggaran per jaringan) dan di atas editor (lintas jaringan). Warna dari
  * token `warning`, bukan nilai mentah.
  */
-/** Kelas varian peringatan (kuning) untuk `Alert`; `Alert` hanya punya `default` dan `destructive`. */
-export const WARNING_ALERT_CLASS =
-  "border-warning/40 bg-warning/10 text-warning *:[svg]:text-warning";
-
 export function ValidationBanner({
   message,
   className,
@@ -28,12 +23,12 @@ export function ValidationBanner({
 }) {
   return (
     <Alert
-      variant={variant === "destructive" ? "destructive" : "default"}
+      variant={variant}
       // Banner inline yang berubah saat pemakai mengetik: pengumuman sopan
       // (`status`), bukan `alert` yang memotong pembaca layar.
       role="status"
       data-variant={variant}
-      className={cn(variant === "warning" && WARNING_ALERT_CLASS, className)}
+      className={className}
     >
       <HugeiconsIcon icon={Alert02Icon} strokeWidth={2} />
       <AlertTitle>{message}</AlertTitle>
