@@ -168,7 +168,7 @@ Harus selaras makna status di `../02-product/roles-permissions.md` dan pola visu
 | Slot | Dipakai untuk | Nilai (hex/HSL) | Catatan |
 | ---- | ------------- | --------------- | ------- |
 | `feedback/success` | Toast sukses, konfirmasi | `TBD` | |
-| `feedback/warning` | Peringatan (akun hampir expired, dll.) | `TBD` | |
+| `feedback/warning` | Peringatan (akun hampir expired, dll.) | `TBD` | Varian `warning` pada komponen `Alert` (`border-warning/40 bg-warning/10 text-warning`, ikon ikut warna); dipakai banner peringatan Draft Editor (T-250) |
 | `feedback/danger` | Error, destroy actions | `TBD` | Selaras semantik dengan `status/failed` bila perlu |
 | `feedback/info` | Info netral | `TBD` | |
 

@@ -1,5 +1,7 @@
 "use client";
 
+import { Alert02Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import type { ContentFormat } from "@postific/shared";
 
 import { ChannelAvatarBadge } from "@/components/shared/ChannelAvatarBadge";
@@ -45,6 +47,7 @@ export function ConfirmationSummary({
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-4">
       {notice?.status === "error" ? (
         <Alert variant="destructive">
+          <HugeiconsIcon icon={Alert02Icon} strokeWidth={2} />
           <AlertTitle>{notice.title}</AlertTitle>
         </Alert>
       ) : null}

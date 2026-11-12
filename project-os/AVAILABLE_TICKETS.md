@@ -25,7 +25,7 @@ Phase dan blocker ada di [`PROJECT_STATE.md`](PROJECT_STATE.md). Known Issue yan
 
 Tiket ✅ pada Done (code); butir staging pindah ke tiket verifikasi gelombang, tanpa status antara (ADR-161, mengamandemen ADR-153). Baris 🟡 lama dengan tulisan itu dievaluasi di T-247.5.
 
-ID tiket global, tidak didaur ulang. Berikutnya: **T-252**. ID spec berikutnya: **S-007**.
+ID tiket global, tidak didaur ulang. Berikutnya: **T-253**. ID spec berikutnya: **S-007**.
 
 ---
 
@@ -53,6 +53,7 @@ ID tiket global, tidak didaur ulang. Berikutnya: **T-252**. ID spec berikutnya: 
 | T-249   | ⏳     | Verifikasi staging gelombang S-005 (Draft Editor dan KI-108). HITL. Depends PR integrasi gelombang 10 ter-merge                                                                                                                                                                               | [v0.2](tickets/v02-publishing-mvp.md) |
 | T-250   | 🟡     | Draft Editor: samakan banner lain dengan keputusan varian T-215 (inventaris kode selesai; artifact dan kode menunggu keputusan King Rezi). HITL. Depends T-215                                                                                                                                | [v0.2](tickets/v02-publishing-mvp.md) |
 | T-251   | 🟡     | Schedule: pemeriksaan peran di server seperti Publish Now (keputusan T-205.4). Done (code) di Server Action; celah jalur MCP `schedule_posts` tersisa. AFK. Depends T-205                                                                                                                     | [v0.2](tickets/v02-publishing-mvp.md) |
+| T-252   | ⏳     | MCP `schedule_posts`: pemeriksaan peran di server (menutup celah T-251; `actorRole` di `SchedulePostsUseCase`). AFK. Depends T-251                                                                                                                                                            | [v0.2](tickets/v02-publishing-mvp.md) |
 | T-222   | 🟡     | Engage per posting: QA dan verifikasi. E2E hijau di `local`, review Ridwan, QA Najwa, `/code-review` selesai (2026-11-06); T-222.1-.3 belum dicentang (balasan sungguhan tidak tercakup, temuan terbuka); Verified (staging) T-222.4 menunggu HITL. Depends T-219, T-220, T-224               | [v0.4](tickets/v04-engagement-mvp.md) |
 | T-226   | ⏳     | Engage E2E: perkuat selektor dan cakup tinggi kartu di layar sempit (tindak lanjut retro S-006 g3). AFK. Depends T-222                                                                                                                                                                        | [v0.4](tickets/v04-engagement-mvp.md) |
 | T-088.1 | ⏳     | Jadikan check E2E staging required check untuk `main` (dari T-175.3, ADR-151). Ditunda: AI wajib mengingatkan King Rezi saat v1.0 / MVP public launch dimulai                                                                                                                                 | [v1.0](tickets/v10-public-launch.md)  |

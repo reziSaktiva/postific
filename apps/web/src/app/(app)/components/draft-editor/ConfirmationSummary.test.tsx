@@ -71,5 +71,11 @@ describe("ConfirmationSummary", () => {
     });
     expect(screen.getByText("(kosong)")).toBeTruthy();
     expect(screen.getByText("Gagal menjadwalkan")).toBeTruthy();
+    // T-250: galat ringkasan adalah destructive dengan ikon peringatan.
+    const alert = screen
+      .getByText("Gagal menjadwalkan")
+      .closest('[data-slot="alert"]');
+    expect(alert?.className).toContain("text-destructive");
+    expect(alert?.querySelector("svg")).not.toBeNull();
   });
 });

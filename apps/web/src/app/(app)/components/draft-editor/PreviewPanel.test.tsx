@@ -132,6 +132,10 @@ describe("Pratinjau Pinterest (T-204.2)", () => {
     expect(within(card).getByText("Resep rumahan")).toBeTruthy();
     expect(within(card).getByRole("img", { name: "kopi.jpg" })).toBeTruthy();
     expect(within(panel()).getByText("Pinterest · Pin")).toBeTruthy();
+    // T-209.4: pil "Simpan" memakai token netral, bukan warna merah merek Pinterest.
+    const save = within(card).getByText("Simpan");
+    expect(save.className).toContain("bg-primary");
+    expect(save.className).not.toContain("brand-pinterest");
   });
 
   it("board dipilih ulang: kartu memakai nama board yang baru", () => {

@@ -39,7 +39,7 @@ export function PinterestPreview({ model }: { model: PinterestModel }) {
             Pinterest membutuhkan media
           </span>
         )}
-        <span className="absolute top-2.5 right-2.5 rounded-full bg-brand-pinterest px-3.5 py-1.5 text-sm font-semibold text-media-foreground">
+        <span className="absolute top-2.5 right-2.5 rounded-full bg-primary px-3.5 py-1.5 text-sm font-semibold text-primary-foreground">
           Simpan
         </span>
       </span>
