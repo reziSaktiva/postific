@@ -1,5 +1,6 @@
 import { ContentStatus, asMediaId } from "@postific/shared";
 import type {
+  MemberRole,
   ConnectedAccountId,
   ContentFormat,
   PostId,
@@ -15,6 +16,7 @@ import {
 } from "@/lib/utils/errors";
 import { PublishingDomainError } from "../errors";
 import { assertReelMediaRule } from "../content-format-matrix";
+import { assertActorCanSchedule } from "../rbac";
 import { assertScheduleSafetyCheck } from "../schedule-safety-check";
 import type {
   IPublishingRepository,
@@ -127,11 +129,18 @@ export class ScheduleContentsUseCase {
   async execute(input: {
     workspaceId: WorkspaceId;
     actingUserId: UserId;
+    /** Role member (ADR-074); ditegakkan sebelum efek samping apa pun (T-252). */
+    actorRole: MemberRole;
     contents: ScheduleContentInput[];
     source: PostCreationSource;
     /** Dipanggil sekali dengan jumlah konten yang lolos pemeriksaan; melempar bila kuota habis. */
     reserveQuota?: (count: number) => Promise<void>;
   }): Promise<ScheduleContentOutcome[]> {
+    // T-252 — RBAC dulu: peran tak sah ditolak sebelum baca akun, kuota, atau draft.
+    // Dipanggil juga di sini (bukan hanya di `SchedulePostsUseCase`) karena galat
+    // per konten di `scheduleOne` ditangkap, dan draft sudah terlanjur dibuat.
+    assertActorCanSchedule(input.actorRole);
+
     if (input.contents.length === 0) {
       throw new ValidationError("Isi minimal satu konten untuk dijadwalkan.");
     }
@@ -169,6 +178,7 @@ export class ScheduleContentsUseCase {
     input: {
       workspaceId: WorkspaceId;
       actingUserId: UserId;
+      actorRole: MemberRole;
       source: PostCreationSource;
     },
     accounts: ConnectedAccountRecord[],
@@ -199,6 +209,7 @@ export class ScheduleContentsUseCase {
         scheduledAt: content.scheduledAt,
         targets: plan.targets,
         actingUserId: input.actingUserId,
+        actorRole: input.actorRole,
       });
 
       // `SchedulePostsUseCase` tidak melempar saat penyedia menolak: ia

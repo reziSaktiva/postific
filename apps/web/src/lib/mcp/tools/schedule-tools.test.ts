@@ -9,6 +9,7 @@ import {
   asPostId,
   asUserId,
   asWorkspaceId,
+  MemberRole,
 } from "@postific/shared";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -98,6 +99,7 @@ function context(
   return {
     workspaceId: WORKSPACE,
     userId: USER,
+    actorRole: MemberRole.Creator,
     clientId: CLIENT,
     clientName: "Claude Code",
     grantScopes: ["read", "schedule"],
@@ -174,6 +176,19 @@ describe("schedule_posts media rules (derived from the format matrix, T-192.4)",
 });
 
 describe("schedule_posts handler", () => {
+  it("forwards the member role from the grant context to the use-case (T-252)", async () => {
+    const { execute, scheduleContents } = fakeUseCase([scheduledOutcome(0)]);
+
+    await schedulePosts.handler(
+      context(scheduleContents, { actorRole: MemberRole.Admin }),
+      { posts: [content()] },
+    );
+
+    expect(execute.mock.calls[0]![0]).toMatchObject({
+      actorRole: MemberRole.Admin,
+    });
+  });
+
   it("passes grant identity, MCP source, and contents with the time read in the user zone", async () => {
     const { execute, scheduleContents } = fakeUseCase([scheduledOutcome(0)]);
 
@@ -427,6 +442,7 @@ describe("schedule_posts through the gate (real McpAccessService and rate limit)
   function gate(
     repo: IMcpRateLimitRepository,
     execute: ReturnType<typeof vi.fn>,
+    role: MemberRole = MemberRole.Creator,
   ) {
     const audits: Record<string, unknown>[] = [];
     const access = new McpAccessService(
@@ -441,7 +457,12 @@ describe("schedule_posts through the gate (real McpAccessService and rate limit)
         },
       } as unknown as IMcpAuditRepository,
       { revokeAtomically: async () => ({ revoked: true }) },
-      { getMembership: async () => ({ status: MemberStatus.Active }) },
+      {
+        getMembership: async () => ({
+          status: MemberStatus.Active,
+          role,
+        }),
+      },
       () => NOW,
       new McpRateLimitService(repo, MCP_RATE_LIMIT_DEFAULTS, () => NOW),
     );
@@ -508,6 +529,68 @@ describe("schedule_posts through the gate (real McpAccessService and rate limit)
     expect(scheduled).not.toHaveBeenCalled();
     expect(repo.used.scheduled_contents).toBe(49);
   });
+
+  /**
+   * T-252: use-case ASLI di balik gerbang asli; hanya port yang punya efek
+   * samping (baca akun, buat draft, penjadwal) yang dipantau.
+   */
+  function realUseCase() {
+    const listConnectedAccounts = vi.fn(async () => []);
+    const createDraft = vi.fn();
+    const scheduler = vi.fn();
+    const useCase = new ScheduleContentsUseCase(
+      { createDraft } as never,
+      { execute: scheduler } as never,
+      { findPostStatusById: vi.fn() } as never,
+      { listConnectedAccounts } as never,
+      { listByIds: vi.fn(async () => []) } as never,
+    );
+    return { useCase, listConnectedAccounts, createDraft, scheduler };
+  }
+
+  it("refuses an unknown member role as role_not_permitted before any account read, draft, quota, or scheduling", async () => {
+    const repo = counters();
+    const real = realUseCase();
+    const { deps, audits } = gate(
+      repo,
+      vi.fn((input) => real.useCase.execute(input)),
+      "guest" as MemberRole,
+    );
+
+    const result = await runMcpTool(deps, claims, schedulePosts, {
+      posts: [content()],
+    });
+
+    expect(result.isError).toBe(true);
+    expect(parse(result).error).toMatchObject({ code: "role_not_permitted" });
+    expect(real.listConnectedAccounts).not.toHaveBeenCalled();
+    expect(real.createDraft).not.toHaveBeenCalled();
+    expect(real.scheduler).not.toHaveBeenCalled();
+    expect(repo.used.scheduled_contents).toBeUndefined();
+    expect(audits.at(-1)).toMatchObject({
+      status: "denied",
+      errorCode: "role_not_permitted",
+    });
+  });
+
+  it.each([MemberRole.Owner, MemberRole.Admin, MemberRole.Creator])(
+    "lets role %s past the role check and carries it into the scheduler",
+    async (role) => {
+      const real = realUseCase();
+      const { deps } = gate(
+        counters(),
+        vi.fn((input) => real.useCase.execute(input)),
+        role,
+      );
+
+      const result = await runMcpTool(deps, claims, schedulePosts, {
+        posts: [content()],
+      });
+
+      expect(parse(result).error?.code).not.toBe("role_not_permitted");
+      expect(real.listConnectedAccounts).toHaveBeenCalled();
+    },
+  );
 
   it("is refused without the schedule scope on the grant", async () => {
     const repo = counters();

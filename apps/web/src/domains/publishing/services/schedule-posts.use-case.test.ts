@@ -7,6 +7,7 @@ import {
   ContentFormat,
   ContentStatus,
   SocialPlatform,
+  MemberRole,
 } from "@postific/shared";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import {
@@ -15,7 +16,7 @@ import {
   noopTerminalPostsRepositoryStub,
   noopFetchAllPostIdMappings,
 } from "@/lib/testing/outstand-post-id-backfill-stubs";
-import { ConflictError } from "@/lib/utils/errors";
+import { AuthorizationError, ConflictError } from "@/lib/utils/errors";
 import type { IOutstandAdapter } from "../adapters/outstand-adapter";
 import type { IJobScheduler } from "../adapters/job-scheduler";
 import { PublishingDomainError } from "../errors";
@@ -255,6 +256,7 @@ describe("SchedulePostsUseCase.execute", () => {
         },
       ],
       actingUserId: AUTHOR_ID,
+      actorRole: MemberRole.Creator,
     });
 
     expect(result).toBe(scheduleRecord);
@@ -341,6 +343,7 @@ describe("SchedulePostsUseCase.execute", () => {
         },
       ],
       actingUserId: AUTHOR_ID,
+      actorRole: MemberRole.Creator,
     });
 
     // Post/target TETAP "scheduled" — enqueue job gagal bukan berarti
@@ -418,6 +421,7 @@ describe("SchedulePostsUseCase.execute", () => {
         },
       ],
       actingUserId: AUTHOR_ID,
+      actorRole: MemberRole.Creator,
     });
 
     expect(outcomes).toEqual(
@@ -489,6 +493,7 @@ describe("SchedulePostsUseCase.execute", () => {
         },
       ],
       actingUserId: AUTHOR_ID,
+      actorRole: MemberRole.Creator,
     });
 
     expect(deleted).toEqual(["remote-1"]);
@@ -539,6 +544,7 @@ describe("SchedulePostsUseCase.execute", () => {
           },
         ],
         actingUserId: AUTHOR_ID,
+        actorRole: MemberRole.Creator,
       }),
     ).rejects.toThrow(PublishingDomainError);
     expect(repositoryCalled).toBe(false);
@@ -582,6 +588,7 @@ describe("SchedulePostsUseCase.execute", () => {
           },
         ],
         actingUserId: AUTHOR_ID,
+        actorRole: MemberRole.Creator,
       }),
     ).rejects.toThrow(PublishingDomainError);
 
@@ -626,6 +633,7 @@ describe("SchedulePostsUseCase.execute", () => {
           },
         ],
         actingUserId: AUTHOR_ID,
+        actorRole: MemberRole.Creator,
       }),
     ).rejects.toThrow(PublishingDomainError);
 
@@ -658,6 +666,7 @@ describe("SchedulePostsUseCase.execute", () => {
           },
         ],
         actingUserId: AUTHOR_ID,
+        actorRole: MemberRole.Creator,
       }),
     ).rejects.toThrow(ConflictError);
   });
@@ -733,6 +742,7 @@ describe("SchedulePostsUseCase.execute", () => {
           },
         ],
         actingUserId: AUTHOR_ID,
+        actorRole: MemberRole.Creator,
       }),
     ).rejects.toThrow(ConflictError);
 
@@ -775,6 +785,7 @@ describe("SchedulePostsUseCase.execute", () => {
             },
           ],
           actingUserId: AUTHOR_ID,
+          actorRole: MemberRole.Creator,
         })
         .then(
           () => null,
@@ -786,4 +797,85 @@ describe("SchedulePostsUseCase.execute", () => {
       expect(scheduleCalls).toBe(0);
     },
   );
+
+  describe("RBAC (T-252, ADR-074)", () => {
+    const rbacTarget = {
+      connectedAccountId: CONNECTED_ACCOUNT_1,
+      platform: SocialPlatform.Instagram,
+      contentFormat: ContentFormat.Post,
+      outstandAccountId: "outstand-acc-1",
+    };
+
+    it.each([MemberRole.Owner, MemberRole.Admin, MemberRole.Creator])(
+      "role %s may schedule",
+      async (role) => {
+        const record = baseScheduleRecord([
+          {
+            id: asPostTargetId("target-1"),
+            connectedAccountId: CONNECTED_ACCOUNT_1,
+          },
+        ]);
+        const useCase = new SchedulePostsUseCase(
+          createFakeRepository({
+            findPostStatusById: async () => ({ status: ContentStatus.Draft }),
+            schedulePost: async () => record,
+          }),
+          createFakeOutstandAdapter({
+            schedulePost: async () => ({ outstandPostId: "fake-post" }),
+          }),
+          createFakeJobScheduler(),
+        );
+
+        await expect(
+          useCase.execute({
+            workspaceId: WORKSPACE_ID,
+            postId: POST_ID,
+            scheduledAt: SCHEDULED_AT,
+            targets: [rbacTarget],
+            actingUserId: AUTHOR_ID,
+            actorRole: role,
+          }),
+        ).resolves.toBe(record);
+      },
+    );
+
+    it("rejects an unknown role before any repository read or write and any provider call", async () => {
+      const touched: string[] = [];
+      const useCase = new SchedulePostsUseCase(
+        createFakeRepository({
+          findPostStatusById: async () => {
+            touched.push("findPostStatusById");
+            return { status: ContentStatus.Draft };
+          },
+          schedulePost: async () => {
+            touched.push("schedulePost");
+            return null;
+          },
+        }),
+        createFakeOutstandAdapter({
+          schedulePost: async () => {
+            touched.push("outstand.schedulePost");
+            return { outstandPostId: "fake-post" };
+          },
+        }),
+        createFakeJobScheduler({
+          scheduleJob: async () => {
+            touched.push("scheduleJob");
+          },
+        }),
+      );
+
+      await expect(
+        useCase.execute({
+          workspaceId: WORKSPACE_ID,
+          postId: POST_ID,
+          scheduledAt: SCHEDULED_AT,
+          targets: [rbacTarget],
+          actingUserId: AUTHOR_ID,
+          actorRole: "guest" as MemberRole,
+        }),
+      ).rejects.toBeInstanceOf(AuthorizationError);
+      expect(touched).toEqual([]);
+    });
+  });
 });

@@ -6,6 +6,7 @@ import {
   asMediaId,
   asUserId,
   asWorkspaceId,
+  MemberRole,
 } from "@postific/shared";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -76,6 +77,7 @@ function context(services: McpToolServices): McpToolContext {
   return {
     workspaceId: WORKSPACE,
     userId: USER,
+    actorRole: MemberRole.Creator,
     clientId: CLIENT,
     clientName: "Claude",
     grantScopes: ["read", "draft"],
@@ -321,7 +323,12 @@ describe("upload_media behind the real authorization gate", () => {
         },
       } as unknown as IMcpAuditRepository,
       { revokeAtomically: async () => ({ revoked: true }) },
-      { getMembership: async () => ({ status: MemberStatus.Active }) },
+      {
+        getMembership: async () => ({
+          status: MemberStatus.Active,
+          role: MemberRole.Creator,
+        }),
+      },
       undefined,
       { assertWithinLimit } as never,
     );

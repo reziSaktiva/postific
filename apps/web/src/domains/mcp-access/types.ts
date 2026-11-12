@@ -1,6 +1,11 @@
 /** Domain-specific types for mcp-access. */
 
-import type { McpGrantId, UserId, WorkspaceId } from "@postific/shared";
+import type {
+  McpGrantId,
+  MemberRole,
+  UserId,
+  WorkspaceId,
+} from "@postific/shared";
 import type { McpAuditStatus } from "./entities/mcp-audit-entry";
 import type { McpScope } from "./value-objects/mcp-scope";
 import type { McpQuotaKind } from "./value-objects/rate-limit";
@@ -70,6 +75,8 @@ export interface McpAuthorizedCall {
   clientName: string | null;
   /** Scope grant di DB saat panggilan ini. */
   grantScopes: McpScope[];
+  /** Role member aktif yang dibaca ulang di panggilan ini (ADR-138); dasar RBAC use-case domain. */
+  role: MemberRole;
 }
 
 export interface CreateMcpGrantInput {

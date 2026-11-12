@@ -72,11 +72,16 @@ describe("RBAC server untuk Schedule dan Publish Now (T-251)", () => {
       vi.spyOn(PublishingService.prototype, "saveDraft").mockResolvedValue({
         id: asPostId("p1"),
       } as never);
-      vi.spyOn(SchedulePostsUseCase.prototype, "execute").mockResolvedValue({
-        id: asPostId("p1"),
-      } as never);
+      const execute = vi
+        .spyOn(SchedulePostsUseCase.prototype, "execute")
+        .mockResolvedValue({ id: asPostId("p1") } as never);
 
       const result = await scheduleDraftAction(scheduleInput());
+
+      // T-252: peran dari konteks workspace dibawa ke use-case.
+      expect(execute).toHaveBeenCalledWith(
+        expect.objectContaining({ actorRole: role }),
+      );
 
       // Lolos RBAC: tidak ada notice izin. (Target kosong boleh gagal validasi lain.)
       if ("error" in result) {

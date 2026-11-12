@@ -10,10 +10,11 @@ import {
   asPostTargetId,
   asUserId,
   asWorkspaceId,
+  MemberRole,
 } from "@postific/shared";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { ConnectedAccountRecord } from "@/domains/workspace";
-import { ConflictError } from "@/lib/utils/errors";
+import { AuthorizationError, ConflictError } from "@/lib/utils/errors";
 import type { IJobScheduler } from "../adapters/job-scheduler";
 import type { IOutstandAdapter } from "../adapters/outstand-adapter";
 import type {
@@ -247,10 +248,12 @@ function run(
   w: ReturnType<typeof world>,
   contents: ScheduleContentInput[],
   reserveQuota?: (count: number) => Promise<void>,
+  actorRole: MemberRole = MemberRole.Creator,
 ) {
   return w.useCase.execute({
     workspaceId: WORKSPACE,
     actingUserId: USER,
+    actorRole,
     contents,
     source: SOURCE,
     ...(reserveQuota ? { reserveQuota } : {}),
@@ -492,6 +495,7 @@ describe("ScheduleContentsUseCase", () => {
     const [outcome] = await useCase.execute({
       workspaceId: WORKSPACE,
       actingUserId: USER,
+      actorRole: MemberRole.Creator,
       contents: [content()],
       source: SOURCE,
       reserveQuota: reserve,
@@ -537,6 +541,7 @@ describe("ScheduleContentsUseCase", () => {
     const [outcome] = await useCase.execute({
       workspaceId: WORKSPACE,
       actingUserId: USER,
+      actorRole: MemberRole.Creator,
       contents: [content()],
       source: SOURCE,
       reserveQuota: reserve,
@@ -614,6 +619,7 @@ describe("ScheduleContentsUseCase", () => {
     const [outcome] = await w.useCase.execute({
       workspaceId: other,
       actingUserId: USER,
+      actorRole: MemberRole.Creator,
       contents: [content({ mediaIds: [media] })],
       source: SOURCE,
     });
@@ -721,6 +727,7 @@ describe("ScheduleContentsUseCase", () => {
     const [outcome] = await useCase.execute({
       workspaceId: WORKSPACE,
       actingUserId: USER,
+      actorRole: MemberRole.Creator,
       contents: [content()],
       source: SOURCE,
     });
@@ -753,6 +760,7 @@ describe("ScheduleContentsUseCase", () => {
     const [outcome] = await useCase.execute({
       workspaceId: WORKSPACE,
       actingUserId: USER,
+      actorRole: MemberRole.Creator,
       contents: [content()],
       source: SOURCE,
     });
@@ -1066,6 +1074,33 @@ describe("ScheduleContentsUseCase", () => {
 
       expect(outcomes.map((o) => o.status)).toEqual(["failed", "scheduled"]);
       expect(reserve).toHaveBeenCalledWith(1);
+    });
+  });
+
+  describe("RBAC (T-252, ADR-074)", () => {
+    it.each([MemberRole.Owner, MemberRole.Admin, MemberRole.Creator])(
+      "role %s may schedule",
+      async (role) => {
+        const w = world();
+
+        const outcomes = await run(w, [content()], undefined, role);
+
+        expect(outcomes.map((o) => o.status)).toEqual(["scheduled"]);
+      },
+    );
+
+    it("rejects an unknown role before any account read, quota, draft, or provider call", async () => {
+      const w = world();
+      const reserve = vi.fn(async () => undefined);
+
+      await expect(
+        run(w, [content()], reserve, "guest" as MemberRole),
+      ).rejects.toBeInstanceOf(AuthorizationError);
+
+      expect(w.calls).toEqual([]);
+      expect(w.posts.size).toBe(0);
+      expect(w.outstandCalls).toEqual([]);
+      expect(reserve).not.toHaveBeenCalled();
     });
   });
 });
