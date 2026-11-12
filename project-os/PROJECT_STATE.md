@@ -200,6 +200,7 @@ seluruh daftar Known Issues.
 
 ADR terbaru. Daftar lengkap (indeks + link ke tiap ADR): lihat `DECISIONS.md`.
 
+- **ADR-162** — Delapan berkas `.claude/agents/` ikut bahasa Inggris sebagai bagian lapisan 2 (mengamandemen ADR-160; S-004, T-254).
 - **ADR-161** — Tiket ✅ pada Done (code); butir yang butuh staging pindah ke tiket verifikasi gelombang, status antara 🟡 `menunggu Verified (staging)` dihapus, field Verifikasi `lokal` atau `staging` (mengamandemen ADR-153; T-247).
 - **ADR-160** — Bahasa orkestrasi: lapisan 1 dan 2 pindah ke bahasa Inggris; teks aturan hanya di `AGENTS.md` aturan 8 (S-004, T-234).
 - **ADR-159** — Tiket S-004 tinggal di berkas sendiri (mengamandemen ADR-131 dan ADR-134).

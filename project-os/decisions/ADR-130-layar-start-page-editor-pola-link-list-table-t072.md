@@ -97,4 +97,4 @@ Engineer bebas memilih salah satu tanpa perlu konfirmasi ulang.
 - Claude Design, project "Postific" — `templates/start-page-editor.html`
   (LOCKED, Link List pattern), `templates/app-prototype/AppPrototype.dc.html`
   (wiring `SCREENS` + nav item "Start Page").
-- `.claude/agents/README.md` § "Gate pola ambigu shadcn (T-103.2)".
+- `.claude/agents/README.md` § "Ambiguous shadcn pattern gate (T-103.2)".

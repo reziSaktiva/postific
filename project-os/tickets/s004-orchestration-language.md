@@ -181,3 +181,123 @@ Terjemahan T-235 mengubah judul section navigator ("Pekerjaan Baru" menjadi "New
 **Belum terbukti:** tidak ada butir runtime, tidak ada sesi uji .3 untuk tiket ini. Verified lewat `bun run docs:check` bersih di branch closeout (pengecualian S-004, lihat spec).
 
 **Blocked by:** T-235
+
+### T-254 · Record the decision to translate the agent files
+
+`✅ Done (code) (2026-11-12, ADR-162 Accepted)` · **Mode** HITL · **Domain** project-os, agen · **ADR** ADR-133, ADR-160, ADR-162 · **Spec** S-004 · **Depends** —
+**Baca dulu:** `project-os/specs/S-004.md` · `project-os/decisions/ADR-160-bahasa-orkestrasi-lapisan-1-dan-2.md` · `.claude/agents/README.md`
+
+Gerbang terjemahan delapan berkas `.claude/agents/`. Berkas itu Static Reference dan hanya berubah atas permintaan eksplisit King Rezi (`AGENTS.md`). ADR-160 menolak mengubahnya di T-234 dan hanya menunda ke tiket sendiri. Tiket AFK T-255 sampai T-262 tidak dimulai sebelum gerbang ini selesai.
+
+- [x] **T-254.1** `(2026-11-12)` Permintaan eksplisit King Rezi di chat: menambah tiket terjemahan delapan berkas agen di berkas S-004, menerjemahkan `description` juga, lalu menerima ADR-162.
+- [x] **T-254.2** `(2026-11-12, ADR-162 Accepted)` ADR baru (nomor berikutnya setelah ADR-161, prosa Indonesia) mengamandemen ADR-160: delapan berkas agen ikut lapisan 2. Status Accepted hanya atas jawaban King Rezi. Teks aturan bahasa tetap hanya di `AGENTS.md` aturan 8.
+- [x] **T-254.3** `(2026-11-12)` Keputusan King Rezi atas pertanyaan terbuka: (a) `name` di frontmatter tidak berubah, dan `description` (dipakai pemilihan subagen) **ikut diterjemahkan** (diputuskan King Rezi 2026-11-12), dengan kata kunci pemicu pemilihan subagen tetap terbaca di versi Inggris; (b) kata kunci yang dipakai berkas lain (mis. "Dikerjakan oleh") ikut apa; (c) tautan artifact dan nama tiket tidak berubah.
+- [x] **T-254.4** `(2026-11-12)` Bagian "Di luar spec" dan baris "Berkas agen" di `project-os/specs/S-004.md` diperbarui menunjuk ADR itu, tanpa menyalin aturan (ADR-133).
+
+**Belum terbukti:** tidak ada butir runtime.
+
+**Blocked by:** tidak ada
+
+### T-255 · Translate the agents README
+
+`✅ Done (code) (2026-11-12)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133, ADR-160 · **Spec** S-004 · **Depends** T-254
+**Baca dulu:** `project-os/specs/S-004.md` · `.claude/agents/README.md`
+
+- [x] **T-255.1** Berkas utuh dalam bahasa Inggris. Gerbang dan batas peran tidak berubah. `name` di frontmatter, nama berkas, dan penunjuk ke `AGENTS.md` tidak berubah; `description` diterjemahkan (T-254.3). Sebutan King Rezi tetap.
+- [x] **T-255.2** Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
+- [x] **T-255.3** `(2026-11-12, perbandingan berkas Indonesia git 164402ff dengan versi Inggris oleh agen independen)` Satu sesi uji mematuhi gerbang yang sama dengan versi sebelumnya (perbandingan dengan versi Indonesia di git oleh agen independen, seperti T-235.3).
+
+**Belum terbukti:** pemilihan subagen lewat `description` Inggris belum dicoba di sesi nyata; .3 adalah perbandingan teks oleh agen independen (PASS: tidak ada gerbang yang hilang, bertambah, atau tertukar; `name`, `tools`, `effort` identik byte demi byte). Bukan butir runtime.
+
+**Blocked by:** T-254
+
+### T-256 · Translate the prabowo-feature-engineer agent file
+
+`✅ Done (code) (2026-11-12)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133, ADR-160 · **Spec** S-004 · **Depends** T-254
+**Baca dulu:** `project-os/specs/S-004.md` · `.claude/agents/prabowo-feature-engineer.md`
+
+- [x] **T-256.1** Berkas utuh dalam bahasa Inggris. Gerbang dan batas peran tidak berubah. `name` di frontmatter, nama berkas, dan penunjuk ke `AGENTS.md` tidak berubah; `description` diterjemahkan (T-254.3). Sebutan King Rezi tetap.
+- [x] **T-256.2** Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
+- [x] **T-256.3** `(2026-11-12, perbandingan berkas Indonesia git 164402ff dengan versi Inggris oleh agen independen)` Satu sesi uji mematuhi gerbang yang sama dengan versi sebelumnya (perbandingan dengan versi Indonesia di git oleh agen independen, seperti T-235.3).
+
+**Belum terbukti:** pemilihan subagen lewat `description` Inggris belum dicoba di sesi nyata; .3 adalah perbandingan teks oleh agen independen (PASS: tidak ada gerbang yang hilang, bertambah, atau tertukar; `name`, `tools`, `effort` identik byte demi byte). Bukan butir runtime.
+
+**Blocked by:** T-254
+
+### T-257 · Translate the mark-ui-engineer agent file
+
+`✅ Done (code) (2026-11-12)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133, ADR-160 · **Spec** S-004 · **Depends** T-254
+**Baca dulu:** `project-os/specs/S-004.md` · `.claude/agents/mark-ui-engineer.md`
+
+- [x] **T-257.1** Berkas utuh dalam bahasa Inggris. Gerbang dan batas peran tidak berubah. `name` di frontmatter, nama berkas, dan penunjuk ke `AGENTS.md` tidak berubah; `description` diterjemahkan (T-254.3). Sebutan King Rezi tetap.
+- [x] **T-257.2** Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
+- [x] **T-257.3** `(2026-11-12, perbandingan berkas Indonesia git 164402ff dengan versi Inggris oleh agen independen)` Satu sesi uji mematuhi gerbang yang sama dengan versi sebelumnya (perbandingan dengan versi Indonesia di git oleh agen independen, seperti T-235.3).
+
+**Belum terbukti:** pemilihan subagen lewat `description` Inggris belum dicoba di sesi nyata; .3 adalah perbandingan teks oleh agen independen (PASS: tidak ada gerbang yang hilang, bertambah, atau tertukar; `name`, `tools`, `effort` identik byte demi byte). Bukan butir runtime.
+
+**Blocked by:** T-254
+
+### T-258 · Translate the neymar-product-designer agent file
+
+`✅ Done (code) (2026-11-12)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133, ADR-160 · **Spec** S-004 · **Depends** T-254
+**Baca dulu:** `project-os/specs/S-004.md` · `.claude/agents/neymar-product-designer.md`
+
+- [x] **T-258.1** Berkas utuh dalam bahasa Inggris. Gerbang dan batas peran tidak berubah. `name` di frontmatter, nama berkas, dan penunjuk ke `AGENTS.md` tidak berubah; `description` diterjemahkan (T-254.3). Sebutan King Rezi tetap.
+- [x] **T-258.2** Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
+- [x] **T-258.3** `(2026-11-12, perbandingan berkas Indonesia git 164402ff dengan versi Inggris oleh agen independen)` Satu sesi uji mematuhi gerbang yang sama dengan versi sebelumnya (perbandingan dengan versi Indonesia di git oleh agen independen, seperti T-235.3).
+
+**Belum terbukti:** pemilihan subagen lewat `description` Inggris belum dicoba di sesi nyata; .3 adalah perbandingan teks oleh agen independen (PASS: tidak ada gerbang yang hilang, bertambah, atau tertukar; `name`, `tools`, `effort` identik byte demi byte). Bukan butir runtime.
+
+**Blocked by:** T-254
+
+### T-259 · Translate the elon-backend-engineer agent file
+
+`✅ Done (code) (2026-11-12)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133, ADR-160 · **Spec** S-004 · **Depends** T-254
+**Baca dulu:** `project-os/specs/S-004.md` · `.claude/agents/elon-backend-engineer.md`
+
+- [x] **T-259.1** Berkas utuh dalam bahasa Inggris. Gerbang dan batas peran tidak berubah. `name` di frontmatter, nama berkas, dan penunjuk ke `AGENTS.md` tidak berubah; `description` diterjemahkan (T-254.3). Sebutan King Rezi tetap.
+- [x] **T-259.2** Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
+- [x] **T-259.3** `(2026-11-12, perbandingan berkas Indonesia git 164402ff dengan versi Inggris oleh agen independen)` Satu sesi uji mematuhi gerbang yang sama dengan versi sebelumnya (perbandingan dengan versi Indonesia di git oleh agen independen, seperti T-235.3).
+
+**Belum terbukti:** pemilihan subagen lewat `description` Inggris belum dicoba di sesi nyata; .3 adalah perbandingan teks oleh agen independen (PASS: tidak ada gerbang yang hilang, bertambah, atau tertukar; `name`, `tools`, `effort` identik byte demi byte). Bukan butir runtime.
+
+**Blocked by:** T-254
+
+### T-260 · Translate the ridwan-architecture-reviewer agent file
+
+`✅ Done (code) (2026-11-12)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133, ADR-160 · **Spec** S-004 · **Depends** T-254
+**Baca dulu:** `project-os/specs/S-004.md` · `.claude/agents/ridwan-architecture-reviewer.md`
+
+- [x] **T-260.1** Berkas utuh dalam bahasa Inggris. Gerbang dan batas peran tidak berubah. `name` di frontmatter, nama berkas, dan penunjuk ke `AGENTS.md` tidak berubah; `description` diterjemahkan (T-254.3). Sebutan King Rezi tetap.
+- [x] **T-260.2** Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
+- [x] **T-260.3** `(2026-11-12, perbandingan berkas Indonesia git 164402ff dengan versi Inggris oleh agen independen)` Satu sesi uji mematuhi gerbang yang sama dengan versi sebelumnya (perbandingan dengan versi Indonesia di git oleh agen independen, seperti T-235.3).
+
+**Belum terbukti:** pemilihan subagen lewat `description` Inggris belum dicoba di sesi nyata; .3 adalah perbandingan teks oleh agen independen (PASS: tidak ada gerbang yang hilang, bertambah, atau tertukar; `name`, `tools`, `effort` identik byte demi byte). Bukan butir runtime.
+
+**Blocked by:** T-254
+
+### T-261 · Translate the najwa-qa-engineer agent file
+
+`✅ Done (code) (2026-11-12)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133, ADR-160 · **Spec** S-004 · **Depends** T-254
+**Baca dulu:** `project-os/specs/S-004.md` · `.claude/agents/najwa-qa-engineer.md`
+
+- [x] **T-261.1** Berkas utuh dalam bahasa Inggris. Gerbang dan batas peran tidak berubah. `name` di frontmatter, nama berkas, dan penunjuk ke `AGENTS.md` tidak berubah; `description` diterjemahkan (T-254.3). Sebutan King Rezi tetap.
+- [x] **T-261.2** Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
+- [x] **T-261.3** `(2026-11-12, perbandingan berkas Indonesia git 164402ff dengan versi Inggris oleh agen independen)` Satu sesi uji mematuhi gerbang yang sama dengan versi sebelumnya (perbandingan dengan versi Indonesia di git oleh agen independen, seperti T-235.3).
+
+**Belum terbukti:** pemilihan subagen lewat `description` Inggris belum dicoba di sesi nyata; .3 adalah perbandingan teks oleh agen independen (PASS: tidak ada gerbang yang hilang, bertambah, atau tertukar; `name`, `tools`, `effort` identik byte demi byte). Bukan butir runtime.
+
+**Blocked by:** T-254
+
+### T-262 · Translate the gibran-project-manager agent file
+
+`✅ Done (code) (2026-11-12)` · **Mode** AFK · **Domain** project-os, agen · **ADR** ADR-133, ADR-160 · **Spec** S-004 · **Depends** T-254
+**Baca dulu:** `project-os/specs/S-004.md` · `.claude/agents/gibran-project-manager.md`
+
+- [x] **T-262.1** Berkas utuh dalam bahasa Inggris. Gerbang dan batas peran tidak berubah. `name` di frontmatter, nama berkas, dan penunjuk ke `AGENTS.md` tidak berubah; `description` diterjemahkan (T-254.3). Sebutan King Rezi tetap.
+- [x] **T-262.2** Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
+- [x] **T-262.3** `(2026-11-12, perbandingan berkas Indonesia git 164402ff dengan versi Inggris oleh agen independen)` Satu sesi uji mematuhi gerbang yang sama dengan versi sebelumnya (perbandingan dengan versi Indonesia di git oleh agen independen, seperti T-235.3).
+
+**Belum terbukti:** pemilihan subagen lewat `description` Inggris belum dicoba di sesi nyata; .3 adalah perbandingan teks oleh agen independen (PASS: tidak ada gerbang yang hilang, bertambah, atau tertukar; `name`, `tools`, `effort` identik byte demi byte). Bukan butir runtime.
+
+**Blocked by:** T-254
