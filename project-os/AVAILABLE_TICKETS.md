@@ -12,7 +12,7 @@ Perubahan kode di `apps/` dan `packages/` wajib punya tiket di sini, di file ril
 
 1. Pilih satu ID dari tabel di bawah.
 2. Buka **satu** file yang disebut kolom File, lompat ke heading tiket itu. Tiket rilis ada di `tickets/vXX-*.md`. Tiket yang lahir dari Known Issue ada di `tickets/known-issues.md` (ADR-134). Tiket S-004 ada di `tickets/s004-orchestration-language.md`. Ikuti field **Docs** / **Baca dulu**. Jangan menyapu folder `tickets/`.
-3. Kalau pekerjaannya melewati beberapa sesi dan belum ada spec, tulis `specs/S-NNN.md` dulu. Spec yang ada: S-001 (MCP Server MVP), S-002 (QA E2E Playwright), S-003 (orkestrasi AI bergelombang), S-004 (bahasa orkestrasi AI, keputusan 2026-11-11, T-234 sampai T-246), S-005 (redesain Draft Editor pola Buffer, Tahap 1), S-006 (Engage per posting pola Buffer).
+3. Kalau pekerjaannya melewati beberapa sesi dan belum ada spec, tulis `specs/S-NNN.md` dulu. Spec yang ada: S-001 (MCP Server MVP), S-002 (QA E2E Playwright), S-003 (orkestrasi AI bergelombang), S-004 (bahasa orkestrasi AI, keputusan 2026-11-11, T-234 sampai T-246), S-005 (redesain Draft Editor pola Buffer, Tahap 1), S-006 (Engage per posting pola Buffer), S-007 (bahasa dokumen lapisan 3, draf 2026-11-12).
 4. Selesai: status ✅ di file tiketnya, barisnya dihapus dari tabel ini. Jangan menambah catatan sesi.
 
 Phase dan blocker ada di [`PROJECT_STATE.md`](PROJECT_STATE.md). Known Issue yang masih terbuka punya baris di tabel KI file itu, dan tiketnya ada di sini.
@@ -25,7 +25,7 @@ Phase dan blocker ada di [`PROJECT_STATE.md`](PROJECT_STATE.md). Known Issue yan
 
 Tiket ✅ pada Done (code); butir staging pindah ke tiket verifikasi gelombang, tanpa status antara (ADR-161, mengamandemen ADR-153). Baris 🟡 lama dengan tulisan itu dievaluasi di T-247.5.
 
-ID tiket global, tidak didaur ulang. Berikutnya: **T-263**. ID spec berikutnya: **S-007**.
+ID tiket global, tidak didaur ulang. Berikutnya: **T-263**. ID spec berikutnya: **S-008**.
 
 ---
 
