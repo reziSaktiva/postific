@@ -498,14 +498,14 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 ### T-227 · Engage: imported post thumbnails use `platformOptions.mediaUrls`, with an icon placeholder on list cards
 
-| Field       | Value                                                                                                                          |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| **Status**  | 🟡 Done (code) 2026-11-06 (branch `feature/s006-engage-thumbnail-posting-impor`), menunggu Verified (staging)                  |
-| **Mode**    | AFK                                                                                                                            |
-| **Domain**  | engagement · UI (UI/UX-related)                                                                                                |
-| **Spec**    | S-006                                                                                                                          |
-| **Docs**    | ADR-097, ADR-140, ADR-149, `apps/web/.claude/CLAUDE.md`, artifact Postific (kartu `ScreenEngagePerPosting`), AGENTS.md no. 3-5 |
-| **Depends** | T-219 (Done (code)). Konteks: T-228 (tidak memblokir)                                                                          |
+| Field       | Value                                                                                                                           |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**  | ✅ Done (code) 2026-11-06 (branch `feature/s006-engage-thumbnail-posting-impor`); Verifikasi `lokal` (ADR-161), sisa ke T-222.4 |
+| **Mode**    | AFK                                                                                                                             |
+| **Domain**  | engagement · UI (UI/UX-related)                                                                                                 |
+| **Spec**    | S-006                                                                                                                           |
+| **Docs**    | ADR-097, ADR-140, ADR-149, `apps/web/.claude/CLAUDE.md`, artifact Postific (kartu `ScreenEngagePerPosting`), AGENTS.md no. 3-5  |
+| **Depends** | T-219 (Done (code)). Konteks: T-228 (tidak memblokir)                                                                           |
 
 **Ditemukan (2026-11-06, King Rezi, halaman Engage workspace dengan akun Instagram "cookitrealgood" dan Facebook "Cook It Real Good"):** 6 kartu posting tampil tanpa thumbnail sama sekali dan tanpa ikon pengganti. Posting itu berstatus `imported` (hasil Import Posts, `authorId` null).
 

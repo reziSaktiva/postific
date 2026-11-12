@@ -979,6 +979,32 @@ Menerapkan ADR-161 (Accepted 2026-11-12). Hanya dokumen dan skill; tidak ada kod
 
 ---
 
+### T-248 · Reclassify the remaining 🟡 "menunggu Verified (staging)" tickets under ADR-161
+
+`✅ Done` · **Mode** HITL · **Verifikasi** lokal · **Domain** project-os (tanpa kode produk) · **ADR** ADR-161, ADR-153 · **Spec** S-003 · **Depends** T-247
+
+Tindak lanjut T-247.5: tiket di luar daftar yang disetujui King Rezi (2026-11-12) masih memakai status 🟡 `menunggu Verified (staging)`. Hanya yang disetujui King Rezi yang diubah. Usulan klasifikasi (dari "Belum terbukti" tiap tiket):
+
+| Tiket                             | Verifikasi | Usulan                                                                                               |
+| --------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------- |
+| T-151, T-152, T-154, T-180 (v0.5) | `staging`  | ✅; butir sudah ada di T-189.1 sampai T-189.4                                                        |
+| T-192 (v0.5)                      | `staging`  | ✅ bila butir stagingnya dipindah ke T-189 atau tiket gelombangnya                                   |
+| T-210, T-211 (v0.2)               | `lokal`    | ✅; Verified 2026-11-05 (run E2E 41999328811) sudah tercatat                                         |
+| T-214 (v0.2)                      | `staging`  | ✅ untuk bagian kode; pertanyaan dokumen menunggu keputusan King Rezi, jadi tetap 🟡 sampai dijawab  |
+| T-227 (v0.4)                      | `lokal`    | ✅; sisa Belum terbukti ke T-222.4                                                                   |
+| T-231, T-233 (v0.2)               | `staging`  | ✅; migrasi sudah diterapkan, semantik SQL nyata dan adapter Storage jadi butir verifikasi gelombang |
+| T-232 (v0.2)                      | `lokal`    | tetap 🟡 sampai T-232.1 dan T-232.2 dicentang atau dijelaskan                                        |
+
+- [x] **T-248.1** (2026-11-12) King Rezi menyuruh menyelesaikan seluruh langkah setelah melihat usulan; tabel diterapkan apa adanya. T-214 dan T-232 tetap 🟡 sesuai usulan. Bila King Rezi ingin mengubah klasifikasi, ubah di tiket masing-masing.
+- [x] **T-248.2** Terapkan klasifikasi yang disetujui: status di file tiket, baris di `AVAILABLE_TICKETS.md`, dan penunjuk "Belum terbukti" ke tiket verifikasi gelombang.
+- [x] **T-248.3** `bun run docs:check` bersih.
+
+**Belum terbukti:** tidak ada butir runtime. Klasifikasi diterapkan atas instruksi King Rezi untuk menyelesaikan seluruh langkah; persetujuan butir per butir tidak diminta lagi.
+
+**Blocked by:** T-247
+
+---
+
 ## Dari Known Issue
 
 Tiket yang lahir sebagai pelacak Known Issue ada di [`known-issues.md`](known-issues.md) (ADR-134); daftar lengkapnya hanya di file itu, tidak disalin ke sini. KI-027 tetap di T-008 di file ini.

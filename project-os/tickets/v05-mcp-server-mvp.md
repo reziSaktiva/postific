@@ -127,7 +127,7 @@ Urutan: .1 dulu; .2 dan .3 berurutan (Prabowo); .4 sebelum .5 (SQL staging diset
 
 ### T-151 · Layar persetujuan OAuth (pilih workspace dan scope)
 
-`🟡 Done (code), menunggu Verified (staging) lewat T-189.1, T-189.2 (2026-11-02)` · **Domain** mcp-access · UI · **ADR** ADR-139, ADR-097, ADR-152 (Accepted) · **Terkait** T-178 · **Depends** T-148, T-149
+`✅ Done (code); Verifikasi `staging` (ADR-161), butir di T-189.1, T-189.2 (2026-11-02)` · **Domain** mcp-access · UI · **ADR** ADR-139, ADR-097, ADR-152 (Accepted) · **Terkait** T-178 · **Depends** T-148, T-149
 
 **Baca dulu:** `apps/web/.claude/CLAUDE.md` · `.claude/skills/claude-design-scope-discipline/SKILL.md` · ADR-139
 
@@ -153,7 +153,7 @@ Layar tempat pengguna memilih satu workspace dan scope. Default `read` + `draft`
 
 ### T-152 · Tool draft dan penanda sumber MCP
 
-`🟡 Done (code), menunggu Verified (staging) lewat T-189.3 (2026-11-02)` · **Domain** mcp-access · publishing · **ADR** ADR-138, ADR-039, ADR-152 (Accepted) · **Depends** T-150
+`✅ Done (code); Verifikasi `staging` (ADR-161), butir di T-189.3 (2026-11-02)` · **Domain** mcp-access · publishing · **ADR** ADR-138, ADR-039, ADR-152 (Accepted) · **Depends** T-150
 
 **Baca dulu:** `05-architecture/application-layer.md` · `05-architecture/database-strategy.md`
 
@@ -195,7 +195,7 @@ Satu panggilan memuat maksimum 10 konten (konstanta konfigurasi). Target per kon
 
 ### T-154 · Rate limit per workspace (Postgres)
 
-`🟡 Done (code), menunggu Verified (staging) lewat T-189.4 (2026-11-02)` · **Domain** mcp-access · **ADR** ADR-138, ADR-152 (Accepted) · **Terkait** T-153 · **Depends** T-150
+`✅ Done (code); Verifikasi `staging` (ADR-161), butir di T-189.4 (2026-11-02)` · **Domain** mcp-access · **ADR** ADR-138, ADR-152 (Accepted) · **Terkait** T-153 · **Depends** T-150
 
 **Baca dulu:** `05-architecture/background-jobs.md` · `05-architecture/database-strategy.md`
 
@@ -343,7 +343,7 @@ Menampung temuan T-150.7 yang tadinya hanya tercatat sebagai prosa. Detail bukti
 
 ### T-180 · Tindak lanjut temuan non-blocking gelombang 1 MCP (T-151, T-152, T-154)
 
-`🟡 Done (code), menunggu Verified (staging) lewat T-189.2, T-189.8 (2026-11-02)` · **Domain** mcp-access · publishing · UI · **ADR** ADR-138, ADR-152 (Accepted) · **Terkait** T-151, T-152, T-154, T-157 · **Depends** T-151, T-152, T-154 (kode selesai, 2026-10-30)
+`✅ Done (code); Verifikasi `staging` (ADR-161), butir di T-189.2, T-189.8 (2026-11-02)` · **Domain** mcp-access · publishing · UI · **ADR** ADR-138, ADR-152 (Accepted) · **Terkait** T-151, T-152, T-154, T-157 · **Depends** T-151, T-152, T-154 (kode selesai, 2026-10-30)
 
 **Baca dulu:** tiket T-151, T-152, T-154 di file ini (bagian hasil kode)
 
@@ -414,7 +414,7 @@ Klien AI yang timeout lalu mengulang panggilan `schedule_posts` membuat post gan
 
 ### T-192 · MCP schedule follow-ups: shared constraints and media lookup wiring
 
-`🟡 Done (code), menunggu Verified (staging) (2026-11-03)` (semua butir selesai di kode atau diputuskan; T-192.3 disetujui King Rezi 2026-11-02 tanpa kode; E2E golden path ADR-149 hijau lewat T-153.4, lihat T-189; Verified (staging) menunggu bagian "Belum terbukti (T-192)") · **Mode** AFK · **Domain** mcp-access · publishing · UI (hanya bila `Modal.tsx` disentuh) · **ADR** ADR-133, ADR-097 · **Depends** T-153
+`✅ Done (code) (2026-11-03); Verifikasi `staging` (ADR-161)` (semua butir selesai di kode atau diputuskan; T-192.3 disetujui King Rezi 2026-11-02 tanpa kode; E2E golden path ADR-149 hijau lewat T-153.4, lihat T-189; butir staging mengikuti bagian "Belum terbukti (T-192)") · **Mode** AFK · **Domain** mcp-access · publishing · UI (hanya bila `Modal.tsx` disentuh) · **ADR** ADR-133, ADR-097 · **Depends** T-153
 
 **Baca dulu:** review Ridwan gelombang B (S2, S5, S6, P6) · `apps/web/src/domains/publishing/schedule-safety-check.ts` · `Modal.tsx` di draft-editor
 

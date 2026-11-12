@@ -1734,14 +1734,14 @@ Penyebab: `MEDIA_COUNT_BOUNDS_BY_FORMAT` menetapkan `Post` min 0 untuk semua pla
 
 ### T-198 · Scheduling is limited to 30 days ahead (Outstand limit) (KI-105)
 
-| Field       | Value                                                                          |
-| ----------- | ------------------------------------------------------------------------------ |
-| **Status**  | 🟡 Done (code) 2026-11-03, sisa T-198.4; Verifikasi `staging` (T-189, ADR-161) |
-| **Domain**  | publishing, draft editor, MCP                                                  |
-| **Spec**    | tidak ada                                                                      |
-| **Docs**    | KI-105, ADR-154, `schedule-time-constraints.ts`, `Modal.tsx`, T-108            |
-| **Terkait** | T-195, T-197                                                                   |
-| **Depends** | rancangan UI dikonfirmasi King Rezi (aturan 10 `AGENTS.md`)                    |
+| Field       | Value                                                                                           |
+| ----------- | ----------------------------------------------------------------------------------------------- |
+| **Status**  | ✅ Done (code) 2026-11-03; Verifikasi `staging` (T-189, ADR-161); T-198.4 diputuskan 2026-11-12 |
+| **Domain**  | publishing, draft editor, MCP                                                                   |
+| **Spec**    | tidak ada                                                                                       |
+| **Docs**    | KI-105, ADR-154, `schedule-time-constraints.ts`, `Modal.tsx`, T-108                             |
+| **Terkait** | T-195, T-197                                                                                    |
+| **Depends** | rancangan UI dikonfirmasi King Rezi (aturan 10 `AGENTS.md`)                                     |
 
 Dokumen Outstand "Create a post": `scheduledAt` lebih dari 30 hari ke depan
 mengembalikan HTTP 400 dan tidak ada post terbentuk. Dugaan kuat penyebab 400 di
@@ -1753,8 +1753,9 @@ T-195; belum terbukti sampai pesan 400 terbaca (T-195.1 di staging).
       dan reschedule.
 - [x] **T-198.3** `🟡 Done (code) (2026-11-03)` `Modal.tsx`: Alert inline, tombol Schedule disabled, dan hari di
       luar 30 hari disabled di popover kalender. Mengikuti rancangan terkonfirmasi.
-- [ ] **T-198.4** Putuskan nasib post `Scheduled` lama yang jadwalnya lewat 30 hari
+- [x] **T-198.4** `✅ Done (2026-11-12)` Putuskan nasib post `Scheduled` lama yang jadwalnya lewat 30 hari
       (nyata atau tidak ada). Cek data staging dulu; jangan diasumsikan.
+      Hasil (SQL baca-saja di DB staging, 2026-11-12): 2 post `scheduled`, keduanya 2026-12-03 03:00 UTC, 0 post lewat 30 hari. Post lama tidak ada, jadi tidak ada yang perlu dimigrasi atau dibatalkan. Foto keadaan saat itu; post yang dijadwalkan sebelum batas 30 hari berlaku tidak ditemukan.
 - [x] **T-198.5** `🟡 Done (code) (2026-11-03)`: review Ridwan dan QA Najwa selesai; tampilan browser lokal dicek King Rezi. Belum Verified (staging). Tes regresi, review, QA; verifikasi staging tanpa akun nyata.
 
 ---
