@@ -222,7 +222,7 @@ function ChannelsPopover({
           </InputGroup>
         </div>
         {/* eslint-disable-next-line no-restricted-syntax -- ADR-155: baris Pilih semua, murni Tailwind. */}
-        <div className="flex items-center justify-between px-4 pb-2 text-sm">
+        <div className="flex items-center justify-between px-4 pt-1 pb-2 text-sm">
           <label className="flex items-center gap-2">
             <Checkbox
               checked={allSelected}
