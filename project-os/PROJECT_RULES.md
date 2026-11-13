@@ -125,7 +125,7 @@ Includes:
 
 So that `PROJECT_STATE.md` does not swell again, this is checked as part of the **Definition of Done** each time a milestone is finished:
 
-- The `PROJECT_STATE.md` section "Completed (Ringkasan)" is kept at **≤ 5 items** (a rolling window of the newest items — a binding rule, see `.claude/skills/project-os-navigator/SKILL.md` § "3. New Work / Document Creation"); "Recent Decisions (Ringkasan)" is kept at ≤ ~10 items. Items pushed out stay in the `tickets/` tickets and in `DECISIONS.md`.
+- The `PROJECT_STATE.md` section "Completed (Summary)" is kept at **≤ 5 items** (a rolling window of the newest items — a binding rule, see `.claude/skills/project-os-navigator/SKILL.md` § "3. New Work / Document Creation"); "Recent Decisions (Summary)" is kept at ≤ ~10 items. Items pushed out stay in the `tickets/` tickets and in `DECISIONS.md`.
 - `AVAILABLE_TICKETS.md` contains only tasks that are not finished. Looking up the queue stops at that file (ADR-131).
 - Release tickets, including finished ones (✅), stay in `tickets/vXX-*.md`. Tickets born from a Known Issue are in `tickets/known-issues.md` (ADR-134). The AI opens that file only after the ID is chosen, and only that ticket's section.
 - A new ticket follows the shape in `specs/README.md`: what to build, acceptance, blocked by, a spec link or "none — fits in one session". Do not write session stories into a ticket. Session history is in git.
