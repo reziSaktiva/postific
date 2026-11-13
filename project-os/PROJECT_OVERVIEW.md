@@ -14,17 +14,17 @@
 
 # Project Summary
 
-Postific adalah platform berbasis web yang membantu pengguna mengelola seluruh aktivitas media sosial dari satu dashboard.
+Postific is a web-based platform that helps users manage all of their social media activity from a single dashboard.
 
-Project ini dikembangkan sebagai alternatif modern dari Buffer (buffer.com) dengan fokus pada pengalaman pengguna yang sederhana, cepat, dan mudah digunakan.
+This project is developed as a modern alternative to Buffer (buffer.com), focusing on a user experience that is simple, fast, and easy to use.
 
-Integrasi dengan berbagai platform media sosial akan menggunakan **Outstand API**, sehingga aplikasi dapat berfokus pada pengalaman pengguna dan fitur bisnis tanpa perlu membangun integrasi media sosial dari nol.
+Integration with the various social media platforms will use the **Outstand API**, so the application can focus on user experience and business features without having to build social media integrations from scratch.
 
 ---
 
 # Product Vision
 
-Membangun platform Social Media Management modern yang memungkinkan marketing team, startup, dan digital agency mengelola aktivitas media sosial secara efisien melalui satu dashboard terpusat.
+To build a modern Social Media Management platform that lets marketing teams, startups, and digital agencies manage their social media activity efficiently through a single centralized dashboard.
 
 ---
 
@@ -32,18 +32,18 @@ Membangun platform Social Media Management modern yang memungkinkan marketing te
 
 ### Short Term
 
-- Membangun Minimum Viable Product (MVP)
-- Menyediakan pengalaman publishing yang stabil
-- Memiliki arsitektur yang mudah dikembangkan
-- Menyelesaikan fitur inti sebelum fitur tambahan
+- Build a Minimum Viable Product (MVP)
+- Provide a stable publishing experience
+- Have an architecture that is easy to extend
+- Finish core features before additional features
 
 ### Long Term
 
-- Menjadi alternatif Buffer
-- Mendukung berbagai platform media sosial
-- Memiliki arsitektur yang scalable
-- AI pengguna bekerja di dalam produk lewat MCP (ADR-138)
-- Mendukung kolaborasi tim dan workflow yang lebih kompleks
+- Become an alternative to Buffer
+- Support a wide range of social media platforms
+- Have a scalable architecture
+- The user's AI works inside the product through MCP (ADR-138)
+- Support team collaboration and more complex workflows
 
 ---
 
@@ -66,20 +66,20 @@ Future Users:
 
 # MVP Scope
 
-Fitur utama yang direncanakan pada MVP:
+Main features planned for the MVP:
 
 - Workspace
 - Publishing
 - Analytics
 - Engagement
-- MCP Server (AI milik pengguna bekerja di Postific, ADR-138)
+- MCP Server (the user's own AI works in Postific, ADR-138)
 - Start Page
 
 ---
 
 # Supported Social Platforms
 
-Platform media sosial yang didukung aplikasi (ADR-037; via Outstand):
+Social media platforms supported by the application (ADR-037; via Outstand):
 
 1. Instagram
 2. Facebook
@@ -90,41 +90,41 @@ Platform media sosial yang didukung aplikasi (ADR-037; via Outstand):
 7. Threads
 8. Pinterest
 
-Source of Truth enum: `SocialPlatform` di `packages/shared`.
+Source of Truth for the enum: `SocialPlatform` in `packages/shared`.
 
 ---
 
 # Technical Overview
 
-| Category            | Decision                                                                                         |
-| ------------------- | ------------------------------------------------------------------------------------------------ |
-| Repository Strategy | Hybrid Monorepo                                                                                  |
-| Runtime             | Bun                                                                                              |
-| Framework           | Next.js                                                                                          |
-| Language            | TypeScript                                                                                       |
-| Architecture        | Modular Monolith                                                                                 |
-| Design Pattern      | Domain-Driven Design (DDD)                                                                       |
-| Database            | Supabase PostgreSQL                                                                              |
-| ORM                 | Prisma                                                                                           |
-| Data Access         | Prisma (CRUD) + Supabase client (Realtime, Storage)                                              |
-| Auth                | Better Auth                                                                                      |
-| Storage             | Supabase Storage                                                                                 |
-| Deployment          | Railway                                                                                          |
-| CI                  | GitHub Actions                                                                                   |
-| Lint / Format       | ESLint + Prettier                                                                                |
-| Pre-commit          | Lefthook + lint-staged                                                                           |
-| Test Runner         | Vitest                                                                                           |
-| Env / Secrets       | Railway Variables + `.env.local` (native)                                                        |
-| Dependencies        | Bun workspaces; `^` ranges; root `bun.lock`; update manual. Astryx sudah tidak dipakai (ADR-097) |
-| Styling             | Tailwind CSS _(styling langsung komponen shadcn/ui)_                                             |
-| UI Components       | shadcn/ui _(ADR-097, membalik ADR-041 — migrasi dari Astryx sudah tuntas, rilis v0.7, T-102)_    |
-| External Provider   | Outstand API                                                                                     |
+| Category            | Decision                                                                                              |
+| ------------------- | ----------------------------------------------------------------------------------------------------- |
+| Repository Strategy | Hybrid Monorepo                                                                                       |
+| Runtime             | Bun                                                                                                   |
+| Framework           | Next.js                                                                                               |
+| Language            | TypeScript                                                                                            |
+| Architecture        | Modular Monolith                                                                                      |
+| Design Pattern      | Domain-Driven Design (DDD)                                                                            |
+| Database            | Supabase PostgreSQL                                                                                   |
+| ORM                 | Prisma                                                                                                |
+| Data Access         | Prisma (CRUD) + Supabase client (Realtime, Storage)                                                   |
+| Auth                | Better Auth                                                                                           |
+| Storage             | Supabase Storage                                                                                      |
+| Deployment          | Railway                                                                                               |
+| CI                  | GitHub Actions                                                                                        |
+| Lint / Format       | ESLint + Prettier                                                                                     |
+| Pre-commit          | Lefthook + lint-staged                                                                                |
+| Test Runner         | Vitest                                                                                                |
+| Env / Secrets       | Railway Variables + `.env.local` (native)                                                             |
+| Dependencies        | Bun workspaces; `^` ranges; root `bun.lock`; manual updates. Astryx is no longer used (ADR-097)       |
+| Styling             | Tailwind CSS _(direct styling of shadcn/ui components)_                                               |
+| UI Components       | shadcn/ui _(ADR-097, reversing ADR-041 — the migration from Astryx is complete, release v0.7, T-102)_ |
+| External Provider   | Outstand API                                                                                          |
 
 ---
 
 # Development Principles
 
-Project ini dikembangkan dengan prinsip berikut:
+This project is developed on the following principles:
 
 - Documentation First
 - Business First
@@ -138,26 +138,26 @@ Project ini dikembangkan dengan prinsip berikut:
 
 # Developer Profile & Working Preferences
 
-Section ini mendokumentasikan siapa yang mengerjakan project ini dan bagaimana preferensi kerjanya, agar AI Assistant dapat berkolaborasi secara konsisten tanpa harus dijelaskan ulang setiap sesi.
+This section documents who works on this project and what their working preferences are, so the AI Assistant can collaborate consistently without having to be told again every session.
 
-Berbeda dengan section lain di dokumen ini, section ini **boleh bertambah** seiring waktu setiap kali preferensi baru ditemukan dalam sesi kerja — namun tetap harus mencatat hanya preferensi yang **sudah terkonfirmasi**, bukan asumsi.
+Unlike the other sections of this document, this section **may grow** over time whenever a new preference is found in a working session — but it must still record only preferences that have been **confirmed**, not assumptions.
 
-**Profil:**
+**Profile:**
 
-- Solo developer (Rezi) — tidak ada tim lain saat ini.
-- Membangun project ini sambil menyusun dokumentasi secara paralel (Documentation First).
+- Solo developer (Rezi) — there is no other team at the moment.
+- Builds this project while writing the documentation in parallel (Documentation First).
 
-**Preferensi Kerja yang Terkonfirmasi:**
+**Confirmed Working Preferences:**
 
-- Bahasa komunikasi dan dokumentasi mengikuti `AGENTS.md` aturan 8.
-- Perubahan struktural (folder, path, aturan) harus dieksekusi lengkap sampai seluruh dokumen terkait konsisten — tidak boleh setengah jalan.
-- Setiap inkonsistensi yang ditemukan AI harus disebutkan secara eksplisit ke user, bukan didiamkan atau diperbaiki secara diam-diam.
-- Lebih menyukai struktur dokumentasi yang rapi dan tidak ambigu dibandingkan kecepatan — good documentation dianggap lebih penting daripada langsung coding.
-- Terbuka mendiskusikan ulang keputusan dokumentasi (governance, klasifikasi dokumen) jika ditemukan potensi inkonsistensi jangka panjang.
+- The language of communication and documentation follows `AGENTS.md` rule 8.
+- Structural changes (folders, paths, rules) must be executed completely until all related documents are consistent — never left half-done.
+- Every inconsistency the AI finds must be stated explicitly to the user, not ignored or silently fixed.
+- Prefers a tidy, unambiguous documentation structure over speed — good documentation is considered more important than coding right away.
+- Open to re-discussing documentation decisions (governance, document classification) if a long-term inconsistency risk is found.
 
-**Cara Menambah Entry Baru:**
+**How to Add a New Entry:**
 
-Jika sesi kerja mengungkap preferensi baru (misal: gaya review kode, cara approve keputusan, kebiasaan komunikasi), tambahkan sebagai bullet baru di atas. Jangan menghapus entry lama kecuali user secara eksplisit menyatakan preferensi tersebut sudah tidak berlaku.
+If a working session reveals a new preference (e.g. code review style, how decisions are approved, communication habits), add it as a new bullet above. Do not delete old entries unless the user explicitly states that preference no longer applies.
 
 ---
 

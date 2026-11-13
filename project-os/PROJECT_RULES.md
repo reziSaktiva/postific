@@ -12,34 +12,34 @@
 
 # Purpose
 
-Dokumen ini berisi aturan, prinsip, dan standar yang harus diikuti selama proses perencanaan dan pengembangan project.
+This document contains the rules, principles, and standards that must be followed during project planning and development.
 
-Seluruh anggota project (Developer, AI Assistant, Designer, dan kontributor lainnya) harus mengacu pada dokumen ini sebelum melakukan perubahan pada project, baik pada dokumentasi maupun implementasi kode.
+All project members (Developers, AI Assistants, Designers, and other contributors) must refer to this document before making changes to the project, in documentation as well as in code implementation.
 
 ---
 
 # Scope
 
-Dokumen ini mengatur:
+This document governs:
 
-- Prinsip dasar pengembangan project.
-- Klasifikasi dan tata kelola dokumen.
-- Aturan development dan arsitektur.
-- Aturan kolaborasi dengan AI Assistant.
-- Aturan pencatatan keputusan.
-- Alur kerja (workflow) project secara keseluruhan.
+- Core principles of project development.
+- Document classification and governance.
+- Development and architecture rules.
+- Rules for collaborating with the AI Assistant.
+- Rules for recording decisions.
+- The overall project workflow.
 
-Dokumen ini **tidak** mengatur:
+This document does **not** govern:
 
-- Status, progress, atau fase aktif project — lihat `PROJECT_STATE.md`.
-- Detail keputusan teknis atau bisnis — lihat `DECISIONS.md`.
-- Detail scope tiap fase discovery — lihat `README.md` pada masing-masing folder `../product-discovery/`.
+- Status, progress, or the active phase of the project — see `PROJECT_STATE.md`.
+- Details of technical or business decisions — see `DECISIONS.md`.
+- Scope details of each discovery phase — see `README.md` in each `../product-discovery/` folder.
 
 ---
 
 # Core Principles
 
-Project ini dikembangkan berdasarkan prinsip berikut:
+This project is developed on the following principles:
 
 - Documentation First
 - Business First
@@ -57,127 +57,127 @@ Project ini dikembangkan berdasarkan prinsip berikut:
 
 ## Documentation Rules
 
-- Semua keputusan penting harus didokumentasikan.
-- Dokumentasi selalu menjadi acuan utama sebelum implementasi.
-- Dokumentasi harus diperbarui jika terdapat perubahan pada requirement, arsitektur, atau workflow.
-- Hindari dokumentasi yang duplikat atau saling bertentangan.
+- All important decisions must be documented.
+- Documentation is always the primary reference before implementation.
+- Documentation must be updated when requirements, architecture, or workflow change.
+- Avoid duplicate or conflicting documentation.
 
 ## Document Type Classification
 
-Setiap dokumen dalam project memiliki tipe yang menentukan kapan dan bagaimana dokumen tersebut boleh diubah.
+Every document in the project has a type that determines when and how it may be changed.
 
 **Static Reference**
 
-Dokumen yang mendeskripsikan struktur, tujuan, scope, dan aturan. Tidak boleh berisi informasi yang berubah-ubah (status, progress, fase aktif).
+A document that describes structure, purpose, scope, and rules. It must not contain information that changes over time (status, progress, active phase).
 
-Hanya boleh diubah jika terjadi perubahan **struktural** — scope baru, dokumen baru, atau aturan baru — dan perubahan tersebut wajib dicatat sebagai ADR atau di tiket yang terkait (ADR-131).
+It may be changed only when a **structural** change occurs — a new scope, a new document, or a new rule — and that change must be recorded as an ADR or in the related ticket (ADR-131).
 
-Termasuk:
+Includes:
 
-- Semua `README.md`
+- All `README.md` files
 - `PROJECT_OVERVIEW.md`
 - `ARCHITECTURE_OVERVIEW.md`
 - `PROJECT_RULES.md`
-- Skill/navigator file (`SKILL.md`)
-- Dokumen baseline yang sudah ditetapkan pada setiap fase `product-discovery/`
-- Definisi subagent (`.claude/agents/*.md`, kecuali `.claude/agents/README.md`
-  yang tetap README biasa) — perubahan hanya atas permintaan eksplisit user,
-  bukan inisiatif AI (lihat `.claude/agents/README.md`)
+- Skill/navigator files (`SKILL.md`)
+- Baseline documents already fixed in each `product-discovery/` phase
+- Subagent definitions (`.claude/agents/*.md`, except `.claude/agents/README.md`
+  which remains an ordinary README) — changes only at the user's explicit
+  request, not on the AI's initiative (see `.claude/agents/README.md`)
 
 **Living Document**
 
-Dokumen yang secara aktif diperbarui setiap sesi — satu-satunya tipe dokumen yang boleh mencatat status dan progress.
+A document that is actively updated every session — the only document type that may record status and progress.
 
-Termasuk:
+Includes:
 
-- `PROJECT_STATE.md` — source of truth untuk **phase, milestone (M0–M9), overall progress, Active Conversation Mode, Known Issues, dan Blockers**.
-- `AVAILABLE_TICKETS.md` — antrian task yang belum selesai (ADR-131).
-- `tickets/vXX-*.md` — tiket rilis, termasuk yang sudah selesai (ADR-062, ADR-131).
-- `tickets/known-issues.md` — tiket yang lahir dari Known Issue (ADR-134).
-- `specs/` — spec untuk kerja yang melewati lebih dari satu sesi (ADR-131).
+- `PROJECT_STATE.md` — source of truth for **phase, milestone (M0–M9), overall progress, Active Conversation Mode, Known Issues, and Blockers**.
+- `AVAILABLE_TICKETS.md` — the queue of tasks that are not finished yet (ADR-131).
+- `tickets/vXX-*.md` — release tickets, including finished ones (ADR-062, ADR-131).
+- `tickets/known-issues.md` — tickets born from a Known Issue (ADR-134).
+- `specs/` — specs for work that spans more than one session (ADR-131).
 
-Pembagiannya tegas: status _fase project_ milik `PROJECT_STATE.md`, status _task_ milik `AVAILABLE_TICKETS.md` (yang terbuka) dan `tickets/` (semua tiket). `PROJECT_STATE.md` hanya menyebut ID + judul singkat dan menunjuk ke `AVAILABLE_TICKETS.md`.
+The division is firm: the status of the _project phase_ belongs to `PROJECT_STATE.md`; the status of a _task_ belongs to `AVAILABLE_TICKETS.md` (open ones) and `tickets/` (all tickets). `PROJECT_STATE.md` only names the ID + a short title and points to `AVAILABLE_TICKETS.md`.
 
 **Append-Only**
 
-Dokumen yang hanya bertambah. Entri lama tidak boleh diedit atau dihapus.
+A document that only grows. Old entries must not be edited or deleted.
 
-**Satu pengecualian eksplisit (ditemukan sebagai gap 2026-08-12, praktik ini sudah berjalan sejak ADR-056/057 sebelum dituliskan di sini):** kolom `Status` pada baris ADR lama di `DECISIONS.md` DAN header `### Status` di file `decisions/ADR-XXX.md` yang bersangkutan **boleh** diedit — tapi **hanya** untuk menambah/melengkapi tag `Accepted — Amended by ADR-YYY (tanggal)` ketika ADR baru mengamandemennya. Ini murni metadata cross-reference dua arah, bukan mengubah keputusan/isi ADR lama. Isi Decision/Reason/Alternatives Considered ADR lama tetap **tidak boleh diubah**. Kalau ADR baru menyatakan "mengamendemen ADR-XXX" di badan teksnya, baris ADR-XXX di `DECISIONS.md` dan header Status di file `decisions/ADR-XXX-*.md` **wajib** diperbarui pada saat yang sama (jangan tunda) — celah ini yang menyebabkan 14 ADR lama (ADR-005 dst.) sempat tidak ter-tag sampai diaudit dan dibackfill.
+**One explicit exception (found as a gap on 2026-08-12; this practice had been running since ADR-056/057 before it was written down here):** the `Status` column on an old ADR row in `DECISIONS.md` AND the `### Status` header in the corresponding `decisions/ADR-XXX.md` file **may** be edited — but **only** to add/complete the tag `Accepted — Amended by ADR-YYY (date)` when a new ADR amends it. This is purely two-way cross-reference metadata, not a change to the decision/content of the old ADR. The Decision/Reason/Alternatives Considered content of an old ADR still **must not be changed**. If a new ADR states "amends ADR-XXX" in its body, the ADR-XXX row in `DECISIONS.md` and the Status header in the file `decisions/ADR-XXX-*.md` **must** be updated at the same time (do not postpone) — this gap is what left 14 old ADRs (ADR-005 onward) untagged until they were audited and backfilled.
 
-**Pengecualian eksplisit kedua (ADR-163, 2026-11-12):** pada tiket, ADR, dan dokumen sejarah lain, **hanya kata kunci dokumen** (mis. "Berikutnya", "Belum terbukti", "Baca dulu", legenda status, dan nama kolom; daftar padanannya di tiket skrip S-007) boleh diganti ke bahasa Inggris. Isi keputusan, angka, ID, tautan, dan prosa tetap tidak boleh diubah. Penggantian dilakukan satu kali lewat tiket sendiri dan diperiksa dengan `bun run docs:check` serta `docs-consistency-audit`.
+**Second explicit exception (ADR-163, 2026-11-12):** in tickets, ADRs, and other history documents, **only document keywords** (e.g. "Berikutnya", "Belum terbukti", "Baca dulu", the status legend, and column names; the list of equivalents is in the S-007 script ticket) may be replaced with English. The decision content, numbers, IDs, links, and prose still must not be changed. The replacement is done once, in a ticket of its own, and checked with `bun run docs:check` and `docs-consistency-audit`.
 
-Termasuk:
+Includes:
 
-- `DECISIONS.md` — **indeks ringkas** ADR (tabel ADR#/Title/Status/Date/Ringkasan/link file), satu baris baru per ADR baru. Bukan lagi tempat full-text ADR (lihat `decisions/`).
-- `decisions/ADR-*.md` — satu file per ADR, isi lengkap (Title/Status/Date/Decision/Reason/Alternatives Considered). Entri lama tidak boleh diedit/dihapus (kecuali tag `Amended by` di header Status, lihat pengecualian di atas), sama seperti induknya.
-- `CONVERSATIONS.md` — setiap sesi diskusi penting dicatat sebagai entri baru.
-- `BRAINSTORM.md` — setiap ide baru dicatat sebagai entri baru.
+- `DECISIONS.md` — a **compact index** of ADRs (table of ADR#/Title/Status/Date/Summary/file link), one new row per new ADR. No longer the place for the full text of an ADR (see `decisions/`).
+- `decisions/ADR-*.md` — one file per ADR, full content (Title/Status/Date/Decision/Reason/Alternatives Considered). Old entries must not be edited/deleted (except the `Amended by` tag in the Status header, see the exception above), the same as their parent.
+- `CONVERSATIONS.md` — every important discussion session is recorded as a new entry.
+- `BRAINSTORM.md` — every new idea is recorded as a new entry.
 
 ## Formatting Rules
 
-- README **tidak boleh** memuat status (✅ ⏳ 🟡), progress (%), atau fase aktif.
-- Status folder, milestone, dan fase hanya boleh ditampilkan pada `PROJECT_STATE.md`.
-- **Pengecualian (ADR-062, ADR-131, ADR-134):** status per-task ditampilkan pada `AVAILABLE_TICKETS.md` (yang belum selesai), `tickets/vXX-*.md` (tiket rilis), dan `tickets/known-issues.md` (tiket dari Known Issue). Pengecualian ini **tidak** meluas ke phase, milestone, atau overall progress — ketiganya tetap eksklusif milik `PROJECT_STATE.md`, dan tetap terlarang di README maupun dokumen Static Reference lain.
-- **Known Issues (ADR-066, ADR-067, ADR-131, ADR-132):** setiap KI memakai ID `KI-XXX` yang tidak didaur ulang. KI yang masih terbuka punya tiket. Barisnya di `PROJECT_STATE.md` menunjuk tiket itu. KI keluar dari daftar saat tiket penutupnya selesai.
-- Setiap perubahan struktural pada dokumen Static Reference wajib dicatat sebagai ADR atau di tiket yang terkait.
+- A README **must not** contain status (✅ ⏳ 🟡), progress (%), or the active phase.
+- Folder status, milestone, and phase may be shown only in `PROJECT_STATE.md`.
+- **Exception (ADR-062, ADR-131, ADR-134):** per-task status is shown in `AVAILABLE_TICKETS.md` (unfinished ones), `tickets/vXX-*.md` (release tickets), and `tickets/known-issues.md` (tickets from a Known Issue). This exception does **not** extend to phase, milestone, or overall progress — those three remain exclusive to `PROJECT_STATE.md`, and remain forbidden in a README and in any other Static Reference document.
+- **Known Issues (ADR-066, ADR-067, ADR-131, ADR-132):** every KI uses an ID `KI-XXX` that is never recycled. An open KI has a ticket. Its row in `PROJECT_STATE.md` points to that ticket. A KI leaves the list when its closing ticket is finished.
+- Every structural change to a Static Reference document must be recorded as an ADR or in the related ticket.
 
-## Guardrail Ukuran Dokumen (Living/Append-Only)
+## Document Size Guardrail (Living/Append-Only)
 
-Supaya `PROJECT_STATE.md` tidak kembali membengkak, dicek sebagai bagian **Definition of Done** setiap milestone selesai:
+So that `PROJECT_STATE.md` does not swell again, this is checked as part of the **Definition of Done** each time a milestone is finished:
 
-- `PROJECT_STATE.md` section "Completed (Ringkasan)" dijaga **≤ 5 item** (rolling window item terbaru — aturan mengikat, lihat `.claude/skills/project-os-navigator/SKILL.md` § "3. New Work / Document Creation"); "Recent Decisions (Ringkasan)" dijaga ≤ ~10 item. Item yang tergeser keluar tetap di tiket `tickets/` dan di `DECISIONS.md`.
-- `AVAILABLE_TICKETS.md` hanya berisi task yang belum selesai. Mencari antrian berhenti di file itu (ADR-131).
-- Tiket rilis, termasuk yang sudah ✅, tetap di `tickets/vXX-*.md`. Tiket yang lahir dari Known Issue ada di `tickets/known-issues.md` (ADR-134). AI membuka file itu hanya setelah ID dipilih, dan hanya section tiket itu.
-- Tiket baru mengikuti bentuk di `specs/README.md`: what to build, acceptance, blocked by, tautan spec atau "tidak ada — muat satu sesi". Jangan menulis cerita sesi ke dalam tiket. Riwayat sesi ada di git.
+- The `PROJECT_STATE.md` section "Completed (Ringkasan)" is kept at **≤ 5 items** (a rolling window of the newest items — a binding rule, see `.claude/skills/project-os-navigator/SKILL.md` § "3. New Work / Document Creation"); "Recent Decisions (Ringkasan)" is kept at ≤ ~10 items. Items pushed out stay in the `tickets/` tickets and in `DECISIONS.md`.
+- `AVAILABLE_TICKETS.md` contains only tasks that are not finished. Looking up the queue stops at that file (ADR-131).
+- Release tickets, including finished ones (✅), stay in `tickets/vXX-*.md`. Tickets born from a Known Issue are in `tickets/known-issues.md` (ADR-134). The AI opens that file only after the ID is chosen, and only that ticket's section.
+- A new ticket follows the shape in `specs/README.md`: what to build, acceptance, blocked by, a spec link or "none — fits in one session". Do not write session stories into a ticket. Session history is in git.
 
 ---
 
 # Development Rules
 
-- Implementasi harus mengikuti dokumentasi yang telah disepakati.
-- Perubahan kode di `apps/` dan `packages/` wajib punya tiket (ADR-132). Tiket boleh dibuat di sesi yang sama, sebelum baris kode pertama.
-- Known Issue yang masih terbuka punya tiket. `PROJECT_STATE.md` hanya menyimpan baris penunjuk.
-- Kalau kebenaran produk berubah, tulis `product-discovery/` dulu, `context/` hanya bila penunjuknya berubah, lalu `project-os/`.
-- Jangan mengubah requirement tanpa pembaruan dokumentasi terkait.
-- Setiap fitur dikembangkan berdasarkan milestone yang sedang aktif.
-- Hindari implementasi fitur di luar ruang lingkup milestone.
+- Implementation must follow the agreed documentation.
+- A code change in `apps/` and `packages/` must have a ticket (ADR-132). The ticket may be created in the same session, before the first line of code.
+- An open Known Issue has a ticket. `PROJECT_STATE.md` only keeps a pointer row.
+- When product truth changes, write `product-discovery/` first, `context/` only when its pointer changes, then `project-os/`.
+- Do not change a requirement without updating the related documentation.
+- Every feature is developed based on the currently active milestone.
+- Avoid implementing features outside the scope of the milestone.
 
 ---
 
 # Architecture Rules
 
-- Menggunakan Hybrid Monorepo.
-- Menggunakan satu aplikasi utama (`apps/web`) pada fase awal.
-- Menggunakan arsitektur Modular Monolith.
-- Menggunakan Domain-Driven Design sebagai dasar pembagian domain.
-- Setiap domain harus memiliki batas tanggung jawab (boundary) yang jelas.
-- Shared package hanya digunakan untuk kebutuhan lintas domain atau lintas aplikasi.
+- Use a Hybrid Monorepo.
+- Use a single main application (`apps/web`) in the early phase.
+- Use a Modular Monolith architecture.
+- Use Domain-Driven Design as the basis for dividing domains.
+- Every domain must have clear responsibility boundaries.
+- A shared package is used only for cross-domain or cross-application needs.
 
 ---
 
 # AI Collaboration Rules
 
-Teks lengkap aturan kolaborasi dengan AI ada di **`../AGENTS.md`**: baca
-dokumentasi dulu → section "Wajib di awal sesi"; tidak boleh ubah
-arsitektur/business rules tanpa ADR → rule 2; jaga konsistensi struktur →
-seluruh section "Aturan keras". Tidak disalin ulang di sini supaya tidak
-drift saat salah satu diupdate. Aturan "patuh klasifikasi dokumen" tidak
-perlu pointer keluar — itu section **Document Type Classification** di
-bawah, di dokumen ini sendiri.
+The full text of the rules for collaborating with the AI is in **`../AGENTS.md`**: read
+the documentation first → section "Required at the start of a session"; do not change
+architecture/business rules without an ADR → rule 2; keep the structure consistent →
+the whole "Hard rules (do not break)" section. It is not copied here so that it does not
+drift when one of them is updated. The rule "comply with the document classification"
+needs no outward pointer — that is the **Document Type Classification** section below,
+in this very document.
 
 ---
 
 # Decision Rules
 
-Perubahan berikut harus dicatat pada `DECISIONS.md`:
+The following changes must be recorded in `DECISIONS.md`:
 
-- Perubahan arsitektur
-- Perubahan workflow
-- Perubahan repository strategy
-- Perubahan business requirement
-- Penambahan domain atau fase baru
-- Perubahan teknologi utama
-- Keputusan penting lainnya yang memengaruhi arah project
+- Architecture changes
+- Workflow changes
+- Repository strategy changes
+- Business requirement changes
+- Addition of a new domain or phase
+- Changes to the main technology
+- Other important decisions that affect the direction of the project
 
 ---
 
@@ -209,21 +209,21 @@ Testing
 Release
 ```
 
-Status dan progress tiap tahap workflow ini mengacu pada milestone yang tercatat di `PROJECT_STATE.md`.
+The status and progress of each stage of this workflow refer to the milestones recorded in `PROJECT_STATE.md`.
 
 ---
 
 # Definition of Done
 
-Sebuah milestone dianggap selesai apabila:
+A milestone is considered finished when:
 
-- Tujuan milestone telah tercapai.
-- Dokumentasi telah diperbarui.
-- Keputusan penting telah dicatat pada `DECISIONS.md`.
-- Tidak terdapat blocker yang belum diselesaikan.
-- `PROJECT_STATE.md` telah diperbarui.
-- Status tiket di `tickets/vXX-*.md` atau `tickets/known-issues.md` telah diperbarui, dan baris task yang selesai sudah keluar dari `AVAILABLE_TICKETS.md` (ADR-131, ADR-134). Milestone tidak boleh dinyatakan selesai kalau antrian masih basi.
-- Guardrail ukuran dokumen (lihat **Documentation Governance**) sudah dicek — rotasi ringkasan `PROJECT_STATE.md` kalau perlu.
+- The milestone's goal has been achieved.
+- Documentation has been updated.
+- Important decisions have been recorded in `DECISIONS.md`.
+- There are no unresolved blockers.
+- `PROJECT_STATE.md` has been updated.
+- The ticket status in `tickets/vXX-*.md` or `tickets/known-issues.md` has been updated, and the finished task row has left `AVAILABLE_TICKETS.md` (ADR-131, ADR-134). A milestone must not be declared finished while the queue is still stale.
+- The document size guardrail (see **Documentation Governance**) has been checked — rotate the `PROJECT_STATE.md` summaries if needed.
 
 ---
 
