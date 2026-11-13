@@ -321,15 +321,15 @@ Dua berkas yang diedit hampir tiap gelombang. Satu tiket pendek, rebase tepat se
 
 ### T-276 · Replace the document keywords in the history files
 
-`⏳ Todo` · **Mode** AFK · **Verification** local · **Domain** project-os, agen · **ADR** ADR-133, ADR-163 · **Spec** S-007 · **Depends** T-265, T-275
+`✅ Done (code) (2026-11-13)` · **Mode** AFK · **Verification** local · **Domain** project-os, agen · **ADR** ADR-133, ADR-163 · **Spec** S-007 · **Depends** T-265, T-275
 **Read first:** `project-os/specs/S-007.md` · tiket T-264 (daftar padanan) · `project-os/PROJECT_RULES.md` § Append-Only (pengecualian kedua, ADR-163)
 
 Penggantian kata kunci satu kali di tiket, spec, dan dokumen sejarah lain (ADR dikecualikan, lihat T-276.1) (keputusan 4 S-007; sekitar 170 berkas). Hanya kata kunci dokumen yang berubah. Isi keputusan, angka, ID, tautan, dan prosa tidak boleh berubah. Dukungan kata kunci Indonesia di skrip dicabut di akhir tiket ini.
 
-- [ ] **T-276.1** Skrip sekali jalan mengganti hanya kata kunci dari daftar T-264 di `project-os/tickets/`, `project-os/specs/`, dan berkas sejarah lain yang disebut T-267. Scope decision (King Rezi, 2026-11-13): `project-os/decisions/ADR-*.md` and the `DECISIONS.md` index are excluded, because ADR files are history and only 3 of them (ADR-140, ADR-158, ADR-161) contain old keywords; those are left as they are.
-- [ ] **T-276.2** Diff diperiksa: hanya baris kata kunci yang berubah (pembanding otomatis terhadap git: nol perubahan di luar daftar).
-- [ ] **T-276.3** Dukungan kata kunci Indonesia dicabut dari `scripts/docs/check.ts`, `scripts/docs-where.ts`, dan empat skill (T-265).
-- [ ] **T-276.4** `bun run docs:check` bersih dan audit topik language tidak menemukan sisa kata kunci Indonesia di dokumen hidup.
+- [x] **T-276.1** `(2026-11-13)` Skrip sekali jalan mengganti hanya kata kunci dari daftar T-264 di `project-os/tickets/`, `project-os/specs/`, dan berkas sejarah lain yang disebut T-267. Scope decision (King Rezi, 2026-11-13): `project-os/decisions/ADR-*.md` and the `DECISIONS.md` index are excluded, because ADR files are history and only 3 of them (ADR-140, ADR-158, ADR-161) contain old keywords; those are left as they are.
+- [x] **T-276.2** `(2026-11-13)` Diff diperiksa: hanya baris kata kunci yang berubah (pembanding otomatis terhadap git: nol perubahan di luar daftar).
+- [x] **T-276.3** `(2026-11-13)` Dukungan kata kunci Indonesia dicabut dari `scripts/docs/check.ts`, `scripts/docs-where.ts`, dan empat skill (T-265).
+- [x] **T-276.4** `(2026-11-13)` `bun run docs:check` bersih dan audit topik language tidak menemukan sisa kata kunci Indonesia di dokumen hidup.
 
 **Not yet proven:** tidak ada butir runtime.
 
@@ -337,14 +337,16 @@ Penggantian kata kunci satu kali di tiket, spec, dan dokumen sejarah lain (ADR d
 
 ### T-277 · Close S-007: language audit across layer 3
 
-`⏳ Todo` · **Mode** AFK · **Verification** local · **Domain** project-os, agen · **ADR** ADR-133, ADR-163 · **Spec** S-007 · **Depends** T-268, T-269, T-270, T-271, T-272, T-273, T-274, T-275, T-276
+`✅ Done (code) (2026-11-13)` · **Mode** AFK · **Verification** local · **Domain** project-os, agen · **ADR** ADR-133, ADR-163 · **Spec** S-007 · **Depends** T-268, T-269, T-270, T-271, T-272, T-273, T-274, T-275, T-276
 **Read first:** `project-os/specs/S-007.md` · `.claude/skills/docs-consistency-audit/SKILL.md`
 
 Penutup S-007. Audit seluruh dokumen untuk bahasa, kata kunci, dan penunjuk yang rusak.
 
-- [ ] **T-277.1** `docs-consistency-audit` dengan topik language tidak menemukan aturan yang bertentangan antar bahasa atau antar berkas.
-- [ ] **T-277.2** Tidak ada dokumen hidup yang setengah diterjemahkan dan tidak ada kata kunci Indonesia tersisa di dokumen hidup.
-- [ ] **T-277.3** `bun run docs:check` bersih; S-007 dan `PROJECT_STATE.md` memuat status akhir.
+- [x] **T-277.1** `(2026-11-13)` `docs-consistency-audit` dengan topik language tidak menemukan aturan yang bertentangan antar bahasa atau antar berkas.
+- [x] **T-277.2** `(2026-11-13)` Tidak ada dokumen hidup yang setengah diterjemahkan dan tidak ada kata kunci Indonesia tersisa di dokumen hidup.
+- [x] **T-277.3** `(2026-11-13)` `bun run docs:check` bersih; S-007 dan `PROJECT_STATE.md` memuat status akhir.
+
+**Result (2026-11-13):** the audit (living documents only; ADR files and the `DECISIONS.md` index excluded by King Rezi) found two living files that no ticket owned: `product-discovery/README.md` and `project-os/specs/README.md`. King Rezi decided to translate both in this ticket; done, and `specs/README.md` now carries the English spec shape (T-264 section D). The skills `wave-plan`, `wave-work` and `wave-work/retro.md` now cite "S-003, Behavior section (Perilaku), item 2", because the finished spec S-003 keeps its `## Perilaku` heading. Left for King Rezi's decision: the stage wording of `AGENTS.md` rule 8 ("move to English in stages") and the stale heading in `.claude/agents/gibran-project-manager.md:33` (agent files change only on King Rezi's request). The audit was a density and grep heuristic, not a full read of every file.
 
 **Not yet proven:** tidak ada butir runtime.
 

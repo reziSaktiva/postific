@@ -11,7 +11,7 @@ description: >-
 
 # Wave Work
 
-Wave execution (S-003 § Behavior 2, steps 2 to 11). Step 1 (preparing and
+Wave execution (S-003, Behavior section (Perilaku), item 2, steps 2 to 11). Step 1 (preparing and
 approving the list) is in the `wave-plan` skill. Basis for decisions:
 ADR-153 (status ladder), ADR-063 (subagent delegation), ADR-081 (shared DB),
 ADR-133 (one meaning in one place). Do not copy the content of those documents into a brief or PR; point to their paths.
