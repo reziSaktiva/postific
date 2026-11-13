@@ -18,7 +18,7 @@
 ### T-070 · Start Page domain skeleton + strategi route publik
 
 `✅ Done` (2026-10-26; kode di PR #200, branch `feature/t-070-start-page-public-route`. Ridwan PASS, Najwa QA PASS) · **Domain** start-page · **ADR** ADR-017, ADR-024, ADR-031, ADR-128, ADR-142 · **Depends** T-002 ✅
-**Baca dulu:** `05-architecture/auth-architecture.md` · `apps/web/src/proxy.ts` · `05-architecture/database-strategy.md` · ADR-128
+**Read first:** `05-architecture/auth-architecture.md` · `apps/web/src/proxy.ts` · `05-architecture/database-strategy.md` · ADR-128
 
 Service + repository, plus keputusan arsitektur: di mana route publik hidup, bagaimana ia melewati auth guard, bagaimana RLS diperlakukan untuk data yang memang publik, dan apakah pakai custom domain atau subpath. **Keputusan arsitektur sudah dikunci di ADR-128 (2026-10-16): subpath `/u/[slug]`, bukan custom domain** — subtask di bawah mengikuti keputusan itu.
 
@@ -76,7 +76,7 @@ Service + repository, plus keputusan arsitektur: di mana route publik hidup, bag
 ### T-071 · Public profile page
 
 `✅ Done` (2026-10-28; PR #200, belum di-merge. Ridwan PASS, Najwa QA PASS) · **Domain** start-page · UI · **ADR** ADR-046, ADR-129, ADR-143, ADR-144 · **Depends** T-070 ✅
-**Baca dulu:** `04-ux/key-screen-patterns.md` · `04-ux/information-architecture.md` · ADR-129 · artifact Postific `project/templates/start-page-option-b-card-stack.html` (LOCKED PATTERN)
+**Read first:** `04-ux/key-screen-patterns.md` · `04-ux/information-architecture.md` · ADR-129 · artifact Postific `project/templates/start-page-option-b-card-stack.html` (LOCKED PATTERN)
 
 **Must Have.** Halaman publik yang bisa dibagikan lewat media sosial: pola **Card Stack** (ADR-129), header horizontal, tautan sebagai card, badge "Powered by Postific".
 
@@ -93,7 +93,7 @@ Service + repository, plus keputusan arsitektur: di mana route publik hidup, bag
 ### T-072 · Link management
 
 `✅ Done` (2026-10-28; PR #200, belum di-merge. Ridwan PASS setelah F1 HIGH diperbaiki, Najwa QA PASS) · **Domain** start-page · UI · **ADR** ADR-130, ADR-144 · **Depends** T-070 ✅
-**Baca dulu:** `02-product/mvp-definition.md` · ADR-130 · artifact Postific `project/templates/start-page-editor.html` (LOCKED, App Prototype)
+**Read first:** `02-product/mvp-definition.md` · ADR-130 · artifact Postific `project/templates/start-page-editor.html` (LOCKED, App Prototype)
 
 **Must Have.** CRUD daftar tautan + urutan tampil, di layar "Start Page → Page Editor" (ADR-130: Profil Halaman, Link List sebagai Table tanpa header, Preview, Share).
 
@@ -112,7 +112,7 @@ Service + repository, plus keputusan arsitektur: di mana route publik hidup, bag
 ### T-073 · Theme configuration
 
 `✅ Done` (2026-10-28; PR #200, belum di-merge. Ridwan PASS, Najwa QA PASS) · **Domain** start-page · UI · **ADR** ADR-038, ADR-041, ADR-144 · **Depends** T-071 ✅
-**Baca dulu:** `06-engineering/design-tokens.md`
+**Read first:** `06-engineering/design-tokens.md`
 
 Berstatus **Should Have** di `feature-priority.md`. Pertanyaan tiket (token yang sama atau set sendiri) dijawab: **preset terbatas turunan token produk**.
 
@@ -128,7 +128,7 @@ Berstatus **Should Have** di `feature-priority.md`. Pertanyaan tiket (token yang
 ### T-074 · Basic analytics Start Page
 
 `✅ Done` (2026-10-28; PR #200, belum di-merge. Ridwan PASS, Najwa QA PASS) · **Domain** start-page · **ADR** ADR-018, ADR-143, ADR-144 · **Depends** T-071 ✅, T-040
-**Baca dulu:** `02-product/feature-priority.md`
+**Read first:** `02-product/feature-priority.md`
 
 Berstatus **Could Have** — hitungan kunjungan + klik per tautan. **Deviasi dari teks asli:** dikerjakan sebagai counter sederhana di domain `start-page` (bukan lintas domain `analytics`, tanpa tabel event, tanpa PII), karena counter hanya milik halaman publik (ADR-143).
 
@@ -149,7 +149,7 @@ Tiket di bawah lahir dari temuan review Ridwan, QA Najwa, dan Mark. Semuanya di 
 ### T-159 · Upload foto profil Start Page lewat Storage/Media
 
 `✅ Done` (2026-10-28; branch `feature/t-159-start-page-avatar-upload`, belum di-merge) · **Domain** start-page, media · UI · **ADR** ADR-144, ADR-071, ADR-145 · **Depends** T-072 ✅
-**Baca dulu:** `05-architecture/database-strategy.md` § Storage (bucket `avatars`) · ADR-071 · artifact Postific `project/templates/start-page-editor.html` (rancangan memakai upload)
+**Read first:** `05-architecture/database-strategy.md` § Storage (bucket `avatars`) · ADR-071 · artifact Postific `project/templates/start-page-editor.html` (rancangan memakai upload)
 
 Ganti input URL https dengan unggah file. Supabase JS client hanya untuk Storage. Validasi `avatarUrl` https di sisi render tetap ada.
 
@@ -185,7 +185,7 @@ Ganti input URL https dengan unggah file. Supabase JS client hanya untuk Storage
 ### T-160 · CSP penuh dengan nonce untuk `/u/*`
 
 `✅ Done` (2026-10-28; PR #200, belum di-merge) · **Domain** start-page · infra (`proxy.ts`, `lib/security/public-csp.ts`) · **ADR** ADR-144 · **Depends** T-071 ✅
-**Baca dulu:** `06-engineering/rendering-strategy.md` § RS-D08
+**Read first:** `06-engineering/rendering-strategy.md` § RS-D08
 
 - [x] CSP nonce per request untuk `/u/*` di `proxy.ts`: `script-src 'self' 'nonce-…' 'strict-dynamic'`, `style-src 'self' 'nonce-…'` (tanpa `unsafe-inline`), `frame-ancestors 'none'`, `object-src 'none'`, `base-uri 'self'`, `img-src https:` (avatar https bebas).
 - [x] `upgrade-insecure-requests` sengaja tidak dipasang: memecah `next start` di http localhost; TLS dijamin Railway.
@@ -199,7 +199,7 @@ Ganti input URL https dengan unggah file. Supabase JS client hanya untuk Storage
 ### T-161 · Bersihkan blok DRAFT lama di `project/styles.css` artifact Postific
 
 `✅ Done` (2026-10-28) · **Domain** design (artifact desain) · **ADR** ADR-140, ADR-144 · **Depends** T-073 ✅
-**Baca dulu:** `.claude/skills/claude-design-scope-discipline/SKILL.md` · `context/ctx-design.md`
+**Read first:** `.claude/skills/claude-design-scope-discipline/SKILL.md` · `context/ctx-design.md`
 
 Neymar menghapus blok DRAFT lama (75 baris, Aksen hijau/`accent-bronze`) dari `project/styles.css` artifact Postific (kini v18). Galeri tidak diubah (sudah bersih).
 **Sisa kecil (untuk King Rezi/Neymar, belum diubah):** label "DRAFT T-073" di `s/start-page-theme-presets.html` galeri dan komentar header "STATUS: DRAFT" di blok CSS baru masih lama.
@@ -207,7 +207,7 @@ Neymar menghapus blok DRAFT lama (75 baris, Aksen hijau/`accent-bronze`) dari `p
 ### T-162 · Perbaikan kecil counter dan data Start Page (opsional, prioritas rendah)
 
 `✅ Done` (T-162.1 sampai .3, 2026-10-28; PR #200, belum di-merge; Ridwan tanpa Critical/High, Najwa QA lulus). **T-162.4 tidak dikerjakan** (butuh ADR) · **Domain** start-page · **ADR** ADR-143, ADR-144 · **Depends** T-074 ✅
-**Baca dulu:** ADR-143 § Consequences
+**Read first:** ADR-143 § Consequences
 
 - [x] **T-162.1** `HEAD` tidak dihitung lewat Fetch Metadata (`Sec-Fetch-Dest: document` + `Sec-Fetch-Mode: navigate`, fail-closed; value object `document-navigation.ts`). Next 16 merender `HEAD` sebagai `GET` sehingga method tak bisa dicek. Batasan: Safari <16.4, http non-secure selain localhost, dan sebagian in-app browser tidak terhitung; header bisa dipalsukan (heuristik). Keputusan King Rezi: tetap fail-closed, rasio view terhadap klik dipantau setelah rilis (T-164.6).
 - [x] **T-162.2** `deleteLink` memadatkan `position` dalam satu transaksi. Risiko race LOW diterima; diuji hanya lewat mock dan QA DB lokal.
@@ -219,14 +219,14 @@ Neymar menghapus blok DRAFT lama (75 baris, Aksen hijau/`accent-bronze`) dari `p
 ### T-163 · Token `muted-foreground` mode light memenuhi kontras AA
 
 `✅ Done` (2026-10-28; nilai `#5c5c63`, ADR-147; `globals.css`, `design-tokens.md`, dan token `--muted-foreground` di artifact desain Postific (v21) sudah sama. `color-text-secondary` di `tokens.json` dan `archived/styles.css` artifact juga `#5c5c63`, artifact versi 22) · **Domain** design tokens, UI (seluruh produk) · **ADR** ADR-087, ADR-144 · **Depends** keputusan King Rezi
-**Baca dulu:** `06-engineering/design-tokens.md` § Engineering Mapping (DT-D06)
+**Read first:** `06-engineering/design-tokens.md` § Engineering Mapping (DT-D06)
 
 `--muted-foreground` light (`#83838a`, dipetakan 1:1 dari Stone, ADR-087) hanya 3,4 sampai 3,8:1 di atas latar yang dipakai, di bawah AA 4,5:1. Efeknya seluruh produk, bukan hanya Start Page. **Hasil:** nilai baru `#5c5c63` (6,63:1 card, 5,99:1 background, 5,14:1 fill `--muted`), keputusan di ADR-147. `design-tokens.md` dan `globals.css` sudah diubah; Token `--muted-foreground` di artifact desain Postific (ADR-140) juga sudah diperbarui (Neymar, versi 21).
 
 ### T-164 · Verifikasi staging Start Page: apply migrasi dan uji publik end-to-end
 
 `✅ Done` (2026-10-28; T-164.1 sampai .6 diverifikasi di staging. Dua sisa yang butuh Safari asli dan trafik nyata dipindah ke T-171) · **Domain** start-page · infra · **ADR** ADR-142, ADR-143, ADR-144 · **Depends** PR #200 ✅ (sudah di `staging`)
-**Baca dulu:** ADR-142 § Consequences · ADR-143 § Consequences · T-072 (prasyarat F6)
+**Read first:** ADR-142 § Consequences · ADR-143 § Consequences · T-072 (prasyarat F6)
 
 Tiket ini mencatat verifikasi yang belum dilakukan; tanpanya definisi selesai rilis ("pengguna dapat membagikan halaman publik") belum terbukti.
 
@@ -240,7 +240,7 @@ Tiket ini mencatat verifikasi yang belum dilakukan; tanpanya definisi selesai ri
 ### T-171 · Pantau rasio view/klik Start Page dan cek Safari asli (lanjutan T-164.6)
 
 `🟡 In Progress` (2026-10-29: **T-171.2 ✅ ditutup** dengan hasil iPhone Safari iOS 18; **T-171.1 masih terbuka, menunggu rilis produksi dan trafik nyata**) · **Domain** start-page · infra · **ADR** ADR-143 · **Depends** rilis v0.6 ke produksi dengan trafik nyata
-**Baca dulu:** T-162.1 · T-164.6
+**Read first:** T-162.1 · T-164.6
 
 Dua sisa T-164.6 yang tidak bisa diverifikasi tanpa trafik nyata atau perangkat Apple:
 
@@ -393,7 +393,7 @@ Mode terang tidak terpengaruh (1 keadaan, tanpa perubahan). Ini bertentangan den
 ### T-166 · 404 publik kustom untuk `/u/[slug]` tanpa inline style
 
 `✅ Done` (2026-10-29; rancangan dikonfirmasi King Rezi, kode di PR 217 `fix/start-page-mvp-completion`; terverifikasi di staging 2026-10-29: slug tak ada, halaman draft, Chromium/Firefox/WebKit; sisa: Safari asli) · **Domain** start-page · UI · **ADR** ADR-144 · **Depends** T-160 ✅, rancangan artifact ✅
-**Baca dulu:** `06-engineering/rendering-strategy.md` § RS-D08 · `context/ctx-design.md`
+**Read first:** `06-engineering/rendering-strategy.md` § RS-D08 · `context/ctx-design.md`
 
 404 bawaan Next di `/u/<slug tak ada>` menyuntik `<style>` tanpa nonce (1 pelanggaran `style-src-elem`, kosmetik). Buat `app/u/[slug]/not-found.tsx` tanpa inline style. **Gate UI (aturan #10):** butuh rancangan di artifact Postific dan konfirmasi King Rezi sebelum kode.
 
@@ -406,7 +406,7 @@ Mode terang tidak terpengaruh (1 keadaan, tanpa perubahan). Ini bertentangan den
 ### T-167 · Hardening repository dan tes Start Page (lanjutan code-review PR #200, prioritas rendah)
 
 `✅ Done` (2026-10-29; T-167.1 sampai .5 selesai di kode dan tes, branch `fix/t-167-start-page-hardening`; SQL mentah T-167.1/.3/.4 terbukti di Postgres asli (PGlite WASM, 18 pemeriksaan lolos, 2026-10-29), migrasi diterapkan ke DB staging 2026-10-29; E2E di staging lolos 8/8, plus uji sementara reorder dan pemadatan lewat UI terhadap DB sungguhan; yang belum teruji hanya kunci `FOR UPDATE` antar-transaksi bersamaan) · **Domain** start-page · **ADR** ADR-144 · **Depends** PR #200 di-merge
-**Baca dulu:** `apps/web/src/lib/repositories/start-page/start-page-write.repository.ts` · T-162.2 · T-162.3
+**Read first:** `apps/web/src/lib/repositories/start-page/start-page-write.repository.ts` · T-162.2 · T-162.3
 
 Lahir dari `/code-review` PR #200 (branch `feature/t-070-start-page-public-route`). Tidak ada Critical/High; semuanya hardening, tidak memblokir merge.
 
@@ -419,7 +419,7 @@ Lahir dari `/code-review` PR #200 (branch `feature/t-070-start-page-public-route
 ### T-170 · Toast tidak menutupi tombol aksi di `/start-page`
 
 `✅ Done` (2026-10-28; keputusan King Rezi: `top-center`) · **Domain** UI (`AppToaster`, seluruh area `(app)`) · **ADR** ADR-097 · **Depends** keputusan King Rezi (pola posisi toast)
-**Baca dulu:** `apps/web/src/components/ui/sonner.tsx` · `apps/web/src/app/(app)/components/AppToaster.tsx` · artifact Postific `project/components/Toaster`
+**Read first:** `apps/web/src/components/ui/sonner.tsx` · `apps/web/src/app/(app)/components/AppToaster.tsx` · artifact Postific `project/components/Toaster`
 
 Lahir dari T-164.6 (QA `next dev`, 2026-10-28): toast sonner default (kanan-bawah) menutupi tombol Publish/Unpublish di kartu Share `/start-page` pada viewport 1290px. Toast juga tidak hilang selama kursor di atasnya (sonner berhenti menghitung saat hover), sehingga klik pertama mengenai toast, bukan tombol. Rancangan artifact hanya mengunci komponen Toaster, tidak posisinya. **Gate UI (aturan #10):** pola posisi/penanganan belum dikunci; ditanyakan ke King Rezi sebelum kode.
 

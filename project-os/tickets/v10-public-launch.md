@@ -16,14 +16,14 @@
 ### T-080 · Test coverage repository + Server Actions
 
 `⏳ Not Started` · **Domain** platform · **ADR** ADR-034 · **Depends** —
-**Baca dulu:** `06-engineering/dx-tooling.md`
+**Read first:** `06-engineering/dx-tooling.md`
 
 Saat ini test hanya menutup service domain (`publishing`, `workspace`, `slugify`, enums shared) dengan repository fake. **Belum ada** test untuk implementasi repository Prisma, Server Actions, maupun adapter Outstand. Catatan (diperbarui 2026-10-23): script `test` (`vitest run`) kini ada di root `package.json` dan ratusan test lulus (mis. 919 pada T-140), termasuk test repository Prisma dan adapter Outstand (mis. `import-job.repository.test.ts`, `real-outstand-adapter.test.ts`); yang masih belum ada: test Server Actions, test komponen React, dan E2E.
 
 ### T-081 · E2E test suite
 
 `⏳ Not Started` · **Domain** platform · **ADR** ADR-034, ADR-149 (Playwright dengan Chrome ditetapkan 2026-10-28) · **Depends** T-172 ✅, T-173, T-174 (fondasi E2E) · T-018 ⏸️ Deferred sejak ADR-070, tidak lagi memblokir
-**Baca dulu:** `06-engineering/dx-tooling.md` · `06-engineering/cicd-pipeline.md`
+**Read first:** `06-engineering/dx-tooling.md` · `06-engineering/cicd-pipeline.md`
 
 Framework E2E sudah ditetapkan: Playwright dengan Chrome (ADR-149, spec S-002); fondasinya dibangun di T-172 sampai T-176 (`tickets/v01-foundation.md`). Tiket ini tetap menjadi suite golden path MVP lintas fitur di atas fondasi itu: connect account → buat draft → schedule → lihat hasil. Belum ada test komponen React (tidak ada testing-library).
 
@@ -32,7 +32,7 @@ Framework E2E sudah ditetapkan: Playwright dengan Chrome (ADR-149, spec S-002); 
 ### T-082 · Bug bash & UX polish
 
 `⏳ Not Started` · **Domain** semua · **ADR** — · **Depends** v0.1–v0.6 selesai
-**Baca dulu:** `04-ux/ux-principles.md` · `03-user/user-scenarios.md`
+**Read first:** `04-ux/ux-principles.md` · `03-user/user-scenarios.md`
 
 Sapuan menyeluruh terhadap golden path tiap persona kanonikal (Raka, Maya, Sinta, Dimas, Lara) dan penyelesaian Known Issues yang tersisa.
 
@@ -43,7 +43,7 @@ Sapuan menyeluruh terhadap golden path tiap persona kanonikal (Raka, Maya, Sinta
 ### T-083 · Performance pass
 
 `⏳ Not Started` · **Domain** platform · **ADR** ADR-028 · **Depends** v0.1–v0.6 selesai
-**Baca dulu:** `06-engineering/deployment-infrastructure.md`
+**Read first:** `06-engineering/deployment-infrastructure.md`
 
 Query N+1, indeks database, ukuran bundle, waktu render RSC, dan latensi lintas region (Railway + Supabase co-located di Singapore). Tetapkan target angka sebelum mulai mengoptimalkan.
 
@@ -54,21 +54,21 @@ Query N+1, indeks database, ukuran bundle, waktu render RSC, dan latensi lintas 
 ### T-084 · Security review
 
 `⏳ Not Started` · **Domain** platform · **ADR** ADR-024, ADR-020, ADR-033 · **Depends** T-017 (RLS)
-**Baca dulu:** `05-architecture/auth-architecture.md` · `06-engineering/auth-strategy.md` · `06-engineering/environment-management.md`
+**Read first:** `05-architecture/auth-architecture.md` · `06-engineering/auth-strategy.md` · `06-engineering/environment-management.md`
 
 Cakupan minimal: RLS aktif dan terbukti menolak akses lintas workspace, RBAC ditegakkan di application layer (bukan hanya disembunyikan di UI), rate limiting Better Auth, verifikasi HMAC webhook, penanganan secret, dan tidak ada token pihak ketiga tersimpan di DB internal (ADR-021).
 
 ### T-085 · Audit logs
 
 `⏳ Not Started` · **Domain** platform · **ADR** — · **Depends** T-007, T-008
-**Baca dulu:** `02-product/feature-modules.md` (Infrastructure Modules)
+**Read first:** `02-product/feature-modules.md` (Infrastructure Modules)
 
 Tercatat sebagai Infrastructure Module di `feature-modules.md` tapi belum punya model di schema maupun ADR. Prioritaskan aksi destruktif/berdampak tinggi lebih dulu: Delete Workspace, Transfer Ownership, Remove Member, Disconnect Account.
 
 ### T-086 · Observability & monitoring
 
 `⏳ Not Started` · **Domain** platform · **ADR** — **berpotensi butuh ADR baru** (tool belum ditetapkan) · **Depends** T-027
-**Baca dulu:** `06-engineering/deployment-infrastructure.md` · `05-architecture/background-jobs.md`
+**Read first:** `06-engineering/deployment-infrastructure.md` · `05-architecture/background-jobs.md`
 
 Tercatat sebagai Infrastructure Module tapi tool-nya belum pernah diputuskan. Yang paling dibutuhkan: visibilitas kegagalan background job dan webhook — dua jalur yang gagal tanpa ada pengguna yang melihatnya.
 
@@ -79,14 +79,14 @@ Tercatat sebagai Infrastructure Module tapi tool-nya belum pernah diputuskan. Ya
 ### T-087 · Dokumentasi untuk pengguna
 
 `⏳ Not Started` · **Domain** — · **ADR** — · **Depends** v0.1–v0.6 selesai
-**Baca dulu:** `01-business/product-vision.md` · `03-user/user-personas.md`
+**Read first:** `01-business/product-vision.md` · `03-user/user-personas.md`
 
 Dokumentasi yang dibaca **pengguna produk**, terpisah dari dokumentasi internal di `project-os/` dan `product-discovery/`. Tentukan lokasi dan bentuknya (belum pernah diputuskan).
 
 ### T-088 · Production readiness checklist
 
 `⏳ Not Started` · **Domain** platform · **ADR** ADR-029, ADR-032, ADR-033 · **Depends** semua task di atas
-**Baca dulu:** `06-engineering/cicd-pipeline.md` · `06-engineering/deployment-infrastructure.md` · `06-engineering/environment-management.md`
+**Read first:** `06-engineering/cicd-pipeline.md` · `06-engineering/deployment-infrastructure.md` · `06-engineering/environment-management.md`
 
 Verifikasi jalur staging → production: migrate-on-release, env var lengkap di kedua tier, rollback plan, backup DB, dan domain/DNS. Termasuk KI-028: environment Railway `production` dan project Supabase production belum ada.
 

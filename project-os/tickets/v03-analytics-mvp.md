@@ -17,13 +17,13 @@
 
 ### T-040 · Analytics domain skeleton
 
-| Field         | Value                                                                                                        |
-| ------------- | ------------------------------------------------------------------------------------------------------------ |
-| **Status**    | ✅ Done (2026-08-12)                                                                                         |
-| **Domain**    | analytics                                                                                                    |
-| **ADR**       | ADR-004, ADR-017, ADR-018, ADR-031                                                                           |
-| **Depends**   | T-002 ✅                                                                                                     |
-| **Baca dulu** | `05-architecture/domain-model.md` · `05-architecture/application-layer.md` · `context/ctx-implementation.md` |
+| Field          | Value                                                                                                        |
+| -------------- | ------------------------------------------------------------------------------------------------------------ |
+| **Status**     | ✅ Done (2026-08-12)                                                                                         |
+| **Domain**     | analytics                                                                                                    |
+| **ADR**        | ADR-004, ADR-017, ADR-018, ADR-031                                                                           |
+| **Depends**    | T-002 ✅                                                                                                     |
+| **Read first** | `05-architecture/domain-model.md` · `05-architecture/application-layer.md` · `context/ctx-implementation.md` |
 
 Ikuti konvensi yang sudah dipakai `workspace` + `publishing`: interface repository di `src/domains/analytics/repositories/`, implementasi Prisma di `src/lib/repositories/analytics/`.
 
@@ -36,13 +36,13 @@ Ikuti konvensi yang sudah dipakai `workspace` + `publishing`: interface reposito
 
 ### T-041 · Metric ingestion job dari Outstand
 
-| Field         | Value                                                                         |
-| ------------- | ----------------------------------------------------------------------------- |
-| **Status**    | ✅ Done (2026-08-13)                                                          |
-| **Domain**    | analytics · integration                                                       |
-| **ADR**       | ADR-022, ADR-040, ADR-059, ADR-079                                            |
-| **Depends**   | T-025, T-027, T-040                                                           |
-| **Baca dulu** | `05-architecture/background-jobs.md` · `05-architecture/integration-layer.md` |
+| Field          | Value                                                                         |
+| -------------- | ----------------------------------------------------------------------------- |
+| **Status**     | ✅ Done (2026-08-13)                                                          |
+| **Domain**     | analytics · integration                                                       |
+| **ADR**        | ADR-022, ADR-040, ADR-059, ADR-079                                            |
+| **Depends**    | T-025, T-027, T-040                                                           |
+| **Read first** | `05-architecture/background-jobs.md` · `05-architecture/integration-layer.md` |
 
 **Implementasi T-041.1–T-041.5 (Fake/mock, selesai, 2026-08-13, ADR-079):** dikerjakan lewat Elon Backend Engineer memakai pola Fake yang sama seperti ADR-059 (Real Outstand credentials/T-025/T-027 masih belum ada — KI-003). `IOutstandAdapter` dipromosikan dari domain `publishing` ke `packages/shared/src/contracts/outstand-adapter.ts` (kontrak cross-domain, dipakai bersama oleh `publishing` dan `analytics`), `domains/publishing/adapters/outstand-adapter.ts` dipertahankan sebagai barrel re-export. Method baru `fetchPostMetrics(outstandJobId)` dan `fetchWorkspaceMetrics(outstandAccountId, period)` diimplementasikan di `FakeOutstandAdapter` (`apps/web/src/lib/adapters/outstand/fake-outstand-adapter.ts`) dengan data mock deterministik (hash FNV-1a dari id, bukan random). `AnalyticsIngestionUseCase` baru (`syncPostMetrics`, `syncWorkspaceSnapshot`) dipisah dari `AnalyticsService`, mengikuti pola Use Case terpisah ADR-059 poin 5. `IAnalyticsRepository` di-extend dengan `upsertPostMetrics`/`upsertWorkspaceSnapshot` (Prisma `upsert` asli) di atas unique constraint baru `@@unique([postId, connectedAccountId])` pada `AnalyticsPostMetric` — migration `20260813023329_add_analytics_post_metric_unique` sudah dijalankan ke DB dev Supabase — memenuhi T-041.5 (idempotensi). Frekuensi sync (T-041.3) ditetapkan kandidat harian, bukan 30 menit seperti engagement, sesuai catatan di baseline. Scope di luar T-041 ini: real Outstand API call (tetap T-025), cron/job scheduler asli Railway (tetap T-027), dan perhitungan `topPostId` (query agregat terpisah). Detail keputusan: ADR-079. Detail file & verifikasi: `COMPLETE_TASK.md`.
 
@@ -58,13 +58,13 @@ Ikuti konvensi yang sudah dipakai `workspace` + `publishing`: interface reposito
 
 ### T-042 · Dashboard Home
 
-| Field         | Value                                                                                                                                                                                                                                |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Status**    | ✅ Done (2026-08-13) — seluruh subtask T-042.1–T-042.5 selesai, lolos QA Najwa + review arsitektur Ridwan (tidak ada temuan). Data yang ditampilkan masih dari `FakeOutstandAdapter` (ADR-059/ADR-079), bukan Outstand asli (KI-003) |
-| **Domain**    | analytics · UI                                                                                                                                                                                                                       |
-| **ADR**       | ADR-046 (render di root path section)                                                                                                                                                                                                |
-| **Depends**   | T-040, T-041                                                                                                                                                                                                                         |
-| **Baca dulu** | `04-ux/key-screen-patterns.md` · `04-ux/information-architecture.md`                                                                                                                                                                 |
+| Field          | Value                                                                                                                                                                                                                                |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Status**     | ✅ Done (2026-08-13) — seluruh subtask T-042.1–T-042.5 selesai, lolos QA Najwa + review arsitektur Ridwan (tidak ada temuan). Data yang ditampilkan masih dari `FakeOutstandAdapter` (ADR-059/ADR-079), bukan Outstand asli (KI-003) |
+| **Domain**     | analytics · UI                                                                                                                                                                                                                       |
+| **ADR**        | ADR-046 (render di root path section)                                                                                                                                                                                                |
+| **Depends**    | T-040, T-041                                                                                                                                                                                                                         |
+| **Read first** | `04-ux/key-screen-patterns.md` · `04-ux/information-architecture.md`                                                                                                                                                                 |
 
 Route `/[slug]` (Home) saat ini placeholder. Dashboard adalah **Must Have** MVP.
 
@@ -80,14 +80,14 @@ Route `/[slug]` (Home) saat ini placeholder. Dashboard adalah **Must Have** MVP.
 
 ### T-043 · Post performance metrics
 
-| Field         | Value                                                                                                             |
-| ------------- | ----------------------------------------------------------------------------------------------------------------- |
-| **Status**    | ✅ Done (2026-09-18)                                                                                              |
-| **Domain**    | analytics · UI                                                                                                    |
-| **ADR**       | —                                                                                                                 |
-| **Depends**   | T-041, T-034 (riwayat post)                                                                                       |
-| **Baca dulu** | `04-ux/key-screen-patterns.md`                                                                                    |
-| **Terkait**   | KI-064 (gap dokumentasi `application-layer.md` § Peta Dependency Antar Domain, ditemukan review Ridwan putaran 2) |
+| Field          | Value                                                                                                             |
+| -------------- | ----------------------------------------------------------------------------------------------------------------- |
+| **Status**     | ✅ Done (2026-09-18)                                                                                              |
+| **Domain**     | analytics · UI                                                                                                    |
+| **ADR**        | —                                                                                                                 |
+| **Depends**    | T-041, T-034 (riwayat post)                                                                                       |
+| **Read first** | `04-ux/key-screen-patterns.md`                                                                                    |
+| **Terkait**    | KI-064 (gap dokumentasi `application-layer.md` § Peta Dependency Antar Domain, ditemukan review Ridwan putaran 2) |
 
 - [x] **T-043.1** Query metrik per post + per target akun
 - [x] **T-043.2** UI `/analyze` — tabel performa post, sortable
@@ -104,13 +104,13 @@ Route `/[slug]` (Home) saat ini placeholder. Dashboard adalah **Must Have** MVP.
 
 ### T-046 · Account Overview
 
-| Field         | Value                                                                                                           |
-| ------------- | --------------------------------------------------------------------------------------------------------------- |
-| **Status**    | ✅ Done (2026-09-18)                                                                                            |
-| **Domain**    | analytics · UI                                                                                                  |
-| **ADR**       | —                                                                                                               |
-| **Depends**   | T-041, T-043 (reuse pola halaman `/analyze` yang sudah ada)                                                     |
-| **Baca dulu** | `04-ux/key-screen-patterns.md` · `templates/analyze-dashboard.html` (Claude Design, section "Account Overview") |
+| Field          | Value                                                                                                           |
+| -------------- | --------------------------------------------------------------------------------------------------------------- |
+| **Status**     | ✅ Done (2026-09-18)                                                                                            |
+| **Domain**     | analytics · UI                                                                                                  |
+| **ADR**        | —                                                                                                               |
+| **Depends**    | T-041, T-043 (reuse pola halaman `/analyze` yang sudah ada)                                                     |
+| **Read first** | `04-ux/key-screen-patterns.md` · `templates/analyze-dashboard.html` (Claude Design, section "Account Overview") |
 
 Ringkasan performa per akun/platform di `/analyze` — jumlah post + total reach per akun, direpresentasikan sebagai bar (pola `.bar-track`/`.bar-fill` → shadcn `Progress`, SUDAH dikunci di design-prep T-043 sebagai pola valid, lihat komentar "SYNCED" di `analyze-dashboard.html`, tidak perlu sesi desain ulang — cukup ambil struktur yang sudah ada).
 
@@ -128,13 +128,13 @@ Ringkasan performa per akun/platform di `/analyze` — jumlah post + total reach
 
 ### T-047 · Summary row (/analyze)
 
-| Field         | Value                                                                                                                                                                                             |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**    | ✅ Done (2026-09-18)                                                                                                                                                                              |
-| **Domain**    | analytics · UI                                                                                                                                                                                    |
-| **ADR**       | —                                                                                                                                                                                                 |
-| **Depends**   | T-041, kemungkinan reuse logic mirip `AnalyticsService.getDashboardSummary` (T-042.2) tapi scoped halaman `/analyze` — perlu diputuskan saat implementasi apakah reuse persis atau query terpisah |
-| **Baca dulu** | `templates/analyze-dashboard.html` (Claude Design, section summary-row) · `apps/web/src/app/(app)/components/DashboardHome.tsx` (pola `StatTile` Card yang sudah ada di Home, T-042.3)            |
+| Field          | Value                                                                                                                                                                                             |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**     | ✅ Done (2026-09-18)                                                                                                                                                                              |
+| **Domain**     | analytics · UI                                                                                                                                                                                    |
+| **ADR**        | —                                                                                                                                                                                                 |
+| **Depends**    | T-041, kemungkinan reuse logic mirip `AnalyticsService.getDashboardSummary` (T-042.2) tapi scoped halaman `/analyze` — perlu diputuskan saat implementasi apakah reuse persis atau query terpisah |
+| **Read first** | `templates/analyze-dashboard.html` (Claude Design, section summary-row) · `apps/web/src/app/(app)/components/DashboardHome.tsx` (pola `StatTile` Card yang sudah ada di Home, T-042.3)            |
 
 3 stat card di bagian atas `/analyze` — Total Posts, Total Reach, Engagement Rate untuk period yang dipilih.
 
@@ -152,13 +152,13 @@ Ringkasan performa per akun/platform di `/analyze` — jumlah post + total reach
 
 ### T-044 · Engagement summary
 
-| Field         | Value                                                                           |
-| ------------- | ------------------------------------------------------------------------------- |
-| **Status**    | ✅ Done (2026-09-21)                                                            |
-| **Domain**    | publishing · UI (drift dari `analytics` semula — lihat catatan Update di bawah) |
-| **ADR**       | — (ADR-018 di task doc asli tidak dipakai — lihat catatan Update di bawah)      |
-| **Depends**   | T-041 (tidak lagi terikat v0.4 — lihat catatan Update di bawah)                 |
-| **Baca dulu** | `05-architecture/application-layer.md`                                          |
+| Field          | Value                                                                           |
+| -------------- | ------------------------------------------------------------------------------- |
+| **Status**     | ✅ Done (2026-09-21)                                                            |
+| **Domain**     | publishing · UI (drift dari `analytics` semula — lihat catatan Update di bawah) |
+| **ADR**        | — (ADR-018 di task doc asli tidak dipakai — lihat catatan Update di bawah)      |
+| **Depends**    | T-041 (tidak lagi terikat v0.4 — lihat catatan Update di bawah)                 |
+| **Read first** | `05-architecture/application-layer.md`                                          |
 
 Ringkasan engagement adalah **Must Have** MVP. ~~Ambil data lintas domain lewat public API domain `engagement` — **bukan** query tabel engagement langsung dari analytics.~~ **Deskripsi asli di atas TIDAK lagi berlaku sejak scope-narrowing 2026-09-21 — lihat catatan Update di bawah untuk apa yang benar-benar dibangun.**
 
@@ -187,13 +187,13 @@ Ringkasan engagement adalah **Must Have** MVP. ~~Ambil data lintas domain lewat 
 
 ### T-045 · Comparative reports
 
-| Field         | Value                            |
-| ------------- | -------------------------------- |
-| **Status**    | ✅ Done (2026-09-21)             |
-| **Domain**    | analytics · UI                   |
-| **ADR**       | —                                |
-| **Depends**   | T-042, T-043                     |
-| **Baca dulu** | `02-product/feature-priority.md` |
+| Field          | Value                            |
+| -------------- | -------------------------------- |
+| **Status**     | ✅ Done (2026-09-21)             |
+| **Domain**     | analytics · UI                   |
+| **ADR**        | —                                |
+| **Depends**    | T-042, T-043                     |
+| **Read first** | `02-product/feature-priority.md` |
 
 Berstatus **Should Have** di `feature-priority.md` — boleh ditunda tanpa memblokir rilis. `Custom Reports` dan `AI Insights` berstatus Could Have, **tidak** masuk backlog rilis ini.
 
@@ -217,14 +217,14 @@ Hasil: Overview tab = konten existing `analyze-dashboard.html`, TIDAK diubah sam
 
 ### T-048 · Wire JOB-04 Analytics Sync ke job runner + Railway Cron harian
 
-| Field         | Value                                                                                                                                                                |
-| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**    | ✅ Done — kriteria utama lolos verifikasi staging (2026-10-13); gap infra `cron-analytics` 401 ditutup sebagai **KI-087 Resolved** (2026-10-13)                      |
-| **Domain**    | analytics · integration                                                                                                                                              |
-| **ADR**       | —                                                                                                                                                                    |
-| **Depends**   | T-041 ✅ (Use Case ingestion sudah ada), T-027 ✅ (job runner `/api/jobs/run` sudah ada)                                                                             |
-| **Baca dulu** | `05-architecture/background-jobs.md` § JOB-04 · `apps/web/src/app/api/jobs/run/route.ts` · `apps/web/src/domains/analytics/services/analytics-ingestion.use-case.ts` |
-| **Ditemukan** | 2026-09-28 — investigasi kenapa Home (T-042) masih menampilkan empty state "Belum ada data metrik" meski T-025 (Real OutstandAdapter) sudah selesai.                 |
+| Field          | Value                                                                                                                                                                |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**     | ✅ Done — kriteria utama lolos verifikasi staging (2026-10-13); gap infra `cron-analytics` 401 ditutup sebagai **KI-087 Resolved** (2026-10-13)                      |
+| **Domain**     | analytics · integration                                                                                                                                              |
+| **ADR**        | —                                                                                                                                                                    |
+| **Depends**    | T-041 ✅ (Use Case ingestion sudah ada), T-027 ✅ (job runner `/api/jobs/run` sudah ada)                                                                             |
+| **Read first** | `05-architecture/background-jobs.md` § JOB-04 · `apps/web/src/app/api/jobs/run/route.ts` · `apps/web/src/domains/analytics/services/analytics-ingestion.use-case.ts` |
+| **Ditemukan**  | 2026-09-28 — investigasi kenapa Home (T-042) masih menampilkan empty state "Belum ada data metrik" meski T-025 (Real OutstandAdapter) sudah selesai.                 |
 
 **Gap:** `AnalyticsIngestionUseCase.syncPostMetrics`/`syncWorkspaceSnapshot` (T-041) sudah lengkap dan ditest, tapi baris kode T-041 sendiri mencatat eksplisit "cron/job scheduler asli Railway (tetap T-027) di luar scope". Setelah T-027 selesai, tidak ada task lanjutan yang benar-benar mendaftarkan JOB-04 ke registry — `handlers` di `/api/jobs/run/route.ts` saat ini hanya berisi `RESOLVE_SCHEDULED_POST_OUTCOME_JOB_TYPE` (JOB-01/05) dan `ENGAGEMENT_SYNC_JOB_TYPE` (JOB-03). Akibatnya `AnalyticsWorkspaceSnapshot` tidak pernah terisi di production, dan Home/`/analyze` selalu jatuh ke jalur empty state (bukan bug UI — datanya memang tidak pernah disinkronkan).
 
