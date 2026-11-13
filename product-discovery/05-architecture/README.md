@@ -58,7 +58,7 @@ The following decisions were agreed before this documentation began and are the 
 | Real-time Strategy | In-app notification + manual refresh |
 | Storage | Supabase Storage |
 | Deployment | Railway |
-| Domain Boundary | Pragmatic Boundary — shared types via `packages/shared`, no importing implementations across domains |
+| Domain Boundary | Pragmatic Boundary — shared types via `packages/shared`, must not import implementations across domains |
 
 ---
 

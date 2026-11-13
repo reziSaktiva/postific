@@ -762,7 +762,7 @@ The following rules must be followed across all implementations. These rules are
 
 ## Main Rules
 
-**BR-01 — No Importing Implementations Across Domains**
+**BR-01 — Must Not Import Implementations Across Domains**
 
 A bounded context is forbidden from importing implementation files from another bounded context.
 
