@@ -137,6 +137,22 @@ Percobaan cakupan C (keputusan 2 S-007): sembilan berkas, 948 baris. Dokumen ber
 
 **Blocked by:** T-263
 
+### T-278 · Fix stale AGENTS.md rule-number pointers in context/
+
+`⏳ Todo` · **Mode** AFK · **Verifikasi** lokal · **Domain** project-os, agen · **ADR** ADR-133, ADR-163 · **Spec** S-007 · **Depends** T-266
+**Baca dulu:** `AGENTS.md` (Hard rules 3 to 9) · `context/ctx-architecture.md` · `context/ctx-domain.md` · `context/ctx-implementation.md`
+
+Born from the T-266 language audit (T-266.10). The Indonesian originals already carried these stale rule numbers, so the translation kept them (a translation ticket must not change pointers). Fix the pointers only; no other text changes.
+
+- [ ] **T-278.1** `context/ctx-architecture.md` (about lines 38 to 40): the pointer "AGENTS.md rules 5, 9" for entry points and Supabase points to the real rules 3 and 6.
+- [ ] **T-278.2** `context/ctx-domain.md` (about lines 39 to 40): the pointer "rules 6, 7, 8" for shared types, cross-domain access, and domain without Prisma points to the real rules 4 and 5 (check the exact mapping against `AGENTS.md`).
+- [ ] **T-278.3** `context/ctx-implementation.md` (about lines 97 to 98): "rules 5-8" points to the real rules 3 to 5, and (about line 104) "hard rule 6" for the domain-must-not-import-Prisma rule points to rule 4.
+- [ ] **T-278.4** `bun run docs:check` is clean and a grep of `context/` for "AGENTS.md rule" finds no other stale number.
+
+**Belum terbukti:** tidak ada butir runtime.
+
+**Blocked by:** T-266
+
 ### T-267 · Review the context/ pilot and decide the remaining scope questions
 
 `⏳ Todo` · **Mode** HITL · **Verifikasi** lokal · **Domain** project-os, agen · **ADR** ADR-133, ADR-163 · **Spec** S-007 · **Depends** T-266
