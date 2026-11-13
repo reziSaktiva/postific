@@ -11,7 +11,7 @@ description: >-
 
 # Wave Plan
 
-Step 1 of the wave flow (S-003 § Behavior 2). A spec is the planning unit;
+Step 1 of the wave flow (S-003, Behavior section (Perilaku), item 2). A spec is the planning unit;
 a wave is the frontier at that moment and may cross specs. Basis: ADR-153, ADR-132.
 
 ## Boundaries

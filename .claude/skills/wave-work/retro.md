@@ -1,6 +1,6 @@
 # Wave retro
 
-The last step of `wave-work` (S-003 § Behavior 2, step 11). **Suggestions
+The last step of `wave-work` (S-003, Behavior section (Perilaku), item 2, step 11). **Suggestions
 only:** the retro does not edit rules, skills, scripts, or tickets. King Rezi
 decides which ones to act on, and each becomes its own ticket (ADR-132,
 ADR-133).
