@@ -5,10 +5,11 @@ description: >-
   of work first when no direction is given, computes the frontier (tickets with
   no blockers) from the Depends field, separates AFK and HITL tickets, checks
   for file conflicts against concrete file paths, resolves every open decision
-  with King Rezi one question at a time, then stops at a numbered list plus a
+  with King Rezi in batched rounds, then stops at a numbered list plus a
   machine-readable wave block for King Rezi to approve. Reads documents only;
   safe and cheap to call at any time, including just to see which waves are
-  available. Execution uses the wave-work skill.
+  available. Open decisions are asked in batched rounds. Execution uses the
+  wave-work skill.
 ---
 
 # Wave Plan
@@ -21,6 +22,7 @@ a wave is the frontier at that moment and may cross specs. Basis: ADR-153, ADR-1
 - **Reads documents only.** Does not create branches, worktrees, or commits, and does not change files.
 - Stops at the numbered list King Rezi approves. Execution is started by the `wave-work` skill, only at King Rezi's request.
 - Asking King Rezi a question (steps 0 and 7) is allowed and expected; it changes nothing.
+- Keep the output compact: no prose restating the table, no per-ticket narrative.
 
 ## Steps
 
@@ -35,8 +37,12 @@ a wave is the frontier at that moment and may cross specs. Basis: ADR-153, ADR-1
    - **Footprint unknown** (the ticket is too vague to name files): say so, treat it as conflicting with everything it might touch, and raise it as a decision in step 7 instead of guessing.
    Show the result as a conflict table (see Output).
 5. **Vertical slices:** one lane produces a result that can be seen and tested, not a technical layer. A wide change uses expand, migrate, contract.
-6. **Token economy:** limit concurrent lanes, flag mechanical lanes that may use a lower model and effort, and check the quota before the wave starts.
-7. **Resolve every open decision, one at a time.** Collect every question you cannot answer from the documents: granularity (one ticket per lane or grouped), unknown footprints, an ambiguous AFK/HITL call, which of two conflicting tickets goes first, a ticket that needs a decision before it can start, a model or effort choice, anything else that would change the wave. Then ask them **sequentially**, one `AskUserQuestion` per question, never batched into a single call and never as a numbered list in prose. Each question stands on its own, offers concrete options, and puts your recommendation first marked "(Recommended)". After each answer, re-check whether it changes the frontier, the conflict table, or the remaining questions, and drop or add questions accordingly. Do not present the final list while any decision is unanswered, and do not guess an answer on King Rezi's behalf. Follow `.claude/skills/proactive-clarification/SKILL.md` for the shape of a good question.
+6. **Token economy:** limit concurrent lanes (default 3). Every AFK lane defaults to a lower model and effort (`model_hint: lower`); mark a lane `default` only when the ticket is design-heavy or security/data-critical, and say why. Do not ask a model question per lane unless the answer is not obvious.
+7. **Resolve open decisions in rounds (batched).** Collect every question you cannot answer from the documents: granularity, unknown footprints, an ambiguous AFK/HITL call, which of two conflicting tickets goes first, a ticket that needs a decision before it can start, anything else that would change the wave. Ask all **independent** questions together in one `AskUserQuestion` call (at most 4 per call; split into a second call if more), ordered by impact. A question that depends on another answer waits for the next round. Each question offers concrete options with your recommendation first marked "(Recommended)". After each round, re-check the frontier and conflict table and ask only what is newly open. Anything answerable from the documents is not asked. Do not present the final list while a decision is unanswered, and do not guess for King Rezi. Shape of a good question: `.claude/skills/proactive-clarification/SKILL.md`.
+
+**Close every decision here, so `wave-work` never asks again.** Before the final list, ask what the lanes will otherwise stop to ask: any ticket that needs a migration (ask for King Rezi's permission now, naming the migration, and record it under `gates_preapproved`), defaults for foreseeable choices inside a ticket (naming, copy, option A or B), and what a lane should do when blocked. Every answer goes into `decisions:` in the wave block. Commit, push, and PR actions are not covered here; they stay as in `AGENTS.md` rule 9.
+
+**Read economy:** read the queue file once, ticket sections only by `offset`/`limit`, and each file at most once per plan. Resolve footprints with `Glob`/`Grep` (file names only), never by reading source files.
 
 ## Output
 
@@ -71,6 +77,7 @@ wave:
   approved: false            # becomes true only after King Rezi approves in chat
   max_concurrent_lanes: <n>
   gates_in_order: [<ADR approval | migration permission | merge to staging>, ...]
+  gates_preapproved: []      # e.g. migration names King Rezi approved in step 7
   lanes:
     - lane: <short-name>
       tickets: [<T-xxx>, ...]          # sequential order inside the lane
