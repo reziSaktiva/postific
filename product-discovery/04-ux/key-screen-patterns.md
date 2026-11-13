@@ -512,7 +512,7 @@ This Confirmation Summary is the **most complete** confirmation pattern document
 | Disconnected account | A warning (yellow, warning icon) on the Account Selector and in the network block + a Reconnect action |
 | Validation failed (media required, Pinterest board, Reel not video, schedule outside 30 days) | An inline banner near its source (network block, above the editor, or the footer, see F16); Schedule and Publish Now are disabled until valid (ADR-155) |
 | One account selected | The network block is always open without an accordion (ADR-155) |
-| Narrow screen (below 640px) | A full modal with an Editor / Preview tab below the header; footer stacked; the Fullscreen/Standard and Preview toggles in the header hidden (ADR-155) |
+| Narrow screen (below 640px) | A full modal with an "Editor | Pratinjau" tab below the header; footer stacked; the Fullscreen/Standard and Preview toggles in the header hidden (ADR-155) |
 
 ---
 
@@ -1003,7 +1003,7 @@ Actions that are reversible, low-stakes, or high-frequency (part of the daily co
 | Action | Tier | Reason |
 | --- | --- | --- |
 | Transfer Ownership | Tier 1 | Hands over full control of the workspace; the old Owner cannot undo it unilaterally |
-| Delete Workspace | Tier 1 | Destroys all the workspace's data at once — the most catastrophic in the product |
+| Delete/Hapus Workspace | Tier 1 | Destroys all the workspace's data at once — the most catastrophic in the product |
 | Schedule | Tier 2 (already exists) | Confirmation Summary — KSP-05-F06/F09 |
 | Publish Now | Tier 2 (already exists) | Confirmation Summary variant — KSP-05-F12 (ADR-047) |
 | Disconnect Account | Tier 2 (already exists) | Disconnect Confirmation — KSP-08-F07 (ADR-048) |

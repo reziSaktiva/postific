@@ -202,7 +202,7 @@ Start Page
 └── Share                     — copy the public page URL + Publish/Unpublish
 ```
 
-Basic analytics (total visits in the page-head, clicks per link in the Link List) only appear in the Page Editor, not on the public page. Full numbers (id-ID) below 10,000, abbreviated from 10,000; with no data, `0` + a hint is shown. UI choices and access rights: ADR-144; source of the numbers: ADR-143.
+Basic analytics (total visits in the page-head, clicks per link in the Link List) only appear in the Page Editor, not on the public page. Full numbers (id-ID format) below 10.000, abbreviated from 10.000; with no data, `0` + a hint is shown. UI choices and access rights: ADR-144; source of the numbers: ADR-143.
 
 **Public page unavailable:** an address `/u/<slug>` whose slug does not exist **or** whose page has not been published shows a single custom 404 screen (T-166). The screen stands alone outside the app shell, anonymous with no app navigation: a search icon, the title "Halaman tidak ditemukan", a short description, and the same "Powered by Postific" badge footer as the public page. The copy is deliberately identical for both cases so that draft status does not leak, and with no link or button to the home page. Visual form: the `ScreenStartPageNotFound` screen in the Postific artifact (confirmed by King Rezi, 2026-10-29).
 

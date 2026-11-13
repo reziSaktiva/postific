@@ -49,7 +49,10 @@ The root `package.json` file registers all the workspaces managed by Bun:
 {
   "name": "social-media-management",
   "private": true,
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "dev": "bun run --cwd apps/web dev",
     "build": "bun run --cwd apps/web build",
@@ -172,7 +175,7 @@ src/app/
 │           ├── notifications/
 │           │   └── page.tsx      ← Account → Notification preferences
 │           ├── ai-clients/
-│           │   └── page.tsx      ← Account → AI Clients: list and revoke AI client connections (T-156)
+│           │   └── page.tsx      ← Account → Klien AI: list and revoke AI client connections (T-156)
 │           └── preferences/
 │               └── page.tsx      ← Account → Personal display preferences
 │
