@@ -1,19 +1,19 @@
 /**
- * T-186.2 — pencari lokasi: ID atau kata kunci judul -> `path:baris`.
- * Dihitung saat dijalankan dari dokumen yang ada (tidak ada indeks yang
- * di-commit, karena nomor baris cepat usang).
+ * T-186.2 — locator: ID or title keyword -> `path:line`. Computed at run time
+ * from the existing documents (no committed index, because line numbers go
+ * stale quickly).
  */
 import { type Definition, isId } from "./parse";
 
 export interface Match {
   def: Definition;
-  /** `definition` = ID didefinisikan di sini; `mention` = ID hanya disebut di judul. */
+  /** `definition` = the ID is defined here; `mention` = the ID is only mentioned in a title. */
   how: "definition" | "mention" | "keyword";
 }
 
 const MAX_KEYWORD_RESULTS = 20;
 
-/** `t186` / `T186` / `t-186` -> `T-186`; selain itu dikembalikan apa adanya. */
+/** `t186` / `T186` / `t-186` -> `T-186`; anything else returns null. */
 export function normalizeId(query: string): string | null {
   const trimmed = query.trim();
   const compact = /^([A-Za-z]{1,4})-?(D?\d{2,3}(?:\.\d+)?)$/.exec(trimmed);
@@ -71,13 +71,13 @@ export function locate(
   };
 }
 
-/** Satu baris per hasil: `path:baris  ID  judul  [offset=.. limit=..]`. */
+/** One line per result: `path:line  ID  title  [offset=.. limit=..]`. */
 export function formatMatch({ def, how }: Match): string {
   const where = `${def.path}:${def.line}`;
   const range =
     def.endLine !== undefined
       ? `  [offset=${def.line} limit=${def.endLine - def.line + 1}]`
       : "";
-  const note = how === "mention" ? "  (hanya disebut di judul)" : "";
+  const note = how === "mention" ? "  (only mentioned in a title)" : "";
   return `${where}  ${def.id}  ${def.title}${range}${note}`;
 }

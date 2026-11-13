@@ -1,9 +1,9 @@
 /**
- * T-186 — parser Markdown bersama untuk `docs:where` dan `docs:check`.
+ * T-186 — shared Markdown parser for `docs:where` and `docs:check`.
  *
- * Murni (tanpa I/O): menerima teks, mengembalikan definisi ID, rujukan ID, dan
- * penunjuk path. Semua keluaran membawa nomor baris 1-based supaya bisa dibaca
- * dengan `offset`/`limit`. Blok kode berpagar (```) diabaikan.
+ * Pure (no I/O): takes text, returns ID definitions, ID references, and path
+ * pointers. Every output carries a 1-based line number so it can be read with
+ * `offset`/`limit`. Fenced code blocks (```) are ignored.
  */
 
 /** Bentuk ID: `T-186`, `T-186.1`, `ADR-153`, `S-003`, `KSP-12`, `CI-D03`, `BC-04`. */
@@ -152,8 +152,8 @@ export function parseDefinitions(path: string, text: string): Definition[] {
     }
   });
 
-  // Satu lintasan mundur dengan tumpukan: heading berikutnya yang levelnya
-  // sama atau lebih tinggi untuk tiap heading, tanpa memindai ulang daftar.
+  // One backward pass with a stack: the next heading at the same or a higher
+  // level for each heading, without rescanning the list.
   const nextAtOrAbove = new Map<number, number>();
   const stack: { index: number; level: number }[] = [];
   for (let i = headings.length - 1; i >= 0; i--) {

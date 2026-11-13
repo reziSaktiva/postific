@@ -1,6 +1,6 @@
 /**
- * T-186 — pemuat korpus dokumen: satu-satunya bagian skrip docs yang menyentuh
- * disk. Memilih berkas Markdown project (bukan skill vendor di `skills-lock.json`).
+ * T-186 — document corpus loader: the only part of the docs scripts that touches
+ * the disk. Selects the project's Markdown files (not vendor skills in `skills-lock.json`).
  */
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";

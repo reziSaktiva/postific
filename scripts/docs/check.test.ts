@@ -23,7 +23,7 @@ function cleanTree(): void {
   write("project-os/specs/S-001.md", "# S-001 · First spec\n");
   write(
     "project-os/AVAILABLE_TICKETS.md",
-    "Berikutnya: **T-003**. ID spec berikutnya: **S-002**.\n",
+    "Next: **T-003**. Next spec: **S-002**.\n",
   );
   write("AGENTS.md", "Lihat `project-os/AVAILABLE_TICKETS.md` dan T-001.\n");
 }
@@ -50,7 +50,7 @@ describe("docs:check", () => {
       cleanTree();
       write("AGENTS.md", "Lihat JOB-05 dan T-050 dan T-049.\n");
       expect(runChecks(root).map(formatFinding)).toEqual([
-        "AGENTS.md:1  [id-ref] ID T-050 dirujuk tetapi tidak didefinisikan di dokumen mana pun",
+        "AGENTS.md:1  [id-ref] ID T-050 is referenced but not defined in any document",
       ]);
     });
   });
@@ -61,7 +61,7 @@ describe("docs:check", () => {
       write("AGENTS.md", "Baris satu\nBuka `project-os/MISSING.md` dulu.\n");
       const findings = runChecks(root);
       expect(findings.map(formatFinding)).toEqual([
-        "AGENTS.md:2  [pointer] penunjuk ke `project-os/MISSING.md` tidak ada",
+        "AGENTS.md:2  [pointer] pointer to `project-os/MISSING.md` does not exist",
       ]);
     });
 
@@ -110,7 +110,7 @@ describe("docs:check", () => {
       cleanTree();
       write("context/ctx.md", "Lihat T-777 untuk detail.\n");
       expect(runChecks(root).map(formatFinding)).toEqual([
-        "context/ctx.md:1  [id-ref] ID T-777 dirujuk tetapi tidak didefinisikan di dokumen mana pun",
+        "context/ctx.md:1  [id-ref] ID T-777 is referenced but not defined in any document",
       ]);
     });
 
@@ -132,16 +132,47 @@ describe("docs:check", () => {
     });
   });
 
-  describe('"Berikutnya" counters', () => {
+  describe('"Next" counters', () => {
     it("flags a ticket counter that is not max ID + 1", () => {
+      cleanTree();
+      write(
+        "project-os/AVAILABLE_TICKETS.md",
+        "Next: **T-009**. Next spec: **S-002**.\n",
+      );
+      expect(runChecks(root).map(formatFinding)).toEqual([
+        "project-os/AVAILABLE_TICKETS.md:1  [counter] ticket counter T-009 should be T-003 (max ID + 1)",
+      ]);
+    });
+
+    it("flags a wrong spec counter in the English form", () => {
+      cleanTree();
+      write(
+        "project-os/AVAILABLE_TICKETS.md",
+        "Next: **T-003**. Next spec: **S-007**.\n",
+      );
+      expect(runChecks(root).map(formatFinding)).toEqual([
+        "project-os/AVAILABLE_TICKETS.md:1  [counter] spec counter S-007 should be S-002 (max ID + 1)",
+      ]);
+    });
+
+    it("flags a wrong counter in the old Indonesian form too", () => {
       cleanTree();
       write(
         "project-os/AVAILABLE_TICKETS.md",
         "Berikutnya: **T-009**. ID spec berikutnya: **S-002**.\n",
       );
       expect(runChecks(root).map(formatFinding)).toEqual([
-        "project-os/AVAILABLE_TICKETS.md:1  [counter] penghitung tiket T-009 seharusnya T-003 (ID maksimum + 1)",
+        "project-os/AVAILABLE_TICKETS.md:1  [counter] ticket counter T-009 should be T-003 (max ID + 1)",
       ]);
+    });
+
+    it("accepts the old Indonesian counter keywords during the transition", () => {
+      cleanTree();
+      write(
+        "project-os/AVAILABLE_TICKETS.md",
+        "Berikutnya: **T-003**. ID spec berikutnya: **S-002**.\n",
+      );
+      expect(runChecks(root)).toEqual([]);
     });
 
     it("counts spec IDs only from project-os/specs, not scenario IDs elsewhere", () => {
@@ -152,7 +183,7 @@ describe("docs:check", () => {
 
     it("flags a counter line that is missing", () => {
       cleanTree();
-      write("project-os/AVAILABLE_TICKETS.md", "kosong\n");
+      write("project-os/AVAILABLE_TICKETS.md", "empty\n");
       expect(rules(runChecks(root))).toEqual([
         "counter@project-os/AVAILABLE_TICKETS.md",
         "counter@project-os/AVAILABLE_TICKETS.md",
@@ -189,8 +220,8 @@ describe("docs:check", () => {
       write(".cursorignore", "# komentar\n.env\nsecrets/**\n");
       const messages = runChecks(root).map((f) => `${f.path}: ${f.message}`);
       expect(messages).toEqual([
-        ".claude/settings.json: pola `secrets/**` ada di .cursorignore tetapi tidak di permissions.deny",
-        ".cursorignore: pola `**/*.pem` ada di permissions.deny tetapi tidak di .cursorignore",
+        ".claude/settings.json: pattern `secrets/**` is in .cursorignore but not in permissions.deny",
+        ".cursorignore: pattern `**/*.pem` is in permissions.deny but not in .cursorignore",
       ]);
     });
   });
@@ -232,7 +263,7 @@ describe("docs:check", () => {
       );
       write(
         "project-os/AVAILABLE_TICKETS.md",
-        "Berikutnya: **T-183**. ID spec berikutnya: **S-002**.\n",
+        "Next: **T-183**. Next spec: **S-002**.\n",
       );
       const findings = runChecks(root);
       expect(findings.map((f) => `${f.rule}:${f.line}`)).toEqual([

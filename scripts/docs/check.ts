@@ -1,10 +1,14 @@
 /**
- * T-186.3 — pemeriksa dokumen. `runChecks(root)` membaca disk lewat `corpus.ts`
- * dan mengembalikan temuan `path:baris`; tidak mengubah berkas apa pun.
+ * T-186.3 — document checker. `runChecks(root)` reads the disk through
+ * `corpus.ts` and returns `path:line` findings; it never changes any file.
  *
- * Pemeriksaan: (1) penunjuk path valid, (2) ID yang dirujuk ada, (3) penghitung
- * "Berikutnya" = ID maksimum + 1, (4) pasangan kembar aturan 12 (AGENTS.md) tidak
- * menyimpang, (5) nama folder skill dan judul tiket baru berbahasa Inggris (S-003).
+ * Checks: (1) path pointers are valid, (2) referenced IDs exist, (3) the "Next"
+ * counters = max ID + 1, (4) the rule 12 twin pairs (AGENTS.md) have not
+ * diverged, (5) skill folder names and new ticket titles are in English (S-003).
+ *
+ * Transition (T-265, ADR-163): the counters are recognized in the English form
+ * (`Next:`, `Next spec:`) and the old Indonesian form (`Berikutnya:`,
+ * `spec berikutnya:`) until T-276 replaces the keywords in history files.
  */
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
@@ -31,31 +35,33 @@ export interface Finding {
 }
 
 /**
- * Aturan penamaan Inggris berlaku untuk tiket baru: ID mulai di sini
- * (T-181 = tiket pertama setelah S-003 menetapkan aturannya). Tiket lama
- * berjudul Indonesia dan tidak diganti namanya (ID tidak didaur ulang).
+ * The English naming rule applies to new tickets: IDs start here (T-181 = the
+ * first ticket after S-003 set the rule). Older tickets have Indonesian titles
+ * and are not renamed (IDs are never recycled).
  */
 export const ENGLISH_TITLES_FROM_TICKET = 181;
 
-/** Awalan ID yang tidak diperiksa keberadaannya: KI yang selesai dihapus dari daftar (ADR-067). */
+/** ID prefixes whose existence is not checked: finished KIs are removed from the list (ADR-067). */
 const UNCHECKED_PREFIXES = new Set(["KI"]);
 
 /**
- * ID yang sengaja dirujuk tanpa definisi (T-186.5, disetujui King Rezi 2026-11-02):
- * JOB-05 dan JOB-06 dicadangkan ADR-093 untuk Import Posts, UXP-08 adalah usulan
- * ID baru di ADR-049, T-049 sengaja dikosongkan di v03.
+ * IDs that are deliberately referenced without a definition (T-186.5, approved
+ * by King Rezi 2026-11-02): JOB-05 and JOB-06 are reserved by ADR-093 for Import
+ * Posts, UXP-08 is a proposed new ID in ADR-049, T-049 is deliberately left
+ * empty in v03.
  */
 const RESERVED_IDS = new Set(["JOB-05", "JOB-06", "UXP-08", "T-049"]);
 
 /**
- * Penunjuk yang sengaja menunjuk berkas yang tidak ada (T-186.5): langkah
- * "Update CHANGELOG" di design-tokens.md dibiarkan karena menggantinya mengubah maknanya.
+ * Pointers that deliberately point at a file that does not exist (T-186.5): the
+ * "Update CHANGELOG" step in design-tokens.md is left alone because replacing
+ * it would change its meaning.
  */
 const ALLOWED_POINTERS = new Set([
   "product-discovery/06-engineering/design-tokens.md→../../project-os/CHANGELOG.md",
 ]);
 
-/** Dokumen yang menjadi sumber kebenaran penunjuk (bukan catatan historis). */
+/** Documents that are the source of truth for pointers (not historical records). */
 function inPointerScope(docPath: string): boolean {
   return (
     !/^project-os\/(decisions|tickets|reports|specs)\//.test(docPath) &&
@@ -64,7 +70,7 @@ function inPointerScope(docPath: string): boolean {
   );
 }
 
-/** Kata fungsi dan kata kerja Indonesia yang tidak muncul di judul berbahasa Inggris. */
+/** Indonesian function words and verbs that do not appear in English-language titles. */
 const INDONESIAN_WORDS = new Set([
   "yang",
   "dan",
@@ -176,11 +182,12 @@ function checkIds(docs: Doc[], defs: Definition[]): Finding[] {
     const lines = doc.text.split("\n");
     for (const ref of parseReferences(doc.path, doc.text)) {
       if (ref.inRange || RESERVED_IDS.has(ref.id)) continue;
-      // Penghitung "Berikutnya: **T-NNN**" sengaja menyebut ID yang belum ada;
-      // hanya ID penghitung itu yang dilewati, bukan seluruh baris.
+      // The "Next: **T-NNN**" counter (or the old "Berikutnya: **T-NNN**" form)
+      // deliberately names an ID that does not exist yet; only that counter ID is
+      // skipped, not the whole line.
       const counters = [
         ...lines[ref.line - 1].matchAll(
-          /berikutnya:\s*\*\*([A-Z]{1,4}-\d+)\*\*/gi,
+          /(?:next(?: spec)?|(?:spec )?berikutnya):\s*\*\*([A-Z]{1,4}-\d+)\*\*/gi,
         ),
       ];
       if (counters.some((counter) => counter[1] === ref.id)) continue;
@@ -192,14 +199,14 @@ function checkIds(docs: Doc[], defs: Definition[]): Finding[] {
         rule: "id-ref",
         path: ref.path,
         line: ref.line,
-        message: `ID ${ref.id} dirujuk tetapi tidak didefinisikan di dokumen mana pun`,
+        message: `ID ${ref.id} is referenced but not defined in any document`,
       });
     }
   }
   return findings;
 }
 
-/** Berkas milik artifact desain (ADR-140), bukan repo ini. */
+/** Files that belong to the design artifact (ADR-140), not this repo. */
 const ARTIFACT_ROOTS = /^(project|templates|components|foundations)\//;
 
 const SEARCH_ROOTS = [
@@ -222,9 +229,9 @@ function resolvesPointer(
   const clean = target.replace(/\/$/, "");
   const docDir = path.posix.dirname(docPath);
   if (via === "link") return existsSync(path.join(root, docDir, clean));
-  // Nama berkas tanpa folder terlalu ambigu untuk dipetakan ke satu path.
+  // A bare file name is too ambiguous to map to a single path.
   if (!clean.includes("/")) return true;
-  // Paket npm, URL tanpa skema, dan berkas artifact desain bukan path repo.
+  // npm packages, scheme-less URLs, and design artifact files are not repo paths.
   if (clean.startsWith("@") || ARTIFACT_ROOTS.test(clean)) return true;
   if (/^[^/.][^/]*\.[a-z]{2,}\//.test(clean)) return true;
   return [docDir, ...SEARCH_ROOTS].some((base) =>
@@ -242,7 +249,7 @@ function checkPointers(root: string, docs: Doc[]): Finding[] {
           rule: "pointer",
           path: doc.path,
           line: pointer.line,
-          message: `penunjuk ke \`${pointer.target}\` tidak ada`,
+          message: `pointer to \`${pointer.target}\` does not exist`,
         });
       }
     }
@@ -264,18 +271,18 @@ function checkCounters(root: string, defs: Definition[]): Finding[] {
     pattern: RegExp;
   }[] = [
     {
-      label: "tiket",
+      label: "ticket",
       prefix: "T",
       dir: "project-os/tickets/",
       width: 3,
-      pattern: /Berikutnya:\s*\*\*T-(\d+)\*\*/,
+      pattern: /(?:Next|Berikutnya):\s*\*\*T-(\d+)\*\*/,
     },
     {
       label: "spec",
       prefix: "S",
       dir: "project-os/specs/",
       width: 3,
-      pattern: /spec berikutnya:\s*\*\*S-(\d+)\*\*/i,
+      pattern: /(?:next spec|spec berikutnya):\s*\*\*S-(\d+)\*\*/i,
     },
   ];
   for (const { label, prefix, dir, width, pattern } of counters) {
@@ -287,14 +294,14 @@ function checkCounters(root: string, defs: Definition[]): Finding[] {
         rule: "counter",
         path: file,
         line,
-        message: `penghitung ID ${label} berikutnya tidak ditemukan`,
+        message: `next ${label} ID counter not found`,
       });
     } else if (Number(found[1]) !== expected) {
       findings.push({
         rule: "counter",
         path: file,
         line,
-        message: `penghitung ${label} ${prefix}-${found[1]} seharusnya ${prefix}-${pad(expected, width)} (ID maksimum + 1)`,
+        message: `${label} counter ${prefix}-${found[1]} should be ${prefix}-${pad(expected, width)} (max ID + 1)`,
       });
     }
   }
@@ -306,7 +313,7 @@ function readJson(root: string, file: string): unknown {
   return existsSync(abs) ? JSON.parse(readFileSync(abs, "utf8")) : undefined;
 }
 
-/** JSON.stringify dengan kunci objek terurut, agar urutan kunci tidak dianggap beda. */
+/** JSON.stringify with sorted object keys, so key order is not seen as a difference. */
 function stableStringify(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
   if (value !== null && typeof value === "object") {
@@ -330,7 +337,7 @@ function checkTwins(root: string): Finding[] {
         path: ".cursor/mcp.json",
         line: 1,
         message:
-          "isi menyimpang dari `.mcp.json` (aturan 12: ubah keduanya bersamaan)",
+          "content differs from `.mcp.json` (rule 12: change both together)",
       });
     }
   }
@@ -353,7 +360,7 @@ function checkTwins(root: string): Finding[] {
         rule: "twin-pair",
         path: ".cursorignore",
         line: 1,
-        message: `pola \`${pattern}\` ada di permissions.deny tetapi tidak di .cursorignore`,
+        message: `pattern \`${pattern}\` is in permissions.deny but not in .cursorignore`,
       });
     }
     for (const pattern of ignored.filter((p) => !deny.includes(p))) {
@@ -361,7 +368,7 @@ function checkTwins(root: string): Finding[] {
         rule: "twin-pair",
         path: ".claude/settings.json",
         line: 1,
-        message: `pola \`${pattern}\` ada di .cursorignore tetapi tidak di permissions.deny`,
+        message: `pattern \`${pattern}\` is in .cursorignore but not in permissions.deny`,
       });
     }
   }
@@ -373,7 +380,7 @@ function checkNaming(root: string, defs: Definition[]): Finding[] {
   const skillsDir = path.join(root, ".claude/skills");
   if (existsSync(skillsDir)) {
     const vendor = vendorSkills(root);
-    // Daftar folder lewat korpus tidak cukup (folder tanpa .md); baca langsung.
+    // Listing folders through the corpus is not enough (folders without .md); read directly.
     for (const name of listDirs(skillsDir).filter((n) => !vendor.has(n))) {
       const bad = indonesianWords(name.replace(/-/g, " "));
       if (!/^[a-z][a-z0-9]*(-[a-z0-9]+)*$/.test(name)) {
@@ -381,14 +388,14 @@ function checkNaming(root: string, defs: Definition[]): Finding[] {
           rule: "naming-skill",
           path: `.claude/skills/${name}`,
           line: 1,
-          message: "nama folder skill harus huruf kecil, kebab-case, ASCII",
+          message: "skill folder name must be lowercase, kebab-case, ASCII",
         });
       } else if (bad.length > 0) {
         findings.push({
           rule: "naming-skill",
           path: `.claude/skills/${name}`,
           line: 1,
-          message: `nama folder skill harus berbahasa Inggris (kata Indonesia: ${bad.join(", ")})`,
+          message: `skill folder name must be in English (Indonesian words: ${bad.join(", ")})`,
         });
       }
     }
@@ -408,7 +415,7 @@ function checkNaming(root: string, defs: Definition[]): Finding[] {
         rule: "naming-title",
         path: def.path,
         line: def.line,
-        message: `judul ${def.id} harus berbahasa Inggris (kata Indonesia: ${bad.join(", ")})`,
+        message: `title ${def.id} must be in English (Indonesian words: ${bad.join(", ")})`,
       });
     }
   }

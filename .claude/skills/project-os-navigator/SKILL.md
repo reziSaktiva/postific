@@ -26,7 +26,7 @@ Do not read all the `project-os/` documents in full for every message — that w
 
 1. `project-os/PROJECT_STATE.md` — phase, milestone, Active Conversation Mode, Known Issues, blockers (read the Snapshot first so this context is available before choosing/planning a task)
 2. `project-os/AVAILABLE_TICKETS.md` — the queue; find the relevant task ID
-3. The ticket file named in the File column — `tickets/vXX-*.md`, `tickets/known-issues.md` (ADR-134), `tickets/s004-orchestration-language.md` for S-004, or `tickets/s007-documentation-language.md` for S-007 — **only that ticket's section**. Then open the documents named in the **Docs** / **Baca dulu** field (ADR-131)
+3. The ticket file named in the File column — `tickets/vXX-*.md`, `tickets/known-issues.md` (ADR-134), `tickets/s004-orchestration-language.md` for S-004, or `tickets/s007-documentation-language.md` for S-007 — **only that ticket's section**. Then open the documents named in the **Docs** / **Read first** field (ADR-131)
 4. `project-os/PROJECT_RULES.md` — project rules and principles
 5. `project-os/DECISIONS.md` — the ADR index; open the specific `project-os/decisions/ADR-XXX-*.md` file relevant to this task
 6. `project-os/PROJECT_OVERVIEW.md` — project overview
@@ -123,16 +123,16 @@ agent records the reason in the ticket. The CI gate against staging for
 covers the ADR-149 definition above, `/code-review` and architecture review
 (Ridwan) with no open findings, QA (Najwa) passed, and `typecheck`, `lint`,
 and tests green; a ticket is `✅` at this stage without waiting for merge
-or deploy (ADR-161, amending ADR-153). Each ticket carries a **Verifikasi**
-field: `lokal` (provable locally) or `staging` (some item is provable only
+or deploy (ADR-161, amending ADR-153). Each ticket carries a **Verification**
+field: `local` (provable locally) or `staging` (some item is provable only
 after a deploy). **Verified (staging)** is one verification per wave after one
 deploy of that wave, for things that cannot be proven locally (OAuth behind
 the Railway proxy, `app_runtime` RLS, a real MCP client, multi-instance).
 Staging-only items move to the wave's verification ticket instead of holding
-the originating ticket. The "Belum terbukti" section in the originating ticket
+the originating ticket. The "Not yet proven" section in the originating ticket
 stays mandatory and points to that verification ticket, so `✅` does not hide a
 claim that has not been tested. There is no intermediate
-`🟡 Done (code), menunggu Verified (staging)` status; the only ticket that
+`🟡 Done (code), waiting for Verified (staging)` status; the only ticket that
 stays open for staging is the wave's verification ticket.
 
 **Verification rule: automate first, manual for the rest.** Before handing
