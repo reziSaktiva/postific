@@ -533,7 +533,7 @@ All the services above receive `workspaceId` and `userId` from the grant that pa
 
 ### Draft tools and rate limit (T-152, T-154; ADR-152 Accepted)
 
-**`create_draft` and `update_draft`** (scope `draft`). Caption maximum 5000 characters and media maximum 10 per draft. `update_draft` is only for drafts with status Draft; a Scheduled post is rejected with `conflict` ("Batalkan jadwal di aplikasi dulu") and the source marker does not change. `platformOptions` (e.g. a Pinterest board) cannot be set through MCP. `list_drafts` does not yet return the source marker.
+**`create_draft` and `update_draft`** (scope `draft`). Caption maximum 5000 characters and media maximum 10 per draft. `update_draft` is only for drafts with status Draft; a Scheduled post is rejected with `conflict` ("Post ini sudah dijadwalkan sehingga tidak bisa diubah lewat update_draft. Batalkan jadwalnya di aplikasi Postific lebih dulu bila ingin mengubahnya.") and the source marker does not change. `platformOptions` (e.g. a Pinterest board) cannot be set through MCP. `list_drafts` does not yet return the source marker.
 
 **Rate limit per workspace.** `McpAccessService.consumeQuota(workspaceId, quota, amount)` uses a Postgres fixed window (table `mcp_rate_limit_windows`, `database-strategy.md` BC-04): `calls` per minute, `write_actions` per hour, `scheduled_contents` per day; default limits 60, 30, and 50, changeable via env. A rejection is returned as a `rate_limited` error in the tool result with `retryAfterSeconds`, `quota`, and `limit`, not an HTTP `Retry-After` header (the HTTP response is always 200 for JSON-RPC). Fail-closed if the counter fails. Usage by the `schedule_posts` tool is set in T-153.
 

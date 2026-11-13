@@ -225,7 +225,7 @@ Answers: _through which path does a request enter, and which layer may touch wha
 
 The full text of the 5 layer rules (Entry Points without business logic, Domain Logic
 without importing Prisma/Supabase/Outstand, cross-domain through the public API, shared
-types only in `packages/shared`) is in **`../AGENTS.md` rules 5-9** — not
+types only in `packages/shared`) is in **`../AGENTS.md` rules 3-6** — not
 copied here. For Figma diagram labels, just use the layer names from the
 Frame 2.1 diagram above (Entry Points / Application Service / Domain Logic /
 Repository / Infrastructure).
