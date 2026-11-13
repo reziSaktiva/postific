@@ -48,7 +48,7 @@ Publishing MVP persistence, ADR-052 Stage 3, etc.).
 Created 2026-08-31 through the **Accept Invite (T-093)** flow that had just
 been implemented — Raka Pratama (Owner) invited via Settings → Members →
 Invite Member (role Admin, Copy Link method), then the `/invite/{token}` link
-was opened to fill in Name + Password ("New Email" state, email locked to the
+was opened to fill in Name + Password ("Email Baru" state, email locked to the
 invitation). It landed successfully in the same workspace (workspace
 "Insvire") with the Admin role — used as proof that T-093 works end-to-end
 and as the second account for RBAC verification (KI-038, T-093.4: Owner vs

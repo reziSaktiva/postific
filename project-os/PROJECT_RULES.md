@@ -104,7 +104,7 @@ A document that only grows. Old entries must not be edited or deleted.
 
 **One explicit exception (found as a gap on 2026-08-12; this practice had been running since ADR-056/057 before it was written down here):** the `Status` column on an old ADR row in `DECISIONS.md` AND the `### Status` header in the corresponding `decisions/ADR-XXX.md` file **may** be edited — but **only** to add/complete the tag `Accepted — Amended by ADR-YYY (date)` when a new ADR amends it. This is purely two-way cross-reference metadata, not a change to the decision/content of the old ADR. The Decision/Reason/Alternatives Considered content of an old ADR still **must not be changed**. If a new ADR states "amends ADR-XXX" in its body, the ADR-XXX row in `DECISIONS.md` and the Status header in the file `decisions/ADR-XXX-*.md` **must** be updated at the same time (do not postpone) — this gap is what left 14 old ADRs (ADR-005 onward) untagged until they were audited and backfilled.
 
-**Second explicit exception (ADR-163, 2026-11-12):** in tickets, ADRs, and other history documents, **only document keywords** (e.g. "Berikutnya", "Belum terbukti", "Baca dulu", the status legend, and column names; the list of equivalents is in the S-007 script ticket) may be replaced with English. The decision content, numbers, IDs, links, and prose still must not be changed. The replacement is done once, in a ticket of its own, and checked with `bun run docs:check` and `docs-consistency-audit`.
+**Second explicit exception (ADR-163, 2026-11-12):** in tickets, ADRs, and other history documents, **only document keywords** (e.g. "Berikutnya", "Belum terbukti", "Baca dulu", the status legend, and column names; the list of equivalents is in ticket T-264, `project-os/tickets/s007-documentation-language.md`) may be replaced with English. The decision content, numbers, IDs, links, and prose still must not be changed. The replacement is done once, in a ticket of its own, and checked with `bun run docs:check` and `docs-consistency-audit`.
 
 Includes:
 
@@ -118,7 +118,7 @@ Includes:
 - A README **must not** contain status (✅ ⏳ 🟡), progress (%), or the active phase.
 - Folder status, milestone, and phase may be shown only in `PROJECT_STATE.md`.
 - **Exception (ADR-062, ADR-131, ADR-134):** per-task status is shown in `AVAILABLE_TICKETS.md` (unfinished ones), `tickets/vXX-*.md` (release tickets), and `tickets/known-issues.md` (tickets from a Known Issue). This exception does **not** extend to phase, milestone, or overall progress — those three remain exclusive to `PROJECT_STATE.md`, and remain forbidden in a README and in any other Static Reference document.
-- **Known Issues (ADR-066, ADR-067, ADR-131, ADR-132):** every KI uses an ID `KI-XXX` that is never recycled. An open KI has a ticket. Its row in `PROJECT_STATE.md` points to that ticket. A KI leaves the list when its closing ticket is finished.
+- **Known Issues (ADR-066, ADR-067, ADR-131, ADR-132):** every KI uses an ID `KI-XXX` that is not recycled. An open KI has a ticket. Its row in `PROJECT_STATE.md` points to that ticket. A KI leaves the list when its closing ticket is finished.
 - Every structural change to a Static Reference document must be recorded as an ADR or in the related ticket.
 
 ## Document Size Guardrail (Living/Append-Only)
