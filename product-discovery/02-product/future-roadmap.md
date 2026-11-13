@@ -1,26 +1,26 @@
 # Future Roadmap
 
-Dokumen ini mendefinisikan arah pengembangan jangka panjang untuk produk **Postific** setelah fase MVP dan Public Launch.
+This document defines the long-term development direction for the **Postific** product after the MVP and Public Launch phases.
 
-Tujuan utama dokumen ini adalah mendokumentasikan peluang pengembangan produk tanpa memengaruhi prioritas roadmap saat ini.
+Its main purpose is to document product development opportunities without affecting the current roadmap priorities.
 
-Seluruh fitur pada dokumen ini bersifat **future consideration** dan bukan bagian dari ruang lingkup MVP.
+Every feature in this document is a **future consideration** and not part of the MVP scope.
 
 ---
 
 # Overview
 
-Setelah produk mencapai Product-Market Fit, pengembangan akan difokuskan pada peningkatan nilai bagi pelanggan, perluasan kapabilitas platform, dan ekspansi bisnis.
+After the product reaches Product-Market Fit, development will focus on increasing customer value, expanding platform capabilities, and business expansion.
 
-Roadmap ini bukan merupakan daftar pekerjaan yang harus segera dikerjakan, melainkan panduan arah evolusi produk dalam jangka panjang.
+This roadmap is not a list of work that must be done right away, but a guide to the direction of the product's long-term evolution.
 
 ---
 
 # Long-Term Product Vision
 
-Produk diharapkan berkembang dari platform **Postific** menjadi **Marketing Operations Platform** yang membantu tim mengelola seluruh workflow pemasaran digital secara terintegrasi.
+The product is expected to grow from the **Postific** platform into a **Marketing Operations Platform** that helps teams manage the whole digital marketing workflow in an integrated way.
 
-Perkembangan tersebut dilakukan secara bertahap berdasarkan kebutuhan pengguna dan validasi bisnis.
+This growth is done in stages based on user needs and business validation.
 
 ---
 
@@ -28,9 +28,9 @@ Perkembangan tersebut dilakukan secara bertahap berdasarkan kebutuhan pengguna d
 
 ## Collaboration
 
-Peningkatan kemampuan kolaborasi tim.
+Improved team collaboration capabilities.
 
-Contoh:
+Examples:
 
 * Approval Workflow
 * Task Assignment
@@ -42,28 +42,28 @@ Contoh:
 
 ## AI Expansion
 
-Postific tidak membangun AI sendiri (ADR-138). Perluasan di sini adalah use case
-yang dimungkinkan oleh MCP Server dan dikerjakan oleh AI klien milik pengguna,
-bukan fitur bawaan Postific.
+Postific does not build its own AI (ADR-138). The expansion here consists of use
+cases made possible by the MCP Server and done by the user's own client AI,
+not built-in Postific features.
 
-Contoh use case yang dimungkinkan MCP (dikerjakan AI klien):
+Examples of use cases made possible by MCP (done by the client AI):
 
-* Perencanaan content calendar oleh AI klien
-* Analisis performa dari data analytics yang dibaca lewat tool MCP
-* Strategi konten dan perencanaan kampanye oleh AI klien
-* Rekomendasi tren oleh AI klien
+* Content calendar planning by the client AI
+* Performance analysis from analytics data read through MCP tools
+* Content strategy and campaign planning by the client AI
+* Trend recommendations by the client AI
 
-Postific hanya menyediakan tool MCP dan jejak kerja AI. Agent otonom yang
-mempublikasikan tanpa kendali pengguna tidak masuk roadmap (ditolak, lihat
+Postific only provides MCP tools and the trail of the AI's work. An autonomous agent
+that publishes without user control is not on the roadmap (rejected, see
 `feature-priority.md`).
 
 ---
 
 ## Analytics Expansion
 
-Pengembangan kemampuan analitik.
+Development of analytics capabilities.
 
-Contoh:
+Examples:
 
 * Custom Reports
 * Competitor Benchmark
@@ -76,9 +76,9 @@ Contoh:
 
 ## Publishing Expansion
 
-Peningkatan workflow publikasi.
+Improvements to the publishing workflow.
 
-Contoh:
+Examples:
 
 * Bulk Scheduling
 * Recurring Posts
@@ -90,9 +90,9 @@ Contoh:
 
 ## Integrations
 
-Perluasan integrasi dengan layanan pihak ketiga.
+Expanded integrations with third-party services.
 
-Contoh:
+Examples:
 
 * Google Drive
 * Dropbox
@@ -107,9 +107,9 @@ Contoh:
 
 ## Mobile Experience
 
-Pengembangan aplikasi mobile.
+Development of mobile applications.
 
-Kemungkinan meliputi:
+May include:
 
 * iOS Application
 * Android Application
@@ -121,9 +121,9 @@ Kemungkinan meliputi:
 
 ## Public API
 
-Menyediakan API publik untuk developer.
+Providing a public API for developers.
 
-Kemungkinan meliputi:
+May include:
 
 * REST API
 * Webhooks
@@ -135,9 +135,9 @@ Kemungkinan meliputi:
 
 ## Enterprise Features
 
-Fitur yang ditujukan untuk organisasi berskala besar.
+Features aimed at large-scale organizations.
 
-Contoh:
+Examples:
 
 * Single Sign-On (SSO)
 * Advanced Permissions
@@ -150,7 +150,7 @@ Contoh:
 
 # Product Expansion
 
-Dalam jangka panjang, produk dapat diperluas ke area berikut apabila selaras dengan visi bisnis:
+In the long term, the product may be extended into the following areas if aligned with the business vision:
 
 * Social Listening
 * Campaign Management
@@ -159,61 +159,61 @@ Dalam jangka panjang, produk dapat diperluas ke area berikut apabila selaras den
 * Customer Relationship Integration
 * Marketing Automation
 
-Keputusan ekspansi akan mempertimbangkan hasil validasi pasar dan kebutuhan pelanggan.
+Expansion decisions will consider market validation results and customer needs.
 
 ---
 
 # Evaluation Principles
 
-Setiap peluang pengembangan harus dievaluasi berdasarkan:
+Every development opportunity must be evaluated based on:
 
-* Nilai bagi pelanggan.
-* Kesesuaian dengan Product Vision.
-* Dampak terhadap kompleksitas produk.
-* Kelayakan teknis.
-* Dampak bisnis.
-* Data penggunaan produk.
+* Value to customers.
+* Fit with the Product Vision.
+* Impact on product complexity.
+* Technical feasibility.
+* Business impact.
+* Product usage data.
 
-Tidak semua ide harus diwujudkan menjadi fitur.
+Not every idea has to become a feature.
 
 ---
 
 # Current Status
 
-Status seluruh item pada dokumen ini:
+Status of all items in this document:
 
 **Future Consideration**
 
-Belum menjadi bagian dari roadmap implementasi aktif.
+Not yet part of the active implementation roadmap.
 
 ---
 
 # Success Criteria
 
-Future Roadmap dianggap selesai apabila:
+Future Roadmap is considered complete when:
 
-* Arah pengembangan jangka panjang telah terdokumentasi.
-* Peluang ekspansi produk telah diidentifikasi.
-* Tidak ada item yang bertentangan dengan Product Vision.
-* Dokumen dapat menjadi referensi ketika menyusun roadmap setelah v1.0.
+* The long-term development direction has been documented.
+* Product expansion opportunities have been identified.
+* No item conflicts with the Product Vision.
+* The document can serve as a reference when drafting the roadmap after v1.0.
 
 ---
 
 # Decision Rules
 
-Penambahan atau penghapusan arah pengembangan harus didasarkan pada:
+Adding or removing a development direction must be based on:
 
-* Feedback pengguna.
-* Data penggunaan produk.
-* Perubahan strategi bisnis.
-* Perubahan teknologi.
-* Validasi Product-Market Fit.
+* User feedback.
+* Product usage data.
+* Changes in business strategy.
+* Changes in technology.
+* Product-Market Fit validation.
 
-Perubahan penting harus dicatat pada:
+Important changes must be recorded in:
 
 * `../../project-os/DECISIONS.md`
 
-Perubahan status roadmap harus diperbarui pada:
+Roadmap status changes must be updated in:
 
 * `../../project-os/PROJECT_STATE.md`
 

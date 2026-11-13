@@ -1,18 +1,18 @@
 # Feature Priority
 
-Dokumen ini mendefinisikan prioritas pengembangan seluruh fitur pada produk **Postific**.
+This document defines the development priority of every feature of the **Postific** product.
 
-Prioritas ditentukan berdasarkan nilai bisnis, kebutuhan pengguna, kompleksitas implementasi, dan kontribusi terhadap Product-Market Fit.
+Priority is determined by business value, user needs, implementation complexity, and contribution to Product-Market Fit.
 
-Dokumen ini menjadi acuan utama dalam penyusunan roadmap dan urutan implementasi.
+This document is the main reference for drafting the roadmap and the implementation order.
 
 ---
 
 # Overview
 
-Tidak semua fitur memiliki tingkat kepentingan yang sama.
+Not all features are equally important.
 
-Oleh karena itu, setiap fitur diklasifikasikan menggunakan metode **MoSCoW** agar pengembangan tetap fokus pada fitur yang memberikan nilai terbesar bagi pengguna.
+For that reason, every feature is classified using the **MoSCoW** method so that development stays focused on the features that give users the most value.
 
 ---
 
@@ -20,33 +20,33 @@ Oleh karena itu, setiap fitur diklasifikasikan menggunakan metode **MoSCoW** aga
 
 ## Must Have
 
-Fitur yang wajib tersedia agar produk dapat digunakan oleh target pengguna.
+Features that must be available for the product to be usable by the target users.
 
-Tanpa fitur ini, produk tidak dapat memenuhi tujuan utama MVP.
+Without these features, the product cannot meet the main goal of the MVP.
 
 ---
 
 ## Should Have
 
-Fitur yang sangat bermanfaat namun masih dapat ditunda apabila diperlukan.
+Features that are very useful but can still be postponed if needed.
 
-Produk tetap dapat berjalan tanpa fitur ini.
+The product can still run without these features.
 
 ---
 
 ## Could Have
 
-Fitur yang memberikan peningkatan pengalaman pengguna, tetapi bukan kebutuhan utama.
+Features that improve the user experience but are not a main requirement.
 
-Implementasi bergantung pada waktu, sumber daya, dan hasil validasi produk.
+Implementation depends on time, resources, and product validation results.
 
 ---
 
 ## Won't Have (Current Release)
 
-Fitur yang secara sadar tidak akan dikembangkan pada fase saat ini.
+Features that will deliberately not be developed in the current phase.
 
-Bukan berarti fitur tersebut tidak penting, tetapi bukan prioritas untuk mencapai tujuan MVP.
+This does not mean these features are unimportant, but they are not a priority for reaching the MVP goal.
 
 ---
 
@@ -81,7 +81,7 @@ Bukan berarti fitur tersebut tidak penting, tetapi bukan prioritas untuk mencapa
 ### Must Have
 
 * Content Draft
-* Content Format Selection (Post / Reel / Story pada IG & FB; Pin pada Pinterest; default Post pada platform lain — ADR-039)
+* Content Format Selection (Post / Reel / Story on IG & FB; Pin on Pinterest; default Post on other platforms — ADR-039)
 * Schedule Post
 * Calendar View
 * Queue Management
@@ -118,7 +118,7 @@ Bukan berarti fitur tersebut tidak penting, tetapi bukan prioritas untuk mencapa
 ### Could Have
 
 * Custom Reports
-* AI Insights (dikerjakan AI klien lewat MCP, bukan fitur Postific)
+* AI Insights (done by the client's AI through MCP, not a Postific feature)
 
 ### Won't Have
 
@@ -133,12 +133,12 @@ Bukan berarti fitur tersebut tidak penting, tetapi bukan prioritas untuk mencapa
 * Comments
 * Comments Inbox
 * Reply Comments
-* Periodic Sync setiap 30 menit
+* Periodic Sync every 30 minutes
 * Manual Refresh
 
 ### Should Have
 
-* Status komentar (Belum dibalas, Dibalas, Selesai, Diabaikan) dan pengelompokan komentar per posting (ADR-157; peningkatan setelah MVP, DoD v0.4 sudah terpenuhi tanpa ini)
+* Comment status (Belum dibalas, Dibalas, Selesai, Diabaikan) and grouping comments by post (ADR-157; post-MVP improvement, the v0.4 DoD is already met without this)
 
 ### Could Have
 
@@ -157,20 +157,20 @@ Bukan berarti fitur tersebut tidak penting, tetapi bukan prioritas untuk mencapa
 
 ### Must Have
 
-* Koneksi OAuth per workspace dengan scope (`read`, `draft`, `schedule`)
-* Tool baca (akun, media, draft, antrean, history, analytics, komentar)
-* Tool draft (buat, edit, unggah media dari URL)
-* Tool jadwal (`schedule_posts`, batch)
-* Audit panggilan dan rate limit per workspace
-* Pencabutan koneksi klien AI
-* Penanda sumber MCP ("dibuat lewat MCP"): badge dan filter sumber di History, Drafts, dan Queue (Calendar tanpa badge)
+* OAuth connection per workspace with scopes (`read`, `draft`, `schedule`)
+* Read tools (accounts, media, drafts, queue, history, analytics, comments)
+* Draft tools (create, edit, upload media from a URL)
+* Schedule tools (`schedule_posts`, batch)
+* Call audit and rate limit per workspace
+* Revoking an AI client connection
+* MCP source marker ("dibuat lewat MCP"): badge and source filter in History, Drafts, and Queue (Calendar has no badge)
 
 ### Won't Have
 
-* Publish Now lewat MCP (ditunda, ADR-138)
-* Balas komentar lewat MCP (ditunda, ADR-138)
-* Aksi destruktif dan administratif lewat MCP (hapus, batalkan jadwal, kelola member/role, disconnect akun)
-* AI bawaan Postific (dicabut, ADR-138)
+* Publish Now through MCP (postponed, ADR-138)
+* Reply to comments through MCP (postponed, ADR-138)
+* Destructive and administrative actions through MCP (delete, cancel schedule, manage members/roles, disconnect accounts)
+* Built-in Postific AI (removed, ADR-138)
 * Autonomous AI Agent
 
 ---
@@ -198,37 +198,37 @@ Bukan berarti fitur tersebut tidak penting, tetapi bukan prioritas untuk mencapa
 
 # Prioritization Principles
 
-Penentuan prioritas dilakukan berdasarkan prinsip berikut:
+Priorities are determined based on the following principles:
 
-* Memberikan nilai langsung kepada pengguna.
-* Mendukung tujuan MVP.
-* Mengurangi kompleksitas implementasi.
-* Mempercepat validasi Product-Market Fit.
-* Memiliki dampak bisnis yang tinggi.
+* Give users direct value.
+* Support the MVP goal.
+* Reduce implementation complexity.
+* Speed up Product-Market Fit validation.
+* Have a high business impact.
 
 ---
 
 # Review Process
 
-Prioritas fitur akan dievaluasi secara berkala berdasarkan:
+Feature priorities will be evaluated periodically based on:
 
-* Feedback pengguna.
-* Data penggunaan produk.
-* Perubahan kebutuhan bisnis.
-* Perubahan strategi produk.
+* User feedback.
+* Product usage data.
+* Changes in business needs.
+* Changes in product strategy.
 
-Perubahan prioritas harus terdokumentasi.
+Priority changes must be documented.
 
 ---
 
 # Success Criteria
 
-Feature Priority dianggap selesai apabila:
+Feature Priority is considered complete when:
 
-* Seluruh fitur telah memiliki tingkat prioritas.
-* Prioritas selaras dengan tujuan MVP.
-* Urutan pengembangan dapat ditentukan.
-* Roadmap implementasi dapat disusun berdasarkan dokumen ini.
+* Every feature has a priority level.
+* Priorities are aligned with the MVP goal.
+* The development order can be determined.
+* The implementation roadmap can be drafted based on this document.
 
 ---
 

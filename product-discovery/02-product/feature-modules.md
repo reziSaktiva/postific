@@ -1,20 +1,20 @@
 # Feature Modules
 
-Dokumen ini mendefinisikan pembagian fitur ke dalam modul-modul produk.
+This document defines how features are divided into product modules.
 
-Tujuan utama dokumen ini adalah memastikan setiap kemampuan produk memiliki batas tanggung jawab yang jelas sebelum memasuki tahap UX dan Architecture.
+Its main purpose is to make sure every product capability has a clear responsibility boundary before entering the UX and Architecture stages.
 
-Modul yang didefinisikan di sini merupakan representasi domain bisnis, bukan struktur halaman ataupun struktur source code.
+The modules defined here represent the business domain, not the page structure or the source code structure.
 
 ---
 
 # Overview
 
-Produk dibangun menggunakan pendekatan modular.
+The product is built using a modular approach.
 
-Setiap modul memiliki tanggung jawab yang spesifik dan dapat berkembang secara independen tanpa mengganggu modul lainnya.
+Each module has a specific responsibility and can evolve independently without disrupting the other modules.
 
-Pendekatan ini mendukung pengembangan yang lebih terstruktur, mudah dipelihara, dan lebih mudah diskalakan.
+This approach supports development that is more structured, easier to maintain, and easier to scale.
 
 ---
 
@@ -22,7 +22,7 @@ Pendekatan ini mendukung pengembangan yang lebih terstruktur, mudah dipelihara, 
 
 ## Workspace
 
-Mengelola organisasi yang menggunakan platform.
+Manages the organizations that use the platform.
 
 Responsibilities:
 
@@ -37,7 +37,7 @@ Responsibilities:
 
 ## Publishing
 
-Mengelola seluruh siklus publikasi konten.
+Manages the entire content publishing lifecycle.
 
 Responsibilities:
 
@@ -52,7 +52,7 @@ Responsibilities:
 
 ## Analytics
 
-Mengelola data performa media sosial.
+Manages social media performance data.
 
 Responsibilities:
 
@@ -65,39 +65,39 @@ Responsibilities:
 
 ## Engagement
 
-Mengelola komentar audiens dan reply dari satu inbox.
+Manages audience comments and replies from a single inbox.
 
 Responsibilities:
 
 * Comments
 * Comment Replies
 * Comments Inbox
-* Periodic Sync setiap 30 menit
+* Periodic Sync every 30 minutes
 * Manual Refresh
 
-Peningkatan setelah MVP (Should Have, ADR-157): status komentar dan pengelompokan per posting.
+Post-MVP improvements (Should Have, ADR-157): comment status and grouping by post.
 
-Direct Message, mention, dan webhook engagement bukan responsibility MVP modul ini (ADR-040).
+Direct Messages, mentions, and engagement webhooks are not MVP responsibilities of this module (ADR-040).
 
 ---
 
 ## MCP Server
 
-Mengekspos aksi produk ke AI milik pengguna lewat MCP (ADR-138). Tidak
-berisi AI sendiri.
+Exposes product actions to the user's own AI through MCP (ADR-138). Contains
+no AI of its own.
 
 Responsibilities:
 
-* Otorisasi OAuth per workspace dan per scope
-* Tool baca, draft, dan jadwal yang membungkus Application Service
-* Audit panggilan dan penanda sumber MCP
+* OAuth authorization per workspace and per scope
+* Read, draft, and schedule tools that wrap the Application Service
+* Call audit and MCP source marker
 * Rate limit per workspace
 
 ---
 
 ## Start Page
 
-Mengelola halaman publik pengguna.
+Manages the user's public page.
 
 Responsibilities:
 
@@ -110,7 +110,7 @@ Responsibilities:
 
 # Supporting Modules
 
-Modul yang mendukung operasional produk namun bukan inti bisnis.
+Modules that support product operations but are not the business core.
 
 ## Authentication
 
@@ -175,7 +175,7 @@ Responsibilities:
 
 # Infrastructure Modules
 
-Modul teknis yang mendukung seluruh sistem.
+Technical modules that support the whole system.
 
 * API Integrations
 * Webhooks
@@ -184,26 +184,26 @@ Modul teknis yang mendukung seluruh sistem.
 * Background Jobs
 * Monitoring
 
-Detail implementasi akan dibahas pada fase Architecture.
+Implementation details will be covered in the Architecture phase.
 
 ---
 
 # Module Relationships
 
-Hubungan antar modul mengikuti prinsip berikut:
+Relationships between modules follow these principles:
 
-* Setiap modul memiliki tanggung jawab yang jelas.
-* Modul saling berinteraksi melalui kontrak yang terdefinisi.
-* Tidak ada modul yang menjadi pusat dari seluruh logika bisnis.
-* Ketergantungan antar modul harus diminimalkan.
+* Each module has a clear responsibility.
+* Modules interact through defined contracts.
+* No module becomes the center of all business logic.
+* Dependencies between modules must be minimized.
 
-Diagram hubungan modul akan dibuat pada fase Architecture.
+The module relationship diagram will be created in the Architecture phase.
 
 ---
 
 # Module Design Principles
 
-Seluruh modul mengikuti prinsip berikut:
+All modules follow these principles:
 
 * Single Responsibility.
 * High Cohesion.
@@ -216,13 +216,13 @@ Seluruh modul mengikuti prinsip berikut:
 
 # Success Criteria
 
-Feature Modules dianggap selesai apabila:
+Feature Modules is considered complete when:
 
-* Seluruh domain utama telah diidentifikasi.
-* Tanggung jawab setiap modul telah didefinisikan.
-* Modul pendukung telah dipisahkan dari modul inti.
-* Hubungan antar modul telah dipahami.
-* Dokumen dapat digunakan sebagai dasar penyusunan arsitektur sistem.
+* All main domains have been identified.
+* The responsibilities of each module have been defined.
+* Supporting modules have been separated from core modules.
+* Relationships between modules are understood.
+* The document can be used as the basis for drafting the system architecture.
 
 ---
 
