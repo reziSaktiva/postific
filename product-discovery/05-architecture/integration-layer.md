@@ -1,38 +1,38 @@
 # Integration Layer
 
-Dokumen ini mendefinisikan **Integration Layer** untuk produk **Postific** — arsitektur integrasi dengan Outstand API sebagai social media integration provider, meliputi Anti-Corruption Layer, ConnectedAccount management, publishing flow, webhook handling, engagement sync, analytics sync, dan strategi error handling.
+This document defines the **Integration Layer** for the **Postific** product — the integration architecture with the Outstand API as the social media integration provider, covering the Anti-Corruption Layer, ConnectedAccount management, the publishing flow, webhook handling, engagement sync, analytics sync, and the error handling strategy.
 
-Dokumen ini menjadi acuan desain integrasi eksternal dan tidak mencakup implementasi kode. Detail implementasi (HTTP client, retry library, folder structure) didokumentasikan di Engineering Planning (M6).
-
----
-
-# Tujuan
-
-* Mendefinisikan posisi Outstand API dalam arsitektur sistem.
-* Menetapkan Anti-Corruption Layer (ACL) sebagai batas antara domain internal dan sistem eksternal.
-* Mendokumentasikan alur ConnectedAccount management via OAuth Outstand.
-* Mendefinisikan alur publishing ke social media melalui Outstand API.
-* Menetapkan pola webhook handling untuk event dari Outstand.
-* Mendokumentasikan strategi sinkronisasi data engagement dan analytics.
-* Mendefinisikan error handling strategy untuk kegagalan integrasi.
+This document is the reference for external integration design and does not cover code implementation. Implementation details (HTTP client, retry library, folder structure) are documented in Engineering Planning (M6).
 
 ---
 
-# Keputusan Pra-Architecture
+# Purpose
 
-Keputusan berikut sudah ditetapkan sebelum dokumen ini dibuat dan menjadi fondasi Integration Layer:
+* Define the position of the Outstand API in the system architecture.
+* Set the Anti-Corruption Layer (ACL) as the boundary between the internal domain and external systems.
+* Document the ConnectedAccount management flow via Outstand OAuth.
+* Define the flow for publishing to social media through the Outstand API.
+* Set the webhook handling pattern for events from Outstand.
+* Document the synchronization strategy for engagement and analytics data.
+* Define the error handling strategy for integration failures.
 
-| Topik | Keputusan | Sumber |
+---
+
+# Pre-Architecture Decisions
+
+The following decisions were set before this document was created and are the foundation of the Integration Layer:
+
+| Topic | Decision | Source |
 |-------|-----------|--------|
 | Social Media Integration Provider | Outstand API | ADR-005 |
-| Entry Point untuk webhook | Route Handler | ADR-016 |
+| Entry Point for webhooks | Route Handler | ADR-016 |
 | Cross-domain communication | Service-to-service call via public module API | ADR-018 |
 
 ---
 
-# Posisi Outstand dalam Arsitektur
+# Outstand's Position in the Architecture
 
-Outstand API adalah **external system** — berada di luar batas domain internal. Seluruh interaksi dengan Outstand dilakukan secara eksklusif melalui **Anti-Corruption Layer** sehingga domain internal tidak pernah bergantung langsung pada struktur data atau kontrak API Outstand.
+The Outstand API is an **external system** — outside the boundary of the internal domain. All interaction with Outstand is done exclusively through the **Anti-Corruption Layer**, so the internal domain never depends directly on Outstand's data structures or API contract.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -69,37 +69,37 @@ Outstand API adalah **external system** — berada di luar batas domain internal
 
 # Anti-Corruption Layer
 
-## Prinsip
+## Principles
 
-Anti-Corruption Layer (ACL) adalah layer terjemahan yang:
+The Anti-Corruption Layer (ACL) is a translation layer that:
 
-1. Mengisolasi domain internal dari perubahan breaking pada Outstand API.
-2. Menerjemahkan konsep Outstand ke konsep domain internal (dan sebaliknya).
-3. Menjadi satu-satunya titik yang mengetahui struktur data Outstand.
+1. Isolates the internal domain from breaking changes in the Outstand API.
+2. Translates Outstand concepts into internal domain concepts (and vice versa).
+3. Is the only point that knows Outstand's data structures.
 
-**Aturan ACL:**
-- Domain internal **tidak boleh** mengimport tipe atau struktur data Outstand secara langsung.
-- Seluruh response dari Outstand API diparse dan divalidasi di dalam `OutstandAdapter` sebelum dikembalikan ke domain.
-- Jika Outstand mengubah response format, hanya `OutstandAdapter` yang perlu diperbarui — tidak ada perubahan di domain.
+**ACL rules:**
+- The internal domain **must not** import Outstand types or data structures directly.
+- All responses from the Outstand API are parsed and validated inside `OutstandAdapter` before being returned to the domain.
+- If Outstand changes its response format, only `OutstandAdapter` needs to be updated — no changes in the domain.
 
 ## OutstandAdapter
 
-`OutstandAdapter` adalah modul khusus yang mengimplementasikan seluruh komunikasi dengan Outstand API.
+`OutstandAdapter` is a dedicated module that implements all communication with the Outstand API.
 
-**(ADR-079)** Contract `IOutstandAdapter` dipromosikan dari lokasi domain-only
-(`domains/publishing/adapters/`) ke `packages/shared/src/contracts/` sebagai
-**cross-domain shared contract** — awalnya dibangun untuk kebutuhan Publishing
-(ADR-059), tapi Analytics BC (metric ingestion) juga butuh mengimplementasikan
-method yang sama (`fetchPostMetrics`, `fetchWorkspaceMetrics`). File lokasi
-lama di domain `publishing` dipertahankan sebagai re-export barrel. Ini
-pengecualian baru pada aturan `packages/shared` (AGENTS.md rule 5): port/ACL
-contract kini termasuk kategori yang boleh hidup di sana, selain shared types.
+**(ADR-079)** The `IOutstandAdapter` contract was promoted from a domain-only location
+(`domains/publishing/adapters/`) to `packages/shared/src/contracts/` as a
+**cross-domain shared contract** — originally built for Publishing's needs
+(ADR-059), but the Analytics BC (metric ingestion) also needs to implement
+the same methods (`fetchPostMetrics`, `fetchWorkspaceMetrics`). The old
+file location in the `publishing` domain is kept as a re-export barrel. This is a new
+exception to the `packages/shared` rule (AGENTS.md rule 5): port/ACL
+contracts now belong to the category that may live there, besides shared types.
 
-**(amandemen ADR-092)** `schedulePost`/`publishNow` menerima SEMUA target
-sekaligus dalam satu call dan mengembalikan SATU `outstandPostId` — bukan
-lagi satu call per akun. Status per akun (`platformPostId`,
-`platformPostUrl`, `status`, dsb.) tidak tersedia sinkron dari call ini;
-harus di-resolve belakangan lewat `fetchPostOutcome`.
+**(amendment to ADR-092)** `schedulePost`/`publishNow` accept ALL targets
+at once in a single call and return ONE `outstandPostId` — no
+longer one call per account. The per-account status (`platformPostId`,
+`platformPostUrl`, `status`, etc.) is not available synchronously from this call;
+it must be resolved later through `fetchPostOutcome`.
 
 ```
 OutstandAdapter (Anti-Corruption Layer)
@@ -109,42 +109,42 @@ OutstandAdapter (Anti-Corruption Layer)
   ├── uploadMedia(uploadUrl, bytes, contentType) → void
   ├── confirmMediaUpload(uploadId) → OutstandMediaData
   ├── schedulePost(targets[], params) → { outstandPostId }
-  │     // targets: seluruh akun tujuan post ini sekaligus (1 call, 1 post.id)
-  │     // params mencakup: caption, outstandMediaUrls, scheduledAt,
-  │     // contentFormat, platformOptions? — dipetakan ke override Outstand di ACL
+  │     // targets: all destination accounts of this post at once (1 call, 1 post.id)
+  │     // params include: caption, outstandMediaUrls, scheduledAt,
+  │     // contentFormat, platformOptions? — mapped to Outstand overrides in the ACL
   ├── publishNow(targets[], params) → { outstandPostId }
   ├── fetchPostOutcome(outstandPostId, expectedOutstandAccountIds[]) → PostTargetOutcome[]
-  │     // wajib dipanggil untuk resolve status per akun (pending|published|failed);
-  │     // tidak diasumsikan sinkron dari schedulePost/publishNow
-  │     // (amandemen ADR-108) daftar akun target dikirim ulang eksplisit oleh
-  │     // caller — adapter tidak boleh bergantung pada state hasil panggilan
-  │     // schedulePost/publishNow sebelumnya (rusak lintas proses/module chunk
-  │     // Server Action ↔ Route Handler yang terpisah, ditemukan T-027.5)
+  │     // must be called to resolve the status per account (pending|published|failed);
+  │     // not assumed to be synchronous from schedulePost/publishNow
+  │     // (amendment to ADR-108) the list of target accounts is explicitly resent by the
+  │     // caller — the adapter must not depend on state left by a previous
+  │     // schedulePost/publishNow call (broken across the separate
+  │     // process/module chunks of Server Action ↔ Route Handler, found in T-027.5)
   ├── cancelScheduledPost(outstandPostId) → void
-  ├── fetchComments({ outstandPostId, platform, accountUsername }) → { comments }   // ADR-113: per posting, tanpa cursor
+  ├── fetchComments({ outstandPostId, platform, accountUsername }) → { comments }   // ADR-113: per post, no cursor
   ├── replyToComment({ outstandPostId, content, accountUsername, parentOutstandCommentId? }) → ReplyResult   // ADR-113, ADR-117
   ├── fetchPostMetrics(outstandPostId) → PostMetricsData
   └── fetchWorkspaceMetrics(outstandAccountId, period) → WorkspaceMetricsData
 ```
 
-**Tanggung Jawab OutstandAdapter:**
-- Menyusun HTTP request ke Outstand API (auth header, base URL, timeout).
-- Memparse dan memvalidasi response Outstand.
-- Menerjemahkan error Outstand ke `IntegrationError` yang dikenali domain.
-- Menyembunyikan pagination, retry, dan detail protokol dari pemanggil.
+**Responsibilities of OutstandAdapter:**
+- Build HTTP requests to the Outstand API (auth header, base URL, timeout).
+- Parse and validate Outstand responses.
+- Translate Outstand errors into an `IntegrationError` recognized by the domain.
+- Hide pagination, retry, and protocol details from the caller.
 
-**Bukan tanggung jawab OutstandAdapter:**
-- Business logic (validasi otorisasi, domain rules).
-- Persistensi data ke database.
-- Notifikasi ke user.
+**Not the responsibility of OutstandAdapter:**
+- Business logic (authorization validation, domain rules).
+- Data persistence to the database.
+- Notifications to the user.
 
 ---
 
 # ConnectedAccount Management
 
-## Alur Connect Account
+## Connect Account Flow
 
-Menghubungkan akun media sosial ke workspace dilakukan melalui OAuth flow yang dikelola oleh Outstand.
+Connecting a social media account to a workspace is done through an OAuth flow managed by Outstand.
 
 ```
 ┌─────────┐    ┌──────────────────┐    ┌─────────────────┐    ┌──────────────┐
@@ -178,50 +178,50 @@ Menghubungkan akun media sosial ke workspace dilakukan melalui OAuth flow yang d
      │◄─────────────────│                        │                    │
 ```
 
-**Entry Point:** Route Handler di `/api/integrations/outstand/callback`
+**Entry Point:** Route Handler at `/api/integrations/outstand/callback`
 
-**Langkah-langkah:**
-1. User klik "Connect Account" di Settings → Workspace Service meminta OAuth URL dari `OutstandAdapter`.
-2. User diarahkan ke Outstand OAuth URL — Outstand menangani OAuth dengan platform.
-3. Setelah consent, Outstand mengarahkan ke `/api/integrations/outstand/callback` dengan `code` dan `state`.
-4. Route Handler memverifikasi `state` (CSRF protection) dan memanggil `WorkspaceService.completeAccountConnection(code)`.
-5. `WorkspaceService` memanggil `OutstandAdapter.connectAccount(code)` untuk menukar code dengan data akun.
-6. `WorkspaceService` membuat entitas `ConnectedAccount` dan menyimpan ke repository.
+**Steps:**
+1. The user clicks "Connect Account" in Settings → Workspace Service requests the OAuth URL from `OutstandAdapter`.
+2. The user is redirected to the Outstand OAuth URL — Outstand handles OAuth with the platform.
+3. After consent, Outstand redirects to `/api/integrations/outstand/callback` with `code` and `state`.
+4. The Route Handler verifies `state` (CSRF protection) and calls `WorkspaceService.completeAccountConnection(code)`.
+5. `WorkspaceService` calls `OutstandAdapter.connectAccount(code)` to exchange the code for account data.
+6. `WorkspaceService` creates the `ConnectedAccount` entity and saves it to the repository.
 
-**Data yang disimpan pada `ConnectedAccount`:**
-- `outstandAccountId` — ID dari Outstand (external reference permanen).
-- `platform` — platform yang terhubung (`instagram`, `facebook`, dst.).
-- `handle` — nama akun atau halaman.
+**Data stored on `ConnectedAccount`:**
+- `outstandAccountId` — the ID from Outstand (permanent external reference).
+- `platform` — the connected platform (`instagram`, `facebook`, etc.).
+- `handle` — the account or page name.
 - `status` — `active`.
 
-**Catatan:**
-- Access token OAuth **tidak disimpan** di database internal. Token dikelola sepenuhnya oleh Outstand.
-- Revoke token dilakukan melalui Outstand API, bukan secara langsung ke platform.
-- **Twitter/X tetap platform MVP dengan BYOK wajib.** Project Owner mengonfigurasi Client ID/Client Secret X secara manual di dashboard Outstand untuk setiap environment. Aplikasi hanya memakai akun yang sudah tersedia melalui Outstand dan **tidak menerima, menyimpan, atau meneruskan secret X**.
+**Notes:**
+- The OAuth access token is **not stored** in the internal database. The token is managed entirely by Outstand.
+- Token revocation is done through the Outstand API, not directly to the platform.
+- **Twitter/X stays an MVP platform with mandatory BYOK.** The Project Owner configures the X Client ID/Client Secret manually in the Outstand dashboard for each environment. The application only uses accounts that are already available through Outstand and **does not receive, store, or forward the X secret**.
 
-## Alur Disconnect Account
+## Disconnect Account Flow
 
-1. User memilih "Disconnect" di Settings.
-2. `WorkspaceService` memanggil `OutstandAdapter.disconnectAccount(outstandAccountId)`.
-3. `WorkspaceService` mengubah `ConnectedAccount.status` menjadi `disconnected`.
-4. Post yang sudah dijadwalkan ke akun ini ditandai `failed` di Publishing BC.
+1. The user chooses "Disconnect" in Settings.
+2. `WorkspaceService` calls `OutstandAdapter.disconnectAccount(outstandAccountId)`.
+3. `WorkspaceService` changes `ConnectedAccount.status` to `disconnected`.
+4. Posts already scheduled to this account are marked `failed` in the Publishing BC.
 
 ---
 
 # Publishing Flow
 
-## Alur Jadwalkan Post ke Outstand
+## Schedule Post to Outstand Flow
 
-Publishing ke social media dilakukan melalui Outstand API — sistem internal tidak berinteraksi langsung dengan API platform social media.
+Publishing to social media is done through the Outstand API — the internal system does not interact directly with the social media platform APIs.
 
-**(amandemen ADR-092)** Diagram dan langkah di bawah merefleksikan model
-1-call-semua-target: `schedulePost` dipanggil SEKALI untuk seluruh
-`PostTarget` pada post yang sama, mengembalikan SATU `outstandPostId` di
-level `Post`. Outcome per akun (`platformPostId`, `platformPostUrl`,
-`status`) TIDAK dikembalikan sinkron oleh call ini — harus diresolve
-belakangan lewat `OutstandAdapter.fetchPostOutcome(outstandPostId, expectedOutstandAccountIds)`
-(amandemen ADR-108; webhook T-026 dan job T-027/JOB-07 sama-sama memakai
-jalur ini sekarang).
+**(amendment to ADR-092)** The diagram and steps below reflect the
+1-call-all-targets model: `schedulePost` is called ONCE for all
+`PostTarget`s of the same post, returning ONE `outstandPostId` at the
+`Post` level. The per-account outcome (`platformPostId`, `platformPostUrl`,
+`status`) is NOT returned synchronously by this call — it must be resolved
+later through `OutstandAdapter.fetchPostOutcome(outstandPostId, expectedOutstandAccountIds)`
+(amendment to ADR-108; the T-026 webhook and the T-027/JOB-07 job both use
+this path now).
 
 ```
 ┌──────────────────┐    ┌──────────────────────┐    ┌─────────────────┐
@@ -239,38 +239,38 @@ jalur ini sekarang).
          │◄─────────────────────────│                          │
          │                          │                          │
          │  Save outstandPostId      │                          │
-         │  on Post (bukan PostTarget)│                        │
+         │  on Post (not PostTarget) │                          │
          │                          │                          │
          │  fetchPostOutcome(...)   │                          │
          │  (async/polling, resolve │                          │
          │  status per PostTarget)  │                          │
 ```
 
-**Trigger:** Status `Post` bertransisi ke `Scheduled` (setelah review approved atau user langsung schedule).
+**Trigger:** The `Post` status transitions to `Scheduled` (after review is approved or the user schedules directly).
 
-**Langkah-langkah:**
-1. `PublishingService` memvalidasi bahwa semua `PostTarget` memiliki `ConnectedAccount` yang `active`.
-2. `PublishingService` memvalidasi `contentFormat` tiap `PostTarget` terhadap matriks platform (ADR-039) serta kelengkapan media / `platformOptions` (mis. Pinterest pin).
-3. Untuk setiap media original dari Supabase Storage, `PublishingService` meminta working copy melalui ACL: request upload URL Outstand → `PUT` bytes ke URL tersebut → confirm upload → terima URL media Outstand.
-4. `PublishingService` memanggil `OutstandAdapter.schedulePost(targets[], params)` SEKALI untuk seluruh `PostTarget` pada post ini, dengan:
-   - `outstandAccountId` tiap target dari `ConnectedAccount`-nya.
-   - Caption, URL working copy media dari Outstand, dan waktu tayang.
-   - `contentFormat` + `platformOptions` per target — diterjemahkan ACL ke override Outstand (Story/Reel/Pin, dll.).
-5. Outstand mengembalikan SATU `post.id` untuk seluruh target (bukan job per akun).
-6. `PublishingService` menyimpan `outstandPostId` pada `Post` (bukan `PostTarget`) dan mengubah `Post.status` ke `Scheduled`. `PostTarget.status` tetap `pending` sampai outcome per akun diresolve.
-7. `PublishingService` memanggil `OutstandAdapter.fetchPostOutcome(outstandPostId, expectedOutstandAccountIds)` (amandemen ADR-108; segera untuk Publish Now, atau lewat webhook T-026/job T-027 JOB-07 untuk Schedule) untuk mengisi `platformPostId`/`platformPostUrl`/`status` per `PostTarget`.
+**Steps:**
+1. `PublishingService` validates that all `PostTarget`s have an `active` `ConnectedAccount`.
+2. `PublishingService` validates each `PostTarget`'s `contentFormat` against the platform matrix (ADR-039) as well as the completeness of media / `platformOptions` (e.g. a Pinterest pin).
+3. For each original media from Supabase Storage, `PublishingService` requests a working copy through the ACL: request an Outstand upload URL → `PUT` the bytes to that URL → confirm the upload → receive the Outstand media URL.
+4. `PublishingService` calls `OutstandAdapter.schedulePost(targets[], params)` ONCE for all `PostTarget`s of this post, with:
+   - Each target's `outstandAccountId` from its `ConnectedAccount`.
+   - Caption, the Outstand media working copy URL, and the publish time.
+   - `contentFormat` + `platformOptions` per target — translated by the ACL into Outstand overrides (Story/Reel/Pin, etc.).
+5. Outstand returns ONE `post.id` for all targets (not a job per account).
+6. `PublishingService` stores `outstandPostId` on the `Post` (not the `PostTarget`) and changes `Post.status` to `Scheduled`. `PostTarget.status` stays `pending` until the per-account outcome is resolved.
+7. `PublishingService` calls `OutstandAdapter.fetchPostOutcome(outstandPostId, expectedOutstandAccountIds)` (amendment to ADR-108; immediately for Publish Now, or via the T-026 webhook/the T-027 JOB-07 job for Schedule) to fill in `platformPostId`/`platformPostUrl`/`status` per `PostTarget`.
 
-**Catatan:**
-- Media original tetap menjadi milik aplikasi di bucket private Supabase Storage. Signed URL Supabase hanya boleh dipakai untuk akses internal/UI, **bukan** sebagai URL publishing ke Outstand.
-- URL/media ID working copy Outstand boleh disimpan sebagai metadata opsional untuk observability, reuse aman, atau cleanup; ia bukan source of truth aset original.
-- **(amandemen ADR-092)** Karena `schedulePost` sekarang 1 call untuk semua target (all-or-nothing di level call), kegagalan call tersebut menandai SEMUA `PostTarget` pada post itu `failed` sekaligus — bukan lagi kegagalan independen per target. Partial success (sebagian akun gagal publish setelah call berhasil) baru diketahui belakangan lewat `fetchPostOutcome`/webhook, dan itu ditandai per `PostTarget` secara independen.
-- **Content format (ADR-039):** Outstand memfasilitasi Post / Reel / Story (dan opsi platform lain seperti Pinterest board). Domain menyimpan `ContentFormat` per target; hanya `OutstandAdapter` yang mengetahui bentuk field API Outstand (mis. flag Story / routing Reel / metadata Pin).
+**Notes:**
+- The original media stays owned by the application in the private Supabase Storage bucket. A Supabase signed URL may only be used for internal/UI access, **not** as the publishing URL to Outstand.
+- The Outstand working copy URL/media ID may be stored as optional metadata for observability, safe reuse, or cleanup; it is not the source of truth for the original asset.
+- **(amendment to ADR-092)** Because `schedulePost` is now 1 call for all targets (all-or-nothing at the call level), the failure of that call marks ALL `PostTarget`s of that post `failed` at once — no longer an independent failure per target. Partial success (some accounts fail to publish after the call succeeds) is only known later through `fetchPostOutcome`/webhook, and that is marked per `PostTarget` independently.
+- **Content format (ADR-039):** Outstand facilitates Post / Reel / Story (and other platform options such as a Pinterest board). The domain stores `ContentFormat` per target; only `OutstandAdapter` knows the shape of Outstand API fields (e.g. the Story flag / Reel routing / Pin metadata).
 
-## Alur Batalkan Post
+## Cancel Post Flow
 
-1. User membatalkan jadwal dari UI → `PublishingService.cancelScheduledPost(postId)`.
-2. **(amandemen ADR-092)** `PublishingService` memanggil `OutstandAdapter.cancelScheduledPost(outstandPostId)` SEKALI per post (bukan per `PostTarget`) — konsisten dengan model 1-post-banyak-target.
-3. `PostTarget.status` diubah ke `pending` (kembali ke antrean atau draft).
+1. The user cancels the schedule from the UI → `PublishingService.cancelScheduledPost(postId)`.
+2. **(amendment to ADR-092)** `PublishingService` calls `OutstandAdapter.cancelScheduledPost(outstandPostId)` ONCE per post (not per `PostTarget`) — consistent with the 1-post-many-targets model.
+3. `PostTarget.status` is changed to `pending` (back to the queue or draft).
 
 ---
 
@@ -278,47 +278,47 @@ jalur ini sekarang).
 
 ## Overview
 
-Outstand mengirim event webhook untuk hasil publikasi dan masa berlaku token akun. Engagement tidak menggunakan webhook pada MVP.
+Outstand sends webhook events for publication results and account token validity. Engagement does not use webhooks in the MVP.
 
 **Endpoint:** `POST /api/webhooks/outstand`
 
-## Keamanan Webhook
+## Webhook Security
 
-Setiap request webhook dari Outstand harus diverifikasi atas **raw body** sebelum payload diparse:
+Every webhook request from Outstand must be verified over the **raw body** before the payload is parsed:
 
 ```
-Request masuk
+Request comes in
     └── Route Handler `/api/webhooks/outstand`
-            ├── Baca raw body
-            ├── Verifikasi signature HMAC-SHA256 atas raw body
-            ├── Tolak jika signature tidak valid → 401
-            ├── Persist receipt idempoten ke outstand_webhook_events
-            └── ACK 2xx; pemrosesan dilanjutkan oleh JOB-01
+            ├── Read the raw body
+            ├── Verify the HMAC-SHA256 signature over the raw body
+            ├── Reject if the signature is invalid → 401
+            ├── Persist an idempotent receipt to outstand_webhook_events
+            └── ACK 2xx; processing is continued by JOB-01
 ```
 
-- Outstand menyertakan header `X-Outstand-Signature` berisi HMAC-SHA256 dari request body.
-- Webhook secret disimpan di environment variable, tidak di database.
-- Jika signature tidak valid, response `401 Unauthorized` dikembalikan tanpa memproses payload.
+- Outstand includes the `X-Outstand-Signature` header containing the HMAC-SHA256 of the request body.
+- The webhook secret is stored in an environment variable, not in the database.
+- If the signature is invalid, a `401 Unauthorized` response is returned without processing the payload.
 
-## Daftar Event Webhook
+## Webhook Event List
 
-| Event | Deskripsi | Domain yang Dinotifikasi |
+| Event | Description | Domain Notified |
 |-------|-----------|--------------------------|
-| `post.published` | Sedikitnya satu target berhasil dipublikasikan; outcome tetap dibaca per akun | Publishing BC |
-| `post.error` | Semua target gagal setelah retry Outstand; ACL memetakan outcome per akun ke status domain `failed` | Publishing BC, Notification BC |
-| `account.token_expired` | Token akun kedaluwarsa; ACL memetakan akun ke `error` dan membutuhkan reconnect | Workspace BC, Notification BC |
+| `post.published` | At least one target was published successfully; the outcome is still read per account | Publishing BC |
+| `post.error` | All targets failed after Outstand retries; the ACL maps the per-account outcome to the domain status `failed` | Publishing BC, Notification BC |
+| `account.token_expired` | The account token expired; the ACL maps the account to `error` and requires a reconnect | Workspace BC, Notification BC |
 
-Event `comment.received`, `message.received`, mention, dan webhook engagement lainnya **bukan kontrak MVP**. Catatan (2026-11-06): dokumentasi vendor per 2026-11-05 memang memuat `comment.received` dan `message.received`; keduanya tersedia tetapi **tidak dipakai** MVP (ADR-040, ADR-157). Kolom "alasan" ADR-040 yang menyebut webhook komentar tidak ada adalah catatan historis atas dokumentasi saat itu.
+The events `comment.received`, `message.received`, mention, and other engagement webhooks are **not part of the MVP contract**. Note (2026-11-06): the vendor documentation as of 2026-11-05 does include `comment.received` and `message.received`; both are available but **not used** by the MVP (ADR-040, ADR-157). The "reason" column of ADR-040 stating that comment webhooks do not exist is a historical note on the documentation at the time.
 
-## Alur Pemrosesan Webhook
+## Webhook Processing Flow
 
 ```
 Outstand
     └── POST /api/webhooks/outstand
             └── Route Handler
-                    ├── Baca raw body + verifikasi HMAC
-                    ├── INSERT idempoten outstand_webhook_events
-                    ├── Enqueue JOB-01 untuk receipt baru
+                    ├── Read raw body + verify HMAC
+                    ├── Idempotent INSERT into outstand_webhook_events
+                    ├── Enqueue JOB-01 for a new receipt
                     └── ACK 2xx
 
 JOB-01
@@ -330,81 +330,81 @@ JOB-01
                                       → WorkspaceService.markAccountReconnectRequired(...)
 ```
 
-**Prinsip pemrosesan webhook:**
-- Route Handler **tidak** mengandung business logic — hanya membaca raw body, memverifikasi HMAC, melakukan durable idempotent receipt, enqueue, lalu ACK.
-- `WebhookProcessor` memanggil Application Service yang tepat menggunakan `outstandPostId` (amandemen ADR-092, sebelumnya `outstandJobId`) atau `outstandAccountId` sebagai external reference.
-- Respons `2xx` hanya dikembalikan **setelah** receipt berhasil dipersistenkan. Kegagalan persistensi mengembalikan non-2xx agar Outstand dapat melakukan retry delivery.
-- Retry delivery dari Outstand berhenti pada boundary receipt/ACK. Retry pemrosesan internal dilakukan terpisah oleh `JOB-01`; kegagalan pemrosesan tidak meminta Outstand mengirim ulang event.
+**Webhook processing principles:**
+- The Route Handler contains **no** business logic — it only reads the raw body, verifies HMAC, performs a durable idempotent receipt, enqueues, then ACKs.
+- `WebhookProcessor` calls the right Application Service using `outstandPostId` (amendment to ADR-092, previously `outstandJobId`) or `outstandAccountId` as the external reference.
+- A `2xx` response is only returned **after** the receipt has been persisted successfully. A persistence failure returns non-2xx so Outstand can retry delivery.
+- Outstand's delivery retry stops at the receipt/ACK boundary. Internal processing retry is done separately by `JOB-01`; a processing failure does not ask Outstand to resend the event.
 
 ## Idempotency
 
-Outstand dapat mengirim event yang sama lebih dari sekali. `outstand_webhook_events.outstand_event_id` menyimpan event ID vendor jika tersedia; jika kontrak delivery tidak menyediakannya, ingestion menggunakan fingerprint deterministik (SHA-256 raw body) sebagai identity receipt. Duplicate valid di-ACK `2xx` tanpa enqueue ulang.
+Outstand may send the same event more than once. `outstand_webhook_events.outstand_event_id` stores the vendor event ID if available; if the delivery contract does not provide it, ingestion uses a deterministic fingerprint (SHA-256 of the raw body) as the receipt identity. A valid duplicate is ACKed `2xx` without re-enqueueing.
 
-- Handler domain tetap idempoten dan menerapkan outcome per `PostTarget`. Event `post.published` tidak boleh menandai seluruh target berhasil karena event tersebut juga dapat mewakili partial success.
-- Status receipt mencatat `received | processing | processed | failed | dead_lettered` untuk audit pemrosesan internal.
+- The domain handler stays idempotent and applies the outcome per `PostTarget`. A `post.published` event must not mark all targets successful because that event can also represent partial success.
+- The receipt status records `received | processing | processed | failed | dead_lettered` for auditing internal processing.
 
 ---
 
 # Engagement Data Sync
 
-## Sumber Data
+## Data Source
 
-Engagement MVP hanya mencakup **komentar dan reply**. Direct Message dan mention berada di luar scope MVP.
+The MVP Engagement covers only **comments and replies**. Direct Messages and mentions are outside the MVP scope.
 
-| Mekanisme | Trigger | Kegunaan |
+| Mechanism | Trigger | Purpose |
 |-----------|---------|----------|
-| **Periodic pull** | JOB-03 setiap 30 menit | Sumber utama komentar baru/perubahan |
-| **Manual refresh** | Aksi user | Menjalankan sync komentar on-demand lalu memuat data terbaru |
+| **Periodic pull** | JOB-03 every 30 minutes | Main source of new/changed comments |
+| **Manual refresh** | User action | Runs the comment sync on demand then loads the latest data |
 
-`OutstandAdapter.fetchComments` mentranslasikan response Outstand menjadi data komentar domain.
+`OutstandAdapter.fetchComments` translates the Outstand response into domain comment data.
 
-**Penarikan komentar per posting (T-218.7, keputusan agen untuk ditinjau King Rezi, 2026-11-06).** Outstand hanya menyediakan komentar **per posting** (`GET /v1/posts/{id}/replies`, ADR-113); tidak ada endpoint per akun. Karena itu JOB-03 dan manual refresh menarik komentar per akun dengan menelusuri posting, bukan menarik satu daftar komentar per akun:
+**Per-post comment pulling (T-218.7, an agent decision for King Rezi to review, 2026-11-06).** Outstand only provides comments **per post** (`GET /v1/posts/{id}/replies`, ADR-113); there is no per-account endpoint. Therefore JOB-03 and manual refresh pull comments per account by walking through posts, not by pulling a single comment list per account:
 
-1. Daftar posting berasal dari database kita sendiri (`PublishingPost`/`PublishingPostTarget`, bukan endpoint list-posts Outstand): target `published` milik akun itu, `outstandPostId` terisi, belum di-soft-delete, diurutkan terbaru dulu (`publishedAt`, lalu `createdAt`).
-2. **Batas: 50 posting terbaru per akun per siklus.** Posting yang lebih lama dari 50 terbaru tidak ditarik ulang sehingga komentar baru di posting itu tidak masuk sampai ada mekanisme lain. Angka 50 sudah berlaku di kode (`listSyncablePostsByConnectedAccount`); T-218.7 mempertahankannya, bukan mengubahnya.
-3. Satu panggilan `fetchComments` per posting, **berurutan** (tidak paralel) agar beban ke Outstand terkendali. `accountUsername` (= `handle` akun) selalu dikirim untuk disambiguasi posting yang terbit ke lebih dari satu akun di network yang sama (ADR-117).
-4. Kegagalan satu posting (404, galat sementara) dicatat dan dilewati; sync akun tidak gagal seluruhnya. Tiap komentar di-upsert idempoten (`workspace_id, connected_account_id, external_id`) dengan `post_id` internal terisi dari posting yang sedang ditarik, sehingga Engage per posting (ADR-157) dapat mengelompokkan komentar tanpa pencarian terpisah.
-5. Biaya: panggilan Outstand per siklus per akun <= 50 (satu per posting), sehingga untuk N akun aktif paling banyak 50 x N per 30 menit. Bila volume akun/posting tumbuh, opsi berikutnya (butuh keputusan): menurunkan batas, menarik hanya posting yang terbit dalam jendela waktu, atau menarik posting lama lebih jarang. Belum diukur terhadap kuota Outstand nyata.
-6. Komentar tanpa `post_id` (data sebelum KI-068) tidak ikut ditarik ulang dan tampil di kelompok "Tanpa posting"; tidak bisa dibalas dari Postific (ADR-113). `EngagementService` melakukan upsert idempoten berdasarkan external comment ID. Jika sync menemukan item baru, service membuat notifikasi internal `engagement_new` secara agregat; notifikasi ini **berasal dari sync**, bukan webhook.
+1. The post list comes from our own database (`PublishingPost`/`PublishingPostTarget`, not Outstand's list-posts endpoint): `published` targets of that account, `outstandPostId` filled in, not soft-deleted, ordered newest first (`publishedAt`, then `createdAt`).
+2. **Limit: the 50 latest posts per account per cycle.** Posts older than the 50 latest are not pulled again, so new comments on those posts do not come in until another mechanism exists. The number 50 already applies in code (`listSyncablePostsByConnectedAccount`); T-218.7 keeps it rather than changing it.
+3. One `fetchComments` call per post, **sequentially** (not in parallel) so the load on Outstand is controlled. `accountUsername` (= the account's `handle`) is always sent to disambiguate posts published to more than one account on the same network (ADR-117).
+4. The failure of one post (404, temporary error) is recorded and skipped; the account sync does not fail entirely. Each comment is upserted idempotently (`workspace_id, connected_account_id, external_id`) with the internal `post_id` filled in from the post being pulled, so the per-post Engage (ADR-157) can group comments without a separate lookup.
+5. Cost: Outstand calls per cycle per account <= 50 (one per post), so for N active accounts at most 50 x N per 30 minutes. If account/post volume grows, the next options (needing a decision): lower the limit, pull only posts published within a time window, or pull old posts less often. Not yet measured against the real Outstand quota.
+6. Comments without a `post_id` (data from before KI-068) are not pulled again and appear in the "Tanpa posting" group; they cannot be replied to from Postific (ADR-113). `EngagementService` performs an idempotent upsert based on the external comment ID. If the sync finds new items, the service creates an internal `engagement_new` notification in aggregate; this notification **comes from the sync**, not a webhook.
 
-**Atribut `InboxItem` yang berasal dari Outstand:**
-- `externalId` — ID komentar dari Outstand (kolom `external_id`), digunakan untuk idempotency check.
-- `platform` — dari `ConnectedAccount`.
-- `authorHandle` — username pengirim komentar (kolom `author_handle`).
-- `content` — teks komentar.
-- `postId` — referensi ke `Post` jika komentar terkait post internal (matched via `outstandPostId`, amandemen ADR-092, sebelumnya `outstandJobId`).
-- `receivedAt` — timestamp dari Outstand.
+**`InboxItem` attributes that come from Outstand:**
+- `externalId` — the comment ID from Outstand (column `external_id`), used for the idempotency check.
+- `platform` — from `ConnectedAccount`.
+- `authorHandle` — the username of the comment sender (column `author_handle`).
+- `content` — the comment text.
+- `postId` — reference to `Post` if the comment relates to an internal post (matched via `outstandPostId`, amendment to ADR-092, previously `outstandJobId`).
+- `receivedAt` — timestamp from Outstand.
 
 ## Reply via Outstand API
 
-Ketika user membalas dari Engagement Inbox:
+When the user replies from the Engagement Inbox:
 
-1. `EngagementService.reply(inboxItemId, text)` dipanggil.
-2. `EngagementService` memanggil `OutstandAdapter.replyToComment(outstandCommentId, text)`.
-3. Setelah berhasil, `Reply` entity disimpan di repository sebagai audit trail.
+1. `EngagementService.reply(inboxItemId, text)` is called.
+2. `EngagementService` calls `OutstandAdapter.replyToComment(outstandCommentId, text)`.
+3. After success, the `Reply` entity is saved in the repository as an audit trail.
 
 ---
 
 # Analytics Data Sync
 
-## Sumber Data
+## Data Source
 
-Data analytics (metrics post dan metrics workspace) diambil melalui polling periodik ke Outstand API. Outstand mengaggregasikan data dari platform social media.
+Analytics data (post metrics and workspace metrics) is fetched through periodic polling of the Outstand API. Outstand aggregates data from the social media platforms.
 
-| Data | Frekuensi Polling | Disimpan Sebagai |
+| Data | Polling Frequency | Stored As |
 |------|-------------------|------------------|
-| Post metrics (likes, comments, shares, reach) | Per-job setelah publish | `analytics_post_metrics` |
-| Workspace metrics (followers, reach harian/mingguan) | Harian | `analytics_workspace_snapshots` |
+| Post metrics (likes, comments, shares, reach) | Per-job after publish | `analytics_post_metrics` |
+| Workspace metrics (followers, daily/weekly reach) | Daily | `analytics_workspace_snapshots` |
 
-## Alur Sync
+## Sync Flow
 
 ```
 Background Job (scheduler)
     └── AnalyticsService.syncPostMetrics(workspaceId)
             └── OutstandAdapter.fetchPostMetrics(outstandPostId)
-                    // amandemen ADR-092: rename dari outstandJobId. Bentuk hasil
-                    // (per-akun metrics + aggregated_metrics) belum direvisi mengikuti
-                    // response asli get-post-analytics — follow-up saat T-041 disentuh.
+                    // amendment to ADR-092: renamed from outstandJobId. The result shape
+                    // (per-account metrics + aggregated_metrics) has not yet been revised to follow
+                    // the real get-post-analytics response — follow-up when T-041 is touched.
                     └── AnalyticsService.upsertPostMetrics(postId, metricsData)
 
 Background Job (scheduler)
@@ -413,46 +413,46 @@ Background Job (scheduler)
                     └── AnalyticsService.upsertWorkspaceSnapshot(workspaceId, snapshotData)
 ```
 
-**Catatan:**
-- Scheduling background job untuk polling analytics didefinisikan di `background-jobs.md`.
-- Analytics tidak menggunakan webhook — Outstand tidak menyediakan webhook untuk perubahan metrics.
-- Data metrics bersifat **append-only** atau **upsert** — snapshot lama tidak dihapus.
+**Notes:**
+- The scheduling of the background job for analytics polling is defined in `background-jobs.md`.
+- Analytics does not use webhooks — Outstand does not provide webhooks for metrics changes.
+- Metrics data is **append-only** or **upsert** — old snapshots are not deleted.
 
 ---
 
 # Error Handling Strategy
 
-## Klasifikasi Error
+## Error Classification
 
-| Tipe Error | Contoh | Penanganan |
+| Error Type | Example | Handling |
 |------------|--------|------------|
-| **Transient** | Timeout, 5xx, network error | Retry dengan exponential backoff |
-| **Client Error** | 400 Bad Request, invalid params | Log + gagalkan operasi, jangan retry |
-| **Auth Error** | 401 Unauthorized (API key salah) | Alert ke developer (monitoring), jangan retry |
-| **Account Error** | 403 (akun dicabut aksesnya) | Tandai `ConnectedAccount.status = error`, notifikasi workspace owner |
-| **Not Found** | 404 (job tidak ditemukan) | Log + skip (idempotent) |
+| **Transient** | Timeout, 5xx, network error | Retry with exponential backoff |
+| **Client Error** | 400 Bad Request, invalid params | Log + fail the operation, do not retry |
+| **Auth Error** | 401 Unauthorized (wrong API key) | Alert the developer (monitoring), do not retry |
+| **Account Error** | 403 (account access revoked) | Mark `ConnectedAccount.status = error`, notify the workspace owner |
+| **Not Found** | 404 (job not found) | Log + skip (idempotent) |
 
-## Strategi per Operasi
+## Strategy per Operation
 
 **Connect Account:**
-- Gagal pada OAuth callback → tampilkan pesan error ke user, jangan simpan `ConnectedAccount` yang invalid.
+- Fails on the OAuth callback → show an error message to the user, do not save an invalid `ConnectedAccount`.
 
 **Schedule Post:**
-- Gagal (transient) → retry via background job (maks 3x).
-- Gagal (permanent) → tandai `PostTarget.status = failed`, simpan `PostTarget.error`, notifikasi creator.
+- Fails (transient) → retry via background job (max 3x).
+- Fails (permanent) → mark `PostTarget.status = failed`, save `PostTarget.error`, notify the creator.
 
 **Webhook Processing:**
-- Gagal memproses receipt → JOB-01 dijadwalkan ulang secara internal dan receipt ditandai `failed`.
-- Retry maks 3x dengan exponential backoff: 5 menit, 15 menit, 60 menit (sesuai JOB-01 di `background-jobs.md`).
-- Setelah maks retry habis → job `failed` dan receipt `dead_lettered`, dicatat untuk inspeksi manual.
+- Failing to process a receipt → JOB-01 is rescheduled internally and the receipt is marked `failed`.
+- Retry max 3x with exponential backoff: 5 minutes, 15 minutes, 60 minutes (per JOB-01 in `background-jobs.md`).
+- After max retries are exhausted → the job is `failed` and the receipt `dead_lettered`, recorded for manual inspection.
 
 **Analytics Sync:**
-- Gagal polling → log error, skip siklus ini, coba lagi di jadwal berikutnya.
-- Kegagalan tidak memblokir operasi lain.
+- Polling fails → log the error, skip this cycle, try again on the next schedule.
+- The failure does not block other operations.
 
 ## IntegrationError
 
-Seluruh error dari Outstand API diterjemahkan oleh `OutstandAdapter` ke tipe `IntegrationError` sebelum dikembalikan ke domain:
+All errors from the Outstand API are translated by `OutstandAdapter` into the `IntegrationError` type before being returned to the domain:
 
 ```
 IntegrationError
@@ -462,34 +462,34 @@ IntegrationError
   └── retryable: boolean
 ```
 
-Domain internal **tidak pernah** melihat HTTP error code Outstand secara langsung.
+The internal domain **never** sees Outstand HTTP error codes directly.
 
 ---
 
-# Keputusan Integration Layer
+# Integration Layer Decisions
 
-| ID | Topik | Keputusan |
+| ID | Topic | Decision |
 |----|-------|-----------|
-| IL-D01 | ACL Pattern | Anti-Corruption Layer via `OutstandAdapter` — satu-satunya titik interaksi dengan Outstand API |
-| IL-D02 | Token Management | OAuth access token tidak disimpan di database internal — dikelola sepenuhnya oleh Outstand |
-| IL-D03 | Webhook Security | HMAC-SHA256 diverifikasi atas raw body sebelum parse/persist |
-| IL-D04 | Webhook Response | Durable-before-ACK: receipt idempoten tersimpan dan JOB-01 terjadwal sebelum respons `2xx` |
-| IL-D05 | Webhook Idempotency | Event ID vendor atau fingerprint SHA-256 raw body pada `outstand_webhook_events`; handler domain tetap idempoten |
-| IL-D06 | Analytics Strategy | Pull-based polling periodik — tidak ada webhook dari Outstand untuk metrics |
-| IL-D07 | Media Strategy | Original di Supabase Storage; working copy diunggah via Outstand request URL → PUT → confirm; URL Outstand dipakai untuk publish |
-| IL-D08 | Error Translation | Seluruh error Outstand diterjemahkan ke `IntegrationError` di dalam `OutstandAdapter` |
-| IL-D09 | Engagement MVP | Comments/replies only melalui JOB-03 30 menit + manual refresh; tanpa webhook/DM/mention |
-| IL-D10 | X BYOK | Project Owner mengatur kredensial X di dashboard Outstand; aplikasi tidak menyimpan X client secret |
-| IL-D11 | Publish Outcome | `post.published`/`post.error` memicu pembacaan outcome per akun; status setiap `PostTarget` diperbarui independen |
-| IL-D12 | ADR-040 | IL-D03–D11 mengamandemen kontrak lama sesuai ADR-040 |
+| IL-D01 | ACL Pattern | Anti-Corruption Layer via `OutstandAdapter` — the only point of interaction with the Outstand API |
+| IL-D02 | Token Management | The OAuth access token is not stored in the internal database — managed entirely by Outstand |
+| IL-D03 | Webhook Security | HMAC-SHA256 verified over the raw body before parse/persist |
+| IL-D04 | Webhook Response | Durable-before-ACK: the idempotent receipt is stored and JOB-01 scheduled before the `2xx` response |
+| IL-D05 | Webhook Idempotency | Vendor event ID or SHA-256 raw body fingerprint on `outstand_webhook_events`; the domain handler stays idempotent |
+| IL-D06 | Analytics Strategy | Periodic pull-based polling — there is no webhook from Outstand for metrics |
+| IL-D07 | Media Strategy | Original in Supabase Storage; working copy uploaded via Outstand request URL → PUT → confirm; the Outstand URL is used for publishing |
+| IL-D08 | Error Translation | All Outstand errors are translated into `IntegrationError` inside `OutstandAdapter` |
+| IL-D09 | Engagement MVP | Comments/replies only through the JOB-03 30-minute job + manual refresh; no webhook/DM/mention |
+| IL-D10 | X BYOK | The Project Owner sets the X credentials in the Outstand dashboard; the application does not store the X client secret |
+| IL-D11 | Publish Outcome | `post.published`/`post.error` trigger a per-account outcome read; the status of each `PostTarget` is updated independently |
+| IL-D12 | ADR-040 | IL-D03–D11 amend the old contract per ADR-040 |
 
 ---
 
 # Related Documents
 
-* `domain-model.md` — definisi `ConnectedAccount`, `PostTarget`, `outstandPostId`/`platformPostId` sebagai external reference (ADR-092)
-* `database-strategy.md` — tabel `workspace_connected_accounts`, `publishing_post_targets`, `analytics_post_metrics`, `analytics_workspace_snapshots`
-* `application-layer.md` — Route Handler sebagai entry point webhook; Application Service sebagai pemanggil OutstandAdapter
-* `background-jobs.md` — strategi retry webhook event dan jadwal polling analytics
-* `auth-architecture.md` — workspace membership check pada setiap operasi ConnectedAccount
+* `domain-model.md` — definition of `ConnectedAccount`, `PostTarget`, `outstandPostId`/`platformPostId` as external references (ADR-092)
+* `database-strategy.md` — tables `workspace_connected_accounts`, `publishing_post_targets`, `analytics_post_metrics`, `analytics_workspace_snapshots`
+* `application-layer.md` — Route Handler as the webhook entry point; Application Service as the OutstandAdapter caller
+* `background-jobs.md` — webhook event retry strategy and analytics polling schedule
+* `auth-architecture.md` — workspace membership check on every ConnectedAccount operation
 * `../../project-os/DECISIONS.md` — ADR-005, ADR-016, ADR-018, ADR-019, ADR-020, ADR-021, ADR-079, ADR-092

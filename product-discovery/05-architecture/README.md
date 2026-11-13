@@ -1,82 +1,82 @@
 # 05 — Architecture
 
-Dokumentasi pada folder ini berfokus pada **System Architecture** untuk produk **Postific**, mencakup domain model, strategi database, application layer, integrasi eksternal, background jobs, dan keamanan sistem.
+The documentation in this folder focuses on the **System Architecture** for the **Postific** product, covering the domain model, database strategy, application layer, external integrations, background jobs, and system security.
 
-Seluruh dokumentasi pada folder ini harus mengacu pada **Business Baseline v1.0**, **Product Baseline v1.0**, **User Discovery Baseline v1.0**, dan **UX Planning Baseline v1.0** yang telah disepakati. System Architecture berfungsi menerjemahkan keputusan produk dan UX menjadi keputusan teknis yang dapat dijadikan acuan implementasi.
+All documentation in this folder must refer to the agreed **Business Baseline v1.0**, **Product Baseline v1.0**, **User Discovery Baseline v1.0**, and **UX Planning Baseline v1.0**. System Architecture translates product and UX decisions into technical decisions that can serve as a reference for implementation.
 
 ---
 
-# Tujuan
+# Purpose
 
-* Mendefinisikan domain model dan bounded context berdasarkan Product Baseline.
-* Menetapkan strategi database dan isolasi data antar workspace.
-* Mendefinisikan bagaimana application layer berinteraksi dengan domain logic.
-* Merancang arsitektur integrasi eksternal (Outstand API dan webhook).
-* Menetapkan strategi background job dan scheduling konten.
-* Mendefinisikan arsitektur keamanan dan autentikasi.
-* Menghasilkan keputusan teknis yang siap dijadikan input Engineering Planning.
+* Define the domain model and bounded contexts based on the Product Baseline.
+* Set the database strategy and data isolation between workspaces.
+* Define how the application layer interacts with domain logic.
+* Design the external integration architecture (Outstand API and webhooks).
+* Set the background job and content scheduling strategy.
+* Define the security and authentication architecture.
+* Produce technical decisions that are ready to serve as input to Engineering Planning.
 
 ---
 
 # Scope
 
-Folder ini hanya membahas **System Architecture** — keputusan struktural sistem, bukan implementasi kode.
+This folder covers only **System Architecture** — structural system decisions, not code implementation.
 
-Topik yang termasuk dalam scope:
+Topics in scope:
 
-* Domain Model — bounded context, entitas utama, dan relasi antar domain.
-* Database Strategy — pilihan database, multi-tenancy, dan isolasi data workspace.
-* Application Layer — interaksi Next.js App Router dengan domain logic.
-* Integration Layer — arsitektur Outstand API, webhook handling, dan connected accounts.
-* Background Jobs — arsitektur scheduling, job queue, dan retry strategy.
-* Real-time Strategy — pendekatan notifikasi dan sinkronisasi status.
-* Auth Architecture — autentikasi, sesi, dan otorisasi berbasis role.
+* Domain Model — bounded contexts, main entities, and relations between domains.
+* Database Strategy — database choice, multi-tenancy, and workspace data isolation.
+* Application Layer — how the Next.js App Router interacts with domain logic.
+* Integration Layer — Outstand API architecture, webhook handling, and connected accounts.
+* Background Jobs — scheduling architecture, job queue, and retry strategy.
+* Real-time Strategy — approach to notifications and status synchronization.
+* Auth Architecture — authentication, sessions, and role-based authorization.
 
-Topik berikut **tidak dibahas** pada folder ini:
+The following topics are **not covered** in this folder:
 
-* Implementasi kode
-* ORM dan database access layer (dibahas di Engineering Planning)
-* CI/CD dan deployment pipeline (dibahas di Engineering Planning)
+* Code implementation
+* ORM and database access layer (covered in Engineering Planning)
+* CI/CD and deployment pipeline (covered in Engineering Planning)
 * UI/UX Design
 
 ---
 
-# Keputusan Pra-Architecture yang Telah Ditetapkan
+# Pre-Architecture Decisions Already Made
 
-Keputusan berikut sudah disepakati sebelum dokumentasi ini dimulai dan menjadi fondasi seluruh dokumen di folder ini:
+The following decisions were agreed before this documentation began and are the foundation of every document in this folder:
 
-| Topik | Keputusan |
+| Topic | Decision |
 | ----- | --------- |
 | Framework | Next.js (ADR-003) |
 | Runtime | Bun (ADR-002) |
 | Repository | Hybrid Monorepo (ADR-001) |
 | Architecture Pattern | Modular Monolith + DDD (ADR-004) |
-| Social Media Integration | Outstand API; kontrak resmi dan batas MVP diamandemen ADR-040 |
+| Social Media Integration | Outstand API; the official contract and MVP limits are amended by ADR-040 |
 | Database Platform | Supabase PostgreSQL Cloud |
-| Multi-tenancy | Row-Level Security dengan `workspace_id` |
+| Multi-tenancy | Row-Level Security with `workspace_id` |
 | Auth Library | Better Auth |
 | Real-time Strategy | In-app notification + manual refresh |
 | Storage | Supabase Storage |
 | Deployment | Railway |
-| Domain Boundary | Pragmatic Boundary — shared types via `packages/shared`, tidak boleh import implementasi lintas domain |
+| Domain Boundary | Pragmatic Boundary — shared types via `packages/shared`, no importing implementations across domains |
 
 ---
 
-# Daftar Dokumen
+# Document List
 
-* `domain-model.md` — bounded context, entitas utama, dan relasi antar domain.
-* `database-strategy.md` — strategi database, multi-tenancy, dan workspace isolation.
-* `application-layer.md` — interaksi Next.js App Router dengan domain logic dan service layer.
-* `integration-layer.md` — arsitektur Outstand API, webhook handling, dan connected accounts.
-* `background-jobs.md` — arsitektur scheduling konten, job queue, dan retry strategy.
-* `realtime-strategy.md` — pendekatan notifikasi in-app dan sinkronisasi status konten.
-* `auth-architecture.md` — autentikasi, manajemen sesi, dan otorisasi berbasis role (Better Auth).
+* `domain-model.md` — bounded contexts, main entities, and relations between domains.
+* `database-strategy.md` — database strategy, multi-tenancy, and workspace isolation.
+* `application-layer.md` — how the Next.js App Router interacts with domain logic and the service layer.
+* `integration-layer.md` — Outstand API architecture, webhook handling, and connected accounts.
+* `background-jobs.md` — content scheduling architecture, job queue, and retry strategy.
+* `realtime-strategy.md` — approach to in-app notifications and content status synchronization.
+* `auth-architecture.md` — authentication, session management, and role-based authorization (Better Auth).
 
 ---
 
 # Architecture Planning Workflow
 
-Seluruh proses Architecture Planning mengikuti alur berikut berdasarkan dependency antar dokumen:
+The whole Architecture Planning process follows this flow, based on the dependencies between documents:
 
 ```text
 UX Planning Baseline
@@ -96,99 +96,99 @@ Auth Architecture
 Engineering Planning Input
 ```
 
-Keputusan architecture tidak otomatis mengubah Business, Product, atau UX Baseline. Perubahan pada scope MVP, domain produk, atau target market harus melalui ADR baru.
+Architecture decisions do not automatically change the Business, Product, or UX Baseline. Changes to the MVP scope, the product domain, or the target market must go through a new ADR.
 
 ---
 
-# Cara Menggunakan
+# How to Use
 
-1. Mulai dari `domain-model.md` untuk menetapkan bounded context dan entitas utama.
-2. Definisikan strategi database pada `database-strategy.md`.
-3. Rancang interaksi layer pada `application-layer.md`.
-4. Dokumentasikan arsitektur integrasi eksternal pada `integration-layer.md`.
-5. Definisikan arsitektur background jobs pada `background-jobs.md`.
-6. Tetapkan strategi notifikasi pada `realtime-strategy.md`.
-7. Dokumentasikan arsitektur auth pada `auth-architecture.md`.
-8. Gunakan seluruh dokumen sebagai input Engineering Planning (M6).
+1. Start from `domain-model.md` to set the bounded contexts and main entities.
+2. Define the database strategy in `database-strategy.md`.
+3. Design the layer interactions in `application-layer.md`.
+4. Document the external integration architecture in `integration-layer.md`.
+5. Define the background jobs architecture in `background-jobs.md`.
+6. Set the notification strategy in `realtime-strategy.md`.
+7. Document the auth architecture in `auth-architecture.md`.
+8. Use all the documents as input to Engineering Planning (M6).
 
 ---
 
-# Input dari Fase Sebelumnya
+# Input from Previous Phases
 
-## Dari Product Baseline v1.0
+## From Product Baseline v1.0
 
-* 6 Core Module: Workspace, Publishing, Analytics, Engagement, MCP Server (ADR-138), Start Page.
-* 5 Supporting Module: Authentication, User Profile, Media Library, Notifications, Billing, Settings.
+* 6 Core Modules: Workspace, Publishing, Analytics, Engagement, MCP Server (ADR-138), Start Page.
+* 5 Supporting Modules: Authentication, User Profile, Media Library, Notifications, Billing, Settings.
 * Infrastructure Module: API Integrations, Webhooks, Audit Logs, File Storage, Background Jobs, Monitoring.
-* MVP Must Have: Draft, Schedule, Queue, Calendar, Connected Accounts, Engagement Inbox, Analytics Snapshot, MCP Server (koneksi klien AI, tool baca/draft/jadwal).
-* 3 Roles (direvisi ADR-074): Account Owner, Admin, Creator — dengan set status konten kanonikal.
+* MVP Must Have: Draft, Schedule, Queue, Calendar, Connected Accounts, Engagement Inbox, Analytics Snapshot, MCP Server (AI client connection, read/draft/schedule tools).
+* 3 Roles (revised by ADR-074): Account Owner, Admin, Creator — with a canonical set of content statuses.
 
-## Amandemen Kontrak Outstand (ADR-040)
+## Outstand Contract Amendment (ADR-040)
 
-* Webhook MVP hanya `post.published`, `post.error`, dan `account.token_expired`; nama vendor diterjemahkan ACL ke status/notifikasi domain.
-* Ingestion webhook: verify HMAC raw body → persist `outstand_webhook_events` idempoten → enqueue JOB-01 → ACK `2xx`; retry delivery vendor terpisah dari retry process internal.
-* Engagement MVP hanya comments/replies melalui JOB-03 setiap 30 menit dan manual refresh; tanpa webhook comment/DM/mention.
-* Original media tetap di Supabase Storage; publishing memakai working copy Outstand melalui request upload URL → PUT → confirm.
-* Twitter/X tetap MVP dengan BYOK wajib yang dikonfigurasi Project Owner di dashboard Outstand; aplikasi tidak menyimpan X client secret.
+* The MVP webhooks are only `post.published`, `post.error`, and `account.token_expired`; the ACL translates vendor names into domain statuses/notifications.
+* Webhook ingestion: verify HMAC raw body → persist `outstand_webhook_events` idempotently → enqueue JOB-01 → ACK `2xx`; the vendor's delivery retry is separate from the internal process retry.
+* MVP engagement is only comments/replies through JOB-03 every 30 minutes and manual refresh; no comment/DM/mention webhooks.
+* Original media stays in Supabase Storage; publishing uses an Outstand working copy through request upload URL → PUT → confirm.
+* Twitter/X stays in the MVP with mandatory BYOK configured by the Project Owner in the Outstand dashboard; the application does not store the X client secret.
 
-## Dari UX Planning Baseline v1.0
+## From UX Planning Baseline v1.0
 
-* Navigasi utama: Home, Publish, Engage, Analyze, Start Page.
-* 5 user flows inti: Create & Publish, Content Calendar, Queue Management, Engagement, Analytics.
-* Key screen patterns untuk 8 layar utama siap dijadikan referensi domain entitas.
-* Keputusan UX (KSP-D01 s/d KSP-D11, NP-D01 s/d NP-D09) menjadi constraint desain domain.
+* Main navigation: Home, Publish, Engage, Analyze, Start Page.
+* 5 core user flows: Create & Publish, Content Calendar, Queue Management, Engagement, Analytics.
+* Key screen patterns for the 8 main screens are ready to serve as a reference for domain entities.
+* UX decisions (KSP-D01 through KSP-D11, NP-D01 through NP-D09) become domain design constraints.
 
-## Dari User Discovery Baseline v1.0
+## From User Discovery Baseline v1.0
 
-* Friction terbesar: context switching, status tidak terlihat lintas peran, risiko salah publish.
-* Insight utama yang mempengaruhi architecture: I-01 (workflow consolidation), I-04 (publishing trust), I-06 (AI menempel pada draft job).
+* Biggest friction: context switching, status not visible across roles, risk of publishing the wrong thing.
+* Main insights that influence the architecture: I-01 (workflow consolidation), I-04 (publishing trust), I-06 (AI attaches to the draft job).
 
 ---
 
 # Expected Output
 
-Setelah seluruh dokumen pada folder ini selesai, project harus memiliki:
+Once all the documents in this folder are finished, the project must have:
 
-* Domain model yang terdefinisi dengan bounded context yang jelas.
-* Strategi database dan multi-tenancy yang siap dijadikan schema awal.
-* Arsitektur layer yang mendukung Modular Monolith + DDD.
-* Desain integrasi Outstand API dan webhook yang terdokumentasi.
-* Strategi background job yang realistis untuk MVP.
-* Arsitektur auth berbasis role yang selaras dengan Roles & Permissions Baseline.
-* Input yang cukup untuk memulai Engineering Planning (M6).
+* A defined domain model with clear bounded contexts.
+* A database and multi-tenancy strategy ready to serve as the initial schema.
+* A layer architecture that supports Modular Monolith + DDD.
+* A documented Outstand API and webhook integration design.
+* A realistic background job strategy for the MVP.
+* A role-based auth architecture aligned with the Roles & Permissions Baseline.
+* Enough input to start Engineering Planning (M6).
 
 ---
 
 # Exit Criteria
 
-System Architecture dianggap selesai apabila:
+System Architecture is considered complete when:
 
-* Seluruh 7 dokumen pada folder ini telah selesai.
-* Domain model mencerminkan seluruh modul dari Product Baseline.
-* Tidak ada keputusan architecture yang bertentangan dengan Product atau UX Baseline.
-* Seluruh keputusan architecture krusial telah didokumentasikan sebagai ADR di `DECISIONS.md`.
-* Seluruh dokumen telah melalui Architecture Review.
+* All 7 documents in this folder are finished.
+* The domain model reflects every module in the Product Baseline.
+* No architecture decision contradicts the Product or UX Baseline.
+* All crucial architecture decisions are documented as ADRs in `DECISIONS.md`.
+* All documents have gone through Architecture Review.
 
 ---
 
 # Decision Rules
 
-Keputusan architecture yang berdampak pada:
+Architecture decisions that affect:
 
-* Arsitektur sistem
+* System architecture
 * Tech stack
 * Domain model
 * Repository strategy
 
-harus didokumentasikan pada:
+must be documented in:
 
 * `../../project-os/DECISIONS.md`
 
-Perubahan progress Architecture Planning harus diperbarui pada:
+Changes to Architecture Planning progress must be updated in:
 
 * `../../project-os/PROJECT_STATE.md`
 
-Untuk penyelarasan ADR-040, batas edit sesi dapat mengecualikan pembaruan living/append-only document; Decision Log masing-masing dokumen Architecture tetap harus menandai amandemen tersebut.
+For the ADR-040 alignment, the session edit limit may exclude updates to living/append-only documents; the Decision Log of each Architecture document must still mark that amendment.
 
 ---
 

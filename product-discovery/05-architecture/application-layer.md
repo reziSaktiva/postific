@@ -1,19 +1,19 @@
 # Application Layer
 
-Dokumen ini mendefinisikan **Application Layer** untuk produk **Postific** — bagaimana Next.js App Router berinteraksi dengan domain logic, service layer, dan repository layer dalam arsitektur Modular Monolith + DDD.
+This document defines the **Application Layer** for the **Postific** product — how the Next.js App Router interacts with domain logic, the service layer, and the repository layer in the Modular Monolith + DDD architecture.
 
-Dokumen ini menjadi acuan struktur layer sistem dan aturan interaksi antar layer. Implementasi detail (kode, ORM, folder structure eksak) didokumentasikan di Engineering Planning (M6).
+This document is the reference for the system's layer structure and the interaction rules between layers. Detailed implementation (code, ORM, exact folder structure) is documented in Engineering Planning (M6).
 
 ---
 
-# Tujuan
+# Purpose
 
-* Mendefinisikan layer stack sistem dan tanggung jawab masing-masing layer.
-* Menentukan pola entry point Next.js: kapan pakai Server Components, Server Actions, dan Route Handlers.
-* Menetapkan kontrak Application Service per Bounded Context.
-* Mendefinisikan Repository Pattern yang digunakan di seluruh domain.
-* Menetapkan aturan komunikasi lintas domain.
-* Mendokumentasikan strategi error handling di tingkat arsitektur.
+* Define the system layer stack and the responsibilities of each layer.
+* Determine the Next.js entry point patterns: when to use Server Components, Server Actions, and Route Handlers.
+* Set the Application Service contract per Bounded Context.
+* Define the Repository Pattern used across all domains.
+* Set the rules for cross-domain communication.
+* Document the error handling strategy at the architecture level.
 
 ---
 
@@ -28,20 +28,20 @@ Dokumen ini menjadi acuan struktur layer sistem dan aturan interaksi antar layer
                        │
 ┌──────────────────────▼──────────────────────────────────────────┐
 │                    APPLICATION SERVICE LAYER                     │
-│  (Satu service per Bounded Context — orchestrasi, otorisasi,     │
-│   koordinasi domain logic + repository)                          │
+│  (One service per Bounded Context — orchestration, authorization,│
+│   coordination of domain logic + repository)                     │
 └──────────────────────┬──────────────────────────────────────────┘
                        │
 ┌──────────────────────▼──────────────────────────────────────────┐
 │                    DOMAIN LOGIC LAYER                            │
 │  (Entities, Value Objects, Domain Rules — pure business logic,   │
-│   tidak ada dependency ke infrastructure)                        │
+│   no dependency on infrastructure)                               │
 └──────────────────────┬──────────────────────────────────────────┘
                        │
 ┌──────────────────────▼──────────────────────────────────────────┐
 │                    REPOSITORY LAYER                              │
-│  (Interface didefinisikan di domain module; implementasi          │
-│   menggunakan Prisma Client)                                     │
+│  (Interface defined in the domain module; implementation          │
+│   uses Prisma Client)                                            │
 └──────────────────────┬──────────────────────────────────────────┘
                        │
 ┌──────────────────────▼──────────────────────────────────────────┐
@@ -56,27 +56,27 @@ Dokumen ini menjadi acuan struktur layer sistem dan aturan interaksi antar layer
 
 ## Entry Points — Next.js App Router
 
-Layer terluar yang menerima request dari browser atau sistem eksternal. Tidak boleh mengandung business logic.
+The outermost layer that receives requests from the browser or external systems. It must not contain business logic.
 
-| Entry Point | Tanggung Jawab | Contoh Penggunaan |
+| Entry Point | Responsibility | Usage Example |
 |-------------|----------------|-------------------|
-| **Server Component** | Fetch data untuk render halaman; tidak ada side effect | Load daftar post, load analytics snapshot |
-| **Server Action** | Handle mutations yang dipicu dari UI (form, button klik) | Buat draft, jadwalkan post, update profil |
-| **Route Handler** | Handle request dari sistem eksternal atau API client | Webhook Outstand, health check endpoint |
-| **Middleware** | Guard autentikasi, injeksi workspace context ke request | Verifikasi session, redirect jika belum login |
+| **Server Component** | Fetch data to render pages; no side effects | Load the post list, load the analytics snapshot |
+| **Server Action** | Handle mutations triggered from the UI (form, button click) | Create a draft, schedule a post, update a profile |
+| **Route Handler** | Handle requests from external systems or API clients | Outstand webhook, health check endpoint |
+| **Middleware** | Authentication guard, injecting workspace context into the request | Verify the session, redirect if not logged in |
 
-**Aturan:**
-- Entry Points hanya boleh memanggil **Application Service** — tidak boleh langsung ke repository atau domain logic.
-- Entry Points bertanggung jawab atas serialisasi/deserialisasi data (request → DTO → service input).
-- Error dari Application Service ditangkap di Entry Point dan diterjemahkan menjadi response yang sesuai.
+**Rules:**
+- Entry Points may only call the **Application Service** — they must not go directly to the repository or domain logic.
+- Entry Points are responsible for data serialization/deserialization (request → DTO → service input).
+- Errors from the Application Service are caught at the Entry Point and translated into an appropriate response.
 
 ---
 
 ## Application Service Layer
 
-Jantung dari setiap Bounded Context. Service layer mengatur alur operasi: validasi input, otorisasi, eksekusi domain logic, dan interaksi dengan repository.
+The heart of every Bounded Context. The service layer orchestrates the operation flow: input validation, authorization, domain logic execution, and interaction with the repository.
 
-**Satu service per Bounded Context:**
+**One service per Bounded Context:**
 
 | Bounded Context | Application Service |
 |----------------|---------------------|
@@ -90,56 +90,56 @@ Jantung dari setiap Bounded Context. Service layer mengatur alur operasi: valida
 | BC-08 Media | `MediaService` |
 | BC-09 Notification | `NotificationService` |
 
-**Tanggung jawab Application Service:**
-1. Menerima input dari Entry Point (sudah tervalidasi format di Entry Point).
-2. Menjalankan **authorization check** — apakah user memiliki permission untuk operasi ini.
-3. Memanggil domain logic untuk memvalidasi dan mengeksekusi business rule.
-4. Berinteraksi dengan repository untuk read/write data.
-5. Memanggil service domain lain jika diperlukan (via service-to-service call).
-6. Melempar domain error jika operasi tidak valid.
+**Responsibilities of the Application Service:**
+1. Receive input from the Entry Point (format already validated at the Entry Point).
+2. Run the **authorization check** — does the user have permission for this operation.
+3. Call domain logic to validate and execute business rules.
+4. Interact with the repository to read/write data.
+5. Call other domain services if needed (via service-to-service call).
+6. Throw a domain error if the operation is invalid.
 
-**Aturan:**
-- Application Service **tidak boleh** langsung mengeksekusi query SQL atau mengakses Prisma / Supabase client — semua akses data domain melalui repository.
-- Application Service **tidak boleh** mengandung rendering logic atau HTTP concerns.
-- Setiap service hanya boleh mengakses repository milik bounded context-nya sendiri.
+**Rules:**
+- The Application Service **must not** execute SQL queries directly or access the Prisma / Supabase client — all domain data access goes through the repository.
+- The Application Service **must not** contain rendering logic or HTTP concerns.
+- Each service may only access the repositories of its own bounded context.
 
 ---
 
 ## Domain Logic Layer
 
-Layer yang mengandung **pure business logic** — tidak bergantung pada framework, database, atau infrastruktur apapun.
+The layer that contains **pure business logic** — not dependent on any framework, database, or infrastructure.
 
-**Komponen Domain Logic:**
-- **Entities** — objek dengan identitas (Post, Workspace, Member, dll.)
-- **Value Objects** — objek tanpa identitas, immutable (BrandSettings, PostStatus, dll.)
-- **Domain Rules** — validasi dan constraint bisnis (misal: hanya Owner yang bisa hapus workspace, Post tidak bisa dijadwalkan ke masa lalu)
+**Domain Logic components:**
+- **Entities** — objects with identity (Post, Workspace, Member, etc.)
+- **Value Objects** — objects without identity, immutable (BrandSettings, PostStatus, etc.)
+- **Domain Rules** — business validations and constraints (e.g. only the Owner can delete a workspace, a Post cannot be scheduled in the past)
 
-**Aturan:**
-- Domain logic **tidak boleh** import dari infrastruktur, framework, atau service layer.
-- Domain logic boleh di-unit-test tanpa setup database atau server.
-- Shared types antar domain (UserId, WorkspaceId, dll.) diambil dari `packages/shared`.
+**Rules:**
+- Domain logic **must not** import from infrastructure, the framework, or the service layer.
+- Domain logic may be unit-tested without a database or server setup.
+- Shared types between domains (UserId, WorkspaceId, etc.) are taken from `packages/shared`.
 
 ---
 
 ## Repository Layer
 
-Lapisan abstraksi antara domain logic dan database. Interface repository didefinisikan di dalam domain module; implementasinya menggunakan **Prisma Client** (ADR-031). Supabase client dipakai terpisah untuk Realtime dan Storage.
+The abstraction layer between domain logic and the database. The repository interface is defined inside the domain module; its implementation uses **Prisma Client** (ADR-031). The Supabase client is used separately for Realtime and Storage.
 
-**Pola yang digunakan:**
+**Pattern used:**
 
 ```
-[Interface — didefinisikan di domain]
+[Interface — defined in the domain]
 IPostRepository
   ├── findById(id: PostId): Promise<Post | null>
   ├── findByWorkspace(workspaceId: WorkspaceId, filter): Promise<Post[]>
   ├── save(post: Post): Promise<void>
   └── delete(id: PostId): Promise<void>
 
-[Implementasi — menggunakan Prisma Client]
+[Implementation — uses Prisma Client]
 PrismaPostRepository implements IPostRepository
 ```
 
-**Satu repository per Aggregate Root:**
+**One repository per Aggregate Root:**
 
 | Aggregate Root | Repository Interface |
 |----------------|---------------------|
@@ -147,7 +147,7 @@ PrismaPostRepository implements IPostRepository
 | `Workspace` | `IWorkspaceRepository` |
 | `Member` | `IMemberRepository` |
 | `ConnectedAccount` | `IConnectedAccountRepository` |
-| `McpGrant` | `IMcpGrantRepository` (pencabutan atomik lewat port `IMcpGrantRevocationPort`) |
+| `McpGrant` | `IMcpGrantRepository` (atomic revocation through the `IMcpGrantRevocationPort` port) |
 | `McpAuditLog` (entity, BC-04) | `IMcpAuditRepository` |
 | `InboxItem` | `IInboxItemRepository` |
 | `PostMetrics` | `IPostMetricsRepository` |
@@ -156,10 +156,10 @@ PrismaPostRepository implements IPostRepository
 | `MediaItem` | `IMediaItemRepository` |
 | `Notification` | `INotificationRepository` |
 
-**Aturan:**
-- Repository interface hanya boleh diketahui oleh Application Service domain yang sama.
-- Repository implementasi boleh menggunakan Prisma Client secara langsung (bukan Supabase JS untuk CRUD).
-- Repository bertanggung jawab atas mapping antara database row dan domain entity.
+**Rules:**
+- A repository interface may only be known to the Application Service of the same domain.
+- The repository implementation may use Prisma Client directly (not Supabase JS for CRUD).
+- The repository is responsible for the mapping between a database row and a domain entity.
 
 ---
 
@@ -167,203 +167,203 @@ PrismaPostRepository implements IPostRepository
 
 ## Server Components — Data Fetching
 
-Digunakan untuk semua operasi **baca** yang diperlukan untuk render halaman.
+Used for all **read** operations needed to render a page.
 
 ```
 Page Component (Server)
-  └── memanggil ApplicationService.findXxx(...)
-       └── memanggil Repository.findXxx(...)
+  └── calls ApplicationService.findXxx(...)
+       └── calls Repository.findXxx(...)
             └── Prisma Client query
 ```
 
-**Kapan digunakan:**
-- Load daftar post untuk halaman Calendar.
-- Load analytics snapshot untuk halaman Analytics.
-- Load data profil workspace.
-- Load media library.
+**When used:**
+- Load the post list for the Calendar page.
+- Load the analytics snapshot for the Analytics page.
+- Load workspace profile data.
+- Load the media library.
 
-**Aturan:**
-- Server Component tidak boleh menyimpan state atau menerima event dari browser.
-- Data fetching di Server Component tidak melalui `fetch()` ke endpoint internal — langsung panggil Application Service.
+**Rules:**
+- A Server Component must not hold state or receive events from the browser.
+- Data fetching in a Server Component does not go through `fetch()` to an internal endpoint — call the Application Service directly.
 
 ---
 
 ## Server Actions — UI Mutations
 
-Digunakan untuk semua operasi **tulis** yang dipicu dari interaksi user di UI.
+Used for all **write** operations triggered from user interaction in the UI.
 
 ```
 Client Component (triggers action)
-  └── memanggil Server Action
-       └── memanggil ApplicationService.doXxx(...)
+  └── calls Server Action
+       └── calls ApplicationService.doXxx(...)
             ├── authorization check
             ├── domain logic
             └── Repository.save(...)
 ```
 
-**Kapan digunakan:**
-- Membuat atau mengedit draft post.
-- Menjadwalkan atau membatalkan post.
-- Mengelola anggota workspace (invite, remove, ubah role).
-- Reply engagement inbox.
-- Cabut koneksi klien AI (`revokeGrant`).
-- Upload media.
+**When used:**
+- Creating or editing a draft post.
+- Scheduling or cancelling a post.
+- Managing workspace members (invite, remove, change role).
+- Replying in the engagement inbox.
+- Revoking an AI client connection (`revokeGrant`).
+- Uploading media.
 
-**Aturan:**
-- Server Action harus melakukan validasi format input sebelum memanggil service (gunakan schema validation — library ditentukan di Engineering Planning).
-- Server Action bertanggung jawab menangkap domain error dan mengembalikan structured error response ke client.
-- Server Action tidak boleh bypass authorization — authorization dilakukan di Application Service.
+**Rules:**
+- A Server Action must validate the input format before calling the service (use schema validation — the library is decided in Engineering Planning).
+- A Server Action is responsible for catching domain errors and returning a structured error response to the client.
+- A Server Action must not bypass authorization — authorization is done in the Application Service.
 
 ---
 
 ## Route Handlers — External & API
 
-Digunakan untuk request dari **sistem eksternal** atau kebutuhan yang tidak bisa dilayani Server Actions.
+Used for requests from **external systems** or needs that Server Actions cannot serve.
 
 ```
 External System / Browser Fetch
   └── Route Handler (apps/web/app/api/...)
-       └── memanggil ApplicationService.handleXxx(...)
+       └── calls ApplicationService.handleXxx(...)
             └── ...
 ```
 
-**Kapan digunakan:**
-- Webhook resmi Outstand (`post.published`, `post.error`, `account.token_expired`).
+**When used:**
+- Official Outstand webhooks (`post.published`, `post.error`, `account.token_expired`).
 - Health check endpoint.
-- File download endpoint (jika diperlukan).
-- **API mobile-ready** (`/api/v1/...`, ADR-043) — kontrak REST/JSON versioned untuk mobile client, dibahas di bagian "Route Handler v1 — Mobile Client" di bawah.
+- File download endpoint (if needed).
+- **Mobile-ready API** (`/api/v1/...`, ADR-043) — a versioned REST/JSON contract for mobile clients, covered in the section "Route Handler v1 — Mobile Client" below.
 
-**Aturan:**
-- Webhook Route Handler membaca raw body, memvalidasi HMAC atas bytes tersebut, lalu memanggil ingestion Application Service untuk persist receipt idempoten dan enqueue JOB-01 sebelum ACK `2xx`.
-- Route Handler tidak boleh langsung mengakses database — termasuk receipt webhook; wajib melalui Application Service/repository sistem.
-- Route Handler bukan pengganti Server Actions untuk mutasi dari UI.
+**Rules:**
+- The webhook Route Handler reads the raw body, validates HMAC over those bytes, then calls the ingestion Application Service to persist an idempotent receipt and enqueue JOB-01 before ACK `2xx`.
+- A Route Handler must not access the database directly — including the webhook receipt; it must go through the system's Application Service/repository.
+- A Route Handler is not a replacement for Server Actions for mutations from the UI.
 
 ---
 
 ## Route Handler v1 — Mobile Client (ADR-043)
 
-Next.js App Router tetap satu-satunya runtime API — **tidak ada backend
-terpisah** (Hono, dll.) untuk melayani mobile client. Mobile diekspos lewat
-Route Handler versioned yang memanggil Application Service yang sama dipakai
-Server Actions untuk web.
+The Next.js App Router remains the only API runtime — **there is no separate
+backend** (Hono, etc.) to serve mobile clients. Mobile is exposed through
+versioned Route Handlers that call the same Application Services used by
+Server Actions for the web.
 
 ```
 Mobile App (iOS/Android)
   └── Authorization: Bearer <token>
        └── Route Handler (apps/web/app/api/v1/...)
-            └── memanggil ApplicationService.xxx(...) — sama dengan Server Action
+            └── calls ApplicationService.xxx(...) — same as the Server Action
                  └── ...
 ```
 
-**Kenapa bukan Server Actions untuk mobile:** Server Actions adalah mekanisme
-RPC internal Next.js — ID action berubah tiap build/deploy dan tidak didesain
-dipanggil dari luar aplikasi Next.js. Mobile client wajib lewat kontrak
-REST/JSON stabil (Route Handler), bukan Server Action.
+**Why not Server Actions for mobile:** Server Actions are Next.js's internal
+RPC mechanism — the action ID changes with every build/deploy and they are not designed
+to be called from outside the Next.js application. Mobile clients must go through a stable
+REST/JSON contract (Route Handler), not a Server Action.
 
-**Aturan tambahan khusus `/api/v1`:**
-- **Auth**: Better Auth Bearer plugin (`Authorization: Bearer <token>`)
-  menggantikan cookie session — lihat `auth-strategy.md` untuk konfigurasi.
-  Satu instance Better Auth, satu tabel session dengan web (AS-D02 tidak
-  berubah).
-- **Workspace context**: karena tidak ada cookie "active workspace" seperti
-  Middleware web, `workspaceId` wajib eksplisit di path atau header tiap
-  request (mis. `/api/v1/workspaces/:workspaceId/...`). Route Handler tetap
-  memanggil Application Service untuk authorization check granular — tidak
-  ada shortcut otorisasi khusus mobile.
-- **Versioning**: breaking change wajib naik ke `/api/v2`; kontrak `/api/v1`
-  yang sudah dipakai mobile app tidak boleh diubah secara breaking.
-- **Prioritas domain diekspos** (mengikuti `future-roadmap.md` — "Mobile
+**Additional rules specific to `/api/v1`:**
+- **Auth**: the Better Auth Bearer plugin (`Authorization: Bearer <token>`)
+  replaces the cookie session — see `auth-strategy.md` for configuration.
+  One Better Auth instance, one session table shared with the web (AS-D02 does not
+  change).
+- **Workspace context**: because there is no "active workspace" cookie like the web
+  Middleware, `workspaceId` must be explicit in the path or header of every
+  request (e.g. `/api/v1/workspaces/:workspaceId/...`). The Route Handler still
+  calls the Application Service for granular authorization checks — there is
+  no mobile-specific authorization shortcut.
+- **Versioning**: a breaking change must bump to `/api/v2`; the `/api/v1` contract
+  already used by the mobile app must not be changed in a breaking way.
+- **Domain priority exposed** (following `future-roadmap.md` — "Mobile
   Publishing, Mobile Inbox"): `WorkspaceService` → `PublishingService` →
   `EngagementService` → `NotificationService`.
-- **Timing**: fondasi (skema `/api/v1`, konfigurasi Bearer) disiapkan
-  mendahului M8, endpoint mobile aktual diimplementasikan setelah MVP web
-  selesai (bukan bagian MVP — `mvp-definition.md`, `product-scope.md`).
+- **Timing**: the foundation (the `/api/v1` schema, Bearer configuration) is prepared
+  ahead of M8, the actual mobile endpoints are implemented after the web MVP
+  is finished (not part of the MVP — `mvp-definition.md`, `product-scope.md`).
 
 ---
 
 ## Middleware — Auth Guard & Workspace Context
 
-Middleware berjalan sebelum setiap request ke halaman dashboard. Tanggung jawabnya:
+Middleware runs before every request to a dashboard page. Its responsibilities:
 
-1. Verifikasi session aktif via Better Auth.
-2. Ekstrak `userId` dari session.
-3. Resolusi `workspaceId` aktif dari URL atau cookie.
-4. Redirect ke halaman login jika session tidak valid.
-5. Redirect ke workspace selector jika workspace tidak ditemukan.
+1. Verify the active session via Better Auth.
+2. Extract `userId` from the session.
+3. Resolve the active `workspaceId` from the URL or cookie.
+4. Redirect to the login page if the session is invalid.
+5. Redirect to the workspace selector if the workspace is not found.
 
-**Catatan:** Middleware tidak memanggil Application Service — hanya melakukan verifikasi session dan resolusi context. Otorisasi granular (role-based permission) dilakukan di Application Service.
+**Note:** Middleware does not call the Application Service — it only performs session verification and context resolution. Granular authorization (role-based permission) is done in the Application Service.
 
 ---
 
 # Cross-Domain Communication
 
-Ketika satu domain membutuhkan data atau trigger operasi di domain lain, mekanismenya adalah **service-to-service call langsung**.
+When one domain needs data or triggers an operation in another domain, the mechanism is a **direct service-to-service call**.
 
-## Aturan Service-to-Service Call
+## Service-to-Service Call Rules
 
-1. **Hanya import dari public API modul** — setiap domain mengekspos `index.ts` sebagai satu-satunya pintu masuk. Tidak boleh import dari file internal domain lain.
-2. **Tidak ada circular dependency** — jika BC-A memanggil BC-B, maka BC-B tidak boleh memanggil BC-A.
-3. **Hanya passing ID, bukan entity** — saat memanggil service domain lain, kirim ID (WorkspaceId, UserId, dll.) bukan full entity object lintas domain.
+1. **Import only from a module's public API** — each domain exposes `index.ts` as the only entry point. Importing from another domain's internal files is not allowed.
+2. **No circular dependency** — if BC-A calls BC-B, then BC-B must not call BC-A.
+3. **Pass only IDs, not entities** — when calling another domain's service, send IDs (WorkspaceId, UserId, etc.) not a full entity object across domains.
 
-## Peta Dependency Antar Domain
+## Inter-Domain Dependency Map
 
 ```
 BC-01 Identity
-    ↑ (dikonsumsi oleh semua BC via UserId)
+    ↑ (consumed by all BCs via UserId)
 
 BC-02 Workspace
-    ↑ (dikonsumsi oleh BC-03, BC-04, BC-05, BC-06, BC-07, BC-08, BC-09)
+    ↑ (consumed by BC-03, BC-04, BC-05, BC-06, BC-07, BC-08, BC-09)
 
-BC-03 Publishing ──→ BC-02 Workspace (verifikasi ConnectedAccount)
-                ──→ BC-08 Media (attach MediaItem ke post)
-                ──→ BC-06 Analytics (metrik post per target akun, via PostMetricsPort — KI-064)
+BC-03 Publishing ──→ BC-02 Workspace (verify ConnectedAccount)
+                ──→ BC-08 Media (attach MediaItem to a post)
+                ──→ BC-06 Analytics (post metrics per target account, via PostMetricsPort — KI-064)
 
-BC-04 MCP Access ──→ BC-02 Workspace (verifikasi member aktif per panggilan)
-                 (tool MCP adalah entry point yang memanggil service BC-02/03/05/06/08; BC-04 sendiri hanya memegang grant, audit, rate limit)
+BC-04 MCP Access ──→ BC-02 Workspace (verify active member per call)
+                 (MCP tools are entry points that call the BC-02/03/05/06/08 services; BC-04 itself only holds grants, audit, rate limit)
 
 BC-05 Engagement ──→ BC-02 Workspace (filter per ConnectedAccount)
 
 BC-06 Analytics ──→ BC-02 Workspace (filter per ConnectedAccount)
 
-BC-07 Start Page ──→ BC-02 Workspace (terikat ke workspace)
+BC-07 Start Page ──→ BC-02 Workspace (bound to the workspace)
 
-BC-08 Media ──→ BC-02 Workspace (semua media terikat ke workspace)
+BC-08 Media ──→ BC-02 Workspace (all media bound to the workspace)
 
-BC-09 Notification ──→ semua BC (dikonsumsi oleh BC lain untuk kirim notifikasi)
+BC-09 Notification ──→ all BCs (consumed by other BCs to send notifications)
 ```
 
-**Dependency yang dilarang (circular):**
-- BC-02 tidak boleh memanggil BC-03, BC-04, BC-05, BC-06, BC-07, BC-08
-- `McpAccessService` (BC-04) tidak boleh memanggil BC-03/05/06/08. Pemanggilan service domain dilakukan oleh handler tool MCP (entry point), bukan oleh `McpAccessService`.
-- BC-08 tidak boleh memanggil BC-03
+**Forbidden dependencies (circular):**
+- BC-02 must not call BC-03, BC-04, BC-05, BC-06, BC-07, BC-08
+- `McpAccessService` (BC-04) must not call BC-03/05/06/08. Calling domain services is done by the MCP tool handler (entry point), not by `McpAccessService`.
+- BC-08 must not call BC-03
 
 ---
 
 # Error Handling Strategy
 
-## Hierarki Error
+## Error Hierarchy
 
 ```
 ApplicationError (base)
-├── AuthorizationError      — user tidak punya permission
-├── NotFoundError           — resource tidak ditemukan
-├── ValidationError         — input tidak valid / domain rule dilanggar
-├── ConflictError           — operasi konflik dengan state yang ada
-└── ExternalServiceError    — error dari Outstand API atau layanan eksternal
+├── AuthorizationError      — user does not have permission
+├── NotFoundError           — resource not found
+├── ValidationError         — input invalid / domain rule violated
+├── ConflictError           — operation conflicts with the existing state
+└── ExternalServiceError    — error from the Outstand API or an external service
 ```
 
-## Alur Error
+## Error Flow
 
 ```
 Application Service
-  └── melempar domain error (AuthorizationError, ValidationError, dll.)
-       └── ditangkap di Entry Point
-            ├── Server Action → dikembalikan sebagai structured error response ke client
-            ├── Route Handler → dikembalikan sebagai JSON error response dengan HTTP status sesuai
-            └── Server Component → di-render sebagai error state halaman
+  └── throws a domain error (AuthorizationError, ValidationError, etc.)
+       └── caught at the Entry Point
+            ├── Server Action → returned as a structured error response to the client
+            ├── Route Handler → returned as a JSON error response with the matching HTTP status
+            └── Server Component → rendered as a page error state
 ```
 
-**Mapping domain error ke HTTP status (Route Handlers):**
+**Mapping domain errors to HTTP status (Route Handlers):**
 
 | Domain Error | HTTP Status |
 |-------------|------------|
@@ -373,272 +373,272 @@ Application Service
 | `ConflictError` | 409 Conflict |
 | `ExternalServiceError` | 502 Bad Gateway |
 
-**Catatan:** Error handling detail (error class implementation, logging, monitoring) ditentukan di Engineering Planning.
+**Note:** Error handling details (error class implementation, logging, monitoring) are determined in Engineering Planning.
 
 ---
 
-# Request Flow — Contoh Operasi
+# Request Flow — Operation Examples
 
-## Contoh 1: Jadwalkan Post (Happy Path)
+## Example 1: Schedule a Post (Happy Path)
 
 ```
-User klik "Schedule" di UI
+User clicks "Schedule" in the UI
   │
-  ├─ [Client Component] memanggil Server Action schedulePost(postId, scheduledAt)
+  ├─ [Client Component] calls the Server Action schedulePost(postId, scheduledAt)
   │
   ├─ [Server Action]
-  │    ├─ Validasi format input (postId valid UUID, scheduledAt ISO date)
-  │    └─ Panggil PublishingService.schedulePost(userId, postId, scheduledAt)
+  │    ├─ Validate the input format (postId is a valid UUID, scheduledAt is an ISO date)
+  │    └─ Call PublishingService.schedulePost(userId, postId, scheduledAt)
   │
   ├─ [PublishingService]
-  │    ├─ Ambil Post via IPostRepository.findById(postId)
-  │    ├─ Verifikasi userId adalah member workspace post ini (WorkspaceService.getMember)
-  │    ├─ Verifikasi role member >= Creator (domain rule — semua role bisa, ADR-074)
-  │    ├─ Jalankan domain rule: scheduledAt tidak boleh di masa lalu
-  │    ├─ Jalankan domain rule: post harus memiliki minimal satu PublishingTarget
+  │    ├─ Get the Post via IPostRepository.findById(postId)
+  │    ├─ Verify userId is a member of this post's workspace (WorkspaceService.getMember)
+  │    ├─ Verify the member role >= Creator (domain rule — all roles can, ADR-074)
+  │    ├─ Run the domain rule: scheduledAt must not be in the past
+  │    ├─ Run the domain rule: the post must have at least one PublishingTarget
   │    ├─ Update Post.status = "scheduled", Post.scheduledAt = scheduledAt
-  │    └─ Simpan via IPostRepository.save(post)
+  │    └─ Save via IPostRepository.save(post)
   │
-  └─ [Server Action] Kembalikan { success: true } ke Client Component
+  └─ [Server Action] Return { success: true } to the Client Component
 ```
 
-## Contoh 2: Webhook Outstand — Post Published
+## Example 2: Outstand Webhook — Post Published
 
 ```
-Outstand API kirim POST /api/webhooks/outstand
+Outstand API sends POST /api/webhooks/outstand
   │
   ├─ [Route Handler]
-  │    ├─ Baca raw body + validasi HMAC
-  │    ├─ Panggil WebhookIngestionService.persistReceipt(rawBody, headers)
-  │    └─ ACK 2xx setelah receipt durable + JOB-01 terjadwal
+  │    ├─ Read raw body + validate HMAC
+  │    ├─ Call WebhookIngestionService.persistReceipt(rawBody, headers)
+  │    └─ ACK 2xx after the receipt is durable + JOB-01 is scheduled
   │
   ├─ [JOB-01 / WebhookProcessor]
-  │    ├─ Muat receipt idempoten
-  │    ├─ ACL terjemahkan event vendor ke command domain
+  │    ├─ Load the idempotent receipt
+  │    ├─ The ACL translates the vendor event into a domain command
   │    └─ PublishingService.markPostPublished(...)
   │
   └─ [PublishingService]
-       ├─ Cari Post via outstandPostId (amandemen ADR-092, rename dari outstandJobId — post-level, mencakup semua target)
-       ├─ Panggil OutstandAdapter.fetchPostOutcome(outstandPostId) untuk resolve status per PostTarget
+       ├─ Find the Post via outstandPostId (amendment to ADR-092, renamed from outstandJobId — post-level, covers all targets)
+       ├─ Call OutstandAdapter.fetchPostOutcome(outstandPostId) to resolve the status per PostTarget
        ├─ Update status "published"
        └─ NotificationService.notify(..., { type: "post_published" })
 ```
 
-## Contoh 3: Load Halaman Calendar
+## Example 3: Load the Calendar Page
 
 ```
-User navigasi ke /publish/calendar  ← Calendar; /publish sendiri redirect permanen ke sini (ADR-046 Amandemen Final, pengecualian permanen). Route group `(app)` tidak muncul di URL — hanya nama folder pembungkus di `src/app/`
+User navigates to /publish/calendar  ← Calendar; /publish itself permanently redirects here (ADR-046 Final Amendment, permanent exception). The route group `(app)` does not appear in the URL — only a wrapper folder name in `src/app/`
   │
   ├─ [Middleware]
-  │    ├─ Verifikasi session (Better Auth)
-  │    └─ Resolve workspaceId dari cookie active-workspace-id (`auth-architecture.md`)
+  │    ├─ Verify the session (Better Auth)
+  │    └─ Resolve workspaceId from the active-workspace-id cookie (`auth-architecture.md`)
   │
   ├─ [Server Component CalendarPage]
-  │    └─ Panggil PublishingService.getScheduledPosts(workspaceId, dateRange)
+  │    └─ Call PublishingService.getScheduledPosts(workspaceId, dateRange)
   │
   ├─ [PublishingService]
-  │    └─ Panggil IPostRepository.findByWorkspace(workspaceId, { status: "scheduled", dateRange })
+  │    └─ Call IPostRepository.findByWorkspace(workspaceId, { status: "scheduled", dateRange })
   │
-  └─ [Server Component] Render kalender dengan data post
+  └─ [Server Component] Render the calendar with the post data
 ```
 
 ---
 
 # Application Service Contracts
 
-Berikut adalah kontrak tingkat tinggi (method signature arsitektural) per service. Detail parameter dan return type ditentukan di Engineering Planning.
+Below are the high-level contracts (architectural method signatures) per service. Parameter and return type details are determined in Engineering Planning.
 
 ## WorkspaceService
 
-| Method | Trigger | Keterangan |
+| Method | Trigger | Notes |
 |--------|---------|-----------|
-| `createWorkspace` | Server Action | Buat workspace baru, otomatis tambah Owner |
-| `getWorkspace` | Server Component | Load data workspace + brand settings |
-| `updateWorkspace` | Server Action | Update nama, `slug` (internal unique identifier, tidak dipakai di routing/URL — `domain-model.md`), atau brand settings |
-| `switchWorkspace` | Server Action | Pindahkan workspace aktif user secara sengaja — validasi ulang bahwa user adalah member workspace tujuan, set cookie `active-workspace-id` ke workspace tujuan, redirect Home. Dipanggil dari Settings → Account → Workspaces (ADR-088) setelah user konfirmasi lewat dialog Tier 2 (ADR-089), berbeda dari alur recovery `/onboarding` saat cookie hilang (`auth-architecture.md`) |
-| `inviteMember` | Server Action | Kirim undangan ke email |
-| `acceptInvite` | Server Action | Terima undangan, aktivasi membership |
-| `removeMember` | Server Action | Hapus member dari workspace — wajib dialog konfirmasi Tier 2 sebelum eksekusi (ADR-049) |
-| `updateMemberRole` | Server Action | Ubah role member — wajib dialog konfirmasi Tier 2 sebelum eksekusi (ADR-049) |
-| `getMember` | Internal (dipanggil service lain) | Ambil data member + role untuk auth check |
-| `connectAccount` | Server Action | Hubungkan akun media sosial via Outstand |
-| `disconnectAccount` | Server Action | Putus koneksi akun media sosial — wajib Disconnect Confirmation (KSP-08-F07, ADR-048) |
-| `transferOwnership` | Server Action | Owner memicu transfer kepemilikan ke Admin lain — set `pendingOwnerTransferTo`, kirim notifikasi (`ownership_transfer_requested`); **tidak** langsung menukar role. RBAC: Owner saja, target harus Admin aktif. Wajib konfirmasi Tier 1 (ketik nama workspace, ADR-049) sebelum memicu (ADR-050) |
-| `acceptOwnershipTransfer` | Server Action | Admin target menerima transfer — role Owner lama dan Admin target bertukar dalam satu transaksi, `pendingOwnerTransferTo` dikosongkan, notifikasi (`ownership_transfer_resolved`) ke Owner lama. RBAC: hanya user yang jadi target `pendingOwnerTransferTo` (ADR-050) |
-| `deleteWorkspace` | Server Action | Hapus workspace beserta seluruh data terkait — cascade mengikuti `ON DELETE CASCADE` per `workspace_id` (`database-strategy.md`). RBAC: Owner saja. Wajib konfirmasi Tier 1 (ketik nama workspace, ADR-049) sebelum eksekusi (ADR-050) |
+| `createWorkspace` | Server Action | Create a new workspace, automatically add the Owner |
+| `getWorkspace` | Server Component | Load workspace data + brand settings |
+| `updateWorkspace` | Server Action | Update the name, `slug` (internal unique identifier, not used in routing/URL — `domain-model.md`), or brand settings |
+| `switchWorkspace` | Server Action | Deliberately move the user's active workspace — re-validate that the user is a member of the target workspace, set the `active-workspace-id` cookie to the target workspace, redirect Home. Called from Settings → Account → Workspaces (ADR-088) after the user confirms through the Tier 2 dialog (ADR-089), different from the `/onboarding` recovery flow when the cookie is lost (`auth-architecture.md`) |
+| `inviteMember` | Server Action | Send an invitation to an email |
+| `acceptInvite` | Server Action | Accept the invitation, activate the membership |
+| `removeMember` | Server Action | Remove a member from the workspace — a Tier 2 confirmation dialog is mandatory before execution (ADR-049) |
+| `updateMemberRole` | Server Action | Change a member's role — a Tier 2 confirmation dialog is mandatory before execution (ADR-049) |
+| `getMember` | Internal (called by other services) | Get member data + role for the auth check |
+| `connectAccount` | Server Action | Connect a social media account via Outstand |
+| `disconnectAccount` | Server Action | Disconnect a social media account — Disconnect Confirmation is mandatory (KSP-08-F07, ADR-048) |
+| `transferOwnership` | Server Action | The Owner triggers an ownership transfer to another Admin — set `pendingOwnerTransferTo`, send a notification (`ownership_transfer_requested`); does **not** swap roles immediately. RBAC: Owner only, the target must be an active Admin. A Tier 1 confirmation (type the workspace name, ADR-049) is mandatory before triggering (ADR-050) |
+| `acceptOwnershipTransfer` | Server Action | The target Admin accepts the transfer — the old Owner's role and the target Admin's role are swapped in a single transaction, `pendingOwnerTransferTo` is cleared, a notification (`ownership_transfer_resolved`) goes to the old Owner. RBAC: only the user who is the target of `pendingOwnerTransferTo` (ADR-050) |
+| `deleteWorkspace` | Server Action | Delete the workspace along with all related data — cascade follows `ON DELETE CASCADE` per `workspace_id` (`database-strategy.md`). RBAC: Owner only. A Tier 1 confirmation (type the workspace name, ADR-049) is mandatory before execution (ADR-050) |
 
 ## PublishingService
 
-| Method | Trigger | Keterangan |
+| Method | Trigger | Notes |
 |--------|---------|-----------|
-| `createDraft` | Server Action | Buat draft post baru |
-| `updateDraft` | Server Action | Edit konten draft (caption, media, targets, `contentFormat`, `platformOptions`) |
-| `schedulePosts` | Server Action | Jadwalkan satu atau beberapa post — wajib validasi matriks `ContentFormat` per target (ADR-039) sebelum memanggil Outstand |
-| `cancelSchedule` | Server Action | Batalkan jadwal, kembali ke draft — wajib dialog konfirmasi Tier 2 sebelum eksekusi, simetris dengan konfirmasi Schedule (ADR-049) |
-| `publishNow` | Server Action | Publish langsung tanpa jadwal (KSP-05-F12, ADR-047) — RBAC sama dengan `schedulePosts` (semua role: Account Owner/Admin/Creator, sejak ADR-074); validasi matriks `ContentFormat` per target (ADR-039) tetap wajib sebelum memanggil Outstand |
-| `deletePost` | Server Action | Soft delete post — wajib dialog konfirmasi Tier 2 sebelum eksekusi (ADR-049), meski soft delete di DB (DB-D03) |
-| `getScheduledPosts` | Server Component | Load post untuk Calendar view |
-| `getDraftPosts` | Server Component | Load post untuk Draft list |
-| `applyTargetOutcomes` | JOB-01 internal | Setelah `post.published`/`post.error`, baca outcome Outstand per akun lalu update setiap `PostTarget` secara independen; notifikasi internal boleh `post_published`/`post_failed` |
-| `listQueue` | Server Component | Load daftar Queue (KSP-03) — `Post`/`PostTarget` status `Scheduled`, grouped by tanggal, urutan murni ascending `scheduledAt`. Bukan entity `QueueSlot` terpisah, tidak ada reorder manual (amandemen ADR-083) |
+| `createDraft` | Server Action | Create a new draft post |
+| `updateDraft` | Server Action | Edit draft content (caption, media, targets, `contentFormat`, `platformOptions`) |
+| `schedulePosts` | Server Action | Schedule one or more posts — must validate the `ContentFormat` matrix per target (ADR-039) before calling Outstand |
+| `cancelSchedule` | Server Action | Cancel the schedule, return to draft — a Tier 2 confirmation dialog is mandatory before execution, symmetric with the Schedule confirmation (ADR-049) |
+| `publishNow` | Server Action | Publish immediately without a schedule (KSP-05-F12, ADR-047) — same RBAC as `schedulePosts` (all roles: Account Owner/Admin/Creator, since ADR-074); validation of the `ContentFormat` matrix per target (ADR-039) is still mandatory before calling Outstand |
+| `deletePost` | Server Action | Soft delete a post — a Tier 2 confirmation dialog is mandatory before execution (ADR-049), even though it is a soft delete in the DB (DB-D03) |
+| `getScheduledPosts` | Server Component | Load posts for the Calendar view |
+| `getDraftPosts` | Server Component | Load posts for the Draft list |
+| `applyTargetOutcomes` | JOB-01 internal | After `post.published`/`post.error`, read the Outstand outcome per account then update each `PostTarget` independently; the internal notification may be `post_published`/`post_failed` |
+| `listQueue` | Server Component | Load the Queue list (KSP-03) — `Post`/`PostTarget` with status `Scheduled`, grouped by date, ordered purely ascending by `scheduledAt`. Not a separate `QueueSlot` entity, no manual reorder (amendment to ADR-083) |
 
 ## McpAccessService
 
-Tool MCP (ADR-138) adalah entry point Route Handler `/api/mcp` yang memanggil service BC lain; tabel ini hanya memuat service milik BC-04.
+MCP tools (ADR-138) are the entry point Route Handler `/api/mcp` that calls other BC services; this table only contains services owned by BC-04.
 
-| Method | Trigger | Keterangan |
+| Method | Trigger | Notes |
 |--------|---------|-----------|
-| `createGrant` | Persetujuan OAuth (titik kait diputuskan di T-149.2) | Buat grant untuk satu workspace dan scope terpilih, atau perbarui `scopes` grant aktif yang sudah ada (satu grant aktif per pengguna, klien, workspace); RBAC: member aktif workspace |
-| `revokeGrant` | Server Action (Settings) | Cabut koneksi klien AI; transaksi tunggal, lihat § Aturan otorisasi |
-| `listGrants` | Server Component (Settings) | Daftar grant aktif milik pengguna yang sedang login (lintas workspace) |
-| `authorizeCall` | Internal (Route Handler MCP) | Validasi grant, scope, dan member per panggilan, lalu rate limit (T-154); lihat § Aturan otorisasi |
-| `recordAudit` | Internal (Route Handler MCP) | Tulis `McpAuditLog` satu baris per panggilan |
-| `purgeAudit` | Cron (JOB-08) | Hapus audit yang lebih tua dari 90 hari |
+| `createGrant` | OAuth approval (hook point decided in T-149.2) | Create a grant for one workspace and the chosen scopes, or update the `scopes` of an existing active grant (one active grant per user, client, workspace); RBAC: active workspace member |
+| `revokeGrant` | Server Action (Settings) | Revoke an AI client connection; a single transaction, see § Authorization and revocation rules |
+| `listGrants` | Server Component (Settings) | List of active grants owned by the currently logged-in user (across workspaces) |
+| `authorizeCall` | Internal (MCP Route Handler) | Validate grant, scope, and member per call, then rate limit (T-154); see § Authorization and revocation rules |
+| `recordAudit` | Internal (MCP Route Handler) | Write one `McpAuditLog` row per call |
+| `purgeAudit` | Cron (JOB-08) | Delete audit entries older than 90 days |
 
-### Aturan otorisasi dan pencabutan (T-149.1, ADR-139 poin 4)
+### Authorization and revocation rules (T-149.1, ADR-139 point 4)
 
-Access token OAuth berupa JWT stateless: tetap diterima sampai kedaluwarsa (1 jam) walau consent dan refresh token sudah dihapus (terbukti di spike T-148). Karena itu token saja tidak pernah cukup. **`mcp_grants` adalah sumber otorisasi** (keputusan King Rezi 2026-10-26); baris `identity_oauth_consent` dan `identity_oauth_refresh_token` milik plugin hanya mekanik OAuth.
+The OAuth access token is a stateless JWT: it is still accepted until it expires (1 hour) even though the consent and refresh token have been deleted (proven in the T-148 spike). Therefore the token alone is never enough. **`mcp_grants` is the authorization source** (King Rezi's decision 2026-10-26); the plugin-owned `identity_oauth_consent` and `identity_oauth_refresh_token` rows are only OAuth mechanics.
 
-`authorizeCall` memeriksa setiap panggilan, dalam urutan ini, dan menolak (fail closed, dengan error yang jelas, bukan data kosong) pada kegagalan pertama:
+`authorizeCall` checks every call, in this order, and rejects (fail closed, with a clear error, not empty data) on the first failure:
 
-1. Token valid (tanda tangan, `iss`, `aud`, kedaluwarsa); dikerjakan `mcpHandler`, sebelum service dipanggil.
-2. Grant aktif ada untuk (`sub` token, `azp` token, `workspace_id` token) dengan `revoked_at` kosong. Tanpa grant: ditolak.
-3. Scope yang dibutuhkan tool tercakup oleh scope token **dan** scope grant di DB. Scope di token tidak boleh melampaui grant; mencabut atau menyempitkan grant langsung berlaku tanpa menunggu token baru.
-4. Pengguna masih member aktif workspace itu. Pada MVP tidak ada pembatasan scope berdasarkan role (Account Owner, Admin, Creator setara untuk read, draft, dan schedule; ADR-139 poin 4, S-001). Member yang dikeluarkan ditolak, grant-nya tidak dihapus otomatis.
-5. Titik sambung rate limit (diisi T-154). `last_used_at` diperbarui hanya setelah panggilan lolos, paling cepat sekali per menit.
+1. The token is valid (signature, `iss`, `aud`, expiry); done by `mcpHandler`, before the service is called.
+2. An active grant exists for (token `sub`, token `azp`, token `workspace_id`) with `revoked_at` empty. Without a grant: rejected.
+3. The scope required by the tool is covered by the token scope **and** the grant scope in the DB. The scope in the token must not exceed the grant; revoking or narrowing a grant takes effect immediately without waiting for a new token.
+4. The user is still an active member of that workspace. In the MVP there is no scope restriction based on role (Account Owner, Admin, Creator are equal for read, draft, and schedule; ADR-139 point 4, S-001). A removed member is rejected, their grant is not deleted automatically.
+5. The rate limit hook point (filled in by T-154). `last_used_at` is updated only after the call passes, at most once per minute.
 
-Panggilan yang ditolak tetap dicatat lewat `recordAudit` (`status = denied`).
+A rejected call is still recorded through `recordAudit` (`status = denied`).
 
-`revokeGrant` menjalankan **satu transaksi**: menandai `mcp_grants.revoked_at` dan menghapus baris `identity_oauth_consent` serta `identity_oauth_refresh_token` milik (klien, pengguna, workspace) grant itu (`referenceId` plugin = `workspace_id`). Transaksi dijalankan oleh adapter di lapisan repository lewat port yang dipanggil service; domain tidak mengimpor Prisma. Tabel plugin tidak diubah bentuknya dan tidak diberi FK baru. Mencabut grant yang sudah dicabut tidak error (idempoten). Access token yang masih berlaku ditolak pada panggilan berikutnya oleh aturan 2, bukan oleh kedaluwarsa.
+`revokeGrant` runs **a single transaction**: it marks `mcp_grants.revoked_at` and deletes the `identity_oauth_consent` and `identity_oauth_refresh_token` rows belonging to that grant's (client, user, workspace) (plugin `referenceId` = `workspace_id`). The transaction is run by an adapter in the repository layer through a port called by the service; the domain does not import Prisma. The plugin tables are not changed in shape and not given new FKs. Revoking an already-revoked grant does not error (idempotent). An access token that is still valid is rejected on the next call by rule 2, not by expiry.
 
-Pemetaan tool MCP ke service yang dibungkus (nama method sudah dicocokkan dengan barrel domain pada T-150.1; handler tool adalah entry point, jadi pemanggilan lintas-BC ini sah menurut peta dependency di atas):
+The mapping of MCP tools to the services they wrap (method names were matched against the domain barrel in T-150.1; a tool handler is an entry point, so these cross-BC calls are legitimate per the dependency map above):
 
-| Scope | Tool | Service yang dipanggil (API publik barrel domain) |
+| Scope | Tool | Service called (public API of the domain barrel) |
 |-------|------|---------------------------------------------------|
-| `read` | `get_workspace` | `WorkspaceService.getWorkspaceById` (nama); scope dari `McpAuthorizedCall.grantScopes` |
-| `read` | `list_accounts` | `WorkspaceService.listConnectedAccounts`; format konten per platform dari `getAllowedContentFormats` (barrel `publishing`, fungsi murni ADR-039) |
+| `read` | `get_workspace` | `WorkspaceService.getWorkspaceById` (name); scope from `McpAuthorizedCall.grantScopes` |
+| `read` | `list_accounts` | `WorkspaceService.listConnectedAccounts`; content formats per platform from `getAllowedContentFormats` (`publishing` barrel, pure function ADR-039) |
 | `read` | `list_media` | `MediaService.listMediaItems` |
 | `read` | `list_drafts` | `PublishingService.listDrafts` |
-| `read` | `list_scheduled_posts` | `PublishingService.listQueue` (grup per tanggal diratakan) |
-| `read` | `list_published_posts` | `PublishingService.listHistory` dengan `statuses = [Published, Imported]` |
+| `read` | `list_scheduled_posts` | `PublishingService.listQueue` (groups per date flattened) |
+| `read` | `list_published_posts` | `PublishingService.listHistory` with `statuses = [Published, Imported]` |
 | `read` | `get_analytics` (workspace) | `AnalyticsService.getDashboardSummary` |
-| `read` | `get_analytics` (satu post) | `PublishingService.getHistoryById` (field `metrics` per akun; `authorName` tidak dipakai) |
+| `read` | `get_analytics` (single post) | `PublishingService.getHistoryById` (`metrics` field per account; `authorName` is not used) |
 | `read` | `list_comments` | `EngagementService.listInbox` |
-| `draft` | `create_draft` | `ComposeDraftUseCase` (domain `publishing`; membuat draft dengan penanda sumber `created_via = 'mcp'` dan `created_via_client_id` dari grant; T-152) |
-| `draft` | `update_draft` | `ComposeDraftUseCase` (hanya draft berstatus Draft; tidak mengubah penanda sumber; T-152) |
-| `draft` | `upload_media` | `MediaService.uploadMedia` (unduh dari URL dengan proteksi SSRF) |
-| `schedule` | `schedule_posts` | `ScheduleContentsUseCase` (domain `publishing`; memeriksa semua konten lebih dulu, memesan kuota sekali, lalu membuat draft bertanda MCP dan menjadwalkannya satu per satu; hasil per konten; T-153) |
+| `draft` | `create_draft` | `ComposeDraftUseCase` (`publishing` domain; creates a draft with the source marker `created_via = 'mcp'` and `created_via_client_id` from the grant; T-152) |
+| `draft` | `update_draft` | `ComposeDraftUseCase` (only drafts with status Draft; does not change the source marker; T-152) |
+| `draft` | `upload_media` | `MediaService.uploadMedia` (download from a URL with SSRF protection) |
+| `schedule` | `schedule_posts` | `ScheduleContentsUseCase` (`publishing` domain; checks all content first, reserves the quota once, then creates MCP-marked drafts and schedules them one by one; result per content; T-153) |
 
-Semua service di atas menerima `workspaceId` dan `userId` dari grant yang lolos `authorizeCall` (bukan dari argumen tool), jadi isolasi workspace dan RLS per pengguna (KI-026) tetap berlaku seperti di UI. Tool tidak punya parameter `workspaceId`.
+All the services above receive `workspaceId` and `userId` from the grant that passed `authorizeCall` (not from tool arguments), so workspace isolation and per-user RLS (KI-026) still apply as in the UI. Tools have no `workspaceId` parameter.
 
-### Tool draft dan rate limit (T-152, T-154; ADR-152 Accepted)
+### Draft tools and rate limit (T-152, T-154; ADR-152 Accepted)
 
-**`create_draft` dan `update_draft`** (scope `draft`). Caption maksimum 5000 karakter dan media maksimum 10 per draft. `update_draft` hanya untuk draft berstatus Draft; post Scheduled ditolak dengan `conflict` ("Batalkan jadwal di aplikasi dulu") dan penanda sumber tidak berubah. `platformOptions` (mis. board Pinterest) tidak bisa diatur lewat MCP. `list_drafts` belum mengembalikan penanda sumber.
+**`create_draft` and `update_draft`** (scope `draft`). Caption maximum 5000 characters and media maximum 10 per draft. `update_draft` is only for drafts with status Draft; a Scheduled post is rejected with `conflict` ("Batalkan jadwal di aplikasi dulu") and the source marker does not change. `platformOptions` (e.g. a Pinterest board) cannot be set through MCP. `list_drafts` does not yet return the source marker.
 
-**Rate limit per workspace.** `McpAccessService.consumeQuota(workspaceId, quota, amount)` memakai fixed window Postgres (tabel `mcp_rate_limit_windows`, `database-strategy.md` BC-04): `calls` per menit, `write_actions` per jam, `scheduled_contents` per hari; batas bawaan 60, 30, dan 50, dapat diubah lewat env. Penolakan dikembalikan sebagai error `rate_limited` di hasil tool dengan `retryAfterSeconds`, `quota`, dan `limit`, bukan header HTTP `Retry-After` (respons HTTP selalu 200 untuk JSON-RPC). Fail-closed bila penghitung gagal. Pemakaian oleh tool `schedule_posts` ditetapkan di T-153.
+**Rate limit per workspace.** `McpAccessService.consumeQuota(workspaceId, quota, amount)` uses a Postgres fixed window (table `mcp_rate_limit_windows`, `database-strategy.md` BC-04): `calls` per minute, `write_actions` per hour, `scheduled_contents` per day; default limits 60, 30, and 50, changeable via env. A rejection is returned as a `rate_limited` error in the tool result with `retryAfterSeconds`, `quota`, and `limit`, not an HTTP `Retry-After` header (the HTTP response is always 200 for JSON-RPC). Fail-closed if the counter fails. Usage by the `schedule_posts` tool is set in T-153.
 
-### Kontrak output tool baca (T-150.1)
+### Read tool output contract (T-150.1)
 
-Berlaku untuk delapan tool `read`. Handler hanya memetakan record service ke bentuk di bawah; tanpa business logic.
+Applies to the eight `read` tools. The handler only maps the service record to the shape below; no business logic.
 
-**Bungkus hasil.** Satu blok `text` berisi JSON. Penolakan dan kegagalan memakai `isError: true` dengan blok `text` berisi `{"error":{"code","message"}}`, tidak pernah daftar kosong. `code`: `no_active_grant`, `token_scope_insufficient`, `grant_scope_insufficient`, `not_workspace_member` (`McpDenialReason`), `invalid_input` (juga untuk `ValidationError` dan `PublishingDomainError` dari service), `invalid_cursor`, `not_found`, `conflict` (tool tulis, mis. `update_draft` pada post yang sudah dijadwalkan), `rate_limited` (kuota per workspace habis; ADR-152, lihat di bawah), `internal_error` (pesan generik; detail hanya di log server). Kode tambahan `not_permitted` (T-252, ADR-138, ADR-074): `AuthorizationError` dari domain yang dilempar handler tool mana pun (kini hanya `schedule_posts`) dipetakan ke kode ini dengan status audit `denied`, bukan `internal_error`; peran berasal dari keanggotaan yang dibaca ulang `McpAccessService.authorizeCall` di setiap panggilan (`McpToolContext.actorRole`), tidak pernah dari argumen tool.
+**Result wrapper.** One `text` block containing JSON. Rejections and failures use `isError: true` with a `text` block containing `{"error":{"code","message"}}`, never an empty list. `code`: `no_active_grant`, `token_scope_insufficient`, `grant_scope_insufficient`, `not_workspace_member` (`McpDenialReason`), `invalid_input` (also for `ValidationError` and `PublishingDomainError` from the service), `invalid_cursor`, `not_found`, `conflict` (write tools, e.g. `update_draft` on an already scheduled post), `rate_limited` (per-workspace quota exhausted; ADR-152, see below), `internal_error` (generic message; details only in the server log). Additional code `not_permitted` (T-252, ADR-138, ADR-074): an `AuthorizationError` from the domain thrown by any tool handler (currently only `schedule_posts`) is mapped to this code with the audit status `denied`, not `internal_error`; the role comes from the membership re-read by `McpAccessService.authorizeCall` on every call (`McpToolContext.actorRole`), never from tool arguments.
 
-**Waktu.** Semua tanggal dan jam berupa string ISO 8601 dengan offset zona `User.timeZone` pemilik koneksi, mis. `2026-10-28T14:30:00+07:00` untuk WIB atau `+08:00` untuk WITA (T-168, ADR-146); zona tidak valid jatuh ke WIB. Input jadwal tanpa offset ditafsirkan di zona itu, dengan offset dipakai apa adanya. Tanggal tanpa nilai diberi `null`. Tool tidak menerima input waktu pada tool baca.
+**Time.** All dates and times are ISO 8601 strings with the zone offset of the connection owner's `User.timeZone`, e.g. `2026-10-28T14:30:00+07:00` for WIB or `+08:00` for WITA (T-168, ADR-146); an invalid zone falls back to WIB. Schedule input without an offset is interpreted in that zone, with a given offset used as is. A date without a value is given `null`. Tools do not accept time input on the read tools.
 
-**ID.** String apa adanya dari domain. Tidak ada `outstand*` id, `storagePath`, URL bertanda tangan, atau `slug` di output.
+**IDs.** Strings as-is from the domain. There are no `outstand*` ids, `storagePath`, signed URLs, or `slug` in the output.
 
-**Daftar berhalaman.** `list_media`, `list_drafts`, `list_scheduled_posts`, `list_published_posts`, `list_comments` mengembalikan `{ "items": [...], "nextCursor": string | null }`, 20 item per halaman (tetap, tanpa parameter `limit`), dan menerima `cursor` opsional. Cursor opaque (base64url `{v, offset, filter}`); cursor rusak, atau dibuat untuk filter lain, ditolak `invalid_cursor`. **Batas yang diketahui:** service BC lain belum punya paginasi (repository mengembalikan daftar penuh), jadi handler memotong daftar di memori. Urutan mengikuti service: media terbaru dulu, drafts diedit terbaru dulu, jadwal naik menurut `scheduledAt`, terbit turun menurut waktu terbit, komentar terbaru dulu. Halaman bisa bergeser bila data berubah di antara dua panggilan. Paginasi di repository BC lain adalah tiket terpisah bila volume menuntutnya. `list_accounts` dan `get_workspace` tidak berhalaman.
+**Paginated lists.** `list_media`, `list_drafts`, `list_scheduled_posts`, `list_published_posts`, `list_comments` return `{ "items": [...], "nextCursor": string | null }`, 20 items per page (fixed, no `limit` parameter), and accept an optional `cursor`. The cursor is opaque (base64url `{v, offset, filter}`); a broken cursor, or one created for a different filter, is rejected with `invalid_cursor`. **Known limit:** other BCs' services do not yet have pagination (the repository returns the full list), so the handler truncates the list in memory. The order follows the service: media newest first, drafts most recently edited first, schedule ascending by `scheduledAt`, published descending by publish time, comments newest first. Pages can shift if data changes between two calls. Pagination in other BCs' repositories is a separate ticket if volume demands it. `list_accounts` and `get_workspace` are not paginated.
 
-| Tool | Argumen | Bentuk hasil |
+| Tool | Arguments | Result shape |
 |------|---------|--------------|
-| `get_workspace` | tidak ada | `{ workspaceId, name, grantedScopes: ("read"\|"draft"\|"schedule")[], timezone: string }` (nama zona IANA dari `User.timeZone` pemilik koneksi; T-168). Brand settings disebut S-001 tetapi belum ada di model BC-02, jadi belum dikembalikan (gap dicatat di T-150) |
-| `list_accounts` | tidak ada | `{ items: [{ id, platform, handle, status, reconnectRequired, connectedAt, supportedContentFormats: ContentFormat[] }] }` |
+| `get_workspace` | none | `{ workspaceId, name, grantedScopes: ("read"\|"draft"\|"schedule")[], timezone: string }` (IANA zone name from the connection owner's `User.timeZone`; T-168). Brand settings are mentioned by S-001 but do not yet exist in the BC-02 model, so are not returned yet (gap recorded in T-150) |
+| `list_accounts` | none | `{ items: [{ id, platform, handle, status, reconnectRequired, connectedAt, supportedContentFormats: ContentFormat[] }] }` |
 | `list_media` | `cursor?` | item `{ id, filename, type: "image"\|"video"\|"gif", mimeType, sizeBytes, width, height, durationSeconds, createdAt }` |
 | `list_drafts` | `cursor?` | item `{ id, caption, status: "draft"\|"in_review"\|"ready_to_schedule", mediaIds, createdAt, updatedAt }` |
 | `list_scheduled_posts` | `cursor?` | item `{ id, caption, scheduledAt, createdAt, targets: [{ accountId, platform, accountHandle, contentFormat }] }` |
 | `list_published_posts` | `cursor?` | item `{ id, caption, status: "published"\|"imported", publishedAt, createdAt, targets: [{ accountId, platform, accountHandle, contentFormat, status, postUrl, error }] }` |
-| `get_analytics` | `period?: "weekly"\|"monthly"` (default `weekly`) atau `postId` (menang atas `period`) | workspace: `{ scope: "workspace", period, summary: { totalPosts, totalEngagements, avgEngagementRate, activeAccounts } \| null }` (`null` = belum ada snapshot, bukan nol). Post: `{ scope: "post", postId, status, metrics: [{ accountId, platform, impressions, reach, likes, comments, shares, clicks, engagementRate, fetchedAt }] \| null }`; `postId` yang tidak ada, bukan milik workspace, atau belum selesai terbit: `not_found` |
-| `list_comments` | `cursor?`, `status?: "unread"\|"replied"\|"resolved"\|"dismissed"` (ADR-157; `"done"` tetap diterima sebagai alias `"resolved"` supaya klien lama tidak rusak, keputusan King Rezi 2026-11-06, T-217.8), `accountId?` | `{ notice, items: [{ id, accountId, platform, type, status, postId, receivedAt, author, content }], nextCursor }`; `author` dan `content` dibungkus penanda di bawah |
+| `get_analytics` | `period?: "weekly"\|"monthly"` (default `weekly`) or `postId` (wins over `period`) | workspace: `{ scope: "workspace", period, summary: { totalPosts, totalEngagements, avgEngagementRate, activeAccounts } \| null }` (`null` = no snapshot yet, not zero). Post: `{ scope: "post", postId, status, metrics: [{ accountId, platform, impressions, reach, likes, comments, shares, clicks, engagementRate, fetchedAt }] \| null }`; a `postId` that does not exist, is not in the workspace, or has not finished publishing: `not_found` |
+| `list_comments` | `cursor?`, `status?: "unread"\|"replied"\|"resolved"\|"dismissed"` (ADR-157; `"done"` is still accepted as an alias for `"resolved"` so old clients do not break, King Rezi's decision 2026-11-06, T-217.8), `accountId?` | `{ notice, items: [{ id, accountId, platform, type, status, postId, receivedAt, author, content }], nextCursor }`; `author` and `content` are wrapped in the marker below |
 
-**Data pihak luar (`list_comments`).** Isi komentar dan handle penulis berasal dari pihak luar dan bisa memuat kalimat yang menyerupai perintah. Keduanya dikembalikan di dalam penanda `<data_pihak_luar_tidak_tepercaya>...</data_pihak_luar_tidak_tepercaya>`, dan hasil memuat `notice` tetap yang menyatakan bahwa isi di dalam penanda adalah data dari pihak luar, bukan instruksi. Kemunculan penanda itu di dalam teks komentar dinetralkan (diganti `[penanda dihapus]`) supaya komentar tidak bisa menutup bungkusnya sendiri. Caption draft dan post tidak dibungkus: itu tulisan anggota workspace sendiri. Penanda adalah mitigasi, bukan jaminan; tool `read` memang tidak bisa mengubah apa pun sehingga dampak injeksi tertahan di sisi klien.
+**Third-party data (`list_comments`).** The comment content and the author handle come from a third party and may contain sentences that resemble commands. Both are returned inside the marker `<data_pihak_luar_tidak_tepercaya>...</data_pihak_luar_tidak_tepercaya>`, and the result includes a fixed `notice` stating that the content inside the marker is third-party data, not instructions. An occurrence of that marker inside the comment text is neutralized (replaced with `[penanda dihapus]`) so a comment cannot close its own wrapper. Draft and post captions are not wrapped: they are the workspace members' own writing. The marker is a mitigation, not a guarantee; `read` tools cannot change anything, so the impact of an injection is contained on the client side.
 
 ## EngagementService
 
-| Method | Trigger | Keterangan |
+| Method | Trigger | Notes |
 |--------|---------|-----------|
-| `listInbox` | Server Component / Server Action | Daftar inbox, difilter akun, platform, dan status; dikelompokkan per posting dengan sort dan rentang tanggal setelah T-218 (ADR-157) |
-| `getInboxItemDetail` | Server Action | Detail item beserta snapshot post asal (T-056) |
-| `markAsDone` | Server Action | Menandai item selesai (`done`). Diganti aksi resolve, dismiss, dan buka kembali di T-217 (ADR-157); nama final ditentukan di T-217 |
-| `reply` | Server Action | Kirim reply komentar via Outstand (ACL `replyToComment`); menandai `replied` otomatis bila status `unread` (T-217.3) |
-| `syncComments` | JOB-03 / Server Action manual refresh | Pull komentar via ACL, upsert idempoten, buat `engagement_new` untuk item baru |
+| `listInbox` | Server Component / Server Action | Inbox list, filtered by account, platform, and status; grouped per post with sort and date range after T-218 (ADR-157) |
+| `getInboxItemDetail` | Server Action | Item detail along with the snapshot of the originating post (T-056) |
+| `markAsDone` | Server Action | Marks an item done (`done`). Replaced by the resolve, dismiss, and reopen actions in T-217 (ADR-157); the final name is determined in T-217 |
+| `reply` | Server Action | Send a comment reply via Outstand (ACL `replyToComment`); automatically marks `replied` if the status is `unread` (T-217.3) |
+| `syncComments` | JOB-03 / manual refresh Server Action | Pull comments via the ACL, idempotent upsert, create `engagement_new` for new items |
 
 ## AnalyticsService
 
-| Method | Trigger | Keterangan |
+| Method | Trigger | Notes |
 |--------|---------|-----------|
-| `getWorkspaceSnapshot` | Server Component | Load ringkasan analytics workspace |
-| `getPostMetrics` | Server Component | Load metrik per post |
-| `syncMetrics` | JOB-04 | Pull update metrik dari Outstand |
+| `getWorkspaceSnapshot` | Server Component | Load the workspace analytics summary |
+| `getPostMetrics` | Server Component | Load metrics per post |
+| `syncMetrics` | JOB-04 | Pull metric updates from Outstand |
 
 ## MediaService
 
-| Method | Trigger | Keterangan |
+| Method | Trigger | Notes |
 |--------|---------|-----------|
-| `uploadMedia` | Server Action | Upload file ke Supabase Storage + simpan metadata |
-| `createOutstandWorkingCopy` | Internal Publishing flow | Request upload URL → PUT → confirm; kembalikan URL Outstand untuk publish |
-| `getMediaLibrary` | Server Component | Load daftar media workspace |
-| `deleteMedia` | Server Action | Hapus file dan metadata — wajib dialog konfirmasi Tier 2 sebelum eksekusi (ADR-049); hard delete, tidak ada `deleted_at` |
+| `uploadMedia` | Server Action | Upload a file to Supabase Storage + save metadata |
+| `createOutstandWorkingCopy` | Internal Publishing flow | Request upload URL → PUT → confirm; return the Outstand URL for publishing |
+| `getMediaLibrary` | Server Component | Load the workspace media list |
+| `deleteMedia` | Server Action | Delete the file and metadata — a Tier 2 confirmation dialog is mandatory before execution (ADR-049); hard delete, no `deleted_at` |
 
 ## NotificationService
 
-| Method | Trigger | Keterangan |
+| Method | Trigger | Notes |
 |--------|---------|-----------|
-| `notify` | Internal (dipanggil service lain) | Buat notifikasi baru |
-| `getNotifications` | Server Component | Load notifikasi user dalam workspace |
-| `markAllRead` | Server Action | Tandai semua notifikasi sebagai dibaca |
+| `notify` | Internal (called by other services) | Create a new notification |
+| `getNotifications` | Server Component | Load the user's notifications within the workspace |
+| `markAllRead` | Server Action | Mark all notifications as read |
 
 ## StartPageService
 
-| Method | Trigger | Keterangan |
+| Method | Trigger | Notes |
 |--------|---------|-----------|
-| `getStartPage` | Server Component | Load start page workspace |
-| `updateStartPage` | Server Action | Update konten dan pengaturan start page |
-| `addLink` | Server Action | Tambah link ke start page |
-| `removeLink` | Server Action | Hapus link dari start page |
-| `reorderLinks` | Server Action | Ubah urutan link |
+| `getStartPage` | Server Component | Load the workspace start page |
+| `updateStartPage` | Server Action | Update the start page content and settings |
+| `addLink` | Server Action | Add a link to the start page |
+| `removeLink` | Server Action | Remove a link from the start page |
+| `reorderLinks` | Server Action | Change the link order |
 
 ---
 
-# Catatan MVP
+# MVP Notes
 
-Untuk MVP, tidak semua service method di atas diimplementasikan. Prioritas implementasi mengacu pada `product-discovery/02-product/mvp-definition.md`. Application Layer ini mendefinisikan kontrak lengkap sistem — Engineering Planning akan menetapkan subset yang masuk MVP.
+For the MVP, not every service method above is implemented. Implementation priority refers to `product-discovery/02-product/mvp-definition.md`. This Application Layer defines the system's full contract — Engineering Planning will set the subset that goes into the MVP.
 
 ---
 
 # Decision Log
 
-| ID | Keputusan | Alasan | Alternatif |
+| ID | Decision | Reason | Alternatives |
 |----|-----------|--------|-----------|
-| AL-D01 | Server Actions untuk UI mutations, Route Handlers untuk external/webhook | Separation of concern yang jelas; Server Actions optimal untuk form-based UI, Route Handlers optimal untuk integrasi eksternal | Route Handlers saja (kehilangan progressive enhancement); Server Actions saja (tidak bisa handle webhook) |
-| AL-D02 | Repository Pattern eksplisit — interface di domain, implementasi via Prisma Client (ADR-031) | Selaras dengan DDD; type-safe persistence; test domain logic tanpa database; batas dependency jelas | Akses Prisma/Supabase langsung di service (coupling tinggi, sulit di-test); Supabase client untuk CRUD (digantikan ADR-031) |
-| AL-D03 | Service-to-service call via public API modul (`index.ts`) | Sederhana untuk MVP solo developer; tidak memerlukan event bus; dependency explicit dan mudah ditelusuri | Domain Events (lebih decoupled tapi kompleksitas tinggi untuk MVP); Shared Read Model (query langsung ke DB lintas context — melanggar boundary) |
-| AL-D04 | 4-layer stack: Entry Points → Application Service → Domain Logic → Repository | Selaras Modular Monolith + DDD; setiap layer punya tanggung jawab yang jelas; testable per layer | 2-layer (Entry Point + DB) — terlalu flat, tidak scalable; full CQRS — terlalu kompleks untuk MVP |
-| AL-D05 | Webhook Route Handler hanya verify raw HMAC → durable receipt → enqueue → ACK | Menjamin event tidak hilang dan menjaga entry point tetap tipis |
-| AL-D06 | Engagement sync melalui JOB-03/manual refresh; bukan Route Handler webhook | Kontrak resmi Outstand tidak menyediakan webhook Engagement MVP |
-| AL-D07 | ADR-040 | AL-D05–D06 mengamandemen contoh dan kontrak service lama |
-| AL-D08 | Route Handler `/api/v1` sebagai API mobile-ready di atas Application Service yang sama dengan web; tidak ada BE terpisah | Server Actions tidak stabil lintas build untuk client eksternal; Application Service sudah framework-agnostic (AL-D02) sehingga entry point mobile murah ditambahkan (ADR-043) | Backend terpisah (Hono/Express) — duplikasi business logic; mobile memanggil Server Actions langsung — tidak stabil/tidak didukung |
+| AL-D01 | Server Actions for UI mutations, Route Handlers for external/webhook | Clear separation of concerns; Server Actions are optimal for form-based UI, Route Handlers are optimal for external integration | Route Handlers only (loses progressive enhancement); Server Actions only (cannot handle webhooks) |
+| AL-D02 | Explicit Repository Pattern — interface in the domain, implementation via Prisma Client (ADR-031) | Aligned with DDD; type-safe persistence; test domain logic without a database; clear dependency boundary | Direct Prisma/Supabase access in the service (high coupling, hard to test); Supabase client for CRUD (superseded by ADR-031) |
+| AL-D03 | Service-to-service call via the module public API (`index.ts`) | Simple for a solo-developer MVP; needs no event bus; dependencies are explicit and easy to trace | Domain Events (more decoupled but high complexity for the MVP); Shared Read Model (direct DB queries across contexts — violates the boundary) |
+| AL-D04 | 4-layer stack: Entry Points → Application Service → Domain Logic → Repository | Aligned with Modular Monolith + DDD; each layer has a clear responsibility; testable per layer | 2-layer (Entry Point + DB) — too flat, not scalable; full CQRS — too complex for the MVP |
+| AL-D05 | The webhook Route Handler only verifies raw HMAC → durable receipt → enqueue → ACK | Guarantees events are not lost and keeps the entry point thin |
+| AL-D06 | Engagement sync through JOB-03/manual refresh; not a webhook Route Handler | The official Outstand contract does not provide an MVP Engagement webhook |
+| AL-D07 | ADR-040 | AL-D05–D06 amend the old examples and service contracts |
+| AL-D08 | The `/api/v1` Route Handler as a mobile-ready API on top of the same Application Service as the web; no separate BE | Server Actions are not stable across builds for external clients; the Application Service is already framework-agnostic (AL-D02) so a mobile entry point is cheap to add (ADR-043) | Separate backend (Hono/Express) — duplicated business logic; mobile calling Server Actions directly — unstable/unsupported |
 
 ---
 
 # Related Documents
 
-* `domain-model.md` — bounded context dan entitas yang dikonsumsi Application Layer ini
-* `database-strategy.md` — tabel database yang diakses repository
-* `integration-layer.md` — Outstand API yang dipanggil dari Route Handlers dan Application Services
-* `background-jobs.md` — background jobs yang juga mengakses Application Services
-* `realtime-strategy.md` — notifikasi yang dipicu via NotificationService
-* `auth-architecture.md` — Better Auth dan otorisasi granular dalam Application Service
-* `../02-product/mvp-definition.md` — scope MVP yang menentukan method mana yang diimplementasikan
-* `../02-product/roles-permissions.md` — role dan permission yang menjadi constraint authorization
-* `../../project-os/DECISIONS.md` — ADR-001 s/d ADR-015, AL-D01 s/d AL-D04, ADR-043 (AL-D08)
-* `../06-engineering/auth-strategy.md` — Better Auth Bearer plugin, konfigurasi auth mobile (AS-D06)
+* `domain-model.md` — bounded contexts and entities consumed by this Application Layer
+* `database-strategy.md` — database tables accessed by the repositories
+* `integration-layer.md` — the Outstand API called from Route Handlers and Application Services
+* `background-jobs.md` — background jobs that also access Application Services
+* `realtime-strategy.md` — notifications triggered via NotificationService
+* `auth-architecture.md` — Better Auth and granular authorization in the Application Service
+* `../02-product/mvp-definition.md` — MVP scope that determines which methods are implemented
+* `../02-product/roles-permissions.md` — roles and permissions that are the authorization constraint
+* `../../project-os/DECISIONS.md` — ADR-001 through ADR-015, AL-D01 through AL-D04, ADR-043 (AL-D08)
+* `../06-engineering/auth-strategy.md` — Better Auth Bearer plugin, mobile auth configuration (AS-D06)
