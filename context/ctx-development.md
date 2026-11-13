@@ -1,29 +1,29 @@
 # Context — Development
 
-Indeks **Developer Experience**, perintah lokal/CI, dan **aturan coding / konvensi**.  
-Pola “fitur ditaruh di mana / alur call” → `ctx-implementation.md`.  
+An index of **Developer Experience**, local/CI commands, and **coding rules / conventions**.  
+Patterns for "where a feature goes / call flow" → `ctx-implementation.md`.  
 Stack & env → `ctx-technical-context.md`.
 
 ---
 
-## Baca dulu
+## Read first
 
-| Dokumen                                                                                                                  | Topik                                                                                 |
+| Document                                                                                                                 | Topic                                                                                 |
 | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
-| [`../product-discovery/06-engineering/dx-tooling.md`](../product-discovery/06-engineering/dx-tooling.md)                 | ESLint, Prettier, Lefthook, Vitest, script (ADR-034)                                  |
+| [`../product-discovery/06-engineering/dx-tooling.md`](../product-discovery/06-engineering/dx-tooling.md)                 | ESLint, Prettier, Lefthook, Vitest, scripts (ADR-034)                                 |
 | [`../product-discovery/06-engineering/rendering-strategy.md`](../product-discovery/06-engineering/rendering-strategy.md) | Server Component vs Client, Server Actions, streaming, SSR/SSG/ISR (ADR-016, ADR-095) |
 | [`../product-discovery/06-engineering/code-conventions.md`](../product-discovery/06-engineering/code-conventions.md)     | Naming, error handling hierarchy (ADR-095)                                            |
-| [`cicd-pipeline.md`](../product-discovery/06-engineering/cicd-pipeline.md)                                               | Gates CI yang sama dengan lokal                                                       |
-| [`monorepo-setup.md`](../product-discovery/06-engineering/monorepo-setup.md)                                             | Layout workspace & TypeScript                                                         |
-| [`../README.md`](../README.md)                                                                                           | Setup cepat root                                                                      |
+| [`cicd-pipeline.md`](../product-discovery/06-engineering/cicd-pipeline.md)                                               | CI gates that are the same as local                                                   |
+| [`monorepo-setup.md`](../product-discovery/06-engineering/monorepo-setup.md)                                             | Workspace & TypeScript layout                                                         |
+| [`../README.md`](../README.md)                                                                                           | Quick root setup                                                                      |
 
-Config di repo: `eslint.config.*`, `prettier.config.*`, `lefthook.yml`, `vitest.config.ts` (root), `apps/web/playwright.config.ts` (E2E, ADR-149).
+Config in the repo: `eslint.config.*`, `prettier.config.*`, `lefthook.yml`, `vitest.config.ts` (root), `apps/web/playwright.config.ts` (E2E, ADR-149).
 
 ---
 
-## Perintah inti
+## Core commands
 
-| Tujuan          | Perintah                                  |
+| Goal            | Command                                   |
 | --------------- | ----------------------------------------- |
 | Dev server      | `bun run dev`                             |
 | Typecheck       | `bun run typecheck`                       |
@@ -33,177 +33,177 @@ Config di repo: `eslint.config.*`, `prettier.config.*`, `lefthook.yml`, `vitest.
 | Prisma generate | `bun run db:generate`                     |
 | Migrate (dev)   | `bun run db:migrate`                      |
 
-Sebelum menganggap pekerjaan selesai: typecheck + lint (+ test bila menyentuh logic yang tercover) harus hijau.
+Before considering work done: typecheck + lint (+ test if it touches covered logic) must be green.
 
 ---
 
-## Aturan coding (operasional)
+## Coding rules (operating)
 
-Aturan di bawah melengkapi hard rules di [`../AGENTS.md`](../AGENTS.md). Detail arsitektur tetap di baseline. Detail penuh rendering & error handling: `rendering-strategy.md`, `code-conventions.md`.
+The rules below complement the hard rules in [`../AGENTS.md`](../AGENTS.md). Architecture detail stays in the baseline. Full detail on rendering & error handling: `rendering-strategy.md`, `code-conventions.md`.
 
-### Umum
+### General
 
-1. Format & lint dipercayakan ke **Prettier + ESLint** — jangan reformatting massal di luar scope task.
-2. TypeScript ketat: hindari `any`; prefer tipe dari `@postific/shared` untuk ID/enum lintas BC.
-3. Jangan commit secret; jangan menambah dependency tanpa alasan jelas (ikuti
-   `dependency-strategy.md`). shadcn/ui adalah kode sumber yang di-copy ke
-   repo, bukan dependency package — tidak ada isu exact pin/Beta seperti
-   Astryx sebelumnya (ADR-097).
-4. Perubahan kecil & terfokus — jangan refactor spekulatif di luar task.
-5. Komentar hanya untuk intent non-obvious; jangan komentar narasi ulang kode.
+1. Formatting & lint are entrusted to **Prettier + ESLint** — do not mass-reformat outside the task scope.
+2. Strict TypeScript: avoid `any`; prefer types from `@postific/shared` for cross-BC IDs/enums.
+3. Do not commit secrets; do not add a dependency without a clear reason (follow
+   `dependency-strategy.md`). shadcn/ui is source code copied into the
+   repo, not a package dependency — there is no exact pin/Beta issue like
+   Astryx had before (ADR-097).
+4. Small & focused changes — no speculative refactors outside the task.
+5. Comments only for non-obvious intent; do not write comments that re-narrate the code.
 
 ### UI / styling
 
-6. shadcn/ui adalah fondasi komponen permanen (ADR-097, membalik ADR-041).
-   Migrasi dari Astryx ke shadcn/ui selesai (ADR-097); detail status lihat
+6. shadcn/ui is the permanent component foundation (ADR-097, reversing ADR-041).
+   The migration from Astryx to shadcn/ui is complete (ADR-097); for status detail see
    `PROJECT_STATE.md` / `../project-os/tickets/v07-astryx-shadcn-migration.md`.
-7. Tailwind dipakai langsung sebagai styling komponen shadcn (bukan lagi
-   layout-only seperti era Astryx).
-8. Wrapper selektif tetap dipakai untuk komponen kritis/dipakai luas.
-   `@stylexjs/stylex` sudah dihapus total dari dependency project (ADR-082,
-   sekarang tidak relevan karena Astryx sendiri sudah tidak dipakai).
+7. Tailwind is used directly as styling for shadcn components (no longer
+   layout-only like in the Astryx era).
+8. Selective wrappers are still used for critical/widely used components.
+   `@stylexjs/stylex` has been removed entirely from the project dependencies (ADR-082,
+   now irrelevant because Astryx itself is no longer used).
 
-### Naming & file
+### Naming & files
 
-9. Domain module: `apps/web/src/domains/<domain>/` — nama selaras BC (kebab/folder lowercase).
-10. Public API domain diekspor dari `index.ts` module tersebut.
-11. Shared types: `packages/shared` — nama jelas, tanpa logic bisnis.
-12. Persona & role: pakai nama kanonikal (Raka, Maya, … / Account Owner, Admin, Creator — ADR-074).
-13. Komponen React di `apps/web/src/app/` dan `src/components/`: file yang
-    meng-export component pakai PascalCase, folder & file non-component
-    (helper, Server Action, data map) tetap kebab-case; peletakan folder
-    `components/` mengikuti lowest common ancestor (LCA) dari route
-    pemakainya. Detail & contoh di `monorepo-setup.md` section
-    `## src/app/ — App Router Structure` (ADR-069, resolusi KI-010).
+9. Domain module: `apps/web/src/domains/<domain>/` — name aligned with the BC (kebab/lowercase folder).
+10. The domain's public API is exported from that module's `index.ts`.
+11. Shared types: `packages/shared` — clear names, no business logic.
+12. Personas & roles: use the canonical names (Raka, Maya, … / Account Owner, Admin, Creator — ADR-074).
+13. React components in `apps/web/src/app/` and `src/components/`: files that
+    export a component use PascalCase, folders & non-component files
+    (helpers, Server Actions, data maps) stay kebab-case; the placement of the
+    `components/` folder follows the lowest common ancestor (LCA) of the routes
+    that use it. Detail & examples in `monorepo-setup.md` section
+    `## src/app/ — App Router Structure` (ADR-069, resolution of KI-010).
 
-### Struktur repository & use-case
+### Repository & use-case structure
 
-14. Pola **Repository** (split interface domain ↔ implementasi Prisma) dan
-    pola **use-case class terpisah** untuk alur dengan dependency kritis
-    (mis. `IOutstandAdapter`) — didetailkan di `ctx-implementation.md`
-    (bukan di sini, sesuai batas file pada `context/README.md`).
+14. The **Repository** pattern (domain interface ↔ Prisma implementation split) and
+    the **separate use-case class** pattern for flows with critical dependencies
+    (e.g. `IOutstandAdapter`) — detailed in `ctx-implementation.md`
+    (not here, per the file boundaries in `context/README.md`).
 
 ### Testing
 
-15. Unit/domain test: **Vitest** (`bun run test`). Tes E2E: **Playwright** Chrome (`bun run test:e2e`), detail di `dx-tooling.md` DX-D08 (ADR-149).
-16. Test yang ditambah harus relevan dengan behavior yang diubah; jangan stub berlebihan tanpa nilai.
-17. Service/use-case diuji dengan **fake repository** — bukan mock Prisma
-    dan bukan DB nyata. Pola: factory function `createFakeRepository()`
-    yang mengembalikan objek literal `implements IXxxRepository` dengan
-    default no-op per method, lalu `overrides: Partial<IXxxRepository>`
-    di-spread untuk test case tertentu. Preseden:
-    `domains/publishing/services/publishing.service.test.ts`. Pola yang sama
-    dipakai untuk double lokal `IOutstandAdapter` di use-case test (bukan
-    singleton produksi — Fake produksi sudah dihapus, ADR-119). Tes ini
-    tidak membuktikan konteks RLS di implementasi Prisma — lihat aturan 19.
+15. Unit/domain tests: **Vitest** (`bun run test`). E2E tests: **Playwright** Chrome (`bun run test:e2e`), detail in `dx-tooling.md` DX-D08 (ADR-149).
+16. Tests that are added must be relevant to the behavior that changed; do not over-stub without value.
+17. Services/use-cases are tested with a **fake repository** — not a Prisma mock
+    and not a real DB. Pattern: a factory function `createFakeRepository()`
+    that returns an object literal `implements IXxxRepository` with a
+    no-op default per method, then `overrides: Partial<IXxxRepository>`
+    is spread for a specific test case. Precedent:
+    `domains/publishing/services/publishing.service.test.ts`. The same pattern
+    is used for a local `IOutstandAdapter` double in use-case tests (not the
+    production singleton — the production Fake has been removed, ADR-119). These tests
+    do not prove the RLS context in the Prisma implementation — see rule 19.
 
-### Dari praktik yang sudah terbukti di kode
+### From practices already proven in the code
 
-18. Error yang harus tampil sebagai pesan `{ error }` ke user (bukan
-    crash): lempar subclass `ApplicationError` di
+18. An error that must appear as an `{ error }` message to the user (not a
+    crash): throw a subclass of `ApplicationError` in
     `apps/web/src/lib/utils/errors.ts` — `AuthorizationError`,
     `NotFoundError`, `ValidationError`, `ConflictError`,
-    `ExternalServiceError`, atau subclass-nya
-    (mis. `AlreadyConnectedError`). `XxxDomainError` di tiap domain
-    extends `Error`, bukan `ApplicationError` — jangan dipakai untuk pesan
-    yang harus sampai ke UI. Server Action yang **mengembalikan** `{ error }`
-    menangkap lewat `try/catch` + `toActionError()`; fungsi itu hanya
-    memetakan `instanceof ApplicationError`, selain itu di-throw lagi.
-    `throw new Error(...)` di jalur ini jadi overlay error Next.js, bukan
-    toast. Preseden: `getOutstandAdapter()` saat `OUTSTAND_API_KEY` kosong
-    (T-090.5) — sekarang `ExternalServiceError`. Isi `message` harus aman
-    ditampilkan. Jangan membungkus ulang action yang kontraknya bukan
-    `{ error }`: `markNotificationReadAction` mengembalikan `void` dan
-    membiarkan error naik (sesi kosong → `redirect("/login")`);
-    `getCalendarPostAction` memetakan sesi kosong ke `null`. Mengganti
-    keduanya ke `toActionError()` mengubah kontrak pemanggil. Detail:
+    `ExternalServiceError`, or their subclasses
+    (e.g. `AlreadyConnectedError`). `XxxDomainError` in each domain
+    extends `Error`, not `ApplicationError` — do not use it for messages
+    that must reach the UI. A Server Action that **returns** `{ error }`
+    catches through `try/catch` + `toActionError()`; that function only
+    maps `instanceof ApplicationError`, anything else is re-thrown.
+    `throw new Error(...)` on this path becomes a Next.js error overlay, not a
+    toast. Precedent: `getOutstandAdapter()` when `OUTSTAND_API_KEY` is empty
+    (T-090.5) — now `ExternalServiceError`. The `message` content must be safe
+    to display. Do not re-wrap an action whose contract is not
+    `{ error }`: `markNotificationReadAction` returns `void` and
+    lets the error rise (empty session → `redirect("/login")`);
+    `getCalendarPostAction` maps an empty session to `null`. Switching
+    either to `toActionError()` changes the caller's contract. Detail:
     `code-conventions.md` (CC-D01, CC-D02).
-19. Query Prisma, baca maupun tulis, pada tabel yang punya RLS: bungkus
-    dengan `withCurrentUser(userId, (tx) => ...)` di
-    `apps/web/src/lib/prisma/with-current-user.ts`. Di dalam callback pakai
-    client `tx`, bukan singleton `prisma` — `SET LOCAL` hanya hidup di
-    transaksi itu. Kalau sudah berada di dalam transaksi luar, panggil
-    `setCurrentUserId(tx, userId)` sebagai pernyataan pertama; jangan
-    menumpuk `withCurrentUser` (itu membuka transaksi kedua dan memecah
-    atomisitas, preseden `createWithOwner`). Tanpa `app.current_user_id`,
-    policy `USING` tidak cocok dan tidak melempar error: `findMany`
-    mengembalikan `[]`, `updateMany`/`deleteMany` melaporkan 0 baris.
-    Preseden tulis: `updateImportWatermark` (T-090). Preseden baca:
+19. Prisma queries, read and write, on a table that has RLS: wrap
+    with `withCurrentUser(userId, (tx) => ...)` in
+    `apps/web/src/lib/prisma/with-current-user.ts`. Inside the callback use the
+    `tx` client, not the `prisma` singleton — `SET LOCAL` lives only in
+    that transaction. If you are already inside an outer transaction, call
+    `setCurrentUserId(tx, userId)` as the first statement; do not
+    nest `withCurrentUser` (that opens a second transaction and breaks
+    atomicity, precedent `createWithOwner`). Without `app.current_user_id`,
+    the `USING` policy does not match and does not throw an error: `findMany`
+    returns `[]`, `updateMany`/`deleteMany` report 0 rows.
+    Write precedent: `updateImportWatermark` (T-090). Read precedent:
     `getMember`, `listMembers`, `getChannelOrder`.
-20. Port dan interface baru: PascalCase tanpa awalan `I` (contoh
-    `PostMediaLookupPort`, `EnqueueAnalyticsSyncAccountsPort`). Awalan `I`
-    pada `IXxxRepository` serta adapter yang sudah lama (`IOutstandAdapter`,
-    `IMediaStorageAdapter`, `IJobScheduler`) adalah nama yang sudah
-    terpakai — jangan ditiru untuk port baru. Detail: `code-conventions.md`
+20. New ports and interfaces: PascalCase without the `I` prefix (example
+    `PostMediaLookupPort`, `EnqueueAnalyticsSyncAccountsPort`). The `I` prefix
+    on `IXxxRepository` and on long-standing adapters (`IOutstandAdapter`,
+    `IMediaStorageAdapter`, `IJobScheduler`) is a name that is already
+    in use — do not imitate it for new ports. Detail: `code-conventions.md`
     (CC-D04).
 
-21. Tes E2E yang bertindak di layar Next.js menunggu hidrasi dulu sebelum
-    klik atau isi: teks yang sudah ada di HTML server bukan sinyal siap,
-    klik sebelum hidrasi hilang tanpa galat. Pakai `waitUntilHydrated` di
-    `apps/web/e2e/support/mcp.ts`, lakukan aksi sekali, lalu verifikasi
-    dengan asersi (jangan klik ulang atau `waitForTimeout` buta). Preseden:
+21. E2E tests that act on a Next.js screen wait for hydration first before
+    clicking or filling: text that is already in the server HTML is not a ready signal,
+    a click before hydration is lost without an error. Use `waitUntilHydrated` in
+    `apps/web/e2e/support/mcp.ts`, perform the action once, then verify
+    with an assertion (do not re-click or use a blind `waitForTimeout`). Precedent:
     T-193.2, `authorizeInBrowser`.
-    21a. E2E S18 (akordeon blok jaringan, `draft-editor.e2e.ts`) membaca workspace nyata dengan dua akun atau lebih
-    (`MULTI_ACCOUNT_WORKSPACE_NAME` di `e2e/support/workspace.ts`, bawaan "Cook It Real Good",
-    diganti lewat `E2E_MULTI_ACCOUNT_WORKSPACE`) karena "E2E Sandbox" hanya punya satu akun. Tes itu
-    hanya membaca: tanpa caption, simpan, atau publish; ganti nama workspace bila akun uji tidak lagi
-    menjadi anggotanya. Tes baru yang menyentuh workspace nyata mengikuti batas yang sama.
-    21b. Pemeriksaan manual interaktif bersama King Rezi di browser Claude (preseden:
-    T-249.1 dan T-249.3, 2026-11-12). Urutan: (1) tampilkan panel browser
-    (`show_pane` preview) dan cek tab serta login yang sudah ada; (2) tentukan dulu
-    tempatnya: lokal (`next dev`, bukan bukti staging) atau staging, dan workspace
-    aktifnya (workspace nyata atau "E2E Sandbox"); (3) batas keselamatan: tidak
-    menekan Schedule atau Publish Now ke akun nyata (T-195), data uji diberi awalan
-    seperti `uji-249-1` dan dihapus sendiri sesudahnya, penghapusan permanen hanya
-    untuk data buatan sesi itu; (4) satu pemeriksaan per pertanyaan: agen
-    menavigasi dan mengambil tangkapan layar (tunggu 1 sampai 2 detik agar animasi
-    dan daftar akun selesai dimuat), lalu menanyakan lewat `AskUserQuestion` dengan
-    opsi "Ya, rapi" dan "Ada yang janggal"; jawaban bebas King Rezi dicatat apa
-    adanya sebagai temuan; (5) urutan tampilan: gelap, terang, 375px; tema aplikasi
-    diganti lewat ikon di sidebar (emulasi skema warna browser tidak mengubah
-    tema aplikasi), lebar 375px lewat `resize_window` preset mobile dan dikembalikan
-    ke desktop sesudahnya; (6) temuan UI masuk tiket baru (ADR-132) dan tidak
-    diperbaiki langsung, karena rancangan harus dicek di artifact lebih dulu
-    (AGENTS.md rule 10); (7) hasil dicatat di tiket verifikasi (mis. T-249) dengan
-    label tempat uji, dan butir tetap `[~]` bila hanya terbukti di lokal.
-22. Tes E2E yang menulis ke staging (membuat draft, media, atau post
-    sungguhan) wajib opt-in lewat env dan di-skip secara default, dengan
-    pembersihan yang gagal dengan jelas bila tidak menemukan datanya.
-    Hanya mengubah data buatan tes sendiri (awalan `[e2e]`, nama klien
-    unik per run). Preseden: `E2E_MCP_SCHEDULE`, `E2E_MCP_DRAFTS`,
-    `E2E_MCP_UPLOAD` di `mcp.e2e.ts`. `mcp.e2e.ts` hanya jalan ke staging
-    (`mcpSkipReason`, ADR-081, ADR-149), jadi "hijau" berarti run staging
-    `workflow_dispatch` (keputusan King Rezi 2026-11-02).
-23. Tes yang menghabiskan kuota per workspace (rate limit) ditaruh paling
-    akhir dan tidak boleh diikuti E2E lain yang memanggil API yang sama;
-    kuota dibagi semua klien dan run paralel. Preseden: (n) di
+    21a. The S18 E2E (network block accordion, `draft-editor.e2e.ts`) reads a real workspace with two or more accounts
+    (`MULTI_ACCOUNT_WORKSPACE_NAME` in `e2e/support/workspace.ts`, default "Cook It Real Good",
+    overridden through `E2E_MULTI_ACCOUNT_WORKSPACE`) because "E2E Sandbox" has only one account. That test
+    only reads: no caption, save, or publish; change the workspace name if the test account is no longer
+    a member of it. New tests that touch a real workspace follow the same limit.
+    21b. Interactive manual check together with King Rezi in the Claude browser (precedent:
+    T-249.1 and T-249.3, 2026-11-12). Sequence: (1) show the browser pane
+    (`show_pane` preview) and check the existing tabs and login; (2) decide the
+    location first: local (`next dev`, not staging evidence) or staging, and the
+    active workspace (a real workspace or "E2E Sandbox"); (3) safety limits: do not
+    press Schedule or Publish Now to a real account (T-195), test data is given a prefix
+    such as `uji-249-1` and deleted by yourself afterwards, permanent deletion only
+    for data created by that session; (4) one check per question: the agent
+    navigates and takes a screenshot (wait 1 to 2 seconds so animations
+    and the account list finish loading), then asks through `AskUserQuestion` with
+    the options "Looks good" and "Something looks off"; King Rezi's free-form answer is recorded
+    as is as a finding; (5) display order: dark, light, 375px; the app theme
+    is switched through the icon in the sidebar (emulating the browser color scheme does not change the
+    app theme), 375px width through `resize_window` preset mobile and restored
+    to desktop afterwards; (6) UI findings go into a new ticket (ADR-132) and are not
+    fixed directly, because the design must be checked in the artifact first
+    (AGENTS.md rule 10); (7) results are recorded in the verification ticket (e.g. T-249) with
+    a test-location label, and the item stays `[~]` if it is only proven locally.
+22. E2E tests that write to staging (create a real draft, media, or post)
+    must be opt-in through env and skipped by default, with a cleanup
+    that fails clearly if it does not find its data.
+    Only change data created by the test itself (prefix `[e2e]`, a
+    unique client name per run). Precedent: `E2E_MCP_SCHEDULE`, `E2E_MCP_DRAFTS`,
+    `E2E_MCP_UPLOAD` in `mcp.e2e.ts`. `mcp.e2e.ts` runs only against staging
+    (`mcpSkipReason`, ADR-081, ADR-149), so "green" means a staging
+    `workflow_dispatch` run (King Rezi's decision 2026-11-02).
+23. Tests that consume a per-workspace quota (rate limit) are placed last
+    and must not be followed by another E2E that calls the same API;
+    the quota is shared by all clients and parallel runs. Precedent: (n) in
     `mcp.e2e.ts`.
 
-### Git / PR (saat diminta user)
+### Git / PR (when the user asks)
 
-24. Commit hanya jika user meminta — Conventional Commits, imperative, fokus “why”.
-25. Jangan `--no-verify` / force push ke main kecuali diminta eksplisit.
+24. Commit only if the user asks — Conventional Commits, imperative, focus on "why".
+25. Do not `--no-verify` / force push to main unless explicitly asked.
 
 ---
 
-## Checklist sebelum selesai task kode
+## Checklist before finishing a code task
 
-- [ ] Tidak melanggar hard rules `AGENTS.md` (entry point, domain imports, Prisma/Supabase batas)
-- [ ] Pesan `{ error }` ke user adalah subclass `ApplicationError`, dan hanya Server Action yang mengembalikan `{ error }` memakai `toActionError` (action `void` / `redirect` / `null` tidak diubah kontraknya)
-- [ ] Query baca dan tulis pada tabel ber-RLS memakai `withCurrentUser` atau `setCurrentUserId`, dan query di dalamnya memakai client `tx`
-- [ ] `bun run typecheck` hijau
-- [ ] `bun run lint` hijau
-- [ ] Test relevan hijau (jika ada)
-- [ ] Jika menambah/mengubah komponen shadcn: smoke test UI + dark mode +
-      Tailwind cascade layer + Next.js production build hijau
-- [ ] Status tiket diupdate di `tickets/vXX-*.md`, dan barisnya di
-      `AVAILABLE_TICKETS.md` dikeluarkan kalau sudah ✅ (ADR-131).
-      `PROJECT_STATE.md` diupdate bila phase/milestone/Known Issues berubah
+- [ ] Does not violate the `AGENTS.md` hard rules (entry point, domain imports, Prisma/Supabase boundaries)
+- [ ] An `{ error }` message to the user is an `ApplicationError` subclass, and only a Server Action that returns `{ error }` uses `toActionError` (`void` / `redirect` / `null` actions keep their contract)
+- [ ] Read and write queries on RLS tables use `withCurrentUser` or `setCurrentUserId`, and the queries inside use the `tx` client
+- [ ] `bun run typecheck` green
+- [ ] `bun run lint` green
+- [ ] Relevant tests green (if any)
+- [ ] If adding/changing a shadcn component: UI smoke test + dark mode +
+      Tailwind cascade layer + Next.js production build green
+- [ ] Ticket status updated in `tickets/vXX-*.md`, and its row in
+      `AVAILABLE_TICKETS.md` removed if already ✅ (ADR-131).
+      `PROJECT_STATE.md` updated if phase/milestone/Known Issues change
 
 ---
 
 ## Related context
 
-- Pola implementasi fitur → `ctx-implementation.md`
+- Feature implementation patterns → `ctx-implementation.md`
 - Stack / Prisma / env → `ctx-technical-context.md`
 - Project OS → `ctx-project.md`

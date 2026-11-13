@@ -1,62 +1,62 @@
 # Context — Project
 
-Indeks operasional untuk **cara kerja project** (Project OS). Bukan salinan `project-os/`.
+An operating index for **how the project works** (Project OS). Not a copy of `project-os/`.
 
 ---
 
-## Baca dulu
+## Read first
 
-| Dokumen                                                                    | Kapan                                                                                                                                               |
-| -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`../project-os/PROJECT_STATE.md`](../project-os/PROJECT_STATE.md)         | Setiap sesi — phase, mode, Known Issues, blockers                                                                                                   |
-| [`../project-os/AVAILABLE_TICKETS.md`](../project-os/AVAILABLE_TICKETS.md) | Sebelum mengerjakan task — antrian yang belum selesai. Tiket, termasuk yang selesai, di `tickets/vXX-*.md` (buka hanya section yang ID-nya dipilih) |
-| [`../project-os/PROJECT_RULES.md`](../project-os/PROJECT_RULES.md)         | Governance, klasifikasi dokumen, AI collaboration                                                                                                   |
-| [`../project-os/DECISIONS.md`](../project-os/DECISIONS.md)                 | Sebelum mengubah keputusan material                                                                                                                 |
-| [`../project-os/PROJECT_OVERVIEW.md`](../project-os/PROJECT_OVERVIEW.md)   | Orientasi singkat produk + preferensi kerja                                                                                                         |
-| [`../AGENTS.md`](../AGENTS.md)                                             | Pintu masuk agent + hard rules                                                                                                                      |
+| Document                                                                   | When                                                                                                                                                          |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`../project-os/PROJECT_STATE.md`](../project-os/PROJECT_STATE.md)         | Every session — phase, mode, Known Issues, blockers                                                                                                           |
+| [`../project-os/AVAILABLE_TICKETS.md`](../project-os/AVAILABLE_TICKETS.md) | Before working a task — the queue of unfinished work. Tickets, including finished ones, are in `tickets/vXX-*.md` (open only the section whose ID was chosen) |
+| [`../project-os/PROJECT_RULES.md`](../project-os/PROJECT_RULES.md)         | Governance, document classification, AI collaboration                                                                                                         |
+| [`../project-os/DECISIONS.md`](../project-os/DECISIONS.md)                 | Before changing a material decision                                                                                                                           |
+| [`../project-os/PROJECT_OVERVIEW.md`](../project-os/PROJECT_OVERVIEW.md)   | Short product orientation + working preferences                                                                                                               |
+| [`../AGENTS.md`](../AGENTS.md)                                             | Agent entry point + hard rules                                                                                                                                |
 
-Skill wajib: [`.claude/skills/project-os-navigator/SKILL.md`](../.claude/skills/project-os-navigator/SKILL.md).
+Required skill: [`.claude/skills/project-os-navigator/SKILL.md`](../.claude/skills/project-os-navigator/SKILL.md).
 
-Sebelum mengeksekusi task implementasi kode, **wajib** evaluasi delegasi
-subagent lewat pemetaan Domain → Subagent di
+Before executing a code implementation task, you **must** evaluate subagent
+delegation through the Domain → Subagent mapping in
 [`.claude/agents/README.md`](../.claude/agents/README.md) (ADR-063).
 
 ---
 
-## Aturan operasional
+## Operating rules
 
-1. Status, progress (%), milestone aktif → **hanya** di `PROJECT_STATE.md`. **Pengecualian (ADR-062, ADR-131):** status task terbuka di `AVAILABLE_TICKETS.md`; semua tiket di `tickets/vXX-*.md`.
-2. Keputusan material (scope, arsitektur, stack, BC) → ADR di `DECISIONS.md` sebelum mengubah baseline.
-3. Task implementasi kode → **evaluasi delegasi subagent dulu** (`../AGENTS.md` poin 3, ADR-063) — lihat pemetaan Domain → Subagent di `.claude/agents/README.md`.
-4. Insight diskusi penting → `CONVERSATIONS.md`; ide spekulatif → `BRAINSTORM.md`.
-5. Setelah pekerjaan selesai → ubah status tiket di `tickets/vXX-*.md` dan keluarkan barisnya dari `AVAILABLE_TICKETS.md` kalau sudah ✅. Update `PROJECT_STATE.md` hanya bila phase/milestone/Known Issues berubah. Jangan menyalin detail task ke `PROJECT_STATE.md`. Jejak sesi adalah commit git (ADR-131). Perubahan kode wajib punya tiket. KI terbuka punya tiket. Urutan tulis kebenaran produk: `product-discovery/` → `context/` (hanya penunjuk) → `project-os/` (ADR-132).
-6. Bahasa dokumentasi dan komunikasi mengikuti `AGENTS.md` aturan 8.
-7. Jangan commit/push kecuali user meminta eksplisit. Jangan commit secret (`.env.local`, kredensial).
-8. Untuk implementasi Outstand M8, ADR-040 mengamendemen kontrak lama. Baca
-   `DECISIONS.md` + `ctx-architecture.md`; jangan menyimpulkan handler/job
-   runtime sudah ada hanya karena alignment dokumentasi dan schema selesai.
+1. Status, progress (%), active milestone → **only** in `PROJECT_STATE.md`. **Exception (ADR-062, ADR-131):** open task status is in `AVAILABLE_TICKETS.md`; all tickets in `tickets/vXX-*.md`.
+2. Material decisions (scope, architecture, stack, BC) → ADR in `DECISIONS.md` before changing the baseline.
+3. Code implementation task → **evaluate subagent delegation first** (`../AGENTS.md` item 3, ADR-063) — see the Domain → Subagent mapping in `.claude/agents/README.md`.
+4. Important discussion insights → `CONVERSATIONS.md`; speculative ideas → `BRAINSTORM.md`.
+5. After work is finished → change the ticket status in `tickets/vXX-*.md` and remove its row from `AVAILABLE_TICKETS.md` if already ✅. Update `PROJECT_STATE.md` only if phase/milestone/Known Issues change. Do not copy task detail into `PROJECT_STATE.md`. The session trail is the git commit (ADR-131). A code change must have a ticket. An open KI has a ticket. Order of writing product truth: `product-discovery/` → `context/` (pointer only) → `project-os/` (ADR-132).
+6. The language of documentation and communication follows `AGENTS.md` rule 8.
+7. Do not commit/push unless the user explicitly asks. Do not commit secrets (`.env.local`, credentials).
+8. For M8 Outstand implementation, ADR-040 amends the old contract. Read
+   `DECISIONS.md` + `ctx-architecture.md`; do not conclude that the runtime handler/job
+   already exists just because documentation and schema alignment is done.
 
 ---
 
 ## Living vs static
 
-| Tipe             | File                                                                              | Boleh memuat status/progress?                         |
-| ---------------- | --------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| Living           | `PROJECT_STATE.md`, `AVAILABLE_TICKETS.md`, `tickets/vXX-*.md` (ADR-062, ADR-131) | Ya (STATE: phase/milestone/%; task: status tiket)     |
-| Append-Only      | `DECISIONS.md` + `decisions/`, `CONVERSATIONS.md`, `BRAINSTORM.md`                | Hanya entri baru ditambahkan, entri lama tidak diedit |
-| Static reference | README, overview, baseline `product-discovery/`, `SKILL.md`                       | Tidak — jangan taruh ✅/⏳/%/phase aktif              |
+| Type             | File                                                                              | May contain status/progress?                           |
+| ---------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| Living           | `PROJECT_STATE.md`, `AVAILABLE_TICKETS.md`, `tickets/vXX-*.md` (ADR-062, ADR-131) | Yes (STATE: phase/milestone/%; task: ticket status)    |
+| Append-Only      | `DECISIONS.md` + `decisions/`, `CONVERSATIONS.md`, `BRAINSTORM.md`                | Only new entries are added, old entries are not edited |
+| Static reference | README, overview, `product-discovery/` baseline, `SKILL.md`                       | No — do not put ✅/⏳/%/active phase                   |
 
 ---
 
-## Orientasi arsitektur ringkas
+## Brief architecture orientation
 
-Blueprint high-level (bukan detail BC): [`../project-os/ARCHITECTURE_OVERVIEW.md`](../project-os/ARCHITECTURE_OVERVIEW.md).
+High-level blueprint (not BC detail): [`../project-os/ARCHITECTURE_OVERVIEW.md`](../project-os/ARCHITECTURE_OVERVIEW.md).
 
-Detail sistem → `ctx-architecture.md`. Stack/infra → `ctx-technical-context.md`.
+System detail → `ctx-architecture.md`. Stack/infra → `ctx-technical-context.md`.
 
 ---
 
 ## Related context
 
-- Produk / persona / MVP → `ctx-business.md`
-- Domain DDD → `ctx-domain.md`
+- Product / persona / MVP → `ctx-business.md`
+- DDD domain → `ctx-domain.md`

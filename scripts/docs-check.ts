@@ -1,9 +1,9 @@
 /**
  * T-186.3 — `bun run docs:check`.
  *
- * Memeriksa dokumen project tanpa mengubahnya: penunjuk path, ID yang dirujuk,
- * penghitung "Berikutnya", pasangan file kembar (aturan 12), dan penamaan Inggris.
- * Exit code 1 bila ada temuan, supaya bisa dipasang di pre-commit atau CI.
+ * Checks the project documents without changing them: path pointers, referenced
+ * IDs, the "Next" counters, twin file pairs (rule 12), and English naming.
+ * Exit code 1 when there are findings, so it can run in pre-commit or CI.
  */
 import path from "node:path";
 
@@ -14,7 +14,7 @@ const findings = runChecks(root);
 
 for (const finding of findings) console.log(formatFinding(finding));
 if (findings.length > 0) {
-  console.error(`\ndocs:check: ${findings.length} temuan.`);
+  console.error(`\ndocs:check: ${findings.length} findings.`);
   process.exit(1);
 }
-console.log("docs:check: tidak ada temuan.");
+console.log("docs:check: no findings.");

@@ -24,7 +24,7 @@ One sentence: the result that must exist when the lane is done.
 - [ ] The ticket's acceptance is met (Spec axis).
 - [ ] Conforms to repo rules and architecture (Standards axis).
 - [ ] `typecheck`, `lint`, and tests are green; E2E golden path when the ticket changes product behavior (ADR-149). The rules for running it are in the E2E section.
-- [ ] The "Belum terbukti" (not yet proven) section in the ticket is updated honestly.
+- [ ] The "Not yet proven" section in the ticket is updated honestly.
 
 ## E2E
 

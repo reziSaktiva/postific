@@ -17,4 +17,4 @@ What changed and why, in a few bullets. Point to tickets, specs, and ADRs by ID;
 - **Direction:** a one-way door (migration, data change) or two-way (can be reverted).
 - **Blast radius:** the areas, domains, and users affected.
 - **Migration:** the migration name, and whether it has already been applied to the shared DB (ADR-081), together with King Rezi's direct permission.
-- **Not yet proven** (the "Belum terbukti" line in the ticket): items that can only be verified on staging, which live in the wave's verification ticket (ADR-161).
+- **Not yet proven** (the "Not yet proven" line in the ticket): items that can only be verified on staging, which live in the wave's verification ticket (ADR-161).

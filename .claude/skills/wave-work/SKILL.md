@@ -11,7 +11,7 @@ description: >-
 
 # Wave Work
 
-Wave execution (S-003 § Perilaku 2, steps 2 to 11). Step 1 (preparing and
+Wave execution (S-003 § Behavior 2, steps 2 to 11). Step 1 (preparing and
 approving the list) is in the `wave-plan` skill. Basis for decisions:
 ADR-153 (status ladder), ADR-063 (subagent delegation), ADR-081 (shared DB),
 ADR-133 (one meaning in one place). Do not copy the content of those documents into a brief or PR; point to their paths.
@@ -41,7 +41,7 @@ King Rezi's request (`AGENTS.md` rule 9).
    Every finding is labeled a **hard violation** or a **consideration**, fixed, then reported per finding (fixed in which commit, or not and why). Tests are checked against the anti-pattern list in the brief template.
 5. **Merge lanes into the integration branch** one at a time; after each merge run `typecheck`, `lint`, and the tests. In a new worktree run `bun install` first so the pre-commit hook runs; hooks are not skipped.
 6. **One integration PR to `staging`** (after step 7: status is already written on the integration branch), squash, from [`integration-pr-template.md`](integration-pr-template.md) (Summary, Evidence, Merge Danger). One PR means one build and one deploy.
-7. **Done (code)** per ticket according to ADR-153, **written on the integration branch before the PR is opened** (do it before step 6) so the status travels with the PR and is correct at merge, with no separate status PR (ADR-153 addendum 2026-11-06); mark it `✅` without waiting for the deploy (ADR-161), with no intermediate "waiting for Verified (staging)" status. Items provable only on staging move to the wave's verification ticket, and the originating ticket's "Not yet proven" (the "Belum terbukti" line) points to it.
+7. **Done (code)** per ticket according to ADR-153, **written on the integration branch before the PR is opened** (do it before step 6) so the status travels with the PR and is correct at merge, with no separate status PR (ADR-153 addendum 2026-11-06); mark it `✅` without waiting for the deploy (ADR-161), with no intermediate "waiting for Verified (staging)" status. Items provable only on staging move to the wave's verification ticket, and the originating ticket's "Not yet proven" line points to it.
 8. **Verified (staging):** after a successful deploy, one verification for the wave; record the result in the wave's verification ticket and tick the items that pass. The verification ticket is the only ticket left open for staging. The bookkeeping rides in the next wave's integration PR, not in a PR of its own (ADR-153 addendum, ADR-161).
 9. **Clean up:** close the lane PRs with a comment pointing to the integration PR (only with King Rezi's permission), delete the lane worktrees.
 10. **Retro** (suggestions only, no edits): candidate improvements to the agent environment by category, ordered by severity. Form and categories in [`retro.md`](retro.md).

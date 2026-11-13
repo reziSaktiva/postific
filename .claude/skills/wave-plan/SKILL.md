@@ -11,7 +11,7 @@ description: >-
 
 # Wave Plan
 
-Step 1 of the wave flow (S-003 § Perilaku 2). A spec is the planning unit;
+Step 1 of the wave flow (S-003 § Behavior 2). A spec is the planning unit;
 a wave is the frontier at that moment and may cross specs. Basis: ADR-153, ADR-132.
 
 ## Boundaries
@@ -24,7 +24,7 @@ a wave is the frontier at that moment and may cross specs. Basis: ADR-153, ADR-1
 1. **Collect candidates:** open `project-os/AVAILABLE_TICKETS.md` and stop there to choose an ID. Read ticket sections with `offset` and `limit` (or `bun run docs:where` when available, T-186), not the whole ticket file. The queue row alone is not enough to call a ticket remaining; the checkboxes are checked in step 2.
 2. **Compute the frontier:** read the **Depends** field as a blocking edge. A ticket with no blockers, or whose blockers are already ✅ (or Accepted for an ADR), enters the frontier. It may cross specs. Tickets marked 🚫, and tickets whose blockers are not finished, are flagged and get no lane. Before a ticket is called remaining or enters the wave list, read the item checkboxes in the ticket file (`- [ ]` still open, `- [x]` done), not just the queue row. A ticket whose items are all `- [x]` is left off the list. An item already `- [x]` is not part of a lane's scope. Evidence: T-225.2 (`project-os/tickets/v01-foundation.md`).
 3. **Separate AFK and HITL** from the **Mode** field in the ticket (its shape is in `project-os/specs/README.md`). A ticket with no marker is classified from its content: a decision item, migration permission, or manual verification by King Rezi means HITL. Only AFK tickets may become lanes; HITL tickets are flagged and not run by an agent.
-4. **Check for file conflicts** between AFK tickets from the "Baca dulu" section and the ticket items. Parallel lanes are only for tickets that do not touch the same files and do not depend on each other; otherwise order them sequentially within one lane.
+4. **Check for file conflicts** between AFK tickets from the "Read first" section and the ticket items. Parallel lanes are only for tickets that do not touch the same files and do not depend on each other; otherwise order them sequentially within one lane.
 5. **Vertical slices:** one lane produces a result that can be seen and tested, not a technical layer. A wide change uses expand, migrate, contract.
 6. **Token economy:** limit concurrent lanes, flag mechanical lanes that may use a lower model and effort, and check the quota before the wave starts.
 
