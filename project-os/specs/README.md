@@ -1,76 +1,76 @@
 # Specs
 
-Rumah lapis **spec** (ADR-131). Bukan rumah docs, bukan rumah tiket, bukan catatan implementasi.
+The home of the **spec** layer (ADR-131). Not the home of docs, not the home of tickets, not an implementation log.
 
-## Empat lapis
+## Four layers
 
-| Lapis     | Rumah                                                                                                                                                                                                                     | Agent membuka ini kapan                                              |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| Docs      | `product-discovery/`, `context/`, `decisions/`                                                                                                                                                                            | Saat butuh bahasa domain atau keputusan yang sudah ada               |
-| Spec      | `specs/S-NNN.md` di folder ini                                                                                                                                                                                            | Saat pekerjaan melewati lebih dari satu sesi                         |
-| Tiket     | `tickets/vXX-*.md`, `tickets/known-issues.md` untuk tiket dari Known Issue (ADR-134), `tickets/s004-orchestration-language.md` untuk S-004 (ADR-159), atau `tickets/s007-documentation-language.md` untuk S-007 (ADR-164) | Setelah ID task dipilih dari `AVAILABLE_TICKETS.md`                  |
-| Implement | kode dan tes                                                                                                                                                                                                              | Saat tiket dikerjakan. Hasilnya commit, bukan paragraf baru di tiket |
+| Layer     | Home                                                                                                                                                                                                                       | When the agent opens it                                                              |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Docs      | `product-discovery/`, `context/`, `decisions/`                                                                                                                                                                             | When it needs the domain language or a decision that already exists                  |
+| Spec      | `specs/S-NNN.md` in this folder                                                                                                                                                                                            | When the work spans more than one session                                            |
+| Ticket    | `tickets/vXX-*.md`, `tickets/known-issues.md` for tickets born from a Known Issue (ADR-134), `tickets/s004-orchestration-language.md` for S-004 (ADR-159), or `tickets/s007-documentation-language.md` for S-007 (ADR-164) | After a task ID is chosen from `AVAILABLE_TICKETS.md`                                |
+| Implement | code and tests                                                                                                                                                                                                             | When the ticket is worked. The result is a commit, not a new paragraph in the ticket |
 
-Pekerjaan yang muat satu sesi tidak dibuatkan spec. Tiket menunjuk docs yang berlaku, lalu langsung diimplementasikan.
+Work that fits one session does not get a spec. The ticket points to the applicable docs and is implemented directly.
 
-## Kapan menulis spec
+## When to write a spec
 
-Tulis spec setelah keputusannya sudah jatuh (docs / ADR), dan sebelum tiket dipecah, kalau hasilnya tidak muat satu jendela konteks.
+Write a spec after the decision has been made (docs / ADR), and before the ticket is split, when the result does not fit one context window.
 
-Jangan menulis spec untuk mengulang wawancara. Wawancara terjadi sebelum file ini ada.
+Do not write a spec to repeat the interview. The interview happens before this file exists.
 
-## Bentuk `specs/S-NNN.md`
-
-```markdown
-# S-NNN · Judul
-
-**Docs:** ADR-xxx, path baseline yang berlaku
-**Tiket:** T-xxx (diisi setelah tiket dibuat)
-
-## Perilaku
-
-Apa yang harus benar dari sisi pemakai. Bukan daftar file.
-
-## Jahitan tes
-
-Di batas mana ini dites. Nama modul, bukan cuplikan kode.
-
-## Di luar spec
-
-Yang sengaja tidak ikut.
-```
-
-ID spec global, tidak didaur ulang. Nomor berikutnya dicatat di `AVAILABLE_TICKETS.md` saat spec pertama dibuat. Saat folder ini masih kosong, spec pertama adalah **S-001**.
-
-## Bentuk tiket
-
-Tiket rilis tetap di `tickets/vXX-*.md`, termasuk setelah selesai. Tiket yang lahir dari Known Issue ada di `tickets/known-issues.md` (ADR-134), bentuknya sama. Tiket S-004 ada di `tickets/s004-orchestration-language.md` (ADR-159) dan tiket S-007 di `tickets/s007-documentation-language.md` (ADR-164).
+## Shape of `specs/S-NNN.md`
 
 ```markdown
-### T-xxx · Judul
+# S-NNN · Title
 
-| Field          | Value                                    |
-| -------------- | ---------------------------------------- |
-| **Status**     | ⏳ Not Started                           |
-| **Mode**       | AFK atau HITL                            |
-| **Verifikasi** | `lokal` atau `staging` (ADR-161)         |
-| **Domain**     | …                                        |
-| **Spec**       | S-NNN, atau "tidak ada — muat satu sesi" |
-| **Docs**       | ADR / baseline yang berlaku              |
-| **Depends**    | T-xxx, atau —                            |
+**Docs:** ADR-xxx, the applicable baseline paths
+**Tickets:** T-xxx (filled in after the tickets are created)
 
-**What to build:** perilaku yang selesai kalau tiket ini beres, dari sisi pemakai.
+## Behavior
 
-- [ ] Kriteria terima 1
-- [ ] Kriteria terima 2
+What must be true from the user's side. Not a list of files.
 
-**Blocked by:** tidak ada, atau T-xxx
+## Test seams
+
+At which boundary this is tested. Module names, not code snippets.
+
+## Out of scope
+
+What is deliberately left out.
 ```
 
-**Mode (ADR-153, S-003):** **AFK** berarti agen dapat menyelesaikan tiket secara mandiri; **HITL** berarti ada butir yang butuh jawaban atau keputusan King Rezi (persetujuan ADR, izin migrasi, verifikasi manual). Hanya tiket AFK yang boleh menjadi jalur paralel gelombang; tiket HITL ditandai dan tidak dijalankan agen. Tiket yang belum punya penanda diklasifikasi oleh `wave-plan` dari isinya dan hasilnya disodorkan ke King Rezi. Penanda ditulis di baris status tiket, mis. `⏳ Not Started` · **Mode** AFK.
+Spec IDs are global and never recycled. The next number is recorded in `AVAILABLE_TICKETS.md` when the first spec is created. While this folder is still empty, the first spec is **S-001**.
 
-**Verifikasi dan status tiket (ADR-161):** field **Verifikasi** menjawab sekali di awal: bisa dibuktikan `lokal`, atau ada butir yang hanya terbukti di `staging`. Tiket ✅ pada Done (code); tidak ada status antara menunggu staging. Butir staging pindah ke tiket verifikasi gelombang. Aturannya: ADR-161 dan skill `project-os-navigator` § New Work.
+## Shape of a ticket
 
-Jangan menulis path file, jumlah tes, nama subagent, atau cerita sesi ke dalam tiket. Itu milik commit.
+Release tickets stay in `tickets/vXX-*.md`, including after they are finished. Tickets born from a Known Issue live in `tickets/known-issues.md` (ADR-134) and have the same shape. S-004 tickets live in `tickets/s004-orchestration-language.md` (ADR-159) and S-007 tickets in `tickets/s007-documentation-language.md` (ADR-164).
 
-Saat tiket ✅, barisnya keluar dari `AVAILABLE_TICKETS.md`. Section di file tiketnya tetap.
+```markdown
+### T-xxx · Title
+
+| Field            | Value                               |
+| ---------------- | ----------------------------------- |
+| **Status**       | ⏳ Not Started                      |
+| **Mode**         | AFK or HITL                         |
+| **Verification** | `local` or `staging` (ADR-161)      |
+| **Domain**       | …                                   |
+| **Spec**         | S-NNN, or "none — fits one session" |
+| **Docs**         | the applicable ADR / baseline       |
+| **Depends**      | T-xxx, or —                         |
+
+**What to build:** the behavior that is finished when this ticket is done, from the user's side.
+
+- [ ] Acceptance criterion 1
+- [ ] Acceptance criterion 2
+
+**Blocked by:** none, or T-xxx
+```
+
+**Mode (ADR-153, S-003):** **AFK** means an agent can finish the ticket on its own; **HITL** means an item needs an answer or decision from King Rezi (ADR approval, migration permission, manual verification). Only AFK tickets may become parallel lanes of a wave; HITL tickets are flagged and not run by an agent. A ticket without a marker is classified by `wave-plan` from its content, and the result is put to King Rezi. The marker is written on the ticket's status line, e.g. `⏳ Not Started` · **Mode** AFK.
+
+**Verification and ticket status (ADR-161):** the **Verification** field answers once, at the start: provable as `local`, or some item is provable only on `staging`. A ticket is ✅ at Done (code); there is no intermediate waiting-for-staging status. Staging items move to the wave's verification ticket. The rule: ADR-161 and the `project-os-navigator` skill § New Work.
+
+Do not write file paths, test counts, subagent names, or session stories into a ticket. They belong to the commit.
+
+When a ticket is ✅, its row leaves `AVAILABLE_TICKETS.md`. Its section in the ticket file stays.

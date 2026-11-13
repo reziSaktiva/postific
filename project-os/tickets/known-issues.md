@@ -1561,7 +1561,7 @@ Cook It Real Good (akun Facebook nyata). Data hanya-baca (Supabase dan Outstand)
       (`RetryFailedTargetUseCase`), dan pencatatan body 400 (`outstand-http-client`);
       ditambah satu tes adapter (`schedulePost` jadwal jauh, 400 mempertahankan
       detail Outstand, tidak retryable, `scheduledAt` tetap terkirim). Body 400 di
-      tes itu SIMULASI, bukan teramati. **Belum terbukti:** pembuktian penyebab 400
+      tes itu SIMULASI, bukan teramati. **Not yet proven:** pembuktian penyebab 400
       dari body asli TIDAK dilakukan. `OUTSTAND_API_KEY` di env local terbukti (list
       akun, hanya baca) terhubung ke org berisi akun nyata Cook It Real Good
       (Facebook, Pinterest, TikTok, Instagram x2, YouTube), bukan E2E Sandbox,
@@ -1597,7 +1597,7 @@ Tidak ada tulis ke Outstand maupun DB.
   hari. Jadi `scheduledAt` > 30 hari adalah penjelas yang paling hemat, tetapi
   tercampur dengan "ada media" dan "Facebook": tidak ada data penjadwalan
   bermedia atau Facebook dalam 30 hari.
-- Belum terbukti: body 400 asli (pesan galat tidak pernah tercatat sebelum T-195.1),
+- Not yet proven: body 400 asli (pesan galat tidak pernah tercatat sebelum T-195.1),
   apakah Reel Facebook bermasalah sendiri (satu sampel, tertutup oleh faktor
   jadwal), dan apakah penjadwalan Facebook bermedia dalam 30 hari berhasil.
   Pembuktian membutuhkan uji tulis; usulan uji terkecil: di org Sandbox, jadwalkan
@@ -1635,7 +1635,7 @@ yang punya akun sosial nyata; pakai E2E Sandbox.
 `identity_session`, `identity_account`, `identity_verification`, `workspaces`,
 `background_jobs`, `outstand_webhook_events`.
 
-**Belum terbukti saat ditemukan (2026-11-03; sebagian sudah dibuktikan di T-196.1, lihat Hasil dan daftar Belum terbukti di bawah):** advisor hanya melaporkan RLS mati.
+**Not yet proven saat ditemukan (2026-11-03; sebagian sudah dibuktikan di T-196.1, lihat Hasil dan daftar Not yet proven di bawah):** advisor hanya melaporkan RLS mati.
 Apakah data benar-benar terbaca bergantung pada grant ke `anon`/`authenticated`
 dan pada eksposur schema `public` lewat PostgREST; itu belum diuji. Kunci publik
 Supabase biasanya sudah dikirim ke browser untuk Realtime dan Storage
@@ -1675,7 +1675,7 @@ T-196.1 dan T-196.2 selesai.
             Schema `public` berlaku sebagai default PostgREST.
           - Production: tidak disentuh dan tidak ditentukan.
 
-          **Belum terbukti:** (a) GET PostgREST nyata dengan kunci publishable
+          **Not yet proven:** (a) GET PostgREST nyata dengan kunci publishable
           (bukti uji lewat HTTP; peran DB sudah terbukti, jalur HTTP belum), (b)
           apakah Data API aktif dan `public` terekspos di dashboard staging, (c)
           uji tulis (sengaja tidak dilakukan), (d) kondisi production, (e) apakah
@@ -1697,14 +1697,14 @@ T-196.1 dan T-196.2 selesai.
 
 ### T-197 · Instagram and other platforms can be scheduled or published without media (KI-107)
 
-| Field       | Value                                                                             |
-| ----------- | --------------------------------------------------------------------------------- |
-| **Status**  | ✅ Done (code) 2026-11-03; Verifikasi `staging`: butir staging di T-189 (ADR-161) |
-| **Domain**  | publishing, draft editor, MCP                                                     |
-| **Spec**    | tidak ada                                                                         |
-| **Docs**    | KI-107, ADR-154 (mengamandemen ADR-121), `content-format-matrix.ts`, `Modal.tsx`  |
-| **Terkait** | T-198, T-195, T-200 (aturan jenis media Reel)                                     |
-| **Depends** | rancangan UI dikonfirmasi King Rezi (aturan 10 `AGENTS.md`)                       |
+| Field       | Value                                                                               |
+| ----------- | ----------------------------------------------------------------------------------- |
+| **Status**  | ✅ Done (code) 2026-11-03; Verification `staging`: butir staging di T-189 (ADR-161) |
+| **Domain**  | publishing, draft editor, MCP                                                       |
+| **Spec**    | tidak ada                                                                           |
+| **Docs**    | KI-107, ADR-154 (mengamandemen ADR-121), `content-format-matrix.ts`, `Modal.tsx`    |
+| **Terkait** | T-198, T-195, T-200 (aturan jenis media Reel)                                       |
+| **Depends** | rancangan UI dikonfirmasi King Rezi (aturan 10 `AGENTS.md`)                         |
 
 **Ditemukan (2026-11-03)** oleh King Rezi: Instagram bisa dijadwalkan tanpa gambar.
 Penyebab: `MEDIA_COUNT_BOUNDS_BY_FORMAT` menetapkan `Post` min 0 untuk semua platform (ADR-121).
@@ -1722,7 +1722,7 @@ Penyebab: `MEDIA_COUNT_BOUNDS_BY_FORMAT` menetapkan `Post` min 0 untuk semua pla
 - [x] **T-197.4** `🟡 Done (code) (2026-11-03)`: review Ridwan dan QA Najwa selesai; tampilan browser lokal dicek King Rezi. Belum Verified (staging). Tes regresi, review Ridwan, QA Najwa; verifikasi staging tanpa
       akun nyata.
 
-**Belum terbukti (jangan diasumsikan):**
+**Not yet proven (jangan diasumsikan):**
 
 - TikTok dan YouTube wajib media: keputusan King Rezi, bukan kalimat eksplisit
   di dokumen Outstand.
@@ -1734,14 +1734,14 @@ Penyebab: `MEDIA_COUNT_BOUNDS_BY_FORMAT` menetapkan `Post` min 0 untuk semua pla
 
 ### T-198 · Scheduling is limited to 30 days ahead (Outstand limit) (KI-105)
 
-| Field       | Value                                                                                           |
-| ----------- | ----------------------------------------------------------------------------------------------- |
-| **Status**  | ✅ Done (code) 2026-11-03; Verifikasi `staging` (T-189, ADR-161); T-198.4 diputuskan 2026-11-12 |
-| **Domain**  | publishing, draft editor, MCP                                                                   |
-| **Spec**    | tidak ada                                                                                       |
-| **Docs**    | KI-105, ADR-154, `schedule-time-constraints.ts`, `Modal.tsx`, T-108                             |
-| **Terkait** | T-195, T-197                                                                                    |
-| **Depends** | rancangan UI dikonfirmasi King Rezi (aturan 10 `AGENTS.md`)                                     |
+| Field       | Value                                                                                             |
+| ----------- | ------------------------------------------------------------------------------------------------- |
+| **Status**  | ✅ Done (code) 2026-11-03; Verification `staging` (T-189, ADR-161); T-198.4 diputuskan 2026-11-12 |
+| **Domain**  | publishing, draft editor, MCP                                                                     |
+| **Spec**    | tidak ada                                                                                         |
+| **Docs**    | KI-105, ADR-154, `schedule-time-constraints.ts`, `Modal.tsx`, T-108                               |
+| **Terkait** | T-195, T-197                                                                                      |
+| **Depends** | rancangan UI dikonfirmasi King Rezi (aturan 10 `AGENTS.md`)                                       |
 
 Dokumen Outstand "Create a post": `scheduledAt` lebih dari 30 hari ke depan
 mengembalikan HTTP 400 dan tidak ada post terbentuk. Dugaan kuat penyebab 400 di
@@ -1797,7 +1797,7 @@ T-195; belum terbukti sampai pesan 400 terbaca (T-195.1 di staging).
 
 **Bukti jalur D (2026-11-05, local, `next dev`, Realtime aktif):** `bunx playwright test draft-editor.e2e.ts -g S4` (S4, S4b, S4c) lulus 3 run terpisah berturut-turut (4 passed tiap run, termasuk setup login). Hanya `local`, bukan staging.
 
-**Belum terbukti (jangan diasumsikan):**
+**Not yet proven (jangan diasumsikan):**
 
 - Schedule/Publish Now dengan Realtime aktif di browser: tidak diuji karena memanggil Outstand (T-195 terbuka); hanya tes unit. Tes S4b/S4c belum diuji gagal tanpa perbaikan, jadi kekuatan deteksinya terhadap race tidak terukur (Save as Draft dari Queue sebelum perbaikan gagal 4 dari 4, lihat atas).
 - Event Realtime yang ditahan sampai 30 detik berarti layar bisa basi bila navigasi gagal; belum diuji dengan navigasi yang gagal sungguhan.

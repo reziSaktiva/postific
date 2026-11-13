@@ -19,7 +19,7 @@
 
 `✅ Done (2026-09-22)` · **Domain** engagement · **ADR** ADR-017, ADR-018, ADR-031, ADR-110 · **Depends** T-002 ✅ · **Terkait** KI-065
 
-**Baca dulu:** `05-architecture/domain-model.md` · `05-architecture/application-layer.md`
+**Read first:** `05-architecture/domain-model.md` · `05-architecture/application-layer.md`
 
 Service + repository interface + implementasi Prisma, mengikuti konvensi `workspace`/`publishing`. Isi `types.ts` yang saat ini masih `export {}`.
 
@@ -35,7 +35,7 @@ Service + repository interface + implementasi Prisma, mengikuti konvensi `worksp
 
 `✅ Done (2026-09-22)` · **Domain** engagement · integration · **ADR** ADR-022, ADR-040, ADR-110, ADR-113 · **Depends** T-025, T-027, T-050 ✅ · **Terkait** KI-068 (Resolved 2026-09-24)
 
-**Baca dulu:** `05-architecture/background-jobs.md` · `05-architecture/integration-layer.md`
+**Read first:** `05-architecture/background-jobs.md` · `05-architecture/integration-layer.md`
 
 Periodic pull komentar dari Outstand per connected account, tulis ke `EngagementInboxItem`. Wajib idempoten — pull ulang tidak boleh menggandakan komentar.
 
@@ -67,7 +67,7 @@ adapter yang dikonsumsi, bukan reopen scope T-051.
 
 `✅ Done (2026-09-22)` · **Domain** engagement · **ADR** ADR-023, ADR-040 · **Depends** T-051 ✅
 
-**Baca dulu:** `05-architecture/realtime-strategy.md`
+**Read first:** `05-architecture/realtime-strategy.md`
 
 Kontrol refresh manual supaya pengguna tidak perlu menunggu siklus 30 menit. Data engagement **tidak** memakai Supabase Realtime (ADR-023 membatasinya hanya untuk tabel `notifications`).
 
@@ -76,7 +76,7 @@ Kontrol refresh manual supaya pengguna tidak perlu menunggu siklus 30 menit. Dat
 ### T-053 · Comments Inbox UI
 
 `✅ Done (2026-09-22)` · **Domain** engagement · UI · **ADR** ADR-046 · **Depends** T-051 · **Terkait** KI-065
-**Baca dulu:** `04-ux/key-screen-patterns.md` · `04-ux/information-architecture.md`
+**Read first:** `04-ux/key-screen-patterns.md` · `04-ux/information-architecture.md`
 
 Inbox komentar sederhana lintas akun di `/engage`: daftar komentar, filter per akun, status sudah/belum dibalas.
 
@@ -95,7 +95,7 @@ UI (Mark UI Engineer): `apps/web/src/app/(app)/engage/page.tsx` diganti dari `Sc
 ### T-054 · Reply comment dari dalam aplikasi
 
 `✅ Done (2026-09-22)` · **Domain** engagement · integration · **ADR** ADR-019, ADR-040, ADR-113 · **Depends** T-025, T-053 ✅ · **Terkait** KI-068 (Resolved 2026-09-24)
-**Baca dulu:** `05-architecture/integration-layer.md` · `02-product/roles-permissions.md`
+**Read first:** `05-architecture/integration-layer.md` · `02-product/roles-permissions.md`
 
 Kirim balasan lewat `OutstandAdapter`, persist ke `EngagementReply`.
 
@@ -125,7 +125,7 @@ Status task ini tidak berubah (`✅ Done` sejak 2026-09-22).
 ### T-055 · Inbox assignment
 
 `⏳ Not Started` · **Domain** engagement · **ADR** — · **Depends** T-053
-**Baca dulu:** `02-product/feature-priority.md`
+**Read first:** `02-product/feature-priority.md`
 
 Berstatus **Could Have** — hanya dikerjakan bila waktu memungkinkan. Tidak memblokir rilis.
 
@@ -133,7 +133,7 @@ Berstatus **Could Have** — hanya dikerjakan bila waktu memungkinkan. Tidak mem
 
 `✅ Done` (2026-10-06) · **Domain** engagement · publishing · UI · **ADR** — · **Depends** T-053 ✅, T-050 ✅ · **Terkait** KI-065 (Promoted to T-056), KI-082
 
-**Baca dulu:** `05-architecture/domain-model.md` · `04-ux/key-screen-patterns.md`
+**Read first:** `05-architecture/domain-model.md` · `04-ux/key-screen-patterns.md`
 
 Isi kotak "Post asal" di detail panel `/engage` (`EngageInboxView.tsx`) yang saat ini hanya menampilkan label generik ("Komentar ini terhubung ke post terjadwal/terpublish") — known gap sejak T-053, lihat **KI-065**. Scope dikonfirmasi King Rezi (2026-10-06): kotak ini wajib menampilkan **caption** post asli, **thumbnail media** (kalau post itu punya media), DAN **link ke post asli** (`platformPostUrl`) yang bisa diklik.
 
@@ -205,7 +205,7 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 **Keputusan Neymar yang belum dikonfirmasi eksplisit (diperiksa saat konfirmasi galeri):** tampilan List adalah usulan (mode List Buffer belum teramati); Date Range bawaan 12 bulan; Sort bawaan "Belum dibalas dulu"; "Tanpa posting" di dasar daftar dan tidak ikut sort; posting tanpa komentar disembunyikan dan ditampilkan lewat toggle ikon.
 
-**Belum terbukti:** komposer balasan, aksi hover, mode List, dan layar sempit Buffer belum teramati; rancangan memutuskannya sendiri, bukan meniru.
+**Not yet proven:** komposer balasan, aksi hover, mode List, dan layar sempit Buffer belum teramati; rancangan memutuskannya sendiri, bukan meniru.
 
 **Blocked by:** tidak ada. **Konfirmasi King Rezi (2026-11-05, di chat):** rancangan Engage per posting dikonfirmasi, termasuk keputusan Neymar yang belum dibahas satu per satu (tampilan List usulan, Date Range 12 bulan, Sort bawaan "Belum dibalas dulu", "Tanpa posting" di dasar daftar, posting tanpa komentar disembunyikan). Bagian yang hanya dibuat dan belum teramati (lihat Hasil rancangan) diperiksa lagi di implementasi T-219, T-220, T-224 dan QA T-222. Tag "draft" pada entri galeri belum diubah (lihat catatan sesi: perubahan artifact lewat Neymar).
 
@@ -215,7 +215,7 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 | Field       | Value                                                                                                                   |
 | ----------- | ----------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | ✅ Done (code) 2026-11-06; Verifikasi `lokal` (ADR-161); sisa Belum terbukti ke T-222.4                                 |
+| **Status**  | ✅ Done (code) 2026-11-06; Verification `local` (ADR-161); sisa Not yet proven ke T-222.4                               |
 | **Mode**    | AFK (migrasi data `done` butuh izin King Rezi sebelum diterapkan ke DB bersama)                                         |
 | **Domain**  | engagement · backend                                                                                                    |
 | **Spec**    | S-006                                                                                                                   |
@@ -239,7 +239,7 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 **Pengecualian E2E golden path (ADR-149, 2026-11-06, atas persetujuan merge King Rezi):** perubahan belum punya tampilan baru (UI "By post" ada di T-219 sampai T-224), jadi E2E golden path Engage digabung ke T-222. Suite E2E lokal yang ada hijau tanpa regresi (51 lulus; satu kegagalan CSP `next-devtools` di `next dev` sudah diperbaiki di `theme.e2e.ts`).
 
-**Belum terbukti:** migrasi data belum dijalankan ke DB mana pun; query `countUnreadInboxItems` belum dicoba terhadap Postgres sungguhan (tes memakai repository in-memory sesuai kontrak); perilaku badge dan Home setelah status baru belum ada konsumennya (T-222). Kontrak MCP `list_comments` berubah (enum bertambah, `done` alias); amandemen ADR MCP/`application-layer.md` belum ditulis (di luar scope sesi ini). Transisi `resolved`↔`dismissed` langsung dan `replied`→`unread` ditolak mengikuti butir tiket secara harfiah; perlu konfirmasi King Rezi bila tidak diinginkan.
+**Not yet proven:** migrasi data belum dijalankan ke DB mana pun; query `countUnreadInboxItems` belum dicoba terhadap Postgres sungguhan (tes memakai repository in-memory sesuai kontrak); perilaku badge dan Home setelah status baru belum ada konsumennya (T-222). Kontrak MCP `list_comments` berubah (enum bertambah, `done` alias); amandemen ADR MCP/`application-layer.md` belum ditulis (di luar scope sesi ini). Transisi `resolved`↔`dismissed` langsung dan `replied`→`unread` ditolak mengikuti butir tiket secara harfiah; perlu konfirmasi King Rezi bila tidak diinginkan.
 
 **Blocked by:** tidak ada (ADR-157 Accepted 2026-11-05).
 
@@ -249,7 +249,7 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 | Field       | Value                                                                                                   |
 | ----------- | ------------------------------------------------------------------------------------------------------- |
-| **Status**  | ✅ Done (code) 2026-11-06; Verifikasi `lokal` (ADR-161); indeks dan volume besar ke T-222.4             |
+| **Status**  | ✅ Done (code) 2026-11-06; Verification `local` (ADR-161); indeks dan volume besar ke T-222.4           |
 | **Mode**    | AFK                                                                                                     |
 | **Domain**  | engagement · backend                                                                                    |
 | **Spec**    | S-006                                                                                                   |
@@ -291,9 +291,9 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 **Pengecualian E2E golden path (ADR-149, 2026-11-06, atas persetujuan merge King Rezi):** perubahan belum punya tampilan baru (UI "By post" ada di T-219 sampai T-224), jadi E2E golden path Engage digabung ke T-222. Suite E2E lokal yang ada hijau tanpa regresi (51 lulus; satu kegagalan CSP `next-devtools` di `next dev` sudah diperbaiki di `theme.e2e.ts`).
 
-**Belum terbukti:** (0) T-218.5 belum dicentang: tes integrasi DB `aggregate-inbox-by-post.integration.test.ts` ditulis tetapi belum dijalankan (belum terverifikasi); isolasi workspace/RLS di Postgres dan manfaat indeks belum terbukti; (1) performa query pada volume besar (ratusan komentar per posting) belum diukur: tes integrasi DB `aggregate-inbox-by-post.integration.test.ts` ditulis tetapi opt-in (`ENGAGEMENT_DB_TEST=1` + `DATABASE_URL`) dan belum dijalankan di lingkungan ini; belum ada `EXPLAIN (ANALYZE)`; (2) migrasi indeks belum diterapkan ke DB manapun; (3) snapshot posting diambil per kelompok (maks 10 konkuren, maks 100 kelompok), belum ada query batch; (4) tes repository unit memakai tabel in-memory, bukan SQL sungguhan; (5) `listInboxByPostAction` belum dipanggil UI (T-219).
+**Not yet proven:** (0) T-218.5 belum dicentang: tes integrasi DB `aggregate-inbox-by-post.integration.test.ts` ditulis tetapi belum dijalankan (belum terverifikasi); isolasi workspace/RLS di Postgres dan manfaat indeks belum terbukti; (1) performa query pada volume besar (ratusan komentar per posting) belum diukur: tes integrasi DB `aggregate-inbox-by-post.integration.test.ts` ditulis tetapi opt-in (`ENGAGEMENT_DB_TEST=1` + `DATABASE_URL`) dan belum dijalankan di lingkungan ini; belum ada `EXPLAIN (ANALYZE)`; (2) migrasi indeks belum diterapkan ke DB manapun; (3) snapshot posting diambil per kelompok (maks 10 konkuren, maks 100 kelompok), belum ada query batch; (4) tes repository unit memakai tabel in-memory, bukan SQL sungguhan; (5) `listInboxByPostAction` belum dipanggil UI (T-219).
 
-**Bukti DB (2026-11-06):** migrasi `20261106120000_t218_engagement_inbox_post_index` diterapkan King Rezi ke DB bersama; `aggregate-inbox-by-post.integration.test.ts` dijalankan (`ENGAGEMENT_DB_TEST=1`), 4 tes lulus (agregasi, filter, `listInboxItems` per posting, RLS antar-workspace). Fixture diperbaiki memakai `withCurrentUser` karena RLS. Manfaat indeks belum terukur (`EXPLAIN (ANALYZE)`; data staging kecil); butir (0), (2), dan bukti RLS pada daftar "Belum terbukti" di bawah sudah terpenuhi.
+**Bukti DB (2026-11-06):** migrasi `20261106120000_t218_engagement_inbox_post_index` diterapkan King Rezi ke DB bersama; `aggregate-inbox-by-post.integration.test.ts` dijalankan (`ENGAGEMENT_DB_TEST=1`), 4 tes lulus (agregasi, filter, `listInboxItems` per posting, RLS antar-workspace). Fixture diperbaiki memakai `withCurrentUser` karena RLS. Manfaat indeks belum terukur (`EXPLAIN (ANALYZE)`; data staging kecil); butir (0), (2), dan bukti RLS pada daftar "Not yet proven" di bawah sudah terpenuhi.
 
 **Tindak lanjut review PR 264 (2026-11-06):** diperbaiki: posting kosong multi-akun satu kali, NULL `postId` lebih dulu pada pagar 5000, batas daftar per posting 1000 (pagination di T-219), akun utama kartu stabil (id terkecil), `done` dihitung `resolved` di filter status, validasi input pindah ke service. Belum dikerjakan: snapshot posting batch (satu query, butuh port baru di `publishing`), `includeEmpty` mengikuti rentang tanggal dan lebih dari 50 posting per akun, serta bukti isolasi RLS lewat tes integrasi DB (dijalankan setelah migrasi diterapkan).
 
@@ -305,7 +305,7 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 | Field       | Value                                                                                                     |
 | ----------- | --------------------------------------------------------------------------------------------------------- |
-| **Status**  | ✅ Done (code) 2026-11-06 (branch `feature/s006-gelombang-3-engage-ui`); Verifikasi `lokal` (ADR-161)     |
+| **Status**  | ✅ Done (code) 2026-11-06 (branch `feature/s006-gelombang-3-engage-ui`); Verification `local` (ADR-161)   |
 | **Mode**    | AFK setelah T-216 dikonfirmasi                                                                            |
 | **Domain**  | engagement · UI (UI/UX-related)                                                                           |
 | **Spec**    | S-006                                                                                                     |
@@ -323,7 +323,7 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 - [x] **T-219.5** (dicentang atas keputusan King Rezi 2026-11-12, berdasar pengamatan QA Najwa gelombang 3) Perilaku yang sudah ada tidak regresi: filter akun/platform/status, reply, post asal (T-056), badge sidebar, manual refresh. Terang, gelap, 375px diamati di browser.
 - [x] **T-219.6** Tes komponen dan unit; `typecheck`, `lint`, tes hijau.
 
-**Belum terbukti (jalur A, 2026-11-06):** T-219.5 belum dicentang. Layar belum diamati dengan data dan login sungguhan (DB dan sesi tidak dipakai di jalur ini); terang, gelap, dan 375px hanya diamati pada harness sementara (komponen panel asli, data statis, dihapus sebelum commit). Hover nyata tidak teramati di panel browser (`:hover` tidak terdaftar); yang terbukti: fokus keyboard memunculkan aksi, aksi selalu tampil di 375px dan perangkat sentuh. Tidak ada E2E Playwright (T-222). Belum tampil: tanggal posting di kartu pratinjau (snapshot domain tidak membawanya) dan riwayat balasan tim per komentar (tampilan lama T-053 menampilkannya, rancangan T-216 tidak). Panel komentar dibatasi 1000 komentar per posting (paginasi belum ada). Carousel multi-media "Post asal" (T-111) ikut hilang karena kartu pratinjau rancangan T-216 hanya menampilkan satu thumbnail (belum diakui sebelumnya).
+**Not yet proven (jalur A, 2026-11-06):** T-219.5 belum dicentang. Layar belum diamati dengan data dan login sungguhan (DB dan sesi tidak dipakai di jalur ini); terang, gelap, dan 375px hanya diamati pada harness sementara (komponen panel asli, data statis, dihapus sebelum commit). Hover nyata tidak teramati di panel browser (`:hover` tidak terdaftar); yang terbukti: fokus keyboard memunculkan aksi, aksi selalu tampil di 375px dan perangkat sentuh. Tidak ada E2E Playwright (T-222). Belum tampil: tanggal posting di kartu pratinjau (snapshot domain tidak membawanya) dan riwayat balasan tim per komentar (tampilan lama T-053 menampilkannya, rancangan T-216 tidak). Panel komentar dibatasi 1000 komentar per posting (paginasi belum ada). Carousel multi-media "Post asal" (T-111) ikut hilang karena kartu pratinjau rancangan T-216 hanya menampilkan satu thumbnail (belum diakui sebelumnya).
 
 **Pembaruan pengamatan (gelombang 3, 2026-11-06, QA Najwa; commit gelombang: T-219 `dac80554`, T-220 `3d834a9f`, T-224 `1cca48c1`, perbaikan review Ridwan `58ea1be5`, perbaikan QA `4abf5a0f`, perbaikan `/code-review` `aa46c31a`, merge `df80499c`):** teramati di browser pada dev server dengan sesi nyata dan data nyata (aksi baca saja): By post, List, panel Filter & Sort, filter tanpa hasil, dropdown Status, terang desktop, gelap desktop dan 375px, tanpa overflow horizontal. Aksi Resolve/Dismiss/Buka kembali hanya lewat E2E `apps/web/e2e/engage-per-post.e2e.ts` di workspace E2E Sandbox (T-222). TIDAK teramati: hover nyata, pengiriman balasan sungguhan (Server Action ke Outstand; tidak pernah menekan Kirim), kelompok "Tanpa posting" dan refresh gagal di browser (hanya jsdom/E2E), terang 375px, perbandingan visual penuh ke artifact. Kalimat "hanya harness statis" dan "tidak ada E2E" di atas adalah keadaan sebelum gelombang ini; yang berlaku adalah paragraf ini.
 
@@ -335,14 +335,14 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 ### T-220 · Engage UI: primary filters and the Filter & Sort panel
 
-| Field       | Value                                                                                                 |
-| ----------- | ----------------------------------------------------------------------------------------------------- |
-| **Status**  | ✅ Done (code) 2026-11-06 (branch `feature/s006-gelombang-3-engage-ui`); Verifikasi `lokal` (ADR-161) |
-| **Mode**    | AFK setelah T-216 dikonfirmasi                                                                        |
-| **Domain**  | engagement · UI (UI/UX-related)                                                                       |
-| **Spec**    | S-006                                                                                                 |
-| **Docs**    | ADR-157, ADR-097, ADR-140, KSP-06-F02, `apps/web/.claude/CLAUDE.md`, artifact Postific (kartu T-216)  |
-| **Depends** | T-216, T-218, T-219                                                                                   |
+| Field       | Value                                                                                                   |
+| ----------- | ------------------------------------------------------------------------------------------------------- |
+| **Status**  | ✅ Done (code) 2026-11-06 (branch `feature/s006-gelombang-3-engage-ui`); Verification `local` (ADR-161) |
+| **Mode**    | AFK setelah T-216 dikonfirmasi                                                                          |
+| **Domain**  | engagement · UI (UI/UX-related)                                                                         |
+| **Spec**    | S-006                                                                                                   |
+| **Docs**    | ADR-157, ADR-097, ADR-140, KSP-06-F02, `apps/web/.claude/CLAUDE.md`, artifact Postific (kartu T-216)    |
+| **Depends** | T-216, T-218, T-219                                                                                     |
 
 **What to build:** filter utama di header (Akun, Status) dan satu panel sekunder (Sort By, Date Range, Reset filters), menggantikan tiga `Select` sejajar. Menyentuh berkas yang sama dengan T-219 (`EngageInboxView` dan turunannya): kerjakan setelah T-219.1 memecah berkas, bukan paralel.
 
@@ -350,9 +350,9 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 - [x] **T-220.2** Panel Filter & Sort (komponen ditentukan rancangan, diverifikasi lewat MCP shadcn): Sort By, Date Range, Reset filters. Filter Platform berada di panel ini (keputusan King Rezi 2026-11-05 atas rancangan T-216).
 - [x] **T-220.3** Filter memicu query T-218 server-side seperti pola sekarang (`listInboxAction`); tanpa request ganda saat render awal.
 - [x] **T-220.4a** Tes komponen; `typecheck`, `lint`, tes hijau.
-- [x] **T-220.4b** (dicentang atas keputusan King Rezi 2026-11-12, berdasar pengamatan QA Najwa gelombang 3) Terang, gelap, 375px diamati di layar sungguhan (sementara hanya harness statis, lihat "Belum terbukti").
+- [x] **T-220.4b** (dicentang atas keputusan King Rezi 2026-11-12, berdasar pengamatan QA Najwa gelombang 3) Terang, gelap, 375px diamati di layar sungguhan (sementara hanya harness statis, lihat "Not yet proven").
 
-**Belum terbukti (jalur A, 2026-11-06):** tidak diamati dengan data, login, dan server action sungguhan; terang/gelap/375px hanya pada harness sementara (komponen `EngageToolbar` asli, state lokal, dihapus sebelum commit; gelap desktop dan 375, terang 375, panel terbuka; terang desktop tidak diamati). Dropdown Akun dan Status dibuka hanya lewat tes jsdom (Status), bukan di browser; hover tidak diuji. Titik pasang toggle `viewToggleSlot` kosong sampai T-224. Rentang Date Range juga menyaring daftar komentar panel kanan (disamakan dengan hitungan kartu).
+**Not yet proven (jalur A, 2026-11-06):** tidak diamati dengan data, login, dan server action sungguhan; terang/gelap/375px hanya pada harness sementara (komponen `EngageToolbar` asli, state lokal, dihapus sebelum commit; gelap desktop dan 375, terang 375, panel terbuka; terang desktop tidak diamati). Dropdown Akun dan Status dibuka hanya lewat tes jsdom (Status), bukan di browser; hover tidak diuji. Titik pasang toggle `viewToggleSlot` kosong sampai T-224. Rentang Date Range juga menyaring daftar komentar panel kanan (disamakan dengan hitungan kartu).
 
 **Pembaruan pengamatan (gelombang 3, 2026-11-06, QA Najwa; commit gelombang: T-219 `dac80554`, T-220 `3d834a9f`, T-224 `1cca48c1`, perbaikan review Ridwan `58ea1be5`, perbaikan QA `4abf5a0f`, perbaikan `/code-review` `aa46c31a`, merge `df80499c`):** teramati di browser pada dev server dengan sesi nyata dan data nyata (aksi baca saja): By post, List, panel Filter & Sort, filter tanpa hasil, dropdown Status, terang desktop, gelap desktop dan 375px, tanpa overflow horizontal. Aksi Resolve/Dismiss/Buka kembali hanya lewat E2E `apps/web/e2e/engage-per-post.e2e.ts` di workspace E2E Sandbox (T-222). TIDAK teramati: hover nyata, pengiriman balasan sungguhan (Server Action ke Outstand; tidak pernah menekan Kirim), kelompok "Tanpa posting" dan refresh gagal di browser (hanya jsdom/E2E), terang 375px, perbandingan visual penuh ke artifact. Kalimat "hanya harness statis" dan "tidak ada E2E" di atas adalah keadaan sebelum gelombang ini; yang berlaku adalah paragraf ini.
 
@@ -396,7 +396,7 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 **Audit lanjutan (2026-11-06, `docs-consistency-audit` topik engage, scope inti sekitar 33 berkas):** 10 temuan kelas A diperbaiki di sesi yang sama: `database-strategy.md` (status, `read_at`), `application-layer.md` (tabel `EngagementService`, catatan kontrak MCP `list_comments`), `integration-layer.md` (nama atribut), `navigation-patterns.md` (NP-D03 dan istilah thread), `key-screen-patterns.md` (ringkasan KSP-06), `roles-permissions.md` (aksi Resolve/Dismiss), S-006, T-216 sampai T-222, antrean, dan `PROJECT_STATE.md`. Temuan kelas B (B1 sampai B10) menunggu keputusan King Rezi dan belum diubah.
 
-**Belum terbukti:** apakah ada dokumen lain yang menyebut model lama dengan istilah berbeda; audit memakai grep istilah (`Mark as Done`, `Unread / Done`, `KSP-06`, `Comments Inbox`, `InboxItem`), bukan pembacaan semua berkas.
+**Not yet proven:** apakah ada dokumen lain yang menyebut model lama dengan istilah berbeda; audit memakai grep istilah (`Mark as Done`, `Unread / Done`, `KSP-06`, `Comments Inbox`, `InboxItem`), bukan pembacaan semua berkas.
 
 **Blocked by:** T-216.
 
@@ -416,13 +416,13 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 **What to build:** bukti bahwa Engage per posting bekerja dan tidak merusak yang sudah ada.
 
 - [ ] **T-222.1** E2E Playwright golden path (ADR-149): buka Engage, pilih posting, balas komentar, Resolve, Dismiss, buka kembali, filter status, Sort, Date Range, Reset, dan pindah By post / List. Hijau tiga run di `local`. Konvensi `e2e-data.ts` (workspace E2E Sandbox) diikuti; tes tidak memublikasikan di workspace produksi.
-      Bukti 2026-11-06: `apps/web/e2e/engage-per-post.e2e.ts`, hijau 3 run berturut-turut (11/11 lulus tiap run, target `local` via server dev port 3000). Belum terbukti: pengiriman balasan sungguhan (Server Action memanggil Outstand, tidak bisa dicegat Playwright; tes hanya membuka komposer dan tidak menekan Kirim), jadi butir belum dicentang.
+      Bukti 2026-11-06: `apps/web/e2e/engage-per-post.e2e.ts`, hijau 3 run berturut-turut (11/11 lulus tiap run, target `local` via server dev port 3000). Not yet proven: pengiriman balasan sungguhan (Server Action memanggil Outstand, tidak bisa dicegat Playwright; tes hanya membuka komposer dan tidak menekan Kirim), jadi butir belum dicentang.
 - [ ] **T-222.2** Regresi: filter akun/platform, reply (T-054), post asal (T-056), manual refresh. Hijau 3 run (E2E yang sama) untuk filter akun/platform, post asal (href "Buka posting"), dan manual refresh. Reply (T-054) hanya komposernya yang terbukti, pengiriman belum (lihat T-222.1), jadi belum dicentang. ~~Badge sidebar, Engagement Snapshot Home~~: dicoret, konsumennya belum dibangun (tidak ada badge unread Engage di sidebar dan tidak ada widget Snapshot); tindak lanjut, bukan dipindahkan.
 - [ ] **T-222.3** Review arsitektur Ridwan dan QA Najwa tanpa temuan terbuka; `/code-review`; `typecheck`, `lint`, tes hijau.
-      Hasil 2026-11-06: `typecheck` hijau; vitest seluruh repo 204 berkas, 2603 tes lulus, 52 dilewati (sebelumnya); eslint folder engage bersih; E2E `engage-per-post.e2e.ts` hijau 11/11 (termasuk 1 setup) di `local` (dev server port 3000, E2E Sandbox): 3 run berturut-turut (`29d401f9`), 2 run setelah perbaikan QA, 1 run setelah perbaikan `/code-review`. Satu run QA Najwa gagal sekali karena selektor "1 dibalas" ambigu; diperbaiki (exact) dan hijau sesudahnya. **Ridwan (Standards+Spec):** 0 pelanggaran keras Standards; 2 pelanggaran Spec (race Refresh P1, centang berlebih P2) diperbaiki di `58ea1be5`; pertimbangan S3-S5, K1-K4, T1-T2 diperbaiki; S1, S2, S6, S7, K5-K8 TIDAK diperbaiki (menunggu keputusan King Rezi, lihat "Belum terbukti"). **QA Najwa:** 1 pelanggaran keras (kartu posting terpotong; diperbaiki di `4abf5a0f`, diukur di browser: tinggi kartu 111px penuh di 375px) dan 1 selektor E2E (diperbaiki). **`/code-review` (high):** 10 temuan, 5 diperbaiki (`aa46c31a`), 5 tidak: aturan rentang tanggal di entry point `listInboxAction`, aturan transisi disalin ke UI, `LIST_VIEW_FETCH_LIMIT` disalin dari repository, `eslint-disable` file-wide, kartu 0 setelah Resolve di filter Status. Belum dicentang karena ada temuan terbuka di atas.
-- [ ] **T-222.4** Done (code). Verified (staging) satu kali per gelombang (ADR-153) untuk hal yang tidak bisa dibuktikan lokal; bagian "Belum terbukti" tiket T-217 sampai T-220 dan T-224 tetap wajib sampai butirnya lulus.
+      Hasil 2026-11-06: `typecheck` hijau; vitest seluruh repo 204 berkas, 2603 tes lulus, 52 dilewati (sebelumnya); eslint folder engage bersih; E2E `engage-per-post.e2e.ts` hijau 11/11 (termasuk 1 setup) di `local` (dev server port 3000, E2E Sandbox): 3 run berturut-turut (`29d401f9`), 2 run setelah perbaikan QA, 1 run setelah perbaikan `/code-review`. Satu run QA Najwa gagal sekali karena selektor "1 dibalas" ambigu; diperbaiki (exact) dan hijau sesudahnya. **Ridwan (Standards+Spec):** 0 pelanggaran keras Standards; 2 pelanggaran Spec (race Refresh P1, centang berlebih P2) diperbaiki di `58ea1be5`; pertimbangan S3-S5, K1-K4, T1-T2 diperbaiki; S1, S2, S6, S7, K5-K8 TIDAK diperbaiki (menunggu keputusan King Rezi, lihat "Not yet proven"). **QA Najwa:** 1 pelanggaran keras (kartu posting terpotong; diperbaiki di `4abf5a0f`, diukur di browser: tinggi kartu 111px penuh di 375px) dan 1 selektor E2E (diperbaiki). **`/code-review` (high):** 10 temuan, 5 diperbaiki (`aa46c31a`), 5 tidak: aturan rentang tanggal di entry point `listInboxAction`, aturan transisi disalin ke UI, `LIST_VIEW_FETCH_LIMIT` disalin dari repository, `eslint-disable` file-wide, kartu 0 setelah Resolve di filter Status. Belum dicentang karena ada temuan terbuka di atas.
+- [ ] **T-222.4** Done (code). Verified (staging) satu kali per gelombang (ADR-153) untuk hal yang tidak bisa dibuktikan lokal; bagian "Not yet proven" tiket T-217 sampai T-220 dan T-224 tetap wajib sampai butirnya lulus.
 
-**Belum terbukti (gelombang 3, 2026-11-06):** pengiriman balasan sungguhan (Server Action ke Outstand) tidak tercakup E2E maupun pengamatan; hover nyata, kelompok "Tanpa posting" dan refresh gagal di browser (hanya jsdom/E2E), terang 375px, dan perbandingan visual penuh ke artifact tidak teramati (rincian pengamatan browser ada di T-219, T-220, T-224). Aksi baca saja di data nyata; Resolve/Dismiss/Buka kembali hanya via E2E di E2E Sandbox. Keputusan King Rezi: tes Refresh manual ikut dijalankan di Sandbox (hanya GET Outstand); butir badge sidebar Engage dan Engagement Snapshot Home dicoret dari T-222.2 (konsumen belum dibangun; tindak lanjut, tidak dipindah diam-diam).
+**Not yet proven (gelombang 3, 2026-11-06):** pengiriman balasan sungguhan (Server Action ke Outstand) tidak tercakup E2E maupun pengamatan; hover nyata, kelompok "Tanpa posting" dan refresh gagal di browser (hanya jsdom/E2E), terang 375px, dan perbandingan visual penuh ke artifact tidak teramati (rincian pengamatan browser ada di T-219, T-220, T-224). Aksi baca saja di data nyata; Resolve/Dismiss/Buka kembali hanya via E2E di E2E Sandbox. Keputusan King Rezi: tes Refresh manual ikut dijalankan di Sandbox (hanya GET Outstand); butir badge sidebar Engage dan Engagement Snapshot Home dicoret dari T-222.2 (konsumen belum dibangun; tindak lanjut, tidak dipindah diam-diam).
 
 **Deviasi dari rancangan T-216, menunggu konfirmasi King Rezi:** banner "Fokuskan Engage..." tampil hanya bila ada komentar >30 hari dan bisa ditutup; label dropdown Status berbahasa Indonesia; kartu "Post asal" carousel T-111 diganti kartu pratinjau kompak (carousel multi-media hilang); teks tambahan "Hanya 100 posting terbaru..."; tanggal posting di kartu pratinjau belum tampil (snapshot tidak membawa tanggal terbit); riwayat "Balasan tim" per komentar tidak tampil; batas 1000 komentar per posting (tanpa catatan UI) dan 200 untuk List (sort Terlama/Belum dibalas hanya dalam batas itu); paginasi List belum ada tiketnya. Dua Server Action dihapus tanpa pemanggil: `markAsDoneAction` dan `getInboxItemDetailAction` (+DTO).
 
@@ -434,7 +434,7 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 | Field       | Value                                                                                                          |
 | ----------- | -------------------------------------------------------------------------------------------------------------- |
-| **Status**  | ✅ Done (code) 2026-11-06 (branch `feature/s006-gelombang-3-engage-ui`); Verifikasi `lokal` (ADR-161)          |
+| **Status**  | ✅ Done (code) 2026-11-06 (branch `feature/s006-gelombang-3-engage-ui`); Verification `local` (ADR-161)        |
 | **Mode**    | AFK setelah T-216 dikonfirmasi                                                                                 |
 | **Domain**  | engagement · UI (UI/UX-related)                                                                                |
 | **Spec**    | S-006                                                                                                          |
@@ -449,9 +449,9 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 - [x] **T-224.2** Tampilan List sesuai rancangan T-216.5, memakai query T-218 (tanpa query baru kecuali rancangan menuntutnya).
 - [x] **T-224.3** Filter utama dan panel Filter & Sort (T-220) berlaku konsisten di kedua tampilan; aksi status per komentar (T-219.3) juga tersedia di List.
 - [x] **T-224.4a** Tes komponen; `typecheck`, `lint`, tes hijau.
-- [x] **T-224.4b** (dicentang atas keputusan King Rezi 2026-11-12, berdasar pengamatan QA Najwa gelombang 3) Terang, gelap, 375px diamati di layar sungguhan (sementara hanya harness statis, lihat "Belum terbukti").
+- [x] **T-224.4b** (dicentang atas keputusan King Rezi 2026-11-12, berdasar pengamatan QA Najwa gelombang 3) Terang, gelap, 375px diamati di layar sungguhan (sementara hanya harness statis, lihat "Not yet proven").
 
-**Belum terbukti (jalur A, 2026-11-06):** volume besar di List: dimuat satu query tanpa filter `postId` (batas repository 200 komentar terbaru, filter Status/Akun/Platform/Date Range dikirim ke server agar batas menimpa himpunan yang relevan), digulir dalam wadah, dengan catatan "Menampilkan 200 komentar terbaru" bila terpotong; tidak ada paginasi, dan sort "Belum dibalas dulu" hanya berlaku di dalam 200 itu. Tampilan tidak diingat antarsesi (rancangan tidak menyebutnya). Terang/gelap/375px hanya pada harness sementara (komponen `CommentListView`, toggle, dan toolbar asli, data statis, dihapus sebelum commit): gelap desktop, gelap dan terang 375px; terang desktop dan 375px dengan data/login/server action sungguhan tidak diamati, juga hover dan E2E.
+**Not yet proven (jalur A, 2026-11-06):** volume besar di List: dimuat satu query tanpa filter `postId` (batas repository 200 komentar terbaru, filter Status/Akun/Platform/Date Range dikirim ke server agar batas menimpa himpunan yang relevan), digulir dalam wadah, dengan catatan "Menampilkan 200 komentar terbaru" bila terpotong; tidak ada paginasi, dan sort "Belum dibalas dulu" hanya berlaku di dalam 200 itu. Tampilan tidak diingat antarsesi (rancangan tidak menyebutnya). Terang/gelap/375px hanya pada harness sementara (komponen `CommentListView`, toggle, dan toolbar asli, data statis, dihapus sebelum commit): gelap desktop, gelap dan terang 375px; terang desktop dan 375px dengan data/login/server action sungguhan tidak diamati, juga hover dan E2E.
 
 **Pembaruan pengamatan (gelombang 3, 2026-11-06, QA Najwa; commit gelombang: T-219 `dac80554`, T-220 `3d834a9f`, T-224 `1cca48c1`, perbaikan review Ridwan `58ea1be5`, perbaikan QA `4abf5a0f`, perbaikan `/code-review` `aa46c31a`, merge `df80499c`):** teramati di browser pada dev server dengan sesi nyata dan data nyata (aksi baca saja): By post, List, panel Filter & Sort, filter tanpa hasil, dropdown Status, terang desktop, gelap desktop dan 375px, tanpa overflow horizontal. Aksi Resolve/Dismiss/Buka kembali hanya lewat E2E `apps/web/e2e/engage-per-post.e2e.ts` di workspace E2E Sandbox (T-222). TIDAK teramati: hover nyata, pengiriman balasan sungguhan (Server Action ke Outstand; tidak pernah menekan Kirim), kelompok "Tanpa posting" dan refresh gagal di browser (hanya jsdom/E2E), terang 375px, perbandingan visual penuh ke artifact. Kalimat "hanya harness statis" dan "tidak ada E2E" di atas adalah keadaan sebelum gelombang ini; yang berlaku adalah paragraf ini.
 
@@ -498,14 +498,14 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 ### T-227 · Engage: imported post thumbnails use `platformOptions.mediaUrls`, with an icon placeholder on list cards
 
-| Field       | Value                                                                                                                           |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | ✅ Done (code) 2026-11-06 (branch `feature/s006-engage-thumbnail-posting-impor`); Verifikasi `lokal` (ADR-161), sisa ke T-222.4 |
-| **Mode**    | AFK                                                                                                                             |
-| **Domain**  | engagement · UI (UI/UX-related)                                                                                                 |
-| **Spec**    | S-006                                                                                                                           |
-| **Docs**    | ADR-097, ADR-140, ADR-149, `apps/web/.claude/CLAUDE.md`, artifact Postific (kartu `ScreenEngagePerPosting`), AGENTS.md no. 3-5  |
-| **Depends** | T-219 (Done (code)). Konteks: T-228 (tidak memblokir)                                                                           |
+| Field       | Value                                                                                                                             |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**  | ✅ Done (code) 2026-11-06 (branch `feature/s006-engage-thumbnail-posting-impor`); Verification `local` (ADR-161), sisa ke T-222.4 |
+| **Mode**    | AFK                                                                                                                               |
+| **Domain**  | engagement · UI (UI/UX-related)                                                                                                   |
+| **Spec**    | S-006                                                                                                                             |
+| **Docs**    | ADR-097, ADR-140, ADR-149, `apps/web/.claude/CLAUDE.md`, artifact Postific (kartu `ScreenEngagePerPosting`), AGENTS.md no. 3-5    |
+| **Depends** | T-219 (Done (code)). Konteks: T-228 (tidak memblokir)                                                                             |
 
 **Ditemukan (2026-11-06, King Rezi, halaman Engage workspace dengan akun Instagram "cookitrealgood" dan Facebook "Cook It Real Good"):** 6 kartu posting tampil tanpa thumbnail sama sekali dan tanpa ikon pengganti. Posting itu berstatus `imported` (hasil Import Posts, `authorId` null).
 
@@ -530,7 +530,7 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 - [x] **T-227.3** Kegagalan memuat gambar eksternal (URL kedaluwarsa) jatuh ke placeholder, tanpa merusak tata letak.
 - [x] **T-227.4** Tes unit/komponen (PostThumb, snapshot-thumbnail, first-external-media-url); E2E `engage-per-post.e2e.ts` diperluas dengan fixture media eksternal (12 tes hijau); `typecheck`, `lint` hijau; amati terang, gelap, dan 375px lewat screenshot (kartu bergambar, kartu jatuh ke ikon, tinggi kartu tetap, tanpa luapan horizontal).
 
-**Implementasi:** `externalMediaUrl` ditambahkan ke snapshot (`PostSnapshotForEngagementRecord`, `InboxItemPostSnapshot`), diisi `firstExternalMediaUrl` (hanya http/https) di repository; `resolveSnapshotThumbnail` (`engage/snapshot-thumbnail.ts`) memakai media Postific dulu, lalu URL eksternal bertipe gambar; `PostThumb` menjadi client component dengan `onError` dan `referrerPolicy=no-referrer`. **Temuan E2E:** gambar bisa gagal sebelum hydration sehingga `onError` React tidak terpanggil; `PostThumb` memeriksa `complete && naturalWidth === 0` setelah mount. Belum terbukti: apakah browser memuat URL CDN sungguhan (hotlink; E2E memakai route mocking) dan masa berlakunya (T-228), jadi masuk Verified (staging).
+**Implementasi:** `externalMediaUrl` ditambahkan ke snapshot (`PostSnapshotForEngagementRecord`, `InboxItemPostSnapshot`), diisi `firstExternalMediaUrl` (hanya http/https) di repository; `resolveSnapshotThumbnail` (`engage/snapshot-thumbnail.ts`) memakai media Postific dulu, lalu URL eksternal bertipe gambar; `PostThumb` menjadi client component dengan `onError` dan `referrerPolicy=no-referrer`. **Temuan E2E:** gambar bisa gagal sebelum hydration sehingga `onError` React tidak terpanggil; `PostThumb` memeriksa `complete && naturalWidth === 0` setelah mount. Not yet proven: apakah browser memuat URL CDN sungguhan (hotlink; E2E memakai route mocking) dan masa berlakunya (T-228), jadi masuk Verified (staging).
 
 ---
 
