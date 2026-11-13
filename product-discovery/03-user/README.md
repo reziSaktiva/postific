@@ -1,76 +1,76 @@
 # 03 — User
 
-Dokumentasi pada folder ini berfokus pada **User Discovery** untuk produk **Postific**, mulai dari memahami siapa pengguna, bagaimana mereka bekerja, masalah yang mereka hadapi, hingga menghasilkan insight yang dapat digunakan sebagai dasar pengambilan keputusan produk.
+The documentation in this folder focuses on **User Discovery** for the **Postific** product, starting from understanding who the users are, how they work, and the problems they face, through to producing insights that can serve as the basis for product decisions.
 
-Seluruh dokumentasi pada folder ini harus mengacu pada **Business Baseline** dan **Product Baseline** yang telah disepakati. Insight digunakan untuk mengevaluasi asumsi dan mendukung pengambilan keputusan produk, bukan mengubah baseline tanpa proses keputusan yang terdokumentasi.
+All documentation in this folder must refer to the agreed **Business Baseline** and **Product Baseline**. Insights are used to evaluate assumptions and support product decisions, not to change the baseline without a documented decision process.
 
 ---
 
-# Tujuan
+# Purpose
 
-* Memahami pengguna utama dan pengguna sekunder secara mendalam.
-* Mengidentifikasi tujuan, motivasi, perilaku, kebutuhan, serta pain points pengguna.
-* Membedakan kebutuhan buyer dan daily user.
-* Mendefinisikan Jobs To Be Done (JTBD) berdasarkan konteks kerja pengguna.
-* Mengevaluasi asumsi yang berasal dari Business Discovery dan Product Discovery.
-* Menghasilkan insight yang dapat digunakan sebagai dasar pada tahap UX Discovery dan Architecture Discovery.
+- Understand the primary and secondary users in depth.
+- Identify user goals, motivations, behaviors, needs, and pain points.
+- Distinguish the needs of the buyer from those of the daily user.
+- Define Jobs To Be Done (JTBD) based on the user's work context.
+- Evaluate assumptions that come from Business Discovery and Product Discovery.
+- Produce insights that can be used as the basis for the UX Discovery and Architecture Discovery stages.
 
 ---
 
 # Scope
 
-Folder ini hanya membahas **User Discovery**.
+This folder covers **User Discovery** only.
 
-Topik yang termasuk dalam scope:
+Topics included in the scope:
 
-* Discovery objectives dan discovery questions.
-* User segments.
-* Buyer dan daily user.
-* User personas.
-* User goals.
-* Pain points.
-* Jobs To Be Done (JTBD).
-* User scenarios.
-* Current user journey.
-* Assumptions.
-* Observations.
-* Insights.
-* Referensi dari produk sejenis, komunitas, artikel, dokumentasi, video, dan pengalaman yang relevan.
+- Discovery objectives and discovery questions.
+- User segments.
+- Buyer and daily user.
+- User personas.
+- User goals.
+- Pain points.
+- Jobs To Be Done (JTBD).
+- User scenarios.
+- Current user journey.
+- Assumptions.
+- Observations.
+- Insights.
+- References from similar products, communities, articles, documentation, videos, and relevant experience.
 
-Pendekatan pada fase ini berfokus pada **desktop research** dan **product discovery**. Interview pengguna, survei, usability testing, maupun validasi lapangan tidak termasuk dalam ruang lingkup fase ini.
+The approach in this phase focuses on **desktop research** and **product discovery**. User interviews, surveys, usability testing, and field validation are not within the scope of this phase.
 
-Topik berikut **tidak dibahas** pada folder ini:
+The following topics are **not covered** in this folder:
 
-* UX Design
-* UI Design
-* Information Architecture
-* User Flow Solution
-* Wireframe
-* Prototype
-* Technical Architecture
-* Database Design
-* API Design
-* Implementation
+- UX Design
+- UI Design
+- Information Architecture
+- User Flow Solution
+- Wireframe
+- Prototype
+- Technical Architecture
+- Database Design
+- API Design
+- Implementation
 
 ---
 
-# Daftar Dokumen
+# Document List
 
-* `discovery-plan.md` — tujuan, pertanyaan, sumber referensi, dan ruang lingkup discovery.
-* `user-segments.md` — kelompok pengguna, buyer, daily user, dan prioritas pengguna.
-* `user-personas.md` — persona awal berdasarkan asumsi, observasi, dan insight.
-* `user-goals.md` — tujuan, motivasi, dan hasil yang ingin dicapai pengguna.
-* `pain-points.md` — hambatan dan masalah yang dihadapi pengguna.
-* `jobs-to-be-done.md` — pekerjaan fungsional, emosional, dan sosial yang ingin diselesaikan pengguna.
-* `user-scenarios.md` — konteks penggunaan dalam situasi nyata.
-* `user-journey.md` — current-state journey pengguna tanpa menawarkan solusi.
-* `insights.md` — rangkuman observasi, pola, insight, dan implikasinya terhadap keputusan produk.
+- `discovery-plan.md` — discovery objectives, questions, reference sources, and scope.
+- `user-segments.md` — user groups, buyer, daily user, and user priorities.
+- `user-personas.md` — initial personas based on assumptions, observations, and insights.
+- `user-goals.md` — the goals, motivations, and outcomes users want to achieve.
+- `pain-points.md` — the obstacles and problems users face.
+- `jobs-to-be-done.md` — the functional, emotional, and social jobs users want to get done.
+- `user-scenarios.md` — usage context in real situations.
+- `user-journey.md` — the user's current-state journey without proposing solutions.
+- `insights.md` — summary of observations, patterns, insights, and their implications for product decisions.
 
 ---
 
 # Discovery Workflow
 
-Seluruh proses User Discovery mengikuti alur berikut:
+The whole User Discovery process follows this flow:
 
 ```text
 Assumption
@@ -84,90 +84,90 @@ Insight
 Decision
 ```
 
-Insight tidak secara otomatis menjadi keputusan produk. Seluruh perubahan terhadap baseline harus melalui proses review dan dokumentasi.
+An insight does not automatically become a product decision. All changes to the baseline must go through review and documentation.
 
 ---
 
-# Cara Menggunakan
+# How to Use
 
-1. Mulai dari `discovery-plan.md` untuk menetapkan tujuan dan ruang lingkup discovery.
-2. Kumpulkan referensi dari produk sejenis, komunitas, artikel, dokumentasi, video, dan sumber relevan lainnya.
-3. Definisikan kelompok pengguna pada `user-segments.md`.
-4. Susun persona awal pada `user-personas.md`.
-5. Dokumentasikan user goals dan pain points.
-6. Definisikan Jobs To Be Done (JTBD).
-7. Gambarkan user scenarios.
-8. Petakan current-state user journey.
-9. Konsolidasikan seluruh insight pada `insights.md`.
-10. Gunakan insight sebagai dasar diskusi sebelum mengambil keputusan produk.
+1. Start from `discovery-plan.md` to set the discovery objectives and scope.
+2. Collect references from similar products, communities, articles, documentation, videos, and other relevant sources.
+3. Define the user groups in `user-segments.md`.
+4. Draft the initial personas in `user-personas.md`.
+5. Document the user goals and pain points.
+6. Define the Jobs To Be Done (JTBD).
+7. Describe the user scenarios.
+8. Map the current-state user journey.
+9. Consolidate all insights in `insights.md`.
+10. Use the insights as the basis for discussion before making product decisions.
 
 ---
 
 # Expected Output
 
-Setelah seluruh dokumen pada folder ini selesai, project harus memiliki:
+After all documents in this folder are complete, the project must have:
 
-* User Discovery yang terdokumentasi dengan baik.
-* Segmentasi pengguna yang konsisten dengan Target Market.
-* Pemisahan yang jelas antara buyer dan daily user.
-* User Persona yang realistis.
-* User Goals dan Pain Points yang tervalidasi melalui discovery.
-* Jobs To Be Done (JTBD) yang jelas.
-* Current User Journey yang terdokumentasi.
-* Insight yang dapat digunakan sebagai dasar UX dan Architecture.
-* Daftar asumsi yang didukung, belum didukung, atau bertentangan dengan hasil discovery.
+- Well-documented User Discovery.
+- User segmentation consistent with the Target Market.
+- A clear separation between buyer and daily user.
+- Realistic User Personas.
+- User Goals and Pain Points validated through discovery.
+- Clear Jobs To Be Done (JTBD).
+- A documented Current User Journey.
+- Insights that can be used as the basis for UX and Architecture.
+- A list of assumptions that are supported, not yet supported, or contradicted by the discovery results.
 
 ---
 
 # Exit Criteria
 
-User Discovery dianggap selesai apabila:
+User Discovery is considered complete when:
 
-* Discovery objectives telah ditetapkan.
-* User segments telah didefinisikan.
-* Buyer dan daily user telah dibedakan.
-* User personas telah disusun.
-* User goals, pain points, dan JTBD telah terdokumentasi.
-* Current user journey telah selesai.
-* Insight utama telah dirangkum.
-* Seluruh asumsi penting telah ditinjau.
-* Seluruh dokumen telah melalui User Discovery Review.
+- Discovery objectives have been set.
+- User segments have been defined.
+- Buyer and daily user have been distinguished.
+- User personas have been drafted.
+- User goals, pain points, and JTBD have been documented.
+- The current user journey is complete.
+- The main insights have been summarized.
+- All important assumptions have been reviewed.
+- All documents have gone through the User Discovery Review.
 
 ---
 
 # Decision Rules
 
-Insight yang mengarah pada perubahan terhadap:
+Insights that lead to a change to:
 
-* Target Market
-* Problem Statement
-* Product Vision
-* Product Scope
-* MVP
-* Feature Priority
+- Target Market
+- Problem Statement
+- Product Vision
+- Product Scope
+- MVP
+- Feature Priority
 
-harus didokumentasikan pada:
+must be documented in:
 
-* `../../project-os/DECISIONS.md`
+- `../../project-os/DECISIONS.md`
 
-Perubahan progress User Discovery harus diperbarui pada:
+Changes to User Discovery progress must be updated in:
 
-* `../../project-os/PROJECT_STATE.md`
+- `../../project-os/PROJECT_STATE.md`
 
 ---
 
 # Related Documents
 
-* `../README.md`
-* `../01-business/README.md`
-* `../01-business/product-vision.md`
-* `../01-business/problem-statement.md`
-* `../01-business/target-market.md`
-* `../02-product/README.md`
-* `../02-product/product-scope.md`
-* `../02-product/mvp-definition.md`
-* `../02-product/feature-modules.md`
-* `../../project-os/PROJECT_OVERVIEW.md`
-* `../../project-os/PROJECT_RULES.md`
-* `../../project-os/PROJECT_STATE.md`
-* `../../project-os/DECISIONS.md`
+- `../README.md`
+- `../01-business/README.md`
+- `../01-business/product-vision.md`
+- `../01-business/problem-statement.md`
+- `../01-business/target-market.md`
+- `../02-product/README.md`
+- `../02-product/product-scope.md`
+- `../02-product/mvp-definition.md`
+- `../02-product/feature-modules.md`
+- `../../project-os/PROJECT_OVERVIEW.md`
+- `../../project-os/PROJECT_RULES.md`
+- `../../project-os/PROJECT_STATE.md`
+- `../../project-os/DECISIONS.md`

@@ -1,31 +1,31 @@
 # Insights
 
-Dokumen ini mengonsolidasikan observasi, pola, dan insight dari seluruh User Discovery.
+This document consolidates the observations, patterns, and insights from all of User Discovery.
 
-Insight digunakan untuk mengevaluasi asumsi Business/Product Baseline dan mendukung keputusan produk berikutnya. Insight **tidak** otomatis mengubah baseline.
+Insights are used to evaluate the Business/Product Baseline assumptions and support the next product decisions. Insights do **not** automatically change the baseline.
 
 ---
 
 # Overview
 
-User Discovery pada fase ini dilakukan melalui desktop research dan product discovery (Buffer, Postiz, kompetitor, dokumentasi, komunitas, artikel, video, dan pengalaman praktis).
+User Discovery in this phase was carried out through desktop research and product discovery (Buffer, Postiz, competitors, documentation, communities, articles, videos, and practical experience).
 
-Hasilnya dirangkum mengikuti vocabulary project:
+The results are summarized following the project vocabulary:
 
 ```text
 Assumption → Discovery → Observation → Insight → Decision
 ```
 
-Keputusan yang mengubah Target Market, Problem Statement, Product Vision, Product Scope, MVP, atau Feature Priority harus masuk ke `../../project-os/DECISIONS.md`.
+Decisions that change the Target Market, Problem Statement, Product Vision, Product Scope, MVP, or Feature Priority must go into `../../project-os/DECISIONS.md`.
 
 ---
 
 # Purpose
 
-* Menyediakan satu sumber kebenaran untuk temuan User Discovery.
-* Menilai status asumsi yang diinventarisasi pada Discovery Plan.
-* Menjabarkan implikasi produk tanpa masuk ke desain UX/teknikal.
-* Menyiapkan bahan untuk UX Discovery dan Architecture Discovery.
+- Provide a single source of truth for User Discovery findings.
+- Assess the status of the assumptions inventoried in the Discovery Plan.
+- Spell out product implications without entering UX/technical design.
+- Prepare material for UX Discovery and Architecture Discovery.
 
 ---
 
@@ -33,37 +33,37 @@ Keputusan yang mengubah Target Market, Problem Statement, Product Vision, Produc
 
 ## In Scope
 
-* Key observations.
-* Synthesized insights.
-* Assumption review outcomes.
-* Product implications (tingkat keputusan, bukan spesifikasi).
-* Open questions untuk fase berikutnya.
+- Key observations.
+- Synthesized insights.
+- Assumption review outcomes.
+- Product implications (decision level, not specification).
+- Open questions for the next phase.
 
 ## Out of Scope
 
-* UX/UI solution.
-* Wireframe dan prototype.
-* Architecture, database, API.
-* Perubahan baseline tanpa ADR.
+- UX/UI solution.
+- Wireframe and prototype.
+- Architecture, database, API.
+- Baseline changes without an ADR.
 
 ---
 
 # Key Observations
 
-Observation adalah pola yang berulang dari sumber discovery, bukan opini produk.
+An observation is a pattern that repeats across discovery sources, not a product opinion.
 
-| ID | Observation | Sources |
-| -- | ----------- | ------- |
-| O-01 | Tim marketing menyelesaikan satu siklus konten melalui banyak tool terpisah (docs, chat, scheduler, native apps, analytics). | Problem Statement, competitor landscape, community discussions |
-| O-02 | Social Media Manager adalah pusat operasional harian; Manager/Buyer lebih sering butuh visibility dan ringkasan. | Target Market, persona synthesis |
-| O-03 | Kegagalan adopsi tool sering terjadi ketika onboarding dan daily workflow terasa rumit. | Competitor weaknesses (complex suites), buyer evaluation scenarios |
-| O-04 | Publishing reliability (schedule, queue, calendar, history) adalah fondasi nilai yang paling mudah dipahami pengguna. | Buffer/Postiz patterns, MVP definition alignment |
-| O-05 | Engagement handling tetap tersebar di native apps pada banyak tim, sehingga response time tidak konsisten. | Problem Statement, scenario S-05 |
-| O-06 | Analytics dibutuhkan rutin, tetapi sering dalam bentuk snapshot keputusan — bukan suite enterprise. | Buyer goals, weekly review scenario |
-| O-07 | AI paling relevan ketika menempel pada pembuatan/perbaikan caption di dalam alur draft, bukan sebagai destinasi terpisah. | Competitor AI positioning, creator scenario |
-| O-08 | Agency memiliki jobs inti yang sama, dengan risiko tambahan dari multi-client context switching. | Target Market secondary, scenario S-08 |
-| O-09 | Startup sering menggabungkan buyer dan daily user dalam satu orang, sehingga time-to-value menjadi kritis. | Secondary segment characteristics |
-| O-10 | Individual creator bukan pengguna yang paling selaras dengan value proposition kolaborasi tim pada MVP. | ADR-006, target-market out of scope |
+| ID   | Observation                                                                                                                  | Sources                                                            |
+| ---- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| O-01 | Marketing teams complete one content cycle through many separate tools (docs, chat, scheduler, native apps, analytics).      | Problem Statement, competitor landscape, community discussions     |
+| O-02 | The Social Media Manager is the daily operational center; the Manager/Buyer more often needs visibility and summaries.       | Target Market, persona synthesis                                   |
+| O-03 | Tool adoption failures often occur when onboarding and the daily workflow feel complicated.                                  | Competitor weaknesses (complex suites), buyer evaluation scenarios |
+| O-04 | Publishing reliability (schedule, queue, calendar, history) is the foundation of value that users understand most easily.    | Buffer/Postiz patterns, MVP definition alignment                   |
+| O-05 | Engagement handling remains scattered across native apps in many teams, so response time is inconsistent.                    | Problem Statement, scenario S-05                                   |
+| O-06 | Analytics is needed routinely, but often in the form of decision snapshots, not an enterprise suite.                         | Buyer goals, weekly review scenario                                |
+| O-07 | AI is most relevant when it is attached to creating/improving captions inside the draft flow, not as a separate destination. | Competitor AI positioning, creator scenario                        |
+| O-08 | Agencies have the same core jobs, with the added risk of multi-client context switching.                                     | Target Market secondary, scenario S-08                             |
+| O-09 | Startups often combine buyer and daily user in one person, so time-to-value becomes critical.                                | Secondary segment characteristics                                  |
+| O-10 | The individual creator is not the user most aligned with the team collaboration value proposition in the MVP.                | ADR-006, target-market out of scope                                |
 
 ---
 
@@ -73,11 +73,11 @@ Observation adalah pola yang berulang dari sumber discovery, bukan opini produk.
 
 **Based on:** O-01, O-02, O-04
 
-Pengguna prioritas tidak mencari “lebih banyak fitur sosial”. Mereka mencari pengurangan context switching agar siklus draft → schedule → publish → respond → review lebih ringkas.
+Priority users are not looking for "more social features". They are looking for less context switching so that the draft → schedule → publish → respond → review cycle is more compact.
 
 **Implication**
 
-MVP harus memenangkan pekerjaan inti publishing lebih dulu, lalu mengikat engagement dan analytics sebagai kelanjutan siklus yang sama.
+The MVP must win the core publishing job first, then tie engagement and analytics in as continuations of the same cycle.
 
 ---
 
@@ -85,11 +85,11 @@ MVP harus memenangkan pekerjaan inti publishing lebih dulu, lalu mengikat engage
 
 **Based on:** O-02, O-03, O-06
 
-Buyer mengoptimalkan visibility, adopsi, dan efisiensi tim. Daily user mengoptimalkan kecepatan eksekusi dan pencegahan error.
+The buyer optimizes for visibility, adoption, and team efficiency. The daily user optimizes for execution speed and error prevention.
 
 **Implication**
 
-Pesan produk dan prioritas capability harus melayani keduanya: reliability untuk daily user, clarity untuk buyer. Mengabaikan salah satu menurunkan peluang adopsi.
+Product messaging and capability priorities must serve both: reliability for the daily user, clarity for the buyer. Neglecting either lowers the chance of adoption.
 
 ---
 
@@ -97,11 +97,11 @@ Pesan produk dan prioritas capability harus melayani keduanya: reliability untuk
 
 **Based on:** O-03, O-09
 
-Pada kategori yang sudah kompetitif, kompleksitas adalah churn risk. Startup dan Marketing Team lean akan menolak tool yang terasa “berat” meskipun fiturnya lengkap.
+In an already competitive category, complexity is a churn risk. Startups and lean Marketing Teams will reject a tool that feels "heavy" even if its features are complete.
 
 **Implication**
 
-Keputusan scope MVP harus terus memakai filter simplicity. Could-have yang menambah cognitive load sebaiknya ditunda.
+MVP scope decisions must keep using the simplicity filter. Could-haves that add cognitive load should be deferred.
 
 ---
 
@@ -109,11 +109,11 @@ Keputusan scope MVP harus terus memakai filter simplicity. Could-have yang menam
 
 **Based on:** O-04, journey stages 3–5
 
-Kepercayaan bahwa konten akan terbit ke akun yang benar pada waktu yang benar lebih penting daripada kelengkapan fitur sekunder di awal.
+Trust that content will be published to the right account at the right time matters more than the completeness of secondary features at the start.
 
 **Implication**
 
-Quality bar Publishing (draft, schedule, queue, calendar, history, account clarity) adalah fondasi Product-Market Fit.
+The Publishing quality bar (draft, schedule, queue, calendar, history, account clarity) is the foundation of Product-Market Fit.
 
 ---
 
@@ -121,11 +121,11 @@ Quality bar Publishing (draft, schedule, queue, calendar, history, account clari
 
 **Based on:** O-05, O-06
 
-Setelah publishing berjalan, pengguna membutuhkan cara menangani interaksi prioritas dan melihat ringkasan performa. Tanpa keduanya, produk mudah kembali dianggap “sekadar scheduler”.
+Once publishing is running, users need a way to handle priority interactions and see a performance summary. Without both, the product is easily seen again as "just a scheduler".
 
 **Implication**
 
-Urutan value: Publishing reliability → triage komentar → Analytics snapshot. Engagement MVP dibatasi pada Comments Inbox + reply dengan periodic pull 30 menit dan manual refresh; Direct Message, mention, serta webhook engagement tidak termasuk MVP (ADR-040).
+Order of value: Publishing reliability → comment triage → Analytics snapshot. MVP Engagement is limited to Comments Inbox + reply with a 30-minute periodic pull and manual refresh; Direct Messages, mentions, and engagement webhooks are not part of the MVP (ADR-040).
 
 ---
 
@@ -133,11 +133,11 @@ Urutan value: Publishing reliability → triage komentar → Analytics snapshot.
 
 **Based on:** O-07
 
-AI dianggap berguna ketika mempercepat caption generation/improvement pada saat pengguna sudah berada di konteks draft.
+AI is considered useful when it speeds up caption generation/improvement at the moment the user is already in the draft context.
 
 **Implication**
 
-AI Assistant MVP sebaiknya tetap dekat dengan Publishing Draft. Hindari menempatkan AI sebagai modul yang terpisah dari pekerjaan utama.
+The MVP AI Assistant should stay close to the Publishing Draft. Avoid placing AI as a module separate from the main job.
 
 ---
 
@@ -145,11 +145,11 @@ AI Assistant MVP sebaiknya tetap dekat dengan Publishing Draft. Hindari menempat
 
 **Based on:** O-08, O-09
 
-Startup dan Agency tidak membutuhkan “produk berbeda” pada fase ini. Mereka membutuhkan jobs yang sama dengan tekanan konteks berbeda: speed untuk startup, multi-account safety untuk agency.
+Startups and Agencies do not need a "different product" in this phase. They need the same jobs under different context pressure: speed for startups, multi-account safety for agencies.
 
 **Implication**
 
-Jangan over-segment MVP. Bangun core untuk Marketing Team, pastikan usable pada secondary contexts.
+Do not over-segment the MVP. Build the core for the Marketing Team, make sure it is usable in secondary contexts.
 
 ---
 
@@ -157,45 +157,45 @@ Jangan over-segment MVP. Bangun core untuk Marketing Team, pastikan usable pada 
 
 **Based on:** O-01, O-02, pain PP-02/PP-03, feature priority Won't Have
 
-Tim membutuhkan kejelasan status dan handoff dasar. Namun approval workflow berlapis lebih dekat ke kebutuhan enterprise/agency advanced.
+Teams need clear status and basic handoff. However, a layered approval workflow is closer to enterprise/advanced-agency needs.
 
 **Implication**
 
-Dukung visibility status dan handoff ringan pada MVP. Advanced approval tetap di luar scope sesuai Product Baseline.
+Support status visibility and lightweight handoff in the MVP. Advanced approval stays out of scope per the Product Baseline.
 
 ---
 
 # Assumption Review
 
-| ID | Assumption | Result | Evidence |
-| -- | ---------- | ------ | -------- |
-| A-01 | Marketing Team adalah primary user | **Supported** | I-01, I-07, O-02, O-10 |
-| A-02 | Buyer dan daily user sering berbeda | **Supported** | I-02, journey swimlane |
-| A-03 | Fragmented workflow adalah masalah utama | **Supported** | O-01, current-state journey |
-| A-04 | Kolaborasi tim adalah diferensiator penting | **Supported (scoped)** | I-08 — penting sebagai visibility/handoff, bukan approval enterprise |
-| A-05 | Publishing adalah pekerjaan inti | **Supported** | I-04, J-01–J-03 |
-| A-06 | Analytics dan Engagement memperkuat retensi | **Supported** | I-05 |
-| A-07 | AI berguna jika terintegrasi ke workflow | **Supported** | I-06 |
-| A-08 | Individual creator bukan fokus MVP | **Supported** | O-10 |
-| A-09 | Startup/Agency mirip dengan nuansa berbeda | **Supported** | I-07 |
-| A-10 | Pengguna mau konsolidasi jika sederhana | **Supported (conditional)** | I-03 — bersyarat pada simplicity dan time-to-value |
+| ID   | Assumption                                        | Result                      | Evidence                                                        |
+| ---- | ------------------------------------------------- | --------------------------- | --------------------------------------------------------------- |
+| A-01 | Marketing Team is the primary user                | **Supported**               | I-01, I-07, O-02, O-10                                          |
+| A-02 | Buyer and daily user are often different          | **Supported**               | I-02, journey swimlane                                          |
+| A-03 | Fragmented workflow is the main problem           | **Supported**               | O-01, current-state journey                                     |
+| A-04 | Team collaboration is an important differentiator | **Supported (scoped)**      | I-08 — important as visibility/handoff, not enterprise approval |
+| A-05 | Publishing is the core job                        | **Supported**               | I-04, J-01–J-03                                                 |
+| A-06 | Analytics and Engagement strengthen retention     | **Supported**               | I-05                                                            |
+| A-07 | AI is useful if integrated into the workflow      | **Supported**               | I-06                                                            |
+| A-08 | Individual creator is not an MVP focus            | **Supported**               | O-10                                                            |
+| A-09 | Startup/Agency are similar with different nuances | **Supported**               | I-07                                                            |
+| A-10 | Users will consolidate if it is simple            | **Supported (conditional)** | I-03 — conditional on simplicity and time-to-value              |
 
-Tidak ada asumsi baseline utama yang **Contradicted** pada fase desktop discovery ini.
+No major baseline assumption was **Contradicted** in this desktop discovery phase.
 
 ---
 
 # Product Implications
 
-Implikasi berikut **mendukung** Business Baseline v1.0 dan Product Baseline v1.0. Tidak memerlukan perubahan ADR saat ini.
+The following implications **support** Business Baseline v1.0 and Product Baseline v1.0. No ADR change is needed at this time.
 
-1. Pertahankan Marketing Team sebagai primary; Startup dan Agency sebagai secondary.
-2. Pertahankan pemisahan buyer vs daily user dalam keputusan produk dan messaging.
-3. Pertahankan Publishing sebagai fondasi MVP.
-4. Pertahankan Engagement dan Analytics sebagai bagian siklus value, bukan ornament.
-5. Pertahankan AI Assistant sebagai bantuan in-workflow pada caption/draft.
-6. Pertahankan Start Page sebagai capability pendukung, bukan pusat journey mingguan.
-7. Pertahankan advanced approval, social listening, white-label, dan enterprise complexity di luar MVP.
-8. Jadikan simplicity dan account/publish trust sebagai non-negotiable quality bar.
+1. Keep Marketing Team as primary; Startup and Agency as secondary.
+2. Keep the buyer vs daily user separation in product decisions and messaging.
+3. Keep Publishing as the MVP foundation.
+4. Keep Engagement and Analytics as part of the value cycle, not ornaments.
+5. Keep the AI Assistant as in-workflow help on captions/drafts.
+6. Keep Start Page as a supporting capability, not the center of the weekly journey.
+7. Keep advanced approval, social listening, white-label, and enterprise complexity outside the MVP.
+8. Make simplicity and account/publish trust a non-negotiable quality bar.
 
 ---
 
@@ -203,87 +203,87 @@ Implikasi berikut **mendukung** Business Baseline v1.0 dan Product Baseline v1.0
 
 ## For UX Discovery
 
-* Rancang pengalaman di sekitar siklus mingguan daily user, dengan oversight mode untuk buyer.
-* Prioritaskan kejelasan status konten dan account context.
-* Hindari pola “feature cafeteria” yang menaikkan cognitive load.
-* Tempatkan bantuan AI pada momen draft, bukan sebagai tujuan navigasi utama.
+- Design the experience around the daily user's weekly cycle, with an oversight mode for the buyer.
+- Prioritize clarity of content status and account context.
+- Avoid the "feature cafeteria" pattern that raises cognitive load.
+- Place AI help at the draft moment, not as a main navigation destination.
 
 ## For Architecture Discovery
 
-* Domain Publishing, Workspace, Engagement, Analytics, dan AI Assistant tetap relevan sebagai bounded contexts produk.
-* Reliability publish dan integrasi akun akan menjadi critical path teknis.
-* Desain harus mendukung multi-account clarity sejak awal.
+- The Publishing, Workspace, Engagement, Analytics, and AI Assistant domains remain relevant as product bounded contexts.
+- Publish reliability and account integration will be the technical critical path.
+- The design must support multi-account clarity from the start.
 
-Catatan: detail arsitektur tidak dibahas di sini.
+Note: architecture details are not discussed here.
 
 ---
 
 # Open Questions
 
-Pertanyaan berikut belum ditutup oleh desktop discovery dan dapat dibawa ke fase berikutnya (tanpa memblokir baseline saat ini):
+The following questions were not closed by desktop discovery and can be carried into the next phase (without blocking the current baseline):
 
-1. Seberapa jauh status handoff perlu divisualisasikan sebelum terasa seperti approval workflow?
-2. Setelah MVP komentar/reply tervalidasi, apakah perluasan inbox ke Direct Message atau mention memberi nilai cukup untuk fase berikutnya?
-3. Snapshot analytics mingguan mana yang paling sering dipakai buyer pada praktik nyata?
-4. Pada agency lean, apakah pemisahan konteks brand cukup melalui account grouping sederhana?
+1. How far does the handoff status need to be visualized before it starts to feel like an approval workflow?
+2. Once the MVP comments/reply is validated, does expanding the inbox to Direct Messages or mentions give enough value for the next phase?
+3. Which weekly analytics snapshot does the buyer use most often in real practice?
+4. In a lean agency, is separating brand context through simple account grouping enough?
 
-Open questions ini **tidak** mengubah MVP sekarang; digunakan sebagai input riset/validasi berikutnya.
+These open questions do **not** change the current MVP; they are used as input for the next research/validation.
 
 ---
 
 # Decision Gate
 
-| Candidate Change | Needed now? | Action |
-| ---------------- | ----------- | ------ |
-| Ubah primary target market | No | Keep ADR-006 |
-| Ubah MVP domains | No | Keep Product Baseline v1.0 |
-| Naikkan approval workflow ke MVP | No | Remain Won't Have |
-| Turunkan AI dari MVP | No | Keep as in-workflow Must Have |
-| Perluas ke individual creator | No | Remain out of MVP focus |
+| Candidate Change                 | Needed now? | Action                        |
+| -------------------------------- | ----------- | ----------------------------- |
+| Change the primary target market | No          | Keep ADR-006                  |
+| Change the MVP domains           | No          | Keep Product Baseline v1.0    |
+| Raise approval workflow to MVP   | No          | Remain Won't Have             |
+| Drop AI from the MVP             | No          | Keep as in-workflow Must Have |
+| Expand to individual creator     | No          | Remain out of MVP focus       |
 
-**Conclusion:** User Discovery mendukung arah baseline saat ini. Tidak ada Decision ADR baru yang wajib dibuat pada titik ini.
+**Conclusion:** User Discovery supports the current baseline direction. No new Decision ADR must be created at this point.
 
 ---
 
 # Expected Output
 
-Setelah dokumen ini selesai, project harus memiliki:
+After this document is complete, the project must have:
 
-* Insight utama yang terdokumentasi.
-* Status asumsi yang jelas (supported / conditional / contradicted).
-* Implikasi produk untuk fase berikutnya.
-* Keputusan apakah baseline perlu diubah atau tidak.
+- The key insights documented.
+- A clear assumption status (supported / conditional / contradicted).
+- Product implications for the next phase.
+- A decision on whether the baseline needs to change or not.
 
 ---
 
 # Exit Criteria
 
-Insights dianggap selesai apabila:
+Insights are considered complete when:
 
-* Observation utama telah dikonsolidasikan.
-* Insight actionable telah dirumuskan.
-* Assumption inventory telah ditinjau.
-* Implikasi terhadap Product/UX/Architecture telah dicatat pada tingkat keputusan.
-* Tidak ada perubahan baseline yang tertunda tanpa ADR.
+- The key observations have been consolidated.
+- Actionable insights have been formulated.
+- The assumption inventory has been reviewed.
+- Implications for Product/UX/Architecture have been recorded at the decision level.
+- No baseline change is pending without an ADR.
 
 ---
 
 # Related Documents
 
-* `README.md`
-* `discovery-plan.md`
-* `user-segments.md`
-* `user-personas.md`
-* `user-goals.md`
-* `pain-points.md`
-* `jobs-to-be-done.md`
-* `user-scenarios.md`
-* `user-journey.md`
-* `../01-business/problem-statement.md`
-* `../01-business/target-market.md`
-* `../01-business/competitor-analysis.md`
-* `../02-product/mvp-definition.md`
-* `../02-product/feature-priority.md`
-* `../../project-os/PROJECT_OVERVIEW.md`
-* `../../project-os/PROJECT_STATE.md`
-* `../../project-os/DECISIONS.md`
+- `README.md`
+- `discovery-plan.md`
+- `user-segments.md`
+- `user-personas.md`
+- `user-goals.md`
+- `pain-points.md`
+- `jobs-to-be-done.md`
+- `user-scenarios.md`
+- `user-journey.md`
+- `../01-business/problem-statement.md`
+- `../01-business/target-market.md`
+- `../01-business/competitor-analysis.md`
+- `../02-product/mvp-definition.md`
+- `../02-product/feature-priority.md`
+- `../../project-os/PROJECT_OVERVIEW.md`
+- `../../project-os/PROJECT_STATE.md`
+- `../../project-os/DECISIONS.md`

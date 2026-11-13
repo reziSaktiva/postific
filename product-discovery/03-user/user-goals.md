@@ -1,25 +1,25 @@
 # User Goals
 
-Dokumen ini mendefinisikan tujuan, motivasi, dan hasil yang ingin dicapai pengguna produk **Postific**.
+This document defines the goals, motivations, and outcomes that **Postific** users want to achieve.
 
-Goals menjelaskan *apa yang ingin dicapai*, bukan *bagaimana produk menyelesaikannya*.
+Goals describe _what users want to achieve_, not _how the product gets it done_.
 
 ---
 
 # Overview
 
-User Goals disusun dari segmen dan persona prioritas, lalu dipetakan ke outcome bisnis dan outcome operasional.
+User Goals are drafted from the priority segments and personas, then mapped to business outcomes and operational outcomes.
 
-Pemahaman goals diperlukan agar MVP tidak hanya menambahkan fitur, tetapi menyelesaikan hasil kerja yang bermakna bagi buyer dan daily user.
+Understanding goals is needed so the MVP does not just add features, but delivers work outcomes that are meaningful to the buyer and the daily user.
 
 ---
 
 # Purpose
 
-* Menjelaskan tujuan pengguna secara terstruktur.
-* Memisahkan goals buyer dan daily user.
-* Menghubungkan motivasi pengguna dengan Problem Statement dan MVP domains.
-* Menjadi acuan untuk JTBD, scenarios, dan evaluasi insight.
+- Describe user goals in a structured way.
+- Separate the goals of the buyer and the daily user.
+- Connect user motivation with the Problem Statement and the MVP domains.
+- Serve as a reference for JTBD, scenarios, and insight evaluation.
 
 ---
 
@@ -27,70 +27,70 @@ Pemahaman goals diperlukan agar MVP tidak hanya menambahkan fitur, tetapi menyel
 
 ## In Scope
 
-* Goals per tipe pengguna (buyer vs daily user).
-* Goals per persona prioritas.
-* Motivasi di balik goals.
-* Desired outcomes yang dapat diamati.
-* Mapping goals ke domain produk (tingkat kebutuhan, bukan desain solusi).
+- Goals per user type (buyer vs daily user).
+- Goals per priority persona.
+- The motivation behind the goals.
+- Observable desired outcomes.
+- Mapping goals to product domains (need level, not solution design).
 
 ## Out of Scope
 
-* Pain points detail (lihat `pain-points.md`).
-* JTBD formal (lihat `jobs-to-be-done.md`).
-* Current journey (lihat `user-journey.md`).
-* Solusi UX/UI atau arsitektur.
+- Pain points in detail (see `pain-points.md`).
+- Formal JTBD (see `jobs-to-be-done.md`).
+- Current journey (see `user-journey.md`).
+- UX/UI or architecture solutions.
 
 ---
 
 # Goal Levels
 
-Goals dikelompokkan ke dalam tiga level:
+Goals are grouped into three levels:
 
-1. **Business Goals** — hasil yang diinginkan organisasi/buyer.
-2. **Operational Goals** — hasil kerja harian/mingguan daily user.
-3. **Enabling Goals** — kondisi yang membuat operational goals lebih mudah tercapai.
+1. **Business Goals** — outcomes the organization/buyer wants.
+2. **Operational Goals** — the daily/weekly work outcomes of the daily user.
+3. **Enabling Goals** — conditions that make operational goals easier to achieve.
 
 ---
 
 # Business Goals (Buyer)
 
-Buyer (Maya, Dimas, Lara) umumnya mengejar:
+The buyer (Maya, Dimas, Lara) generally pursues:
 
-| Goal ID | Goal | Motivation | Desired Outcome |
-| ------- | ---- | ---------- | --------------- |
-| BG-01 | Meningkatkan efisiensi operasional tim | Biaya waktu terlalu tinggi untuk pekerjaan administratif | Lebih banyak waktu untuk strategi dan kualitas konten |
-| BG-02 | Menstandarkan workflow media sosial | Proses tidak konsisten antar anggota | Cadence dan kualitas lebih dapat diprediksi |
-| BG-03 | Meningkatkan visibilitas aktivitas | Sulit tahu status tanpa bertanya | Review progress tanpa meeting berlebih |
-| BG-04 | Mengambil keputusan berbasis data | Data tersebar dan lambat dikompilasi | Keputusan mingguan lebih cepat dan cukup akurat |
-| BG-05 | Memastikan adopsi tool oleh tim | Tool yang tidak dipakai = biaya sia-sia | Daily user menyelesaikan pekerjaan inti di satu tempat |
+| Goal ID | Goal                                      | Motivation                                       | Desired Outcome                                   |
+| ------- | ----------------------------------------- | ------------------------------------------------ | ------------------------------------------------- |
+| BG-01   | Improve the team's operational efficiency | The time cost of administrative work is too high | More time for strategy and content quality        |
+| BG-02   | Standardize the social media workflow     | The process is inconsistent between members      | More predictable cadence and quality              |
+| BG-03   | Improve activity visibility               | It is hard to know the status without asking     | Progress review without excessive meetings        |
+| BG-04   | Make data-driven decisions                | Data is scattered and slow to compile            | Faster and sufficiently accurate weekly decisions |
+| BG-05   | Ensure the team adopts the tool           | A tool that is not used = wasted cost            | Daily users finish the core work in one place     |
 
 ---
 
 # Operational Goals (Daily User)
 
-Daily user (Raka, Sinta, serta Dimas pada mode eksekusi) mengejar:
+The daily user (Raka, Sinta, and Dimas in execution mode) pursues:
 
-| Goal ID | Goal | Motivation | Desired Outcome |
-| ------- | ---- | ---------- | --------------- |
-| OG-01 | Menyelesaikan publishing tepat waktu | Konsistensi channel adalah KPI dasar | Konten terjadwal dan terbit sesuai rencana |
-| OG-02 | Mengurangi context switching | Perpindahan tool memperlambat dan menimbulkan error | Satu alur kerja untuk draft–schedule–publish |
-| OG-03 | Menjaga antrean konten tetap sehat | Kekosongan jadwal berisiko bagi brand | Calendar/queue terlihat jelas dan terisi |
-| OG-04 | Menanggapi komentar penting dengan cepat | Engagement memengaruhi persepsi brand | Komentar prioritas dapat ditemukan dan dibalas melalui Comments Inbox |
-| OG-05 | Mempercepat pembuatan draft berkualitas | Produksi caption memakan waktu | Draft siap-jadwal lebih cepat dengan sedikit revisi |
-| OG-06 | Menghindari kesalahan operasional | Salah akun/salah jadwal berbiaya tinggi | Publish dengan kontrol dan kejelasan akun |
+| Goal ID | Goal                                  | Motivation                                        | Desired Outcome                                                          |
+| ------- | ------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------ |
+| OG-01   | Complete publishing on time           | Channel consistency is a baseline KPI             | Content is scheduled and published as planned                            |
+| OG-02   | Reduce context switching              | Switching tools slows work down and causes errors | One workflow for draft–schedule–publish                                  |
+| OG-03   | Keep the content queue healthy        | Schedule gaps are a risk to the brand             | Calendar/queue is clearly visible and filled                             |
+| OG-04   | Respond to important comments quickly | Engagement affects brand perception               | Priority comments can be found and replied to through the Comments Inbox |
+| OG-05   | Speed up creating quality drafts      | Caption production takes time                     | Schedule-ready drafts sooner with fewer revisions                        |
+| OG-06   | Avoid operational mistakes            | Wrong account/wrong schedule is costly            | Publish with control and account clarity                                 |
 
 ---
 
 # Enabling Goals
 
-Goals pendukung yang sering muncul lintas peran:
+Supporting goals that often appear across roles:
 
-| Goal ID | Goal | Why It Matters |
-| ------- | ---- | -------------- |
-| EG-01 | Onboarding cepat untuk anggota baru | Adopsi gagal jika setup terasa berat |
-| EG-02 | Kejelasan ownership konten | Mengurangi miskomunikasi dan duplikasi kerja |
-| EG-03 | Akses aset dan konteks brief yang cukup | Draft berkualitas membutuhkan konteks |
-| EG-04 | Ringkasan performa yang mudah dibaca | Analytics hanya berguna jika actionable |
+| Goal ID | Goal                                          | Why It Matters                               |
+| ------- | --------------------------------------------- | -------------------------------------------- |
+| EG-01   | Fast onboarding for new members               | Adoption fails if setup feels heavy          |
+| EG-02   | Clear content ownership                       | Reduces miscommunication and duplicated work |
+| EG-03   | Sufficient access to assets and brief context | Quality drafts need context                  |
+| EG-04   | Easy-to-read performance summary              | Analytics is only useful if actionable       |
 
 ---
 
@@ -98,122 +98,122 @@ Goals pendukung yang sering muncul lintas peran:
 
 ## Maya — Marketing Manager
 
-* Primary: BG-01, BG-03, BG-04, BG-05
-* Secondary: OG-01 (sebagai oversight)
+- Primary: BG-01, BG-03, BG-04, BG-05
+- Secondary: OG-01 (as oversight)
 
 ## Raka — Social Media Manager
 
-* Primary: OG-01, OG-02, OG-03, OG-04, OG-06
-* Secondary: EG-02, EG-04
+- Primary: OG-01, OG-02, OG-03, OG-04, OG-06
+- Secondary: EG-02, EG-04
 
 ## Sinta — Content Creator / Copywriter
 
-* Primary: OG-05, EG-03
-* Secondary: OG-02
+- Primary: OG-05, EG-03
+- Secondary: OG-02
 
 ## Dimas — Startup Growth Lead
 
-* Primary: BG-01, OG-01, OG-05, EG-01
-* Secondary: BG-04
+- Primary: BG-01, OG-01, OG-05, EG-01
+- Secondary: BG-04
 
 ## Lara — Agency Social Lead
 
-* Primary: BG-02, BG-03, OG-01, OG-06
-* Secondary: BG-04, EG-02
+- Primary: BG-02, BG-03, OG-01, OG-06
+- Secondary: BG-04, EG-02
 
 ---
 
 # Goals to Product Domain Mapping
 
-Mapping ini menyatakan *kebutuhan*, bukan spesifikasi fitur.
+This mapping states _needs_, not feature specifications.
 
-| Goal | Domain paling relevan |
-| ---- | --------------------- |
-| BG-01, BG-02, BG-05 | Workspace, Publishing |
-| BG-03 | Workspace, Publishing Calendar, Analytics |
-| BG-04, EG-04 | Analytics |
-| OG-01, OG-03, OG-06 | Publishing |
-| OG-02 | Publishing + Engagement (konsolidasi workflow) |
-| OG-04 | Engagement |
-| OG-05 | AI Assistant, Publishing Draft |
-| EG-01 | Workspace, Authentication/Onboarding |
-| EG-02 | Workspace, Publishing status |
-| EG-03 | Publishing Draft, Media Library (Should Have) |
+| Goal                | Most relevant domain                             |
+| ------------------- | ------------------------------------------------ |
+| BG-01, BG-02, BG-05 | Workspace, Publishing                            |
+| BG-03               | Workspace, Publishing Calendar, Analytics        |
+| BG-04, EG-04        | Analytics                                        |
+| OG-01, OG-03, OG-06 | Publishing                                       |
+| OG-02               | Publishing + Engagement (workflow consolidation) |
+| OG-04               | Engagement                                       |
+| OG-05               | AI Assistant, Publishing Draft                   |
+| EG-01               | Workspace, Authentication/Onboarding             |
+| EG-02               | Workspace, Publishing status                     |
+| EG-03               | Publishing Draft, Media Library (Should Have)    |
 
 ---
 
 # Motivation Patterns
 
-Dari desktop research dan pola kompetitor, motivasi pengguna cenderung mengelompok pada:
+From desktop research and competitor patterns, user motivations tend to cluster around:
 
-1. **Save time** — mengurangi pekerjaan administratif.
-2. **Reduce risk** — mencegah miss schedule dan salah publish.
-3. **Increase clarity** — status kerja dan performa lebih terlihat.
-4. **Improve output quality** — konten lebih konsisten dan lebih cepat diiterasi.
+1. **Save time** — reduce administrative work.
+2. **Reduce risk** — prevent missed schedules and wrong publishes.
+3. **Increase clarity** — work status and performance are more visible.
+4. **Improve output quality** — content is more consistent and faster to iterate.
 
-Motivasi “punya banyak fitur” jarang menjadi goal sejati. Fitur hanyalah sarana.
+The motivation of "having many features" is rarely a true goal. Features are only a means.
 
 ---
 
 # Non-Goals (User Perspective)
 
-Pada fase MVP, pengguna prioritas **tidak** menjadikan hal berikut sebagai goal utama:
+In the MVP phase, priority users do **not** treat the following as primary goals:
 
-* Membangun social listening enterprise.
-* Mengotomatisasi seluruh marketing stack.
-* Mengelola CRM atau email campaign.
-* Menjalankan white-label client portal.
+- Building enterprise social listening.
+- Automating the whole marketing stack.
+- Managing CRM or email campaigns.
+- Running a white-label client portal.
 
-Non-goals ini menjaga fokus discovery tetap pada Social Media Management.
+These non-goals keep discovery focused on Social Media Management.
 
 ---
 
 # Assumptions Evaluated in This Document
 
-| ID | Assumption | Observation | Status |
-| -- | ---------- | ----------- | ------ |
-| A-03 | Fragmented workflow adalah masalah inti | Goals OG-02 dan BG-01 muncul kuat lintas persona | Supported |
-| A-04 | Kolaborasi penting | BG-02, BG-03, EG-02 muncul pada Marketing Team dan Agency | Supported |
-| A-05 | Publishing adalah inti | OG-01 dan OG-03 adalah goals harian paling berulang | Supported |
-| A-06 | Analytics/Engagement memperkuat retensi | BG-04 dan OG-04 penting, tetapi setelah publishing stabil | Supported (sequenced) |
+| ID   | Assumption                                | Observation                                                 | Status                |
+| ---- | ----------------------------------------- | ----------------------------------------------------------- | --------------------- |
+| A-03 | Fragmented workflow is the core problem   | Goals OG-02 and BG-01 appear strongly across personas       | Supported             |
+| A-04 | Collaboration matters                     | BG-02, BG-03, EG-02 appear in the Marketing Team and Agency | Supported             |
+| A-05 | Publishing is the core                    | OG-01 and OG-03 are the most recurring daily goals          | Supported             |
+| A-06 | Analytics/Engagement strengthen retention | BG-04 and OG-04 matter, but after publishing is stable      | Supported (sequenced) |
 
 ---
 
 # Expected Output
 
-Setelah dokumen ini selesai, project harus memiliki:
+After this document is complete, the project must have:
 
-* Daftar goals yang terstruktur untuk buyer dan daily user.
-* Desired outcomes yang dapat diamati.
-* Mapping goals ke domain produk pada tingkat kebutuhan.
-* Dasar yang jelas untuk menyusun JTBD dan scenarios.
+- A structured list of goals for the buyer and the daily user.
+- Observable desired outcomes.
+- A mapping of goals to product domains at the need level.
+- A clear basis for drafting JTBD and scenarios.
 
 ---
 
 # Exit Criteria
 
-User Goals dianggap selesai apabila:
+User Goals is considered complete when:
 
-* Business, operational, dan enabling goals telah terdokumentasi.
-* Goals buyer dan daily user telah dipisahkan.
-* Goals persona prioritas telah dipetakan.
-* Mapping ke domain produk tersedia tanpa masuk ke solusi UX.
-* Pain points dan JTBD dapat disusun tanpa tumpang tindih tanggung jawab.
+- Business, operational, and enabling goals have been documented.
+- The goals of the buyer and the daily user have been separated.
+- The goals of the priority personas have been mapped.
+- A mapping to product domains is available without entering UX solutions.
+- Pain points and JTBD can be drafted without overlapping responsibilities.
 
 ---
 
 # Related Documents
 
-* `README.md`
-* `discovery-plan.md`
-* `user-segments.md`
-* `user-personas.md`
-* `pain-points.md`
-* `jobs-to-be-done.md`
-* `user-scenarios.md`
-* `insights.md`
-* `../01-business/problem-statement.md`
-* `../01-business/target-market.md`
-* `../02-product/product-scope.md`
-* `../02-product/mvp-definition.md`
-* `../../project-os/DECISIONS.md`
+- `README.md`
+- `discovery-plan.md`
+- `user-segments.md`
+- `user-personas.md`
+- `pain-points.md`
+- `jobs-to-be-done.md`
+- `user-scenarios.md`
+- `insights.md`
+- `../01-business/problem-statement.md`
+- `../01-business/target-market.md`
+- `../02-product/product-scope.md`
+- `../02-product/mvp-definition.md`
+- `../../project-os/DECISIONS.md`
