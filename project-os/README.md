@@ -1,48 +1,48 @@
 # Project Manager
 
-Folder ini merupakan **Project Operating System (Project OS)** untuk project **Postific**.
+This folder is the **Project Operating System (Project OS)** for the **Postific** project.
 
-Folder ini didedikasikan untuk mendokumentasikan **cara kerja**: proses kolaborasi antara Developer dan AI Assistant, aturan project, status dan progress, keputusan penting, riwayat perubahan, serta log diskusi dan brainstorming.
+This folder is dedicated to documenting **how work is done**: the collaboration process between the Developer and the AI Assistant, project rules, status and progress, important decisions, change history, and discussion and brainstorming logs.
 
-Dokumentasi tentang **produk** yang dibangun (business, product, user, UX, architecture, engineering) **tidak** berada di folder ini, melainkan di `../product-discovery/`.
+Documentation about the **product** being built (business, product, user, UX, architecture, engineering) is **not** in this folder, but in `../product-discovery/`.
 
 > **Source of Truth:**
 >
-> - `project-os/` — bagaimana project ini dikerjakan (proses, aturan, keputusan, status).
-> - `../product-discovery/` — apa yang dibangun (pengetahuan produk).
+> - `project-os/` — how this project is worked on (process, rules, decisions, status).
+> - `../product-discovery/` — what is built (product knowledge).
 
 ---
 
 # Purpose
 
-Tujuan folder ini adalah untuk:
+The purpose of this folder is to:
 
-- Menjadi pusat dokumentasi proses kerja project.
-- Mencatat seluruh keputusan penting beserta alasannya (ADR).
-- Melacak status, milestone, dan progress project secara real-time.
-- Menjaga riwayat perubahan (changelog) dan log percakapan penting antar sesi.
-- Memudahkan kolaborasi antara Developer, AI Assistant, dan kontributor lain.
-- Menjaga agar dokumentasi dan implementasi selalu sinkron.
+- Be the center of documentation for the project's working process.
+- Record all important decisions along with their reasons (ADR).
+- Track the project's status, milestones, and progress in real time.
+- Keep the change history (changelog) and the log of important conversations across sessions.
+- Make collaboration easier between the Developer, the AI Assistant, and other contributors.
+- Keep documentation and implementation in sync at all times.
 
 ---
 
 # Scope
 
-`project-os/` mencakup:
+`project-os/` covers:
 
-- Aturan dan prinsip kerja project.
-- Ringkasan dan gambaran umum project.
-- Status, milestone, dan progress terkini.
-- Keputusan penting (ADR) beserta alasan dan alternatif yang dipertimbangkan.
-- Riwayat perubahan dokumentasi maupun implementasi.
-- Log diskusi dan bank ide dari sesi kerja bersama AI.
+- Project working rules and principles.
+- Project summary and overview.
+- Current status, milestones, and progress.
+- Important decisions (ADR) along with their reasons and the alternatives considered.
+- Change history of documentation as well as implementation.
+- Discussion logs and the idea bank from working sessions with the AI.
 
-`project-os/` **tidak** mencakup:
+`project-os/` does **not** cover:
 
-- Dokumentasi detail business, product, user, UX, architecture, atau engineering — lihat `../product-discovery/README.md`.
-- Implementasi kode.
+- Detailed documentation of business, product, user, UX, architecture, or engineering — see `../product-discovery/README.md`.
+- Code implementation.
 
-Pengecualian: `ARCHITECTURE_OVERVIEW.md` adalah ringkasan visual high-level untuk orientasi dan blueprint Figma. Source of Truth arsitektur tetap di `../product-discovery/05-architecture/`.
+Exception: `ARCHITECTURE_OVERVIEW.md` is a high-level visual summary for orientation and the Figma blueprint. The architecture Source of Truth stays in `../product-discovery/05-architecture/`.
 
 ---
 
@@ -50,23 +50,23 @@ Pengecualian: `ARCHITECTURE_OVERVIEW.md` adalah ringkasan visual high-level untu
 
 ```text
 social-media-management/
-├── project-os/          → cara kerja, keputusan, status (folder ini)
+├── project-os/          → how we work, decisions, status (this folder)
 │   ├── README.md
 │   ├── PROJECT_OVERVIEW.md
 │   ├── ARCHITECTURE_OVERVIEW.md
 │   ├── PROJECT_RULES.md
-│   ├── PROJECT_STATE.md      → baca section "Snapshot" dulu untuk lookup cepat
-│   ├── AVAILABLE_TICKETS.md    → antrian task yang belum selesai
-│   ├── tickets/              → tiket per rilis, termasuk yang sudah selesai
-│   ├── specs/                → spec untuk kerja multi-sesi
-│   ├── reports/              → laporan spike dan investigasi (mis. T-148)
-│   ├── DECISIONS.md          → indeks ringkas ADR (full text di decisions/)
-│   ├── decisions/            → satu file per ADR (ADR-XXX-slug.md)
+│   ├── PROJECT_STATE.md      → read the "Snapshot" section first for a quick lookup
+│   ├── AVAILABLE_TICKETS.md    → queue of tasks that are not finished
+│   ├── tickets/              → tickets per release, including finished ones
+│   ├── specs/                → specs for multi-session work
+│   ├── reports/              → spike and investigation reports (e.g. T-148)
+│   ├── DECISIONS.md          → compact ADR index (full text in decisions/)
+│   ├── decisions/            → one file per ADR (ADR-XXX-slug.md)
 │   ├── DEVELOPER_WORKFLOW.md
-│   ├── QA_TEST_ACCOUNTS.md   → akun uji QA
+│   ├── QA_TEST_ACCOUNTS.md   → QA test accounts
 │   ├── CONVERSATIONS.md
 │   └── BRAINSTORM.md
-└── product-discovery/        → pengetahuan produk (business s/d engineering)
+└── product-discovery/        → product knowledge (business through engineering)
     ├── README.md
     ├── 01-business/
     ├── 02-product/
@@ -80,35 +80,35 @@ social-media-management/
 
 # Core Documents
 
-| File                       | Description                                                                                                                                               |
-| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `PROJECT_OVERVIEW.md`      | Ringkasan project secara keseluruhan.                                                                                                                     |
-| `ARCHITECTURE_OVERVIEW.md` | High-level architecture untuk blueprint Figma (bukan SoT detail arsitektur).                                                                              |
-| `PROJECT_RULES.md`         | Aturan dan prinsip kerja project.                                                                                                                         |
-| `PROJECT_STATE.md`         | Phase, milestone, overall progress, Known Issues, dan Blockers. Section "Snapshot" di atas untuk lookup cepat tanpa baca penuh. Bukan tempat detail task. |
-| `AVAILABLE_TICKETS.md`     | Antrian task yang belum selesai. Mencari kerja tersedia berhenti di sini (ADR-131).                                                                       |
-| `tickets/`                 | Tiket per rilis, termasuk yang sudah selesai.                                                                                                             |
-| `specs/`                   | Spec untuk kerja yang melewati lebih dari satu sesi. Bentuknya di `specs/README.md`.                                                                      |
-| `DECISIONS.md`             | Indeks ringkas seluruh ADR (tabel + link); full text tiap ADR ada di `decisions/ADR-XXX-slug.md`.                                                         |
-| `DEVELOPER_WORKFLOW.md`    | Alur kerja project & user flow inti sebagai diagram mermaid (visualisasi, bukan SoT).                                                                     |
-| `CONVERSATIONS.md`         | Log percakapan penting antar sesi (diisi otomatis oleh AI).                                                                                               |
-| `BRAINSTORM.md`            | Bank ide dari sesi brainstorming (diisi otomatis oleh AI).                                                                                                |
+| File                       | Description                                                                                                                                                                        |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PROJECT_OVERVIEW.md`      | Overall project summary.                                                                                                                                                           |
+| `ARCHITECTURE_OVERVIEW.md` | High-level architecture for the Figma blueprint (not the detailed architecture SoT).                                                                                               |
+| `PROJECT_RULES.md`         | Project working rules and principles.                                                                                                                                              |
+| `PROJECT_STATE.md`         | Phase, milestone, overall progress, Known Issues, and Blockers. The "Snapshot" section at the top is for a quick lookup without reading it in full. Not the place for task detail. |
+| `AVAILABLE_TICKETS.md`     | Queue of tasks that are not finished. Looking for available work stops here (ADR-131).                                                                                             |
+| `tickets/`                 | Tickets per release, including finished ones.                                                                                                                                      |
+| `specs/`                   | Specs for work that spans more than one session. Their shape is in `specs/README.md`.                                                                                              |
+| `DECISIONS.md`             | Compact index of all ADRs (table + links); the full text of each ADR is in `decisions/ADR-XXX-slug.md`.                                                                            |
+| `DEVELOPER_WORKFLOW.md`    | Project workflow & core user flows as mermaid diagrams (visualization, not SoT).                                                                                                   |
+| `CONVERSATIONS.md`         | Log of important conversations across sessions (filled in automatically by the AI).                                                                                                |
+| `BRAINSTORM.md`            | Idea bank from brainstorming sessions (filled in automatically by the AI).                                                                                                         |
 
 ---
 
-# Relasi dengan Product Discovery
+# Relationship with Product Discovery
 
 ```text
 project-os/                 product-discovery/
 ─────────────────                ──────────────────
-Bagaimana kita bekerja     ←→     Apa yang kita bangun
-Proses, aturan, keputusan         Business, Product, User,
+How we work                ←→     What we build
+Process, rules, decisions         Business, Product, User,
 Status & progress                 UX, Architecture, Engineering
 ```
 
-Setiap perubahan pada `product-discovery/` yang berdampak pada scope, arsitektur, atau arah project harus tercatat sebagai keputusan (ADR) di `DECISIONS.md`, dan progress-nya diperbarui pada `PROJECT_STATE.md`.
+Every change to `product-discovery/` that affects the project's scope, architecture, or direction must be recorded as a decision (ADR) in `DECISIONS.md`, and its progress updated in `PROJECT_STATE.md`.
 
-> Implementasi kode **selalu mengikuti dokumentasi**, bukan sebaliknya.
+> Code implementation **always follows the documentation**, not the other way around.
 
 ---
 
@@ -127,14 +127,14 @@ Setiap perubahan pada `product-discovery/` yang berdampak pada scope, arsitektur
 
 # Current Status
 
-Untuk mengetahui status project terbaru, silakan lihat:
+To find the latest project status, see:
 
 - `PROJECT_STATE.md`
 
-Untuk melihat keputusan yang telah disepakati, lihat:
+To see the decisions that have been agreed, see:
 
 - `DECISIONS.md`
 
-Untuk melihat dokumentasi produk, lihat:
+To see the product documentation, see:
 
 - `../product-discovery/README.md`

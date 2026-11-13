@@ -2,49 +2,49 @@
 
 ## Metadata
 
-| Field        | Value                                           |
-| ------------ | ----------------------------------------------- |
-| Version      | 1.1.0                                           |
-| Status       | Active                                          |
-| Last Updated | 2026-10-26                                      |
-| Audience     | Blueprint visual (Figma) + orientasi arsitektur |
+| Field        | Value                                               |
+| ------------ | --------------------------------------------------- |
+| Version      | 1.1.0                                               |
+| Status       | Active                                              |
+| Last Updated | 2026-10-26                                          |
+| Audience     | Visual blueprint (Figma) + architecture orientation |
 
 ---
 
 # Purpose
 
-Dokumen ini adalah **ringkasan arsitektur tingkat tinggi** untuk produk Postific. Tujuannya:
+This document is a **high-level architecture summary** for the Postific product. Its goals:
 
-- Menjadi **blueprint visual** yang mudah digambar ulang di Figma (multi-frame).
-- Memberi gambaran satu layar tentang **siapa berinteraksi dengan apa** (context) dan **bagaimana sistem disusun di dalam** (layers + domains).
-- Menjadi pintu masuk sebelum membaca detail di `../product-discovery/05-architecture/`.
+- To be a **visual blueprint** that is easy to redraw in Figma (multi-frame).
+- To give a one-screen picture of **who interacts with what** (context) and **how the system is organized inside** (layers + domains).
+- To be the entry point before reading the details in `../product-discovery/05-architecture/`.
 
-**Bukan Source of Truth arsitektur.** Detail domain, database, integrasi, jobs, realtime, dan auth tetap di `product-discovery/05-architecture/` (Baseline v1.0, ADR-025) dan keputusan engineering di `product-discovery/06-engineering/` (Baseline v1.0, ADR-036).
+**It is not the architecture Source of Truth.** Details of domain, database, integration, jobs, realtime, and auth stay in `product-discovery/05-architecture/` (Baseline v1.0, ADR-025) and engineering decisions in `product-discovery/06-engineering/` (Baseline v1.0, ADR-036).
 
 ---
 
-# Cara Menggunakan di Figma
+# How to Use in Figma
 
-Buat **2 frame** terpisah (satu konsep = satu frame):
+Create **2 separate frames** (one concept = one frame):
 
-| Frame | Nama disarankan                              | Isi                                             |
+| Frame | Suggested name                               | Contents                                        |
 | ----- | -------------------------------------------- | ----------------------------------------------- |
-| 1     | `Architecture — System Context & Containers` | Aktor, sistem eksternal, container deployable   |
-| 2     | `Architecture — Internal Layers & Domains`   | Layer stack Modular Monolith + bounded contexts |
+| 1     | `Architecture — System Context & Containers` | Actors, external systems, deployable containers |
+| 2     | `Architecture — Internal Layers & Domains`   | Modular Monolith layer stack + bounded contexts |
 
-**Konvensi visual yang disarankan:**
+**Suggested visual conventions:**
 
-| Elemen                      | Bentuk di Figma                    | Contoh label               |
-| --------------------------- | ---------------------------------- | -------------------------- |
-| Actor (person)              | Lingkaran / ikon user              | Marketing Team, Manager    |
-| Software system (eksternal) | Kotak tebal, border solid          | Outstand API, Google OAuth |
-| Container (punya kita)      | Kotak dengan subtitle technology   | `web` · Next.js / Bun      |
-| Data store                  | Silinder atau kotak dengan icon DB | PostgreSQL, Storage        |
-| Domain module               | Kotak di dalam layer Domain        | BC-03 Publishing           |
-| Flow sync                   | Panah solid                        | Request / Response         |
-| Flow async                  | Panah putus-putus                  | Webhook, Cron, Job         |
+| Element                    | Shape in Figma               | Example label              |
+| -------------------------- | ---------------------------- | -------------------------- |
+| Actor (person)             | Circle / user icon           | Marketing Team, Manager    |
+| Software system (external) | Thick box, solid border      | Outstand API, Google OAuth |
+| Container (ours)           | Box with technology subtitle | `web` · Next.js / Bun      |
+| Data store                 | Cylinder or box with DB icon | PostgreSQL, Storage        |
+| Domain module              | Box inside the Domain layer  | BC-03 Publishing           |
+| Sync flow                  | Solid arrow                  | Request / Response         |
+| Async flow                 | Dashed arrow                 | Webhook, Cron, Job         |
 
-Jangan menaruh status progress (% / checklist) di canvas Figma — status hidup hanya di `PROJECT_STATE.md`.
+Do not put progress status (% / checklist) on the Figma canvas — live status belongs only in `PROJECT_STATE.md`.
 
 ---
 
@@ -52,7 +52,7 @@ Jangan menaruh status progress (% / checklist) di canvas Figma — status hidup 
 
 ## 1.1 System Context (C4 Level 1)
 
-Menjawab: _siapa yang memakai sistem, dan sistem apa saja yang berbatasan dengannya?_
+Answers: _who uses the system, and which systems border it?_
 
 ```text
                     ┌─────────────────────┐
@@ -68,9 +68,9 @@ Menjawab: _siapa yang memakai sistem, dan sistem apa saja yang berbatasan dengan
 │                                                              │
 │                      Postific Platform                       │
 │                                                              │
-│  Platform web untuk draft, schedule, publish, engagement,    │
-│  analytics, akses MCP untuk AI milik pengguna, dan Start Page│
-│  — satu workspace.                                           │
+│  Web platform for draft, schedule, publish, engagement,      │
+│  analytics, MCP access for the user's own AI, and Start Page │
+│  — one workspace.                                            │
 │                                                              │
 └──────────┬────────────────────────┬────────────────┬─────────┘
            │                        │                │
@@ -87,29 +87,29 @@ Menjawab: _siapa yang memakai sistem, dan sistem apa saja yang berbatasan dengan
 ┌──────────────────────────────────────────────────────────────┐
 │  Instagram · Facebook · X/Twitter · LinkedIn · TikTok ·      │
 │  YouTube · Threads · Pinterest                               │
-│  (via Outstand — bukan integrasi langsung dari app kita)     │
+│  (via Outstand — not a direct integration from our app)      │
 └──────────────────────────────────────────────────────────────┘
 ```
 
-### Ringkasan relasi Frame 1.1
+### Summary of Frame 1.1 relations
 
-| Dari           | Ke           | Relasi                                                                                |
-| -------------- | ------------ | ------------------------------------------------------------------------------------- |
-| Marketing Team | Platform     | Mengelola konten & kolaborasi tim di satu dashboard                                   |
-| Platform       | Outstand API | Publish, upload working copy media, sync komentar/analytics, OAuth connected accounts |
-| Outstand API   | Platform     | Webhook `post.published`, `post.error`, `account.token_expired`                       |
-| Platform       | Google OAuth | Login sosial (selain email/password)                                                  |
-| Platform       | Supabase     | Persistensi data, original media, channel notifikasi in-app                           |
+| From           | To           | Relation                                                                                  |
+| -------------- | ------------ | ----------------------------------------------------------------------------------------- |
+| Marketing Team | Platform     | Manages content & team collaboration in one dashboard                                     |
+| Platform       | Outstand API | Publish, upload media working copy, sync comments/analytics, OAuth for connected accounts |
+| Outstand API   | Platform     | Webhooks `post.published`, `post.error`, `account.token_expired`                          |
+| Platform       | Google OAuth | Social login (besides email/password)                                                     |
+| Platform       | Supabase     | Data persistence, original media, in-app notification channel                             |
 
-Engagement MVP hanya mencakup **komentar dan reply** melalui sinkronisasi 30
-menit serta manual refresh. Tidak ada webhook komentar/DM dan Direct Message
-tidak termasuk MVP (ADR-040).
+MVP engagement covers only **comments and replies**, through a 30-minute
+sync plus manual refresh. There is no comment/DM webhook and Direct Message
+is not part of the MVP (ADR-040).
 
 ---
 
 ## 1.2 Container Diagram (C4 Level 2)
 
-Menjawab: _container apa yang kita deploy, dan bagaimana mereka saling bicara?_
+Answers: _which containers do we deploy, and how do they talk to each other?_
 
 ```text
 ┌─ ACTORS ─────────────────────────────────────────────────────┐
@@ -122,10 +122,10 @@ Menjawab: _container apa yang kita deploy, dan bagaimana mereka saling bicara?_
 │  ┌──────────────────────────┐   ┌─────────────────────────┐  │
 │  │  Container: web          │   │  Container: cron        │  │
 │  │  Next.js + Bun           │◄──│  Railway Cron           │  │
-│  │                          │   │  Trigger terjadwal      │  │
+│  │                          │   │  Scheduled trigger      │  │
 │  │  · UI (RSC)              │   │                         │  │
 │  │  · Server Actions        │   │  POST /api/jobs/run     │  │
-│  │  · Route Handlers        │   │  (tidak memegang        │  │
+│  │  · Route Handlers        │   │  (holds no              │  │
 │  │  · Middleware            │   │   business logic)       │  │
 │  │  · Domain modules        │   └─────────────────────────┘  │
 │  │  · OutstandAdapter (ACL) │                                │
@@ -153,29 +153,29 @@ Menjawab: _container apa yang kita deploy, dan bagaimana mereka saling bicara?_
 
 ### Container responsibilities
 
-| Container / System  | Tanggung jawab                                                                         | Technology                          |
-| ------------------- | -------------------------------------------------------------------------------------- | ----------------------------------- |
-| `web`               | UI, API route, domain logic, auth, ACL ke Outstand                                     | Next.js, Bun, Better Auth, Prisma   |
-| `cron`              | Pemicu retry internal, engagement sync 30 menit, analytics sync, dan job internal lain | Railway Cron → `POST /api/jobs/run` |
-| Supabase PostgreSQL | Data bisnis + queue job + RLS multi-tenant (`workspace_id`)                            | Cloud · `ap-southeast-1`            |
-| Supabase Storage    | Original media milik aplikasi                                                          | Supabase Storage                    |
-| Supabase Realtime   | Channel notifikasi in-app                                                              | Supabase Realtime                   |
-| Outstand API        | Integrasi sosial, working copy media, publish, komentar/reply, analytics               | External SaaS                       |
-| Google OAuth        | Identity provider opsional                                                             | External                            |
+| Container / System  | Responsibility                                                                               | Technology                          |
+| ------------------- | -------------------------------------------------------------------------------------------- | ----------------------------------- |
+| `web`               | UI, API routes, domain logic, auth, ACL to Outstand                                          | Next.js, Bun, Better Auth, Prisma   |
+| `cron`              | Trigger for internal retries, 30-minute engagement sync, analytics sync, other internal jobs | Railway Cron → `POST /api/jobs/run` |
+| Supabase PostgreSQL | Business data + job queue + multi-tenant RLS (`workspace_id`)                                | Cloud · `ap-southeast-1`            |
+| Supabase Storage    | The application's original media                                                             | Supabase Storage                    |
+| Supabase Realtime   | In-app notification channel                                                                  | Supabase Realtime                   |
+| Outstand API        | Social integration, media working copy, publish, comments/replies, analytics                 | External SaaS                       |
+| Google OAuth        | Optional identity provider                                                                   | External                            |
 
-Untuk X/Twitter, Project Owner mengonfigurasi kredensial BYOK secara manual di
-dashboard Outstand. Aplikasi tidak menerima atau menyimpan Client ID/Client
-Secret X (ADR-040).
+For X/Twitter, the Project Owner configures the BYOK credentials manually in
+the Outstand dashboard. The application does not receive or store the X Client ID/Client
+Secret (ADR-040).
 
-### Environment topology (opsional di frame yang sama / anotasi)
+### Environment topology (optional in the same frame / annotation)
 
-| Environment | Branch deploy     | Supabase                              |
+| Environment | Deploy branch     | Supabase                              |
 | ----------- | ----------------- | ------------------------------------- |
-| Production  | `main`            | Project terpisah                      |
-| Staging     | `staging`         | Project terpisah                      |
-| Local       | developer machine | Sama dengan project Staging (ADR-081) |
+| Production  | `main`            | Separate project                      |
+| Staging     | `staging`         | Separate project                      |
+| Local       | developer machine | Same as the Staging project (ADR-081) |
 
-Dua service Railway (`web` + `cron`) ada di **production dan staging**.
+Two Railway services (`web` + `cron`) exist in **production and staging**.
 
 ---
 
@@ -183,7 +183,7 @@ Dua service Railway (`web` + `cron`) ada di **production dan staging**.
 
 ## 2.1 Layer Stack (Modular Monolith)
 
-Menjawab: _request masuk lewat mana, dan layer mana yang boleh menyentuh apa?_
+Answers: _through which path does a request enter, and which layer may touch what?_
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐
@@ -191,11 +191,11 @@ Menjawab: _request masuk lewat mana, dan layer mana yang boleh menyentuh apa?_
 │  Next.js App Router                                         │
 │  Server Components · Server Actions · Route Handlers · MW   │
 └────────────────────────────┬────────────────────────────────┘
-                             │ hanya memanggil Application Service
+                             │ only calls the Application Service
                              ▼
 ┌─────────────────────────────────────────────────────────────┐
 │  APPLICATION SERVICE LAYER                                  │
-│  Satu service per Bounded Context                           │
+│  One service per Bounded Context                            │
 │  Orchestration · Authorization (RBAC) · Use-case coord.     │
 └────────────────────────────┬────────────────────────────────┘
                              │
@@ -203,13 +203,13 @@ Menjawab: _request masuk lewat mana, dan layer mana yang boleh menyentuh apa?_
 ┌─────────────────────────────────────────────────────────────┐
 │  DOMAIN LOGIC LAYER                                         │
 │  Entities · Value Objects · Domain Rules                    │
-│  Pure business logic — tanpa dependency infrastructure      │
+│  Pure business logic — no infrastructure dependencies       │
 └────────────────────────────┬────────────────────────────────┘
                              │ via Repository interface
                              ▼
 ┌─────────────────────────────────────────────────────────────┐
 │  REPOSITORY LAYER                                           │
-│  Interface di domain module · implementasi Prisma           │
+│  Interface in the domain module · Prisma implementation     │
 └────────────────────────────┬────────────────────────────────┘
                              │
                              ▼
@@ -221,22 +221,22 @@ Menjawab: _request masuk lewat mana, dan layer mana yang boleh menyentuh apa?_
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Aturan layer (untuk label di Figma)
+### Layer rules (for labels in Figma)
 
-Teks lengkap 5 aturan layer (Entry Points tanpa business logic, Domain Logic
-tanpa impor Prisma/Supabase/Outstand, cross-domain lewat public API, shared
-types hanya di `packages/shared`) ada di **`../AGENTS.md` rules 5-9** — tidak
-disalin ulang di sini. Untuk label diagram Figma, cukup pakai nama layer dari
-diagram Frame 2.1 di atas (Entry Points / Application Service / Domain Logic /
+The full text of the 5 layer rules (Entry Points without business logic, Domain Logic
+without importing Prisma/Supabase/Outstand, cross-domain through the public API, shared
+types only in `packages/shared`) is in **`../AGENTS.md` rules 5-9** — not
+copied here. For Figma diagram labels, just use the layer names from the
+Frame 2.1 diagram above (Entry Points / Application Service / Domain Logic /
 Repository / Infrastructure).
 
 ---
 
 ## 2.2 Domain Modules (Bounded Contexts)
 
-Menjawab: _modul bisnis apa yang hidup di dalam monolith?_
+Answers: _which business modules live inside the monolith?_
 
-Letakkan sebagai grid di dalam area Domain Logic / Application Service (satu kartu per BC).
+Lay them out as a grid inside the Domain Logic / Application Service area (one card per BC).
 
 ```text
 ┌─ CORE DOMAINS (MVP) ────────────────────────────────────────┐
@@ -259,38 +259,38 @@ Letakkan sebagai grid di dalam area Domain Logic / Application Service (satu kar
 ┌─ SUPPORTING DOMAINS ────────────────────────────────────────┐
 │  ┌──────────┐  ┌────────────┐  ┌──────────────────────────┐ │
 │  │ BC-08    │  │ BC-09      │  │ BC-10 Billing            │ │
-│  │ Media    │  │Notification│  │ (dimodelkan; Post-MVP)   │ │
+│  │ Media    │  │Notification│  │ (modeled; Post-MVP)      │ │
 │  └──────────┘  └────────────┘  └──────────────────────────┘ │
 └─────────────────────────────────────────────────────────────┘
 
-┌─ CROSS-CUTTING (bukan BC tersendiri) ───────────────────────┐
+┌─ CROSS-CUTTING (not a BC of its own) ───────────────────────┐
 │  OutstandAdapter (ACL) · Background Jobs · Webhooks · Audit │
 │  packages/shared (types only)                               │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Mapping singkat BC → Application Service
+### Brief mapping BC → Application Service
 
-| BC                 | Service                                             |
-| ------------------ | --------------------------------------------------- |
-| BC-01 Identity     | `IdentityService`                                   |
-| BC-02 Workspace    | `WorkspaceService`                                  |
-| BC-03 Publishing   | `PublishingService`                                 |
-| BC-04 MCP Access   | `McpAccessService`                                  |
-| BC-05 Engagement   | `EngagementService`                                 |
-| BC-06 Analytics    | `AnalyticsService`                                  |
-| BC-07 Start Page   | `StartPageService`                                  |
-| BC-08 Media        | `MediaService`                                      |
-| BC-09 Notification | `NotificationService`                               |
-| BC-10 Billing      | Post-MVP — belum di-bootstrap sebagai domain folder |
+| BC                 | Service                                            |
+| ------------------ | -------------------------------------------------- |
+| BC-01 Identity     | `IdentityService`                                  |
+| BC-02 Workspace    | `WorkspaceService`                                 |
+| BC-03 Publishing   | `PublishingService`                                |
+| BC-04 MCP Access   | `McpAccessService`                                 |
+| BC-05 Engagement   | `EngagementService`                                |
+| BC-06 Analytics    | `AnalyticsService`                                 |
+| BC-07 Start Page   | `StartPageService`                                 |
+| BC-08 Media        | `MediaService`                                     |
+| BC-09 Notification | `NotificationService`                              |
+| BC-10 Billing      | Post-MVP — not yet bootstrapped as a domain folder |
 
 ---
 
-## 2.3 Key Runtime Flows (opsional sebagai anotasi / mini-frame)
+## 2.3 Key Runtime Flows (optional as annotation / mini-frame)
 
-Empat alur paling penting untuk digambar sebagai panah tipis di Frame 2 atau frame kecil terpisah:
+The four most important flows to draw as thin arrows in Frame 2 or a small separate frame:
 
-### A. Publish terjadwal
+### A. Scheduled publish
 
 ```text
 UI → Server Action → PublishingService → DB
@@ -304,44 +304,44 @@ Supabase original media → Outstand Media API upload + confirm
  durable receipt → ACK 2xx → internal job → update PostTarget
 ```
 
-### B. Webhook inbound
+### B. Inbound webhook
 
 ```text
 Outstand → Route Handler /api/webhooks/outstand
-        → verify HMAC atas raw body
-        → simpan receipt idempoten di outstand_webhook_events
+        → verify HMAC over the raw body
+        → store idempotent receipt in outstand_webhook_events
         → ACK 2xx
         → internal job/retry
         → Application Service (Publishing / Workspace)
         → DB (+ Notification)
 ```
 
-Event MVP hanya `post.published`, `post.error`, dan
-`account.token_expired`. Nama event vendor diterjemahkan oleh
-`OutstandAdapter`; tidak ada webhook komentar atau DM.
+The MVP events are only `post.published`, `post.error`, and
+`account.token_expired`. Vendor event names are translated by
+`OutstandAdapter`; there is no comment or DM webhook.
 
-### C. Notifikasi in-app
+### C. In-app notification
 
 ```text
 Domain event / job → NotificationService → insert notifications
                   → Supabase Realtime → Browser subscription (RLS)
 ```
 
-### D. Engagement komentar/reply
+### D. Comment/reply engagement
 
 ```text
-Railway Cron (30 menit) / Manual Refresh
+Railway Cron (30 minutes) / Manual Refresh
   → EngagementService → OutstandAdapter
-  → pull komentar → simpan/update internal
-  → reply user via OutstandAdapter
-  → NotificationService (engagement_new dari hasil sync)
+  → pull comments → store/update internally
+  → user reply via OutstandAdapter
+  → NotificationService (engagement_new from the sync result)
 ```
 
 ---
 
 # Tech Stack Snapshot
 
-Ringkasan untuk legend / sidebar di Figma (selaras `PROJECT_OVERVIEW.md`):
+Summary for the legend / sidebar in Figma (aligned with `PROJECT_OVERVIEW.md`):
 
 | Layer                         | Choice                                          |
 | ----------------------------- | ----------------------------------------------- |
@@ -361,20 +361,20 @@ Ringkasan untuk legend / sidebar di Figma (selaras `PROJECT_OVERVIEW.md`):
 
 # Source of Truth (Detail)
 
-| Topik              | Dokumen                                                               |
-| ------------------ | --------------------------------------------------------------------- |
-| Domain & BC        | `../product-discovery/05-architecture/domain-model.md`                |
-| Database & RLS     | `../product-discovery/05-architecture/database-strategy.md`           |
-| Layer & services   | `../product-discovery/05-architecture/application-layer.md`           |
-| Outstand / webhook | `../product-discovery/05-architecture/integration-layer.md`           |
-| Jobs               | `../product-discovery/05-architecture/background-jobs.md`             |
-| Realtime           | `../product-discovery/05-architecture/realtime-strategy.md`           |
-| Auth architecture  | `../product-discovery/05-architecture/auth-architecture.md`           |
-| Monorepo layout    | `../product-discovery/06-engineering/monorepo-setup.md`               |
-| Deploy topology    | `../product-discovery/06-engineering/deployment-infrastructure.md`    |
-| Keputusan          | `DECISIONS.md` (indeks lengkap, lihat file untuk rentang ADR terkini) |
+| Topic              | Document                                                            |
+| ------------------ | ------------------------------------------------------------------- |
+| Domain & BC        | `../product-discovery/05-architecture/domain-model.md`              |
+| Database & RLS     | `../product-discovery/05-architecture/database-strategy.md`         |
+| Layer & services   | `../product-discovery/05-architecture/application-layer.md`         |
+| Outstand / webhook | `../product-discovery/05-architecture/integration-layer.md`         |
+| Jobs               | `../product-discovery/05-architecture/background-jobs.md`           |
+| Realtime           | `../product-discovery/05-architecture/realtime-strategy.md`         |
+| Auth architecture  | `../product-discovery/05-architecture/auth-architecture.md`         |
+| Monorepo layout    | `../product-discovery/06-engineering/monorepo-setup.md`             |
+| Deploy topology    | `../product-discovery/06-engineering/deployment-infrastructure.md`  |
+| Decisions          | `DECISIONS.md` (full index, see the file for the current ADR range) |
 
-Jika diagram Figma bertentangan dengan dokumen di atas, **yang menang adalah dokumen product-discovery + ADR** — perbarui overview / Figma setelahnya.
+If a Figma diagram conflicts with the documents above, **the product-discovery documents + ADRs win** — update the overview / Figma afterward.
 
 ---
 

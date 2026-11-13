@@ -1,165 +1,166 @@
 # Developer Workflow
 
-Catatan untuk developer (manusia maupun AI agent) yang bekerja di repo ini —
-menjawab "bagaimana kerja di project ini berjalan?" dalam bentuk diagram.
+Notes for developers (human and AI agent alike) working in this repo —
+answering "how does work in this project run?" in the form of diagrams.
 
-**Ini bukan Source of Truth.** Diagram di sini adalah **visualisasi** dari
-proses dan flow yang sudah didefinisikan di dokumen lain. Kalau ada
-perbedaan antara diagram di sini dan dokumen aslinya, **dokumen asli yang
-menang** — update dokumen aslinya dulu, lalu sinkronkan diagram ini.
+**This is not a Source of Truth.** The diagrams here are a **visualization**
+of processes and flows already defined in other documents. If there is a
+difference between the diagrams here and the original documents, **the
+original documents win** — update the original document first, then sync
+these diagrams.
 
-Pintu masuk penuh tetap `../AGENTS.md`. Dokumen ini melengkapi, bukan
-menggantikan.
+The full entry point is still `../AGENTS.md`. This document complements it,
+it does not replace it.
 
 ---
 
-## 1. Alur kerja project — dari kebutuhan sampai kode
+## 1. Project workflow — from need to code
 
-Bagaimana sebuah kebutuhan bergerak dari percakapan sampai menjadi dokumen
-atau kode. Empat lapisnya: docs, spec, tiket, lalu implementasi (ADR-131).
-Kode di `apps/` dan `packages/` hanya dimulai setelah tiketnya ada (ADR-132).
+How a need moves from conversation until it becomes a document or code.
+Its four layers: docs, spec, ticket, then implementation (ADR-131).
+Code in `apps/` and `packages/` starts only after its ticket exists (ADR-132).
 
 ```mermaid
 flowchart TD
-  A[Kebutuhan baru, atau pilih satu ID<br/>dari AVAILABLE_TICKETS.md] --> B{Kebenaran produk berubah?}
+  A[New need, or pick one ID<br/>from AVAILABLE_TICKETS.md] --> B{Does product truth change?}
 
-  B -->|Ya| C[Tulis product-discovery/ dulu]
-  C --> C2{Penunjuk context/ berubah?}
-  C2 -->|Ya| C3[Update context/ctx-*.md<br/>jangan salin paragraf yang sama]
-  C2 -->|Tidak| D
-  C3 --> D[ADR di project-os/decisions/<br/>bila keputusannya material]
+  B -->|Yes| C[Write product-discovery/ first]
+  C --> C2{Does the context/ pointer change?}
+  C2 -->|Yes| C3[Update context/ctx-*.md<br/>do not copy the same paragraph]
+  C2 -->|No| D
+  C3 --> D[ADR in project-os/decisions/<br/>if the decision is material]
   D --> E
 
-  B -->|Tidak| E{Melewati lebih dari satu sesi?}
+  B -->|No| E{Spans more than one session?}
 
-  E -->|Ya| F[Tulis specs/S-NNN.md<br/>perilaku, jahitan tes, di luar spec]
+  E -->|Yes| F[Write specs/S-NNN.md<br/>behavior, test seams, out of scope]
   F --> Q
-  E -->|Tidak, tanpa spec| Q{Mengubah kode<br/>di apps/ atau packages/?}
+  E -->|No, no spec| Q{Changes code<br/>in apps/ or packages/?}
 
-  Q -->|Tidak| L
-  Q -->|Ya| G[Tiket di tickets/vXX-*.md<br/>atau tickets/known-issues.md<br/>sudah ada sebelum baris kode pertama<br/>menunjuk docs atau spec]
+  Q -->|No| L
+  Q -->|Yes| G[Ticket in tickets/vXX-*.md<br/>or tickets/known-issues.md<br/>exists before the first line of code<br/>points to docs or spec]
 
-  G --> R[Baca context/ctx-*.md yang relevan]
-  R --> H{Menyentuh UI?}
+  G --> R[Read the relevant context/ctx-*.md]
+  R --> H{Touches UI?}
 
-  H -->|Tidak| K
-  H -->|Ya| I{Rancangan ada di artifact desain Postific<br/>dan polanya sudah terkunci?}
-  I -->|Belum ada, atau pola masih ambigu| STOP[Berhenti dan tanya King Rezi<br/>jangan menulis kode UI]
-  I -->|Sudah| J[Baca apps/web/.claude/CLAUDE.md<br/>lalu CLI/MCP shadcn]
-  J --> K[Kode domain, job, atau API]
+  H -->|No| K
+  H -->|Yes| I{Design exists in the Postific design artifact<br/>and the pattern is locked?}
+  I -->|Not there yet, or pattern still ambiguous| STOP[Stop and ask King Rezi<br/>do not write UI code]
+  I -->|Yes| J[Read apps/web/.claude/CLAUDE.md<br/>then the shadcn CLI/MCP]
+  J --> K[Domain, job, or API code]
 
-  K --> L[Bila tiket dikerjakan: status ✅<br/>baris keluar dari AVAILABLE_TICKETS<br/>tanpa cerita sesi]
-  L --> M{Fase, milestone, KI,<br/>atau fokus terdekat berubah?}
-  M -->|Ya| P[Update PROJECT_STATE.md]
-  M -->|Tidak| O[Selesai]
+  K --> L[When a ticket is worked: status ✅<br/>row leaves AVAILABLE_TICKETS<br/>no session story]
+  L --> M{Does phase, milestone, KI,<br/>or nearest focus change?}
+  M -->|Yes| P[Update PROJECT_STATE.md]
+  M -->|No| O[Done]
   P --> O
 ```
 
-Perubahan dokumen tidak memakai aturan tiket. Known Issue yang masih terbuka
-menunjuk satu tiket; barisnya di `PROJECT_STATE.md` cukup menyebut ID dan
-tiket itu. Jejak sesi ada di git.
+Document changes do not use the ticket rule. An open Known Issue points to
+one ticket; its row in `PROJECT_STATE.md` only needs to name the ID and that
+ticket. The session trail is in git.
 
-**Rujukan:** `../AGENTS.md` (aturan 7, 10, 13, 14), `specs/README.md`,
-`context/README.md`, ADR-131, ADR-132. ADR-062 tetap berlaku untuk bentuk
-backlog per rilis pada bagian yang tidak diubah kedua ADR itu. Gerbang desain
-UI: ADR-140 (menggantikan ADR-042 dan ADR-056); `../AGENTS.md` aturan 10.
+**References:** `../AGENTS.md` (rules 7, 10, 13, 14), `specs/README.md`,
+`context/README.md`, ADR-131, ADR-132. ADR-062 still applies to the shape of
+the per-release backlog in the parts that neither of those two ADRs changed.
+UI design gate: ADR-140 (supersedes ADR-042 and ADR-056); `../AGENTS.md`
+rule 10.
 
 ---
 
-## 2. Alur pengguna — dari buka aplikasi sampai konten terjadwal
+## 2. User flow — from opening the app to scheduled content
 
-End-to-end: auth → workspace → connect account → publish. Ini gabungan dari
-`auth-architecture.md` (session & workspace resolution), UF-05 (Connect
-Account), dan UF-01 (Create & Schedule Content) di
-`product-discovery/04-ux/user-flows.md` — bukan flow baru.
+End-to-end: auth → workspace → connect account → publish. This is a
+combination of `auth-architecture.md` (session & workspace resolution), UF-05
+(Connect Account), and UF-01 (Create & Schedule Content) in
+`product-discovery/04-ux/user-flows.md` — not a new flow.
 
 ```mermaid
 flowchart TD
-  A[User membuka aplikasi] --> B{Ada session aktif?<br/>cookie better-auth.session_token}
+  A[User opens the app] --> B{Active session?<br/>cookie better-auth.session_token}
 
-  B -->|Tidak| C[Sign up / Sign in<br/>email-password atau Google OAuth]
-  C --> C2[Session cookie dibuat<br/>HTTP-only, 7 hari]
-  B -->|Ya| D{Middleware: workspaceSlug<br/>valid di URL?}
+  B -->|No| C[Sign up / Sign in<br/>email-password or Google OAuth]
+  C --> C2[Session cookie created<br/>HTTP-only, 7 days]
+  B -->|Yes| D{Middleware: workspaceSlug<br/>valid in the URL?}
   C2 --> D
 
-  D -->|Belum punya workspace| E[Onboarding: buat workspace pertama<br/>user otomatis jadi Owner]
-  D -->|Sudah, role di-resolve| F[Masuk workspace aktif<br/>x-workspace-id + x-workspace-role]
+  D -->|No workspace yet| E[Onboarding: create the first workspace<br/>user automatically becomes Owner]
+  D -->|Has one, role resolved| F[Enter the active workspace<br/>x-workspace-id + x-workspace-role]
   E --> F
 
-  F --> G{Ada akun sosial<br/>terhubung? UF-05}
-  G -->|Belum| H[Workspace Settings →<br/>Connected Accounts]
-  G -->|Sudah| M[Publish → Drafts → New Post]
+  F --> G{Social account<br/>connected? UF-05}
+  G -->|Not yet| H[Workspace Settings →<br/>Connected Accounts]
+  G -->|Yes| M[Publish → Drafts → New Post]
 
-  H --> I[+ Connect Account → pilih platform<br/>IG · FB · X · LinkedIn · TikTok<br/>YouTube · Threads · Pinterest]
-  I --> J[OAuth di platform pihak ketiga]
-  J --> K{OAuth sukses?}
+  H --> I[+ Connect Account → choose platform<br/>IG · FB · X · LinkedIn · TikTok<br/>YouTube · Threads · Pinterest]
+  I --> J[OAuth on the third-party platform]
+  J --> K{OAuth succeeded?}
 
-  K -->|Ya| K2[Akun muncul, status Active]
-  K -->|Tidak / batal| H
+  K -->|Yes| K2[Account appears, status Active]
+  K -->|No / cancelled| H
 
   K2 --> M
-  M --> N[Tulis caption<br/>manual; draft dari AI klien lewat MCP masuk ke Drafts]
-  N --> O[Lampirkan media<br/>file lokal atau Media Library]
-  O --> P[Account Selector<br/>pilih satu atau beberapa akun tujuan]
-  P --> P2[Content Format per akun — ADR-039<br/>IG/FB: Post · Reel · Story<br/>Pinterest: Pin · lainnya: Post]
-  P2 --> Q{Siap dijadwalkan?}
+  M --> N[Write caption<br/>manual; drafts from the client AI via MCP land in Drafts]
+  N --> O[Attach media<br/>local file or Media Library]
+  O --> P[Account Selector<br/>choose one or more target accounts]
+  P --> P2[Content Format per account — ADR-039<br/>IG/FB: Post · Reel · Story<br/>Pinterest: Pin · others: Post]
+  P2 --> Q{Ready to schedule?}
 
-  Q -->|Belum| R[Save as Draft]
-  Q -->|Ya| S[Schedule Picker → Confirmation Summary<br/>→ Schedule]
+  Q -->|Not yet| R[Save as Draft]
+  Q -->|Yes| S[Schedule Picker → Confirmation Summary<br/>→ Schedule]
 
-  R --> T[Status: Draft<br/>tampil di Publish → Drafts]
-  S --> U[Status: Scheduled<br/>tampil di Calendar & Queue]
+  R --> T[Status: Draft<br/>shown in Publish → Drafts]
+  S --> U[Status: Scheduled<br/>shown in Calendar & Queue]
 ```
 
-**Rujukan:** `../product-discovery/05-architecture/auth-architecture.md`,
+**References:** `../product-discovery/05-architecture/auth-architecture.md`,
 `../product-discovery/04-ux/user-flows.md` (UF-01, UF-05),
 `../product-discovery/04-ux/key-screen-patterns.md` (KSP-05), ADR-039.
 
-Engagement (UF-04) dan Analytics (UF-06) tidak digambar di sini — keduanya
-adalah siklus terpisah setelah konten published, lihat langsung
-`user-flows.md`.
+Engagement (UF-04) and Analytics (UF-06) are not drawn here — both are
+separate cycles after content is published, see `user-flows.md` directly.
 
 ---
 
-## 3. Siklus status konten (state per role)
+## 3. Content status cycle (state per role)
 
-Enam status kanonikal dan siapa yang boleh memicu tiap transisi — dari
-`product-discovery/02-product/roles-permissions.md`. Sejak ADR-074 (3 role:
-Account Owner/Admin/Creator), semua role memiliki hak yang sama untuk
-transisi status konten — tidak ada lagi role yang dibatasi hanya sampai
-`In Review`.
+Six canonical statuses and who may trigger each transition — from
+`product-discovery/02-product/roles-permissions.md`. Since ADR-074 (3 roles:
+Account Owner/Admin/Creator), all roles have the same rights for content
+status transitions — no role is limited to only reaching `In Review` anymore.
 
 ```mermaid
 flowchart TD
-  N((baru)) --> D[Draft]
-  D -->|siapa saja: Account Owner/Admin/Creator| IR[In Review]
-  IR -->|kembali: Account Owner/Admin/Creator| D
+  N((new)) --> D[Draft]
+  D -->|anyone: Account Owner/Admin/Creator| IR[In Review]
+  IR -->|back: Account Owner/Admin/Creator| D
   IR -->|Account Owner/Admin/Creator| RS[Ready to Schedule]
   RS -->|Account Owner/Admin/Creator| SC[Scheduled]
   D -->|Account Owner/Admin/Creator, skip review| SC
-  SC -->|tarik jadwal: Account Owner/Admin/Creator| D
-  SC -->|otomatis, sistem| PB[Published]
-  SC -->|otomatis, sistem| FL[Failed]
+  SC -->|unschedule: Account Owner/Admin/Creator| D
+  SC -->|automatic, system| PB[Published]
+  SC -->|automatic, system| FL[Failed]
   FL -->|Account Owner/Admin/Creator| D
 ```
 
-**Catatan:** Post yang sudah `Scheduled` **tidak** otomatis batal saat akun
-disconnect (KSP-D09) — tetap menunggu di antrean sampai akun reconnect.
+**Note:** A post that is already `Scheduled` is **not** automatically
+cancelled when the account disconnects (KSP-D09) — it keeps waiting in the
+queue until the account reconnects.
 
-**Rujukan:** `../product-discovery/02-product/roles-permissions.md`,
+**References:** `../product-discovery/02-product/roles-permissions.md`,
 `../product-discovery/04-ux/key-screen-patterns.md` (KSP-D09).
 
 ---
 
 ## Related Documents
 
-- `../AGENTS.md` — pintu masuk agent, aturan keras
-- `../context/README.md` — indeks AI Context per domain
+- `../AGENTS.md` — agent entry point, hard rules
+- `../context/README.md` — index of AI Context per domain
 - `PROJECT_STATE.md` — phase, milestone, Known Issues, blockers
-- `AVAILABLE_TICKETS.md` — antrian tiket yang belum selesai; tiket rilis di `tickets/vXX-*.md`, tiket Known Issue di `tickets/known-issues.md` (ADR-134)
-- `specs/README.md` — bentuk spec untuk kerja yang melewati lebih dari satu sesi (ADR-131)
-- `DECISIONS.md` — indeks ADR; teks penuh di `decisions/`
-- `../product-discovery/04-ux/user-flows.md` — flow lengkap (UF-01 s/d UF-06)
+- `AVAILABLE_TICKETS.md` — queue of unfinished tickets; release tickets in `tickets/vXX-*.md`, Known Issue tickets in `tickets/known-issues.md` (ADR-134)
+- `specs/README.md` — spec shape for work that spans more than one session (ADR-131)
+- `DECISIONS.md` — ADR index; full text in `decisions/`
+- `../product-discovery/04-ux/user-flows.md` — full flows (UF-01 through UF-06)
 - `../product-discovery/02-product/roles-permissions.md` — roles & content status
 - `../product-discovery/05-architecture/auth-architecture.md` — auth & session detail
-- `../context/ctx-design.md` — pointer artifact desain Postific (ADR-140; folder `design/` dihapus, ADR-045)
+- `../context/ctx-design.md` — pointer to the Postific design artifact (ADR-140; the `design/` folder was deleted, ADR-045)
