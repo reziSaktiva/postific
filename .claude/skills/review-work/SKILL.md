@@ -4,8 +4,9 @@ description: >-
   Walks King Rezi through the work that was just done so he can accept it:
   detects the scope from this session, the git diff against staging, and the
   ticket, then reviews it one item at a time (UI in the browser, the design
-  artifact, docs/spec/ADR/ticket decisions, backend and data evidence) and asks
-  Approve, Change, or Skip for each. Changes are collected and fixed in one
+  artifact opened for King Rezi, docs/spec/ADR/ticket decisions and backend and data
+  evidence each shown as a plain-language review card with the exact thing to
+  check) and asks Approve, Change, Skip, or Explain for each. Changes are collected and fixed in one
   pass at the end. Call when King Rezi asks to review, accept, or walk through
   what has been done. It is King Rezi's acceptance step, not automated QA.
 ---
@@ -36,18 +37,35 @@ whether the result is what he wanted. Basis: ADR-149, ADR-153 (the status ladder
    - **Docs** (docs, spec, ADR, ticket)
    - **Backend and data** (API, Server Action, webhook, job, migration, query)
    Anything else (config, CI, infra) is reviewed from its real output, and the item says so.
-3. **Build the review list.** Group related changes into one item per theme. Order by risk: data and security first, then user-visible, then docs. Cap at about **7 items**; if more remain, review the riskiest 7 and offer the rest as an optional second batch. Say the scope and the item count in one line before starting.
+3. **Build the review list.** Group related changes into one item per theme. Order by risk: data and security first, then user-visible, then docs. Cap at about **7 items**; if more remain, review the riskiest 7 and offer the rest as an optional second batch. Say the scope and the item count in one line before starting. For every item, name before showing it **what King Rezi is being asked to judge** in one sentence; if you cannot, the item is not ready to show.
 4. **Show each item by type**, then ask (step 5):
-   - **UI:** open the running page in the browser that this platform provides: the built-in browser in the Claude desktop app (start the dev server from `.claude/launch.json` with `preview_start`, or open the staging URL from `project-os/PROJECT_STATE.md`); in Cursor, its own browser, or Claude in Chrome when asked. Navigate to the exact screen and state, check the console for errors, and take a screenshot. If no browser is available, say so and give the URL. Do not leave the browser on a different page than the one being asked about.
-   - **Design:** read the Postific artifact with the `Artifact` tool (pointer in `context/ctx-design.md`), open the relevant card or the "Postific Design Review" gallery, and name which card is being judged. Do not change the artifact; scope rules are in `.claude/skills/claude-design-scope-discipline/SKILL.md`.
-   - **Docs:** show only **decisions and changed claims**: one item per real decision or changed rule, quoted in 1 to 3 lines with a `path:line` link. No unchanged text, no formatting-only edits, no whole files.
-   - **Backend and data:** show the real evidence: the request and response, the query and its rows, or the test output. Never apply a migration or write to a shared DB to produce evidence.
-5. **Ask one item at a time** with `AskUserQuestion`, never several at once and never as a prose list. Each question stands on its own, names the item, and offers **Approve**, **Change**, **Skip**. When "Change" is chosen, take King Rezi's comment (the automatic "Other" field or one follow-up) and record it word for word. Record the answer, then move on. Do not argue with a rejection.
+   - **UI:** open the running page in the browser that this platform provides: the built-in browser in the Claude desktop app (start the dev server from `.claude/launch.json` with `preview_start`, or open the staging URL from `project-os/PROJECT_STATE.md`); in Cursor, its own browser, or Claude in Chrome when asked. Navigate to the exact screen and state, check the console for errors, and take a screenshot. If no browser is available, say so and give the URL. Do not leave the browser on a different page than the one being asked about. Then say in one line **what to look at on that screen** (for example "the gap under the search field and the checkbox outlines").
+   - **Design:** the built-in browser is not signed in to claude.ai, so a screenshot of an artifact there is only a sign-in page. Open the artifact **for King Rezi** with the `Artifact` tool, action `open`, on the exact artifact URL (pointer in `context/ctx-design.md`), before asking. Then tell King Rezi exactly where to look: the artifact name, the gallery entry, the scenario or card, and the one thing to judge, and what the design looked like before when that helps. Use `read` only to quote a changed value, never as a substitute for opening it. If the item concerns more than one card, open and ask for one card at a time. Do not change the artifact; scope rules are in `.claude/skills/claude-design-scope-discipline/SKILL.md`.
+   - **Docs** and **Backend and data:** these are shown as a **review card** (below), not as raw quotes, file lists, or test output.
+
+   **Review card** (Docs and Backend and data; keep it short, plain language first, files second):
+
+   ```
+   What this is:    one sentence, no jargon, no file names
+   What changed:    before -> after, in words a product owner uses
+   Check this:      1 to 3 concrete yes/no statements King Rezi can confirm
+                    ("Creator can still schedule a post", "the narrow breakpoint stays 767px")
+   Evidence:        the real thing behind it: a quoted line with its path:line link,
+                    the request and response, or the test result with its count
+   If this is wrong: what breaks or what stays unproven
+   ```
+
+   - **Docs:** one card per real decision or changed rule. "Check this" is the decision itself written as a statement ("T-207.7: Published and Failed posts are not opened in the editor; History Detail handles them. Is that what you decided?"). Quote 1 to 3 lines as evidence. No unchanged text, no formatting-only edits, no whole files, no list of ticket edits.
+   - **Backend and data:** describe behaviour from the user's side first (who can do what, what happens to which data), then give the evidence. A test count alone is never the card: say what the tests prove and what they do not. Never apply a migration or write to a shared DB to produce evidence.
+   - If King Rezi cannot answer a "Check this" line from the card, the card is badly written: rewrite it simpler instead of asking King Rezi to dig.
+5. **Ask one item at a time** with `AskUserQuestion`, never several at once and never as a prose list. Each question stands on its own, names the item, repeats the one thing to judge (the "Check this" line for a card), and offers **Approve**, **Change**, **Skip**, and **Explain simply**. "Explain simply" answers with a shorter, plainer version of the card (an everyday example, no file names) and then asks the same question again; it never counts as an answer. When "Change" is chosen, take King Rezi's comment (the automatic "Other" field or one follow-up) and record it word for word. Record the answer, then move on. Do not argue with a rejection.
 6. **Close the review.** Show one table: item, type, result (Approved, Change, Skipped), King Rezi's comment. Then ask one question: fix the collected changes now? If yes, do them in one pass, classified as usual (UI changes go through rule 10 of `AGENTS.md`, and a code change in `apps/` or `packages/` needs a ticket, ADR-132). After the fixes, re-show only the changed items. Commit and push only when King Rezi asks (`AGENTS.md` rule 9).
 7. **Report** with `.claude/skills/work-report-simple/SKILL.md`: what was reviewed, what was approved, what changed, what was skipped and therefore unverified.
 
 ## Quality bar
 
-- One decision per question; the evidence is on screen before the question is asked.
+- One decision per question; the evidence is on screen before the question is asked, and the question says what to judge.
+- Design is always opened for King Rezi with `Artifact` `open`; a sign-in page is never evidence.
+- Docs and backend items are review cards in plain language; King Rezi should never have to ask "what should be checked?".
 - "Skipped" is reported as unverified, never as approved.
 - Prefer fewer, sharper items over a long exhaustive list.
