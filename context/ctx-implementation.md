@@ -95,13 +95,13 @@ Structure` (ADR-069, resolution of KI-010).
 ## Operating rules
 
 1. Hard rules for entry point / domain logic / cross-domain / shared types —
-   see **`../AGENTS.md` rules 5-8**, not repeated here. (Server Actions
+   see **`../AGENTS.md` rules 3-5**, not repeated here. (Server Actions
    for mutation only — see `rendering-strategy.md`.)
 2. **One Application Service per BC** — orchestration, authorization (RBAC), repo coordination.
 3. **Repository**: two layers — the interface (`IXxxRepository`) in
    `apps/web/src/domains/<domain>/repositories/`, the real Prisma implementation
    in `apps/web/src/lib/repositories/<domain>/`. The domain layer only
-   depends on the interface (hard rule 6 of `AGENTS.md` — the domain must not
+   depends on the interface (hard rule 4 of `AGENTS.md` — the domain must not
    import Prisma directly); the Server Action/Application Service
    _injects_ the Prisma implementation from `lib/repositories`. Precedent:
    `domains/publishing/repositories/publishing.repository.ts` ↔

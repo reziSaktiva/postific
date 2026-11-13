@@ -36,7 +36,7 @@ Entry Points (RSC / Server Actions / Route Handlers / Middleware)
 ## Operating rules
 
 1. Hard rules for entry points (no business logic) & Supabase JS (Realtime+Storage
-   only, CRUD through Prisma) — see **`../AGENTS.md` rules 5, 9**, not repeated
+   only, CRUD through Prisma) — see **`../AGENTS.md` rules 3, 6**, not repeated
    here. Supabase engineering detail: `ctx-technical-context.md`.
 2. Social integration **only** through the Anti-Corruption Layer (OutstandAdapter) — not a direct network SDK.
 3. RBAC is evaluated in the Application Service; RLS = defense-in-depth.

@@ -37,7 +37,7 @@ Code module: `apps/web/src/domains/<domain-name>/` (see `ctx-implementation.md`)
 ## Operating rules (domain)
 
 1. Hard rules for shared types / cross-domain / domain-without-Prisma — see
-   **`../AGENTS.md` rules 6, 7, 8**, not repeated here.
+   **`../AGENTS.md` rules 4, 5**, not repeated here.
 2. Pass only **IDs** between domains where possible; do not share full aggregates across BCs.
 3. Entity/table naming follows `domain-model.md` + ADR amendments (e.g. ADR-027 for the table naming exception).
 4. Do not add a new BC or change a boundary without an ADR.
