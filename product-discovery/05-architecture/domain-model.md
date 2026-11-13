@@ -1,28 +1,28 @@
 # Domain Model & Bounded Context
 
-Dokumen ini mendefinisikan **Domain Model** dan **Bounded Context** untuk produk **Postific**.
+This document defines the **Domain Model** and **Bounded Contexts** for the **Postific** product.
 
-Domain Model adalah representasi konseptual sistem — mendefinisikan apa yang ada dalam sistem, bagaimana domain-domain itu dibagi, dan bagaimana mereka saling berinteraksi tanpa saling bergantung pada implementasi.
+The Domain Model is the conceptual representation of the system — it defines what exists in the system, how those domains are divided, and how they interact without depending on each other's implementation.
 
-Dokumen ini menjadi fondasi seluruh dokumen architecture berikutnya dan berfungsi sebagai acuan naming canonical untuk seluruh entitas di Database Strategy, Application Layer, dan Engineering Planning.
+This document is the foundation of all subsequent architecture documents and serves as the canonical naming reference for all entities in the Database Strategy, Application Layer, and Engineering Planning.
 
 ---
 
-# Tujuan
+# Purpose
 
-* Menetapkan Bounded Context yang mencerminkan modul produk dari Product Baseline.
-* Mendefinisikan Core Entities dan agregat utama per bounded context.
-* Memetakan relasi antar bounded context melalui Context Map.
-* Menetapkan Shared Types yang digunakan lintas context via `packages/shared`.
-* Mendokumentasikan aturan domain boundary yang wajib diikuti seluruh implementasi.
+* Set the Bounded Contexts that reflect the product modules from the Product Baseline.
+* Define the Core Entities and main aggregates per bounded context.
+* Map the relations between bounded contexts through the Context Map.
+* Set the Shared Types used across contexts via `packages/shared`.
+* Document the domain boundary rules that every implementation must follow.
 
 ---
 
 # Domain Overview
 
-## Klasifikasi Bounded Context
+## Bounded Context Classification
 
-| ID | Bounded Context | Klasifikasi | MVP Scope |
+| ID | Bounded Context | Classification | MVP Scope |
 |----|----------------|-------------|-----------|
 | BC-01 | Identity | Core Domain | ✅ MVP |
 | BC-02 | Workspace | Core Domain | ✅ MVP |
@@ -35,11 +35,11 @@ Dokumen ini menjadi fondasi seluruh dokumen architecture berikutnya dan berfungs
 | BC-09 | Notification | Supporting Domain | ✅ MVP |
 | BC-10 | Billing | Supporting Domain | Post-MVP |
 
-**Klasifikasi:**
-- **Core Domain** — bounded context yang merepresentasikan nilai bisnis inti produk.
-- **Supporting Domain** — bounded context yang mendukung operasional core domain tetapi bukan diferensiator utama.
+**Classification:**
+- **Core Domain** — a bounded context that represents the product's core business value.
+- **Supporting Domain** — a bounded context that supports the operations of the core domain but is not the main differentiator.
 
-## Diagram Bounded Context
+## Bounded Context Diagram
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
@@ -82,7 +82,7 @@ Dokumen ini menjadi fondasi seluruh dokumen architecture berikutnya dan berfungs
 │                    EXTERNAL SYSTEM                                        │
 │  ┌──────────────────────────────────────────────────────────────────┐    │
 │  │  Outstand API — Social Media Integration Provider                 │    │
-│  │  (Anti-Corruption Layer didefinisikan di integration-layer.md)    │    │
+│  │  (Anti-Corruption Layer is defined in integration-layer.md)       │    │
 │  └──────────────────────────────────────────────────────────────────┘    │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
@@ -97,33 +97,33 @@ Dokumen ini menjadi fondasi seluruh dokumen architecture berikutnya dan berfungs
 
 ### Responsibility
 
-Mengelola identitas pengguna, autentikasi, dan sesi. Identity adalah titik masuk sistem — setiap interaksi dimulai dari verifikasi identitas pengguna.
+Manages user identity, authentication, and sessions. Identity is the entry point of the system — every interaction starts from verifying the user's identity.
 
-Identity dikelola melalui **Better Auth** (keputusan pra-architecture). Implementasi internal tidak dibuat dari nol.
+Identity is managed through **Better Auth** (pre-architecture decision). The internal implementation is not built from scratch.
 
 ### Core Entities
 
-| Entitas | Tipe | Deskripsi |
+| Entity | Type | Description |
 |---------|------|-----------|
-| `User` | Aggregate Root | Pengguna terdaftar pada platform |
-| `Session` | Entity | Sesi aktif pengguna (managed by Better Auth) |
-| `OAuthAccount` | Entity | Akun OAuth yang terhubung ke User (Better Auth managed) |
+| `User` | Aggregate Root | A user registered on the platform |
+| `Session` | Entity | The user's active session (managed by Better Auth) |
+| `OAuthAccount` | Entity | An OAuth account linked to a User (Better Auth managed) |
 
 ### Key Attributes
 
 **User**
-- `id: UserId` — identifier unik, dikonsumsi seluruh bounded context lain
-- `email: string` — alamat email unik
-- `name: string` — nama tampilan
-- `avatarUrl: string?` — avatar pengguna
+- `id: UserId` — unique identifier, consumed by all other bounded contexts
+- `email: string` — unique email address
+- `name: string` — display name
+- `avatarUrl: string?` — user avatar
 - `createdAt: Date`
 
-**Session** dan **OAuthAccount** dikelola sepenuhnya oleh Better Auth — tidak ada logika domain kustom.
+**Session** and **OAuthAccount** are managed entirely by Better Auth — there is no custom domain logic.
 
-### Catatan
+### Notes
 
-- `UserId` adalah satu-satunya data Identity yang dikonsumsi domain lain, selalu melalui `packages/shared`.
-- Domain lain **tidak** boleh import implementasi Identity untuk mengambil data User — gunakan `UserId` sebagai referensi dan query User terpisah jika diperlukan.
+- `UserId` is the only Identity data consumed by other domains, always through `packages/shared`.
+- Other domains **must not** import the Identity implementation to fetch User data — use `UserId` as a reference and query User separately if needed.
 
 ---
 
@@ -131,35 +131,35 @@ Identity dikelola melalui **Better Auth** (keputusan pra-architecture). Implemen
 
 ### Responsibility
 
-Mengelola struktur organisasi yang menggunakan platform: workspace, keanggotaan tim, roles & permissions, akun media sosial yang terhubung, dan brand settings.
+Manages the organizational structure that uses the platform: workspaces, team membership, roles & permissions, connected social media accounts, and brand settings.
 
-Workspace adalah **root context** — seluruh data domain lain terikat ke `WorkspaceId`. RLS di database level menggunakan `workspace_id` sebagai batas isolasi (keputusan pra-architecture).
+Workspace is the **root context** — all other domain data is bound to `WorkspaceId`. RLS at the database level uses `workspace_id` as the isolation boundary (pre-architecture decision).
 
 ### Core Entities
 
-| Entitas | Tipe | Deskripsi |
+| Entity | Type | Description |
 |---------|------|-----------|
-| `Workspace` | Aggregate Root | Unit organisasi pengguna platform |
-| `Member` | Entity | Anggota workspace dengan role tertentu |
-| `ConnectedAccount` | Entity | Akun media sosial yang terhubung ke workspace |
-| `BrandSettings` | Value Object | Pengaturan brand workspace |
+| `Workspace` | Aggregate Root | The organizational unit of platform users |
+| `Member` | Entity | A workspace member with a given role |
+| `ConnectedAccount` | Entity | A social media account connected to the workspace |
+| `BrandSettings` | Value Object | Workspace brand settings |
 
 ### Key Attributes
 
 **Workspace**
 - `id: WorkspaceId`
 - `name: string`
-- `slug: string` — internal unique identifier, tidak dipakai di routing/URL (referensi human-readable di log/debugging/support; workspace context di routing memakai cookie, lihat `auth-architecture.md`)
-- `ownerId: UserId` — referensi ke Identity BC
-- `pendingOwnerTransferTo: UserId?` — diisi saat Owner memicu `transferOwnership`; dikosongkan lagi setelah target menerima (`acceptOwnershipTransfer`) atau proses dibatalkan (ADR-050)
+- `slug: string` — internal unique identifier, not used in routing/URL (a human-readable reference in logs/debugging/support; workspace context in routing uses a cookie, see `auth-architecture.md`)
+- `ownerId: UserId` — reference to the Identity BC
+- `pendingOwnerTransferTo: UserId?` — filled when the Owner triggers `transferOwnership`; cleared again after the target accepts (`acceptOwnershipTransfer`) or the process is cancelled (ADR-050)
 - `plan: WorkspacePlan` — `free | pro | (post-MVP: team)`
 - `createdAt: Date`
 
 **Member**
 - `id: MemberId`
 - `workspaceId: WorkspaceId`
-- `userId: UserId` — referensi ke Identity BC
-- `role: MemberRole` — `owner | admin | creator` (ADR-074 — sebelumnya termasuk `manager`)
+- `userId: UserId` — reference to the Identity BC
+- `role: MemberRole` — `owner | admin | creator` (ADR-074 — previously included `manager`)
 - `invitedAt: Date`
 - `joinedAt: Date?`
 - `status: MemberStatus` — `pending | active | removed`
@@ -168,22 +168,22 @@ Workspace adalah **root context** — seluruh data domain lain terikat ke `Works
 - `id: ConnectedAccountId`
 - `workspaceId: WorkspaceId`
 - `platform: SocialPlatform` — `instagram | facebook | twitter | linkedin | tiktok | youtube | threads | pinterest`
-- `outstandAccountId: string` — ID dari Outstand API (external reference)
-- `handle: string` — nama akun (@handle atau nama page)
+- `outstandAccountId: string` — ID from the Outstand API (external reference)
+- `handle: string` — account name (@handle or page name)
 - `status: ConnectedAccountStatus` — `active | disconnected | error`
-- `reconnectRequired: boolean` — `true` saat ACL memetakan `account.token_expired`
+- `reconnectRequired: boolean` — `true` when the ACL maps `account.token_expired`
 - `connectedAt: Date`
 
-**BrandSettings** (Value Object, embedded di Workspace)
-- `name: string?` — nama brand
-- `tone: string?` — panduan tone of voice
-- `guidelines: string?` — catatan brand guidelines
+**BrandSettings** (Value Object, embedded in Workspace)
+- `name: string?` — brand name
+- `tone: string?` — tone of voice guidance
+- `guidelines: string?` — brand guidelines notes
 
-### Catatan
+### Notes
 
-- `ConnectedAccount` adalah jembatan antara domain internal dan Outstand API. `outstandAccountId` adalah external reference yang tidak berubah setelah koneksi.
-- Untuk Twitter/X, Project Owner wajib mengonfigurasi kredensial BYOK secara manual di dashboard Outstand. Domain aplikasi tidak memiliki atribut Client ID/Client Secret X.
-- `MemberRole` dan `MemberStatus` dipublish ke `packages/shared` agar domain lain dapat membaca role tanpa import implementasi Workspace.
+- `ConnectedAccount` is the bridge between the internal domain and the Outstand API. `outstandAccountId` is an external reference that does not change after the connection.
+- For Twitter/X, the Project Owner must configure the BYOK credentials manually in the Outstand dashboard. The application domain has no X Client ID/Client Secret attribute.
+- `MemberRole` and `MemberStatus` are published to `packages/shared` so other domains can read the role without importing the Workspace implementation.
 
 ---
 
@@ -191,30 +191,30 @@ Workspace adalah **root context** — seluruh data domain lain terikat ke `Works
 
 ### Responsibility
 
-Mengelola seluruh siklus hidup konten — dari pembuatan draft, review, penjadwalan, hingga publikasi. Publishing adalah **core domain utama** yang menjadi fondasi product-market fit (I-04: Publishing Trust).
+Manages the entire content lifecycle — from draft creation, review, and scheduling to publication. Publishing is the **main core domain** that is the foundation of product-market fit (I-04: Publishing Trust).
 
-Publishing bertanggung jawab atas status konten kanonikal: `Draft → In Review → Ready to Schedule → Scheduled → Published / Failed`.
+Publishing is responsible for the canonical content statuses: `Draft → In Review → Ready to Schedule → Scheduled → Published / Failed`.
 
 ### Core Entities
 
-| Entitas | Tipe | Deskripsi |
+| Entity | Type | Description |
 |---------|------|-----------|
-| `Post` | Aggregate Root | Unit konten yang akan atau sudah dipublikasikan |
-| `PostTarget` | Entity | Target publikasi spesifik per connected account |
+| `Post` | Aggregate Root | A unit of content that will be or has been published |
+| `PostTarget` | Entity | A specific publication target per connected account |
 
 ### Key Attributes
 
 **Post**
 - `id: PostId`
 - `workspaceId: WorkspaceId`
-- `authorId: UserId` — referensi ke Identity BC
-- `status: ContentStatus` — enum kanonikal dari `packages/shared`
+- `authorId: UserId` — reference to the Identity BC
+- `status: ContentStatus` — canonical enum from `packages/shared`
 - `caption: string`
-- `mediaIds: MediaId[]` — referensi ke Media BC (ID saja)
-- `targets: PostTarget[]` — daftar target publikasi
-- `outstandPostId: string?` — **(amandemen ADR-092)** SATU ID post dari Outstand API, mencakup seluruh `PostTarget` pada post ini sekaligus (1 call `schedulePost`/`publishNow` untuk semua target, bukan 1 job per target). Diisi post-level, bukan per `PostTarget`.
-- `scheduledAt: Date?` — waktu tayang yang diinginkan
-- `publishedAt: Date?` — waktu berhasil dipublikasikan
+- `mediaIds: MediaId[]` — reference to the Media BC (ID only)
+- `targets: PostTarget[]` — list of publication targets
+- `outstandPostId: string?` — **(amendment to ADR-092)** ONE post ID from the Outstand API, covering all `PostTarget`s of this post at once (1 `schedulePost`/`publishNow` call for all targets, not 1 job per target). Filled at the post level, not per `PostTarget`.
+- `scheduledAt: Date?` — the desired publish time
+- `publishedAt: Date?` — time it was successfully published
 - `failedAt: Date?`
 - `failureReason: string?`
 - `createdAt: Date`
@@ -223,34 +223,34 @@ Publishing bertanggung jawab atas status konten kanonikal: `Draft → In Review 
 **PostTarget**
 - `id: PostTargetId`
 - `postId: PostId`
-- `connectedAccountId: ConnectedAccountId` — referensi ke Workspace BC
+- `connectedAccountId: ConnectedAccountId` — reference to the Workspace BC
 - `platform: SocialPlatform`
-- `contentFormat: ContentFormat` — `post | reel | story | pin` (enum di `packages/shared`; ADR-039)
-- `platformOptions: PlatformPublishOptions?` — field khusus platform (mis. Pinterest: title, destination link, board)
-- `platformPostId: string?` — **(amandemen ADR-092)** ID post di platform ASLI (mis. Instagram) — BEDA dari `outstandPostId` post-level di `Post`. Diisi async lewat `OutstandAdapter.fetchPostOutcome`/webhook (T-026), bukan sinkron dari `schedulePost`/`publishNow`. Menggantikan `outstandJobId` lama.
+- `contentFormat: ContentFormat` — `post | reel | story | pin` (enum in `packages/shared`; ADR-039)
+- `platformOptions: PlatformPublishOptions?` — platform-specific fields (e.g. Pinterest: title, destination link, board)
+- `platformPostId: string?` — **(amendment to ADR-092)** the post ID on the ACTUAL platform (e.g. Instagram) — DIFFERENT from the post-level `outstandPostId` on `Post`. Filled async through `OutstandAdapter.fetchPostOutcome`/webhook (T-026), not synchronously from `schedulePost`/`publishNow`. Replaces the old `outstandJobId`.
 - `status: PostTargetStatus` — `pending | scheduled | published | failed`
-- `platformPostUrl: string?` — **(amandemen ADR-092)** URL post yang sudah dipublikasikan per akun, diisi async bersamaan dengan `platformPostId`. Menggantikan `publishedUrl` lama.
+- `platformPostUrl: string?` — **(amendment to ADR-092)** the URL of the published post per account, filled async together with `platformPostId`. Replaces the old `publishedUrl`.
 - `error: string?`
 
 **ContentFormat per platform (MVP — ADR-039)**
 
-Format dipilih **per `PostTarget`** (bukan satu format global untuk seluruh post), agar multi-account tetap bisa beda tipe per jaringan.
+The format is chosen **per `PostTarget`** (not one global format for the whole post), so multi-account can still have a different type per network.
 
-| Platform | Format yang diizinkan di MVP | Default |
+| Platform | Formats allowed in the MVP | Default |
 | -------- | ---------------------------- | ------- |
 | Instagram | `post`, `reel`, `story` | `post` |
 | Facebook | `post`, `reel`, `story` | `post` |
-| TikTok | `post` (video/feed TikTok; tanpa selector Reel/Story di UI) | `post` |
+| TikTok | `post` (TikTok video/feed; no Reel/Story selector in the UI) | `post` |
 | Pinterest | `pin` | `pin` |
 | Twitter / X | `post` | `post` |
 | LinkedIn | `post` | `post` |
 | YouTube | `post` | `post` |
 | Threads | `post` | `post` |
 
-`platformOptions` (bentuk konseptual — disimpan sebagai JSON di DB, **bukan** enum shared; tidak mengandung logika bisnis):
+`platformOptions` (conceptual shape — stored as JSON in the DB, **not** a shared enum; contains no business logic):
 
 ```typescript
-// Contoh payload Pinterest (MVP)
+// Pinterest payload example (MVP)
 type PlatformPublishOptions = {
   pinTitle?: string;
   destinationUrl?: string;
@@ -258,38 +258,37 @@ type PlatformPublishOptions = {
 };
 ```
 
-Field diisi hanya jika platform membutuhkannya. Mapping ke API Outstand tetap di `OutstandAdapter`.
+The field is filled only if the platform needs it. Mapping to the Outstand API stays in `OutstandAdapter`.
 
-**Default `contentFormat` saat target dibuat:** ditentukan Application Service per platform (Pinterest → `pin`; lainnya → `post` jika diizinkan). Default kolom DB `post` hanyalah fallback teknis migrasi — **bukan** izin untuk menyimpan `post` pada Pinterest.
+**Default `contentFormat` when a target is created:** determined by the Application Service per platform (Pinterest → `pin`; others → `post` if allowed). The DB column default `post` is only a technical migration fallback — **not** permission to store `post` on Pinterest.
 
-**Queue bukan entity terpisah (amandemen ADR-083, 2026-08-19)**
+**Queue is not a separate entity (amendment to ADR-083, 2026-08-19)**
 
-Layar Publish → Queue (KSP-03) **tidak** didukung entity persisten
-`QueueSlot` — dihapus dari baseline. Queue adalah **computed view**: query
-`Post`/`PostTarget` dengan `status = Scheduled`, diurutkan murni ascending
-berdasarkan `Post.scheduledAt` (dikelompokkan per tanggal lalu per jam di
-UI). Tidak ada mekanisme reorder manual — memindahkan jadwal berarti
-mengedit `scheduledAt` post itu sendiri lewat Draft Editor, bukan menyusun
-ulang urutan slot. Alasan: konsep "slot" (waktu kosong yang bisa diisi,
-dengan `order` independen dari waktu) tidak dipakai — setiap Post yang
-Scheduled sudah punya `scheduledAt` sendiri yang menentukan urutannya
-secara definitif.
+The Publish → Queue screen (KSP-03) is **not** backed by a persistent
+`QueueSlot` entity — removed from the baseline. Queue is a **computed view**: a query of
+`Post`/`PostTarget` with `status = Scheduled`, ordered purely ascending
+by `Post.scheduledAt` (grouped by date then by hour in the
+UI). There is no manual reorder mechanism — moving a schedule means
+editing that post's own `scheduledAt` through the Draft Editor, not rearranging
+the slot order. Reason: the "slot" concept (an empty time that can be filled,
+with an `order` independent of time) is not used — every Scheduled Post
+already has its own `scheduledAt` that definitively determines its order.
 
-Model Prisma `PublishingQueueSlot` (kolom `order`, `postId?` nullable, dll.)
-masih ada secara fisik di `apps/web/prisma/schema.prisma` tapi **nol
-referensi di kode aplikasi** — dianggap deprecated per ADR ini, dijadwalkan
-dihapus lewat migration saat T-032.5
-dikerjakan, bukan dibiarkan jadi sumber kebenaran kedua yang membingungkan.
+The Prisma model `PublishingQueueSlot` (column `order`, nullable `postId?`, etc.)
+still physically exists in `apps/web/prisma/schema.prisma` but has **zero
+references in application code** — considered deprecated per this ADR, scheduled to
+be removed through a migration when T-032.5
+is worked, not left as a confusing second source of truth.
 
-### Aturan Domain
+### Domain Rules
 
-1. Transisi status `Post` mengikuti aturan yang didefinisikan di `roles-permissions.md` — tidak boleh ada transisi yang tidak sah.
-2. `Post` dapat memiliki multiple `PostTarget` (multi-account posting).
-3. `Post` hanya menyimpan referensi `MediaId[]` — tidak embed data media. Detail media diambil dari Media BC secara terpisah.
-4. **(amandemen ADR-092)** `outstandPostId` pada `Post` hanya ada setelah `schedulePost`/`publishNow` (1 call untuk semua target) dikirim ke Outstand API — dikelola oleh Integration Layer. `platformPostId` pada `PostTarget` baru terisi belakangan (async), setelah `fetchPostOutcome`/webhook meresolve status per akun.
-5. `contentFormat` pada `PostTarget` wajib valid untuk `platform` tersebut (matriks ADR-039). Application Service menolak create/update/schedule target jika format tidak diizinkan atau media tidak memenuhi syarat format (mis. Story/Reel membutuhkan media yang sesuai).
-6. Field khusus platform (Pinterest pin metadata) disimpan di `platformOptions` pada `PostTarget` — bukan di `Post` agar multi-target tetap independen.
-7. Default bisnis format: Pinterest = `pin`; platform lain = `post` (kecuali user memilih Reel/Story di IG/FB). Jangan mengandalkan default kolom DB saja saat menulis target baru.
+1. `Post` status transitions follow the rules defined in `roles-permissions.md` — no unauthorized transitions are allowed.
+2. A `Post` can have multiple `PostTarget`s (multi-account posting).
+3. `Post` only stores `MediaId[]` references — it does not embed media data. Media details are fetched from the Media BC separately.
+4. **(amendment to ADR-092)** `outstandPostId` on `Post` only exists after `schedulePost`/`publishNow` (1 call for all targets) is sent to the Outstand API — managed by the Integration Layer. `platformPostId` on `PostTarget` is only filled later (async), after `fetchPostOutcome`/webhook resolves the status per account.
+5. `contentFormat` on `PostTarget` must be valid for that `platform` (the ADR-039 matrix). The Application Service rejects create/update/schedule of a target if the format is not allowed or the media does not meet the format's requirements (e.g. Story/Reel needs suitable media).
+6. Platform-specific fields (Pinterest pin metadata) are stored in `platformOptions` on `PostTarget` — not on `Post`, so multi-target stays independent.
+7. Business default format: Pinterest = `pin`; other platforms = `post` (unless the user chooses Reel/Story on IG/FB). Do not rely on the DB column default alone when writing a new target.
 
 ---
 
@@ -297,42 +296,42 @@ dikerjakan, bukan dibiarkan jadi sumber kebenaran kedua yang membingungkan.
 
 ### Responsibility
 
-Mengelola akses AI pengguna ke produk lewat MCP (ADR-138, ADR-139): grant OAuth per workspace dan scope, audit panggilan tool, dan rate limit. BC ini **tidak berisi AI** dan **tidak berisi business logic produk**. Tool MCP adalah entry point yang membungkus Application Service BC lain (Publishing, Analytics, Engagement, Media, Workspace); BC-04 hanya memegang izin, jejak audit, dan batas pemakaian.
+Manages users' AI access to the product through MCP (ADR-138, ADR-139): OAuth grants per workspace and scope, tool call audit, and rate limit. This BC **contains no AI** and **contains no product business logic**. MCP tools are entry points that wrap the Application Services of other BCs (Publishing, Analytics, Engagement, Media, Workspace); BC-04 only holds permissions, the audit trail, and usage limits.
 
 ### Core Entities
 
-| Entitas | Tipe | Deskripsi |
+| Entity | Type | Description |
 |---------|------|-----------|
-| `McpGrant` | Aggregate Root | Izin yang diberikan pengguna kepada satu klien AI untuk satu workspace |
-| `McpAuditLog` | Entity | Satu baris per panggilan tool |
+| `McpGrant` | Aggregate Root | The permission a user gives to one AI client for one workspace |
+| `McpAuditLog` | Entity | One row per tool call |
 
-### Key Attributes (final; kolom dan tipe di `database-strategy.md` § BC-04)
+### Key Attributes (final; columns and types in `database-strategy.md` § BC-04)
 
 **McpGrant**
 - `id: McpGrantId`
-- `workspaceId: WorkspaceId` — satu workspace per koneksi
-- `userId: UserId` — pengguna yang menyambungkan; keanggotaannya di workspace yang berlaku
-- `clientId: string` — klien AI (hasil dynamic client registration)
-- `clientName: string?` — salinan nama klien saat persetujuan (untuk layar daftar klien AI)
+- `workspaceId: WorkspaceId` — one workspace per connection
+- `userId: UserId` — the user who connects; their membership in the workspace is what applies
+- `clientId: string` — the AI client (result of dynamic client registration)
+- `clientName: string?` — a copy of the client name at the time of approval (for the AI client list screen)
 - `scopes: McpScope[]` — `read | draft | schedule` (MVP)
 - `createdAt: Date`, `lastUsedAt: Date?`, `revokedAt: Date?`
-- Invarian: paling banyak satu grant aktif (`revokedAt` kosong) per `userId` + `clientId` + `workspaceId`.
+- Invariant: at most one active grant (`revokedAt` empty) per `userId` + `clientId` + `workspaceId`.
 
 **McpAuditLog**
 - `id: McpAuditLogId`
-- `workspaceId`, `userId`, `grantId?` (kosong bila ditolak karena tidak ada grant), `clientId`
+- `workspaceId`, `userId`, `grantId?` (empty if rejected because there is no grant), `clientId`
 - `toolName: string`, `scope: McpScope`
-- `inputSummary: string` — ringkasan yang disamarkan (tanpa caption penuh dan tanpa URL berparameter rahasia)
+- `inputSummary: string` — a redacted summary (without the full caption and without URLs with secret parameters)
 - `status: success | denied | error`, `errorCode: string?`, `durationMs: number`
-- `targetId: string?` — ID hasil aksi, misalnya `PostId`
-- `createdAt: Date` — retensi 90 hari
+- `targetId: string?` — the ID of the action result, for example `PostId`
+- `createdAt: Date` — 90-day retention
 
-### Catatan
+### Notes
 
-- `McpGrant` adalah sumber otorisasi panggilan MCP; aturan pemeriksaan per panggilan dan pencabutan ada di `application-layer.md` § McpAccessService.
-- Post yang dibuat lewat MCP membawa penanda sumber di BC-03 (`createdVia = mcp` beserta klien); penanda itu milik Publishing, bukan BC-04.
-- Isi komentar yang dikembalikan tool baca ditandai sebagai data tidak tepercaya.
-- Rate limit per workspace berbasis Postgres (60 panggilan per menit, 30 aksi tulis per jam, 50 konten terjadwal per hari; konfigurasi).
+- `McpGrant` is the authorization source of MCP calls; the per-call check rules and revocation are in `application-layer.md` § McpAccessService.
+- A post created through MCP carries a source marker in BC-03 (`createdVia = mcp` along with the client); that marker belongs to Publishing, not BC-04.
+- Comment content returned by read tools is marked as untrusted data.
+- Postgres-based rate limit per workspace (60 calls per minute, 30 write actions per hour, 50 scheduled contents per day; configurable).
 
 ---
 
@@ -340,14 +339,14 @@ Mengelola akses AI pengguna ke produk lewat MCP (ADR-138, ADR-139): grant OAuth 
 
 ### Responsibility
 
-Mengelola komentar audiens dan reply dari akun media sosial yang terhubung. Engagement adalah **retention layer** setelah Publishing (I-05). Direct Message dan mention berada di luar scope MVP.
+Manages audience comments and replies from connected social media accounts. Engagement is the **retention layer** after Publishing (I-05). Direct Messages and mentions are outside the MVP scope.
 
 ### Core Entities
 
-| Entitas | Tipe | Deskripsi |
+| Entity | Type | Description |
 |---------|------|-----------|
-| `InboxItem` | Aggregate Root | Item interaksi dari audiens yang masuk ke inbox |
-| `Reply` | Entity | Balasan yang dikirimkan dari platform |
+| `InboxItem` | Aggregate Root | An audience interaction item that enters the inbox |
+| `Reply` | Entity | A reply sent from the platform |
 
 ### Key Attributes
 
@@ -356,31 +355,31 @@ Mengelola komentar audiens dan reply dari akun media sosial yang terhubung. Enga
 - `workspaceId: WorkspaceId`
 - `connectedAccountId: ConnectedAccountId`
 - `platform: SocialPlatform`
-- `type: EngagementType` — `comment` pada MVP
-- `externalId: string` — ID komentar dari Outstand Comments API
-- `authorHandle: string` — username pengirim
-- `content: string` — isi interaksi
-- `status: InboxItemStatus` — `unread | replied | resolved | dismissed` (ADR-157; sebelumnya ditulis `unread | read | replied | archived` dan di kode `unread | done`, keduanya usang)
-- `postId: PostId?` — jika komentar terikat ke post tertentu (referensi ke Publishing BC)
+- `type: EngagementType` — `comment` in the MVP
+- `externalId: string` — comment ID from the Outstand Comments API
+- `authorHandle: string` — sender username
+- `content: string` — interaction content
+- `status: InboxItemStatus` — `unread | replied | resolved | dismissed` (ADR-157; previously written as `unread | read | replied | archived` and in code as `unread | done`, both obsolete)
+- `postId: PostId?` — if the comment is bound to a specific post (reference to the Publishing BC)
 - `receivedAt: Date`
-- `readAt: Date?` — dipertahankan tetapi tidak dipakai; tidak terkait status `read` yang sudah tidak ada (ADR-157, keputusan King Rezi 2026-11-06)
+- `readAt: Date?` — kept but unused; not related to the `read` status that no longer exists (ADR-157, King Rezi's decision 2026-11-06)
 
 **Reply**
 - `id: ReplyId`
 - `inboxItemId: InboxItemId`
 - `userId: UserId`
 - `content: string`
-- `outstandReplyId: string?` — ID dari Outstand setelah reply terkirim
+- `outstandReplyId: string?` — ID from Outstand after the reply is sent
 - `sentAt: Date`
 - `status: ReplyStatus` — `pending | sent | failed`
 
-### Catatan
+### Notes
 
-- `InboxItem` diisi oleh JOB-03 periodic pull setiap 30 menit atau manual refresh melalui Outstand Comments API.
-- Transisi status (ADR-157): `unread` → `replied` / `resolved` / `dismissed`; `replied` → `resolved` / `dismissed`; `resolved` dan `dismissed` → `unread` (Buka kembali). `replied` diisi otomatis saat Reply berhasil terkirim bila status `unread`, dan tidak menurunkan `resolved` atau `dismissed`. Baris lama `done` dimigrasi menjadi `resolved` (T-217.4). Kolom `status` bertipe teks tanpa constraint basis data.
-- Query Inbox mengelompokkan item per `postId` (item tanpa `postId` menjadi satu kelompok "Tanpa posting"); hitungan belum dibalas, sort, dan rentang tanggal dihitung di repository (T-218).
-- `postId` pada `InboxItem` adalah referensi soft — Engagement BC tidak import implementasi Publishing.
-- Reply dikirim melalui Outstand; DM, mention, dan webhook Engagement tidak dimodelkan untuk MVP.
+- `InboxItem` is filled by the JOB-03 periodic pull every 30 minutes or manual refresh through the Outstand Comments API.
+- Status transitions (ADR-157): `unread` → `replied` / `resolved` / `dismissed`; `replied` → `resolved` / `dismissed`; `resolved` and `dismissed` → `unread` (Reopen). `replied` is filled automatically when a Reply is sent successfully if the status is `unread`, and does not downgrade `resolved` or `dismissed`. Old `done` rows are migrated to `resolved` (T-217.4). The `status` column is a text type without a database constraint.
+- The Inbox query groups items by `postId` (items without a `postId` become one group "Tanpa posting"); the unanswered count, sort, and date range are computed in the repository (T-218).
+- `postId` on `InboxItem` is a soft reference — the Engagement BC does not import the Publishing implementation.
+- Replies are sent through Outstand; DMs, mentions, and Engagement webhooks are not modeled for the MVP.
 
 ---
 
@@ -388,20 +387,20 @@ Mengelola komentar audiens dan reply dari akun media sosial yang terhubung. Enga
 
 ### Responsibility
 
-Mengelola data performa konten dan ringkasan analytics workspace. Analytics adalah **retention layer** yang memberikan visibility kepada buyer (Maya) dan context kepada daily user (Raka).
+Manages content performance data and the workspace analytics summary. Analytics is a **retention layer** that gives visibility to the buyer (Maya) and context to the daily user (Raka).
 
 ### Core Entities
 
-| Entitas | Tipe | Deskripsi |
+| Entity | Type | Description |
 |---------|------|-----------|
-| `PostMetrics` | Aggregate Root | Metrik performa satu post di satu platform |
-| `WorkspaceSnapshot` | Entity | Ringkasan analytics workspace untuk periode tertentu |
+| `PostMetrics` | Aggregate Root | Performance metrics of one post on one platform |
+| `WorkspaceSnapshot` | Entity | The workspace analytics summary for a given period |
 
 ### Key Attributes
 
 **PostMetrics**
 - `id: PostMetricsId`
-- `postId: PostId` — referensi ke Publishing BC
+- `postId: PostId` — reference to the Publishing BC
 - `connectedAccountId: ConnectedAccountId`
 - `platform: SocialPlatform`
 - `impressions: number`
@@ -410,8 +409,8 @@ Mengelola data performa konten dan ringkasan analytics workspace. Analytics adal
 - `comments: number`
 - `shares: number`
 - `clicks: number?`
-- `engagementRate: number` — dihitung: (likes + comments + shares) / reach
-- `fetchedAt: Date` — kapan data ini terakhir diambil dari Outstand
+- `engagementRate: number` — computed: (likes + comments + shares) / reach
+- `fetchedAt: Date` — when this data was last fetched from Outstand
 
 **WorkspaceSnapshot**
 - `id: WorkspaceSnapshotId`
@@ -426,11 +425,11 @@ Mengelola data performa konten dan ringkasan analytics workspace. Analytics adal
 - `topPostId: PostId?`
 - `createdAt: Date`
 
-### Catatan
+### Notes
 
-- `PostMetrics` di-fetch dari Outstand API — frekuensi fetch didefinisikan di `background-jobs.md`.
-- `WorkspaceSnapshot` dapat dibuat secara periodik oleh background job berdasarkan data `PostMetrics`.
-- Analytics BC membaca `PostId` dan `ConnectedAccountId` sebagai referensi, tidak pernah bergantung pada implementasi Publishing atau Workspace.
+- `PostMetrics` is fetched from the Outstand API — the fetch frequency is defined in `background-jobs.md`.
+- `WorkspaceSnapshot` can be created periodically by a background job based on `PostMetrics` data.
+- The Analytics BC reads `PostId` and `ConnectedAccountId` as references, and never depends on the implementation of Publishing or Workspace.
 
 ---
 
@@ -438,23 +437,23 @@ Mengelola data performa konten dan ringkasan analytics workspace. Analytics adal
 
 ### Responsibility
 
-Mengelola halaman publik workspace yang berisi daftar tautan dan profil brand. Start Page adalah **supporting capability** yang memanfaatkan workspace identity (I-05 positioning: Start Page adalah capability pendukung, bukan pusat journey mingguan).
+Manages the workspace's public page containing a list of links and the brand profile. Start Page is a **supporting capability** that makes use of the workspace identity (I-05 positioning: Start Page is a supporting capability, not the center of the weekly journey).
 
 ### Core Entities
 
-| Entitas | Tipe | Deskripsi |
+| Entity | Type | Description |
 |---------|------|-----------|
-| `StartPage` | Aggregate Root | Halaman publik yang dapat dibagikan |
-| `PageLink` | Entity | Tautan individual yang tampil di halaman |
+| `StartPage` | Aggregate Root | A public page that can be shared |
+| `PageLink` | Entity | An individual link shown on the page |
 
 ### Key Attributes
 
 **StartPage**
 - `id: StartPageId`
 - `workspaceId: WorkspaceId`
-- `slug: string` — URL identifier publik (misal: `/page/nama-brand`)
-- `title: string` — judul halaman
-- `bio: string?` — deskripsi singkat
+- `slug: string` — public URL identifier (e.g. `/page/nama-brand`)
+- `title: string` — page title
+- `bio: string?` — short description
 - `avatarUrl: string?`
 - `theme: PageTheme` — `default | minimal | bold | ...`
 - `isPublished: boolean`
@@ -466,7 +465,7 @@ Mengelola halaman publik workspace yang berisi daftar tautan dan profil brand. S
 - `startPageId: StartPageId`
 - `label: string`
 - `url: string`
-- `position: number` — urutan tampil
+- `position: number` — display order
 - `isActive: boolean`
 - `clickCount: number` — basic analytics
 - `createdAt: Date`
@@ -477,13 +476,13 @@ Mengelola halaman publik workspace yang berisi daftar tautan dan profil brand. S
 
 ### Responsibility
 
-Mengelola file media yang diunggah oleh pengguna untuk digunakan dalam konten. Media Library adalah supporting domain yang menyediakan aset bagi Publishing.
+Manages media files uploaded by users for use in content. The Media Library is a supporting domain that provides assets for Publishing.
 
 ### Core Entities
 
-| Entitas | Tipe | Deskripsi |
+| Entity | Type | Description |
 |---------|------|-----------|
-| `MediaItem` | Aggregate Root | File media yang diunggah ke workspace |
+| `MediaItem` | Aggregate Root | A media file uploaded to the workspace |
 
 ### Key Attributes
 
@@ -494,24 +493,24 @@ Mengelola file media yang diunggah oleh pengguna untuk digunakan dalam konten. M
 - `filename: string`
 - `mimeType: string`
 - `size: number` — bytes
-- `url: string?` — cache URL akses aplikasi dari Supabase Storage; boleh kosong/kedaluwarsa dan dibuat ulang dari `storagePath`
-- `storagePath: string` — path internal di Supabase Storage bucket
-- `outstandMediaId: string?` — metadata opsional working copy publishing
-- `outstandMediaUrl: string?` — metadata opsional; bukan source of truth original
-- `outstandUploadedAt: Date?` — waktu working copy dikonfirmasi di Outstand
-- `outstandExpiresAt: Date?` — waktu kedaluwarsa working copy Outstand
+- `url: string?` — application access URL cache from Supabase Storage; may be empty/expired and regenerated from `storagePath`
+- `storagePath: string` — internal path in the Supabase Storage bucket
+- `outstandMediaId: string?` — optional publishing working copy metadata
+- `outstandMediaUrl: string?` — optional metadata; not the source of truth for the original
+- `outstandUploadedAt: Date?` — time the working copy was confirmed in Outstand
+- `outstandExpiresAt: Date?` — expiry time of the Outstand working copy
 - `type: MediaType` — `image | video | gif`
 - `width: number?`
 - `height: number?`
-- `duration: number?` — untuk video, dalam detik
+- `duration: number?` — for video, in seconds
 - `createdAt: Date`
 
-### Catatan
+### Notes
 
-- Media file disimpan di **Supabase Storage** (keputusan pra-architecture).
-- Saat publish, original dibuatkan working copy melalui Outstand request upload URL → PUT → confirm; URL Outstand yang dikembalikan digunakan untuk scheduling/publishing.
-- Publishing BC hanya menyimpan `MediaId[]` — tidak meng-embed data media.
-- Saat merender Post, Application Layer mengambil `MediaItem` dari Media BC berdasarkan `MediaId[]`.
+- Media files are stored in **Supabase Storage** (pre-architecture decision).
+- On publish, the original is given a working copy through Outstand request upload URL → PUT → confirm; the returned Outstand URL is used for scheduling/publishing.
+- The Publishing BC only stores `MediaId[]` — it does not embed media data.
+- When rendering a Post, the Application Layer fetches `MediaItem` from the Media BC based on `MediaId[]`.
 
 ---
 
@@ -519,33 +518,33 @@ Mengelola file media yang diunggah oleh pengguna untuk digunakan dalam konten. M
 
 ### Responsibility
 
-Mengelola notifikasi in-app untuk pengguna. Notification adalah supporting domain yang menerima trigger dari domain lain dan mengirim pesan ke pengguna.
+Manages in-app notifications for users. Notification is a supporting domain that receives triggers from other domains and sends messages to users.
 
 ### Core Entities
 
-| Entitas | Tipe | Deskripsi |
+| Entity | Type | Description |
 |---------|------|-----------|
-| `Notification` | Aggregate Root | Satu item notifikasi untuk satu pengguna |
+| `Notification` | Aggregate Root | One notification item for one user |
 
 ### Key Attributes
 
 **Notification**
 - `id: NotificationId`
 - `workspaceId: WorkspaceId`
-- `userId: UserId` — penerima notifikasi
+- `userId: UserId` — notification recipient
 - `type: NotificationType` — `post_published | post_failed | account_reconnect_required | engagement_new | member_invited | ownership_transfer_requested | ownership_transfer_resolved | ...`
 - `title: string`
 - `body: string`
 - `isRead: boolean`
 - `relatedEntityType: string?` — `post | inbox_item | member | ...`
-- `relatedEntityId: string?` — ID entitas terkait
+- `relatedEntityId: string?` — ID of the related entity
 - `createdAt: Date`
 - `readAt: Date?`
 
-### Catatan
+### Notes
 
-- Real-time delivery menggunakan **Supabase Realtime** — detail di `realtime-strategy.md`.
-- Notification BC tidak memiliki logika bisnis domain — ia hanya consumer yang menulis notifikasi berdasarkan events dari domain lain.
+- Real-time delivery uses **Supabase Realtime** — details in `realtime-strategy.md`.
+- The Notification BC has no domain business logic — it is only a consumer that writes notifications based on events from other domains.
 
 ---
 
@@ -553,14 +552,14 @@ Mengelola notifikasi in-app untuk pengguna. Notification adalah supporting domai
 
 ### Responsibility
 
-Mengelola langganan dan pembayaran workspace. Billing adalah post-MVP domain — didefinisikan di sini untuk kelengkapan domain model tetapi tidak diimplementasi di MVP.
+Manages workspace subscriptions and payments. Billing is a post-MVP domain — defined here for completeness of the domain model but not implemented in the MVP.
 
 ### Core Entities
 
-| Entitas | Tipe | Deskripsi |
+| Entity | Type | Description |
 |---------|------|-----------|
-| `Subscription` | Aggregate Root | Langganan aktif workspace |
-| `Invoice` | Entity | Tagihan per periode |
+| `Subscription` | Aggregate Root | The workspace's active subscription |
+| `Invoice` | Entity | A bill per period |
 
 ### Key Attributes
 
@@ -582,18 +581,18 @@ Mengelola langganan dan pembayaran workspace. Billing adalah post-MVP domain —
 - `issuedAt: Date`
 - `paidAt: Date?`
 
-### Catatan
+### Notes
 
-- Payment provider (Stripe atau setara) adalah external dependency. Detail di fase Engineering Planning.
-- MVP menggunakan `plan: free` untuk semua workspace — Billing BC dibangun post-MVP.
+- The payment provider (Stripe or equivalent) is an external dependency. Details in the Engineering Planning phase.
+- The MVP uses `plan: free` for all workspaces — the Billing BC is built post-MVP.
 
 ---
 
 # Context Map
 
-Context Map mendokumentasikan bagaimana bounded context saling berinteraksi. Dalam Pragmatic Boundary, relasi antar context dilakukan **hanya melalui ID references dan shared types dari `packages/shared`** — tidak ada import implementasi lintas domain.
+The Context Map documents how bounded contexts interact. In the Pragmatic Boundary, relations between contexts happen **only through ID references and shared types from `packages/shared`** — there is no importing of implementations across domains.
 
-## Diagram Context Map
+## Context Map Diagram
 
 ```
                     ┌─────────────┐
@@ -618,7 +617,7 @@ Context Map mendokumentasikan bagaimana bounded context saling berinteraksi. Dal
       (shared)                        (soft ref)
            │
      ┌─────▼─────┐
-     │ BC-04     │◄──── entry point MCP (membungkus service BC lain)
+     │ BC-04     │◄──── MCP entry point (wraps other BCs' services)
      │ MCP       │
      │ Access    │
      └───────────┘
@@ -631,40 +630,40 @@ Context Map mendokumentasikan bagaimana bounded context saling berinteraksi. Dal
      BC-03, BC-05 → BC-09 Notification
 
      External System:
-     BC-03 Publishing ──── Outstand API ────► Post.outstandPostId (amandemen ADR-092)
+     BC-03 Publishing ──── Outstand API ────► Post.outstandPostId (amendment to ADR-092)
      BC-05 Engagement ◄──── Outstand Comments API ─ JOB-03/manual pull
      BC-06 Analytics ◄──── Outstand API ───── PostMetrics (fetch)
 ```
 
-## Tabel Relasi Antar Context
+## Inter-Context Relation Table
 
-| Source BC | Target BC | Jenis Relasi | Data yang Dikonsumsi |
+| Source BC | Target BC | Relation Type | Data Consumed |
 |-----------|-----------|-------------|----------------------|
-| Workspace | Identity | Downstream | `UserId` (referensi Member) |
+| Workspace | Identity | Downstream | `UserId` (Member reference) |
 | Publishing | Workspace | Downstream | `WorkspaceId`, `ConnectedAccountId` |
-| Publishing | Media | Downstream | `MediaId[]` (referensi attachment) |
-| MCP Access | Workspace | Downstream | `WorkspaceId`, `UserId` (grant dan validasi member) |
+| Publishing | Media | Downstream | `MediaId[]` (attachment reference) |
+| MCP Access | Workspace | Downstream | `WorkspaceId`, `UserId` (grant and member validation) |
 | Engagement | Workspace | Downstream | `WorkspaceId`, `ConnectedAccountId` |
-| Engagement | Publishing | Downstream (soft) | `PostId` (komentar terkait post) |
+| Engagement | Publishing | Downstream (soft) | `PostId` (comments related to a post) |
 | Analytics | Publishing | Downstream (soft) | `PostId` (metrics per post) |
 | Analytics | Workspace | Downstream | `WorkspaceId` |
 | Start Page | Workspace | Downstream | `WorkspaceId` |
 | Notification | Workspace | Downstream | `WorkspaceId`, `UserId` |
 | Billing | Workspace | Downstream | `WorkspaceId` |
 
-**Jenis Relasi:**
-- **Downstream** — context mengkonsumsi data dari context lain melalui ID reference.
-- **Downstream (soft)** — referensi ID yang tidak enforce foreign key — boleh null/hilang.
+**Relation Types:**
+- **Downstream** — a context consumes data from another context through an ID reference.
+- **Downstream (soft)** — an ID reference that does not enforce a foreign key — may be null/missing.
 
 ---
 
 # Shared Types — `packages/shared`
 
-`packages/shared` adalah package di Hybrid Monorepo yang mempublish tipe-tipe yang digunakan lintas bounded context. Tidak boleh ada logika bisnis atau implementasi di `packages/shared` — **hanya type definitions**.
+`packages/shared` is a package in the Hybrid Monorepo that publishes types used across bounded contexts. There must be no business logic or implementation in `packages/shared` — **only type definitions**.
 
 ## ID Types
 
-Setiap bounded context mempublish branded ID-nya ke `packages/shared` agar cross-context reference tetap type-safe.
+Each bounded context publishes its branded IDs to `packages/shared` so cross-context references stay type-safe.
 
 ```typescript
 // ID types — opaque branded types
@@ -689,11 +688,11 @@ type SubscriptionId = string & { readonly _brand: 'SubscriptionId' };
 
 ## Enums
 
-Enum kanonikal yang digunakan lebih dari satu bounded context:
+Canonical enums used by more than one bounded context:
 
 ```typescript
-// Content status — satu-satunya acuan status kanonikal
-// Sumber: product-discovery/02-product/roles-permissions.md
+// Content status — the only canonical status reference
+// Source: product-discovery/02-product/roles-permissions.md
 enum ContentStatus {
   Draft = 'draft',
   InReview = 'in_review',
@@ -703,7 +702,7 @@ enum ContentStatus {
   Failed = 'failed',
 }
 
-// Member role (ADR-074 — 3 role, "Manager" dihapus)
+// Member role (ADR-074 — 3 roles, "Manager" removed)
 enum MemberRole {
   Owner = 'owner',
   Admin = 'admin',
@@ -739,16 +738,16 @@ enum ContentFormat {
 
 ## Value Objects
 
-Value object sederhana yang digunakan lintas context:
+Simple value objects used across contexts:
 
 ```typescript
-// Date range — digunakan oleh Analytics dan Publishing
+// Date range — used by Analytics and Publishing
 interface DateRange {
   start: Date;
   end: Date;
 }
 
-// Pagination params — digunakan oleh seluruh list query
+// Pagination params — used by all list queries
 interface PaginationParams {
   page: number;
   limit: number;
@@ -759,55 +758,55 @@ interface PaginationParams {
 
 # Domain Boundary Rules
 
-Aturan berikut wajib diikuti di seluruh implementasi. Aturan ini adalah turunan langsung dari keputusan **Pragmatic Boundary** (keputusan pra-architecture).
+The following rules must be followed across all implementations. These rules are a direct derivation of the **Pragmatic Boundary** decision (pre-architecture decision).
 
-## Aturan Utama
+## Main Rules
 
-**BR-01 — Tidak Boleh Import Implementasi Lintas Domain**
+**BR-01 — No Importing Implementations Across Domains**
 
-Sebuah bounded context dilarang mengimport file implementasi dari bounded context lain.
+A bounded context is forbidden from importing implementation files from another bounded context.
 
 ```
-// ❌ DILARANG
+// ❌ FORBIDDEN
 import { Post } from '../publishing/entities/post';
 
-// ✅ BENAR — hanya ID reference via shared types
+// ✅ CORRECT — only an ID reference via shared types
 import { PostId } from '@postific/shared';
 ```
 
-**BR-02 — Referensi Lintas Domain Hanya Melalui ID**
+**BR-02 — Cross-Domain References Only Through IDs**
 
-Ketika satu domain perlu mereferensikan entitas dari domain lain, gunakan ID-nya saja. Jika diperlukan data lengkap, Application Layer yang bertanggung jawab mengambil data dari kedua domain.
+When one domain needs to reference an entity from another domain, use its ID only. If the full data is needed, the Application Layer is responsible for fetching data from both domains.
 
-**BR-03 — Shared Types Hanya di `packages/shared`**
+**BR-03 — Shared Types Only in `packages/shared`**
 
-Tipe yang digunakan lebih dari satu domain wajib didefinisikan di `packages/shared`. Tidak boleh ada "shared type" yang didefinisikan di salah satu domain dan di-import domain lain.
+Types used by more than one domain must be defined in `packages/shared`. There must be no "shared type" defined in one domain and imported by another domain.
 
 **BR-04 — Public API via `index.ts`**
 
-Setiap domain mengekspos public API-nya hanya melalui file `index.ts` (barrel export). File internal domain tidak boleh diimport langsung dari luar.
+Each domain exposes its public API only through the `index.ts` file (barrel export). A domain's internal files must not be imported directly from outside.
 
 ```
-// ✅ BENAR — import dari barrel
+// ✅ CORRECT — import from the barrel
 import { createPost } from '@postific/publishing';
 
-// ❌ DILARANG — import dari file internal
+// ❌ FORBIDDEN — import from an internal file
 import { createPost } from '@postific/publishing/src/services/post-service';
 ```
 
-**BR-05 — Tidak Ada Shared Database Table Lintas Domain**
+**BR-05 — No Shared Database Table Across Domains**
 
-Setiap domain memiliki tabel databasenya sendiri. Relasi antar tabel dari domain berbeda menggunakan foreign key referensi ID — tidak ada join yang menembus boundary domain pada level query domain.
+Each domain has its own database tables. Relations between tables of different domains use ID reference foreign keys — there are no joins that cross a domain boundary at the domain query level.
 
-Pengecualian: Application Layer boleh melakukan join antar tabel dari domain berbeda untuk keperluan read model / view.
+Exception: the Application Layer may perform joins between tables of different domains for read model / view purposes.
 
-**BR-06 — Event / Service Interface untuk Komunikasi Async**
+**BR-06 — Event / Service Interface for Async Communication**
 
-Jika satu domain perlu memicu aksi di domain lain (misalnya: Publishing selesai → kirim Notification), komunikasi dilakukan melalui service interface yang didefinisikan di Application Layer — bukan direct call ke domain implementasi.
+If one domain needs to trigger an action in another domain (for example: Publishing finishes → send a Notification), communication is done through a service interface defined in the Application Layer — not a direct call to the domain implementation.
 
-Detail mekanisme ini didefinisikan di `application-layer.md`.
+The details of this mechanism are defined in `application-layer.md`.
 
-## Struktur Folder (Referensi)
+## Folder Structure (Reference)
 
 ```
 apps/
@@ -841,15 +840,15 @@ packages/
     └── index.ts
 ```
 
-Detail struktur monorepo lengkap didefinisikan di `product-discovery/06-engineering/`.
+The full monorepo structure details are defined in `product-discovery/06-engineering/`.
 
 ---
 
-# Traceability ke Product Baseline
+# Traceability to the Product Baseline
 
-Tabel berikut memetakan Bounded Context ke modul yang didefinisikan di Product Baseline v1.0 (`feature-modules.md`).
+The following table maps Bounded Contexts to the modules defined in Product Baseline v1.0 (`feature-modules.md`).
 
-| Bounded Context | Product Module | Klasifikasi Module |
+| Bounded Context | Product Module | Module Classification |
 |----------------|----------------|-------------------|
 | BC-01 Identity | Authentication | Supporting Module |
 | BC-02 Workspace | Workspace | Core Module |
@@ -864,54 +863,54 @@ Tabel berikut memetakan Bounded Context ke modul yang didefinisikan di Product B
 | BC-10 Billing | Billing | Supporting Module |
 | — | Settings | Supporting Module (distributed: Workspace + User Profile BC) |
 
-**Catatan:**
-- Klasifikasi bounded context dan klasifikasi modul produk memang berbeda untuk BC-04: BC-04 MCP Access adalah Supporting Domain (hanya memegang grant, audit, dan rate limit), sedangkan modul produk "MCP Server" di `feature-modules.md` adalah Core Module karena mengekspos aksi produk ke AI pengguna lewat service domain lain (ADR-138).
-- Module **Settings** dari Product Baseline tidak menjadi bounded context tersendiri — setting workspace dikelola di BC-02 Workspace, setting user dikelola di BC-01 Identity/User Profile.
-- Module **Infrastructure** (API Integrations, Webhooks, Audit Logs, Background Jobs) adalah cross-cutting concerns yang tidak menjadi bounded context — dibahas di dokumen arsitektur berikutnya.
+**Notes:**
+- The bounded context classification and the product module classification do differ for BC-04: BC-04 MCP Access is a Supporting Domain (it only holds grants, audit, and rate limit), while the "MCP Server" product module in `feature-modules.md` is a Core Module because it exposes product actions to the user's AI through other domains' services (ADR-138).
+- The **Settings** module from the Product Baseline does not become its own bounded context — workspace settings are managed in BC-02 Workspace, user settings are managed in BC-01 Identity/User Profile.
+- The **Infrastructure** modules (API Integrations, Webhooks, Audit Logs, Background Jobs) are cross-cutting concerns that do not become bounded contexts — covered in the following architecture documents.
 
 ---
 
-# Traceability ke User Insights
+# Traceability to User Insights
 
-| Insight | Bounded Context yang Terdampak | Implikasi Domain |
+| Insight | Affected Bounded Context | Domain Implication |
 |---------|-------------------------------|-----------------|
-| I-01 — Workflow Consolidation | BC-03 Publishing, BC-05 Engagement, BC-06 Analytics | Ketiga BC harus dapat "membaca" dari satu workspace context tanpa context switch |
-| I-04 — Publishing Trust | BC-03 Publishing | `Post` dan `PostTarget` harus memodelkan status dengan granularitas tinggi — `outstandPostId` (post-level, amandemen ADR-092) dan `PostTargetStatus`/`platformPostId` per account |
-| I-06 — AI in-workflow | BC-04 MCP Access | Diganti ADR-138: AI pengguna menempel pada pekerjaan di Postific lewat tool MCP yang membungkus Application Service yang sama dengan UI, tanpa UI AI bawaan; BC-04 (Supporting Domain) hanya memegang grant, audit, dan rate limit |
-| I-08 — Lightweight Collaboration | BC-03 Publishing | `ContentStatus` memodelkan handoff ringan (`In Review`, `Ready to Schedule`) tanpa membangun approval workflow berlapis |
+| I-01 — Workflow Consolidation | BC-03 Publishing, BC-05 Engagement, BC-06 Analytics | All three BCs must be able to "read" from one workspace context without context switching |
+| I-04 — Publishing Trust | BC-03 Publishing | `Post` and `PostTarget` must model status with high granularity — `outstandPostId` (post-level, amendment to ADR-092) and `PostTargetStatus`/`platformPostId` per account |
+| I-06 — AI in-workflow | BC-04 MCP Access | Replaced by ADR-138: the user's AI attaches to work in Postific through MCP tools that wrap the same Application Services as the UI, without a built-in AI UI; BC-04 (Supporting Domain) only holds grants, audit, and rate limit |
+| I-08 — Lightweight Collaboration | BC-03 Publishing | `ContentStatus` models a light handoff (`In Review`, `Ready to Schedule`) without building a layered approval workflow |
 
 ---
 
 # Decision Log
 
-| ID | Keputusan | Alasan | Alternatif |
+| ID | Decision | Reason | Alternatives |
 |----|-----------|--------|-----------|
-| DM-D01 | Menggunakan 10 bounded context sesuai dengan modul Product Baseline | Mencerminkan domain bisnis nyata, bukan abstraksi teknis | Sedikit BC besar (lebih mudah awal, sulit berkembang) |
-| DM-D02 | BC-10 Billing didefinisikan tetapi **out of scope MVP** | Billing perlu dimodelkan sekarang agar tidak merusak domain saat ditambahkan nanti | Mengabaikan Billing sampai diperlukan |
-| DM-D03 | Settings tidak menjadi BC tersendiri — didistribusikan ke Workspace dan Identity | "Settings" adalah capability UI bukan domain bisnis — entitasnya sudah ada di BC yang relevan | BC Settings tersendiri (menambah indirection tidak perlu) |
-| DM-D04 | `ContentStatus` enum didefinisikan di `packages/shared` bukan di Publishing BC | Status konten dikonsumsi oleh Engagement, Analytics, dan Notification — harus shared | Definisikan di Publishing dan re-export (menambah coupling) |
-| DM-D05 | `ConnectedAccount` berada di Workspace BC bukan Publishing BC | Account adalah workspace-level resource, bukan publication-level resource; Publishing hanya referensi `ConnectedAccountId` | ConnectedAccount di Publishing BC (membuat Publishing terlalu besar) |
-| DM-D06 | Tidak ada "Activity Feed" BC — activity tercatat di Notification BC | Activity Feed (Should Have di MVP) dapat dimodel sebagai `NotificationType` yang di-query; tidak memerlukan BC baru pada MVP | BC Activity tersendiri (post-MVP jika diperlukan) |
-| DM-D07 | `ContentFormat` di `PostTarget` (+ `platformOptions`), enum di `packages/shared` | Format bergantung platform & multi-account; Outstand override tetap di ACL (ADR-039) | Format hanya di `Post` global, atau hardcode field Outstand di domain |
-| DM-D08 | Engagement MVP hanya `comment` + `Reply`, diisi melalui pull | Selaras kontrak Outstand; DM/mention dan webhook Engagement tidak tersedia untuk MVP | Mempertahankan tipe yang tidak dapat dipenuhi provider |
-| DM-D09 | Media original tetap di Supabase; metadata working copy Outstand opsional | Memisahkan ownership aset dari artefak publishing provider | Menjadikan URL Outstand source of truth |
-| DM-D10 | ADR-040 | DM-D08–D09 dan status reconnect akun mengamandemen model lama |
-| DM-D11 | Transfer Ownership dua langkah: `pendingOwnerTransferTo` di `Workspace`, bukan swap `ownerId` langsung | Admin target harus `acceptOwnershipTransfer` dulu sebelum role benar-benar bertukar — mencegah Owner lama memaksakan tanggung jawab (termasuk billing) ke Admin yang belum siap (ADR-050) | Swap `ownerId` langsung tanpa persetujuan (lebih sederhana, tapi ditolak — lihat ADR-050) |
+| DM-D01 | Use 10 bounded contexts matching the Product Baseline modules | Reflects the real business domain, not a technical abstraction | Few large BCs (easier at first, hard to grow) |
+| DM-D02 | BC-10 Billing is defined but **out of MVP scope** | Billing needs to be modeled now so it does not break the domain when added later | Ignore Billing until needed |
+| DM-D03 | Settings is not its own BC — distributed to Workspace and Identity | "Settings" is a UI capability, not a business domain — its entities already exist in the relevant BCs | A separate Settings BC (adds unnecessary indirection) |
+| DM-D04 | The `ContentStatus` enum is defined in `packages/shared`, not in the Publishing BC | Content status is consumed by Engagement, Analytics, and Notification — it must be shared | Define it in Publishing and re-export (adds coupling) |
+| DM-D05 | `ConnectedAccount` lives in the Workspace BC, not the Publishing BC | An account is a workspace-level resource, not a publication-level resource; Publishing only references `ConnectedAccountId` | ConnectedAccount in the Publishing BC (makes Publishing too large) |
+| DM-D06 | There is no "Activity Feed" BC — activity is recorded in the Notification BC | The Activity Feed (Should Have in the MVP) can be modeled as a queried `NotificationType`; needs no new BC in the MVP | A separate Activity BC (post-MVP if needed) |
+| DM-D07 | `ContentFormat` on `PostTarget` (+ `platformOptions`), enum in `packages/shared` | The format depends on platform & multi-account; Outstand overrides stay in the ACL (ADR-039) | The format only on the global `Post`, or hardcode Outstand fields in the domain |
+| DM-D08 | The MVP Engagement is only `comment` + `Reply`, filled through pull | Aligned with the Outstand contract; DM/mention and Engagement webhooks are not available for the MVP | Keep types that the provider cannot fulfill |
+| DM-D09 | The original media stays in Supabase; Outstand working copy metadata is optional | Separates asset ownership from provider publishing artifacts | Make the Outstand URL the source of truth |
+| DM-D10 | ADR-040 | DM-D08–D09 and the account reconnect status amend the old model |
+| DM-D11 | Two-step Transfer Ownership: `pendingOwnerTransferTo` on `Workspace`, not a direct `ownerId` swap | The target Admin must `acceptOwnershipTransfer` first before the roles actually swap — prevents the old Owner from forcing responsibility (including billing) onto an Admin who is not ready (ADR-050) | Direct `ownerId` swap without approval (simpler, but rejected — see ADR-050) |
 
 ---
 
 # Related Documents
 
-* `README.md` — scope dan workflow folder 05-architecture
-* `database-strategy.md` — strategi schema database berdasarkan domain model ini *(dokumen berikutnya)*
-* `application-layer.md` — interaksi Next.js App Router dengan domain services
-* `integration-layer.md` — Outstand API dan webhook architecture
-* `background-jobs.md` — background job untuk Publishing dan Analytics
-* `realtime-strategy.md` — Supabase Realtime untuk Notification
-* `auth-architecture.md` — Better Auth dan otorisasi berbasis MemberRole
-* `../02-product/feature-modules.md` — Product Baseline: modul produk
+* `README.md` — scope and workflow of the 05-architecture folder
+* `database-strategy.md` — database schema strategy based on this domain model *(next document)*
+* `application-layer.md` — how the Next.js App Router interacts with domain services
+* `integration-layer.md` — Outstand API and webhook architecture
+* `background-jobs.md` — background jobs for Publishing and Analytics
+* `realtime-strategy.md` — Supabase Realtime for Notification
+* `auth-architecture.md` — Better Auth and MemberRole-based authorization
+* `../02-product/feature-modules.md` — Product Baseline: product modules
 * `../02-product/mvp-definition.md` — Product Baseline: MVP scope
-* `../02-product/roles-permissions.md` — Product Baseline: roles dan content status kanonikal
+* `../02-product/roles-permissions.md` — Product Baseline: roles and canonical content status
 * `../03-user/insights.md` — User Discovery: insights I-01, I-04, I-06, I-08
-* `../04-ux/key-screen-patterns.md` — UX Baseline: screen patterns sebagai referensi entitas
-* `../../project-os/DECISIONS.md` — ADR-004 (Modular Monolith + DDD), pra-architecture decisions
+* `../04-ux/key-screen-patterns.md` — UX Baseline: screen patterns as an entity reference
+* `../../project-os/DECISIONS.md` — ADR-004 (Modular Monolith + DDD), pre-architecture decisions

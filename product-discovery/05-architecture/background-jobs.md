@@ -1,54 +1,54 @@
 # Background Jobs & Scheduler
 
-Dokumen ini mendefinisikan **Background Jobs & Scheduler Architecture** untuk produk **Postific** — strategi eksekusi pekerjaan asinkron yang mencakup scheduling konten, retry mekanisme, sinkronisasi engagement, sinkronisasi analytics, dan penanganan job yang gagal.
+This document defines the **Background Jobs & Scheduler Architecture** for the **Postific** product — the asynchronous job execution strategy covering content scheduling, retry mechanisms, engagement synchronization, analytics synchronization, and handling of failed jobs.
 
-Dokumen ini menjadi acuan desain background job dan tidak mencakup implementasi kode. Detail implementasi (library, konfigurasi cron expression) didokumentasikan di Engineering Planning (M6).
-
----
-
-# Tujuan
-
-* Mendefinisikan tipe-tipe background job yang dibutuhkan dalam sistem.
-* Menetapkan arsitektur job queue berbasis PostgreSQL.
-* Mendefinisikan mekanisme retry dan penanganan job yang gagal.
-* Menetapkan strategi scheduling untuk periodic sync jobs.
-* Mendokumentasikan integrasi background job dengan domain yang membutuhkannya.
+This document is the reference for background job design and does not cover code implementation. Implementation details (library, cron expression configuration) are documented in Engineering Planning (M6).
 
 ---
 
-# Keputusan Pra-Architecture
+# Purpose
 
-Keputusan berikut sudah ditetapkan sebelum dokumen ini dibuat dan menjadi fondasi Background Jobs Architecture:
+* Define the types of background jobs needed in the system.
+* Set the PostgreSQL-based job queue architecture.
+* Define the retry mechanism and handling of failed jobs.
+* Set the scheduling strategy for periodic sync jobs.
+* Document the integration of background jobs with the domains that need them.
 
-| Topik | Keputusan | Sumber |
+---
+
+# Pre-Architecture Decisions
+
+The following decisions were set before this document was created and are the foundation of the Background Jobs Architecture:
+
+| Topic | Decision | Source |
 |-------|-----------|--------|
-| Database Platform | Supabase PostgreSQL Cloud | Keputusan pra-architecture |
-| Deployment | Railway | Keputusan pra-architecture |
-| Social Media Integration | Outstand API (webhook untuk status post) | ADR-005 |
-| Webhook Handling | Verifikasi raw-body HMAC → durable receipt idempoten → ACK 2xx → proses internal | ADR-020, ADR-040 |
-| Schema Organization | Single schema `public` dengan domain prefix | ADR-014 |
+| Database Platform | Supabase PostgreSQL Cloud | Pre-architecture decision |
+| Deployment | Railway | Pre-architecture decision |
+| Social Media Integration | Outstand API (webhook for post status) | ADR-005 |
+| Webhook Handling | Raw-body HMAC verification → idempotent durable receipt → ACK 2xx → internal processing | ADR-020, ADR-040 |
+| Schema Organization | Single `public` schema with a domain prefix | ADR-014 |
 
 ---
 
-# Overview Tipe Job
+# Job Type Overview
 
-Sistem membutuhkan dua kategori background job:
+The system needs two categories of background jobs:
 
-| Kategori | Trigger | Contoh |
+| Category | Trigger | Example |
 |----------|---------|--------|
-| **Event-driven** | Dipicu oleh event domain tertentu | Pemrosesan receipt webhook, notifikasi publish |
-| **Periodic** | Dijadwalkan berulang pada interval tetap | Sinkronisasi engagement, sinkronisasi analytics, purge audit MCP |
+| **Event-driven** | Triggered by a specific domain event | Webhook receipt processing, publish notification |
+| **Periodic** | Scheduled repeatedly at a fixed interval | Engagement sync, analytics sync, MCP audit purge |
 
 ---
 
-# Arsitektur Job Queue
+# Job Queue Architecture
 
-## Pendekatan: PostgreSQL Job Queue + Railway Cron
+## Approach: PostgreSQL Job Queue + Railway Cron
 
-Sistem menggunakan **PostgreSQL-backed job queue** dengan tabel `background_jobs` sebagai sumber kebenaran status job. Eksekusi job dipicu oleh:
+The system uses a **PostgreSQL-backed job queue** with the `background_jobs` table as the source of truth for job status. Job execution is triggered by:
 
-1. **Railway Cron** — memanggil Route Handler `/api/jobs/run` pada interval tertentu (setiap menit untuk event-driven jobs dan setiap 30 menit untuk JOB-03 Engagement sync; Analytics, JOB-08 purge audit MCP, dan JOB-10 sapuan thumbnail impor memiliki jadwal harian tersendiri).
-2. **Ingestion/Application Service** — menulis job baru ke tabel `background_jobs` saat ada receipt webhook baru atau operasi async lain.
+1. **Railway Cron** — calls the `/api/jobs/run` Route Handler at a given interval (every minute for event-driven jobs and every 30 minutes for the JOB-03 Engagement sync; Analytics, JOB-08 MCP audit purge, and JOB-10 import thumbnail sweep each have their own daily schedule).
+2. **Ingestion/Application Service** — writes a new job to the `background_jobs` table when there is a new webhook receipt or another async operation.
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
@@ -73,15 +73,15 @@ Sistem menggunakan **PostgreSQL-backed job queue** dengan tabel `background_jobs
 └──────────────────────────────────────────────────────────────────┘
 ```
 
-## Tabel `background_jobs`
+## `background_jobs` Table
 
 ```
 background_jobs
 ├── id                UUID PK
-├── type              TEXT        -- tipe job (lihat Job Type Registry)
-├── payload           JSONB       -- data yang dibutuhkan job handler
+├── type              TEXT        -- job type (see Job Type Registry)
+├── payload           JSONB       -- data needed by the job handler
 ├── status            TEXT        -- pending | running | done | failed
-├── scheduled_at      TIMESTAMPTZ -- waktu job boleh dieksekusi (untuk delay/retry)
+├── scheduled_at      TIMESTAMPTZ -- time the job may be executed (for delay/retry)
 ├── started_at        TIMESTAMPTZ
 ├── completed_at      TIMESTAMPTZ
 ├── attempts          INT DEFAULT 0
@@ -95,22 +95,22 @@ background_jobs
 ```
 pending → running → done
                  → failed (attempts < max_attempts → scheduled_at updated → pending)
-                 → failed (attempts >= max_attempts → status = failed, tidak retry)
+                 → failed (attempts >= max_attempts → status = failed, no retry)
 ```
 
 ## JobRunner Route Handler
 
-`POST /api/jobs/run` adalah endpoint internal yang hanya dipanggil oleh Railway Cron.
+`POST /api/jobs/run` is an internal endpoint called only by Railway Cron.
 
-**Keamanan:**
-- Request harus menyertakan secret header `X-Job-Secret` yang dicocokkan dengan environment variable.
-- Request dari luar (bukan Railway Cron) ditolak dengan `401 Unauthorized`.
+**Security:**
+- The request must include the secret header `X-Job-Secret`, matched against an environment variable.
+- Requests from outside (not Railway Cron) are rejected with `401 Unauthorized`.
 
-**Eksekusi:**
-1. Route Handler mengambil batch job dengan `status = pending` dan `scheduled_at <= now()`.
-2. Tiap job dieksekusi oleh handler yang sesuai berdasarkan `type`.
-3. Status diperbarui setelah eksekusi selesai.
-4. Maksimum **10 job per run** untuk mencegah timeout Railway.
+**Execution:**
+1. The Route Handler takes a batch of jobs with `status = pending` and `scheduled_at <= now()`.
+2. Each job is executed by the matching handler based on `type`.
+3. The status is updated after execution finishes.
+4. A maximum of **10 jobs per run** to prevent a Railway timeout.
 
 ---
 
@@ -118,9 +118,9 @@ pending → running → done
 
 ## JOB-01 — Internal Webhook Processing
 
-**Trigger:** Receipt baru berhasil dipersistenkan ke `outstand_webhook_events`, atau percobaan pemrosesan internal sebelumnya gagal.
+**Trigger:** A new receipt is successfully persisted to `outstand_webhook_events`, or a previous internal processing attempt failed.
 
-**Tipe:** `outstand.webhook.process`
+**Type:** `outstand.webhook.process`
 
 **Payload:**
 ```
@@ -129,21 +129,21 @@ pending → running → done
 }
 ```
 
-**Handler:** Memuat raw payload receipt yang sudah lolos HMAC dari `outstand_webhook_events`, menandai `processing`, lalu memanggil `WebhookProcessor`. Event resmi MVP: `post.published`, `post.error`, `account.token_expired`. ACL memetakan `post.error` → status domain `failed`, serta `account.token_expired` → status akun `error`/reconnect.
+**Handler:** Loads the raw payload of the receipt that has passed HMAC from `outstand_webhook_events`, marks it `processing`, then calls `WebhookProcessor`. Official MVP events: `post.published`, `post.error`, `account.token_expired`. The ACL maps `post.error` → domain status `failed`, and `account.token_expired` → account status `error`/reconnect.
 
-**Retry:** Maksimal 3 kali. Interval: 5 menit, 15 menit, 60 menit (exponential backoff).
+**Retry:** Maximum 3 times. Interval: 5 minutes, 15 minutes, 60 minutes (exponential backoff).
 
-**On permanent failure:** Catat di log, tandai receipt `dead_lettered`, kirim notifikasi internal (jika ada monitoring).
+**On permanent failure:** Record in the log, mark the receipt `dead_lettered`, send an internal notification (if monitoring exists).
 
-**Boundary retry:** Retry delivery oleh Outstand hanya terjadi jika ingestion tidak berhasil durable/ACK. Setelah ACK `2xx`, semua retry adalah mekanisme internal JOB-01 dan tidak bergantung pada delivery ulang vendor.
+**Retry boundary:** Delivery retry by Outstand only happens if ingestion did not succeed durably/ACK. After ACK `2xx`, all retries are the internal JOB-01 mechanism and do not depend on vendor redelivery.
 
 ---
 
 ## JOB-02 — Post Status Notification
 
-**Trigger:** JOB-01 menyelesaikan `post.published` atau memetakan `post.error` ke status domain `failed`.
+**Trigger:** JOB-01 completes `post.published` or maps `post.error` to the domain status `failed`.
 
-**Tipe:** `notification.post_status`
+**Type:** `notification.post_status`
 
 **Payload:**
 ```
@@ -151,23 +151,23 @@ pending → running → done
   "postId": "uuid",
   "postTargetId": "uuid",
   "workspaceId": "uuid",
-  "userId": "uuid",        -- pemilik post
+  "userId": "uuid",        -- post owner
   "eventType": "published | failed",
   "platform": "instagram | facebook | ..."
 }
 ```
 
-**Handler:** Memanggil `NotificationService.createPostStatusNotification(payload)`.
+**Handler:** Calls `NotificationService.createPostStatusNotification(payload)`.
 
-**Retry:** Maksimal 3 kali. Interval: 1 menit, 5 menit, 15 menit.
+**Retry:** Maximum 3 times. Interval: 1 minute, 5 minutes, 15 minutes.
 
 ---
 
 ## JOB-03 — Engagement Sync
 
-**Trigger:** Railway Cron (periodik, setiap 30 menit).
+**Trigger:** Railway Cron (periodic, every 30 minutes).
 
-**Tipe:** `engagement.sync`
+**Type:** `engagement.sync`
 
 **Payload:**
 ```
@@ -179,24 +179,24 @@ pending → running → done
 ```
 
 **Handler:**
-1. Mengambil daftar posting terbit milik akun dari database (maksimum 50 terbaru, hanya yang sudah punya `outstandPostId`), lalu memanggil `OutstandAdapter.fetchComments({ outstandPostId, platform, accountUsername })` **per posting, berurutan** (Outstand hanya menyediakan komentar per posting, ADR-113; tidak ada cursor). Detail dan alasan batas 50: `integration-layer.md` § Sumber Data (T-218.7).
-2. Satu posting gagal ditarik tidak menggagalkan job: dicatat, lanjut ke posting berikutnya.
-3. Upsert idempoten tiap komentar (`workspace_id, connected_account_id, external_id`) dengan `post_id` internal terisi, lewat `SyncCommentsUseCase` (domain `engagement`).
-4. Memanggil `NotificationService.notify(workspaceId, { type: 'engagement_new', ... })` dari hasil sync. Hanya mengirim satu notifikasi aggregate jika banyak komentar baru ditemukan.
+1. Fetches the list of published posts of the account from the database (maximum the 50 latest, only those that already have an `outstandPostId`), then calls `OutstandAdapter.fetchComments({ outstandPostId, platform, accountUsername })` **per post, sequentially** (Outstand only provides comments per post, ADR-113; there is no cursor). Details and the reason for the 50 limit: `integration-layer.md` § Data Source (T-218.7).
+2. One post failing to be pulled does not fail the job: it is recorded, and the job continues to the next post.
+3. Idempotent upsert of each comment (`workspace_id, connected_account_id, external_id`) with the internal `post_id` filled in, through `SyncCommentsUseCase` (the `engagement` domain).
+4. Calls `NotificationService.notify(workspaceId, { type: 'engagement_new', ... })` from the sync result. Sends only one aggregate notification if many new comments are found.
 
-**Retry:** Maksimal 2 kali. Interval: 10 menit.
+**Retry:** Maximum 2 times. Interval: 10 minutes.
 
-**Catatan (T-218.7):** `outstandAccountId` pada payload dipakai handler untuk menemukan pemilik/member akun (RLS), bukan lagi dipakai sebagai argumen `fetchComments`; yang dikirim ke Outstand adalah `outstandPostId`, `platform`, dan `accountUsername`. Biaya per siklus: paling banyak 50 panggilan per akun aktif.
+**Note (T-218.7):** `outstandAccountId` in the payload is used by the handler to find the account owner/member (RLS), and is no longer used as the `fetchComments` argument; what is sent to Outstand is `outstandPostId`, `platform`, and `accountUsername`. Cost per cycle: at most 50 calls per active account.
 
-**Catatan:** JOB-03 adalah sumber utama Engagement MVP dan dibuat per `ConnectedAccount` yang `active`. Manual refresh memicu handler sync yang sama secara on-demand. Tidak ada webhook komentar, DM, atau mention; scope hanya comments/replies.
+**Note:** JOB-03 is the main source of the MVP Engagement and is created per `active` `ConnectedAccount`. Manual refresh triggers the same sync handler on demand. There are no comment, DM, or mention webhooks; the scope is only comments/replies.
 
 ---
 
 ## JOB-04 — Analytics Sync
 
-**Trigger:** Railway Cron (periodik, setiap 24 jam — tengah malam UTC).
+**Trigger:** Railway Cron (periodic, every 24 hours — midnight UTC).
 
-**Tipe:** `analytics.sync`
+**Type:** `analytics.sync`
 
 **Payload:**
 ```
@@ -209,25 +209,25 @@ pending → running → done
 ```
 
 **Handler:**
-1. Memanggil `OutstandAdapter.fetchWorkspaceMetrics(outstandAccountId, period)`.
-2. Memanggil `OutstandAdapter.fetchPostMetrics(outstandPostId)` per post yang belum memiliki snapshot (amandemen ADR-092, rename dari `outstandJobId` — sekarang ID post-level yang mencakup semua target).
-3. Menyimpan snapshot melalui `AnalyticsService`.
+1. Calls `OutstandAdapter.fetchWorkspaceMetrics(outstandAccountId, period)`.
+2. Calls `OutstandAdapter.fetchPostMetrics(outstandPostId)` per post that does not yet have a snapshot (amendment to ADR-092, renamed from `outstandJobId` — now a post-level ID that covers all targets).
+3. Stores the snapshot through `AnalyticsService`.
 
-**Retry:** Maksimal 2 kali. Interval: 30 menit.
+**Retry:** Maximum 2 times. Interval: 30 minutes.
 
 ---
 
 ## JOB-07 — Resolve Scheduled Post Outcome
 
-**Trigger:** `SchedulePostsUseCase` meng-enqueue job ini saat sebuah post
-terjadwal (`Scheduled`) sudah melewati `scheduledAt` (due) — bukan dibuat
-langsung oleh Railway Cron, melainkan oleh domain publishing sendiri;
-Railway Cron memicu `/api/jobs/run` yang mengklaim & mengeksekusi job
-generik apa pun yang sudah due, termasuk tipe ini (T-027, nomor JOB-07
-dipakai karena JOB-05/JOB-06 sudah direservasi ADR-093 untuk Import Posts,
-belum diimplementasikan saat entry ini ditulis).
+**Trigger:** `SchedulePostsUseCase` enqueues this job when a scheduled post
+(`Scheduled`) has passed its `scheduledAt` (due) — it is not created
+directly by Railway Cron, but by the publishing domain itself;
+Railway Cron triggers `/api/jobs/run`, which claims & executes any
+generic job that is already due, including this type (T-027, the number JOB-07
+is used because JOB-05/JOB-06 are already reserved by ADR-093 for Import Posts,
+not yet implemented when this entry was written).
 
-**Tipe:** `publishing.scheduled_post.resolve_outcome`
+**Type:** `publishing.scheduled_post.resolve_outcome`
 
 **Payload:**
 ```
@@ -236,102 +236,102 @@ belum diimplementasikan saat entry ini ditulis).
 }
 ```
 
-**Handler:** `ResolveScheduledPostOutcomeJobHandler` memanggil
+**Handler:** `ResolveScheduledPostOutcomeJobHandler` calls
 `OutstandAdapter.fetchPostOutcome(outstandPostId, expectedOutstandAccountIds)`
-(ADR-108) lalu reuse `OutstandWebhookProcessor.resolvePostOutcome` — method
-yang sama dipakai JOB-01/webhook T-026 — untuk resolve status per target
-(`PublishingPostTarget`) dan mengagregasi status level-post
+(ADR-108) then reuses `OutstandWebhookProcessor.resolvePostOutcome` — the
+same method used by JOB-01/the T-026 webhook — to resolve the status per target
+(`PublishingPostTarget`) and aggregate the post-level status
 (`PublishingPost.status` → `Published`/`Failed`, ADR-109).
 
-**Retry:** Mengikuti retry generik job runner (lihat § Retry Strategy di
-bawah — 5m/15m/60m), bukan retry khusus terpisah.
+**Retry:** Follows the generic job runner retry (see § Retry Strategy
+below — 5m/15m/60m), not a separate dedicated retry.
 
 ---
 
-## JOB-08 — Purge Audit MCP
+## JOB-08 — MCP Audit Purge
 
-**Trigger:** Railway Cron (periodik, setiap 24 jam). Bukan hasil event domain.
+**Trigger:** Railway Cron (periodic, every 24 hours). Not the result of a domain event.
 
-**Tipe:** `mcp.audit.purge`
+**Type:** `mcp.audit.purge`
 
 **Payload:**
 ```
 {}
 ```
 
-**Handler:** Memanggil `McpAccessService.purgeAudit()`, yang menghapus baris
-`McpAuditLog` yang lebih tua dari 90 hari (retensi audit MCP, ADR-138).
-Dikerjakan di T-149. Sejak gelombang 1 v0.5 (T-151, T-154; ADR-152) job yang
-sama juga membersihkan baris `mcp_rate_limit_windows` dan
-`mcp_workspace_choices` yang sudah kedaluwarsa (tiga pembersihan).
+**Handler:** Calls `McpAccessService.purgeAudit()`, which deletes the
+`McpAuditLog` rows older than 90 days (MCP audit retention, ADR-138).
+Done in T-149. Since v0.5 wave 1 (T-151, T-154; ADR-152) the same
+job also cleans up expired `mcp_rate_limit_windows` and
+`mcp_workspace_choices` rows (three cleanups).
 
-**Idempotensi:** Aman dijalankan berulang — penghapusan berbasis batas waktu
-(`created_at` lebih tua dari 90 hari), sehingga run kedua tanpa baris
-kedaluwarsa tidak menghapus apa pun.
+**Idempotency:** Safe to run repeatedly — deletion is time-limit-based
+(`created_at` older than 90 days), so a second run without expired
+rows deletes nothing.
 
-**Retry:** Mengikuti retry generik job runner (lihat § Retry Strategy di
-bawah — 5m/15m/60m).
+**Retry:** Follows the generic job runner retry (see § Retry Strategy
+below — 5m/15m/60m).
 
-## JOB-09 — Import Media (thumbnail posting impor)
+## JOB-09 — Import Media (imported post thumbnails)
 
-**Trigger:** Setelah Import Posts (JOB-05) memproses post baru, `EnqueueImportMediaUseCase`
-mengantrikan job (best-effort) untuk target posting impor akun itu yang belum
-punya thumbnail; juga backfill sekali jalan lewat `POST /api/jobs/run?type=import-media`
+**Trigger:** After Import Posts (JOB-05) processes new posts, `EnqueueImportMediaUseCase`
+enqueues a job (best-effort) for the imported post targets of that account that do not yet
+have a thumbnail; also a one-off backfill through `POST /api/jobs/run?type=import-media`
 (ADR-158, T-230).
 
-**Tipe:** `import.media`
+**Type:** `import.media`
 
 **Payload:**
 ```
-{ workspaceId, connectedAccountId, actingUserId, targetIds: string[] }   // paling banyak 5 target
+{ workspaceId, connectedAccountId, actingUserId, targetIds: string[] }   // at most 5 targets
 ```
 
-**Handler:** `ImportMediaJobHandler` memanggil `ProcessImportMediaUseCase`: unduh
-media CDN platform (gambar) atau ambil satu frame (video, `ffmpeg`), kecilkan ke
-webp 640 px (`sharp`), simpan di bucket `media` pada
-`{workspaceId}/imports/{targetId}.webp`, lalu isi `thumbnail_storage_path`,
-`thumbnail_kind`, dan `thumbnail_attempted_at` di `publishing_post_targets`.
+**Handler:** `ImportMediaJobHandler` calls `ProcessImportMediaUseCase`: download the
+platform CDN media (image) or grab one frame (video, `ffmpeg`), shrink it to
+webp 640 px (`sharp`), store it in the `media` bucket at
+`{workspaceId}/imports/{targetId}.webp`, then fill in `thumbnail_storage_path`,
+`thumbnail_kind`, and `thumbnail_attempted_at` in `publishing_post_targets`.
 
-**Dedup antrian:** akun yang masih punya job `import.media` pending/running tidak diantrikan lagi (kunci payload `connectedAccountId`).
+**Queue dedup:** an account that still has a pending/running `import.media` job is not enqueued again (payload key `connectedAccountId`).
 
-**Anggaran waktu:** 20 detik per job (BG-D05), dibatalkan lewat `AbortSignal`;
-sisa target tetap tertunda untuk job berikutnya.
+**Time budget:** 20 seconds per job (BG-D05), cancelled via `AbortSignal`;
+the remaining targets stay pending for the next job.
 
-**Idempotensi:** Hanya target yang belum punya thumbnail dan belum pernah dicoba
-yang diproses. Kegagalan permanen (URL kedaluwarsa, host tidak dikenal, terlalu
-besar, redirect pada `HEAD` video) ditandai `thumbnail_attempted_at`; kegagalan
-sementara (timeout, 5xx, `ffmpeg` belum terpasang) menaikkan
-`thumbnail_attempts` dan dicoba lagi pada pemicu berikutnya, sampai batas 5
-(`MAX_THUMBNAIL_ATTEMPTS`, T-233), lalu ditandai permanen seperti kegagalan
-permanen. Pembatalan karena anggaran waktu job tidak menaikkan penghitung.
-Log peringatan memuat penyebab bertingkat galat.
+**Idempotency:** Only targets that do not yet have a thumbnail and have not been attempted
+are processed. Permanent failures (expired URL, unknown host, too
+large, redirect on a video `HEAD`) are marked with `thumbnail_attempted_at`; temporary
+failures (timeout, 5xx, `ffmpeg` not installed) increment
+`thumbnail_attempts` and are retried on the next trigger, up to a limit of 5
+(`MAX_THUMBNAIL_ATTEMPTS`, T-233), then marked permanent like a permanent
+failure. Cancellation due to the job time budget does not increment the counter.
+The warning log includes the nested cause of the error.
 
-**Retry:** Mengikuti retry generik job runner (lihat § Retry Strategy di bawah).
+**Retry:** Follows the generic job runner retry (see § Retry Strategy below).
 
-## JOB-10 — Sapuan Thumbnail Impor Yatim
+## JOB-10 — Orphaned Import Thumbnail Sweep
 
-**Trigger:** Fan-out harian (sekali per hari UTC, menumpang cron menit yang
-sudah hidup lewat `executeIfDue`), atau paksa lewat
+**Trigger:** Daily fan-out (once per UTC day, riding the minute cron that is
+already running through `executeIfDue`), or forced through
 `POST /api/jobs/run?type=import-media-sweep` (ADR-158, T-231).
 
-**Tipe:** `import.media.sweep` — payload kosong.
+**Type:** `import.media.sweep` — empty payload.
 
-**Handler:** `ImportThumbnailSweepJobHandler` memanggil
-`PurgeImportThumbnailsUseCase.sweepOrphans`: untuk tiap workspace, daftar berkas
-`{workspaceId}/imports/` di bucket `media`, tanya DB path mana yang masih
-dirujuk `thumbnail_storage_path` (fungsi SECURITY DEFINER
-`import_thumbnail_referenced_paths`), lalu hapus yang tidak dirujuk. Berkas yang
-lebih muda dari 1 jam dilewati (unggahan mendahului penyimpanan path di DB).
-Anggaran 20 detik; titik awal workspace diputar per hari UTC; kegagalan satu
-workspace tidak menahan yang lain. Idempoten.
+**Handler:** `ImportThumbnailSweepJobHandler` calls
+`PurgeImportThumbnailsUseCase.sweepOrphans`: for each workspace, list the files in
+`{workspaceId}/imports/` in the `media` bucket, ask the DB which paths are still
+referenced by `thumbnail_storage_path` (the SECURITY DEFINER function
+`import_thumbnail_referenced_paths`), then delete the unreferenced ones. Files
+younger than 1 hour are skipped (the upload precedes saving the path in the DB).
+20-second budget; the workspace starting point is rotated per UTC day; the failure of one
+workspace does not hold up the others. Idempotent.
 
-**Pembersihan langsung (bukan job):** `WorkspaceService.deleteWorkspace`
-memanggil `PurgeImportThumbnailsUseCase.purgeWorkspace` best-effort SESUDAH
-baris workspace terhapus (cascade); kegagalannya hanya dicatat dan disapu job
-ini. Memutus akun (`disconnectAccount`) hanya mengubah status dan tidak
-menghapus target, jadi thumbnail posting impor akun itu TETAP disimpan (riwayat
-posting impor tetap tampil); posting impor tidak bisa di-soft-delete (hanya
-Draft yang bisa, T-091.1).
+**Immediate cleanup (not a job):** `WorkspaceService.deleteWorkspace`
+calls `PurgeImportThumbnailsUseCase.purgeWorkspace` best-effort AFTER the
+workspace row is deleted (cascade); its failure is only logged and swept by this
+job. Disconnecting an account (`disconnectAccount`) only changes the status and does not
+delete targets, so the imported post thumbnails of that account ARE KEPT (the
+imported post history stays visible); imported posts cannot be soft-deleted (only
+Drafts can, T-091.1).
 
 ---
 
@@ -339,28 +339,28 @@ Draft yang bisa, T-091.1).
 
 ## Exponential Backoff
 
-Retry delay dihitung berdasarkan jumlah `attempts`:
+The retry delay is computed based on the number of `attempts`:
 
 | Attempt | Delay |
 |---------|-------|
-| 1 (first retry) | 5 menit |
-| 2 | 15 menit |
-| 3 | 60 menit |
+| 1 (first retry) | 5 minutes |
+| 2 | 15 minutes |
+| 3 | 60 minutes |
 
-Delay dari tabel eksplisit (lookup, bukan formula) — tidak mengikuti rasio
-pangkat dua yang konsisten (5→15 adalah ×3, 15→60 adalah ×4). Diimplementasikan
-sebagai array `RETRY_DELAY_MINUTES = [5, 15, 60]` di
+The delay comes from an explicit table (lookup, not a formula) — it does not follow a
+consistent power-of-two ratio (5→15 is ×3, 15→60 is ×4). Implemented
+as the array `RETRY_DELAY_MINUTES = [5, 15, 60]` in
 `apps/web/src/lib/jobs/backoff.ts` (T-027.3, KI-062).
 
 ## Dead Letter
 
-Job yang mencapai `max_attempts` tanpa sukses diubah statusnya ke `failed` dan tidak akan dieksekusi ulang secara otomatis. Dead letter jobs dicatat dan dapat diinspeksi untuk debugging.
+A job that reaches `max_attempts` without success has its status changed to `failed` and will not be re-executed automatically. Dead letter jobs are recorded and can be inspected for debugging.
 
-**Untuk MVP:** Dead letter hanya dicatat di tabel `background_jobs` dengan `status = failed`. Tidak ada alerting otomatis — monitoring dilakukan secara manual via Railway dashboard atau query ke tabel.
+**For the MVP:** Dead letters are only recorded in the `background_jobs` table with `status = failed`. There is no automatic alerting — monitoring is done manually via the Railway dashboard or by querying the table.
 
 ---
 
-# Integrasi dengan Domain
+# Integration with Domains
 
 ## Publishing BC → Background Job
 
@@ -369,8 +369,8 @@ PublishingService
   └── Webhook POST /api/webhooks/outstand
         └── Verify raw HMAC → persist outstand_webhook_events → ACK 2xx
               └── JOB-01 (internal processing)
-                    ├── Sukses → update receipt + status domain → buat JOB-02
-                    └── Gagal → retry internal; delivery Outstand tetap terpisah
+                    ├── Success → update receipt + domain status → create JOB-02
+                    └── Failure → internal retry; Outstand delivery stays separate
 ```
 
 ## Workspace BC → Background Job
@@ -379,7 +379,7 @@ PublishingService
 WorkspaceService
   └── ConnectedAccount created/activated
         └── JobScheduler.scheduleEngagementSync(connectedAccount)
-              └── Buat JOB-03 (engagement sync, scheduled_at = sekarang + 30m)
+              └── Create JOB-03 (engagement sync, scheduled_at = now + 30m)
 ```
 
 ## Cron Trigger → Background Job
@@ -388,21 +388,21 @@ WorkspaceService
 Railway Cron (*/30 * * * *)
   └── POST /api/jobs/run
         └── JobRunner.runScheduledJobs()
-              ├── Ambil semua ConnectedAccount active
-              ├── Buat JOB-03 per ConnectedAccount (jika belum ada yang pending)
-              └── Eksekusi job pending yang scheduled_at <= now()
+              ├── Fetch all active ConnectedAccounts
+              ├── Create JOB-03 per ConnectedAccount (if none is pending yet)
+              └── Execute pending jobs with scheduled_at <= now()
 
 Railway Cron (0 0 * * *)
   └── POST /api/jobs/run?type=analytics
         └── JobRunner.runAnalyticsSync()
-              └── Buat JOB-04 per ConnectedAccount active
+              └── Create JOB-04 per active ConnectedAccount
 ```
 
 ---
 
 # Concurrency & Locking
 
-Untuk mencegah race condition saat multiple Railway Cron worker mengeksekusi job yang sama:
+To prevent race conditions when multiple Railway Cron workers execute the same job:
 
 **Pessimistic Locking via `SELECT FOR UPDATE SKIP LOCKED`:**
 
@@ -415,56 +415,56 @@ LIMIT 10
 FOR UPDATE SKIP LOCKED;
 ```
 
-`SKIP LOCKED` memastikan dua worker tidak mengambil job yang sama secara bersamaan.
+`SKIP LOCKED` ensures two workers do not take the same job at the same time.
 
-Setelah diambil, status segera diubah ke `running` dalam satu transaksi sebelum eksekusi dimulai.
+Once taken, the status is immediately changed to `running` within one transaction before execution begins.
 
 ---
 
 # Error Handling
 
-| Skenario | Perilaku |
+| Scenario | Behavior |
 |----------|----------|
-| Job handler throw error | Status → pending dengan delay (jika attempts < max_attempts) |
-| Job timeout (>30 detik) | Status → pending, attempts + 1 |
-| Database tidak tersedia | JobRunner gagal start, Railway Cron akan mencoba lagi di interval berikutnya |
-| Outstand API down | Job handler gagal → retry via exponential backoff |
-| Job handler permanent failure | Status → failed, dicatat di last_error |
+| Job handler throws an error | Status → pending with a delay (if attempts < max_attempts) |
+| Job timeout (>30 seconds) | Status → pending, attempts + 1 |
+| Database unavailable | JobRunner fails to start, Railway Cron will try again at the next interval |
+| Outstand API down | Job handler fails → retry via exponential backoff |
+| Job handler permanent failure | Status → failed, recorded in last_error |
 
 ---
 
 # Monitoring (MVP)
 
-Untuk MVP, monitoring dilakukan secara sederhana:
+For the MVP, monitoring is done simply:
 
-* Query ke tabel `background_jobs` untuk melihat job yang `status = failed`.
-* Railway dashboard untuk melihat log cron execution.
-* Error yang terjadi di job handler dicatat via `console.error` (Railway log stream).
+* Query the `background_jobs` table to see jobs with `status = failed`.
+* Railway dashboard to see the cron execution logs.
+* Errors that occur in a job handler are recorded via `console.error` (Railway log stream).
 
-Monitoring yang lebih advanced (alerting, dashboard) didokumentasikan di Engineering Planning (M6) dan diimplementasikan post-MVP.
+More advanced monitoring (alerting, dashboard) is documented in Engineering Planning (M6) and implemented post-MVP.
 
 ---
 
 # Decision Log
 
-| ID | Keputusan | Alasan |
+| ID | Decision | Reason |
 |----|-----------|--------|
-| BG-D01 | PostgreSQL job queue via tabel `background_jobs` | Tidak perlu tambah infrastruktur baru — Supabase PostgreSQL sudah ada; sederhana dan reliable untuk MVP volume |
-| BG-D02 | Railway Cron sebagai trigger eksekusi | Railway sudah digunakan sebagai deployment platform; built-in cron tidak perlu service tambahan |
-| BG-D03 | `SELECT FOR UPDATE SKIP LOCKED` untuk concurrency | Native PostgreSQL feature — atomic, tidak perlu Redis atau distributed lock |
-| BG-D04 | Exponential backoff: 5m, 15m, 60m | Pragmatis untuk MVP — memberi waktu yang cukup untuk Outstand recovery tanpa terlalu lama |
-| BG-D05 | Max 10 job per run | Mencegah Railway timeout (max 30 detik per request) |
-| BG-D06 | Dead letter = status `failed` di tabel | Cukup untuk MVP; tidak perlu queue terpisah |
-| BG-D07 | JOB-01 memproses durable receipt internal (`outstand.webhook.process`) | Memisahkan retry delivery vendor dari retry pemrosesan internal |
-| BG-D08 | JOB-03 adalah sumber utama comments/replies setiap 30 menit + manual refresh | Outstand tidak menyediakan webhook Engagement MVP |
-| BG-D09 | ADR-040 | BG-D07–D08 mengamandemen semantik JOB-01 dan Engagement lama |
+| BG-D01 | PostgreSQL job queue via the `background_jobs` table | No need to add new infrastructure — Supabase PostgreSQL already exists; simple and reliable for MVP volume |
+| BG-D02 | Railway Cron as the execution trigger | Railway is already used as the deployment platform; the built-in cron needs no additional service |
+| BG-D03 | `SELECT FOR UPDATE SKIP LOCKED` for concurrency | A native PostgreSQL feature — atomic, no need for Redis or a distributed lock |
+| BG-D04 | Exponential backoff: 5m, 15m, 60m | Pragmatic for the MVP — gives enough time for Outstand recovery without being too long |
+| BG-D05 | Max 10 jobs per run | Prevents a Railway timeout (max 30 seconds per request) |
+| BG-D06 | Dead letter = status `failed` in the table | Sufficient for the MVP; no separate queue needed |
+| BG-D07 | JOB-01 processes the internal durable receipt (`outstand.webhook.process`) | Separates vendor delivery retry from internal processing retry |
+| BG-D08 | JOB-03 is the main source of comments/replies every 30 minutes + manual refresh | Outstand does not provide an MVP Engagement webhook |
+| BG-D09 | ADR-040 | BG-D07–D08 amend the semantics of the old JOB-01 and Engagement |
 
 ---
 
 # Related Documents
 
-* `domain-model.md` — bounded context yang membutuhkan background job (BC-03, BC-05, BC-06, BC-09)
-* `integration-layer.md` — webhook handling dan retry yang memicu JOB-01
-* `realtime-strategy.md` — notifikasi yang dibuat oleh JOB-02
-* `database-strategy.md` — tabel `background_jobs` sebagai bagian dari schema
+* `domain-model.md` — bounded contexts that need background jobs (BC-03, BC-05, BC-06, BC-09)
+* `integration-layer.md` — webhook handling and retries that trigger JOB-01
+* `realtime-strategy.md` — notifications created by JOB-02
+* `database-strategy.md` — the `background_jobs` table as part of the schema
 * `../../project-os/DECISIONS.md` — ADR-022
