@@ -1,18 +1,18 @@
 # Competitor Analysis
 
-Dokumen ini bertujuan untuk memahami lanskap kompetitor pada kategori **Social Media Management** serta mengidentifikasi peluang diferensiasi yang dapat menjadi keunggulan produk.
+This document aims to understand the competitive landscape in the **Social Media Management** category and to identify differentiation opportunities that can become the product's advantage.
 
-Analisis ini bukan bertujuan meniru kompetitor, melainkan memahami apa yang sudah tersedia di pasar dan menemukan peluang untuk menghadirkan pengalaman yang lebih baik.
+The goal of this analysis is not to imitate competitors, but to understand what is already available in the market and find opportunities to deliver a better experience.
 
 ---
 
 # Overview
 
-Pasar Social Media Management telah memiliki banyak pemain dengan fokus, target pengguna, dan pendekatan yang berbeda.
+The Social Media Management market already has many players with different focuses, target users, and approaches.
 
-Sebagian besar platform menyediakan fitur dasar seperti penjadwalan konten dan analytics. Namun, setiap produk memiliki kekuatan dan kelemahannya masing-masing.
+Most platforms provide basic features such as content scheduling and analytics. However, every product has its own strengths and weaknesses.
 
-Produk ini berfokus untuk menghadirkan pengalaman yang lebih sederhana, modern, dan kolaboratif bagi Marketing Team, Startup, dan Digital Agency.
+This product focuses on delivering a simpler, more modern, and more collaborative experience for Marketing Teams, Startups, and Digital Agencies.
 
 ---
 
@@ -22,22 +22,22 @@ Produk ini berfokus untuk menghadirkan pengalaman yang lebih sederhana, modern, 
 
 Target Market:
 
-* Individual Creator
-* Small Business
-* Marketing Team
+- Individual Creator
+- Small Business
+- Marketing Team
 
 Strengths:
 
-* Antarmuka sederhana dan mudah digunakan.
-* Workflow publishing yang matang.
-* Reputasi yang baik.
-* Onboarding yang mudah.
+- Simple, easy-to-use interface.
+- Mature publishing workflow.
+- Good reputation.
+- Easy onboarding.
 
 Weaknesses:
 
-* Fitur kolaborasi tim terbatas dibandingkan kebutuhan organisasi yang berkembang.
-* Beberapa fitur lanjutan hanya tersedia pada paket berbayar.
-* Pengalaman AI masih berkembang.
+- Team collaboration features are limited compared to the needs of a growing organization.
+- Some advanced features are only available on paid plans.
+- The AI experience is still developing.
 
 ---
 
@@ -45,22 +45,22 @@ Weaknesses:
 
 Target Market:
 
-* Business
-* Enterprise
+- Business
+- Enterprise
 
 Strengths:
 
-* Fitur sangat lengkap.
-* Mendukung banyak platform media sosial.
-* Analytics yang kuat.
-* Workflow organisasi yang matang.
+- Very complete feature set.
+- Supports many social media platforms.
+- Strong analytics.
+- Mature organizational workflow.
 
 Weaknesses:
 
-* Kompleks bagi pengguna baru.
-* Kurva belajar tinggi.
-* Antarmuka terasa padat.
-* Harga relatif tinggi.
+- Complex for new users.
+- Steep learning curve.
+- The interface feels dense.
+- Relatively high price.
 
 ---
 
@@ -68,21 +68,21 @@ Weaknesses:
 
 Target Market:
 
-* Creator
-* Brand
-* Small Business
+- Creator
+- Brand
+- Small Business
 
 Strengths:
 
-* Fokus pada konten visual.
-* Calendar yang baik.
-* Mudah digunakan.
+- Focus on visual content.
+- Good calendar.
+- Easy to use.
 
 Weaknesses:
 
-* Fokus utama pada content scheduling.
-* Kolaborasi tim relatif terbatas.
-* Tidak terlalu berorientasi pada workflow organisasi.
+- Main focus is content scheduling.
+- Team collaboration is relatively limited.
+- Not strongly oriented toward organizational workflow.
 
 ---
 
@@ -90,19 +90,19 @@ Weaknesses:
 
 Target Market:
 
-* Small Business
-* Agency
+- Small Business
+- Agency
 
 Strengths:
 
-* Analytics yang lengkap.
-* Mendukung banyak platform.
-* Harga kompetitif.
+- Complete analytics.
+- Supports many platforms.
+- Competitive pricing.
 
 Weaknesses:
 
-* Pengalaman pengguna masih dapat ditingkatkan.
-* Workflow antar fitur belum sepenuhnya terpadu.
+- The user experience can still be improved.
+- The workflow between features is not yet fully unified.
 
 ---
 
@@ -110,92 +110,92 @@ Weaknesses:
 
 Target Market:
 
-* Open Source Community
-* Startup
-* Developer
+- Open Source Community
+- Startup
+- Developer
 
 Strengths:
 
-* Open Source.
-* Self-hosted.
-* Fleksibel.
-* Modern.
+- Open Source.
+- Self-hosted.
+- Flexible.
+- Modern.
 
 Weaknesses:
 
-* Membutuhkan kemampuan teknis untuk implementasi.
-* Pengalaman pengguna lebih ditujukan kepada pengguna teknis.
-* Tidak semua organisasi siap melakukan self-hosting.
+- Requires technical skill to implement.
+- The user experience is aimed more at technical users.
+- Not every organization is ready to self-host.
 
 ---
 
 # Market Observations
 
-Dari analisis kompetitor dapat disimpulkan bahwa:
+From the competitor analysis, it can be concluded that:
 
-* Sebagian besar produk telah menyediakan fitur dasar Social Media Management.
-* Banyak platform berkembang dengan menambahkan semakin banyak fitur sehingga kompleksitas penggunaan ikut meningkat.
-* AI mulai menjadi bagian dari produk, namun sering kali masih terasa sebagai fitur tambahan, bukan bagian alami dari workflow.
-* Kolaborasi tim menjadi kebutuhan yang semakin penting, terutama bagi organisasi yang terus berkembang.
+- Most products already provide the basic Social Media Management features.
+- Many platforms grow by adding more and more features, so the complexity of use grows with them.
+- AI is starting to become part of products, but it often still feels like an add-on feature, not a natural part of the workflow.
+- Team collaboration is an increasingly important need, especially for growing organizations.
 
 ---
 
 # Market Opportunity
 
-Produk memiliki peluang untuk menghadirkan nilai melalui beberapa pendekatan berikut:
+The product has an opportunity to deliver value through the following approaches:
 
-* Pengalaman pengguna yang lebih sederhana tanpa mengurangi kemampuan utama.
-* Workflow yang berorientasi pada kolaborasi tim.
-* Integrasi AI sebagai bagian dari alur kerja, bukan sekadar fitur tambahan.
-* Arsitektur produk yang modern dan mudah dikembangkan.
-* Fokus pada kebutuhan Marketing Team sebagai target utama.
+- A simpler user experience without reducing core capabilities.
+- A workflow oriented toward team collaboration.
+- AI integration as part of the workflow, not just an add-on feature.
+- A modern product architecture that is easy to develop.
+- Focus on the needs of the Marketing Team as the main target.
 
 ---
 
 # Product Differentiation
 
-Produk akan dibedakan melalui prinsip-prinsip berikut:
+The product will be differentiated through these principles:
 
-* Simplicity First.
-* Team Collaboration First.
-* AI-Native Workflow.
-* Modern User Experience.
-* Scalable Architecture.
+- Simplicity First.
+- Team Collaboration First.
+- AI-Native Workflow.
+- Modern User Experience.
+- Scalable Architecture.
 
-Diferensiasi ini menjadi panduan dalam setiap keputusan Product, UX, dan Engineering.
+This differentiation guides every Product, UX, and Engineering decision.
 
 ---
 
 # Competitive Risks
 
-Beberapa risiko yang perlu diperhatikan:
+Some risks to watch for:
 
-* Kompetitor terus menambahkan fitur baru.
-* Platform media sosial sering mengubah API dan kebijakan.
-* Ekspektasi pengguna terhadap AI berkembang sangat cepat.
-* Pasar Social Media Management sudah cukup kompetitif.
+- Competitors keep adding new features.
+- Social media platforms often change their APIs and policies.
+- User expectations of AI are growing very fast.
+- The Social Media Management market is already quite competitive.
 
-Strategi produk harus tetap fokus pada penyelesaian masalah pengguna, bukan sekadar mengejar kesetaraan fitur dengan kompetitor.
+The product strategy must stay focused on solving user problems, not merely chasing feature parity with competitors.
 
 ---
 
 # Success Criteria
 
-Analisis kompetitor dianggap selesai apabila:
+The competitor analysis is considered complete when:
 
-* Kompetitor utama telah diidentifikasi.
-* Kekuatan dan kelemahan masing-masing dipahami.
-* Peluang diferensiasi terdokumentasi.
-* Positioning produk terhadap kompetitor telah ditetapkan.
+- The main competitors have been identified.
+- The strengths and weaknesses of each are understood.
+- Differentiation opportunities are documented.
+- The product's positioning against competitors has been set.
 
 ---
 
 # Related Documents
 
-* `README.md`
-* `product-vision.md`
-* `problem-statement.md`
-* `target-market.md`
-* `business-model.md`
-* `../../project-os/PROJECT_OVERVIEW.md`
-* `../../project-os/DECISIONS.md`
+- `README.md`
+- `product-vision.md`
+- `problem-statement.md`
+- `target-market.md`
+- `business-model.md`
+- `../../project-os/PROJECT_OVERVIEW.md`
+- `../../project-os/DECISIONS.md`

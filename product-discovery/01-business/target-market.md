@@ -1,14 +1,14 @@
 # Target Market
 
-Dokumen ini mendefinisikan target pasar utama untuk produk **Postific**. Seluruh keputusan mengenai Product, UX, Marketing, dan Business harus mempertimbangkan karakteristik target pasar yang dijelaskan pada dokumen ini.
+This document defines the main target market for the **Postific** product. All decisions about Product, UX, Marketing, and Business must take into account the target market characteristics described in this document.
 
 ---
 
 # Overview
 
-Produk ini dikembangkan untuk organisasi yang secara aktif mengelola aktivitas media sosial sebagai bagian dari strategi pemasaran mereka.
+The product is developed for organizations that actively manage social media activity as part of their marketing strategy.
 
-Fokus utama bukan pada pengguna individu, melainkan pada tim yang bekerja secara kolaboratif dalam merencanakan, membuat, menjadwalkan, mempublikasikan, dan mengevaluasi konten media sosial.
+The main focus is not on individual users, but on teams that work collaboratively to plan, create, schedule, publish, and evaluate social media content.
 
 ---
 
@@ -16,22 +16,22 @@ Fokus utama bukan pada pengguna individu, melainkan pada tim yang bekerja secara
 
 ## Marketing Team
 
-Marketing Team merupakan target utama pada fase MVP.
+The Marketing Team is the main target in the MVP phase.
 
-Karakteristik:
+Characteristics:
 
-* Bekerja secara kolaboratif.
-* Mengelola beberapa akun media sosial.
-* Memiliki proses perencanaan dan publikasi konten yang berulang.
-* Menggunakan data untuk mengevaluasi performa konten.
-* Membutuhkan efisiensi operasional dalam aktivitas sehari-hari.
+- Works collaboratively.
+- Manages several social media accounts.
+- Has a repeating content planning and publishing process.
+- Uses data to evaluate content performance.
+- Needs operational efficiency in day-to-day activities.
 
-Tujuan utama:
+Main goals:
 
-* Menghemat waktu operasional.
-* Menyederhanakan workflow.
-* Meningkatkan kolaborasi tim.
-* Mempermudah pengambilan keputusan berdasarkan data.
+- Save operational time.
+- Simplify the workflow.
+- Improve team collaboration.
+- Make data-based decision making easier.
 
 ---
 
@@ -39,137 +39,137 @@ Tujuan utama:
 
 ## Startup
 
-Startup yang memiliki tim marketing internal dan membutuhkan platform untuk mengelola aktivitas media sosial secara lebih terstruktur.
+Startups that have an in-house marketing team and need a platform to manage social media activity in a more structured way.
 
-Karakteristik:
+Characteristics:
 
-* Tim kecil hingga menengah.
-* Pertumbuhan cepat.
-* Membutuhkan solusi yang mudah diimplementasikan.
-* Fokus pada efisiensi dan skalabilitas.
+- Small to medium-sized team.
+- Fast growth.
+- Needs a solution that is easy to implement.
+- Focus on efficiency and scalability.
 
 ---
 
 ## Digital Agency
 
-Digital Agency yang mengelola media sosial untuk beberapa klien sekaligus.
+Digital Agencies that manage social media for several clients at once.
 
-Karakteristik:
+Characteristics:
 
-* Mengelola banyak brand atau klien.
-* Memiliki banyak anggota tim.
-* Membutuhkan visibilitas terhadap seluruh aktivitas media sosial.
-* Mengutamakan konsistensi proses kerja.
+- Manages many brands or clients.
+- Has many team members.
+- Needs visibility into all social media activity.
+- Prioritizes consistency of work processes.
 
 ---
 
 # Ideal Customer Profile (ICP)
 
-Profil organisasi yang paling sesuai dengan produk ini:
+The organization profile that best fits this product:
 
-* Memiliki 3–20 anggota tim marketing.
-* Mengelola lebih dari satu akun media sosial.
-* Aktif membuat dan mempublikasikan konten setiap minggu.
-* Memiliki kebutuhan kolaborasi antar anggota tim.
-* Menggunakan media sosial sebagai salah satu kanal pemasaran utama.
-* Memiliki kebutuhan untuk mengevaluasi performa konten secara berkala.
+- Has 3–20 marketing team members.
+- Manages more than one social media account.
+- Actively creates and publishes content every week.
+- Needs collaboration between team members.
+- Uses social media as one of its main marketing channels.
+- Needs to evaluate content performance regularly.
 
 ---
 
 # Buyer Persona
 
-Orang yang mengambil keputusan pembelian belum tentu merupakan pengguna utama aplikasi.
+The person who makes the purchase decision is not necessarily the application's main user.
 
-Contoh Buyer Persona:
+Example Buyer Personas:
 
-* Founder
-* CEO
-* Marketing Manager
-* Head of Marketing
-* Agency Owner
+- Founder
+- CEO
+- Marketing Manager
+- Head of Marketing
+- Agency Owner
 
-Mereka bertanggung jawab terhadap pemilihan tools yang digunakan oleh tim.
+They are responsible for choosing the tools the team uses.
 
 ---
 
 # User Roles
 
-Pengguna yang diperkirakan akan menggunakan aplikasi sehari-hari:
+Users expected to use the application day to day:
 
-* Marketing Manager
-* Social Media Manager
-* Social Media Specialist
-* Content Strategist
-* Content Creator
-* Copywriter
-* Graphic Designer
-* Video Editor
-* Community Manager
+- Marketing Manager
+- Social Media Manager
+- Social Media Specialist
+- Content Strategist
+- Content Creator
+- Copywriter
+- Graphic Designer
+- Video Editor
+- Community Manager
 
-Detail hak akses dan peran sistem akan dibahas pada fase Product dan Architecture.
+Details of access rights and system roles will be covered in the Product and Architecture phases.
 
 ---
 
 # Common Pain Points
 
-Target pengguna umumnya menghadapi tantangan berikut:
+Target users commonly face these challenges:
 
-* Workflow media sosial yang tersebar di banyak aplikasi.
-* Sulit berkolaborasi dalam satu proses kerja.
-* Kurangnya visibilitas terhadap progres pekerjaan.
-* Kesulitan mengelola banyak akun media sosial.
-* Analisis performa yang membutuhkan waktu.
-* Proses operasional yang semakin kompleks seiring pertumbuhan tim.
+- Social media workflows spread across many applications.
+- Difficulty collaborating in a single work process.
+- Lack of visibility into work progress.
+- Difficulty managing many social media accounts.
+- Performance analysis that takes time.
+- Operational processes that grow more complex as the team grows.
 
 ---
 
 # Business Goals of the Customer
 
-Secara umum, target pengguna ingin:
+In general, target users want to:
 
-* Meningkatkan produktivitas tim.
-* Mengurangi pekerjaan administratif.
-* Menyederhanakan workflow media sosial.
-* Meningkatkan kualitas kolaborasi.
-* Mengambil keputusan berdasarkan data.
-* Mengembangkan aktivitas media sosial secara lebih terukur.
+- Improve team productivity.
+- Reduce administrative work.
+- Simplify the social media workflow.
+- Improve the quality of collaboration.
+- Make data-based decisions.
+- Grow social media activity in a more measurable way.
 
 ---
 
 # Out of Scope
 
-Pada fase MVP, produk **tidak** secara khusus ditujukan untuk:
+In the MVP phase, the product is **not** specifically aimed at:
 
-* Individual Creator.
-* Influencer.
-* Personal Brand.
-* Hobbyist.
-* Enterprise berskala besar.
-* Agensi dengan kebutuhan workflow yang sangat kompleks dan sangat terspesialisasi.
+- Individual Creator.
+- Influencer.
+- Personal Brand.
+- Hobbyist.
+- Large-scale Enterprise.
+- Agencies with very complex and highly specialized workflow needs.
 
-Segmen tersebut dapat dipertimbangkan pada fase pengembangan berikutnya.
+These segments may be considered in later development phases.
 
 ---
 
 # Success Criteria
 
-Target Market dianggap berhasil didefinisikan apabila:
+The Target Market is considered successfully defined when:
 
-* Target pengguna utama telah ditentukan.
-* Target pengguna sekunder telah diidentifikasi.
-* Ideal Customer Profile terdokumentasi.
-* Buyer Persona terdokumentasi.
-* Karakteristik pengguna dipahami dengan jelas.
-* Seluruh keputusan Product dan UX dapat mengacu pada dokumen ini.
+- The main target users have been determined.
+- The secondary target users have been identified.
+- The Ideal Customer Profile is documented.
+- The Buyer Persona is documented.
+- User characteristics are clearly understood.
+- All Product and UX decisions can refer to this document.
 
 ---
 
 # Related Documents
 
-* `README.md`
-* `product-vision.md`
-* `problem-statement.md`
-* `competitor-analysis.md`
-* `../02-product/`
-* `../../project-os/PROJECT_OVERVIEW.md`
-* `../../project-os/DECISIONS.md`
+- `README.md`
+- `product-vision.md`
+- `problem-statement.md`
+- `competitor-analysis.md`
+- `../02-product/`
+- `../../project-os/PROJECT_OVERVIEW.md`
+- `../../project-os/DECISIONS.md`

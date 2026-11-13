@@ -1,58 +1,58 @@
 # Product Vision
 
-Dokumen ini mendefinisikan visi jangka panjang dari produk **Postific** dan menjadi acuan utama dalam seluruh proses pengambilan keputusan selama pengembangan produk.
+This document defines the long-term vision of the **Postific** product and is the main reference for every decision made during product development.
 
 ---
 
 # Overview
 
-Postific adalah platform yang membantu tim marketing, startup, dan digital agency mengelola aktivitas media sosial dari satu tempat.
+Postific is a platform that helps marketing teams, startups, and digital agencies manage their social media activity from one place.
 
-Produk ini berfokus pada pengalaman penggunaan yang sederhana, efisien, dan modern, sehingga pengguna dapat merencanakan, mempublikasikan, menganalisis, dan mengelola interaksi media sosial tanpa harus berpindah antar platform.
+The product focuses on a simple, efficient, and modern user experience, so users can plan, publish, analyze, and manage social media interactions without switching between platforms.
 
 ---
 
 # Vision
 
-Menjadi platform Social Media Management modern yang membantu pengguna mengelola seluruh aktivitas media sosial secara lebih mudah, cepat, dan terintegrasi.
+To become a modern Social Media Management platform that helps users manage all their social media activity more easily, quickly, and in an integrated way.
 
 ---
 
 # Mission
 
-* Menyederhanakan proses pengelolaan media sosial.
-* Menghemat waktu melalui otomatisasi dan penjadwalan konten.
-* Membantu pengguna mengambil keputusan berdasarkan data.
-* Membuka akses MCP agar AI pilihan pengguna mempercepat pekerjaan konten (ADR-138).
-* Menyediakan pengalaman pengguna yang sederhana namun powerful.
+- Simplify the social media management process.
+- Save time through automation and content scheduling.
+- Help users make data-based decisions.
+- Open MCP access so the AI of the user's choice speeds up content work (ADR-138).
+- Provide a user experience that is simple yet powerful.
 
 ---
 
 # Problem We Want to Solve
 
-Saat ini pengguna harus menggunakan banyak aplikasi untuk:
+Today users must use many applications to:
 
-* Membuat konten.
-* Menjadwalkan posting.
-* Membalas komentar.
-* Melihat analytics.
-* Mengelola link di bio.
+- Create content.
+- Schedule posts.
+- Reply to comments.
+- View analytics.
+- Manage the link in bio.
 
-Proses tersebut memakan waktu, tidak efisien, dan sering menyebabkan perpindahan konteks antar platform.
+This process takes time, is inefficient, and often causes context switching between platforms.
 
-Produk ini bertujuan menyatukan seluruh aktivitas tersebut ke dalam satu dashboard yang terintegrasi.
+The product aims to bring all of these activities together in one integrated dashboard.
 
 ---
 
 # Value Proposition
 
-Produk ini memberikan nilai melalui:
+The product delivers value through:
 
-* Satu dashboard untuk seluruh aktivitas media sosial.
-* Workflow publishing yang cepat dan mudah dipahami.
-* Analytics yang membantu pengambilan keputusan.
-* Akses MCP agar AI pilihan pengguna dapat bekerja di dalam produk (ADR-138).
-* Pengalaman pengguna yang modern dan mudah digunakan.
+- One dashboard for all social media activity.
+- A fast, easy-to-understand publishing workflow.
+- Analytics that support decision making.
+- MCP access so the AI of the user's choice can work inside the product (ADR-138).
+- A modern, easy-to-use user experience.
 
 ---
 
@@ -67,52 +67,52 @@ Produk ini memberikan nilai melalui:
 - Startup
 - Digital Agency
 
-Produk dirancang untuk membantu tim mengelola seluruh aktivitas media sosial secara kolaboratif melalui satu platform yang terintegrasi.
+The product is designed to help teams manage all their social media activity collaboratively through one integrated platform.
 
 ---
 
 # Product Positioning
 
-Produk diposisikan sebagai alternatif modern untuk platform Social Media Management yang sudah ada, dengan fokus pada:
+The product is positioned as a modern alternative to existing Social Media Management platforms, with a focus on:
 
-* Kemudahan penggunaan.
-* Pengalaman pengguna yang lebih baik.
-* Integrasi AI pengguna lewat MCP.
-* Arsitektur yang modern dan mudah dikembangkan.
+- Ease of use.
+- A better user experience.
+- The user's own AI integration through MCP.
+- A modern architecture that is easy to develop.
 
 ---
 
 # Long-Term Vision
 
-Dalam jangka panjang, produk diharapkan berkembang dari sekadar alat penjadwalan konten menjadi platform yang membantu pengguna mengelola keseluruhan siklus kerja media sosial, mulai dari perencanaan, pembuatan konten, publikasi, analitik, hingga kolaborasi tim.
+In the long term, the product is expected to grow from a mere content scheduling tool into a platform that helps users manage the entire social media work cycle, from planning, content creation, publishing, and analytics to team collaboration.
 
 ---
 
 # Out of Scope
 
-Pada fase MVP, produk **tidak** berfokus pada:
+In the MVP phase, the product is **not** focused on:
 
-* Social Media Platform.
-* Marketplace.
-* CRM.
-* Email Marketing.
-* Marketing Automation yang kompleks.
+- Social Media Platform.
+- Marketplace.
+- CRM.
+- Email Marketing.
+- Complex Marketing Automation.
 
-Fokus utama tetap pada Social Media Management.
+The main focus remains Social Media Management.
 
 ---
 
 # Success Definition
 
-Product Vision dianggap berhasil apabila seluruh keputusan mengenai bisnis, fitur, UX, dan arsitektur dapat ditelusuri kembali dan tetap selaras dengan visi yang didefinisikan pada dokumen ini.
+The Product Vision is considered successful when all decisions about business, features, UX, and architecture can be traced back to, and remain aligned with, the vision defined in this document.
 
 ---
 
 # Related Documents
 
-* `README.md`
-* `problem-statement.md`
-* `target-market.md`
-* `../02-product/`
-* `../../project-os/PROJECT_OVERVIEW.md`
-* `../../project-os/DECISIONS.md`
+- `README.md`
+- `problem-statement.md`
+- `target-market.md`
+- `../02-product/`
+- `../../project-os/PROJECT_OVERVIEW.md`
+- `../../project-os/DECISIONS.md`
