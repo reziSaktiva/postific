@@ -92,15 +92,17 @@ Gerbang kosakata (ADR-163 butir 3 dan 4). Daftar padanan kata kunci hidup di tik
 
 ### T-265 · Make docs:check, docs:where, and four skills use the English keywords
 
-`⏳ Todo` · **Mode** AFK · **Verifikasi** lokal · **Domain** platform, DX, agen · **ADR** ADR-133, ADR-163 · **Spec** S-007 · **Depends** T-264
+`✅ Done (code) (2026-11-13)` · **Mode** AFK · **Verifikasi** lokal · **Domain** platform, DX, agen · **ADR** ADR-133, ADR-163 · **Spec** S-007 · **Depends** T-264
 **Baca dulu:** `project-os/specs/S-007.md` · tiket T-264 (daftar padanan) · `scripts/docs/check.ts` · `scripts/docs-where.ts` · empat skill: `project-os-navigator`, `wave-plan`, `wave-work`, `docs-consistency-audit`
 
 Selama dokumen sejarah belum diganti (T-276), skrip mengenali kata kunci Indonesia dan Inggris sekaligus. Dukungan kata kunci lama dicabut di T-276. Kata kunci lama dan baru tidak boleh bercampur di dokumen hidup setelah tiket ini di-merge.
 
-- [ ] **T-265.1** `scripts/docs/check.ts` dan `scripts/docs-where.ts` mengenali padanan Inggris (penghitung `Next:`-setara, kata henti, pesan) dan tetap mengenali kata kunci Indonesia selama masa peralihan.
-- [ ] **T-265.2** Tes skrip (bila ada) diperbarui dan `bun run docs:check` bersih pada dokumen yang belum diganti dan pada satu dokumen uji berkata kunci Inggris.
-- [ ] **T-265.3** Empat skill memakai kata kunci Inggris, dengan arti gerbang tidak berubah. Perbandingan penuh oleh agen independen (dokumen berbentuk aturan, keputusan 6 S-007).
-- [ ] **T-265.4** Audit topik language tidak menemukan aturan yang bertentangan antara skill, skrip, dan `AGENTS.md` aturan 8.
+- [x] **T-265.1** `(2026-11-13)` `scripts/docs/check.ts` dan `scripts/docs-where.ts` mengenali padanan Inggris (penghitung `Next:`-setara, kata henti, pesan) dan tetap mengenali kata kunci Indonesia selama masa peralihan.
+- [x] **T-265.2** `(2026-11-13)` Tes skrip (bila ada) diperbarui dan `bun run docs:check` bersih pada dokumen yang belum diganti dan pada satu dokumen uji berkata kunci Inggris.
+- [x] **T-265.3** `(2026-11-13)` Empat skill memakai kata kunci Inggris, dengan arti gerbang tidak berubah. Perbandingan penuh oleh agen independen (dokumen berbentuk aturan, keputusan 6 S-007).
+- [x] **T-265.4** `(2026-11-13)` Audit topik language tidak menemukan aturan yang bertentangan antara skill, skrip, dan `AGENTS.md` aturan 8.
+
+**Review (2026-11-13, independent, two axes):** no hard violations. Considerations, not fixed here: (1) code comments in `scripts/docs/` are only partly English (code comments are out of S-007 scope); (2) the exemption regex for `Next:` in `check.ts` matches that phrase in any document (it needs a bold ID right after the colon, so it stays narrow); (3) no test mixes an English ticket counter with an Indonesian spec counter; (4) the skills cite "S-003 § Behavior" while the S-003 heading is still `## Perilaku`, and no ticket translates the spec headings (section D of the T-264 table), so T-276 or T-277 should settle that pointer; (5) the sentence above that old and new keywords must not mix in living documents cannot hold literally until T-274 to T-276, because the skills are English while the queue, `specs/README.md` and the tickets stay Indonesian until then.
 
 **Belum terbukti:** belum ada dokumen berkata kunci Inggris di sejarah (T-276); peralihan dua bahasa diuji hanya lewat dokumen uji.
 
@@ -139,15 +141,15 @@ Percobaan cakupan C (keputusan 2 S-007): sembilan berkas, 948 baris. Dokumen ber
 
 ### T-278 · Fix stale AGENTS.md rule-number pointers in context/
 
-`⏳ Todo` · **Mode** AFK · **Verifikasi** lokal · **Domain** project-os, agen · **ADR** ADR-133, ADR-163 · **Spec** S-007 · **Depends** T-266
+`✅ Done (code) (2026-11-13)` · **Mode** AFK · **Verifikasi** lokal · **Domain** project-os, agen · **ADR** ADR-133, ADR-163 · **Spec** S-007 · **Depends** T-266
 **Baca dulu:** `AGENTS.md` (Hard rules 3 to 9) · `context/ctx-architecture.md` · `context/ctx-domain.md` · `context/ctx-implementation.md`
 
 Born from the T-266 language audit (T-266.10). The Indonesian originals already carried these stale rule numbers, so the translation kept them (a translation ticket must not change pointers). Fix the pointers only; no other text changes.
 
-- [ ] **T-278.1** `context/ctx-architecture.md` (about lines 38 to 40): the pointer "AGENTS.md rules 5, 9" for entry points and Supabase points to the real rules 3 and 6.
-- [ ] **T-278.2** `context/ctx-domain.md` (about lines 39 to 40): the pointer "rules 6, 7, 8" for shared types, cross-domain access, and domain without Prisma points to the real rules 4 and 5 (check the exact mapping against `AGENTS.md`).
-- [ ] **T-278.3** `context/ctx-implementation.md` (about lines 97 to 98): "rules 5-8" points to the real rules 3 to 5, and (about line 104) "hard rule 6" for the domain-must-not-import-Prisma rule points to rule 4.
-- [ ] **T-278.4** `bun run docs:check` is clean and a grep of `context/` for "AGENTS.md rule" finds no other stale number.
+- [x] **T-278.1** `(2026-11-13)` `context/ctx-architecture.md` (about lines 38 to 40): the pointer "AGENTS.md rules 5, 9" for entry points and Supabase points to the real rules 3 and 6.
+- [x] **T-278.2** `(2026-11-13)` `context/ctx-domain.md` (about lines 39 to 40): the pointer "rules 6, 7, 8" for shared types, cross-domain access, and domain without Prisma points to the real rules 4 and 5 (check the exact mapping against `AGENTS.md`).
+- [x] **T-278.3** `(2026-11-13)` `context/ctx-implementation.md` (about lines 97 to 98): "rules 5-8" points to the real rules 3 to 5, and (about line 104) "hard rule 6" for the domain-must-not-import-Prisma rule points to rule 4.
+- [x] **T-278.4** `(2026-11-13)` `bun run docs:check` is clean and a grep of `context/` for "AGENTS.md rule" finds no other stale number.
 
 **Belum terbukti:** tidak ada butir runtime.
 
