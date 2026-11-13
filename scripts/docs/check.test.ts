@@ -155,24 +155,19 @@ describe("docs:check", () => {
       ]);
     });
 
-    it("flags a wrong counter in the old Indonesian form too", () => {
-      cleanTree();
-      write(
-        "project-os/AVAILABLE_TICKETS.md",
-        "Berikutnya: **T-009**. ID spec berikutnya: **S-002**.\n",
-      );
-      expect(runChecks(root).map(formatFinding)).toEqual([
-        "project-os/AVAILABLE_TICKETS.md:1  [counter] ticket counter T-009 should be T-003 (max ID + 1)",
-      ]);
-    });
-
-    it("accepts the old Indonesian counter keywords during the transition", () => {
+    it("no longer recognizes the old Indonesian counter keywords", () => {
       cleanTree();
       write(
         "project-os/AVAILABLE_TICKETS.md",
         "Berikutnya: **T-003**. ID spec berikutnya: **S-002**.\n",
       );
-      expect(runChecks(root)).toEqual([]);
+      const messages = runChecks(root).map(formatFinding);
+      expect(messages).toContain(
+        "project-os/AVAILABLE_TICKETS.md:1  [counter] next ticket ID counter not found",
+      );
+      expect(messages).toContain(
+        "project-os/AVAILABLE_TICKETS.md:1  [counter] next spec ID counter not found",
+      );
     });
 
     it("counts spec IDs only from project-os/specs, not scenario IDs elsewhere", () => {

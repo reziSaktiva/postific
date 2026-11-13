@@ -6,9 +6,8 @@
  * counters = max ID + 1, (4) the rule 12 twin pairs (AGENTS.md) have not
  * diverged, (5) skill folder names and new ticket titles are in English (S-003).
  *
- * Transition (T-265, ADR-163): the counters are recognized in the English form
- * (`Next:`, `Next spec:`) and the old Indonesian form (`Berikutnya:`,
- * `spec berikutnya:`) until T-276 replaces the keywords in history files.
+ * The counters are recognized in the English form only (`Next:`, `Next spec:`;
+ * ADR-163, T-276 removed the old Indonesian keywords).
  */
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
@@ -182,12 +181,12 @@ function checkIds(docs: Doc[], defs: Definition[]): Finding[] {
     const lines = doc.text.split("\n");
     for (const ref of parseReferences(doc.path, doc.text)) {
       if (ref.inRange || RESERVED_IDS.has(ref.id)) continue;
-      // The "Next: **T-NNN**" counter (or the old "Berikutnya: **T-NNN**" form)
+      // The "Next: **T-NNN**" counter
       // deliberately names an ID that does not exist yet; only that counter ID is
       // skipped, not the whole line.
       const counters = [
         ...lines[ref.line - 1].matchAll(
-          /(?:next(?: spec)?|(?:spec )?berikutnya):\s*\*\*([A-Z]{1,4}-\d+)\*\*/gi,
+          /next(?: spec)?:\s*\*\*([A-Z]{1,4}-\d+)\*\*/gi,
         ),
       ];
       if (counters.some((counter) => counter[1] === ref.id)) continue;
@@ -275,14 +274,14 @@ function checkCounters(root: string, defs: Definition[]): Finding[] {
       prefix: "T",
       dir: "project-os/tickets/",
       width: 3,
-      pattern: /(?:Next|Berikutnya):\s*\*\*T-(\d+)\*\*/,
+      pattern: /Next:\s*\*\*T-(\d+)\*\*/,
     },
     {
       label: "spec",
       prefix: "S",
       dir: "project-os/specs/",
       width: 3,
-      pattern: /(?:next spec|spec berikutnya):\s*\*\*S-(\d+)\*\*/i,
+      pattern: /next spec:\s*\*\*S-(\d+)\*\*/i,
     },
   ];
   for (const { label, prefix, dir, width, pattern } of counters) {

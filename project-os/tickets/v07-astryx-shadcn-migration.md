@@ -39,7 +39,7 @@ diverifikasi ulang setelah migrasi, tidak otomatis resolved.
 ### T-095 · Setup Fondasi shadcn/ui & Tooling Migrasi
 
 `✅ Done` (2026-09-01) · **Domain** platform/tooling · **ADR** ADR-097, ADR-064 · **Depends** —
-**Baca dulu:** `ADR-097` · `context/ctx-technical-context.md` § Kompatibilitas tool (ADR-064)
+**Read first:** `ADR-097` · `context/ctx-technical-context.md` § Kompatibilitas tool (ADR-064)
 
 Setup awal sebelum migrasi komponen apa pun bisa dimulai — CLI/MCP, agent
 docs, dan aturan governance. Semua subtask di sini **wajib selesai lebih
@@ -181,7 +181,7 @@ template/component`) ke workflow shadcn CLI/MCP yang setara
 ### T-096 · Migrasi Core Infra & Shared Primitives
 
 `✅ Done` (2026-09-01) · **Domain** UI · **ADR** ADR-097 · **Depends** T-095
-**Baca dulu:** `ADR-097` · `product-discovery/06-engineering/design-tokens.md`
+**Read first:** `ADR-097` · `product-discovery/06-engineering/design-tokens.md`
 
 Fondasi yang dipakai seluruh app tree — dikerjakan sebelum route-segment
 manapun karena blast radius-nya mencakup semua halaman. Highest-risk task
@@ -229,7 +229,7 @@ astryx-theme` dan `@import` Astryx (`reset.css`, `astryx.css`,
 ### T-097 · Migrasi Auth Flows & Onboarding
 
 `✅ Done` (2026-09-02) · **Domain** UI · **ADR** ADR-097 · **Depends** T-096
-**Baca dulu:** `04-ux/` layar terkait (login, register, forgot/reset password, invite, onboarding)
+**Read first:** `04-ux/` layar terkait (login, register, forgot/reset password, invite, onboarding)
 
 ~19 file, isolated dari route segment lain — aman dikerjakan paralel
 dengan T-098/T-099/T-100/T-101 begitu T-096 selesai.
@@ -295,7 +295,7 @@ dengan T-098/T-099/T-100/T-101 begitu T-096 selesai.
 ### T-098 · Migrasi App Shell & Navigasi
 
 `✅ Done` (2026-09-02, T-098.4 tuntas — 4/4 subtask) · **Domain** UI · **ADR** ADR-097 · **Depends** T-096, T-036 (fungsional stabil)
-**Baca dulu:** `04-ux/information-architecture.md`
+**Read first:** `04-ux/information-architecture.md`
 
 Termasuk penghapusan wrapper selektif `Drawer.tsx` — salah satu hasil
 konkret migrasi ini adalah menghilangkan kebutuhan wrapper custom yang
@@ -441,7 +441,7 @@ lahir dari keterbatasan Astryx.
 ### T-099 · Migrasi Settings
 
 `✅ Done` (2026-09-02) · **Domain** UI · **ADR** ADR-097 · **Depends** T-096
-**Baca dulu:** `04-ux/` layar Settings terkait
+**Read first:** `04-ux/` layar Settings terkait
 
 ~9 file di `app/(app)/settings/`.
 
@@ -498,7 +498,7 @@ lahir dari keterbatasan Astryx.
 ### T-100 · Migrasi Publish — Draft Editor Modal
 
 `✅ Done (2026-09-03)` · **Domain** UI · **ADR** ADR-097 · **Depends** T-096
-**Baca dulu:** `04-ux/key-screen-patterns.md` § Draft Editor · ADR-065 (default Standard) · ADR-052 (toggle Fullscreen)
+**Read first:** `04-ux/key-screen-patterns.md` § Draft Editor · ADR-065 (default Standard) · ADR-052 (toggle Fullscreen)
 
 File paling kompleks di seluruh audit (`Modal.tsx`, ~68 titik pakai
 Astryx) — layak jadi task tersendiri terpisah dari Publish lainnya.
@@ -709,7 +709,7 @@ id="draft-schedule-time" type="time"`, `value={scheduleTime ?? ""}`,
 ### T-101 · Migrasi Publish — Calendar, Queue, Drafts, Dashboard
 
 `✅ Done` (2026-09-03) · **Domain** UI · **ADR** ADR-097 · **Depends** T-096
-**Baca dulu:** `04-ux/key-screen-patterns.md` § Calendar/Queue · ADR-090/091 (Popover)
+**Read first:** `04-ux/key-screen-patterns.md` § Calendar/Queue · ADR-090/091 (Popover)
 
 ~10 file, boleh dipecah lebih lanjut jadi sub-sesi kalau perlu.
 
@@ -939,7 +939,7 @@ sm:grid-cols-3 gap-4`; `ProgressBar` → shadcn `Progress` (Radix, skala
 ### T-102 · Cleanup & Verifikasi Akhir
 
 `✅ Done` · **Domain** platform/tooling · **ADR** ADR-097 · **Depends** T-097, T-098, T-099, T-100, T-101
-**Baca dulu:** —
+**Read first:** —
 
 Task penutup — baru dikerjakan setelah **semua** route segment selesai
 dimigrasikan, memastikan tidak ada sisa Astryx di codebase.
@@ -1125,7 +1125,7 @@ typecheck` PASS 0 error; `bunx eslint .` PASS 0 error (1 pesan info
 ### T-103 · Kunci Pola Implementasi shadcn per Komponen di Claude Design (cegah drift KI-054/KI-055)
 
 `✅ Done` (2026-09-10) · **Domain** Design System / Governance — lintas Claude Design + `AGENTS.md`/agent docs, bukan domain kode produk biasa (lihat catatan Domain di bawah) · **ADR** — · **Depends** —
-**Baca dulu:** paragraf "Latar belakang" di bawah (ringkasan KI-054/KI-055 — detail lengkap keduanya sudah Resolved, diarsipkan di `COMPLETE_TASK.md`, tidak lagi ada entrinya di `PROJECT_STATE.md`) · `readme.md` (Claude Design project "Social Media Management") § Components · `AGENTS.md` rule 15–17 · `.claude/agents/README.md`
+**Read first:** paragraf "Latar belakang" di bawah (ringkasan KI-054/KI-055 — detail lengkap keduanya sudah Resolved, diarsipkan di `COMPLETE_TASK.md`, tidak lagi ada entrinya di `PROJECT_STATE.md`) · `readme.md` (Claude Design project "Social Media Management") § Components · `AGENTS.md` rule 15–17 · `.claude/agents/README.md`
 
 **Prioritas: dikerjakan LEBIH DULU dari task lain di backlog** (permintaan
 eksplisit King Rezi, 2026-09-10) — sampai T-103 selesai, task implementasi
@@ -1284,7 +1284,7 @@ tunggal di `.claude/agents/README.md` — evaluasi manual per subtask.
 ### T-105 · Migrasi Sidebar Workspace/Settings ke primitive `Sidebar` shadcn/ui
 
 `✅ Done` (2026-09-23, 4/4 subtask) · **Domain** UI · **ADR** ADR-097 · **Depends** T-098
-**Baca dulu:** `ADR-097` · `PROJECT_STATE.md` § KI-066 · `components/navigation.html` + `readme.md` § Components (Claude Design)
+**Read first:** `ADR-097` · `PROJECT_STATE.md` § KI-066 · `components/navigation.html` + `readme.md` § Components (Claude Design)
 **Terkait:** KI-066, T-102
 
 ID dipinjam dari rentang global berikutnya (footnote ¹ `TASKS.md`) karena
@@ -1492,7 +1492,7 @@ tanpa batas.
 ### T-165 · Selaraskan ADR-068 (`react-icons` ikon tunggal) dengan `apps/web/.claude/CLAUDE.md` (`hugeicons`)
 
 `✅ Done` (2026-10-28; ADR-148 menggantikan ADR-068; migrasi sisa ikon generik di T-169) · **Domain** UI, dokumentasi (lintas produk) · **ADR** ADR-058 poin 6, ADR-068, ADR-097, ADR-144 · **Depends** keputusan King Rezi
-**Baca dulu:** ADR-068 · ADR-144 poin 15 · `apps/web/.claude/CLAUDE.md` § Icons
+**Read first:** ADR-068 · ADR-144 poin 15 · `apps/web/.claude/CLAUDE.md` § Icons
 
 Dua sumber bertentangan: ADR-068 menetapkan `react-icons` sebagai library ikon tunggal untuk seluruh UI, sedangkan `apps/web/.claude/CLAUDE.md` memakai `hugeicons` (preset Maia, dikonfirmasi King Rezi 2026-09-01 di T-095) untuk komponen shadcn baru dan menyisakan `react-icons` hanya untuk kode yang belum dimigrasi. Start Page (ADR-144) sudah memakai `hugeicons` untuk ikon platform. Hasil: ADR-148 menyatakan `hugeicons` sebagai library ikon UI dan `react-icons/fa6` hanya untuk logo brand berwarna; ADR-068 Superseded, ADR-058 poin 6 diamandemen, `apps/web/.claude/CLAUDE.md` diselaraskan. Tidak ada perubahan kode; migrasi sisa ikon generik dibuka sebagai T-169.
 
@@ -1501,6 +1501,6 @@ Dua sumber bertentangan: ADR-068 menetapkan `react-icons` sebagai library ikon t
 ### T-169 · Migrasi sisa ikon generik `react-icons` ke `hugeicons` (ADR-148)
 
 `✅ Done` (2026-10-28; `CONTENT_FORMAT_ICON` dan `CalendarEntryFooter` memakai `hugeicons`; tsc, eslint, dan 51 tes kalender lolos. Komentar yang mengutip ADR-058 untuk logo brand tetap benar, tidak diubah) · **Domain** UI · **ADR** ADR-148 · **Depends** T-165 ✅
-**Baca dulu:** ADR-148 · `apps/web/.claude/CLAUDE.md` § Icons
+**Read first:** ADR-148 · `apps/web/.claude/CLAUDE.md` § Icons
 
 Ganti ikon generik yang masih memakai `react-icons/fa6` di `apps/web/src/app/(app)/publish/calendar/components/calendar-grid-shared.ts` (`FaFilm`, `FaRegClock`, `FaRegImage`, `FaThumbtack`) dengan padanan `hugeicons`. Logo brand berwarna di `platform-icons.tsx` tetap `react-icons`. Sekalian perbarui komentar kode yang masih mengutip ADR-058/068 sebagai kebijakan berlaku (`ConnectPlatformMenu.tsx`, `QueueList.tsx`, `CalendarToolbar.tsx`, `start-page-link-icons.ts`) agar merujuk ADR-148. Perubahan ikon butuh pengecekan visual di artifact desain (aturan UI #10).
