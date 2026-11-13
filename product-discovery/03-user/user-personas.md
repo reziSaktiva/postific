@@ -1,32 +1,32 @@
 # User Personas
 
-Dokumen ini menyusun persona awal untuk produk **Postific** berdasarkan asumsi, observasi desktop research, dan insight yang relevan.
+This document drafts the initial personas for the **Postific** product based on assumptions, desktop research observations, and relevant insights.
 
-Persona digunakan untuk menjaga empati dan fokus keputusan produk. Persona bukan hasil riset akademis, dan bukan kontrak fitur.
+Personas are used to keep empathy and focus in product decisions. Personas are not the result of academic research, and they are not a feature contract.
 
 ---
 
 # Overview
 
-Persona merepresentasikan pola pengguna yang berulang pada segmen prioritas.
+Personas represent recurring user patterns in the priority segments.
 
-Setiap persona disusun agar dapat menjawab:
+Each persona is drafted so it can answer:
 
-* Siapa orang ini dalam konteks kerja?
-* Apa yang ingin dicapai?
-* Apa yang menghambat?
-* Apa yang membuat produk dianggap berhasil baginya?
+- Who is this person in their work context?
+- What do they want to achieve?
+- What gets in their way?
+- What makes the product count as a success for them?
 
-Detail goals, pain points, dan JTBD yang lebih lengkap ada pada dokumen terpisah. Persona hanya membawa ringkasan yang cukup untuk pengambilan keputusan.
+More complete detail on goals, pain points, and JTBD lives in separate documents. A persona only carries a summary sufficient for decision making.
 
 ---
 
 # Purpose
 
-* Memberikan wajah konkret pada segmen pengguna.
-* Membantu membedakan kebutuhan buyer dan daily user.
-* Menjadi acuan diskusi Product dan UX tanpa spekulasi berlebihan.
-* Mengevaluasi apakah MVP menyelesaikan pekerjaan orang yang tepat.
+- Give a concrete face to the user segments.
+- Help distinguish the needs of the buyer and the daily user.
+- Serve as a reference for Product and UX discussions without excessive speculation.
+- Evaluate whether the MVP does the job of the right people.
 
 ---
 
@@ -34,27 +34,27 @@ Detail goals, pain points, dan JTBD yang lebih lengkap ada pada dokumen terpisah
 
 ## In Scope
 
-* Persona primary dan secondary yang relevan MVP.
-* Ringkasan context, goals, pains, dan success criteria per persona.
-* Mapping persona ke segmen dan peran buyer/daily user.
+- Primary and secondary personas relevant to the MVP.
+- A summary of context, goals, pains, and success criteria per persona.
+- Mapping personas to segments and to buyer/daily user roles.
 
 ## Out of Scope
 
-* Segmentasi pasar (lihat `user-segments.md`).
-* Inventaris lengkap goals/pain points/JTBD.
-* Desain UI berdasarkan persona.
-* User flow solution.
-* Role-permission matrix teknis.
+- Market segmentation (see `user-segments.md`).
+- The complete inventory of goals/pain points/JTBD.
+- UI design based on personas.
+- User flow solution.
+- Technical role-permission matrix.
 
 ---
 
 # Persona Principles
 
-* Realistis, bukan karikatural.
-* Berorientasi pekerjaan, bukan demografi kosmetik.
-* Cukup untuk keputusan produk; tidak berlebihan detail fiksi.
-* Konsisten dengan Marketing Team sebagai primary segment.
-* Memisahkan motivasi buyer dari friction daily user.
+- Realistic, not caricatured.
+- Job-oriented, not cosmetic demographics.
+- Sufficient for product decisions; not excessively detailed fiction.
+- Consistent with the Marketing Team as the primary segment.
+- Separate the buyer's motivation from the daily user's friction.
 
 ---
 
@@ -64,37 +64,37 @@ Detail goals, pain points, dan JTBD yang lebih lengkap ada pada dokumen terpisah
 
 ### Profile
 
-| Field | Detail |
-| ----- | ------ |
-| Role | Marketing Manager |
-| Segment | Marketing Team |
-| Type | Buyer (primary), light daily user |
-| Team size | 6–12 orang |
-| Context | Bertanggung jawab atas channel performance dan efisiensi operasional tim |
+| Field     | Detail                                                                    |
+| --------- | ------------------------------------------------------------------------- |
+| Role      | Marketing Manager                                                         |
+| Segment   | Marketing Team                                                            |
+| Type      | Buyer (primary), light daily user                                         |
+| Team size | 6–12 people                                                               |
+| Context   | Responsible for channel performance and the team's operational efficiency |
 
 ### Day-to-Day Context
 
-Maya memastikan konten keluar tepat waktu, kualitas terjaga, dan tim tidak tenggelam di pekerjaan administratif. Ia jarang menulis setiap caption, tetapi sering memeriksa status kalender, performa, dan bottleneck proses.
+Maya makes sure content goes out on time, quality is maintained, and the team does not drown in administrative work. She rarely writes every caption, but often checks the calendar status, performance, and process bottlenecks.
 
 ### Goals
 
-* Visibilitas status konten lintas anggota tim.
-* Mengurangi tool switching yang memperlambat tim.
-* Mendapat ringkasan performa yang cukup untuk keputusan mingguan.
+- Visibility of content status across team members.
+- Reduce the tool switching that slows the team down.
+- Get a performance summary sufficient for weekly decisions.
 
 ### Friction
 
-* Sulit melihat “apa yang sudah ready / scheduled / published” tanpa bertanya ke chat.
-* Analytics tersebar di native dashboards.
-* Onboarding tool baru gagal jika terasa rumit bagi tim.
+- It is hard to see "what is ready / scheduled / published" without asking in chat.
+- Analytics is scattered across native dashboards.
+- Onboarding a new tool fails if it feels complicated to the team.
 
 ### Success Criteria
 
-Tim mengadopsi satu dashboard, cadence publishing stabil, dan Maya bisa review progress tanpa meeting berlebih.
+The team adopts one dashboard, the publishing cadence is stable, and Maya can review progress without excessive meetings.
 
 ### Product Relevance
 
-Paling peduli pada Workspace, Calendar visibility, Analytics ringkas, dan kejelasan ownership pekerjaan.
+Cares most about Workspace, Calendar visibility, concise Analytics, and clarity of work ownership.
 
 ---
 
@@ -102,37 +102,37 @@ Paling peduli pada Workspace, Calendar visibility, Analytics ringkas, dan kejela
 
 ### Profile
 
-| Field | Detail |
-| ----- | ------ |
-| Role | Social Media Manager |
-| Segment | Marketing Team |
-| Type | Daily user (primary) |
-| Team size | Bekerja dengan creator, copywriter, dan community |
-| Context | Owner operasional publishing dan koordinasi konten harian/mingguan |
+| Field     | Detail                                                                   |
+| --------- | ------------------------------------------------------------------------ |
+| Role      | Social Media Manager                                                     |
+| Segment   | Marketing Team                                                           |
+| Type      | Daily user (primary)                                                     |
+| Team size | Works with creators, copywriters, and community                          |
+| Context   | Operational owner of publishing and of daily/weekly content coordination |
 
 ### Day-to-Day Context
 
-Raka menyusun jadwal, memastikan draft siap, menjadwalkan ke beberapa akun, memantau komentar penting melalui sinkronisasi berkala atau manual refresh, dan menjaga konsistensi kehadiran brand di channel.
+Raka builds the schedule, makes sure drafts are ready, schedules to several accounts, monitors important comments through periodic sync or manual refresh, and maintains the consistency of the brand's presence on the channels.
 
 ### Goals
 
-* Menyelesaikan siklus draft → review ringan → schedule → publish dengan cepat.
-* Menjaga antrean konten tetap sehat.
-* Membaca dan membalas komentar penting tanpa hilang di banyak native apps.
+- Complete the draft → light review → schedule → publish cycle quickly.
+- Keep the content queue healthy.
+- Read and reply to important comments without them getting lost across many native apps.
 
 ### Friction
 
-* Draft ada di dokumen, aset di drive, jadwal di tool lain, balasan di app native.
-* Status konten tidak jelas antar anggota.
-* Gagal publish atau salah akun berisiko tinggi bagi reputasi.
+- Drafts are in documents, assets in a drive, the schedule in another tool, replies in native apps.
+- Content status is unclear between members.
+- A failed publish or the wrong account is a high risk to reputation.
 
 ### Success Criteria
 
-Dalam satu sesi kerja, Raka dapat merencanakan dan menjadwalkan konten minggu berjalan serta menangani komentar prioritas melalui Comments Inbox tanpa pindah terlalu banyak tool.
+In a single work session, Raka can plan and schedule the current week's content and handle priority comments through the Comments Inbox without switching too many tools.
 
 ### Product Relevance
 
-Paling peduli pada Publishing (draft, schedule, queue, calendar), Engagement Comments Inbox, dan AI caption assistance yang cepat.
+Cares most about Publishing (draft, schedule, queue, calendar), the Engagement Comments Inbox, and fast AI caption assistance.
 
 ---
 
@@ -140,36 +140,36 @@ Paling peduli pada Publishing (draft, schedule, queue, calendar), Engagement Com
 
 ### Profile
 
-| Field | Detail |
-| ----- | ------ |
-| Role | Content Creator / Copywriter |
-| Segment | Marketing Team |
-| Type | Daily user (supporting) |
-| Context | Fokus membuat draft caption dan variasi konten, bukan ownership channel penuh |
+| Field   | Detail                                                                                |
+| ------- | ------------------------------------------------------------------------------------- |
+| Role    | Content Creator / Copywriter                                                          |
+| Segment | Marketing Team                                                                        |
+| Type    | Daily user (supporting)                                                               |
+| Context | Focuses on creating caption drafts and content variations, not full channel ownership |
 
 ### Day-to-Day Context
 
-Sinta menerima brief, menulis draft, menyesuaikan tone, dan menyerahkan ke Social Media Manager untuk penjadwalan. Ia sering butuh bantuan mempercepat iterasi caption.
+Sinta receives the brief, writes drafts, adjusts the tone, and hands off to the Social Media Manager for scheduling. She often needs help speeding up caption iteration.
 
 ### Goals
 
-* Menyelesaikan draft berkualitas lebih cepat.
-* Mendapat konteks brief dan aset yang jelas.
-* Mengurangi revisi karena tone yang meleset.
+- Finish quality drafts faster.
+- Get clear brief context and assets.
+- Reduce revisions caused by a tone that misses.
 
 ### Friction
 
-* Brief tersebar di chat.
-* Membuat banyak variasi caption memakan waktu.
-* Sulit tahu versi mana yang final untuk dijadwalkan.
+- The brief is scattered in chat.
+- Creating many caption variations takes time.
+- It is hard to know which version is final for scheduling.
 
 ### Success Criteria
 
-Sinta dapat menghasilkan draft siap-jadwal dengan sedikit bolak-balik komunikasi.
+Sinta can produce schedule-ready drafts with little back-and-forth communication.
 
 ### Product Relevance
 
-Paling peduli pada Content Draft, AI Assistant (caption generation/improvement), dan kejelasan status draft.
+Cares most about Content Draft, the AI Assistant (caption generation/improvement), and clarity of draft status.
 
 ---
 
@@ -179,37 +179,37 @@ Paling peduli pada Content Draft, AI Assistant (caption generation/improvement),
 
 ### Profile
 
-| Field | Detail |
-| ----- | ------ |
-| Role | Head of Growth / Marketing Lead |
-| Segment | Startup |
-| Type | Buyer and daily user (sering overlap) |
-| Team size | 1–4 orang |
-| Context | Tim lean; satu orang sering mengerjakan strategi dan eksekusi |
+| Field     | Detail                                                       |
+| --------- | ------------------------------------------------------------ |
+| Role      | Head of Growth / Marketing Lead                              |
+| Segment   | Startup                                                      |
+| Type      | Buyer and daily user (often overlapping)                     |
+| Team size | 1–4 people                                                   |
+| Context   | Lean team; one person often does both strategy and execution |
 
 ### Day-to-Day Context
 
-Dimas membutuhkan tool yang langsung dipakai. Ia tidak punya waktu untuk setup kompleks. Fokusnya adalah konsistensi posting dan belajar dari performa dasar.
+Dimas needs a tool that can be used right away. He has no time for complex setup. His focus is posting consistency and learning from basic performance.
 
 ### Goals
 
-* Time-to-value cepat.
-* Cadence publishing yang konsisten.
-* Insight sederhana untuk iterasi konten.
+- Fast time-to-value.
+- Consistent publishing cadence.
+- Simple insights for content iteration.
 
 ### Friction
 
-* Tool enterprise terlalu berat.
-* Terlalu banyak fitur di awal justru menghambat adopsi.
-* Konteks switching tetap terjadi karena resource terbatas.
+- Enterprise tools are too heavy.
+- Too many features at the start actually hinder adoption.
+- Context switching still happens because resources are limited.
 
 ### Success Criteria
 
-Dalam hari pertama, Dimas bisa connect account, schedule posts, dan melihat hasil dasar.
+On the first day, Dimas can connect accounts, schedule posts, and see basic results.
 
 ### Product Relevance
 
-Onboarding sederhana, Publishing inti, Analytics dasar, AI bantuan caption.
+Simple onboarding, core Publishing, basic Analytics, AI caption help.
 
 ---
 
@@ -217,107 +217,107 @@ Onboarding sederhana, Publishing inti, Analytics dasar, AI bantuan caption.
 
 ### Profile
 
-| Field | Detail |
-| ----- | ------ |
-| Role | Social Media Lead / Account Ops |
-| Segment | Digital Agency |
-| Type | Influences buying; daily oversight across clients |
-| Context | Mengelola beberapa klien dengan deadline ketat dan banyak akun |
+| Field   | Detail                                                         |
+| ------- | -------------------------------------------------------------- |
+| Role    | Social Media Lead / Account Ops                                |
+| Segment | Digital Agency                                                 |
+| Type    | Influences buying; daily oversight across clients              |
+| Context | Manages several clients with tight deadlines and many accounts |
 
 ### Day-to-Day Context
 
-Lara memastikan setiap klien punya jadwal yang sehat, tim tidak tertukar konteks antar brand, dan status pekerjaan terlihat tanpa harus chase satu per satu.
+Lara makes sure every client has a healthy schedule, the team does not mix up context between brands, and work status is visible without having to chase people one by one.
 
 ### Goals
 
-* Visibilitas multi-account yang rapi.
-* Proses yang konsisten lintas klien.
-* Mengurangi risiko salah publish ke brand lain.
+- Tidy multi-account visibility.
+- A consistent process across clients.
+- Reduce the risk of publishing to the wrong brand.
 
 ### Friction
 
-* Context switching antar klien tinggi.
-* Tool yang tidak mendukung kejelasan workspace/akun memperbesar risiko error.
-* Reporting ke klien memakan waktu jika data tersebar.
+- Context switching between clients is high.
+- Tools that do not support workspace/account clarity increase the risk of errors.
+- Reporting to clients takes time if the data is scattered.
 
 ### Success Criteria
 
-Lara dapat memantau status beberapa akun klien dan menjaga delivery tanpa menambah meeting operasional.
+Lara can monitor the status of several client accounts and maintain delivery without adding operational meetings.
 
 ### Product Relevance
 
-Workspace clarity, account connection hygiene, Publishing calendar, Analytics ringkas per akun.
+Workspace clarity, account connection hygiene, Publishing calendar, concise Analytics per account.
 
 ---
 
 # Persona Priority Map
 
-| Priority | Persona | Segment | Primary Need |
-| -------- | ------- | ------- | ------------ |
-| P0 | Raka — Social Media Manager | Marketing Team | Reliable publishing + engagement workflow |
-| P0 | Maya — Marketing Manager | Marketing Team | Visibility, adoption, team efficiency |
-| P1 | Sinta — Content Creator | Marketing Team | Faster draft quality with AI assist |
-| P1 | Dimas — Startup Growth Lead | Startup | Fast time-to-value |
-| P1 | Lara — Agency Social Lead | Digital Agency | Multi-account visibility without complexity |
+| Priority | Persona                     | Segment        | Primary Need                                |
+| -------- | --------------------------- | -------------- | ------------------------------------------- |
+| P0       | Raka — Social Media Manager | Marketing Team | Reliable publishing + engagement workflow   |
+| P0       | Maya — Marketing Manager    | Marketing Team | Visibility, adoption, team efficiency       |
+| P1       | Sinta — Content Creator     | Marketing Team | Faster draft quality with AI assist         |
+| P1       | Dimas — Startup Growth Lead | Startup        | Fast time-to-value                          |
+| P1       | Lara — Agency Social Lead   | Digital Agency | Multi-account visibility without complexity |
 
-MVP harus “benar” untuk Raka dan Maya terlebih dahulu. Persona lain dipakai untuk mengecek apakah solusi tetap usable di konteks sekunder.
+The MVP must be "right" for Raka and Maya first. The other personas are used to check whether the solution stays usable in secondary contexts.
 
 ---
 
 # Anti-Personas (MVP)
 
-Persona berikut tidak menjadi acuan desain MVP:
+The following personas are not a design reference for the MVP:
 
-* Solo influencer yang fokus pertumbuhan personal brand.
-* Enterprise social ops dengan approval berlapis dan compliance ketat.
-* Power user yang mencari social listening mendalam atau automation kompleks.
+- Solo influencer focused on personal brand growth.
+- Enterprise social ops with layered approval and strict compliance.
+- Power user looking for deep social listening or complex automation.
 
 ---
 
 # Assumptions Evaluated in This Document
 
-| ID | Assumption | Observation | Status |
-| -- | ---------- | ----------- | ------ |
-| A-01 | Marketing Team adalah primary | Persona P0 berada di Marketing Team | Supported |
-| A-02 | Buyer ≠ daily user | Maya vs Raka/Sinta | Supported |
-| A-05 | Publishing adalah pekerjaan inti | Semua persona prioritas bergantung pada publishing cadence | Supported |
-| A-07 | AI berguna jika masuk workflow | Sinta dan Dimas mendapat nilai dari caption assistance in-flow | Supported (directional) |
+| ID   | Assumption                             | Observation                                               | Status                  |
+| ---- | -------------------------------------- | --------------------------------------------------------- | ----------------------- |
+| A-01 | Marketing Team is the primary          | The P0 personas are in the Marketing Team                 | Supported               |
+| A-02 | Buyer ≠ daily user                     | Maya vs Raka/Sinta                                        | Supported               |
+| A-05 | Publishing is the core job             | All priority personas depend on the publishing cadence    | Supported               |
+| A-07 | AI is useful if it enters the workflow | Sinta and Dimas get value from in-flow caption assistance | Supported (directional) |
 
 ---
 
 # Expected Output
 
-Setelah dokumen ini selesai, project harus memiliki:
+After this document is complete, the project must have:
 
-* Persona yang realistis untuk primary dan secondary segments.
-* Pemetaan buyer vs daily user pada tingkat individu.
-* Prioritas persona untuk keputusan MVP.
-* Dasar diskusi yang konsisten sebelum UX Discovery.
+- Realistic personas for the primary and secondary segments.
+- A mapping of buyer vs daily user at the individual level.
+- Persona priorities for MVP decisions.
+- A consistent basis for discussion before UX Discovery.
 
 ---
 
 # Exit Criteria
 
-User Personas dianggap selesai apabila:
+User Personas is considered complete when:
 
-* Minimal dua persona primary telah didefinisikan.
-* Buyer dan daily user terwakili.
-* Secondary personas telah dicakup secara proporsional.
-* Anti-personas telah ditandai.
-* Dokumen goals, pain points, dan scenarios dapat merujuk persona tanpa konflik.
+- At least two primary personas have been defined.
+- The buyer and the daily user are represented.
+- Secondary personas have been covered proportionally.
+- Anti-personas have been marked.
+- The goals, pain points, and scenarios documents can refer to the personas without conflict.
 
 ---
 
 # Related Documents
 
-* `README.md`
-* `discovery-plan.md`
-* `user-segments.md`
-* `user-goals.md`
-* `pain-points.md`
-* `jobs-to-be-done.md`
-* `user-scenarios.md`
-* `insights.md`
-* `../01-business/target-market.md`
-* `../02-product/mvp-definition.md`
-* `../../project-os/DECISIONS.md`
+- `README.md`
+- `discovery-plan.md`
+- `user-segments.md`
+- `user-goals.md`
+- `pain-points.md`
+- `jobs-to-be-done.md`
+- `user-scenarios.md`
+- `insights.md`
+- `../01-business/target-market.md`
+- `../02-product/mvp-definition.md`
+- `../../project-os/DECISIONS.md`

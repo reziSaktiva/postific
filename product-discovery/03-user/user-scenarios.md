@@ -1,25 +1,25 @@
 # User Scenarios
 
-Dokumen ini menggambarkan konteks penggunaan nyata bagi pengguna produk **Postific**.
+This document describes real usage contexts for **Postific** users.
 
-Scenario menjelaskan *situasi* di mana jobs muncul, tanpa menawarkan solusi UX atau desain antarmuka.
+A scenario describes the _situation_ in which jobs arise, without proposing UX solutions or interface design.
 
 ---
 
 # Overview
 
-User Scenarios menjembatani persona, goals, pain points, dan JTBD ke dalam situasi kerja yang konkret.
+User Scenarios bridge personas, goals, pain points, and JTBD into concrete work situations.
 
-Setiap scenario merepresentasikan kondisi yang berulang pada Marketing Team, Startup, atau Digital Agency sebelum atau di luar produk ini (current-state oriented).
+Each scenario represents a recurring condition in the Marketing Team, Startup, or Digital Agency before or outside this product (current-state oriented).
 
 ---
 
 # Purpose
 
-* Membuat konteks penggunaan menjadi konkret dan dapat dibahas.
-* Menunjukkan kapan jobs dipicu dalam kerja nyata.
-* Menyediakan bahan untuk current-state journey.
-* Membantu mengevaluasi apakah MVP mencakup situasi kritis.
+- Make usage context concrete and discussable.
+- Show when jobs are triggered in real work.
+- Provide material for the current-state journey.
+- Help evaluate whether the MVP covers critical situations.
 
 ---
 
@@ -27,30 +27,30 @@ Setiap scenario merepresentasikan kondisi yang berulang pada Marketing Team, Sta
 
 ## In Scope
 
-* Scenario current-state yang relevan MVP.
-* Trigger, actors, context, constraints, dan desired outcome.
-* Mapping ke persona, jobs, dan pain points.
+- MVP-relevant current-state scenarios.
+- Trigger, actors, context, constraints, and desired outcome.
+- Mapping to personas, jobs, and pain points.
 
 ## Out of Scope
 
-* Ideal future-state flow (solusi).
-* Wireframe, prototype, UI copy.
-* Edge-case teknis sistem.
-* Scenario enterprise yang di luar MVP.
+- Ideal future-state flow (solution).
+- Wireframe, prototype, UI copy.
+- Technical system edge cases.
+- Enterprise scenarios outside the MVP.
 
 ---
 
 # Scenario Structure
 
-Setiap scenario memuat:
+Each scenario contains:
 
-* Context
-* Trigger
-* Actors
-* Current behavior
-* Friction
-* Desired outcome (dari sudut pengguna)
-* Related jobs / pain points
+- Context
+- Trigger
+- Actors
+- Current behavior
+- Friction
+- Desired outcome (from the user's point of view)
+- Related jobs / pain points
 
 ---
 
@@ -63,28 +63,28 @@ Setiap scenario memuat:
 
 **Context**
 
-Tim harus menyiapkan konten untuk minggu depan di beberapa akun.
+The team must prepare content for next week across several accounts.
 
 **Trigger**
 
-Awal minggu atau akhir minggu sebelumnya; calendar terlihat tipis.
+The start of the week or the end of the previous week; the calendar looks thin.
 
 **Current Behavior**
 
-* Brief disusun di dokumen atau chat.
-* Caption ditulis terpisah.
-* Aset dikumpulkan dari drive.
-* Jadwal akhirnya dimasukkan ke scheduling tool atau native scheduler.
+- The brief is drafted in a document or chat.
+- Captions are written separately.
+- Assets are collected from the drive.
+- The schedule is finally entered into a scheduling tool or a native scheduler.
 
 **Friction**
 
-* Versi caption tidak jelas.
-* Status “siap jadwal” ambigu.
-* Koordinasi memakan banyak chase.
+- The caption version is unclear.
+- The "ready to schedule" status is ambiguous.
+- Coordination takes a lot of chasing.
 
 **Desired Outcome**
 
-Seluruh slot penting terisi dengan konten siap publish sebelum minggu berjalan.
+All important slots are filled with ready-to-publish content before the week starts.
 
 **Related:** J-01, J-02, J-06 | PP-01, PP-02, PP-03, PP-05
 
@@ -93,31 +93,31 @@ Seluruh slot penting terisi dengan konten siap publish sebelum minggu berjalan.
 ## S-02 — Same-Day Schedule Adjustment
 
 **Segment:** Marketing Team / Startup  
-**Persona:** Raka atau Dimas
+**Persona:** Raka or Dimas
 
 **Context**
 
-Ada perubahan prioritas bisnis (promo mendadak, isu timing, atau konten harus digeser).
+There is a change in business priorities (a sudden promo, a timing issue, or content has to be moved).
 
 **Trigger**
 
-Request dari manager/founder di siang hari.
+A request from the manager/founder in the middle of the day.
 
 **Current Behavior**
 
-* Mencari post yang sudah dijadwalkan di tool.
-* Mengedit waktu/akun secara manual.
-* Memastikan tidak ada bentrok dengan slot lain.
+- Look for the already scheduled post in the tool.
+- Edit the time/account manually.
+- Make sure there is no clash with other slots.
 
 **Friction**
 
-* Sulit melihat antrean utuh.
-* Risiko double-post atau slot kosong.
-* Perubahan tidak terlihat oleh anggota lain.
+- It is hard to see the whole queue.
+- Risk of a double-post or an empty slot.
+- The change is not visible to other members.
 
 **Desired Outcome**
 
-Jadwal tersesuaikan cepat tanpa menimbulkan kesalahan publish.
+The schedule is adjusted quickly without causing a publishing mistake.
 
 **Related:** J-01, J-03 | PP-02, PP-04, PP-05
 
@@ -130,27 +130,27 @@ Jadwal tersesuaikan cepat tanpa menimbulkan kesalahan publish.
 
 **Context**
 
-Beberapa akun perlu dipublish atau dicek pada pagi hari kerja.
+Several accounts need to be published or checked on a workday morning.
 
 **Trigger**
 
-Jam operasional dimulai; beberapa post berstatus scheduled/publishing.
+Operating hours begin; several posts have a scheduled/publishing status.
 
 **Current Behavior**
 
-* Mengecek status di scheduling tool.
-* Membuka native apps untuk verifikasi.
-* Menangani kegagalan publish secara reaktif.
+- Check the status in the scheduling tool.
+- Open native apps to verify.
+- Handle publish failures reactively.
 
 **Friction**
 
-* Kegagalan baru diketahui terlambat.
-* Verifikasi lintas platform memakan waktu.
-* Akun yang mirip nama meningkatkan risiko salah cek.
+- Failures are only noticed late.
+- Cross-platform verification takes time.
+- Accounts with similar names increase the risk of checking the wrong one.
 
 **Desired Outcome**
 
-Status publikasi jelas dan masalah tertangani sebelum dampak membesar.
+Publication status is clear and problems are handled before the impact grows.
 
 **Related:** J-02, J-03 | PP-04, PP-02
 
@@ -163,27 +163,27 @@ Status publikasi jelas dan masalah tertangani sebelum dampak membesar.
 
 **Context**
 
-Banyak konten membutuhkan caption dengan tone berbeda dalam waktu singkat.
+Lots of content needs captions in different tones in a short time.
 
 **Trigger**
 
-Batch konten masuk; deadline scheduling mendekat.
+A batch of content comes in; the scheduling deadline is approaching.
 
 **Current Behavior**
 
-* Menulis dari nol di docs.
-* Minta feedback via chat.
-* Iterasi tone berulang kali.
+- Write from scratch in docs.
+- Ask for feedback via chat.
+- Iterate on tone repeatedly.
 
 **Friction**
 
-* Produksi lambat.
-* Revisi tersebar.
-* Final version sulit dilacak.
+- Slow production.
+- Scattered revisions.
+- The final version is hard to track.
 
 **Desired Outcome**
 
-Draft siap-jadwal selesai lebih cepat dengan sedikit bolak-balik.
+Schedule-ready drafts are finished faster with little back-and-forth.
 
 **Related:** J-05, J-06 | PP-08, PP-03
 
@@ -196,27 +196,27 @@ Draft siap-jadwal selesai lebih cepat dengan sedikit bolak-balik.
 
 **Context**
 
-Dalam kondisi saat ini, komentar dan pesan masuk sepanjang hari dari beberapa platform. Solusi MVP mengonsolidasikan komentar saja; Direct Message dan mention tetap ditangani di native app (ADR-040).
+In the current situation, comments and messages arrive throughout the day from several platforms. The MVP solution consolidates comments only; Direct Messages and mentions are still handled in the native app (ADR-040).
 
 **Trigger**
 
-Waktu triage terjadwal, manual refresh, atau notifikasi internal setelah sinkronisasi komentar.
+Scheduled triage time, manual refresh, or an internal notification after comment sync.
 
 **Current Behavior**
 
-* Membuka tiap native app.
-* Mencari komentar penting secara manual.
-* Membalas komentar satu per satu.
+- Open each native app.
+- Look for important comments manually.
+- Reply to comments one by one.
 
 **Friction**
 
-* Interaksi prioritas mudah terlewat.
-* Context switching tinggi.
-* Tidak ada antrean prioritas terpusat.
+- Priority interactions are easily missed.
+- High context switching.
+- No centralized priority queue.
 
 **Desired Outcome**
 
-Komentar penting tertangani dalam SLA internal tim melalui Comments Inbox yang diperbarui setiap 30 menit atau saat manual refresh.
+Important comments are handled within the team's internal SLA through a Comments Inbox that is refreshed every 30 minutes or on manual refresh.
 
 **Related:** J-04 | PP-06, PP-01
 
@@ -229,27 +229,27 @@ Komentar penting tertangani dalam SLA internal tim melalui Comments Inbox yang d
 
 **Context**
 
-Review mingguan untuk menilai apa yang perlu diulang atau diubah.
+A weekly review to assess what needs to be repeated or changed.
 
 **Trigger**
 
-Meeting mingguan atau permintaan laporan singkat.
+A weekly meeting or a request for a short report.
 
 **Current Behavior**
 
-* Export/metric diambil dari beberapa dashboard.
-* Data digabung di spreadsheet.
-* Insight disusun manual.
+- Exports/metrics are pulled from several dashboards.
+- Data is merged in a spreadsheet.
+- Insights are compiled manually.
 
 **Friction**
 
-* Waktu kompilasi panjang.
-* Insight terlambat.
-* Diskusi lebih banyak soal data mentah daripada keputusan.
+- Long compilation time.
+- Late insight.
+- Discussion is more about raw data than decisions.
 
 **Desired Outcome**
 
-Snapshot performa cukup untuk keputusan iterasi dalam waktu singkat.
+A performance snapshot sufficient for iteration decisions in a short time.
 
 **Related:** J-08, J-07 | PP-07
 
@@ -262,27 +262,27 @@ Snapshot performa cukup untuk keputusan iterasi dalam waktu singkat.
 
 **Context**
 
-Anggota baru harus ikut workflow publishing.
+A new member has to join the publishing workflow.
 
 **Trigger**
 
-Join date anggota baru.
+The new member's join date.
 
 **Current Behavior**
 
-* Diundang ke beberapa tools.
-* Diajari proses via chat/call.
-* Sering masih bertanya “ini final belum?” selama minggu pertama.
+- Invited to several tools.
+- Taught the process via chat/call.
+- Often still asks "ini final belum?" during the first week.
 
 **Friction**
 
-* Terlalu banyak tool = onboarding mahal.
-* Proses tidak standar.
-* Risiko error lebih tinggi di awal.
+- Too many tools = expensive onboarding.
+- The process is not standardized.
+- Higher risk of errors at the start.
 
 **Desired Outcome**
 
-Anggota baru bisa berkontribusi pada draft/schedule dengan cepat dan aman.
+The new member can contribute to drafts/schedules quickly and safely.
 
 **Related:** J-09, J-10, J-06 | PP-09, PP-03
 
@@ -295,27 +295,27 @@ Anggota baru bisa berkontribusi pada draft/schedule dengan cepat dan aman.
 
 **Context**
 
-Beberapa klien memiliki deadline konten di hari yang sama.
+Several clients have content deadlines on the same day.
 
 **Trigger**
 
-Hari delivery padat.
+A packed delivery day.
 
 **Current Behavior**
 
-* Beralih antar folder, chat, dan tool per klien.
-* Mengecek status tiap akun secara terpisah.
-* Melakukan quality check manual agar tidak tertukar brand.
+- Switch between folders, chats, and tools per client.
+- Check the status of each account separately.
+- Do a manual quality check so brands do not get mixed up.
 
 **Friction**
 
-* Context overload.
-* Risiko salah aset/akun.
-* Oversight menjadi bottleneck.
+- Context overload.
+- Risk of the wrong asset/account.
+- Oversight becomes a bottleneck.
 
 **Desired Outcome**
 
-Seluruh delivery selesai tepat waktu dengan risiko salah brand seminimal mungkin.
+All deliveries are completed on time with the lowest possible risk of the wrong brand.
 
 **Related:** J-03, J-07, J-10 | PP-10, PP-04, PP-02
 
@@ -328,27 +328,27 @@ Seluruh delivery selesai tepat waktu dengan risiko salah brand seminimal mungkin
 
 **Context**
 
-Buyer mengevaluasi apakah tool baru layak diadopsi tim.
+The buyer evaluates whether a new tool is worth adopting by the team.
 
 **Trigger**
 
-Pain operasional meningkat atau kontrak tool lama akan berakhir.
+Operational pain increases or the old tool's contract is about to end.
 
 **Current Behavior**
 
-* Membandingkan fitur kompetitor.
-* Trial singkat.
-* Bertanya ke daily user apakah terasa praktis.
+- Compare competitor features.
+- A short trial.
+- Ask the daily user whether it feels practical.
 
 **Friction**
 
-* Fitur banyak tidak menjamin adopsi.
-* Daily user menolak tool yang lambat/rumit.
-* Buyer khawatir ROI.
+- Many features do not guarantee adoption.
+- The daily user rejects a tool that is slow/complicated.
+- The buyer worries about ROI.
 
 **Desired Outcome**
 
-Memilih tool yang dipakai rutin oleh tim dan mengurangi context switching.
+Choose a tool the team uses routinely that reduces context switching.
 
 **Related:** J-09 | PP-09, PP-01
 
@@ -356,61 +356,61 @@ Memilih tool yang dipakai rutin oleh tim dan mengurangi context switching.
 
 # Scenario Priority for MVP Validation
 
-| Priority | Scenario | Why |
-| -------- | -------- | --- |
-| P0 | S-01, S-03, S-05, S-06 | Mewakili siklus inti publish–engage–review |
-| P0 | S-09 | Menentukan apakah adopsi mungkin terjadi |
-| P1 | S-02, S-04, S-07 | Frekuensi tinggi, memperkuat value |
-| P1 | S-08 | Penting untuk secondary segment Agency |
+| Priority | Scenario               | Why                                            |
+| -------- | ---------------------- | ---------------------------------------------- |
+| P0       | S-01, S-03, S-05, S-06 | Represent the core publish–engage–review cycle |
+| P0       | S-09                   | Determines whether adoption is possible        |
+| P1       | S-02, S-04, S-07       | High frequency, strengthens value              |
+| P1       | S-08                   | Important for the secondary Agency segment     |
 
-Jika produk tidak membantu pada scenario P0, Product-Market Fit berisiko rendah meskipun fitur terlihat lengkap.
+If the product does not help in the P0 scenarios, Product-Market Fit is at low odds even if the features look complete.
 
 ---
 
 # Assumptions Evaluated in This Document
 
-| ID | Assumption | Observation | Status |
-| -- | ---------- | ----------- | ------ |
-| A-01 | Marketing Team primary | Mayoritas scenario P0 berpusat pada Marketing Team | Supported |
-| A-05 | Publishing inti | S-01/S-02/S-03 mendominasi ritme kerja | Supported |
-| A-09 | Startup/Agency mirip dengan nuansa berbeda | S-04/S-08 menunjukkan konteks khusus tanpa mengubah jobs inti | Supported |
-| A-10 | Konsolidasi diterima bila sederhana | S-07 dan S-09 menegaskan adopsi sebagai gate | Supported |
+| ID   | Assumption                                    | Observation                                                     | Status    |
+| ---- | --------------------------------------------- | --------------------------------------------------------------- | --------- |
+| A-01 | Marketing Team primary                        | Most P0 scenarios center on the Marketing Team                  | Supported |
+| A-05 | Publishing core                               | S-01/S-02/S-03 dominate the work rhythm                         | Supported |
+| A-09 | Startup/Agency similar with different nuances | S-04/S-08 show specific contexts without changing the core jobs | Supported |
+| A-10 | Consolidation is accepted if simple           | S-07 and S-09 confirm adoption as a gate                        | Supported |
 
 ---
 
 # Expected Output
 
-Setelah dokumen ini selesai, project harus memiliki:
+After this document is complete, the project must have:
 
-* Kumpulan scenario penggunaan yang konkret.
-* Mapping scenario ke jobs dan pain points.
-* Prioritas scenario untuk validasi MVP.
-* Bahan yang cukup untuk menyusun current-state journey.
+- A set of concrete usage scenarios.
+- A mapping of scenarios to jobs and pain points.
+- Scenario priorities for MVP validation.
+- Enough material to draft the current-state journey.
 
 ---
 
 # Exit Criteria
 
-User Scenarios dianggap selesai apabila:
+User Scenarios is considered complete when:
 
-* Scenario P0 telah terdokumentasi.
-* Setiap scenario memiliki actors, friction, dan desired outcome.
-* Mapping ke JTBD dan pain points tersedia.
-* Tidak ada solution design di dalam dokumen.
-* User Journey dapat disusun dari scenario ini.
+- The P0 scenarios have been documented.
+- Every scenario has actors, friction, and a desired outcome.
+- A mapping to JTBD and pain points is available.
+- There is no solution design in the document.
+- The User Journey can be drafted from these scenarios.
 
 ---
 
 # Related Documents
 
-* `README.md`
-* `discovery-plan.md`
-* `user-personas.md`
-* `user-goals.md`
-* `pain-points.md`
-* `jobs-to-be-done.md`
-* `user-journey.md`
-* `insights.md`
-* `../01-business/problem-statement.md`
-* `../02-product/mvp-definition.md`
-* `../../project-os/DECISIONS.md`
+- `README.md`
+- `discovery-plan.md`
+- `user-personas.md`
+- `user-goals.md`
+- `pain-points.md`
+- `jobs-to-be-done.md`
+- `user-journey.md`
+- `insights.md`
+- `../01-business/problem-statement.md`
+- `../02-product/mvp-definition.md`
+- `../../project-os/DECISIONS.md`

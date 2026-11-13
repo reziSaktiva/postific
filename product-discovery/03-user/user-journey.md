@@ -1,25 +1,25 @@
 # User Journey
 
-Dokumen ini memetakan **current-state user journey** pengelolaan media sosial bagi pengguna prioritas.
+This document maps the **current-state user journey** of social media management for the priority users.
 
-Journey ini menggambarkan kondisi kerja saat ini — sebelum atau di luar produk — tanpa menawarkan solusi UX, wireframe, atau flow desain.
+This journey describes today's working conditions — before or outside the product — without proposing UX solutions, wireframes, or design flows.
 
 ---
 
 # Overview
 
-Current-state journey disusun untuk Marketing Team sebagai primary segment, dengan catatan variasi untuk Startup dan Digital Agency.
+The current-state journey is drafted for the Marketing Team as the primary segment, with notes on variations for Startups and Digital Agencies.
 
-Tujuan journey bukan merancang pengalaman ideal, melainkan menunjukkan di mana friction muncul di sepanjang siklus kerja nyata.
+The purpose of the journey is not to design the ideal experience, but to show where friction appears across the real work cycle.
 
 ---
 
 # Purpose
 
-* Memvisualisasikan alur kerja current-state dari perencanaan hingga evaluasi.
-* Menandai pain points pada tahap spesifik journey.
-* Menunjukkan perbedaan pengalaman buyer dan daily user.
-* Memberi dasar observasi untuk insight produk.
+- Visualize the current-state workflow from planning to evaluation.
+- Mark pain points at specific journey stages.
+- Show the differences in experience between the buyer and the daily user.
+- Provide an observation basis for product insights.
 
 ---
 
@@ -27,29 +27,29 @@ Tujuan journey bukan merancang pengalaman ideal, melainkan menunjukkan di mana f
 
 ## In Scope
 
-* Current-state journey Marketing Team.
-* Tahapan, actions, tools yang biasa dipakai, emotions, dan friction.
-* Touchpoint lintas tool.
-* Variasi singkat untuk Startup dan Agency.
-* Opportunity areas (bukan solution design).
+- Current-state journey of the Marketing Team.
+- Stages, actions, commonly used tools, emotions, and friction.
+- Touchpoints across tools.
+- Brief variations for Startups and Agencies.
+- Opportunity areas (not solution design).
 
 ## Out of Scope
 
-* Future-state journey.
-* User flow solution.
-* Information architecture.
-* UI/UX design.
-* Technical sequence diagram.
+- Future-state journey.
+- User flow solution.
+- Information architecture.
+- UI/UX design.
+- Technical sequence diagram.
 
 ---
 
 # Journey Lens
 
-Journey utama mengikuti sudut pandang:
+The main journey follows the point of view of:
 
-* **Primary actor:** Raka (Social Media Manager)
-* **Supporting actors:** Sinta (Creator), Maya (Manager/Buyer)
-* **Timebox:** satu siklus mingguan yang tipikal
+- **Primary actor:** Raka (Social Media Manager)
+- **Supporting actors:** Sinta (Creator), Maya (Manager/Buyer)
+- **Timebox:** one typical weekly cycle
 
 ---
 
@@ -57,137 +57,137 @@ Journey utama mengikuti sudut pandang:
 
 ## Stage 1 — Intake & Briefing
 
-**Goal of stage:** Memahami apa yang perlu dipublish.
+**Goal of stage:** Understand what needs to be published.
 
-| Aspect | Detail |
-| ------ | ------ |
-| Actions | Menerima brief kampanye/konten dari manager atau dokumen perencanaan |
-| Common tools | Chat, docs, email, meeting notes |
-| Actors | Maya → Raka → Sinta |
-| Emotion | Netral hingga sedikit overloaded bila brief tidak lengkap |
-| Friction | Brief tersebar; konteks aset tidak lengkap; ownership tidak jelas |
-| Related | S-01, PP-03, J-06 |
+| Aspect       | Detail                                                                       |
+| ------------ | ---------------------------------------------------------------------------- |
+| Actions      | Receive the campaign/content brief from the manager or the planning document |
+| Common tools | Chat, docs, email, meeting notes                                             |
+| Actors       | Maya → Raka → Sinta                                                          |
+| Emotion      | Neutral to slightly overloaded when the brief is incomplete                  |
+| Friction     | Brief is scattered; asset context is incomplete; ownership is unclear        |
+| Related      | S-01, PP-03, J-06                                                            |
 
-**Opportunity area:** Menyatukan konteks brief dengan status pekerjaan konten.
+**Opportunity area:** Bring the brief context together with the content work status.
 
 ---
 
 ## Stage 2 — Content Production
 
-**Goal of stage:** Menghasilkan draft caption dan aset siap pakai.
+**Goal of stage:** Produce caption drafts and ready-to-use assets.
 
-| Aspect | Detail |
-| ------ | ------ |
-| Actions | Menulis caption, menyiapkan visual/video, iterasi tone |
-| Common tools | Docs, design tools, drive/storage, chat untuk feedback |
-| Actors | Sinta (utama), Raka (review ringan) |
-| Emotion | Fokus, tetapi mudah frustration saat revisi berulang |
-| Friction | Versi final tidak jelas; produksi caption lambat; feedback hilang di thread |
-| Related | S-04, PP-08, PP-03, J-05, J-06 |
+| Aspect       | Detail                                                                              |
+| ------------ | ----------------------------------------------------------------------------------- |
+| Actions      | Write captions, prepare visuals/video, iterate on tone                              |
+| Common tools | Docs, design tools, drive/storage, chat for feedback                                |
+| Actors       | Sinta (primary), Raka (light review)                                                |
+| Emotion      | Focused, but easily frustrated by repeated revisions                                |
+| Friction     | Final version is unclear; caption production is slow; feedback gets lost in threads |
+| Related      | S-04, PP-08, PP-03, J-05, J-06                                                      |
 
-**Opportunity area:** Mempercepat draft dan menjaga versi/status tetap terlihat.
+**Opportunity area:** Speed up drafting and keep version/status visible.
 
 ---
 
 ## Stage 3 — Scheduling & Queue Setup
 
-**Goal of stage:** Memasukkan konten ke jadwal lintas akun.
+**Goal of stage:** Put content into the schedule across accounts.
 
-| Aspect | Detail |
-| ------ | ------ |
-| Actions | Memilih akun, menentukan waktu, mengisi scheduler/queue, cek bentrok |
-| Common tools | Scheduling tool, spreadsheet calendar, native schedulers |
-| Actors | Raka |
-| Emotion | Hati-hati; anxiety terhadap salah akun/waktu |
-| Friction | Context switching dari docs ke scheduler; status tidak sinkron ke tim; risiko PP-04 |
-| Related | S-01, S-02, PP-01, PP-04, PP-05, J-01, J-03 |
+| Aspect       | Detail                                                                                 |
+| ------------ | -------------------------------------------------------------------------------------- |
+| Actions      | Choose accounts, set the time, fill the scheduler/queue, check for clashes             |
+| Common tools | Scheduling tool, spreadsheet calendar, native schedulers                               |
+| Actors       | Raka                                                                                   |
+| Emotion      | Careful; anxiety about the wrong account/time                                          |
+| Friction     | Context switching from docs to scheduler; status is not synced to the team; PP-04 risk |
+| Related      | S-01, S-02, PP-01, PP-04, PP-05, J-01, J-03                                            |
 
-**Opportunity area:** Menyederhanakan path draft → schedule dengan kejelasan akun.
+**Opportunity area:** Simplify the draft → schedule path with account clarity.
 
 ---
 
 ## Stage 4 — Pre-Publish Verification
 
-**Goal of stage:** Memastikan yang terjadwal benar-benar siap.
+**Goal of stage:** Make sure what is scheduled is truly ready.
 
-| Aspect | Detail |
-| ------ | ------ |
-| Actions | Mengecek preview, aset, caption final, waktu lokal, akun tujuan |
-| Common tools | Scheduler + native apps |
-| Actors | Raka, kadang Maya |
-| Emotion | Tegang menjelang slot penting |
-| Friction | Verifikasi ganda memakan waktu; anggota lain tidak melihat status yang sama |
-| Related | S-03, PP-02, J-02, J-03 |
+| Aspect       | Detail                                                                    |
+| ------------ | ------------------------------------------------------------------------- |
+| Actions      | Check the preview, assets, final caption, local time, destination account |
+| Common tools | Scheduler + native apps                                                   |
+| Actors       | Raka, sometimes Maya                                                      |
+| Emotion      | Tense ahead of important slots                                            |
+| Friction     | Double verification takes time; other members do not see the same status  |
+| Related      | S-03, PP-02, J-02, J-03                                                   |
 
-**Opportunity area:** Visibilitas status “ready / scheduled / at risk”.
+**Opportunity area:** Visibility of "ready / scheduled / at risk" status.
 
 ---
 
 ## Stage 5 — Publish & Monitor
 
-**Goal of stage:** Memastikan konten berhasil live.
+**Goal of stage:** Make sure the content goes live successfully.
 
-| Aspect | Detail |
-| ------ | ------ |
-| Actions | Memantau eksekusi schedule, menangani gagal publish, konfirmasi live |
-| Common tools | Scheduler notifications, native apps |
-| Actors | Raka |
-| Emotion | Relief jika sukses; stress jika gagal |
-| Friction | Kegagalan sering baru ketahuan belakangan; recovery manual |
-| Related | S-03, PP-04, J-02, J-03 |
+| Aspect       | Detail                                                            |
+| ------------ | ----------------------------------------------------------------- |
+| Actions      | Monitor schedule execution, handle failed publishes, confirm live |
+| Common tools | Scheduler notifications, native apps                              |
+| Actors       | Raka                                                              |
+| Emotion      | Relief if successful; stress if it fails                          |
+| Friction     | Failures are often only discovered later; manual recovery         |
+| Related      | S-03, PP-04, J-02, J-03                                           |
 
-**Opportunity area:** Kejelasan hasil publish dan kegagalan secara dini.
+**Opportunity area:** Clarity of publish results and failures early on.
 
 ---
 
 ## Stage 6 — Engagement Handling
 
-**Goal of stage:** Menanggapi interaksi audiens yang penting.
+**Goal of stage:** Respond to important audience interactions.
 
-| Aspect | Detail |
-| ------ | ------ |
-| Actions | Cek komentar dan pesan di native app, prioritaskan, balas, escalate bila perlu |
-| Common tools | Native Instagram/Facebook/X/LinkedIn apps, kadang inbox tool terpisah |
-| Actors | Raka / Community Manager |
-| Emotion | Terpecah perhatian; FOMO terhadap komentar penting |
-| Friction | Inbox tersebar; prioritas tidak terpusat; response time tidak konsisten |
-| Related | S-05, PP-06, PP-01, J-04 |
+| Aspect       | Detail                                                                               |
+| ------------ | ------------------------------------------------------------------------------------ |
+| Actions      | Check comments and messages in the native app, prioritize, reply, escalate if needed |
+| Common tools | Native Instagram/Facebook/X/LinkedIn apps, sometimes a separate inbox tool           |
+| Actors       | Raka / Community Manager                                                             |
+| Emotion      | Split attention; FOMO about important comments                                       |
+| Friction     | Scattered inbox; priority is not centralized; response time is inconsistent          |
+| Related      | S-05, PP-06, PP-01, J-04                                                             |
 
-**Opportunity area:** Untuk MVP, konsolidasikan komentar dan reply melalui periodic pull 30 menit + manual refresh. Direct Message, mention, dan webhook engagement tetap di luar scope (ADR-040).
+**Opportunity area:** For the MVP, consolidate comments and replies through a 30-minute periodic pull + manual refresh. Direct Messages, mentions, and engagement webhooks remain out of scope (ADR-040).
 
 ---
 
 ## Stage 7 — Performance Review
 
-**Goal of stage:** Memahami apa yang bekerja dan apa yang perlu diubah.
+**Goal of stage:** Understand what works and what needs to change.
 
-| Aspect | Detail |
-| ------ | ------ |
-| Actions | Mengambil metrik, menyusun ringkasan, diskusi keputusan konten berikutnya |
-| Common tools | Native insights, exports, spreadsheet, slide/docs laporan |
-| Actors | Maya (utama), Raka mendukung, Lara pada konteks agency |
-| Emotion | Lelah administratif; ingin cepat ke keputusan |
-| Friction | Kompilasi lambat; insight terlambat; meeting habis untuk data gathering |
-| Related | S-06, PP-07, J-07, J-08 |
+| Aspect       | Detail                                                                  |
+| ------------ | ----------------------------------------------------------------------- |
+| Actions      | Pull metrics, compile a summary, discuss the next content decisions     |
+| Common tools | Native insights, exports, spreadsheet, report slides/docs               |
+| Actors       | Maya (primary), Raka supports, Lara in the agency context               |
+| Emotion      | Administrative fatigue; wants to get to a decision quickly              |
+| Friction     | Slow compilation; late insight; meetings are consumed by data gathering |
+| Related      | S-06, PP-07, J-07, J-08                                                 |
 
-**Opportunity area:** Snapshot performa yang cukup untuk keputusan mingguan.
+**Opportunity area:** A performance snapshot that is sufficient for weekly decisions.
 
 ---
 
 ## Stage 8 — Process Retrospective & Tool Friction
 
-**Goal of stage:** Menilai apakah cara kerja tim masih sustainable.
+**Goal of stage:** Assess whether the team's way of working is still sustainable.
 
-| Aspect | Detail |
-| ------ | ------ |
-| Actions | Buyer mengevaluasi overload tool, onboarding anggota baru, biaya proses |
-| Common tools | Seluruh stack yang dipakai tim |
-| Actors | Maya / Dimas / Agency Owner |
-| Emotion | Skeptis terhadap tool baru; khawatir adopsi gagal |
-| Friction | Stack terlalu banyak; training mahal; daily user resisten pada kompleksitas |
-| Related | S-07, S-09, PP-09, J-09, J-10 |
+| Aspect       | Detail                                                                     |
+| ------------ | -------------------------------------------------------------------------- |
+| Actions      | The buyer evaluates tool overload, onboarding of new members, process cost |
+| Common tools | The whole stack the team uses                                              |
+| Actors       | Maya / Dimas / Agency Owner                                                |
+| Emotion      | Skeptical of new tools; worried adoption will fail                         |
+| Friction     | Too many stacks; training is expensive; daily users resist complexity      |
+| Related      | S-07, S-09, PP-09, J-09, J-10                                              |
 
-**Opportunity area:** Menurunkan biaya adopsi dan jumlah context switches.
+**Opportunity area:** Lower the adoption cost and the number of context switches.
 
 ---
 
@@ -200,24 +200,24 @@ Sinta (Creator)  : Produce drafts → Revise → Hand off
 Tools (current)  : Chat/Docs → Design/Drive → Scheduler → Native apps → Analytics exports
 ```
 
-Pola yang paling terlihat: **pekerjaan satu siklus tersebar di banyak sistem**.
+The most visible pattern: **the work of one cycle is spread across many systems**.
 
 ---
 
 # Emotion Curve (Current-State)
 
-| Stage | Emotion signal |
-| ----- | -------------- |
-| Intake | Ambiguity |
-| Production | Effortful focus |
-| Scheduling | Caution / anxiety |
-| Verification | Tension |
-| Publish | Relief or stress |
-| Engagement | Fragmented attention |
-| Review | Admin fatigue |
-| Tool evaluation | Adoption skepticism |
+| Stage           | Emotion signal       |
+| --------------- | -------------------- |
+| Intake          | Ambiguity            |
+| Production      | Effortful focus      |
+| Scheduling      | Caution / anxiety    |
+| Verification    | Tension              |
+| Publish         | Relief or stress     |
+| Engagement      | Fragmented attention |
+| Review          | Admin fatigue        |
+| Tool evaluation | Adoption skepticism  |
 
-Journey yang berhasil di masa depan harus menurunkan anxiety pada scheduling/publish dan admin fatigue pada review — tanpa menambah kompleksitas di onboarding.
+A successful future journey must lower anxiety in scheduling/publish and admin fatigue in review — without adding complexity in onboarding.
 
 ---
 
@@ -225,77 +225,77 @@ Journey yang berhasil di masa depan harus menurunkan anxiety pada scheduling/pub
 
 ## Startup Variation
 
-* Lebih sedikit handoff; buyer sering = daily user.
-* Stage production dan scheduling sering dilakukan orang yang sama.
-* Sensitivitas tinggi terhadap time-to-value dan kesederhanaan.
+- Fewer handoffs; the buyer is often the daily user.
+- The production and scheduling stages are often done by the same person.
+- High sensitivity to time-to-value and simplicity.
 
 ## Agency Variation
 
-* Stage yang sama berulang per klien.
-* Friction terbesar pada context switching antar brand (PP-10).
-* Verification dan account clarity lebih kritis.
+- The same stages repeat per client.
+- The biggest friction is context switching between brands (PP-10).
+- Verification and account clarity are more critical.
 
 ---
 
 # Opportunity Areas (Non-Solution)
 
-Dari current-state journey, peluang produk yang paling jelas:
+From the current-state journey, the clearest product opportunities:
 
-1. Mengurangi jumlah sistem yang dibutuhkan untuk menyelesaikan satu siklus konten.
-2. Membuat status konten terlihat lintas peran.
-3. Menurunkan risiko salah publish.
-4. Menyediakan engagement triage yang cukup untuk pekerjaan harian.
-5. Menyediakan analytics snapshot untuk keputusan mingguan.
-6. Menjaga onboarding tetap ringan agar adopsi tim terjadi.
+1. Reduce the number of systems needed to complete one content cycle.
+2. Make content status visible across roles.
+3. Lower the risk of wrong publishes.
+4. Provide enough engagement triage for daily work.
+5. Provide an analytics snapshot for weekly decisions.
+6. Keep onboarding light so that team adoption happens.
 
-Peluang ini akan dikonsolidasikan sebagai insight pada `insights.md`.
+These opportunities will be consolidated as insights in `insights.md`.
 
 ---
 
 # Assumptions Evaluated in This Document
 
-| ID | Assumption | Observation | Status |
-| -- | ---------- | ----------- | ------ |
-| A-03 | Fragmented workflow adalah inti masalah | Journey melewati banyak tools di setiap stage | Supported |
-| A-05 | Publishing adalah inti | Stage 3–5 adalah pusat ritme mingguan | Supported |
-| A-06 | Engagement & Analytics memperkuat siklus | Stage 6–7 terjadi rutin setelah publish | Supported |
-| A-02 | Buyer ≠ daily user | Swimlane Maya vs Raka/Sinta berbeda jelas | Supported |
+| ID   | Assumption                                     | Observation                                          | Status    |
+| ---- | ---------------------------------------------- | ---------------------------------------------------- | --------- |
+| A-03 | Fragmented workflow is the core of the problem | The journey passes through many tools at every stage | Supported |
+| A-05 | Publishing is the core                         | Stages 3–5 are the center of the weekly rhythm       | Supported |
+| A-06 | Engagement & Analytics strengthen the cycle    | Stages 6–7 happen routinely after publishing         | Supported |
+| A-02 | Buyer ≠ daily user                             | The Maya vs Raka/Sinta swimlanes clearly differ      | Supported |
 
 ---
 
 # Expected Output
 
-Setelah dokumen ini selesai, project harus memiliki:
+After this document is complete, the project must have:
 
-* Current-state journey yang terdokumentasi.
-* Friction per stage yang jelas.
-* Perbedaan peran buyer dan daily user pada journey.
-* Opportunity areas yang siap disintesiskan menjadi insight.
+- A documented current-state journey.
+- Clear friction per stage.
+- The differences between the buyer and daily user roles in the journey.
+- Opportunity areas that are ready to be synthesized into insights.
 
 ---
 
 # Exit Criteria
 
-User Journey dianggap selesai apabila:
+User Journey is considered complete when:
 
-* Siklus mingguan current-state telah dipetakan end-to-end.
-* Setiap stage memiliki actions, tools, friction, dan related references.
-* Variasi Startup dan Agency telah dicatat.
-* Tidak ada future-state solution design pada dokumen ini.
-* Insights dapat disusun berdasarkan observasi journey.
+- The current-state weekly cycle has been mapped end to end.
+- Every stage has actions, tools, friction, and related references.
+- The Startup and Agency variations have been noted.
+- There is no future-state solution design in this document.
+- Insights can be drafted based on journey observations.
 
 ---
 
 # Related Documents
 
-* `README.md`
-* `discovery-plan.md`
-* `user-personas.md`
-* `user-goals.md`
-* `pain-points.md`
-* `jobs-to-be-done.md`
-* `user-scenarios.md`
-* `insights.md`
-* `../01-business/problem-statement.md`
-* `../02-product/mvp-definition.md`
-* `../../project-os/DECISIONS.md`
+- `README.md`
+- `discovery-plan.md`
+- `user-personas.md`
+- `user-goals.md`
+- `pain-points.md`
+- `jobs-to-be-done.md`
+- `user-scenarios.md`
+- `insights.md`
+- `../01-business/problem-statement.md`
+- `../02-product/mvp-definition.md`
+- `../../project-os/DECISIONS.md`
