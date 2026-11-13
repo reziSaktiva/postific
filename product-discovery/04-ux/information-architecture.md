@@ -1,338 +1,338 @@
 # Information Architecture
 
-Dokumen ini mendefinisikan **struktur navigasi, hierarki layar, dan pengelompokan fitur** pada produk **Postific**.
+This document defines the **navigation structure, screen hierarchy, and feature grouping** of the **Postific** product.
 
-IA dirancang berdasarkan UX Principles yang telah ditetapkan — khususnya UXP-01 (satu siklus kerja), UXP-02 (dua mode kerja), dan UXP-03 (simplisitas sebagai quality bar). Setiap keputusan struktural di sini harus dapat ditelusuri ke prinsip tersebut.
+The IA is designed based on the UX Principles already set — specifically UXP-01 (one work cycle), UXP-02 (two work modes), and UXP-03 (simplicity as a quality bar). Every structural decision here must be traceable to those principles.
 
 ---
 
 # Overview
 
-Information Architecture mendefinisikan dua hal utama:
+Information Architecture defines two main things:
 
-1. **Struktur navigasi** — bagaimana pengguna bergerak antarbagian aplikasi.
-2. **Hierarki layar** — apa yang ada di dalam setiap bagian.
+1. **Navigation structure** — how users move between parts of the application.
+2. **Screen hierarchy** — what is inside each part.
 
-IA tidak mendefinisikan layout visual, interaksi, atau kode. Dokumen ini adalah cetak biru struktural yang menjadi acuan untuk User Flows, Navigation Patterns, dan Key Screen Patterns.
+The IA does not define visual layout, interaction, or code. This document is the structural blueprint that serves as a reference for User Flows, Navigation Patterns, and Key Screen Patterns.
 
 ---
 
-# Prinsip IA
+# IA Principles
 
-IA ini dibangun berdasarkan tiga prinsip utama.
+This IA is built on three main principles.
 
-## P-IA-01 — Navigasi Mencerminkan Siklus Kerja, Bukan Kategori Fitur
+## P-IA-01 — Navigation Reflects the Work Cycle, Not Feature Categories
 
-**Turunan dari:** UXP-01
+**Derived from:** UXP-01
 
-Navigasi utama tidak disusun sebagai daftar modul (Publishing, Analytics, Engagement). Navigasi disusun sebagai tahapan siklus kerja yang berurutan dan natural:
+The primary navigation is not arranged as a list of modules (Publishing, Analytics, Engagement). It is arranged as the stages of a sequential, natural work cycle:
 
 ```
 Publish → Engage → Analyze
 ```
 
-Pengguna harus merasa sedang mengikuti satu alur, bukan berpindah antar aplikasi terpisah.
+Users must feel they are following one flow, not moving between separate applications.
 
 ---
 
-## P-IA-02 — Dua Titik Masuk: Eksekusi dan Overview
+## P-IA-02 — Two Entry Points: Execution and Overview
 
-**Turunan dari:** UXP-02
+**Derived from:** UXP-02
 
-Raka butuh masuk langsung ke pekerjaan. Maya butuh melihat gambaran status dengan cepat.
+Raka needs to go straight into work. Maya needs to see the status picture quickly.
 
-IA menyediakan:
+The IA provides:
 
-- **Home** — titik masuk dengan ringkasan status untuk kebutuhan visibility Maya.
-- **Publish** — titik masuk langsung ke pekerjaan untuk kebutuhan eksekusi Raka.
+- **Home** — an entry point with a status summary for Maya's visibility needs.
+- **Publish** — an entry point straight into work for Raka's execution needs.
 
-Keduanya adalah entry point kelas pertama dalam navigasi.
-
----
-
-## P-IA-03 — Kedalaman Dua Level, Tidak Lebih
-
-**Turunan dari:** UXP-03
-
-Navigasi maksimal dua level: **primary section → sub-screen**. Tidak ada nested navigation yang memaksa pengguna menggali tiga level ke bawah untuk mencapai fitur inti.
+Both are first-class entry points in the navigation.
 
 ---
 
-# Struktur Navigasi
+## P-IA-03 — Two Levels Deep, No More
+
+**Derived from:** UXP-03
+
+Navigation is at most two levels: **primary section → sub-screen**. There is no nested navigation that forces users to dig three levels down to reach a core feature.
+
+---
+
+# Navigation Structure
 
 ## Primary Navigation
 
-Primary navigation adalah navigasi utama yang selalu terlihat dan dapat diakses kapan saja.
+Primary navigation is the main navigation that is always visible and can be accessed at any time.
 
-| # | Label | Deskripsi |
-| - | ----- | --------- |
-| 1 | Home | Ringkasan status dan aktivitas terkini |
-| 2 | Publish | Seluruh area kerja publishing konten |
-| 3 | Engage | Inbox komentar audiens |
-| 4 | Analyze | Dashboard performa |
-| 5 | Start Page | Manajemen halaman publik |
+| # | Label | Description |
+| - | ----- | ----------- |
+| 1 | Home | Status summary and latest activity |
+| 2 | Publish | The whole content publishing work area |
+| 3 | Engage | Audience comments inbox |
+| 4 | Analyze | Performance dashboard |
+| 5 | Start Page | Public page management |
 
-Urutan navigasi bukan alphabetical — urutan mencerminkan **alur nilai produk** dari I-05:
+The navigation order is not alphabetical — the order reflects the **product value flow** from I-05:
 Publishing reliability → Engagement triage → Analytics snapshot.
 
 ---
 
 ## Secondary Navigation
 
-Secondary navigation diakses melalui elemen tetap di luar primary nav — tidak menggunakan slot di primary nav.
+Secondary navigation is accessed through fixed elements outside the primary nav — it does not use a slot in the primary nav.
 
-| Label | Akses Via | Isi |
-| ----- | --------- | --- |
-| Settings | Avatar / user menu | Grup **Organization** (anggota tim, akun terhubung, izin, branding, billing) dan grup **Account** (workspace user + switch/create workspace, profil pengguna, notifikasi, preferensi, klien AI (MCP) — ADR-088, ADR-139). Begitu masuk, primary nav (sidebar workspace) **digantikan total** oleh sidebar khusus Settings di slot yang sama — bukan tampil berdampingan — dengan header back-navigation di atasnya (ADR-077) |
-| Notifications | Icon notifikasi | Notifikasi in-app |
-
----
-
-## Yang Tidak Ada di Navigasi
-
-Berdasarkan UXP-05 dan UXP-03, beberapa elemen sengaja **tidak** menjadi item navigasi:
-
-- **AI Assistant** — dicabut (ADR-138); tidak ada AI bawaan dan tidak ada menu atau kontrol AI di Draft Editor. AI pengguna bekerja lewat MCP. Titik masuk MCP di UI: layar persetujuan OAuth (muncul setelah login lewat klien AI, di luar app shell), daftar dan pencabutan klien di **Settings → Account → Klien AI**, serta badge dan filter sumber MCP di History, Drafts, dan Queue (ADR-139, keputusan 2026-10-23).
-- **Media Library** — diakses dari dalam Draft Editor, bukan dari primary nav (Should Have, bukan titik masuk utama).
-- **Approval Workflow** — tidak ada; digantikan oleh visibilitas status (UXP-06).
+| Label | Accessed Via | Contents |
+| ----- | ------------ | -------- |
+| Settings | Avatar / user menu | The **Organization** group (team members, connected accounts, permissions, branding, billing) and the **Account** group (user workspaces + switch/create workspace, user profile, notifications, preferences, AI clients (MCP) — ADR-088, ADR-139). Once inside, the primary nav (workspace sidebar) is **replaced entirely** by a dedicated Settings sidebar in the same slot — not shown side by side — with a back-navigation header above it (ADR-077) |
+| Notifications | Notification icon | In-app notifications |
 
 ---
 
-# Hierarki Layar
+## What Is Not in the Navigation
+
+Based on UXP-05 and UXP-03, several elements are deliberately **not** navigation items:
+
+- **AI Assistant** — removed (ADR-138); there is no built-in AI and no AI menu or control in the Draft Editor. The user's AI works through MCP. MCP entry points in the UI: the OAuth consent screen (shown after logging in through an AI client, outside the app shell), the list and revocation of clients in **Settings → Account → Klien AI**, and the MCP source badge and filter in History, Drafts, and Queue (ADR-139, decision 2026-10-23).
+- **Media Library** — accessed from inside the Draft Editor, not from the primary nav (Should Have, not a primary entry point).
+- **Approval Workflow** — none; replaced by status visibility (UXP-06).
+
+---
+
+# Screen Hierarchy
 
 ## 1. Home
 
-Entry point yang memberi ringkasan status lintas domain.
+An entry point that gives a status summary across domains.
 
 ```
 Home
-├── Today's Schedule          — konten yang terjadwal hari ini
-├── Recent Activity           — aktivitas publikasi terbaru (sukses / gagal)
-├── Engagement Snapshot       — jumlah komentar unread (12 bulan terakhir) dari sinkronisasi terakhir
-└── Analytics Snapshot        — highlight performa minggu ini
+├── Today's Schedule          — content scheduled for today
+├── Recent Activity           — latest publishing activity (success / failure)
+├── Engagement Snapshot       — number of unread comments (last 12 months) from the last sync
+└── Analytics Snapshot        — this week's performance highlights
 ```
 
-**Pengguna utama:** Maya (visibility mode).
-**Pengguna sekunder:** Raka (orientasi awal sebelum masuk ke Publish).
+**Primary user:** Maya (visibility mode).
+**Secondary user:** Raka (initial orientation before going into Publish).
 
-Home tidak menggantikan layar kerja. Home adalah layar orientasi.
+Home does not replace the work screens. Home is an orientation screen.
 
 ---
 
 ## 2. Publish
 
-Area kerja utama harian. Ini adalah section terbesar dalam produk.
+The main daily work area. This is the biggest section in the product.
 
 ```
 Publish
-├── Calendar                  — tampilan jadwal konten per hari / minggu / bulan
-│   └── Draft Item            — buka item dari calendar → masuk ke Draft Editor
-├── Queue                     — antrean posting terjadwal, berurutan murni berdasarkan waktu publish (ADR-083; filter per akun tersedia sebagai kontrol terpisah, bukan struktur pengelompokan utama)
-│   └── Draft Item            — buka item dari queue → masuk ke Draft Editor
-├── Drafts                    — semua draft yang belum dijadwalkan
-│   └── Draft Editor          — buat / edit konten
-│       ├── Caption Editor    — area tulis caption
-│       ├── Media Attachment  — lampirkan gambar / video
-│       ├── Account Selector  — pilih akun tujuan lewat baris channel: popover Channels, chip akun (ADR-155)
-│       ├── Content Format    — Post / Reel / Story / Pin per akun (ADR-039)
-│       ├── Blok per Jaringan — akordeon berisi format, field platform, dan validasi inline (ADR-155)
-│       ├── Pratinjau Live    — pratinjau per platform di panel kanan (ADR-155)
-│       ├── Schedule Picker   — tentukan waktu publish
-│       ├── Publish Now       — publish langsung tanpa jadwal, semua role (Account Owner/Admin/Creator, ADR-047/ADR-074)
+├── Calendar                  — view of content schedule per day / week / month
+│   └── Draft Item            — open an item from the calendar → goes into the Draft Editor
+├── Queue                     — queue of scheduled posts, ordered purely by publish time (ADR-083; a per-account filter is available as a separate control, not the main grouping structure)
+│   └── Draft Item            — open an item from the queue → goes into the Draft Editor
+├── Drafts                    — all drafts not yet scheduled
+│   └── Draft Editor          — create / edit content
+│       ├── Caption Editor    — caption writing area
+│       ├── Media Attachment  — attach images / video
+│       ├── Account Selector  — choose destination accounts through the channel row: Channels popover, account chips (ADR-155)
+│       ├── Content Format    — Post / Reel / Story / Pin per account (ADR-039)
+│       ├── Per-Network Block — accordion containing the format, platform fields, and inline validation (ADR-155)
+│       ├── Live Preview      — per-platform preview in the right panel (ADR-155)
+│       ├── Schedule Picker   — set the publish time
+│       ├── Publish Now       — publish immediately without a schedule, all roles (Account Owner/Admin/Creator, ADR-047/ADR-074)
 │       └── Status Indicator  — draft / in review / ready to schedule / scheduled / published / failed
-└── History                   — riwayat konten yang telah dipublish
-    └── Post Detail           — detail posting + performa dasar
+└── History                   — history of content that has been published
+    └── Post Detail           — post detail + basic performance
 ```
 
-**Pengguna utama:** Raka (eksekusi publishing harian).
-**Catatan:** Tidak ada AI bawaan (ADR-138); AI pengguna membuat draft lewat MCP. Content Format Selector mengikuti matriks platform (IG/FB: Post·Reel·Story; Pinterest: Pin; TikTok & lainnya: Post). Publish Now tersedia berdampingan dengan Schedule Picker untuk semua role — Account Owner, Admin, dan Creator (ADR-047, ADR-074, `roles-permissions.md`).
+**Primary user:** Raka (daily publishing execution).
+**Note:** There is no built-in AI (ADR-138); the user's AI creates drafts through MCP. The Content Format Selector follows the platform matrix (IG/FB: Post·Reel·Story; Pinterest: Pin; TikTok & others: Post). Publish Now is available alongside the Schedule Picker for all roles — Account Owner, Admin, and Creator (ADR-047, ADR-074, `roles-permissions.md`).
 
 ---
 
 ## 3. Engage
 
-Area untuk menangani interaksi audiens yang masuk.
+The area for handling incoming audience interactions.
 
 ```
 Engage
 └── Inbox
     ├── Sync Status + Manual Refresh
-    ├── Pilihan tampilan      — By post (bawaan) / List
-    ├── Filter utama          — by account, by status
+    ├── View options          — By post (default) / List
+    ├── Main filters          — by account, by status
     ├── Filter & Sort         — platform, sort, date range, Reset filters
-    ├── Daftar Posting        — posting dengan komentar + kelompok "Tanpa posting"
-    ├── Komentar Posting      — kartu posting (konteks) + daftar komentar
-    │   └── Reply Action      — balas komentar
-    └── Status komentar       — unread / replied / resolved / dismissed (Resolve, Dismiss, Buka kembali)
+    ├── Post List             — posts with comments + a "Tanpa posting" group
+    ├── Post Comments         — post card (context) + comment list
+    │   └── Reply Action      — reply to a comment
+    └── Comment status        — unread / replied / resolved / dismissed (Resolve, Dismiss, Buka kembali)
 ```
 
-**Pengguna utama:** Raka / Community Manager.
-**Catatan:** Struktur diamandemen ADR-157 (Engage per posting; rincian di KSP-06). Inbox mengambil komentar melalui periodic pull setiap 30 menit dan menyediakan manual refresh. Direct Message, mention, dan webhook engagement tidak termasuk MVP (ADR-040).
+**Primary user:** Raka / Community Manager.
+**Note:** The structure was amended by ADR-157 (Engage per post; details in KSP-06). The Inbox fetches comments through a periodic pull every 30 minutes and provides a manual refresh. Direct Message, mention, and engagement webhooks are not part of the MVP (ADR-040).
 
 ---
 
 ## 4. Analyze
 
-Area review performa konten.
+The area for reviewing content performance.
 
 ```
 Analyze
 └── Dashboard
-    ├── Account Overview      — performa per akun sosial
-    ├── Post Performance      — metrik per posting
-    └── Engagement Summary    — ringkasan interaksi pada periode
+    ├── Account Overview      — performance per social account
+    ├── Post Performance      — metrics per post
+    └── Engagement Summary    — summary of interactions in the period
 ```
 
-**Pengguna utama:** Maya (review mingguan).
-**Pengguna sekunder:** Raka (memahami performa konten yang dipublish).
+**Primary user:** Maya (weekly review).
+**Secondary user:** Raka (understanding the performance of published content).
 
 ---
 
 ## 5. Start Page
 
-Area manajemen halaman publik (link-in-bio).
+The area for managing the public page (link-in-bio).
 
 ```
 Start Page
-├── Page Editor               — susun tampilan halaman publik
-│   ├── Profil                — judul, slug, bio, foto (URL https), tombol Simpan
-│   ├── Link List             — tambah / edit (Dialog) / hapus / urutkan tautan
-│   └── Theme Selector        — ToggleGroup 3 preset: Default, Dark, Aksen
-├── Preview                   — lihat tampilan halaman sesuai draft sebelum disimpan
-└── Share                     — salin URL halaman publik + Publish/Unpublish
+├── Page Editor               — arrange the look of the public page
+│   ├── Profile               — title, slug, bio, photo (https URL), Simpan button
+│   ├── Link List             — add / edit (Dialog) / delete / reorder links
+│   └── Theme Selector        — ToggleGroup of 3 presets: Default, Dark, Aksen
+├── Preview                   — see how the page looks per the draft before saving
+└── Share                     — copy the public page URL + Publish/Unpublish
 ```
 
-Analytics dasar (total kunjungan di page-head, klik per tautan di Link List) hanya tampil di Page Editor, bukan di halaman publik. Angka penuh (id-ID) di bawah 10.000, ringkas mulai 10.000; tanpa data tampil `0` + petunjuk. Pilihan UI dan hak akses: ADR-144; sumber angka: ADR-143.
+Basic analytics (total visits in the page-head, clicks per link in the Link List) only appear in the Page Editor, not on the public page. Full numbers (id-ID) below 10,000, abbreviated from 10,000; with no data, `0` + a hint is shown. UI choices and access rights: ADR-144; source of the numbers: ADR-143.
 
-**Halaman publik tidak tersedia:** alamat `/u/<slug>` yang slug-nya tidak ada **atau** halamannya belum di-publish menampilkan satu layar 404 kustom (T-166). Layar berdiri sendiri di luar app shell, anonim tanpa navigasi aplikasi: ikon pencarian, judul "Halaman tidak ditemukan", deskripsi singkat, dan footer badge "Powered by Postific" yang sama dengan halaman publik. Copy sengaja identik untuk kedua kasus supaya status draft tidak bocor, dan tanpa tautan atau tombol ke beranda. Bentuk visual: layar `ScreenStartPageNotFound` di artifact Postific (dikonfirmasi King Rezi, 2026-10-29).
+**Public page unavailable:** an address `/u/<slug>` whose slug does not exist **or** whose page has not been published shows a single custom 404 screen (T-166). The screen stands alone outside the app shell, anonymous with no app navigation: a search icon, the title "Halaman tidak ditemukan", a short description, and the same "Powered by Postific" badge footer as the public page. The copy is deliberately identical for both cases so that draft status does not leak, and with no link or button to the home page. Visual form: the `ScreenStartPageNotFound` screen in the Postific artifact (confirmed by King Rezi, 2026-10-29).
 
-**Pengguna utama:** Raka / siapapun yang mengelola profil publik brand.
+**Primary user:** Raka / anyone who manages the brand's public profile.
 
 ---
 
 ## 6. Settings
 
-Diakses via avatar / user menu — bukan layar kerja harian. Terdiri dari dua grup: **Organization** (pengelolaan workspace, hanya untuk role yang berwenang) dan **Account** (preferensi personal pengguna, termasuk switch/create workspace — ADR-088). Begitu masuk, primary nav (sidebar workspace) digantikan total oleh satu sidebar khusus Settings di slot yang sama — pola Buffer, bukan dua sidebar berdampingan — dengan header back-navigation ("← Settings") di atasnya yang menaut balik ke halaman utama app (ADR-077).
+Accessed via the avatar / user menu — not a daily work screen. It consists of two groups: **Organization** (workspace management, only for authorized roles) and **Account** (the user's personal preferences, including switch/create workspace — ADR-088). Once inside, the primary nav (workspace sidebar) is replaced entirely by a single dedicated Settings sidebar in the same slot — the Buffer pattern, not two sidebars side by side — with a back-navigation header ("← Settings") above it that links back to the app's main page (ADR-077).
 
 ```
 Settings
 ├── Organization
-│   ├── General                   — nama organisasi, timezone, brand settings
-│   ├── Connected Accounts        — kelola akun media sosial yang terhubung
-│   ├── Members                   — undang, kelola anggota tim
-│   ├── Roles & Permissions       — atur hak akses per peran
-│   └── Billing                   — langganan dan pembayaran
+│   ├── General                   — organization name, timezone, brand settings
+│   ├── Connected Accounts        — manage connected social media accounts
+│   ├── Members                   — invite, manage team members
+│   ├── Roles & Permissions       — set access rights per role
+│   └── Billing                   — subscription and payment
 └── Account
-    ├── Workspaces                — daftar workspace user, switch workspace aktif, buat workspace baru (ADR-088)
-    ├── Profile                   — nama, foto, email, zona waktu (per pengguna, ADR-146)
-    ├── Notifications             — preferensi notifikasi email dan in-app
-    ├── Preferences               — pengaturan tampilan personal
-    └── Klien AI                  — klien AI (MCP) yang tersambung milik pengguna sendiri, plus tombol cabut (ADR-139)
+    ├── Workspaces                — the user's workspace list, switch the active workspace, create a new workspace (ADR-088)
+    ├── Profile                   — name, photo, email, time zone (per user, ADR-146)
+    ├── Notifications             — email and in-app notification preferences
+    ├── Preferences               — personal display settings
+    └── Klien AI                  — the user's own connected AI clients (MCP), plus a revoke button (ADR-139)
 ```
 
-**Klien AI** ada di grup **Account** karena setiap koneksi adalah grant milik satu pengguna (pengguna + klien + workspace + scope). Pengguna hanya melihat dan mencabut koneksi miliknya sendiri; Owner/Admin tidak melihat koneksi anggota lain.
+**Klien AI** is in the **Account** group because each connection is a grant owned by one user (user + client + workspace + scope). Users only see and revoke their own connections; Owner/Admin do not see other members' connections.
 
 ---
 
-# Pemetaan Fitur ke Layar
+# Feature to Screen Mapping
 
-Tabel berikut memetakan fitur MVP (Must Have) ke layar spesifik dalam IA.
+The table below maps MVP (Must Have) features to specific screens in the IA.
 
-| Fitur (MVP Must Have) | Layar |
-| --------------------- | ----- |
+| Feature (MVP Must Have) | Screen |
+| ----------------------- | ------ |
 | Workspace Management | Settings → Organization → General |
 | Workspace Switch & Create (ADR-088) | Settings → Account → Workspaces |
 | Team Members | Settings → Organization → Members |
 | Roles & Permissions | Settings → Organization → Roles & Permissions |
 | Social Account Connection | Settings → Organization → Connected Accounts |
-| Koneksi klien AI (MCP, ADR-139) | Persetujuan: layar OAuth dua langkah di luar app shell (Pilih Workspace → Persetujuan Scope); kelola dan cabut: Settings → Account → Klien AI |
-| Penanda sumber MCP (ADR-138) | Publish → History, Drafts, Queue (badge dan filter sumber); Calendar tidak diberi badge |
+| AI client connection (MCP, ADR-139) | Consent: a two-step OAuth screen outside the app shell (Choose Workspace → Scope Consent); manage and revoke: Settings → Account → Klien AI |
+| MCP source marker (ADR-138) | Publish → History, Drafts, Queue (source badge and filter); Calendar gets no badge |
 | Content Draft | Publish → Drafts → Draft Editor |
-| Content Format Selection (ADR-039) | Publish → Draft Editor → Content Format per akun |
+| Content Format Selection (ADR-039) | Publish → Draft Editor → Content Format per account |
 | Schedule Post | Publish → Draft Editor → Schedule Picker |
 | Publish Now (ADR-047) | Publish → Draft Editor → Publish Now Action |
 | Calendar View | Publish → Calendar |
 | Queue Management | Publish → Queue |
 | Publishing History | Publish → History |
-| Comments (view + reply) | Engage → Inbox → Komentar Posting |
+| Comments (view + reply) | Engage → Inbox → Post Comments |
 | Inbox | Engage → Inbox |
 | Analytics Dashboard | Analyze → Dashboard |
 | Basic Performance Metrics | Analyze → Dashboard → Post Performance |
 | Engagement Summary | Analyze → Dashboard → Engagement Summary |
 | Link Management | Start Page → Page Editor → Link List |
 | Public Page | Start Page → Preview + Share |
-| Halaman publik tidak tersedia (slug tak ada / draft) | 404 publik di luar app shell (IA-D12, T-166) |
+| Public page unavailable (slug missing / draft) | Public 404 outside the app shell (IA-D12, T-166) |
 
 ---
 
 # Entry Points per Persona
 
-## Raka (Daily User — Eksekusi)
+## Raka (Daily User — Execution)
 
 ```
 Login → Publish → Calendar / Queue / Drafts → Draft Editor → Schedule → Done
-                                                           ↘ History (verifikasi)
+                                                           ↘ History (verification)
        → Engage → Inbox → Reply
 ```
 
-Raka tidak perlu melewati Home untuk memulai pekerjaan. Publish adalah entry point langsung.
+Raka does not need to pass through Home to start work. Publish is the direct entry point.
 
 ---
 
 ## Maya (Buyer — Visibility)
 
 ```
-Login → Home → ringkasan status
-              ↘ Analyze → Dashboard → review mingguan
-              ↘ Publish → Calendar → cek jadwal aktif
+Login → Home → status summary
+              ↘ Analyze → Dashboard → weekly review
+              ↘ Publish → Calendar → check the active schedule
 ```
 
-Maya tidak perlu masuk ke Draft Editor untuk mendapatkan informasi yang dibutuhkan.
+Maya does not need to go into the Draft Editor to get the information she needs.
 
 ---
 
 # Decision Log
 
-Keputusan struktural yang dibuat dalam dokumen ini.
+Structural decisions made in this document.
 
-| ID | Keputusan | Alasan | Prinsip |
-| -- | --------- | ------ | ------- |
-| IA-D01 | Navigasi utama: Home, Publish, Engage, Analyze, Start Page | Mencerminkan siklus nilai produk, bukan daftar fitur | UXP-01, UXP-07 |
-| IA-D02 | AI tidak menjadi item navigasi | AI bawaan dicabut (ADR-138); tidak ada menu atau item navigasi AI. AI pengguna masuk lewat MCP (Settings → Account → Klien AI, IA-D08) | UXP-05 |
-| IA-D03 | Home sebagai layar orientasi, bukan dashboard kerja | Melayani Maya tanpa mengganggu alur Raka | UXP-02 |
-| IA-D04 | Calendar sebagai tampilan default di Publish | Calendar memberikan overview status konten yang terbaik | UXP-02, UXP-04 |
-| IA-D05 | Settings (grup Organization + Account) di luar primary nav, diakses via avatar/user menu | Bukan akses harian — jangan memenuhi slot navigasi utama | UXP-03 |
-| IA-D06 | Kedalaman navigasi maksimal dua level | Lebih dari dua level menambah cognitive load tanpa nilai | UXP-03 |
-| IA-D07 | Media Library tidak di primary nav | Diakses dari Draft Editor (Should Have) — bukan entry point utama | UXP-03 |
-| IA-D08 | Klien AI (MCP) berada di Settings → Account → Klien AI, bukan di Organization (ADR-139) | Grant bersifat personal: satu pengguna, satu klien, satu workspace, satu set scope. Menu sudah ada dan tidak menambah slot navigasi | UXP-03 |
-| IA-D09 | Pengguna hanya melihat dan mencabut koneksi klien AI miliknya sendiri; Owner/Admin tidak melihat koneksi anggota lain | Menjaga layar sederhana (tanpa kolom pemilik) dan sesuai sifat personal grant; keputusan King Rezi 2026-10-23 | UXP-03 |
-| IA-D10 | Layar persetujuan OAuth berdiri di luar app shell dan berjalan dua langkah: pilih workspace, lalu persetujuan scope (ADR-139) | Workspace harus ditetapkan sebelum consent (hasil spike T-148); layar ini muncul dari klien AI eksternal, bukan dari navigasi aplikasi | UXP-04 |
-| IA-D11 | Badge dan filter sumber MCP muncul di History, Drafts, dan Queue; Calendar tidak diberi badge | Tiga layar daftar itu yang dipakai pengguna meninjau hasil kerja AI; Calendar yang sudah terkunci tidak disentuh (keputusan King Rezi 2026-10-23) | UXP-04, UXP-06 |
-| IA-D12 | Slug yang tidak ada dan halaman yang belum di-publish memakai satu layar 404 publik yang sama, dengan copy identik dan tanpa tautan ke beranda | Status draft tidak boleh bocor ke pengunjung anonim; layar tetap minimal dan tidak mengarahkan pengunjung ke produk. Keputusan King Rezi 2026-10-29 (rancangan `ScreenStartPageNotFound`, T-166) | UXP-03 |
+| ID | Decision | Reason | Principle |
+| -- | -------- | ------ | --------- |
+| IA-D01 | Primary navigation: Home, Publish, Engage, Analyze, Start Page | Reflects the product value cycle, not a feature list | UXP-01, UXP-07 |
+| IA-D02 | AI is not a navigation item | The built-in AI was removed (ADR-138); there is no AI menu or navigation item. The user's AI comes in through MCP (Settings → Account → Klien AI, IA-D08) | UXP-05 |
+| IA-D03 | Home as an orientation screen, not a work dashboard | Serves Maya without disrupting Raka's flow | UXP-02 |
+| IA-D04 | Calendar as the default view in Publish | Calendar gives the best overview of content status | UXP-02, UXP-04 |
+| IA-D05 | Settings (Organization + Account groups) outside the primary nav, accessed via the avatar/user menu | Not daily access — do not fill the main navigation slots | UXP-03 |
+| IA-D06 | Navigation depth is at most two levels | More than two levels adds cognitive load without value | UXP-03 |
+| IA-D07 | Media Library is not in the primary nav | Accessed from the Draft Editor (Should Have) — not a primary entry point | UXP-03 |
+| IA-D08 | AI clients (MCP) live in Settings → Account → Klien AI, not in Organization (ADR-139) | A grant is personal: one user, one client, one workspace, one set of scopes. The menu already exists and adds no navigation slot | UXP-03 |
+| IA-D09 | Users only see and revoke their own AI client connections; Owner/Admin do not see other members' connections | Keeps the screen simple (no owner column) and fits the personal nature of the grant; decision by King Rezi 2026-10-23 | UXP-03 |
+| IA-D10 | The OAuth consent screen stands outside the app shell and runs in two steps: choose a workspace, then scope consent (ADR-139) | The workspace must be fixed before consent (result of the T-148 spike); this screen appears from an external AI client, not from the application navigation | UXP-04 |
+| IA-D11 | The MCP source badge and filter appear in History, Drafts, and Queue; Calendar gets no badge | Those three list screens are what users use to review AI work; the already-locked Calendar is not touched (decision by King Rezi 2026-10-23) | UXP-04, UXP-06 |
+| IA-D12 | A missing slug and an unpublished page use the same single public 404 screen, with identical copy and no link to the home page | Draft status must not leak to anonymous visitors; the screen stays minimal and does not steer visitors to the product. Decision by King Rezi 2026-10-29 (design `ScreenStartPageNotFound`, T-166) | UXP-03 |
 
 ---
 
 # Expected Output
 
-Setelah dokumen ini selesai, project harus memiliki:
+Once this document is complete, the project must have:
 
-* Struktur navigasi yang jelas dengan primary dan secondary nav terdefinisi.
-* Hierarki layar lengkap untuk seluruh domain MVP.
-* Pemetaan fitur MVP ke layar spesifik.
-* Entry points per persona yang terdokumentasi.
-* Decision log yang dapat ditelusuri ke UX Principles.
+* A clear navigation structure with primary and secondary nav defined.
+* A complete screen hierarchy for all MVP domains.
+* A mapping of MVP features to specific screens.
+* Documented entry points per persona.
+* A decision log traceable to the UX Principles.
 
 ---
 
 # Exit Criteria
 
-Information Architecture dianggap selesai apabila:
+Information Architecture is considered complete when:
 
-* Primary navigation telah terdefinisi dan selaras dengan siklus kerja produk.
-* Hierarki layar mencakup seluruh fitur Must Have MVP.
-* Setiap keputusan struktural dapat ditelusuri ke UX Principles.
-* Tidak ada fitur Must Have yang tidak memiliki layar dalam IA.
-* Tidak ada navigasi yang bertentangan dengan Product Baseline v1.0.
+* Primary navigation has been defined and aligns with the product's work cycle.
+* The screen hierarchy covers all Must Have MVP features.
+* Every structural decision can be traced to the UX Principles.
+* No Must Have feature lacks a screen in the IA.
+* No navigation conflicts with Product Baseline v1.0.
 
 ---
 

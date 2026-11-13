@@ -1,16 +1,16 @@
 # User Flows
 
-Dokumen ini mendefinisikan **alur solusi (solution flows)** untuk pekerjaan inti pengguna pada produk **Postific**.
+This document defines the **solution flows** for the user's core jobs on the **Postific** product.
 
-User flows di sini adalah future-state — menggambarkan bagaimana produk menyelesaikan pekerjaan pengguna, bukan kondisi kerja saat ini.
+The user flows here are future-state — they describe how the product completes the user's jobs, not current working conditions.
 
 ---
 
 # Overview
 
-Setiap flow didokumentasikan dari sudut pandang **Raka (P0 daily user)** sebagai aktor utama. Maya (P0 buyer) berperan sebagai observer pada flow yang melibatkan visibility.
+Each flow is documented from the point of view of **Raka (P0 daily user)** as the main actor. Maya (P0 buyer) acts as an observer on flows that involve visibility.
 
-Flow ini tidak mendefinisikan layout visual atau interaksi detail UI. Flow ini adalah acuan logika dan urutan pekerjaan yang menjadi input untuk Navigation Patterns, Key Screen Patterns, dan Architecture Discovery.
+These flows do not define visual layout or detailed UI interaction. They are the logic and work-sequence reference that serves as input for Navigation Patterns, Key Screen Patterns, and Architecture Discovery.
 
 ---
 
@@ -18,44 +18,44 @@ Flow ini tidak mendefinisikan layout visual atau interaksi detail UI. Flow ini a
 
 ## In Scope
 
-* Alur solusi untuk Must Have MVP features.
-* Happy path — skenario ideal saat tidak ada hambatan.
-* Satu alternate path per flow — skenario paling kritis atau paling sering terjadi.
-* Referensi ke UX Principles yang relevan.
+* Solution flows for Must Have MVP features.
+* Happy path — the ideal scenario when there are no obstacles.
+* One alternate path per flow — the most critical or most frequent scenario.
+* References to the relevant UX Principles.
 
 ## Out of Scope
 
-* Wireframe atau layout visual.
-* Error handling teknis (HTTP errors, server failures).
-* Alur untuk fitur Should Have dan Could Have.
-* Alur detail per platform media sosial (Instagram, X, dll.).
+* Wireframes or visual layout.
+* Technical error handling (HTTP errors, server failures).
+* Flows for Should Have and Could Have features.
+* Detailed flows per social media platform (Instagram, X, etc.).
 
 ---
 
-# Cara Membaca Dokumen Ini
+# How to Read This Document
 
-Setiap flow memiliki struktur:
+Each flow has this structure:
 
-* **Goal** — apa yang ingin dicapai aktor di akhir flow.
-* **Aktor** — siapa yang menjalankan flow.
-* **Trigger** — apa yang memulai flow.
-* **Modul** — modul produk yang terlibat.
-* **Happy Path** — langkah-langkah saat semua kondisi terpenuhi.
-* **Alternate Path** — skenario paling kritis yang menyimpang dari happy path.
-* **UX Principles** — prinsip yang mengatur keputusan pada flow ini.
+* **Goal** — what the actor wants to achieve at the end of the flow.
+* **Actor** — who runs the flow.
+* **Trigger** — what starts the flow.
+* **Module** — the product modules involved.
+* **Happy Path** — the steps when all conditions are met.
+* **Alternate Path** — the most critical scenario that deviates from the happy path.
+* **UX Principles** — the principles that govern decisions in this flow.
 
 ---
 
-# Daftar User Flows
+# User Flow List
 
-| ID | Flow | Aktor Utama | Modul |
-| -- | ---- | ----------- | ----- |
-| UF-01 | Membuat dan Menjadwalkan Konten | Raka | Publishing |
-| UF-02 | Mengelola Queue Konten | Raka | Publishing |
-| UF-03 | Review Kalender Publishing | Raka + Maya (observer) | Publishing |
-| UF-04 | Triage Engagement Inbox | Raka | Engagement |
-| UF-05 | Menghubungkan Akun Sosial | Raka / Maya | Organization Settings |
-| UF-06 | Melihat Ringkasan Performa | Maya + Raka (sekunder) | Analytics |
+| ID | Flow | Main Actor | Module |
+| -- | ---- | ---------- | ------ |
+| UF-01 | Create and Schedule Content | Raka | Publishing |
+| UF-02 | Manage the Content Queue | Raka | Publishing |
+| UF-03 | Review the Publishing Calendar | Raka + Maya (observer) | Publishing |
+| UF-04 | Triage the Engagement Inbox | Raka | Engagement |
+| UF-05 | Connect a Social Account | Raka / Maya | Organization Settings |
+| UF-06 | View a Performance Summary | Maya + Raka (secondary) | Analytics |
 
 ---
 
@@ -63,326 +63,326 @@ Setiap flow memiliki struktur:
 
 ---
 
-## UF-01 — Membuat dan Menjadwalkan Konten
+## UF-01 — Create and Schedule Content
 
-**Goal:** Raka menyelesaikan satu konten dari tulis caption hingga terjadwal ke akun sosial yang benar.
+**Goal:** Raka finishes one piece of content, from writing the caption to having it scheduled to the right social accounts.
 
-**Aktor:** Raka (primary)
+**Actor:** Raka (primary)
 
-**Trigger:** Raka memulai sesi kerja konten harian atau menerima brief baru.
+**Trigger:** Raka starts a daily content work session or receives a new brief.
 
-**Modul:** Publishing (Draft Editor, Account Selector, Content Format Selector, Schedule Picker). AI pengguna dapat membuat draft dan menjadwalkan lewat MCP (ADR-138)
-
----
-
-### Happy Path
-
-1. Raka membuka **Publish → Drafts**, klik **New Post**.
-2. **Draft Editor** terbuka — Caption Editor aktif sebagai fokus utama.
-3. Raka memilih:
-   - **Menulis manual** — Raka mengetik caption langsung di Caption Editor.
-   - **Menyunting draft dari AI pengguna** (opsional) — draft juga dapat disusun AI pengguna lewat MCP lalu disunting Raka di sini (ADR-138).
-4. Raka melampirkan media melalui **Media Attachment** — dari file lokal atau Media Library.
-5. Raka memilih satu atau beberapa akun tujuan lewat **baris channel** di atas editor (popover Channels, lalu chip avatar); Pratinjau per platform langsung muncul di kanan (ADR-155).
-6. Per akun terpilih, di blok pengaturan jaringan Raka menetapkan **Content Format** sesuai platform (ADR-039): IG/FB → Post / Reel / Story; Pinterest → Pin (+ field pin bila perlu); TikTok & lainnya → Post.
-7. Raka menetapkan waktu publish lewat popover **Atur jadwal** di footer (batas 30 hari, zona waktu pengguna dengan default WIB).
-8. Draft Editor menampilkan ringkasan: preview caption, akun tujuan + format masing-masing, dan waktu yang dipilih; panel Pratinjau tetap terlihat.
-9. Raka menekan **Schedule** — status konten berubah menjadi `Scheduled`.
-10. Post muncul di **Calendar** dan **Queue** sesuai waktu yang ditentukan.
-
-**Outcome:** Konten terjadwal dan terlihat di Calendar dan Queue.
-
----
-
-### Alternate Path — Draft Disimpan, Belum Dijadwalkan
-
-**Kondisi:** Caption belum final, media belum siap, atau Raka belum memutuskan waktu publish.
-
-1. Raka menulis caption (sebagian atau seluruhnya) di Caption Editor.
-2. Raka klik **Save as Draft** — post disimpan ke **Publish → Drafts** dengan status `Draft`.
-3. Post tidak muncul di Calendar maupun Queue.
-4. Raka kembali kapan saja untuk melengkapi dan menjadwalkan.
-
-**Outcome:** Konten tersimpan sebagai draft, belum masuk antrian jadwal.
-
----
-
-### UX Principles
-
-* **UXP-01** — Flow ini mewakili tahapan Production → Scheduling dalam satu siklus kerja tanpa context switching ke tool lain.
-* **UXP-04** — Ringkasan konfirmasi (caption + akun + format + waktu) sebelum schedule membangun kepercayaan bahwa konten akan terbit ke tempat dan format yang benar.
-
----
-
----
-
-## UF-02 — Mengelola Queue Konten
-
-**Goal:** Raka memastikan antrean konten terjadwal memiliki coverage yang sehat — tidak ada gap penting dan tidak ada slot yang terlalu padat.
-
-**Aktor:** Raka (primary)
-
-**Trigger:** Raka ingin memeriksa atau merapikan jadwal mingguan sebelum atau sesudah membuat konten baru.
-
-**Modul:** Publishing (Queue, Draft Editor)
+**Module:** Publishing (Draft Editor, Account Selector, Content Format Selector, Schedule Picker). The user's AI can create drafts and schedule through MCP (ADR-138)
 
 ---
 
 ### Happy Path
 
-1. Raka membuka **Publish → Queue**.
-2. Queue menampilkan post yang **sudah terjadwal** (status `Scheduled`), dikelompokkan per tanggal lalu per jam, murni berurutan berdasarkan waktu publish — tanpa badge status per item karena seluruh isi Queue statusnya seragam (amandemen ADR-083, 2026-08-19). Item `Failed` tidak muncul di sini — pindah ke **History** begitu percobaan publish selesai.
-3. Raka memindai coverage: melihat apakah ada hari tanpa posting, atau jadwal yang terlalu berdekatan untuk akun tertentu.
-4. Jika ada gap yang perlu diisi, Raka langsung membuat konten baru melalui **New Post** (kembali ke UF-01).
-5. Queue diperbarui otomatis via Supabase Realtime granular client-side patch pada tabel `publishing_posts` (amandemen ADR-094, 2026-08-28) — bukan lagi manual-refresh-only seperti ADR-023 semula; lihat juga `rendering-strategy.md`.
+1. Raka opens **Publish → Drafts** and clicks **New Post**.
+2. The **Draft Editor** opens — the Caption Editor is active as the main focus.
+3. Raka chooses:
+   - **Write manually** — Raka types the caption directly in the Caption Editor.
+   - **Edit a draft from the user's AI** (optional) — a draft can also be prepared by the user's AI through MCP and then edited by Raka here (ADR-138).
+4. Raka attaches media through **Media Attachment** — from a local file or the Media Library.
+5. Raka chooses one or more destination accounts through the **channel row** above the editor (Channels popover, then avatar chips); the per-platform Preview appears right away on the right (ADR-155).
+6. For each selected account, in the network settings block Raka sets the **Content Format** per platform (ADR-039): IG/FB → Post / Reel / Story; Pinterest → Pin (+ pin fields when needed); TikTok & others → Post.
+7. Raka sets the publish time through the **Atur jadwal** popover in the footer (30-day limit, the user's time zone with a default of WIB).
+8. The Draft Editor shows a summary: caption preview, destination accounts + their respective formats, and the chosen time; the Preview panel stays visible.
+9. Raka presses **Schedule** — the content status changes to `Scheduled`.
+10. The post appears in the **Calendar** and **Queue** at the time set.
 
-**Outcome:** Queue terorganisir dengan coverage yang sehat untuk periode berjalan.
+**Outcome:** The content is scheduled and visible in the Calendar and Queue.
 
 ---
 
-### Alternate Path — Konten Dijadwalkan Ulang ke Draft
+### Alternate Path — Draft Saved, Not Yet Scheduled
 
-**Kondisi:** Raka menemukan konten yang belum siap namun sudah terjadwal — misalnya caption belum final atau aset berubah.
+**Condition:** The caption is not final, the media is not ready, or Raka has not decided on a publish time.
 
-1. Raka menekan tombol **Cancel Schedule** (icon merah) pada item Queue yang perlu ditarik — dikonfirmasi lewat dialog Tier 2 (ADR-049, T-030). Tidak lagi lewat membuka Draft Editor dan mengubah status manual.
-2. Post kembali ke status `Draft` — muncul di **Publish → Drafts**.
-3. Waktu publish yang sebelumnya terisi menjadi kosong di Queue dan Calendar.
-4. Raka menyelesaikan konten dan menjadwalkannya kembali melalui UF-01.
+1. Raka writes the caption (partially or fully) in the Caption Editor.
+2. Raka clicks **Save as Draft** — the post is saved to **Publish → Drafts** with status `Draft`.
+3. The post does not appear in the Calendar or Queue.
+4. Raka comes back at any time to complete and schedule it.
 
-**Outcome:** Konten yang belum siap tidak ikut antrian, waktu publish itu aman diisi ulang oleh post lain.
+**Outcome:** The content is saved as a draft, not yet in the schedule queue.
 
 ---
 
 ### UX Principles
 
-* **UXP-01** — Queue adalah representasi visual dari kelangsungan siklus kerja Raka; melihat gap di sini langsung memicu aksi buat konten baru.
-* **UXP-04** — **Diamandemen ADR-083 (2026-08-19):** Publishing Trust di Queue kini dipenuhi lewat cakupan yang homogen (isi Queue selalu berarti "akan tayang sesuai jadwal", bukan campuran status) ditambah 3 aksi eksplisit (Publish Now/Edit/Cancel Schedule) yang langsung bisa dieksekusi dari list — bukan lewat badge status pasif seperti sebelumnya. Post yang gagal (`Failed`) pindah ke History, yang tetap wajib menampilkan status jelas per item sesuai UXP-04/UXP-06.
+* **UXP-01** — This flow represents the Production → Scheduling stages in one work cycle without context switching to another tool.
+* **UXP-04** — The confirmation summary (caption + account + format + time) before scheduling builds trust that the content will go out to the right place and in the right format.
 
 ---
 
 ---
 
-## UF-03 — Review Kalender Publishing
+## UF-02 — Manage the Content Queue
 
-**Goal:** Raka memastikan jadwal konten minggu berjalan sudah benar. Maya mendapat gambaran status publishing tanpa perlu bertanya ke tim.
+**Goal:** Raka makes sure the scheduled content queue has healthy coverage — no important gaps and no slots that are too crowded.
 
-**Aktor:** Raka (planner), Maya (observer)
+**Actor:** Raka (primary)
 
-**Trigger:** Awal minggu kerja, atau kapanpun Raka/Maya ingin melihat gambaran jadwal konten.
+**Trigger:** Raka wants to check or tidy the weekly schedule before or after creating new content.
 
-**Modul:** Publishing (Calendar)
+**Module:** Publishing (Queue, Draft Editor)
 
 ---
 
 ### Happy Path
 
-1. Raka membuka **Publish → Calendar** — tampilan default: weekly view.
-2. Calendar menampilkan seluruh konten terjadwal dalam minggu berjalan, dibedakan secara visual per akun dan status — **hanya 3 dari 6 status kanonikal yang bisa tampil di grid: `Scheduled`, `Published`, `Failed`** (amandemen KSP-02-F02, polishing UI 2026-08-27). `Draft`, `In Review`, dan `Ready to Schedule` tidak pernah muncul di Calendar karena belum punya `scheduledAt`/`publishedAt` untuk diplot ke sel tanggal/jam — item berstatus itu tetap terlihat di **Publish → Drafts**.
-3. Raka memindai distribusi konten: akun mana yang paling banyak / sedikit, hari mana yang kosong.
-4. Raka mengklik satu item di Calendar untuk membuka Draft Editor dan melakukan edit jika diperlukan.
-5. Maya (di sesinya) membuka **Home → Today's Schedule** atau langsung **Publish → Calendar**.
-6. Maya melihat Calendar yang sama — membaca status publishing minggu ini tanpa perlu interaksi apapun.
-7. Maya mendapat gambaran cukup untuk diskusi team atau keputusan prioritas konten.
+1. Raka opens **Publish → Queue**.
+2. The Queue shows posts that are **already scheduled** (status `Scheduled`), grouped by date and then by hour, ordered purely by publish time — with no per-item status badge because the whole content of the Queue has a uniform status (ADR-083 amendment, 2026-08-19). `Failed` items do not appear here — they move to **History** as soon as the publish attempt finishes.
+3. Raka scans the coverage: seeing whether there is a day with no posts, or a schedule that is too close together for a given account.
+4. If there is a gap to fill, Raka directly creates new content through **New Post** (back to UF-01).
+5. The Queue updates automatically via a Supabase Realtime granular client-side patch on the `publishing_posts` table (ADR-094 amendment, 2026-08-28) — no longer manual-refresh-only as in the original ADR-023; see also `rendering-strategy.md`.
 
-**Outcome:** Raka memiliki jadwal yang sudah diverifikasi. Maya mendapat visibilitas status tanpa meeting tambahan.
+**Outcome:** The Queue is organized with healthy coverage for the current period.
 
 ---
 
-### Alternate Path — Post Menunjukkan Status Failed
+### Alternate Path — Content Rescheduled Back to Draft
 
-**Kondisi:** Satu atau lebih post di Calendar gagal dipublish karena koneksi akun kadaluarsa atau masalah lain.
+**Condition:** Raka finds content that is not ready but already scheduled — for example the caption is not final or the assets changed.
 
-1. Raka melihat item di Calendar dengan status `Failed` — terlihat jelas tanpa harus mencarinya.
-2. Raka mengklik item tersebut untuk membaca alasan kegagalan (contoh: "Akun X tidak terhubung").
-3. Raka navigasi ke **Organization Settings → Connected Accounts** untuk mengatasi masalah koneksi (lihat UF-05 Alternate Path).
-4. Setelah akun terhubung kembali, Raka kembali ke Calendar dan me-reschedule atau retry post tersebut.
+1. Raka presses the **Cancel Schedule** button (red icon) on the Queue item that needs to be pulled — confirmed through a Tier 2 dialog (ADR-049, T-030). No longer by opening the Draft Editor and changing the status manually.
+2. The post goes back to status `Draft` — it appears in **Publish → Drafts**.
+3. The publish time that was previously filled becomes empty in the Queue and Calendar.
+4. Raka finishes the content and schedules it again through UF-01.
 
-**Outcome:** Masalah teridentifikasi dan ditangani langsung dari konteks Calendar, bukan melalui notifikasi yang terlambat.
+**Outcome:** Content that is not ready does not stay in the queue, and that publish time is safe to be filled again by another post.
 
 ---
 
 ### UX Principles
 
-* **UXP-02** — Calendar adalah titik pertemuan antara mode eksekusi Raka dan mode visibility Maya dalam satu layar yang sama.
-* **UXP-04** — Status `Failed` harus terlihat secara proaktif di Calendar, bukan menunggu Raka atau Maya bertanya ke sistem.
-* **UXP-03** — Calendar default ke weekly view karena itu adalah unit kerja yang paling relevan — bukan monthly view yang menyembunyikan detail harian.
+* **UXP-01** — The Queue is the visual representation of the continuity of Raka's work cycle; seeing a gap here directly triggers the action of creating new content.
+* **UXP-04** — **Amended by ADR-083 (2026-08-19):** Publishing Trust in the Queue is now met through homogeneous coverage (the Queue's content always means "will go out as scheduled", not a mix of statuses) plus 3 explicit actions (Publish Now/Edit/Cancel Schedule) that can be executed right from the list — not through a passive status badge as before. Failed posts (`Failed`) move to History, which must still show a clear status per item per UXP-04/UXP-06.
 
 ---
 
 ---
 
-## UF-04 — Triage Engagement Inbox
+## UF-03 — Review the Publishing Calendar
 
-**Goal:** Raka membaca dan membalas komentar audiens yang penting dari semua akun yang terhubung tanpa harus membuka native app per platform.
+**Goal:** Raka makes sure the current week's content schedule is correct. Maya gets a picture of publishing status without having to ask the team.
 
-**Aktor:** Raka (primary)
+**Actor:** Raka (planner), Maya (observer)
 
-**Trigger:** Raka membuka sesi kerja engagement, menerima notifikasi internal setelah sinkronisasi komentar, atau ingin mengambil komentar terbaru melalui manual refresh.
+**Trigger:** The start of the work week, or whenever Raka/Maya wants to see the content schedule picture.
 
-**Modul:** Engagement (Inbox)
+**Module:** Publishing (Calendar)
 
 ---
 
 ### Happy Path
 
-1. Raka membuka **Engage → Inbox**.
-2. Inbox menampilkan waktu sinkronisasi terakhir dan daftar posting yang punya komentar dari semua akun terhubung. Posting dengan komentar belum dibalas tampil lebih dulu; komentar tanpa posting masuk kelompok "Tanpa posting" (KSP-06, ADR-157).
-3. Jika membutuhkan data terbaru sebelum jadwal periodic pull berikutnya, Raka menekan **Refresh** dan melihat state loading sampai sinkronisasi selesai.
-4. Raka memfilter berdasarkan akun atau status (`Belum dibalas / Dibalas / Selesai / Diabaikan`) jika volume tinggi; panel Filter & Sort menambah platform, urutan, dan rentang tanggal, dengan Reset filters untuk kembali ke bawaan. Raka dapat berpindah ke tampilan List bila ingin melihat komentar sebagai daftar datar.
-5. Raka memilih satu posting — komentarnya tampil di panel kanan bersama kartu pratinjau posting sebagai konteks post asal.
-6. Raka membalas komentar langsung dari dalam Inbox — tanpa membuka native app. Balasan yang terkirim menandai komentar `Dibalas`.
-7. Untuk komentar yang tidak perlu dibalas atau sudah selesai, Raka memilih `Resolve` (`Selesai`) atau `Dismiss` (`Diabaikan`); keduanya bisa dibuka kembali. Komentar keluar dari hitungan belum dibalas.
-8. Raka lanjut ke komentar atau posting berikutnya.
+1. Raka opens **Publish → Calendar** — default view: weekly view.
+2. The Calendar shows all content scheduled in the current week, visually distinguished per account and status — **only 3 of the 6 canonical statuses can appear in the grid: `Scheduled`, `Published`, `Failed`** (KSP-02-F02 amendment, UI polish 2026-08-27). `Draft`, `In Review`, and `Ready to Schedule` never appear in the Calendar because they do not yet have a `scheduledAt`/`publishedAt` to plot onto a date/hour cell — items with those statuses remain visible in **Publish → Drafts**.
+3. Raka scans the content distribution: which account has the most / the fewest, which days are empty.
+4. Raka clicks an item in the Calendar to open the Draft Editor and edit if needed.
+5. Maya (in her own session) opens **Home → Today's Schedule** or goes straight to **Publish → Calendar**.
+6. Maya sees the same Calendar — reading this week's publishing status without needing any interaction.
+7. Maya gets enough of a picture for a team discussion or a content priority decision.
 
-**Outcome:** Komentar prioritas selesai ditangani dalam satu session di Inbox, tanpa context switching ke native apps.
+**Outcome:** Raka has a schedule that has been verified. Maya gets status visibility without an extra meeting.
 
 ---
 
-### Alternate Path — Sinkronisasi Menemukan Komentar Saat Raka Bekerja di Publish
+### Alternate Path — Post Shows Status Failed
 
-**Kondisi:** Raka sedang dalam flow publishing (UF-01 atau UF-02) ketika periodic pull 30 menit menemukan komentar baru.
+**Condition:** One or more posts in the Calendar failed to publish because the account connection expired or for another reason.
 
-1. Setelah sinkronisasi internal selesai, badge notifikasi muncul pada item **Engage** di primary navigation.
-2. Raka menyelesaikan aksi saat ini terlebih dahulu di Publish — tidak perlu interrupt flow.
-3. Setelah selesai, Raka berpindah ke **Engage → Inbox**.
-4. Posting dengan komentar baru (`Belum dibalas`) tampil di atas daftar posting.
-5. Raka menangani komentar tersebut → `Reply`, `Resolve`, atau `Dismiss`.
+1. Raka sees an item in the Calendar with status `Failed` — clearly visible without having to look for it.
+2. Raka clicks the item to read the failure reason (example: "Akun X tidak terhubung").
+3. Raka navigates to **Organization Settings → Connected Accounts** to fix the connection problem (see the UF-05 Alternate Path).
+4. After the account is reconnected, Raka goes back to the Calendar and reschedules or retries the post.
 
-**Outcome:** Engagement tertangani tepat waktu tanpa memotong flow publishing yang sedang berjalan.
+**Outcome:** The problem is identified and handled directly from the Calendar context, not through a late notification.
 
 ---
 
 ### UX Principles
 
-* **UXP-01** — Engage adalah tahapan natural setelah Publish dalam satu siklus kerja — navigasi mencerminkan urutan ini.
-* **UXP-03** — Inbox yang terpusat menggantikan kebutuhan membuka multiple native apps; kesederhanaan ini adalah solusi inti, bukan fitur tambahan. Pengelompokan per posting menjaga konteks komentar tetap terlihat saat triage.
-* **UXP-07 (I-05)** — Engagement adalah retention layer produk; Inbox yang terkonsolidasi mendorong Raka tetap menggunakan produk setelah fase publishing.
-
-**Batas MVP:** Flow ini hanya mencakup komentar dan reply. Direct Message, mention, dan webhook engagement tidak termasuk MVP. Data diperbarui melalui periodic pull 30 menit atau manual refresh (ADR-040).
+* **UXP-02** — The Calendar is the meeting point between Raka's execution mode and Maya's visibility mode on one and the same screen.
+* **UXP-04** — The `Failed` status must be visible proactively in the Calendar, not wait for Raka or Maya to ask the system.
+* **UXP-03** — The Calendar defaults to weekly view because that is the most relevant unit of work — not a monthly view that hides daily detail.
 
 ---
 
 ---
 
-## UF-05 — Menghubungkan Akun Sosial
+## UF-04 — Triage the Engagement Inbox
 
-**Goal:** Akun media sosial berhasil terhubung ke workspace dan siap digunakan untuk publishing.
+**Goal:** Raka reads and replies to important audience comments from all connected accounts without having to open the native app for each platform.
 
-**Aktor:** Raka atau Maya (siapa yang memiliki akses Organization Settings)
+**Actor:** Raka (primary)
 
-**Trigger:** Workspace baru dibuat dan belum ada akun terhubung, atau Raka ingin menambah akun platform baru.
+**Trigger:** Raka opens an engagement work session, receives an internal notification after a comment sync, or wants to fetch the latest comments through a manual refresh.
 
-**Modul:** Organization Settings (Connected Accounts), Authentication (OAuth)
+**Module:** Engagement (Inbox)
 
 ---
 
 ### Happy Path
 
-1. Aktor membuka **Organization Settings → Connected Accounts**.
-2. Aktor klik **Connect Account**.
-3. Sistem menampilkan daftar platform yang tersedia (Instagram, Facebook, X, LinkedIn, TikTok, YouTube, Threads, Pinterest).
-4. Aktor memilih platform tujuan.
-5. Sistem membuka alur OAuth platform — aktor login ke akun platform-nya dan memberikan izin.
-6. Platform mengirim konfirmasi ke sistem.
-7. Sistem kembali ke **Connected Accounts** — akun baru muncul dengan status `Active`.
-8. Akun tersebut kini tersedia di **Account Selector** pada Draft Editor.
+1. Raka opens **Engage → Inbox**.
+2. The Inbox shows the last sync time and the list of posts that have comments from all connected accounts. Posts with unreplied comments appear first; comments without a post go into the "Tanpa posting" group (KSP-06, ADR-157).
+3. If Raka needs the latest data before the next periodic pull schedule, Raka presses **Refresh** and sees the loading state until the sync finishes.
+4. Raka filters by account or status (`Belum dibalas / Dibalas / Selesai / Diabaikan`) if the volume is high; the Filter & Sort panel adds platform, order, and date range, with Reset filters to return to the default. Raka can switch to the List view when wanting to see comments as a flat list.
+5. Raka chooses a post — its comments appear in the right panel together with the post preview card as the context of the source post.
+6. Raka replies to a comment directly from inside the Inbox — without opening the native app. A reply that is sent marks the comment `Dibalas`.
+7. For a comment that does not need a reply or is already done, Raka chooses `Resolve` (`Selesai`) or `Dismiss` (`Diabaikan`); both can be reopened. The comment leaves the unreplied count.
+8. Raka moves on to the next comment or post.
 
-**Outcome:** Akun sosial terhubung dan siap dipakai untuk publishing.
+**Outcome:** Priority comments are handled in one session in the Inbox, without context switching to native apps.
 
 ---
 
-### Alternate Path — Token Akun Kadaluarsa
+### Alternate Path — Sync Finds Comments While Raka Works in Publish
 
-**Kondisi:** Akun yang sudah terhubung sebelumnya kehilangan akses karena token OAuth kadaluarsa atau izin dicabut di platform.
+**Condition:** Raka is in a publishing flow (UF-01 or UF-02) when the 30-minute periodic pull finds new comments.
 
-1. Raka melihat indikator `Disconnected` pada akun di Calendar, Queue, atau Draft Editor Account Selector.
-2. Sistem menampilkan pesan ringkas: akun X kehilangan akses, perlu reconnect.
-3. Raka membuka **Organization Settings → Connected Accounts**.
-4. Akun yang bermasalah ditampilkan dengan status `Disconnected` dan tombol **Reconnect**.
-5. Raka klik **Reconnect** → alur OAuth diulang untuk akun tersebut.
-6. Setelah berhasil, status akun kembali `Active`.
-7. Post yang terjadwal untuk akun ini tidak ikut gagal — mereka tetap di antrean dan akan terkirim pada waktunya.
+1. After the internal sync finishes, a notification badge appears on the **Engage** item in the primary navigation.
+2. Raka finishes the current action in Publish first — no need to interrupt the flow.
+3. Once done, Raka switches to **Engage → Inbox**.
+4. Posts with new comments (`Belum dibalas`) appear at the top of the post list.
+5. Raka handles those comments → `Reply`, `Resolve`, or `Dismiss`.
 
-**Outcome:** Akun kembali aktif, publishing pipeline tidak terganggu.
+**Outcome:** Engagement is handled on time without cutting into the publishing flow in progress.
 
 ---
 
 ### UX Principles
 
-* **UXP-04** — Status `Disconnected` pada akun harus terlihat di titik-titik kritis (Calendar, Queue, Account Selector) — bukan hanya di Settings — agar masalah ketahuan sebelum post gagal.
-* **UXP-03** — Alur OAuth mengikuti standar platform; tidak ada langkah tambahan yang tidak perlu di antara klik "Connect" dan halaman OAuth.
+* **UXP-01** — Engage is the natural stage after Publish in one work cycle — the navigation reflects this order.
+* **UXP-03** — A centralized Inbox replaces the need to open multiple native apps; this simplicity is the core solution, not an extra feature. Grouping per post keeps the comment context visible during triage.
+* **UXP-07 (I-05)** — Engagement is the product's retention layer; a consolidated Inbox encourages Raka to keep using the product after the publishing phase.
+
+**MVP boundary:** This flow covers only comments and replies. Direct Message, mention, and engagement webhooks are not part of the MVP. Data is updated through a 30-minute periodic pull or manual refresh (ADR-040).
 
 ---
 
 ---
 
-## UF-06 — Melihat Ringkasan Performa
+## UF-05 — Connect a Social Account
 
-**Goal:** Maya mendapat gambaran performa konten minggu ini yang cukup untuk keputusan arah konten berikutnya — tanpa harus mengumpulkan data manual dari native dashboards.
+**Goal:** A social media account is successfully connected to the workspace and ready to be used for publishing.
 
-**Aktor:** Maya (primary), Raka (sekunder — melihat performa konten yang ia publish)
+**Actor:** Raka or Maya (whoever has access to Organization Settings)
 
-**Trigger:** Akhir minggu atau awal minggu — Maya memulai review mingguan.
+**Trigger:** A new workspace is created and has no connected accounts yet, or Raka wants to add a new platform account.
 
-**Modul:** Analytics (Dashboard), Home
+**Module:** Organization Settings (Connected Accounts), Authentication (OAuth)
 
 ---
 
 ### Happy Path
 
-1. Maya membuka **Home** — **Analytics Snapshot** di layar Home menampilkan highlight performa minggu ini: total posts, total reach, engagement rate keseluruhan.
-2. Maya memutuskan ingin melihat lebih detail — klik **Analytics Snapshot** atau navigasi langsung ke **Analyze → Dashboard**.
-3. Dashboard menampilkan:
-   - **Account Overview** — performa per akun sosial terhubung.
-   - **Post Performance** — metrik per posting (reach, engagement, klik jika tersedia).
-   - **Engagement Summary** — total interaksi pada periode yang dipilih.
-4. Maya memfilter per akun atau mengubah rentang waktu (minggu ini, bulan ini).
-5. Maya melihat post mana yang menghasilkan engagement terbaik — membentuk keputusan arah konten berikutnya.
-6. Maya mendiskusikan insight ini bersama Raka dalam weekly sync — tidak perlu ekspor laporan formal di MVP.
+1. The actor opens **Organization Settings → Connected Accounts**.
+2. The actor clicks **Connect Account**.
+3. The system shows the list of available platforms (Instagram, Facebook, X, LinkedIn, TikTok, YouTube, Threads, Pinterest).
+4. The actor chooses the destination platform.
+5. The system opens the platform's OAuth flow — the actor logs in to their platform account and grants permission.
+6. The platform sends confirmation to the system.
+7. The system returns to **Connected Accounts** — the new account appears with status `Active`.
+8. That account is now available in the **Account Selector** in the Draft Editor.
 
-**Outcome:** Maya mendapat ringkasan performa yang cukup untuk keputusan mingguan dalam beberapa menit — tanpa kompilasi manual.
+**Outcome:** The social account is connected and ready to be used for publishing.
 
 ---
 
-### Alternate Path — Belum Ada Data (Empty State)
+### Alternate Path — Account Token Expired
 
-**Kondisi:** Workspace baru atau belum ada konten yang pernah dipublish lewat produk.
+**Condition:** An account that was connected before loses access because the OAuth token expired or the permission was revoked on the platform.
 
-1. Maya atau Raka membuka **Analyze → Dashboard**.
-2. Dashboard menampilkan **empty state** dengan pesan: _"Belum ada data. Hubungkan akun sosial dan mulai publish konten untuk melihat performa."_
-3. Empty state menyertakan tautan langsung ke dua aksi:
-   - **Connect Account** → mengarah ke Organization Settings → Connected Accounts (UF-05).
-   - **Create First Post** → mengarah ke Publish → Drafts → New Post (UF-01).
-4. Tidak ada angka kosong atau grafik tanpa data yang ditampilkan.
+1. Raka sees a `Disconnected` indicator on the account in the Calendar, Queue, or the Draft Editor Account Selector.
+2. The system shows a brief message: account X lost access, needs to reconnect.
+3. Raka opens **Organization Settings → Connected Accounts**.
+4. The problem account is shown with status `Disconnected` and a **Reconnect** button.
+5. Raka clicks **Reconnect** → the OAuth flow is repeated for that account.
+6. After success, the account status goes back to `Active`.
+7. Posts scheduled for this account do not fail along with it — they stay in the queue and will be sent at their time.
 
-**Outcome:** Empty state komunikatif — pengguna tahu apa yang harus dilakukan berikutnya, tidak ada dead end.
+**Outcome:** The account is active again, the publishing pipeline is not disrupted.
 
 ---
 
 ### UX Principles
 
-* **UXP-02** — Analyze adalah layar kerja utama Maya dalam mode visibility; ia harus dapat membaca ringkasan bermakna tanpa navigasi berlapis.
-* **UXP-03** — Analytics Snapshot di Home adalah shortcut pertama — Maya tidak harus masuk ke Analyze untuk mendapat gambaran cepat.
-* **I-05** — Analytics adalah retention layer; nilainya muncul setelah Raka membangun ritme publishing yang konsisten.
+* **UXP-04** — The `Disconnected` status on an account must be visible at critical points (Calendar, Queue, Account Selector) — not only in Settings — so the problem is noticed before a post fails.
+* **UXP-03** — The OAuth flow follows the platform standard; there are no unnecessary extra steps between the click on "Connect" and the OAuth page.
 
 ---
 
 ---
 
-# Ringkasan Flow
+## UF-06 — View a Performance Summary
 
-| ID | Flow | Trigger Utama | Outcome |
-| -- | ---- | ------------- | ------- |
-| UF-01 | Membuat dan Menjadwalkan Konten | Raka membuat post baru | Post terjadwal di Calendar dan Queue |
-| UF-02 | Mengelola Queue Konten | Raka review antrian mingguan | Queue terkoverasi dan terorganisir |
-| UF-03 | Review Kalender Publishing | Raka verifikasi jadwal; Maya butuh overview | Raka confirm jadwal; Maya punya visibility |
-| UF-04 | Triage Engagement Inbox | Raka session engagement atau notif masuk | Interaksi prioritas ditangani tanpa native apps |
-| UF-05 | Menghubungkan Akun Sosial | Workspace baru atau token kadaluarsa | Akun aktif dan siap untuk publishing |
-| UF-06 | Melihat Ringkasan Performa | Review mingguan Maya | Maya dapat keputusan arah konten berikutnya |
+**Goal:** Maya gets a picture of this week's content performance that is enough for deciding the next content direction — without having to gather data manually from native dashboards.
+
+**Actor:** Maya (primary), Raka (secondary — viewing the performance of content he publishes)
+
+**Trigger:** The end or start of the week — Maya starts the weekly review.
+
+**Module:** Analytics (Dashboard), Home
 
 ---
 
-# Relasi Antar Flow
+### Happy Path
+
+1. Maya opens **Home** — the **Analytics Snapshot** on the Home screen shows this week's performance highlights: total posts, total reach, overall engagement rate.
+2. Maya decides she wants to see more detail — clicks the **Analytics Snapshot** or navigates directly to **Analyze → Dashboard**.
+3. The Dashboard shows:
+   - **Account Overview** — performance per connected social account.
+   - **Post Performance** — metrics per post (reach, engagement, clicks if available).
+   - **Engagement Summary** — total interactions in the selected period.
+4. Maya filters per account or changes the time range (this week, this month).
+5. Maya sees which posts produced the best engagement — shaping the decision on the next content direction.
+6. Maya discusses these insights with Raka in the weekly sync — no formal report export is needed in the MVP.
+
+**Outcome:** Maya gets a performance summary that is enough for weekly decisions in a few minutes — without manual compilation.
+
+---
+
+### Alternate Path — No Data Yet (Empty State)
+
+**Condition:** A new workspace or no content has ever been published through the product.
+
+1. Maya or Raka opens **Analyze → Dashboard**.
+2. The Dashboard shows an **empty state** with the message: _"Belum ada data. Hubungkan akun sosial dan mulai publish konten untuk melihat performa."_
+3. The empty state includes direct links to two actions:
+   - **Connect Account** → leads to Organization Settings → Connected Accounts (UF-05).
+   - **Create First Post** → leads to Publish → Drafts → New Post (UF-01).
+4. No empty numbers or charts without data are shown.
+
+**Outcome:** The empty state is communicative — users know what to do next, there is no dead end.
+
+---
+
+### UX Principles
+
+* **UXP-02** — Analyze is Maya's main work screen in visibility mode; she must be able to read a meaningful summary without layered navigation.
+* **UXP-03** — The Analytics Snapshot on Home is the first shortcut — Maya does not have to go into Analyze to get a quick picture.
+* **I-05** — Analytics is a retention layer; its value appears after Raka builds a consistent publishing rhythm.
+
+---
+
+---
+
+# Flow Summary
+
+| ID | Flow | Main Trigger | Outcome |
+| -- | ---- | ------------ | ------- |
+| UF-01 | Create and Schedule Content | Raka creates a new post | Post scheduled in the Calendar and Queue |
+| UF-02 | Manage the Content Queue | Raka reviews the weekly queue | The Queue is covered and organized |
+| UF-03 | Review the Publishing Calendar | Raka verifies the schedule; Maya needs an overview | Raka confirms the schedule; Maya has visibility |
+| UF-04 | Triage the Engagement Inbox | Raka engagement session or incoming notification | Priority interactions handled without native apps |
+| UF-05 | Connect a Social Account | New workspace or expired token | Account active and ready for publishing |
+| UF-06 | View a Performance Summary | Maya's weekly review | Maya gets a decision on the next content direction |
+
+---
+
+# Relationships Between Flows
 
 ```text
 UF-05 (Connect Account)
@@ -393,31 +393,31 @@ UF-03 (Review Calendar) ←─────────────────�
     ↓
 UF-04 (Triage Inbox)
     ↓
-UF-06 (View Performance)  ←── Maya entry point dari Home
+UF-06 (View Performance)  ←── Maya entry point from Home
 ```
 
-Siklus ini mencerminkan **UXP-01**: Draft → Schedule → Publish → Engage → Review adalah satu siklus, bukan kumpulan fitur terpisah.
+This cycle reflects **UXP-01**: Draft → Schedule → Publish → Engage → Review is one cycle, not a collection of separate features.
 
 ---
 
-# Keputusan UX yang Terdokumentasi
+# Documented UX Decisions
 
-| ID | Keputusan | Prinsip | Dampak |
-| -- | --------- | ------- | ------ |
-| UXD-01 | ~~AI Caption diakses dari dalam Caption Editor — bukan menu atau layar terpisah~~ — **Dicabut ADR-138** (AI bawaan dicabut; AI pengguna bekerja lewat MCP) | UXP-06, I-06 | ~~AI tidak menambah navigasi baru; ia mempercepat alur yang sudah ada~~ |
-| UXD-02 | Status `Failed` dan `Disconnected` terlihat di Calendar dan Queue — bukan hanya di Settings | UXP-04 | Masalah terdeteksi sebelum publish gagal |
-| UXD-03 | Empty state Analytics memberi dua tautan aksi, bukan hanya pesan informasi | UXP-03 | Pengguna tidak stuck; dead end dihilangkan |
-| UXD-04 | Maya dan Raka berbagi Calendar yang sama — bukan view terpisah | UXP-02 | Visibilitas tanpa overhead: satu Calendar melayani dua kebutuhan |
+| ID | Decision | Principle | Impact |
+| -- | -------- | --------- | ------ |
+| UXD-01 | ~~AI Caption is accessed from inside the Caption Editor — not a separate menu or screen~~ — **Removed by ADR-138** (the built-in AI was removed; the user's AI works through MCP) | UXP-06, I-06 | ~~AI does not add new navigation; it speeds up the existing flow~~ |
+| UXD-02 | The `Failed` and `Disconnected` statuses are visible in the Calendar and Queue — not only in Settings | UXP-04 | Problems are detected before a publish fails |
+| UXD-03 | The Analytics empty state gives two action links, not just an informational message | UXP-03 | Users do not get stuck; dead ends are removed |
+| UXD-04 | Maya and Raka share the same Calendar — not separate views | UXP-02 | Visibility without overhead: one Calendar serves two needs |
 
 ---
 
-# Assumptions yang Dievaluasi
+# Evaluated Assumptions
 
-| ID | Asumsi | Evaluasi |
-| -- | ------ | -------- |
-| A-05 | Publishing adalah pekerjaan inti | UF-01 dan UF-02 adalah flow terpanjang dan paling kompleks — mendukung asumsi ini |
-| A-07 | AI berguna jika masuk workflow | AI pengguna bekerja lewat MCP di luar alur penulisan Postific (ADR-138); UF-01 tetap berjalan tanpa AI bawaan, dan draft dari AI hanya perlu disunting Raka di Caption Editor |
-| A-02 | Buyer ≠ daily user | UF-03 dan UF-06 dirancang agar Maya mendapat value tanpa harus ikut flow Raka |
+| ID | Assumption | Evaluation |
+| -- | ---------- | ---------- |
+| A-05 | Publishing is the core job | UF-01 and UF-02 are the longest and most complex flows — supporting this assumption |
+| A-07 | AI is useful if it enters the workflow | The user's AI works through MCP outside Postific's writing flow (ADR-138); UF-01 still runs without a built-in AI, and a draft from AI only needs to be edited by Raka in the Caption Editor |
+| A-02 | Buyer ≠ daily user | UF-03 and UF-06 are designed so that Maya gets value without having to follow Raka's flow |
 
 ---
 
@@ -425,7 +425,7 @@ Siklus ini mencerminkan **UXP-01**: Draft → Schedule → Publish → Engage �
 
 * `ux-principles.md`
 * `information-architecture.md`
-* `navigation-patterns.md` ← dokumen berikutnya
+* `navigation-patterns.md` ← next document
 * `key-screen-patterns.md`
 * `../03-user/user-personas.md`
 * `../03-user/user-journey.md`

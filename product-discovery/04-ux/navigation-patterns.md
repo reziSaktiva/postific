@@ -1,64 +1,64 @@
 # Navigation Patterns
 
-Dokumen ini mendefinisikan **model navigasi dan pola perpindahan layar** pada produk **Postific**.
+This document defines the **navigation model and screen-transition patterns** of the **Postific** product.
 
-Navigation Patterns dibangun di atas Information Architecture yang sudah ditetapkan. Dokumen ini tidak mendefinisikan layout visual atau komponen UI — melainkan menjelaskan logika bagaimana pengguna bergerak antar bagian, bagaimana konteks dipertahankan, dan kapan perpindahan layar terjadi.
+Navigation Patterns are built on top of the Information Architecture already set. This document does not define visual layout or UI components — it explains the logic of how users move between parts, how context is preserved, and when a screen transition happens.
 
 ---
 
 # Overview
 
-Navigation Patterns mendefinisikan tiga hal utama:
+Navigation Patterns defines three main things:
 
-1. **Model navigasi** — pola struktural yang digunakan (sidebar persisten, sub-nav, dll.).
-2. **Pola perpindahan layar** — bagaimana transisi terjadi antara satu layar ke layar lain.
-3. **Pola navigasi kontekstual** — navigasi yang muncul dalam respons terhadap aksi pengguna.
+1. **Navigation model** — the structural pattern used (persistent sidebar, sub-nav, etc.).
+2. **Screen-transition patterns** — how the transition happens from one screen to another.
+3. **Contextual navigation patterns** — navigation that appears in response to user actions.
 
-Dokumen ini menjadi acuan untuk Key Screen Patterns dan Architecture Discovery.
-
----
-
-# Prinsip Navigation Patterns
-
-Navigation Patterns di produk ini dibangun berdasarkan tiga prinsip IA yang sudah ditetapkan.
-
-## NP-P01 — Navigasi Selalu Dapat Diakses
-
-**Turunan dari:** UXP-01, P-IA-01
-
-Primary navigation selalu terlihat dan dapat diakses dari posisi manapun dalam aplikasi. Pengguna tidak pernah "terjebak" dalam sebuah layar tanpa jalur kembali ke bagian lain.
+This document serves as a reference for Key Screen Patterns and Architecture Discovery.
 
 ---
 
-## NP-P02 — Perpindahan Konteks Harus Eksplisit
+# Navigation Patterns Principles
 
-**Turunan dari:** UXP-04, UXP-03
+Navigation Patterns in this product are built on the three IA principles already set.
 
-Ketika pengguna akan berpindah dari satu section ke section lain (misalnya dari Draft Editor ke Settings), perpindahan tersebut harus terasa sebagai keputusan sadar — bukan sebagai konsekuensi tidak terduga dari aksi lain.
+## NP-P01 — Navigation Is Always Accessible
 
-Konteks pekerjaan yang sedang dikerjakan tidak boleh hilang secara tiba-tiba karena navigasi yang tidak disengaja.
+**Derived from:** UXP-01, P-IA-01
 
----
-
-## NP-P03 — Kedalaman Dua Level, Tidak Lebih
-
-**Turunan dari:** P-IA-03, UXP-03
-
-Navigasi maksimal dua level: **primary section → sub-screen**. Tidak ada nested navigation yang memaksa pengguna menggali lebih dari dua level untuk mencapai fitur inti.
+Primary navigation is always visible and can be accessed from any position in the application. Users are never "trapped" in a screen with no path back to other parts.
 
 ---
 
-# Model Navigasi Utama
+## NP-P02 — Context Switches Must Be Explicit
 
-Produk menggunakan model **Persistent Sidebar Navigation** untuk web.
+**Derived from:** UXP-04, UXP-03
+
+When a user is about to move from one section to another (for example from the Draft Editor to Settings), that move must feel like a conscious decision — not an unexpected consequence of another action.
+
+The work context being worked on must not be lost suddenly because of unintended navigation.
+
+---
+
+## NP-P03 — Two Levels Deep, No More
+
+**Derived from:** P-IA-03, UXP-03
+
+Navigation is at most two levels: **primary section → sub-screen**. There is no nested navigation that forces users to dig more than two levels to reach a core feature.
+
+---
+
+# Main Navigation Model
+
+The product uses a **Persistent Sidebar Navigation** model for web.
 
 ```
 ┌─────────────────────────────────────────────────────┐
 │  [Sidebar]          │  [Main Content Area]           │
 │  [+ New Post]       │                                │
-│  • Home             │  Konten layar aktif            │
-│  • Publish          │  berubah sesuai                │
-│  • Engage  [badge]  │  navigasi yang dipilih         │
+│  • Home             │  Active screen content         │
+│  • Publish          │  changes according to          │
+│  • Engage  [badge]  │  the selected navigation       │
 │  • Analyze          │                                │
 │  • Start Page       │                                │
 ├─────────────────────┤                                │
@@ -70,24 +70,24 @@ Produk menggunakan model **Persistent Sidebar Navigation** untuk web.
 └─────────────────────────────────────────────────────┘
 ```
 
-**Karakteristik model ini:**
+**Characteristics of this model:**
 
-- Sidebar selalu terlihat — pengguna tidak perlu kembali ke halaman awal untuk berpindah section.
-- Main Content Area menampilkan konten layar aktif — berganti sesuai item yang dipilih di sidebar.
-- Tidak ada full-page reload saat berpindah section (navigasi client-side).
-- Sidebar tidak menyembunyikan dirinya sendiri secara otomatis; pengguna yang mengontrol apakah sidebar di-collapse atau tidak (Should Have untuk pengalaman yang lebih lebar).
+- The sidebar is always visible — users do not need to go back to the start page to switch sections.
+- The Main Content Area shows the active screen's content — it changes according to the item selected in the sidebar.
+- There is no full-page reload when switching sections (client-side navigation).
+- The sidebar does not hide itself automatically; the user controls whether the sidebar is collapsed or not (Should Have for a wider experience).
 
 ---
 
 # Primary Navigation Pattern
 
-## Struktur Sidebar
+## Sidebar Structure
 
-Primary navigation terdiri dari empat zona vertikal:
+Primary navigation consists of four vertical zones:
 
 ```
 ┌──────────────────────┐
-│  [+ New Post]        │  ← CTA, pinned di puncak sidebar
+│  [+ New Post]        │  ← CTA, pinned at the top of the sidebar
 ├──────────────────────┤
 │  Home                │
 │  Publish             │  ← navigation items
@@ -96,78 +96,78 @@ Primary navigation terdiri dari empat zona vertikal:
 │  Start Page          │
 ├──────────────────────┤
 │  📷 @kopiselasar  8  │  ← Channels, quick-glance
-│  📘 Kopi Selasar  3  │     (scrollable independen)
+│  📘 Kopi Selasar  3  │     (independently scrollable)
 │  🐦 @kopiselasar  0  │
 ├──────────────────────┤
-│  Notifications       │  ← utilitas
-│  User Avatar         │  ← selalu di bawah
+│  Notifications       │  ← utilities
+│  User Avatar         │  ← always at the bottom
 └──────────────────────┘
 ```
 
-**Zona CTA:** Tombol "+ New Post" (primary, full-width) — pinned di puncak sidebar, di atas navigation items. Tersedia dari section manapun (Home, Publish, Engage, Analyze, Settings), bukan hanya saat pengguna sedang berada di Publish (NP-D12). Melengkapi, bukan menggantikan, CTA New Post yang sudah ada langsung di layar Calendar/Queue/Drafts (NP-D09) — keduanya membuka Draft Editor yang sama.
+**CTA zone:** The "+ New Post" button (primary, full-width) — pinned at the top of the sidebar, above the navigation items. Available from any section (Home, Publish, Engage, Analyze, Settings), not only when the user is in Publish (NP-D12). It complements, and does not replace, the New Post CTA that already sits directly on the Calendar/Queue/Drafts screens (NP-D09) — both open the same Draft Editor.
 
-**Zona tengah:** 5 navigation items — Home, Publish, Engage, Analyze, Start Page. Urutan mencerminkan alur nilai produk (UXP-07): Publishing reliability → Engagement triage → Analytics snapshot.
+**Middle zone:** 5 navigation items — Home, Publish, Engage, Analyze, Start Page. The order reflects the product value flow (UXP-07): Publishing reliability → Engagement triage → Analytics snapshot.
 
-**Zona Channels:** Daftar akun media sosial terhubung (quick-glance), di bawah navigation items dan di atas zona utilitas (NP-D14). Lihat bagian "Channels (Sidebar)" di bawah untuk detail lengkap.
+**Channels zone:** The list of connected social media accounts (quick-glance), below the navigation items and above the utilities zone (NP-D14). See the "Channels (Sidebar)" section below for full details.
 
-**Zona bawah:** Notifications icon dan User Avatar — akses ke secondary navigation. Selalu tersedia tanpa scrolling — Channels di atasnya scroll independen supaya zona ini tidak pernah terdorong keluar layar walau akun terhubung banyak.
+**Bottom zone:** The Notifications icon and User Avatar — access to secondary navigation. Always available without scrolling — the Channels above scroll independently so this zone is never pushed off screen even when many accounts are connected.
 
 ---
 
-## Active State dan Visual Feedback
+## Active State and Visual Feedback
 
-- Item navigasi aktif ditandai secara visual (highlight / indicator) — pengguna selalu tahu posisi mereka.
-- **Engage** memiliki notification badge yang menampilkan jumlah komentar `unread` dalam 12 bulan terakhir (belum dibalas; `replied`, `resolved`, `dismissed` tidak dihitung) — terlihat dari section manapun (mendukung UF-04 Alternate Path).
-- Tidak ada loading state yang memblokir sidebar — sidebar tetap interaktif saat konten dimuat.
+- The active navigation item is marked visually (highlight / indicator) — users always know their position.
+- **Engage** has a notification badge showing the number of `unread` comments in the last 12 months (unreplied; `replied`, `resolved`, `dismissed` are not counted) — visible from any section (supports the UF-04 Alternate Path).
+- No loading state blocks the sidebar — the sidebar stays interactive while content loads.
 
 ---
 
 ## Channels (Sidebar)
 
-Daftar akun media sosial yang terhubung, ditampilkan sebagai quick-glance list — bukan pengganti `Settings → Organization → Connected Accounts` (KSP-08), yang tetap satu-satunya tempat Connect/Disconnect/Reconnect (IA-D05 tidak berubah).
+The list of connected social media accounts, shown as a quick-glance list — not a replacement for `Settings → Organization → Connected Accounts` (KSP-08), which remains the only place for Connect/Disconnect/Reconnect (IA-D05 does not change).
 
 ```
-Default (tidak di-hover):
-  (●IG) @kopiselasar          8     ← avatar bulat + badge logo brand overlay; 8 = scheduled posts count
+Default (not hovered):
+  (●IG) @kopiselasar          8     ← round avatar + brand logo badge overlay; 8 = scheduled posts count
                              Active
 
 Hover:
-  ⠿  (●IG) @kopiselasar   [+]       ← drag handle muncul di kiri (di luar avatar); seluruh isi baris bergeser ke kanan
+  ⠿  (●IG) @kopiselasar   [+]       ← drag handle appears on the left (outside the avatar); the whole row content shifts right
                              Active
 ```
 
-**Isi tiap baris:** avatar bulat (placeholder inisial, treatment sama seperti `.ws-avatar`) dengan badge kecil logo brand platform (`react-icons` fa6, warna brand tidak berubah) di-overlay di pojok kanan-bawah avatar (konvensi story-ring badge) — bukan lagi logo platform polos (flat square icon) — + nama akun/handle (`@kopiselasar` atau nama halaman seperti `Kopi Selasar`, mengikuti konvensi KSP-08) + status badge (Active/Disconnected — Badge yang sama dengan KSP-08, tidak ada warna status baru).
+**Contents of each row:** a round avatar (initial placeholder, same treatment as `.ws-avatar`) with a small platform brand logo badge (`react-icons` fa6, brand color unchanged) overlaid at the bottom-right corner of the avatar (story-ring badge convention) — no longer a plain platform logo (flat square icon) — + the account name/handle (`@kopiselasar` or a page name such as `Kopi Selasar`, following the KSP-08 convention) + a status badge (Active/Disconnected — the same Badge as KSP-08, no new status colors).
 
-**State default:** badge angka menampilkan jumlah post **scheduled** (belum tayang) untuk akun tersebut.
+**Default state:** the number badge shows the count of **scheduled** posts (not yet live) for that account.
 
-**State hover:** badge count digantikan tombol quick-compose "+" (membuka Draft Editor/KSP-05 kosong dengan akun ini otomatis ter-pre-select di Account Selector); drag handle muncul di paling kiri baris (di luar avatar) untuk reorder. Reorder ini **personal per user** — urutan tampilan bisa berbeda antar anggota tim, bukan urutan shared workspace.
+**Hover state:** the badge count is replaced by a quick-compose "+" button (opens an empty Draft Editor/KSP-05 with this account automatically pre-selected in the Account Selector); the drag handle appears at the far left of the row (outside the avatar) for reordering. This reorder is **personal per user** — the display order can differ between team members, it is not a shared workspace order.
 
-**Shift-on-hover untuk drag handle (revisi ADR-058, addendum):** drag handle muncul di luar ruang avatar, sehingga saat hover **seluruh isi baris (avatar+badge+nama) ikut bergeser ke kanan** (`margin-left` animasi) untuk memberi ruang — ini menggantikan keputusan awal "no-shift" (ruang dicadangkan permanen). Perubahan atas permintaan eksplisit King Rezi setelah melihat referensi screenshot aplikasi lain.
+**Shift-on-hover for the drag handle (ADR-058 revision, addendum):** the drag handle appears outside the avatar space, so on hover **the whole row content (avatar+badge+name) shifts right** (animated `margin-left`) to make room — this replaces the initial "no-shift" decision (space reserved permanently). The change was made at King Rezi's explicit request after seeing a reference screenshot of another application.
 
-**Swap count ↔ tombol "+" tetap no-shift:** berbeda dari drag handle di atas, slot count/tombol "+" di sisi kanan baris tetap **fixed-slot** — tidak pernah menggeser konten, hanya isinya yang berganti (count → "+") saat hover. Ini tidak berubah dari keputusan awal.
+**The count ↔ "+" button swap stays no-shift:** unlike the drag handle above, the count/"+" button slot on the right side of the row stays a **fixed slot** — it never shifts content, only its contents swap (count → "+") on hover. This does not change from the initial decision.
 
-**Klik channel berstatus Disconnected/Expired:** deep-link ke `Settings → Organization → Connected Accounts` — memperluas pola "Status Indicator → Settings" (lihat Contextual Navigation Pattern di bawah), bukan pola baru.
+**Clicking a Disconnected/Expired channel:** deep-link to `Settings → Organization → Connected Accounts` — extending the "Status Indicator → Settings" pattern (see Contextual Navigation Pattern below), not a new pattern.
 
-**Scroll independen:** list ini scroll sendiri (tidak ikut men-scroll seluruh sidebar) supaya zona bawah (Notifications/User Avatar) tetap selalu terlihat walau akun terhubung banyak.
+**Independent scroll:** this list scrolls on its own (does not scroll the whole sidebar) so the bottom zone (Notifications/User Avatar) always stays visible even when many accounts are connected.
 
-Lihat NP-D14 di Decision Log untuk keputusan lengkap (ADR-058, termasuk addendum shift-on-hover).
+See NP-D14 in the Decision Log for the full decision (ADR-058, including the shift-on-hover addendum).
 
 ---
 
 # Secondary Navigation Pattern
 
-Secondary navigation diakses melalui elemen di zona bawah sidebar — tidak menggunakan slot primary nav.
+Secondary navigation is accessed through elements in the bottom zone of the sidebar — it does not use a primary nav slot.
 
 ## Notifications
 
 ```
 Notifications icon → Notifications Panel (overlay / drawer)
-├── Daftar notifikasi in-app berurutan waktu
+├── In-app notification list ordered by time
 ├── Mark as read
-└── Link ke item terkait (post, akun, dll.)
+└── Link to the related item (post, account, etc.)
 ```
 
-Notifications Panel muncul sebagai overlay atau drawer — tidak menggantikan Main Content Area. Pengguna dapat menutupnya dan kembali ke pekerjaan yang sedang dikerjakan.
+The Notifications Panel appears as an overlay or drawer — it does not replace the Main Content Area. Users can close it and return to the work they were doing.
 
 ---
 
@@ -180,312 +180,312 @@ User Avatar → User Menu (dropdown)
 └── Logout
 ```
 
-User Menu muncul sebagai dropdown kecil — satu-satunya titik masuk ke halaman Settings (grup Organization dan Account), dilakukan dari sini. Ini bukan layar kerja harian sehingga tidak memerlukan slot di primary nav.
+The User Menu appears as a small dropdown — the only entry point to the Settings pages (the Organization and Account groups), done from here. This is not a daily work screen so it does not need a slot in the primary nav.
 
-**Layout setelah masuk (pola Buffer, ADR-077):** begitu masuk Settings, sidebar persistent (workspace switcher, nav items, Channels) **digantikan total** oleh satu sidebar khusus Settings di slot yang sama — bukan tampil berdampingan sebagai secondary nav. Sidebar khusus ini punya header back-navigation ("← Settings") di atas dua grup Organization/Account, menaut balik ke Home. Taksonomi grup tidak berubah.
+**Layout after entering (Buffer pattern, ADR-077):** once inside Settings, the persistent sidebar (workspace switcher, nav items, Channels) is **replaced entirely** by a single dedicated Settings sidebar in the same slot — not shown side by side as a secondary nav. This dedicated sidebar has a back-navigation header ("← Settings") above the two groups Organization/Account, linking back to Home. The group taxonomy does not change.
 
-**Logout wajib melalui dialog konfirmasi (Tier 2)** — lihat kebijakan Safety Check / Double Confirmation di `key-screen-patterns.md` (ADR-049).
+**Logout must go through a confirmation dialog (Tier 2)** — see the Safety Check / Double Confirmation policy in `key-screen-patterns.md` (ADR-049).
 
 ---
 
 # In-Section Navigation Pattern
 
-Beberapa section memiliki sub-navigasi di dalam Main Content Area untuk memindahkan pengguna antar sub-screen.
+Some sections have sub-navigation inside the Main Content Area to move users between sub-screens.
 
 ## Publish — Tab Navigation
 
-Publish adalah section terbesar dengan empat sub-screen:
+Publish is the largest section with four sub-screens:
 
 ```
 Publish
-├── [Calendar]  [Queue]  [Drafts]  [History]  ← tab bar di atas main content
+├── [Calendar]  [Queue]  [Drafts]  [History]  ← tab bar above the main content
 │
-└── Main Content Area menampilkan konten sub-screen aktif
+└── Main Content Area shows the active sub-screen's content
 ```
 
-**Pola:** Horizontal tab bar tepat di bawah header section. Tab yang aktif terlihat jelas. Pergantian tab tidak me-reset state (filter, scroll position) antar tab kecuali diperlukan.
+**Pattern:** A horizontal tab bar right below the section header. The active tab is clearly visible. Switching tabs does not reset state (filters, scroll position) between tabs unless necessary.
 
-**Default tab:** Calendar — sesuai IA-D04. Raka masuk ke Publish dan langsung melihat overview jadwal minggu berjalan.
+**Default tab:** Calendar — per IA-D04. Raka enters Publish and immediately sees the current week's schedule overview.
 
 ---
 
 ## Engage — Single Screen
 
-Engage hanya memiliki satu layar: Inbox. Tidak ada tab navigation di dalam Engage. Toggle **By post / List** di header Inbox adalah pilihan tampilan dalam layar yang sama (bukan navigasi tab dan bukan layar baru); By post adalah bawaan (ADR-157).
+Engage has only one screen: Inbox. There is no tab navigation inside Engage. The **By post / List** toggle in the Inbox header is a view option within the same screen (not tab navigation and not a new screen); By post is the default (ADR-157).
 
 ```
 Engage
-└── Inbox  ← langsung tampil tanpa sub-navigasi tambahan
-    └── [By post | List]  ← pilihan tampilan, bukan tab
+└── Inbox  ← shown directly with no extra sub-navigation
+    └── [By post | List]  ← view option, not a tab
 ```
 
 ---
 
 ## Analyze — Single Screen
 
-Analyze hanya memiliki satu layar: Dashboard. Tidak ada tab navigation; navigasi internal menggunakan filter inline (per akun, per periode).
+Analyze has only one screen: Dashboard. There is no tab navigation; internal navigation uses inline filters (per account, per period).
 
 ```
 Analyze
-└── Dashboard  ← langsung tampil; filter diakses inline di dalam dashboard
+└── Dashboard  ← shown directly; filters are accessed inline inside the dashboard
 ```
 
 ---
 
 ## Start Page — Single Screen
 
-Start Page tidak memiliki sub-navigasi; Page Editor, Preview, dan Share adalah elemen dalam satu layar yang sama.
+Start Page has no sub-navigation; the Page Editor, Preview, and Share are elements within one and the same screen.
 
-Isi layar (Profil, Link List, selector tema, analytics dasar) dirinci di `information-architecture.md` § Start Page (ADR-144).
+The screen contents (Profile, Link List, theme selector, basic analytics) are detailed in `information-architecture.md` § Start Page (ADR-144).
 
 ---
 
 # Contextual Navigation Pattern
 
-Contextual navigation terjadi ketika pengguna mengklik elemen dalam layar yang membawa mereka ke layar lain dengan konteks yang dibawa.
+Contextual navigation happens when a user clicks an element in a screen that takes them to another screen with context carried over.
 
-## Pola: Item → Editor
+## Pattern: Item → Editor
 
-Terjadi di Publish. Klik satu item membuka Draft Editor untuk item tersebut.
+Happens in Publish. Clicking an item opens the Draft Editor for that item.
 
 ```
-Publish → Calendar  → [klik item]  → Popover (ringkasan) → [CTA Edit] → Draft Editor (item X)
-Publish → Queue     → [klik item]  → Draft Editor (item X)
-Publish → Drafts    → [klik item]  → Draft Editor (item X)
-Publish → Drafts    → [New Post]   → Draft Editor (item baru)
+Publish → Calendar  → [click item]  → Popover (summary) → [CTA Edit] → Draft Editor (item X)
+Publish → Queue     → [click item]  → Draft Editor (item X)
+Publish → Drafts    → [click item]  → Draft Editor (item X)
+Publish → Drafts    → [New Post]   → Draft Editor (new item)
 ```
 
-**Khusus Calendar (ADR-090):** klik item tidak langsung membuka Draft
-Editor — membuka `Popover` (ringkasan post + metrik untuk yang
-sudah Published) dulu; Draft Editor dibuka lewat CTA di dalam Popover.
-Queue dan Drafts **tidak berubah** — tetap klik → langsung Draft Editor.
+**Calendar specifically (ADR-090):** clicking an item does not open the Draft
+Editor directly — it opens a `Popover` (post summary + metrics for those
+already Published) first; the Draft Editor is opened through a CTA inside the Popover.
+Queue and Drafts **do not change** — still click → straight to the Draft Editor.
 
-**Transisi:** Draft Editor ditampilkan sebagai **modal overlay** di atas Publish — bukan lagi panel/layar penuh terpisah dalam section Publish (ADR-052, mengoverride NP-D02 versi awal). Tampilan default modal adalah variant **Standard** (floating card + backdrop redup di atas Calendar/Queue/Drafts, ADR-065); pengguna bisa beralih ke variant **Fullscreen** (menutupi sepenuhnya termasuk sidebar) lewat toggle resmi di header modal — lihat NP-D11.
+**Transition:** The Draft Editor is shown as a **modal overlay** on top of Publish — no longer a separate full panel/screen within the Publish section (ADR-052, overriding the original NP-D02). The default modal display is the **Standard** variant (floating card + dimmed backdrop over Calendar/Queue/Drafts, ADR-065); users can switch to the **Fullscreen** variant (covering everything including the sidebar) through the official toggle in the modal header — see NP-D11.
 
-**Kembali:** Tombol "Close" di header modal menutup modal dan mengembalikan tampilan ke sub-screen asal (Calendar / Queue / Drafts) tanpa navigasi URL — bukan lagi "Back" ke route terpisah, karena Draft Editor tidak lagi punya route sendiri.
+**Back:** The "Close" button in the modal header closes the modal and returns the view to the source sub-screen (Calendar / Queue / Drafts) without URL navigation — no longer "Back" to a separate route, because the Draft Editor no longer has its own route.
 
 ---
 
-## Pola: New Post CTA dari Calendar dan Queue
+## Pattern: New Post CTA from Calendar and Queue
 
-Terjadi ketika pengguna sedang melihat Calendar atau Queue dan ingin langsung membuat konten baru tanpa berpindah ke tab Drafts terlebih dahulu.
+Happens when users are looking at the Calendar or Queue and want to create new content right away without first moving to the Drafts tab.
 
 ```
-Publish → Calendar  → [New Post]  → Draft Editor (item baru)
-Publish → Queue     → [New Post]  → Draft Editor (item baru)
+Publish → Calendar  → [New Post]  → Draft Editor (new item)
+Publish → Queue     → [New Post]  → Draft Editor (new item)
 ```
 
-**Trigger:** CTA "New Post" tersedia langsung di layar Calendar dan Queue — bukan hanya di Drafts.
+**Trigger:** The "New Post" CTA is available directly on the Calendar and Queue screens — not only in Drafts.
 
-**Konteks penggunaan:**
-- Raka melihat Calendar dan menemukan gap jadwal di hari tertentu → klik New Post langsung dari Calendar untuk mengisi gap tersebut.
-- Raka memindai Queue dan ingin menambah konten ke antrean tanpa berganti tab.
+**Usage context:**
+- Raka looks at the Calendar and finds a schedule gap on a given day → clicks New Post straight from the Calendar to fill that gap.
+- Raka scans the Queue and wants to add content to the queue without switching tabs.
 
-**Transisi:** Identik dengan New Post dari Drafts — Draft Editor (modal overlay, default variant Standard, ADR-065) kosong terbuka di atas sub-screen manapun yang sedang aktif. Sub-screen asal (Calendar, Queue, atau Drafts) tetap sama begitu modal ditutup — tidak ada navigasi URL yang perlu di-track.
+**Transition:** Identical to New Post from Drafts — an empty Draft Editor (modal overlay, default variant Standard, ADR-065) opens on top of whichever sub-screen is active. The source sub-screen (Calendar, Queue, or Drafts) stays the same once the modal is closed — there is no URL navigation to track.
 
-**Kembali:** Tombol "Close" di header modal menutup Draft Editor; tampilan kembali ke Calendar atau Queue (sesuai sub-screen asal) tanpa perpindahan route.
+**Back:** The "Close" button in the modal header closes the Draft Editor; the view returns to the Calendar or Queue (per the source sub-screen) without a route change.
 
 ---
 
-## Pola: Quick Compose dari Channels Sidebar
+## Pattern: Quick Compose from the Channels Sidebar
 
-Terjadi ketika pengguna meng-hover satu channel di daftar "Channels" sidebar (NP-D14) dan ingin langsung membuat konten untuk akun tersebut tanpa membuka Account Selector secara manual.
+Happens when users hover over a channel in the sidebar "Channels" list (NP-D14) and want to create content for that account right away without opening the Account Selector manually.
 
 ```
-[Section manapun] → Sidebar → Channels → hover channel → [+]  → Draft Editor (item baru, akun ini pre-selected)
+[Any section] → Sidebar → Channels → hover channel → [+]  → Draft Editor (new item, this account pre-selected)
 ```
 
-**Trigger:** Tombol "+" muncul saat channel di-hover (menggantikan badge count), tersedia dari section manapun karena Channels selalu terlihat di sidebar.
+**Trigger:** The "+" button appears when the channel is hovered (replacing the count badge), available from any section because Channels is always visible in the sidebar.
 
-**Perbedaan dengan CTA "+ New Post" (NP-D09/NP-D12):** CTA sidebar/Calendar/Queue membuka Draft Editor kosong tanpa akun terpilih — Quick Compose dari Channels membuka Draft Editor dengan **Account Selector sudah otomatis memilih channel yang di-klik**, mempercepat alur "saya mau posting ke Instagram sekarang" tanpa langkah pilih akun manual.
+**Difference from the "+ New Post" CTA (NP-D09/NP-D12):** the sidebar/Calendar/Queue CTA opens an empty Draft Editor with no account selected — Quick Compose from Channels opens the Draft Editor with the **Account Selector already automatically choosing the clicked channel**, speeding up the "I want to post to Instagram now" flow without a manual account-pick step.
 
-**Transisi:** Draft Editor (modal overlay, default variant Standard — ADR-052/ADR-065) terbuka di atas sub-screen manapun yang sedang aktif — sama seperti New Post dari sidebar (NP-D12).
+**Transition:** The Draft Editor (modal overlay, default variant Standard — ADR-052/ADR-065) opens on top of whichever sub-screen is active — same as New Post from the sidebar (NP-D12).
 
-**Kembali:** Tombol "Close" mengembalikan tampilan ke section/sub-screen asal tanpa navigasi URL.
+**Back:** The "Close" button returns the view to the source section/sub-screen without URL navigation.
 
 ---
 
-## Pola: Redirect setelah Aksi Terminal Draft Editor
+## Pattern: Redirect after a Draft Editor Terminal Action
 
-Terjadi ketika pengguna menyelesaikan salah satu dari tiga aksi terminal di Draft Editor (Save as Draft, Schedule, Publish Now). Sidebar CTA "+ New Post" (NP-D12) membuat Draft Editor kini bisa dibuka dari section manapun — Home, Engage, Analyze, Settings — bukan hanya dari dalam Publish. Ketiga aksi ini **tidak** mengikuti pola "Kembali ke sub-screen asal" milik tombol Close (KSP-05-F10) — masing-masing mengarahkan pengguna ke sub-screen **tujuan**, tempat konten yang baru saja diproses sekarang berada:
+Happens when users finish one of the three terminal actions in the Draft Editor (Save as Draft, Schedule, Publish Now). The sidebar CTA "+ New Post" (NP-D12) means the Draft Editor can now be opened from any section — Home, Engage, Analyze, Settings — not only from inside Publish. These three actions do **not** follow the "Back to the source sub-screen" pattern of the Close button (KSP-05-F10) — each one directs the user to the **destination** sub-screen, where the content that was just processed now lives:
 
 ```
-[Section manapun] → Draft Editor → [Save as Draft]  → Publish → Drafts
-[Section manapun] → Draft Editor → [Schedule]        → Publish → Queue
-[Section manapun] → Draft Editor → [Publish Now]     → Publish → History
-                                                          (sementara: Calendar,
-                                                           sampai History dibangun — KSP-D10)
+[Any section] → Draft Editor → [Save as Draft]  → Publish → Drafts
+[Any section] → Draft Editor → [Schedule]        → Publish → Queue
+[Any section] → Draft Editor → [Publish Now]     → Publish → History
+                                                          (temporary: Calendar,
+                                                           until History is built — KSP-D10)
 ```
 
-**Alasan:** Pengguna harus langsung melihat hasil aksinya di tempat yang relevan — bukan tertinggal di section asal (misalnya Home atau Analyze) yang sudah tidak berkaitan dengan konten yang baru dibuat. Ini melengkapi UXP-04 (Publishing Trust): kepercayaan datang dari melihat langsung bahwa aksi berhasil dan tahu ke mana harus mengecek statusnya.
+**Reason:** Users must immediately see the result of their action in the relevant place — not be left in the source section (for example Home or Analyze) that is no longer related to the content just created. This complements UXP-04 (Publishing Trust): trust comes from seeing directly that the action succeeded and knowing where to check its status.
 
-**Hubungan dengan NP-D05:** NP-D05 ("tidak ada redirect otomatis setelah cross-section navigation") berlaku untuk kasus tautan status error → Settings, bukan untuk aksi terminal form yang menghasilkan/mengubah konten. Pola ini didefinisikan terpisah (NP-D13) dan tidak mengubah NP-D05.
+**Relationship with NP-D05:** NP-D05 ("no automatic redirect after cross-section navigation") applies to the case of error-status link → Settings, not to form terminal actions that create/change content. This pattern is defined separately (NP-D13) and does not change NP-D05.
 
 ---
 
-## Pola: Komentar Posting Terpilih (Thread Expansion)
+## Pattern: Selected Post Comments (Thread Expansion)
 
-Terjadi di Engage. Memilih satu posting membuka komentarnya di dalam Inbox — tidak membuka layar baru.
+Happens in Engage. Selecting a post opens its comments inside the Inbox — it does not open a new screen.
 
 ```
-Engage → Inbox → [pilih posting]  → Komentar posting muncul di panel kanan
-                                    (sidebar tetap terlihat, daftar posting tetap terlihat di kiri)
+Engage → Inbox → [select post]  → Post comments appear in the right panel
+                                    (sidebar stays visible, post list stays visible on the left)
 ```
 
-Di layar sempit (375px) daftar posting dan komentar dipisah dengan push navigation (daftar → komentar, tombol kembali). Pada tampilan List tidak ada panel kanan; komposer balasan tampil inline.
+On a narrow screen (375px) the post list and comments are separated with push navigation (list → comments, back button). In the List view there is no right panel; the reply composer is shown inline.
 
-**Alasan:** Volume triage komentar dapat tinggi — pengguna perlu berpindah cepat antar posting tanpa full-page navigation setiap kali.
+**Reason:** The comment triage volume can be high — users need to move quickly between posts without full-page navigation each time.
 
 ---
 
-## Pola: Status Indicator → Settings
+## Pattern: Status Indicator → Settings
 
-Terjadi ketika pengguna menemukan status masalah di layar kerja dan perlu ke Settings untuk memperbaikinya.
+Happens when users find a problem status on a work screen and need to go to Settings to fix it.
 
 ```
-Calendar / Queue / Account Selector / Sidebar Channels → status "Disconnected" atau "Failed"
-    → [klik indikator / pesan error / channel row]
+Calendar / Queue / Account Selector / Sidebar Channels → status "Disconnected" or "Failed"
+    → [click indicator / error message / channel row]
     → Settings → Organization → Connected Accounts
 ```
 
-**Transisi:** Navigasi langsung ke Settings — bukan sidebar manual. Pesan error menyertakan tautan aksi ("Reconnect") yang langsung membawa pengguna ke halaman yang tepat.
+**Transition:** Direct navigation to Settings — not the manual sidebar. The error message includes an action link ("Reconnect") that takes users straight to the right page.
 
-**Kembali:** Setelah reconnect selesai, pengguna dapat kembali ke Calendar/Queue secara manual melalui sidebar — tidak ada redirect otomatis karena state Calendar mungkin sudah berubah.
+**Back:** After the reconnect finishes, users can go back to the Calendar/Queue manually through the sidebar — there is no automatic redirect because the Calendar state may have changed.
 
 ---
 
-## Pola: Empty State → Onboarding Action
+## Pattern: Empty State → Onboarding Action
 
-Terjadi di layar yang belum memiliki data.
+Happens on screens that have no data yet.
 
 ```
-Analyze → Dashboard (kosong)
+Analyze → Dashboard (empty)
     → "Connect Account" → Settings → Organization → Connected Accounts (UF-05)
     → "Create First Post" → Publish → Drafts → New Post (UF-01)
 
-Engage → Inbox (kosong)
+Engage → Inbox (empty)
     → "Start publishing to see engagement" → Publish → Drafts
 
-Publish → History (kosong)
+Publish → History (empty)
     → "You haven't published anything yet" → Publish → Drafts → New Post
 ```
 
-**Pola yang konsisten:** Setiap empty state menyertakan satu atau dua tautan aksi — tidak ada dead end. Pengguna selalu tahu langkah berikutnya (UXD-03).
+**Consistent pattern:** Every empty state includes one or two action links — there is no dead end. Users always know the next step (UXD-03).
 
 ---
 
 # Notification Badge Pattern
 
-Notification badge pada item Engage di sidebar menginformasikan pengguna bahwa periodic pull 30 menit atau manual refresh menemukan komentar unread — tanpa mengganggu alur pekerjaan yang sedang berjalan.
+The notification badge on the Engage item in the sidebar informs users that the 30-minute periodic pull or a manual refresh found unread comments — without disturbing the work flow in progress.
 
 ```
 Badge behavior:
-├── Muncul: setelah sinkronisasi menemukan komentar unread baru di Inbox
-├── Angka: menampilkan jumlah unread dalam 12 bulan terakhir, yaitu komentar belum dibalas (cap di angka 99+; batas 12 bulan sama dengan Date Range bawaan Inbox)
-├── Hilang: ketika tidak ada lagi komentar unread (semua dibalas, Resolve, atau Dismiss)
-└── Tetap terlihat dari section manapun (sidebar persisten)
+├── Appears: after a sync finds new unread comments in the Inbox
+├── Number: shows the count of unread in the last 12 months, i.e. unreplied comments (capped at 99+; the 12-month limit is the same as the Inbox's default Date Range)
+├── Disappears: when there are no more unread comments (all replied, Resolve, or Dismiss)
+└── Stays visible from any section (persistent sidebar)
 ```
 
-Badge bukan indikator webhook atau real-time. Inbox menyediakan waktu sinkronisasi terakhir dan tombol Manual Refresh agar pengguna dapat meminta data terbaru tanpa menunggu siklus berikutnya (ADR-040).
+The badge is not a webhook or real-time indicator. The Inbox provides the last sync time and a Manual Refresh button so users can request the latest data without waiting for the next cycle (ADR-040).
 
-**Prinsip:** Badge hanya ada pada Engage — sesuai dengan fokus produk pada siklus kerja. Tidak ada badge pada Analytics atau Publish karena kedua section tersebut bukan "inbox" yang menuntut respons segera.
+**Principle:** The badge exists only on Engage — in line with the product's focus on the work cycle. There is no badge on Analytics or Publish because those two sections are not an "inbox" that demands an immediate response.
 
 ---
 
 # Cross-Section Navigation Pattern
 
-Beberapa user flow melibatkan perpindahan antar section yang dipicu oleh tautan atau aksi — bukan navigasi sidebar manual.
+Some user flows involve moving between sections triggered by a link or action — not manual sidebar navigation.
 
-## Deep Link ke Sub-Screen
+## Deep Link to a Sub-Screen
 
-Beberapa aksi membawa pengguna langsung ke sub-screen tertentu, melewati default tab.
+Some actions take users straight to a specific sub-screen, bypassing the default tab.
 
 ```
-Home → Analytics Snapshot → [klik]  → Analyze → Dashboard
-Home → Today's Schedule   → [klik item]  → Publish → Calendar → Draft Editor (item)
-Empty State Analytics     → [Create First Post]  → Publish → Drafts → Draft Editor (baru)
+Home → Analytics Snapshot → [click]  → Analyze → Dashboard
+Home → Today's Schedule   → [click item]  → Publish → Calendar → Draft Editor (item)
+Empty State Analytics     → [Create First Post]  → Publish → Drafts → Draft Editor (new)
 ```
 
-**Prinsip:** Deep link hanya digunakan untuk aksi yang bermakna — bukan sebagai navigasi pengganti sidebar. Pengguna harus masih bisa mencapai tujuan yang sama melalui sidebar secara manual.
+**Principle:** Deep links are used only for meaningful actions — not as navigation replacing the sidebar. Users must still be able to reach the same destination through the sidebar manually.
 
 ---
 
-## Navigasi Balik Setelah Cross-Section
+## Back Navigation after Cross-Section
 
-Ketika pengguna tiba di section baru melalui cross-section navigation (misalnya dari Calendar error → Settings), tidak ada tombol "back" otomatis yang mengembalikan ke posisi sebelumnya.
+When users arrive in a new section through cross-section navigation (for example from a Calendar error → Settings), there is no automatic "back" button that returns to the previous position.
 
-**Alasan:** Terlalu kompleks untuk ditangani di level navigasi tanpa history stack yang jelas. Pengguna menggunakan sidebar untuk navigasi kembali.
+**Reason:** Too complex to handle at the navigation level without a clear history stack. Users use the sidebar to navigate back.
 
-**Pengecualian:** Draft Editor (modal overlay, ADR-052/ADR-065) selalu memiliki tombol Close yang mengembalikan tampilan ke sub-screen asal di dalam section Publish — karena modal dibuka di atas sub-screen yang sama, bukan drill-down lintas route. **Settings** juga jadi pengecualian sejak ADR-077: karena sidebar persistent digantikan total oleh sidebar khusus Settings (bukan drill-down biasa di dalam Main Content Area), sidebar itu sendiri punya tombol back permanen ("← Settings") menuju Home — bukan history-based back ke posisi sebelumnya, cuma satu tujuan tetap.
+**Exception:** The Draft Editor (modal overlay, ADR-052/ADR-065) always has a Close button that returns the view to the source sub-screen inside the Publish section — because the modal is opened on top of the same sub-screen, not a cross-route drill-down. **Settings** is also an exception since ADR-077: because the persistent sidebar is replaced entirely by the dedicated Settings sidebar (not an ordinary drill-down inside the Main Content Area), that sidebar itself has a permanent back button ("← Settings") to Home — not a history-based back to the previous position, just one fixed destination.
 
 ---
 
 # Decision Log
 
-Keputusan navigasi yang dibuat dalam dokumen ini.
+Navigation decisions made in this document.
 
-| ID | Keputusan | Alasan | Prinsip |
-| -- | --------- | ------ | ------- |
-| NP-D01 | Model navigasi: Persistent Sidebar | Web app; sidebar memberikan akses cepat antar section tanpa kehilangan konteks | UXP-01, NP-P01 |
-| NP-D02 | ~~Draft Editor ditampilkan sebagai panel/layar penuh dalam Publish, bukan modal overlay~~ — **Dioverride oleh NP-D11 (ADR-052)** | Alasan asli: modal menutupi Calendar/Queue, pengguna kehilangan konteks jadwal saat mengedit. Trade-off ini kemudian disadari & diterima demi kecepatan alur kerja — lihat NP-D11 | NP-P02, UXP-04 |
-| NP-D03 | Komentar Inbox per posting: inline expansion, bukan layar baru (diamandemen ADR-157; sebelumnya "Thread Inbox") | Volume triage tinggi; pengguna perlu berpindah posting dengan cepat tanpa full-page nav | UXP-03, NP-P03 |
-| NP-D04 | Notification badge hanya pada Engage | Hanya Engage yang memerlukan respons segera; badge di semua section menambah noise | UXP-03, UXP-07 |
-| NP-D05 | Tidak ada redirect otomatis setelah cross-section navigation | State layar asal mungkin sudah berubah; redirect otomatis menciptakan kebingungan | NP-P02 |
-| NP-D06 | Publish default ke tab Calendar | Calendar memberi overview jadwal terbaik untuk Raka dan Maya (IA-D04) | UXP-02, P-IA-02 |
-| NP-D07 | User Avatar (user menu) sebagai satu-satunya entry point ke Settings (grup Organization + Account). Sejak ADR-077, begitu masuk, sidebar persistent digantikan total oleh sidebar khusus Settings (pola Buffer) dengan header back-navigation — bukan tampil berdampingan sebagai secondary nav | Settings bukan akses harian; tidak perlu slot di primary nav (IA-D05); satu titik masuk lebih sederhana daripada dua entry point terpisah; sidebar tunggal dengan back button lebih ringkas dibanding dua sidebar berdampingan (ADR-077) | UXP-03 |
-| NP-D08 | Notifications Panel sebagai overlay, bukan pengganti Main Content Area | Pengguna harus bisa menutup panel dan kembali ke pekerjaan tanpa kehilangan state | NP-P02 |
-| NP-D09 | New Post CTA tersedia langsung dari Calendar dan Queue, bukan hanya dari Drafts. Sejak NP-D12, CTA yang sama juga tersedia di Sidebar — keduanya melengkapi, bukan saling menggantikan | Raka sering menemukan gap jadwal saat melihat Calendar atau Queue — memaksanya berpindah ke tab Drafts dulu menambah friction yang tidak perlu. CTA langsung di titik penemuan kebutuhan selaras dengan alur siklus kerja (UXP-01) | UXP-01, UXP-03 |
-| NP-D10 | Logout wajib melalui dialog konfirmasi (Tier 2) | Melindungi dari interupsi pekerjaan yang belum tersimpan, walau aksi Logout sendiri reversibel — bagian dari kebijakan Safety Check/Double Confirmation lintas produk (ADR-049, `key-screen-patterns.md`) | UXP-04 |
-| NP-D11 | Draft Editor (New Post & Edit Draft) jadi **modal overlay**, mengoverride NP-D02. Dua variant tampilan resmi — **Standard** (default, ADR-065: floating card selebar 1120px sejak ADR-155 + backdrop redup, konteks Calendar/Queue tetap terlihat) dan **Fullscreen** (menutupi seluruh viewport termasuk sidebar) — dipilih lewat toggle resmi di header modal, tidak dipersist antar sesi | Ingin New Post/Edit Draft terasa lebih cepat/ringan tanpa pindah halaman, konsisten pola tools lain — trade-off kehilangan konteks visual Calendar/Queue (alasan asli NP-D02) diterima sadar demi kecepatan alur kerja saat variant Fullscreen dipilih; default Standard (ADR-065) menjaga konteks tetap terlihat tanpa memaksa trade-off itu di awal. Route lama dihapus total (modal-only, tanpa deep-link URL). Resume unsaved state (localStorage) hanya untuk New Post, tidak untuk Edit Draft (ADR-052) | NP-P02, UXP-04 |
-| NP-D12 | Sidebar mendapat CTA "+ New Post" pinned di puncak sidebar (di atas nav items), tersedia dari section manapun | Sebelumnya CTA New Post hanya ada di layar Calendar/Queue/Drafts (NP-D09) — pengguna di Home/Engage/Analyze harus pindah section dulu ke Publish untuk membuat post baru. Pola umum di tools sejenis (CTA utama di puncak sidebar) menghilangkan langkah ekstra ini (ADR-053) | UXP-01, NP-P01 |
-| NP-D13 | Setelah aksi terminal Draft Editor (Save as Draft / Schedule / Publish Now), pengguna diarahkan ke sub-screen **tujuan** (Drafts / Queue / History-sementara-Calendar) — bukan kembali ke sub-screen asal seperti tombol Close | Sidebar CTA (NP-D12) membuat Draft Editor bisa dibuka dari section manapun; pengguna perlu langsung melihat hasil aksinya di section Publish yang relevan, bukan tertinggal di section asal yang sudah tidak berkaitan dengan konten yang baru diproses (ADR-054). Tidak mengubah NP-D05 (kasus berbeda: link status error → Settings) | UXP-04 |
-| NP-D14 | Sidebar mendapat section "Channels" — quick-glance daftar akun terhubung (avatar bulat + badge logo brand overlay + nama akun + status), antara navigation items dan zona bawah, scroll independen. Default: scheduled-posts count. Hover: drag handle muncul di kiri baris (reorder personal per user, **shift-on-hover** — seluruh isi baris ikut bergeser, addendum ADR-058 mengoverride keputusan awal "no-shift") + tombol quick-compose "+" (buka Draft Editor, akun pre-selected — **tetap no-shift/fixed-slot**, tidak berubah). Klik channel bermasalah → Settings (perluasan pola existing) | King Rezi ingin visibilitas status channel + jalan pintas compose per akun tanpa keluar dari layar kerja; posisi di luar 5 nav item menjaga sidebar tetap berbasis alur kerja, bukan daftar entitas (P-IA-01); shift-on-hover drag handle dipilih ulang mengikuti referensi screenshot aplikasi lain atas permintaan eksplisit King Rezi (ADR-058) | UXP-01, UXP-04, NP-P01 |
-| NP-D15 | Klik item di Calendar membuka `Popover` (ringkasan post + metrik untuk yang sudah Published) dulu, bukan langsung Draft Editor — CTA di dalam Popover yang membuka Draft Editor. Khusus Calendar; Queue dan Drafts tidak berubah | King Rezi ingin pola Buffer: verifikasi cepat isi/metrik post tanpa membuka editor penuh setiap klik. Dibatasi ke Calendar saja mengikuti scope permintaan, tidak diperluas ke Queue/Drafts sebagai efek samping (ADR-090, komponen dikoreksi ADR-091) | UXP-01, UXP-04 |
+| ID | Decision | Reason | Principle |
+| -- | -------- | ------ | --------- |
+| NP-D01 | Navigation model: Persistent Sidebar | Web app; the sidebar gives quick access between sections without losing context | UXP-01, NP-P01 |
+| NP-D02 | ~~The Draft Editor is shown as a full panel/screen within Publish, not a modal overlay~~ — **Overridden by NP-D11 (ADR-052)** | Original reason: a modal covers the Calendar/Queue, users lose the schedule context while editing. This trade-off was later recognized & accepted for the sake of work-flow speed — see NP-D11 | NP-P02, UXP-04 |
+| NP-D03 | Inbox comments per post: inline expansion, not a new screen (amended by ADR-157; previously "Thread Inbox") | High triage volume; users need to switch posts quickly without full-page nav | UXP-03, NP-P03 |
+| NP-D04 | The notification badge is only on Engage | Only Engage needs an immediate response; badges in every section add noise | UXP-03, UXP-07 |
+| NP-D05 | No automatic redirect after cross-section navigation | The source screen's state may have changed; an automatic redirect creates confusion | NP-P02 |
+| NP-D06 | Publish defaults to the Calendar tab | The Calendar gives the best schedule overview for Raka and Maya (IA-D04) | UXP-02, P-IA-02 |
+| NP-D07 | The User Avatar (user menu) is the only entry point to Settings (the Organization + Account groups). Since ADR-077, once inside, the persistent sidebar is replaced entirely by the dedicated Settings sidebar (Buffer pattern) with a back-navigation header — not shown side by side as a secondary nav | Settings is not daily access; it does not need a slot in the primary nav (IA-D05); one entry point is simpler than two separate entry points; a single sidebar with a back button is more compact than two sidebars side by side (ADR-077) | UXP-03 |
+| NP-D08 | The Notifications Panel is an overlay, not a replacement for the Main Content Area | Users must be able to close the panel and return to work without losing state | NP-P02 |
+| NP-D09 | The New Post CTA is available directly from the Calendar and Queue, not only from Drafts. Since NP-D12, the same CTA is also available in the Sidebar — the two complement, not replace, each other | Raka often finds schedule gaps while looking at the Calendar or Queue — forcing him to move to the Drafts tab first adds unnecessary friction. A CTA directly at the point where the need is found fits the work cycle flow (UXP-01) | UXP-01, UXP-03 |
+| NP-D10 | Logout must go through a confirmation dialog (Tier 2) | Protects against interrupting unsaved work, even though the Logout action itself is reversible — part of the cross-product Safety Check/Double Confirmation policy (ADR-049, `key-screen-patterns.md`) | UXP-04 |
+| NP-D11 | The Draft Editor (New Post & Edit Draft) becomes a **modal overlay**, overriding NP-D02. Two official display variants — **Standard** (default, ADR-065: a floating card 1120px wide since ADR-155 + dimmed backdrop, Calendar/Queue context stays visible) and **Fullscreen** (covers the whole viewport including the sidebar) — chosen through the official toggle in the modal header, not persisted between sessions | Wanted New Post/Edit Draft to feel faster/lighter without changing pages, consistent with the patterns of other tools — the trade-off of losing the visual context of the Calendar/Queue (the original reason for NP-D02) is accepted consciously for the sake of work-flow speed when the Fullscreen variant is chosen; the Standard default (ADR-065) keeps the context visible without forcing that trade-off up front. The old route was removed entirely (modal-only, no URL deep-link). Resume of unsaved state (localStorage) only for New Post, not for Edit Draft (ADR-052) | NP-P02, UXP-04 |
+| NP-D12 | The Sidebar gets a "+ New Post" CTA pinned at the top of the sidebar (above the nav items), available from any section | Previously the New Post CTA existed only on the Calendar/Queue/Drafts screens (NP-D09) — users on Home/Engage/Analyze had to move to Publish first to create a new post. A common pattern in similar tools (primary CTA at the top of the sidebar) removes this extra step (ADR-053) | UXP-01, NP-P01 |
+| NP-D13 | After a Draft Editor terminal action (Save as Draft / Schedule / Publish Now), users are directed to the **destination** sub-screen (Drafts / Queue / History-temporarily-Calendar) — not back to the source sub-screen like the Close button | The sidebar CTA (NP-D12) lets the Draft Editor be opened from any section; users need to see the result of their action right away in the relevant Publish section, not be left in the source section that is no longer related to the content just processed (ADR-054). Does not change NP-D05 (a different case: error-status link → Settings) | UXP-04 |
+| NP-D14 | The Sidebar gets a "Channels" section — a quick-glance list of connected accounts (round avatar + brand logo badge overlay + account name + status), between the navigation items and the bottom zone, independently scrolling. Default: scheduled-posts count. Hover: a drag handle appears on the left of the row (personal reorder per user, **shift-on-hover** — the whole row content shifts, ADR-058 addendum overrides the initial "no-shift" decision) + a quick-compose "+" button (opens the Draft Editor, account pre-selected — **still no-shift/fixed-slot**, unchanged). Clicking a problem channel → Settings (an extension of an existing pattern) | King Rezi wanted channel-status visibility + a compose shortcut per account without leaving the work screen; positioning outside the 5 nav items keeps the sidebar based on the work flow, not an entity list (P-IA-01); shift-on-hover for the drag handle was re-chosen following another application's reference screenshot at King Rezi's explicit request (ADR-058) | UXP-01, UXP-04, NP-P01 |
+| NP-D15 | Clicking an item in the Calendar opens a `Popover` (post summary + metrics for those already Published) first, not straight to the Draft Editor — a CTA inside the Popover opens the Draft Editor. Calendar only; Queue and Drafts do not change | King Rezi wanted the Buffer pattern: quick verification of a post's content/metrics without opening the full editor on every click. Limited to the Calendar only following the scope of the request, not extended to Queue/Drafts as a side effect (ADR-090, component corrected by ADR-091) | UXP-01, UXP-04 |
 
 ---
 
-# Ringkasan Pola
+# Pattern Summary
 
-| Konteks | Pola | Transisi |
-| ------- | ---- | -------- |
-| Berpindah section (Home, Publish, dll.) | Klik sidebar item | Ganti konten Main Content Area |
-| Berpindah sub-screen dalam Publish | Klik tab (Calendar / Queue / Drafts / History) | Ganti konten dalam section Publish |
-| Buka item dari Calendar / Queue / Drafts | Klik item | Buka Draft Editor sebagai modal overlay, default variant Standard (ADR-052/NP-D11/ADR-065) |
-| Buat post baru dari Calendar atau Queue | Klik CTA "New Post" | Buka Draft Editor (modal) kosong; Close menutup modal kembali ke sub-screen asal tanpa navigasi URL |
-| Buat post baru dari section manapun | Klik CTA "+ New Post" di Sidebar | Buka Draft Editor (modal) kosong, sama seperti CTA di Calendar/Queue/Drafts (NP-D12) |
-| Selesaikan aksi terminal di Draft Editor | Klik Save as Draft / Schedule / Publish Now | Modal tertutup, redirect ke Publish → Drafts / Queue / History-sementara-Calendar (NP-D13) |
-| Buka komentar posting dari Inbox | Pilih posting | Komentar tampil inline di panel kanan dalam Inbox |
-| Akses Settings | Klik User Avatar → dropdown | Navigasi ke Settings (Organization / Account); sidebar persistent digantikan sidebar khusus Settings + tombol back (ADR-077) |
-| Buka Notifications | Klik Notifications icon | Buka Notifications Panel (overlay) |
-| Error status → Settings | Klik indikator error / tautan aksi | Navigasi ke Settings → Organization → Connected Accounts |
-| Channel bermasalah di sidebar Channels → klik | Klik channel row (Disconnected/Expired) | Navigasi ke Settings → Organization → Connected Accounts |
-| Channel di sidebar Channels → hover lalu klik "+" | Klik tombol quick-compose | Buka Draft Editor (modal) kosong, akun ini otomatis ter-pre-select |
-| Empty state → aksi pertama | Klik CTA di empty state | Navigasi ke section / sub-screen terkait |
+| Context | Pattern | Transition |
+| ------- | ------- | ---------- |
+| Switch section (Home, Publish, etc.) | Click a sidebar item | Replace the Main Content Area content |
+| Switch sub-screen within Publish | Click a tab (Calendar / Queue / Drafts / History) | Replace the content within the Publish section |
+| Open an item from Calendar / Queue / Drafts | Click the item | Open the Draft Editor as a modal overlay, default variant Standard (ADR-052/NP-D11/ADR-065) |
+| Create a new post from Calendar or Queue | Click the "New Post" CTA | Open an empty Draft Editor (modal); Close closes the modal back to the source sub-screen without URL navigation |
+| Create a new post from any section | Click the "+ New Post" CTA in the Sidebar | Open an empty Draft Editor (modal), same as the CTA on Calendar/Queue/Drafts (NP-D12) |
+| Finish a terminal action in the Draft Editor | Click Save as Draft / Schedule / Publish Now | The modal closes, redirect to Publish → Drafts / Queue / History-temporarily-Calendar (NP-D13) |
+| Open post comments from the Inbox | Select a post | Comments shown inline in the right panel within the Inbox |
+| Access Settings | Click User Avatar → dropdown | Navigate to Settings (Organization / Account); the persistent sidebar is replaced by the dedicated Settings sidebar + back button (ADR-077) |
+| Open Notifications | Click the Notifications icon | Open the Notifications Panel (overlay) |
+| Error status → Settings | Click the error indicator / action link | Navigate to Settings → Organization → Connected Accounts |
+| Problem channel in the Channels sidebar → click | Click the channel row (Disconnected/Expired) | Navigate to Settings → Organization → Connected Accounts |
+| Channel in the Channels sidebar → hover then click "+" | Click the quick-compose button | Open an empty Draft Editor (modal), this account automatically pre-selected |
+| Empty state → first action | Click the CTA in the empty state | Navigate to the related section / sub-screen |
 
 ---
 
 # Expected Output
 
-Setelah dokumen ini selesai, project harus memiliki:
+Once this document is complete, the project must have:
 
-* Model navigasi utama yang terdefinisi (Persistent Sidebar Navigation).
-* Pola primary, secondary, dan in-section navigation yang konsisten.
-* Pola contextual navigation untuk semua drill-down kritis (Item → Editor, Thread, Error → Settings).
-* Notification badge behavior yang jelas.
-* Cross-section navigation yang terdokumentasi.
-* Decision log yang dapat ditelusuri ke UX Principles dan IA Decisions.
+* A defined main navigation model (Persistent Sidebar Navigation).
+* Consistent primary, secondary, and in-section navigation patterns.
+* Contextual navigation patterns for all critical drill-downs (Item → Editor, Thread, Error → Settings).
+* Clear notification badge behavior.
+* Documented cross-section navigation.
+* A decision log traceable to the UX Principles and IA Decisions.
 
 ---
 
 # Exit Criteria
 
-Navigation Patterns dianggap selesai apabila:
+Navigation Patterns are considered complete when:
 
-* Model navigasi utama telah terdefinisi dan selaras dengan IA.
-* Setiap pola perpindahan layar kritis sudah terdokumentasi.
-* Tidak ada navigasi yang memerlukan lebih dari dua level.
-* Setiap keputusan navigasi dapat ditelusuri ke UX Principles.
-* Tidak ada user flow (UF-01 hingga UF-06) yang membutuhkan pola navigasi yang belum terdokumentasi di sini.
+* The main navigation model has been defined and aligns with the IA.
+* Every critical screen-transition pattern has been documented.
+* No navigation requires more than two levels.
+* Every navigation decision can be traced to the UX Principles.
+* No user flow (UF-01 through UF-06) requires a navigation pattern not documented here.
 
 ---
 

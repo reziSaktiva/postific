@@ -1,153 +1,153 @@
 # UX Principles
 
-Dokumen ini menetapkan prinsip UX yang mengatur seluruh keputusan desain pada produk **Postific**.
+This document sets the UX principles that govern all design decisions on the **Postific** product.
 
-Setiap prinsip diturunkan dari insight pengguna (I-01 hingga I-08) dan harus dapat ditelusuri ke User Discovery Baseline v1.0. Prinsip ini bukan aturan visual — melainkan panduan pengambilan keputusan UX yang berlaku dari Information Architecture hingga Key Screen Patterns.
+Each principle is derived from user insights (I-01 through I-08) and must be traceable to User Discovery Baseline v1.0. These principles are not visual rules — they are UX decision-making guidance that applies from Information Architecture through Key Screen Patterns.
 
 ---
 
 # Overview
 
-UX Principles berfungsi sebagai filter keputusan: ketika ada pilihan desain, prinsip ini membantu menentukan arah yang benar untuk pengguna prioritas (Raka dan Maya).
+UX Principles act as a decision filter: when there is a design choice, these principles help determine the right direction for the priority users (Raka and Maya).
 
-Prinsip berlaku di seluruh dokumen UX Planning dan tidak berubah tanpa alasan yang terdokumentasi.
+The principles apply across all UX Planning documents and do not change without a documented reason.
 
 ---
 
-# Cara Menggunakan
+# How to Use
 
-1. Ketika ada keputusan desain (struktur navigasi, penempatan fitur, urutan alur), periksa apakah keputusan itu selaras dengan prinsip di bawah.
-2. Jika ada dua opsi yang sama-sama valid secara teknis, pilih yang lebih selaras dengan prinsip.
-3. Jika prinsip perlu diubah, diskusikan dan dokumentasikan alasannya — jangan ubah tanpa jejak.
+1. When there is a design decision (navigation structure, feature placement, flow order), check whether the decision aligns with the principles below.
+2. If two options are equally valid technically, choose the one more aligned with the principles.
+3. If a principle needs to change, discuss it and document the reason — do not change it without a trace.
 
 ---
 
 # UX Principles
 
-## UXP-01 — Satu Siklus, Bukan Kumpulan Fitur
+## UXP-01 — One Cycle, Not a Collection of Features
 
-**Turunan dari:** I-01 (Workflow Consolidation), O-01, O-04
+**Derived from:** I-01 (Workflow Consolidation), O-01, O-04
 
-Produk ini tidak dirancang sebagai kumpulan fitur sosial yang berdiri sendiri. Produk dirancang sebagai satu siklus kerja: **Draft → Schedule → Publish → Engage → Review**.
+This product is not designed as a collection of standalone social features. It is designed as one work cycle: **Draft → Schedule → Publish → Engage → Review**.
 
-Setiap keputusan arsitektur informasi, navigasi, dan flow harus memperkuat siklus ini — bukan memecahnya menjadi modul-modul terpisah yang mengharuskan pengguna berpindah konteks.
+Every information architecture, navigation, and flow decision must reinforce this cycle — not break it into separate modules that force the user to switch context.
 
-**Implikasi desain:**
-- Navigasi utama mencerminkan tahapan siklus, bukan kategori fitur.
-- Transisi antar tahap (dari draft ke schedule, dari publish ke inbox) harus terasa natural, bukan seperti berpindah aplikasi.
-- Onboarding memperkenalkan siklus secara utuh, bukan satu fitur per satu.
-
----
-
-## UXP-02 — Dua Mode Kerja: Eksekusi dan Visibilitas
-
-**Turunan dari:** I-02 (Buyer vs Daily User), O-02, O-06
-
-Raka membutuhkan kecepatan eksekusi. Maya membutuhkan visibilitas dan ringkasan. Produk harus melayani keduanya tanpa memaksa salah satu berkompromi.
-
-Ini bukan berarti dua UI terpisah. Ini berarti desain harus **sadar konteks**: layar yang diakses Raka untuk bekerja harus tetap memberi Maya gambaran status yang cukup saat ia membuka aplikasi.
-
-**Implikasi desain:**
-- Layar publishing dan kalender harus memberi overview status konten yang bisa dibaca sekilas oleh buyer.
-- Ringkasan analytics harus tersedia tanpa navigasi berlapis.
-- Jangan sembunyikan status konten di balik drill-down yang dalam.
+**Design implications:**
+- The primary navigation reflects the stages of the cycle, not feature categories.
+- Transitions between stages (from draft to schedule, from publish to inbox) must feel natural, not like switching apps.
+- Onboarding introduces the cycle as a whole, not one feature at a time.
 
 ---
 
-## UXP-03 — Simplisitas Adalah Quality Bar, Bukan Estetika
+## UXP-02 — Two Work Modes: Execution and Visibility
 
-**Turunan dari:** I-03 (Simplicity as Requirement), O-03, O-09
+**Derived from:** I-02 (Buyer vs Daily User), O-02, O-06
 
-Simplisitas bukan soal tampilan yang bersih. Simplisitas berarti pengguna tidak perlu berpikir keras untuk menyelesaikan pekerjaan intinya.
+Raka needs execution speed. Maya needs visibility and summaries. The product must serve both without forcing either to compromise.
 
-Setiap fitur atau layar yang menambah cognitive load tanpa nilai proporsional harus dipertanyakan — bukan di fase visual, tapi sejak perencanaan alur dan arsitektur informasi.
+This does not mean two separate UIs. It means the design must be **context-aware**: the screens Raka uses to work must still give Maya enough of a status picture when she opens the app.
 
-**Implikasi desain:**
-- Jika sebuah fitur memerlukan penjelasan panjang untuk digunakan, itu sinyal masalah desain, bukan masalah dokumentasi.
-- Could-have yang memperumit alur inti harus ditunda.
-- Default state layar harus langsung menunjukkan pekerjaan yang paling relevan, bukan dashboard kosong.
-
----
-
-## UXP-04 — Publishing Trust Adalah Fondasi
-
-**Turunan dari:** I-04 (Publishing Trust Beats Feature Breadth), O-04, journey stages 3–5
-
-Pengguna harus percaya bahwa konten akan terbit ke akun yang benar, pada waktu yang tepat, tanpa ambiguitas. Kepercayaan ini lebih penting dari kelengkapan fitur sekunder.
-
-**Implikasi desain:**
-- Konfirmasi akun dan jadwal harus jelas dan tidak bisa diabaikan sebelum publish.
-- Status konten (draft / scheduled / published / failed) harus selalu terlihat.
-- Error atau kegagalan publish harus ditampilkan dengan jelas dan memberikan jalur pemulihan yang obvious.
-- Jangan membiarkan pengguna dalam keadaan "tidak tahu apakah ini sudah publish atau belum".
-- Kebijakan Safety Check / Double Confirmation lintas produk (kapan sebuah aksi wajib dialog konfirmasi, berdasarkan reversibilitas dan blast radius) didokumentasikan sebagai pola lintas layar di `key-screen-patterns.md` (ADR-049) — merupakan penerapan langsung prinsip ini di luar konteks publish murni.
+**Design implications:**
+- Publishing and calendar screens must give an overview of content status that the buyer can read at a glance.
+- Analytics summaries must be available without layered navigation.
+- Do not hide content status behind deep drill-downs.
 
 ---
 
-## UXP-05 — AI Menempel pada Pekerjaan, Bukan Berdiri Sendiri
+## UXP-03 — Simplicity Is a Quality Bar, Not an Aesthetic
 
-**Turunan dari:** I-06 (AI in the Draft Job), O-07 — **Ditafsirkan ulang (ADR-138):** prinsip tetap berlaku, tetapi AI bawaan Postific dicabut; yang menempel pada pekerjaan adalah AI milik pengguna lewat MCP.
+**Derived from:** I-03 (Simplicity as Requirement), O-03, O-09
 
-AI dianggap berguna ketika bekerja di dalam pekerjaan yang sama dengan manusia: Drafts dan Queue. AI kehilangan relevansinya jika menjadi modul atau permukaan terpisah yang harus dinavigasi secara sengaja. Pada Postific, AI pengguna (Claude, ChatGPT, dsb.) bekerja lewat tool MCP yang membungkus Application Service yang sama dengan UI, sehingga hasil kerjanya muncul di daftar kerja yang sudah dikenal pengguna, bukan di layar AI khusus.
+Simplicity is not about a clean look. Simplicity means the user does not have to think hard to finish their core job.
 
-**Implikasi desain:**
-- AI pengguna bekerja di Drafts dan Queue lewat tool MCP; tidak ada UI AI bawaan di dalam Postific.
-- Jejak kerja AI terlihat lewat badge sumber (nama klien AI) dan filter sumber di History, Drafts, dan Queue — pengguna tahu mana yang dibuat AI tanpa membuka item.
-- Tidak ada "AI Hub" atau menu AI di navigasi utama; satu-satunya titik masuk MCP di UI adalah layar persetujuan OAuth dan Settings → Account → Klien AI.
+Every feature or screen that adds cognitive load without proportional value must be questioned — not in the visual phase, but from the planning of flows and information architecture.
 
----
-
-## UXP-06 — Status Jelas, Proses Ringan
-
-**Turunan dari:** I-08 (Collaboration Visibility without Approval Overhead), O-01, O-02
-
-Tim membutuhkan kejelasan: siapa yang mengerjakan apa, status konten ada di mana. Tetapi approval workflow berlapis bukan kebutuhan MVP — bahkan bisa menjadi hambatan adopsi.
-
-Desain harus mendukung **visibilitas status** tanpa memaksakan **enforcement proses**.
-
-**Implikasi desain:**
-- Status konten (draft / in review / ready to schedule / scheduled / published / failed) dapat dilihat tanpa membuka item.
-- Handoff ringan (misalnya: menandai draft sebagai "ready to schedule") cukup untuk koordinasi tim.
-- Jangan implementasikan approval workflow berlapis — itu bukan MVP dan menambah complexity.
-- Collaboration visibility harus terasa seperti transparansi, bukan birokrasi.
-- Aturan transisi status per role didefinisikan di `../02-product/roles-permissions.md` — dokumen tersebut menjadi acuan kanonikal untuk siapa yang dapat memicu transisi status mana.
+**Design implications:**
+- If a feature needs a long explanation to be used, that is a signal of a design problem, not a documentation problem.
+- Could-haves that complicate the core flow must be deferred.
+- The default state of a screen must show the most relevant work right away, not an empty dashboard.
 
 ---
 
-## UXP-07 — Nilai Bertambah Seiring Siklus, Bukan Langsung Semuanya
+## UXP-04 — Publishing Trust Is the Foundation
 
-**Turunan dari:** I-05 (Engagement and Analytics as Retention Layers), I-01
+**Derived from:** I-04 (Publishing Trust Beats Feature Breadth), O-04, journey stages 3–5
 
-Urutan nilai dalam produk ini: **Publishing reliability → Engagement triage → Analytics snapshot**.
+Users must trust that content will go out to the right account, at the right time, without ambiguity. This trust matters more than the completeness of secondary features.
 
-Pengguna tidak perlu mengakses semuanya sejak hari pertama. Produk harus membiarkan pengguna menemukan lapisan nilai berikutnya secara natural setelah pekerjaan intinya terpenuhi — tanpa memaksa atau menyembunyikannya.
-
-**Implikasi desain:**
-- Onboarding fokus pada publishing; engagement dan analytics diperkenalkan sebagai kelanjutan siklus, bukan fitur yang harus disetup di awal.
-- Navigasi harus membuat Comments Inbox dan analytics mudah diakses ketika pengguna siap, tapi tidak membebani alur publishing awal.
-- Comments Inbox harus menunjukkan waktu sinkronisasi terakhir dan menyediakan Manual Refresh; jangan memberi kesan data engagement real-time karena MVP memakai periodic pull 30 menit (ADR-040).
-- Jangan buat kesan bahwa produk "belum lengkap" jika pengguna hanya menggunakan publishing.
-
----
-
-# Ringkasan Prinsip
-
-| ID | Prinsip | Insight Asal |
-| -- | ------- | ------------ |
-| UXP-01 | Satu Siklus, Bukan Kumpulan Fitur | I-01 |
-| UXP-02 | Dua Mode Kerja: Eksekusi dan Visibilitas | I-02 |
-| UXP-03 | Simplisitas Adalah Quality Bar, Bukan Estetika | I-03 |
-| UXP-04 | Publishing Trust Adalah Fondasi | I-04 |
-| UXP-05 | AI Menempel pada Pekerjaan, Bukan Berdiri Sendiri | I-06 |
-| UXP-06 | Status Jelas, Proses Ringan | I-08 |
-| UXP-07 | Nilai Bertambah Seiring Siklus, Bukan Langsung Semuanya | I-05 |
+**Design implications:**
+- Account and schedule confirmation must be clear and cannot be ignored before publishing.
+- Content status (draft / scheduled / published / failed) must always be visible.
+- Publish errors or failures must be shown clearly and give an obvious recovery path.
+- Do not leave users in a state of "not knowing whether this has been published or not".
+- The cross-product Safety Check / Double Confirmation policy (when an action must have a confirmation dialog, based on reversibility and blast radius) is documented as a cross-screen pattern in `key-screen-patterns.md` (ADR-049) — it is a direct application of this principle beyond the pure publish context.
 
 ---
 
-# Cara Prinsip Ini Digunakan pada Dokumen Berikutnya
+## UXP-05 — AI Attaches to the Work, Not Standalone
 
-| Dokumen | Prinsip Paling Relevan |
-| ------- | ---------------------- |
+**Derived from:** I-06 (AI in the Draft Job), O-07 — **Reinterpreted (ADR-138):** the principle still holds, but Postific's built-in AI was removed; what attaches to the work is the user's own AI through MCP.
+
+AI is considered useful when it works inside the same job as the human: Drafts and Queue. AI loses its relevance if it becomes a separate module or surface that must be navigated to deliberately. In Postific, the user's AI (Claude, ChatGPT, etc.) works through MCP tools that wrap the same Application Services as the UI, so its output appears in the work lists the user already knows, not on a dedicated AI screen.
+
+**Design implications:**
+- The user's AI works in Drafts and Queue through MCP tools; there is no built-in AI UI inside Postific.
+- The trace of AI work is visible through a source badge (the AI client's name) and a source filter in History, Drafts, and Queue — users know which items were created by AI without opening them.
+- There is no "AI Hub" or AI menu in the primary navigation; the only MCP entry points in the UI are the OAuth consent screen and Settings → Account → Klien AI.
+
+---
+
+## UXP-06 — Clear Status, Light Process
+
+**Derived from:** I-08 (Collaboration Visibility without Approval Overhead), O-01, O-02
+
+Teams need clarity: who is working on what, where content status stands. But a layered approval workflow is not an MVP need — it can even become a barrier to adoption.
+
+The design must support **status visibility** without imposing **process enforcement**.
+
+**Design implications:**
+- Content status (draft / in review / ready to schedule / scheduled / published / failed) can be seen without opening the item.
+- A light handoff (for example: marking a draft as "ready to schedule") is enough for team coordination.
+- Do not implement a layered approval workflow — it is not MVP and adds complexity.
+- Collaboration visibility must feel like transparency, not bureaucracy.
+- Status transition rules per role are defined in `../02-product/roles-permissions.md` — that document is the canonical reference for who can trigger which status transitions.
+
+---
+
+## UXP-07 — Value Grows with the Cycle, Not All at Once
+
+**Derived from:** I-05 (Engagement and Analytics as Retention Layers), I-01
+
+The order of value in this product: **Publishing reliability → Engagement triage → Analytics snapshot**.
+
+Users do not need to access everything from day one. The product must let users discover the next layer of value naturally once their core job is fulfilled — without forcing or hiding it.
+
+**Design implications:**
+- Onboarding focuses on publishing; engagement and analytics are introduced as a continuation of the cycle, not features that must be set up at the start.
+- Navigation must make the Comments Inbox and analytics easy to reach when users are ready, but must not burden the initial publishing flow.
+- The Comments Inbox must show the last sync time and provide a Manual Refresh; do not give the impression of real-time engagement data because the MVP uses a 30-minute periodic pull (ADR-040).
+- Do not create the impression that the product is "incomplete" if the user only uses publishing.
+
+---
+
+# Principles Summary
+
+| ID | Principle | Source Insight |
+| -- | --------- | -------------- |
+| UXP-01 | One Cycle, Not a Collection of Features | I-01 |
+| UXP-02 | Two Work Modes: Execution and Visibility | I-02 |
+| UXP-03 | Simplicity Is a Quality Bar, Not an Aesthetic | I-03 |
+| UXP-04 | Publishing Trust Is the Foundation | I-04 |
+| UXP-05 | AI Attaches to the Work, Not Standalone | I-06 |
+| UXP-06 | Clear Status, Light Process | I-08 |
+| UXP-07 | Value Grows with the Cycle, Not All at Once | I-05 |
+
+---
+
+# How These Principles Are Used in Subsequent Documents
+
+| Document | Most Relevant Principles |
+| -------- | ------------------------ |
 | `information-architecture.md` | UXP-01, UXP-02, UXP-03 |
 | `user-flows.md` | UXP-01, UXP-04, UXP-05, UXP-06 |
 | `navigation-patterns.md` | UXP-01, UXP-02, UXP-03, UXP-07 |
@@ -157,32 +157,32 @@ Pengguna tidak perlu mengakses semuanya sejak hari pertama. Produk harus membiar
 
 # Decision Rules
 
-Jika prinsip UX perlu diubah karena keputusan produk baru:
+If a UX principle needs to change because of a new product decision:
 
-1. Identifikasi prinsip mana yang terdampak.
-2. Dokumentasikan alasan perubahan pada `../../project-os/DECISIONS.md`.
-3. Update dokumen UX yang merujuk prinsip tersebut.
+1. Identify which principle is affected.
+2. Document the reason for the change in `../../project-os/DECISIONS.md`.
+3. Update the UX documents that refer to that principle.
 
 ---
 
 # Expected Output
 
-Setelah dokumen ini selesai, project harus memiliki:
+Once this document is complete, the project must have:
 
-* 7 UX Principles yang dapat ditelusuri ke insight pengguna.
-* Implikasi desain yang konkret per prinsip.
-* Panduan penerapan prinsip pada dokumen UX berikutnya.
+* 7 UX Principles traceable to user insights.
+* Concrete design implications per principle.
+* Guidance on applying the principles in subsequent UX documents.
 
 ---
 
 # Exit Criteria
 
-UX Principles dianggap selesai apabila:
+UX Principles are considered complete when:
 
-* Setiap prinsip memiliki traceability ke insight User Discovery.
-* Setiap prinsip memiliki implikasi desain yang actionable.
-* Tidak ada prinsip yang bertentangan dengan Product Baseline v1.0.
-* Dokumen ini dapat digunakan sebagai referensi pada Information Architecture, User Flows, Navigation Patterns, dan Key Screen Patterns.
+* Each principle has traceability to a User Discovery insight.
+* Each principle has actionable design implications.
+* No principle conflicts with Product Baseline v1.0.
+* This document can be used as a reference in Information Architecture, User Flows, Navigation Patterns, and Key Screen Patterns.
 
 ---
 
