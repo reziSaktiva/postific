@@ -1,19 +1,19 @@
 # Monorepo Setup
 
-Dokumen ini mendefinisikan **struktur Hybrid Monorepo**, konfigurasi Bun Workspaces, layout folder aplikasi, dan aturan import yang berlaku untuk project Postific.
+This document defines the **Hybrid Monorepo structure**, the Bun Workspaces configuration, the application folder layout, and the import rules that apply to the Postific project.
 
-Dokumen ini adalah implementasi konkret dari ADR-001 (Hybrid Monorepo), ADR-002 (Bun), ADR-003 (Next.js), dan ADR-004 (Modular Monolith + DDD). Domain module structure selaras dengan domain-model.md; App Router routing structure selaras dengan information-architecture.md.
+This document is the concrete implementation of ADR-001 (Hybrid Monorepo), ADR-002 (Bun), ADR-003 (Next.js), and ADR-004 (Modular Monolith + DDD). The domain module structure is aligned with domain-model.md; the App Router routing structure is aligned with information-architecture.md.
 
 ---
 
-# Tujuan
+# Goals
 
-* Menetapkan struktur folder monorepo secara definitif sebelum Repository & Bootstrap (M7) dimulai.
-* Mendefinisikan workspace layout apps/ dan packages/ beserta tanggung jawab masing-masing.
-* Mendefinisikan konfigurasi Bun Workspaces (root `package.json`).
-* Menetapkan App Router routing structure yang mencerminkan Information Architecture.
-* Mendefinisikan internal structure setiap domain module.
-* Menetapkan aturan import lintas domain yang harus dipatuhi di seluruh codebase.
+- Set the monorepo folder structure definitively before Repository & Bootstrap (M7) begins.
+- Define the apps/ and packages/ workspace layout along with the responsibilities of each.
+- Define the Bun Workspaces configuration (root `package.json`).
+- Set the App Router routing structure that mirrors the Information Architecture.
+- Define the internal structure of each domain module.
+- Set the cross-domain import rules that must be obeyed across the whole codebase.
 
 ---
 
@@ -22,36 +22,34 @@ Dokumen ini adalah implementasi konkret dari ADR-001 (Hybrid Monorepo), ADR-002 
 ```
 social-media-management/          ← monorepo root
 ├── apps/
-│   └── web/                      ← aplikasi Next.js utama
+│   └── web/                      ← main Next.js application
 ├── packages/
-│   └── shared/                   ← @postific/shared — shared types lintas domain
-├── product-discovery/            ← dokumentasi produk (bukan kode)
-├── project-os/              ← project OS (bukan kode)
+│   └── shared/                   ← @postific/shared — cross-domain shared types
+├── product-discovery/            ← product documentation (not code)
+├── project-os/              ← project OS (not code)
 ├── package.json                  ← Bun Workspaces root config
 ├── tsconfig.json                 ← TypeScript base config
 ├── .gitignore
 └── README.md
 ```
 
-**Prinsip root:**
-- `apps/` → satu atau lebih aplikasi yang bisa di-deploy.
-- `packages/` → shared libraries yang dikonsumsi oleh satu atau lebih app.
-- Folder dokumentasi (`product-discovery/`, `project-os/`) tidak termasuk workspace — tidak diproses Bun.
+**Root principles:**
+
+- `apps/` → one or more deployable applications.
+- `packages/` → shared libraries consumed by one or more apps.
+- Documentation folders (`product-discovery/`, `project-os/`) are not part of the workspace — not processed by Bun.
 
 ---
 
 # Bun Workspaces Configuration
 
-File `package.json` di root mendaftarkan semua workspace yang dikelola Bun:
+The root `package.json` file registers all the workspaces managed by Bun:
 
 ```json
 {
   "name": "social-media-management",
   "private": true,
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
+  "workspaces": ["apps/*", "packages/*"],
   "scripts": {
     "dev": "bun run --cwd apps/web dev",
     "build": "bun run --cwd apps/web build",
@@ -63,19 +61,20 @@ File `package.json` di root mendaftarkan semua workspace yang dikelola Bun:
 }
 ```
 
-> Script lengkap (`lint:fix`, `format:check`, `test:watch`, `db:*`) dan tooling terkait ada di `dx-tooling.md` (ADR-034). Cuplikan di atas adalah kontrak minimal root.
+> The complete scripts (`lint:fix`, `format:check`, `test:watch`, `db:*`) and related tooling are in `dx-tooling.md` (ADR-034). The snippet above is the minimal root contract.
 
-**Aturan workspace:**
-- Setiap workspace memiliki `package.json` sendiri dengan `name` yang unik.
-- Package dalam workspace saling mereferensi via workspace protocol: `"@postific/shared": "workspace:*"`.
-- Lockfile (`bun.lock`) ada di root — satu lockfile untuk seluruh monorepo.
-- Jangan install dependency langsung di root kecuali untuk tooling monorepo-level (misal: TypeScript, ESLint config).
+**Workspace rules:**
+
+- Every workspace has its own `package.json` with a unique `name`.
+- Packages within the workspace reference each other via the workspace protocol: `"@postific/shared": "workspace:*"`.
+- The lockfile (`bun.lock`) is at the root — one lockfile for the whole monorepo.
+- Do not install dependencies directly at the root except for monorepo-level tooling (e.g. TypeScript, ESLint config).
 
 ---
 
 # apps/web — Next.js Application
 
-Satu-satunya aplikasi yang ada pada fase MVP.
+The only application in the MVP phase.
 
 ## Package Config
 
@@ -97,9 +96,9 @@ apps/web/
 ├── src/
 │   ├── app/                      ← Next.js App Router (routing & UI)
 │   ├── domains/                  ← Domain Logic (9 BC MVP; Billing post-MVP)
-│   ├── components/               ← shadcn/ui + feature components (migrasi dari Astryx, ADR-097)
+│   ├── components/               ← shadcn/ui + feature components (migrated from Astryx, ADR-097)
 │   ├── lib/                      ← Infrastructure Clients & Utilities
-│   └── proxy.ts                  ← Auth guard + workspace context injection (Next.js 16 "Proxy", dulu middleware.ts)
+│   └── proxy.ts                  ← Auth guard + workspace context injection (Next.js 16 "Proxy", formerly middleware.ts)
 ├── public/                       ← Static assets
 ├── next.config.ts
 ├── package.json
@@ -110,14 +109,14 @@ apps/web/
 
 ## src/app/ — App Router Structure
 
-Routing structure mencerminkan Information Architecture dari `product-discovery/04-ux/information-architecture.md`.
+The routing structure mirrors the Information Architecture from `product-discovery/04-ux/information-architecture.md`.
 
 ```
 src/app/
 ├── layout.tsx                    ← Root layout (HTML, global providers)
-├── page.tsx                      ← Redirect ke (app) atau onboarding
+├── page.tsx                      ← Redirect to (app) or onboarding
 │
-├── (auth)/                       ← Route group: auth pages (tanpa layout aplikasi)
+├── (auth)/                       ← Route group: auth pages (without the application layout)
 │   ├── login/
 │   │   └── page.tsx
 │   ├── register/
@@ -125,31 +124,31 @@ src/app/
 │   └── forgot-password/
 │       └── page.tsx
 │
-├── select-workspace/             ← Layar persetujuan OAuth MCP langkah 1: pilih workspace (di luar (app); T-151, ADR-139)
+├── select-workspace/             ← MCP OAuth consent screen step 1: choose workspace (outside (app); T-151, ADR-139)
 │   └── page.tsx
-├── consent/                      ← Layar persetujuan OAuth MCP langkah 2: scope dan persetujuan (di luar (app); T-151, ADR-139)
+├── consent/                      ← MCP OAuth consent screen step 2: scope and consent (outside (app); T-151, ADR-139)
 │   └── page.tsx
 │
-├── (app)/                        ← Route group: aplikasi utama pasca-login (workspace context dari cookie)
-│   ├── layout.tsx                ← App layout (sidebar nav, resolve workspace context dari cookie)
-│   ├── page.tsx                  ← Home — Today's Schedule, Recent Activity, Snapshots (root aplikasi; ADR-046)
+├── (app)/                        ← Route group: main post-login application (workspace context from cookie)
+│   ├── layout.tsx                ← App layout (sidebar nav, resolve workspace context from cookie)
+│   ├── page.tsx                  ← Home — Today's Schedule, Recent Activity, Snapshots (application root; ADR-046)
 │   │
 │   ├── publish/
-│   │   ├── layout.tsx            ← Publish sub-nav (Calendar / Queue / Drafts / History); tempat modal state Draft Editor dipasang (ADR-052)
-│   │   ├── page.tsx              ← Redirect permanen ke /publish/calendar (ADR-046 Amandemen Final — pengecualian permanen)
+│   │   ├── layout.tsx            ← Publish sub-nav (Calendar / Queue / Drafts / History); where the Draft Editor modal state is mounted (ADR-052)
+│   │   ├── page.tsx              ← Permanent redirect to /publish/calendar (ADR-046 Final Amendment — permanent exception)
 │   │   ├── calendar/
 │   │   │   └── page.tsx          ← Content Calendar (default tab; IA-D04)
 │   │   ├── queue/
 │   │   │   └── page.tsx          ← Queue Management
 │   │   ├── drafts/
-│   │   │   └── page.tsx          ← Daftar Drafts
+│   │   │   └── page.tsx          ← Drafts list
 │   │   └── history/
 │   │       ├── page.tsx          ← Published History
 │   │       └── [postId]/
-│   │           └── page.tsx      ← Post Detail (layar terpisah, KSP-D10 — TIDAK termasuk ADR-052)
+│   │           └── page.tsx      ← Post Detail (a separate screen, KSP-D10 — NOT part of ADR-052)
 │   │
 │   ├── engage/
-│   │   └── page.tsx              ← Engagement Inbox (satu-satunya layar Engage; ADR-046)
+│   │   └── page.tsx              ← Engagement Inbox (the only Engage screen; ADR-046)
 │   │
 │   ├── analyze/
 │   │   └── page.tsx              ← Analytics Dashboard
@@ -157,9 +156,9 @@ src/app/
 │   ├── start-page/
 │   │   └── page.tsx              ← Start Page Editor + Preview
 │   │
-│   └── settings/                 ← Organization Settings + Account Settings — satu section, dua grup sidebar
-│       ├── layout.tsx            ← Settings sub-nav (grup Organization + grup Account)
-│       ├── page.tsx              ← Organization → General — nama workspace, timezone, brand (default tab; ADR-046)
+│   └── settings/                 ← Organization Settings + Account Settings — one section, two sidebar groups
+│       ├── layout.tsx            ← Settings sub-nav (Organization group + Account group)
+│       ├── page.tsx              ← Organization → General — workspace name, timezone, brand (default tab; ADR-046)
 │       ├── connected-accounts/
 │       │   └── page.tsx          ← Organization → Social account management
 │       ├── members/
@@ -167,93 +166,94 @@ src/app/
 │       ├── roles/
 │       │   └── page.tsx          ← Organization → Roles & permissions
 │       ├── billing/
-│       │   └── page.tsx          ← Organization → Billing (Post-MVP, halaman placeholder)
-│       └── account/               ← grup Account
-│           ├── page.tsx          ← Account → Profile — nama, foto, email (default tab, pola sama dengan Organization General)
+│       │   └── page.tsx          ← Organization → Billing (Post-MVP, placeholder page)
+│       └── account/               ← Account group
+│           ├── page.tsx          ← Account → Profile — name, photo, email (default tab, same pattern as Organization General)
 │           ├── notifications/
-│           │   └── page.tsx      ← Account → Preferensi notifikasi
+│           │   └── page.tsx      ← Account → Notification preferences
 │           ├── ai-clients/
-│           │   └── page.tsx      ← Account → Klien AI: daftar dan cabut koneksi klien AI (T-156)
+│           │   └── page.tsx      ← Account → AI Clients: list and revoke AI client connections (T-156)
 │           └── preferences/
-│               └── page.tsx      ← Account → Preferensi tampilan personal
+│               └── page.tsx      ← Account → Personal display preferences
 │
 └── api/                          ← Route Handlers (external / platform only)
     ├── auth/
     │   └── [...all]/
-    │       └── route.ts          ← Better Auth catch-all (session, OAuth callback, dll.)
+    │       └── route.ts          ← Better Auth catch-all (session, OAuth callback, etc.)
     ├── health/
     │   └── route.ts              ← Health check endpoint
     ├── jobs/
     │   └── run/
     │       └── route.ts          ← Job runner (Railway Cron → X-Job-Secret)
     ├── mcp/
-    │   └── route.ts              ← MCP Server endpoint, Streamable HTTP (ADR-139); bypass proxy.ts
+    │   └── route.ts              ← MCP Server endpoint, Streamable HTTP (ADR-139); bypasses proxy.ts
     └── webhooks/
         └── outstand/
             └── route.ts          ← raw body HMAC → durable receipt → ACK 2xx
 
-.well-known/                      ← Metadata OAuth MCP (/.well-known/*; ADR-139); bypass proxy.ts
+.well-known/                      ← MCP OAuth metadata (/.well-known/*; ADR-139); bypasses proxy.ts
 ```
 
-**Aturan routing:**
-- Route group `(app)` membungkus seluruh aplikasi pasca-login. Workspace context di-resolve dari **cookie** (dibaca & divalidasi membership-nya oleh `src/proxy.ts`), bukan dari URL. User tetap efektif 1 workspace; tidak ada workspace switcher di URL (lihat `auth-architecture.md`, "Workspace Context Resolution").
-- Route group `(auth)` tidak mewarisi layout `(app)` — render halaman kosong tanpa sidebar.
-- `api/` hanya untuk Route Handlers platform/eksternal: Better Auth (`/api/auth/*`), health check, job runner (`/api/jobs/run`), dan webhook. Mutations UI menggunakan Server Actions, bukan route API internal.
-- `/api/auth/*` dan `/api/jobs/*` di-bypass dari session Middleware/Proxy — auth sendiri dilindungi Better Auth; job runner dilindungi header `X-Job-Secret` (lihat `auth-architecture.md`, `deployment-infrastructure.md`).
-- `/api/mcp` dan `/.well-known/*` (MCP Server, ADR-139) dikecualikan dari `src/proxy.ts`; validasi token dan member dilakukan di Route Handler, tanpa business logic (memanggil `McpAccessService`). Layar persetujuan OAuth `/select-workspace` lalu `/consent` berada di luar route group `(app)` (T-151).
-- `/api/webhooks/outstand` wajib membaca raw body sebelum parsing. Route memanggil WebhookIngestion Application Service untuk menulis `outstand_webhook_events` idempoten dan enqueue `outstand.webhook.process`; business processing tidak berjalan inline.
-- `billing/` ada di routing MVP tapi halaman menampilkan placeholder — implementasi Post-MVP.
-- **Settings terdiri dari dua grup dalam satu section**: grup **Organization** (General, Connected Accounts, Members, Roles, Billing) dan grup **Account** (Profile, Notifications, Preferences) — keduanya diakses via sidebar Settings yang sama, dengan entry point tunggal dari avatar/user menu.
-- Section dengan default/single view (Home, Engage → Inbox, Settings →
-  Organization General, Settings → Account Profile) merender langsung di
-  `page.tsx` pada root path section/grup-nya — bukan named child segment
-  terpisah (`/home`, `/inbox`, `/general`, `/account/profile` tidak ada
-  sebagai path). Aturan ini berlaku baik di level section (`settings/`)
-  maupun di level grup di dalamnya (`settings/account/`) — keduanya wajib
-  punya `page.tsx` sendiri untuk tab default masing-masing. Sub-screen
-  non-default tetap punya segment eksplisit (`queue`, `drafts`, `history`,
+**Routing rules:**
+
+- The route group `(app)` wraps the whole post-login application. The workspace context is resolved from the **cookie** (read & its membership validated by `src/proxy.ts`), not from the URL. The user is still effectively in 1 workspace; there is no workspace switcher in the URL (see `auth-architecture.md`, "Workspace Context Resolution").
+- The route group `(auth)` does not inherit the `(app)` layout — it renders an empty page without a sidebar.
+- `api/` is only for platform/external Route Handlers: Better Auth (`/api/auth/*`), health check, the job runner (`/api/jobs/run`), and webhooks. UI mutations use Server Actions, not internal API routes.
+- `/api/auth/*` and `/api/jobs/*` are bypassed from the session Middleware/Proxy — auth itself is protected by Better Auth; the job runner is protected by the `X-Job-Secret` header (see `auth-architecture.md`, `deployment-infrastructure.md`).
+- `/api/mcp` and `/.well-known/*` (MCP Server, ADR-139) are excluded from `src/proxy.ts`; token and member validation is done in the Route Handler, without business logic (it calls `McpAccessService`). The OAuth consent screens `/select-workspace` then `/consent` sit outside the `(app)` route group (T-151).
+- `/api/webhooks/outstand` must read the raw body before parsing. The route calls the WebhookIngestion Application Service to write an idempotent `outstand_webhook_events` and enqueue `outstand.webhook.process`; business processing does not run inline.
+- `billing/` exists in the MVP routing but the page shows a placeholder — implementation is Post-MVP.
+- **Settings consists of two groups in one section**: the **Organization** group (General, Connected Accounts, Members, Roles, Billing) and the **Account** group (Profile, Notifications, Preferences) — both accessed via the same Settings sidebar, with a single entry point from the avatar/user menu.
+- A section with a default/single view (Home, Engage → Inbox, Settings →
+  Organization General, Settings → Account Profile) renders directly in
+  `page.tsx` at its section/group root path — not a separate named child
+  segment (`/home`, `/inbox`, `/general`, `/account/profile` do not exist
+  as paths). This rule applies both at the section level (`settings/`)
+  and at the group level within it (`settings/account/`) — both must
+  have their own `page.tsx` for their respective default tab. Non-default sub-screens
+  still have an explicit segment (`queue`, `drafts`, `history`,
   `connected-accounts`, `members`, `roles`, `billing`, `account/notifications`,
-  `account/preferences`). Segment yang hanya berfungsi sebagai container
-  (`layout.tsx` tanpa `page.tsx` sendiri, atau tanpa keduanya) tidak boleh
-  dibiarkan — setiap section/grup wajib punya `page.tsx` di root path-nya
+  `account/preferences`). A segment that only functions as a container
+  (`layout.tsx` without its own `page.tsx`, or without either) must not
+  be left in place — every section/group must have a `page.tsx` at its root path
   (ADR-046).
-- **Pengecualian permanen — Publish:** `/publish` redirect ke
-  `/publish/calendar` (bukan render langsung), karena `calendar/` tetap
-  ada sebagai folder statis untuk mencegah `publish/[postId]` menangkap
-  path lama secara salah. Ini keputusan final, bukan interim — lihat
-  ADR-046 Amandemen Final (2026-07-29) di `DECISIONS.md`.
+- **Permanent exception — Publish:** `/publish` redirects to
+  `/publish/calendar` (not rendered directly), because `calendar/` stays
+  as a static folder to prevent `publish/[postId]` from wrongly catching the
+  old path. This is a final decision, not an interim one — see
+  ADR-046 Final Amendment (2026-07-29) in `DECISIONS.md`.
 
-**Penamaan & peletakan folder `components/` lokal (KI-010, ADR-069):**
+**Local `components/` folder naming & placement (KI-010, ADR-069):**
 
-1. **Penamaan file** — hanya file yang benar-benar meng-export React
-   component memakai PascalCase, sama seperti nama exportnya (mis.
-   `Modal.tsx`, bukan `modal.tsx`). File non-component (Server Action
-   seperti `actions.ts`, helper/pure function seperti `status-badge.ts`,
-   atau file yang cuma berisi data map seperti `platform-icons.tsx`) tetap
-   kebab-case — **tidak** ikut PascalCase.
-2. **Penamaan folder** — seluruh folder tetap kebab-case, **tidak ada**
-   folder PascalCase. Folder komposit yang sebelumnya memakai prefix
-   underscore (`_draft-editor`, `_sidebar-channels`) kehilangan
-   underscore-nya saja (`draft-editor`, `sidebar-channels`) — bukan
-   berubah jadi PascalCase.
-3. **Peletakan** — folder `components/` ditaruh pada leluhur bersama
-   terendah (*lowest common ancestor* / LCA) dari seluruh pemakai
-   komponen tersebut di route tree App Router:
-   - Dipakai di 1 route saja → `components/` lokal tepat di route itu.
-   - Dipakai lintas beberapa route dalam satu subtree → `components/` di
-     level route leluhur terendah yang mencakup semua pemakai.
-   - Dipakai lintas subtree yang tidak berkaitan (termasuk dipakai dari
-     `app/layout.tsx` root) → **bukan** naik ke folder baru di `app/`,
-     tapi pindah ke `src/components/` — lokasi shared yang sudah ada
-     (lihat section `## src/components/ — UI Components` di bawah).
-     Cuma ada 2 bucket peletakan: lokal (`app/**/components/`) atau
-     shared (`src/components/`), tidak ada bucket ketiga "`app/` root".
-   - File wajib Next.js (`page.tsx`, `layout.tsx`, `route.ts`) tidak
-     terpengaruh — tetap lowercase sesuai kontrak framework, tidak masuk
-     folder `components/`.
+1. **File naming** — only files that actually export a React
+   component use PascalCase, the same as their export name (e.g.
+   `Modal.tsx`, not `modal.tsx`). Non-component files (Server Actions
+   like `actions.ts`, helpers/pure functions like `status-badge.ts`,
+   or files that only hold a data map like `platform-icons.tsx`) stay
+   kebab-case — they do **not** follow PascalCase.
+2. **Folder naming** — all folders stay kebab-case, there are **no**
+   PascalCase folders. Composite folders that previously used an underscore
+   prefix (`_draft-editor`, `_sidebar-channels`) only lose their
+   underscore (`draft-editor`, `sidebar-channels`) — they do not
+   become PascalCase.
+3. **Placement** — the `components/` folder goes at the lowest common
+   ancestor (_LCA_) of all users of that
+   component in the App Router route tree:
+   - Used in only 1 route → a local `components/` right in that route.
+   - Used across several routes within one subtree → `components/` at the
+     level of the lowest ancestor route that covers all users.
+   - Used across unrelated subtrees (including being used from the root
+     `app/layout.tsx`) → **not** moved up to a new folder in `app/`,
+     but moved to `src/components/` — the existing shared location
+     (see the section `## src/components/ — UI Components` below).
+     There are only 2 placement buckets: local (`app/**/components/`) or
+     shared (`src/components/`), no third "`app/` root" bucket.
+   - Files required by Next.js (`page.tsx`, `layout.tsx`, `route.ts`) are
+     unaffected — they stay lowercase per the framework contract and do not go into the
+     `components/` folder.
 
-Contoh — `draft-editor` dipakai lintas beberapa route di dalam `(app)/`,
-sehingga LCA-nya adalah `app/(app)/`:
+Example — `draft-editor` is used across several routes inside `(app)/`,
+so its LCA is `app/(app)/`:
 
 ```text
 app/(app)/components/draft-editor/
@@ -261,20 +261,20 @@ app/(app)/components/draft-editor/
 ├── Modal.tsx              ← component, PascalCase
 ├── Mount.tsx               ← component, PascalCase
 ├── actions.ts              ← Server Action, kebab-case
-├── status-badge.ts         ← helper murni, kebab-case
-└── terminal-destination.ts ← helper murni, kebab-case
+├── status-badge.ts         ← pure helper, kebab-case
+└── terminal-destination.ts ← pure helper, kebab-case
 ```
 
-Rujukan konvensi ini juga berlaku untuk `src/components/[feature]/` —
-lihat aturan di bawah pada `## src/components/ — UI Components`.
+The reference to this convention also applies to `src/components/[feature]/` —
+see the rules below under `## src/components/ — UI Components`.
 
 ---
 
 ## src/domains/ — Domain Modules
 
-Setiap Bounded Context **MVP** memiliki folder sendiri di `src/domains/`. Selaras dengan folder reference di `domain-model.md`.
+Each **MVP** Bounded Context has its own folder in `src/domains/`. Aligned with the folder reference in `domain-model.md`.
 
-MVP memuat **9 domain modules**. BC-10 Billing adalah post-MVP — tidak ada folder `billing/` di `src/domains/` sampai Billing diimplementasi; route Settings → Billing tetap ada sebagai halaman placeholder (lihat App Router di atas).
+The MVP contains **9 domain modules**. BC-10 Billing is post-MVP — there is no `billing/` folder in `src/domains/` until Billing is implemented; the Settings → Billing route still exists as a placeholder page (see the App Router above).
 
 ```
 src/domains/
@@ -287,37 +287,39 @@ src/domains/
 ├── start-page/         ← BC-07
 ├── media/              ← BC-08
 └── notification/       ← BC-09
-# BC-10 Billing — post-MVP (belum ada folder module)
+# BC-10 Billing — post-MVP (no module folder yet)
 ```
 
 ### Internal Structure per Domain
 
-Setiap domain mengikuti struktur empat lapisan yang konsisten:
+Each domain follows a consistent four-layer structure:
 
 ```
 src/domains/[domain]/
-├── index.ts                      ← Public API (barrel export — satu-satunya file yang boleh diimport dari luar)
+├── index.ts                      ← Public API (barrel export — the only file that may be imported from outside)
 ├── types.ts                      ← Domain-specific types & interfaces
 ├── errors.ts                     ← Domain error classes
 ├── entities/                     ← Domain entities & aggregates
 │   └── [entity].ts
 ├── value-objects/                ← Value objects
 │   └── [vo].ts
-├── repositories/                 ← Repository interfaces (bukan implementasi)
+├── repositories/                 ← Repository interfaces (not implementations)
 │   └── [repo].interface.ts
 └── services/                     ← Application Service
     └── [domain]-service.ts
 ```
 
-**Yang ada di `index.ts` (barrel):**
-- Export Application Service class/factory.
-- Export domain-specific types yang dikonsumsi Entry Points.
-- Export repository interfaces (untuk dependency injection).
+**What is in `index.ts` (the barrel):**
 
-**Yang tidak di-export dari `index.ts`:**
-- Implementasi internal entity.
-- Implementasi repository (ada di `src/lib/`).
-- Helper functions yang hanya dipakai internal domain.
+- Export the Application Service class/factory.
+- Export domain-specific types consumed by Entry Points.
+- Export repository interfaces (for dependency injection).
+
+**What is not exported from `index.ts`:**
+
+- Internal entity implementations.
+- Repository implementations (they are in `src/lib/`).
+- Helper functions used only internally by the domain.
 
 ---
 
@@ -325,33 +327,34 @@ src/domains/[domain]/
 
 ```
 src/components/
-├── ui/                           ← komponen shadcn/ui (hasil copy CLI/MCP) + wrapper selektif
-└── [feature]/                    ← Feature-specific components (co-located dengan domain penggunaannya)
+├── ui/                           ← shadcn/ui components (copied by the CLI/MCP) + selective wrappers
+└── [feature]/                    ← Feature-specific components (co-located with the domain that uses them)
 ```
 
-**Aturan:**
-- **shadcn/ui adalah fondasi component system permanen** (ADR-097, membalik
-  ADR-041). Migrasi dari Astryx sudah tuntas (rilis v0.7, T-102); riwayatnya
-  di `tickets/v07-astryx-shadcn-migration.md`.
-- `ui/` menampung komponen shadcn hasil copy CLI/MCP; wrapper tambahan dibuat
-  hanya untuk komponen kritis, komponen yang dipakai luas, default aplikasi
-  yang konsisten, atau adaptasi behavior produk.
-- Komponen shadcn yang sederhana dan hanya dipakai lokal boleh diimpor
-  langsung dari lokasi hasil copy-nya di `ui/`.
-- Tailwind dipakai langsung sebagai styling komponen shadcn (bukan lagi
-  layout-only seperti era Astryx).
-- Gunakan token Stone theme (ADR-087) sebagai acuan nilai selama development
-  feature, dipetakan ke CSS variable shadcn. `@stylexjs/stylex` dihapus
-  total dari dependency project (ADR-082, sekarang tidak relevan karena
-  Astryx sendiri sudah tidak dipakai).
-- Feature components tidak boleh berisi business logic — logika ada di domain services.
-- **Penamaan mengikuti aturan yang sama dengan `components/` lokal di
-  `src/app/`** (lihat "Penamaan & peletakan folder `components/` lokal
-  (KI-010, ADR-069)" di section `## src/app/ — App Router Structure`): file yang
-  meng-export React component pakai PascalCase (`ChannelsSection.tsx`),
-  folder `[feature]/` dan file non-component (helper, data map, dsb.) tetap
-  kebab-case. Aturan ini berlaku untuk setiap `[feature]/` di
-  `src/components/`, bukan hanya untuk `components/` di dalam `app/`.
+**Rules:**
+
+- **shadcn/ui is the permanent component system foundation** (ADR-097, reversing
+  ADR-041). The migration from Astryx is complete (release v0.7, T-102); its history
+  is in `tickets/v07-astryx-shadcn-migration.md`.
+- `ui/` holds the shadcn components copied by the CLI/MCP; additional wrappers are made
+  only for critical components, widely used components, consistent application
+  defaults, or product behavior adaptation.
+- Simple shadcn components that are only used locally may be imported
+  directly from their copied location in `ui/`.
+- Tailwind is used directly as the styling of shadcn components (no longer
+  layout-only like the Astryx era).
+- Use the Stone theme tokens (ADR-087) as the value reference during feature
+  development, mapped to the shadcn CSS variables. `@stylexjs/stylex` is removed
+  entirely from the project dependencies (ADR-082, now irrelevant because
+  Astryx itself is no longer used).
+- Feature components must not contain business logic — the logic is in domain services.
+- **Naming follows the same rules as the local `components/` in
+  `src/app/`** (see "Local `components/` folder naming & placement
+  (KI-010, ADR-069)" in the section `## src/app/ — App Router Structure`): files that
+  export a React component use PascalCase (`ChannelsSection.tsx`),
+  `[feature]/` folders and non-component files (helpers, data maps, etc.) stay
+  kebab-case. This rule applies to every `[feature]/` in
+  `src/components/`, not only to `components/` inside `app/`.
 
 ---
 
@@ -360,11 +363,11 @@ src/components/
 ```
 src/lib/
 ├── prisma/
-│   └── client.ts                 ← PrismaClient singleton (server-only; CRUD domain)
+│   └── client.ts                 ← PrismaClient singleton (server-only; domain CRUD)
 ├── supabase/
 │   ├── client.ts                 ← Supabase browser client (Realtime)
-│   ├── server.ts                 ← Supabase server client (Storage; bukan CRUD domain)
-│   └── middleware.ts             ← Supabase client untuk Proxy (jika diperlukan; nama file lib ini tetap "middleware.ts", tidak mengikuti rename file convention src/proxy.ts)
+│   ├── server.ts                 ← Supabase server client (Storage; not domain CRUD)
+│   └── middleware.ts             ← Supabase client for the Proxy (if needed; this lib file's name stays "middleware.ts", it does not follow the src/proxy.ts file convention rename)
 ├── better-auth/
 │   └── auth.ts                   ← Better Auth instance & config (Prisma adapter)
 ├── outstand/
@@ -378,26 +381,27 @@ src/lib/
     └── errors.ts                 ← App-level error utilities
 ```
 
-Prisma schema & migrasi berada di `apps/web/prisma/` (lihat `database-orm.md`).
+The Prisma schema & migrations are in `apps/web/prisma/` (see `database-orm.md`).
 
-**Aturan:**
-- Repository implementations ada di `src/lib/repositories/` — bukan di dalam folder domain.
-- Domain hanya mendefinisikan interface; implementasi di `lib/` menggunakan **Prisma Client** (ADR-031).
-- Supabase client **tidak** dipakai untuk CRUD domain — hanya Realtime dan Storage (`database-orm.md` DO-D02).
-- `apps/web/src/lib/supabase/client.ts`, `server.ts`, dan `middleware.ts` adalah konteks berbeda — jangan gunakan yang salah (client.ts di Server Component akan error).
+**Rules:**
+
+- Repository implementations are in `src/lib/repositories/` — not inside the domain folder.
+- The domain only defines interfaces; the implementations in `lib/` use the **Prisma Client** (ADR-031).
+- The Supabase client is **not** used for domain CRUD — only Realtime and Storage (`database-orm.md` DO-D02).
+- `apps/web/src/lib/supabase/client.ts`, `server.ts`, and `middleware.ts` are different contexts — do not use the wrong one (client.ts in a Server Component will error).
 
 ---
 
 # packages/shared — @postific/shared
 
-Package untuk shared types yang dikonsumsi lintas domain atau lintas aplikasi.
+A package for shared types consumed across domains or across applications.
 
 ```
 packages/shared/
 ├── src/
-│   ├── ids.ts                    ← Branded ID types (WorkspaceId, PostId, UserId, dll.)
-│   ├── enums.ts                  ← Shared enums (ContentStatus, MemberRole, Platform, dll.)
-│   └── value-objects.ts          ← Shared value objects (Email, URL, dll.)
+│   ├── ids.ts                    ← Branded ID types (WorkspaceId, PostId, UserId, etc.)
+│   ├── enums.ts                  ← Shared enums (ContentStatus, MemberRole, Platform, etc.)
+│   └── value-objects.ts          ← Shared value objects (Email, URL, etc.)
 ├── index.ts                      ← Barrel export
 ├── package.json                  ← { "name": "@postific/shared" }
 └── tsconfig.json
@@ -416,10 +420,11 @@ packages/shared/
 }
 ```
 
-**Aturan:**
-- `@postific/shared` tidak boleh mengimport dari `@postific/web` atau domain apapun — hanya types, enums, dan value objects murni.
-- Tambahkan ke shared hanya jika type benar-benar digunakan oleh lebih dari satu domain.
-- Jangan pindahkan business logic ke shared — shared bukan "domain umum", hanya type contracts.
+**Rules:**
+
+- `@postific/shared` must not import from `@postific/web` or any domain — only pure types, enums, and value objects.
+- Add to shared only if a type is actually used by more than one domain.
+- Do not move business logic into shared — shared is not a "common domain", only type contracts.
 
 ---
 
@@ -441,7 +446,7 @@ packages/shared/
 
 ## apps/web/tsconfig.json
 
-Extends root config dan menambahkan path aliases:
+Extends the root config and adds path aliases:
 
 ```json
 {
@@ -455,97 +460,98 @@ Extends root config dan menambahkan path aliases:
 }
 ```
 
-**Path aliases yang digunakan:**
-- `@/*` → `src/*` — import apapun dalam apps/web tanpa relative path panjang.
-- `@postific/shared` → dikonfigurasi via Bun Workspaces, tidak perlu manual alias di produksi.
+**Path aliases used:**
+
+- `@/*` → `src/*` — any import inside apps/web without long relative paths.
+- `@postific/shared` → configured via Bun Workspaces, no manual alias needed in production.
 
 ---
 
 # Import Rules
 
-Aturan ini bersumber dari BR-01 s/d BR-06 di `domain-model.md` dan wajib dipatuhi di seluruh codebase.
+These rules originate from BR-01 through BR-06 in `domain-model.md` and must be obeyed across the whole codebase.
 
-## Aturan Wajib
+## Mandatory Rules
 
-**IR-01 — Import Domain Hanya via Barrel**
+**IR-01 — Import a Domain Only via the Barrel**
 
 ```typescript
-// ✅ BENAR
-import { PublishingService } from '@/domains/publishing';
+// ✅ CORRECT
+import { PublishingService } from "@/domains/publishing";
 
-// ❌ DILARANG — import file internal domain
-import { PublishingService } from '@/domains/publishing/services/publishing-service';
+// ❌ FORBIDDEN — importing an internal domain file
+import { PublishingService } from "@/domains/publishing/services/publishing-service";
 ```
 
-**IR-02 — Domain Tidak Boleh Import Domain Lain Langsung**
+**IR-02 — A Domain Must Not Import Another Domain Directly**
 
 ```typescript
-// ✅ BENAR — domain berkomunikasi via Application Service atau service interface
-// (Orchestrasi di Application Service, bukan di domain logic)
+// ✅ CORRECT — domains communicate via an Application Service or service interface
+// (Orchestration in the Application Service, not in the domain logic)
 
-// ❌ DILARANG — domain importing domain lain
-import { WorkspaceService } from '@/domains/workspace';  // di dalam publishing/services/
+// ❌ FORBIDDEN — a domain importing another domain
+import { WorkspaceService } from "@/domains/workspace"; // inside publishing/services/
 ```
 
-**IR-03 — Domain Tidak Boleh Import dari src/lib/**
+**IR-03 — A Domain Must Not Import from src/lib/**
 
 ```typescript
-// ✅ BENAR — repository interface ada di domain, implementasi di-inject
-// Domain hanya kenal interface IPostRepository, bukan PrismaPostRepository
+// ✅ CORRECT — the repository interface is in the domain, the implementation is injected
+// The domain only knows the IPostRepository interface, not PrismaPostRepository
 
-// ❌ DILARANG
-import { prisma } from '@/lib/prisma/client';  // di dalam domain entities/
+// ❌ FORBIDDEN
+import { prisma } from "@/lib/prisma/client"; // inside domain entities/
 ```
 
-**IR-04 — Entry Points Hanya Boleh Call Application Service**
+**IR-04 — Entry Points May Only Call an Application Service**
 
 ```typescript
-// ✅ BENAR — Server Action memanggil Application Service
-import { PublishingService } from '@/domains/publishing';
+// ✅ CORRECT — a Server Action calls an Application Service
+import { PublishingService } from "@/domains/publishing";
 const service = new PublishingService(/* repo injected */);
 await service.schedulePost(input);
 
-// ❌ DILARANG — Server Action memanggil repository langsung
-import { postRepository } from '@/lib/repositories/publishing/post-repository';
+// ❌ FORBIDDEN — a Server Action calling a repository directly
+import { postRepository } from "@/lib/repositories/publishing/post-repository";
 await postRepository.save(post);
 ```
 
-**IR-05 — @postific/shared Tidak Boleh Import Apapun dari Monorepo**
+**IR-05 — @postific/shared Must Not Import Anything from the Monorepo**
 
 ```typescript
-// ✅ BENAR — shared hanya berisi types, enums, value objects murni
-export type WorkspaceId = string & { readonly __brand: 'WorkspaceId' };
+// ✅ CORRECT — shared only contains pure types, enums, value objects
+export type WorkspaceId = string & { readonly __brand: "WorkspaceId" };
 
-// ❌ DILARANG — shared mengimport dari domain atau lib
-import { something } from '@/domains/workspace';  // di dalam packages/shared/
+// ❌ FORBIDDEN — shared importing from a domain or lib
+import { something } from "@/domains/workspace"; // inside packages/shared/
 ```
 
 ---
 
 # Decision Log
 
-| ID | Keputusan | Alasan | Alternatif |
-|----|-----------|--------|-----------|
-| MS-D01 | `apps/web` sebagai satu-satunya aplikasi pada MVP | Sesuai ADR-004 Modular Monolith — satu deployment unit sampai ada alasan kuat untuk memisahkan | Multi-app sejak awal (premature separation) |
-| MS-D02 | Domain modules di `src/domains/` dalam apps/web, bukan sebagai workspace package terpisah | Domain logic tightly coupled dengan Next.js entry points di fase MVP — memisahkan ke package menambah indirection tanpa benefit nyata untuk single-app | packages/identity, packages/publishing, dst. |
-| MS-D03 | App Router routing menggunakan route group `(app)` untuk membungkus Home, Publish, Engage, Analyze, Start Page, Settings — workspace context di-resolve dari **cookie**, bukan dynamic segment URL | User tetap efektif 1 workspace (Multi Workspace Management tetap Out of Scope); dynamic segment di URL menambah kompleksitas routing tanpa manfaat nyata selama tidak ada switching antar workspace via URL. `(app)` dipilih sebagai pasangan idiomatis untuk `(auth)` (pre-login vs aplikasi utama pasca-login), konvensi Next.js yang umum dan netral terhadap detail implementasi — selaras `auth-architecture.md` (Workspace Context Resolution) | Dynamic segment workspace di URL (mis. `[slug]`); Query param `?workspace=slug` (kurang bersih, tidak SEO-friendly); nama route group lain seperti `(dashboard)`, `(workspace)` (kurang eksplisit menyandingkan `(auth)`) |
-| MS-D04 | `packages/shared` hanya untuk branded IDs, enums, dan value objects yang digunakan 2+ domain | Mencegah shared menjadi "junk drawer" — hanya types yang genuinely cross-domain | Tidak ada shared package, tiap domain define ulang (duplikasi) |
-| MS-D05 | Repository implementations ada di `src/lib/repositories/`, bukan di dalam domain folder | Domain hanya kenal interface — implementations di-inject, memudahkan testing dan penggantian infrastruktur | Repository implementation di dalam domain folder (mencampur domain logic dan infrastructure) |
-| MS-D06 | Outstand webhook route hanya ingestion; processor berjalan sebagai JOB-01 | Durable-before-ACK dan retry internal tidak bercampur dengan HTTP delivery vendor |
-| MS-D07 | `src/lib/outstand/` menjadi lokasi implementasi ACL | Semua kontrak vendor, termasuk upload media dan comments/replies, terisolasi dari domain |
-| MS-D08 | ADR-040 | MS-D06–D07 mengamandemen detail route/infrastructure Engineering Baseline |
-| MS-D09 | Default/single view section render langsung di root path (`page.tsx`), bukan named child segment (`/home`, `/engage/inbox`, `/settings/general` dihapus). Publish jadi pengecualian **permanen** — `/publish` redirect ke `/publish/calendar` (`calendar/` tetap ada sebagai folder statis) | Menutup celah 404 sistemik di root section + selaras pola navigasi profesional (GitHub, Vercel, Notion); Publish dikecualikan permanen karena satu-satunya section dengan sibling route dinamis (`[postId]`) di root — root-render di sana akan menangkap `/publish/calendar` secara salah | Redirect ke default child; shared component dua URL; root-render + rename `[postId]`; root-render + intercepting route — lihat ADR-046 (+ Amandemen Final 2026-07-29) |
+| ID     | Decision                                                                                                                                                                                                                                                                                                | Reason                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Alternatives                                                                                                                                                                                                                                           |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| MS-D01 | `apps/web` as the only application in the MVP                                                                                                                                                                                                                                                           | Per ADR-004 Modular Monolith — a single deployment unit until there is a strong reason to separate                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Multi-app from the start (premature separation)                                                                                                                                                                                                        |
+| MS-D02 | Domain modules in `src/domains/` inside apps/web, not as separate workspace packages                                                                                                                                                                                                                    | Domain logic is tightly coupled with the Next.js entry points in the MVP phase — separating into packages adds indirection without real benefit for a single app                                                                                                                                                                                                                                                                                                                                                                                                                                              | packages/identity, packages/publishing, etc.                                                                                                                                                                                                           |
+| MS-D03 | App Router routing uses the route group `(app)` to wrap Home, Publish, Engage, Analyze, Start Page, Settings — the workspace context is resolved from the **cookie**, not a dynamic URL segment                                                                                                         | The user is still effectively in 1 workspace (Multi Workspace Management stays Out of Scope); a dynamic segment in the URL adds routing complexity without real benefit as long as there is no switching between workspaces via the URL. `(app)` is chosen as the idiomatic pair for `(auth)` (pre-login vs the main post-login application), a common Next.js convention that is neutral about implementation details — aligned with `auth-architecture.md` (Workspace Context Resolution)           | A dynamic workspace segment in the URL (e.g. `[slug]`); a `?workspace=slug` query param (less clean, not SEO-friendly); other route group names like `(dashboard)`, `(workspace)` (less explicit in pairing with `(auth)`)                             |
+| MS-D04 | `packages/shared` only for branded IDs, enums, and value objects used by 2+ domains                                                                                                                                                                                                                     | Prevents shared from becoming a "junk drawer" — only types that are genuinely cross-domain                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | No shared package, each domain redefines (duplication)                                                                                                                                                                                                 |
+| MS-D05 | Repository implementations are in `src/lib/repositories/`, not inside the domain folder                                                                                                                                                                                                                 | The domain only knows interfaces — implementations are injected, easing testing and replacing infrastructure                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Repository implementation inside the domain folder (mixes domain logic and infrastructure)                                                                                                                                                             |
+| MS-D06 | The Outstand webhook route is ingestion only; the processor runs as JOB-01                                                                                                                                                                                                                              | Durable-before-ACK and internal retry are not mixed with vendor HTTP delivery                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| MS-D07 | `src/lib/outstand/` becomes the ACL implementation location                                                                                                                                                                                                                                             | All vendor contracts, including media upload and comments/replies, are isolated from the domain                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| MS-D08 | ADR-040                                                                                                                                                                                                                                                                                                 | MS-D06–D07 amend the route/infrastructure details of the Engineering Baseline                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| MS-D09 | A section's default/single view renders directly at the root path (`page.tsx`), not a named child segment (`/home`, `/engage/inbox`, `/settings/general` removed). Publish is a **permanent** exception — `/publish` redirects to `/publish/calendar` (`calendar/` stays as a static folder)         | Closes the systemic 404 gap at the section root + aligns with professional navigation patterns (GitHub, Vercel, Notion); Publish is permanently excepted because it is the only section with a dynamic sibling route (`[postId]`) at the root — root-rendering there would wrongly catch `/publish/calendar`                                                                                                                                                                                                                                                                                                   | Redirect to the default child; a shared component at two URLs; root-render + rename `[postId]`; root-render + an intercepting route — see ADR-046 (+ Final Amendment 2026-07-29)                                                                       |
 
 ---
 
 # Related Documents
 
-* `README.md` — scope dan workflow Engineering Planning
-* `deployment-infrastructure.md` — deploy & build dari root monorepo
-* `dependency-strategy.md` — versioning, lockfile, penempatan dep, aturan shared (ADR-035)
-* `dx-tooling.md` — script root dan tooling monorepo
-* `../../product-discovery/05-architecture/domain-model.md` — domain modules dan boundary rules
-* `../../product-discovery/05-architecture/application-layer.md` — layer stack dan entry point patterns
-* `../../product-discovery/05-architecture/auth-architecture.md` — Middleware workspace context
-* `../../product-discovery/04-ux/information-architecture.md` — hierarki layar (dasar routing structure)
-* `../../project-os/DECISIONS.md` — ADR-001, ADR-002, ADR-003, ADR-004, ADR-026, ADR-035
+- `README.md` — scope and workflow of Engineering Planning
+- `deployment-infrastructure.md` — deploy & build from the monorepo root
+- `dependency-strategy.md` — versioning, lockfile, dep placement, shared rules (ADR-035)
+- `dx-tooling.md` — root scripts and monorepo tooling
+- `../../product-discovery/05-architecture/domain-model.md` — domain modules and boundary rules
+- `../../product-discovery/05-architecture/application-layer.md` — layer stack and entry point patterns
+- `../../product-discovery/05-architecture/auth-architecture.md` — Middleware workspace context
+- `../../product-discovery/04-ux/information-architecture.md` — screen hierarchy (the basis of the routing structure)
+- `../../project-os/DECISIONS.md` — ADR-001, ADR-002, ADR-003, ADR-004, ADR-026, ADR-035

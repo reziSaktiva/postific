@@ -1,45 +1,45 @@
 # CI/CD Pipeline
 
-Dokumen ini mendefinisikan **pipeline Continuous Integration dan Continuous Deployment** untuk produk Postific: tooling CI, trigger, quality gates, alur promosi kode, dan kapan migrasi database dijalankan.
+This document defines the **Continuous Integration and Continuous Deployment pipeline** for the Postific product: CI tooling, triggers, quality gates, the code promotion flow, and when database migrations run.
 
-Dokumen ini menkonkretkan trigger deploy dari `deployment-infrastructure.md` (DI-D05) dan alur migrasi dari `database-orm.md` (DO-D03). Detail perintah lint/format/test ditetapkan di `dx-tooling.md` (ESLint + Prettier + Vitest, ADR-034); dokumen ini menetapkan **apa yang wajib lulus di CI**, bukan konfigurasi tool-nya.
-
----
-
-# Tujuan
-
-* Menetapkan tooling CI/CD secara definitif sebelum Repository & Bootstrap (M7).
-* Memastikan kode tidak masuk ke `staging` / `main` tanpa melewati quality gates.
-* Menyelaraskan CI dengan deploy otomatis Railway (DI-D05).
-* Menetapkan kapan dan di mana `prisma migrate deploy` dijalankan.
-* Mendefinisikan alur promosi fitur → staging → production untuk solo developer.
+This document makes the deploy trigger from `deployment-infrastructure.md` (DI-D05) and the migration flow from `database-orm.md` (DO-D03) concrete. The details of the lint/format/test commands are set in `dx-tooling.md` (ESLint + Prettier + Vitest, ADR-034); this document sets **what must pass in CI**, not the tool configuration.
 
 ---
 
-# Keputusan yang Sudah Terkunci (dari Baseline)
+# Goals
 
-| Topik | Keputusan | Sumber |
-|-------|-----------|--------|
-| Deploy platform | Railway | pra-architecture, ADR-029 |
-| Deploy trigger | Push `staging` → staging; push `main` → production | DI-D05 |
-| Runtime / package manager | Bun | ADR-002 |
-| Monorepo | Hybrid — build dari root, unit deploy `apps/web` | ADR-026 |
-| Migrasi skema | Prisma Migrate; staging dulu lalu production | DO-D03, DI-D03 |
-| Rollback app | Redeploy deployment Railway sebelumnya | DI-D06 |
+- Fix the CI/CD tooling definitively before Repository & Bootstrap (M7).
+- Ensure code does not enter `staging` / `main` without passing the quality gates.
+- Align CI with Railway auto-deploy (DI-D05).
+- Set when and where `prisma migrate deploy` runs.
+- Define the feature → staging → production promotion flow for a solo developer.
 
 ---
 
-# Keputusan CI/CD (Ditetapkan di Dokumen Ini)
+# Locked Decisions (from Baseline)
 
-| ID | Topik | Keputusan |
-|----|-------|-----------|
-| CI-D01 | CI tooling | **GitHub Actions** — workflow di `.github/workflows/` |
-| CI-D02 | Quality gates (PR) | Wajib lulus sebelum merge: **install → prisma generate → prisma validate → typecheck → lint → test**. Gerbang E2E untuk promosi ke `main` ada di CI-D07 (ADR-149) |
-| CI-D03 | Branch & promosi | `feature/*` → PR ke `staging` → verifikasi → PR `staging` ke `main` |
-| CI-D04 | CD (deploy) | Tetap **Railway auto-deploy** dari branch (bukan deploy dari GitHub Actions) |
-| CI-D05 | Migrasi DB | `prisma migrate deploy` di **Railway release/pre-start** per environment (`DIRECT_URL`) — bukan di job PR |
-| CI-D06 | Secrets di CI | PR CI **tidak** membutuhkan secret produksi; secret DB/migrate hanya di Railway (dan opsional mirror staging di GitHub Secrets jika nanti ada job migrate terpisah). **Amandemen ADR-149:** job E2E (CI-D07) memakai GitHub Secrets akun test staging, hanya pada `pull_request` dari branch `staging` ke `main` (ADR-150) |
-| CI-D07 | Gerbang E2E *(ADR-149)* | Playwright (Chrome) terhadap **staging setelah deploy** pada `pull_request` ke `main` (head `staging`, ADR-150; `push` ke `staging` tidak dipakai karena Railway "Wait for CI" menunggu workflow itu sementara workflow menunggu deploy); hijau menjadi required check untuk PR `staging` → `main` (**ditunda sampai MVP public launch, T-088.1, ADR-151**; sementara hanya "Quality gates" yang wajib). PR `feature/*` → `staging` tidak diblokir E2E di CI; penulis tiket menjalankan suite di local dan melaporkannya di PR. Spec: S-002 |
+| Topic                     | Decision                                                      | Source                    |
+| ------------------------- | ------------------------------------------------------------- | ------------------------- |
+| Deploy platform           | Railway                                                       | pre-architecture, ADR-029 |
+| Deploy trigger            | Push `staging` → staging; push `main` → production            | DI-D05                    |
+| Runtime / package manager | Bun                                                           | ADR-002                   |
+| Monorepo                  | Hybrid — build from root, deploy unit `apps/web`              | ADR-026                   |
+| Schema migrations         | Prisma Migrate; staging first, then production                | DO-D03, DI-D03            |
+| App rollback              | Redeploy the previous Railway deployment                      | DI-D06                    |
+
+---
+
+# CI/CD Decisions (Set in This Document)
+
+| ID     | Topic                  | Decision                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ------ | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CI-D01 | CI tooling             | **GitHub Actions** — workflows in `.github/workflows/`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| CI-D02 | Quality gates (PR)     | Must pass before merge: **install → prisma generate → prisma validate → typecheck → lint → test**. The E2E gate for promotion to `main` is in CI-D07 (ADR-149)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| CI-D03 | Branch & promotion     | `feature/*` → PR to `staging` → verification → PR `staging` to `main`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| CI-D04 | CD (deploy)            | Stays **Railway auto-deploy** from the branch (not a deploy from GitHub Actions)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| CI-D05 | DB migration           | `prisma migrate deploy` in the **Railway release/pre-start** per environment (`DIRECT_URL`) — not in the PR job                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| CI-D06 | Secrets in CI          | PR CI does **not** need production secrets; DB/migrate secrets live only in Railway (and optionally a staging mirror in GitHub Secrets if a separate migrate job is added later). **ADR-149 amendment:** the E2E job (CI-D07) uses GitHub Secrets for the staging test account, only on `pull_request` from the `staging` branch to `main` (ADR-150)                                                                                                                                                                                                                                                                                                            |
+| CI-D07 | E2E gate _(ADR-149)_   | Playwright (Chrome) against **staging after deploy** on `pull_request` to `main` (head `staging`, ADR-150; `push` to `staging` is not used because Railway "Wait for CI" waits for that workflow while the workflow waits for the deploy); green becomes a required check for the `staging` → `main` PR (**deferred until MVP public launch, T-088.1, ADR-151**; until then only "Quality gates" is required). `feature/*` → `staging` PRs are not blocked by E2E in CI; the ticket author runs the suite locally and reports it in the PR. Spec: S-002                                                                                                          |
 
 ---
 
@@ -57,10 +57,10 @@ Dokumen ini menkonkretkan trigger deploy dari `deployment-infrastructure.md` (DI
                                         └──────────┘   migrate+web   └─────────────┘
 ```
 
-1. **CI (GitHub Actions)** — memvalidasi kualitas pada setiap Pull Request menuju `staging` atau `main`.
-2. **Merge** — hanya setelah gates hijau (branch protection).
-3. **CD (Railway)** — push ke branch environment memicu build & deploy `web` + `cron`.
-4. **Migrate** — sebelum aplikasi baru melayani traffic, Railway menjalankan `prisma migrate deploy` terhadap project Supabase environment tersebut.
+1. **CI (GitHub Actions)** — validates quality on every Pull Request toward `staging` or `main`.
+2. **Merge** — only after the gates are green (branch protection).
+3. **CD (Railway)** — a push to an environment branch triggers the build & deploy of `web` + `cron`.
+4. **Migrate** — before the new application serves traffic, Railway runs `prisma migrate deploy` against that environment's Supabase project.
 
 ---
 
@@ -68,177 +68,180 @@ Dokumen ini menkonkretkan trigger deploy dari `deployment-infrastructure.md` (DI
 
 ## Trigger
 
-| Event | Branch target | Tujuan |
-|-------|---------------|--------|
-| `pull_request` | `staging`, `main` | Quality gates sebelum merge |
-| `push` (opsional) | `staging`, `main` | Re-run gates setelah merge (visibility); **bukan** pengganti Railway deploy |
-| `pull_request` | `main` (head `staging`) | Workflow E2E Playwright terhadap staging setelah deploy (CI-D07, ADR-149, S-002); hijau menjadi required check untuk PR `staging` → `main`. "Setelah deploy" = workflow menunggu status deployment GitHub `Postific / staging` (dari Railway) untuk SHA commit itu berstatus `success` |
+| Event                | Target branch       | Purpose                                                                                                                                                                                                                                                                                                                  |
+| -------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `pull_request`       | `staging`, `main`   | Quality gates before merge                                                                                                                                                                                                                                                                                               |
+| `push` (optional)    | `staging`, `main`   | Re-run the gates after merge (visibility); **not** a replacement for the Railway deploy                                                                                                                                                                                                                                  |
+| `pull_request`       | `main` (head `staging`) | Playwright E2E workflow against staging after deploy (CI-D07, ADR-149, S-002); green becomes a required check for the `staging` → `main` PR. "After deploy" = the workflow waits for the GitHub deployment status `Postific / staging` (from Railway) for that commit SHA to be `success`                             |
 
-Deploy aplikasi **tidak** dipicu dari GitHub Actions (CI-D04).
+Application deploys are **not** triggered from GitHub Actions (CI-D04).
 
 ## Jobs & Gates (MVP)
 
-Satu workflow utama (mis. `ci.yml`) dengan steps berurutan:
+One main workflow (e.g. `ci.yml`) with sequential steps:
 
-| Step | Perintah (acuan) | Gagal = blokir merge |
-|------|------------------|----------------------|
-| Checkout | `actions/checkout` | ya |
-| Setup Bun | versi selaras ADR-002 / M7 | ya |
-| Install | `bun install --frozen-lockfile` di root | ya |
-| Prisma generate | `bunx prisma generate` (di `apps/web`) | ya |
-| Prisma validate | `bunx prisma validate` | ya |
-| Typecheck | `bun run typecheck` | ya |
-| Lint | `bun run lint` — detail rule di `dx-tooling.md` | ya |
-| Test | `bun run test` — unit/domain tests; boleh suite minimal di awal M8 | ya |
+| Step            | Command (reference)                                                         | Failure = blocks merge |
+| --------------- | --------------------------------------------------------------------------- | ---------------------- |
+| Checkout        | `actions/checkout`                                                          | yes                    |
+| Setup Bun       | version aligned with ADR-002 / M7                                           | yes                    |
+| Install         | `bun install --frozen-lockfile` at the root                                 | yes                    |
+| Prisma generate | `bunx prisma generate` (in `apps/web`)                                      | yes                    |
+| Prisma validate | `bunx prisma validate`                                                      | yes                    |
+| Typecheck       | `bun run typecheck`                                                         | yes                    |
+| Lint            | `bun run lint` — rule details in `dx-tooling.md`                            | yes                    |
+| Test            | `bun run test` — unit/domain tests; a minimal suite is fine early in M8     | yes                    |
 
-**Di luar scope MVP CI:**
-- E2E browser di job PR (`pull_request`). E2E berjalan sebagai gerbang terpisah terhadap staging (CI-D07, ADR-149).
-- Deploy preview Railway per-PR — ditolak di ADR-029.
-- `prisma migrate deploy` terhadap staging/prod dari job PR — terlalu berbahaya dan tidak perlu (CI-D05).
+**Outside the scope of MVP CI:**
 
-## Branch Protection (disarankan)
+- Browser E2E in the PR job (`pull_request`). E2E runs as a separate gate against staging (CI-D07, ADR-149).
+- Railway per-PR deploy previews — rejected in ADR-029.
+- `prisma migrate deploy` against staging/prod from the PR job — too dangerous and unnecessary (CI-D05).
 
-Pada `staging` dan `main`:
-- Require PR sebelum merge.
-- Require status check CI hijau.
-- Tidak force-push ke `main` / `staging`.
+## Branch Protection (recommended)
 
-Untuk solo developer, protection tetap berguna sebagai pengaman terhadap merge tidak sengaja dan sebagai dokumentasi living dari gates.
+On `staging` and `main`:
+
+- Require a PR before merge.
+- Require the CI status check to be green.
+- No force-push to `main` / `staging`.
+
+For a solo developer, protection is still useful as a safeguard against accidental merges and as living documentation of the gates.
 
 ---
 
-# Branch Strategy & Promosi (CI-D03)
+# Branch Strategy & Promotion (CI-D03)
 
-| Branch | Peran |
-|--------|--------|
-| `feature/<nama>` atau `fix/<nama>` | Kerja harian; tidak auto-deploy ke Railway environment persisten |
-| `staging` | Integrasi pra-rilis; auto-deploy ke Railway **staging** |
-| `main` | Produksi; auto-deploy ke Railway **production** |
+| Branch                        | Role                                                                      |
+| ----------------------------- | ------------------------------------------------------------------------- |
+| `feature/<name>` or `fix/<name>` | Daily work; does not auto-deploy to a persistent Railway environment   |
+| `staging`                     | Pre-release integration; auto-deploys to Railway **staging**              |
+| `main`                        | Production; auto-deploys to Railway **production**                        |
 
-**Alur rilis MVP:**
+**MVP release flow:**
 
 ```
-1. Kerjakan di feature/*
-2. Buka PR → staging
-3. CI gates harus hijau → merge
+1. Work on feature/*
+2. Open a PR → staging
+3. CI gates must be green → merge
 4. Railway staging deploy + prisma migrate deploy (staging DIRECT_URL)
-5. Verifikasi manual di staging (smoke: login, alur kritis)
-6. Buka PR staging → main
-7. CI gates hijau → merge
+5. Manual verification on staging (smoke: login, critical flows)
+6. Open a PR staging → main
+7. CI gates green → merge
 8. Railway production deploy + prisma migrate deploy (production DIRECT_URL)
 ```
 
-Hotfix darurat: boleh branch dari `main`, PR langsung ke `main` **hanya** jika perubahan kecil dan sudah diverifikasi; migrasi breaking tetap harus expand-and-contract (DI-D06).
+Emergency hotfix: may branch from `main` with a PR directly to `main` **only** if the change is small and already verified; breaking migrations must still be expand-and-contract (DI-D06).
 
 ---
 
 # Continuous Deployment — Railway (CI-D04)
 
-Selaras DI-D05 — tidak diulang sebagai keputusan baru:
+Aligned with DI-D05 — not repeated as a new decision:
 
-| Branch | Railway environment | Services |
-|--------|---------------------|----------|
-| `staging` | staging | `web` + `cron` |
-| `main` | production | `web` + `cron` |
+| Branch    | Railway environment | Services       |
+| --------- | ------------------- | -------------- |
+| `staging` | staging             | `web` + `cron` |
+| `main`    | production          | `web` + `cron` |
 
-Build notes monorepo (install di root, start `apps/web`) tetap mengikuti `deployment-infrastructure.md`.
+Monorepo build notes (install at the root, start `apps/web`) still follow `deployment-infrastructure.md`.
 
-**Pemisahan tanggung jawab:**
-- GitHub Actions = **kualitas kode**.
-- Railway = **build artefak + jalankan service + migrasi DB environment**.
+**Separation of responsibilities:**
+
+- GitHub Actions = **code quality**.
+- Railway = **build the artifact + run the services + migrate the environment's DB**.
 
 ---
 
-# Database Migration di Pipeline (CI-D05)
+# Database Migration in the Pipeline (CI-D05)
 
-## Di mana migrate dijalankan
+## Where migrate runs
 
-`prisma migrate deploy` dijalankan sebagai **langkah release / pre-start** pada service `web` di Railway (setiap environment memakai `DIRECT_URL`-nya sendiri).
+`prisma migrate deploy` runs as a **release / pre-start step** on the `web` service in Railway (each environment uses its own `DIRECT_URL`).
 
-Contoh urutan start (acuan M7):
+Example start sequence (M7 reference):
 
 ```bash
-bunx prisma migrate deploy   # membutuhkan DIRECT_URL
+bunx prisma migrate deploy   # requires DIRECT_URL
 bun run --cwd apps/web start
 ```
 
-Atau setara Railway Release Command jika dipisah dari Start Command.
+Or the Railway Release Command equivalent if it is split from the Start Command.
 
-## Apa yang tidak dilakukan
+## What is not done
 
-| Anti-pattern | Alasan |
-|--------------|--------|
-| Migrate dari job PR | PR belum tentu di-merge; risiko menulis ke DB bersama dari fork/branch eksperimental |
-| Migrate hanya manual lewat laptop ke production | Rawan terlupa; tidak reproducible |
-| `prisma migrate reset` di staging/prod bersama | Menghapus data |
+| Anti-pattern                                   | Reason                                                                                    |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Migrate from the PR job                        | A PR is not necessarily merged; risk of writing to the shared DB from a fork/experimental branch |
+| Migrate only manually from a laptop to production | Easy to forget; not reproducible                                                       |
+| `prisma migrate reset` on shared staging/prod  | Deletes data                                                                              |
 
-## Urutan aman dengan dua environment
+## Safe order with two environments
 
-1. Migration file sudah ada di Git (hasil `migrate dev` lokal).
-2. Merge ke `staging` → Railway staging menjalankan `migrate deploy` → verifikasi.
-3. Merge ke `main` → Railway production menjalankan `migrate deploy`.
+1. The migration file is already in Git (the result of a local `migrate dev`).
+2. Merge to `staging` → Railway staging runs `migrate deploy` → verify.
+3. Merge to `main` → Railway production runs `migrate deploy`.
 
-Ini mengejawantahkan alur di `database-orm.md` langkah 4–7.
+This embodies the flow in `database-orm.md` steps 4–7.
 
 ---
 
 # Secrets & Environment (CI-D06)
 
-| Lokasi | Isi | Dipakai untuk |
-|--------|-----|----------------|
-| GitHub Actions (PR CI) | Tidak wajib secret app/DB untuk MVP gates | typecheck/lint/test/validate bersifat lokal di runner |
-| Railway staging | Seluruh env staging (`DATABASE_URL`, `DIRECT_URL`, auth, Outstand, …) | runtime + migrate staging |
-| Railway production | Seluruh env production | runtime + migrate production |
+| Location               | Contents                                                              | Used for                                                           |
+| ---------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| GitHub Actions (PR CI) | No app/DB secrets required for the MVP gates                          | typecheck/lint/test/validate are local to the runner               |
+| Railway staging        | All staging env (`DATABASE_URL`, `DIRECT_URL`, auth, Outstand, …)     | staging runtime + migrate                                          |
+| Railway production     | All production env                                                    | production runtime + migrate                                       |
 
-Detail katalog env var: `environment-management.md`.  
-CI tidak menjadi tempat menyimpan `SUPABASE_SERVICE_ROLE_KEY` atau `DIRECT_URL` production.
+Env var catalog details: `environment-management.md`.  
+CI is not a place to store the production `SUPABASE_SERVICE_ROLE_KEY` or `DIRECT_URL`.
 
-Jika di masa depan ditambah job “migrate-only” di GitHub Actions, secret harus di-scope per environment dan job hanya jalan pada `push` ke branch terkait — bukan pada `pull_request` dari fork.
-
----
-
-# Failure & Rollback di Pipeline
-
-| Kegagalan | Tindakan |
-|-----------|----------|
-| CI merah di PR | Jangan merge; perbaiki di feature branch |
-| Build Railway gagal | Deployment baru tidak menggantikan yang sehat (Railway); perbaiki dan push ulang |
-| `migrate deploy` gagal | App start dihentikan; perbaiki migration (forward-fix), jangan reset DB bersama |
-| App buruk setelah deploy sukses | Rollback app via redeploy Railway sebelumnya (DI-D06); pastikan skema tetap compatible (expand-and-contract) |
+If a "migrate-only" job is added to GitHub Actions in the future, the secrets must be scoped per environment and the job may run only on `push` to the related branch — not on `pull_request` from a fork.
 
 ---
 
-# Artefak yang Diharapkan di M7
+# Failure & Rollback in the Pipeline
 
-Saat Repository & Bootstrap:
+| Failure                          | Action                                                                                                                     |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| CI red on a PR                   | Do not merge; fix on the feature branch                                                                                    |
+| Railway build fails              | The new deployment does not replace the healthy one (Railway); fix and push again                                          |
+| `migrate deploy` fails           | App start is halted; fix the migration (forward-fix), do not reset the shared DB                                           |
+| Bad app after a successful deploy | Roll back the app via a redeploy of the previous Railway deployment (DI-D06); ensure the schema stays compatible (expand-and-contract) |
 
-* `.github/workflows/ci.yml` — gates CI-D02.
-* Branch protection rules pada `staging` dan `main`.
-* Railway: mapping branch → environment; Release/Start command mencakup `prisma migrate deploy`.
-* Script root `package.json`: `typecheck`, `lint`, `test` (isi konkret di `dx-tooling.md`).
+---
+
+# Artifacts Expected in M7
+
+During Repository & Bootstrap:
+
+- `.github/workflows/ci.yml` — CI-D02 gates.
+- Branch protection rules on `staging` and `main`.
+- Railway: branch → environment mapping; the Release/Start command includes `prisma migrate deploy`.
+- Root `package.json` scripts: `typecheck`, `lint`, `test` (concrete contents in `dx-tooling.md`).
 
 ---
 
 # Decision Log
 
-| ID | Keputusan | Alasan | Alternatif |
-|----|-----------|--------|-----------|
-| CI-D01 | GitHub Actions sebagai CI | Native ke GitHub, cukup untuk monorepo Bun, tanpa platform CI tambahan | Railway CI saja (gates lemah sebelum merge); CircleCI/other (overhead untuk solo MVP) |
-| CI-D02 | Gates: install, prisma generate/validate, typecheck, lint, test | Menangkap error tipe/skema/style sebelum masuk branch deploy | Hanya typecheck (terlalu longgar); wajib E2E di setiap PR (berat untuk MVP) |
-| CI-D03 | Promosi feature → staging → main | Staging sebagai mirror uji (DI-D02) sebelum production | Langsung feature → main (mengorbankan tempat uji aman) |
-| CI-D04 | CD tetap di Railway auto-deploy | Sudah dikunci DI-D05; hindari dua sistem deploy | Deploy dari GitHub Actions ke Railway API (duplikasi kontrol) |
-| CI-D05 | `migrate deploy` di Railway release/pre-start | Migrate terikat environment yang sama dengan kode yang di-deploy; staging dulu lalu prod | Migrate di GitHub Actions (perlu secret DB di GitHub); migrate manual |
-| CI-D06 | Secret sensitif tidak di PR CI | Minimalkan blast radius; Railway sudah punya env per environment. *Amandemen ADR-149/ADR-150:* secret akun test staging hanya dipakai job E2E pada PR dari branch `staging` ke `main` | Mirror semua secret ke GitHub Secrets sejak MVP |
-| CI-D07 | Gerbang E2E Playwright terhadap staging setelah deploy (ADR-149) | Local dan staging berbagi satu DB (ADR-081), Outstand butuh API key asli (ADR-119), dan tidak ada preview per-PR (ADR-029); menguji staging adalah cara menjalankan kode yang benar-benar ter-deploy tanpa secret di PR CI | E2E di setiap PR (secret di PR CI, DB bersama tercemar); Postgres service container (fitur Supabase/Outstand tak bisa diuji, fake adapter dilarang) |
+| ID     | Decision                                                                    | Reason                                                                                                                                                                                                                                                                                       | Alternatives                                                                                                                                                         |
+| ------ | --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CI-D01 | GitHub Actions as CI                                                        | Native to GitHub, enough for a Bun monorepo, no extra CI platform                                                                                                                                                                                                                            | Railway CI only (weak gates before merge); CircleCI/other (overhead for a solo MVP)                                                                                  |
+| CI-D02 | Gates: install, prisma generate/validate, typecheck, lint, test             | Catches type/schema/style errors before they enter a deploy branch                                                                                                                                                                                                                           | Typecheck only (too loose); mandatory E2E on every PR (heavy for the MVP)                                                                                            |
+| CI-D03 | Promotion feature → staging → main                                          | Staging as the test mirror (DI-D02) before production                                                                                                                                                                                                                                        | Straight feature → main (gives up a safe place to test)                                                                                                              |
+| CI-D04 | CD stays on Railway auto-deploy                                             | Already locked by DI-D05; avoid two deploy systems                                                                                                                                                                                                                                           | Deploy from GitHub Actions to the Railway API (duplicated control)                                                                                                   |
+| CI-D05 | `migrate deploy` in the Railway release/pre-start                           | Migrate is bound to the same environment as the deployed code; staging first, then prod                                                                                                                                                                                                      | Migrate in GitHub Actions (needs DB secrets in GitHub); manual migrate                                                                                               |
+| CI-D06 | Sensitive secrets not in PR CI                                              | Minimize the blast radius; Railway already has env per environment. _ADR-149/ADR-150 amendment:_ the staging test account secrets are used only by the E2E job on PRs from the `staging` branch to `main`                                                                                    | Mirror all secrets to GitHub Secrets from the MVP                                                                                                                    |
+| CI-D07 | Playwright E2E gate against staging after deploy (ADR-149)                  | Local and staging share one DB (ADR-081), Outstand needs a real API key (ADR-119), and there is no per-PR preview (ADR-029); testing staging is the way to run the code that is actually deployed without secrets in PR CI                                                                    | E2E on every PR (secrets in PR CI, shared DB polluted); Postgres service container (Supabase/Outstand features cannot be tested, fake adapter forbidden)             |
 
 ---
 
 # Related Documents
 
-* `README.md` — scope dan workflow Engineering Planning
-* `deployment-infrastructure.md` — DI-D05 deploy trigger, Railway services, rollback
-* `database-orm.md` — Prisma Migrate, `DIRECT_URL`, alur staging → production
-* `environment-management.md` — katalog env vars & secrets (ADR-033)
-* `dx-tooling.md` — perintah lint/format/test konkret (ADR-034)
-* `monorepo-setup.md` — scripts root workspace
-* `../../project-os/DECISIONS.md` — ADR-029, ADR-032
+- `README.md` — scope and workflow of Engineering Planning
+- `deployment-infrastructure.md` — DI-D05 deploy trigger, Railway services, rollback
+- `database-orm.md` — Prisma Migrate, `DIRECT_URL`, staging → production flow
+- `environment-management.md` — env vars & secrets catalog (ADR-033)
+- `dx-tooling.md` — concrete lint/format/test commands (ADR-034)
+- `monorepo-setup.md` — root workspace scripts
+- `../../project-os/DECISIONS.md` — ADR-029, ADR-032
