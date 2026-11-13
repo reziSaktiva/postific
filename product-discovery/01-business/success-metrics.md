@@ -105,7 +105,7 @@ The product is considered successful when it:
 # Notes on Applying the Metrics
 
 The project's current status/phase lives only in `project-os/PROJECT_STATE.md`
-(rule 10, AGENTS.md) — it is not duplicated here. While the product is still
+(rule 7, AGENTS.md) — it is not duplicated here. While the product is still
 in the planning and development stage, all the metrics above serve as
 evaluation targets for the future.
 
