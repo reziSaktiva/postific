@@ -157,15 +157,15 @@ Born from the T-266 language audit (T-266.10). The Indonesian originals already 
 
 ### T-267 · Review the context/ pilot and decide the remaining scope questions
 
-`⏳ Todo` · **Mode** HITL · **Verifikasi** lokal · **Domain** project-os, agen · **ADR** ADR-133, ADR-163 · **Spec** S-007 · **Depends** T-266
+`✅ Done (code) (2026-11-13, keputusan King Rezi)` · **Mode** HITL · **Verifikasi** lokal · **Domain** project-os, agen · **ADR** ADR-133, ADR-163 · **Spec** S-007 · **Depends** T-266
 **Baca dulu:** `project-os/specs/S-007.md` · hasil T-266
 
 Gerbang sebelum cakupan B berlanjut. Hasil percobaan dilaporkan ke King Rezi, lalu pertanyaan cakupan yang belum dijawab diputuskan.
 
-- [ ] **T-267.1** Laporan hasil T-266 untuk King Rezi: biaya token, temuan perbandingan, hal yang diubah selama percobaan.
-- [ ] **T-267.2** King Rezi memutuskan apakah cakupan B dilanjutkan, dan dengan penyesuaian apa.
-- [ ] **T-267.3** King Rezi memutuskan berkas yang belum disebut keputusan 2 S-007: indeks ADR `DECISIONS.md` (ringkasan memuat isi keputusan), `BRAINSTORM.md`, `QA_TEST_ACCOUNTS.md`, dan spec yang belum selesai (S-005, S-006).
-- [ ] **T-267.4** Keputusan itu dicatat di S-007 dan tiket T-268 sampai T-277 disesuaikan.
+- [x] **T-267.1** `(2026-11-13)` Laporan hasil T-266 untuk King Rezi: biaya token, temuan perbandingan, hal yang diubah selama percobaan.
+- [x] **T-267.2** `(2026-11-13, "Continue as planned")` King Rezi memutuskan apakah cakupan B dilanjutkan, dan dengan penyesuaian apa.
+- [x] **T-267.3** `(2026-11-13, semua empat berkas diterjemahkan: DECISIONS.md, BRAINSTORM.md, QA_TEST_ACCOUNTS.md, S-005 dan S-006)` King Rezi memutuskan berkas yang belum disebut keputusan 2 S-007: indeks ADR `DECISIONS.md` (ringkasan memuat isi keputusan), `BRAINSTORM.md`, `QA_TEST_ACCOUNTS.md`, dan spec yang belum selesai (S-005, S-006).
+- [x] **T-267.4** `(2026-11-13)` Keputusan itu dicatat di S-007 dan tiket T-268 sampai T-277 disesuaikan.
 
 **Belum terbukti:** tidak ada butir runtime.
 
@@ -272,10 +272,10 @@ Folder `product-discovery/06-engineering/` (12 berkas, 3.581 baris). Satu berkas
 `⏳ Todo` · **Mode** AFK · **Verifikasi** lokal · **Domain** project-os, agen · **ADR** ADR-133, ADR-163 · **Spec** S-007 · **Depends** T-267, T-265
 **Baca dulu:** `project-os/specs/S-007.md` · `project-os/PROJECT_RULES.md` · `project-os/ARCHITECTURE_OVERVIEW.md` · `project-os/PROJECT_OVERVIEW.md` · `project-os/DEVELOPER_WORKFLOW.md` · `project-os/README.md`
 
-Aturan dan ringkasan di `project-os/` tingkat atas yang jarang diedit gelombang. Berkas yang diputuskan di T-267 (`DECISIONS.md`, `BRAINSTORM.md`, `QA_TEST_ACCOUNTS.md`) ikut tiket ini hanya bila jawabannya ya. `PROJECT_STATE.md` dan `AVAILABLE_TICKETS.md` ada di T-275, bukan di sini.
+Aturan dan ringkasan di `project-os/` tingkat atas yang jarang diedit gelombang. Berkas yang diputuskan di T-267 (`DECISIONS.md`, `BRAINSTORM.md`, `QA_TEST_ACCOUNTS.md`, spec S-005 dan S-006) ikut tiket ini; jawaban King Rezi 2026-11-13: ya untuk semuanya. `PROJECT_STATE.md` dan `AVAILABLE_TICKETS.md` ada di T-275, bukan di sini.
 
 - [ ] **T-274.1** Lima berkas di atas utuh dalam bahasa Inggris dan memakai kata kunci Inggris (T-264, T-265). Pengecualian Append-Only di `PROJECT_RULES.md` dipertahankan maknanya dan menunjuk T-264.
-- [ ] **T-274.2** Berkas tambahan dari keputusan T-267, bila ada, diterjemahkan utuh.
+- [ ] **T-274.2** Berkas tambahan dari keputusan T-267 (2026-11-13: ya untuk semuanya) diterjemahkan utuh: `project-os/DECISIONS.md`, `project-os/BRAINSTORM.md`, `project-os/QA_TEST_ACCOUNTS.md`, `project-os/specs/S-005.md`, `project-os/specs/S-006.md`. S-005 dan S-006 belum selesai: kerjakan hanya setelah memeriksa cabang gelombang yang masih menyunting keduanya (lihat `wave-plan` langkah konflik berkas).
 - [ ] **T-274.3** Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
 - [ ] **T-274.4** Perbandingan penuh oleh agen independen (dokumen berbentuk aturan).
 - [ ] **T-274.5** `bun run docs:check` bersih.
