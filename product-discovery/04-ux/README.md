@@ -1,38 +1,38 @@
 # 04 — UX
 
-Dokumentasi pada folder ini berfokus pada **UX Planning** untuk produk **Postific**, mencakup prinsip desain, arsitektur informasi, user flows (solution-state), pola navigasi, dan pola layar utama.
+The documentation in this folder focuses on **UX Planning** for the **Postific** product, covering design principles, information architecture, user flows (solution-state), navigation patterns, and key screen patterns.
 
-Seluruh dokumentasi pada folder ini harus mengacu pada **Business Baseline v1.0**, **Product Baseline v1.0**, dan **User Discovery Baseline v1.0** yang telah disepakati. UX Planning berfungsi menerjemahkan insight pengguna menjadi keputusan desain yang dapat dijadikan acuan implementasi, tanpa masuk ke detail visual atau kode.
+All documentation in this folder must refer to the agreed **Business Baseline v1.0**, **Product Baseline v1.0**, and **User Discovery Baseline v1.0**. UX Planning translates user insights into design decisions that can serve as a reference for implementation, without going into visual detail or code.
 
 ---
 
-# Tujuan
+# Goals
 
-* Menetapkan prinsip UX yang selaras dengan insight pengguna dan keputusan produk.
-* Mendefinisikan arsitektur informasi: struktur navigasi dan hierarki layar.
-* Menyusun user flows (solution flows) berdasarkan current-state journey.
-* Mendokumentasikan pola layar utama untuk keputusan pengembangan.
-* Menjaga konsistensi keputusan UX dengan Business, Product, dan User Baseline.
+* Set UX principles that align with user insights and product decisions.
+* Define the information architecture: navigation structure and screen hierarchy.
+* Draft user flows (solution flows) based on the current-state journey.
+* Document the key screen patterns for development decisions.
+* Keep UX decisions consistent with the Business, Product, and User Baselines.
 
 ---
 
 # Scope
 
-Folder ini hanya membahas **UX Planning**.
+This folder covers **UX Planning** only.
 
-Topik yang termasuk dalam scope:
+Topics in scope:
 
-* UX Principles — prinsip desain yang menjadi panduan seluruh keputusan UX.
-* Information Architecture — struktur navigasi, hierarki layar, dan pengelompokan konten.
-* User Flows — alur solusi dari perspektif pengguna untuk setiap pekerjaan inti.
-* Navigation Patterns — model navigasi utama dan pendukung.
-* Key Screen Patterns — pola utama layar beserta komponen fungsi kritis.
-* UX Decisions — keputusan desain yang memengaruhi arah arsitektur atau pengembangan.
+* UX Principles — design principles that guide all UX decisions.
+* Information Architecture — navigation structure, screen hierarchy, and content grouping.
+* User Flows — solution flows from the user's perspective for each core job.
+* Navigation Patterns — the primary and supporting navigation models.
+* Key Screen Patterns — the main screen patterns along with their critical-function components.
+* UX Decisions — design decisions that affect the direction of architecture or development.
 
-Topik berikut **tidak dibahas** pada folder ini:
+The following topics are **not covered** in this folder:
 
-* Wireframe detail (high-fidelity)
-* Prototype interaktif
+* Detailed wireframes (high-fidelity)
+* Interactive prototypes
 * UI Design (visual design, color, typography, branding)
 * Component library
 * Technical Architecture
@@ -42,19 +42,19 @@ Topik berikut **tidak dibahas** pada folder ini:
 
 ---
 
-# Daftar Dokumen
+# Document List
 
-* `ux-principles.md` — prinsip desain yang mengatur seluruh keputusan UX.
-* `information-architecture.md` — struktur navigasi, hierarki layar, dan pengelompokan fitur.
-* `user-flows.md` — alur solusi untuk pekerjaan inti pengguna.
-* `navigation-patterns.md` — model navigasi utama dan pola perpindahan layar.
-* `key-screen-patterns.md` — pola fungsi kritis pada layar utama.
+* `ux-principles.md` — design principles that govern all UX decisions.
+* `information-architecture.md` — navigation structure, screen hierarchy, and feature grouping.
+* `user-flows.md` — solution flows for the user's core jobs.
+* `navigation-patterns.md` — the primary navigation model and screen-transition patterns.
+* `key-screen-patterns.md` — critical-function patterns on the key screens.
 
 ---
 
 # UX Planning Workflow
 
-Seluruh proses UX Planning mengikuti alur berikut:
+The whole UX Planning process follows this flow:
 
 ```text
 User Discovery Insights
@@ -72,92 +72,92 @@ Key Screen Patterns
 Architecture Discovery Input
 ```
 
-Keputusan UX tidak otomatis mengubah Business atau Product Baseline. Perubahan pada Target Market, Problem Statement, Product Scope, atau MVP harus melalui proses review dan dokumentasi ADR.
+UX decisions do not automatically change the Business or Product Baseline. Changes to Target Market, Problem Statement, Product Scope, or MVP must go through a review process and ADR documentation.
 
 ---
 
-# Cara Menggunakan
+# How to Use
 
-1. Mulai dari `ux-principles.md` untuk menetapkan panduan keputusan desain.
-2. Definisikan struktur aplikasi pada `information-architecture.md`.
-3. Susun user flows berdasarkan pekerjaan inti pengguna pada `user-flows.md`.
-4. Dokumentasikan model navigasi pada `navigation-patterns.md`.
-5. Petakan pola fungsi kritis pada `key-screen-patterns.md`.
-6. Gunakan seluruh dokumen sebagai input Architecture Discovery.
+1. Start with `ux-principles.md` to set the design decision guidance.
+2. Define the application structure in `information-architecture.md`.
+3. Draft user flows based on the user's core jobs in `user-flows.md`.
+4. Document the navigation model in `navigation-patterns.md`.
+5. Map the critical-function patterns in `key-screen-patterns.md`.
+6. Use all documents as input to Architecture Discovery.
 
 ---
 
-# Input dari Fase Sebelumnya
+# Input from Previous Phases
 
-UX Planning dibangun di atas fondasi berikut.
+UX Planning is built on the following foundation.
 
-## Dari User Discovery Baseline v1.0
+## From User Discovery Baseline v1.0
 
-* **I-01** — Primary value adalah workflow consolidation; MVP harus memenangkan publishing lebih dulu.
-* **I-02** — Buyer dan daily user mengoptimalkan sinyal sukses yang berbeda.
-* **I-03** — Simplicity adalah product requirement, bukan preferensi styling.
-* **I-04** — Publishing trust mengalahkan feature breadth.
-* **I-05** — Engagement dan Analytics adalah retention layers.
-* **I-06** — AI paling relevan ketika menempel pada draft job, bukan modul terpisah.
-* **I-07** — Secondary segments berbagi core jobs dengan konteks berbeda.
-* **I-08** — Collaboration visibility penting; full approval workflow bukan MVP.
+* **I-01** — Primary value is workflow consolidation; the MVP must win at publishing first.
+* **I-02** — The buyer and the daily user optimize for different success signals.
+* **I-03** — Simplicity is a product requirement, not a styling preference.
+* **I-04** — Publishing trust beats feature breadth.
+* **I-05** — Engagement and Analytics are retention layers.
+* **I-06** — AI is most relevant when it attaches to the draft job, not as a separate module.
+* **I-07** — Secondary segments share core jobs in a different context.
+* **I-08** — Collaboration visibility matters; a full approval workflow is not MVP.
 
-## Dari Product Baseline v1.0
+## From Product Baseline v1.0
 
-* Domain prioritas MVP: Publishing, Workspace, Engagement, Analytics, MCP Server (ADR-138).
-* Must Have: Draft, Schedule, Queue, Calendar, Connected Accounts, Engagement Comments Inbox + reply, Analytics Snapshot, MCP Server (koneksi klien AI, tool baca/draft/jadwal).
-* Engagement MVP memakai periodic pull 30 menit + manual refresh; Direct Message, mention, dan webhook engagement tidak termasuk MVP (ADR-040).
-* Fokus persona: Raka (P0 daily user), Maya (P0 buyer).
+* MVP priority domains: Publishing, Workspace, Engagement, Analytics, MCP Server (ADR-138).
+* Must Have: Draft, Schedule, Queue, Calendar, Connected Accounts, Engagement Comments Inbox + reply, Analytics Snapshot, MCP Server (AI client connection, read/draft/schedule tools).
+* Engagement in the MVP uses a 30-minute periodic pull + manual refresh; Direct Message, mention, and engagement webhooks are not part of the MVP (ADR-040).
+* Persona focus: Raka (P0 daily user), Maya (P0 buyer).
 
-## Dari User Discovery Journey
+## From User Discovery Journey
 
-* 8 stage current-state: Intake → Production → Scheduling → Verification → Publish → Engagement → Review → Tool Evaluation.
-* Friction terbesar: context switching, status tidak terlihat lintas peran, risiko salah publish.
+* 8 current-state stages: Intake → Production → Scheduling → Verification → Publish → Engagement → Review → Tool Evaluation.
+* Biggest friction: context switching, status not visible across roles, risk of publishing the wrong thing.
 * Opportunity: reduce tool switches, status visibility, publish confidence, lightweight comment triage.
 
 ---
 
 # Expected Output
 
-Setelah seluruh dokumen pada folder ini selesai, project harus memiliki:
+Once all documents in this folder are complete, the project must have:
 
-* UX Principles yang jelas dan dapat dijadikan panduan keputusan desain.
-* Information Architecture yang mencerminkan domain produk dan kebutuhan pengguna.
-* User Flows yang menggambarkan solusi untuk pekerjaan inti pengguna.
-* Navigation model yang sederhana dan tidak menambah cognitive load.
-* Key screen patterns yang siap dijadikan acuan architecture dan development.
-* Input yang cukup untuk memulai Architecture Discovery (M5).
+* Clear UX Principles that can serve as design decision guidance.
+* An Information Architecture that reflects the product domains and user needs.
+* User Flows that describe the solution for the user's core jobs.
+* A navigation model that is simple and does not add cognitive load.
+* Key screen patterns ready to serve as a reference for architecture and development.
+* Enough input to start Architecture Discovery (M5).
 
 ---
 
 # Exit Criteria
 
-UX Planning dianggap selesai apabila:
+UX Planning is considered complete when:
 
-* UX Principles telah ditetapkan dan dapat ditelusuri ke insight pengguna.
-* Information Architecture telah terdefinisi dengan hierarki layar yang jelas.
-* User Flows untuk pekerjaan inti telah terdokumentasi.
-* Navigation patterns telah dipilih dan didokumentasikan.
-* Key screen patterns telah disusun.
-* Tidak ada keputusan UX yang bertentangan dengan Product Baseline v1.0.
-* Seluruh dokumen telah melalui UX Planning Review.
+* UX Principles have been set and can be traced to user insights.
+* Information Architecture has been defined with a clear screen hierarchy.
+* User Flows for the core jobs have been documented.
+* Navigation patterns have been chosen and documented.
+* Key screen patterns have been drafted.
+* No UX decision conflicts with Product Baseline v1.0.
+* All documents have gone through UX Planning Review.
 
 ---
 
 # Decision Rules
 
-Keputusan UX yang berdampak pada:
+UX decisions that affect:
 
-* Scope MVP
-* Domain produk
+* MVP scope
+* Product domains
 * Feature Priority
 * Target Market
 
-harus didokumentasikan pada:
+must be documented in:
 
 * `../../project-os/DECISIONS.md`
 
-Perubahan progress UX Planning harus diperbarui pada:
+Changes to UX Planning progress must be updated in:
 
 * `../../project-os/PROJECT_STATE.md`
 
@@ -165,7 +165,7 @@ Perubahan progress UX Planning harus diperbarui pada:
 
 # Related Documents
 
-* `../../context/ctx-design.md` — pointer artifact desain Postific (ADR-140; folder `design/` dihapus, ADR-045)
+* `../../context/ctx-design.md` — pointer to the Postific design artifact (ADR-140; the `design/` folder was removed, ADR-045)
 * `../README.md`
 * `../01-business/README.md`
 * `../01-business/product-vision.md`
