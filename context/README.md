@@ -1,72 +1,72 @@
 # AI Context Layer
 
-Lapisan **indeks + aturan operasional** untuk AI coding agent. Bukan Source of Truth produk.
+An **index + operating rules** layer for AI coding agents. Not a Source of Truth for the product.
 
-Jika isi file di sini bentrok dengan baseline atau ADR → **baseline + ADR menang**.
-
----
-
-## Tujuan
-
-- Memberi pintu masuk ringkas per domain kerja (project, bisnis/produk, domain, arsitektur, teknis, development, implementasi, desain).
-- Menunjuk dokumen baseline yang wajib dibaca — bukan menyalin ulang `product-discovery/` atau `project-os/`.
-- Menegakkan batas antar file agar agent tidak salah menaruh aturan (mis. coding rules vs pola fitur).
+If the content of a file here conflicts with a baseline or an ADR → **the baseline + ADR win**.
 
 ---
 
-## Struktur (opsi A)
+## Purpose
+
+- Give a short entry point per work domain (project, business/product, domain, architecture, technical, development, implementation, design).
+- Point to the baseline documents that must be read — not copy `product-discovery/` or `project-os/` again.
+- Enforce the boundaries between files so the agent does not put a rule in the wrong place (e.g. coding rules vs feature patterns).
+
+---
+
+## Structure (option A)
 
 ```text
 context/
-├── README.md                  ← dokumen ini
+├── README.md                  ← this document
 ├── ctx-project.md             ← Project OS, state, rules, ADR
 ├── ctx-business.md            ← Business + Product + User
 ├── ctx-domain.md              ← Bounded context, shared types, boundary
 ├── ctx-architecture.md        ← Layer, ACL, jobs, auth arch, realtime
 ├── ctx-technical-context.md   ← Stack, env, Prisma, Better Auth, deploy/CI
-├── ctx-development.md         ← DX, script, lint/test, konvensi coding
-├── ctx-implementation.md      ← Pola implementasi di apps/web & domains/
-└── ctx-design.md              ← pointer UX (04-ux) + artifact desain Postific (ADR-140)
+├── ctx-development.md         ← DX, scripts, lint/test, coding conventions
+├── ctx-implementation.md      ← Implementation patterns in apps/web & domains/
+└── ctx-design.md              ← UX pointer (04-ux) + Postific design artifact (ADR-140)
 ```
 
 ---
 
-## Batas keras antar file
+## Hard boundaries between files
 
-| File                    | Termasuk                                                                            | Tidak termasuk                                          |
-| ----------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| `ctx-project`           | Cara kerja project, phase/state, governance, ADR index                              | Detail produk/UX/arsitektur                             |
-| `ctx-business`          | Vision, market, MVP/scope, roles, persona                                           | BC DDD, stack teknis, pola kode                         |
-| `ctx-domain`            | BC, entity, shared types, domain boundary rules                                     | Infra, Prisma schema detail, UI                         |
-| `ctx-architecture`      | _Apa & mengapa_ sistem: layer, ACL Outstand, jobs, auth arch, realtime, DB strategy | Config env, script DX, gaya kode                        |
-| `ctx-technical-context` | _Stack & infra_: Bun/Next, Prisma, Better Auth config, Railway, env, CI             | Pola folder domain, konvensi naming kode                |
-| `ctx-development`       | DX, perintah lokal/CI, lint/format/test, **aturan coding/konvensi**                 | Pola Application Service / di folder mana fitur ditaruh |
-| `ctx-implementation`    | _Cara menulis fitur_ di repo: entry → service → domain → repo, import rules         | Keputusan stack atau pricing bisnis                     |
-| `ctx-design`            | Pointer ke UX flows/IA (`04-ux/`) dan artifact desain Postific (ADR-140)            | Implementasi komponen React detail                      |
-
----
-
-## Cara pakai (agent)
-
-1. Baca `../AGENTS.md` dan Snapshot `../project-os/PROJECT_STATE.md` dulu. Kalau akan mengerjakan task: lanjut ke `../project-os/AVAILABLE_TICKETS.md` dan berhenti di situ untuk memilih ID, lalu buka hanya section tiket itu di `tickets/vXX-*.md`.
-2. Buka **satu atau dua** file `ctx-*` yang relevan dengan task (lihat tabel mapping di `.claude/skills/project-os-navigator/SKILL.md`).
-3. Ikuti link ke baseline; baca dokumen sumber sebelum mengubah kode atau keputusan material.
-4. Jangan menduplikasi status progress (% / ✅ / phase) di file `context/` — itu hanya di `PROJECT_STATE.md`, kecuali status task yang tempatnya di `AVAILABLE_TICKETS.md` + `tickets/` (ADR-062, ADR-131).
+| File                    | Included                                                                                | Not included                                                   |
+| ----------------------- | --------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `ctx-project`           | How the project works, phase/state, governance, ADR index                               | Product/UX/architecture detail                                 |
+| `ctx-business`          | Vision, market, MVP/scope, roles, persona                                               | DDD BC, technical stack, code patterns                         |
+| `ctx-domain`            | BC, entity, shared types, domain boundary rules                                         | Infra, Prisma schema detail, UI                                |
+| `ctx-architecture`      | _What & why_ of the system: layer, Outstand ACL, jobs, auth arch, realtime, DB strategy | Env config, DX scripts, code style                             |
+| `ctx-technical-context` | _Stack & infra_: Bun/Next, Prisma, Better Auth config, Railway, env, CI                 | Domain folder patterns, code naming conventions                |
+| `ctx-development`       | DX, local/CI commands, lint/format/test, **coding rules/conventions**                   | Application Service patterns / where a feature goes in folders |
+| `ctx-implementation`    | _How to write a feature_ in the repo: entry → service → domain → repo, import rules     | Stack decisions or business pricing                            |
+| `ctx-design`            | Pointer to UX flows/IA (`04-ux/`) and the Postific design artifact (ADR-140)            | Detailed React component implementation                        |
 
 ---
 
-## Aturan isi file `ctx-*`
+## How to use (agent)
 
-- Ringkas: indeks, checklist, dan aturan operasional.
-- Pointer wajib pakai path relatif ke repo (contoh: `../product-discovery/05-architecture/domain-model.md`).
-- Jangan salin paragraf panjang dari baseline.
-- Perubahan material (arsitektur, scope, stack) → ADR di `../project-os/DECISIONS.md`, lalu update pointer di sini bila perlu.
+1. Read `../AGENTS.md` and the Snapshot in `../project-os/PROJECT_STATE.md` first. If you are going to work a task: continue to `../project-os/AVAILABLE_TICKETS.md` and stop there to choose an ID, then open only that ticket's section in `tickets/vXX-*.md`.
+2. Open **one or two** `ctx-*` files relevant to the task (see the mapping table in `.claude/skills/project-os-navigator/SKILL.md`).
+3. Follow the links to the baseline; read the source document before changing code or making a material decision.
+4. Do not duplicate progress status (% / ✅ / phase) in `context/` files — it lives only in `PROJECT_STATE.md`, except task status, whose home is `AVAILABLE_TICKETS.md` + `tickets/` (ADR-062, ADR-131).
+
+---
+
+## Content rules for `ctx-*` files
+
+- Concise: indexes, checklists, and operating rules.
+- Pointers must use repo-relative paths (example: `../product-discovery/05-architecture/domain-model.md`).
+- Do not copy long paragraphs from the baseline.
+- Material changes (architecture, scope, stack) → ADR in `../project-os/DECISIONS.md`, then update the pointer here if needed.
 
 ---
 
 ## Related
 
-- Pintu masuk agent: `../AGENTS.md`
-- Source of Truth produk: `../product-discovery/`
+- Agent entry point: `../AGENTS.md`
+- Product Source of Truth: `../product-discovery/`
 - Project OS: `../project-os/`
-- Pointer desain (artifact desain + UX): `ctx-design.md`
+- Design pointer (design artifact + UX): `ctx-design.md`
