@@ -1,27 +1,27 @@
 # 02 — Product
 
-Dokumentasi pada folder ini berfokus pada perencanaan produk **Postific**, mulai dari ruang lingkup produk, definisi MVP, modul utama, prioritas pengembangan, hingga roadmap rilis.
+The documentation in this folder focuses on planning the **Postific** product, from product scope, the MVP definition, and the main modules to development priorities and the release roadmap.
 
-Seluruh keputusan pada folder ini harus mengacu pada hasil Business Discovery yang telah disepakati sebelumnya.
+Every decision in this folder must refer to the Business Discovery results that were agreed earlier.
 
 ---
 
-# Tujuan
+# Purpose
 
-* Mendefinisikan ruang lingkup produk.
-* Menentukan fitur yang termasuk dalam MVP.
-* Mengelompokkan fitur ke dalam modul produk.
-* Menentukan prioritas pengembangan fitur.
-* Menyusun roadmap pengembangan produk.
-* Menjadi acuan utama sebelum memasuki fase User, UX, dan Architecture.
+* Define the product scope.
+* Determine which features belong in the MVP.
+* Group features into product modules.
+* Determine feature development priorities.
+* Draft the product development roadmap.
+* Serve as the main reference before entering the User, UX, and Architecture phases.
 
 ---
 
 # Scope
 
-Folder ini hanya membahas aspek **Product Planning**.
+This folder covers only the **Product Planning** aspect.
 
-Topik berikut **tidak dibahas** di sini:
+The following topics are **not covered** here:
 
 * Business Strategy
 * User Research
@@ -33,61 +33,61 @@ Topik berikut **tidak dibahas** di sini:
 
 ---
 
-# Daftar Dokumen
+# Document List
 
-* `product-scope.md` — ruang lingkup dan batasan produk.
-* `mvp-definition.md` — fitur yang termasuk dan tidak termasuk dalam MVP.
-* `feature-modules.md` — pembagian fitur ke dalam modul produk.
-* `feature-priority.md` — prioritas pengembangan fitur menggunakan metode yang disepakati.
-* `release-roadmap.md` — rencana rilis produk berdasarkan versi.
-* `future-roadmap.md` — ide dan arah pengembangan jangka panjang setelah MVP.
+* `product-scope.md` — product scope and boundaries.
+* `mvp-definition.md` — features that are and are not included in the MVP.
+* `feature-modules.md` — division of features into product modules.
+* `feature-priority.md` — feature development priorities using the agreed method.
+* `release-roadmap.md` — product release plan by version.
+* `future-roadmap.md` — long-term development ideas and direction after the MVP.
 
 ---
 
-# Cara Menggunakan
+# How to Use
 
-1. Mulai dari `product-scope.md`.
-2. Tentukan batasan MVP pada `mvp-definition.md`.
-3. Kelompokkan fitur pada `feature-modules.md`.
-4. Susun prioritas pada `feature-priority.md`.
-5. Buat rencana rilis pada `release-roadmap.md`.
-6. Simpan ide pengembangan jangka panjang pada `future-roadmap.md`.
+1. Start from `product-scope.md`.
+2. Set the MVP boundaries in `mvp-definition.md`.
+3. Group features in `feature-modules.md`.
+4. Draft priorities in `feature-priority.md`.
+5. Create the release plan in `release-roadmap.md`.
+6. Store long-term development ideas in `future-roadmap.md`.
 
 ---
 
 # Expected Output
 
-Setelah seluruh dokumen pada folder ini selesai, project harus memiliki:
+Once all documents in this folder are complete, the project must have:
 
-* Product Scope yang jelas.
-* Definisi MVP yang disepakati.
-* Modul produk yang terstruktur.
-* Prioritas pengembangan yang terdokumentasi.
-* Roadmap rilis yang realistis.
-* Daftar pengembangan jangka panjang.
+* A clear Product Scope.
+* An agreed MVP definition.
+* Structured product modules.
+* Documented development priorities.
+* A realistic release roadmap.
+* A list of long-term developments.
 
 ---
 
 # Exit Criteria
 
-Product Discovery dianggap selesai apabila:
+Product Discovery is considered complete when:
 
-* Product Scope telah disepakati.
-* MVP telah didefinisikan.
-* Modul produk telah terdokumentasi.
-* Prioritas fitur telah ditentukan.
-* Roadmap rilis telah disusun.
-* Future Roadmap telah terdokumentasi.
+* The Product Scope has been agreed.
+* The MVP has been defined.
+* The product modules have been documented.
+* Feature priorities have been determined.
+* The release roadmap has been drafted.
+* The Future Roadmap has been documented.
 
 ---
 
 # Decision Rules
 
-Keputusan yang mengubah ruang lingkup produk, MVP, modul, atau roadmap harus dicatat pada:
+Decisions that change the product scope, MVP, modules, or roadmap must be recorded in:
 
 * `../../project-os/DECISIONS.md`
 
-Progress Product Discovery harus diperbarui pada:
+Product Discovery progress must be updated in:
 
 * `../../project-os/PROJECT_STATE.md`
 

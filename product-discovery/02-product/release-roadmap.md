@@ -1,16 +1,16 @@
 # Release Roadmap
 
-Dokumen ini mendefinisikan rencana rilis produk **Postific** berdasarkan milestone pengembangan.
+This document defines the release plan of the **Postific** product based on development milestones.
 
-Roadmap berfungsi sebagai panduan implementasi secara bertahap, mulai dari fondasi sistem hingga peluncuran versi pertama kepada pengguna.
+The roadmap serves as a guide for step-by-step implementation, from the system foundation to the launch of the first version to users.
 
-Roadmap ini bersifat adaptif dan dapat berubah berdasarkan hasil validasi produk, feedback pengguna, serta prioritas bisnis.
+This roadmap is adaptive and may change based on product validation results, user feedback, and business priorities.
 
 ---
 
 # Roadmap Principles
 
-Roadmap disusun berdasarkan prinsip berikut:
+The roadmap is drafted based on these principles:
 
 * Milestone-Based Development.
 * Incremental Delivery.
@@ -18,18 +18,18 @@ Roadmap disusun berdasarkan prinsip berikut:
 * Quality Over Quantity.
 * Sustainable Development.
 
-Produk dikembangkan secara bertahap dengan memastikan setiap milestone menghasilkan peningkatan nilai yang nyata.
+The product is developed in stages, making sure every milestone produces a real increase in value.
 
 ---
 
 # Release Strategy
 
-Seluruh rilis mengikuti pendekatan berikut:
+All releases follow this approach:
 
-* Setiap release harus menghasilkan peningkatan yang dapat digunakan.
-* Setiap release harus memiliki tujuan yang jelas.
-* Tidak ada release yang hanya berisi perubahan teknis tanpa memberikan manfaat terhadap produk.
-* Setiap release harus menjadi fondasi bagi release berikutnya.
+* Every release must produce an improvement that can be used.
+* Every release must have a clear goal.
+* No release may contain only technical changes without giving a benefit to the product.
+* Every release must become the foundation for the next release.
 
 ---
 
@@ -37,11 +37,11 @@ Seluruh rilis mengikuti pendekatan berikut:
 
 ## v0.1 — Foundation
 
-Tujuan:
+Goal:
 
-Membangun fondasi aplikasi.
+Build the application foundation.
 
-Fokus:
+Focus:
 
 * Project Setup
 * Authentication
@@ -52,20 +52,20 @@ Fokus:
 
 Outcome:
 
-Platform siap digunakan untuk mulai mengembangkan workflow utama.
+The platform is ready to start developing the main workflows.
 
 ---
 
 ## v0.2 — Publishing MVP
 
-Tujuan:
+Goal:
 
-Memungkinkan pengguna membuat dan menjadwalkan konten.
+Let users create and schedule content.
 
-Fokus:
+Focus:
 
 * Content Draft
-* Content Format per akun (Post / Reel / Story / Pin — ADR-039)
+* Content Format per account (Post / Reel / Story / Pin — ADR-039)
 * Schedule
 * Queue
 * Calendar
@@ -73,17 +73,17 @@ Fokus:
 
 Outcome:
 
-Pengguna dapat mengelola proses publikasi dari awal hingga selesai.
+Users can manage the publishing process from start to finish.
 
 ---
 
 ## v0.3 — Analytics MVP
 
-Tujuan:
+Goal:
 
-Memberikan visibilitas terhadap performa konten.
+Give visibility into content performance.
 
-Fokus:
+Focus:
 
 * Dashboard
 * Engagement Metrics
@@ -92,59 +92,59 @@ Fokus:
 
 Outcome:
 
-Pengguna dapat mengevaluasi hasil publikasi.
+Users can evaluate publishing results.
 
 ---
 
 ## v0.4 — Engagement MVP
 
-Tujuan:
+Goal:
 
-Menyatukan interaksi media sosial dalam satu tempat.
+Bring social media interactions together in one place.
 
-Fokus:
+Focus:
 
 * Comments
 * Comments Inbox
 * Reply Management
-* Periodic Pull setiap 30 menit
+* Periodic Pull every 30 minutes
 * Manual Refresh
 
 Outcome:
 
-Pengguna dapat membaca dan membalas komentar tanpa berpindah platform, dengan data yang diperbarui setiap 30 menit atau melalui manual refresh.
+Users can read and reply to comments without switching platforms, with data refreshed every 30 minutes or through manual refresh.
 
-Direct Message, mention, dan webhook engagement tidak termasuk rilis MVP ini (ADR-040).
+Direct Messages, mentions, and engagement webhooks are not part of this MVP release (ADR-040).
 
 ---
 
 ## v0.5 — MCP Server MVP
 
-Tujuan:
+Goal:
 
-Memungkinkan pengguna bekerja di Postific melalui AI pilihannya sendiri
-(ADR-138). Postific tidak membangun AI sendiri.
+Let users work in Postific through the AI of their own choice
+(ADR-138). Postific does not build its own AI.
 
-Fokus:
+Focus:
 
-* Koneksi klien AI lewat OAuth (satu workspace per koneksi)
-* Tool baca, draft, dan jadwal
-* Audit, rate limit, dan pencabutan koneksi
+* AI client connection through OAuth (one workspace per connection)
+* Read, draft, and schedule tools
+* Audit, rate limit, and connection revocation
 
 Outcome:
 
-AI pengguna dapat membaca, menyusun draft, dan menjadwalkan konten di
-Postific. Publish Now dan balas komentar lewat MCP ditunda.
+The user's AI can read, draft, and schedule content in
+Postific. Publish Now and replying to comments through MCP are postponed.
 
 ---
 
 ## v0.6 — Start Page MVP
 
-Tujuan:
+Goal:
 
-Menyediakan halaman publik untuk kebutuhan bio link.
+Provide a public page for bio link needs.
 
-Fokus:
+Focus:
 
 * Public Profile
 * Link Management
@@ -153,19 +153,19 @@ Fokus:
 
 Outcome:
 
-Pengguna dapat membagikan halaman publik melalui media sosial.
+Users can share the public page through social media.
 
 ---
 
 ## v1.0 — Public Launch
 
-Tujuan:
+Goal:
 
-Meluncurkan produk kepada publik.
+Launch the product to the public.
 
-Fokus:
+Focus:
 
-* Stabilitas Produk
+* Product Stability
 * Performance
 * Security
 * Documentation
@@ -174,42 +174,42 @@ Fokus:
 
 Outcome:
 
-Produk siap digunakan secara umum.
+The product is ready for general use.
 
 ---
 
 # Roadmap Review
 
-Roadmap akan dievaluasi berdasarkan:
+The roadmap will be evaluated based on:
 
-* Feedback pengguna.
-* Hasil Product Validation.
-* Perubahan prioritas bisnis.
-* Ketersediaan sumber daya.
-* Perubahan teknologi atau integrasi pihak ketiga.
+* User feedback.
+* Product Validation results.
+* Changes in business priorities.
+* Resource availability.
+* Changes in technology or third-party integrations.
 
-Perubahan roadmap harus didokumentasikan.
+Roadmap changes must be documented.
 
 ---
 
 # Success Criteria
 
-Roadmap dianggap berhasil apabila:
+The roadmap is considered successful when:
 
-* Setiap release memiliki tujuan yang jelas.
-* Urutan pengembangan mendukung MVP.
-* Setiap release memberikan peningkatan nilai.
-* Produk berkembang secara bertahap menuju Public Launch.
+* Every release has a clear goal.
+* The development order supports the MVP.
+* Every release gives an increase in value.
+* The product grows in stages toward the Public Launch.
 
 ---
 
 # Decision Rules
 
-Perubahan terhadap urutan release atau ruang lingkup setiap release harus dicatat pada:
+Changes to the release order or the scope of each release must be recorded in:
 
 * `../../project-os/DECISIONS.md`
 
-Perubahan progress roadmap harus diperbarui pada:
+Roadmap progress changes must be updated in:
 
 * `../../project-os/PROJECT_STATE.md`
 
