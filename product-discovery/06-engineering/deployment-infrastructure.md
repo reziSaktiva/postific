@@ -1,55 +1,55 @@
 # Deployment & Infrastructure
 
-Dokumen ini mendefinisikan **platform deployment, region, topologi environment, dan strategi infrastruktur** untuk produk Postific.
+This document defines the **deployment platform, region, environment topology, and infrastructure strategy** for the Postific product.
 
-Dokumen ini adalah implementasi konkret dari keputusan pra-architecture (Railway sebagai deployment platform, Supabase sebagai database/storage/realtime) dan menetapkan detail operasional yang belum diputuskan: region hosting, jumlah tier environment, dan strategi Supabase project per environment.
-
----
-
-# Tujuan
-
-* Menetapkan platform dan region hosting secara definitif sebelum Repository & Bootstrap (M7).
-* Mendefinisikan topologi environment (production, staging) dan tanggung jawab masing-masing.
-* Menetapkan strategi Supabase project per environment.
-* Mendefinisikan arsitektur service di Railway (web app + cron).
-* Menetapkan build & deploy pipeline yang selaras dengan monorepo Bun Workspaces.
-* Menetapkan strategi domain, TLS, scaling, dan rollback untuk MVP.
+This document is the concrete implementation of the pre-architecture decisions (Railway as the deployment platform, Supabase as the database/storage/realtime) and sets the operational details that were not yet decided: the hosting region, the number of environment tiers, and the Supabase project per environment strategy.
 
 ---
 
-# Keputusan Pra-Architecture
+# Goals
 
-Keputusan berikut sudah ditetapkan sebelum dokumen ini dibuat dan menjadi fondasi:
-
-| Topik | Keputusan | Sumber |
-|-------|-----------|--------|
-| App Hosting | Railway | keputusan pra-architecture (ADR-025 ringkasan) |
-| Database Platform | Supabase PostgreSQL Cloud | `database-strategy.md` (ADR-015) |
-| Storage | Supabase Storage | `database-strategy.md` |
-| Realtime | Supabase Realtime (notifikasi in-app) | `realtime-strategy.md` (ADR-023) |
-| Background Jobs | PostgreSQL job queue + Railway Cron sebagai trigger | `background-jobs.md` (ADR-022) |
-| Runtime | Bun | ADR-002 |
-| Framework | Next.js (App Router) | ADR-003 |
-| Monorepo | Hybrid Monorepo — `apps/web` sebagai satu deployment unit | ADR-001, ADR-026 |
+- Set the hosting platform and region definitively before Repository & Bootstrap (M7).
+- Define the environment topology (production, staging) and the responsibilities of each.
+- Set the Supabase project per environment strategy.
+- Define the service architecture on Railway (web app + cron).
+- Set a build & deploy pipeline aligned with the Bun Workspaces monorepo.
+- Set the domain, TLS, scaling, and rollback strategy for the MVP.
 
 ---
 
-# Keputusan Deployment (Ditetapkan di Dokumen Ini)
+# Pre-Architecture Decisions
 
-| ID | Topik | Keputusan |
-|----|-------|-----------|
-| DI-D01 | Region | **Singapore / Southeast Asia** — Railway dan Supabase co-located di region SEA untuk latency terendah ke target market (Marketing Team Indonesia) |
-| DI-D02 | Environment Topology | **Production + Staging** — dua environment persisten; staging mirror production untuk uji pra-rilis |
-| DI-D03 | Supabase per Environment | **Project Supabase terpisah** per environment (production & staging) — isolasi data penuh |
-| DI-D04 | Service Architecture | Dua Railway service per environment: **`web`** (Next.js) dan **`cron`** (trigger background jobs) |
-| DI-D05 | Deploy Trigger | Deploy otomatis dari Git — branch `main` → production, branch `staging` → staging |
-| DI-D06 | Rollback | Redeploy dari deployment sebelumnya (Railway immutable deployments) + Supabase migration reversible |
+The following decisions were set before this document was created and are the foundation:
+
+| Topic             | Decision                                                | Source                                          |
+| ----------------- | ------------------------------------------------------- | ----------------------------------------------- |
+| App Hosting       | Railway                                                 | pre-architecture decision (ADR-025 summary)     |
+| Database Platform | Supabase PostgreSQL Cloud                               | `database-strategy.md` (ADR-015)                |
+| Storage           | Supabase Storage                                        | `database-strategy.md`                          |
+| Realtime          | Supabase Realtime (in-app notifications)                | `realtime-strategy.md` (ADR-023)                |
+| Background Jobs   | PostgreSQL job queue + Railway Cron as the trigger      | `background-jobs.md` (ADR-022)                  |
+| Runtime           | Bun                                                     | ADR-002                                         |
+| Framework         | Next.js (App Router)                                    | ADR-003                                         |
+| Monorepo          | Hybrid Monorepo — `apps/web` as a single deployment unit | ADR-001, ADR-026                               |
+
+---
+
+# Deployment Decisions (Set in This Document)
+
+| ID     | Topic                    | Decision                                                                                                                                              |
+| ------ | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| DI-D01 | Region                   | **Singapore / Southeast Asia** — Railway and Supabase co-located in the SEA region for the lowest latency to the target market (Marketing Team Indonesia) |
+| DI-D02 | Environment Topology     | **Production + Staging** — two persistent environments; staging mirrors production for pre-release testing                                             |
+| DI-D03 | Supabase per Environment | **Separate Supabase projects** per environment (production & staging) — full data isolation                                                            |
+| DI-D04 | Service Architecture     | Two Railway services per environment: **`web`** (Next.js) and **`cron`** (background job trigger)                                                      |
+| DI-D05 | Deploy Trigger           | Automatic deploy from Git — branch `main` → production, branch `staging` → staging                                                                     |
+| DI-D06 | Rollback                 | Redeploy from the previous deployment (Railway immutable deployments) + reversible Supabase migrations                                                 |
 
 ---
 
 # Platform Overview
 
-Infrastruktur MVP terdiri dari dua provider dengan tanggung jawab terpisah:
+The MVP infrastructure consists of two providers with separate responsibilities:
 
 ```
 ┌────────────────────────────────────────────────────────────┐
@@ -59,10 +59,10 @@ Infrastruktur MVP terdiri dari dua provider dengan tanggung jawab terpisah:
 │   │   web service    │          │   cron service   │         │
 │   │   (Next.js/Bun)  │          │  (Railway Cron)  │         │
 │   │                  │          │                  │         │
-│   │  - App Router    │          │  memanggil       │         │
+│   │  - App Router    │          │  calls           │         │
 │   │  - Server Actions│          │  POST /api/jobs/ │         │
-│   │  - Route Handlers│          │  run (web) sesuai│         │
-│   │  - Middleware    │          │  jadwal          │         │
+│   │  - Route Handlers│          │  run (web) on    │         │
+│   │  - Middleware    │          │  schedule        │         │
 │   └────────┬─────────┘          └────────┬─────────┘         │
 └────────────┼─────────────────────────────┼──────────────────┘
              │                              │
@@ -70,111 +70,116 @@ Infrastruktur MVP terdiri dari dua provider dengan tanggung jawab terpisah:
 ┌────────────────────────────────────────────────────────────┐
 │                    SUPABASE (SEA, ap-southeast-1)             │
 │                                                               │
-│   PostgreSQL  ·  Storage (bucket media)  ·  Realtime          │
+│   PostgreSQL  ·  Storage (media bucket)  ·  Realtime          │
 └────────────────────────────────────────────────────────────┘
 ```
 
-**Pembagian tanggung jawab:**
-- **Railway** — menjalankan aplikasi Next.js dan penjadwal cron. Compute layer.
-- **Supabase** — menyediakan PostgreSQL (data), Storage (media), dan Realtime (notifikasi). Managed data layer.
+**Division of responsibilities:**
 
-Outstand API (integrasi social media) adalah dependency eksternal yang diakses dari `web` service via OutstandAdapter (`integration-layer.md`), tidak di-deploy sendiri.
+- **Railway** — runs the Next.js application and the cron scheduler. The compute layer.
+- **Supabase** — provides PostgreSQL (data), Storage (media), and Realtime (notifications). The managed data layer.
+
+The Outstand API (social media integration) is an external dependency accessed from the `web` service via the OutstandAdapter (`integration-layer.md`), and is not deployed by us.
 
 ---
 
 # Region & Latency
 
-## Pilihan Region (DI-D01)
+## Region Choice (DI-D01)
 
-| Komponen | Region |
-|----------|--------|
-| Railway | Southeast Asia (Singapore) |
-| Supabase | `ap-southeast-1` (Singapore) |
+| Component | Region                       |
+| --------- | ---------------------------- |
+| Railway   | Southeast Asia (Singapore)   |
+| Supabase  | `ap-southeast-1` (Singapore) |
 
-**Alasan:**
-- Target market utama adalah **Marketing Team di Indonesia** — region SEA memberikan latency terendah.
-- Railway dan Supabase **co-located** di Singapore — meminimalkan round-trip antara compute layer dan database (query, RLS, storage signed URL).
-- Outstand API adalah panggilan asinkron/background untuk sebagian besar operasi (publishing, sync), sehingga latency ke provider tidak berada di jalur kritis UX.
+**Reasons:**
 
-**Konsekuensi:** seluruh environment (production dan staging) menggunakan region yang sama untuk menjaga paritas.
+- The main target market is the **Marketing Team in Indonesia** — the SEA region gives the lowest latency.
+- Railway and Supabase are **co-located** in Singapore — minimizing the round trip between the compute layer and the database (queries, RLS, storage signed URLs).
+- The Outstand API is an asynchronous/background call for most operations (publishing, sync), so latency to the provider is not on the UX critical path.
+
+**Consequence:** all environments (production and staging) use the same region to keep parity.
 
 ---
 
 # Environment Topology
 
-## Dua Tier Persisten (DI-D02)
+## Two Persistent Tiers (DI-D02)
 
-| Aspek | Production | Staging |
-|-------|-----------|---------|
-| Tujuan | Melayani user nyata | Uji pra-rilis, QA, demo internal |
-| Git branch | `main` | `staging` |
-| Railway environment | `production` | `staging` |
-| Supabase project | Project terpisah (prod) | Project terpisah (staging) |
-| Domain | domain produksi (custom) | subdomain staging (mis. `staging.<domain>`) |
-| Data | Data user nyata | Data dummy / sanitized — tidak boleh berisi data produksi |
-| Outstand | API/webhook credential produksi; X BYOK prod dikonfigurasi manual di dashboard Outstand | API/webhook credential staging; X BYOK staging/test dikonfigurasi terpisah jika tersedia |
-| Akses | Publik | Terbatas (tim internal) |
+| Aspect              | Production                                                                              | Staging                                                                                      |
+| ------------------- | --------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Purpose             | Serve real users                                                                        | Pre-release testing, QA, internal demos                                                      |
+| Git branch          | `main`                                                                                  | `staging`                                                                                    |
+| Railway environment | `production`                                                                            | `staging`                                                                                    |
+| Supabase project    | Separate project (prod)                                                                 | Separate project (staging)                                                                   |
+| Domain              | production domain (custom)                                                              | staging subdomain (e.g. `staging.<domain>`)                                                  |
+| Data                | Real user data                                                                          | Dummy / sanitized data — must not contain production data                                    |
+| Outstand            | Production API/webhook credentials; prod X BYOK configured manually in the Outstand dashboard | Staging API/webhook credentials; staging/test X BYOK configured separately if available |
+| Access              | Public                                                                                  | Restricted (internal team)                                                                   |
 
-**Prinsip:**
-- Staging adalah **mirror struktural** production — konfigurasi, migration, dan versi identik; hanya data dan kredensial yang berbeda.
-- Perubahan wajib melewati staging sebelum promote ke production.
-- Preview environment per-PR (ephemeral) **tidak** digunakan pada MVP untuk menekan kompleksitas dan biaya — dapat ditambahkan post-MVP jika volume kontribusi meningkat.
+**Principles:**
+
+- Staging is a **structural mirror** of production — identical configuration, migrations, and versions; only the data and credentials differ.
+- Changes must pass through staging before being promoted to production.
+- Per-PR preview environments (ephemeral) are **not** used in the MVP to hold down complexity and cost — they can be added post-MVP if contribution volume increases.
 
 ---
 
 # Supabase Project per Environment (DI-D03)
 
-Setiap environment memiliki **project Supabase terpisah**:
+Each environment has a **separate Supabase project**:
 
 ```
 Supabase Org
-├── social-media-prod       ← dipakai Railway environment "production"
-└── social-media-staging    ← dipakai Railway environment "staging"
+├── social-media-prod       ← used by the Railway environment "production"
+└── social-media-staging    ← used by the Railway environment "staging"
 ```
 
-**Alasan:**
-- Isolasi data penuh — tidak ada risiko staging membaca/menulis data produksi.
-- Migration dapat diuji di project staging sebelum diterapkan ke produksi.
-- Kredensial (service role key, JWT secret, connection string) terpisah dan tidak saling bocor.
+**Reasons:**
 
-**Konsekuensi:**
-- Migration harus dijalankan pada kedua project (staging dulu, lalu production) — lihat `database-orm.md` untuk migration workflow.
-- Setiap environment memegang set env vars Supabase sendiri (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`, dll.) — lihat `environment-management.md`.
+- Full data isolation — no risk of staging reading/writing production data.
+- Migrations can be tested on the staging project before being applied to production.
+- Credentials (service role key, JWT secret, connection string) are separate and do not leak to each other.
+
+**Consequences:**
+
+- Migrations must be run on both projects (staging first, then production) — see `database-orm.md` for the migration workflow.
+- Each environment holds its own set of Supabase env vars (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`, etc.) — see `environment-management.md`.
 
 ---
 
 # Railway Service Architecture (DI-D04)
 
-Setiap Railway environment berisi dua service:
+Each Railway environment contains two services:
 
 ## 1. `web` Service — Next.js Application
 
-| Aspek | Konfigurasi |
-|-------|-------------|
-| Runtime | Bun |
-| Root directory | monorepo root (build memerlukan akses workspace) |
-| Install | `bun install` (di root — satu lockfile untuk seluruh monorepo) |
-| Build | `bun run build` → membangun `apps/web` (Next.js) |
-| Start | `bun run --cwd apps/web start` |
-| Port | Railway meng-inject `PORT` — Next.js listen pada `$PORT` |
-| Health check | `GET /api/health` (Route Handler, sudah ada di monorepo-setup) |
+| Aspect         | Configuration                                                                 |
+| -------------- | ----------------------------------------------------------------------------- |
+| Runtime        | Bun                                                                           |
+| Root directory | monorepo root (the build needs workspace access)                              |
+| Install        | `bun install` (at the root — one lockfile for the whole monorepo)             |
+| Build          | `bun run build` → builds `apps/web` (Next.js)                                 |
+| Start          | `bun run --cwd apps/web start`                                                |
+| Port           | Railway injects `PORT` — Next.js listens on `$PORT`                           |
+| Health check   | `GET /api/health` (Route Handler, already present in monorepo-setup)          |
 
-Service ini menjalankan seluruh entry points: App Router (UI), Server Actions (mutations), Route Handlers (webhook Outstand, job runner, health), dan Middleware (auth guard + workspace context).
+This service runs all the entry points: the App Router (UI), Server Actions (mutations), Route Handlers (Outstand webhook, job runner, health), and Middleware (auth guard + workspace context).
 
 ## 2. `cron` Service — Background Job Trigger
 
-Selaras dengan ADR-022 (`background-jobs.md`): Railway Cron bertindak sebagai **trigger**, bukan eksekutor. Ia memanggil endpoint job runner di `web` service secara periodik.
+Aligned with ADR-022 (`background-jobs.md`): Railway Cron acts as the **trigger**, not the executor. It calls the job runner endpoint on the `web` service periodically.
 
-| Aspek | Konfigurasi |
-|-------|-------------|
-| Mekanisme | Railway Cron schedule |
-| Aksi | `POST /api/jobs/run` ke `web` service |
-| Proteksi | Header `X-Job-Secret` dibandingkan env var (`auth-architecture.md`) |
-| Frekuensi | Sesuai kebutuhan job queue (mis. tiap 1 menit) — detail di `background-jobs.md` |
+| Aspect     | Configuration                                                                |
+| ---------- | ---------------------------------------------------------------------------- |
+| Mechanism  | Railway Cron schedule                                                        |
+| Action     | `POST /api/jobs/run` to the `web` service                                    |
+| Protection | The `X-Job-Secret` header is compared against an env var (`auth-architecture.md`) |
+| Frequency  | As the job queue needs (e.g. every 1 minute) — details in `background-jobs.md` |
 
-`web` service kemudian menarik job dari tabel `background_jobs` menggunakan `SELECT FOR UPDATE SKIP LOCKED` dan mengeksekusinya. Logika ini tidak berubah dari arsitektur — dokumen ini hanya menetapkan bahwa trigger di-deploy sebagai Railway Cron.
+The `web` service then pulls jobs from the `background_jobs` table using `SELECT FOR UPDATE SKIP LOCKED` and executes them. This logic is unchanged from the architecture — this document only sets that the trigger is deployed as Railway Cron.
 
-JOB-03 comments sync dijadwalkan setiap 30 menit dan juga dapat dipicu manual melalui Application Service. JOB-01 hanya memproses durable receipt internal; retry delivery webhook tetap mekanisme Outstand yang berakhir setelah ACK `2xx`.
+The JOB-03 comments sync is scheduled every 30 minutes and can also be triggered manually through the Application Service. JOB-01 only processes the internal durable receipt; webhook delivery retries remain Outstand's mechanism, which ends after a `2xx` ACK.
 
 ---
 
@@ -187,99 +192,99 @@ git push origin staging   ──►  Railway (staging env)  ──►  build & d
 git push origin main       ──►  Railway (production env) ──►  build & deploy web + cron
 ```
 
-- Deploy dipicu otomatis oleh push ke branch yang dipetakan ke masing-masing environment.
-- Gate kualitas (typecheck, lint, test, prisma validate) dijalankan di **GitHub Actions** sebelum merge — lihat `cicd-pipeline.md` (ADR-032). Railway hanya membangun setelah kode masuk ke branch environment; `prisma migrate deploy` di release/pre-start.
+- Deploys are triggered automatically by a push to the branch mapped to each environment.
+- The quality gates (typecheck, lint, test, prisma validate) run in **GitHub Actions** before merge — see `cicd-pipeline.md` (ADR-032). Railway only builds after the code enters the environment branch; `prisma migrate deploy` runs in the release/pre-start.
 
-## Build Notes untuk Monorepo Bun
+## Build Notes for the Bun Monorepo
 
-- `bun install` dijalankan di **root** monorepo karena lockfile (`bun.lock`) dan workspace protocol (`@postific/shared`) berada di root.
-- Build hanya menghasilkan artefak untuk `apps/web` — `packages/shared` di-resolve sebagai source workspace (tidak perlu build terpisah pada MVP).
-- Next.js output mode dan konfigurasi build detail ditetapkan saat Repository & Bootstrap (M7); dokumen ini menetapkan command dan runtime-nya.
+- `bun install` runs at the monorepo **root** because the lockfile (`bun.lock`) and the workspace protocol (`@postific/shared`) are at the root.
+- The build only produces artifacts for `apps/web` — `packages/shared` is resolved as a workspace source (no separate build needed in the MVP).
+- The Next.js output mode and detailed build configuration are set during Repository & Bootstrap (M7); this document sets the command and the runtime.
 
 ---
 
 # Domain, Networking & TLS
 
-| Aspek | Keputusan MVP |
-|-------|---------------|
-| Domain produksi | Custom domain di-attach ke Railway `web` service (production) |
-| Domain staging | Subdomain terpisah (mis. `staging.<domain>`) atau domain `*.up.railway.app` default |
-| TLS | Otomatis via Railway (Let's Encrypt) — HTTPS wajib di semua environment |
-| Cookie `Secure` | `true` di production & staging (keduanya HTTPS) — selaras `auth-strategy.md` |
+| Aspect            | MVP decision                                                                         |
+| ----------------- | ------------------------------------------------------------------------------------ |
+| Production domain | A custom domain attached to the Railway `web` service (production)                   |
+| Staging domain    | A separate subdomain (e.g. `staging.<domain>`) or the default `*.up.railway.app` domain |
+| TLS               | Automatic via Railway (Let's Encrypt) — HTTPS is required in all environments        |
+| Cookie `Secure`   | `true` in production & staging (both HTTPS) — aligned with `auth-strategy.md`        |
 
-Nama domain final ditentukan saat go-live; dokumen ini menetapkan bahwa production menggunakan custom domain dan staging menggunakan subdomain terpisah agar cookie/CORS terisolasi.
+The final domain name is decided at go-live; this document sets that production uses a custom domain and staging uses a separate subdomain so cookies/CORS are isolated.
 
 ---
 
 # Scaling Strategy (MVP)
 
-| Aspek | Keputusan MVP |
-|-------|---------------|
-| Horizontal scaling | Tidak pada MVP — single instance per service |
-| Vertical scaling | Naikkan resource Railway service jika dibutuhkan |
-| Statelessness | `web` service stateless — session di cookie + DB, tidak ada in-memory state |
-| Database scaling | Dikelola Supabase (managed) — connection pooling via Supabase (lihat `database-orm.md`) |
-| Bottleneck utama | Koneksi database — dimitigasi dengan connection pooling, bukan menambah instance |
+| Aspect             | MVP decision                                                                               |
+| ------------------ | ------------------------------------------------------------------------------------------ |
+| Horizontal scaling | Not in the MVP — a single instance per service                                             |
+| Vertical scaling   | Raise the Railway service resources if needed                                              |
+| Statelessness      | The `web` service is stateless — session in cookie + DB, no in-memory state                |
+| Database scaling   | Managed by Supabase (managed) — connection pooling via Supabase (see `database-orm.md`)    |
+| Main bottleneck    | Database connections — mitigated with connection pooling, not by adding instances          |
 
-Karena `web` service stateless, horizontal scaling dapat ditambahkan post-MVP tanpa perubahan arsitektur. Job runner aman terhadap concurrency melalui `SKIP LOCKED` (ADR-022), sehingga menjalankan lebih dari satu instance tidak menyebabkan double-processing.
+Because the `web` service is stateless, horizontal scaling can be added post-MVP without an architecture change. The job runner is concurrency-safe through `SKIP LOCKED` (ADR-022), so running more than one instance does not cause double-processing.
 
 ---
 
 # Rollback Strategy (DI-D06)
 
-| Layer | Mekanisme Rollback |
-|-------|--------------------|
-| Aplikasi (Railway) | Redeploy deployment sebelumnya — Railway menyimpan riwayat deployment immutable |
-| Database (Supabase) | Migration reversible; setiap migration punya down/rollback — lihat `database-orm.md` |
-| Config/Secrets | Env vars di-versioning per environment; perubahan dicatat — lihat `environment-management.md` |
+| Layer               | Rollback Mechanism                                                                              |
+| ------------------- | ----------------------------------------------------------------------------------------------- |
+| Application (Railway) | Redeploy the previous deployment — Railway keeps an immutable deployment history              |
+| Database (Supabase) | Reversible migrations; every migration has a down/rollback — see `database-orm.md`              |
+| Config/Secrets      | Env vars are versioned per environment; changes are recorded — see `environment-management.md`  |
 
-**Prinsip:** rollback aplikasi harus aman terhadap skema database. Perubahan skema yang breaking diterapkan dengan pola **expand-and-contract** (tambah kolom/tabel dulu, hapus setelah kode lama tidak dipakai) agar rollback aplikasi tidak bertabrakan dengan skema baru.
+**Principle:** an application rollback must be safe against the database schema. Breaking schema changes are applied with the **expand-and-contract** pattern (add the column/table first, remove it after the old code is no longer used) so an application rollback does not collide with the new schema.
 
 ---
 
-# Secrets & Environment Variables (Ringkasan)
+# Secrets & Environment Variables (Summary)
 
-Setiap environment memegang set env vars sendiri di Railway. Kategori utama:
+Each environment holds its own set of env vars in Railway. The main categories:
 
-| Kategori | Contoh |
-|----------|--------|
-| Supabase | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`, `DATABASE_URL` |
-| Auth | `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
-| Integrasi | `OUTSTAND_API_KEY`, `OUTSTAND_WEBHOOK_SECRET` |
-| Jobs | `JOB_SECRET` (X-Job-Secret) |
+| Category    | Examples                                                                            |
+| ----------- | ----------------------------------------------------------------------------------- |
+| Supabase    | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`, `DATABASE_URL`  |
+| Auth        | `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
+| Integration | `OUTSTAND_API_KEY`, `OUTSTAND_WEBHOOK_SECRET`                                       |
+| Jobs        | `JOB_SECRET` (X-Job-Secret)                                                         |
 
-Detail lengkap penamaan, sumber, dan pengelolaan secret didefinisikan di `environment-management.md`. Dokumen ini hanya menetapkan bahwa **secret tidak dibagikan lintas environment** — konsekuensi langsung dari DI-D03.
+The full details of naming, sources, and secret management are defined in `environment-management.md`. This document only sets that **secrets are not shared across environments** — a direct consequence of DI-D03.
 
-**Prasyarat operasional X/Twitter:** Project Owner mengisi BYOK X langsung di dashboard Outstand untuk environment terkait. Tidak ada Railway Variable untuk X Client ID/Client Secret dan tidak ada secret X yang melewati aplikasi.
+**X/Twitter operational prerequisite:** the Project Owner fills in the X BYOK directly in the Outstand dashboard for the relevant environment. There is no Railway Variable for the X Client ID/Client Secret and no X secret passes through the application.
 
-**Jalur media:** service `web` membaca original dari Supabase Storage, meminta upload URL Outstand, melakukan `PUT`, lalu confirm. Egress Supabase→Railway/Outstand dan timeout upload perlu dipantau; URL working copy Outstand dipakai saat schedule.
+**Media path:** the `web` service reads the original from Supabase Storage, requests an Outstand upload URL, performs a `PUT`, then confirms. Supabase→Railway/Outstand egress and upload timeouts need to be monitored; the Outstand working copy URL is used when scheduling.
 
 ---
 
 # Decision Log
 
-| ID | Keputusan | Alasan | Alternatif |
-|----|-----------|--------|-----------|
-| DI-D01 | Region Singapore / Southeast Asia untuk Railway + Supabase | Latency terendah ke target market Indonesia; co-location compute↔DB | US (ekosistem matang tapi latency tinggi ke ID); region campur (menambah round-trip app↔DB) |
-| DI-D02 | Production + Staging (dua tier persisten) | Staging sebagai mirror untuk uji pra-rilis tanpa menyentuh data produksi | Production-only (tidak ada tempat uji aman); +preview per-PR (kompleksitas & biaya berlebih untuk MVP) |
-| DI-D03 | Project Supabase terpisah per environment | Isolasi data penuh, migration bisa diuji di staging dulu, kredensial terpisah | Satu project Supabase bersama (risiko staging menyentuh data prod) |
-| DI-D04 | Dua Railway service per environment: `web` + `cron` | Memisahkan trigger cron dari app; selaras ADR-022 (Railway Cron sebagai trigger) | Cron di dalam proses web (kurang eksplisit, sulit dijadwalkan independen) |
-| DI-D05 | Deploy otomatis dari branch (`main`→prod, `staging`→staging) | Alur deploy sederhana dan deterministik; gate kualitas di CI sebelum merge | Manual deploy (rawan human error); deploy dari tag (menambah overhead rilis untuk MVP) |
-| DI-D06 | Rollback via redeploy Railway + migration reversible + expand-and-contract | Rollback aman terhadap skema DB; tidak ada state yang hilang | Rollback hanya di app (bisa bentrok dengan skema baru) |
-| DI-D07 | JOB-03 dijadwalkan 30 menit; JOB-01 hanya processing internal | Menjalankan source utama Engagement dan memisahkan dua jenis retry |
-| DI-D08 | X BYOK dikonfigurasi manual per environment di dashboard Outstand | Aplikasi tidak menjadi custodian secret platform X |
-| DI-D09 | ADR-040 | DI-D07–D08 dan jalur media working copy mengamandemen baseline operasional |
+| ID     | Decision                                                                   | Reason                                                                                              | Alternatives                                                                                           |
+| ------ | -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| DI-D01 | Singapore / Southeast Asia region for Railway + Supabase                   | Lowest latency to the Indonesian target market; compute↔DB co-location                              | US (mature ecosystem but high latency to ID); mixed regions (adds an app↔DB round trip)                |
+| DI-D02 | Production + Staging (two persistent tiers)                                | Staging as a mirror for pre-release testing without touching production data                        | Production-only (no safe place to test); +per-PR preview (excessive complexity & cost for the MVP)     |
+| DI-D03 | Separate Supabase project per environment                                  | Full data isolation, migrations can be tested on staging first, separate credentials                | One shared Supabase project (risk of staging touching prod data)                                       |
+| DI-D04 | Two Railway services per environment: `web` + `cron`                       | Separates the cron trigger from the app; aligned with ADR-022 (Railway Cron as the trigger)         | Cron inside the web process (less explicit, hard to schedule independently)                            |
+| DI-D05 | Automatic deploy from the branch (`main`→prod, `staging`→staging)          | A simple and deterministic deploy flow; quality gate in CI before merge                             | Manual deploy (prone to human error); deploy from a tag (adds release overhead for the MVP)            |
+| DI-D06 | Rollback via a Railway redeploy + reversible migrations + expand-and-contract | Rollback is safe against the DB schema; no state is lost                                         | App-only rollback (can collide with the new schema)                                                    |
+| DI-D07 | JOB-03 scheduled every 30 minutes; JOB-01 internal processing only         | Runs the main Engagement source and separates two kinds of retry                                    |
+| DI-D08 | X BYOK configured manually per environment in the Outstand dashboard       | The application does not become a custodian of the X platform's secret                              |
+| DI-D09 | ADR-040                                                                    | DI-D07–D08 and the working copy media path amend the operational baseline                           |
 
 ---
 
 # Related Documents
 
-* `README.md` — scope dan workflow Engineering Planning
-* `monorepo-setup.md` — struktur build (`apps/web`, Bun Workspaces)
-* `auth-strategy.md` — konfigurasi cookie `Secure`, `BETTER_AUTH_URL` per environment
-* `database-orm.md` — migration workflow lintas Supabase project
-* `environment-management.md` — detail env vars & secret per environment (ADR-033)
-* `cicd-pipeline.md` — GitHub Actions gates, migrate on release (ADR-032)
-* `../../product-discovery/05-architecture/background-jobs.md` — Railway Cron sebagai trigger job (ADR-022)
-* `../../product-discovery/05-architecture/database-strategy.md` — Supabase PostgreSQL, Storage
-* `../../project-os/DECISIONS.md` — ADR-028, ADR-029
+- `README.md` — scope and workflow of Engineering Planning
+- `monorepo-setup.md` — build structure (`apps/web`, Bun Workspaces)
+- `auth-strategy.md` — cookie `Secure` configuration, `BETTER_AUTH_URL` per environment
+- `database-orm.md` — migration workflow across Supabase projects
+- `environment-management.md` — env var & secret details per environment (ADR-033)
+- `cicd-pipeline.md` — GitHub Actions gates, migrate on release (ADR-032)
+- `../../product-discovery/05-architecture/background-jobs.md` — Railway Cron as the job trigger (ADR-022)
+- `../../product-discovery/05-architecture/database-strategy.md` — Supabase PostgreSQL, Storage
+- `../../project-os/DECISIONS.md` — ADR-028, ADR-029

@@ -1,45 +1,45 @@
 # DX Tooling
 
-Dokumen ini mendefinisikan **tooling Developer Experience** untuk produk Postific: linting, formatting, pre-commit hooks, test runner, script workspace, dan alur local development.
+This document defines the **Developer Experience tooling** for the Postific product: linting, formatting, pre-commit hooks, the test runner, workspace scripts, and the local development flow.
 
-Dokumen ini menkonkretkan perintah yang disebut di `cicd-pipeline.md` (`bun run lint`, `bun run test`, `bun run typecheck`) dan melengkapi script root di `monorepo-setup.md`. Env lokal mengikuti `environment-management.md`.
-
----
-
-# Tujuan
-
-* Menetapkan stack lint/format secara definitif sebelum Repository & Bootstrap (M7).
-* Memastikan quality gates CI dan feedback lokal memakai perintah yang sama.
-* Menetapkan pre-commit hook yang cepat tanpa menghambat alur solo developer.
-* Menetapkan test runner untuk gate `bun run test`.
-* Mendefinisikan checklist local setup yang selaras monorepo Bun + Next.js + Prisma.
+This document makes the commands named in `cicd-pipeline.md` (`bun run lint`, `bun run test`, `bun run typecheck`) concrete and complements the root scripts in `monorepo-setup.md`. The local env follows `environment-management.md`.
 
 ---
 
-# Keputusan yang Sudah Terkunci (dari Baseline)
+# Goals
 
-| Topik | Keputusan | Sumber |
-|-------|-----------|--------|
-| Runtime / package manager | Bun | ADR-002 |
-| Monorepo | Hybrid — root scripts, app di `apps/web` | ADR-026 |
-| CI gates | install → prisma → typecheck → lint → test | CI-D02, ADR-032 |
-| Local DB | Supabase Cloud, menumpang project staging + `.env.local` | EM-D02, EM-D03, ADR-081 |
-| TypeScript | Base `tsconfig` di root | `monorepo-setup.md` |
+- Set the lint/format stack definitively before Repository & Bootstrap (M7).
+- Ensure the CI quality gates and local feedback use the same commands.
+- Set a fast pre-commit hook that does not hinder the solo developer's flow.
+- Set the test runner for the `bun run test` gate.
+- Define a local setup checklist aligned with the Bun + Next.js + Prisma monorepo.
 
 ---
 
-# Keputusan DX Tooling (Ditetapkan di Dokumen Ini)
+# Locked Decisions (from Baseline)
 
-| ID | Topik | Keputusan |
-|----|-------|-----------|
-| DX-D01 | Lint + format | **ESLint** (lint) + **Prettier** (format) — config monorepo di root |
-| DX-D02 | Pre-commit | **Lefthook** + **lint-staged** — jalankan lint/format hanya pada file staged |
-| DX-D03 | Test runner | **Vitest** — unit/domain tests; dipanggil via `bun run test` |
-| DX-D04 | Script root | Seragam: `dev`, `build`, `typecheck`, `lint`, `lint:fix`, `format`, `format:check`, `test`, `test:watch`, `test:e2e`, `db:generate`, `db:migrate`, `db:deploy` |
-| DX-D05 | Editor | Format on save Prettier + ESLint fix disarankan; bukan wajib di CI selain perintah eksplisit |
-| DX-D06 | Vitest config | `vitest.config.ts` di **root** |
-| DX-D07 | Lefthook install | Script root `prepare` → `lefthook install` |
-| DX-D08 | Test E2E *(ADR-149)* | **Playwright** (Chrome terpasang) — `bun run test:e2e`; config `apps/web/playwright.config.ts`, tes `apps/web/e2e/*.e2e.ts`; Vitest tidak memuat `e2e/` |
+| Topic                     | Decision                                                      | Source                  |
+| ------------------------- | ------------------------------------------------------------- | ----------------------- |
+| Runtime / package manager | Bun                                                           | ADR-002                 |
+| Monorepo                  | Hybrid — root scripts, app in `apps/web`                      | ADR-026                 |
+| CI gates                  | install → prisma → typecheck → lint → test                    | CI-D02, ADR-032         |
+| Local DB                  | Supabase Cloud, sharing the staging project + `.env.local`    | EM-D02, EM-D03, ADR-081 |
+| TypeScript                | Base `tsconfig` at the root                                   | `monorepo-setup.md`     |
+
+---
+
+# DX Tooling Decisions (Set in This Document)
+
+| ID     | Topic                | Decision                                                                                                                                                                   |
+| ------ | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| DX-D01 | Lint + format        | **ESLint** (lint) + **Prettier** (format) — monorepo config at the root                                                                                                    |
+| DX-D02 | Pre-commit           | **Lefthook** + **lint-staged** — run lint/format only on staged files                                                                                                      |
+| DX-D03 | Test runner          | **Vitest** — unit/domain tests; invoked via `bun run test`                                                                                                                 |
+| DX-D04 | Root scripts         | Uniform: `dev`, `build`, `typecheck`, `lint`, `lint:fix`, `format`, `format:check`, `test`, `test:watch`, `test:e2e`, `db:generate`, `db:migrate`, `db:deploy`             |
+| DX-D05 | Editor               | Prettier format on save + ESLint fix recommended; not required in CI beyond the explicit commands                                                                          |
+| DX-D06 | Vitest config        | `vitest.config.ts` at the **root**                                                                                                                                         |
+| DX-D07 | Lefthook install     | Root script `prepare` → `lefthook install`                                                                                                                                 |
+| DX-D08 | E2E tests _(ADR-149)_ | **Playwright** (installed Chrome) — `bun run test:e2e`; config `apps/web/playwright.config.ts`, tests `apps/web/e2e/*.e2e.ts`; Vitest does not load `e2e/`               |
 
 ---
 
@@ -47,41 +47,41 @@ Dokumen ini menkonkretkan perintah yang disebut di `cicd-pipeline.md` (`bun run 
 
 ## Stack
 
-| Tool | Peran |
-|------|-------|
-| ESLint | Static analysis TypeScript/React/Next — error & warning kualitas kode |
-| Prettier | Formatting (indent, quotes, line width, import sorting bila dikonfigurasi) |
-| `eslint-config-prettier` | Mematikan rule ESLint yang bentrok dengan Prettier |
+| Tool                     | Role                                                                          |
+| ------------------------ | ----------------------------------------------------------------------------- |
+| ESLint                   | TypeScript/React/Next static analysis — code quality errors & warnings        |
+| Prettier                 | Formatting (indent, quotes, line width, import sorting if configured)         |
+| `eslint-config-prettier` | Turns off ESLint rules that conflict with Prettier                            |
 
 ## Scope
 
-* Lint/format mencakup `apps/web` dan `packages/shared`.
-* Abaikan artefak build: `.next/`, `dist/`, `coverage/`, `node_modules/`.
-* Rule set MVP: preset TypeScript + React Hooks + Next.js yang relevan; hindari rule set terlalu ketat yang menghambat bootstrap — boleh diperketat bertahap.
+- Lint/format covers `apps/web` and `packages/shared`.
+- Ignore build artifacts: `.next/`, `dist/`, `coverage/`, `node_modules/`.
+- MVP rule set: the relevant TypeScript + React Hooks + Next.js presets; avoid an overly strict rule set that hinders bootstrap — it may be tightened gradually.
 
-## Perintah
+## Commands
 
-| Script | Perintah (acuan) | Dipakai di |
-|--------|------------------|------------|
-| `lint` | ESLint seluruh workspace sumber | CI (wajib), lokal, pre-commit (staged) |
-| `lint:fix` | ESLint `--fix` | Lokal saja |
-| `format` | Prettier `--write` | Lokal, pre-commit (staged) |
-| `format:check` | Prettier `--check` | Opsional di CI nanti; MVP CI mengandalkan lint + konsistensi via pre-commit |
+| Script         | Command (reference)              | Used in                                                                                         |
+| -------------- | -------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `lint`         | ESLint over the whole workspace source | CI (required), local, pre-commit (staged)                                                 |
+| `lint:fix`     | ESLint `--fix`                   | Local only                                                                                      |
+| `format`       | Prettier `--write`               | Local, pre-commit (staged)                                                                      |
+| `format:check` | Prettier `--check`               | Optional in CI later; MVP CI relies on lint + consistency via pre-commit                        |
 
-CI MVP **wajib** menjalankan `bun run lint` (CI-D02). `format:check` boleh ditambahkan kemudian jika drift formatting muncul tanpa pre-commit.
+MVP CI **must** run `bun run lint` (CI-D02). `format:check` may be added later if formatting drift appears without a pre-commit.
 
-## Konfigurasi (lokasi M7)
+## Configuration (M7 location)
 
 ```
 /
-├── eslint.config.*          ← flat config monorepo (atau .eslintrc.* jika diperlukan)
+├── eslint.config.*          ← monorepo flat config (or .eslintrc.* if needed)
 ├── .prettierrc / prettier.config.*
 ├── .prettierignore
 ├── lefthook.yml
-└── package.json             ← script + lint-staged config
+└── package.json             ← scripts + lint-staged config
 ```
 
-Dependency tooling monorepo-level di-install di **root** (selaras `monorepo-setup.md`).
+Monorepo-level tooling dependencies are installed at the **root** (aligned with `monorepo-setup.md`).
 
 ---
 
@@ -89,24 +89,24 @@ Dependency tooling monorepo-level di-install di **root** (selaras `monorepo-setu
 
 ## Stack
 
-| Tool | Peran |
-|------|-------|
-| Lefthook | Menjalankan git hooks; cepat, config YAML, cocok Bun |
-| lint-staged | Membatasi ESLint/Prettier ke file yang di-stage |
+| Tool        | Role                                                     |
+| ----------- | -------------------------------------------------------- |
+| Lefthook    | Runs git hooks; fast, YAML config, suits Bun             |
+| lint-staged | Restricts ESLint/Prettier to staged files                |
 
-## Perilaku MVP
+## MVP Behavior
 
-Pada `pre-commit`:
+On `pre-commit`:
 
-1. `lint-staged` menjalankan Prettier + ESLint (fix aman bila memungkinkan) pada file staged yang relevan (`*.{ts,tsx,js,jsx,json,md}` — sesuaikan di M7).
-2. Hook gagal → commit ditolak sampai diperbaiki.
-3. **Tidak** menjalankan full test suite atau `prisma migrate` di pre-commit (terlalu lambat); test tetap di CI + lokal on-demand.
+1. `lint-staged` runs Prettier + ESLint (safe fix where possible) on the relevant staged files (`*.{ts,tsx,js,jsx,json,md}` — adjust in M7).
+2. Hook fails → the commit is rejected until fixed.
+3. Does **not** run the full test suite or `prisma migrate` in pre-commit (too slow); tests stay in CI + local on demand.
 
 ## Install hook
 
-Setelah clone: `bun install` menjalankan script `prepare` di root (`lefthook install`). Alternatif manual: `bunx lefthook install`.
+After clone: `bun install` runs the `prepare` script at the root (`lefthook install`). Manual alternative: `bunx lefthook install`.
 
-Solo developer tetap diuntungkan: mencegah commit format/lint yang akan gagal di CI.
+A solo developer still benefits: it prevents committing format/lint issues that would fail in CI.
 
 ---
 
@@ -114,43 +114,43 @@ Solo developer tetap diuntungkan: mencegah commit format/lint yang akan gagal di
 
 ## Stack
 
-| Aspek | Keputusan |
-|-------|-----------|
-| Runner | **Vitest** |
-| Fokus MVP | Unit/domain tests (entities, services murni, helpers) |
-| Environment | Node/Bun-compatible via Vitest; mock I/O (Prisma, Outstand, Better Auth) |
-| Coverage | Opsional di MVP; tidak menjadi gate CI awal |
-| E2E | Di luar scope MVP CI (`cicd-pipeline.md`) |
+| Aspect      | Decision                                                                          |
+| ----------- | --------------------------------------------------------------------------------- |
+| Runner      | **Vitest**                                                                        |
+| MVP focus   | Unit/domain tests (entities, pure services, helpers)                              |
+| Environment | Node/Bun-compatible via Vitest; mock I/O (Prisma, Outstand, Better Auth)          |
+| Coverage    | Optional in the MVP; not an initial CI gate                                       |
+| E2E         | Outside the scope of MVP CI (`cicd-pipeline.md`)                                  |
 
-## Perintah
+## Commands
 
-| Script | Peran |
-|--------|-------|
-| `test` | `vitest run` — CI & pre-push mental model |
-| `test:watch` | `vitest` watch — lokal |
+| Script       | Role                                           |
+| ------------ | ---------------------------------------------- |
+| `test`       | `vitest run` — CI & the pre-push mental model  |
+| `test:watch` | `vitest` watch — local                         |
 
-## Aturan tes
+## Test rules
 
-* Tes tidak membutuhkan secret production; mock dependency infrastruktur.
-* Tes domain tidak mengimpor implementasi repository konkret jika bisa di-mock lewat interface (selaras DDD).
-* Suite boleh minimal di awal M8 — yang penting perintah `bun run test` ada dan hijau di CI.
+- Tests do not need production secrets; mock infrastructure dependencies.
+- Domain tests do not import concrete repository implementations if they can be mocked through an interface (aligned with DDD).
+- The suite may be minimal early in M8 — what matters is that the `bun run test` command exists and is green in CI.
 
-Konfigurasi: `vitest.config.ts` di **root** monorepo (M7) — alias `@postific/shared` dan `@/` di-resolve dari satu tempat; suite mencakup `apps/web` dan `packages/shared`.
+Configuration: `vitest.config.ts` at the monorepo **root** (M7) — the `@postific/shared` and `@/` aliases are resolved from one place; the suite covers `apps/web` and `packages/shared`.
 
 ---
 
-## Tes E2E (DX-D08, ADR-149, S-002)
+## E2E Tests (DX-D08, ADR-149, S-002)
 
-* Perintah: `bun run test:e2e` dari root. Target dipilih lewat `E2E_BASE_URL`: kosong = local (`http://localhost:3000`, `next dev` dijalankan bila belum ada); isi URL staging untuk menguji staging.
-* Memakai Google Chrome yang terpasang (`channel: "chrome"`), tidak mengunduh browser. Hasil run (`test-results/`, `playwright-report/`) dan sesi login (`e2e/.auth/`) di-gitignore.
-* Local dan staging berbagi satu DB (ADR-081): tes hanya menyentuh data milik akun test. Akun test dan konvensi data ada di T-173.
-* Berkas tes bernama `*.e2e.ts` (bukan `*.spec.ts`) agar tidak tertangkap Vitest.
+- Command: `bun run test:e2e` from the root. The target is chosen via `E2E_BASE_URL`: empty = local (`http://localhost:3000`, `next dev` is started if not already running); set a staging URL to test staging.
+- Uses the installed Google Chrome (`channel: "chrome"`), does not download a browser. Run results (`test-results/`, `playwright-report/`) and the login session (`e2e/.auth/`) are gitignored.
+- Local and staging share one DB (ADR-081): tests only touch data owned by the test account. The test account and data conventions are in T-173.
+- Test files are named `*.e2e.ts` (not `*.spec.ts`) so Vitest does not pick them up.
 
 ---
 
 # Workspace Scripts (DX-D04)
 
-Acuan root `package.json` (melengkapi `monorepo-setup.md`):
+Root `package.json` reference (complements `monorepo-setup.md`):
 
 ```json
 {
@@ -172,82 +172,82 @@ Acuan root `package.json` (melengkapi `monorepo-setup.md`):
 }
 ```
 
-Mapping Prisma di `apps/web` (acuan):
+Prisma mapping in `apps/web` (reference):
 
-| Script | Perintah |
-|--------|----------|
-| `db:generate` | `prisma generate` |
-| `db:migrate` | `prisma migrate dev` — **hanya** terhadap project staging yang ditumpangi local (ADR-081), sesuai kredensial di `.env.local` |
-| `db:deploy` | `prisma migrate deploy` — dipakai di Railway release; jarang dipanggil manual lokal |
+| Script        | Command                                                                                                                                                  |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `db:generate` | `prisma generate`                                                                                                                                        |
+| `db:migrate`  | `prisma migrate dev` — **only** against the staging project that local shares (ADR-081), per the credentials in `.env.local`                             |
+| `db:deploy`   | `prisma migrate deploy` — used in the Railway release; rarely called manually locally                                                                    |
 
-Perintah persis (path binary `bunx prisma` vs script) difinalkan di M7; nama script di atas adalah kontrak untuk CI dan dokumentasi.
+The exact commands (binary path `bunx prisma` vs a script) are finalized in M7; the script names above are the contract for CI and documentation.
 
 ---
 
 # Local Development Setup
 
-Checklist setelah repo di-bootstrap (M7):
+Checklist after the repo is bootstrapped (M7):
 
-1. **Prasyarat:** Bun (versi selaras ADR-002), Git, akses Supabase Cloud, akun Google Cloud (OAuth).
-2. **Clone & install:** `bun install` di root (frozen lockfile di CI; lokal biasa).
-3. **Env:** salin `.env.example` → `.env.local`, isi kredensial project staging yang ditumpangi local (ADR-081, `environment-management.md`).
-4. **Hooks:** pastikan Lefthook ter-install (`bunx lefthook install`).
+1. **Prerequisites:** Bun (version aligned with ADR-002), Git, Supabase Cloud access, a Google Cloud account (OAuth).
+2. **Clone & install:** `bun install` at the root (frozen lockfile in CI; normal locally).
+3. **Env:** copy `.env.example` → `.env.local`, fill in the credentials of the staging project that local shares (ADR-081, `environment-management.md`).
+4. **Hooks:** make sure Lefthook is installed (`bunx lefthook install`).
 5. **DB:** `bun run db:generate` → `bun run db:migrate`.
 6. **Dev server:** `bun run dev` → `http://localhost:3000`.
-7. **Verifikasi DX:** `bun run typecheck && bun run lint && bun run test`.
+7. **Verify DX:** `bun run typecheck && bun run lint && bun run test`.
 
-## Workflow harian
+## Daily workflow
 
 ```
 1. bun run dev                          ← coding
-2. bun run test:watch                   ← saat ubah domain logic
+2. bun run test:watch                   ← when changing domain logic
 3. git add … → pre-commit (lint-staged)
 4. PR → staging → CI gates (typecheck, lint, test, prisma validate)
 ```
 
-Jangan arahkan `.env.local` ke project staging/prod (EM-D02, EM-D06).
+Do not point `.env.local` at the staging/prod project (EM-D02, EM-D06).
 
 ---
 
 # Typecheck
 
-* `bun run typecheck` tetap gate CI terpisah dari ESLint.
-* `tsc --noEmit` (atau script Next) di `apps/web`; packages di-typecheck via project references atau path yang sama — detail `tsconfig` di `monorepo-setup.md`.
+- `bun run typecheck` stays a CI gate separate from ESLint.
+- `tsc --noEmit` (or the Next script) in `apps/web`; packages are type-checked via project references or the same path — `tsconfig` details in `monorepo-setup.md`.
 
 ---
 
-# Artefak yang Diharapkan di M7
+# Artifacts Expected in M7
 
-* Config ESLint + Prettier di root (+ ignore files).
-* `lefthook.yml` + konfigurasi lint-staged.
-* `vitest.config.ts` + minimal smoke/unit test agar CI hijau.
-* Script root sesuai tabel DX-D04.
-* `.env.example` selaras katalog `environment-management.md`.
-* Dokumentasi singkat setup di README root repo (bukan di folder discovery) saat bootstrap.
+- ESLint + Prettier config at the root (+ ignore files).
+- `lefthook.yml` + lint-staged configuration.
+- `vitest.config.ts` + a minimal smoke/unit test so CI is green.
+- Root scripts per the DX-D04 table.
+- `.env.example` aligned with the `environment-management.md` catalog.
+- Brief setup documentation in the repo root README (not in the discovery folder) at bootstrap.
 
 ---
 
 # Decision Log
 
-| ID | Keputusan | Alasan | Alternatif |
-|----|-----------|--------|-----------|
-| DX-D01 | ESLint + Prettier | Ekosistem terbesar, plugin Next/React matang, sudah disebut sebagai acuan di dokumen M6 sebelumnya | Biome (all-in-one, lebih sederhana); Oxlint + Prettier |
-| DX-D02 | Lefthook + lint-staged | Hook cepat, config ringan, cocok Bun; feedback sebelum CI | Husky + lint-staged (lebih banyak boilerplate); tanpa pre-commit (hanya CI) |
-| DX-D03 | Vitest | API familiar, mock/coverage matang, monorepo-friendly | Bun test (lebih native, ekosistem assertion/mock lebih tipis) |
-| DX-D04 | Script root seragam untuk CI & lokal | Satu kontrak perintah (`lint`/`test`/`typecheck`) | Script hanya di `apps/web` tanpa alias root |
-| DX-D05 | Editor format-on-save disarankan, bukan digate ketat di awal | DX lokal tanpa memblokir bootstrap | Wajib `format:check` di setiap PR sejak hari pertama |
-| DX-D06 | `vitest.config.ts` di root | Alias monorepo (`@postific/shared`, `@/`) satu sumber; CI memanggil `bun run test` dari root | Config hanya di `apps/web` |
-| DX-D07 | Lefthook via `prepare` di root | Hook terpasang otomatis setelah `bun install` | Hanya dokumentasikan `bunx lefthook install` manual |
-| DX-D08 | Playwright (Chrome terpasang) untuk E2E (ADR-149) | Tes bisa diulang, merekam trace, memakai Chrome yang sudah ada tanpa unduhan browser; berkas `*.e2e.ts` terpisah dari Vitest | Cypress (ekosistem terpisah); tetap manual lewat browser pane (tidak bisa diulang, bukan gerbang) |
+| ID     | Decision                                                  | Reason                                                                                                                                  | Alternatives                                                                                                  |
+| ------ | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| DX-D01 | ESLint + Prettier                                         | Largest ecosystem, mature Next/React plugins, already named as the reference in the earlier M6 documents                                | Biome (all-in-one, simpler); Oxlint + Prettier                                                                |
+| DX-D02 | Lefthook + lint-staged                                    | Fast hooks, light config, suits Bun; feedback before CI                                                                                 | Husky + lint-staged (more boilerplate); no pre-commit (CI only)                                               |
+| DX-D03 | Vitest                                                    | Familiar API, mature mock/coverage, monorepo-friendly                                                                                   | Bun test (more native, thinner assertion/mock ecosystem)                                                      |
+| DX-D04 | Uniform root scripts for CI & local                       | One command contract (`lint`/`test`/`typecheck`)                                                                                        | Scripts only in `apps/web` without root aliases                                                               |
+| DX-D05 | Editor format-on-save recommended, not strictly gated early | Local DX without blocking bootstrap                                                                                                   | Require `format:check` on every PR from day one                                                               |
+| DX-D06 | `vitest.config.ts` at the root                            | Monorepo aliases (`@postific/shared`, `@/`) have a single source; CI calls `bun run test` from the root                                 | Config only in `apps/web`                                                                                     |
+| DX-D07 | Lefthook via `prepare` at the root                        | Hooks are installed automatically after `bun install`                                                                                   | Only document a manual `bunx lefthook install`                                                                |
+| DX-D08 | Playwright (installed Chrome) for E2E (ADR-149)           | Tests are repeatable, record traces, use the already-installed Chrome without a browser download; `*.e2e.ts` files separate from Vitest | Cypress (separate ecosystem); stay manual via the browser pane (not repeatable, not a gate)                   |
 
 ---
 
 # Related Documents
 
-* `README.md` — scope dan workflow Engineering Planning
-* `monorepo-setup.md` — struktur workspace, `tsconfig`, aturan dependency root
-* `cicd-pipeline.md` — gates yang memanggil script ini (CI-D02)
-* `environment-management.md` — `.env.local`, local menumpang project staging (ADR-081)
-* `database-orm.md` — Prisma generate/migrate di local
-* `dependency-strategy.md` — versi eksternal, lockfile, penempatan dep (ADR-035)
-* `../../project-os/DECISIONS.md` — ADR-032, ADR-034, ADR-035
+- `README.md` — scope and workflow of Engineering Planning
+- `monorepo-setup.md` — workspace structure, `tsconfig`, root dependency rules
+- `cicd-pipeline.md` — gates that call these scripts (CI-D02)
+- `environment-management.md` — `.env.local`, local sharing the staging project (ADR-081)
+- `database-orm.md` — Prisma generate/migrate on local
+- `dependency-strategy.md` — external versions, lockfile, dep placement (ADR-035)
+- `../../project-os/DECISIONS.md` — ADR-032, ADR-034, ADR-035
