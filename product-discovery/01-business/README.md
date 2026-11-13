@@ -1,23 +1,23 @@
 # Overview
 
-Dokumentasi pada folder ini berfokus pada fondasi bisnis untuk produk Postific.
+The documentation in this folder focuses on the business foundation for the Postific product.
 
 ---
 
 # Purpose
 
-* Mendefinisikan arah produk dari sisi bisnis.
-* Memastikan masalah yang diselesaikan bernilai nyata.
-* Menentukan pasar, positioning, dan model monetisasi awal.
-* Menetapkan metrik keberhasilan yang terukur.
+- Define the product direction from the business side.
+- Ensure the problem being solved has real value.
+- Determine the market, positioning, and initial monetization model.
+- Set measurable success metrics.
 
 ---
 
 # Scope
 
-Folder ini hanya membahas aspek bisnis.
+This folder covers business aspects only.
 
-Topik berikut tidak dibahas di sini:
+The following topics are not covered here:
 
 - Product Features
 - UX/UI
@@ -30,64 +30,64 @@ Topik berikut tidak dibahas di sini:
 
 # Documents
 
-* `product-vision.md` — arah dan visi jangka panjang produk.
-* `problem-statement.md` — masalah utama yang ingin diselesaikan.
-* `target-market.md` — segmen pasar dan profil pengguna utama.
-* `competitor-analysis.md` — analisis kompetitor dan peluang diferensiasi.
-* `business-model.md` — cara produk menciptakan dan menangkap nilai.
-* `pricing-strategy.md` — strategi harga awal dan asumsi monetisasi.
-* `success-metrics.md` — KPI utama untuk mengukur keberhasilan.
-* `../README.md` — dokumentasi fase Product Discovery.
-* `../../project-os/PROJECT_OVERVIEW.md` — ringkasan project secara keseluruhan.
-* `../../project-os/PROJECT_RULES.md` — aturan dan prinsip project.
-* `../../project-os/PROJECT_STATE.md` — status project dan progress milestone.
-* `../../project-os/DECISIONS.md` — catatan keputusan penting.
+- `product-vision.md` — the product's direction and long-term vision.
+- `problem-statement.md` — the main problem to be solved.
+- `target-market.md` — market segments and main user profiles.
+- `competitor-analysis.md` — competitor analysis and differentiation opportunities.
+- `business-model.md` — how the product creates and captures value.
+- `pricing-strategy.md` — initial pricing strategy and monetization assumptions.
+- `success-metrics.md` — the main KPIs for measuring success.
+- `../README.md` — documentation for the Product Discovery phase.
+- `../../project-os/PROJECT_OVERVIEW.md` — overall project summary.
+- `../../project-os/PROJECT_RULES.md` — project rules and principles.
+- `../../project-os/PROJECT_STATE.md` — project status and milestone progress.
+- `../../project-os/DECISIONS.md` — record of important decisions.
 
 ---
 
 # Workflow
 
-1. Mulai dari `product-vision.md`.
-2. Lanjutkan ke `problem-statement.md` dan `target-market.md`.
-3. Lengkapi `competitor-analysis.md` sebelum menetapkan model bisnis.
-4. Finalisasi `business-model.md`, `pricing-strategy.md`, dan `success-metrics.md`.
+1. Start from `product-vision.md`.
+2. Continue to `problem-statement.md` and `target-market.md`.
+3. Complete `competitor-analysis.md` before setting the business model.
+4. Finalize `business-model.md`, `pricing-strategy.md`, and `success-metrics.md`.
 
 ---
 
 # Expected Output
 
-Setelah seluruh dokumen pada folder ini selesai, project harus memiliki:
+Once all documents in this folder are complete, the project must have:
 
-- Product Vision yang jelas.
-- Problem yang tervalidasi.
-- Target Market yang terdefinisi.
-- Positioning terhadap kompetitor.
-- Business Model awal.
-- Strategi monetisasi.
-- KPI bisnis.
+- A clear Product Vision.
+- A validated Problem.
+- A defined Target Market.
+- Positioning against competitors.
+- An initial Business Model.
+- A monetization strategy.
+- Business KPIs.
 
 ---
 
 # Exit Criteria
 
-Business Discovery dianggap selesai apabila:
+Business Discovery is considered complete when:
 
-- Product Vision telah disepakati.
-- Problem Statement telah tervalidasi.
-- Target Market telah ditentukan.
-- Competitor Analysis selesai.
-- Business Model terdokumentasi.
-- Pricing Strategy terdokumentasi.
-- Success Metrics terdokumentasi.
+- The Product Vision has been agreed.
+- The Problem Statement has been validated.
+- The Target Market has been determined.
+- The Competitor Analysis is complete.
+- The Business Model is documented.
+- The Pricing Strategy is documented.
+- The Success Metrics are documented.
 
 ---
 
 # Decision Rules
 
-Keputusan yang mengubah arah bisnis, target pasar, model bisnis, atau strategi monetisasi harus dicatat pada:
+Decisions that change the business direction, target market, business model, or monetization strategy must be recorded in:
 
 - `../../project-os/DECISIONS.md`
 
-Progress Business Discovery harus diperbarui pada:
+Business Discovery progress must be updated in:
 
 - `../../project-os/PROJECT_STATE.md`

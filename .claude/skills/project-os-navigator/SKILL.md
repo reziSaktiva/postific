@@ -84,7 +84,7 @@ Entry format: the "Format Entry" section in `project-os/CONVERSATIONS.md`.
 3. After the brainstorm ends, evaluate the results against the existing baselines.
 4. If an idea is worth considering, record it in `project-os/BRAINSTORM.md`.
 
-Entry format: the "Format Entry" section in `project-os/BRAINSTORM.md`.
+Entry format: the "Entry Format" section in `project-os/BRAINSTORM.md`.
 
 ---
 

@@ -1,154 +1,154 @@
 # Success Metrics
 
-Dokumen ini mendefinisikan metrik utama untuk mengukur keberhasilan produk **Postific** dari sisi bisnis.
+This document defines the main metrics for measuring the success of the **Postific** product from the business side.
 
-Metrik ini digunakan sebagai acuan dalam mengevaluasi pertumbuhan produk, validasi pasar, serta efektivitas keputusan bisnis.
+These metrics are used as a reference for evaluating product growth, market validation, and the effectiveness of business decisions.
 
 ---
 
 # Overview
 
-Keberhasilan produk tidak hanya diukur dari jumlah pengguna, tetapi juga dari kemampuan produk dalam memberikan nilai yang berkelanjutan kepada pelanggan.
+The product's success is measured not only by the number of users, but also by the product's ability to deliver sustained value to customers.
 
-Success Metrics membantu memastikan bahwa setiap keputusan bisnis didasarkan pada data, bukan asumsi.
+Success Metrics help ensure that every business decision is based on data, not assumptions.
 
 ---
 
 # Measurement Principles
 
-Seluruh metrik bisnis mengikuti prinsip berikut:
+All business metrics follow these principles:
 
-* Berorientasi pada nilai yang diterima pelanggan.
-* Dapat diukur secara objektif.
-* Mendukung pengambilan keputusan.
-* Berfokus pada pertumbuhan jangka panjang.
-* Dievaluasi secara berkala.
+- Oriented toward the value customers receive.
+- Objectively measurable.
+- Support decision making.
+- Focused on long-term growth.
+- Evaluated regularly.
 
 ---
 
 # Phase 1 — Product Validation
 
-Selama fase MVP, fokus utama adalah memvalidasi bahwa produk benar-benar menyelesaikan masalah pengguna.
+During the MVP phase, the main focus is validating that the product really solves the user's problem.
 
-Prioritas keberhasilan meliputi:
+Success priorities include:
 
-* Pengguna berhasil menggunakan produk.
-* Pengguna kembali menggunakan produk.
-* Pengguna memberikan feedback.
-* Pengguna menyelesaikan workflow utama.
-* Pengguna merekomendasikan produk kepada orang lain.
+- Users succeed in using the product.
+- Users come back to use the product.
+- Users give feedback.
+- Users complete the main workflow.
+- Users recommend the product to others.
 
-Pada fase ini, kualitas validasi lebih penting daripada jumlah pengguna.
+In this phase, the quality of validation matters more than the number of users.
 
 ---
 
 # Phase 2 — Product-Market Fit
 
-Setelah produk digunakan oleh pengguna nyata, fokus mulai bergeser pada tingkat adopsi dan retensi.
+Once the product is used by real users, the focus starts to shift to adoption and retention.
 
-Contoh metrik:
+Example metrics:
 
-* Monthly Active Users (MAU)
-* Weekly Active Users (WAU)
-* User Retention
-* User Activation Rate
-* Feature Adoption Rate
-* Customer Satisfaction
-* Net Promoter Score (NPS)
+- Monthly Active Users (MAU)
+- Weekly Active Users (WAU)
+- User Retention
+- User Activation Rate
+- Feature Adoption Rate
+- Customer Satisfaction
+- Net Promoter Score (NPS)
 
 ---
 
 # Phase 3 — Business Growth
 
-Setelah Product-Market Fit tercapai, fokus mulai bergeser pada pertumbuhan bisnis.
+Once Product-Market Fit is reached, the focus starts to shift to business growth.
 
-Contoh metrik:
+Example metrics:
 
-* Paid Customers
-* Monthly Recurring Revenue (MRR)
-* Annual Recurring Revenue (ARR)
-* Customer Acquisition Cost (CAC)
-* Customer Lifetime Value (LTV)
-* Churn Rate
-* Revenue Growth Rate
+- Paid Customers
+- Monthly Recurring Revenue (MRR)
+- Annual Recurring Revenue (ARR)
+- Customer Acquisition Cost (CAC)
+- Customer Lifetime Value (LTV)
+- Churn Rate
+- Revenue Growth Rate
 
 ---
 
 # Product Health Metrics
 
-Selain metrik bisnis, kondisi produk juga perlu dipantau.
+Besides business metrics, the product's condition also needs to be monitored.
 
-Contoh indikator:
+Example indicators:
 
-* Jumlah workspace aktif.
-* Jumlah akun media sosial yang terhubung.
-* Jumlah konten yang dipublikasikan.
-* Tingkat keberhasilan proses publikasi.
-* Waktu rata-rata penyelesaian workflow.
-* Penggunaan fitur utama.
+- Number of active workspaces.
+- Number of connected social media accounts.
+- Number of published content items.
+- Publishing success rate.
+- Average workflow completion time.
+- Usage of core features.
 
 ---
 
 # Success Definition
 
-Produk dianggap berhasil apabila:
+The product is considered successful when it:
 
-* Berhasil menyelesaikan masalah utama pengguna.
-* Digunakan secara aktif oleh target market.
-* Memberikan pengalaman pengguna yang baik.
-* Memiliki tingkat retensi yang sehat.
-* Memiliki model bisnis yang berkelanjutan.
-* Bertumbuh berdasarkan kebutuhan pengguna.
+- Solves the users' main problem.
+- Is actively used by the target market.
+- Delivers a good user experience.
+- Has a healthy retention rate.
+- Has a sustainable business model.
+- Grows based on user needs.
 
 ---
 
-# Catatan Penerapan Metrik
+# Notes on Applying the Metrics
 
-Status/phase proyek saat ini hanya hidup di `project-os/PROJECT_STATE.md`
-(rule 10, AGENTS.md) — tidak diduplikasi di sini. Selama produk masih berada
-pada tahap perencanaan dan pengembangan, seluruh metrik di atas berfungsi
-sebagai target evaluasi di masa mendatang.
+The project's current status/phase lives only in `project-os/PROJECT_STATE.md`
+(rule 10, AGENTS.md) — it is not duplicated here. While the product is still
+in the planning and development stage, all the metrics above serve as
+evaluation targets for the future.
 
-Belum ada target numerik yang ditetapkan.
+No numeric targets have been set yet.
 
-Target kuantitatif akan ditentukan setelah produk memasuki tahap penggunaan nyata.
+Quantitative targets will be determined once the product enters real usage.
 
 ---
 
 # Future Considerations
 
-Beberapa metrik mungkin akan ditambahkan pada fase berikutnya:
+Some metrics may be added in later phases:
 
-* Team Collaboration Metrics.
-* Penggunaan MCP (grant aktif, panggilan tool per workspace, draft yang dibuat lewat MCP).
-* Workspace Growth.
-* Customer Expansion Rate.
-* Feature Engagement.
-* Platform Performance Metrics.
+- Team Collaboration Metrics.
+- MCP usage (active grants, tool calls per workspace, drafts created through MCP).
+- Workspace Growth.
+- Customer Expansion Rate.
+- Feature Engagement.
+- Platform Performance Metrics.
 
-Keputusan tersebut akan mengikuti perkembangan produk dan kebutuhan bisnis.
+These decisions will follow product development and business needs.
 
 ---
 
 # Decision Rules
 
-Seluruh target numerik harus didasarkan pada data penggunaan nyata.
+All numeric targets must be based on real usage data.
 
-Perubahan KPI bisnis harus dicatat pada:
+Changes to business KPIs must be recorded in:
 
-* `../../project-os/DECISIONS.md`
+- `../../project-os/DECISIONS.md`
 
-Perubahan status dokumen harus diperbarui pada:
+Document status changes must be updated in:
 
-* `../../project-os/PROJECT_STATE.md`
+- `../../project-os/PROJECT_STATE.md`
 
 ---
 
 # Related Documents
 
-* `README.md`
-* `business-model.md`
-* `pricing-strategy.md`
-* `../../project-os/PROJECT_OVERVIEW.md`
-* `../../project-os/PROJECT_STATE.md`
-* `../../project-os/DECISIONS.md`
+- `README.md`
+- `business-model.md`
+- `pricing-strategy.md`
+- `../../project-os/PROJECT_OVERVIEW.md`
+- `../../project-os/PROJECT_STATE.md`
+- `../../project-os/DECISIONS.md`

@@ -1,137 +1,137 @@
 # Pricing Strategy
 
-Dokumen ini menjelaskan strategi harga dan monetisasi untuk produk **Postific**.
+This document explains the pricing and monetization strategy for the **Postific** product.
 
-Pada fase saat ini, fokus utama produk adalah memperoleh validasi pasar (Product-Market Fit), sehingga strategi monetisasi belum menjadi prioritas utama.
+In the current phase, the product's main focus is obtaining market validation (Product-Market Fit), so the monetization strategy is not yet a main priority.
 
 ---
 
 # Overview
 
-Pricing Strategy mendefinisikan bagaimana produk akan menghasilkan pendapatan tanpa mengorbankan pengalaman pengguna maupun pertumbuhan bisnis.
+The Pricing Strategy defines how the product will generate revenue without sacrificing the user experience or business growth.
 
-Strategi ini akan berkembang seiring bertambahnya pengguna, validasi produk, dan kebutuhan pasar.
+This strategy will evolve as users grow, the product is validated, and market needs change.
 
 ---
 
-# Strategi Peluncuran Saat Ini
+# Current Launch Strategy
 
 **Launch Strategy:** Free Access
 
-Pada fase MVP, seluruh pengguna dapat menggunakan produk secara gratis.
+In the MVP phase, all users can use the product for free.
 
-Keputusan ini diambil untuk:
+This decision was made to:
 
-* Memvalidasi Product-Market Fit.
-* Mengumpulkan feedback pengguna.
-* Memahami pola penggunaan produk.
-* Mengidentifikasi kebutuhan nyata pelanggan.
-* Menyempurnakan produk sebelum memasuki fase monetisasi.
+- Validate Product-Market Fit.
+- Collect user feedback.
+- Understand product usage patterns.
+- Identify real customer needs.
+- Refine the product before entering the monetization phase.
 
-Selama fase ini, pertumbuhan pengguna dan kualitas produk menjadi prioritas utama dibandingkan pendapatan.
+During this phase, user growth and product quality take priority over revenue.
 
 ---
 
 # Pricing Philosophy
 
-Strategi harga di masa depan akan mengikuti prinsip berikut:
+Future pricing strategy will follow these principles:
 
-* Memberikan nilai yang sebanding dengan harga.
-* Transparan dan mudah dipahami.
-* Mendukung pertumbuhan pelanggan.
-* Berorientasi pada kebutuhan organisasi.
-* Berkelanjutan bagi bisnis.
+- Deliver value proportional to the price.
+- Transparent and easy to understand.
+- Support customer growth.
+- Oriented toward organizational needs.
+- Sustainable for the business.
 
-Harga bukan menjadi pembeda utama produk, melainkan nilai yang diterima pelanggan.
+Price is not the product's main differentiator; the value customers receive is.
 
 ---
 
 # Future Monetization
 
-Setelah Product-Market Fit tercapai, beberapa pendekatan monetisasi dapat dipertimbangkan, antara lain:
+Once Product-Market Fit is reached, several monetization approaches may be considered, including:
 
-* Freemium.
-* Subscription.
-* Team Plan.
-* Usage-Based Pricing.
-* Enterprise Plan.
+- Freemium.
+- Subscription.
+- Team Plan.
+- Usage-Based Pricing.
+- Enterprise Plan.
 
-Dokumen ini belum menetapkan model monetisasi final.
+This document has not set a final monetization model.
 
-Hipotesis utama pada baseline bisnis saat ini adalah model subscription, dengan opsi monetisasi lain tetap terbuka sesuai hasil validasi.
+The main hypothesis in the current business baseline is the subscription model, with other monetization options remaining open depending on validation results.
 
-Keputusan akan dibuat berdasarkan:
+Decisions will be made based on:
 
-* Feedback pengguna.
-* Data penggunaan produk.
-* Kebutuhan target pasar.
-* Biaya operasional.
-* Strategi pertumbuhan bisnis.
+- User feedback.
+- Product usage data.
+- Target market needs.
+- Operational costs.
+- Business growth strategy.
 
 ---
 
 # Assumptions
 
-Strategi saat ini dibangun berdasarkan asumsi berikut:
+The current strategy is built on these assumptions:
 
-* Pengguna bersedia mencoba produk tanpa hambatan biaya pada fase awal.
-* Feedback dari pengguna awal lebih bernilai dibandingkan pendapatan jangka pendek.
-* Validasi Product-Market Fit akan menghasilkan dasar yang lebih kuat untuk menentukan model monetisasi.
+- Users are willing to try the product without cost barriers in the early phase.
+- Feedback from early users is more valuable than short-term revenue.
+- Validating Product-Market Fit will provide a stronger basis for determining the monetization model.
 
-Seluruh asumsi ini akan divalidasi melalui penggunaan produk secara nyata.
+All of these assumptions will be validated through real product usage.
 
 ---
 
 # Future Considerations
 
-Topik berikut akan dibahas setelah fase validasi produk selesai:
+The following topics will be addressed after the product validation phase is complete:
 
-* Struktur paket berlangganan.
-* Batas penggunaan setiap paket.
-* Fitur premium.
-* Model penagihan.
-* Siklus pembayaran.
-* Diskon tahunan.
-* Kebijakan trial.
-* Strategi upgrade.
+- Subscription plan structure.
+- Usage limits for each plan.
+- Premium features.
+- Billing model.
+- Payment cycle.
+- Annual discount.
+- Trial policy.
+- Upgrade strategy.
 
 ---
 
 # Success Criteria
 
-Pricing Strategy dianggap selesai apabila:
+The Pricing Strategy is considered complete when:
 
-* Strategi peluncuran telah ditentukan.
-* Filosofi harga telah terdokumentasi.
-* Pendekatan monetisasi masa depan telah diidentifikasi.
-* Asumsi utama telah terdokumentasi.
-* Seluruh keputusan harga didasarkan pada data penggunaan nyata.
+- The launch strategy has been determined.
+- The pricing philosophy is documented.
+- The future monetization approach has been identified.
+- The main assumptions are documented.
+- All pricing decisions are based on real usage data.
 
 ---
 
 # Decision Rules
 
-Selama fase MVP:
+During the MVP phase:
 
-* Produk diluncurkan dengan akses gratis.
-* Monetisasi bukan prioritas utama.
-* Seluruh keputusan pricing akan ditunda hingga Product-Market Fit tervalidasi.
+- The product launches with free access.
+- Monetization is not a main priority.
+- All pricing decisions will be deferred until Product-Market Fit is validated.
 
-Perubahan terhadap strategi monetisasi harus dicatat pada:
+Changes to the monetization strategy must be recorded in:
 
-* `../../project-os/DECISIONS.md`
+- `../../project-os/DECISIONS.md`
 
-Perubahan status dokumen harus diperbarui pada:
+Document status changes must be updated in:
 
-* `../../project-os/PROJECT_STATE.md`
+- `../../project-os/PROJECT_STATE.md`
 
 ---
 
 # Related Documents
 
-* `README.md`
-* `business-model.md`
-* `success-metrics.md`
-* `../../project-os/PROJECT_OVERVIEW.md`
-* `../../project-os/PROJECT_STATE.md`
-* `../../project-os/DECISIONS.md`
+- `README.md`
+- `business-model.md`
+- `success-metrics.md`
+- `../../project-os/PROJECT_OVERVIEW.md`
+- `../../project-os/PROJECT_STATE.md`
+- `../../project-os/DECISIONS.md`

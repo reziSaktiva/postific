@@ -155,6 +155,25 @@ Born from the T-266 language audit (T-266.10). The Indonesian originals already 
 
 **Blocked by:** T-266
 
+### T-279 · Fix stale pointers found while translating layer 3
+
+`⏳ Todo` · **Mode** AFK · **Verifikasi** lokal · **Domain** project-os, agen · **ADR** ADR-133, ADR-163 · **Spec** S-007 · **Depends** T-274
+**Baca dulu:** `project-os/specs/S-007.md` · the T-268 to T-274 reviews recorded above · `AGENTS.md` (Hard rules)
+
+Born from the T-268 to T-274 reviews. Each pointer below was already wrong in the Indonesian originals; the translation tickets kept them (a translation must not change pointers). Fix the pointers only.
+
+- [ ] **T-279.1** `product-discovery/01-business/success-metrics.md` (Notes on Applying the Metrics): "rule 10, AGENTS.md" for where project status lives should name rule 7.
+- [ ] **T-279.2** `project-os/ARCHITECTURE_OVERVIEW.md` (about line 228): "rules 5-9" for the layer rules should name rules 3 to 6.
+- [ ] **T-279.3** `project-os/DECISIONS.md` (rows ADR-149, ADR-150, ADR-151): complete the two-cell rows (status, date, summary, file link) per the index shape in `PROJECT_RULES.md`.
+- [ ] **T-279.4** `product-discovery/05-architecture/application-layer.md` (about line 536): the quoted `conflict` message is a stale paraphrase of the real message in `compose-draft.use-case.ts`; quote it correctly or mark it as a paraphrase.
+- [ ] **T-279.5** `project-os/PROJECT_RULES.md` (about line 128) quotes the `PROJECT_STATE.md` headings "Completed (Ringkasan)" and "Recent Decisions (Ringkasan)"; update together with T-275 (also `.claude/agents/gibran-project-manager.md:33`, which needs King Rezi's request).
+
+Not in this ticket (need a decision or a different home): the Approval Workflow placement conflict in `02-product` (Decision Rule 4 versus `mvp-definition.md`, an original inconsistency; King Rezi decides); the citation of the renamed heading in `.claude/agents/najwa-qa-engineer.md` (agent files change only on King Rezi's request); stale heading citations in `apps/web` code comments and migration SQL (code is out of S-007 scope, AGENTS.md rule 13 needs a ticket); stale heading citations in history ADRs, tickets and `S-001.md` (history; T-276 replaces keywords only).
+
+**Belum terbukti:** tidak ada butir runtime.
+
+**Blocked by:** T-274
+
 ### T-267 · Review the context/ pilot and decide the remaining scope questions
 
 `✅ Done (code) (2026-11-13, keputusan King Rezi)` · **Mode** HITL · **Verifikasi** lokal · **Domain** project-os, agen · **ADR** ADR-133, ADR-163 · **Spec** S-007 · **Depends** T-266
@@ -173,15 +192,15 @@ Gerbang sebelum cakupan B berlanjut. Hasil percobaan dilaporkan ke King Rezi, la
 
 ### T-268 · Translate product-discovery/01-business
 
-`⏳ Todo` · **Mode** AFK · **Verifikasi** lokal · **Domain** project-os, agen · **ADR** ADR-133, ADR-163 · **Spec** S-007 · **Depends** T-267
+`✅ Done (code) (2026-11-13)` · **Mode** AFK · **Verifikasi** lokal · **Domain** project-os, agen · **ADR** ADR-133, ADR-163 · **Spec** S-007 · **Depends** T-267
 **Baca dulu:** `project-os/specs/S-007.md` · `product-discovery/01-business/` · hasil percobaan T-266
 
 Folder `product-discovery/01-business/` (8 berkas, 1.190 baris). Satu berkas utuh, tidak setengah jadi setelah tiket selesai. Contoh teks UI produk (copy Bahasa Indonesia) bagian produk dan tidak berubah. Perbandingan: sampel. Berkas yang disentuh tidak dipakai tiket lain bersamaan (keputusan 5 S-007).
 
-- [ ] **T-268.1** Setiap berkas di `product-discovery/01-business/` utuh dalam bahasa Inggris. Arti, angka, ID, tautan, dan contoh copy produk tidak berubah.
-- [ ] **T-268.2** Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
-- [ ] **T-268.3** Perbandingan sampel dengan versi Indonesia di git oleh agen independen, hasilnya dicatat di sini.
-- [ ] **T-268.4** `bun run docs:check` bersih.
+- [x] **T-268.1** `(2026-11-13)` Setiap berkas di `product-discovery/01-business/` utuh dalam bahasa Inggris. Arti, angka, ID, tautan, dan contoh copy produk tidak berubah.
+- [x] **T-268.2** `(2026-11-13)` Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
+- [x] **T-268.3** `(2026-11-13)` Perbandingan sampel dengan versi Indonesia di git oleh agen independen, hasilnya dicatat di sini.
+- [x] **T-268.4** `(2026-11-13)` `bun run docs:check` bersih.
 
 **Belum terbukti:** tidak ada butir runtime.
 
@@ -189,15 +208,15 @@ Folder `product-discovery/01-business/` (8 berkas, 1.190 baris). Satu berkas utu
 
 ### T-269 · Translate product-discovery/02-product
 
-`⏳ Todo` · **Mode** AFK · **Verifikasi** lokal · **Domain** project-os, agen · **ADR** ADR-133, ADR-163 · **Spec** S-007 · **Depends** T-267
+`✅ Done (code) (2026-11-13)` · **Mode** AFK · **Verifikasi** lokal · **Domain** project-os, agen · **ADR** ADR-133, ADR-163 · **Spec** S-007 · **Depends** T-267
 **Baca dulu:** `project-os/specs/S-007.md` · `product-discovery/02-product/` · hasil percobaan T-266
 
 Folder `product-discovery/02-product/` (8 berkas, 1.648 baris). Satu berkas utuh, tidak setengah jadi setelah tiket selesai. Contoh teks UI produk (copy Bahasa Indonesia) bagian produk dan tidak berubah. Perbandingan: sampel. Berkas yang disentuh tidak dipakai tiket lain bersamaan (keputusan 5 S-007).
 
-- [ ] **T-269.1** Setiap berkas di `product-discovery/02-product/` utuh dalam bahasa Inggris. Arti, angka, ID, tautan, dan contoh copy produk tidak berubah.
-- [ ] **T-269.2** Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
-- [ ] **T-269.3** Perbandingan sampel dengan versi Indonesia di git oleh agen independen, hasilnya dicatat di sini.
-- [ ] **T-269.4** `bun run docs:check` bersih.
+- [x] **T-269.1** `(2026-11-13)` Setiap berkas di `product-discovery/02-product/` utuh dalam bahasa Inggris. Arti, angka, ID, tautan, dan contoh copy produk tidak berubah.
+- [x] **T-269.2** `(2026-11-13)` Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
+- [x] **T-269.3** `(2026-11-13)` Perbandingan sampel dengan versi Indonesia di git oleh agen independen, hasilnya dicatat di sini.
+- [x] **T-269.4** `(2026-11-13)` `bun run docs:check` bersih.
 
 **Belum terbukti:** tidak ada butir runtime.
 
@@ -205,15 +224,15 @@ Folder `product-discovery/02-product/` (8 berkas, 1.648 baris). Satu berkas utuh
 
 ### T-270 · Translate product-discovery/03-user
 
-`⏳ Todo` · **Mode** AFK · **Verifikasi** lokal · **Domain** project-os, agen · **ADR** ADR-133, ADR-163 · **Spec** S-007 · **Depends** T-267
+`✅ Done (code) (2026-11-13)` · **Mode** AFK · **Verifikasi** lokal · **Domain** project-os, agen · **ADR** ADR-133, ADR-163 · **Spec** S-007 · **Depends** T-267
 **Baca dulu:** `project-os/specs/S-007.md` · `product-discovery/03-user/` · hasil percobaan T-266
 
 Folder `product-discovery/03-user/` (10 berkas, 3.169 baris). Satu berkas utuh, tidak setengah jadi setelah tiket selesai. Contoh teks UI produk (copy Bahasa Indonesia) bagian produk dan tidak berubah. Perbandingan: sampel. Berkas yang disentuh tidak dipakai tiket lain bersamaan (keputusan 5 S-007).
 
-- [ ] **T-270.1** Setiap berkas di `product-discovery/03-user/` utuh dalam bahasa Inggris. Arti, angka, ID, tautan, dan contoh copy produk tidak berubah.
-- [ ] **T-270.2** Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
-- [ ] **T-270.3** Perbandingan sampel dengan versi Indonesia di git oleh agen independen, hasilnya dicatat di sini.
-- [ ] **T-270.4** `bun run docs:check` bersih.
+- [x] **T-270.1** `(2026-11-13)` Setiap berkas di `product-discovery/03-user/` utuh dalam bahasa Inggris. Arti, angka, ID, tautan, dan contoh copy produk tidak berubah.
+- [x] **T-270.2** `(2026-11-13)` Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
+- [x] **T-270.3** `(2026-11-13)` Perbandingan sampel dengan versi Indonesia di git oleh agen independen, hasilnya dicatat di sini.
+- [x] **T-270.4** `(2026-11-13)` `bun run docs:check` bersih.
 
 **Belum terbukti:** tidak ada butir runtime.
 
@@ -221,15 +240,15 @@ Folder `product-discovery/03-user/` (10 berkas, 3.169 baris). Satu berkas utuh, 
 
 ### T-271 · Translate product-discovery/04-ux
 
-`⏳ Todo` · **Mode** AFK · **Verifikasi** lokal · **Domain** project-os, agen · **ADR** ADR-133, ADR-163 · **Spec** S-007 · **Depends** T-267
+`✅ Done (code) (2026-11-13)` · **Mode** AFK · **Verifikasi** lokal · **Domain** project-os, agen · **ADR** ADR-133, ADR-163 · **Spec** S-007 · **Depends** T-267
 **Baca dulu:** `project-os/specs/S-007.md` · `product-discovery/04-ux/` · hasil percobaan T-266
 
 Folder `product-discovery/04-ux/` (6 berkas, 2.819 baris). Satu berkas utuh, tidak setengah jadi setelah tiket selesai. Contoh teks UI produk (copy Bahasa Indonesia) bagian produk dan tidak berubah. Perbandingan: penuh (pola layar dan aturan UX). Berkas yang disentuh tidak dipakai tiket lain bersamaan (keputusan 5 S-007).
 
-- [ ] **T-271.1** Setiap berkas di `product-discovery/04-ux/` utuh dalam bahasa Inggris. Arti, angka, ID, tautan, dan contoh copy produk tidak berubah.
-- [ ] **T-271.2** Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
-- [ ] **T-271.3** Perbandingan penuh (pola layar dan aturan UX) dengan versi Indonesia di git oleh agen independen, hasilnya dicatat di sini.
-- [ ] **T-271.4** `bun run docs:check` bersih.
+- [x] **T-271.1** `(2026-11-13)` Setiap berkas di `product-discovery/04-ux/` utuh dalam bahasa Inggris. Arti, angka, ID, tautan, dan contoh copy produk tidak berubah.
+- [x] **T-271.2** `(2026-11-13)` Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
+- [x] **T-271.3** `(2026-11-13)` Perbandingan penuh (pola layar dan aturan UX) dengan versi Indonesia di git oleh agen independen, hasilnya dicatat di sini.
+- [x] **T-271.4** `(2026-11-13)` `bun run docs:check` bersih.
 
 **Belum terbukti:** tidak ada butir runtime.
 
@@ -237,15 +256,15 @@ Folder `product-discovery/04-ux/` (6 berkas, 2.819 baris). Satu berkas utuh, tid
 
 ### T-272 · Translate product-discovery/05-architecture
 
-`⏳ Todo` · **Mode** AFK · **Verifikasi** lokal · **Domain** project-os, agen · **ADR** ADR-133, ADR-163 · **Spec** S-007 · **Depends** T-267
+`✅ Done (code) (2026-11-13)` · **Mode** AFK · **Verifikasi** lokal · **Domain** project-os, agen · **ADR** ADR-133, ADR-163 · **Spec** S-007 · **Depends** T-267
 **Baca dulu:** `project-os/specs/S-007.md` · `product-discovery/05-architecture/` · hasil percobaan T-266
 
 Folder `product-discovery/05-architecture/` (8 berkas, 4.323 baris). Satu berkas utuh, tidak setengah jadi setelah tiket selesai. Contoh teks UI produk (copy Bahasa Indonesia) bagian produk dan tidak berubah. Perbandingan: penuh (aturan arsitektur). Berkas yang disentuh tidak dipakai tiket lain bersamaan (keputusan 5 S-007).
 
-- [ ] **T-272.1** Setiap berkas di `product-discovery/05-architecture/` utuh dalam bahasa Inggris. Arti, angka, ID, tautan, dan contoh copy produk tidak berubah.
-- [ ] **T-272.2** Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
-- [ ] **T-272.3** Perbandingan penuh (aturan arsitektur) dengan versi Indonesia di git oleh agen independen, hasilnya dicatat di sini.
-- [ ] **T-272.4** `bun run docs:check` bersih.
+- [x] **T-272.1** `(2026-11-13)` Setiap berkas di `product-discovery/05-architecture/` utuh dalam bahasa Inggris. Arti, angka, ID, tautan, dan contoh copy produk tidak berubah.
+- [x] **T-272.2** `(2026-11-13)` Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
+- [x] **T-272.3** `(2026-11-13)` Perbandingan penuh (aturan arsitektur) dengan versi Indonesia di git oleh agen independen, hasilnya dicatat di sini.
+- [x] **T-272.4** `(2026-11-13)` `bun run docs:check` bersih.
 
 **Belum terbukti:** tidak ada butir runtime.
 
@@ -253,15 +272,15 @@ Folder `product-discovery/05-architecture/` (8 berkas, 4.323 baris). Satu berkas
 
 ### T-273 · Translate product-discovery/06-engineering
 
-`⏳ Todo` · **Mode** AFK · **Verifikasi** lokal · **Domain** project-os, agen · **ADR** ADR-133, ADR-163 · **Spec** S-007 · **Depends** T-267
+`✅ Done (code) (2026-11-13)` · **Mode** AFK · **Verifikasi** lokal · **Domain** project-os, agen · **ADR** ADR-133, ADR-163 · **Spec** S-007 · **Depends** T-267
 **Baca dulu:** `project-os/specs/S-007.md` · `product-discovery/06-engineering/` · hasil percobaan T-266
 
 Folder `product-discovery/06-engineering/` (12 berkas, 3.581 baris). Satu berkas utuh, tidak setengah jadi setelah tiket selesai. Contoh teks UI produk (copy Bahasa Indonesia) bagian produk dan tidak berubah. Perbandingan: penuh (aturan engineering). Berkas yang disentuh tidak dipakai tiket lain bersamaan (keputusan 5 S-007).
 
-- [ ] **T-273.1** Setiap berkas di `product-discovery/06-engineering/` utuh dalam bahasa Inggris. Arti, angka, ID, tautan, dan contoh copy produk tidak berubah.
-- [ ] **T-273.2** Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
-- [ ] **T-273.3** Perbandingan penuh (aturan engineering) dengan versi Indonesia di git oleh agen independen, hasilnya dicatat di sini.
-- [ ] **T-273.4** `bun run docs:check` bersih.
+- [x] **T-273.1** `(2026-11-13)` Setiap berkas di `product-discovery/06-engineering/` utuh dalam bahasa Inggris. Arti, angka, ID, tautan, dan contoh copy produk tidak berubah.
+- [x] **T-273.2** `(2026-11-13)` Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
+- [x] **T-273.3** `(2026-11-13)` Perbandingan penuh (aturan engineering) dengan versi Indonesia di git oleh agen independen, hasilnya dicatat di sini.
+- [x] **T-273.4** `(2026-11-13)` `bun run docs:check` bersih.
 
 **Belum terbukti:** tidak ada butir runtime.
 
@@ -269,16 +288,16 @@ Folder `product-discovery/06-engineering/` (12 berkas, 3.581 baris). Satu berkas
 
 ### T-274 · Translate the project-os rules and overviews
 
-`⏳ Todo` · **Mode** AFK · **Verifikasi** lokal · **Domain** project-os, agen · **ADR** ADR-133, ADR-163 · **Spec** S-007 · **Depends** T-267, T-265
+`✅ Done (code) (2026-11-13)` · **Mode** AFK · **Verifikasi** lokal · **Domain** project-os, agen · **ADR** ADR-133, ADR-163 · **Spec** S-007 · **Depends** T-267, T-265
 **Baca dulu:** `project-os/specs/S-007.md` · `project-os/PROJECT_RULES.md` · `project-os/ARCHITECTURE_OVERVIEW.md` · `project-os/PROJECT_OVERVIEW.md` · `project-os/DEVELOPER_WORKFLOW.md` · `project-os/README.md`
 
 Aturan dan ringkasan di `project-os/` tingkat atas yang jarang diedit gelombang. Berkas yang diputuskan di T-267 (`DECISIONS.md`, `BRAINSTORM.md`, `QA_TEST_ACCOUNTS.md`, spec S-005 dan S-006) ikut tiket ini; jawaban King Rezi 2026-11-13: ya untuk semuanya. `PROJECT_STATE.md` dan `AVAILABLE_TICKETS.md` ada di T-275, bukan di sini.
 
-- [ ] **T-274.1** Lima berkas di atas utuh dalam bahasa Inggris dan memakai kata kunci Inggris (T-264, T-265). Pengecualian Append-Only di `PROJECT_RULES.md` dipertahankan maknanya dan menunjuk T-264.
-- [ ] **T-274.2** Berkas tambahan dari keputusan T-267 (2026-11-13: ya untuk semuanya) diterjemahkan utuh: `project-os/DECISIONS.md`, `project-os/BRAINSTORM.md`, `project-os/QA_TEST_ACCOUNTS.md`, `project-os/specs/S-005.md`, `project-os/specs/S-006.md`. S-005 dan S-006 belum selesai: kerjakan hanya setelah memeriksa cabang gelombang yang masih menyunting keduanya (lihat `wave-plan` langkah konflik berkas).
-- [ ] **T-274.3** Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
-- [ ] **T-274.4** Perbandingan penuh oleh agen independen (dokumen berbentuk aturan).
-- [ ] **T-274.5** `bun run docs:check` bersih.
+- [x] **T-274.1** `(2026-11-13)` Lima berkas di atas utuh dalam bahasa Inggris dan memakai kata kunci Inggris (T-264, T-265). Pengecualian Append-Only di `PROJECT_RULES.md` dipertahankan maknanya dan menunjuk T-264.
+- [x] **T-274.2** `(2026-11-13)` Berkas tambahan dari keputusan T-267 (2026-11-13: ya untuk semuanya) diterjemahkan utuh: `project-os/DECISIONS.md`, `project-os/BRAINSTORM.md`, `project-os/QA_TEST_ACCOUNTS.md`, `project-os/specs/S-005.md`, `project-os/specs/S-006.md`. S-005 dan S-006 belum selesai: kerjakan hanya setelah memeriksa cabang gelombang yang masih menyunting keduanya (lihat `wave-plan` langkah konflik berkas).
+- [x] **T-274.3** `(2026-11-13)` Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
+- [x] **T-274.4** `(2026-11-13)` Perbandingan penuh oleh agen independen (dokumen berbentuk aturan).
+- [x] **T-274.5** `(2026-11-13)` `bun run docs:check` bersih.
 
 **Belum terbukti:** tidak ada butir runtime.
 

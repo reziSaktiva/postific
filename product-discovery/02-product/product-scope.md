@@ -1,26 +1,26 @@
 # Product Scope
 
-Dokumen ini mendefinisikan ruang lingkup produk **Postific** pada tingkat domain.
+This document defines the scope of the **Postific** product at the domain level.
 
-Tujuan utama dokumen ini adalah memastikan seluruh pengembangan produk memiliki batasan yang jelas sebelum memasuki tahap perancangan fitur, UX, dan arsitektur.
+Its main purpose is to make sure all product development has clear boundaries before entering the feature design, UX, and architecture stages.
 
 ---
 
 # Overview
 
-Produk ini dirancang sebagai platform Social Media Management yang membantu Marketing Team, Startup, dan Digital Agency mengelola aktivitas media sosial secara terintegrasi.
+The product is designed as a Social Media Management platform that helps Marketing Teams, Startups, and Digital Agencies manage social media activity in an integrated way.
 
-Scope produk berfokus pada aktivitas yang berhubungan langsung dengan perencanaan, kolaborasi, publikasi, analisis, dan pengelolaan media sosial.
+The product scope focuses on activities directly related to planning, collaboration, publishing, analysis, and management of social media.
 
 ---
 
 # Product Principles
 
-Seluruh ruang lingkup produk mengikuti prinsip berikut:
+The whole product scope follows these principles:
 
 * Simplicity First.
 * Team Collaboration First.
-* AI-Native Workflow (AI pengguna bekerja di dalam produk lewat MCP, ADR-138).
+* AI-Native Workflow (the user's AI works inside the product through MCP, ADR-138).
 * Modern User Experience.
 * Scalable Architecture.
 * Modular Product Design.
@@ -31,9 +31,9 @@ Seluruh ruang lingkup produk mengikuti prinsip berikut:
 
 ## Workspace
 
-Mengelola organisasi yang menggunakan platform.
+Manages the organizations that use the platform.
 
-Mencakup:
+Includes:
 
 * Workspace
 * Members
@@ -45,12 +45,12 @@ Mencakup:
 
 ## Publishing
 
-Mengelola seluruh proses publikasi konten.
+Manages the whole content publishing process.
 
-Mencakup:
+Includes:
 
 * Content Draft
-* Content Format per akun (Post / Reel / Story / Pin — ADR-039)
+* Content Format per account (Post / Reel / Story / Pin — ADR-039)
 * Schedule
 * Queue
 * Calendar
@@ -60,9 +60,9 @@ Mencakup:
 
 ## Analytics
 
-Mengelola data performa media sosial.
+Manages social media performance data.
 
-Mencakup:
+Includes:
 
 * Dashboard
 * Reports
@@ -73,46 +73,46 @@ Mencakup:
 
 ## Engagement
 
-Mengelola komentar audiens dan reply dari satu inbox.
+Manages audience comments and replies from a single inbox.
 
-Mencakup:
+Includes:
 
 * Comments
 * Comment Replies
 * Inbox
-* Periodic Pull setiap 30 menit
+* Periodic Pull every 30 minutes
 * Manual Refresh
 
-Peningkatan setelah MVP (Should Have, ADR-157): status komentar dan pengelompokan per posting.
+Post-MVP improvements (Should Have, ADR-157): comment status and grouping by post.
 
-Direct Message, mention, dan webhook engagement berada di luar scope MVP (ADR-040).
+Direct Messages, mentions, and engagement webhooks are outside the MVP scope (ADR-040).
 
 ---
 
 ## MCP Server
 
-Memungkinkan pengguna bekerja di Postific melalui AI pilihannya sendiri
-(Claude, ChatGPT, Cursor, dan klien MCP lain). Postific tidak membangun AI
-sendiri (ADR-138).
+Lets users work in Postific through the AI of their own choice
+(Claude, ChatGPT, Cursor, and other MCP clients). Postific does not build its own
+AI (ADR-138).
 
-Mencakup:
+Includes:
 
-* Akses baca (akun, media, draft, antrean, history, analytics, komentar)
-* Pembuatan dan pengeditan draft, unggah media dari URL
-* Penjadwalan post
-* Otorisasi OAuth per workspace dan per scope
-* Audit akses dan batas pemakaian
+* Read access (accounts, media, drafts, queue, history, analytics, comments)
+* Creating and editing drafts, uploading media from a URL
+* Scheduling posts
+* OAuth authorization per workspace and per scope
+* Access audit and usage limits
 
-Publish Now dan balas komentar lewat MCP ditunda. Aksi destruktif dan
-administratif tidak diekspos.
+Publish Now and replying to comments through MCP are postponed. Destructive and
+administrative actions are not exposed.
 
 ---
 
 ## Start Page
 
-Menyediakan halaman publik untuk mengelola kumpulan tautan.
+Provides a public page for managing a collection of links.
 
-Mencakup:
+Includes:
 
 * Public Profile
 * Link Management
@@ -123,7 +123,7 @@ Mencakup:
 
 # Supporting Domains
 
-Selain domain utama, produk juga membutuhkan domain pendukung.
+Besides the core domains, the product also needs supporting domains.
 
 * Authentication
 * User Profile
@@ -134,30 +134,30 @@ Selain domain utama, produk juga membutuhkan domain pendukung.
 * API Integrations
 * Audit Log
 
-Domain ini mendukung operasional platform tetapi bukan nilai utama produk.
+These domains support platform operations but are not the main value of the product.
 
 ---
 
 # Product Boundaries
 
-Produk berfokus pada aktivitas Social Media Management.
+The product focuses on Social Media Management activities.
 
-Produk tidak bertujuan menjadi:
+The product does not aim to become:
 
-* Social Media Platform.
-* CRM.
-* Email Marketing Platform.
-* Marketplace.
-* Marketing Automation Platform.
-* Customer Support Platform.
+* A Social Media Platform.
+* A CRM.
+* An Email Marketing Platform.
+* A Marketplace.
+* A Marketing Automation Platform.
+* A Customer Support Platform.
 
-Batasan ini membantu menjaga fokus pengembangan produk.
+These boundaries help keep product development focused.
 
 ---
 
 # Out of Scope (MVP)
 
-Fitur berikut tidak menjadi prioritas pada fase MVP:
+The following features are not a priority in the MVP phase:
 
 * White Label.
 * Marketplace Integrations.
@@ -165,21 +165,21 @@ Fitur berikut tidak menjadi prioritas pada fase MVP:
 * Mobile Application.
 * Public API.
 * Plugin Ecosystem.
-* Enterprise Workflow yang kompleks.
-* Direct Message, mention, dan webhook engagement.
+* Complex Enterprise Workflow.
+* Direct Messages, mentions, and engagement webhooks.
 
-Topik tersebut akan dievaluasi pada fase pengembangan berikutnya.
+These topics will be evaluated in later development phases.
 
 ---
 
 # Success Criteria
 
-Product Scope dianggap selesai apabila:
+Product Scope is considered complete when:
 
-* Domain utama produk telah didefinisikan.
-* Domain pendukung telah diidentifikasi.
-* Batasan produk telah disepakati.
-* Ruang lingkup MVP memiliki dasar yang jelas untuk didefinisikan pada dokumen berikutnya.
+* The main product domains have been defined.
+* Supporting domains have been identified.
+* Product boundaries have been agreed.
+* The MVP scope has a clear basis to be defined in the next document.
 
 ---
 

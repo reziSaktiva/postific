@@ -1,240 +1,243 @@
 # Dependency Strategy
 
-Dokumen ini mendefinisikan **strategi package & dependency** untuk produk Postific: versioning eksternal, lockfile, penempatan dependency di monorepo, aturan shared package, dan cara update dependency.
+This document defines the **package & dependency strategy** for the Postific product: external versioning, the lockfile, dependency placement in the monorepo, shared package rules, and how dependencies are updated.
 
-Dokumen ini melengkapi `monorepo-setup.md` (workspace layout, `@postific/shared`, import rules) dan selaras dengan install CI di `cicd-pipeline.md` (`bun install --frozen-lockfile`) serta dependency tooling di `dx-tooling.md`.
-
----
-
-# Tujuan
-
-* Menetapkan cara menuliskan versi dependency eksternal sebelum Repository & Bootstrap (M7).
-* Mengunci peran lockfile di root monorepo (reproducible install lokal, CI, Railway).
-* Mendefinisikan di mana dependency boleh di-install (root vs `apps/web` vs `packages/*`).
-* Mempertegas aturan `@postific/shared` dan kapan package baru di `packages/` boleh ditambahkan.
-* Menetapkan alur update dependency yang sederhana untuk solo developer.
+This document complements `monorepo-setup.md` (workspace layout, `@postific/shared`, import rules) and is aligned with the CI install in `cicd-pipeline.md` (`bun install --frozen-lockfile`) and the dependency tooling in `dx-tooling.md`.
 
 ---
 
-# Keputusan yang Sudah Terkunci (dari Baseline)
+# Goals
 
-| Topik | Keputusan | Sumber |
-|-------|-----------|--------|
-| Runtime / package manager | Bun | ADR-002 |
-| Monorepo | Hybrid — `apps/*`, `packages/*` | ADR-001, ADR-026 |
-| Internal package link | `"@postific/shared": "workspace:*"` | `monorepo-setup.md` |
-| Lockfile lokasi | Satu lockfile di root (`bun.lock`) | `monorepo-setup.md`, DI deploy notes |
-| CI install | `bun install --frozen-lockfile` | CI-D02, ADR-032 |
-| Tooling di root | ESLint, Prettier, Lefthook, Vitest, TypeScript (monorepo-level) | DX-D01–D03, `monorepo-setup.md` |
-| Isi `@postific/shared` | Branded IDs, enums, value objects dipakai 2+ domain | MS-D04 |
+- Set how external dependency versions are written before Repository & Bootstrap (M7).
+- Lock the role of the lockfile at the monorepo root (reproducible installs locally, in CI, and on Railway).
+- Define where dependencies may be installed (root vs `apps/web` vs `packages/*`).
+- Reinforce the `@postific/shared` rules and when a new package in `packages/` may be added.
+- Set a simple dependency update flow for a solo developer.
 
 ---
 
-# Keputusan Dependency Strategy (Ditetapkan di Dokumen Ini)
+# Locked Decisions (from Baseline)
 
-| ID | Topik | Keputusan |
-|----|-------|-----------|
-| DS-D01 | Version ranges (eksternal) | **Caret (`^x.y.z`)** di `package.json`; resolusi tepat dikunci oleh lockfile |
-| DS-D02 | Update dependency | **Manual** — bump / `bun update` saat ada kebutuhan; tanpa Renovate/Dependabot di MVP |
-| DS-D03 | Lockfile | **Satu `bun.lock` di root**, wajib di-commit; CI & deploy memakai frozen install |
-| DS-D04 | Penempatan dependency | Root = tooling monorepo; `apps/web` = runtime app; `packages/shared` = tanpa runtime deps (tipe murni) |
-| DS-D05 | Shared packages | Tetap satu `@postific/shared` di MVP; package baru di `packages/` hanya dengan alasan kuat (lihat aturan) |
-| DS-D06 | Sinkronisasi versi lintas workspace | **Tanpa Bun Catalog** di MVP; cukup caret + satu lockfile |
-| DS-D07 | Pengecualian Astryx Beta | **Superseded oleh ADR-097** — migrasi ke shadcn/ui sudah tuntas (v0.7, T-102). Aturan exact pin di bawah ini historis; tidak ada sisa kode Astryx di repo |
+| Topic                     | Decision                                                          | Source                                           |
+| ------------------------- | ----------------------------------------------------------------- | ------------------------------------------------ |
+| Runtime / package manager | Bun                                                               | ADR-002                                          |
+| Monorepo                  | Hybrid — `apps/*`, `packages/*`                                   | ADR-001, ADR-026                                 |
+| Internal package link     | `"@postific/shared": "workspace:*"`                               | `monorepo-setup.md`                              |
+| Lockfile location         | One lockfile at the root (`bun.lock`)                             | `monorepo-setup.md`, DI deploy notes             |
+| CI install                | `bun install --frozen-lockfile`                                   | CI-D02, ADR-032                                  |
+| Tooling at the root       | ESLint, Prettier, Lefthook, Vitest, TypeScript (monorepo-level)   | DX-D01–D03, `monorepo-setup.md`                  |
+| Contents of `@postific/shared` | Branded IDs, enums, value objects used by 2+ domains         | MS-D04                                           |
 
 ---
 
-# Versioning Eksternal (DS-D01)
+# Dependency Strategy Decisions (Set in This Document)
 
-## Aturan penulisan versi
+| ID     | Topic                               | Decision                                                                                                                                                                       |
+| ------ | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| DS-D01 | Version ranges (external)           | **Caret (`^x.y.z`)** in `package.json`; the exact resolution is locked by the lockfile                                                                                         |
+| DS-D02 | Dependency updates                  | **Manual** — bump / `bun update` when needed; no Renovate/Dependabot in the MVP                                                                                                |
+| DS-D03 | Lockfile                            | **One `bun.lock` at the root**, must be committed; CI & deploy use a frozen install                                                                                            |
+| DS-D04 | Dependency placement                | Root = monorepo tooling; `apps/web` = app runtime; `packages/shared` = no runtime deps (pure types)                                                                            |
+| DS-D05 | Shared packages                     | Stay with a single `@postific/shared` in the MVP; a new package in `packages/` only with a strong reason (see the rules)                                                       |
+| DS-D06 | Cross-workspace version sync        | **No Bun Catalog** in the MVP; caret + one lockfile is enough                                                                                                                  |
+| DS-D07 | Astryx Beta exception               | **Superseded by ADR-097** — the migration to shadcn/ui is complete (v0.7, T-102). The exact pin rule below is historical; no Astryx code remains in the repo                   |
 
-| Jenis | Cara menulis | Contoh |
-|-------|--------------|--------|
-| Dependency npm publik | Caret range | `"next": "^15.0.0"`, `"prisma": "^6.0.0"` |
-| Workspace internal | Protocol workspace | `"@postific/shared": "workspace:*"` |
-| Exact pin | Hanya jika ada alasan kuat (bug kritis, vendor minta pin) | `"some-lib": "1.2.3"` — dicatat di PR/ADR bila jangka panjang |
-| Astryx Beta (historis) | Tidak dipakai lagi | Dulu exact pin `@astryxdesign/core` / `theme-stone` (ADR-087). Dihapus saat migrasi shadcn tuntas (ADR-097) |
+---
 
-**Prinsip:**
-- `package.json` menyatakan **rentang yang diterima**; `bun.lock` menyatakan **versi yang terpasang**.
-- Jangan mengandalkan "latest" atau range terbuka (`*`, `latest`) untuk dependency produksi.
-- Major bump (breaking) selalu disengaja: baca changelog, jalankan typecheck/lint/test, lalu commit lockfile bersama perubahan kode.
+# External Versioning (DS-D01)
 
-### Pengecualian Astryx Beta (DS-D07) — superseded oleh ADR-097
+## Version writing rules
 
-**Sudah tidak berlaku sebagai aturan aktif.** shadcn/ui (fondasi permanen
-sejak ADR-097) adalah kode sumber yang di-*copy* ke repo, bukan dependency
-package — tidak ada isu versioning Beta/exact pin seperti Astryx. Migrasi
-sudah tuntas (v0.7, T-102); tidak ada sisa dependency `@astryxdesign/*`.
-Section di bawah dipertahankan sebagai riwayat saja.
+| Type                    | How to write it                                                  | Example                                                                                                                                              |
+| ----------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Public npm dependency   | Caret range                                                      | `"next": "^15.0.0"`, `"prisma": "^6.0.0"`                                                                                                            |
+| Internal workspace      | Workspace protocol                                               | `"@postific/shared": "workspace:*"`                                                                                                                  |
+| Exact pin               | Only if there is a strong reason (critical bug, vendor asks for a pin) | `"some-lib": "1.2.3"` — recorded in the PR/ADR if long-term                                                                                    |
+| Astryx Beta (historical) | No longer used                                                  | Formerly an exact pin of `@astryxdesign/core` / `theme-stone` (ADR-087). Removed when the shadcn migration completed (ADR-097)                       |
 
-ADR-041 mengamendemen aturan caret ADR-035 khusus untuk Astryx selama masih
-Beta:
+**Principles:**
 
-- `@astryxdesign/core`, theme package aktif (`@astryxdesign/theme-stone`,
-  ADR-087), dan `@astryxdesign/cli` memakai exact stable version yang sama;
-- jangan memakai tag `latest`, wildcard, atau canary;
-- core dan theme selalu di-upgrade sebagai satu unit;
-- `@stylexjs/stylex` **dihapus total** dari dependency project (ADR-082,
-  amandemen ADR-041) — Astryx dipakai Tailwind-layout-only; `swizzle` juga
-  tertutup permanen sebagai konsekuensinya (swizzle butuh compiler StyleX
-  yang sama); dan
-- setiap upgrade wajib melewati staging serta smoke test Button, Dialog, form
-  controls, Table, dark mode, Tailwind cascade layer, typecheck, lint, test, dan
+- `package.json` states the **accepted range**; `bun.lock` states the **installed version**.
+- Do not rely on "latest" or open ranges (`*`, `latest`) for production dependencies.
+- A major bump (breaking) is always deliberate: read the changelog, run typecheck/lint/test, then commit the lockfile together with the code changes.
+
+### Astryx Beta Exception (DS-D07) — superseded by ADR-097
+
+**No longer in force as an active rule.** shadcn/ui (the permanent foundation
+since ADR-097) is source code that is _copied_ into the repo, not a package
+dependency — there is no Beta versioning/exact pin issue like Astryx. The migration
+is complete (v0.7, T-102); no `@astryxdesign/*` dependency remains.
+The section below is kept as history only.
+
+ADR-041 amends the ADR-035 caret rule specifically for Astryx while it was
+still Beta:
+
+- `@astryxdesign/core`, the active theme package (`@astryxdesign/theme-stone`,
+  ADR-087), and `@astryxdesign/cli` use the same exact stable version;
+- do not use the `latest` tag, wildcards, or canary;
+- core and theme are always upgraded as a single unit;
+- `@stylexjs/stylex` is **removed entirely** from the project dependencies (ADR-082,
+  amendment to ADR-041) — Astryx is used Tailwind-layout-only; `swizzle` is
+  also permanently closed as a consequence (swizzle needs the same StyleX
+  compiler); and
+- every upgrade must pass staging as well as smoke tests of Button, Dialog, form
+  controls, Table, dark mode, the Tailwind cascade layer, typecheck, lint, test, and the
   Next.js production build.
 
-## Yang tidak dipakai di MVP
+## Not used in the MVP
 
-- **Exact pin semua dependency** — terlalu banyak noise update untuk solo MVP; lockfile sudah menjamin reproduksibilitas.
-- **Bun Catalog** — berguna saat banyak workspace berbagi versi tooling yang sama; dengan hanya `apps/web` + `@postific/shared`, overhead belum sebanding (DS-D06). Boleh dievaluasi ulang jika jumlah package bertambah.
+- **Exact pin for all dependencies** — too much update noise for a solo MVP; the lockfile already guarantees reproducibility.
+- **Bun Catalog** — useful when many workspaces share the same tooling version; with only `apps/web` + `@postific/shared`, the overhead is not yet proportionate (DS-D06). May be re-evaluated if the number of packages grows.
 
 ---
 
 # Lockfile (DS-D03)
 
-## Kontrak
+## Contract
 
-| Aspek | Keputusan |
-|-------|-----------|
-| File | `bun.lock` di **root** monorepo |
-| Git | **Wajib di-commit** — artefak bersama untuk lokal, CI, Railway |
-| Install lokal | `bun install` (boleh memperbarui lockfile jika `package.json` berubah) |
-| Install CI / reproducible | `bun install --frozen-lockfile` — gagal jika lockfile tidak cocok dengan `package.json` |
-| Deploy (Railway) | Install dari root dengan lockfile yang sama (lihat `deployment-infrastructure.md`) |
+| Aspect                    | Decision                                                                                       |
+| ------------------------- | ---------------------------------------------------------------------------------------------- |
+| File                      | `bun.lock` at the monorepo **root**                                                            |
+| Git                       | **Must be committed** — a shared artifact for local, CI, Railway                               |
+| Local install             | `bun install` (may update the lockfile if `package.json` changes)                              |
+| CI / reproducible install | `bun install --frozen-lockfile` — fails if the lockfile does not match `package.json`          |
+| Deploy (Railway)          | Install from the root with the same lockfile (see `deployment-infrastructure.md`)              |
 
-**Aturan:**
-- Jangan hapus atau regenerate lockfile tanpa alasan (corrupt / migrasi format yang disepakati).
-- Setiap PR yang mengubah dependency **wajib** menyertakan perubahan `bun.lock` yang terkait.
-- Jangan commit `node_modules/`.
+**Rules:**
 
-> Lockfile yang dipakai repo ini adalah teks `bun.lock` di root. Catatan lama yang menyebut `bun.lockb` tidak berlaku lagi.
+- Do not delete or regenerate the lockfile without a reason (corrupt / an agreed format migration).
+- Every PR that changes dependencies **must** include the related `bun.lock` change.
+- Do not commit `node_modules/`.
+
+> The lockfile used by this repo is the text `bun.lock` at the root. Old notes that mention `bun.lockb` no longer apply.
 
 ---
 
-# Penempatan Dependency (DS-D04)
+# Dependency Placement (DS-D04)
 
 ```
 social-media-management/
-├── package.json              ← tooling monorepo saja
-├── bun.lock                 ← satu lockfile untuk semua workspace
-├── apps/web/package.json     ← runtime: Next, Prisma, Better Auth, Supabase client, UI, dll.
-└── packages/shared/package.json  ← tanpa dependencies runtime (tipe murni)
+├── package.json              ← monorepo tooling only
+├── bun.lock                 ← one lockfile for all workspaces
+├── apps/web/package.json     ← runtime: Next, Prisma, Better Auth, Supabase client, UI, etc.
+└── packages/shared/package.json  ← no runtime dependencies (pure types)
 ```
 
-| Lokasi | Boleh berisi | Tidak boleh |
-|--------|--------------|-------------|
-| Root | TypeScript, ESLint, Prettier, Lefthook, lint-staged, Vitest, dan plugin config terkait | Framework app (`next`), ORM runtime app, Better Auth, Supabase client app |
-| `apps/web` | Semua dependency yang dibutuhkan Next.js app saat build/runtime | Tooling lint/format/test yang sudah diangkat ke root (hindari duplikasi tanpa alasan) |
-| `packages/shared` | Idealnya **tidak ada** `dependencies`; `devDependencies` TypeScript hanya jika diperlukan package sendiri | React, Next, Prisma, Better Auth, Supabase, domain logic |
+| Location          | May contain                                                                                        | Must not contain                                                                                         |
+| ----------------- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Root              | TypeScript, ESLint, Prettier, Lefthook, lint-staged, Vitest, and related config plugins            | App framework (`next`), the app's runtime ORM, Better Auth, the app's Supabase client                    |
+| `apps/web`        | All dependencies the Next.js app needs at build/runtime                                            | Lint/format/test tooling already lifted to the root (avoid duplication without a reason)                 |
+| `packages/shared` | Ideally **no** `dependencies`; TypeScript `devDependencies` only if the package itself needs them  | React, Next, Prisma, Better Auth, Supabase, domain logic                                                 |
 
-**Aturan install:**
-- Jalankan `bun add <pkg>` dari workspace yang tepat (`--cwd apps/web` atau dari dalam folder package), kecuali dependency memang monorepo-level → root.
-- Jangan mengangkat library app ke root "supaya enak diimport" — itu mengaburkan boundary (selaras Architecture Rules: shared package hanya untuk kebutuhan lintas domain/app).
+**Install rules:**
+
+- Run `bun add <pkg>` from the right workspace (`--cwd apps/web` or from inside the package folder), unless the dependency is truly monorepo-level → root.
+- Do not lift app libraries to the root "to make importing easier" — that blurs the boundary (aligned with the Architecture Rules: a shared package only for cross-domain/app needs).
 
 ---
 
 # Shared Package Rules (DS-D05)
 
-Melengkapi MS-D04 dan IR-05 di `monorepo-setup.md`.
+Complements MS-D04 and IR-05 in `monorepo-setup.md`.
 
-## `@postific/shared` — yang boleh / tidak
+## `@postific/shared` — what is and is not allowed
 
-| Boleh | Tidak boleh |
-|-------|-------------|
-| Branded ID types (`WorkspaceId`, `PostId`, …) | Business logic / Application Service |
-| Enums lintas domain (`ContentStatus`, `MemberRole`, `Platform`, …) | Import dari `@postific/web` atau `src/domains/*` |
-| Value objects murni tanpa I/O (`Email`, `URL`, …) | Client infrastruktur (Prisma, Supabase, Better Auth) |
-| Type yang dipakai **≥ 2 domain** (atau app + package lain di masa depan) | Duplikasi type yang hanya dipakai satu domain |
+| Allowed                                                              | Not allowed                                                  |
+| -------------------------------------------------------------------- | ------------------------------------------------------------ |
+| Branded ID types (`WorkspaceId`, `PostId`, …)                        | Business logic / Application Service                         |
+| Cross-domain enums (`ContentStatus`, `MemberRole`, `Platform`, …)    | Imports from `@postific/web` or `src/domains/*`              |
+| Pure value objects without I/O (`Email`, `URL`, …)                   | Infrastructure clients (Prisma, Supabase, Better Auth)       |
+| Types used by **≥ 2 domains** (or the app + another package in the future) | Duplicating types that only one domain uses            |
 
-## Menambah package baru di `packages/`
+## Adding a new package in `packages/`
 
-MVP **hanya** `packages/shared`. Package baru (mis. `@postific/ui`, `@postific/config`) **tidak** ditambahkan kecuali memenuhi **salah satu**:
+The MVP has **only** `packages/shared`. A new package (e.g. `@postific/ui`, `@postific/config`) is **not** added unless it meets **one of**:
 
-1. Ada **aplikasi deployable kedua** di `apps/` yang membutuhkan kode bersama yang bukan domain module; atau
-2. Ada library yang jelas terpisah, tanpa domain logic, dan ekstraksi mengurangi kompleksitas nyata (bukan spekulasi "nanti berguna").
+1. There is a **second deployable application** in `apps/` that needs shared code that is not a domain module; or
+2. There is a clearly separate library, without domain logic, and extracting it reduces real complexity (not the speculation "it'll be useful later").
 
-Domain modules **tetap** di `apps/web/src/domains/` (ADR-026) — jangan dipromosikan menjadi workspace package di MVP.
+Domain modules **stay** in `apps/web/src/domains/` (ADR-026) — do not promote them to workspace packages in the MVP.
 
 ---
 
-# Update Dependency (DS-D02)
+# Dependency Updates (DS-D02)
 
-## Alur MVP (manual)
+## MVP flow (manual)
 
 ```
-1. Identifikasi kebutuhan (security, fitur, bug, major framework)
-2. Ubah versi di package.json yang relevan (atau bun update / bun add)
-3. bun install di root → perbarui bun.lock
+1. Identify the need (security, feature, bug, framework major)
+2. Change the version in the relevant package.json (or bun update / bun add)
+3. bun install at the root → update bun.lock
 4. bun run typecheck && bun run lint && bun run test
-5. Commit package.json + bun.lock (+ perubahan kode adaptasi) dalam satu PR
+5. Commit package.json + bun.lock (+ adaptation code changes) in one PR
 ```
 
-Untuk komponen shadcn (kode yang di-copy ke repo, ADR-097), update berarti
-menarik ulang komponen dari CLI/MCP dan menyesuaikan customisasi lokal —
-jalankan smoke test UI dan production build di branch terpisah, lalu uji di
-staging sebelum promosi. (Langkah khusus Astryx di bawah historis;
-migrasi sudah tuntas, ADR-097.)
+For shadcn components (code copied into the repo, ADR-097), updating means
+re-pulling the component from the CLI/MCP and adjusting local customizations —
+run a UI smoke test and a production build on a separate branch, then test on
+staging before promotion. (The Astryx-specific steps below are historical;
+the migration is complete, ADR-097.)
 
-Untuk Astryx (legacy), tambahkan langkah khusus: bump core + theme + CLI
-sebagai satu unit, verifikasi peer StyleX, jalankan smoke test UI dan
-production build di branch terpisah, lalu uji di staging sebelum promosi.
+For Astryx (legacy), add special steps: bump core + theme + CLI
+as a single unit, verify the StyleX peer, run a UI smoke test and a
+production build on a separate branch, then test on staging before promotion.
 
-| Situasi | Tindakan |
-|---------|----------|
-| Patch/minor dalam caret | Boleh `bun update <pkg>` berkala; commit lockfile |
-| Major (breaking) | Baca migration guide; adaptasi kode; uji penuh; sebutkan di PR |
-| Security advisory kritis | Prioritaskan bump segera meski di luar siklus fitur |
-| Tooling root (ESLint, Vitest, …) | Update di root; pastikan script CI masih hijau |
+| Situation                       | Action                                                                      |
+| ------------------------------- | --------------------------------------------------------------------------- |
+| Patch/minor within caret        | May `bun update <pkg>` periodically; commit the lockfile                    |
+| Major (breaking)                | Read the migration guide; adapt the code; test fully; mention it in the PR  |
+| Critical security advisory      | Prioritize an immediate bump even outside the feature cycle                 |
+| Root tooling (ESLint, Vitest, …) | Update at the root; make sure the CI scripts are still green               |
 
-## Yang ditunda
+## Deferred
 
-- **Dependabot / Renovate** — boleh dievaluasi setelah frekuensi update jadi beban atau saat kolaborator bertambah. Bukan bagian bootstrap M7.
-- Auto-merge dependency PR — tidak dipakai di MVP.
-
----
-
-# Ringkasan Perintah (Acuan M7)
-
-| Tujuan | Perintah |
-|--------|----------|
-| Install seluruh monorepo | `bun install` (root) |
-| Install CI | `bun install --frozen-lockfile` |
-| Tambah dep app | `bun add <pkg> --cwd apps/web` |
-| Tambah dep tooling root | `bun add -d <pkg>` (root) |
-| Update satu paket | `bun update <pkg>` (di workspace yang tepat) |
-| Verifikasi setelah bump | `bun run typecheck && bun run lint && bun run test` |
+- **Dependabot / Renovate** — may be evaluated once update frequency becomes a burden or when collaborators are added. Not part of the M7 bootstrap.
+- Auto-merging dependency PRs — not used in the MVP.
 
 ---
 
-# Artefak yang Diharapkan di M7
+# Command Summary (M7 Reference)
 
-* Root `package.json` + `apps/web/package.json` + `packages/shared/package.json` mengikuti penempatan DS-D04.
-* `bun.lock` ter-commit sejak bootstrap pertama yang menginstal dependency.
-* Tidak ada dependency runtime di `@postific/shared`.
-* CI memakai `--frozen-lockfile` (sudah di `cicd-pipeline.md`).
-* Tidak ada config Renovate/Dependabot di MVP kecuali diputuskan belakangan.
+| Goal                      | Command                                                |
+| ------------------------- | ------------------------------------------------------ |
+| Install the whole monorepo | `bun install` (root)                                  |
+| CI install                | `bun install --frozen-lockfile`                        |
+| Add an app dep            | `bun add <pkg> --cwd apps/web`                         |
+| Add a root tooling dep    | `bun add -d <pkg>` (root)                              |
+| Update one package        | `bun update <pkg>` (in the right workspace)            |
+| Verify after a bump       | `bun run typecheck && bun run lint && bun run test`    |
+
+---
+
+# Artifacts Expected in M7
+
+- Root `package.json` + `apps/web/package.json` + `packages/shared/package.json` following the DS-D04 placement.
+- `bun.lock` committed from the first bootstrap that installs dependencies.
+- No runtime dependencies in `@postific/shared`.
+- CI uses `--frozen-lockfile` (already in `cicd-pipeline.md`).
+- No Renovate/Dependabot config in the MVP unless decided later.
 
 ---
 
 # Decision Log
 
-| ID | Keputusan | Alasan | Alternatif |
-|----|-----------|--------|-----------|
-| DS-D01 | Caret (`^`) untuk dependency eksternal | Lockfile mengunci resolusi; caret mengurangi noise bump harian untuk solo MVP | Exact pin semua paket; Bun Catalog |
-| DS-D02 | Update manual | Paling sederhana untuk solo developer; kontrol penuh kapan breaking change masuk | Dependabot; Renovate |
-| DS-D03 | Satu `bun.lock` root, commit + frozen di CI | Reproducible builds lokal/CI/Railway; selaras monorepo Bun | Lockfile per package; tidak commit lockfile |
-| DS-D04 | Root = tooling; web = runtime; shared = tanpa runtime deps | Boundary jelas; mencegah "god root package.json" | Semua dependency di root |
-| DS-D05 | Hanya `@postific/shared` di MVP; package baru butuh alasan kuat | Hindari premature package explosion; selaras ADR-026 | Banyak packages sejak awal |
-| DS-D06 | Tanpa Bun Catalog di MVP | Hanya dua workspace relevan; catalog belum memberi nilai | Catalog sejak hari pertama |
-| DS-D07 | Exact pin Astryx Beta — historis, superseded ADR-097 | Dulu mengurangi risiko breaking change saat Astryx masih fondasi | Caret; canary; update otomatis |
+| ID     | Decision                                                 | Reason                                                                                           | Alternatives                                  |
+| ------ | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------- |
+| DS-D01 | Caret (`^`) for external dependencies                    | The lockfile locks the resolution; caret reduces daily bump noise for a solo MVP                 | Exact pin for all packages; Bun Catalog       |
+| DS-D02 | Manual updates                                           | Simplest for a solo developer; full control over when a breaking change enters                   | Dependabot; Renovate                          |
+| DS-D03 | One root `bun.lock`, committed + frozen in CI            | Reproducible builds locally/CI/Railway; aligned with the Bun monorepo                            | A lockfile per package; not committing the lockfile |
+| DS-D04 | Root = tooling; web = runtime; shared = no runtime deps  | Clear boundaries; prevents a "god root package.json"                                             | All dependencies at the root                  |
+| DS-D05 | Only `@postific/shared` in the MVP; a new package needs a strong reason | Avoid premature package explosion; aligned with ADR-026                           | Many packages from the start                  |
+| DS-D06 | No Bun Catalog in the MVP                                | Only two relevant workspaces; the catalog gives no value yet                                     | Catalog from day one                          |
+| DS-D07 | Astryx Beta exact pin — historical, superseded by ADR-097 | Formerly reduced the risk of breaking changes while Astryx was still the foundation             | Caret; canary; automatic updates              |
 
 ---
 
 # Related Documents
 
-* `README.md` — scope dan workflow Engineering Planning
-* `monorepo-setup.md` — workspace layout, `@postific/shared`, import rules (MS-D04, IR-05)
-* `cicd-pipeline.md` — `bun install --frozen-lockfile` (CI-D02)
-* `dx-tooling.md` — dependency tooling monorepo di root
-* `deployment-infrastructure.md` — install dari root saat build Railway
-* `../../project-os/DECISIONS.md` — ADR-002, ADR-026, ADR-032, ADR-035, ADR-041
+- `README.md` — scope and workflow of Engineering Planning
+- `monorepo-setup.md` — workspace layout, `@postific/shared`, import rules (MS-D04, IR-05)
+- `cicd-pipeline.md` — `bun install --frozen-lockfile` (CI-D02)
+- `dx-tooling.md` — monorepo dependency tooling at the root
+- `deployment-infrastructure.md` — install from the root during the Railway build
+- `../../project-os/DECISIONS.md` — ADR-002, ADR-026, ADR-032, ADR-035, ADR-041

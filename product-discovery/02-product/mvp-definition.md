@@ -1,122 +1,122 @@
 # MVP Definition
 
-Dokumen ini mendefinisikan ruang lingkup **Minimum Viable Product (MVP)** untuk produk **Postific**.
+This document defines the scope of the **Minimum Viable Product (MVP)** for the **Postific** product.
 
-MVP merupakan versi pertama produk yang memiliki nilai nyata bagi pengguna serta mampu memvalidasi asumsi bisnis dan produk.
+The MVP is the first version of the product that has real value for users and is able to validate business and product assumptions.
 
-Dokumen ini menjadi acuan utama dalam menentukan prioritas pengembangan sebelum produk memasuki tahap rilis.
+This document is the main reference for determining development priorities before the product enters the release stage.
 
 ---
 
 # Overview
 
-Tujuan MVP bukan menghadirkan seluruh fitur yang direncanakan, melainkan menyediakan kemampuan inti yang memungkinkan target pengguna menyelesaikan pekerjaan utamanya secara efektif.
+The goal of the MVP is not to deliver all planned features, but to provide the core capabilities that let target users do their main work effectively.
 
-Setiap fitur yang masuk ke dalam MVP harus memiliki kontribusi langsung terhadap validasi Product-Market Fit.
+Every feature that enters the MVP must contribute directly to validating Product-Market Fit.
 
 ---
 
 # MVP Goals
 
-MVP harus mampu membuktikan bahwa:
+The MVP must be able to prove that:
 
-* Produk menyelesaikan masalah utama pengguna.
-* Workflow yang dirancang dapat digunakan dalam pekerjaan nyata.
-* Target pengguna memperoleh nilai dari penggunaan produk.
-* Pengguna bersedia menggunakan produk secara berulang.
+* The product solves the users' main problem.
+* The designed workflow can be used in real work.
+* Target users get value from using the product.
+* Users are willing to use the product repeatedly.
 
 ---
 
 # Must Have
 
-Kemampuan berikut wajib tersedia pada MVP.
+The following capabilities must be available in the MVP.
 
 ## Workspace
 
-* Membuat Workspace.
-* Mengelola anggota tim.
-* Menghubungkan akun media sosial ke Workspace.
+* Create a Workspace.
+* Manage team members.
+* Connect social media accounts to the Workspace.
 
 ---
 
 ## Publishing
 
-* Membuat draft konten.
-* Memilih **tipe/format konten per akun tujuan** sesuai kemampuan platform & Outstand (ADR-039):
+* Create content drafts.
+* Choose the **content type/format per target account** according to platform and Outstand capabilities (ADR-039):
   * Instagram & Facebook: **Post / Reel / Story**
-  * TikTok: posting video/feed (tanpa selector Reel/Story di UI)
-  * Pinterest: **Pin** (judul, destination link, board)
-  * Platform lain yang didukung: format `post` sebagai default
-* Menjadwalkan posting.
-* Mempublikasikan konten secara langsung tanpa penjadwalan (**Publish Now**) —
-  dibatasi ke role yang sama dengan Schedule: Account Owner, Admin, Creator
-  (semua role bisa, sejak reduksi struktur role di ADR-074), lihat
+  * TikTok: video/feed posting (no Reel/Story selector in the UI)
+  * Pinterest: **Pin** (title, destination link, board)
+  * Other supported platforms: `post` format as the default
+* Schedule posts.
+* Publish content directly without scheduling (**Publish Now**) —
+  limited to the same roles as Schedule: Account Owner, Admin, Creator
+  (all roles can, since the role structure reduction in ADR-074), see
   `roles-permissions.md` (ADR-047).
-* Melihat kalender publikasi.
-* Mengelola antrean (queue) posting.
-* Melihat riwayat publikasi.
+* View the publishing calendar.
+* Manage the post queue.
+* View publishing history.
 
 ---
 
 ## Analytics
 
-* Dashboard performa dasar.
-* Statistik posting.
-* Ringkasan engagement.
+* Basic performance dashboard.
+* Post statistics.
+* Engagement summary.
 
 ---
 
 ## Engagement
 
-* Melihat komentar dari akun yang terhubung.
-* Membalas komentar dari dalam aplikasi.
-* Inbox komentar sederhana.
-* Sinkronisasi komentar berkala setiap 30 menit.
-* Manual refresh untuk mengambil komentar terbaru saat dibutuhkan.
+* View comments from connected accounts.
+* Reply to comments from inside the app.
+* Simple comments inbox.
+* Periodic comment sync every 30 minutes.
+* Manual refresh to fetch the latest comments when needed.
 
-Peningkatan setelah MVP (Should Have, ADR-157): status komentar (Belum dibalas, Dibalas, Selesai, Diabaikan) dan pengelompokan komentar per posting.
+Post-MVP improvements (Should Have, ADR-157): comment status (Belum dibalas, Dibalas, Selesai, Diabaikan) and grouping comments by post.
 
-Direct Message, mention, dan webhook engagement tidak termasuk MVP (ADR-040).
+Direct Messages, mentions, and engagement webhooks are not part of the MVP (ADR-040).
 
 ---
 
 ## MCP Server
 
-Postific tidak membangun AI sendiri. AI milik pengguna bekerja di dalam
-aplikasi lewat MCP (ADR-138).
+Postific does not build its own AI. The user's own AI works inside the
+app through MCP (ADR-138).
 
-* Menyambungkan klien AI lewat OAuth, terikat satu workspace per koneksi.
-* Scope izin: `read`, `draft`, `schedule`. Default: `read` + `draft`.
-* Membaca akun, media, draft, antrean, history, analytics, dan komentar.
-* Membuat dan mengedit draft, mengunggah media dari URL.
-* Menjadwalkan post (batch beberapa konten per panggilan).
-* Mencabut koneksi klien AI dari Settings.
-* Audit panggilan, penanda sumber "dibuat lewat MCP" (badge dan filter di History,
-  Drafts, dan Queue), dan rate limit per workspace.
+* Connect an AI client through OAuth, bound to one workspace per connection.
+* Permission scopes: `read`, `draft`, `schedule`. Default: `read` + `draft`.
+* Read accounts, media, drafts, queue, history, analytics, and comments.
+* Create and edit drafts, upload media from a URL.
+* Schedule posts (batch several pieces of content per call).
+* Revoke an AI client connection from Settings.
+* Call audit, the "dibuat lewat MCP" source marker (badge and filter in History,
+  Drafts, and Queue), and rate limit per workspace.
 
-Tidak termasuk MVP: Publish Now lewat MCP, balas komentar lewat MCP, dan
-aksi destruktif/administratif (hapus, batalkan jadwal, kelola member,
-disconnect akun).
+Not part of the MVP: Publish Now through MCP, reply to comments through MCP, and
+destructive/administrative actions (delete, cancel schedule, manage members,
+disconnect accounts).
 
 ---
 
 ## Start Page
 
-* Membuat halaman publik.
-* Mengelola daftar tautan.
-* Membagikan URL halaman.
+* Create a public page.
+* Manage the list of links.
+* Share the page URL.
 
 ---
 
 # Should Have
 
-Fitur yang memberikan nilai tambahan namun bukan syarat utama MVP.
+Features that give extra value but are not a main requirement of the MVP.
 
 * Media Library.
 * Brand Assets.
 * Content Templates.
 * Saved Captions.
-* Tone Rewrite (dikerjakan AI klien lewat MCP, bukan fitur Postific).
+* Tone Rewrite (done by the client AI through MCP, not a Postific feature).
 * Basic Notifications.
 * Workspace Branding.
 
@@ -124,20 +124,20 @@ Fitur yang memberikan nilai tambahan namun bukan syarat utama MVP.
 
 # Could Have
 
-Fitur yang dapat dikembangkan apabila waktu dan sumber daya memungkinkan.
+Features that can be developed if time and resources allow.
 
-* AI Content Calendar (dikerjakan AI klien lewat MCP, bukan fitur Postific).
+* AI Content Calendar (done by the client AI through MCP, not a Postific feature).
 * Team Activity Feed.
 * Custom Reports.
-* AI Insights (dikerjakan AI klien lewat MCP, bukan fitur Postific).
-* AI Performance Suggestions (dikerjakan AI klien lewat MCP, bukan fitur Postific).
+* AI Insights (done by the client AI through MCP, not a Postific feature).
+* AI Performance Suggestions (done by the client AI through MCP, not a Postific feature).
 * Hashtag Suggestions.
 
 ---
 
 # Out of Scope
 
-Fitur berikut tidak menjadi bagian dari MVP.
+The following features are not part of the MVP.
 
 * White Label.
 * Mobile Application.
@@ -147,48 +147,48 @@ Fitur berikut tidak menjadi bagian dari MVP.
 * Plugin System.
 * Enterprise SSO.
 * Advanced Workflow Automation.
-* Approval Workflow (gate berlapis yang mengunci Schedule/Publish sampai
-  role lain approve) — ditolak eksplisit oleh UXP-06 (`04-ux/ux-principles.md`)
-  dan dikonfirmasi King Rezi (audit dokumentasi, 2026-08-28): semua role
-  (termasuk Creator) tetap bebas publish sendiri, lihat
-  `roles-permissions.md`. Status konten (`In Review`/`Ready to Schedule`)
-  tetap ada sebagai label koordinasi ringan — bukan gate — dan itu tetap
-  masuk Must Have.
+* Approval Workflow (a layered gate that locks Schedule/Publish until
+  another role approves) — explicitly rejected by UXP-06 (`04-ux/ux-principles.md`)
+  and confirmed by King Rezi (documentation audit, 2026-08-28): all roles
+  (including Creator) remain free to publish on their own, see
+  `roles-permissions.md`. Content status (`In Review`/`Ready to Schedule`)
+  remains as a lightweight coordination label — not a gate — and that still
+  stays in Must Have.
 * Social Listening.
-* Direct Message dan mention di Engagement Inbox.
-* Webhook engagement.
-* Multi Workspace Management — **sebagian masuk MVP per ADR-088**: switch
-  active workspace di antara membership yang sudah dimiliki user, dan
-  create workspace tambahan, keduanya lewat Settings → Account →
-  Workspaces. Sisanya (cross-workspace bulk actions, billing gabungan,
-  shared views lintas workspace, dan sejenisnya) tetap Out of Scope.
+* Direct Messages and mentions in the Engagement Inbox.
+* Engagement webhooks.
+* Multi Workspace Management — **partly in the MVP per ADR-088**: switching the
+  active workspace among memberships the user already has, and
+  creating an additional workspace, both through Settings → Account →
+  Workspaces. The rest (cross-workspace bulk actions, combined billing,
+  shared views across workspaces, and the like) remains Out of Scope.
 
 ---
 
 # MVP Success Criteria
 
-MVP dianggap berhasil apabila pengguna mampu:
+The MVP is considered successful when users are able to:
 
-* Menghubungkan akun media sosial.
-* Membuat konten.
-* Menjadwalkan publikasi.
-* Melakukan publikasi.
-* Melihat hasil publikasi.
-* Mengelola aktivitas media sosial tanpa bergantung pada banyak aplikasi lain.
+* Connect social media accounts.
+* Create content.
+* Schedule publishing.
+* Publish.
+* View publishing results.
+* Manage social media activity without depending on many other apps.
 
 ---
 
 # Decision Rules
 
-Sebuah fitur hanya dapat masuk ke dalam MVP apabila:
+A feature can enter the MVP only if it:
 
-* Mendukung tujuan utama produk.
-* Menyelesaikan masalah utama pengguna.
-* Dibutuhkan oleh target market utama.
-* Tidak menambah kompleksitas yang tidak diperlukan.
-* Membantu memvalidasi Product-Market Fit.
+* Supports the main goal of the product.
+* Solves the users' main problem.
+* Is needed by the primary target market.
+* Does not add unnecessary complexity.
+* Helps validate Product-Market Fit.
 
-Apabila sebuah fitur tidak memenuhi kriteria tersebut, maka fitur harus dipertimbangkan untuk dimasukkan ke fase berikutnya.
+If a feature does not meet these criteria, it must be considered for inclusion in a later phase.
 
 ---
 

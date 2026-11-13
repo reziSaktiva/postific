@@ -1,61 +1,61 @@
 # Code Conventions
 
-Dokumen ini mendefinisikan konvensi penulisan kode: hierarki error handling,
-naming (variabel, fungsi, tipe), dan struktur penulisan fungsi —
-mengonkretkan aturan singkat yang sudah ada di `ctx-development.md` dan
-`AGENTS.md` menjadi rujukan detail dengan contoh nyata dari kode.
+This document defines code-writing conventions: the error handling hierarchy,
+naming (variables, functions, types), and function structure —
+turning the short rules that already exist in `ctx-development.md` and
+`AGENTS.md` into a detailed reference with real examples from the code.
 
-Dokumen ini melengkapi `monorepo-setup.md` (struktur folder/file) dan
-`dx-tooling.md` (lint/format tools yang menegakkan sebagian aturan di sini
-secara otomatis — lihat `eslint.config.mjs`).
-
----
-
-# Tujuan
-
-* Mendokumentasikan hierarki error handling yang sudah matang dan konsisten
-  dipakai di kode, tapi belum pernah dituliskan sebagai baseline resmi.
-* Mengonsolidasikan aturan naming yang sekarang tersebar di
-  `ctx-development.md` poin 9-13 menjadi satu rujukan detail dengan contoh.
-* Jadi referensi tunggal untuk reviewer (Ridwan Architecture Reviewer) dan
-  AI agent saat menilai kepatuhan kode baru.
+This document complements `monorepo-setup.md` (folder/file structure) and
+`dx-tooling.md` (the lint/format tools that enforce some of the rules here
+automatically — see `eslint.config.mjs`).
 
 ---
 
-# Keputusan yang Sudah Terkunci (dari Baseline)
+# Goals
 
-| Topik | Keputusan | Sumber |
+- Document the error handling hierarchy that is already mature and consistently
+  used in the code, but has never been written down as an official baseline.
+- Consolidate the naming rules that are currently scattered across
+  `ctx-development.md` points 9-13 into a single detailed reference with examples.
+- Serve as the single reference for reviewers (Ridwan Architecture Reviewer) and
+  AI agents when assessing new code for compliance.
+
+---
+
+# Locked Decisions (from Baseline)
+
+| Topic | Decision | Source |
 |-------|-----------|--------|
 | Domain module layout & public API via `index.ts` | `monorepo-setup.md`, ADR-026 |
-| Naming komponen PascalCase / folder-helper kebab-case / peletakan `components/` via LCA | ADR-069 |
-| Persona & role canonical names (Raka, Maya, Sinta, Dimas, Lara / Account Owner, Admin, Creator) | ADR-074, AGENTS.md rule 8 |
-| Port lokal + composition root untuk komunikasi cross-domain tanpa import konkret | ADR-078 |
+| Naming: components PascalCase / helper folders kebab-case / `components/` placement via LCA | ADR-069 |
+| Canonical persona & role names (Raka, Maya, Sinta, Dimas, Lara / Account Owner, Admin, Creator) | ADR-074, AGENTS.md rule 8 |
+| Local port + composition root for cross-domain communication without concrete imports | ADR-078 |
 
 ---
 
-# Keputusan Code Conventions (Ditetapkan di Dokumen Ini)
+# Code Conventions Decisions (Set in This Document)
 
-| ID | Topik | Keputusan |
+| ID | Topic | Decision |
 |----|-------|-----------|
-| CC-D01 | Error hierarchy | `AppError` → `ApplicationError` → 5 subclass tetap; `XxxDomainError` per domain terpisah |
-| CC-D02 | Server Action error boundary | Server Action yang mengembalikan `{ error }` wajib `try/catch` + `toActionError()`. Action `void` / `redirect` / `null` tidak diubah kontraknya |
-| CC-D03 | Naming — variables/functions | camelCase, verb-first untuk fungsi, boolean prefix `is`/`has`/`should` |
-| CC-D04 | Naming — types/interfaces | PascalCase, tanpa prefix `I` untuk types/interfaces domain baru |
-| CC-D05 | Naming — files/folders | Pointer ke ADR-069/`monorepo-setup.md` — tidak diduplikasi di sini |
-| CC-D06 | Function-writing structure | Validasi/otorisasi dulu (throw early) → orchestration → return; pure function dipisah dari service class |
+| CC-D01 | Error hierarchy | `AppError` → `ApplicationError` → 5 fixed subclasses; a separate `XxxDomainError` per domain |
+| CC-D02 | Server Action error boundary | A Server Action that returns `{ error }` must use `try/catch` + `toActionError()`. The contract of `void` / `redirect` / `null` actions is not changed |
+| CC-D03 | Naming — variables/functions | camelCase, verb-first for functions, boolean prefix `is`/`has`/`should` |
+| CC-D04 | Naming — types/interfaces | PascalCase, no `I` prefix for new domain types/interfaces |
+| CC-D05 | Naming — files/folders | Pointer to ADR-069/`monorepo-setup.md` — not duplicated here |
+| CC-D06 | Function-writing structure | Validation/authorization first (throw early) → orchestration → return; pure functions separated from service classes |
 
 ---
 
 # Error Handling
 
-## Hierarki (CC-D01)
+## Hierarchy (CC-D01)
 
-Lokasi: `apps/web/src/lib/utils/errors.ts`.
+Location: `apps/web/src/lib/utils/errors.ts`.
 
 ```
 Error (native)
-  └── AppError                  (base, punya field `code: string`)
-        └── ApplicationError    (marker class, tanpa constructor sendiri)
+  └── AppError                  (base, has a `code: string` field)
+        └── ApplicationError    (marker class, no constructor of its own)
               ├── AuthorizationError    ("AUTHORIZATION_ERROR")
               ├── NotFoundError         ("NOT_FOUND_ERROR")
               ├── ValidationError       ("VALIDATION_ERROR")
@@ -63,61 +63,60 @@ Error (native)
               └── ExternalServiceError  ("EXTERNAL_SERVICE_ERROR")
 ```
 
-**Aturan:** Application Service **melempar** subclass `ApplicationError`
-yang sesuai untuk error yang harus sampai ke boundary UI/API dengan pesan
-aman. Application Service **tidak pernah** menangkap error domain-nya
-sendiri — biarkan naik ke entry point (Server Action/Route Handler) untuk
-diterjemahkan sesuai kebutuhan masing-masing (structured response, HTTP
-status, error UI state) — sesuai "Error Handling Strategy" yang sudah
-ditetapkan di `application-layer.md`.
+**Rule:** An Application Service **throws** the appropriate `ApplicationError`
+subclass for errors that must reach the UI/API boundary with a safe message.
+An Application Service **never** catches its own domain errors — let them
+bubble up to the entry point (Server Action/Route Handler) to be translated
+as each one needs (structured response, HTTP status, UI error state) —
+following the "Error Handling Strategy" already set in `application-layer.md`.
 
-## Domain Errors per-BC
+## Domain Errors per BC
 
-Tiap 9 domain module (`identity`, `workspace`, `publishing`,
+Each of the 9 domain modules (`identity`, `workspace`, `publishing`,
 `mcp-access`, `engagement`, `analytics`, `start-page`, `media`,
-`notification`) punya `errors.ts` sendiri dengan `XxxDomainError extends
-Error` (**bukan** `extends AppError`) — contoh: `PublishingDomainError`,
+`notification`) has its own `errors.ts` with `XxxDomainError extends
+Error` (**not** `extends AppError`) — examples: `PublishingDomainError`,
 `WorkspaceDomainError`, `IdentityDomainError`.
 
-**Kapan pakai yang mana:**
+**When to use which:**
 
-* **`XxxDomainError`** — untuk validasi invariant murni di level
-  entity/domain logic yang tidak tahu-menahu soal HTTP/UI (mis. dipakai di
-  unit test domain logic tanpa mock infrastruktur).
-* **`ApplicationError` subclass** — untuk error yang perlu sampai ke
-  boundary UI/API dengan pesan yang aman ditampilkan ke user.
+- **`XxxDomainError`** — for pure invariant validation at the
+  entity/domain logic level that knows nothing about HTTP/UI (e.g. used in
+  domain logic unit tests without mocking infrastructure).
+- **`ApplicationError` subclass** — for errors that need to reach the
+  UI/API boundary with a message that is safe to show to the user.
 
 ## Server Action Error Boundary (CC-D02)
 
-Kontrak: `toActionError(error: unknown): { error: string }` —
+Contract: `toActionError(error: unknown): { error: string }` —
 
-* Kalau `error instanceof ApplicationError` → return `{ error:
-  error.message }`.
-* Selain itu → **re-throw** (error tak terduga tidak disembunyikan; Next.js
-  menangani sebagai crash/error boundary, bukan pesan halus ke user).
+- If `error instanceof ApplicationError` → return `{ error:
+error.message }`.
+- Otherwise → **re-throw** (unexpected errors are not hidden; Next.js
+  handles them as a crash/error boundary, not a soft message to the user).
 
-Fungsi ini menggantikan logic `instanceof`/switch yang **dulu diduplikasi
-identik** di beberapa file `actions.ts` (`settings`, `settings/members`,
-`sidebar-channels`, `publish/queue`) sebelum dikonsolidasi. **Jangan tulis
-ulang logic mapping error manual per file baru** — selalu import
-`toActionError` dari `apps/web/src/lib/utils/errors.ts`.
+This function replaces the `instanceof`/switch logic that was **previously
+duplicated identically** across several `actions.ts` files (`settings`,
+`settings/members`, `sidebar-channels`, `publish/queue`) before it was
+consolidated. **Do not rewrite the manual error mapping logic per new
+file** — always import `toActionError` from `apps/web/src/lib/utils/errors.ts`.
 
-Kontrak ini **wajib** untuk Server Action yang mengembalikan `{ error }`
-ke pemanggil. Jangan membungkus ulang action yang kontraknya bukan itu:
-`markNotificationReadAction` mengembalikan `void` dan membiarkan error naik
-(sesi kosong → `redirect("/login")`); `getCalendarPostAction` memetakan sesi
-kosong ke `null`. Mengganti keduanya ke `toActionError()` mengubah kontrak
-pemanggil.
+This contract is **mandatory** for Server Actions that return `{ error }`
+to the caller. Do not re-wrap actions whose contract is not that:
+`markNotificationReadAction` returns `void` and lets errors bubble up
+(empty session → `redirect("/login")`); `getCalendarPostAction` maps an empty
+session to `null`. Switching both to `toActionError()` changes the
+caller's contract.
 
-Karena `toActionError` meneruskan `error.message` apa adanya ke client:
-**pesan error yang di-throw dari Application Service harus aman untuk
-ditampilkan ke user** — jangan bocorkan detail internal (query, stack,
-secret) di dalam `message`.
+Because `toActionError` passes `error.message` through to the client as is:
+**error messages thrown from an Application Service must be safe to
+show to the user** — do not leak internal details (query, stack,
+secret) inside `message`.
 
 ## Route Handler Error Handling
 
-Route Handler (webhook Outstand) punya kontrak error sendiri, sudah
-didokumentasikan di `integration-layer.md` — tidak diduplikasi di sini.
+Route Handlers (Outstand webhook) have their own error contract, already
+documented in `integration-layer.md` — not duplicated here.
 
 ---
 
@@ -125,50 +124,50 @@ didokumentasikan di `integration-layer.md` — tidak diduplikasi di sini.
 
 ## Variables & Functions (CC-D03)
 
-* camelCase.
-* Fungsi verb-first: `getX`, `createX`, `listX`, `parseX` — contoh nyata:
+- camelCase.
+- Functions are verb-first: `getX`, `createX`, `listX`, `parseX` — real examples:
   `getMonthRange`, `getWeekRange`, `parseCalendarViewState`,
   `getDashboardSummaryAction`, `getCachedSession`.
-* Boolean: prefix `is`/`has`/`should` (mis. `isReadyToPublishNow`) — aturan
-  ini berlaku going-forward untuk kode baru.
-* Server Action: suffix `Action` (`getDashboardSummaryAction`,
-  `switchWorkspaceAction`) — konsisten dengan pola yang sudah ada.
+- Booleans: prefix `is`/`has`/`should` (e.g. `isReadyToPublishNow`) — this rule
+  applies going forward to new code.
+- Server Actions: suffix `Action` (`getDashboardSummaryAction`,
+  `switchWorkspaceAction`) — consistent with the existing pattern.
 
 ## Types & Interfaces (CC-D04)
 
-* PascalCase, **tanpa** prefix `I` untuk types/interfaces domain baru (mis.
-  `PostMetricsPort`, `ScheduledCountsPort` — bukan `IPostMetricsPort`).
-* `IOutstandAdapter` (kontrak ACL eksternal besar) adalah **exception
-  historis** — bukan pola untuk ditiru di tempat lain, hanya nama yang
-  sudah kadung dipakai luas sejak awal.
+- PascalCase, **no** `I` prefix for new domain types/interfaces (e.g.
+  `PostMetricsPort`, `ScheduledCountsPort` — not `IPostMetricsPort`).
+- `IOutstandAdapter` (the large external ACL contract) is a **historical
+  exception** — not a pattern to copy elsewhere, only a name that
+  was already in wide use from the start.
 
 ## Domain Module & File Naming (CC-D05)
 
-Pointer eksplisit — **jangan diduplikasi di sini**, ikuti aturan Opsi A
-yang sama yang berlaku antar baseline docs, bukan cuma context/ index
+An explicit pointer — **do not duplicate here**, follow the same Option A
+rule that applies between baseline docs, not just the context/ index
 files:
 
-* File/folder komponen React: `monorepo-setup.md` section `## src/app/ —
+- React component files/folders: `monorepo-setup.md` section `## src/app/ —
   App Router Structure` + ADR-069.
-* Domain module & public API: ADR-026, `ctx-implementation.md`.
+- Domain modules & public API: ADR-026, `ctx-implementation.md`.
 
 ---
 
 # Function-Writing Conventions (CC-D06)
 
-**Struktur Application Service method:** validasi/otorisasi dulu (throw
-early) → orchestration → return. Jangan campur validasi di tengah-tengah
-logic orchestration — bikin alur sulit dibaca dan gagal-cepat jadi tidak
-jelas.
+**Application Service method structure:** validation/authorization first (throw
+early) → orchestration → return. Do not mix validation into the middle of the
+orchestration logic — it makes the flow hard to read and fail-fast becomes
+unclear.
 
-**Composition root pattern:** instansiasi service dengan dependency-nya
-(repository, port) terjadi di `page.tsx`/`actions.ts`/`layout.tsx` — bukan
-di dalam domain module itu sendiri. Preseden: ADR-078 (port lokal +
-composition root untuk `ScheduledCountsPort`).
+**Composition root pattern:** instantiating a service with its dependencies
+(repository, port) happens in `page.tsx`/`actions.ts`/`layout.tsx` — not
+inside the domain module itself. Precedent: ADR-078 (local port + composition
+root for `ScheduledCountsPort`).
 
-**Pure function untuk logic tanpa I/O:** logic yang tidak butuh akses
-database/network ditulis sebagai pure function terpisah dari service class
-— importable dan testable tanpa mock apapun. Contoh nyata:
+**Pure functions for logic without I/O:** logic that needs no database/network
+access is written as a pure function separate from the service class —
+importable and testable without any mocks. Real examples:
 `getMonthRange`/`getWeekRange` (`calendar-range.ts`),
 `parseCalendarViewState`.
 
@@ -176,18 +175,18 @@ database/network ditulis sebagai pure function terpisah dari service class
 
 # Decision Log
 
-| ID | Keputusan | Alasan | Alternatif |
+| ID | Decision | Reason | Alternatives |
 |----|-----------|--------|-----------|
-| CC-D01 | Hierarki error 2 lapis (`AppError`/`ApplicationError` + `XxxDomainError` per domain) | Sudah terbukti konsisten dipakai di 9 domain, tidak perlu didesain ulang | Satu hierarki error tunggal lintas domain (ditolak — domain invariant errors punya kebutuhan beda dari boundary errors) |
-| CC-D02 | `toActionError()` wajib pada Server Action yang mengembalikan `{ error }` | Mencegah duplikasi logic mapping error. Action `void` / `redirect` / `null` tidak dipaksa mengikuti helper ini | Mapping error manual per file; membungkus setiap action tanpa melihat kontrak return |
-| CC-D04 | Tanpa prefix `I` untuk interface baru | Konsisten dengan mayoritas kode existing (`PostMetricsPort`, dst.) | Prefix `I` konsisten mengikuti `IOutstandAdapter` (ditolak — exception itu sendiri historis, bukan pola yang disengaja) |
+| CC-D01 | 2-layer error hierarchy (`AppError`/`ApplicationError` + `XxxDomainError` per domain) | Already proven to be used consistently across 9 domains, no need to redesign | A single error hierarchy across domains (rejected — domain invariant errors have different needs from boundary errors) |
+| CC-D02 | `toActionError()` mandatory on Server Actions that return `{ error }` | Prevents duplicated error mapping logic. `void` / `redirect` / `null` actions are not forced to follow this helper | Manual error mapping per file; wrapping every action without looking at the return contract |
+| CC-D04 | No `I` prefix for new interfaces | Consistent with most of the existing code (`PostMetricsPort`, etc.) | Consistent `I` prefix following `IOutstandAdapter` (rejected — that exception is itself historical, not a deliberate pattern) |
 
 ---
 
 # Related Documents
 
-* `../05-architecture/application-layer.md` — kontrak error handling per layer (rujukan asli komentar `errors.ts`)
-* `rendering-strategy.md` — Server Action error boundary (RS-D01)
-* `monorepo-setup.md`, ADR-069 — file/folder naming lengkap
-* `../../project-os/decisions/ADR-078-amandemen-adr-018-port-lokal-composition-root-scheduled-counts.md`
-* `../../project-os/decisions/ADR-095-*.md` (dokumen ini ditetapkan sebagai baseline)
+- `../05-architecture/application-layer.md` — error handling contract per layer (the original reference of the `errors.ts` comments)
+- `rendering-strategy.md` — Server Action error boundary (RS-D01)
+- `monorepo-setup.md`, ADR-069 — complete file/folder naming
+- `../../project-os/decisions/ADR-078-amandemen-adr-018-port-lokal-composition-root-scheduled-counts.md`
+- `../../project-os/decisions/ADR-095-*.md` (this document is set as the baseline)

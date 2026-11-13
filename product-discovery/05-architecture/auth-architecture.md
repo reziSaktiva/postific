@@ -1,60 +1,60 @@
 # Auth Architecture
 
-Dokumen ini mendefinisikan **Security & Auth Architecture** untuk produk **Postific** — arsitektur autentikasi, manajemen sesi, workspace context resolution, dan otorisasi berbasis role (RBAC).
+This document defines the **Security & Auth Architecture** for the **Postific** product — the authentication architecture, session management, workspace context resolution, and role-based authorization (RBAC).
 
-Dokumen ini menjadi acuan desain keamanan sistem dan tidak mencakup implementasi kode. Detail implementasi (Better Auth configuration, middleware code) didokumentasikan di Engineering Planning (M6).
-
----
-
-# Tujuan
-
-* Mendefinisikan alur autentikasi menggunakan Better Auth.
-* Menetapkan struktur sesi dan data yang disimpan dalam sesi.
-* Mendefinisikan mekanisme workspace context resolution.
-* Menetapkan model otorisasi berbasis role (RBAC) dan cara enforcement-nya.
-* Mendokumentasikan strategi Middleware untuk auth guard.
-* Mendefinisikan pola proteksi route dan API endpoint.
+This document is the reference for system security design and does not cover code implementation. Implementation details (Better Auth configuration, middleware code) are documented in Engineering Planning (M6).
 
 ---
 
-# Keputusan Pra-Architecture
+# Purpose
 
-Keputusan berikut sudah ditetapkan sebelum dokumen ini dibuat dan menjadi fondasi Auth Architecture:
+* Define the authentication flow using Better Auth.
+* Set the session structure and the data stored in the session.
+* Define the workspace context resolution mechanism.
+* Set the role-based authorization (RBAC) model and how it is enforced.
+* Document the Middleware strategy for the auth guard.
+* Define the route and API endpoint protection pattern.
 
-| Topik | Keputusan | Sumber |
+---
+
+# Pre-Architecture Decisions
+
+The following decisions were set before this document was created and are the foundation of the Auth Architecture:
+
+| Topic | Decision | Source |
 |-------|-----------|--------|
-| Auth Library | Better Auth | Keputusan pra-architecture |
-| Auth Enforcement | Application-enforced sebagai lapisan utama; RLS sebagai defense-in-depth | ADR-015 |
-| Identity BC | BC-01 Identity — dikelola Better Auth, prefix tabel `identity_` | `domain-model.md` |
-| Application Layer | Middleware untuk auth guard dan workspace context injection | ADR-016 |
+| Auth Library | Better Auth | Pre-architecture decision |
+| Auth Enforcement | Application-enforced as the main layer; RLS as defense-in-depth | ADR-015 |
+| Identity BC | BC-01 Identity — managed by Better Auth, table prefix `identity_` | `domain-model.md` |
+| Application Layer | Middleware for the auth guard and workspace context injection | ADR-016 |
 | Roles | 3 roles: Account Owner, Admin, Creator | ADR-012, ADR-074, `roles-permissions.md` |
-| Multi-tenancy Unit | `workspace_id` sebagai unit isolasi | ADR-015 |
+| Multi-tenancy Unit | `workspace_id` as the isolation unit | ADR-015 |
 
 ---
 
 # Authentication
 
-## Better Auth sebagai Identity Provider
+## Better Auth as Identity Provider
 
-Better Auth mengelola seluruh lifecycle autentikasi:
-- Registrasi akun (email + password).
-- Login dengan email + password.
-- OAuth login (Google — jika ditambahkan di Engineering Planning).
+Better Auth manages the entire authentication lifecycle:
+- Account registration (email + password).
+- Login with email + password.
+- OAuth login (Google — if added in Engineering Planning).
 - Session lifecycle (create, refresh, destroy).
 - Password reset via email.
 
-**Domain internal tidak mengimplementasikan logika autentikasi dari nol.** BC-01 Identity hanya mengekspos interface yang memanggil Better Auth API.
+**The internal domain does not implement authentication logic from scratch.** BC-01 Identity only exposes an interface that calls the Better Auth API.
 
-## Metode Autentikasi MVP
+## MVP Authentication Methods
 
-| Metode | Status MVP |
+| Method | MVP Status |
 |--------|-----------|
 | Email + Password | ✅ MVP |
-| Google OAuth | ✅ MVP (via Better Auth OAuth plugin) |
+| Google OAuth | ✅ MVP (via the Better Auth OAuth plugin) |
 | Magic Link | Post-MVP |
 | SSO/SAML | Post-MVP |
 
-## Alur Registrasi
+## Registration Flow
 
 ```
 ┌─────────┐    ┌──────────────────┐    ┌──────────────┐    ┌────────────┐
@@ -77,33 +77,33 @@ Better Auth mengelola seluruh lifecycle autentikasi:
      │◄─────────────────│                      │                   │
 ```
 
-**Setelah registrasi:**
-- Workspace belum ada — user diarahkan ke onboarding untuk membuat workspace pertama.
-- `WorkspaceService.createWorkspace()` dipanggil dengan `userId` dari sesi, user otomatis menjadi Owner.
+**After registration:**
+- No workspace exists yet — the user is directed to onboarding to create their first workspace.
+- `WorkspaceService.createWorkspace()` is called with the `userId` from the session, and the user automatically becomes the Owner.
 
-## Alur Login
+## Login Flow
 
 ```
-User submit form login
+User submits the login form
   └── Server Action
         └── Better Auth auth.signIn.email({ email, password })
-              ├── Sukses → Set session cookie → Redirect ke root (Middleware lanjut resolve ke `(app)` atau `/onboarding`, lihat "Onboarding Flow")
-              └── Gagal  → Return error ke form
+              ├── Success → Set session cookie → Redirect to root (Middleware continues to resolve to `(app)` or `/onboarding`, see "Onboarding Flow")
+              └── Failure → Return error to the form
 ```
 
 ## Session Cookie
 
-Better Auth menggunakan **HTTP-only cookie** untuk menyimpan session token.
+Better Auth uses an **HTTP-only cookie** to store the session token.
 
 | Property | Value |
 |----------|-------|
-| Cookie name | `better-auth.session_token` (default Better Auth) |
-| HTTP-only | Ya |
-| Secure | Ya (production) |
+| Cookie name | `better-auth.session_token` (Better Auth default) |
+| HTTP-only | Yes |
+| Secure | Yes (production) |
 | SameSite | `lax` |
-| Expiry | 7 hari (configurable) |
+| Expiry | 7 days (configurable) |
 
-**Catatan:** Session token disimpan di cookie, bukan di `localStorage` — mencegah XSS attack.
+**Note:** The session token is stored in a cookie, not in `localStorage` — preventing XSS attacks.
 
 ---
 
@@ -111,11 +111,11 @@ Better Auth menggunakan **HTTP-only cookie** untuk menyimpan session token.
 
 ## Session Data Structure
 
-Better Auth menyimpan sesi di tabel `identity_sessions`. Data yang dapat diakses dari sesi aktif:
+Better Auth stores the session in the `identity_sessions` table. Data accessible from the active session:
 
 ```
 Session {
-  userId: string          -- User.id dari Better Auth
+  userId: string          -- User.id from Better Auth
   expiresAt: Date
   ipAddress: string?
   userAgent: string?
@@ -124,106 +124,106 @@ Session {
 
 ## Workspace Context
 
-Session Better Auth **tidak menyimpan** `workspaceId` secara langsung. Workspace context disimpan di **cookie** (`active-workspace-id`, HTTP-only) dan divalidasi ulang oleh Middleware terhadap data member pada setiap request.
+The Better Auth session **does not store** `workspaceId` directly. The workspace context is stored in a **cookie** (`active-workspace-id`, HTTP-only) and re-validated by Middleware against the member data on every request.
 
-**Alasan:**
-- User bisa jadi anggota lebih dari satu workspace, tapi hanya 1 workspace aktif pada satu waktu (`active-workspace-id`); cookie berfungsi sebagai penanda workspace aktif itu.
-- Seluruh route workspace-scoped (Home, Publish, Engage, Analyze, Start Page, Settings) berada di bawah route group `(app)` — workspace context tidak bergantung pada struktur URL (`../06-engineering/monorepo-setup.md`).
-- Cookie tetap divalidasi ulang terhadap `workspace_members` di setiap request (bukan dipercaya mentah) — mencegah cookie yang stale atau dimanipulasi memberi akses ke workspace yang salah.
-- Jika cookie hilang atau tidak valid (mis. browser baru, cookie terhapus), user diarahkan kembali ke picker workspace di alur onboarding (lihat "Onboarding Flow" di bawah) — ini kasus *recovery*, berbeda dari switch yang disengaja (lihat "Deliberate Workspace Switch" di bawah).
+**Reasons:**
+- A user can be a member of more than one workspace, but only 1 workspace is active at a time (`active-workspace-id`); the cookie acts as the marker of that active workspace.
+- All workspace-scoped routes (Home, Publish, Engage, Analyze, Start Page, Settings) live under the `(app)` route group — the workspace context does not depend on the URL structure (`../06-engineering/monorepo-setup.md`).
+- The cookie is still re-validated against `workspace_members` on every request (not trusted raw) — preventing a stale or manipulated cookie from granting access to the wrong workspace.
+- If the cookie is missing or invalid (e.g. new browser, cookie deleted), the user is redirected back to the workspace picker in the onboarding flow (see "Onboarding Flow" below) — this is a *recovery* case, different from a deliberate switch (see "Deliberate Workspace Switch" below).
 
-**Deliberate Workspace Switch (ADR-088, amandemen ADR-089):** selama cookie
-masih valid, user yang jadi anggota lebih dari satu workspace bisa
-berpindah workspace aktif secara sengaja lewat Settings → Account →
-Workspaces — daftar workspace yang diikutinya, workspace aktif ditandai
-chip "Aktif", workspace lain bisa diklik untuk pindah. Klik row memicu
-dialog konfirmasi Tier 2 (`AlertDialog`, ADR-049 — "Pindah ke workspace
-[nama]?" + Batal/Pindah, ADR-089) dulu; baru setelah user menekan "Pindah"
-mekanisme switch berjalan: (1) validasi ulang bahwa user memang member
-workspace tujuan, (2) **overwrite langsung** cookie `active-workspace-id`
-ke id workspace tujuan (tanpa langkah hapus cookie terpisah), (3) redirect
-ke Home. Halaman ini juga menyediakan tombol "Buat Workspace Baru" (dialog
-form nama workspace, tanpa tier konfirmasi ADR-049 karena non-destruktif —
-beda dari switch yang sekarang dipagari Tier 2 meski juga non-destruktif,
-karena switch mengganti seluruh konteks kerja yang sedang dilihat user).
-Ini kasus yang berbeda dari picker `/onboarding` di bawah — switch dipicu
-sengaja oleh user yang masih punya cookie valid, bukan oleh cookie yang
-hilang di luar kendalinya. Scope ini sengaja narrow: hanya switch antar
-membership yang sudah ada + create workspace tambahan; "Multi Workspace
-Management" yang lebih luas (bulk actions, billing gabungan, dst.) tetap
+**Deliberate Workspace Switch (ADR-088, amendment to ADR-089):** as long as the cookie
+is still valid, a user who is a member of more than one workspace can
+deliberately switch the active workspace through Settings → Account →
+Workspaces — the list of workspaces they belong to, the active workspace marked with
+the chip "Aktif", other workspaces can be clicked to switch. Clicking a row first triggers
+a Tier 2 confirmation dialog (`AlertDialog`, ADR-049 — "Pindah ke workspace
+[nama]?" + Batal/Pindah, ADR-089); only after the user presses "Pindah"
+does the switch mechanism run: (1) re-validate that the user really is a member of the
+target workspace, (2) **directly overwrite** the `active-workspace-id` cookie
+with the target workspace id (without a separate cookie-delete step), (3) redirect
+to Home. This page also provides a "Buat Workspace Baru" button (a dialog
+with a workspace name form, without the ADR-049 confirmation tier because it is non-destructive —
+unlike the switch, which is now fenced by Tier 2 even though it is also non-destructive,
+because a switch replaces the entire working context the user is viewing).
+This is a different case from the `/onboarding` picker below — the switch is triggered
+deliberately by a user who still has a valid cookie, not by a cookie that
+was lost beyond their control. This scope is deliberately narrow: only switching between
+existing memberships + creating an additional workspace; the broader "Multi Workspace
+Management" (bulk actions, combined billing, etc.) stays
 Out of Scope (`../02-product/mvp-definition.md`).
 
 ## Session Validation
 
-Setiap request ke halaman atau API yang terproteksi melalui Middleware:
+Every request to a protected page or API passes through Middleware:
 
 ```
-Request masuk
+Request comes in
   └── Middleware
-        ├── Ambil session cookie
-        ├── Panggil Better Auth auth.api.getSession({ headers })
-        ├── Jika tidak ada session → redirect ke /login
-        ├── Jika session expired → redirect ke /login
-        └── Jika valid → inject userId ke request context → lanjut
+        ├── Get the session cookie
+        ├── Call Better Auth auth.api.getSession({ headers })
+        ├── If there is no session → redirect to /login
+        ├── If the session is expired → redirect to /login
+        └── If valid → inject userId into the request context → continue
 ```
 
 ---
 
 # Workspace Context Resolution
 
-## Cara Kerja
+## How It Works
 
-Workspace aktif di-resolve oleh Middleware dari cookie `active-workspace-id`, kemudian divalidasi bahwa user memiliki akses ke workspace tersebut.
+The active workspace is resolved by Middleware from the `active-workspace-id` cookie, then validated that the user has access to that workspace.
 
 ```
-Request ke route (app)/*
+Request to route (app)/*
   └── Middleware
-        ├── Baca cookie active-workspace-id
-        ├── Jika cookie tidak ada → redirect ke /onboarding (lihat "Onboarding Flow")
-        ├── Jika ada → Query: SELECT * FROM workspace_members
+        ├── Read the active-workspace-id cookie
+        ├── If the cookie is missing → redirect to /onboarding (see "Onboarding Flow")
+        ├── If present → Query: SELECT * FROM workspace_members
         │                       WHERE workspace_id = ?
         │                         AND user_id = session.userId
-        ├── Jika tidak ditemukan (cookie invalid/workspace sudah tidak diikuti) → redirect ke /onboarding
-        ├── Jika ditemukan → inject { workspaceId, role } ke request headers
-        └── Application Service dapat membaca workspaceId dari headers
+        ├── If not found (cookie invalid/workspace no longer a membership) → redirect to /onboarding
+        ├── If found → inject { workspaceId, role } into the request headers
+        └── The Application Service can read workspaceId from the headers
 ```
 
-## Workspace Context dalam Request
+## Workspace Context in the Request
 
-Middleware menginject workspace context sebagai custom request headers:
+Middleware injects the workspace context as custom request headers:
 
 ```
 x-workspace-id: {workspaceId}
 x-workspace-role: {owner | admin | creator}
 ```
 
-Application Service dan Server Actions membaca headers ini untuk mengetahui workspace aktif dan role user tanpa perlu query ulang ke database.
+The Application Service and Server Actions read these headers to know the active workspace and the user's role without needing to query the database again.
 
-**Keamanan:** Header ini **tidak dapat diset oleh client** — hanya Middleware yang menulis headers ini. Next.js Middleware berjalan di server edge, bukan di browser.
+**Security:** These headers **cannot be set by the client** — only Middleware writes these headers. Next.js Middleware runs on the server edge, not in the browser.
 
 ---
 
 # Authorization (RBAC)
 
-## Pendekatan
+## Approach
 
-Sistem menggunakan **Role-Based Access Control (RBAC)** yang di-enforce di **Application Service layer**.
+The system uses **Role-Based Access Control (RBAC)** enforced at the **Application Service layer**.
 
-**Posisi enforcement:**
+**Enforcement position:**
 
 ```
 Request (Server Action / Route Handler)
   └── Application Service
-        ├── Baca role dari request context (header x-workspace-role)
-        ├── Periksa: apakah role ini diizinkan untuk operasi ini?
-        ├── Jika tidak → throw AuthorizationError
-        └── Jika ya → lanjut ke domain logic
+        ├── Read the role from the request context (header x-workspace-role)
+        ├── Check: is this role allowed to perform this operation?
+        ├── If not → throw AuthorizationError
+        └── If yes → continue to domain logic
 ```
 
-**Aturan enforcement:**
-- Authorization check **wajib** ada di Application Service sebelum domain logic dieksekusi.
-- Entry Point (Server Action, Route Handler) **tidak boleh** melakukan authorization check secara mandiri — delegasikan ke Application Service.
-- RLS di Supabase adalah **defense-in-depth** — jika Application Service melewatkan check, RLS mencegah akses ke data yang tidak seharusnya.
+**Enforcement rules:**
+- The authorization check is **mandatory** in the Application Service before domain logic is executed.
+- Entry Points (Server Action, Route Handler) **must not** perform authorization checks on their own — delegate to the Application Service.
+- RLS in Supabase is **defense-in-depth** — if the Application Service misses a check, RLS prevents access to data that should not be accessible.
 
 ## Role Hierarchy
 
@@ -231,39 +231,39 @@ Request (Server Action / Route Handler)
 Owner > Admin > Creator
 ```
 
-Owner memiliki semua permission Admin. Admin memiliki lebih banyak permission dari Creator (ADR-074 — hierarki sebelumnya Owner > Admin > Manager > Creator, "Manager" dihapus dan hak operasional kontennya digabung ke Creator).
+Owner has all Admin permissions. Admin has more permissions than Creator (ADR-074 — the previous hierarchy was Owner > Admin > Manager > Creator, "Manager" was removed and its content operational rights were merged into Creator).
 
 ## Permission Matrix
 
-Referensi lengkap: `../02-product/roles-permissions.md`
+Full reference: `../02-product/roles-permissions.md`
 
-Ringkasan permission per area yang relevan untuk enforcement di Application Service:
+Summary of permissions per area relevant for enforcement in the Application Service:
 
-| Operasi | Account Owner | Admin | Creator |
+| Operation | Account Owner | Admin | Creator |
 |---------|-------|-------|---------|
-| Hapus workspace | ✅ | ❌ | ❌ |
+| Delete workspace | ✅ | ❌ | ❌ |
 | Transfer ownership | ✅ | ❌ | ❌ |
-| Ubah billing | ✅ | ❌ | ❌ |
-| Kelola connected accounts | ✅ | ✅ | ❌ |
-| Undang/hapus member | ✅ | ✅ | ❌ |
-| Publish / jadwalkan post | ✅ | ✅ | ✅ |
-| Buat / edit draft | ✅ | ✅ | ✅ |
-| Hapus konten orang lain | ✅ | ✅ | ❌ |
-| Baca analytics | ✅ | ✅ | ✅ |
-| Balas engagement | ✅ | ✅ | ✅ |
-| Baca audit log | ✅ | ✅ | ❌ |
+| Change billing | ✅ | ❌ | ❌ |
+| Manage connected accounts | ✅ | ✅ | ❌ |
+| Invite/remove members | ✅ | ✅ | ❌ |
+| Publish / schedule posts | ✅ | ✅ | ✅ |
+| Create / edit drafts | ✅ | ✅ | ✅ |
+| Delete other people's content | ✅ | ✅ | ❌ |
+| Read analytics | ✅ | ✅ | ✅ |
+| Reply to engagement | ✅ | ✅ | ✅ |
+| Read audit log | ✅ | ✅ | ❌ |
 
 ## Authorization Helper
 
-Application Service menggunakan helper function untuk memvalidasi permission:
+The Application Service uses a helper function to validate permissions:
 
 ```
 assertPermission(role: WorkspaceRole, operation: Operation): void
-  ├── Jika role diizinkan → return (lanjut eksekusi)
-  └── Jika tidak → throw AuthorizationError("Insufficient permissions")
+  ├── If the role is allowed → return (continue execution)
+  └── If not → throw AuthorizationError("Insufficient permissions")
 ```
 
-`AuthorizationError` ditangkap di Entry Point dan diterjemahkan ke HTTP 403 atau error message UI.
+`AuthorizationError` is caught at the Entry Point and translated to HTTP 403 or a UI error message.
 
 ---
 
@@ -271,20 +271,20 @@ assertPermission(role: WorkspaceRole, operation: Operation): void
 
 ## Route Groups
 
-Next.js Middleware mengelola dua zona route:
+Next.js Middleware manages two route zones:
 
 ```
 Middleware matchers:
 ├── /login          → Public route (bypass auth)
 ├── /register       → Public route (bypass auth)  
-├── /onboarding     → Protected route (wajib session, tanpa workspace context — lihat "Onboarding Flow")
-├── /u/*            → Halaman publik Start Page (bypass proxy, tanpa session; data lewat fungsi `SECURITY DEFINER`) (ADR-128, ADR-142, ADR-143)
+├── /onboarding     → Protected route (session required, no workspace context — see "Onboarding Flow")
+├── /u/*            → Public Start Page pages (bypass proxy, no session; data through a `SECURITY DEFINER` function) (ADR-128, ADR-142, ADR-143)
 ├── /api/webhooks/* → Webhook routes (bypass auth — protected via HMAC signature)
 ├── /api/jobs/*     → Job runner routes (bypass auth — protected via X-Job-Secret)
-├── /api/mcp        → MCP Server endpoint (bypass proxy — token divalidasi di Route Handler via `mcpHandler`) (ADR-139)
-├── /.well-known/*  → Metadata OAuth MCP (bypass proxy) (ADR-139)
-└── (app)/*         → Protected routes (wajib session + workspace context dari cookie)
-    └── Home, Publish, Engage, Analyze, Start Page, Settings — semua wajib workspace membership check
+├── /api/mcp        → MCP Server endpoint (bypass proxy — token validated in the Route Handler via `mcpHandler`) (ADR-139)
+├── /.well-known/*  → MCP OAuth metadata (bypass proxy) (ADR-139)
+└── (app)/*         → Protected routes (session + workspace context from the cookie required)
+    └── Home, Publish, Engage, Analyze, Start Page, Settings — all require a workspace membership check
 ```
 
 ## Middleware Flow Diagram
@@ -293,69 +293,69 @@ Middleware matchers:
 ┌──────────────────────────────────────────────────────────────────┐
 │                    MIDDLEWARE FLOW                                │
 │                                                                   │
-│  Request masuk                                                    │
+│  Request comes in                                                 │
 │      │                                                            │
 │      ▼                                                            │
-│  Public route? ──── Ya ──► Lanjut ke handler                     │
-│      │ Tidak                                                      │
+│  Public route? ──── Yes ──► Continue to handler                  │
+│      │ No                                                         │
 │      ▼                                                            │
-│  Webhook / Job route? ── Ya ──► Lanjut (protected by secret)     │
-│      │ Tidak                                                      │
+│  Webhook / Job route? ── Yes ──► Continue (protected by secret)  │
+│      │ No                                                         │
 │      ▼                                                            │
-│  Ambil session cookie                                             │
+│  Get the session cookie                                           │
 │      │                                                            │
-│      ├─ Tidak ada / expired ──► Redirect /login                  │
+│      ├─ Missing / expired ──► Redirect /login                    │
 │      │                                                            │
-│      └─ Valid → Route termasuk (app)/*?                           │
+│      └─ Valid → Is the route in (app)/*?                          │
 │                     │                                             │
-│                     ├─ Tidak (mis. /onboarding) ──► Inject userId → Lanjut │
+│                     ├─ No (e.g. /onboarding) ──► Inject userId → Continue │
 │                     │                                             │
-│                     └─ Ya → Baca cookie active-workspace-id       │
+│                     └─ Yes → Read the active-workspace-id cookie  │
 │                                 │                                 │
-│                                 ├─ Tidak ada ──► Redirect /onboarding │
+│                                 ├─ Missing ──► Redirect /onboarding │
 │                                 │                                 │
-│                                 └─ Ada → Query workspace membership │
+│                                 └─ Present → Query workspace membership │
 │                                             │                     │
-│                                             ├─ Tidak ada akses → Redirect /onboarding │
+│                                             ├─ No access → Redirect /onboarding │
 │                                             │                     │
-│                                             └─ Ada → Inject headers → Lanjut │
+│                                             └─ Has access → Inject headers → Continue │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-# Proteksi Route API
+# API Route Protection
 
-## Route Handlers untuk External System
+## Route Handlers for External Systems
 
-Route Handlers yang menerima request dari sistem eksternal (webhook, job runner) tidak melalui session auth. Dilindungi dengan mekanisme berbeda:
+Route Handlers that receive requests from external systems (webhook, job runner) do not go through session auth. They are protected by a different mechanism:
 
-| Route | Mekanisme Proteksi |
+| Route | Protection Mechanism |
 |-------|-------------------|
-| `/api/webhooks/outstand` | HMAC-SHA256 atas raw body, durable idempotent receipt sebelum ACK (ADR-020, ADR-040) |
-| `/api/jobs/run` | Secret header `X-Job-Secret` dibandingkan env variable |
-| `/api/integrations/outstand/callback` | CSRF protection via `state` parameter (ADR-021) |
+| `/api/webhooks/outstand` | HMAC-SHA256 over the raw body, durable idempotent receipt before ACK (ADR-020, ADR-040) |
+| `/api/jobs/run` | `X-Job-Secret` header secret compared with an env variable |
+| `/api/integrations/outstand/callback` | CSRF protection via the `state` parameter (ADR-021) |
 
 ## Internal API Route
 
-Route Handler yang dipanggil dari Client Components harus:
-1. Diproteksi oleh Middleware (session check).
-2. Memeriksa workspace membership jika berkaitan dengan data workspace.
+A Route Handler called from Client Components must:
+1. Be protected by Middleware (session check).
+2. Check workspace membership if it relates to workspace data.
 
-**Boundary secret eksternal:**
-- `OUTSTAND_WEBHOOK_SECRET` dan API key Outstand hanya tersedia server-side.
-- Kredensial BYOK Twitter/X dikonfigurasi manual oleh Project Owner di dashboard Outstand. Aplikasi tidak menyediakan form, endpoint, tabel, atau env var untuk X Client ID/Client Secret.
+**External secret boundary:**
+- `OUTSTAND_WEBHOOK_SECRET` and the Outstand API key are only available server-side.
+- Twitter/X BYOK credentials are configured manually by the Project Owner in the Outstand dashboard. The application provides no form, endpoint, table, or env var for the X Client ID/Client Secret.
 
 ---
 
 # Row-Level Security (Defense-in-Depth)
 
-RLS tidak menggantikan authorization di Application Service — RLS adalah **lapisan keamanan tambahan** jika Application Service gagal melakukan pengecekan.
+RLS does not replace authorization in the Application Service — RLS is an **additional security layer** if the Application Service fails to perform the check.
 
-**Contoh RLS policy untuk data workspace:**
+**Example RLS policy for workspace data:**
 
 ```sql
--- User hanya bisa baca data workspace yang mereka ikuti
+-- A user can only read data of workspaces they belong to
 CREATE POLICY "workspace_member_access"
 ON publishing_posts
 FOR ALL
@@ -367,83 +367,83 @@ USING (
 );
 ```
 
-**Catatan:** RLS policy menggunakan `auth.uid()` dari Better Auth session — Supabase Better Auth integration harus dikonfigurasi agar `auth.uid()` mengembalikan userId yang benar. Detail konfigurasi di Engineering Planning (M6).
+**Note:** The RLS policy uses `auth.uid()` from the Better Auth session — the Supabase Better Auth integration must be configured so that `auth.uid()` returns the correct userId. Configuration details are in Engineering Planning (M6).
 
 ---
 
-# Error Handling Auth
+# Auth Error Handling
 
-| Skenario | Response |
+| Scenario | Response |
 |----------|---------|
-| Tidak ada session | Redirect ke `/login` (via Middleware) |
-| Session expired | Redirect ke `/login` (via Middleware) |
-| User tidak memiliki akses ke workspace (cookie invalid/workspace sudah tidak diikuti) | Redirect ke `/onboarding` |
-| Role tidak cukup untuk operasi | `AuthorizationError` → UI error message / HTTP 403 |
-| RLS violation | Supabase mengembalikan empty result atau error — Application Service menangani sebagai not found |
+| No session | Redirect to `/login` (via Middleware) |
+| Session expired | Redirect to `/login` (via Middleware) |
+| User has no access to the workspace (cookie invalid/workspace no longer a membership) | Redirect to `/onboarding` |
+| Insufficient role for the operation | `AuthorizationError` → UI error message / HTTP 403 |
+| RLS violation | Supabase returns an empty result or an error — the Application Service handles it as not found |
 
 ---
 
 # Onboarding Flow (First Login & Cookie Re-entry)
 
-`/onboarding` menangani dua skenario — user baru tanpa workspace, dan user existing yang kehilangan cookie workspace aktif (browser baru, cookie dihapus, dsb). Picker workspace di skenario kedua adalah re-entry point saat cookie hilang di luar kendali user — **berbeda** dari Deliberate Workspace Switch (ADR-088, lihat section "Workspace Context" di atas) yang dipicu sengaja oleh user selama cookie masih valid, lewat Settings → Account → Workspaces.
+`/onboarding` handles two scenarios — a new user without a workspace, and an existing user who lost the active workspace cookie (new browser, cookie deleted, etc.). The workspace picker in the second scenario is the re-entry point when the cookie is lost beyond the user's control — **different** from the Deliberate Workspace Switch (ADR-088, see the "Workspace Context" section above), which is triggered deliberately by the user while the cookie is still valid, through Settings → Account → Workspaces.
 
 ```
-Login berhasil / Middleware redirect ke /onboarding (cookie active-workspace-id tidak ada/invalid)
+Login succeeds / Middleware redirects to /onboarding (active-workspace-id cookie missing/invalid)
   └── /onboarding
-        ├── Query: workspace yang diikuti user (workspace_members WHERE user_id = session.userId)
+        ├── Query: workspaces the user belongs to (workspace_members WHERE user_id = session.userId)
         │
-        ├── 0 workspace → User membuat workspace pertama
+        ├── 0 workspaces → The user creates their first workspace
         │     └── WorkspaceService.createWorkspace()
-        │           ├── Buat Workspace baru
-        │           ├── Buat WorkspaceMember (userId, role: owner)
-        │           ├── Set cookie active-workspace-id
-        │           └── Redirect ke (app) home
+        │           ├── Create a new Workspace
+        │           ├── Create a WorkspaceMember (userId, role: owner)
+        │           ├── Set the active-workspace-id cookie
+        │           └── Redirect to (app) home
         │
-        └── ≥1 workspace (cookie hilang, bukan user baru) → Tampilkan picker daftar workspace
-              └── User pilih salah satu
-                    ├── Set cookie active-workspace-id
-                    └── Redirect ke (app) home
+        └── ≥1 workspace (cookie lost, not a new user) → Show the workspace list picker
+              └── The user picks one
+                    ├── Set the active-workspace-id cookie
+                    └── Redirect to (app) home
 ```
 
 ---
 
 # Post-MVP Considerations
 
-| Fitur | Kompleksitas | Prioritas |
+| Feature | Complexity | Priority |
 |-------|-------------|-----------|
-| Multi-workspace switching (deliberate switch antar membership + create workspace tambahan sudah masuk MVP per ADR-088 — sisanya seperti cross-workspace bulk actions, billing gabungan, shared views tetap di sini) | Medium | High |
+| Multi-workspace switching (deliberate switch between memberships + creating an additional workspace are already in the MVP per ADR-088 — the rest such as cross-workspace bulk actions, combined billing, shared views stay here) | Medium | High |
 | Magic Link login | Low | Medium |
-| SSO/SAML | Tinggi | Low (enterprise) |
+| SSO/SAML | High | Low (enterprise) |
 | Two-Factor Authentication (2FA) | Medium | Medium |
-| Audit log untuk auth events | Low | Medium |
-| API key untuk programmatic access (machine-to-machine, bukan login user interaktif — beda dari Bearer plugin mobile ADR-043) | Medium | Low |
+| Audit log for auth events | Low | Medium |
+| API key for programmatic access (machine-to-machine, not interactive user login — different from the mobile Bearer plugin ADR-043) | Medium | Low |
 
 ---
 
 # Decision Log
 
-| ID | Keputusan | Alasan |
+| ID | Decision | Reason |
 |----|-----------|--------|
-| AU-D01 | Better Auth sebagai auth library | Sudah ditetapkan sebagai keputusan pra-architecture; menghindari implementasi auth dari nol |
-| AU-D02 | HTTP-only cookie untuk session token | Mencegah XSS attack; session tidak dapat diakses oleh JavaScript di browser |
-| AU-D03 | Workspace context disimpan di cookie `active-workspace-id`, divalidasi ulang oleh Middleware terhadap `workspace_members` di setiap request | Cookie tidak dipercaya mentah — tetap divalidasi ke database agar tidak stale atau bisa dimanipulasi; cookie hilang → re-entry via picker onboarding; switch disengaja antar membership → dialog konfirmasi Tier 2 lalu overwrite cookie langsung via Settings → Account → Workspaces (ADR-088, amandemen ADR-089) |
-| AU-D04 | Inject workspace context via custom request headers | Memungkinkan Application Service membaca context tanpa query database ulang; tidak dapat dimanipulasi client |
-| AU-D05 | Authorization check di Application Service layer | Selaras dengan DDD — domain service yang mengetahui aturan bisnis; Entry Point tetap thin |
-| AU-D06 | RLS sebagai defense-in-depth, bukan primary enforcement | Application-enforced lebih fleksibel dan testable; RLS sebagai safety net jika ada bug di layer atas |
-| AU-D07 | Email + Password + Google OAuth untuk MVP | Cukup untuk target user (tim profesional); Magic Link dan SSO dipertimbangkan post-MVP |
-| AU-D08 | HMAC webhook diverifikasi atas raw body dan receipt durable sebelum ACK | Menjaga autentisitas sekaligus mencegah kehilangan event |
-| AU-D09 | Secret BYOK X berada di dashboard Outstand, bukan aplikasi | Mengurangi exposure secret platform dan selaras ADR-040 |
-| AU-D10 | ADR-040 | AU-D08–D09 mengamandemen boundary proteksi integrasi |
-| AU-D11 | Better Auth Bearer plugin sebagai mekanisme auth mobile client, di atas Route Handler `/api/v1` (ADR-043) | Server Actions tidak stabil lintas build untuk client eksternal; Bearer mempertahankan RBAC di Application Service (AU-D05) tanpa jalur otorisasi kedua khusus mobile |
+| AU-D01 | Better Auth as the auth library | Already set as a pre-architecture decision; avoids implementing auth from scratch |
+| AU-D02 | HTTP-only cookie for the session token | Prevents XSS attacks; the session cannot be accessed by JavaScript in the browser |
+| AU-D03 | Workspace context stored in the `active-workspace-id` cookie, re-validated by Middleware against `workspace_members` on every request | The cookie is not trusted raw — it is still validated against the database so it cannot go stale or be manipulated; cookie lost → re-entry via the onboarding picker; deliberate switch between memberships → Tier 2 confirmation dialog then direct cookie overwrite via Settings → Account → Workspaces (ADR-088, amendment to ADR-089) |
+| AU-D04 | Inject workspace context via custom request headers | Lets the Application Service read the context without re-querying the database; cannot be manipulated by the client |
+| AU-D05 | Authorization check at the Application Service layer | Aligned with DDD — the domain service knows the business rules; Entry Points stay thin |
+| AU-D06 | RLS as defense-in-depth, not primary enforcement | Application-enforced is more flexible and testable; RLS as a safety net if there is a bug in the upper layer |
+| AU-D07 | Email + Password + Google OAuth for the MVP | Sufficient for the target user (professional teams); Magic Link and SSO considered post-MVP |
+| AU-D08 | HMAC webhook verified over the raw body and a durable receipt before ACK | Preserves authenticity while preventing event loss |
+| AU-D09 | The X BYOK secret lives in the Outstand dashboard, not the application | Reduces platform secret exposure and aligns with ADR-040 |
+| AU-D10 | ADR-040 | AU-D08–D09 amend the integration protection boundary |
+| AU-D11 | Better Auth Bearer plugin as the mobile client auth mechanism, on top of the `/api/v1` Route Handler (ADR-043) | Server Actions are not stable across builds for external clients; Bearer keeps RBAC in the Application Service (AU-D05) without a second mobile-specific authorization path |
 
 ---
 
 # Related Documents
 
 * `domain-model.md` — BC-01 Identity, BC-02 Workspace, WorkspaceMember entity
-* `database-strategy.md` — tabel `identity_*` (Better Auth), `workspace_members`
-* `application-layer.md` — Middleware strategy dan Application Service authorization pattern
-* `../02-product/roles-permissions.md` — Permission matrix lengkap per role
-* `realtime-strategy.md` — Session diperlukan sebelum Supabase Realtime subscription
-* `../06-engineering/auth-strategy.md` — konfigurasi Better Auth Bearer plugin untuk mobile (AS-D06)
+* `database-strategy.md` — `identity_*` tables (Better Auth), `workspace_members`
+* `application-layer.md` — Middleware strategy and Application Service authorization pattern
+* `../02-product/roles-permissions.md` — Full permission matrix per role
+* `realtime-strategy.md` — The session is required before a Supabase Realtime subscription
+* `../06-engineering/auth-strategy.md` — Better Auth Bearer plugin configuration for mobile (AS-D06)
 * `../../project-os/DECISIONS.md` — ADR-024, ADR-043

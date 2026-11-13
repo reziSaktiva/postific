@@ -1,29 +1,29 @@
 # Problem Statement
 
-Dokumen ini mendefinisikan masalah utama yang ingin diselesaikan oleh produk **Postific**. Seluruh keputusan mengenai fitur, UX, dan arsitektur harus berangkat dari pemahaman terhadap masalah yang dijelaskan pada dokumen ini.
+This document defines the main problem the **Postific** product aims to solve. All decisions about features, UX, and architecture must start from an understanding of the problem described in this document.
 
 ---
 
 # Overview
 
-Tim pemasaran modern tidak lagi mengelola satu akun media sosial, melainkan banyak akun di berbagai platform dengan tujuan, audiens, dan strategi yang berbeda.
+Modern marketing teams no longer manage a single social media account, but many accounts across different platforms, each with different goals, audiences, and strategies.
 
-Seiring bertambahnya jumlah platform, anggota tim, dan kebutuhan bisnis, proses pengelolaan media sosial menjadi semakin kompleks. Aktivitas yang sebelumnya sederhana berubah menjadi rangkaian pekerjaan yang tersebar di berbagai aplikasi dan sulit dikelola secara efisien.
+As the number of platforms, team members, and business needs grows, managing social media becomes more and more complex. Activities that used to be simple turn into a series of tasks spread across many applications and hard to manage efficiently.
 
 ---
 
 # Current Situation
 
-Saat ini sebagian besar Startup, Marketing Team, dan Digital Agency menggunakan banyak aplikasi untuk menjalankan aktivitas sehari-hari, seperti:
+Today most Startups, Marketing Teams, and Digital Agencies use many applications to run their day-to-day activities, such as:
 
-* Platform media sosial.
-* Aplikasi penjadwalan konten.
-* Dashboard analytics.
-* Aplikasi komunikasi tim.
-* Dokumen perencanaan konten.
-* Penyimpanan aset digital.
+- Social media platforms.
+- Content scheduling applications.
+- Analytics dashboards.
+- Team communication applications.
+- Content planning documents.
+- Digital asset storage.
 
-Karena setiap aktivitas berada pada sistem yang berbeda, tim harus terus berpindah konteks selama bekerja.
+Because each activity lives in a different system, teams must keep switching context while they work.
 
 ---
 
@@ -31,121 +31,121 @@ Karena setiap aktivitas berada pada sistem yang berbeda, tim harus terus berpind
 
 ## 1. Fragmented Workflow
 
-Aktivitas media sosial tersebar di banyak aplikasi yang tidak saling terintegrasi.
+Social media activities are spread across many applications that are not integrated with each other.
 
-Akibatnya, tim harus berpindah antar platform hanya untuk menyelesaikan satu siklus pekerjaan.
+As a result, teams must move between platforms just to finish a single work cycle.
 
 ---
 
 ## 2. Inefficient Collaboration
 
-Kolaborasi antar anggota tim masih bergantung pada komunikasi manual melalui chat, email, atau dokumen terpisah.
+Collaboration between team members still depends on manual communication through chat, email, or separate documents.
 
-Hal ini meningkatkan risiko miskomunikasi, pekerjaan ganda, dan keterlambatan proses.
+This increases the risk of miscommunication, duplicated work, and process delays.
 
 ---
 
 ## 3. Limited Visibility
 
-Sulit bagi tim maupun manajemen untuk mengetahui kondisi seluruh aktivitas media sosial secara menyeluruh.
+It is hard for both teams and management to see the state of all social media activity as a whole.
 
-Informasi mengenai konten, jadwal, performa, dan progres pekerjaan tersebar di berbagai tempat.
+Information about content, schedules, performance, and work progress is spread across many places.
 
 ---
 
 ## 4. Data-Driven Decision Challenges
 
-Data tersedia dalam jumlah besar, tetapi tersebar di berbagai dashboard sehingga membutuhkan waktu untuk dikumpulkan dan dianalisis.
+Data is available in large amounts, but it is spread across many dashboards, so it takes time to collect and analyze.
 
-Akibatnya, proses pengambilan keputusan menjadi lebih lambat.
+As a result, decision making becomes slower.
 
 ---
 
 ## 5. Growing Operational Complexity
 
-Semakin banyak akun media sosial, anggota tim, dan brand yang dikelola, semakin kompleks pula proses operasional sehari-hari.
+The more social media accounts, team members, and brands that are managed, the more complex the day-to-day operational process becomes.
 
-Tanpa sistem yang terpusat, kompleksitas tersebut akan terus meningkat seiring pertumbuhan organisasi.
+Without a centralized system, that complexity will keep growing as the organization grows.
 
 ---
 
 # Who Experiences These Problems
 
-Masalah-masalah tersebut paling sering dialami oleh:
+These problems are most often experienced by:
 
-* Marketing Team.
-* Startup.
-* Digital Agency.
+- Marketing Team.
+- Startup.
+- Digital Agency.
 
-Ketiga segmen tersebut memiliki kebutuhan yang sama, yaitu mengelola aktivitas media sosial secara efisien dalam lingkungan kerja yang kolaboratif.
+All three segments have the same need: managing social media activity efficiently in a collaborative work environment.
 
 ---
 
 # Business Impact
 
-Permasalahan di atas dapat menyebabkan:
+The problems above can cause:
 
-* Penurunan produktivitas tim.
-* Proses kerja yang tidak konsisten.
-* Meningkatnya risiko kesalahan operasional.
-* Sulit melakukan evaluasi berdasarkan data.
-* Waktu yang lebih banyak dihabiskan untuk pekerjaan administratif dibandingkan aktivitas yang memberikan nilai tambah.
+- Lower team productivity.
+- Inconsistent work processes.
+- A growing risk of operational errors.
+- Difficulty evaluating based on data.
+- More time spent on administrative work than on activities that add value.
 
 ---
 
 # Why Existing Solutions Are Not Enough
 
-Meskipun sudah tersedia berbagai platform Social Media Management, masih terdapat beberapa tantangan yang sering ditemui, antara lain:
+Although many Social Media Management platforms are already available, several challenges are still commonly found, including:
 
-* Workflow yang kompleks untuk pengguna baru.
-* Pengalaman pengguna yang kurang konsisten.
-* Kolaborasi tim yang belum menjadi fokus utama pada sebagian produk.
-* Integrasi antar proses kerja yang masih terbatas.
-* Penggunaan AI yang belum sepenuhnya terintegrasi ke dalam alur kerja sehari-hari.
+- Workflows that are complex for new users.
+- A user experience that is less consistent.
+- Team collaboration that is not yet the main focus of some products.
+- Integration between work processes that is still limited.
+- AI use that is not yet fully integrated into the day-to-day workflow.
 
-Dokumen ini tidak bertujuan menyimpulkan bahwa solusi yang ada buruk, tetapi mengidentifikasi peluang untuk menghadirkan pengalaman yang lebih sederhana, modern, dan efisien.
+This document does not aim to conclude that existing solutions are bad, but to identify an opportunity to deliver a simpler, more modern, and more efficient experience.
 
 ---
 
 # Opportunity
 
-Terdapat peluang untuk membangun platform yang menyatukan proses perencanaan, kolaborasi, publikasi, analisis, dan pengelolaan media sosial dalam satu ekosistem yang terintegrasi.
+There is an opportunity to build a platform that brings planning, collaboration, publishing, analysis, and social media management together in one integrated ecosystem.
 
-Dengan mengurangi perpindahan konteks dan menyederhanakan alur kerja, tim dapat lebih fokus pada strategi dan kualitas konten dibandingkan pekerjaan administratif.
+By reducing context switching and simplifying the workflow, teams can focus more on strategy and content quality than on administrative work.
 
 ---
 
 # Success Criteria
 
-Problem Statement dianggap berhasil apabila seluruh anggota tim memiliki pemahaman yang sama mengenai:
+The Problem Statement is considered successful when all team members share the same understanding of:
 
-* Masalah utama yang ingin diselesaikan.
-* Siapa yang mengalami masalah tersebut.
-* Dampak bisnis yang ditimbulkan.
-* Peluang yang ingin dimanfaatkan oleh produk.
+- The main problem to be solved.
+- Who experiences the problem.
+- The business impact it causes.
+- The opportunity the product wants to capture.
 
 ---
 
 # Out of Scope
 
-Dokumen ini tidak membahas:
+This document does not cover:
 
-* Daftar fitur produk.
-* Prioritas MVP.
-* UX/UI.
-* Arsitektur sistem.
-* Implementasi teknis.
-* Teknologi yang digunakan.
+- The list of product features.
+- MVP priorities.
+- UX/UI.
+- System architecture.
+- Technical implementation.
+- The technology used.
 
-Topik tersebut akan dibahas pada dokumen Product, UX, dan Architecture.
+Those topics will be covered in the Product, UX, and Architecture documents.
 
 ---
 
 # Related Documents
 
-* `README.md`
-* `product-vision.md`
-* `target-market.md`
-* `competitor-analysis.md`
-* `../../project-os/PROJECT_OVERVIEW.md`
-* `../../project-os/DECISIONS.md`
+- `README.md`
+- `product-vision.md`
+- `target-market.md`
+- `competitor-analysis.md`
+- `../../project-os/PROJECT_OVERVIEW.md`
+- `../../project-os/DECISIONS.md`
