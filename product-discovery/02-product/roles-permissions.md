@@ -199,7 +199,7 @@ This document is traceable to User Discovery Baseline v1.0 through the following
 * `mvp-definition.md` — the MVP scope includes Workspace management
 * `feature-priority.md`
 * `../03-user/user-personas.md` — persona-to-role mapping
-* `../04-ux/ux-principles.md` — UXP-06: Status Jelas, Proses Ringan
+* `../04-ux/ux-principles.md` — UXP-06 — Clear Status, Light Process
 * `../04-ux/information-architecture.md`
 * `../04-ux/user-flows.md`
 * `../04-ux/key-screen-patterns.md`
