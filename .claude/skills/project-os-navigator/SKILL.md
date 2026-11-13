@@ -208,7 +208,7 @@ Accepted
 Then add one row to the index table in `project-os/DECISIONS.md` (ADR# | Title | Status | Date | 1-line summary | file link), at the very top row (the index is ordered newest-on-top).
 
 4. Update the affected documents.
-5. Update `PROJECT_STATE.md` — the **Snapshot** section (if relevant to next tasks/blockers) and **Recent Decisions (Ringkasan)** (push the oldest ADR out of the list of 5 once it is full).
+5. Update `PROJECT_STATE.md` — the **Snapshot** section (if relevant to next tasks/blockers) and **Recent Decisions (Summary)** (push the oldest ADR out of the list of 5 once it is full).
 
 ---
 

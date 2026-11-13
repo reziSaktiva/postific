@@ -157,16 +157,16 @@ Born from the T-266 language audit (T-266.10). The Indonesian originals already 
 
 ### T-279 · Fix stale pointers found while translating layer 3
 
-`⏳ Todo` · **Mode** AFK · **Verifikasi** lokal · **Domain** project-os, agen · **ADR** ADR-133, ADR-163 · **Spec** S-007 · **Depends** T-274
+`✅ Done (code) (2026-11-13)` · **Mode** AFK · **Verifikasi** lokal · **Domain** project-os, agen · **ADR** ADR-133, ADR-163 · **Spec** S-007 · **Depends** T-274
 **Baca dulu:** `project-os/specs/S-007.md` · the T-268 to T-274 reviews recorded above · `AGENTS.md` (Hard rules)
 
 Born from the T-268 to T-274 reviews. Each pointer below was already wrong in the Indonesian originals; the translation tickets kept them (a translation must not change pointers). Fix the pointers only.
 
-- [ ] **T-279.1** `product-discovery/01-business/success-metrics.md` (Notes on Applying the Metrics): "rule 10, AGENTS.md" for where project status lives should name rule 7.
-- [ ] **T-279.2** `project-os/ARCHITECTURE_OVERVIEW.md` (about line 228): "rules 5-9" for the layer rules should name rules 3 to 6.
-- [ ] **T-279.3** `project-os/DECISIONS.md` (rows ADR-149, ADR-150, ADR-151): complete the two-cell rows (status, date, summary, file link) per the index shape in `PROJECT_RULES.md`.
-- [ ] **T-279.4** `product-discovery/05-architecture/application-layer.md` (about line 536): the quoted `conflict` message is a stale paraphrase of the real message in `compose-draft.use-case.ts`; quote it correctly or mark it as a paraphrase.
-- [ ] **T-279.5** `project-os/PROJECT_RULES.md` (about line 128) quotes the `PROJECT_STATE.md` headings "Completed (Ringkasan)" and "Recent Decisions (Ringkasan)"; update together with T-275 (also `.claude/agents/gibran-project-manager.md:33`, which needs King Rezi's request).
+- [x] **T-279.1** `(2026-11-13)` `product-discovery/01-business/success-metrics.md` (Notes on Applying the Metrics): "rule 10, AGENTS.md" for where project status lives should name rule 7.
+- [x] **T-279.2** `(2026-11-13)` `project-os/ARCHITECTURE_OVERVIEW.md` (about line 228): "rules 5-9" for the layer rules should name rules 3 to 6.
+- [x] **T-279.3** `(2026-11-13)` `project-os/DECISIONS.md` (rows ADR-149, ADR-150, ADR-151): complete the two-cell rows (status, date, summary, file link) per the index shape in `PROJECT_RULES.md`.
+- [x] **T-279.4** `(2026-11-13)` `product-discovery/05-architecture/application-layer.md` (about line 536): the quoted `conflict` message is a stale paraphrase of the real message in `compose-draft.use-case.ts`; quote it correctly or mark it as a paraphrase.
+- [x] **T-279.5** `(2026-11-13)` `project-os/PROJECT_RULES.md` (about line 128) quotes the `PROJECT_STATE.md` headings "Completed (Ringkasan)" and "Recent Decisions (Ringkasan)"; update together with T-275 (also `.claude/agents/gibran-project-manager.md:33`, which needs King Rezi's request). Done in PROJECT_RULES.md and in `.claude/skills/project-os-navigator/SKILL.md` (line 211); `gibran-project-manager.md:33` is left for King Rezi's request.
 
 Not in this ticket (need a decision or a different home): the Approval Workflow placement conflict in `02-product` (Decision Rule 4 versus `mvp-definition.md`, an original inconsistency; King Rezi decides); the citation of the renamed heading in `.claude/agents/najwa-qa-engineer.md` (agent files change only on King Rezi's request); stale heading citations in `apps/web` code comments and migration SQL (code is out of S-007 scope, AGENTS.md rule 13 needs a ticket); stale heading citations in history ADRs, tickets and `S-001.md` (history; T-276 replaces keywords only).
 
@@ -305,15 +305,15 @@ Aturan dan ringkasan di `project-os/` tingkat atas yang jarang diedit gelombang.
 
 ### T-275 · Translate AVAILABLE_TICKETS.md and PROJECT_STATE.md
 
-`⏳ Todo` · **Mode** AFK · **Verifikasi** lokal · **Domain** project-os, agen · **ADR** ADR-133, ADR-163 · **Spec** S-007 · **Depends** T-265, T-274
+`✅ Done (code) (2026-11-13)` · **Mode** AFK · **Verifikasi** lokal · **Domain** project-os, agen · **ADR** ADR-133, ADR-163 · **Spec** S-007 · **Depends** T-265, T-274
 **Baca dulu:** `project-os/specs/S-007.md` · `project-os/AVAILABLE_TICKETS.md` · `project-os/PROJECT_STATE.md`
 
 Dua berkas yang diedit hampir tiap gelombang. Satu tiket pendek, rebase tepat sebelum merge, di-merge segera, dan tidak ada tiket gelombang lain menyentuh dua berkas ini bersamaan (keputusan 5 S-007). Kata kunci memakai padanan T-264.
 
-- [ ] **T-275.1** `AVAILABLE_TICKETS.md` utuh dalam bahasa Inggris, termasuk legenda status dan penghitung, dan `docs:check` mengenali penghitungnya.
-- [ ] **T-275.2** `PROJECT_STATE.md` utuh dalam bahasa Inggris.
-- [ ] **T-275.3** Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
-- [ ] **T-275.4** `bun run docs:check` bersih.
+- [x] **T-275.1** `(2026-11-13)` `AVAILABLE_TICKETS.md` utuh dalam bahasa Inggris, termasuk legenda status dan penghitung, dan `docs:check` mengenali penghitungnya.
+- [x] **T-275.2** `(2026-11-13)` `PROJECT_STATE.md` utuh dalam bahasa Inggris.
+- [x] **T-275.3** `(2026-11-13)` Audit topik language untuk berkas ini tidak menemukan aturan yang bertentangan.
+- [x] **T-275.4** `(2026-11-13)` `bun run docs:check` bersih.
 
 **Belum terbukti:** tidak ada butir runtime.
 
