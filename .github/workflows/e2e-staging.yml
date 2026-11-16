@@ -65,6 +65,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # T-280.6: skrip tunggu menelusuri commit induk bila Railway melewati deploy docs-only.
+          fetch-depth: 0
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
