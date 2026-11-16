@@ -1003,6 +1003,28 @@ Tindak lanjut T-247.5: tiket di luar daftar yang disetujui King Rezi (2026-11-12
 
 **Blocked by:** T-247
 
+### T-280 · Skip Railway deployments when a push only changes docs
+
+`🟡 In progress` · **Mode** AFK · **Verification** staging · **Domain** deploy, project-os · **ADR** — · **Spec** — · **Depends** —
+**Read first:** `railway.json` · `railway.cron.json` · `railway.cron.analytics.json` · `product-discovery/06-engineering/cicd-pipeline.md` (CI-D04, Railway CD) · Railway docs "Configure watch paths"
+
+A push to `staging` or `main` that only touches documentation (`project-os/`, `product-discovery/`, `context/`, `.claude/`, `*.md`) still builds and deploys the web service and both cron services on Railway. That wastes build minutes and restarts staging for no runtime change. Goal: Railway skips the deployment when no changed file can affect the running app. Railway does this with watch paths (`build.watchPatterns` in the config-as-code file): a commit whose changed files match none of the patterns creates no deployment.
+
+King Rezi's rule: skip only when the change is docs only. A commit that mixes docs and code must still deploy.
+
+- [x] **T-280.1** (2026-11-16: `build.watchPatterns` in the config-as-code file is documented by Railway; leading `/` paths as in the monorepo docs; `!` negation not confirmed, so an allow-list was chosen, which needs none.) Confirm the watch path syntax in the Railway docs (gitignore-style, whether `!` negation is supported, whether patterns are relative to the repo root) and whether `build.watchPatterns` is read from the config-as-code file given by the service's config path. Record the answer in this ticket. Choose between an allow-list (deploy only on `apps/**`, `packages/**`, `patches/**`, lockfile, `package.json`, `railway*.json`, root TS/ESLint config) and a deny-list (everything except docs). Recommendation: allow-list, because a forgotten new top-level folder then fails safe by not deploying silently only if it is not runtime code, while a deny-list fails safe by deploying; decide with King Rezi if the choice is not obvious from the docs.
+- [x] **T-280.2** Add the patterns to `railway.json` (web). Keep `scripts/**` in the list because the cron start commands run `scripts/trigger-job-run.ts` and `scripts/trigger-analytics-sync.ts`, and `.github/**` out of it (CI only).
+- [x] **T-280.3** Apply the same patterns to `railway.cron.json` and `railway.cron.analytics.json`, so the cron services also skip docs-only pushes. Check whether those two files are actually the config path of their Railway services before assuming they are read.
+- [x] **T-280.4** Update `product-discovery/06-engineering/cicd-pipeline.md` (Railway CD) with one line that docs-only pushes do not deploy, and the pattern list location (`railway*.json`). Then `bun run docs:check` is clean (rule 14: product-discovery first, no copy into `context/` or `project-os/`).
+- [ ] **T-280.5** Staging proof (HITL step for King Rezi's merge): (a) merge a docs-only change to `staging` and confirm in Railway that web and both cron services show no new deployment (status "skipped"/no deployment); (b) merge a change under `apps/` and confirm it deploys; (c) a mixed docs and code commit deploys.
+- [x] **T-280.6** (2026-11-16, decided by King Rezi: look back to the last deploy) `scripts/wait-railway-deploy.sh` (staging E2E workflow, CI-D07) failed after 5 minutes when Railway made no deployment for the PR head SHA. Now, when none appears, it walks back the first-parent history (max 50 commits) to the nearest commit with a deployment, and uses that one if every file changed since matches no `railway.json` `watchPatterns`; if a deployable file changed, it still fails, so a real missed deploy is not hidden. The workflow checkout uses `fetch-depth: 0`. Matcher checked locally on sample paths; the CI path is **not yet proven** (needs a `staging` → `main` PR whose head is docs-only).
+
+**Not yet proven:** nothing is proven until T-280.5 runs on the real Railway staging project. Unknown until T-280.1: whether negation patterns work, and whether Railway applies `watchPatterns` from the file or only from the dashboard setting (if only the dashboard, T-280.2 and T-280.3 become a manual step for King Rezi).
+
+**Risks:** an incomplete allow-list can silently skip a real code deploy (for example a root config file the build reads). Staging check T-280.5(b) covers `apps/`; list root build inputs explicitly in T-280.2. Empty commits do not redeploy once watch paths are set; use "Deploy Latest Commit" in Railway.
+
+**Blocked by:** none
+
 ---
 
 ## Dari Known Issue

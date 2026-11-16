@@ -145,6 +145,8 @@ Aligned with DI-D05 — not repeated as a new decision:
 
 Monorepo build notes (install at the root, start `apps/web`) still follow `deployment-infrastructure.md`.
 
+**Docs-only pushes do not deploy (T-280):** `build.watchPatterns` in `railway.json`, `railway.cron.json`, and `railway.cron.analytics.json` lists the paths that can change the running app (`apps/`, `packages/`, `patches/`, the two cron trigger scripts, root `package.json`, `bun.lock`, `tsconfig.json`, `railway*.json`). A push that touches none of them creates no Railway deployment, so no GitHub deployment status exists for that SHA either.
+
 **Separation of responsibilities:**
 
 - GitHub Actions = **code quality**.
