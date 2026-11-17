@@ -1051,39 +1051,39 @@ Tiket yang lahir sebagai pelacak Known Issue ada di [`known-issues.md`](known-is
 
 ### T-282 · Lane brief: stale-text check in the definition of done
 
-`⏳ Not Started` · **Mode** AFK · **Verification** local · **Domain** project-os, agents · **ADR** ADR-153 · **Spec** S-003 · **Depends** —
+`✅ Done (code, 2026-11-17)` · **Mode** AFK · **Verification** local · **Domain** project-os, agents · **ADR** ADR-153 · **Spec** S-003 · **Depends** —
 **Read first:** `.claude/skills/wave-work/lane-brief-template.md`
 
-- [ ] **T-282.1** Add one definition-of-done line: after ticking an item or changing a ticket status, grep the same ticket for older status phrases (for example "tetap terbuka", "belum Done (code)", "awaiting", "still open") and fix or mark them superseded. No `docs:check` rule (King Rezi's decision 2026-11-17).
-- [ ] **T-282.2** Evidence of the need: `/code-review` findings 1 to 3 on PR 295 (T-207 notes that contradicted the ticked T-207.7).
+- [x] **T-282.1** Add one definition-of-done line: after ticking an item or changing a ticket status, grep the same ticket for older status phrases (for example "tetap terbuka", "belum Done (code)", "awaiting", "still open") and fix or mark them superseded. No `docs:check` rule (King Rezi's decision 2026-11-17).
+- [x] **T-282.2** Evidence of the need: `/code-review` findings 1 to 3 on PR 295 (T-207 notes that contradicted the ticked T-207.7).
 
-Born from the wave 12 retro (2026-11-17, S-005 closure). **Not yet proven:** nothing is done yet.
+Born from the wave 12 retro (2026-11-17, S-005 closure). _Evidence:_ commit `9f6c2de2`. **Not yet proven:** the new lane rules and counts have not yet been exercised on a later wave (first use is the next `wave-work` run).
 
 ### T-283 · Lane brief: lane commit rule and worktree-base check
 
-`⏳ Not Started` · **Mode** AFK · **Verification** local · **Domain** project-os, agents · **ADR** ADR-153 · **Spec** S-003 · **Depends** —
+`✅ Done (code, 2026-11-17)` · **Mode** AFK · **Verification** local · **Domain** project-os, agents · **ADR** ADR-153 · **Spec** S-003 · **Depends** —
 **Read first:** `.claude/skills/wave-work/lane-brief-template.md`, `.claude/skills/wave-work/SKILL.md` (steps 2 and 3)
 
-- [ ] **T-283.1** Replace the "do not ... commit" constraint with one rule that does not collide with `wave-work`: a lane commits to its own branch and never pushes, merges, or opens a PR; push and PR stay as in `AGENTS.md` rule 9.
-- [ ] **T-283.2** Add a first-step check to the brief template: `git merge-base --is-ancestor <integration tip> HEAD`, else reset the lane worktree to the integration branch before any work. Make step 3 of `SKILL.md` verify that the lane commit's parent is the integration tip.
+- [x] **T-283.1** Replace the "do not ... commit" constraint with one rule that does not collide with `wave-work`: a lane commits to its own branch and never pushes, merges, or opens a PR; push and PR stay as in `AGENTS.md` rule 9.
+- [x] **T-283.2** Add a first-step check to the brief template: `git merge-base --is-ancestor <integration tip> HEAD`, else reset the lane worktree to the integration branch before any work. Make step 3 of `SKILL.md` verify that the lane commit's parent is the integration tip.
 
-Born from the wave 12 retro (2026-11-17, S-005 closure). **Not yet proven:** nothing is done yet.
+Born from the wave 12 retro (2026-11-17, S-005 closure). _Evidence:_ commit `9f6c2de2`. **Not yet proven:** the new lane rules and counts have not yet been exercised on a later wave (first use is the next `wave-work` run).
 
 ### T-284 · docs:where: show open-item counts per ticket
 
-`⏳ Not Started` · **Mode** AFK · **Verification** local · **Domain** project-os, agents · **ADR** ADR-153 · **Spec** S-003 · **Depends** —
+`✅ Done (code, 2026-11-17)` · **Mode** AFK · **Verification** local · **Domain** project-os, agents · **ADR** ADR-153 · **Spec** S-003 · **Depends** —
 **Read first:** `scripts/docs/locate.ts`, `scripts/docs/locate.test.ts`, `scripts/docs-where.ts`; shared parser `scripts/docs/parse.ts` (read only unless needed)
 
-- [ ] **T-284.1** For a ticket hit, print the number of open `[ ]` and `[~]` items next to the existing `[offset limit]` text (for example `open 2, partial 1`), so a queue row marked 🟡 with every item done is spotted without reading its section.
-- [ ] **T-284.2** Add tests in `locate.test.ts` for a ticket with open items, a ticket with all items done, and a ticket with no checklist. `bun run docs:check` stays clean.
+- [x] **T-284.1** For a ticket hit, print the number of open `[ ]` and `[~]` items next to the existing `[offset limit]` text (for example `open 2, partial 1`), so a queue row marked 🟡 with every item done is spotted without reading its section.
+- [x] **T-284.2** Add tests in `locate.test.ts` for a ticket with open items, a ticket with all items done, and a ticket with no checklist. `bun run docs:check` stays clean.
 
-Born from the wave 12 retro (2026-11-17, S-005 closure). **Not yet proven:** nothing is done yet.
+Born from the wave 12 retro (2026-11-17, S-005 closure). _Evidence:_ commit `b42d51a8`, merge `c27052ce`; `scripts/docs` tests 34/34, `docs:check` clean, `docs:where T-282` prints `open 2, partial 0`. **Not yet proven:** only `docs:where` output on this repo was checked; no other consumer of its output was audited.
 
 ### T-285 · wave-work step 6: integration PR base is always staging
 
-`⏳ Not Started` · **Mode** AFK · **Verification** local · **Domain** project-os, agents · **ADR** ADR-153 · **Spec** S-003 · **Depends** —
+`✅ Done (code, 2026-11-17)` · **Mode** AFK · **Verification** local · **Domain** project-os, agents · **ADR** ADR-153 · **Spec** S-003 · **Depends** —
 **Read first:** `.claude/skills/wave-work/SKILL.md` (step 6)
 
-- [ ] **T-285.1** Add one line to step 6: the integration PR base is always `staging` (`AGENTS.md` rule 9), even when the app's Create PR command names `main`.
+- [x] **T-285.1** Add one line to step 6: the integration PR base is always `staging` (`AGENTS.md` rule 9), even when the app's Create PR command names `main`.
 
-Born from the wave 12 retro (2026-11-17, S-005 closure). **Not yet proven:** nothing is done yet.
+Born from the wave 12 retro (2026-11-17, S-005 closure). _Evidence:_ commit `9f6c2de2`. **Not yet proven:** the new lane rules and counts have not yet been exercised on a later wave (first use is the next `wave-work` run).
