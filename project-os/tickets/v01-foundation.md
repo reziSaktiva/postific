@@ -1048,3 +1048,42 @@ Tiket yang lahir sebagai pelacak Known Issue ada di [`known-issues.md`](known-is
   - **T-016** Account settings — ✅ Done (2026-10-14). T-016.4 (preferensi notifikasi) sudah diimplementasikan, menutup subtask terakhir yang tersisa.
 
   **Update (2026-09-11):** **T-015** (Reconnect flow) sudah ✅ Done — daftar di atas sebelumnya menganggapnya butuh T-026 (webhook, v0.2), ternyata bisa diselesaikan lewat Fake adapter (ADR-105) tanpa menunggu jalur real, sama seperti T-013.1/2. Konsekuensinya: v0.1 dan v0.2 **tidak sepenuhnya sekuensial** — sisa v0.1 di atas selesai berbarengan atau setelah v0.2. Kalau di kemudian hari pemisahan ini terasa menyesatkan, pilihan yang lebih bersih adalah memindahkan Connect Account + Channels/CTA ke v0.2 lewat ADR baru (indeks rilis di `AVAILABLE_TICKETS.md` adalah turunan `release-roadmap.md`, jadi perubahan ruang lingkup rilis wajib lewat ADR).
+
+### T-282 · Lane brief: stale-text check in the definition of done
+
+`⏳ Not Started` · **Mode** AFK · **Verification** local · **Domain** project-os, agents · **ADR** ADR-153 · **Spec** S-003 · **Depends** —
+**Read first:** `.claude/skills/wave-work/lane-brief-template.md`
+
+- [ ] **T-282.1** Add one definition-of-done line: after ticking an item or changing a ticket status, grep the same ticket for older status phrases (for example "tetap terbuka", "belum Done (code)", "awaiting", "still open") and fix or mark them superseded. No `docs:check` rule (King Rezi's decision 2026-11-17).
+- [ ] **T-282.2** Evidence of the need: `/code-review` findings 1 to 3 on PR 295 (T-207 notes that contradicted the ticked T-207.7).
+
+Born from the wave 12 retro (2026-11-17, S-005 closure). **Not yet proven:** nothing is done yet.
+
+### T-283 · Lane brief: lane commit rule and worktree-base check
+
+`⏳ Not Started` · **Mode** AFK · **Verification** local · **Domain** project-os, agents · **ADR** ADR-153 · **Spec** S-003 · **Depends** —
+**Read first:** `.claude/skills/wave-work/lane-brief-template.md`, `.claude/skills/wave-work/SKILL.md` (steps 2 and 3)
+
+- [ ] **T-283.1** Replace the "do not ... commit" constraint with one rule that does not collide with `wave-work`: a lane commits to its own branch and never pushes, merges, or opens a PR; push and PR stay as in `AGENTS.md` rule 9.
+- [ ] **T-283.2** Add a first-step check to the brief template: `git merge-base --is-ancestor <integration tip> HEAD`, else reset the lane worktree to the integration branch before any work. Make step 3 of `SKILL.md` verify that the lane commit's parent is the integration tip.
+
+Born from the wave 12 retro (2026-11-17, S-005 closure). **Not yet proven:** nothing is done yet.
+
+### T-284 · docs:where: show open-item counts per ticket
+
+`⏳ Not Started` · **Mode** AFK · **Verification** local · **Domain** project-os, agents · **ADR** ADR-153 · **Spec** S-003 · **Depends** —
+**Read first:** `scripts/docs/locate.ts`, `scripts/docs/locate.test.ts`, `scripts/docs-where.ts`; shared parser `scripts/docs/parse.ts` (read only unless needed)
+
+- [ ] **T-284.1** For a ticket hit, print the number of open `[ ]` and `[~]` items next to the existing `[offset limit]` text (for example `open 2, partial 1`), so a queue row marked 🟡 with every item done is spotted without reading its section.
+- [ ] **T-284.2** Add tests in `locate.test.ts` for a ticket with open items, a ticket with all items done, and a ticket with no checklist. `bun run docs:check` stays clean.
+
+Born from the wave 12 retro (2026-11-17, S-005 closure). **Not yet proven:** nothing is done yet.
+
+### T-285 · wave-work step 6: integration PR base is always staging
+
+`⏳ Not Started` · **Mode** AFK · **Verification** local · **Domain** project-os, agents · **ADR** ADR-153 · **Spec** S-003 · **Depends** —
+**Read first:** `.claude/skills/wave-work/SKILL.md` (step 6)
+
+- [ ] **T-285.1** Add one line to step 6: the integration PR base is always `staging` (`AGENTS.md` rule 9), even when the app's Create PR command names `main`.
+
+Born from the wave 12 retro (2026-11-17, S-005 closure). **Not yet proven:** nothing is done yet.
