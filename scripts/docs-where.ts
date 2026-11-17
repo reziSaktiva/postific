@@ -19,6 +19,17 @@ if (!query) {
 const root = path.resolve(import.meta.dirname, "..");
 const docs = loadCorpus(root);
 const textByPath = new Map(docs.map((doc) => [doc.path, doc.text]));
+const linesByPath = new Map<string, string[]>();
+/** Split a document into lines once, only for documents that produced a hit. */
+function linesOf(docPath: string): string[] | undefined {
+  const cached = linesByPath.get(docPath);
+  if (cached) return cached;
+  const text = textByPath.get(docPath);
+  if (text === undefined) return undefined;
+  const lines = text.split(/\r?\n/);
+  linesByPath.set(docPath, lines);
+  return lines;
+}
 const { matches, truncated } = locate(loadDefinitions(docs), query);
 
 if (matches.length === 0) {
@@ -26,7 +37,7 @@ if (matches.length === 0) {
   process.exit(1);
 }
 for (const match of matches) {
-  console.log(formatMatch(match, textByPath.get(match.def.path)));
+  console.log(formatMatch(match, { docLines: linesOf(match.def.path) }));
 }
 if (truncated > 0) {
   console.log(`... ${truncated} more results; narrow the keyword.`);

@@ -121,9 +121,10 @@ describe("docs:where locate", () => {
       "",
       "Just prose.",
     ].join("\n");
+    const docLines = text.split(/\r?\n/);
     const ticketDefs = parseDefinitions("tickets/v02.md", text);
     const line = (id: string) =>
-      formatMatch(locate(ticketDefs, id).matches[0], text);
+      formatMatch(locate(ticketDefs, id).matches[0], { docLines });
 
     it("shows open and partial counts next to the range, ignoring fenced lines", () => {
       expect(line("T-300")).toBe(
@@ -143,10 +144,39 @@ describe("docs:where locate", () => {
 
     it("prints nothing extra for non-ticket hits or without document text", () => {
       const [adr] = locate(defs, "ADR-007").matches;
-      expect(countItems(adr.def, DECISIONS)).toBeNull();
+      expect(countItems(adr.def, DECISIONS.split(/\r?\n/))).toBeNull();
       expect(formatMatch(locate(ticketDefs, "T-300").matches[0])).not.toContain(
         "open",
       );
+    });
+
+    it("counts open items without a bold ID, uppercase [X], and items under sub-headings", () => {
+      const other = [
+        "### T-310 · Plain items",
+        "",
+        "- [ ] Write the addendum",
+        "- [X] Done in capitals",
+        "",
+        "#### Follow-ups",
+        "",
+        "- [ ] **T-310.2** Under a sub-heading",
+        "",
+        "### T-311 · Only unlabeled open items",
+        "",
+        "- [ ] One open item",
+      ].join("\n");
+      const otherDefs = parseDefinitions("tickets/v03.md", other);
+      const otherLines = other.split(/\r?\n/);
+      const render = (id: string) =>
+        formatMatch(locate(otherDefs, id).matches[0], { docLines: otherLines });
+      expect(render("T-310")).toContain("open 2, partial 0");
+      expect(render("T-311")).toContain("open 1, partial 0");
+    });
+
+    it("is safe to pass straight to Array.map (the index is not read as document lines)", () => {
+      const matches = locate(ticketDefs, "T-300").matches;
+      expect(() => matches.map(formatMatch)).not.toThrow();
+      expect(matches.map(formatMatch)[0]).not.toContain("open");
     });
   });
 });

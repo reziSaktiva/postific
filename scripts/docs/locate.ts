@@ -78,11 +78,11 @@ export function locate(
  */
 export function countItems(
   def: Definition,
-  docText: string,
+  docLines: readonly string[],
 ): { open: number; partial: number } | null {
   if (def.kind !== "heading" || !/^T-\d/.test(def.id)) return null;
   const end = def.endLine ?? def.line;
-  const lines = docText.split(/\r?\n/).slice(def.line - 1, end);
+  const lines = docLines.slice(def.line - 1, end);
   let open = 0;
   let partial = 0;
   let total = 0;
@@ -93,7 +93,7 @@ export function countItems(
       continue;
     }
     if (inFence) continue;
-    if (/^\s*- \[ \] \*\*T-\d+(?:\.\d+)?\*\*/.test(line)) {
+    if (/^\s*- \[ \] /.test(line)) {
       open += 1;
       total += 1;
     } else if (/^\s*- \[~\] /.test(line)) {
@@ -108,11 +108,16 @@ export function countItems(
 
 /**
  * One line per result: `path:line  ID  title  [offset=.. limit=..]`. When the
- * text of the document is given, a ticket hit also shows `open N, partial M`.
+ * document's lines are given as `{ docLines }`, a ticket hit also shows
+ * `open N, partial M`. The second argument is an options object, so passing
+ * this function straight to `Array.map` (which supplies an index) is harmless.
  */
-export function formatMatch({ def, how }: Match, docText?: string): string {
+export function formatMatch(
+  { def, how }: Match,
+  { docLines }: { docLines?: readonly string[] } = {},
+): string {
   const where = `${def.path}:${def.line}`;
-  const counts = docText === undefined ? null : countItems(def, docText);
+  const counts = Array.isArray(docLines) ? countItems(def, docLines) : null;
   const countText = counts
     ? `  open ${counts.open}, partial ${counts.partial}`
     : "";

@@ -1065,7 +1065,7 @@ Born from the wave 12 retro (2026-11-17, S-005 closure). _Evidence:_ commit `9f6
 **Read first:** `.claude/skills/wave-work/lane-brief-template.md`, `.claude/skills/wave-work/SKILL.md` (steps 2 and 3)
 
 - [x] **T-283.1** Replace the "do not ... commit" constraint with one rule that does not collide with `wave-work`: a lane commits to its own branch and never pushes, merges, or opens a PR; push and PR stay as in `AGENTS.md` rule 9.
-- [x] **T-283.2** Add a first-step check to the brief template: `git merge-base --is-ancestor <integration tip> HEAD`, else reset the lane worktree to the integration branch before any work. Make step 3 of `SKILL.md` verify that the lane commit's parent is the integration tip.
+- [x] **T-283.2** Add a first-step check to the brief template: `git merge-base --is-ancestor <integration tip> HEAD`, else reset the lane worktree to the integration branch before any work. Make step 3 of `SKILL.md` verify that the lane descends from the integration tip it was cut from (not the current tip, which moves after the first lane merges).
 
 Born from the wave 12 retro (2026-11-17, S-005 closure). _Evidence:_ commit `9f6c2de2`. **Not yet proven:** the new lane rules and counts have not yet been exercised on a later wave (first use is the next `wave-work` run).
 

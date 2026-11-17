@@ -14,7 +14,7 @@ One sentence: the result that must exist when the lane is done.
 
 ## Constraints
 
-- Branch and worktree cut from integration branch `<name>`. First step: `git merge-base --is-ancestor <integration tip> HEAD`; if it fails, reset the lane worktree to the integration branch before any work. Then `bun install`; do not skip the pre-commit hook.
+- Branch and worktree cut from integration branch `<name>`. First step: `git merge-base --is-ancestor <integration tip you were cut from> HEAD`; if it fails, reset the lane worktree to the integration branch before any work. Then `bun install`; do not skip the pre-commit hook.
 - Commit once to your own lane branch. Never push, merge, open a PR, or apply a migration (push and PR: `AGENTS.md` rule 9). Hand questions that belong to King Rezi back.
 - Do not re-read files you already read or just edited; trim command output to failures.
 
