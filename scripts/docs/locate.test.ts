@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatMatch, locate } from "./locate";
+import { countItems, formatMatch, locate } from "./locate";
 import { parseDefinitions } from "./parse";
 
 const TICKETS = [
@@ -39,7 +39,7 @@ const defs = [
 describe("docs:where locate", () => {
   it("returns path:line and a readable section range for a ticket ID", () => {
     const { matches } = locate(defs, "T-100");
-    expect(matches.map(formatMatch)).toEqual([
+    expect(matches.map((match) => formatMatch(match))).toEqual([
       "tickets/v01.md:3  T-100  First ticket  [offset=3 limit=6]",
     ]);
   });
@@ -98,5 +98,85 @@ describe("docs:where locate", () => {
     const result = locate(parseDefinitions("many.md", many), "shared");
     expect(result.matches).toHaveLength(20);
     expect(result.truncated).toBe(5);
+  });
+
+  describe("open-item counts (T-284)", () => {
+    const text = [
+      "### T-300 · Mixed",
+      "",
+      "- [ ] **T-300.1** Open one",
+      "- [ ] **T-300.2** Open two",
+      "- [~] **T-300.3** Partial one",
+      "- [x] **T-300.4** Done",
+      "",
+      "```md",
+      "- [ ] **T-300.9** Inside a fence",
+      "```",
+      "",
+      "### T-301 · All done",
+      "",
+      "- [x] **T-301.1** Done",
+      "",
+      "### T-302 · No checklist",
+      "",
+      "Just prose.",
+    ].join("\n");
+    const docLines = text.split(/\r?\n/);
+    const ticketDefs = parseDefinitions("tickets/v02.md", text);
+    const line = (id: string) =>
+      formatMatch(locate(ticketDefs, id).matches[0], { docLines });
+
+    it("shows open and partial counts next to the range, ignoring fenced lines", () => {
+      expect(line("T-300")).toBe(
+        "tickets/v02.md:1  T-300  Mixed  [offset=1 limit=10]  open 2, partial 1",
+      );
+    });
+
+    it("shows zero counts for a ticket whose items are all done", () => {
+      expect(line("T-301")).toContain("open 0, partial 0");
+    });
+
+    it("prints nothing extra for a ticket with no checklist", () => {
+      expect(line("T-302")).toBe(
+        "tickets/v02.md:16  T-302  No checklist  [offset=16 limit=3]",
+      );
+    });
+
+    it("prints nothing extra for non-ticket hits or without document text", () => {
+      const [adr] = locate(defs, "ADR-007").matches;
+      expect(countItems(adr.def, DECISIONS.split(/\r?\n/))).toBeNull();
+      expect(formatMatch(locate(ticketDefs, "T-300").matches[0])).not.toContain(
+        "open",
+      );
+    });
+
+    it("counts open items without a bold ID, uppercase [X], and items under sub-headings", () => {
+      const other = [
+        "### T-310 · Plain items",
+        "",
+        "- [ ] Write the addendum",
+        "- [X] Done in capitals",
+        "",
+        "#### Follow-ups",
+        "",
+        "- [ ] **T-310.2** Under a sub-heading",
+        "",
+        "### T-311 · Only unlabeled open items",
+        "",
+        "- [ ] One open item",
+      ].join("\n");
+      const otherDefs = parseDefinitions("tickets/v03.md", other);
+      const otherLines = other.split(/\r?\n/);
+      const render = (id: string) =>
+        formatMatch(locate(otherDefs, id).matches[0], { docLines: otherLines });
+      expect(render("T-310")).toContain("open 2, partial 0");
+      expect(render("T-311")).toContain("open 1, partial 0");
+    });
+
+    it("is safe to pass straight to Array.map (the index is not read as document lines)", () => {
+      const matches = locate(ticketDefs, "T-300").matches;
+      expect(() => matches.map(formatMatch)).not.toThrow();
+      expect(matches.map(formatMatch)[0]).not.toContain("open");
+    });
   });
 });

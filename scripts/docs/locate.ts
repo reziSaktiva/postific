@@ -71,13 +71,60 @@ export function locate(
   };
 }
 
-/** One line per result: `path:line  ID  title  [offset=.. limit=..]`. */
-export function formatMatch({ def, how }: Match): string {
+/**
+ * T-284 — open `[ ]` and partial `[~]` checklist items inside a ticket's own
+ * section. Returns null when the hit is not a ticket heading or the section
+ * has no checklist at all. Lines inside code fences are ignored.
+ */
+export function countItems(
+  def: Definition,
+  docLines: readonly string[],
+): { open: number; partial: number } | null {
+  if (def.kind !== "heading" || !/^T-\d/.test(def.id)) return null;
+  const end = def.endLine ?? def.line;
+  const lines = docLines.slice(def.line - 1, end);
+  let open = 0;
+  let partial = 0;
+  let total = 0;
+  let inFence = false;
+  for (const line of lines) {
+    if (/^\s*(```|~~~)/.test(line)) {
+      inFence = !inFence;
+      continue;
+    }
+    if (inFence) continue;
+    if (/^\s*- \[ \] /.test(line)) {
+      open += 1;
+      total += 1;
+    } else if (/^\s*- \[~\] /.test(line)) {
+      partial += 1;
+      total += 1;
+    } else if (/^\s*- \[[xX]\] /.test(line)) {
+      total += 1;
+    }
+  }
+  return total === 0 ? null : { open, partial };
+}
+
+/**
+ * One line per result: `path:line  ID  title  [offset=.. limit=..]`. When the
+ * document's lines are given as `{ docLines }`, a ticket hit also shows
+ * `open N, partial M`. The second argument is an options object, so passing
+ * this function straight to `Array.map` (which supplies an index) is harmless.
+ */
+export function formatMatch(
+  { def, how }: Match,
+  { docLines }: { docLines?: readonly string[] } = {},
+): string {
   const where = `${def.path}:${def.line}`;
+  const counts = Array.isArray(docLines) ? countItems(def, docLines) : null;
+  const countText = counts
+    ? `  open ${counts.open}, partial ${counts.partial}`
+    : "";
   const range =
     def.endLine !== undefined
       ? `  [offset=${def.line} limit=${def.endLine - def.line + 1}]`
       : "";
   const note = how === "mention" ? "  (only mentioned in a title)" : "";
-  return `${where}  ${def.id}  ${def.title}${range}${note}`;
+  return `${where}  ${def.id}  ${def.title}${range}${countText}${note}`;
 }
