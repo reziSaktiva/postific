@@ -14,8 +14,8 @@ One sentence: the result that must exist when the lane is done.
 
 ## Constraints
 
-- Branch and worktree cut from integration branch `<name>`; run `bun install` first, do not skip the pre-commit hook.
-- Do not merge, apply a migration, commit, or push unless King Rezi asks. Hand questions that belong to King Rezi back.
+- Branch and worktree cut from integration branch `<name>`. First step: `git merge-base --is-ancestor <integration tip> HEAD`; if it fails, reset the lane worktree to the integration branch before any work. Then `bun install`; do not skip the pre-commit hook.
+- Commit once to your own lane branch. Never push, merge, open a PR, or apply a migration (push and PR: `AGENTS.md` rule 9). Hand questions that belong to King Rezi back.
 - Do not re-read files you already read or just edited; trim command output to failures.
 
 ## Definition of done
@@ -23,6 +23,7 @@ One sentence: the result that must exist when the lane is done.
 - [ ] Ticket acceptance met (Spec axis); repo rules and architecture respected (Standards axis).
 - [ ] `typecheck`, `lint`, tests green. E2E golden path only if the ticket changes product behavior (ADR-149).
 - [ ] The ticket's "Not yet proven" line is honest.
+- [ ] After ticking an item or changing a status, grep the same ticket for older status phrases (e.g. "tetap terbuka", "belum Done (code)", "awaiting", "still open"); fix or mark them superseded.
 
 ## Only if it applies
 
