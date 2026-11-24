@@ -17,7 +17,7 @@ import { getMcpClientNamePort } from "@/lib/mcp-access/get-mcp-client-name-port"
  * Delete Post (T-035.2/.3, ADR-049 Tier 2) — dipanggil dari dialog
  * konfirmasi Tier 2 (`ConfirmActionDialog`, pola `disconnectAccountAction`/
  * `cancelScheduleAction`) di halaman Drafts. Business logic (RBAC, guard
- * status — HANYA post Draft yang boleh dihapus, lihat
+ * status — hanya Draft, In Review, dan Ready to Schedule yang boleh dihapus (T-297), lihat
  * `PublishingService.deletePost`) hidup sepenuhnya di Application Service —
  * action ini hanya wiring: resolve workspace context (termasuk `role` yang
  * sudah tervalidasi `proxy.ts` per request)/session, delegasikan, lalu

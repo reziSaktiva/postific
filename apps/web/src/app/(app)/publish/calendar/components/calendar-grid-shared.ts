@@ -248,7 +248,7 @@ export interface CalendarCardEntry {
   platformPostUrl: string | null;
 }
 
-const chipTimeFormatter = (timeZone: string) =>
+export const chipTimeFormatter = (timeZone: string) =>
   getZonedFormatter(
     "en-GB",
     { hour: "2-digit", minute: "2-digit", hourCycle: "h23" },

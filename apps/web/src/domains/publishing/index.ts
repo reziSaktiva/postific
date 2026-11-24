@@ -14,6 +14,7 @@ export * from "./content-status-transition";
 export * from "./repositories/publishing.repository";
 export * from "./repositories/import-job.repository";
 export * from "./services/publishing.service";
+export type { HistoryMetricsSummary } from "./services/history-metrics-summary";
 export * from "./services/schedule-posts.use-case";
 export * from "./services/compose-draft.use-case";
 export * from "./services/schedule-contents.use-case";

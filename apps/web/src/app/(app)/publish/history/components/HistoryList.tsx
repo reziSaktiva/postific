@@ -71,7 +71,6 @@ import {
   ListAccounts,
   ListPostCard,
 } from "../../components/views/ListPostCard";
-import { summarizeHistoryMetrics } from "../history-metrics";
 import { RetryPostButton } from "./RetryPostButton";
 import {
   historyListClockDate,
@@ -375,7 +374,7 @@ export function HistoryList({
             // heading (`historyItemOccurredAt`, T-142).
             const showsPublishMeta = historyListShowsPublishMeta(item.status);
             const publishedAt = item.publishedAt ?? item.updatedAt;
-            const summary = summarizeHistoryMetrics(item.metrics);
+            const summary = item.metricsSummary ?? null;
             const postUrl = item.targets.find(
               (target) =>
                 target.status === "published" && target.platformPostUrl,

@@ -8,6 +8,7 @@ import type {
   AccountBestTimeSuggestions,
   BestTimeSlot,
 } from "@/domains/analytics";
+import { resolveConnectionDisplayStatus } from "@/domains/workspace";
 
 /**
  * Local ports (cross-domain, same pattern as `PostMetricsPort`): the
@@ -86,7 +87,7 @@ export class GetBestTimeSuggestionsUseCase {
       suggestions.map((s) => [s.connectedAccountId, s.slots]),
     );
     return accounts
-      .filter((a) => a.status === "active" && !a.reconnectRequired)
+      .filter((a) => resolveConnectionDisplayStatus(a) === "active")
       .flatMap((a) => {
         const slots = slotsByAccount.get(a.id);
         return slots && slots.length > 0

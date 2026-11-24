@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { PostMetricsRecord } from "@/domains/analytics";
 
-import { summarizeHistoryMetrics } from "./history-metrics";
+import { summarizeHistoryMetrics } from "./history-metrics-summary";
 
 function metric(overrides: Partial<PostMetricsRecord>): PostMetricsRecord {
   return {

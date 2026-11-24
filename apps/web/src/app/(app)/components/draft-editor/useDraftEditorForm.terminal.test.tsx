@@ -28,7 +28,7 @@ const actionMocks = vi.hoisted(() => ({
 const nav = vi.hoisted(() => ({
   push: vi.fn(),
   refresh: vi.fn(),
-  pathname: "/publish/queue",
+  pathname: "/publish?view=list&tab=queue",
   close: vi.fn(),
 }));
 
@@ -70,7 +70,9 @@ function inDays(days: number): string {
 }
 
 async function setupReady(pathname: string) {
-  nav.pathname = pathname;
+  const [path, query = ""] = pathname.split("?");
+  nav.pathname = path;
+  window.history.pushState({}, "", `${path}${query ? `?${query}` : ""}`);
   actionMocks.getConnectedAccountsAction.mockResolvedValue([FACEBOOK]);
   actionMocks.getLastUsedAccountIdsAction.mockResolvedValue([]);
   actionMocks.saveDraftAction.mockResolvedValue({ postId: "p1" });
@@ -97,6 +99,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   cleanup();
+  window.history.pushState({}, "", "/");
   resetTerminalNavigationForTests();
 });
 
@@ -110,16 +113,16 @@ const ACTIONS = {
 } as const;
 
 const DESTINATION = {
-  "save-draft": "/publish/drafts",
-  schedule: "/publish/queue",
-  "publish-now": "/publish/calendar",
+  "save-draft": "/publish?view=list&tab=drafts",
+  schedule: "/publish?view=list&tab=queue",
+  "publish-now": "/publish?view=calendar",
 } as const;
 
 describe("aksi terminal Draft Editor per layar asal (ADR-054, T-208)", () => {
   const origins = [
-    "/publish/queue",
-    "/publish/calendar",
-    "/publish/drafts",
+    "/publish?view=list&tab=queue",
+    "/publish?view=calendar",
+    "/publish?view=list&tab=drafts",
   ] as const;
   const actions = ["save-draft", "schedule", "publish-now"] as const;
 
@@ -150,7 +153,7 @@ describe("aksi terminal Draft Editor per layar asal (ADR-054, T-208)", () => {
   }
 
   it("aksi yang ditolak server tidak menutup editor, tidak berpindah, dan tidak memasang gerbang", async () => {
-    const result = await setupReady("/publish/queue");
+    const result = await setupReady("/publish?view=list&tab=queue");
     actionMocks.scheduleDraftAction.mockResolvedValue({
       error: "Jadwal ditolak",
     });

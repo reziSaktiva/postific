@@ -38,9 +38,10 @@ export function ListAccounts({
 /**
  * Card of a List tab (T-289): accounts and status on top, caption, optional
  * extra content (metrics, error), meta line and a footer of actions.
- * `onOpen` makes the whole card clickable; the footer never triggers it.
- * `preview` instead makes the card the trigger of the post preview popover
- * (T-288, Queue and History; ADR-165 decision 6). Drafts and Approvals use
+ * `onOpen` makes the whole card clickable through one button (the caption,
+ * stretched over the card); the footer never triggers it. `preview` makes
+ * that button the trigger of the post preview popover (T-288, Queue and
+ * History; ADR-165 decision 6). Drafts and Approvals use
  * `onOpen` to open the Draft Editor directly.
  */
 export function ListPostCard({
@@ -66,35 +67,46 @@ export function ListPostCard({
     onCancelSchedule?: (postId: PostId) => void;
   };
 }) {
-  // With a preview the popover trigger handles the click; Enter and Space
-  // click the card so the keyboard opens it too.
-  const activate = preview
-    ? (event: { currentTarget: HTMLElement }) => event.currentTarget.click()
-    : onOpen
-      ? () => onOpen()
-      : undefined;
-  const card = (
+  // One real button opens the card: the caption, stretched over the whole
+  // card with an overlay (`after:inset-0`). The footer actions are siblings of
+  // that button, lifted above the overlay, never its descendants, so no
+  // interactive control is nested in another. With a preview, the button is
+  // the popover trigger.
+  const captionText = (
+    <Text variant="p" className="line-clamp-3 text-sm">
+      {caption || "(Tanpa caption)"}
+    </Text>
+  );
+  const openButton =
+    preview || onOpen ? (
+      <button
+        type="button"
+        onClick={onOpen}
+        className="rounded-sm text-left outline-none after:absolute after:inset-0 after:rounded-xl focus-visible:after:ring-2 focus-visible:after:ring-ring data-[state=open]:after:ring-2 data-[state=open]:after:ring-ring"
+      >
+        {captionText}
+      </button>
+    ) : (
+      captionText
+    );
+  const captionNode = preview ? (
+    <PostPreviewPopover
+      postId={preview.postId}
+      connectedAccountId={preview.connectedAccountId}
+      onCancelSchedule={preview.onCancelSchedule}
+    >
+      {openButton}
+    </PostPreviewPopover>
+  ) : (
+    openButton
+  );
+  return (
     <Card
       size="sm"
       className={cn(
-        activate && "cursor-pointer transition-colors hover:bg-muted/40",
+        "relative",
+        (preview || onOpen) && "transition-colors hover:bg-muted/40",
       )}
-      {...(activate
-        ? {
-            role: "button",
-            tabIndex: 0,
-            ...(preview ? {} : { onClick: onOpen }),
-            onKeyDown: (event) => {
-              if (
-                event.target === event.currentTarget &&
-                (event.key === "Enter" || event.key === " ")
-              ) {
-                event.preventDefault();
-                activate(event);
-              }
-            },
-          }
-        : {})}
     >
       <CardContent>
         {/* eslint-disable-next-line no-restricted-syntax -- T-289: layout-only */}
@@ -104,9 +116,7 @@ export function ListPostCard({
             {accounts ?? <span />}
             {statusBadge}
           </div>
-          <Text variant="p" className="line-clamp-3 text-sm">
-            {caption || "(Tanpa caption)"}
-          </Text>
+          {captionNode}
           {extra}
           {meta ? (
             // eslint-disable-next-line no-restricted-syntax -- T-289: layout-only
@@ -114,26 +124,12 @@ export function ListPostCard({
           ) : null}
           {footer ? (
             // eslint-disable-next-line no-restricted-syntax -- T-289: layout-only
-            <div
-              className="flex flex-wrap items-center justify-end gap-2"
-              onClick={(event) => event.stopPropagation()}
-              onKeyDown={(event) => event.stopPropagation()}
-            >
+            <div className="relative z-10 flex flex-wrap items-center justify-end gap-2">
               {footer}
             </div>
           ) : null}
         </div>
       </CardContent>
     </Card>
-  );
-  if (!preview) return card;
-  return (
-    <PostPreviewPopover
-      postId={preview.postId}
-      connectedAccountId={preview.connectedAccountId}
-      onCancelSchedule={preview.onCancelSchedule}
-    >
-      {card}
-    </PostPreviewPopover>
   );
 }

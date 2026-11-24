@@ -91,7 +91,7 @@ export function PublishToolbar({
       )}
     >
       {/* eslint-disable-next-line no-restricted-syntax -- T-286, same as above */}
-      <div className="min-w-0 overflow-x-auto">
+      <div className="min-w-0 overflow-x-auto overflow-y-hidden">
         {view === "list" ? (
           <Select
             value={tab}

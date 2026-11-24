@@ -26,7 +26,15 @@ import type {
   PublishingPostRecord,
   SchedulePostTargetInput,
 } from "../repositories/publishing.repository";
-import { DRAFT_LIST_STATUSES } from "./group-approval-items";
+import {
+  APPROVAL_LIST_STATUSES,
+  DRAFT_LIST_STATUSES,
+} from "./group-approval-items";
+import {
+  summarizeHistoryMetrics,
+  type HistoryMetricsSummary,
+} from "./history-metrics-summary";
+import type { QueueSuggestionAccount } from "./get-best-time-suggestions.use-case";
 import {
   BOARD_COLUMN_LIMIT,
   groupBoardColumns,
@@ -171,6 +179,22 @@ export interface HistoryDetailItem extends HistoryItemRecord {
  */
 export interface HistoryListItem extends HistoryItemRecord {
   metrics?: PostMetricsRecord[] | null;
+  /**
+   * One-line summary of `metrics` for the card (counts summed, engagement
+   * rate averaged); `null` when there is no stored row. Absent together with
+   * `metrics`.
+   */
+  metricsSummary?: HistoryMetricsSummary | null;
+}
+
+/** Port the empty Queue uses for best-time suggestions (T-291). */
+interface QueueSuggestionsPort {
+  execute(input: {
+    workspaceId: WorkspaceId;
+    userId: UserId;
+    timezone: string;
+    limitPerAccount?: number;
+  }): Promise<QueueSuggestionAccount[]>;
 }
 
 /** Counts shown on the List tabs of the Publish page (T-289, S-008). */
@@ -512,6 +536,55 @@ export class PublishingService {
   ): Promise<PublishingPostRecord[]> {
     const drafts = await this.repository.listDrafts({ workspaceId }, userId);
     return this.withClientNames(workspaceId, drafts);
+  }
+
+  /**
+   * List · Drafts tab (T-289): `Draft` and `Ready to Schedule`
+   * (`DRAFT_LIST_STATUSES`, the one definition the counts use too).
+   */
+  async listDraftsTab(
+    workspaceId: WorkspaceId,
+    userId: UserId,
+  ): Promise<PublishingPostRecord[]> {
+    const drafts = await this.listDrafts(workspaceId, userId);
+    return drafts.filter((post) => DRAFT_LIST_STATUSES.has(post.status));
+  }
+
+  /** List · Approvals tab (T-289): `In Review` (`APPROVAL_LIST_STATUSES`). */
+  async listApprovals(
+    workspaceId: WorkspaceId,
+    userId: UserId,
+  ): Promise<PublishingPostRecord[]> {
+    const drafts = await this.listDrafts(workspaceId, userId);
+    return drafts.filter((post) => APPROVAL_LIST_STATUSES.has(post.status));
+  }
+
+  /**
+   * List · Queue tab (T-286, T-291): the scheduled groups, plus best-time
+   * suggestions only when nothing is scheduled. `suggestions` is the
+   * composition root's port (analytics + workspace); it is not called while
+   * the Queue has posts. Outstand is not called.
+   */
+  async getQueueWithSuggestions(
+    workspaceId: WorkspaceId,
+    userId: UserId,
+    timeZone: string,
+    suggestions: QueueSuggestionsPort,
+    limitPerAccount?: number,
+  ): Promise<{ groups: QueueGroup[]; suggestions: QueueSuggestionAccount[] }> {
+    const groups = await this.listQueue(workspaceId, userId, timeZone);
+    if (groups.length > 0) {
+      return { groups, suggestions: [] };
+    }
+    return {
+      groups,
+      suggestions: await suggestions.execute({
+        workspaceId,
+        userId,
+        timezone: timeZone,
+        limitPerAccount,
+      }),
+    };
   }
 
   /**
@@ -919,13 +992,17 @@ export class PublishingService {
         .map((item) => item.id),
       userId,
     );
-    return items.map((item) => ({
-      ...item,
-      metrics:
+    return items.map((item) => {
+      const metrics =
         item.status === ContentStatus.Failed
           ? null
-          : (metricsByPost.get(item.id) ?? []),
-    }));
+          : (metricsByPost.get(item.id) ?? []);
+      return {
+        ...item,
+        metrics,
+        metricsSummary: summarizeHistoryMetrics(metrics),
+      };
+    });
   }
 
   /**
@@ -951,8 +1028,9 @@ export class PublishingService {
       queue: queue.length,
       drafts: drafts.filter((post) => DRAFT_LIST_STATUSES.has(post.status))
         .length,
-      approvals: drafts.filter((post) => post.status === ContentStatus.InReview)
-        .length,
+      approvals: drafts.filter((post) =>
+        APPROVAL_LIST_STATUSES.has(post.status),
+      ).length,
       history: history.length,
     };
   }

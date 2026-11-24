@@ -153,8 +153,8 @@ test.beforeAll(() => {
 
 // S-008 (T-286): old routes redirect to the single Publish page; a
 // client-side push may still show the old path until the redirect lands.
-const DRAFTS_URL = /\/publish(\/drafts|\?view=list&tab=drafts)/;
-const CALENDAR_URL = /\/publish(\/calendar|\?view=calendar)/;
+const DRAFTS_URL = /\/publish\?view=list&tab=drafts/;
+const CALENDAR_URL = /\/publish\?view=calendar/;
 
 async function deleteE2eDrafts(page: Page): Promise<number> {
   await page.goto("/publish/drafts");
@@ -167,7 +167,9 @@ async function deleteE2eDrafts(page: Page): Promise<number> {
       .or(page.getByText("Belum ada draft")),
   ).toBeVisible({ timeout: 15_000 });
   let removed = 0;
-  const rows = page.getByRole("button").filter({ hasText: /e2e-qa-draft-/ });
+  const rows = page
+    .locator('[data-slot="card"]')
+    .filter({ hasText: /e2e-qa-draft-/ });
   for (let i = 0; i < 10; i++) {
     const before = await rows.count();
     if (before === 0) break;
@@ -427,9 +429,12 @@ test("S5 Edit Draft: form terisi dari server tanpa dialog Resume", async ({
 }) => {
   track(page, "S5");
   await page.goto("/publish/drafts");
-  const row = page.getByRole("button").filter({ hasText: CAPTION }).first();
+  const row = page
+    .locator('[data-slot="card"]')
+    .filter({ hasText: CAPTION })
+    .first();
   await expect(row).toBeVisible();
-  await row.click();
+  await row.getByRole("button").first().click();
   const dlg = dialog(page);
   await expect(dlg.getByRole("heading", { name: "Edit Draft" })).toBeVisible();
   await expect(page.getByText("Resume unfinished post?")).toHaveCount(0);
@@ -798,10 +803,13 @@ test("S11 golden path: akun, caption, media, Pratinjau, jadwal dalam batas, Save
     await dlg.getByRole("button", { name: "Save as Draft" }).click();
     await expect(dialog(page)).toHaveCount(0, { timeout: 30_000 });
     await expect(page).toHaveURL(DRAFTS_URL, { timeout: 30_000 });
-    const row = page.getByRole("button").filter({ hasText: caption }).first();
+    const row = page
+      .locator('[data-slot="card"]')
+      .filter({ hasText: caption })
+      .first();
     await expect(row).toBeVisible({ timeout: 30_000 });
     // Edit Draft: akun, format, media, dan Pratinjau kembali dari data tersimpan.
-    await row.click();
+    await row.getByRole("button").first().click();
     const edit = dialog(page);
     await expect(
       edit.getByRole("heading", { name: "Edit Draft" }),
@@ -830,8 +838,10 @@ test("S11 golden path: akun, caption, media, Pratinjau, jadwal dalam batas, Save
     if ((await dialog(page).count()) === 0) {
       await page.goto("/publish/drafts");
       await page
-        .getByRole("button")
+        .locator('[data-slot="card"]')
         .filter({ hasText: caption })
+        .first()
+        .getByRole("button")
         .first()
         .click({ timeout: 10_000 });
     }
@@ -1010,9 +1020,12 @@ test("S15 Quick Compose dari sidebar: akun yang di-hover sudah terpilih dan ters
   await dlg.getByLabel("Caption").fill(caption);
   await dlg.getByRole("button", { name: "Save as Draft" }).click();
   await expect(dialog(page)).toHaveCount(0, { timeout: 30_000 });
-  const row = page.getByRole("button").filter({ hasText: caption }).first();
+  const row = page
+    .locator('[data-slot="card"]')
+    .filter({ hasText: caption })
+    .first();
   await expect(row).toBeVisible({ timeout: 30_000 });
-  await row.click();
+  await row.getByRole("button").first().click();
   const edit = dialog(page);
   await expect(edit.getByRole("heading", { name: "Edit Draft" })).toBeVisible();
   await expect(edit.getByLabel("Caption")).toHaveValue(caption, {
