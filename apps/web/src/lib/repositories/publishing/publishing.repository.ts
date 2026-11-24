@@ -18,6 +18,7 @@ import {
   type HistoryItemRecord,
   type HistoryItemTargetRecord,
   type DraftTargetRecord,
+  type IContentStatusRepository,
   type IPublishingRepository,
   type PublishingCancelScheduleRecord,
   type PostSourceFields,
@@ -1591,3 +1592,27 @@ interface WebhookPostTargetLookupRow {
   connected_account_id: string;
   outstand_account_id: string;
 }
+
+/**
+ * Coordination status transitions (T-289, S-008): a compare-and-set update
+ * (`status = from`) so a concurrent change is not overwritten. The rules
+ * live in `ChangeContentStatusUseCase`; this only persists.
+ */
+export const contentStatusRepository: IContentStatusRepository = {
+  findPostStatusById: (input, userId) =>
+    publishingRepository.findPostStatusById(input, userId),
+
+  async transitionContentStatus({ workspaceId, postId, from, to }, userId) {
+    const post = await withCurrentUser(userId, async (tx) => {
+      const { count } = await tx.publishingPost.updateMany({
+        where: { id: postId, workspaceId, status: from, deletedAt: null },
+        data: { status: to },
+      });
+      if (count === 0) {
+        return null;
+      }
+      return tx.publishingPost.findUniqueOrThrow({ where: { id: postId } });
+    });
+    return post ? mapPost(post) : null;
+  },
+};

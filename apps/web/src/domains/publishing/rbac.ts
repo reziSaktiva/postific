@@ -50,6 +50,19 @@ export function assertActorCanSchedule(actorRole: MemberRole): void {
   }
 }
 
+/**
+ * RBAC for the coordination status transitions (T-289, S-008): Draft ->
+ * In Review, In Review -> Draft, In Review -> Ready to Schedule. All three
+ * roles, as `roles-permissions.md` § Status Transition Rules by Role.
+ */
+export function assertActorCanChangeContentStatus(actorRole: MemberRole): void {
+  if (!ROLES_ALLOWED_FOR_CONTENT_ACTIONS.has(actorRole)) {
+    throw new AuthorizationError(
+      "Anda tidak memiliki izin untuk mengubah status konten ini.",
+    );
+  }
+}
+
 export function assertActorCanCancelSchedule(actorRole: MemberRole): void {
   if (!ROLES_ALLOWED_FOR_CONTENT_ACTIONS.has(actorRole)) {
     throw new AuthorizationError(

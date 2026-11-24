@@ -1,9 +1,15 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useTransition } from "react";
 
 import { HugeiconsIcon } from "@hugeicons/react";
-import { PencilEdit01Icon } from "@hugeicons/core-free-icons";
+import {
+  ArrowTurnBackwardIcon,
+  Edit02Icon,
+  MoreHorizontalIcon,
+  Tick02Icon,
+} from "@hugeicons/core-free-icons";
+import { toast } from "sonner";
 
 import {
   APPROVAL_LIST_STATUSES,
@@ -16,6 +22,12 @@ import { McpSourceBadge } from "@/components/shared/McpSourceBadge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Empty,
   EmptyDescription,
@@ -31,6 +43,7 @@ import {
 } from "../../../components/draft-editor/status-badge";
 import { ListDayGroups } from "../../components/views/ListDayGroups";
 import { ListPostCard } from "../../components/views/ListPostCard";
+import { backToDraftAction, markReadyToScheduleAction } from "../actions";
 import {
   useLiveDraftPosts,
   type DraftListItem,
@@ -39,14 +52,11 @@ import {
 /**
  * List · Approvals (T-289, S-008): `In Review` content grouped by the day of
  * its last change, with the AI-client badge. A click opens the Draft Editor
- * directly (ADR-165 decision 6).
- *
- * OPEN: the Mark Ready (In Review -> Ready to Schedule) and Back to Draft
- * (In Review -> Draft) actions are not here. The brief says to call "the
- * existing status service", but no status transition exists in the code
- * (no service, use case or repository method writes `in_review`,
- * `ready_to_schedule` or a move back to `draft`); adding one is a decision
- * for King Rezi, so the cards only offer Edit for now.
+ * directly (ADR-165 decision 6). Card actions as `ScreenPublishRedesain`:
+ * Back to Draft (In Review -> Draft), Mark Ready (In Review -> Ready to
+ * Schedule) and a more-actions menu; both go through
+ * `ChangeContentStatusUseCase`. Nothing waits for approval: any role can
+ * also schedule from Draft.
  */
 export function ApprovalsList({
   items,
@@ -57,11 +67,30 @@ export function ApprovalsList({
 }) {
   const timeZone = useUserTimeZone();
   const { openEditDraft } = useDraftEditor();
+  const [pendingId, setPendingId] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
   const live = useLiveDraftPosts(items, APPROVAL_LIST_STATUSES, workspaceId);
   const groups = useMemo(
     () => groupApprovalItemsByDate(live, timeZone),
     [live, timeZone],
   );
+
+  function changeStatus(
+    postId: string,
+    action: (postId: string) => Promise<{ error?: string }>,
+    successMessage: string,
+  ) {
+    setPendingId(postId);
+    startTransition(async () => {
+      const result = await action(postId);
+      setPendingId(null);
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast(successMessage);
+    });
+  }
 
   if (groups.length === 0) {
     return (
@@ -105,15 +134,57 @@ export function ApprovalsList({
             </>
           }
           footer={
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() => openEditDraft(item.id)}
-            >
-              <HugeiconsIcon icon={PencilEdit01Icon} />
-              Edit
-            </Button>
+            <>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={pendingId === item.id}
+                onClick={() =>
+                  changeStatus(
+                    item.id,
+                    backToDraftAction,
+                    "Dikembalikan ke Draft",
+                  )
+                }
+              >
+                <HugeiconsIcon icon={ArrowTurnBackwardIcon} />
+                Kembalikan ke Draft
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                disabled={pendingId === item.id}
+                onClick={() =>
+                  changeStatus(
+                    item.id,
+                    markReadyToScheduleAction,
+                    "Ditandai Ready to Schedule",
+                  )
+                }
+              >
+                <HugeiconsIcon icon={Tick02Icon} />
+                Tandai Ready
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    size="icon-sm"
+                    variant="outline"
+                    aria-label="Aksi lain"
+                  >
+                    <HugeiconsIcon icon={MoreHorizontalIcon} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onSelect={() => openEditDraft(item.id)}>
+                    <HugeiconsIcon icon={Edit02Icon} />
+                    Edit
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
           }
         />
       )}

@@ -63,7 +63,6 @@ import {
   ListAccounts,
   ListPostCard,
 } from "../../components/views/ListPostCard";
-import { usePostPreviewOpener } from "../../components/views/usePostPreviewOpener";
 
 /**
  * Tombol aksi item Queue (Publish Now/Edit/Cancel Schedule) — dipusatkan
@@ -139,7 +138,6 @@ export function QueueList({
 }: QueueListProps) {
   const timeZone = useUserTimeZone();
   const { openEditDraft, openNewPost } = useDraftEditor();
-  const openPostPreview = usePostPreviewOpener();
   const [accountFilter, setAccountFilter] = useState<string>(
     ALL_ACCOUNTS_FILTER_VALUE,
   );
@@ -260,7 +258,14 @@ export function QueueList({
           getTime={(item) => item.scheduledAt}
           renderCard={(item) => (
             <ListPostCard
-              onOpen={() => openPostPreview({ id: item.id, tab: "queue" })}
+              preview={{
+                postId: item.id,
+                connectedAccountId:
+                  accountFilter === ALL_ACCOUNTS_FILTER_VALUE
+                    ? item.targets[0]?.connectedAccountId
+                    : accountFilter,
+                onCancelSchedule,
+              }}
               accounts={<ListAccounts targets={item.targets} />}
               statusBadge={
                 <Badge
