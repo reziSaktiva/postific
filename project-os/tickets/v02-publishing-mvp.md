@@ -3774,7 +3774,7 @@ Design `ScreenPublishRedesain` confirmed by King Rezi 2026-11-24 in the Postific
 
 | Field            | Value                                                                                          |
 | ---------------- | ---------------------------------------------------------------------------------------------- |
-| **Status**       | ⏳ Not Started                                                                                 |
+| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave                                                          |
 | **Mode**         | AFK                                                                                            |
 | **Verification** | `local`                                                                                        |
 | **Domain**       | publishing (UI and view state)                                                                 |
@@ -3801,7 +3801,7 @@ Not yet proven: the shell was not observed in a browser (no dev server in this l
 
 | Field            | Value                                    |
 | ---------------- | ---------------------------------------- |
-| **Status**       | ⏳ Not Started                           |
+| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave    |
 | **Mode**         | AFK                                      |
 | **Verification** | `local`                                  |
 | **Domain**       | publishing                               |
@@ -3829,7 +3829,7 @@ Not yet proven: the Calendar was not observed in a browser (no dev server in thi
 
 | Field            | Value                                                                 |
 | ---------------- | --------------------------------------------------------------------- |
-| **Status**       | ⏳ Not Started                                                        |
+| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave                                 |
 | **Mode**         | AFK                                                                   |
 | **Verification** | `local`                                                               |
 | **Domain**       | publishing, media                                                     |
@@ -3857,7 +3857,7 @@ Not yet proven: popover and dialog were not observed in a browser (no dev server
 
 | Field            | Value                                                                             |
 | ---------------- | --------------------------------------------------------------------------------- |
-| **Status**       | ⏳ Not Started                                                                    |
+| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave                                             |
 | **Mode**         | AFK                                                                               |
 | **Verification** | `local`                                                                           |
 | **Domain**       | publishing                                                                        |
@@ -3884,15 +3884,15 @@ Transitions (list lane phase 2, King Rezi decision 2026-11-24): `ChangeContentSt
 
 ### T-290 · Publish Board: status columns
 
-| Field            | Value                            |
-| ---------------- | -------------------------------- |
-| **Status**       | ⏳ Not Started                   |
-| **Mode**         | AFK                              |
-| **Verification** | `local`                          |
-| **Domain**       | publishing                       |
-| **Spec**         | S-008                            |
-| **Docs**         | ADR-165, `ScreenPublishRedesain` |
-| **Depends**      | T-286, T-288                     |
+| Field            | Value                                 |
+| ---------------- | ------------------------------------- |
+| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave |
+| **Mode**         | AFK                                   |
+| **Verification** | `local`                               |
+| **Domain**       | publishing                            |
+| **Spec**         | S-008                                 |
+| **Docs**         | ADR-165, `ScreenPublishRedesain`      |
+| **Depends**      | T-286, T-288                          |
 
 **What to build:** the Board view with columns Draft · Approvals · Scheduled · Published · Failed.
 
@@ -3911,7 +3911,7 @@ Not yet proven: the Board was not observed in a browser (no dev server in this l
 
 | Field            | Value                                                        |
 | ---------------- | ------------------------------------------------------------ |
-| **Status**       | ⏳ Not Started                                               |
+| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave                        |
 | **Mode**         | AFK                                                          |
 | **Verification** | `local`                                                      |
 | **Domain**       | analytics, publishing                                        |
@@ -3934,15 +3934,15 @@ Not yet proven: the Board was not observed in a browser (no dev server in this l
 
 ### T-292 · Publish on tablet and phone
 
-| Field            | Value                                             |
-| ---------------- | ------------------------------------------------- |
-| **Status**       | 🟡 In Progress                                    |
-| **Mode**         | AFK                                               |
-| **Verification** | `local`                                           |
-| **Domain**       | publishing (UI), app shell                        |
-| **Spec**         | S-008                                             |
-| **Docs**         | ADR-165, `ScreenPublishRedesain` (Tablet, Mobile) |
-| **Depends**      | T-287, T-288, T-289, T-290, T-291                 |
+| Field            | Value                                                 |
+| ---------------- | ----------------------------------------------------- |
+| **Status**       | 🟡 In Progress (browser re-check running, 2026-11-24) |
+| **Mode**         | AFK                                                   |
+| **Verification** | `local`                                               |
+| **Domain**       | publishing (UI), app shell                            |
+| **Spec**         | S-008                                                 |
+| **Docs**         | ADR-165, `ScreenPublishRedesain` (Tablet, Mobile)     |
+| **Depends**      | T-287, T-288, T-289, T-290, T-291                     |
 
 **What to build:** the responsive layouts from the design.
 
@@ -3961,7 +3961,7 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 | Field            | Value                                                                                                       |
 | ---------------- | ----------------------------------------------------------------------------------------------------------- |
-| **Status**       | ⏳ Not Started                                                                                              |
+| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave                                                                       |
 | **Mode**         | AFK                                                                                                         |
 | **Verification** | `local`                                                                                                     |
 | **Domain**       | docs                                                                                                        |
@@ -3981,22 +3981,22 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 ### T-294 · S-008 QA: E2E, review and QA
 
-| Field            | Value                              |
-| ---------------- | ---------------------------------- |
-| **Status**       | ⏳ Not Started                     |
-| **Mode**         | AFK                                |
-| **Verification** | `local`                            |
-| **Domain**       | publishing, analytics              |
-| **Spec**         | S-008                              |
-| **Docs**         | ADR-149, ADR-153, ADR-161, ADR-165 |
-| **Depends**      | T-286 to T-293                     |
+| Field            | Value                                                 |
+| ---------------- | ----------------------------------------------------- |
+| **Status**       | 🟡 In Progress (browser re-check running, 2026-11-24) |
+| **Mode**         | AFK                                                   |
+| **Verification** | `local`                                               |
+| **Domain**       | publishing, analytics                                 |
+| **Spec**         | S-008                                                 |
+| **Docs**         | ADR-149, ADR-153, ADR-161, ADR-165                    |
+| **Depends**      | T-286 to T-293                                        |
 
 **What to build:** the S-008 work is proven on `local` before the wave goes to staging.
 
 - [x] Playwright E2E golden path: switch views, open a post preview, expand, play a video, Mark Ready from Approvals, empty Queue with suggestions, old routes landing on the right view. Proven 2026-11-24: `apps/web/e2e/publish-redesign.e2e.ts` on `local`: 6 cases green in one run, the empty-Queue case green in a second run after King Rezi cancelled two leftover sandbox schedules.
-- [ ] Architecture review: entry points without business logic, analytics read only through its public API, no Prisma in domain logic.
+- [x] Architecture review: entry points without business logic, analytics read only through its public API, no Prisma in domain logic.
 - [ ] QA in the browser: light, dark, 768 px and 390 px; regressions in the Draft Editor, notifications and Home links checked.
-- [ ] `typecheck`, `lint` and unit tests green.
+- [x] `typecheck`, `lint` and unit tests green. Ridwan review 2026-11-24: 0 hard violations, 9 considerations fixed (`a7b36017`, `3546eff2`, `97769ecc`); lint, typecheck and 2946 unit tests green at `b6dbaab5`.
 
 **Blocked by:** T-286 to T-293
 
@@ -4029,7 +4029,7 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 | Field            | Value                                                                                              |
 | ---------------- | -------------------------------------------------------------------------------------------------- |
-| **Status**       | ⏳ Not Started                                                                                     |
+| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave                                                              |
 | **Mode**         | HITL (design confirmed by King Rezi in the gallery), then AFK                                      |
 | **Verification** | `local`                                                                                            |
 | **Domain**       | publishing (UI)                                                                                    |
@@ -4060,7 +4060,7 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 | Field            | Value                                              |
 | ---------------- | -------------------------------------------------- |
-| **Status**       | ⏳ Not Started                                     |
+| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave              |
 | **Mode**         | AFK                                                |
 | **Verification** | `local`                                            |
 | **Domain**       | publishing                                         |
