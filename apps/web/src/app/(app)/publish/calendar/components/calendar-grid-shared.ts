@@ -18,11 +18,9 @@ import { getZonedFormatter } from "@/lib/time/zoned-formatter";
 import type { PostMetricsRecord } from "@/domains/analytics";
 import {
   effectiveCalendarDate,
-  getDateParts,
   getHour,
   MS_PER_DAY,
   toDateKey,
-  zonedMidnightUtc,
   type CalendarPostItem,
 } from "@/domains/publishing";
 
@@ -37,6 +35,10 @@ import {
 export { toDateKey };
 
 export { MS_PER_DAY };
+
+// Pure date math lives in a hook-free module so server code (the Calendar
+// fetch range, T-292) can import it without this file's React hooks.
+export { addDays, addMonths } from "./calendar-date-math";
 
 /**
  * Jumlah kolom hari grid Week & Month — 7 kolom sama lebar, responsive
@@ -209,29 +211,6 @@ export function columnDividerClassName(
 /** Format jam (0-23) jadi label "HH:00" (mis. 7 → "07:00") — dipakai kartu Month (poin M2). */
 export function formatCalendarHour(hour: number): string {
   return `${String(hour).padStart(2, "0")}:00`;
-}
-
-/**
- * Geser `date` sejumlah hari KALENDER di `timeZone` dan kembalikan 00:00 hari
- * itu. Bukan `+ n * 24 jam`: pada hari DST (23/25 jam) tambah 24 jam
- * mendarat di tanggal yang salah.
- */
-export function addDays(date: Date, days: number, timeZone: string): Date {
-  const { year, month, day } = getDateParts(date, timeZone);
-  return zonedMidnightUtc(year, month, day + days, timeZone);
-}
-
-/**
- * Geser `date` sejumlah bulan kalender di `timeZone`, dipatok ke tanggal 1 (bukan
- * mempertahankan tanggal-di-bulan) supaya aman dari overflow bulan
- * pendek — 31 Jan + 1 bulan via `Date.UTC` day-preserving akan lompat ke
- * 3 Maret, bukan akhir Februari. Anchor Calendar hanya perlu jatuh di
- * bulan yang benar (`getMonthRange`/`getWeekRange` yang menghitung rentang
- * sebenarnya), jadi tanggal-di-dalam-bulan tidak relevan di sini.
- */
-export function addMonths(date: Date, months: number, timeZone: string): Date {
-  const { year, month } = getDateParts(date, timeZone);
-  return zonedMidnightUtc(year, month + months, 1, timeZone);
 }
 
 /**

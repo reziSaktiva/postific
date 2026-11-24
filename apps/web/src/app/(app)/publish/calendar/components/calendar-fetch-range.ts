@@ -4,7 +4,7 @@ import {
   type CalendarViewMode,
 } from "@/domains/publishing";
 
-import { addDays } from "./calendar-grid-shared";
+import { addDays } from "./calendar-date-math";
 
 /** Days shown by the phone Calendar, from the selected date (T-292). */
 export const THREE_DAY_COUNT = 3;
