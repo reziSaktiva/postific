@@ -458,6 +458,18 @@ export interface IPublishingRepository {
   ): Promise<PublishingPostRecord[]>;
 
   /**
+   * List · Approvals tab (S-008) — `In Review` posts not soft-deleted, newest
+   * edit first, with each post's targets and account handles joined in one
+   * query (no per-post read).
+   *
+   * `userId` (RLS, KI-026 follow-up) — acting user for `withCurrentUser`.
+   */
+  listApprovalItems(
+    input: { workspaceId: WorkspaceId },
+    userId: UserId,
+  ): Promise<CalendarItemRecord[]>;
+
+  /**
    * T-201.2 ("Terakhir dipakai") — id akun tujuan dari post TERBARU di
    * workspace: post tidak ter-soft-delete yang punya minimal satu target,
    * semua pemakai dan semua status KECUALI `Imported`, diurutkan `createdAt`

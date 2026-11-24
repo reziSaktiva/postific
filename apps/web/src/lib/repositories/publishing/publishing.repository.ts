@@ -294,6 +294,24 @@ export const publishingRepository: IPublishingRepository = {
     return posts.map(mapPost);
   },
 
+  async listApprovalItems({ workspaceId }, userId) {
+    // One query with the targets and their accounts joined (S-008 final-fix:
+    // replaces one read per In Review post).
+    const posts = await withCurrentUser(userId, (tx) =>
+      tx.publishingPost.findMany({
+        where: {
+          workspaceId,
+          status: ContentStatus.InReview,
+          deletedAt: null,
+        },
+        include: { targets: { include: { connectedAccount: true } } },
+        orderBy: { updatedAt: "desc" },
+      }),
+    );
+
+    return posts.map(mapCalendarItem);
+  },
+
   async findLatestPostTargetAccountIds({ workspaceId }, userId) {
     const post = await withCurrentUser(userId, (tx) =>
       tx.publishingPost.findFirst({
