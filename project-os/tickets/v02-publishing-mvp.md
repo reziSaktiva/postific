@@ -3971,9 +3971,9 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 **What to build:** the UX baseline was aligned with ADR-165 in the same PR as the ADR (King Rezi's decision Q15, `AGENTS.md` rule 14): KSP-02, KSP-03, KSP-04, the Publish part of `information-architecture.md`, the Publish navigation in `navigation-patterns.md`, and the Calendar flow in `user-flows.md`. This ticket only records what the build changes later.
 
-- [ ] Any behavior that changes during T-286 to T-292 is written back into the baseline before the wave's PR.
-- [ ] `context/` pointers change only where they point to Publish screens.
-- [ ] `bun run docs:check` reports no findings.
+- [x] Any behavior that changes during T-286 to T-292 is written back into the baseline before the wave's PR.
+- [x] `context/` pointers change only where they point to Publish screens.
+- [x] `bun run docs:check` reports no findings.
 
 **Blocked by:** T-286
 

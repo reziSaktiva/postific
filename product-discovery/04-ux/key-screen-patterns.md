@@ -226,7 +226,7 @@ The Calendar is the **default view** when users enter Publish. This screen gives
 
 The Queue shows content that is **already scheduled** (status `Scheduled`), grouped by date and then by hour, ordered purely by publish time — Raka scans forward schedule coverage and identifies gaps quickly. Items that failed to publish (`Failed`) are no longer shown here — as soon as the publish attempt finishes, the item moves to **History** (a KSP outside the 8 critical screens, T-034), which still shows heterogeneous status per item.
 
-**Amended by ADR-165 (2026-11-24, spec S-008):** the Queue is a tab in the List view (Queue · Drafts · Approvals · History), grouped by day with the time on the left. A click opens the Post Preview instead of the Draft Editor. When the Queue is empty it shows best-time suggestions per connected account, calculated by Postific from that account's own published posts and `AnalyticsPostMetric`; an account with too little history gets none. The MCP source filter and badge (F08) stay.
+**Amended by ADR-165 (2026-11-24, spec S-008):** the Queue is a tab in the List view (Queue · Drafts · Approvals · History), grouped by day with the time on the left. A click opens the Post Preview instead of the Draft Editor. When the Queue is empty it shows best-time suggestions per connected account, calculated by Postific from that account's own `published` and `imported` posts and `AnalyticsPostMetric`; an account with too little history gets none. The MCP source filter and badge (F08) stay.
 
 **Amendment 2026-08-19 (ADR-083):** the scope of this screen was deliberately narrowed from the original design — the Queue is now purely a "linear queue by publish time" (uniform Scheduled status), not a mixed list of various statuses with manual ordering ability. This change was made after King Rezi asked for alignment with the Buffer pattern (`publish.buffer.com/schedule`).
 
@@ -451,6 +451,8 @@ The layout below is rendered inside the modal (ADR-052, default `variant="standa
 **Left zone — Per-Network Settings Block:** Below the media. One block per selected account in accordion form (F15): the Post / Reel / Story format (F11), Pinterest fields (board, title, link), and the validation banner (F16). Meta accounts (IG/FB) have a Post / Reel / Story selector; Pinterest shows Pin fields; TikTok & other platforms have no Reel/Story radio. A Disconnected account shows a warning.
 
 **Right zone — Preview:** A live per-platform preview panel (F14). Choosing a block or account chip switches the preview to that platform.
+
+**As built (T-296, T-297):** the footer also offers "Ajukan Review" (`Draft` → `In Review`, new or existing post, all roles). For an `In Review` or `Ready to Schedule` post, save and delete are allowed, the status stays unchanged, and the save button reads "Simpan". Schedule and Publish Now stay available from `In Review`.
 
 **Footer — Actions:** Save as Draft (secondary action), the "Atur jadwal" schedule control (F05), Publish Now, and Schedule. Schedule is the primary action; Save as Draft is the secondary action.
 
