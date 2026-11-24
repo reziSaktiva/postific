@@ -50,7 +50,7 @@ export async function cancelScheduleAction(
     return toActionError(error);
   }
 
-  revalidatePath("/publish/calendar");
+  revalidatePath("/publish"); // T-286: Calendar lives on the single Publish page
   return {};
 }
 

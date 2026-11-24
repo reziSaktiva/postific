@@ -48,7 +48,7 @@ export async function deletePostAction(
     return toActionError(error);
   }
 
-  revalidatePath("/publish/drafts");
+  revalidatePath("/publish"); // T-286: Drafts lives on the single Publish page
   return {};
 }
 

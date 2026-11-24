@@ -1,113 +1,22 @@
-import { asPostId, asUserId } from "@postific/shared";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 
-import { AnalyticsService } from "@/domains/analytics";
-import { PublishingService } from "@/domains/publishing";
-import type { HistoryDetailItem } from "@/domains/publishing";
-import { IdentityService } from "@/domains/identity";
-import { MediaService } from "@/domains/media";
-import { getCachedSession } from "@/lib/better-auth/session";
-import { getWorkspaceContext } from "@/lib/workspace/workspace-context";
-import { analyticsRepository } from "@/lib/repositories/analytics";
-import { publishingRepository } from "@/lib/repositories/publishing";
-import { identityRepository } from "@/lib/repositories/identity";
-import { supabaseAvatarStorageAdapter } from "@/lib/adapters/avatar-storage";
-import { mediaRepository } from "@/lib/repositories/media";
-import { supabaseMediaStorageAdapter } from "@/lib/adapters/media-storage/supabase-media-storage-adapter";
-import { NotFoundError } from "@/lib/utils/errors";
-
-import { HistoryDetail } from "./components/HistoryDetail";
-import { resolveHistoryThumbnail } from "./history-thumbnail";
+import {
+  legacyPublishHref,
+  type PublishViewSearchParams,
+} from "@/domains/publishing";
 
 /**
- * `/publish/history/[postId]` (T-034.3, KSP-D10) — entry point tipis:
- * resolve `postId`, panggil `PublishingService.getHistoryById` langsung
- * (RSC boleh memanggil Application Service tanpa Server Action perantara
- * kalau tidak ada mutasi/composition cross-domain, sama pola
- * `invite/[token]/page.tsx`). `NotFoundError` (post tidak ada, bukan milik
- * workspace ini, atau belum berstatus terminal Published/Failed — invariant
- * ditegakkan di repository, lihat `IPublishingRepository.getHistoryById`)
- * diterjemahkan ke halaman 404 Next.js bawaan (`notFound()`) di sini —
- * satu-satunya tempat yang boleh menerjemahkan error domain ke response
- * (AGENTS.md #5).
- *
- * `AnalyticsService` disuplai sebagai `PostMetricsPort` (T-043.3) — pola
- * sama dengan composition root Calendar Server Action
- * (`publish/calendar/actions.ts`, T-033.2): cross-domain `publishing` →
- * `analytics` HANYA lewat public API barrel (`@/domains/analytics`),
- * bukan import internal repository domain lain (AGENTS.md #7).
- *
- * `AuthorPort` (T-121, menutup KI-050) disuplai lewat `IdentityService`
- * (bukan `identityRepository` langsung, fix review Ridwan Architecture
- * Reviewer 2026-10-19) — dibungkus adapter tipis `{ findById }` karena
- * `AuthorPort.findById` dan `IdentityService.getProfile` beda nama method;
- * pola sama `PostMetricsPort` (lewat `AnalyticsService`) di atas: cross-domain
- * SELALU lewat Application Service domain lain, bukan repository mentahnya.
+ * Old address `/publish/history/[postId]` (T-286, S-008), still used by
+ * notifications, Home and the MCP surface: lands on List · History with that
+ * post open on the single Publish page (see `legacyPublishHref`).
  */
 export default async function Page({
   params,
+  searchParams,
 }: {
   params: Promise<{ postId: string }>;
+  searchParams: Promise<PublishViewSearchParams>;
 }) {
   const { postId } = await params;
-
-  const { workspaceId } = await getWorkspaceContext();
-  const session = await getCachedSession();
-  if (!session) {
-    redirect("/login");
-  }
-  const userId = asUserId(session.user.id);
-
-  const identityService = new IdentityService(
-    identityRepository,
-    supabaseAvatarStorageAdapter,
-  );
-
-  const publishingService = new PublishingService(
-    publishingRepository,
-    new AnalyticsService(analyticsRepository),
-    undefined,
-    { findById: (userId) => identityService.getProfile(userId) },
-  );
-
-  let item: HistoryDetailItem;
-  try {
-    item = await publishingService.getHistoryById(
-      workspaceId,
-      asPostId(postId),
-      userId,
-    );
-  } catch (error) {
-    if (error instanceof NotFoundError) {
-      notFound();
-    }
-    throw error;
-  }
-
-  // Thumbnail media post asli (KI-082) — media PERTAMA saja, satu per post
-  // (ADR-107, bukan per target row). Resolve lewat
-  // `MediaService.resolveFirstThumbnail` (dulu juga dipakai
-  // detail komentar Engage, T-056, dihapus T-219): kombinasi dua
-  // Application Service lalu dipetakan jadi DTO siap-render, bukan
-  // keputusan bisnis baru (AGENTS.md #5). `supabaseMediaStorageAdapter`
-  // diteruskan supaya `url` diregenerasi (signed URL) setiap request, bukan
-  // dipakai apa adanya dari waktu upload (sudah expired untuk post lama).
-  // Kegagalan resolve (termasuk error DB/RLS, bukan cuma signed-URL
-  // regenerate per-item) sengaja tidak melempar — lihat
-  // `MediaService.resolveFirstThumbnail` — supaya halaman ini tidak ikut
-  // gagal render hanya karena thumbnail gagal di-resolve.
-  const mediaService = new MediaService(
-    mediaRepository,
-    supabaseMediaStorageAdapter,
-  );
-  // T-232 (ADR-158): posting impor tanpa `mediaIds` memakai thumbnail
-  // tersimpan lewat resolver bersama dengan Engage (lihat `history-thumbnail`).
-  const thumbnail = await resolveHistoryThumbnail(
-    item,
-    workspaceId,
-    userId,
-    mediaService,
-  );
-
-  return <HistoryDetail item={item} thumbnail={thumbnail} />;
+  redirect(legacyPublishHref("history", await searchParams, postId));
 }

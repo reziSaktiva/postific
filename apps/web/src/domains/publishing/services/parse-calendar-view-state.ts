@@ -70,7 +70,12 @@ export function parseCalendarViewState(
   searchParams: CalendarViewSearchParams,
 ): CalendarViewState {
   return {
-    view: parseViewMode(firstValue(searchParams.view)),
+    // T-286 (S-008): `range` is the calendar range on the single Publish
+    // page, where `view` means Calendar · List · Board. The old
+    // `?view=week|month` of `/publish/calendar` is still read as a fallback.
+    view: parseViewMode(
+      firstValue(searchParams.range) ?? firstValue(searchParams.view),
+    ),
     date: parseAnchorDate(firstValue(searchParams.date)),
     statuses: parseStatuses(firstValue(searchParams.status)),
     connectedAccountIds: parseAccountIds(firstValue(searchParams.accounts)),

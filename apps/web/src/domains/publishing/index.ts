@@ -42,6 +42,7 @@ export * from "./services/group-queue-items";
 export * from "./services/group-history-items";
 export * from "./services/sort-calendar-items";
 export * from "./services/parse-calendar-view-state";
+export * from "./services/parse-publish-view-state";
 export * from "./services/calendar-range";
 export * from "./services/post-performance-period-range";
 export * from "./wib-time";

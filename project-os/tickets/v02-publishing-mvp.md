@@ -3784,12 +3784,14 @@ Design `ScreenPublishRedesain` confirmed by King Rezi 2026-11-24 in the Postific
 
 **What to build:** Publish is one page with a header (title, view switcher Calendar · List · Board, "+ New Post") instead of the route tabbar. The page reopens the user's last view. Old addresses keep working. A toolbar timezone picker changes only how times are shown on Publish.
 
-- [ ] The route tabbar Calendar / Queue / Drafts / History is replaced by the view switcher from the design; "+ New Post" opens the Draft Editor as today.
-- [ ] The selected view, List tab, calendar range and display timezone live in the URL and are parsed in one place, next to the existing calendar view-state parsing, with unit tests.
-- [ ] The page reopens the view last used by that user; Calendar when there is none. No "Save current view" control.
-- [ ] `/publish`, `/publish/calendar`, `/publish/queue`, `/publish/drafts`, `/publish/history` and `/publish/history/[postId]` land on the matching view, tab or post; links from notifications, Home and the MCP surface still work.
-- [ ] The timezone picker starts at the Profile timezone and never writes the Profile.
-- [ ] Entry points only call services (hard rule 3); no business logic in the page.
+- [x] The route tabbar Calendar / Queue / Drafts / History is replaced by the view switcher from the design; "+ New Post" opens the Draft Editor as today.
+- [x] The selected view, List tab, calendar range and display timezone live in the URL and are parsed in one place, next to the existing calendar view-state parsing, with unit tests.
+- [x] The page reopens the view last used by that user; Calendar when there is none. No "Save current view" control.
+- [x] `/publish`, `/publish/calendar`, `/publish/queue`, `/publish/drafts`, `/publish/history` and `/publish/history/[postId]` land on the matching view, tab or post; links from notifications, Home and the MCP surface still work.
+- [x] The timezone picker starts at the Profile timezone and never writes the Profile.
+- [x] Entry points only call services (hard rule 3); no business logic in the page.
+
+Not yet proven: the shell was not observed in a browser (no dev server in this lane; light, dark, 768 px and 390 px and the golden path are covered by the E2E ticket T-294). Proven by unit tests: URL parsing, last-view fallback, old-route mapping, display time zone fallback.
 
 **Blocked by:** none
 
