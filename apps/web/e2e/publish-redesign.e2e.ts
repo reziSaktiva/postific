@@ -126,7 +126,9 @@ test("post preview from a Calendar chip: popover, expand, video plays", async ({
     timeout: 30_000,
   });
   await expect(popover).toContainText(seed.accountHandle);
-  await expect(popover.locator("video")).toHaveCount(1);
+  // Caption with a small poster first; the video plays in place when pressed.
+  await popover.getByRole("button", { name: "Putar video" }).click();
+  await expect(popover.locator("video[controls]")).toHaveCount(1);
   await expect(
     popover.getByRole("link", { name: /Go to post/ }),
   ).toHaveAttribute("href", new RegExp(seed.stamp));

@@ -2,9 +2,14 @@
 
 import type { ReactNode } from "react";
 
+import { HugeiconsIcon } from "@hugeicons/react";
+import { PlayIcon } from "@hugeicons/core-free-icons";
+
+import type { MediaThumbnailDto } from "@/domains/media";
 import { Card, CardContent } from "@/components/ui/card";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
+import { MediaType } from "@postific/shared";
 import type { PostId, SocialPlatform } from "@postific/shared";
 
 import { PLATFORM_ICON } from "../../../components/platform-icons";
@@ -36,13 +41,43 @@ export function ListAccounts({
 }
 
 /**
+ * Thumbnail of a List card (S-008 design gap 2): 96 px on the right of the
+ * card, a full-width strip above the content below `sm` (as the design's
+ * phone card). A video is a tile with the play mark: no video loads for a
+ * card, the player is in the preview.
+ */
+function CardThumbnail({ thumbnail }: { thumbnail: MediaThumbnailDto }) {
+  return (
+    <span
+      aria-hidden="true"
+      className="relative flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted max-sm:h-40 max-sm:w-full"
+    >
+      {thumbnail.type === MediaType.Video ? (
+        <span className="flex size-10 items-center justify-center rounded-full bg-foreground/70 text-background">
+          <HugeiconsIcon icon={PlayIcon} className="size-5" strokeWidth={2} />
+        </span>
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element -- signed Storage URL
+        <img
+          src={thumbnail.url}
+          alt=""
+          className="size-full object-cover"
+          loading="lazy"
+        />
+      )}
+    </span>
+  );
+}
+
+/**
  * Card of a List tab (T-289): accounts and status on top, caption, optional
  * extra content (metrics, error), meta line and a footer of actions.
  * `onOpen` makes the whole card clickable through one button (the caption,
  * stretched over the card); the footer never triggers it. `preview` makes
  * that button the trigger of the post preview popover (T-288, Queue and
  * History; ADR-165 decision 6). Drafts and Approvals use
- * `onOpen` to open the Draft Editor directly.
+ * `onOpen` to open the Draft Editor directly. `thumbnail` shows the post's
+ * media beside the account row and caption (History).
  */
 export function ListPostCard({
   accounts,
@@ -53,6 +88,7 @@ export function ListPostCard({
   footer,
   onOpen,
   preview,
+  thumbnail,
 }: {
   accounts?: ReactNode;
   statusBadge: ReactNode;
@@ -61,6 +97,7 @@ export function ListPostCard({
   extra?: ReactNode;
   footer?: ReactNode;
   onOpen?: () => void;
+  thumbnail?: MediaThumbnailDto;
   preview?: {
     postId: string;
     connectedAccountId?: string;
@@ -111,12 +148,19 @@ export function ListPostCard({
       <CardContent>
         {/* eslint-disable-next-line no-restricted-syntax -- T-289: layout-only */}
         <div className="flex flex-col gap-2">
-          {/* eslint-disable-next-line no-restricted-syntax -- T-289: layout-only */}
-          <div className="flex items-start justify-between gap-2">
-            {accounts ?? <span />}
-            {statusBadge}
+          {/* eslint-disable-next-line no-restricted-syntax -- S-008: layout-only, thumbnail beside the content */}
+          <div className="flex items-start gap-3 max-sm:flex-col-reverse">
+            {/* eslint-disable-next-line no-restricted-syntax -- T-289: layout-only */}
+            <div className="flex w-full min-w-0 flex-1 flex-col gap-2">
+              {/* eslint-disable-next-line no-restricted-syntax -- T-289: layout-only */}
+              <div className="flex items-start justify-between gap-2">
+                {accounts ?? <span />}
+                {statusBadge}
+              </div>
+              {captionNode}
+            </div>
+            {thumbnail ? <CardThumbnail thumbnail={thumbnail} /> : null}
           </div>
-          {captionNode}
           {extra}
           {meta ? (
             // eslint-disable-next-line no-restricted-syntax -- T-289: layout-only

@@ -5,10 +5,13 @@ import {
   GetBestTimeSuggestionsUseCase,
   PublishingService,
 } from "@/domains/publishing";
+import { MediaService } from "@/domains/media";
 import { WorkspaceService } from "@/domains/workspace";
+import { supabaseMediaStorageAdapter } from "@/lib/adapters/media-storage/supabase-media-storage-adapter";
 import { getCachedSession } from "@/lib/better-auth/session";
 import { getMcpClientNamePort } from "@/lib/mcp-access/get-mcp-client-name-port";
 import { getWorkspaceContext } from "@/lib/workspace/workspace-context";
+import { mediaRepository } from "@/lib/repositories/media";
 import { publishingRepository } from "@/lib/repositories/publishing";
 import { workspaceRepository } from "@/lib/repositories/workspace";
 
@@ -23,6 +26,8 @@ import { DraftsList } from "../../drafts/components/DraftsList";
 import { HistoryList } from "../../history/components/HistoryList";
 import { FETCHED_SUGGESTIONS_PER_ACCOUNT } from "../../queue/components/queue-suggestions";
 import { QueueScreen } from "../../queue/components/QueueScreen";
+import { resolvePostThumbnails } from "../preview/post-thumbnails";
+import type { ListFilterAccount } from "./ListFilter";
 
 /**
  * List tabs of the Publish page (T-286): the Queue, Drafts and History
@@ -78,13 +83,34 @@ export async function DraftsTab() {
 
 export async function ApprovalsTab() {
   const { workspaceId, userId, publishingService } = await getListContext();
-  const items = await publishingService.listApprovals(workspaceId, userId);
+  const approvals = await publishingService.listApprovals(workspaceId, userId);
+  // Account row of each card (S-008 design gap 3): the draft list carries no
+  // targets, so each In Review post is read once with its targets (the same
+  // read the Realtime patch uses). Approvals is a short list.
+  const withTargets = await Promise.all(
+    approvals.map((post) =>
+      publishingService.getCalendarPostById(workspaceId, post.id, userId),
+    ),
+  );
+  const items = approvals.map((post, index) => ({
+    id: post.id,
+    caption: post.caption,
+    status: post.status,
+    updatedAt: post.updatedAt,
+    createdVia: post.createdVia,
+    createdViaClientName: post.createdViaClientName,
+    targets: (withTargets[index]?.targets ?? []).map((target) => ({
+      id: target.id,
+      connectedAccountId: target.connectedAccountId,
+      platform: target.platform,
+      accountHandle: target.accountHandle,
+    })),
+  }));
   return <ApprovalsList items={items} workspaceId={workspaceId} />;
 }
 
 export async function HistoryTab() {
   const { workspaceId, userId } = await getListContext();
-  const workspaceService = new WorkspaceService(workspaceRepository);
   // History cards show stored metrics, so this tab needs the analytics port.
   const historyService = new PublishingService(
     publishingRepository,
@@ -94,10 +120,18 @@ export async function HistoryTab() {
     getMcpClientNamePort(),
   );
 
-  const [items, accounts] = await Promise.all([
-    historyService.listHistoryWithMetrics(workspaceId, userId),
-    workspaceService.listConnectedAccounts(workspaceId, userId),
-  ]);
+  const items = await historyService.listHistoryWithMetrics(
+    workspaceId,
+    userId,
+  );
+  // Card thumbnails (S-008 design gap 2): one batched lookup, first media of
+  // a post or the stored thumbnail of an imported post (ADR-158).
+  const thumbnails = await resolvePostThumbnails(
+    items,
+    workspaceId,
+    userId,
+    new MediaService(mediaRepository, supabaseMediaStorageAdapter),
+  );
 
   // `renderedAt` (KI-052): one timestamp for `formatRelativeTime`, so server
   // and browser render the same "N menit lalu" text.
@@ -106,7 +140,7 @@ export async function HistoryTab() {
   return (
     <HistoryList
       items={items}
-      accounts={accounts}
+      thumbnails={thumbnails}
       workspaceId={workspaceId}
       renderedAt={renderedAt}
     />
@@ -120,4 +154,19 @@ export async function HistoryTab() {
 export async function getPublishListTabCounts() {
   const { workspaceId, userId, publishingService } = await getListContext();
   return publishingService.getListTabCounts(workspaceId, userId);
+}
+
+/** Channels of the List Filter popover: the workspace's connected accounts. */
+export async function getPublishListFilterAccounts(): Promise<
+  ListFilterAccount[]
+> {
+  const { workspaceId, userId } = await getListContext();
+  const accounts = await new WorkspaceService(
+    workspaceRepository,
+  ).listConnectedAccounts(workspaceId, userId);
+  return accounts.map((account) => ({
+    id: account.id,
+    handle: account.handle,
+    platform: account.platform,
+  }));
 }

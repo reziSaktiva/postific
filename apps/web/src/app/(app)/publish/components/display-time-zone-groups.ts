@@ -4,7 +4,7 @@ import {
   INDONESIA_TIME_ZONES,
 } from "@/domains/identity";
 
-import type { DisplayTimeZoneGroup } from "./PublishToolbar";
+import type { DisplayTimeZoneGroup } from "./DisplayTimeZoneSelect";
 
 /**
  * Options of the Publish time zone picker (T-286, design

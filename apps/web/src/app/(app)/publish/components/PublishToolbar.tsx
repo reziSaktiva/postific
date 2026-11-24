@@ -3,28 +3,26 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { HugeiconsIcon } from "@hugeicons/react";
-import { Globe02Icon } from "@hugeicons/core-free-icons";
-
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   buildPublishSearch,
   PUBLISH_LIST_TABS,
-  type CalendarSearch,
   type PublishListTab,
   type PublishListTabCounts,
   type PublishView,
 } from "@/domains/publishing";
 import { cn } from "@/lib/utils";
+
+import { DisplayTimeZoneSelect } from "./DisplayTimeZoneSelect";
+import { ListFilterPopover, type ListFilterAccount } from "./views/ListFilter";
 
 const TAB_LABEL: Record<PublishListTab, string> = {
   queue: "Queue",
@@ -33,53 +31,44 @@ const TAB_LABEL: Record<PublishListTab, string> = {
   history: "History",
 };
 
-export interface DisplayTimeZoneGroup {
-  region: string;
-  options: { value: string; label: string }[];
-}
-
 /**
- * Toolbar row of the Publish page (T-286): the List tabs Queue · Drafts ·
- * Approvals · History when the List view is open (line tabs that navigate,
- * as the old route tabbar did; a dropdown with the same tabs and counts
- * below `sm`, T-292), and on the right the display time zone picker. Counts on the tabs and the per-view toolbar controls (Calendar
- * range, Filter, "No date", options menu) come with T-287 and T-289.
- *
- * The time zone picker only changes the `tz` of the URL: times on Publish
- * are shown in that zone, the Profile zone (T-147) is never written.
+ * Toolbar row of the Publish page (T-286, `ScreenPublishRedesain`). List:
+ * the tabs Queue · Drafts · Approvals · History (line tabs that navigate; a
+ * dropdown with the same tabs and counts below `sm`, T-292), then on the
+ * right the Filter popover (S-008 design gap 4) and the display time zone
+ * picker. Board: the time zone picker on the right. Calendar: nothing here,
+ * the Calendar toolbar is the row and ends with the time zone picker
+ * (design gap 5), so the Calendar controls stay on one row at desktop.
  */
 export function PublishToolbar({
   view,
   tab,
-  postId,
-  calendarParams,
   timeZone,
   profileTimeZone,
-  timeZoneGroups,
   counts,
+  filterAccounts = [],
 }: {
   view: PublishView;
   tab: PublishListTab;
-  /** Post open in List · History; kept when only the zone changes. */
-  postId: string | null;
-  /** Calendar keys of the current URL, kept when only the zone changes. */
-  calendarParams: CalendarSearch;
   timeZone: string;
   profileTimeZone: string;
-  timeZoneGroups: DisplayTimeZoneGroup[];
   /** Count per List tab (T-289); tabs show no number until it is given. */
   counts?: PublishListTabCounts;
+  /** Channels of the List Filter popover (connected accounts). */
+  filterAccounts?: ListFilterAccount[];
 }) {
   const router = useRouter();
 
-  const href = (next: { tab?: PublishListTab; timeZone?: string }) =>
+  if (view === "calendar") return null;
+
+  // A tab change drops the open History post and keeps the display zone.
+  const tabHref = (next: PublishListTab) =>
     `/publish${buildPublishSearch({
       view,
-      tab: next.tab ?? tab,
-      postId: next.tab ? null : postId,
-      timeZone: next.timeZone ?? timeZone,
+      tab: next,
+      postId: null,
+      timeZone,
       profileTimeZone,
-      calendar: calendarParams,
     })}`;
 
   return (
@@ -96,8 +85,7 @@ export function PublishToolbar({
           <Select
             value={tab}
             onValueChange={(next) => {
-              if (next !== tab)
-                router.push(href({ tab: next as PublishListTab }));
+              if (next !== tab) router.push(tabHref(next as PublishListTab));
             }}
           >
             <SelectTrigger size="sm" aria-label="Daftar" className="sm:hidden">
@@ -122,7 +110,7 @@ export function PublishToolbar({
             <TabsList variant="line" aria-label="Daftar">
               {PUBLISH_LIST_TABS.map((value) => (
                 <TabsTrigger key={value} value={value} asChild>
-                  <Link href={href({ tab: value })}>
+                  <Link href={tabHref(value)}>
                     {TAB_LABEL[value]}
                     {counts ? (
                       <span className="ml-1.5 text-xs text-muted-foreground tabular-nums">
@@ -136,27 +124,16 @@ export function PublishToolbar({
           </Tabs>
         ) : null}
       </div>
-      <Select
-        value={timeZone}
-        onValueChange={(next) => router.replace(href({ timeZone: next }))}
-      >
-        <SelectTrigger size="sm" aria-label="Zona waktu tampilan">
-          <HugeiconsIcon icon={Globe02Icon} strokeWidth={2} />
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent position="popper" align="end">
-          {timeZoneGroups.map((group) => (
-            <SelectGroup key={group.region}>
-              <SelectLabel>{group.region}</SelectLabel>
-              {group.options.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          ))}
-        </SelectContent>
-      </Select>
+      {/* eslint-disable-next-line no-restricted-syntax -- S-008: layout-only */}
+      <div className="flex items-center gap-2">
+        {view === "list" ? (
+          <>
+            <ListFilterPopover tab={tab} accounts={filterAccounts} />
+            <Separator orientation="vertical" className="my-1.5" />
+          </>
+        ) : null}
+        <DisplayTimeZoneSelect />
+      </div>
     </div>
   );
 }

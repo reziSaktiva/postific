@@ -12,14 +12,17 @@ import { getCachedUserTimeZone } from "@/lib/better-auth/user-time-zone";
 import { UserTimeZoneProvider } from "@/lib/time/user-time-zone-context";
 
 import { buildDisplayTimeZoneGroups } from "./components/display-time-zone-groups";
+import { DisplayTimeZoneProvider } from "./components/DisplayTimeZoneSelect";
 import { PublishPageHeader } from "./components/PublishPageHeader";
 import { PublishToolbar } from "./components/PublishToolbar";
 import { BoardView } from "./components/views/BoardView";
 import { CalendarView } from "./components/views/CalendarView";
 import { HistoryPostView } from "./components/views/HistoryPostView";
+import { ListFilterProvider } from "./components/views/ListFilter";
 import {
   ApprovalsTab,
   DraftsTab,
+  getPublishListFilterAccounts,
   getPublishListTabCounts,
   HistoryTab,
   QueueTab,
@@ -53,9 +56,30 @@ export default async function Page({
     lastRange,
     profileTimeZone,
   });
-  // Tab counts are only shown on the List tabs (T-289).
-  const counts =
-    state.view === "list" ? await getPublishListTabCounts() : undefined;
+  // Tab counts and the Filter channels are only shown on the List (T-289).
+  const [counts, filterAccounts] =
+    state.view === "list"
+      ? await Promise.all([
+          getPublishListTabCounts(),
+          getPublishListFilterAccounts(),
+        ])
+      : [undefined, undefined];
+
+  const body = (
+    <>
+      <PublishToolbar
+        view={state.view}
+        tab={state.tab}
+        counts={counts}
+        filterAccounts={filterAccounts}
+        timeZone={state.timeZone}
+        profileTimeZone={profileTimeZone}
+      />
+      <UserTimeZoneProvider timeZone={state.timeZone}>
+        <PublishViewContent state={state} />
+      </UserTimeZoneProvider>
+    </>
+  );
 
   return (
     // eslint-disable-next-line no-restricted-syntax -- T-286: Tailwind layout composition (ADR-097), not an Astryx stack.
@@ -66,22 +90,29 @@ export default async function Page({
         timeZone={state.timeZone}
         profileTimeZone={profileTimeZone}
       />
-      <PublishToolbar
-        view={state.view}
-        tab={state.tab}
-        postId={state.postId}
-        counts={counts}
-        calendarParams={pickCalendarSearch(rawSearchParams)}
-        timeZone={state.timeZone}
-        profileTimeZone={profileTimeZone}
-        timeZoneGroups={buildDisplayTimeZoneGroups(
-          { profileTimeZone, timeZone: state.timeZone },
-          new Date(),
+      {/* The time zone picker ends the toolbar row of each view (S-008 design gap 5). */}
+      <DisplayTimeZoneProvider
+        value={{
+          view: state.view,
+          tab: state.tab,
+          postId: state.postId,
+          calendarParams: pickCalendarSearch(rawSearchParams),
+          timeZone: state.timeZone,
+          profileTimeZone,
+          timeZoneGroups: buildDisplayTimeZoneGroups(
+            { profileTimeZone, timeZone: state.timeZone },
+            new Date(),
+          ),
+        }}
+      >
+        {state.view === "list" ? (
+          // The List Filter popover (toolbar) and the list share one state;
+          // keyed by tab so each tab opens unfiltered (S-008 design gap 4).
+          <ListFilterProvider key={state.tab}>{body}</ListFilterProvider>
+        ) : (
+          body
         )}
-      />
-      <UserTimeZoneProvider timeZone={state.timeZone}>
-        <PublishViewContent state={state} />
-      </UserTimeZoneProvider>
+      </DisplayTimeZoneProvider>
     </div>
   );
 }

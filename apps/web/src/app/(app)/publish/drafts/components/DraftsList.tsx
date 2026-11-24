@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -17,12 +17,9 @@ import { useConfirmAction } from "@/lib/hooks/use-confirm-action";
 
 import { SourceFilterEmpty } from "@/components/shared/SourceFilterEmpty";
 import { McpSourceBadge } from "@/components/shared/McpSourceBadge";
-import { SourceFilterSelect } from "@/components/shared/SourceFilterSelect";
 import {
   filterBySource,
   resolveFilteredEmptyKind,
-  SourceFilter,
-  type SourceFilterValue,
 } from "@/components/shared/source-filter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -42,6 +39,7 @@ import {
   CONTENT_STATUS_LABEL,
 } from "../../../components/draft-editor/status-badge";
 import { ListDayGroups } from "../../components/views/ListDayGroups";
+import { useListFilter } from "../../components/views/ListFilter";
 import { ListPostCard } from "../../components/views/ListPostCard";
 import { deletePostAction } from "../actions";
 import { useLiveDraftPosts, type DraftListItem } from "./useLiveDraftPosts";
@@ -74,9 +72,10 @@ export function DraftsList({
     DRAFT_LIST_STATUSES,
     workspaceId,
   );
-  const [sourceFilter, setSourceFilter] = useState<SourceFilterValue>(
-    SourceFilter.All,
-  );
+  // Source comes from the List Filter popover in the toolbar (S-008 design
+  // gap 4); Drafts carry no accounts, so there is no channel filter here.
+  const filter = useListFilter();
+  const sourceFilter = filter.source;
   const visible = filterBySource(localDrafts, sourceFilter);
   const groups = useMemo(
     () => groupDraftItemsByDate(visible, timeZone),
@@ -94,22 +93,11 @@ export function DraftsList({
   return (
     // eslint-disable-next-line no-restricted-syntax -- T-289: layout-only
     <div className="flex flex-col gap-4">
-      {/* eslint-disable-next-line no-restricted-syntax -- T-289: layout-only */}
-      <div className="flex justify-end gap-2">
-        <SourceFilterSelect
-          value={sourceFilter}
-          onValueChange={setSourceFilter}
-        />
-      </div>
-
       {groups.length === 0 ? (
         <Card>
           <CardContent>
             {emptyKind !== "base" ? (
-              <SourceFilterEmpty
-                kind={emptyKind}
-                onShowAll={() => setSourceFilter(SourceFilter.All)}
-              />
+              <SourceFilterEmpty kind={emptyKind} onShowAll={filter.reset} />
             ) : (
               <Empty>
                 <EmptyHeader>

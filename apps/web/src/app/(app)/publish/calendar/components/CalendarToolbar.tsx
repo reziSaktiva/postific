@@ -49,6 +49,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import {
   Tooltip,
   TooltipContent,
@@ -56,6 +57,7 @@ import {
 } from "@/components/ui/tooltip";
 
 import { CONTENT_STATUS_LABEL } from "../../../components/draft-editor/status-badge";
+import { DisplayTimeZoneSelect } from "../../components/DisplayTimeZoneSelect";
 import { useCalendarPeriodState } from "../hooks/useCalendarPeriodState";
 import { addDays, addMonths } from "./calendar-grid-shared";
 
@@ -173,8 +175,8 @@ function toggled<T>(list: readonly T[], value: T, on: boolean): T[] {
 /**
  * Calendar toolbar (T-287, S-008, KSP-02-F05/F09): previous and next, range
  * label, Today, Month or Week; on the right Filter (channels and status),
- * "No date", and an options menu. The time zone picker is part of the
- * Publish toolbar above. Below `sm` (phone, T-292) the left side is only
+ * "No date", an options menu and the display time zone picker, so the
+ * Calendar controls sit on one row at desktop (S-008 design gap 5). Below `sm` (phone, T-292) the left side is only
  * the date picker of the 3-day grid and Filter and "No date" show their
  * icons. The state lives in the URL
  * (`useCalendarPeriodState`); the last used range is remembered in a cookie
@@ -280,7 +282,7 @@ export function CalendarToolbar({
       </div>
 
       {/* eslint-disable-next-line no-restricted-syntax -- T-287 */}
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-end gap-2">
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="outline" size="sm">
@@ -393,6 +395,8 @@ export function CalendarToolbar({
             </DropdownMenuCheckboxItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        <Separator orientation="vertical" className="my-1.5" />
+        <DisplayTimeZoneSelect />
       </div>
     </div>
   );

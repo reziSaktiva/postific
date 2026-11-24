@@ -11,6 +11,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
 
+import { PostCreatedVia } from "@postific/shared";
 import {
   APPROVAL_LIST_STATUSES,
   groupApprovalItemsByDate,
@@ -19,6 +20,8 @@ import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
 import { formatRelativeTime } from "@/lib/utils/format-relative-time";
 
 import { McpSourceBadge } from "@/components/shared/McpSourceBadge";
+import { SourceFilterEmpty } from "@/components/shared/SourceFilterEmpty";
+import { resolveFilteredEmptyKind } from "@/components/shared/source-filter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -42,7 +45,14 @@ import {
   CONTENT_STATUS_LABEL,
 } from "../../../components/draft-editor/status-badge";
 import { ListDayGroups } from "../../components/views/ListDayGroups";
-import { ListPostCard } from "../../components/views/ListPostCard";
+import {
+  matchesListFilter,
+  useListFilter,
+} from "../../components/views/ListFilter";
+import {
+  ListAccounts,
+  ListPostCard,
+} from "../../components/views/ListPostCard";
 import { backToDraftAction, markReadyToScheduleAction } from "../actions";
 import {
   useLiveDraftPosts,
@@ -70,10 +80,26 @@ export function ApprovalsList({
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [, startTransition] = useTransition();
   const live = useLiveDraftPosts(items, APPROVAL_LIST_STATUSES, workspaceId);
+  // Channels and source come from the List Filter popover in the toolbar
+  // (S-008 design gap 4).
+  const filter = useListFilter();
+  const { channelIds, source } = filter;
   const groups = useMemo(
-    () => groupApprovalItemsByDate(live, timeZone),
-    [live, timeZone],
+    () =>
+      groupApprovalItemsByDate(
+        live.filter((item) =>
+          matchesListFilter(item, { channelIds, source, statuses: [] }),
+        ),
+        timeZone,
+      ),
+    [live, timeZone, channelIds, source],
   );
+  const emptyKind = resolveFilteredEmptyKind({
+    sourceFilter: source,
+    otherFiltersAtDefault: channelIds.length === 0,
+    totalItems: live.length,
+    hasMcpItems: live.some((item) => item.createdVia === PostCreatedVia.Mcp),
+  });
 
   function changeStatus(
     postId: string,
@@ -96,14 +122,18 @@ export function ApprovalsList({
     return (
       <Card>
         <CardContent>
-          <Empty>
-            <EmptyHeader>
-              <EmptyTitle>Tidak ada yang menunggu ditinjau</EmptyTitle>
-              <EmptyDescription>
-                Konten berstatus In Review muncul di sini.
-              </EmptyDescription>
-            </EmptyHeader>
-          </Empty>
+          {emptyKind !== "base" ? (
+            <SourceFilterEmpty kind={emptyKind} onShowAll={filter.reset} />
+          ) : (
+            <Empty>
+              <EmptyHeader>
+                <EmptyTitle>Tidak ada yang menunggu ditinjau</EmptyTitle>
+                <EmptyDescription>
+                  Konten berstatus In Review muncul di sini.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          )}
         </CardContent>
       </Card>
     );
@@ -116,6 +146,11 @@ export function ApprovalsList({
       renderCard={(item) => (
         <ListPostCard
           onOpen={() => openEditDraft(item.id)}
+          accounts={
+            item.targets && item.targets.length > 0 ? (
+              <ListAccounts targets={item.targets} />
+            ) : undefined
+          }
           statusBadge={
             <Badge variant={CONTENT_STATUS_BADGE_VARIANT[item.status]}>
               {CONTENT_STATUS_LABEL[item.status]}

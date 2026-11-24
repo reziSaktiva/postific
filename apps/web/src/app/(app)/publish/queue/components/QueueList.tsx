@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import {
   Add01Icon,
@@ -9,24 +9,16 @@ import {
   SentIcon,
 } from "@hugeicons/core-free-icons";
 
-import {
-  ContentStatus,
-  PostCreatedVia,
-  type ConnectedAccountId,
-  type PostId,
-} from "@postific/shared";
+import { ContentStatus, PostCreatedVia, type PostId } from "@postific/shared";
 import type { QueueGroup, QueueSuggestionAccount } from "@/domains/publishing";
 import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
 import { formatRelativeTime } from "@/lib/utils/format-relative-time";
 
 import { SourceFilterEmpty } from "@/components/shared/SourceFilterEmpty";
 import { McpSourceBadge } from "@/components/shared/McpSourceBadge";
-import { SourceFilterSelect } from "@/components/shared/SourceFilterSelect";
 import {
-  matchesSourceFilter,
   resolveFilteredEmptyKind,
   SourceFilter,
-  type SourceFilterValue,
 } from "@/components/shared/source-filter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -38,13 +30,6 @@ import {
   EmptyHeader,
   EmptyTitle,
 } from "@/components/ui/empty";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Text } from "@/components/ui/text";
 import {
   Tooltip,
@@ -59,6 +44,11 @@ import {
   CONTENT_STATUS_LABEL,
 } from "../../../components/draft-editor/status-badge";
 import { ListDayGroups } from "../../components/views/ListDayGroups";
+import {
+  focusAccountId,
+  matchesListFilter,
+  useListFilter,
+} from "../../components/views/ListFilter";
 import {
   ListAccounts,
   ListPostCard,
@@ -97,13 +87,6 @@ function QueueItemActionButton({
   );
 }
 
-const ALL_ACCOUNTS_FILTER_VALUE = "all";
-
-interface AccountFilterOption {
-  value: string;
-  label: string;
-}
-
 export interface QueueListProps {
   groups: QueueGroup[];
   /**
@@ -138,99 +121,43 @@ export function QueueList({
 }: QueueListProps) {
   const timeZone = useUserTimeZone();
   const { openEditDraft, openNewPost } = useDraftEditor();
-  const [accountFilter, setAccountFilter] = useState<string>(
-    ALL_ACCOUNTS_FILTER_VALUE,
-  );
-
-  const [sourceFilter, setSourceFilter] = useState<SourceFilterValue>(
-    SourceFilter.All,
-  );
-
-  const accountOptions = useMemo<AccountFilterOption[]>(() => {
-    const seen = new Map<ConnectedAccountId, AccountFilterOption>();
-    for (const group of groups) {
-      for (const item of group.items) {
-        for (const target of item.targets) {
-          if (!seen.has(target.connectedAccountId)) {
-            seen.set(target.connectedAccountId, {
-              value: target.connectedAccountId,
-              label: target.accountHandle,
-            });
-          }
-        }
-      }
-    }
-    return Array.from(seen.values());
-  }, [groups]);
+  // Channels and source come from the List Filter popover in the toolbar
+  // (S-008 design gap 4).
+  const filter = useListFilter();
+  const { channelIds, source } = filter;
 
   const filteredGroups = useMemo<QueueGroup[]>(() => {
-    if (
-      accountFilter === ALL_ACCOUNTS_FILTER_VALUE &&
-      sourceFilter === SourceFilter.All
-    ) {
+    if (channelIds.length === 0 && source === SourceFilter.All) {
       return groups;
     }
     return groups
       .map((group) => ({
         ...group,
-        items: group.items.filter(
-          (item) =>
-            (accountFilter === ALL_ACCOUNTS_FILTER_VALUE ||
-              item.targets.some(
-                (target) => target.connectedAccountId === accountFilter,
-              )) &&
-            matchesSourceFilter(item, sourceFilter),
+        items: group.items.filter((item) =>
+          matchesListFilter(item, { channelIds, source, statuses: [] }),
         ),
       }))
       .filter((group) => group.items.length > 0);
-  }, [groups, accountFilter, sourceFilter]);
+  }, [groups, channelIds, source]);
 
   const allItems = groups.flatMap((group) => group.items);
   const emptyKind = resolveFilteredEmptyKind({
-    sourceFilter,
-    otherFiltersAtDefault: accountFilter === ALL_ACCOUNTS_FILTER_VALUE,
+    sourceFilter: source,
+    otherFiltersAtDefault: channelIds.length === 0,
     totalItems: allItems.length,
     hasMcpItems: allItems.some(
       (item) => item.createdVia === PostCreatedVia.Mcp,
     ),
   });
 
-  function resetAllFilters() {
-    setAccountFilter(ALL_ACCOUNTS_FILTER_VALUE);
-    setSourceFilter(SourceFilter.All);
-  }
-
   return (
     // eslint-disable-next-line no-restricted-syntax -- T-101.2: layout-only, file sudah dimigrasi shadcn
     <div className="flex flex-col gap-4">
-      {/* eslint-disable-next-line no-restricted-syntax -- T-101.2: layout-only */}
-      <div className="flex flex-wrap justify-end gap-2">
-        <Select value={accountFilter} onValueChange={setAccountFilter}>
-          <SelectTrigger size="sm" aria-label="Filter akun" className="w-44">
-            <SelectValue placeholder="Semua akun" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL_ACCOUNTS_FILTER_VALUE}>
-              Semua akun
-            </SelectItem>
-            {accountOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <SourceFilterSelect
-          value={sourceFilter}
-          onValueChange={setSourceFilter}
-        />
-      </div>
-
       {filteredGroups.length === 0 ? (
         <Card>
           <CardContent>
             {emptyKind !== "base" ? (
-              <SourceFilterEmpty kind={emptyKind} onShowAll={resetAllFilters} />
+              <SourceFilterEmpty kind={emptyKind} onShowAll={filter.reset} />
             ) : allItems.length === 0 && suggestions.length > 0 ? (
               <QueueSuggestions suggestions={suggestions} />
             ) : (
@@ -260,10 +187,7 @@ export function QueueList({
             <ListPostCard
               preview={{
                 postId: item.id,
-                connectedAccountId:
-                  accountFilter === ALL_ACCOUNTS_FILTER_VALUE
-                    ? item.targets[0]?.connectedAccountId
-                    : accountFilter,
+                connectedAccountId: focusAccountId(item.targets, channelIds),
                 onCancelSchedule,
               }}
               accounts={<ListAccounts targets={item.targets} />}
