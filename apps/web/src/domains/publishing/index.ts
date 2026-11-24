@@ -17,6 +17,7 @@ export * from "./services/schedule-posts.use-case";
 export * from "./services/compose-draft.use-case";
 export * from "./services/schedule-contents.use-case";
 export * from "./services/publish-now.use-case";
+export * from "./services/get-best-time-suggestions.use-case";
 export * from "./services/cancel-schedule.use-case";
 export * from "./services/retry-failed-target.use-case";
 export * from "./services/outstand-webhook-processor";
