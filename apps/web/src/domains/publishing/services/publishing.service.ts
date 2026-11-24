@@ -13,6 +13,7 @@ import { resolveConnectionDisplayStatus } from "@/domains/workspace";
 import { ConflictError, NotFoundError } from "@/lib/utils/errors";
 import {
   assertPostMutable,
+  canSaveOrDeleteInStatus,
   isReadonlyTerminalStatus,
   READONLY_TERMINAL_CONFLICT_MESSAGE,
 } from "../readonly-terminal-status";
@@ -413,7 +414,7 @@ export const HISTORY_TERMINAL_STATUSES: readonly ContentStatus[] = [
 ];
 
 const DELETE_NON_DRAFT_CONFLICT_MESSAGE =
-  "Hanya post berstatus Draft yang bisa dihapus. Batalkan jadwal (Cancel Schedule) dulu untuk post yang sudah dijadwalkan, baru bisa dihapus dari Drafts.";
+  "Hanya post berstatus Draft, In Review, atau Ready to Schedule yang bisa dihapus. Batalkan jadwal (Cancel Schedule) dulu untuk post yang sudah dijadwalkan, baru bisa dihapus dari Drafts.";
 
 /** T-091.1 — pesan read-only untuk status terminal; status non-Draft lain tetap pesan Draft-only. */
 function deleteConflictMessage(status: ContentStatus): string {
@@ -588,7 +589,7 @@ export class PublishingService {
       // cancelSchedule/schedulePost/publishNow yang melempar ConflictError
       // untuk balapan serupa.
       throw new ConflictError(
-        "Draft tidak bisa diperbarui — post tidak ditemukan atau statusnya bukan Draft.",
+        "Post tidak bisa diperbarui — tidak ditemukan atau statusnya bukan Draft, In Review, atau Ready to Schedule.",
       );
     }
     return post;
@@ -611,9 +612,9 @@ export class PublishingService {
    * asumsi awal sesi T-035.1) — King Rezi mengonfirmasi eksplisit lewat
    * `AskUserQuestion`: post `Scheduled` tidak boleh dihapus langsung, harus
    * di-Cancel Schedule dulu (T-030, kembali ke `Draft`) baru bisa dihapus
-   * dari Drafts. Karena itu HANYA post berstatus `ContentStatus.Draft` yang
-   * boleh dihapus — status lain (`InReview`/`ReadyToSchedule`/`Scheduled`/
-   * `Published`/`Failed`) ditolak `ConflictError`. Dua lapis guard (defense-
+   * dari Drafts. T-297 (2026-11-24) melebarkan whitelist ke `Draft`,
+   * `InReview`, dan `ReadyToSchedule` (peran sama); `Scheduled` dan terminal
+   * (`Published`/`Failed`/`Imported`) tetap ditolak `ConflictError`. Dua lapis guard (defense-
    * in-depth, pola sama `updateDraft`/`cancelSchedule`): (1) di sini, fetch
    * dulu via `findDraftById` supaya pesan error informatif tanpa menunggu
    * round-trip write; (2) di repository, `softDeletePost` query Prisma-nya
@@ -643,7 +644,7 @@ export class PublishingService {
     if (!existing) {
       throw new NotFoundError("Post tidak ditemukan.");
     }
-    if (existing.status !== ContentStatus.Draft) {
+    if (!canSaveOrDeleteInStatus(existing.status)) {
       throw new ConflictError(deleteConflictMessage(existing.status));
     }
 
@@ -660,7 +661,7 @@ export class PublishingService {
         { workspaceId: input.workspaceId, postId: input.postId },
         userId,
       );
-      if (recheck && recheck.status !== ContentStatus.Draft) {
+      if (recheck && !canSaveOrDeleteInStatus(recheck.status)) {
         throw new ConflictError(deleteConflictMessage(recheck.status));
       }
       throw new NotFoundError(

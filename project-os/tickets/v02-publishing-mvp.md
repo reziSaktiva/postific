@@ -4059,9 +4059,9 @@ Not yet proven: the Board was not observed in a browser (no dev server in this l
 
 **What to build:** saving and deleting in the Draft Editor worked only for `draft` posts, so an In Review or Ready to Schedule post opened from Drafts or Approvals could not be saved or deleted. King Rezi decided on 2026-11-24 to fix it in the S-008 wave.
 
-- [ ] Save keeps working for `in_review` and `ready_to_schedule` posts and does not change their status.
-- [ ] Delete is allowed for `in_review` and `ready_to_schedule` posts with the same roles as `draft`.
-- [ ] `imported`, `scheduled`, `published` and `failed` rules are unchanged; unit tests at the service boundary.
+- [x] Save keeps working for `in_review` and `ready_to_schedule` posts and does not change their status.
+- [x] Delete is allowed for `in_review` and `ready_to_schedule` posts with the same roles as `draft`.
+- [x] `imported`, `scheduled`, `published` and `failed` rules are unchanged; unit tests at the service boundary.
 
 **Blocked by:** none
 

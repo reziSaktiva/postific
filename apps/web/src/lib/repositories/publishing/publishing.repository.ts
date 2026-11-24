@@ -13,6 +13,7 @@ import {
 } from "@postific/shared";
 import {
   HISTORY_TERMINAL_STATUSES,
+  SAVE_AND_DELETE_STATUSES,
   type CalendarItemRecord,
   type CalendarItemTargetRecord,
   type HistoryItemRecord,
@@ -360,8 +361,9 @@ export const publishingRepository: IPublishingRepository = {
         where: {
           id: postId,
           workspaceId,
-          // T-091.1 — hanya Draft; Published/Failed/Imported di luar whitelist.
-          status: ContentStatus.Draft,
+          // T-091.1/T-297 — Draft, In Review, Ready to Schedule; status tidak
+          // diubah. Scheduled/Published/Failed/Imported di luar whitelist.
+          status: { in: [...SAVE_AND_DELETE_STATUSES] },
           deletedAt: null,
         },
         data: {
@@ -1201,7 +1203,7 @@ export const publishingRepository: IPublishingRepository = {
         where: {
           id: postId,
           workspaceId,
-          status: ContentStatus.Draft,
+          status: { in: [...SAVE_AND_DELETE_STATUSES] },
           deletedAt: null,
         },
         data: { deletedAt: new Date() },

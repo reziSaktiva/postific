@@ -323,6 +323,43 @@ describe("PublishingService.getDraftById", () => {
 });
 
 describe("PublishingService.updateDraft", () => {
+  it.each([ContentStatus.InReview, ContentStatus.ReadyToSchedule])(
+    "T-297: post berstatus %s bisa disimpan tanpa mengirim perubahan status ke repository",
+    async (status) => {
+      let received: Record<string, unknown> | null = null;
+      const service = new PublishingService(
+        createFakeRepository({
+          findPostStatusById: async () => ({ status }),
+          updateDraftCaption: async (input) => {
+            received = input;
+            return {
+              id: input.postId,
+              workspaceId: input.workspaceId,
+              authorId: AUTHOR_ID,
+              caption: input.caption,
+              status,
+              createdAt: new Date(0),
+              updatedAt: new Date(0),
+            };
+          },
+        }),
+      );
+
+      const result = await service.updateDraft(
+        {
+          workspaceId: WORKSPACE_ID,
+          postId: asPostId("post-1"),
+          caption: " Hello ",
+        },
+        AUTHOR_ID,
+      );
+
+      expect(result.status).toBe(status);
+      expect(received).not.toHaveProperty("status");
+      expect(received).toMatchObject({ caption: "Hello" });
+    },
+  );
+
   it("trims the caption before delegating to the repository", async () => {
     let received:
       Parameters<IPublishingRepository["updateDraftCaption"]>[0] | null = null;
@@ -2750,15 +2787,33 @@ describe("PublishingService.deletePost", () => {
     });
   });
 
-  it.each([
-    ContentStatus.InReview,
-    ContentStatus.ReadyToSchedule,
-    ContentStatus.Scheduled,
-  ])(
-    // Koreksi 2026-09-10: entry point Delete Post HANYA ada di Drafts —
-    // King Rezi mengonfirmasi post Scheduled harus di-Cancel Schedule dulu
-    // (kembali ke Draft) sebelum bisa dihapus, TIDAK bisa dihapus langsung
-    // dari status manapun selain Draft.
+  it.each([ContentStatus.InReview, ContentStatus.ReadyToSchedule])(
+    "T-297: post berstatus %s boleh dihapus dengan peran yang sama seperti Draft",
+    async (status) => {
+      const deleted = draftRecord({ status });
+      const service = new PublishingService(
+        createFakeRepository({
+          findDraftById: async () => draftRecord({ status }),
+          softDeletePost: async () => deleted,
+        }),
+      );
+
+      await expect(
+        service.deletePost(
+          {
+            workspaceId: WORKSPACE_ID,
+            postId: asPostId("post-1"),
+            actorRole: MemberRole.Creator,
+          },
+          AUTHOR_ID,
+        ),
+      ).resolves.toBe(deleted);
+    },
+  );
+
+  it.each([ContentStatus.Scheduled])(
+    // Koreksi 2026-09-10: post Scheduled harus di-Cancel Schedule dulu
+    // (kembali ke Draft) sebelum bisa dihapus.
     "guard: post berstatus %s DITOLAK ConflictError, TANPA memanggil softDeletePost",
     async (status) => {
       let softDeleteCalls = 0;
