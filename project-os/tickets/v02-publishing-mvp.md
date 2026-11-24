@@ -3839,11 +3839,15 @@ Not yet proven: the Calendar was not observed in a browser (no dev server in thi
 
 **What to build:** clicking a post opens the per-account preview; Expand opens the full dialog; a published video plays in place.
 
-- [ ] The popover shows date and time, content format, Expand; account and status; caption; media; metrics and an insights link for published posts; Go to post, Edit or Retry by status, plus a more-actions menu.
-- [ ] The dialog shows the same content, the result of every account of the same post, and "Published via <network>". No "Add note".
-- [ ] A published video plays inline in the popover and the dialog with the native video player (play/pause, time, progress, volume, fullscreen).
-- [ ] When there is no playable video URL (for example an imported post with only a stored thumbnail), the thumbnail shows with "Go to post" and no play control.
+- [x] The popover shows date and time, content format, Expand; account and status; caption; media; metrics and an insights link for published posts; Go to post, Edit or Retry by status, plus a more-actions menu.
+- [x] The dialog shows the same content, the result of every account of the same post, and "Published via <network>". No "Add note".
+- [x] A published video plays inline in the popover and the dialog with the native video player (play/pause, time, progress, volume, fullscreen).
+- [x] When there is no playable video URL (for example an imported post with only a stored thumbnail), the thumbnail shows with "Go to post" and no play control.
 - [ ] The same preview opens from Calendar chips, Queue and History cards, and Board cards. Drafts and Approvals cards open the Draft Editor directly (ADR-165 decision 6).
+
+Wiring: Calendar chips and the mobile agenda use `PostPreviewPopover`; Board cards use it in T-290; the Queue and History cards are wired by the list lane (`PostPreviewPopover` / `PostPreviewDialog` from `publish/components/preview/PostPreview.tsx`), so the last item stays open until then.
+
+Not yet proven: popover and dialog were not observed in a browser (no dev server in this lane; inline video playback, light, dark, 768 px and 390 px are covered by T-294). Proven by unit tests: focus account, header date, footer action by status, "Published via" platforms, `PublishingService.getPostPreview` for any status. The imported-post case shows only its stored thumbnail (an image), so it has no play control; no external CDN URL is used.
 
 **Blocked by:** T-287
 

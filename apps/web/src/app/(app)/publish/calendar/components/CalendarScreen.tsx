@@ -86,7 +86,7 @@ type CalendarScreenProps = {
  * data nyata dari `page.tsx` (`parseCalendarViewState` +
  * `getWeekRange`/`getMonthRange` + `PublishingService.listCalendarPosts` +
  * `WorkspaceService.listConnectedAccounts`). Popover klik item — T-033.8/
- * T-101.1, `CalendarPostPopover` (shadcn `Popover`, ADR-090/ADR-091).
+ * T-101.1, `PostPreviewPopover` (shadcn `Popover`, ADR-090/ADR-091).
  *
  * KI-035 poin 3 (mobile ≤768px): di bawah `CalendarToolbar` dirender grid
  * Week/Month (≥768px, TIDAK berubah — addendum, bukan pengganti) DAN
@@ -129,12 +129,12 @@ type CalendarScreenProps = {
  * tidak pernah "nyangkut" dari periode/filter sebelumnya.
  *
  * **T-030.3 — Cancel Schedule entry point:** state dialog konfirmasi
- * (`useConfirmAction`) dilift ke sini (bukan di tiap grid/`CalendarPostPopover`)
+ * (`useConfirmAction`) dilift ke sini (bukan di tiap grid/`PostPreviewPopover`)
  * — pola persis `QueueScreen.tsx`, reuse 100% `cancelScheduleAction` dari
  * `../actions` (copy `CancelScheduleUseCase` yang sama dipakai Queue, T-032.4).
  * `onCancelSchedule={(postId) => cancelConfirm.open(postId)}` diteruskan ke
  * `CalendarWeekGrid`/`CalendarMonthGrid`/`CalendarAgendaList`, yang masing-masing
- * meneruskannya lagi ke `CalendarPostPopover` — tombol "Batalkan Jadwal" hanya
+ * meneruskannya lagi ke `PostPreviewPopover` — tombol "Batalkan Jadwal" hanya
  * dirender di footer popover saat `entry.status === ContentStatus.Scheduled`.
  */
 export function CalendarScreen({

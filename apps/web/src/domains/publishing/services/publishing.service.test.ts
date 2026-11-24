@@ -3076,3 +3076,52 @@ describe("PublishingService sumber MCP (T-157)", () => {
     ).toBe("Claude Code");
   });
 });
+
+describe("PublishingService.getPostPreview (T-288)", () => {
+  it("returns null when the post is not in the workspace, instead of throwing", async () => {
+    const service = new PublishingService(createFakeRepository());
+
+    await expect(
+      service.getPostPreview(WORKSPACE_ID, asPostId("post-1"), AUTHOR_ID),
+    ).resolves.toBeNull();
+  });
+
+  it("opens a post in any status, not only History ones (a scheduled post, no metrics)", async () => {
+    const scheduled = createHistoryItem({ status: ContentStatus.Scheduled });
+    const service = new PublishingService(
+      createFakeRepository({ getHistoryPostById: async () => scheduled }),
+    );
+
+    await expect(
+      service.getPostPreview(WORKSPACE_ID, scheduled.id, AUTHOR_ID),
+    ).resolves.toEqual({ ...scheduled, metrics: null, authorName: null });
+  });
+
+  it("reads metrics only for a published post and names its author", async () => {
+    const published = createHistoryItem({
+      status: ContentStatus.Published,
+      authorId: AUTHOR_ID,
+    });
+    let metricCalls = 0;
+    const service = new PublishingService(
+      createFakeRepository({ getHistoryPostById: async () => published }),
+      {
+        getPostMetricsByPosts: async () => {
+          metricCalls += 1;
+          return new Map();
+        },
+      },
+      undefined,
+      { findById: async () => ({ name: "Raka" }) as never },
+    );
+
+    const result = await service.getPostPreview(
+      WORKSPACE_ID,
+      published.id,
+      AUTHOR_ID,
+    );
+
+    expect(metricCalls).toBe(1);
+    expect(result).toMatchObject({ metrics: [], authorName: "Raka" });
+  });
+});

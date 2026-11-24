@@ -891,6 +891,30 @@ export class PublishingService {
       throw new NotFoundError("Riwayat post tidak ditemukan.");
     }
 
+    return this.toHistoryDetail(post, userId);
+  }
+
+  /**
+   * Post preview (T-288, S-008): the same detail as `getHistoryById`, for a
+   * post in ANY status, because the preview opens from Calendar, Queue,
+   * History and Board cards (a scheduled post, a failed one, a draft on the
+   * Board). `null` when the post is not in this workspace or was deleted
+   * (not an error: the post can disappear while the preview is open).
+   * Metrics are only read for a published post, like `getHistoryById`.
+   */
+  async getPostPreview(
+    workspaceId: WorkspaceId,
+    postId: PostId,
+    userId: UserId,
+  ): Promise<HistoryDetailItem | null> {
+    const found = await this.getHistoryPostById(workspaceId, postId, userId);
+    return found ? this.toHistoryDetail(found, userId) : null;
+  }
+
+  private async toHistoryDetail(
+    post: HistoryItemRecord,
+    userId: UserId,
+  ): Promise<HistoryDetailItem> {
     const [metrics, authorName] = await Promise.all([
       post.status === ContentStatus.Published && this.postMetrics
         ? this.postMetrics

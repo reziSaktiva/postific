@@ -15,7 +15,7 @@ import {
   CONTENT_STATUS_LABEL,
 } from "../../../components/draft-editor/status-badge";
 import { PLATFORM_ICON } from "../../../components/platform-icons";
-import { CalendarPostPopover } from "./CalendarPostPopover";
+import { PostPreviewPopover } from "../../components/preview/PostPreview";
 import {
   CALENDAR_ENTRY_BUTTON_CLASSNAME,
   type CalendarCardEntry,
@@ -54,7 +54,7 @@ export interface CalendarAgendaListProps {
   items: CalendarPostItem[];
   /** Filter Channels aktif (T-033.6) — array kosong = tanpa filter, sama seperti grid. */
   connectedAccountIds?: ConnectedAccountId[];
-  /** T-030.3 — diteruskan ke `CalendarPostPopover` tiap kartu. Opsional. */
+  /** T-030.3 — diteruskan ke `PostPreviewPopover` tiap kartu. Opsional. */
   onCancelSchedule?: (postId: PostId) => void;
 }
 
@@ -65,7 +65,7 @@ export interface CalendarAgendaListProps {
  * Data source SAMA dengan grid (`flattenCalendarItemsToEntries`,
  * `calendar-grid-shared.ts`) — satu kartu per TARGET (bukan per post), post
  * multi-platform tetap tampil sebagai beberapa kartu granular. Klik kartu
- * membuka `CalendarPostPopover` yang sama dipakai grid (T-033.8,
+ * membuka `PostPreviewPopover` yang sama dipakai grid (T-033.8,
  * ADR-090/ADR-091) — bukan duplikasi logic preview.
  *
  * Rancangan: Claude Design `templates/publish-calendar.html` kolom
@@ -138,10 +138,12 @@ export function CalendarAgendaList({
             {group.entries.map((entry) => {
               const PlatformGlyph = PLATFORM_ICON[entry.platform].Icon;
               return (
-                <CalendarPostPopover
+                <PostPreviewPopover
                   key={entry.key}
-                  entry={entry}
+                  postId={entry.postId}
+                  connectedAccountId={entry.connectedAccountId}
                   onCancelSchedule={onCancelSchedule}
+                  side="bottom"
                 >
                   <button
                     type="button"
@@ -195,7 +197,7 @@ export function CalendarAgendaList({
                       </div>
                     </div>
                   </button>
-                </CalendarPostPopover>
+                </PostPreviewPopover>
               );
             })}
           </div>

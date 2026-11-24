@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 
 import { CONTENT_STATUS_LABEL } from "../../../components/draft-editor/status-badge";
 import { PLATFORM_ICON } from "../../../components/platform-icons";
-import { CalendarPostPopover } from "./CalendarPostPopover";
+import { PostPreviewPopover } from "../../components/preview/PostPreview";
 import type { CalendarCardEntry } from "./calendar-grid-shared";
 
 const STATUS_ICON = {
@@ -67,7 +67,7 @@ export interface CalendarChipProps {
  * One post chip of the Calendar (T-287, S-008, design `ScreenPublishRedesain`):
  * platform icon, time, status icon and a thumbnail with a play mark for a
  * video. One chip per post target. A click opens the post preview
- * (`CalendarPostPopover`; T-288 replaces it with the preview component).
+ * (`PostPreviewPopover`, T-288).
  * Dashed border for a post that is not scheduled yet. The thumbnail hides
  * below 1280 px so chips do not overflow around 1024 px.
  */
@@ -86,7 +86,11 @@ export function CalendarChip({
   }`;
 
   return (
-    <CalendarPostPopover entry={entry} onCancelSchedule={onCancelSchedule}>
+    <PostPreviewPopover
+      postId={entry.postId}
+      connectedAccountId={entry.connectedAccountId}
+      onCancelSchedule={onCancelSchedule}
+    >
       <button
         type="button"
         aria-label={label}
@@ -123,6 +127,6 @@ export function CalendarChip({
           </>
         )}
       </button>
-    </CalendarPostPopover>
+    </PostPreviewPopover>
   );
 }
