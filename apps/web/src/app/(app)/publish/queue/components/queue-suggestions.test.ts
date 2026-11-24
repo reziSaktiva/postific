@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { BestTimeSlot } from "@/domains/analytics";
 
-import { pickVisibleSlots } from "./queue-suggestions";
+import { pickVisibleSlots, suggestionSlotPreset } from "./queue-suggestions";
 
 function slot(rank: number, iso: string): BestTimeSlot {
   return {
@@ -39,5 +39,22 @@ describe("pickVisibleSlots", () => {
   it("returns what exists when there are fewer slots than the initial count", () => {
     expect(pickVisibleSlots(SLOTS.slice(0, 2), false)).toHaveLength(2);
     expect(pickVisibleSlots([], false)).toEqual([]);
+  });
+});
+
+describe("suggestionSlotPreset", () => {
+  it("sets the account and the slot's wall clock in the display zone", () => {
+    expect(
+      suggestionSlotPreset(
+        "acc-1",
+        new Date("2026-07-14T17:30:00Z"),
+        "Asia/Jakarta",
+      ),
+    ).toEqual({
+      connectedAccountId: "acc-1",
+      date: "2026-07-15",
+      time: "00:30",
+      timeZone: "Asia/Jakarta",
+    });
   });
 });

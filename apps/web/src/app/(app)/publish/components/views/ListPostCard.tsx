@@ -5,9 +5,10 @@ import type { ReactNode } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
-import type { SocialPlatform } from "@postific/shared";
+import type { PostId, SocialPlatform } from "@postific/shared";
 
 import { PLATFORM_ICON } from "../../../components/platform-icons";
+import { PostPreviewPopover } from "../preview/PostPreview";
 
 /** Platform glyph and handle of each account a post goes to. */
 export function ListAccounts({
@@ -38,6 +39,9 @@ export function ListAccounts({
  * Card of a List tab (T-289): accounts and status on top, caption, optional
  * extra content (metrics, error), meta line and a footer of actions.
  * `onOpen` makes the whole card clickable; the footer never triggers it.
+ * `preview` instead makes the card the trigger of the post preview popover
+ * (T-288, Queue and History; ADR-165 decision 6). Drafts and Approvals use
+ * `onOpen` to open the Draft Editor directly.
  */
 export function ListPostCard({
   accounts,
@@ -47,6 +51,7 @@ export function ListPostCard({
   extra,
   footer,
   onOpen,
+  preview,
 }: {
   accounts?: ReactNode;
   statusBadge: ReactNode;
@@ -55,25 +60,37 @@ export function ListPostCard({
   extra?: ReactNode;
   footer?: ReactNode;
   onOpen?: () => void;
+  preview?: {
+    postId: string;
+    connectedAccountId?: string;
+    onCancelSchedule?: (postId: PostId) => void;
+  };
 }) {
-  return (
+  // With a preview the popover trigger handles the click; Enter and Space
+  // click the card so the keyboard opens it too.
+  const activate = preview
+    ? (event: { currentTarget: HTMLElement }) => event.currentTarget.click()
+    : onOpen
+      ? () => onOpen()
+      : undefined;
+  const card = (
     <Card
       size="sm"
       className={cn(
-        onOpen && "cursor-pointer transition-colors hover:bg-muted/40",
+        activate && "cursor-pointer transition-colors hover:bg-muted/40",
       )}
-      {...(onOpen
+      {...(activate
         ? {
             role: "button",
             tabIndex: 0,
-            onClick: onOpen,
+            ...(preview ? {} : { onClick: onOpen }),
             onKeyDown: (event) => {
               if (
                 event.target === event.currentTarget &&
                 (event.key === "Enter" || event.key === " ")
               ) {
                 event.preventDefault();
-                onOpen();
+                activate(event);
               }
             },
           }
@@ -108,5 +125,15 @@ export function ListPostCard({
         </div>
       </CardContent>
     </Card>
+  );
+  if (!preview) return card;
+  return (
+    <PostPreviewPopover
+      postId={preview.postId}
+      connectedAccountId={preview.connectedAccountId}
+      onCancelSchedule={preview.onCancelSchedule}
+    >
+      {card}
+    </PostPreviewPopover>
   );
 }

@@ -71,7 +71,6 @@ import {
   ListAccounts,
   ListPostCard,
 } from "../../components/views/ListPostCard";
-import { usePostPreviewOpener } from "../../components/views/usePostPreviewOpener";
 import { summarizeHistoryMetrics } from "../history-metrics";
 import { RetryPostButton } from "./RetryPostButton";
 import {
@@ -176,7 +175,6 @@ export function HistoryList({
   renderedAt,
 }: HistoryListProps) {
   const timeZone = useUserTimeZone();
-  const openPostPreview = usePostPreviewOpener();
   const relativeNowMs = useSyncExternalStore(
     subscribeRelativeNow,
     () => readClientNowMs(renderedAt),
@@ -393,7 +391,13 @@ export function HistoryList({
 
             return (
               <ListPostCard
-                onOpen={() => openPostPreview({ id: item.id, tab: "history" })}
+                preview={{
+                  postId: item.id,
+                  connectedAccountId:
+                    accountFilter === ALL_ACCOUNTS_FILTER_VALUE
+                      ? item.targets[0]?.connectedAccountId
+                      : accountFilter,
+                }}
                 accounts={<ListAccounts targets={item.targets} />}
                 statusBadge={
                   <Badge variant={HISTORY_STATUS_BADGE_VARIANT[item.status]}>

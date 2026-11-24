@@ -17,8 +17,13 @@ import { PublishToolbar } from "./components/PublishToolbar";
 import { BoardView } from "./components/views/BoardView";
 import { CalendarView } from "./components/views/CalendarView";
 import { HistoryPostView } from "./components/views/HistoryPostView";
-import { DraftsTab, HistoryTab, QueueTab } from "./components/views/ListTabs";
-import { PlaceholderView } from "./components/views/PlaceholderView";
+import {
+  ApprovalsTab,
+  DraftsTab,
+  getPublishListTabCounts,
+  HistoryTab,
+  QueueTab,
+} from "./components/views/ListTabs";
 
 /**
  * `/publish` — the single Publish page (T-286, S-008, ADR-165). Entry point
@@ -48,6 +53,9 @@ export default async function Page({
     lastRange,
     profileTimeZone,
   });
+  // Tab counts are only shown on the List tabs (T-289).
+  const counts =
+    state.view === "list" ? await getPublishListTabCounts() : undefined;
 
   return (
     // eslint-disable-next-line no-restricted-syntax -- T-286: Tailwind layout composition (ADR-097), not an Astryx stack.
@@ -62,6 +70,7 @@ export default async function Page({
         view={state.view}
         tab={state.tab}
         postId={state.postId}
+        counts={counts}
         calendarParams={pickCalendarSearch(rawSearchParams)}
         timeZone={state.timeZone}
         profileTimeZone={profileTimeZone}
@@ -90,12 +99,7 @@ function PublishViewContent({ state }: { state: PublishViewState }) {
     case "drafts":
       return <DraftsTab />;
     case "approvals":
-      return (
-        <PlaceholderView
-          title="Approvals"
-          description="Konten In Review akan tampil di sini."
-        />
-      );
+      return <ApprovalsTab />;
     case "history":
       return state.postId ? (
         <HistoryPostView postId={state.postId} />

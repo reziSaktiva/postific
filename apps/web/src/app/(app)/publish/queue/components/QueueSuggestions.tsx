@@ -13,7 +13,7 @@ import { Text } from "@/components/ui/text";
 
 import { useDraftEditor } from "../../../components/draft-editor/Context";
 import { PLATFORM_ICON } from "../../../components/platform-icons";
-import { pickVisibleSlots } from "./queue-suggestions";
+import { pickVisibleSlots, suggestionSlotPreset } from "./queue-suggestions";
 
 /**
  * Empty Queue: suggested times per connected account, from the account's own
@@ -29,19 +29,14 @@ export function QueueSuggestions({
   const { openNewPost } = useDraftEditor();
   const [showAll, setShowAll] = useState(false);
 
-  /**
-   * PHASE-2 SEAM (T-291, S-008): "+ New" on a suggested slot. The Draft
-   * Editor preset (account + date and time) is being added by the calendar
-   * lane; until then this opens the editor without any preset. Plug the
-   * account and `slot.slotAt` in here.
-   */
+  /** "+ New" on a suggested slot: the Draft Editor with account and time set. */
   function handleNewFromSuggestion(
     account: QueueSuggestionAccount,
     slotAt: Date,
   ) {
-    void account;
-    void slotAt;
-    openNewPost();
+    openNewPost(
+      suggestionSlotPreset(account.connectedAccountId, slotAt, timeZone),
+    );
   }
 
   const hasMore = suggestions.some(
