@@ -213,10 +213,13 @@ export function BoardScreen({
         <section
           key={column.key}
           aria-label={COLUMN_TITLE[column.key]}
-          className="flex w-11/12 shrink-0 snap-center flex-col gap-2 rounded-2xl bg-muted/40 p-2 sm:w-5/12 lg:w-72"
+          // A column never grows past the screen; its cards scroll inside it.
+          // A busy workspace has 100+ cards in Published, and one board
+          // ~18 000 px tall was not painted by the browser (black page).
+          className="flex max-h-svh w-11/12 shrink-0 snap-center flex-col gap-2 rounded-2xl bg-muted/40 p-2 sm:w-5/12 lg:w-72"
         >
           {}
-          <header className="flex items-center gap-2 p-1">
+          <header className="flex shrink-0 items-center gap-2 p-1">
             <h2 className="text-sm font-semibold">
               {COLUMN_TITLE[column.key]}
             </h2>
@@ -229,13 +232,16 @@ export function BoardScreen({
               {COLUMN_EMPTY[column.key]}
             </p>
           ) : (
-            column.items.map((item) => (
-              <BoardCard
-                key={item.id}
-                item={item}
-                thumbnail={thumbnails[item.id]}
-              />
-            ))
+            // eslint-disable-next-line no-restricted-syntax -- T-290: Tailwind layout (ADR-097)
+            <div className="flex min-h-0 flex-col gap-2 overflow-y-auto">
+              {column.items.map((item) => (
+                <BoardCard
+                  key={item.id}
+                  item={item}
+                  thumbnail={thumbnails[item.id]}
+                />
+              ))}
+            </div>
           )}
         </section>
       ))}
