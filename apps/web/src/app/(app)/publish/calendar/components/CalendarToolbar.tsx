@@ -395,7 +395,8 @@ export function CalendarToolbar({
             </DropdownMenuCheckboxItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <Separator orientation="vertical" className="my-1.5" />
+        {/* Hidden below `sm` with the time zone picker it separates. */}
+        <Separator orientation="vertical" className="my-1.5 max-sm:hidden" />
         <DisplayTimeZoneSelect />
       </div>
     </div>

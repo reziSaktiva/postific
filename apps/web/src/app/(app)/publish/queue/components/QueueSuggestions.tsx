@@ -13,6 +13,7 @@ import { Text } from "@/components/ui/text";
 
 import { useDraftEditor } from "../../../components/draft-editor/Context";
 import { PLATFORM_ICON } from "../../../components/platform-icons";
+import { formatPublishTime } from "../../components/date-time-format";
 import { pickVisibleSlots, suggestionSlotPreset } from "./queue-suggestions";
 
 /**
@@ -82,14 +83,12 @@ export function QueueSuggestions({
                 key={slot.slotAt.toISOString()}
               >
                 <Text variant="small" as="span" suppressHydrationWarning>
-                  {slot.slotAt.toLocaleString("id-ID", {
+                  {`${slot.slotAt.toLocaleDateString("id-ID", {
                     weekday: "long",
                     day: "numeric",
                     month: "long",
-                    hour: "2-digit",
-                    minute: "2-digit",
                     timeZone,
-                  })}
+                  })} ${formatPublishTime(slot.slotAt, timeZone)}`}
                 </Text>
                 <Button
                   type="button"

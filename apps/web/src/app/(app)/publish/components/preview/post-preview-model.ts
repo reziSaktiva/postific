@@ -31,12 +31,19 @@ export function pickFocusTarget(
 export type PreviewDate =
   { kind: "published" | "failed" | "scheduled"; date: Date } | { kind: "none" };
 
-/** The date the header shows and how it is worded; "none" for a post without a date. */
+/**
+ * The date a post shows on the Publish page (preview header and Board card)
+ * and how it is worded; "none" for a post without a date. A failed post
+ * shows the time it was meant to go out (its schedule), as the expanded
+ * dialog title does (T-111.1); a Publish Now failure, without a schedule,
+ * shows when it failed. `failedAt` is optional: a Board card has none and
+ * then falls back to the update time.
+ */
 export function previewDate(
   item: Pick<
     HistoryDetailItem,
-    "status" | "publishedAt" | "failedAt" | "scheduledAt" | "updatedAt"
-  >,
+    "status" | "publishedAt" | "scheduledAt" | "updatedAt"
+  > & { failedAt?: Date | null },
 ): PreviewDate {
   switch (item.status) {
     case ContentStatus.Published:
@@ -45,7 +52,7 @@ export function previewDate(
     case ContentStatus.Failed:
       return {
         kind: "failed",
-        date: item.failedAt ?? item.scheduledAt ?? item.updatedAt,
+        date: item.scheduledAt ?? item.failedAt ?? item.updatedAt,
       };
     default:
       return item.scheduledAt

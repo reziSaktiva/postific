@@ -24,7 +24,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
-import { getZonedFormatter } from "@/lib/time/zoned-formatter";
 
 import { useDraftEditor } from "../../../components/draft-editor/Context";
 import {
@@ -32,7 +31,9 @@ import {
   CONTENT_STATUS_LABEL,
 } from "../../../components/draft-editor/status-badge";
 import { MediaThumbnail } from "../../../components/media-thumbnail";
+import { formatPublishDateTime } from "../../components/date-time-format";
 import { PostPreviewPopover } from "../../components/preview/PostPreview";
+import { previewDate } from "../../components/preview/post-preview-model";
 
 const COLUMN_TITLE: Record<BoardColumnKey, string> = {
   draft: "Draft",
@@ -50,19 +51,6 @@ const COLUMN_EMPTY: Record<BoardColumnKey, string> = {
   failed: "Tidak ada posting gagal.",
 };
 
-const dateFormatter = (timeZone: string) =>
-  getZonedFormatter(
-    "id-ID",
-    {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    },
-    timeZone,
-  );
-
 const MAX_ACCOUNT_BADGES = 3;
 
 function BoardCard({
@@ -74,7 +62,8 @@ function BoardCard({
 }) {
   const timeZone = useUserTimeZone();
   const { openEditDraft } = useDraftEditor();
-  const date = item.scheduledAt ?? item.publishedAt;
+  // Same date as the preview header of this post (one rule, previewDate).
+  const when = previewDate(item);
   const firstTarget = item.targets[0];
   const isEditable =
     item.status !== ContentStatus.Published &&
@@ -96,7 +85,9 @@ function BoardCard({
           {}
           <span className="flex items-center gap-2 pr-8 text-xs text-muted-foreground">
             <span className="truncate">
-              {date ? dateFormatter(timeZone).format(date) : "No date"}
+              {when.kind === "none"
+                ? "No date"
+                : formatPublishDateTime(when.date, timeZone)}
             </span>
           </span>
           {}

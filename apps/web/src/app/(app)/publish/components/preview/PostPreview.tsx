@@ -40,7 +40,6 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { getZonedFormatter } from "@/lib/time/zoned-formatter";
 
 import { useDraftEditor } from "../../../components/draft-editor/Context";
 import {
@@ -53,12 +52,10 @@ import {
   formatMetricCount,
   MetricTile,
 } from "../../../components/post-metric-tile";
-import {
-  CONTENT_FORMAT_LABEL,
-  chipTimeFormatter,
-} from "../../calendar/components/calendar-grid-shared";
+import { CONTENT_FORMAT_LABEL } from "../../calendar/components/calendar-grid-shared";
 import { HistoryDetail } from "../../history/[postId]/components/HistoryDetail";
 import { RetryTargetButton } from "../../history/[postId]/components/RetryTargetButton";
+import { formatPublishDateTime } from "../date-time-format";
 import { getPostPreviewAction, type PostPreviewData } from "./actions";
 import {
   pickFocusTarget,
@@ -95,19 +92,6 @@ function usePostPreviewData(postId: string): LoadState {
   return state;
 }
 
-const headerDateFormatter = (timeZone: string) =>
-  getZonedFormatter(
-    "id-ID",
-    { day: "numeric", month: "short", year: "numeric" },
-    timeZone,
-  );
-
-/** Date and time of the preview; the time is the chips' HH:mm (24 h, ":"). */
-const headerFormatter = (timeZone: string) => ({
-  format: (date: Date) =>
-    `${headerDateFormatter(timeZone).format(date)} ${chipTimeFormatter(timeZone).format(date)}`,
-});
-
 const HEADLINE_PREFIX = {
   published: "Dipublikasikan",
   failed: "Gagal",
@@ -142,14 +126,17 @@ function PopoverBody({
   const showMetrics = item.status === ContentStatus.Published;
 
   return (
+    // The popover is capped to the space Radix leaves on screen: the header
+    // and the footer stay, the middle scrolls (a playing video made it
+    // 648 px tall and hid Retry, T-294 re-check).
     // eslint-disable-next-line no-restricted-syntax -- T-288: Tailwind layout (ADR-097)
-    <div className="flex flex-col">
+    <div className="flex min-h-0 flex-1 flex-col">
       {/* eslint-disable-next-line no-restricted-syntax -- T-288 */}
-      <div className="flex items-center gap-2 border-b border-border px-3 py-2 text-sm">
+      <div className="flex shrink-0 items-center gap-2 border-b border-border px-3 py-2 text-sm">
         <b className="min-w-0 truncate">
           {when.kind === "none"
             ? "Tanpa tanggal"
-            : `${HEADLINE_PREFIX[when.kind]} ${headerFormatter(timeZone).format(when.date)}`}
+            : `${HEADLINE_PREFIX[when.kind]} ${formatPublishDateTime(when.date, timeZone)}`}
         </b>
         {target ? (
           <Badge variant="outline">
@@ -169,7 +156,7 @@ function PopoverBody({
       </div>
 
       {/* eslint-disable-next-line no-restricted-syntax -- T-288 */}
-      <div className="flex flex-col gap-3 p-3">
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-contain p-3">
         {target ? (
           // eslint-disable-next-line no-restricted-syntax -- T-288
           <div className="flex items-center gap-2">
@@ -254,14 +241,14 @@ function PopoverBody({
         when.kind === "scheduled" ? (
           <p className="text-xs text-muted-foreground">
             Akan dipublikasikan otomatis{" "}
-            {headerFormatter(timeZone).format(when.date)}.
+            {formatPublishDateTime(when.date, timeZone)}.
           </p>
         ) : null}
       </div>
 
       {showMetrics ? (
         // eslint-disable-next-line no-restricted-syntax -- T-288
-        <div className="flex items-center gap-2 border-t border-border px-3 py-2">
+        <div className="flex shrink-0 items-center gap-2 border-t border-border px-3 py-2">
           {metric ? (
             // eslint-disable-next-line no-restricted-syntax -- T-288
             <div className="flex flex-1 flex-wrap gap-2">
@@ -301,7 +288,7 @@ function PopoverBody({
       ) : null}
 
       {/* eslint-disable-next-line no-restricted-syntax -- T-288 */}
-      <div className="flex items-center justify-end gap-2 border-t border-border px-3 py-2">
+      <div className="flex shrink-0 items-center justify-end gap-2 border-t border-border px-3 py-2">
         {action === "go-to-post" ? (
           target?.platformPostUrl ? (
             <Button asChild variant="outline" size="sm">
@@ -448,9 +435,10 @@ export function PostPreviewPopover({
         <PopoverContent
           align={align}
           side={resolvedSide}
+          avoidCollisions
           collisionPadding={12}
-          // eslint-disable-next-line tailwindcss/no-arbitrary-value -- T-288: design width 400 px, capped to the viewport
-          className="w-100 max-w-[calc(100vw-1.5rem)] gap-0 overflow-hidden p-0"
+          // eslint-disable-next-line tailwindcss/no-arbitrary-value -- T-288: design width 400 px, capped to the viewport; the height is capped to the room Radix measures on screen
+          className="max-h-(--radix-popover-content-available-height) w-100 max-w-[calc(100vw-1.5rem)] gap-0 overflow-hidden p-0"
           aria-label="Pratinjau posting"
         >
           <PopoverContentBody

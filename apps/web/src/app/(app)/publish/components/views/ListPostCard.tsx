@@ -131,6 +131,11 @@ export function ListPostCard({
       postId={preview.postId}
       connectedAccountId={preview.connectedAccountId}
       onCancelSchedule={preview.onCancelSchedule}
+      // A List card is full width: beside it there is no room for the
+      // 400 px popover (cut off at 1280 px, T-294 re-check), so it opens
+      // below the caption at every width.
+      side="bottom"
+      align="start"
     >
       {openButton}
     </PostPreviewPopover>

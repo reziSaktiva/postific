@@ -65,9 +65,9 @@ describe("previewDate", () => {
     });
   });
 
-  it("uses the failure time, then the schedule, for a failed post", () => {
-    const failedAt = new Date("2026-11-21T00:00:00Z");
-    const scheduledAt = new Date("2026-11-20T00:00:00Z");
+  it("uses the schedule, then the failure time, for a failed post", () => {
+    const failedAt = new Date("2026-11-03T00:00:00Z");
+    const scheduledAt = new Date("2026-12-12T06:00:00Z");
     expect(
       previewDate({
         ...base,
@@ -75,10 +75,25 @@ describe("previewDate", () => {
         failedAt,
         scheduledAt,
       }),
-    ).toEqual({ kind: "failed", date: failedAt });
-    expect(
-      previewDate({ ...base, status: ContentStatus.Failed, scheduledAt }),
     ).toEqual({ kind: "failed", date: scheduledAt });
+    expect(
+      previewDate({ ...base, status: ContentStatus.Failed, failedAt }),
+    ).toEqual({ kind: "failed", date: failedAt });
+  });
+
+  it("gives a Board card (no failure time) the same date as its preview", () => {
+    const scheduledAt = new Date("2026-12-12T06:00:00Z");
+    const failedAt = new Date("2026-11-03T00:00:00Z");
+    const card = { ...base, status: ContentStatus.Failed, scheduledAt };
+    expect(previewDate(card)).toEqual(previewDate({ ...card, failedAt }));
+    expect(previewDate(card)).toEqual({ kind: "failed", date: scheduledAt });
+  });
+
+  it("falls back to the update time for a failed post with no schedule or failure time", () => {
+    expect(previewDate({ ...base, status: ContentStatus.Failed })).toEqual({
+      kind: "failed",
+      date: base.updatedAt,
+    });
   });
 
   it("uses the schedule for a scheduled post and says none for a draft", () => {

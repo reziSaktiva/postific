@@ -77,6 +77,9 @@ export function PublishToolbar({
       className={cn(
         "flex min-h-9 flex-wrap items-center justify-between gap-x-3 gap-y-2",
         view === "list" && "border-b border-border pb-1.5",
+        // Board has only the time zone picker here, which is hidden below
+        // `sm`; the empty row is hidden with it (T-292 re-check).
+        view === "board" && "max-sm:hidden",
       )}
     >
       {/* eslint-disable-next-line no-restricted-syntax -- T-286, same as above */}
