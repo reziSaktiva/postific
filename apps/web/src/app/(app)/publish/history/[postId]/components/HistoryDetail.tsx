@@ -11,7 +11,6 @@ import type {
 } from "@/domains/publishing";
 import type { MediaThumbnailDto } from "@/domains/media";
 import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
-import { getZonedFormatter } from "@/lib/time/zoned-formatter";
 import { formatRelativeTime } from "@/lib/utils/format-relative-time";
 import { linkifyCaption } from "@/lib/linkify";
 
@@ -48,21 +47,13 @@ import {
 } from "../../history-status";
 import { RetryTargetButton } from "./RetryTargetButton";
 import { PLATFORM_ICON } from "../../../../components/platform-icons";
+import { formatPublishDateTime } from "../../../components/date-time-format";
 import { publishedViaPlatforms } from "../../../components/preview/post-preview-model";
 
-/** Formatter tanggal+jam berzona pengguna (T-147), ter-cache per zona. */
-const dateTimeFormatter = (timeZone: string) =>
-  getZonedFormatter(
-    "id-ID",
-    {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    },
-    timeZone,
-  );
+/** Date and time in the user's zone (T-147), HH:mm as everywhere in Publish (S-008). */
+const dateTimeFormatter = (timeZone: string) => ({
+  format: (date: Date) => formatPublishDateTime(date, timeZone, "long"),
+});
 
 /**
  * Label judul Dialog (T-111.1 LOCKED PATTERN) — Published pakai

@@ -247,11 +247,16 @@ export function ListFilterPopover({
               ))}
             </RadioGroup>
           </fieldset>
-          {activeFilters > 0 ? (
-            <Button variant="ghost" size="sm" onClick={filter.reset}>
-              Reset filter
-            </Button>
-          ) : null}
+          {/* Always shown, disabled while no filter is set (design). */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="self-end"
+            onClick={filter.reset}
+            disabled={activeFilters === 0}
+          >
+            Reset filter
+          </Button>
         </div>
       </PopoverContent>
     </Popover>
