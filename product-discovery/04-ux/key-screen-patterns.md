@@ -133,15 +133,17 @@ Users do not finish work on Home — they are directed to the right work screen.
 
 | Field | Value |
 | ----- | ----- |
-| IA Path | `Publish → Calendar` |
+| IA Path | `Publish → Calendar` (one of the three views of the Publish page, ADR-165) |
 | Primary User | Raka (schedule verification, quick edits) |
 | Secondary User | Maya (schedule visibility without interaction) |
-| Entry Points | Sidebar → Publish (default tab); Home → Today's Schedule |
+| Entry Points | Sidebar → Publish (the default view the first time; afterwards Publish reopens the last view used, ADR-165); Home → Today's Schedule |
 | UX Principles | UXP-02, UXP-03, UXP-04, UXP-06 |
 
 ### Goal
 
 The Calendar is the **default view** when users enter Publish. This screen gives a visual picture of the content schedule for the current period and is the meeting point between Raka's execution needs and Maya's visibility needs.
+
+**Amended by ADR-165 (2026-11-24, Publish redesign in the Buffer pattern, spec S-008):** the Calendar is one of three views (Calendar · List · Board) on one Publish page, not a route tab. It opens on **Month** the first time (F01). Clicking a post opens the per-account Post Preview, where a published video plays inline (F04, F08). The Filter keeps Channels and Status, and a view-only timezone picker is added (F09). A future day has a schedule button on hover. Tablet uses icon-only chips with "+N"; phone uses a 3-day view.
 
 ---
 
@@ -149,16 +151,16 @@ The Calendar is the **default view** when users enter Publish. This screen gives
 
 | ID | Function | Description | Principle |
 | -- | -------- | ----------- | --------- |
-| KSP-02-F01 | Weekly View Default | The Calendar shows all scheduled content in the current week's range | UXP-02, UXP-03 |
+| KSP-02-F01 | Month View Default | ~~The Calendar shows all scheduled content in the current week's range~~ — **Amended by ADR-165:** the Calendar opens on the current month the first time; afterwards it reopens the range last used | UXP-02, UXP-03 |
 | KSP-02-F02 | Visual Status per Item | **Updated (UI polish, 2026-08-27) — only 3 of the 6 statuses can appear in the grid**: Scheduled, Published, Failed. Draft/In Review/Ready to Schedule items never appear in the Calendar because they do not yet have a `scheduledAt`/`publishedAt` to plot onto a date/hour cell (consistent since T-033.1) — so it does not "show the status" of those other 3, they simply never have a row to show. The status filter dropdown (KSP-02-F09) still shows all 6 options for consistency with the Queue, even though choosing Draft/In Review/Ready to Schedule always yields an empty grid. Visual representation: `Badge` on screens >768px, `StatusDot` (a colored dot, no text label — detail via tap→Popover KSP-02-F08) on screens ≤768px because `Badge` has no size control and overflows in narrow columns | UXP-04, UXP-06 |
 | KSP-02-F03 | Account Identity per Item | Each item shows the identity of the destination account (platform + account name) | UXP-04 |
 | KSP-02-F10 | Content Type Indicator | **New (UI polish, 2026-08-27).** Each item shows a content type indicator — Post/Reel/Story/Pin — from the `contentFormat` field that already exists in the domain model (`CalendarItemTargetRecord`, not a new field). Representation: `Badge` on screens >768px, a compact icon on screens ≤768px (same breakpoint pattern as KSP-02-F02) | UXP-04 |
-| KSP-02-F04 | Click Item → Popover → Draft Editor | ~~Clicking an item opens the Draft Editor directly~~ — **Amended by ADR-090, component corrected by ADR-091**: clicking an item opens a `Popover` (KSP-02-F08) first; a CTA inside the Popover opens the Draft Editor. Applies to the Calendar only — Queue and Drafts remain click → straight to the Draft Editor (unchanged) | UXP-01 |
+| KSP-02-F04 | Click Item → Popover → Draft Editor | ~~Clicking an item opens the Draft Editor directly~~ — **Amended by ADR-090, component corrected by ADR-091**: clicking an item opens a `Popover` (KSP-02-F08) first; a CTA inside the Popover opens the Draft Editor. Applies to the Calendar only — Queue and Drafts remain click → straight to the Draft Editor (unchanged) **Amended by ADR-165:** a click opens the Post Preview in Calendar, Queue, History and Board; Drafts and Approvals still open the Draft Editor directly. | UXP-01 |
 | KSP-02-F05 | Change Period | Users move to another week/month through the Today button, ‹ › (prev/next) navigation, and the Week/Month view toggle. The period label adjusts (e.g. "14–20 Jul" for a week within 1 month, "28 Jul – 3 Ags" when the week spans 2 months; "Agustus 2026" for the month view). The period state (`view=week\|month`, `date=<timestamp>`) is carried through query params on the single route `/publish/calendar` (adds no new route, consistent with ADR-046) | UXP-03 |
 | KSP-02-F06 | Prominent Failed Status | Items with status Failed are shown with a different visual and cannot be ignored | UXP-04 |
 | KSP-02-F07 | Disconnected Account Warning | If the account in an item has status Disconnected, a warning indicator is shown on that item | UXP-04, UXP-06 |
 | KSP-02-F08 | Post Summary Popover | **New (ADR-090, component corrected by ADR-091: Popover, not HoverCard — click trigger, has a controlled `isOpen`, the CTA is safe inside it).** Clicking a Calendar item opens a `Popover` (anatomy: Header + Body + Trigger) containing: avatar + account name, platform, caption snippet, media thumbnail (if any), status chip (reuse KSP-02-F02). For posts that are already Published, add a metrics section (Views→`impressions`, Reach→`reach`, Replies→`comments`, Eng. Rate→`engagementRate` — existing `PostMetrics` fields, no new fields) + a "Go to post" link. The CTA inside the Popover opens the Draft Editor (modal, ADR-052) for that item | UXP-01, UXP-04 |
-| KSP-02-F09 | Status & Channel Filter | A post status filter dropdown ("All Posts" / per status) and an account filter (Channels) above the grid. The Tags and per-view Timezone filters from the Buffer reference are **not adopted** (there is no Tag concept in the domain model; Timezone is not a per-view setting in the backlog — consistent with decision T-032.0 for the Queue) | UXP-03 |
+| KSP-02-F09 | Status & Channel Filter | A post status filter dropdown ("All Posts" / per status) and an account filter (Channels) above the grid. The Tags and per-view Timezone filters from the Buffer reference are **not adopted** (there is no Tag concept in the domain model). ~~Timezone is not a per-view setting in the backlog — consistent with decision T-032.0 for the Queue~~ — **Amended by ADR-165:** a view-only timezone picker is added; it starts at the Profile timezone and never writes the Profile | UXP-03 |
 
 ---
 
@@ -185,7 +187,7 @@ The Calendar is the **default view** when users enter Publish. This screen gives
 
 **Tab bar zone:** The Calendar, Queue, Drafts, History tabs are always visible at the top.
 
-**Period control zone:** The Today button, ‹ › (prev/next) navigation, period label, Channels + Status filters, Week/Month toggle. Default: the current week (KSP-02-F01), state in query params (KSP-02-F05).
+**Period control zone:** The Today button, ‹ › (prev/next) navigation, period label, Channels + Status filters, Week/Month toggle. Default: the current month the first time (KSP-02-F01, ADR-165), state in query params (KSP-02-F05).
 
 **Grid zone:** Week view = a grid of days × hour slots. Month view = a grid of days × the full dates of the month with "N More" for crowded cells. Each item shows the account thumbnail and status (KSP-02-F02); content type indicator (KSP-02-F10). **Caption snippet only in the Week view** — the Month view (UI polish, 2026-08-27) deliberately does not show the caption because 1 cell can hold many items at once, with space prioritized for avatar+name+time+status. Clicking an item opens the Popover (KSP-02-F08). The grid also has vertical divider lines between day columns (a color matching the Card border, softer than the horizontal lines between rows/slots) — UI polish, 2026-08-27.
 
@@ -215,14 +217,16 @@ The Calendar is the **default view** when users enter Publish. This screen gives
 
 | Field | Value |
 | ----- | ----- |
-| IA Path | `Publish → Queue` |
+| IA Path | `Publish → List → Queue` (ADR-165) |
 | Primary User | Raka |
-| Entry Points | Queue tab within Publish |
+| Entry Points | Queue tab in the List view of Publish |
 | UX Principles | UXP-01, UXP-04, UXP-05, UXP-06 |
 
 ### Goal
 
 The Queue shows content that is **already scheduled** (status `Scheduled`), grouped by date and then by hour, ordered purely by publish time — Raka scans forward schedule coverage and identifies gaps quickly. Items that failed to publish (`Failed`) are no longer shown here — as soon as the publish attempt finishes, the item moves to **History** (a KSP outside the 8 critical screens, T-034), which still shows heterogeneous status per item.
+
+**Amended by ADR-165 (2026-11-24, spec S-008):** the Queue is a tab in the List view (Queue · Drafts · Approvals · History), grouped by day with the time on the left. A click opens the Post Preview instead of the Draft Editor. When the Queue is empty it shows best-time suggestions per connected account, calculated by Postific from that account's own published posts and `AnalyticsPostMetric`; an account with too little history gets none. The MCP source filter and badge (F08) stay.
 
 **Amendment 2026-08-19 (ADR-083):** the scope of this screen was deliberately narrowed from the original design — the Queue is now purely a "linear queue by publish time" (uniform Scheduled status), not a mixed list of various statuses with manual ordering ability. This change was made after King Rezi asked for alignment with the Buffer pattern (`publish.buffer.com/schedule`).
 
@@ -297,14 +301,16 @@ The Queue shows content that is **already scheduled** (status `Scheduled`), grou
 
 | Field | Value |
 | ----- | ----- |
-| IA Path | `Publish → Drafts` |
+| IA Path | `Publish → List → Drafts` (ADR-165) |
 | Primary User | Raka |
-| Entry Points | Drafts tab within Publish; Empty state in Queue/Calendar (New Post CTA) |
+| Entry Points | Drafts tab in the List view of Publish; Empty state in Queue/Calendar (New Post CTA) |
 | UX Principles | UXP-01, UXP-03, UXP-05, UXP-06 |
 
 ### Goal
 
 Drafts is where Raka stores and accesses content that is not yet scheduled — both newly created content and content deliberately pulled back from the Queue.
+
+**Amended by ADR-165 (2026-11-24, spec S-008):** Drafts is a tab in the List view. It lists `Draft` and `Ready to Schedule` content; a click still opens the Draft Editor. A sibling tab **Approvals** lists `In Review` content with Mark Ready and Back to Draft (existing transitions, not an approval workflow, `roles-permissions.md` rule 4). On the Board, `Ready to Schedule` cards sit in the Draft column with a badge. The MCP source filter and badge (F06) stay.
 
 ---
 

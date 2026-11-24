@@ -176,8 +176,8 @@ Each flow has this structure:
 
 ### Happy Path
 
-1. Raka opens **Publish → Calendar** — default view: weekly view.
-2. The Calendar shows all content scheduled in the current week, visually distinguished per account and status — **only 3 of the 6 canonical statuses can appear in the grid: `Scheduled`, `Published`, `Failed`** (KSP-02-F02 amendment, UI polish 2026-08-27). `Draft`, `In Review`, and `Ready to Schedule` never appear in the Calendar because they do not yet have a `scheduledAt`/`publishedAt` to plot onto a date/hour cell — items with those statuses remain visible in **Publish → Drafts**.
+1. Raka opens **Publish → Calendar** — default view: month view the first time, then the range last used (ADR-165).
+2. The Calendar shows all content scheduled in the current period (the month by default, ADR-165), visually distinguished per account and status — **only 3 of the 6 canonical statuses can appear in the grid: `Scheduled`, `Published`, `Failed`** (KSP-02-F02 amendment, UI polish 2026-08-27). `Draft`, `In Review`, and `Ready to Schedule` never appear in the Calendar because they do not yet have a `scheduledAt`/`publishedAt` to plot onto a date/hour cell — items with those statuses remain visible in **Publish → Drafts**.
 3. Raka scans the content distribution: which account has the most / the fewest, which days are empty.
 4. Raka clicks an item in the Calendar to open the Draft Editor and edit if needed.
 5. Maya (in her own session) opens **Home → Today's Schedule** or goes straight to **Publish → Calendar**.

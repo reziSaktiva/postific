@@ -3809,7 +3809,8 @@ Design `ScreenPublishRedesain` confirmed by King Rezi 2026-11-24 in the Postific
 
 **What to build:** the Calendar view matches the confirmed design on desktop.
 
-- [ ] Toolbar: previous and next, range label, Today, Month or Week; Filter (channels), "No date" (side panel listing posts without a date), options menu, timezone picker.
+- [ ] The Calendar opens on Month the first time (amends KSP-02-F01); after that it reopens the range last used.
+- [ ] Toolbar: previous and next, range label, Today, Month or Week; Filter (channels and status, as KSP-02-F09), "No date" (side panel listing posts without a date), options menu, timezone picker.
 - [ ] Month: up to 3 chips per day (platform icon, time, status icon, thumbnail with ▶ for video), then "+N lainnya" opening a popover with that day's posts.
 - [ ] A future day shows a schedule button on hover that opens the Draft Editor with that date set.
 - [ ] Week: hourly rows with a current-time line; the week starts on Monday.
@@ -3838,7 +3839,7 @@ Design `ScreenPublishRedesain` confirmed by King Rezi 2026-11-24 in the Postific
 - [ ] The dialog shows the same content, the result of every account of the same post, and "Published via <network>". No "Add note".
 - [ ] A published video plays inline in the popover and the dialog with the native video player (play/pause, time, progress, volume, fullscreen).
 - [ ] When there is no playable video URL (for example an imported post with only a stored thumbnail), the thumbnail shows with "Go to post" and no play control.
-- [ ] The same preview opens from Calendar chips, List cards and Board cards.
+- [ ] The same preview opens from Calendar chips, Queue and History cards, and Board cards. Drafts and Approvals cards open the Draft Editor directly (ADR-165 decision 6).
 
 **Blocked by:** T-287
 
@@ -3863,6 +3864,8 @@ Design `ScreenPublishRedesain` confirmed by King Rezi 2026-11-24 in the Postific
 - [ ] Approvals: `In Review` content with Mark Ready (`In Review` → `Ready to Schedule`) and Back to Draft (`In Review` → `Draft`), through the existing status service; the same roles as today; nothing is blocked waiting for approval.
 - [ ] History: published and failed posts as cards with metrics, "Published via", Go to post; failed posts show the error and Retry.
 - [ ] Grouping for the Approvals list has unit tests next to the existing queue and history grouping.
+- [ ] Queue, Drafts and History keep the MCP source filter and AI-client badge (KSP-D20, T-157); Approvals shows the badge.
+- [ ] A click opens the post preview in Queue and History, and the Draft Editor directly in Drafts and Approvals.
 - [ ] The empty Queue shows a normal empty state with "+ New Post" until T-291 adds suggestions.
 
 **Blocked by:** T-286
@@ -3885,7 +3888,7 @@ Design `ScreenPublishRedesain` confirmed by King Rezi 2026-11-24 in the Postific
 
 - [ ] Columns with counts and horizontal scroll; grouping by Status only.
 - [ ] `Ready to Schedule` cards sit in Draft with a "Ready to Schedule" badge (unit test for the column grouping).
-- [ ] Cards show date or "No date", status badge, account with platform badge, caption, thumbnail, and an actions menu on hover.
+- [ ] Cards show date or "No date", status badge, account with platform badge, caption, thumbnail, the AI-client badge for items created through MCP, and an actions menu on hover.
 - [ ] Clicking a card opens the post preview from T-288.
 
 **Blocked by:** T-286, T-288
@@ -3940,7 +3943,7 @@ Design `ScreenPublishRedesain` confirmed by King Rezi 2026-11-24 in the Postific
 
 ---
 
-### T-293 · Align the UX baseline with the Publish redesign
+### T-293 · Keep the UX baseline in line with the Publish build
 
 | Field            | Value                                                                                                       |
 | ---------------- | ----------------------------------------------------------------------------------------------------------- |
@@ -3952,10 +3955,9 @@ Design `ScreenPublishRedesain` confirmed by King Rezi 2026-11-24 in the Postific
 | **Docs**         | ADR-165, `key-screen-patterns.md`, `information-architecture.md`, `navigation-patterns.md`, `user-flows.md` |
 | **Depends**      | T-286                                                                                                       |
 
-**What to build:** the UX baseline describes the Publish page as ADR-165 decides, without copying the spec.
+**What to build:** the UX baseline was aligned with ADR-165 in the same PR as the ADR (King Rezi's decision Q15, `AGENTS.md` rule 14): KSP-02, KSP-03, KSP-04, the Publish part of `information-architecture.md`, the Publish navigation in `navigation-patterns.md`, and the Calendar flow in `user-flows.md`. This ticket only records what the build changes later.
 
-- [ ] KSP-02, KSP-03 and KSP-04 note the one-page structure, the List tabs (including Approvals and History), the Board, the per-account preview with inline video, and the best-time empty Queue, each with a pointer to ADR-165.
-- [ ] The Publish part of `information-architecture.md` and any Publish tab wording in `navigation-patterns.md` and `user-flows.md` match the new structure.
+- [ ] Any behavior that changes during T-286 to T-292 is written back into the baseline before the wave's PR.
 - [ ] `context/` pointers change only where they point to Publish screens.
 - [ ] `bun run docs:check` reports no findings.
 

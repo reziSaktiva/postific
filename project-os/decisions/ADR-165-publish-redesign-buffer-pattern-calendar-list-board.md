@@ -2,7 +2,7 @@
 
 ### Title
 
-Publish follows the Buffer Publish pattern: one page with a Calendar · List · Board switcher, an Approvals view of `In Review`, inline video in the post preview, and best-time suggestions for an empty Queue (amends KSP-02, KSP-03, KSP-04, the Publish part of the Information Architecture, and KSP-02-F09 / decision T-032.0 on the per-view timezone)
+Publish follows the Buffer Publish pattern: one page with a Calendar · List · Board switcher, an Approvals view of `In Review`, inline video in the post preview, and best-time suggestions for an empty Queue (amends KSP-02, KSP-03, KSP-04, the Publish part of the Information Architecture, KSP-02-F01 (default range), KSP-02-F04 (click behavior), KSP-02-F09 / decision T-032.0 on the per-view timezone, and ADR-163 on the language of new ADRs)
 
 ### Status
 
@@ -35,12 +35,15 @@ Outstand was checked for best-time data on 2026-11-24 through the Outstand MCP (
 3. **Approvals is a lightweight view of the existing `In Review` status**, in the List tab and as a Board column, with the transitions that already exist (`In Review` → `Ready to Schedule`, `In Review` → `Draft`). No approvers, no enforcement, no new permission. Anyone can still skip `In Review`. This stays inside `roles-permissions.md` rule 4 (no layered Approval Workflow in MVP).
 4. **Board is part of this redesign.** `Ready to Schedule` posts sit in the Draft column with a "Ready to Schedule" badge; there is no separate column. Board grouping is by Status only.
 5. **A published video plays inline** in the post preview popover and the expanded modal, with the browser's native video player, unlike Buffer.
-6. **The post preview is per account**, matching today's per-target calendar chips; Expand also lists the result of every account of the same post (the History Detail pattern). Buffer's "Add note" is left out (Postific has no notes).
+6. **The post preview is per account**, matching today's per-target calendar chips; Expand also lists the result of every account of the same post (the History Detail pattern). Buffer's "Add note" is left out (Postific has no notes). **Clicking a post** opens the preview in Calendar, Queue, History and Board; in Drafts and Approvals it opens the Draft Editor directly (amends KSP-02-F04, which kept Queue on direct edit).
 7. **The page timezone picker is view-only.** It changes how times are shown on Publish; the user's Profile timezone (T-147) stays the default and is not changed by it. This reverses the part of KSP-02-F09 that left a per-view timezone "not adopted" (consistent with decision T-032.0 for the Queue); the rest of KSP-02-F09 is unchanged by this point.
 8. **"Save current view" is left out** of this redesign. Publish reopens the last view used.
 9. **An empty Queue suggests best times calculated by Postific**, per connected account, from that account's own published posts: publish time grouped by weekday and hour in the user's timezone, ranked by engagement from `AnalyticsPostMetric`. No new Outstand capability is used. An account without enough history shows no suggestion. Thresholds and ranking are set in the spec.
-10. **Responsive behavior follows the design**: icon rail and icon-only month chips on tablet; top bar, "+" New Post, icon-only switcher, 3-day calendar and dropdown List tabs on phone.
-11. **Design first, then code.** Code follows only through tickets of spec S-008 (`AGENTS.md` hard rules 10 and 13).
+10. **Calendar filters and default range.** The Calendar Filter keeps both Channels and Status, as KSP-02-F09 today. The Calendar opens on **Month** the first time (amends KSP-02-F01, which defaulted to the current week); after that it reopens the range last used.
+11. **MCP source badge and filter stay.** The List tabs Queue, Drafts and History keep the AI-client badge and the source filter (Semua / Dibuat manual / Lewat MCP) of KSP-D20 and T-157; Approvals and Board cards also show the badge. The Calendar still has no badge.
+12. **Responsive behavior follows the design**: icon rail and icon-only month chips on tablet; top bar, "+" New Post, icon-only switcher, 3-day calendar and dropdown List tabs on phone.
+13. **New ADRs are written in English**, starting with this one; older ADR files keep their Bahasa Indonesia prose (amends ADR-163 and the S-007 note that an ADR uses the document language of its time). The rule text lives in `AGENTS.md` rule 8.
+14. **Design first, then code.** Code follows only through tickets of spec S-008 (`AGENTS.md` hard rules 10 and 13).
 
 ### King Rezi's answers (2026-11-24)
 
@@ -56,6 +59,12 @@ Outstand was checked for best-time data on 2026-11-24 through the Outstand MCP (
 | Q8  | Page timezone picker                        | View only                                                                                                   |
 | Q9  | Save current view                           | Leave it out for now                                                                                        |
 | Q10 | Post preview scope                          | Per account, with the results of every account in Expand                                                    |
+| Q11 | Calendar status filter (audit B1)           | Keep it next to Channels                                                                                    |
+| Q12 | Calendar default range (audit B2)           | Month                                                                                                       |
+| Q13 | MCP source badge and filter (audit B3)      | Keep in the List tabs; add the badge to Board cards; still none on the Calendar                             |
+| Q14 | What a click on a post does (audit B4)      | Drafts and Approvals open the Draft Editor; Calendar, Queue, History and Board open the preview             |
+| Q15 | Rule 14 update order (audit B5)             | Align the UX baseline inside the same PR as this ADR                                                        |
+| Q16 | Language of new ADRs (audit B6)             | English                                                                                                     |
 
 Design details accepted with the confirmed design, not asked separately: "+N lainnya" opens a popover list of that day's posts; Group by offers Status only; around 1024 px calendar chip thumbnails are hidden to avoid overflow; the week starts on Monday as in today's Calendar.
 
@@ -81,7 +90,7 @@ Design details accepted with the confirmed design, not asked separately: "+N lai
 ### Consequences
 
 - Code changes in `apps/` and `packages/` go through tickets of spec S-008. No code in the session that wrote this ADR.
-- KSP-02, KSP-03, KSP-04 and the Publish part of `information-architecture.md` (and `navigation-patterns.md` where it names the Publish tabs) are aligned in an S-008 ticket, not now.
+- KSP-02, KSP-03, KSP-04 and the Publish part of `information-architecture.md` are aligned in the same PR as this ADR (Q15, `AGENTS.md` rule 14). T-293 covers only what the build reveals later.
 - The best-time calculation reads `AnalyticsPostMetric` and post publish times through the `analytics` domain's public API; the Publish screen does not query analytics tables directly (`AGENTS.md` hard rule 5). It inherits the freshness of the analytics ingestion; it adds no Outstand call.
 - Inline video needs a playable media URL for published posts. Where Postific only holds a thumbnail (imported posts keep small thumbnails, ADR-158), the preview shows the thumbnail with "Go to post"; the spec covers this.
 - Existing route URLs `/publish/calendar`, `/publish/queue`, `/publish/drafts`, `/publish/history` keep working (redirect or map to the matching view) so links and the MCP surface do not break; the spec sets how.

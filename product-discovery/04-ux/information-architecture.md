@@ -124,27 +124,30 @@ Home does not replace the work screens. Home is an orientation screen.
 The main daily work area. This is the biggest section in the product.
 
 ```
-Publish
-├── Calendar                  — view of content schedule per day / week / month
-│   └── Draft Item            — open an item from the calendar → goes into the Draft Editor
-├── Queue                     — queue of scheduled posts, ordered purely by publish time (ADR-083; a per-account filter is available as a separate control, not the main grouping structure)
-│   └── Draft Item            — open an item from the queue → goes into the Draft Editor
-├── Drafts                    — all drafts not yet scheduled
-│   └── Draft Editor          — create / edit content
-│       ├── Caption Editor    — caption writing area
-│       ├── Media Attachment  — attach images / video
-│       ├── Account Selector  — choose destination accounts through the channel row: Channels popover, account chips (ADR-155)
-│       ├── Content Format    — Post / Reel / Story / Pin per account (ADR-039)
-│       ├── Per-Network Block — accordion containing the format, platform fields, and inline validation (ADR-155)
-│       ├── Live Preview      — per-platform preview in the right panel (ADR-155)
-│       ├── Schedule Picker   — set the publish time
-│       ├── Publish Now       — publish immediately without a schedule, all roles (Account Owner/Admin/Creator, ADR-047/ADR-074)
-│       └── Status Indicator  — draft / in review / ready to schedule / scheduled / published / failed
-└── History                   — history of content that has been published
-    └── Post Detail           — post detail + basic performance
+Publish                       — one page with a view switcher Calendar · List · Board (ADR-165); reopens the last view used
+├── Calendar                  — month (default the first time) / week; 3-day on phone
+│   └── Post Preview          — popover per account; Expand opens the full dialog; a published video plays inline
+├── List                      — line tabs Queue · Drafts · Approvals · History, grouped by day
+│   ├── Queue                 — scheduled posts, ordered purely by publish time (ADR-083); a per-account filter is a separate control; empty → best-time suggestions per account (ADR-165)
+│   ├── Drafts                — Draft and Ready to Schedule; a click opens the Draft Editor
+│   ├── Approvals             — In Review (a lightweight view, existing transitions only); a click opens the Draft Editor
+│   └── History               — published and failed posts; a click opens the Post Preview
+├── Board                     — columns Draft · Approvals · Scheduled · Published · Failed; a click opens the Post Preview
+├── Draft Editor              — create / edit content (opened from New Post, Drafts, Approvals, or Edit in the Post Preview)
+│   ├── Caption Editor        — caption writing area
+│   ├── Media Attachment      — attach images / video
+│   ├── Account Selector      — choose destination accounts through the channel row: Channels popover, account chips (ADR-155)
+│   ├── Content Format        — Post / Reel / Story / Pin per account (ADR-039)
+│   ├── Per-Network Block     — accordion containing the format, platform fields, and inline validation (ADR-155)
+│   ├── Live Preview          — per-platform preview in the right panel (ADR-155)
+│   ├── Schedule Picker       — set the publish time
+│   ├── Publish Now           — publish immediately without a schedule, all roles (Account Owner/Admin/Creator, ADR-047/ADR-074)
+│   └── Status Indicator      — draft / in review / ready to schedule / scheduled / published / failed
+└── Post Detail               — the expanded Post Preview: per-account results + basic performance (old `/publish/history/[postId]` links land here)
 ```
 
 **Primary user:** Raka (daily publishing execution).
+**Publish structure (ADR-165, 2026-11-24):** the former route tabs Calendar / Queue / Drafts / History became one page with the Calendar · List · Board switcher; the old addresses still land on the matching view. The page timezone picker only changes the display; the Profile timezone stays the default.
 **Note:** There is no built-in AI (ADR-138); the user's AI creates drafts through MCP. The Content Format Selector follows the platform matrix (IG/FB: Post·Reel·Story; Pinterest: Pin; TikTok & others: Post). Publish Now is available alongside the Schedule Picker for all roles — Account Owner, Admin, and Creator (ADR-047, ADR-074, `roles-permissions.md`).
 
 ---
