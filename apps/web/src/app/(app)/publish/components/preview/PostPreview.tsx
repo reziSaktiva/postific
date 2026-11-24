@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/popover";
 import { Spinner } from "@/components/ui/spinner";
 import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { getZonedFormatter } from "@/lib/time/zoned-formatter";
 
 import { useDraftEditor } from "../../../components/draft-editor/Context";
@@ -51,7 +52,10 @@ import {
   formatMetricCount,
   MetricTile,
 } from "../../../components/post-metric-tile";
-import { CONTENT_FORMAT_LABEL } from "../../calendar/components/calendar-grid-shared";
+import {
+  CONTENT_FORMAT_LABEL,
+  chipTimeFormatter,
+} from "../../calendar/components/calendar-grid-shared";
 import { HistoryDetail } from "../../history/[postId]/components/HistoryDetail";
 import { RetryTargetButton } from "../../history/[postId]/components/RetryTargetButton";
 import { getPostPreviewAction, type PostPreviewData } from "./actions";
@@ -90,18 +94,18 @@ function usePostPreviewData(postId: string): LoadState {
   return state;
 }
 
-const headerFormatter = (timeZone: string) =>
+const headerDateFormatter = (timeZone: string) =>
   getZonedFormatter(
     "id-ID",
-    {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    },
+    { day: "numeric", month: "short", year: "numeric" },
     timeZone,
   );
+
+/** Date and time of the preview; the time is the chips' HH:mm (24 h, ":"). */
+const headerFormatter = (timeZone: string) => ({
+  format: (date: Date) =>
+    `${headerDateFormatter(timeZone).format(date)} ${chipTimeFormatter(timeZone).format(date)}`,
+});
 
 const HEADLINE_PREFIX = {
   published: "Dipublikasikan",
@@ -370,6 +374,7 @@ export interface PostPreviewPopoverProps {
   /** Opens the Cancel Schedule confirmation of the page; without it the menu has no such item. */
   onCancelSchedule?: (postId: PostId) => void;
   align?: "start" | "center" | "end";
+  /** Default: below the trigger on a phone, to the right otherwise. */
   side?: "top" | "right" | "bottom" | "left";
 }
 
@@ -387,8 +392,10 @@ export function PostPreviewPopover({
   children,
   onCancelSchedule,
   align = "start",
-  side = "right",
+  side,
 }: PostPreviewPopoverProps) {
+  const isMobile = useIsMobile();
+  const resolvedSide = side ?? (isMobile ? "bottom" : "right");
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -398,7 +405,7 @@ export function PostPreviewPopover({
         <PopoverTrigger asChild>{children}</PopoverTrigger>
         <PopoverContent
           align={align}
-          side={side}
+          side={resolvedSide}
           collisionPadding={12}
           // eslint-disable-next-line tailwindcss/no-arbitrary-value -- T-288: design width 400 px, capped to the viewport
           className="w-100 max-w-[calc(100vw-1.5rem)] gap-0 overflow-hidden p-0"

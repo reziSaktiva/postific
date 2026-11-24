@@ -1,3 +1,4 @@
+import { ContentStatus } from "@postific/shared";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -8,6 +9,18 @@ import {
 describe("resolveTerminalDestination", () => {
   it("mengarahkan Save as Draft ke Publish > Drafts (ADR-054)", () => {
     expect(resolveTerminalDestination("save-draft")).toBe(
+      "/publish?view=list&tab=drafts",
+    );
+  });
+
+  it("sends a saved post to the tab where it lives: In Review to Approvals, Draft and Ready to Schedule to Drafts (T-297)", () => {
+    expect(
+      resolveTerminalDestination("save-draft", ContentStatus.InReview),
+    ).toBe("/publish?view=list&tab=approvals");
+    expect(
+      resolveTerminalDestination("save-draft", ContentStatus.ReadyToSchedule),
+    ).toBe("/publish?view=list&tab=drafts");
+    expect(resolveTerminalDestination("save-draft", ContentStatus.Draft)).toBe(
       "/publish?view=list&tab=drafts",
     );
   });

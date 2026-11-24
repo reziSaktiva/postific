@@ -164,7 +164,7 @@ test("Mark Ready in Approvals moves the post to Ready to Schedule", async ({
 }) => {
   await page.goto("/publish?view=list&tab=approvals");
   const card = page
-    .getByRole("button")
+    .locator('[data-slot="card"]')
     .filter({ hasText: seed.captions.inReview })
     .first();
   await expect(card).toBeVisible({ timeout: 30_000 });
@@ -186,7 +186,7 @@ test("Mark Ready in Approvals moves the post to Ready to Schedule", async ({
   await page.goto("/publish?view=list&tab=drafts");
   await expect(
     page
-      .getByRole("button")
+      .locator('[data-slot="card"]')
       .filter({ hasText: seed.captions.inReview })
       .first(),
   ).toContainText("Ready to Schedule", { timeout: 30_000 });
@@ -208,7 +208,7 @@ test("Ajukan Review from the Draft Editor lands on Approvals", async ({
   // Starts on List · Drafts, so wait for the tab to change.
   await expect(page).toHaveURL(/view=list&tab=approvals/, { timeout: 30_000 });
   const card = page
-    .getByRole("button")
+    .locator('[data-slot="card"]')
     .filter({ hasText: seed.captions.submitted })
     .first();
   await expect(card).toBeVisible({ timeout: 30_000 });

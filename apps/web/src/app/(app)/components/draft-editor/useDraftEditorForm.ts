@@ -476,7 +476,7 @@ export function useDraftEditorForm({
    * yang tidak menampilkan hasil aksi sama sekali.
    */
   function finishTerminalAction(action: TerminalAction) {
-    const destination = resolveTerminalDestination(action);
+    const destination = resolveTerminalDestination(action, status);
     close();
     // Publish screens share `/publish` and differ in the query (S-008), so
     // the current query decides whether this is the same screen.
