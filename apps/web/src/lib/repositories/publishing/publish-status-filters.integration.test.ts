@@ -100,14 +100,18 @@ describe.skipIf(!enabled)(
         },
       });
       workspace = asWorkspaceId(ws.id);
-      await prisma.workspaceMember.create({
-        data: {
-          workspaceId: ws.id,
-          userId: owner,
-          role: MemberRole.Owner,
-          status: MemberStatus.Active,
-          joinedAt: new Date(),
-        },
+      // createMany (no RETURNING): the member row is not visible to the
+      // select policy before it exists, so `create` trips RLS.
+      await prisma.workspaceMember.createMany({
+        data: [
+          {
+            workspaceId: ws.id,
+            userId: owner,
+            role: MemberRole.Owner,
+            status: MemberStatus.Active,
+            joinedAt: new Date(),
+          },
+        ],
       });
       const account = await withCurrentUser(owner, (tx) =>
         tx.workspaceConnectedAccount.create({
