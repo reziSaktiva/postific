@@ -211,8 +211,12 @@ test("S1 buka New Post dari Drafts: Standard, judul, chip, Close, Akun tujuan", 
   await expect(dlg.getByRole("button", { name: "Close" })).toBeVisible();
   await expect(dlg.getByRole("button", { name: "Fullscreen" })).toBeVisible();
   await expect(dlg.getByRole("heading", { name: "Akun tujuan" })).toBeVisible();
-  // Daftar akun selesai dimuat bila pintasan menampilkan jumlahnya.
-  await expect(dlg.getByText(/Terakhir dipakai \(\d+\)/)).toBeVisible({
+  // Daftar akun selesai dimuat bila "Semua (n)" menampilkan jumlahnya.
+  // Bukan "Terakhir dipakai": pintasan itu hanya muncul bila workspace punya
+  // post dengan akun tujuan, jadi bergantung pada data sandbox (S-008 wave).
+  await expect(
+    dlg.getByRole("button", { name: /^Semua \(\d+\)$/ }),
+  ).toBeVisible({
     timeout: 15_000,
   });
   const accountsText = await dlg
@@ -625,7 +629,9 @@ test("S8a layar sempit 375: modal penuh, tanpa overflow horizontal", async ({
   await expect
     .poll(async () => Math.round((await dialogBox(dlg)).width))
     .toBe(375);
-  await expect(dlg.getByText(/Terakhir dipakai \(\d+\)/)).toBeVisible({
+  await expect(
+    dlg.getByRole("button", { name: /^Semua \(\d+\)$/ }),
+  ).toBeVisible({
     timeout: 15_000,
   });
   await settleAnimations(dlg);
