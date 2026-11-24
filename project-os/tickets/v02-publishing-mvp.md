@@ -3766,6 +3766,249 @@ Rincian mengikuti hasil T-229 (skema kolom baru di `publishing_post_targets`, jo
 
 ---
 
+## Publish redesign following the Buffer pattern (ADR-165, spec S-008)
+
+Design `ScreenPublishRedesain` confirmed by King Rezi 2026-11-24 in the Postific Design Review gallery. Work order: T-286 first; T-287, T-289 and T-293 after T-286 and in parallel; T-288 after T-287; T-290 after T-286 and T-288; T-291 after T-289; T-292 after T-287 to T-291; T-294 after T-286 to T-293; T-295 after the integration PR of the wave is merged.
+
+### T-286 · Publish page shell: Calendar · List · Board switcher, old routes, view-only timezone
+
+| Field            | Value                                                                                          |
+| ---------------- | ---------------------------------------------------------------------------------------------- |
+| **Status**       | ⏳ Not Started                                                                                 |
+| **Mode**         | AFK                                                                                            |
+| **Verification** | `local`                                                                                        |
+| **Domain**       | publishing (UI and view state)                                                                 |
+| **Spec**         | S-008                                                                                          |
+| **Docs**         | ADR-165, ADR-097, ADR-140, `ScreenPublishRedesain`, KSP-02 to KSP-04, T-147 (Profile timezone) |
+| **Depends**      | —                                                                                              |
+
+**What to build:** Publish is one page with a header (title, view switcher Calendar · List · Board, "+ New Post") instead of the route tabbar. The page reopens the user's last view. Old addresses keep working. A toolbar timezone picker changes only how times are shown on Publish.
+
+- [ ] The route tabbar Calendar / Queue / Drafts / History is replaced by the view switcher from the design; "+ New Post" opens the Draft Editor as today.
+- [ ] The selected view, List tab, calendar range and display timezone live in the URL and are parsed in one place, next to the existing calendar view-state parsing, with unit tests.
+- [ ] The page reopens the view last used by that user; Calendar when there is none. No "Save current view" control.
+- [ ] `/publish`, `/publish/calendar`, `/publish/queue`, `/publish/drafts`, `/publish/history` and `/publish/history/[postId]` land on the matching view, tab or post; links from notifications, Home and the MCP surface still work.
+- [ ] The timezone picker starts at the Profile timezone and never writes the Profile.
+- [ ] Entry points only call services (hard rule 3); no business logic in the page.
+
+**Blocked by:** none
+
+---
+
+### T-287 · Publish Calendar: month and week in the new layout, "+N lainnya", schedule on a day, No date panel
+
+| Field            | Value                                    |
+| ---------------- | ---------------------------------------- |
+| **Status**       | ⏳ Not Started                           |
+| **Mode**         | AFK                                      |
+| **Verification** | `local`                                  |
+| **Domain**       | publishing                               |
+| **Spec**         | S-008                                    |
+| **Docs**         | ADR-165, KSP-02, `ScreenPublishRedesain` |
+| **Depends**      | T-286                                    |
+
+**What to build:** the Calendar view matches the confirmed design on desktop.
+
+- [ ] Toolbar: previous and next, range label, Today, Month or Week; Filter (channels), "No date" (side panel listing posts without a date), options menu, timezone picker.
+- [ ] Month: up to 3 chips per day (platform icon, time, status icon, thumbnail with ▶ for video), then "+N lainnya" opening a popover with that day's posts.
+- [ ] A future day shows a schedule button on hover that opens the Draft Editor with that date set.
+- [ ] Week: hourly rows with a current-time line; the week starts on Monday.
+- [ ] One chip per post target, statuses with a date only (Scheduled, Published, Failed), as KSP-02-F02.
+- [ ] Around 1024 px, chip thumbnails hide so chips do not overflow.
+
+**Blocked by:** T-286
+
+---
+
+### T-288 · Post preview popover and expanded dialog with inline video
+
+| Field            | Value                                                                 |
+| ---------------- | --------------------------------------------------------------------- |
+| **Status**       | ⏳ Not Started                                                        |
+| **Mode**         | AFK                                                                   |
+| **Verification** | `local`                                                               |
+| **Domain**       | publishing, media                                                     |
+| **Spec**         | S-008                                                                 |
+| **Docs**         | ADR-165, ADR-158, KSP-02-F04, History Detail, `ScreenPublishRedesain` |
+| **Depends**      | T-287                                                                 |
+
+**What to build:** clicking a post opens the per-account preview; Expand opens the full dialog; a published video plays in place.
+
+- [ ] The popover shows date and time, content format, Expand; account and status; caption; media; metrics and an insights link for published posts; Go to post, Edit or Retry by status, plus a more-actions menu.
+- [ ] The dialog shows the same content, the result of every account of the same post, and "Published via <network>". No "Add note".
+- [ ] A published video plays inline in the popover and the dialog with the native video player (play/pause, time, progress, volume, fullscreen).
+- [ ] When there is no playable video URL (for example an imported post with only a stored thumbnail), the thumbnail shows with "Go to post" and no play control.
+- [ ] The same preview opens from Calendar chips, List cards and Board cards.
+
+**Blocked by:** T-287
+
+---
+
+### T-289 · Publish List: Queue, Drafts, Approvals and History tabs
+
+| Field            | Value                                                                             |
+| ---------------- | --------------------------------------------------------------------------------- |
+| **Status**       | ⏳ Not Started                                                                    |
+| **Mode**         | AFK                                                                               |
+| **Verification** | `local`                                                                           |
+| **Domain**       | publishing                                                                        |
+| **Spec**         | S-008                                                                             |
+| **Docs**         | ADR-165, ADR-083, KSP-03, KSP-04, `roles-permissions.md`, `ScreenPublishRedesain` |
+| **Depends**      | T-286                                                                             |
+
+**What to build:** the List view with line tabs and counts; posts grouped by day with the time on the left.
+
+- [ ] Queue: scheduled posts ordered by publish time (ADR-083).
+- [ ] Drafts: `Draft` and `Ready to Schedule` content.
+- [ ] Approvals: `In Review` content with Mark Ready (`In Review` → `Ready to Schedule`) and Back to Draft (`In Review` → `Draft`), through the existing status service; the same roles as today; nothing is blocked waiting for approval.
+- [ ] History: published and failed posts as cards with metrics, "Published via", Go to post; failed posts show the error and Retry.
+- [ ] Grouping for the Approvals list has unit tests next to the existing queue and history grouping.
+- [ ] The empty Queue shows a normal empty state with "+ New Post" until T-291 adds suggestions.
+
+**Blocked by:** T-286
+
+---
+
+### T-290 · Publish Board: status columns
+
+| Field            | Value                            |
+| ---------------- | -------------------------------- |
+| **Status**       | ⏳ Not Started                   |
+| **Mode**         | AFK                              |
+| **Verification** | `local`                          |
+| **Domain**       | publishing                       |
+| **Spec**         | S-008                            |
+| **Docs**         | ADR-165, `ScreenPublishRedesain` |
+| **Depends**      | T-286, T-288                     |
+
+**What to build:** the Board view with columns Draft · Approvals · Scheduled · Published · Failed.
+
+- [ ] Columns with counts and horizontal scroll; grouping by Status only.
+- [ ] `Ready to Schedule` cards sit in Draft with a "Ready to Schedule" badge (unit test for the column grouping).
+- [ ] Cards show date or "No date", status badge, account with platform badge, caption, thumbnail, and an actions menu on hover.
+- [ ] Clicking a card opens the post preview from T-288.
+
+**Blocked by:** T-286, T-288
+
+---
+
+### T-291 · Empty Queue: best-time suggestions from stored post metrics
+
+| Field            | Value                                                        |
+| ---------------- | ------------------------------------------------------------ |
+| **Status**       | ⏳ Not Started                                               |
+| **Mode**         | AFK                                                          |
+| **Verification** | `local`                                                      |
+| **Domain**       | analytics, publishing                                        |
+| **Spec**         | S-008                                                        |
+| **Docs**         | ADR-165, ADR-158, S-008 § Empty Queue, `AnalyticsPostMetric` |
+| **Depends**      | T-289                                                        |
+
+**What to build:** when the Queue is empty, each connected account shows suggested posting times calculated by Postific from its own published posts; Outstand is not called.
+
+- [ ] A best-time use case in the `analytics` domain: last 90 days of the account's published posts; publish time in the display timezone put in weekday-and-hour buckets; buckets ranked by median engagement rate, ties by median reach; a bucket needs at least 3 posts; an account needs at least 10 posts with metrics; returns the next occurrences of the top buckets within 7 days, 3 per account. Unit tests with a local double (rule 11).
+- [ ] A repository query returns publish time and metrics per account for the window (DB integration test where available).
+- [ ] Publish reads suggestions through the `analytics` public API from an Application Service (hard rules 3 and 5).
+- [ ] The empty Queue lists suggestions per account (platform icon, time, "+ New" opening the Draft Editor with that account and time set) and a control to show more times.
+- [ ] With no account above the threshold, the Queue shows the normal empty state.
+- [ ] Suggestions create nothing until the user schedules a post.
+
+**Blocked by:** T-289
+
+---
+
+### T-292 · Publish on tablet and phone
+
+| Field            | Value                                             |
+| ---------------- | ------------------------------------------------- |
+| **Status**       | ⏳ Not Started                                    |
+| **Mode**         | AFK                                               |
+| **Verification** | `local`                                           |
+| **Domain**       | publishing (UI), app shell                        |
+| **Spec**         | S-008                                             |
+| **Docs**         | ADR-165, `ScreenPublishRedesain` (Tablet, Mobile) |
+| **Depends**      | T-287, T-288, T-289, T-290, T-291                 |
+
+**What to build:** the responsive layouts from the design.
+
+- [ ] Tablet (768 px): app sidebar as an icon rail; month chips as platform icons with a "+N" chip; List time above each card; Board about two columns.
+- [ ] Phone (390 px): top bar with the menu; "+ New Post" as a "+" icon button; icon-only view switcher; Calendar in a 3-day view with a shadcn Calendar date picker (switching from about 500 px); List tabs as a dropdown; Board one column per screen with card menus always visible.
+- [ ] Light and dark use existing tokens; no new tokens.
+- [ ] Observed in the browser at 768 and 390 px, light and dark.
+
+**Blocked by:** T-287, T-288, T-289, T-290, T-291
+
+---
+
+### T-293 · Align the UX baseline with the Publish redesign
+
+| Field            | Value                                                                                                       |
+| ---------------- | ----------------------------------------------------------------------------------------------------------- |
+| **Status**       | ⏳ Not Started                                                                                              |
+| **Mode**         | AFK                                                                                                         |
+| **Verification** | `local`                                                                                                     |
+| **Domain**       | docs                                                                                                        |
+| **Spec**         | S-008                                                                                                       |
+| **Docs**         | ADR-165, `key-screen-patterns.md`, `information-architecture.md`, `navigation-patterns.md`, `user-flows.md` |
+| **Depends**      | T-286                                                                                                       |
+
+**What to build:** the UX baseline describes the Publish page as ADR-165 decides, without copying the spec.
+
+- [ ] KSP-02, KSP-03 and KSP-04 note the one-page structure, the List tabs (including Approvals and History), the Board, the per-account preview with inline video, and the best-time empty Queue, each with a pointer to ADR-165.
+- [ ] The Publish part of `information-architecture.md` and any Publish tab wording in `navigation-patterns.md` and `user-flows.md` match the new structure.
+- [ ] `context/` pointers change only where they point to Publish screens.
+- [ ] `bun run docs:check` reports no findings.
+
+**Blocked by:** T-286
+
+---
+
+### T-294 · S-008 QA: E2E, review and QA
+
+| Field            | Value                              |
+| ---------------- | ---------------------------------- |
+| **Status**       | ⏳ Not Started                     |
+| **Mode**         | AFK                                |
+| **Verification** | `local`                            |
+| **Domain**       | publishing, analytics              |
+| **Spec**         | S-008                              |
+| **Docs**         | ADR-149, ADR-153, ADR-161, ADR-165 |
+| **Depends**      | T-286 to T-293                     |
+
+**What to build:** the S-008 work is proven on `local` before the wave goes to staging.
+
+- [ ] Playwright E2E golden path: switch views, open a post preview, expand, play a video, Mark Ready from Approvals, empty Queue with suggestions, old routes landing on the right view.
+- [ ] Architecture review: entry points without business logic, analytics read only through its public API, no Prisma in domain logic.
+- [ ] QA in the browser: light, dark, 768 px and 390 px; regressions in the Draft Editor, notifications and Home links checked.
+- [ ] `typecheck`, `lint` and unit tests green.
+
+**Blocked by:** T-286 to T-293
+
+---
+
+### T-295 · S-008 wave verification on staging
+
+| Field            | Value                                                |
+| ---------------- | ---------------------------------------------------- |
+| **Status**       | ⏳ Not Started                                       |
+| **Mode**         | HITL (King Rezi verifies on staging)                 |
+| **Verification** | `staging`                                            |
+| **Domain**       | publishing, analytics                                |
+| **Spec**         | S-008                                                |
+| **Docs**         | ADR-153, ADR-161, ADR-165                            |
+| **Depends**      | integration PR of the S-008 wave merged to `staging` |
+
+**What to build:** one staging verification for the whole S-008 wave (ADR-153, ADR-161).
+
+- [ ] Calendar, List, Board and the post preview on staging with real workspace data; light, dark, 768 px, 390 px.
+- [ ] A published video plays inline on staging; an imported post with only a thumbnail shows "Go to post".
+- [ ] Best-time suggestions appear for an account with enough history and are absent for one without.
+- [ ] Staging E2E run (`workflow_dispatch`) green against the wave's deploy.
+
+**Blocked by:** integration PR merged
+
+---
+
 ## Dari Known Issue
 
 Tiket yang lahir sebagai pelacak Known Issue ada di [`known-issues.md`](known-issues.md) (ADR-134); daftar lengkapnya hanya di file itu, tidak disalin ke sini.
