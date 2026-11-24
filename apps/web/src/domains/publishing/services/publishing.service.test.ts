@@ -57,6 +57,7 @@ function createFakeRepository(
       updatedAt: new Date(0),
     }),
     listDrafts: async () => [],
+    listApprovalItems: async () => [],
     findLatestPostTargetAccountIds: async () => [],
     findDraftById: async () => null,
     findPostStatusById: async () => null,
@@ -3174,7 +3175,7 @@ describe("PublishingService List tabs (T-289)", () => {
     });
   });
 
-  it("listDraftsTab and listApprovals split the same list by tab status", async () => {
+  it("listDraftsTab keeps Draft and Ready to Schedule only", async () => {
     const service = new PublishingService(
       createFakeRepository({
         listDrafts: async () => [
@@ -3188,9 +3189,40 @@ describe("PublishingService List tabs (T-289)", () => {
     expect(
       (await service.listDraftsTab(WORKSPACE_ID, AUTHOR_ID)).map((p) => p.id),
     ).toEqual(["a", "b"]);
-    expect(
-      (await service.listApprovals(WORKSPACE_ID, AUTHOR_ID)).map((p) => p.id),
-    ).toEqual(["c"]);
+  });
+
+  it("listApprovals reads items with targets in one repository call and fills client names", async () => {
+    const calls: string[] = [];
+    const item = {
+      ...createCalendarItem(),
+      id: asPostId("p-review"),
+      status: ContentStatus.InReview,
+      createdViaClientId: "client-1",
+      createdViaClientName: null,
+    };
+    const service = new PublishingService(
+      createFakeRepository({
+        listApprovalItems: async () => {
+          calls.push("listApprovalItems");
+          return [item];
+        },
+        getCalendarPostById: async () => {
+          calls.push("getCalendarPostById");
+          return null;
+        },
+      }),
+      undefined,
+      undefined,
+      undefined,
+      { getClientNames: async () => new Map([["client-1", "Claude"]]) },
+    );
+
+    const result = await service.listApprovals(WORKSPACE_ID, AUTHOR_ID);
+
+    expect(calls).toEqual(["listApprovalItems"]);
+    expect(result.map((p) => p.id)).toEqual(["p-review"]);
+    expect(result[0]?.targets).toHaveLength(item.targets.length);
+    expect(result[0]?.createdViaClientName).toBe("Claude");
   });
 
   it("getQueueWithSuggestions asks for suggestions only when the Queue is empty", async () => {

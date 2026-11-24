@@ -259,5 +259,41 @@ describe.skipIf(!enabled)(
         expect((await storedPost(postId)).deletedAt).toBeNull();
       });
     });
+    describe("listApprovalItems", () => {
+      it("returns only live In Review posts with their account handles, newest edit first", async () => {
+        const older = await createPost(ContentStatus.InReview);
+        const newer = await createPost(ContentStatus.InReview);
+        const deleted = await createPost(ContentStatus.InReview);
+        await createPost(ContentStatus.Draft);
+        await createPost(ContentStatus.Scheduled);
+        await withCurrentUser(owner, async (tx) => {
+          await tx.publishingPostTarget.createMany({
+            data: [older, newer].map((postId) => ({
+              postId,
+              connectedAccountId: accountId,
+              platform: SocialPlatform.Instagram,
+              contentFormat: ContentFormat.Post,
+            })),
+          });
+          await tx.publishingPost.update({
+            where: { id: older },
+            data: { updatedAt: new Date(Date.now() - 60_000) },
+          });
+          await tx.publishingPost.update({
+            where: { id: deleted },
+            data: { deletedAt: new Date() },
+          });
+        });
+
+        const items = await repo.listApprovalItems(
+          { workspaceId: workspace },
+          owner,
+        );
+
+        expect(items.map((item) => item.id)).toEqual([newer, older]);
+        expect(items.every((i) => i.targets.length === 1)).toBe(true);
+        expect(items[0]?.targets[0]?.accountHandle).toBe(`${prefix}-ig`);
+      });
+    });
   },
 );

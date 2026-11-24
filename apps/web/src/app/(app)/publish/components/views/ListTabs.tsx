@@ -84,22 +84,16 @@ export async function DraftsTab() {
 export async function ApprovalsTab() {
   const { workspaceId, userId, publishingService } = await getListContext();
   const approvals = await publishingService.listApprovals(workspaceId, userId);
-  // Account row of each card (S-008 design gap 3): the draft list carries no
-  // targets, so each In Review post is read once with its targets (the same
-  // read the Realtime patch uses). Approvals is a short list.
-  const withTargets = await Promise.all(
-    approvals.map((post) =>
-      publishingService.getCalendarPostById(workspaceId, post.id, userId),
-    ),
-  );
-  const items = approvals.map((post, index) => ({
+  // Account row of each card (S-008 design gap 3): the repository returns
+  // the In Review posts with their targets in one query.
+  const items = approvals.map((post) => ({
     id: post.id,
     caption: post.caption,
     status: post.status,
     updatedAt: post.updatedAt,
     createdVia: post.createdVia,
     createdViaClientName: post.createdViaClientName,
-    targets: (withTargets[index]?.targets ?? []).map((target) => ({
+    targets: post.targets.map((target) => ({
       id: target.id,
       connectedAccountId: target.connectedAccountId,
       platform: target.platform,

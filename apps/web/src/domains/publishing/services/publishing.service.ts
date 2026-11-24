@@ -550,13 +550,19 @@ export class PublishingService {
     return drafts.filter((post) => DRAFT_LIST_STATUSES.has(post.status));
   }
 
-  /** List · Approvals tab (T-289): `In Review` (`APPROVAL_LIST_STATUSES`). */
+  /**
+   * List · Approvals tab (T-289): `In Review` posts with their targets, read
+   * in one repository query (S-008 final-fix).
+   */
   async listApprovals(
     workspaceId: WorkspaceId,
     userId: UserId,
-  ): Promise<PublishingPostRecord[]> {
-    const drafts = await this.listDrafts(workspaceId, userId);
-    return drafts.filter((post) => APPROVAL_LIST_STATUSES.has(post.status));
+  ): Promise<CalendarItemRecord[]> {
+    const items = await this.repository.listApprovalItems(
+      { workspaceId },
+      userId,
+    );
+    return this.withClientNames(workspaceId, items);
   }
 
   /**
