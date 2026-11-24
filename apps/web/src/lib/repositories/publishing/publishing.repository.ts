@@ -14,6 +14,7 @@ import {
 import {
   HISTORY_TERMINAL_STATUSES,
   SAVE_AND_DELETE_STATUSES,
+  SCHEDULE_AND_PUBLISH_SOURCE_STATUSES,
   type CalendarItemRecord,
   type CalendarItemTargetRecord,
   type HistoryItemRecord,
@@ -406,10 +407,9 @@ export const publishingRepository: IPublishingRepository = {
           where: {
             id: postId,
             workspaceId,
-            // T-091.1 — hanya Draft/ReadyToSchedule; Published/Failed/Imported di luar whitelist.
-            status: {
-              in: [ContentStatus.Draft, ContentStatus.ReadyToSchedule],
-            },
+            // T-091.1/T-296 — Draft, In Review, Ready to Schedule; Scheduled
+            // dan Published/Failed/Imported di luar whitelist.
+            status: { in: [...SCHEDULE_AND_PUBLISH_SOURCE_STATUSES] },
             deletedAt: null,
           },
           data: { status: ContentStatus.Scheduled, scheduledAt },
@@ -522,10 +522,9 @@ export const publishingRepository: IPublishingRepository = {
           where: {
             id: postId,
             workspaceId,
-            // T-091.1 — hanya Draft/ReadyToSchedule; Published/Failed/Imported di luar whitelist.
-            status: {
-              in: [ContentStatus.Draft, ContentStatus.ReadyToSchedule],
-            },
+            // T-091.1/T-296 — Draft, In Review, Ready to Schedule; Scheduled
+            // dan Published/Failed/Imported di luar whitelist.
+            status: { in: [...SCHEDULE_AND_PUBLISH_SOURCE_STATUSES] },
             deletedAt: null,
           },
           data: { status: ContentStatus.Published, publishedAt: new Date() },

@@ -11,7 +11,7 @@ import type { IJobScheduler } from "../adapters/job-scheduler";
 import { assertContentFormatAllowed } from "../content-format-matrix";
 import { summarizeFailureReasons } from "../failure-reason";
 import { assertPinterestBoardConstraints } from "../pinterest-board-constraints";
-import { assertPostMutable } from "../readonly-terminal-status";
+import { assertPostCanBeScheduledOrPublished } from "../readonly-terminal-status";
 import { assertActorCanPublishNow } from "../rbac";
 import type {
   IPublishingRepository,
@@ -126,7 +126,7 @@ export class PublishNowUseCase {
     // selalu dapat pesan konflik yang spesifik, bukan error validasi target
     // yang kebetulan juga invalid. Filter status di `publishNow` tetap
     // menjadi safety net.
-    await assertPostMutable(
+    await assertPostCanBeScheduledOrPublished(
       this.repository,
       { workspaceId: input.workspaceId, postId: input.postId },
       input.actingUserId,
@@ -153,7 +153,7 @@ export class PublishNowUseCase {
 
     if (!record) {
       throw new ConflictError(
-        "Post tidak bisa dipublikasikan — status saat ini bukan Draft atau Ready to Schedule, salah satu akun bukan milik workspace ini, atau post tidak ditemukan.",
+        "Post tidak bisa dipublikasikan — status saat ini bukan Draft, In Review, atau Ready to Schedule, salah satu akun bukan milik workspace ini, atau post tidak ditemukan.",
       );
     }
 

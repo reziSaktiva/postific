@@ -10,6 +10,12 @@ describe("resolveTerminalDestination", () => {
     expect(resolveTerminalDestination("save-draft")).toBe("/publish/drafts");
   });
 
+  it("mengarahkan Ajukan Review ke Publish > List > Approvals (T-296)", () => {
+    expect(resolveTerminalDestination("submit-review")).toBe(
+      "/publish?view=list&tab=approvals",
+    );
+  });
+
   it("mengarahkan Schedule ke Publish > Queue (ADR-054)", () => {
     expect(resolveTerminalDestination("schedule")).toBe("/publish/queue");
   });

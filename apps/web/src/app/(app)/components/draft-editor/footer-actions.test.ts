@@ -2,10 +2,12 @@ import { ContentStatus } from "@postific/shared";
 import { describe, expect, it } from "vitest";
 
 import {
+  AWAITING_REVIEW_NOTE,
   FOOTER_HELP_NO_ACCOUNT,
   countFooterWarnings,
   getFooterActions,
   getFooterHelpText,
+  getFooterReviewControls,
   isEditableInDraftEditor,
   type FooterActionsInput,
 } from "./footer-actions";
@@ -22,6 +24,7 @@ describe("getFooterActions", () => {
   it("semua aksi aktif bila validasi lulus dan tidak ada yang berjalan", () => {
     expect(getFooterActions(IDLE)).toEqual({
       saveDraftDisabled: false,
+      submitReviewDisabled: false,
       publishNowDisabled: false,
       scheduleDisabled: false,
       scheduleTriggerDisabled: false,
@@ -53,17 +56,67 @@ describe("getFooterActions", () => {
     ).toBe(true);
   });
 
-  it.each([["isSavingDraft"], ["isScheduling"], ["isPublishingNow"]] as const)(
-    "semua aksi terkunci selama %s berjalan",
-    (flag) => {
-      expect(getFooterActions({ ...IDLE, [flag]: true })).toEqual({
-        saveDraftDisabled: true,
-        publishNowDisabled: true,
-        scheduleDisabled: true,
-        scheduleTriggerDisabled: true,
-      });
-    },
-  );
+  it("Ajukan Review menunggu daftar akun selesai dimuat, tetapi tidak menunggu validasi (T-296)", () => {
+    expect(
+      getFooterActions({ ...IDLE, isLoadingAccounts: true })
+        .submitReviewDisabled,
+    ).toBe(true);
+    expect(
+      getFooterActions({
+        ...IDLE,
+        readiness: { isReadyToSchedule: false, isReadyToPublishNow: false },
+      }).submitReviewDisabled,
+    ).toBe(false);
+  });
+
+  it.each([
+    ["isSavingDraft"],
+    ["isSubmittingReview"],
+    ["isScheduling"],
+    ["isPublishingNow"],
+  ] as const)("semua aksi terkunci selama %s berjalan", (flag) => {
+    expect(getFooterActions({ ...IDLE, [flag]: true })).toEqual({
+      saveDraftDisabled: true,
+      submitReviewDisabled: true,
+      publishNowDisabled: true,
+      scheduleDisabled: true,
+      scheduleTriggerDisabled: true,
+    });
+  });
+});
+
+describe("getFooterReviewControls (T-296)", () => {
+  it("Draft: Ajukan Review tampil, label Save as Draft, tanpa catatan review", () => {
+    expect(getFooterReviewControls(ContentStatus.Draft)).toEqual({
+      showSubmitReview: true,
+      awaitingReviewNote: null,
+      saveLabel: "Save as Draft",
+    });
+  });
+
+  it("In Review: Ajukan Review disembunyikan, catatan menunggu review, label Simpan", () => {
+    expect(getFooterReviewControls(ContentStatus.InReview)).toEqual({
+      showSubmitReview: false,
+      awaitingReviewNote: AWAITING_REVIEW_NOTE,
+      saveLabel: "Simpan",
+    });
+  });
+
+  it("Ready to Schedule: tanpa Ajukan Review dan tanpa catatan, label Simpan", () => {
+    expect(getFooterReviewControls(ContentStatus.ReadyToSchedule)).toEqual({
+      showSubmitReview: false,
+      awaitingReviewNote: null,
+      saveLabel: "Simpan",
+    });
+  });
+
+  it("Scheduled: tanpa Ajukan Review, label tidak berubah", () => {
+    expect(getFooterReviewControls(ContentStatus.Scheduled)).toEqual({
+      showSubmitReview: false,
+      awaitingReviewNote: null,
+      saveLabel: "Save as Draft",
+    });
+  });
 });
 
 describe("isEditableInDraftEditor", () => {

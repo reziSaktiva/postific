@@ -20,7 +20,10 @@ import { AuthorizationError, ConflictError } from "@/lib/utils/errors";
 import type { IOutstandAdapter } from "../adapters/outstand-adapter";
 import type { IJobScheduler } from "../adapters/job-scheduler";
 import { PublishingDomainError } from "../errors";
-import { READONLY_TERMINAL_CONFLICT_MESSAGE } from "../readonly-terminal-status";
+import {
+  NOT_SCHEDULABLE_CONFLICT_MESSAGE,
+  READONLY_TERMINAL_CONFLICT_MESSAGE,
+} from "../readonly-terminal-status";
 import type {
   IPublishingRepository,
   PublishingPostRecord,
@@ -878,5 +881,83 @@ describe("SchedulePostsUseCase.execute", () => {
       ).rejects.toBeInstanceOf(AuthorizationError);
       expect(touched).toEqual([]);
     });
+  });
+  it.each([ContentStatus.InReview, ContentStatus.ReadyToSchedule])(
+    "T-296: post berstatus %s tetap bisa dijadwalkan (koordinasi ringan, tidak menunggu approval)",
+    async (status) => {
+      let scheduleCalls = 0;
+      const scheduleRecord = baseScheduleRecord([
+        {
+          id: asPostTargetId("target-1"),
+          connectedAccountId: CONNECTED_ACCOUNT_1,
+        },
+      ]);
+      const repository = createFakeRepository({
+        findPostStatusById: async () => ({ status }),
+        schedulePost: async () => {
+          scheduleCalls += 1;
+          return scheduleRecord;
+        },
+      });
+      const useCase = new SchedulePostsUseCase(
+        repository,
+        createFakeOutstandAdapter(),
+        createFakeJobScheduler(),
+      );
+
+      const result = await useCase.execute({
+        workspaceId: WORKSPACE_ID,
+        postId: POST_ID,
+        scheduledAt: SCHEDULED_AT,
+        targets: [
+          {
+            connectedAccountId: CONNECTED_ACCOUNT_1,
+            platform: SocialPlatform.Instagram,
+            contentFormat: ContentFormat.Post,
+            outstandAccountId: "outstand-acc-1",
+          },
+        ],
+        actingUserId: AUTHOR_ID,
+        actorRole: MemberRole.Creator,
+      });
+
+      expect(result.status).toBe(ContentStatus.Scheduled);
+      expect(scheduleCalls).toBe(1);
+    },
+  );
+
+  it("T-296: post yang sudah Scheduled ditolak dengan pesan jadwal sebelum menulis apa pun", async () => {
+    let scheduleCalls = 0;
+    const repository = createFakeRepository({
+      findPostStatusById: async () => ({ status: ContentStatus.Scheduled }),
+      schedulePost: async () => {
+        scheduleCalls += 1;
+        return null;
+      },
+    });
+    const useCase = new SchedulePostsUseCase(
+      repository,
+      createFakeOutstandAdapter(),
+      createFakeJobScheduler(),
+    );
+
+    await expect(
+      useCase.execute({
+        workspaceId: WORKSPACE_ID,
+        postId: POST_ID,
+        scheduledAt: SCHEDULED_AT,
+        targets: [
+          {
+            connectedAccountId: CONNECTED_ACCOUNT_1,
+            platform: SocialPlatform.Instagram,
+            contentFormat: ContentFormat.Post,
+            outstandAccountId: "outstand-acc-1",
+          },
+        ],
+        actingUserId: AUTHOR_ID,
+        actorRole: MemberRole.Creator,
+      }),
+    ).rejects.toThrow(NOT_SCHEDULABLE_CONFLICT_MESSAGE);
+    expect(scheduleCalls).toBe(0);
   });
 });

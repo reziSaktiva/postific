@@ -4039,11 +4039,20 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 **What to build:** no design had a control to move a post Draft → In Review, so the Approvals tab stayed empty in practice. King Rezi decided on 2026-11-24 to design and build it in the S-008 wave.
 
-- [ ] The control is designed in the Postific artifact and confirmed by King Rezi in the Postific Design Review gallery.
-- [ ] The Draft Editor offers Draft → In Review as designed, through `ChangeContentStatusUseCase` (all roles; In Review can still be skipped).
-- [ ] Unit tests for the control's visibility by status.
+- [x] The control is designed in the Postific artifact and confirmed by King Rezi in the Postific Design Review gallery (card `ScreenDraftEditorSubmitReview`, scenarios R1–R6; confirmed by King Rezi in chat 2026-11-24).
+- [x] The Draft Editor offers Draft → In Review as designed, through `ChangeContentStatusUseCase` (all roles; In Review can still be skipped).
+- [x] Unit tests for the control's visibility by status.
 
-**Blocked by:** design confirmation
+**Blocked by:** none (design confirmed 2026-11-24)
+
+**Implementation notes (2026-11-24, lane t296):**
+
+- Footer "Ajukan Review" (outline, send icon, left) for Draft posts, new and saved. One click saves the post (new posts become a draft) and then calls `submitForReviewAction` (`ChangeContentStatusUseCase`, Draft → In Review); the editor closes and goes to Publish > List > Approvals.
+- In Review and Ready to Schedule posts: the save button reads "Simpan" (status kept, T-297). In Review shows the note "Menunggu review · Tandai Ready di Publish > Approvals" (hidden at phone width like the other footer help) and no "Ajukan Review".
+- Schedule and Publish Now accept `in_review` as a source status (`SCHEDULE_AND_PUBLISH_SOURCE_STATUSES` in `readonly-terminal-status.ts`, used by `SchedulePostsUseCase`, `PublishNowUseCase`, and the repository filter). A `Scheduled` post is now refused before any write with its own message. Tests at the use case boundary.
+- Sidebar (finding from T-292): the automatic icon rail at 768–1023 px no longer saves "collapsed" in the `sidebar_state` cookie; returning to desktop width or reloading restores the user's sidebar. Rules in `app/(app)/components/tablet-icon-rail.ts`, unit tested.
+
+**Not yet proven:** the button, the redirect to Approvals, and the sidebar behaviour have not been run in a browser (no dev server or E2E in this lane, T-294); the repository filter for `in_review` has no test against a real database.
 
 ---
 
