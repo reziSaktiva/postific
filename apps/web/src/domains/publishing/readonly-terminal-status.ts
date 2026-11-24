@@ -19,6 +19,23 @@ export function isReadonlyTerminalStatus(status: ContentStatus): boolean {
   return READONLY_TERMINAL_STATUSES.has(status);
 }
 
+/**
+ * T-297 — status yang boleh disimpan (status tidak berubah) dan dihapus lewat
+ * Draft Editor/Drafts: `Draft` plus dua status koordinasi ringan `In Review`
+ * dan `Ready to Schedule`. `Scheduled` harus di-Cancel Schedule dulu;
+ * terminal (`Published`/`Failed`/`Imported`) read-only. Dipakai service
+ * (guard) dan repository (safety net race condition).
+ */
+export const SAVE_AND_DELETE_STATUSES: readonly ContentStatus[] = [
+  ContentStatus.Draft,
+  ContentStatus.InReview,
+  ContentStatus.ReadyToSchedule,
+];
+
+export function canSaveOrDeleteInStatus(status: ContentStatus): boolean {
+  return SAVE_AND_DELETE_STATUSES.includes(status);
+}
+
 /** Satu pesan untuk setiap aksi mutasi user terhadap post terminal. */
 export const READONLY_TERMINAL_CONFLICT_MESSAGE =
   "Post berstatus Published, Failed, atau Imported bersifat read-only dan tidak bisa diubah, dihapus, dijadwalkan, atau dibatalkan.";
