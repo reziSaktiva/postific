@@ -80,8 +80,9 @@ export const analyticsRepository: IAnalyticsRepository = {
 
   async findBestTimeSamples(workspaceId, window, actingUserId) {
     // One row per (post, account). The join to `publishing_posts` supplies
-    // the publish time and the workspace scope; soft-deleted posts and posts
-    // that are not `published` are excluded.
+    // the publish time and the workspace scope; soft-deleted posts are
+    // excluded. Both `published` and `imported` posts count (King Rezi,
+    // 2026-11-24): imported posts are real published posts with metrics.
     const load = (tx: PrismaTransactionClient) =>
       tx.$queryRaw<
         {
@@ -97,7 +98,7 @@ export const analyticsRepository: IAnalyticsRepository = {
         FROM analytics_post_metrics m
         JOIN publishing_posts p ON p.id = m.post_id
         WHERE p.workspace_id = ${workspaceId}::uuid
-          AND p.status = 'published'
+          AND p.status IN ('published', 'imported')
           AND p.deleted_at IS NULL
           AND p.published_at >= ${window.since}
           AND p.published_at <= ${window.until}
