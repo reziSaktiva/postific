@@ -17,6 +17,7 @@ import {
 import { assertMediaCountWithinLimit } from "../content-format-matrix";
 import {
   READONLY_TERMINAL_CONFLICT_MESSAGE,
+  canSaveOrDeleteInStatus,
   isReadonlyTerminalStatus,
 } from "../readonly-terminal-status";
 import type {
@@ -85,8 +86,9 @@ export interface ComposeDraftResult {
  * belum memakai use-case ini (di luar scope T-152).
  *
  * Kebijakan khusus use-case ini (bukan di Draft Editor):
- * - Hanya post berstatus `Draft`; status lain ditolak dengan pesan yang
- *   menyebut alasannya (`updateDraft`).
+ * - Hanya post berstatus `Draft`, `In Review`, atau `Ready to Schedule`
+ *   (sama dengan Draft Editor, T-297; status tidak diubah); status lain
+ *   ditolak dengan pesan yang menyebut alasannya (`updateDraft`).
  * - `updateDraft` parsial: argumen yang tidak diisi tidak diubah (caption
  *   lama dipertahankan, `mediaIds`/`targets` tidak disentuh). Target yang
  *   dipertahankan membawa `platformOptions`-nya (mis. board Pinterest yang
@@ -187,7 +189,8 @@ export class ComposeDraftUseCase {
     }
     assertStatusEditable(existingStatus.status);
 
-    // Status sudah dipastikan Draft, jadi `findDraftById` aman (authorId ada).
+    // Status sudah dipastikan Draft/In Review/Ready to Schedule (bukan
+    // Imported), jadi `findDraftById` aman (authorId ada).
     const existing = await this.repository.findDraftById(
       ids,
       input.actingUserId,
@@ -317,7 +320,8 @@ export function assertCaptionWithinLimit(caption: string): void {
 
 /** Hanya `Draft` yang boleh diubah; pesan dibedakan supaya AI klien tahu langkah berikutnya. */
 function assertStatusEditable(status: ContentStatus): void {
-  if (status === ContentStatus.Draft) {
+  // T-297 (King Rezi, 2026-11-24): MCP follows the Draft Editor.
+  if (canSaveOrDeleteInStatus(status)) {
     return;
   }
   if (status === ContentStatus.Scheduled) {
@@ -329,7 +333,7 @@ function assertStatusEditable(status: ContentStatus): void {
     throw new ConflictError(READONLY_TERMINAL_CONFLICT_MESSAGE);
   }
   throw new ConflictError(
-    `Hanya post berstatus draft yang bisa diubah lewat update_draft (status saat ini: ${status}).`,
+    `Hanya post berstatus draft, in_review, atau ready_to_schedule yang bisa diubah lewat update_draft (status saat ini: ${status}).`,
   );
 }
 

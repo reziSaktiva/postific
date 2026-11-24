@@ -567,15 +567,16 @@ describe("ComposeDraftUseCase.updateDraft", () => {
   });
 
   it.each([ContentStatus.InReview, ContentStatus.ReadyToSchedule])(
-    "refuses a %s post: only drafts are editable through MCP",
+    "updates a %s post like the Draft Editor does (T-297)",
     async (status) => {
       const { useCase, updateDraftCaption } = setup({
         stored: post({ status }),
       });
-      await expect(
-        useCase.updateDraft({ ...base, caption: "x" }),
-      ).rejects.toThrow(/Hanya post berstatus draft/);
-      expect(updateDraftCaption).not.toHaveBeenCalled();
+      await useCase.updateDraft({ ...base, caption: "x" });
+      expect(updateDraftCaption).toHaveBeenCalledWith(
+        { workspaceId: WORKSPACE, postId: POST, caption: "x" },
+        USER,
+      );
     },
   );
 
