@@ -9,7 +9,8 @@ import { formatListDayHeading, formatListTime } from "./list-format";
 
 /**
  * Posts of a List tab grouped by day, the time on the left of each card
- * (above it on narrow screens), as the Publish design shows (T-289, S-008).
+ * (above it below `lg`, so on tablet and phone, T-292), as the Publish
+ * design shows (T-289, S-008).
  * Presentational: groups, time and card come from the caller.
  */
 export function ListDayGroups<T extends { id: string }>({
@@ -33,14 +34,14 @@ export function ListDayGroups<T extends { id: string }>({
           {group.items.map((item) => (
             // eslint-disable-next-line no-restricted-syntax -- T-289: layout-only
             <div
-              className="flex flex-col gap-1 sm:flex-row sm:gap-4"
+              className="flex flex-col gap-1 lg:flex-row lg:gap-4"
               key={item.id}
             >
               <Text
                 variant="muted"
                 as="span"
                 suppressHydrationWarning
-                className="shrink-0 text-xs sm:w-12 sm:pt-4"
+                className="shrink-0 text-xs lg:w-12 lg:pt-4"
               >
                 {formatListTime(getTime(item), timeZone)}
               </Text>

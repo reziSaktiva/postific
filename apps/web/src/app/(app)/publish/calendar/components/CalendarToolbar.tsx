@@ -1,7 +1,11 @@
 "use client";
 
+import { useState } from "react";
+import { id as idLocale } from "react-day-picker/locale";
+
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
+  ArrowDown01Icon,
   ArrowLeft01Icon,
   ArrowRight01Icon,
   CalendarRemove01Icon,
@@ -15,6 +19,7 @@ import type { ConnectedAccountRecord } from "@/domains/workspace";
 import {
   getDateParts,
   getWeekRange,
+  zonedMidnightUtc,
   type CalendarViewMode,
 } from "@/domains/publishing";
 
@@ -23,6 +28,7 @@ import { getZonedFormatter } from "@/lib/time/zoned-formatter";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
@@ -71,6 +77,68 @@ const dayMonthFormatter = (timeZone: string) =>
   getZonedFormatter("id-ID", { day: "numeric", month: "short" }, timeZone);
 const monthYearFormatter = (timeZone: string) =>
   getZonedFormatter("id-ID", { month: "long", year: "numeric" }, timeZone);
+const longDayFormatter = (timeZone: string) =>
+  getZonedFormatter(
+    "id-ID",
+    { weekday: "short", day: "numeric", month: "long" },
+    timeZone,
+  );
+
+/**
+ * Date picker of the phone Calendar (T-292, S-008): a button with the
+ * selected date opens the shadcn `Calendar`; picking a day moves the 3-day
+ * grid to start on it. react-day-picker works with local `Date`s, so the
+ * day is carried across as year, month and day of the display time zone.
+ */
+function ThreeDayDatePicker({
+  date,
+  timeZone,
+  onPick,
+}: {
+  date: Date;
+  timeZone: string;
+  onPick: (date: Date) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const { year, month, day } = getDateParts(date, timeZone);
+  const selected = new Date(year, month, day);
+  return (
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          className="px-1 text-base font-semibold"
+          aria-label={`Pilih tanggal, ${longDayFormatter(timeZone).format(date)}`}
+        >
+          {longDayFormatter(timeZone).format(date)}
+          <HugeiconsIcon icon={ArrowDown01Icon} strokeWidth={2} />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-auto p-0">
+        <Calendar
+          mode="single"
+          locale={idLocale}
+          weekStartsOn={1}
+          selected={selected}
+          defaultMonth={selected}
+          onSelect={(picked) => {
+            if (!picked) return;
+            onPick(
+              zonedMidnightUtc(
+                picked.getFullYear(),
+                picked.getMonth(),
+                picked.getDate(),
+                timeZone,
+              ),
+            );
+            setIsOpen(false);
+          }}
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 /** "14–20 Jul" inside one month, "28 Jul – 3 Ags" across two. */
 export function formatWeekPeriodLabel(date: Date, timeZone: string): string {
@@ -106,7 +174,9 @@ function toggled<T>(list: readonly T[], value: T, on: boolean): T[] {
  * Calendar toolbar (T-287, S-008, KSP-02-F05/F09): previous and next, range
  * label, Today, Month or Week; on the right Filter (channels and status),
  * "No date", and an options menu. The time zone picker is part of the
- * Publish toolbar above. The state lives in the URL
+ * Publish toolbar above. Below `sm` (phone, T-292) the left side is only
+ * the date picker of the 3-day grid and Filter and "No date" show their
+ * icons. The state lives in the URL
  * (`useCalendarPeriodState`); the last used range is remembered in a cookie
  * so the Calendar reopens on it.
  */
@@ -140,8 +210,16 @@ export function CalendarToolbar({
   return (
     // eslint-disable-next-line no-restricted-syntax -- T-287: Tailwind layout (ADR-097)
     <div className="flex flex-wrap items-center justify-between gap-2">
+      {/* eslint-disable-next-line no-restricted-syntax -- T-292: phone only, the 3-day grid date picker */}
+      <div className="sm:hidden">
+        <ThreeDayDatePicker
+          date={date}
+          timeZone={timeZone}
+          onPick={(picked) => setPeriod({ date: picked })}
+        />
+      </div>
       {/* eslint-disable-next-line no-restricted-syntax -- T-287 */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 max-sm:hidden">
         <Button
           variant="outline"
           size="sm"
@@ -207,7 +285,7 @@ export function CalendarToolbar({
           <PopoverTrigger asChild>
             <Button variant="outline" size="sm">
               <HugeiconsIcon icon={FilterHorizontalIcon} strokeWidth={2} />
-              Filter
+              <span className="max-sm:sr-only">Filter</span>
               {activeFilters > 0 ? (
                 <Badge variant="secondary">{activeFilters}</Badge>
               ) : null}
@@ -292,7 +370,7 @@ export function CalendarToolbar({
 
         <Button variant="outline" size="sm" onClick={onOpenNoDate}>
           <HugeiconsIcon icon={CalendarRemove01Icon} strokeWidth={2} />
-          No date
+          <span className="max-sm:sr-only">No date</span>
           {undatedCount > 0 ? (
             <Badge variant="secondary">{undatedCount}</Badge>
           ) : null}

@@ -3,8 +3,6 @@ import { redirect } from "next/navigation";
 
 import { AnalyticsService } from "@/domains/analytics";
 import {
-  getMonthRange,
-  getWeekRange,
   PublishingService,
   type CalendarViewState,
 } from "@/domains/publishing";
@@ -19,12 +17,13 @@ import { mediaRepository } from "@/lib/repositories/media";
 import { supabaseMediaStorageAdapter } from "@/lib/adapters/media-storage/supabase-media-storage-adapter";
 
 import { CalendarScreen } from "../../calendar/components/CalendarScreen";
+import { getCalendarFetchRange } from "../../calendar/components/calendar-fetch-range";
 import { resolvePostThumbnails } from "../preview/post-thumbnails";
 
 /**
  * Calendar view of the Publish page (T-286, redesigned by T-287). Composition only:
  * the state is parsed by `parsePublishViewState` in `page.tsx`, the range
- * comes from `getWeekRange`/`getMonthRange` in the display time zone, the
+ * comes from `getCalendarFetchRange` in the display time zone, the
  * data from `PublishingService` and `WorkspaceService` (hard rule 3).
  */
 export async function CalendarView({
@@ -44,10 +43,8 @@ export async function CalendarView({
   }
   const userId = asUserId(session.user.id);
 
-  const { from, to } =
-    view === "month"
-      ? getMonthRange(date, timeZone)
-      : getWeekRange(date, timeZone);
+  // The selected range plus the three days of the phone Calendar (T-292).
+  const { from, to } = getCalendarFetchRange(view, date, timeZone);
 
   const publishingService = new PublishingService(
     publishingRepository,

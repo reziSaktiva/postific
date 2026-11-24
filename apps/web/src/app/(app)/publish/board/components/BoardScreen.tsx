@@ -193,6 +193,11 @@ function BoardCard({
  * sit in Draft and say so in their status badge. A click on a card opens
  * the post preview (T-288); the menu on a card opens the Draft Editor or
  * copies the caption.
+ *
+ * Tablet and phone (T-292): below `lg` a column takes 5/12 of the width, so
+ * about two columns show; below `sm` one column fills the screen and the
+ * row snaps column by column. Card menus are always visible below `sm` and
+ * on touch.
  */
 export function BoardScreen({
   columns,
@@ -203,12 +208,12 @@ export function BoardScreen({
 }) {
   return (
     // eslint-disable-next-line no-restricted-syntax -- T-290: Tailwind layout (ADR-097)
-    <div className="flex items-start gap-3 overflow-x-auto pb-2">
+    <div className="flex snap-x snap-mandatory items-start gap-3 overflow-x-auto pb-2 sm:snap-none">
       {columns.map((column) => (
         <section
           key={column.key}
           aria-label={COLUMN_TITLE[column.key]}
-          className="flex w-72 shrink-0 flex-col gap-2 rounded-2xl bg-muted/40 p-2"
+          className="flex w-11/12 shrink-0 snap-center flex-col gap-2 rounded-2xl bg-muted/40 p-2 sm:w-5/12 lg:w-72"
         >
           {}
           <header className="flex items-center gap-2 p-1">

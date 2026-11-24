@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -47,6 +47,7 @@ import {
   SidebarMenuItem,
   SidebarTrigger,
   useCloseMobileSidebar,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { Spinner } from "@/components/ui/spinner";
 import {
@@ -86,6 +87,45 @@ const NAV_ITEMS = [
   { label: "Start Page", path: "/start-page", icon: LinkSquare01Icon },
 ] as const;
 
+/** Tablet width, Tailwind `md` up to `lg` (T-292, S-008). */
+const TABLET_RAIL_QUERY = "(min-width: 768px) and (max-width: 1023.98px)";
+
+/**
+ * T-292 (S-008, design `ScreenPublishRedesain` Tablet): at tablet width the
+ * app sidebar shows as an icon rail (`collapsible="icon"`). Entering the
+ * tablet width collapses an expanded sidebar; leaving it expands the sidebar
+ * again only when this hook collapsed it, so a rail the user chose on desktop
+ * stays a rail. Only the change of width acts: the user can still expand the
+ * sidebar on a tablet with the trigger. Below `md` the sidebar is the mobile
+ * Sheet and this hook does nothing.
+ */
+function useTabletIconRail() {
+  const { open, setOpen } = useSidebar();
+  const openRef = useRef(open);
+  const setOpenRef = useRef(setOpen);
+  useEffect(() => {
+    openRef.current = open;
+    setOpenRef.current = setOpen;
+  });
+
+  useEffect(() => {
+    const query = window.matchMedia(TABLET_RAIL_QUERY);
+    let collapsedByRail = false;
+    const apply = () => {
+      if (query.matches && openRef.current) {
+        collapsedByRail = true;
+        setOpenRef.current(false);
+      } else if (!query.matches && collapsedByRail) {
+        collapsedByRail = false;
+        setOpenRef.current(true);
+      }
+    };
+    apply();
+    query.addEventListener("change", apply);
+    return () => query.removeEventListener("change", apply);
+  }, []);
+}
+
 export function WorkspaceSideNav({
   workspaceName,
   userName,
@@ -118,6 +158,7 @@ export function WorkspaceSideNav({
   // (bukan lagi dua instance terpisah untuk desktop vs mobile Sheet), jadi
   // "tutup drawer setelah klik nav" dipanggil langsung dari sini.
   const closeMobileSidebar = useCloseMobileSidebar();
+  useTabletIconRail();
 
   // T-016.5 / ADR-049 (NP-D10): Logout adalah Tier 2 Safety Check — wajib
   // dialog konfirmasi sebelum eksekusi, karena berpotensi menginterupsi
