@@ -54,71 +54,68 @@ function dialog(page: Page) {
   return page.getByRole("dialog").filter({ hasText: /Edit Draft|New Post/ });
 }
 
-/** Buka Calendar dan klik entri post bertanda caption; kembalikan popover. */
+/**
+ * Open the Calendar and click the chip of the post with this caption; return
+ * the post preview popover (T-288, S-008, replaces the old summary popover).
+ */
 async function openCalendarEntry(page: Page, caption: string) {
-  await page.goto("/publish/calendar");
+  await page.goto("/publish?view=calendar&range=month");
   const entry = page.getByRole("button", { name: new RegExp(caption) }).first();
   await expect(entry).toBeVisible({ timeout: 30_000 });
   await entry.click();
-  const popover = page.getByRole("dialog").filter({ hasText: /Ringkasan/ });
-  return popover.or(page.locator("[data-slot=popover-content]")).first();
+  const popover = page.getByRole("dialog", { name: "Pratinjau posting" });
+  await expect(popover).toContainText(caption, { timeout: 30_000 });
+  return popover;
 }
 
-async function expectReadOnlyPopover(
+/** Read-only preview: no Edit, no cancel-schedule item; the footer action by status. */
+async function expectReadOnlyPreview(
   page: Page,
   pop: Locator,
-  note: string,
-  detailLink: boolean,
+  footer: "go-to-post" | "retry",
 ) {
-  await expect(pop).toBeVisible();
-  await expect(pop.getByText(note)).toBeVisible();
-  await expect(
-    pop.getByRole("button", { name: "Buka Draft Editor" }),
-  ).toHaveCount(0);
-  await expect(
-    pop.getByRole("button", { name: "Batalkan Jadwal" }),
-  ).toHaveCount(0);
-  if (detailLink) {
-    await expect(pop.getByRole("link", { name: /Lihat Detail/ })).toBeVisible();
+  await expect(pop.getByRole("button", { name: "Edit" })).toHaveCount(0);
+  if (footer === "go-to-post") {
+    await expect(pop.getByRole("link", { name: /Go to post/ })).toBeVisible();
+  } else {
+    // Retry is shown (allowed for any role on a failed post) but never pressed.
+    await expect(pop.getByRole("button", { name: "Coba Lagi" })).toBeVisible();
   }
+  await pop.getByRole("button", { name: "Aksi lainnya" }).click();
+  await expect(
+    page.getByRole("menuitem", { name: "Batalkan jadwal" }),
+  ).toHaveCount(0);
+  await page.keyboard.press("Escape");
+}
+
+/** Expand the preview into the History Detail dialog. */
+async function expandPreview(page: Page, pop: Locator) {
+  await pop.getByRole("button", { name: "Perbesar" }).click();
+  await expect(pop).toHaveCount(0);
+  return page.getByRole("dialog");
 }
 
 function suite(label: string, getPage: () => Page) {
   test(`${label} Published read-only di Calendar dan History Detail`, async () => {
     const page = getPage();
     const pop = await openCalendarEntry(page, seed.captions.published);
-    await expectReadOnlyPopover(
-      page,
-      pop,
-      "Post ini sudah dipublish, tidak bisa diedit lagi.",
-      true,
-    );
-    await pop.getByRole("link", { name: /Lihat Detail/ }).click();
-    await expect(page).toHaveURL(
-      new RegExp(`/publish/history/${seed.publishedPostId}$`),
-    );
-    const detail = page.getByRole("dialog");
+    await expectReadOnlyPreview(page, pop, "go-to-post");
+    const detail = await expandPreview(page, pop);
     await expect(detail).toContainText(/Dipublikasikan/, { timeout: 20_000 });
     await expect(detail).toContainText(seed.captions.published);
     await expect(
-      detail.getByRole("button", { name: /Retry|Coba lagi|Buka Draft Editor/ }),
+      detail.getByRole("button", {
+        name: /Retry|Coba lagi|Buka Draft Editor/i,
+      }),
     ).toHaveCount(0);
   });
 
   test(`${label} Failed read-only di Calendar dan History Detail`, async () => {
     const page = getPage();
     const pop = await openCalendarEntry(page, seed.captions.failed);
-    await expectReadOnlyPopover(
-      page,
-      pop,
-      "Post ini gagal dipublish dan tidak bisa diedit dari sini.",
-      true,
-    );
-    await pop.getByRole("link", { name: /Lihat Detail/ }).click();
-    await expect(page).toHaveURL(
-      new RegExp(`/publish/history/${seed.failedPostId}$`),
-    );
-    const detail = page.getByRole("dialog");
+    await expect(pop.getByText("Publish gagal")).toBeVisible();
+    await expectReadOnlyPreview(page, pop, "retry");
+    const detail = await expandPreview(page, pop);
     await expect(detail).toContainText(seed.captions.failed, {
       timeout: 20_000,
     });
@@ -133,12 +130,7 @@ function suite(label: string, getPage: () => Page) {
   test(`${label} Imported read-only di Calendar`, async () => {
     const page = getPage();
     const pop = await openCalendarEntry(page, seed.captions.imported);
-    await expectReadOnlyPopover(
-      page,
-      pop,
-      "Post ini diimpor dari Instagram, tidak bisa diedit di sini.",
-      false,
-    );
+    await expectReadOnlyPreview(page, pop, "go-to-post");
   });
 
   test(`${label} Pinterest Edit Draft: judul, link, dan board dari data tersimpan`, async () => {

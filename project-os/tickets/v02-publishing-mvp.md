@@ -3922,7 +3922,7 @@ Not yet proven: the Board was not observed in a browser (no dev server in this l
 **What to build:** when the Queue is empty, each connected account shows suggested posting times calculated by Postific from its own published posts; Outstand is not called.
 
 - [x] A best-time use case in the `analytics` domain: last 90 days of the account's published posts; publish time in the display timezone put in weekday-and-hour buckets; buckets ranked by median engagement rate, ties by median reach; a bucket needs at least 3 posts; an account needs at least 10 posts with metrics; returns the next occurrences of the top buckets within 7 days, 3 per account. Unit tests with a local double (rule 11).
-- [ ] A repository query returns publish time and metrics per account for the window (DB integration test where available).
+- [x] A repository query returns publish time and metrics per account for the window (DB integration test where available). _Proof (2026-11-24, lane t294-e2e):_ `find-best-time-samples.integration.test.ts`, 3 tests green on the shared DB (opt-in `ANALYTICS_DB_TEST=1`): `published` and `imported` rows with publish time, rate and reach, oldest first; other statuses, soft-deleted and out-of-window posts left out; no leak across workspaces, nothing for a non-member (RLS). Dropping `imported` from the query fails a test.
 - [x] Publish reads suggestions through the `analytics` public API from an Application Service (hard rules 3 and 5).
 - [x] The empty Queue lists suggestions per account (platform icon, time, "+ New" opening the Draft Editor with that account and time set) and a control to show more times.
 - [x] With no account above the threshold, the Queue shows the normal empty state.

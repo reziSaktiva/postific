@@ -151,6 +151,11 @@ test.beforeAll(() => {
   fs.mkdirSync(OUT, { recursive: true });
 });
 
+// S-008 (T-286): old routes redirect to the single Publish page; a
+// client-side push may still show the old path until the redirect lands.
+const DRAFTS_URL = /\/publish(\/drafts|\?view=list&tab=drafts)/;
+const CALENDAR_URL = /\/publish(\/calendar|\?view=calendar)/;
+
 async function deleteE2eDrafts(page: Page): Promise<number> {
   await page.goto("/publish/drafts");
   await expect(page.getByText(E2E_WORKSPACE_NAME).first()).toBeVisible();
@@ -346,7 +351,7 @@ test("S4 Save as Draft hanya caption: redirect ke Drafts, draft muncul", async (
   await expect(save).toBeEnabled({ timeout: 15_000 });
   await save.click();
   await expect(dialog(page)).toHaveCount(0, { timeout: 30_000 });
-  await expect(page).toHaveURL(/\/publish\/drafts/, { timeout: 30_000 });
+  await expect(page).toHaveURL(DRAFTS_URL, { timeout: 30_000 });
   await expect(page.getByText(CAPTION)).toBeVisible({ timeout: 30_000 });
   console.log("S4 URL akhir:", page.url());
   console.log("S4 key localStorage:", await hasStorageKey(page));
@@ -385,7 +390,7 @@ test("S4b T-208 Save as Draft dari Calendar (Realtime aktif): redirect ke Drafts
   await expect(save).toBeEnabled({ timeout: 15_000 });
   await save.click();
   await expect(dialog(page)).toHaveCount(0, { timeout: 30_000 });
-  await expect(page).toHaveURL(/\/publish\/drafts/, { timeout: 30_000 });
+  await expect(page).toHaveURL(DRAFTS_URL, { timeout: 30_000 });
   await expect(page.getByText(`e2e-qa-draft-cal-${STAMP}`)).toBeVisible({
     timeout: 30_000,
   });
@@ -413,7 +418,7 @@ test("S4c T-208 Save as Draft dari Drafts (Realtime aktif): tetap di Drafts, dra
   await expect(page.getByText(`e2e-qa-draft-drf-${STAMP}`)).toBeVisible({
     timeout: 30_000,
   });
-  await expect(page).toHaveURL(/\/publish\/drafts/);
+  await expect(page).toHaveURL(DRAFTS_URL);
   console.log("S4c soket Realtime:", sockets.length, "URL akhir:", page.url());
 });
 
@@ -759,7 +764,7 @@ test("S9 jalur lain: sidebar New Post dari Calendar dan klik baris draft membuka
   await dialog(page).getByRole("button", { name: "Close" }).click();
   await expect(dialog(page)).toHaveCount(0);
   console.log("S9 setelah Close URL:", page.url());
-  expect(page.url()).toMatch(/\/publish\/calendar/);
+  expect(page.url()).toMatch(CALENDAR_URL);
 });
 
 test("S11 golden path: akun, caption, media, Pratinjau, jadwal dalam batas, Save as Draft, Edit Draft", async ({
@@ -792,7 +797,7 @@ test("S11 golden path: akun, caption, media, Pratinjau, jadwal dalam batas, Save
     await snap(page, "s11-golden-path");
     await dlg.getByRole("button", { name: "Save as Draft" }).click();
     await expect(dialog(page)).toHaveCount(0, { timeout: 30_000 });
-    await expect(page).toHaveURL(/\/publish\/drafts/, { timeout: 30_000 });
+    await expect(page).toHaveURL(DRAFTS_URL, { timeout: 30_000 });
     const row = page.getByRole("button").filter({ hasText: caption }).first();
     await expect(row).toBeVisible({ timeout: 30_000 });
     // Edit Draft: akun, format, media, dan Pratinjau kembali dari data tersimpan.
