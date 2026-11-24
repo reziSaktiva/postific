@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import {
   APPROVAL_LIST_STATUSES,
   DRAFT_LIST_STATUSES,
+  GetBestTimeSuggestionsUseCase,
   PublishingService,
 } from "@/domains/publishing";
 import { WorkspaceService } from "@/domains/workspace";
@@ -13,12 +14,16 @@ import { getWorkspaceContext } from "@/lib/workspace/workspace-context";
 import { publishingRepository } from "@/lib/repositories/publishing";
 import { workspaceRepository } from "@/lib/repositories/workspace";
 
-import { AnalyticsService } from "@/domains/analytics";
+import {
+  AnalyticsService,
+  BestTimeSuggestionsUseCase,
+} from "@/domains/analytics";
 import { analyticsRepository } from "@/lib/repositories/analytics";
 
 import { ApprovalsList } from "../../approvals/components/ApprovalsList";
 import { DraftsList } from "../../drafts/components/DraftsList";
 import { HistoryList } from "../../history/components/HistoryList";
+import { FETCHED_SUGGESTIONS_PER_ACCOUNT } from "../../queue/components/queue-suggestions";
 import { QueueScreen } from "../../queue/components/QueueScreen";
 
 /**
@@ -52,7 +57,27 @@ export async function QueueTab({ timeZone }: { timeZone: string }) {
     userId,
     timeZone,
   );
-  return <QueueScreen groups={groups} workspaceId={workspaceId} />;
+  // Best-time suggestions only when nothing is scheduled (T-291); an empty
+  // result is the normal empty state. Outstand is not called.
+  const suggestions =
+    groups.length === 0
+      ? await new GetBestTimeSuggestionsUseCase(
+          new BestTimeSuggestionsUseCase(analyticsRepository),
+          new WorkspaceService(workspaceRepository),
+        ).execute({
+          workspaceId,
+          userId,
+          timezone: timeZone,
+          limitPerAccount: FETCHED_SUGGESTIONS_PER_ACCOUNT,
+        })
+      : [];
+  return (
+    <QueueScreen
+      groups={groups}
+      workspaceId={workspaceId}
+      suggestions={suggestions}
+    />
+  );
 }
 
 export async function DraftsTab() {

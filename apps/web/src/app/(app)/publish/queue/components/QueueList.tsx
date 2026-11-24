@@ -15,7 +15,7 @@ import {
   type ConnectedAccountId,
   type PostId,
 } from "@postific/shared";
-import type { QueueGroup } from "@/domains/publishing";
+import type { QueueGroup, QueueSuggestionAccount } from "@/domains/publishing";
 import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
 import { formatRelativeTime } from "@/lib/utils/format-relative-time";
 
@@ -52,6 +52,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+import { QueueSuggestions } from "./QueueSuggestions";
 import { useDraftEditor } from "../../../components/draft-editor/Context";
 import {
   CONTENT_STATUS_BADGE_VARIANT,
@@ -113,6 +114,11 @@ export interface QueueListProps {
    * bisa dipakai standalone (mis. di test) tanpa wrapper dialog.
    */
   onCancelSchedule?: (postId: PostId) => void;
+  /**
+   * Best-time suggestions per account (T-291), shown only while the Queue has
+   * no scheduled post at all. Empty or absent = the normal empty state.
+   */
+  suggestions?: QueueSuggestionAccount[];
 }
 
 /**
@@ -126,7 +132,11 @@ export interface QueueListProps {
  * `react-icons`, dikecualikan ADR-058 (sama seperti `CalendarToolbar.tsx`
  * T-101.1).
  */
-export function QueueList({ groups, onCancelSchedule }: QueueListProps) {
+export function QueueList({
+  groups,
+  onCancelSchedule,
+  suggestions = [],
+}: QueueListProps) {
   const timeZone = useUserTimeZone();
   const { openEditDraft, openNewPost } = useDraftEditor();
   const openPostPreview = usePostPreviewOpener();
@@ -223,6 +233,8 @@ export function QueueList({ groups, onCancelSchedule }: QueueListProps) {
           <CardContent>
             {emptyKind !== "base" ? (
               <SourceFilterEmpty kind={emptyKind} onShowAll={resetAllFilters} />
+            ) : allItems.length === 0 && suggestions.length > 0 ? (
+              <QueueSuggestions suggestions={suggestions} />
             ) : (
               <Empty>
                 <EmptyHeader>

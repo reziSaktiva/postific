@@ -3914,9 +3914,9 @@ Not yet proven: the shell was not observed in a browser (no dev server in this l
 - [x] A best-time use case in the `analytics` domain: last 90 days of the account's published posts; publish time in the display timezone put in weekday-and-hour buckets; buckets ranked by median engagement rate, ties by median reach; a bucket needs at least 3 posts; an account needs at least 10 posts with metrics; returns the next occurrences of the top buckets within 7 days, 3 per account. Unit tests with a local double (rule 11).
 - [ ] A repository query returns publish time and metrics per account for the window (DB integration test where available).
 - [x] Publish reads suggestions through the `analytics` public API from an Application Service (hard rules 3 and 5).
-- [ ] The empty Queue lists suggestions per account (platform icon, time, "+ New" opening the Draft Editor with that account and time set) and a control to show more times.
-- [ ] With no account above the threshold, the Queue shows the normal empty state.
-- [ ] Suggestions create nothing until the user schedules a post.
+- [x] The empty Queue lists suggestions per account (platform icon, time, "+ New" opening the Draft Editor with that account and time set) and a control to show more times.
+- [x] With no account above the threshold, the Queue shows the normal empty state.
+- [x] Suggestions create nothing until the user schedules a post.
 
 **Blocked by:** T-289
 
