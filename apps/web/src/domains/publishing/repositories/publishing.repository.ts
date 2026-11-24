@@ -400,6 +400,30 @@ export interface UpsertImportedPostsResult {
 }
 
 /** Repository interface — implementation (Prisma) lives in src/lib/repositories/publishing. */
+/**
+ * Port of the coordination status transitions (T-289, S-008), kept apart
+ * from `IPublishingRepository` so the many fakes of that interface stay
+ * unchanged. `transitionContentStatus` writes `to` only while the post is
+ * still `from` (compare-and-set) and returns null when nothing matched
+ * (post gone, other workspace, or status changed meanwhile).
+ */
+export interface IContentStatusRepository {
+  findPostStatusById(
+    input: { workspaceId: WorkspaceId; postId: PostId },
+    userId: UserId,
+  ): Promise<{ status: ContentStatus } | null>;
+
+  transitionContentStatus(
+    input: {
+      workspaceId: WorkspaceId;
+      postId: PostId;
+      from: ContentStatus;
+      to: ContentStatus;
+    },
+    userId: UserId,
+  ): Promise<PublishingPostRecord | null>;
+}
+
 export interface IPublishingRepository {
   createDraft(input: {
     workspaceId: WorkspaceId;

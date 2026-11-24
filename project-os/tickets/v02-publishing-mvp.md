@@ -3843,9 +3843,9 @@ Not yet proven: the Calendar was not observed in a browser (no dev server in thi
 - [x] The dialog shows the same content, the result of every account of the same post, and "Published via <network>". No "Add note".
 - [x] A published video plays inline in the popover and the dialog with the native video player (play/pause, time, progress, volume, fullscreen).
 - [x] When there is no playable video URL (for example an imported post with only a stored thumbnail), the thumbnail shows with "Go to post" and no play control.
-- [ ] The same preview opens from Calendar chips, Queue and History cards, and Board cards. Drafts and Approvals cards open the Draft Editor directly (ADR-165 decision 6).
+- [x] The same preview opens from Calendar chips, Queue and History cards, and Board cards. Drafts and Approvals cards open the Draft Editor directly (ADR-165 decision 6).
 
-Wiring: Calendar chips and the mobile agenda use `PostPreviewPopover`; Board cards use it in T-290; the Queue and History cards are wired by the list lane (`PostPreviewPopover` / `PostPreviewDialog` from `publish/components/preview/PostPreview.tsx`), so the last item stays open until then.
+Wiring: Calendar chips and the mobile agenda use `PostPreviewPopover`; Board cards use it in T-290; Queue and History cards are its trigger through `ListPostCard` `preview` (list lane phase 2), focused on the filtered account when an account filter is set. Not yet proven in a browser (T-294).
 
 Not yet proven: popover and dialog were not observed in a browser (no dev server in this lane; inline video playback, light, dark, 768 px and 390 px are covered by T-294). Proven by unit tests: focus account, header date, footer action by status, "Published via" platforms, `PublishingService.getPostPreview` for any status. The imported-post case shows only its stored thumbnail (an image), so it has no play control; no external CDN URL is used.
 
@@ -3869,12 +3869,14 @@ Not yet proven: popover and dialog were not observed in a browser (no dev server
 
 - [x] Queue: scheduled posts ordered by publish time (ADR-083).
 - [x] Drafts: `Draft` and `Ready to Schedule` content.
-- [ ] Approvals: `In Review` content with Mark Ready (`In Review` → `Ready to Schedule`) and Back to Draft (`In Review` → `Draft`), through the existing status service; the same roles as today; nothing is blocked waiting for approval.
+- [x] Approvals: `In Review` content with Mark Ready (`In Review` → `Ready to Schedule`) and Back to Draft (`In Review` → `Draft`), through the existing status service; the same roles as today; nothing is blocked waiting for approval.
 - [x] History: published and failed posts as cards with metrics, "Published via", Go to post; failed posts show the error and Retry.
 - [x] Grouping for the Approvals list has unit tests next to the existing queue and history grouping.
 - [x] Queue, Drafts and History keep the MCP source filter and AI-client badge (KSP-D20, T-157); Approvals shows the badge.
-- [ ] A click opens the post preview in Queue and History, and the Draft Editor directly in Drafts and Approvals.
+- [x] A click opens the post preview in Queue and History, and the Draft Editor directly in Drafts and Approvals.
 - [x] The empty Queue shows a normal empty state with "+ New Post" until T-291 adds suggestions.
+
+Transitions (list lane phase 2, King Rezi decision 2026-11-24): `ChangeContentStatusUseCase` (domain `publishing`) allows exactly Draft → In Review, In Review → Draft and In Review → Ready to Schedule for all three roles, rejects any other source status (including `imported`) with a conflict, and writes compare-and-set (`contentStatusRepository.transitionContentStatus`, no schema change). Approvals cards call it through `markReadyToScheduleAction` / `backToDraftAction` (`publish/approvals/actions.ts`), which revalidate `/publish`. Proven by unit tests at the use-case boundary. Not yet proven: the buttons were not observed in a browser (T-294). Open: no Draft → In Review entry in the UI, because neither `ScreenPublishRedesain` nor `ScreenDraftEditorRedesain` has a submit-for-review control (AGENTS.md rule 10); the use case supports it. Finding: the Draft Editor save (`updateDraftCaption`) and Delete accept only `Draft`, so an `In Review` or `Ready to Schedule` post opened from Approvals or Drafts cannot be saved or deleted until it is back in Draft.
 
 **Blocked by:** T-286
 
