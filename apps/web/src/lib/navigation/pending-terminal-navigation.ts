@@ -98,6 +98,16 @@ export function isTerminalNavigationPending(
   return true;
 }
 
+/**
+ * Drop the mark without navigating: a terminal action that marked itself
+ * pending before its server calls (T-294, Ajukan Review) failed, so the user
+ * stays on the origin screen and its Realtime events must flow again.
+ */
+export function clearTerminalNavigationPending(): void {
+  pending = null;
+  stopWatching();
+}
+
 export function resetTerminalNavigationForTests(): void {
   pending = null;
   stopWatching();

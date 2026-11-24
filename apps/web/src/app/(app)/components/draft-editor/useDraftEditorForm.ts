@@ -9,7 +9,10 @@ import { scheduleTimeConstraintMessage } from "@/domains/publishing/schedule-tim
 import { zonedLocalToUtc } from "@/domains/publishing/wib-time";
 import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
 
-import { markTerminalNavigationPending } from "@/lib/navigation/pending-terminal-navigation";
+import {
+  clearTerminalNavigationPending,
+  markTerminalNavigationPending,
+} from "@/lib/navigation/pending-terminal-navigation";
 import { isCaptionRequiredForFormats } from "@/domains/publishing";
 
 import {
@@ -576,6 +579,14 @@ export function useDraftEditorForm({
    */
   async function handleSubmitForReview() {
     setIsSubmittingReview(true);
+    // T-294: the destination (List · Approvals) shares the `/publish` path
+    // with the origin tab. Realtime events of this save and status change
+    // reach the origin list before `finishTerminalAction` runs; their server
+    // action, still in flight when `router.push` starts, makes Next render
+    // the origin URL again. Hold those events from the start, and release
+    // them if the user stays because the submit failed.
+    markTerminalNavigationPending();
+    let navigated = false;
     try {
       const nextPostId = await persistDraft();
       if (!nextPostId) {
@@ -587,6 +598,7 @@ export function useDraftEditorForm({
         return;
       }
       setStatus(ContentStatus.InReview);
+      navigated = true;
       finishTerminalAction("submit-review");
     } catch (error) {
       setNotice({
@@ -597,6 +609,7 @@ export function useDraftEditorForm({
             : "Gagal mengajukan review. Coba lagi.",
       });
     } finally {
+      if (!navigated) clearTerminalNavigationPending();
       setIsSubmittingReview(false);
     }
   }
