@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { ContentStatus, type PostId } from "@postific/shared";
 import {
   groupQueueItemsByDate,
+  type QueueSuggestionAccount,
   type CalendarPostItem,
   type QueueGroup,
   type QueueItemRecord,
@@ -101,8 +102,11 @@ function toQueueItemRecord(item: CalendarPostItem): QueueItemRecord | null {
 export function QueueScreen({
   groups,
   workspaceId,
+  suggestions,
 }: {
   groups: QueueGroup[];
+  /** Best-time suggestions for the empty Queue (T-291); `[]` when none. */
+  suggestions?: QueueSuggestionAccount[];
   /** Workspace aktif — dipakai `usePublishingPostsRealtime` (T-092.4) untuk
    * subscribe channel `publishing_posts:{workspaceId}`, bukan dipakai
    * untuk fetch data apa pun langsung di komponen ini (AGENTS.md #5). */
@@ -175,6 +179,7 @@ export function QueueScreen({
       <QueueList
         groups={localGroups}
         onCancelSchedule={(postId) => cancelConfirm.open(postId)}
+        suggestions={suggestions}
       />
 
       <AlertDialog

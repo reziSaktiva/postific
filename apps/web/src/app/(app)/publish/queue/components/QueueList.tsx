@@ -3,21 +3,21 @@
 import { useMemo, useState } from "react";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import {
+  Add01Icon,
   Cancel01Icon,
-  Clock01Icon,
   PencilEdit01Icon,
   SentIcon,
 } from "@hugeicons/core-free-icons";
 
 import {
+  ContentStatus,
   PostCreatedVia,
   type ConnectedAccountId,
   type PostId,
 } from "@postific/shared";
-import type { QueueGroup } from "@/domains/publishing";
+import type { QueueGroup, QueueSuggestionAccount } from "@/domains/publishing";
 import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
 import { formatRelativeTime } from "@/lib/utils/format-relative-time";
-import { formatUtcDateKeyHeading } from "@/lib/utils";
 
 import { SourceFilterEmpty } from "@/components/shared/SourceFilterEmpty";
 import { McpSourceBadge } from "@/components/shared/McpSourceBadge";
@@ -30,8 +30,10 @@ import {
 } from "@/components/shared/source-filter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
   Empty,
+  EmptyContent,
   EmptyDescription,
   EmptyHeader,
   EmptyTitle,
@@ -43,7 +45,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import { Text } from "@/components/ui/text";
 import {
   Tooltip,
@@ -51,33 +52,18 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-import { PLATFORM_ICON } from "../../../components/platform-icons";
+import { QueueSuggestions } from "./QueueSuggestions";
 import { useDraftEditor } from "../../../components/draft-editor/Context";
-
-const DATE_HEADING_FORMATTER = new Intl.DateTimeFormat("id-ID", {
-  weekday: "long",
-  day: "numeric",
-  month: "long",
-  // `dateKey` diparse sebagai UTC midnight (kalender zona pengguna, T-147),
-  // jadi formatter berzona "UTC" — zona pengguna menggeser hari untuk offset negatif.
-  timeZone: "UTC",
-});
-
-/** `group.date` adalah kalender zona pengguna (T-147) "YYYY-MM-DD" — format tampilan lengkap
- * (mis. "Senin, 14 Juli", mengikuti mockup Claude Design KSP-03) adalah
- * tanggung jawab UI (T-032.3). Parse UTC-safe dipusatkan di
- * `formatUtcDateKeyHeading` (`@/lib/utils`, code review PR #105). */
-function formatGroupDateHeading(dateKey: string): string {
-  return formatUtcDateKeyHeading(dateKey, DATE_HEADING_FORMATTER);
-}
-
-function formatScheduledTime(date: Date, timeZone: string): string {
-  return date.toLocaleTimeString("id-ID", {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone,
-  });
-}
+import {
+  CONTENT_STATUS_BADGE_VARIANT,
+  CONTENT_STATUS_LABEL,
+} from "../../../components/draft-editor/status-badge";
+import { ListDayGroups } from "../../components/views/ListDayGroups";
+import {
+  ListAccounts,
+  ListPostCard,
+} from "../../components/views/ListPostCard";
+import { usePostPreviewOpener } from "../../components/views/usePostPreviewOpener";
 
 /**
  * Tombol aksi item Queue (Publish Now/Edit/Cancel Schedule) — dipusatkan
@@ -128,6 +114,11 @@ export interface QueueListProps {
    * bisa dipakai standalone (mis. di test) tanpa wrapper dialog.
    */
   onCancelSchedule?: (postId: PostId) => void;
+  /**
+   * Best-time suggestions per account (T-291), shown only while the Queue has
+   * no scheduled post at all. Empty or absent = the normal empty state.
+   */
+  suggestions?: QueueSuggestionAccount[];
 }
 
 /**
@@ -141,9 +132,14 @@ export interface QueueListProps {
  * `react-icons`, dikecualikan ADR-058 (sama seperti `CalendarToolbar.tsx`
  * T-101.1).
  */
-export function QueueList({ groups, onCancelSchedule }: QueueListProps) {
+export function QueueList({
+  groups,
+  onCancelSchedule,
+  suggestions = [],
+}: QueueListProps) {
   const timeZone = useUserTimeZone();
-  const { openEditDraft } = useDraftEditor();
+  const { openEditDraft, openNewPost } = useDraftEditor();
+  const openPostPreview = usePostPreviewOpener();
   const [accountFilter, setAccountFilter] = useState<string>(
     ALL_ACCOUNTS_FILTER_VALUE,
   );
@@ -237,6 +233,8 @@ export function QueueList({ groups, onCancelSchedule }: QueueListProps) {
           <CardContent>
             {emptyKind !== "base" ? (
               <SourceFilterEmpty kind={emptyKind} onShowAll={resetAllFilters} />
+            ) : allItems.length === 0 && suggestions.length > 0 ? (
+              <QueueSuggestions suggestions={suggestions} />
             ) : (
               <Empty>
                 <EmptyHeader>
@@ -246,129 +244,70 @@ export function QueueList({ groups, onCancelSchedule }: QueueListProps) {
                     tanggal.
                   </EmptyDescription>
                 </EmptyHeader>
+                <EmptyContent>
+                  <Button type="button" onClick={() => openNewPost()}>
+                    <HugeiconsIcon icon={Add01Icon} />
+                    New Post
+                  </Button>
+                </EmptyContent>
               </Empty>
             )}
           </CardContent>
         </Card>
       ) : (
-        // eslint-disable-next-line no-restricted-syntax -- T-101.2: layout-only
-        <div className="flex flex-col gap-6">
-          {filteredGroups.map((group) => (
-            // eslint-disable-next-line no-restricted-syntax -- T-101.2: layout-only
-            <div className="flex flex-col gap-3" key={group.date}>
-              {/* eslint-disable-next-line no-restricted-syntax -- T-101.2: layout-only */}
-              <div className="flex flex-col gap-1">
-                <Text variant="h4" as="h3">
-                  {formatGroupDateHeading(group.date)}
-                </Text>
-                <Separator />
-              </div>
-
-              {/* eslint-disable-next-line no-restricted-syntax -- T-101.2: layout-only */}
-              <div className="flex flex-col gap-3">
-                {group.items.map((item) => (
-                  <Card size="sm" key={item.id}>
-                    <CardContent>
-                      {/* eslint-disable-next-line no-restricted-syntax -- T-101.2: layout-only */}
-                      <div className="flex flex-col gap-2">
-                        {/* eslint-disable-next-line no-restricted-syntax -- T-101.2: layout-only */}
-                        <div className="flex items-start justify-between gap-2">
-                          {/* eslint-disable-next-line no-restricted-syntax -- T-101.2: layout-only */}
-                          <div className="flex flex-col gap-1">
-                            <Text variant="p" className="line-clamp-2 text-sm">
-                              {item.caption || "(Tanpa caption)"}
-                            </Text>
-                            {/* eslint-disable-next-line no-restricted-syntax -- T-101.2: layout-only */}
-                            <div className="flex items-center gap-1">
-                              <HugeiconsIcon
-                                icon={Clock01Icon}
-                                size={14}
-                                className="text-muted-foreground"
-                              />
-                              <Text
-                                variant="muted"
-                                as="span"
-                                className="text-xs"
-                              >
-                                {formatScheduledTime(
-                                  item.scheduledAt,
-                                  timeZone,
-                                )}
-                              </Text>
-                            </div>
-                          </div>
-
-                          {/* eslint-disable-next-line no-restricted-syntax -- T-101.2: layout-only */}
-                          <div className="flex items-center gap-1">
-                            <QueueItemActionButton
-                              icon={SentIcon}
-                              label="Publish Now"
-                              variant="ghost"
-                              onClick={() =>
-                                openEditDraft(item.id, "publish-now")
-                              }
-                            />
-                            <QueueItemActionButton
-                              icon={PencilEdit01Icon}
-                              label="Edit"
-                              variant="ghost"
-                              onClick={() => openEditDraft(item.id)}
-                            />
-                            <QueueItemActionButton
-                              icon={Cancel01Icon}
-                              label="Cancel Schedule"
-                              variant="destructive"
-                              onClick={() => onCancelSchedule?.(item.id)}
-                            />
-                          </div>
-                        </div>
-
-                        {/* eslint-disable-next-line no-restricted-syntax -- T-101.2: layout-only */}
-                        <div className="flex flex-wrap gap-3">
-                          {item.targets.map((target) => {
-                            const PlatformGlyph =
-                              PLATFORM_ICON[target.platform].Icon;
-                            return (
-                              // eslint-disable-next-line no-restricted-syntax -- T-101.2: layout-only
-                              <div
-                                className="flex items-center gap-1"
-                                key={target.id}
-                              >
-                                <PlatformGlyph
-                                  size={12}
-                                  color={PLATFORM_ICON[target.platform].color}
-                                />
-                                <Text
-                                  variant="muted"
-                                  as="span"
-                                  className="text-xs"
-                                >
-                                  {target.accountHandle}
-                                </Text>
-                              </div>
-                            );
-                          })}
-                        </div>
-
-                        {/* eslint-disable-next-line no-restricted-syntax -- layout-only */}
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Text variant="muted" as="span" className="text-xs">
-                            Dibuat{" "}
-                            {formatRelativeTime(item.createdAt, timeZone)}
-                          </Text>
-                          <McpSourceBadge
-                            createdVia={item.createdVia}
-                            clientName={item.createdViaClientName}
-                          />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
+        <ListDayGroups
+          groups={filteredGroups}
+          getTime={(item) => item.scheduledAt}
+          renderCard={(item) => (
+            <ListPostCard
+              onOpen={() => openPostPreview({ id: item.id, tab: "queue" })}
+              accounts={<ListAccounts targets={item.targets} />}
+              statusBadge={
+                <Badge
+                  variant={
+                    CONTENT_STATUS_BADGE_VARIANT[ContentStatus.Scheduled]
+                  }
+                >
+                  {CONTENT_STATUS_LABEL[ContentStatus.Scheduled]}
+                </Badge>
+              }
+              caption={item.caption}
+              meta={
+                <>
+                  <Text variant="muted" as="span" className="text-xs">
+                    Dibuat {formatRelativeTime(item.createdAt, timeZone)}
+                  </Text>
+                  <McpSourceBadge
+                    createdVia={item.createdVia}
+                    clientName={item.createdViaClientName}
+                  />
+                </>
+              }
+              footer={
+                <>
+                  <QueueItemActionButton
+                    icon={SentIcon}
+                    label="Publish Now"
+                    variant="ghost"
+                    onClick={() => openEditDraft(item.id, "publish-now")}
+                  />
+                  <QueueItemActionButton
+                    icon={PencilEdit01Icon}
+                    label="Edit"
+                    variant="ghost"
+                    onClick={() => openEditDraft(item.id)}
+                  />
+                  <QueueItemActionButton
+                    icon={Cancel01Icon}
+                    label="Cancel Schedule"
+                    variant="destructive"
+                    onClick={() => onCancelSchedule?.(item.id)}
+                  />
+                </>
+              }
+            />
+          )}
+        />
       )}
     </div>
   );

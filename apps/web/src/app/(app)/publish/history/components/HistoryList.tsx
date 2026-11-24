@@ -8,7 +8,6 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import Link from "next/link";
 
 import { ContentStatus, PostCreatedVia } from "@postific/shared";
 import {
@@ -17,11 +16,11 @@ import {
   HISTORY_TERMINAL_STATUSES,
   type HistoryGroup,
   type HistoryItemRecord,
+  type HistoryListItem,
 } from "@/domains/publishing";
 import type { ConnectedAccountRecord } from "@/domains/workspace";
 import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
 import { formatRelativeTime } from "@/lib/utils/format-relative-time";
-import { formatUtcDateKeyHeading } from "@/lib/utils";
 import { usePublishingPostsRealtime } from "@/lib/hooks/use-publishing-posts-realtime";
 import { useSyncedState } from "@/lib/hooks/use-synced-state";
 
@@ -42,7 +41,9 @@ import {
   SourceFilter,
   type SourceFilterValue,
 } from "@/components/shared/source-filter";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Empty,
@@ -50,7 +51,6 @@ import {
   EmptyHeader,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { Item, ItemContent, ItemGroup, ItemTitle } from "@/components/ui/item";
 import {
   Select,
   SelectContent,
@@ -62,6 +62,19 @@ import { Text } from "@/components/ui/text";
 
 import { PLATFORM_ICON } from "../../../components/platform-icons";
 import {
+  formatEngagementRate,
+  formatMetricCount,
+  MetricTile,
+} from "../../../components/post-metric-tile";
+import { ListDayGroups } from "../../components/views/ListDayGroups";
+import {
+  ListAccounts,
+  ListPostCard,
+} from "../../components/views/ListPostCard";
+import { usePostPreviewOpener } from "../../components/views/usePostPreviewOpener";
+import { summarizeHistoryMetrics } from "../history-metrics";
+import { RetryPostButton } from "./RetryPostButton";
+import {
   historyListClockDate,
   historyListShowsPublishMeta,
 } from "../history-list-row";
@@ -69,28 +82,6 @@ import {
   HISTORY_STATUS_BADGE_VARIANT,
   HISTORY_STATUS_LABEL,
 } from "../history-status";
-
-const DATE_HEADING_FORMATTER = new Intl.DateTimeFormat("id-ID", {
-  weekday: "long",
-  day: "numeric",
-  month: "long",
-  // `dateKey` diparse sebagai UTC midnight (kalender zona pengguna, T-147),
-  // jadi formatter berzona "UTC" — zona pengguna menggeser hari untuk offset negatif.
-  timeZone: "UTC",
-});
-
-/** Sama pola `QueueList`/`CalendarAgendaList` — parse UTC-safe dipusatkan di `formatUtcDateKeyHeading`. */
-function formatGroupDateHeading(dateKey: string): string {
-  return formatUtcDateKeyHeading(dateKey, DATE_HEADING_FORMATTER);
-}
-
-function formatItemTime(date: Date, timeZone: string): string {
-  return date.toLocaleTimeString("id-ID", {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone,
-  });
-}
 
 /**
  * Pesan error representatif satu `HistoryItemRecord` (T-034.2) — post bisa
@@ -136,7 +127,7 @@ export interface HistoryListProps {
    * bawah, atas hasil gabungan `items` + granular patch Realtime), bukan
    * lagi di composition root `page.tsx`.
    */
-  items: HistoryItemRecord[];
+  items: HistoryListItem[];
   /** Daftar akun terkoneksi workspace (opsi filter Akun) — dari `WorkspaceService.listConnectedAccounts`, bukan derive dari `items` yang sudah terfilter, sama alasan `CalendarToolbar`. */
   accounts: ConnectedAccountRecord[];
   /** Workspace aktif — dipakai `usePublishingPostsRealtime` (T-092.6) untuk subscribe channel `publishing_posts:{workspaceId}`, bukan dipakai untuk fetch data apa pun langsung di komponen ini (AGENTS.md #5). */
@@ -185,6 +176,7 @@ export function HistoryList({
   renderedAt,
 }: HistoryListProps) {
   const timeZone = useUserTimeZone();
+  const openPostPreview = usePostPreviewOpener();
   const relativeNowMs = useSyncExternalStore(
     subscribeRelativeNow,
     () => readClientNowMs(renderedAt),
@@ -209,7 +201,7 @@ export function HistoryList({
     SourceFilter.All,
   );
 
-  const [localItems, setLocalItems] = useSyncedState(items);
+  const [localItems, setLocalItems] = useSyncedState<HistoryListItem[]>(items);
   const requestSeqRef = useRef<Map<string, number>>(new Map());
 
   const handlePublishingPostChange = useCallback(
@@ -250,7 +242,7 @@ export function HistoryList({
     onUpdate: handlePublishingPostChange,
   });
 
-  const groups = useMemo<HistoryGroup[]>(
+  const groups = useMemo<HistoryGroup<HistoryListItem>[]>(
     () => groupHistoryItemsByDate(localItems, timeZone),
     [localItems, timeZone],
   );
@@ -266,7 +258,7 @@ export function HistoryList({
     [accounts],
   );
 
-  const filteredGroups = useMemo<HistoryGroup[]>(() => {
+  const filteredGroups = useMemo<HistoryGroup<HistoryListItem>[]>(() => {
     return groups
       .map((group) => ({
         ...group,
@@ -376,107 +368,137 @@ export function HistoryList({
           </CardContent>
         </Card>
       ) : (
-        // eslint-disable-next-line no-restricted-syntax -- layout-only
-        <div className="flex flex-col gap-6">
-          {filteredGroups.map((group) => (
-            // eslint-disable-next-line no-restricted-syntax -- layout-only
-            <div className="flex flex-col gap-2" key={group.date}>
-              <Text variant="h4" as="h3">
-                {formatGroupDateHeading(group.date)}
-              </Text>
+        <ListDayGroups
+          groups={filteredGroups}
+          getTime={historyListClockDate}
+          renderCard={(item) => {
+            // T-126: `Imported` counts as `Published` for the meta text. The
+            // time on the left follows the same business-time key as the day
+            // heading (`historyItemOccurredAt`, T-142).
+            const showsPublishMeta = historyListShowsPublishMeta(item.status);
+            const publishedAt = item.publishedAt ?? item.updatedAt;
+            const summary = summarizeHistoryMetrics(item.metrics);
+            const postUrl = item.targets.find(
+              (target) =>
+                target.status === "published" && target.platformPostUrl,
+            )?.platformPostUrl;
+            const failedTargetIds = item.targets
+              .filter((target) => target.status === "failed")
+              .map((target) => target.id);
+            const publishedVia = item.targets
+              .map((target) => target.platform)
+              .filter(
+                (platform, index, all) => all.indexOf(platform) === index,
+              );
 
-              <ItemGroup className="gap-2">
-                {group.items.map((item) => {
-                  // T-126: `Imported` sama dengan `Published` untuk teks
-                  // meta (terminal-sukses). Jam di kiri kartu mengikuti
-                  // kunci waktu bisnis yang sama dengan judul tanggal
-                  // kelompok (`historyItemOccurredAt`, T-142).
-                  const showsPublishMeta = historyListShowsPublishMeta(
-                    item.status,
-                  );
-                  const publishedAt = item.publishedAt ?? item.updatedAt;
-
-                  return (
-                    <Item
-                      key={item.id}
-                      asChild
-                      variant="outline"
-                      size="sm"
-                      className="cursor-pointer flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl bg-card p-4 transition-colors hover:border-foreground/40 hover:bg-card! sm:flex-nowrap"
+            return (
+              <ListPostCard
+                onOpen={() => openPostPreview({ id: item.id, tab: "history" })}
+                accounts={<ListAccounts targets={item.targets} />}
+                statusBadge={
+                  <Badge variant={HISTORY_STATUS_BADGE_VARIANT[item.status]}>
+                    {HISTORY_STATUS_LABEL[item.status]}
+                  </Badge>
+                }
+                caption={item.caption}
+                extra={
+                  showsPublishMeta ? (
+                    summary ? (
+                      // eslint-disable-next-line no-restricted-syntax -- layout-only
+                      <div className="flex flex-wrap gap-2">
+                        <MetricTile
+                          label="Views"
+                          value={formatMetricCount(summary.impressions)}
+                        />
+                        <MetricTile
+                          label="Reach"
+                          value={formatMetricCount(summary.reach)}
+                        />
+                        <MetricTile
+                          label="Replies"
+                          value={formatMetricCount(summary.comments)}
+                        />
+                        <MetricTile
+                          label="Eng. Rate"
+                          value={formatEngagementRate(summary.engagementRate)}
+                        />
+                      </div>
+                    ) : (
+                      <Text variant="muted" as="span" className="text-xs">
+                        Belum ada data
+                      </Text>
+                    )
+                  ) : (
+                    <Alert variant="destructive">
+                      <AlertDescription>
+                        {getPrimaryErrorMessage(item)}
+                      </AlertDescription>
+                    </Alert>
+                  )
+                }
+                meta={
+                  <>
+                    <Text
+                      variant="muted"
+                      as="span"
+                      suppressHydrationWarning
+                      className="text-xs"
                     >
-                      <Link href={`/publish/history/${item.id}`}>
-                        <Text
-                          variant="muted"
-                          as="span"
-                          className="w-12 shrink-0 text-xs"
-                        >
-                          {formatItemTime(historyListClockDate(item), timeZone)}
-                        </Text>
-
-                        {/* eslint-disable-next-line no-restricted-syntax -- layout-only */}
-                        <div className="flex shrink-0 flex-wrap items-center gap-3">
-                          {item.targets.map((target) => {
-                            const PlatformGlyph =
-                              PLATFORM_ICON[target.platform].Icon;
-                            return (
-                              // eslint-disable-next-line no-restricted-syntax -- layout-only
-                              <div
-                                className="flex items-center gap-1"
-                                key={target.id}
-                              >
-                                <PlatformGlyph
-                                  size={12}
-                                  color={PLATFORM_ICON[target.platform].color}
-                                />
-                                <Text variant="muted" as="span">
-                                  {target.accountHandle}
-                                </Text>
-                              </div>
-                            );
-                          })}
-                        </div>
-
-                        <ItemContent className="order-last min-w-0 basis-full sm:order-none sm:flex-1 sm:basis-auto">
-                          <ItemTitle className="line-clamp-none block w-full min-w-0 font-normal whitespace-normal sm:truncate sm:whitespace-nowrap">
-                            {item.caption || "(Tanpa caption)"}
-                          </ItemTitle>
-                          {/* eslint-disable-next-line no-restricted-syntax -- layout-only */}
-                          <div className="flex min-w-0 items-center gap-2">
-                            <Text
-                              variant="muted"
-                              as="span"
-                              suppressHydrationWarning
-                              className={
-                                showsPublishMeta
-                                  ? "truncate text-xs"
-                                  : "truncate text-xs text-destructive"
-                              }
-                            >
-                              {showsPublishMeta
-                                ? `Dipublikasikan ${formatRelativeTime(publishedAt, timeZone, relativeNow)}`
-                                : getPrimaryErrorMessage(item)}
-                            </Text>
-                            <McpSourceBadge
-                              createdVia={item.createdVia}
-                              clientName={item.createdViaClientName}
+                      {showsPublishMeta
+                        ? `Dipublikasikan ${formatRelativeTime(publishedAt, timeZone, relativeNow)}`
+                        : "Gagal dipublikasikan"}
+                    </Text>
+                    <McpSourceBadge
+                      createdVia={item.createdVia}
+                      clientName={item.createdViaClientName}
+                    />
+                  </>
+                }
+                footer={
+                  <>
+                    {/* eslint-disable-next-line no-restricted-syntax -- layout-only */}
+                    <div className="mr-auto flex items-center gap-1.5 text-xs text-muted-foreground">
+                      {showsPublishMeta
+                        ? item.status === ContentStatus.Imported
+                          ? "Diimpor dari"
+                          : "Dipublikasikan via"
+                        : "Gagal ke"}
+                      {publishedVia.map((platform) => {
+                        const Glyph = PLATFORM_ICON[platform].Icon;
+                        return (
+                          <span
+                            className="inline-flex items-center gap-1 font-medium text-foreground"
+                            key={platform}
+                          >
+                            <Glyph
+                              size={12}
+                              color={PLATFORM_ICON[platform].color}
                             />
-                          </div>
-                        </ItemContent>
-
-                        <Badge
-                          className="shrink-0"
-                          variant={HISTORY_STATUS_BADGE_VARIANT[item.status]}
-                        >
-                          {HISTORY_STATUS_LABEL[item.status]}
-                        </Badge>
-                      </Link>
-                    </Item>
-                  );
-                })}
-              </ItemGroup>
-            </div>
-          ))}
-        </div>
+                            {PLATFORM_ICON[platform].label}
+                          </span>
+                        );
+                      })}
+                    </div>
+                    {showsPublishMeta ? (
+                      postUrl ? (
+                        <Button asChild size="sm" variant="outline">
+                          <a href={postUrl} target="_blank" rel="noreferrer">
+                            Buka posting
+                          </a>
+                        </Button>
+                      ) : null
+                    ) : (
+                      <RetryPostButton
+                        postId={item.id}
+                        targetIds={failedTargetIds}
+                      />
+                    )}
+                  </>
+                }
+              />
+            );
+          }}
+        />
       )}
     </div>
   );

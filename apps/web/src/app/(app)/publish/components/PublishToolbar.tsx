@@ -21,6 +21,7 @@ import {
   PUBLISH_LIST_TABS,
   type CalendarSearch,
   type PublishListTab,
+  type PublishListTabCounts,
   type PublishView,
 } from "@/domains/publishing";
 import { cn } from "@/lib/utils";
@@ -55,6 +56,7 @@ export function PublishToolbar({
   timeZone,
   profileTimeZone,
   timeZoneGroups,
+  counts,
 }: {
   view: PublishView;
   tab: PublishListTab;
@@ -65,6 +67,8 @@ export function PublishToolbar({
   timeZone: string;
   profileTimeZone: string;
   timeZoneGroups: DisplayTimeZoneGroup[];
+  /** Count per List tab (T-289); tabs show no number until it is given. */
+  counts?: PublishListTabCounts;
 }) {
   const router = useRouter();
 
@@ -93,7 +97,14 @@ export function PublishToolbar({
             <TabsList variant="line" aria-label="Daftar">
               {PUBLISH_LIST_TABS.map((value) => (
                 <TabsTrigger key={value} value={value} asChild>
-                  <Link href={href({ tab: value })}>{TAB_LABEL[value]}</Link>
+                  <Link href={href({ tab: value })}>
+                    {TAB_LABEL[value]}
+                    {counts ? (
+                      <span className="ml-1.5 text-xs text-muted-foreground tabular-nums">
+                        {counts[value]}
+                      </span>
+                    ) : null}
+                  </Link>
                 </TabsTrigger>
               ))}
             </TabsList>
