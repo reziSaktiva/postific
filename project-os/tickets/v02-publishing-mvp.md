@@ -4023,6 +4023,50 @@ Not yet proven: the Board was not observed in a browser (no dev server in this l
 
 ---
 
+### T-296 · Submit for review control in the Draft Editor
+
+| Field            | Value                                                                                              |
+| ---------------- | -------------------------------------------------------------------------------------------------- |
+| **Status**       | ⏳ Not Started                                                                                     |
+| **Mode**         | HITL (design confirmed by King Rezi in the gallery), then AFK                                      |
+| **Verification** | `local`                                                                                            |
+| **Domain**       | publishing (UI)                                                                                    |
+| **Spec**         | S-008                                                                                              |
+| **Docs**         | ADR-165, ADR-140, `roles-permissions.md` (content status transitions), `ScreenDraftEditorRedesain` |
+| **Depends**      | T-289 (transition use case `ChangeContentStatusUseCase`)                                           |
+
+**What to build:** no design had a control to move a post Draft → In Review, so the Approvals tab stayed empty in practice. King Rezi decided on 2026-11-24 to design and build it in the S-008 wave.
+
+- [ ] The control is designed in the Postific artifact and confirmed by King Rezi in the Postific Design Review gallery.
+- [ ] The Draft Editor offers Draft → In Review as designed, through `ChangeContentStatusUseCase` (all roles; In Review can still be skipped).
+- [ ] Unit tests for the control's visibility by status.
+
+**Blocked by:** design confirmation
+
+---
+
+### T-297 · Draft Editor save and delete for In Review and Ready to Schedule posts
+
+| Field            | Value                                              |
+| ---------------- | -------------------------------------------------- |
+| **Status**       | ⏳ Not Started                                     |
+| **Mode**         | AFK                                                |
+| **Verification** | `local`                                            |
+| **Domain**       | publishing                                         |
+| **Spec**         | S-008                                              |
+| **Docs**         | ADR-165, `roles-permissions.md` (content statuses) |
+| **Depends**      | T-289                                              |
+
+**What to build:** saving and deleting in the Draft Editor worked only for `draft` posts, so an In Review or Ready to Schedule post opened from Drafts or Approvals could not be saved or deleted. King Rezi decided on 2026-11-24 to fix it in the S-008 wave.
+
+- [ ] Save keeps working for `in_review` and `ready_to_schedule` posts and does not change their status.
+- [ ] Delete is allowed for `in_review` and `ready_to_schedule` posts with the same roles as `draft`.
+- [ ] `imported`, `scheduled`, `published` and `failed` rules are unchanged; unit tests at the service boundary.
+
+**Blocked by:** none
+
+---
+
 ## Dari Known Issue
 
 Tiket yang lahir sebagai pelacak Known Issue ada di [`known-issues.md`](known-issues.md) (ADR-134); daftar lengkapnya hanya di file itu, tidak disalin ke sini.

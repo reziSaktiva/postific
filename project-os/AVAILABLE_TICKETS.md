@@ -25,7 +25,7 @@ Phase and blockers are in [`PROJECT_STATE.md`](PROJECT_STATE.md). An open Known 
 
 ✅ tickets are at Done (code); staging items move to the wave verification ticket, with no intermediate status (ADR-161, amending ADR-153). Old 🟡 rows with that wording are evaluated in T-247.5.
 
-Global ticket ID, never recycled. Next: **T-296**. Next spec: **S-009**.
+Global ticket ID, never recycled. Next: **T-298**. Next spec: **S-009**.
 
 ---
 
@@ -64,6 +64,8 @@ Global ticket ID, never recycled. Next: **T-296**. Next spec: **S-009**.
 | T-293   | ⏳     | Keep the UX baseline in line with the Publish build (baseline already aligned in the ADR-165 PR; S-008, AFK). Depends T-286                                                                                                                                                                                            | [v0.2](tickets/v02-publishing-mvp.md)  |
 | T-294   | ⏳     | S-008 QA: E2E, review and QA (S-008, AFK). Depends T-286 to T-293                                                                                                                                                                                                                                                      | [v0.2](tickets/v02-publishing-mvp.md)  |
 | T-295   | ⏳     | S-008 wave verification on staging (S-008, HITL). Depends on the wave integration PR being merged                                                                                                                                                                                                                      | [v0.2](tickets/v02-publishing-mvp.md)  |
+| T-296   | ⏳     | Submit for review control in the Draft Editor (S-008, HITL design gate, then AFK). Depends T-289                                                                                                                                                                                                                       | [v0.2](tickets/v02-publishing-mvp.md)  |
+| T-297   | ⏳     | Draft Editor save and delete for In Review and Ready to Schedule posts (S-008, AFK). Depends T-289                                                                                                                                                                                                                     | [v0.2](tickets/v02-publishing-mvp.md)  |
 | T-281   | ⏳     | Align the UX baselines (KSP-05, KSP-D02, NP-D11) with the shipped Draft Editor through an ADR-155 addendum (T-207.7 follow-up, HITL). Depends T-207                                                                                                                                                                    | [v0.2](tickets/v02-publishing-mvp.md)  |
 | T-254   | ✅     | Record the decision to translate the eight `.claude/agents/` files and amend ADR-160 (S-004, HITL) Done (code), ADR-162 Accepted                                                                                                                                                                                       |
 | T-255   | ✅     | Translate the agents README (S-004, AFK). Depends T-254                                                                                                                                                                                                                                                                |
