@@ -36,6 +36,14 @@ describe("parsePublishViewState", () => {
       ).toBe("calendar");
     });
 
+    it("reopens the last used Calendar range from the cookie (T-287)", () => {
+      const state = parsePublishViewState(
+        {},
+        { ...defaults, lastRange: "week" },
+      );
+      expect(state.calendar.view).toBe("week");
+    });
+
     it("prefers the view in the URL over the cookie", () => {
       expect(
         parsePublishViewState(

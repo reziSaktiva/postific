@@ -213,6 +213,12 @@ export interface PublishingCancelScheduleRecord extends PublishingPostRecord {
  */
 export interface CalendarItemTargetRecord extends QueueItemTargetRecord {
   platformPostUrl: string | null;
+  /**
+   * T-287 (S-008, ADR-158) — thumbnail tersimpan posting impor, untuk
+   * thumbnail chip Calendar saat post tidak punya `mediaIds`. Opsional di
+   * tipe (fixture lama); repository selalu mengisinya.
+   */
+  thumbnailStoragePath?: string | null;
 }
 
 export interface CalendarItemRecord extends PostSourceFields {
@@ -231,6 +237,12 @@ export interface CalendarItemRecord extends PostSourceFields {
    * Additive-only — tidak mengubah bentuk data yang dipakai Calendar/Queue.
    */
   updatedAt: Date;
+  /**
+   * T-287 (S-008) — media post-level (ADR-107), untuk thumbnail chip
+   * Calendar dan kartu Board. Opsional di tipe (fixture lama); repository
+   * selalu mengisinya, `undefined` sama dengan array kosong.
+   */
+  mediaIds?: MediaId[];
   targets: CalendarItemTargetRecord[];
 }
 

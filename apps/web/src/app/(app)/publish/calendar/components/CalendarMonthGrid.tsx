@@ -2,59 +2,49 @@
 
 import { useMemo } from "react";
 
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Add01Icon } from "@hugeicons/core-free-icons";
+
 import type { ConnectedAccountId, PostId } from "@postific/shared";
+import type { MediaThumbnailDto } from "@/domains/media";
 import type { CalendarPostItem } from "@/domains/publishing";
 import { getDateParts, getMonthRange } from "@/domains/publishing";
 import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
 
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { Text } from "@/components/ui/text";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
-import { PLATFORM_ICON } from "../../../components/platform-icons";
-import { CONTENT_STATUS_LABEL } from "../../../components/draft-editor/status-badge";
-import { CalendarEntryFooter } from "./CalendarEntryFooter";
-import { CalendarPostPopover } from "./CalendarPostPopover";
+import { useDraftEditor } from "../../../components/draft-editor/Context";
+import { CalendarChip } from "./CalendarChip";
 import {
   addDays,
-  CALENDAR_ENTRY_BUTTON_CLASSNAME,
   type CalendarCardEntry,
-  columnDividerClassName,
-  CONTENT_FORMAT_LABEL,
   DAY_LABELS,
   flattenCalendarItemsToEntries,
-  formatCalendarHour,
   MAX_VISIBLE_PER_CELL,
   toDateKey,
-  useExpandableKeys,
 } from "./calendar-grid-shared";
-
-/** Tinggi minimum sel Month, termasuk padding — lebar kolom sekarang responsive (Tailwind `grid-cols-7`), tinggi tetap fixed. */
-const MONTH_CELL_MIN_HEIGHT = 200;
-
-/** Sisi kotak avatar platform (bulatan berisi `PlatformGlyph` di tengah, poin 5 — bukan lagi box kosong terpisah dari icon). Dinaikkan di revisi kelima T-033 (poin 1) — ukuran sebelumnya (14) hasil pengecilan agresif revisi ketiga jadi terlalu kecil untuk dibaca. */
-const MONTH_THUMBNAIL_SIZE = 20;
-
-/** Sisi ikon platform di dalam `MONTH_THUMBNAIL_SIZE` — dinaikkan bersamaan (revisi kelima T-033, poin 1). */
-const MONTH_PLATFORM_ICON_SIZE = 13;
 
 interface MonthGridDay {
   date: Date;
   dateKey: string;
-  /** `false` = padding hari dari bulan sebelum/sesudah (`is-muted` mockup) — tanpa post (Prabowo hanya fetch bulan aktif). */
+  /** `false` = padding day of the previous or next month (muted, no posts). */
   isCurrentMonth: boolean;
 }
 
-/** Susun sel grid Month: cukup minggu (kelipatan 7) untuk menutupi 1 bulan penuh, termasuk padding awal/akhir. Minggu mulai Senin. */
-function buildMonthGridDays(anchor: Date, timeZone: string): MonthGridDay[] {
+/** Cells of the Month grid: whole weeks covering the month, week starts on Monday. */
+export function buildMonthGridDays(
+  anchor: Date,
+  timeZone: string,
+): MonthGridDay[] {
   const { from: monthStart, to: monthEnd } = getMonthRange(anchor, timeZone);
-  const leadingPadding = (getDateParts(monthStart, timeZone).weekday + 6) % 7; // Senin=0 ... Minggu=6
+  const leadingPadding = (getDateParts(monthStart, timeZone).weekday + 6) % 7;
   const gridStart = addDays(monthStart, -leadingPadding, timeZone);
-
-  // `monthEnd` = 23:59:59.999 hari terakhir → tanggalnya = jumlah hari bulan
-  // (bukan selisih ms / 24 jam, yang meleset di bulan berisi perpindahan DST).
   const daysInMonth = getDateParts(monthEnd, timeZone).day;
   const totalCells = Math.ceil((leadingPadding + daysInMonth) / 7) * 7;
 
@@ -72,60 +62,40 @@ function buildMonthGridDays(anchor: Date, timeZone: string): MonthGridDay[] {
   });
 }
 
-function chunkIntoWeeks(days: MonthGridDay[]): MonthGridDay[][] {
-  const weeks: MonthGridDay[][] = [];
-  for (let i = 0; i < days.length; i += 7) {
-    weeks.push(days.slice(i, i + 7));
-  }
-  return weeks;
-}
-
 export interface CalendarMonthGridProps {
-  /** Anchor periode (`?date=`, T-033.2) — dipakai `getMonthRange` untuk hari-hari 1 bulan. */
   date: Date;
-  /** Hasil `PublishingService.listCalendarPosts` untuk rentang bulan yang sama. */
   items: CalendarPostItem[];
-  /** Filter Channels aktif (T-033.6) — array kosong = tanpa filter. */
   connectedAccountIds?: ConnectedAccountId[];
-  /** T-030.3 — diteruskan ke `CalendarPostPopover` tiap kartu. Opsional. */
+  thumbnails?: Record<string, MediaThumbnailDto>;
   onCancelSchedule?: (postId: PostId) => void;
 }
 
 /**
- * Grid Month (T-033.4, KSP-02) — 7 kolom hari × beberapa baris minggu,
- * acuan visual `templates/publish-calendar.html` (Claude Design). Sel
- * padding bulan sebelum/sesudah ditandai muted, tanpa post (Prabowo hanya
- * fetch bulan aktif). Maks 3 kartu tampil per sel, sisanya di balik
- * "+N More" yang expand/collapse di tempat (state lokal) — bukan modal
- * (di luar scope T-033.4). Klik kartu post membuka Popover ringkasan
- * (T-033.8, ADR-090/ADR-091, `CalendarPostPopover`).
- *
- * T-101.1: migrasi ke shadcn — `Grid columns={7}` -> Tailwind `grid-cols-7`,
- * `Divider variant="strong"` -> `Separator`, `ClickableCard` (tanpa padanan
- * shadcn siap-pakai) -> `<button>` polos diberi kelas visual Card (ring +
- * rounded + bg-card, `text-left` supaya konten tetap rata kiri) sebagai
- * trigger tunggal `PopoverTrigger asChild` (`CalendarPostPopover`). Sel
- * masih `overflow-y-auto` (padanan `isScrollable` Astryx) dengan alasan
- * sama seperti sebelumnya — lihat komentar di JSX di bawah.
+ * Month grid (T-287, S-008): 7 columns, weeks from Monday. Up to 3 chips
+ * per day, then "+N lainnya" opening a popover with that day's posts. A day
+ * that is not in the past shows a schedule button on hover (always visible
+ * on touch) that opens the Draft Editor with that date set; the date is
+ * read in the display time zone of the page.
  */
 export function CalendarMonthGrid({
   date,
   items,
   connectedAccountIds = [],
+  thumbnails = {},
   onCancelSchedule,
 }: CalendarMonthGridProps) {
   const timeZone = useUserTimeZone();
-  const { expandedKeys: expandedDateKeys, toggle: toggleExpanded } =
-    useExpandableKeys();
+  const { openNewPost } = useDraftEditor();
 
-  const gridDays = useMemo(
-    () => buildMonthGridDays(date, timeZone),
-    [date, timeZone],
-  );
-  const weeks = useMemo(() => chunkIntoWeeks(gridDays), [gridDays]);
+  const weeks = useMemo(() => {
+    const days = buildMonthGridDays(date, timeZone);
+    const chunks: MonthGridDay[][] = [];
+    for (let i = 0; i < days.length; i += 7) chunks.push(days.slice(i, i + 7));
+    return chunks;
+  }, [date, timeZone]);
   const todayKey = toDateKey(new Date(), timeZone);
 
-  const connectedAccountIdsKey = connectedAccountIds.join(",");
+  const accountsKey = connectedAccountIds.join(",");
   const entriesByDate = useMemo(() => {
     const map = new Map<string, CalendarCardEntry[]>();
     for (const entry of flattenCalendarItemsToEntries(
@@ -137,168 +107,131 @@ export function CalendarMonthGrid({
       entries.push(entry);
       map.set(entry.dateKey, entries);
     }
+    for (const entries of map.values()) {
+      entries.sort((a, b) => a.timeLabel.localeCompare(b.timeLabel));
+    }
     return map;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items, connectedAccountIdsKey, timeZone]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- accountsKey stands for connectedAccountIds
+  }, [items, accountsKey, timeZone]);
 
   return (
-    <Card className="gap-2 p-3">
-      {/* eslint-disable-next-line no-restricted-syntax -- T-101.1: layout-only, file sudah dimigrasi shadcn */}
-      <div className="grid grid-cols-7 gap-0">
-        {DAY_LABELS.map((label, index) => (
-          // eslint-disable-next-line no-restricted-syntax -- T-101.1: layout-only
+    // eslint-disable-next-line no-restricted-syntax -- T-287: Tailwind layout (ADR-097)
+    <div className="overflow-hidden rounded-2xl border border-border bg-card">
+      {/* eslint-disable-next-line no-restricted-syntax -- T-287 */}
+      <div className="grid grid-cols-7 border-b border-border" role="row">
+        {DAY_LABELS.map((label) => (
+          // eslint-disable-next-line no-restricted-syntax -- T-287
           <div
             key={label}
-            className={cn(
-              "flex flex-col items-center",
-              columnDividerClassName(index),
-            )}
+            role="columnheader"
+            className="py-2 text-center text-xs text-muted-foreground"
           >
-            <Text variant="muted" as="span" className="text-xs">
-              {label}
-            </Text>
+            {label}
           </div>
         ))}
       </div>
+      {weeks.map((week) => (
+        // eslint-disable-next-line no-restricted-syntax -- T-287
+        <div
+          key={week[0]?.dateKey}
+          className="grid grid-cols-7 border-b border-border last:border-b-0"
+          role="row"
+        >
+          {week.map((day, columnIndex) => {
+            const entries = day.isCurrentMonth
+              ? (entriesByDate.get(day.dateKey) ?? [])
+              : [];
+            const shown = entries.slice(0, MAX_VISIBLE_PER_CELL);
+            const rest = entries.length - shown.length;
+            const isToday = day.dateKey === todayKey;
+            const isPast = day.dateKey < todayKey;
 
-      <Separator />
-
-      {/* eslint-disable-next-line no-restricted-syntax -- T-101.1: layout-only */}
-      <div className="flex flex-col gap-0">
-        {weeks.map((week, weekIndex) => (
-          // eslint-disable-next-line no-restricted-syntax -- T-101.1: layout-only
-          <div
-            className="flex flex-col gap-0"
-            key={week[0]?.dateKey ?? weekIndex}
-          >
-            {/* eslint-disable-next-line no-restricted-syntax -- T-101.1: layout-only */}
-            <div className="grid grid-cols-7 gap-0">
-              {week.map((day, columnIndex) => {
-                const entries = entriesByDate.get(day.dateKey) ?? [];
-                const isExpanded = expandedDateKeys.has(day.dateKey);
-                const visibleEntries = isExpanded
-                  ? entries
-                  : entries.slice(0, MAX_VISIBLE_PER_CELL);
-                const hiddenCount = entries.length - visibleEntries.length;
-                const isToday = day.dateKey === todayKey;
-
-                return (
-                  // `overflow-y-auto` (bukan untuk scroll sungguhan — sel selalu
-                  // tumbuh vertikal via `min-height`) dipakai supaya sel ini jadi
-                  // scroll container, yang per spec CSS Grid membuat "automatic
-                  // minimum size"-nya sendiri jadi 0 — mencegah 1 kartu dengan
-                  // konten lebar "mencuri" lebar kolom dari kartu lain di baris
-                  // yang sama (root cause "grid tidak sejajar", revisi ketiga
-                  // T-033 Bagian A). Tanpa ini, `grid-cols-7` (`repeat(7,
-                  // minmax(auto, 1fr))`) membiarkan 1 sel padat menentukan lebar
-                  // kolomnya sendiri, bukan 1/7 rata seperti header.
-                  // eslint-disable-next-line no-restricted-syntax -- T-101.1: layout-only
-                  <div
-                    key={day.dateKey}
+            return (
+              // eslint-disable-next-line no-restricted-syntax -- T-287
+              <div
+                key={day.dateKey}
+                role="gridcell"
+                className={cn(
+                  "group/day flex min-h-36 min-w-0 flex-col gap-1 p-1.5",
+                  columnIndex < 6 && "border-r border-border",
+                  !day.isCurrentMonth && "bg-muted/30",
+                )}
+              >
+                {/* eslint-disable-next-line no-restricted-syntax -- T-287 */}
+                <div className="flex h-6 items-center justify-between">
+                  <span
                     className={cn(
-                      "flex flex-col gap-1.5 overflow-y-auto px-2 py-1",
-                      columnDividerClassName(columnIndex),
+                      "inline-flex min-w-6 items-center justify-center rounded-full px-1 text-xs",
+                      !day.isCurrentMonth && "text-muted-foreground/50",
+                      day.isCurrentMonth && !isToday && "text-muted-foreground",
+                      isToday && "bg-primary font-bold text-primary-foreground",
                     )}
-                    style={{ minHeight: MONTH_CELL_MIN_HEIGHT }}
                   >
-                    <Text
-                      variant="muted"
-                      as="span"
-                      className={cn(
-                        "text-xs",
-                        !day.isCurrentMonth
-                          ? "text-muted-foreground/50"
-                          : isToday
-                            ? "font-bold text-primary"
-                            : "text-muted-foreground",
-                      )}
+                    {getDateParts(day.date, timeZone).day}
+                  </span>
+                  {day.isCurrentMonth && !isPast ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-xs"
+                      className="opacity-0 transition-opacity group-focus-within/day:opacity-100 group-hover/day:opacity-100 pointer-coarse:opacity-100"
+                      aria-label={`Jadwalkan posting untuk ${day.dateKey}`}
+                      onClick={() =>
+                        openNewPost({ date: day.dateKey, timeZone })
+                      }
                     >
-                      {getDateParts(day.date, timeZone).day}
-                    </Text>
-
-                    {day.isCurrentMonth &&
-                      visibleEntries.map((entry) => {
-                        const PlatformGlyph =
-                          PLATFORM_ICON[entry.platform].Icon;
-                        return (
-                          <CalendarPostPopover
+                      <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
+                    </Button>
+                  ) : null}
+                </div>
+                {shown.map((entry) => (
+                  <CalendarChip
+                    key={entry.key}
+                    entry={entry}
+                    thumbnail={thumbnails[entry.postId]}
+                    onCancelSchedule={onCancelSchedule}
+                  />
+                ))}
+                {rest > 0 ? (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="xs"
+                        className="justify-start text-muted-foreground"
+                        aria-label={`Lihat semua ${entries.length} posting ${day.dateKey}`}
+                      >
+                        +{rest} lainnya
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent align="start" className="w-72">
+                      {/* eslint-disable-next-line no-restricted-syntax -- T-287 */}
+                      <div className="flex flex-col gap-2">
+                        <p className="text-sm font-semibold">
+                          {day.dateKey}{" "}
+                          <span className="font-normal text-muted-foreground">
+                            · {entries.length} posting
+                          </span>
+                        </p>
+                        {entries.map((entry) => (
+                          <CalendarChip
                             key={entry.key}
                             entry={entry}
+                            thumbnail={thumbnails[entry.postId]}
+                            showCaption
                             onCancelSchedule={onCancelSchedule}
-                          >
-                            <button
-                              type="button"
-                              aria-label={`${entry.accountHandle} — ${
-                                entry.caption || "(Tanpa caption)"
-                              } — ${CONTENT_FORMAT_LABEL[entry.contentFormat]} — ${CONTENT_STATUS_LABEL[entry.status]}`}
-                              className={CALENDAR_ENTRY_BUTTON_CLASSNAME}
-                            >
-                              {/* eslint-disable-next-line no-restricted-syntax -- T-101.1: layout-only */}
-                              <div className="flex flex-col gap-1">
-                                {/* Header: avatar+nama (kiri, menyusut/truncate lewat
-                                    `min-w-0 flex-1`) sejajar dengan jam (kanan) — satu
-                                    baris, bukan avatar disandingkan seluruh blok teks
-                                    seperti sebelum revisi ketiga. */}
-                                {/* eslint-disable-next-line no-restricted-syntax -- T-101.1: layout-only */}
-                                <div className="flex items-center gap-1">
-                                  {/* eslint-disable-next-line no-restricted-syntax -- T-101.1: layout-only */}
-                                  <div
-                                    className="flex shrink-0 items-center justify-center rounded-2xl bg-muted"
-                                    style={{
-                                      width: MONTH_THUMBNAIL_SIZE,
-                                      height: MONTH_THUMBNAIL_SIZE,
-                                    }}
-                                  >
-                                    <PlatformGlyph
-                                      size={MONTH_PLATFORM_ICON_SIZE}
-                                      color={
-                                        PLATFORM_ICON[entry.platform].color
-                                      }
-                                    />
-                                  </div>
-                                  <Text
-                                    variant="small"
-                                    as="span"
-                                    className="min-w-0 flex-1 truncate font-normal"
-                                  >
-                                    {entry.accountHandle}
-                                  </Text>
-                                  <Text
-                                    variant="muted"
-                                    as="span"
-                                    className="text-xs"
-                                  >
-                                    {formatCalendarHour(entry.hour)}
-                                  </Text>
-                                </div>
-
-                                <CalendarEntryFooter entry={entry} />
-                              </div>
-                            </button>
-                          </CalendarPostPopover>
-                        );
-                      })}
-
-                    {day.isCurrentMonth &&
-                      entries.length > MAX_VISIBLE_PER_CELL && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => toggleExpanded(day.dateKey)}
-                        >
-                          {isExpanded
-                            ? "Tampilkan lebih sedikit"
-                            : `+${hiddenCount} More`}
-                        </Button>
-                      )}
-                  </div>
-                );
-              })}
-            </div>
-            <Separator />
-          </div>
-        ))}
-      </div>
-    </Card>
+                          />
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
   );
 }

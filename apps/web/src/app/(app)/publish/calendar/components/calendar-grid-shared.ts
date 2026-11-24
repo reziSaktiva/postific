@@ -13,6 +13,7 @@ import type {
   SocialPlatform,
 } from "@postific/shared";
 import { ContentFormat, ContentStatus } from "@postific/shared";
+import { getZonedFormatter } from "@/lib/time/zoned-formatter";
 
 import type { PostMetricsRecord } from "@/domains/analytics";
 import {
@@ -252,6 +253,8 @@ export interface CalendarCardEntry {
   dateKey: string;
   /** Jam (0-23, zona pengguna) dari tanggal efektif — dipakai grid Week untuk bucket per jam. */
   hour: number;
+  /** "HH:mm" (zona pengguna) dari tanggal efektif — label jam chip (T-287). */
+  timeLabel: string;
   /**
    * Metrik untuk TARGET INI SAJA (T-033.8, Popover KSP-02-F08) — dicocokkan
    * dari `CalendarPostItem.metrics` (array per akun/platform milik post)
@@ -265,6 +268,13 @@ export interface CalendarCardEntry {
   /** `PublishingPostTarget.platformPostUrl` — tautan "Go to post" (Popover), null kalau belum dilaporkan Outstand. */
   platformPostUrl: string | null;
 }
+
+const chipTimeFormatter = (timeZone: string) =>
+  getZonedFormatter(
+    "en-GB",
+    { hour: "2-digit", minute: "2-digit", hourCycle: "h23" },
+    timeZone,
+  );
 
 /**
  * Ratakan `CalendarPostItem[]` jadi kartu per target, dengan tanggal
@@ -294,6 +304,7 @@ export function flattenCalendarItemsToEntries(
     // Jam di zona pengguna (T-147), bukan jam lokal browser — tanggal dan jam kartu satu
     // zona dengan kunci grup supaya tidak pernah beda hari.
     const hour = getHour(effectiveDate, timeZone);
+    const timeLabel = chipTimeFormatter(timeZone).format(effectiveDate);
 
     for (const target of item.targets) {
       if (
@@ -314,6 +325,7 @@ export function flattenCalendarItemsToEntries(
         accountHandle: target.accountHandle,
         dateKey,
         hour,
+        timeLabel,
         metrics:
           item.metrics?.find(
             (metric) => metric.connectedAccountId === target.connectedAccountId,

@@ -182,6 +182,7 @@ function mapCalendarItem(post: QueuePostWithTargets): CalendarItemRecord {
     publishedAt: post.publishedAt,
     createdAt: post.createdAt,
     updatedAt: post.updatedAt,
+    mediaIds: post.mediaIds.map((id) => asMediaId(id)),
     targets: post.targets.map((target): CalendarItemTargetRecord => ({
       id: asPostTargetId(target.id),
       connectedAccountId: asConnectedAccountId(target.connectedAccountId),
@@ -189,6 +190,7 @@ function mapCalendarItem(post: QueuePostWithTargets): CalendarItemRecord {
       contentFormat: target.contentFormat as ContentFormat,
       accountHandle: target.connectedAccount.handle,
       platformPostUrl: target.platformPostUrl,
+      thumbnailStoragePath: target.thumbnailStoragePath,
     })),
   };
 }

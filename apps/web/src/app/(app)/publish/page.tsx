@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import {
   parsePublishViewState,
   pickCalendarSearch,
+  PUBLISH_CALENDAR_RANGE_COOKIE,
   PUBLISH_VIEW_COOKIE,
   type PublishViewSearchParams,
   type PublishViewState,
@@ -37,10 +38,13 @@ export default async function Page({
   searchParams: Promise<PublishViewSearchParams>;
 }) {
   const rawSearchParams = await searchParams;
-  const lastView = (await cookies()).get(PUBLISH_VIEW_COOKIE)?.value;
+  const cookieStore = await cookies();
+  const lastView = cookieStore.get(PUBLISH_VIEW_COOKIE)?.value;
+  const lastRange = cookieStore.get(PUBLISH_CALENDAR_RANGE_COOKIE)?.value;
   const profileTimeZone = await getCachedUserTimeZone();
   const state = parsePublishViewState(rawSearchParams, {
     lastView,
+    lastRange,
     profileTimeZone,
   });
 
