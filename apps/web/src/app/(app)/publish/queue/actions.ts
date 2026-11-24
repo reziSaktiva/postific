@@ -52,7 +52,7 @@ export async function cancelScheduleAction(
     return toActionError(error);
   }
 
-  revalidatePath("/publish/queue");
+  revalidatePath("/publish"); // T-286: Queue lives on the single Publish page
   return {};
 }
 

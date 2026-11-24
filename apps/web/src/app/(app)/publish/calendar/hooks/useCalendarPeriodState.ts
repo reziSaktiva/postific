@@ -44,6 +44,10 @@ export function useCalendarPeriodState(): UseCalendarPeriodStateResult {
   const state = useMemo(
     () =>
       parseCalendarViewState({
+        // T-286: on the single Publish page `view` is Calendar · List ·
+        // Board; the calendar range is `range` (old `view=week|month` kept
+        // as a fallback by the parser).
+        range: searchParams.get("range") ?? undefined,
         view: searchParams.get("view") ?? undefined,
         date: searchParams.get("date") ?? undefined,
         status: searchParams.get("status") ?? undefined,
@@ -61,7 +65,8 @@ export function useCalendarPeriodState(): UseCalendarPeriodStateResult {
         next.connectedAccountIds ?? state.connectedAccountIds;
 
       const params = new URLSearchParams(searchParams.toString());
-      params.set("view", nextView);
+      params.set("view", "calendar");
+      params.set("range", nextView);
       params.set("date", String(nextDate.getTime()));
       setOrDeleteParam(params, "status", nextStatuses);
       setOrDeleteParam(params, "accounts", nextAccountIds);

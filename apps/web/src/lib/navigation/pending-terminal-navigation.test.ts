@@ -78,6 +78,19 @@ describe("pemantauan path tanpa event", () => {
     expect(isTerminalNavigationPending()).toBe(false);
   });
 
+  it("T-286: Publish screens share /publish, so a query change ends the navigation", () => {
+    vi.useFakeTimers();
+    const win = {
+      location: { pathname: "/publish", search: "?view=list&tab=queue" },
+    };
+    vi.stubGlobal("window", win);
+    markTerminalNavigationPending();
+    expect(isTerminalNavigationPending()).toBe(true);
+
+    win.location.search = "?view=list&tab=drafts";
+    expect(isTerminalNavigationPending()).toBe(false);
+  });
+
   it("penanda tetap menahan selama path masih layar asal", () => {
     vi.useFakeTimers();
     vi.stubGlobal("window", { location: { pathname: "/publish/queue" } });
