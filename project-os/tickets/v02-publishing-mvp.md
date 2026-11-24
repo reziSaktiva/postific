@@ -4078,6 +4078,41 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 ---
 
+### T-298 · Infinite scroll for long lists (Publish, Engage, media picker, notifications)
+
+| Field            | Value                                                                               |
+| ---------------- | ----------------------------------------------------------------------------------- |
+| **Status**       | ⏳ Not Started                                                                      |
+| **Mode**         | HITL (design confirmed by King Rezi in the gallery), then AFK                       |
+| **Verification** | `local`                                                                             |
+| **Domain**       | publishing, engagement, media, notification (UI and repositories)                   |
+| **Spec**         | S-008 follow-up (next wave; a spec of its own if the work spans more than one wave) |
+| **Docs**         | ADR-097, ADR-140, ADR-165, `key-screen-patterns.md`                                 |
+| **Depends**      | S-008 wave merged to `staging`                                                      |
+
+**What to build:** on 2026-11-24 the Publish Board in Cook It Real Good went black because 100+ cards made the page ~18 000 px tall (fixed in the S-008 wave by scrolling each column on its own). King Rezi asked for infinite scroll wherever a list can grow without bound, in the next wave. An audit of every page on Cook It Real Good found:
+
+| Section                                       | Before                                     | Decision                   |
+| --------------------------------------------- | ------------------------------------------ | -------------------------- |
+| Publish · List · History                      | 503 cards at once, no limit                | infinite scroll            |
+| Publish · Board columns                       | hard cap of 100, "100+"                    | infinite scroll per column |
+| Publish · List · Drafts, Approvals, Queue     | no limit                                   | infinite scroll            |
+| Engage · List view                            | cap of 200 inbox items, older ones missing | infinite scroll            |
+| Engage · comments of one post                 | up to 1 000 at once                        | infinite scroll            |
+| Draft Editor · media picker                   | whole media library, no limit              | infinite scroll            |
+| Notifications panel                           | cap of 50, older ones unreachable          | infinite scroll            |
+| Calendar, Home, Analyze, Start Page, Settings | bounded by range or small                  | no change                  |
+
+- [ ] The loading row, end-of-list state and error with retry are designed in the Postific artifact and confirmed by King Rezi in the Postific Design Review gallery (AGENTS.md rule 10).
+- [ ] Each section above loads **20 items per page** (King Rezi, 2026-11-24) with cursor-based repository queries (stable order, no offset drift when new posts arrive) and loads the next page as the user nears the end of the list.
+- [ ] Counts in tabs and Board column headers stay correct while only one page is loaded (a count query, not the length of the loaded page).
+- [ ] Realtime updates and filters (MCP source, channel, status) keep working with paged data.
+- [ ] Repository integration tests for the cursor queries; E2E on a workspace with more than one page per section.
+
+**Blocked by:** design confirmation; S-008 wave merged
+
+---
+
 ## Dari Known Issue
 
 Tiket yang lahir sebagai pelacak Known Issue ada di [`known-issues.md`](known-issues.md) (ADR-134); daftar lengkapnya hanya di file itu, tidak disalin ke sini.
