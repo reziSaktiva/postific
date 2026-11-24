@@ -129,7 +129,10 @@ export function PublishToolbar({
         {view === "list" ? (
           <>
             <ListFilterPopover tab={tab} accounts={filterAccounts} />
-            <Separator orientation="vertical" className="my-1.5" />
+            <Separator
+              orientation="vertical"
+              className="my-1.5 max-sm:hidden"
+            />
           </>
         ) : null}
         <DisplayTimeZoneSelect />

@@ -64,7 +64,7 @@ export function DisplayTimeZoneProvider({
 }
 
 /**
- * Display time zone picker of the Publish page (T-286). It only changes the
+ * Display time zone picker of the Publish page (T-286); hidden below `sm` (design). It only changes the
  * `tz` of the URL: times on Publish are shown in that zone, the Profile zone
  * (T-147) is never written. Renders nothing outside a provider.
  */
@@ -91,7 +91,11 @@ export function DisplayTimeZoneSelect() {
         )
       }
     >
-      <SelectTrigger size="sm" aria-label="Zona waktu tampilan">
+      <SelectTrigger
+        size="sm"
+        aria-label="Zona waktu tampilan"
+        className="max-sm:hidden"
+      >
         <HugeiconsIcon icon={Globe02Icon} strokeWidth={2} />
         <SelectValue />
       </SelectTrigger>
