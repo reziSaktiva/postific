@@ -156,6 +156,7 @@ The following table defines who can trigger each content status transition.
 | `In Review` → `Scheduled` (skip Ready; ADR-165 addendum) | ✅ | ✅ | ✅ | — |
 | `In Review` → `Published` (**Publish Now** from review; ADR-165 addendum) | ✅ | ✅ | ✅ | — |
 | `Ready to Schedule` → `Scheduled` | ✅ | ✅ | ✅ | — |
+| `Ready to Schedule` → `Published` (**Publish Now**, skip schedule) | ✅ | ✅ | ✅ | — |
 | `Draft` → `Scheduled` (skip review) | ✅ | ✅ | ✅ | — |
 | `Draft` → `Published` (**Publish Now**, skip schedule) | ✅ | ✅ | ✅ | — |
 | `Scheduled` → `Draft` (pull the schedule) | ✅ | ✅ | ✅ | — |
