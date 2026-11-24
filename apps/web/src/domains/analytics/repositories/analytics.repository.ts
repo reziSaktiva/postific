@@ -7,7 +7,7 @@ import type {
   WorkspaceId,
   WorkspaceSnapshotId,
 } from "@postific/shared";
-import type { SnapshotPeriod } from "../types";
+import type { BestTimeSample, SnapshotPeriod } from "../types";
 
 export interface PostMetricsRecord {
   id: PostMetricsId;
@@ -115,6 +115,17 @@ export interface IAnalyticsRepository {
     period: SnapshotPeriod,
     actingUserId?: UserId,
   ): Promise<WorkspaceSnapshotRecord | null>;
+
+  /**
+   * Published posts of a workspace with stored metrics, one sample per
+   * (post, account), publish time within `[since, until]` (T-291, S-008
+   * best-time suggestions). Posts without a metric row are not returned.
+   */
+  findBestTimeSamples(
+    workspaceId: WorkspaceId,
+    window: { since: Date; until: Date },
+    actingUserId?: UserId,
+  ): Promise<BestTimeSample[]>;
 
   /**
    * Upsert satu baris metrik post per (postId, connectedAccountId) —

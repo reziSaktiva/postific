@@ -3909,9 +3909,9 @@ Design `ScreenPublishRedesain` confirmed by King Rezi 2026-11-24 in the Postific
 
 **What to build:** when the Queue is empty, each connected account shows suggested posting times calculated by Postific from its own published posts; Outstand is not called.
 
-- [ ] A best-time use case in the `analytics` domain: last 90 days of the account's published posts; publish time in the display timezone put in weekday-and-hour buckets; buckets ranked by median engagement rate, ties by median reach; a bucket needs at least 3 posts; an account needs at least 10 posts with metrics; returns the next occurrences of the top buckets within 7 days, 3 per account. Unit tests with a local double (rule 11).
+- [x] A best-time use case in the `analytics` domain: last 90 days of the account's published posts; publish time in the display timezone put in weekday-and-hour buckets; buckets ranked by median engagement rate, ties by median reach; a bucket needs at least 3 posts; an account needs at least 10 posts with metrics; returns the next occurrences of the top buckets within 7 days, 3 per account. Unit tests with a local double (rule 11).
 - [ ] A repository query returns publish time and metrics per account for the window (DB integration test where available).
-- [ ] Publish reads suggestions through the `analytics` public API from an Application Service (hard rules 3 and 5).
+- [x] Publish reads suggestions through the `analytics` public API from an Application Service (hard rules 3 and 5).
 - [ ] The empty Queue lists suggestions per account (platform icon, time, "+ New" opening the Draft Editor with that account and time set) and a control to show more times.
 - [ ] With no account above the threshold, the Queue shows the normal empty state.
 - [ ] Suggestions create nothing until the user schedules a post.
