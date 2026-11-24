@@ -2,7 +2,7 @@
 
 import { useCallback, useRef } from "react";
 
-import type { ContentStatus } from "@postific/shared";
+import type { ContentStatus, SocialPlatform } from "@postific/shared";
 import {
   compareApprovalItemsDesc,
   type CalendarPostItem,
@@ -13,7 +13,19 @@ import { useSyncedState } from "@/lib/hooks/use-synced-state";
 
 import { getDraftPostAction } from "../actions";
 
-/** Fields of a Drafts or Approvals card (sub-shape of `PublishingPostRecord`). */
+/** Account a Drafts or Approvals post goes to (Approvals account row). */
+export interface DraftListTarget {
+  id: string;
+  connectedAccountId: string;
+  platform: SocialPlatform;
+  accountHandle: string;
+}
+
+/**
+ * Fields of a Drafts or Approvals card (sub-shape of `PublishingPostRecord`).
+ * `targets` is filled for Approvals (account row, S-008 design gap 3) and by
+ * the Realtime patch; the Drafts list data has none.
+ */
 export type DraftListItem = Pick<
   PublishingPostRecord,
   | "id"
@@ -22,7 +34,7 @@ export type DraftListItem = Pick<
   | "updatedAt"
   | "createdVia"
   | "createdViaClientName"
->;
+> & { targets?: DraftListTarget[] };
 
 function toDraftListItem(
   item: CalendarPostItem,
@@ -38,6 +50,12 @@ function toDraftListItem(
     updatedAt: item.updatedAt,
     createdVia: item.createdVia,
     createdViaClientName: item.createdViaClientName,
+    targets: item.targets.map((target) => ({
+      id: target.id,
+      connectedAccountId: target.connectedAccountId,
+      platform: target.platform,
+      accountHandle: target.accountHandle,
+    })),
   };
 }
 

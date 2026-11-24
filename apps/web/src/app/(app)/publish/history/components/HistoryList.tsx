@@ -5,7 +5,6 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useState,
   useSyncExternalStore,
 } from "react";
 
@@ -18,7 +17,7 @@ import {
   type HistoryItemRecord,
   type HistoryListItem,
 } from "@/domains/publishing";
-import type { ConnectedAccountRecord } from "@/domains/workspace";
+import type { MediaThumbnailDto } from "@/domains/media";
 import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
 import { formatRelativeTime } from "@/lib/utils/format-relative-time";
 import { usePublishingPostsRealtime } from "@/lib/hooks/use-publishing-posts-realtime";
@@ -34,13 +33,7 @@ import {
 
 import { SourceFilterEmpty } from "@/components/shared/SourceFilterEmpty";
 import { McpSourceBadge } from "@/components/shared/McpSourceBadge";
-import { SourceFilterSelect } from "@/components/shared/SourceFilterSelect";
-import {
-  matchesSourceFilter,
-  resolveFilteredEmptyKind,
-  SourceFilter,
-  type SourceFilterValue,
-} from "@/components/shared/source-filter";
+import { resolveFilteredEmptyKind } from "@/components/shared/source-filter";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -51,13 +44,6 @@ import {
   EmptyHeader,
   EmptyTitle,
 } from "@/components/ui/empty";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Text } from "@/components/ui/text";
 
 import { PLATFORM_ICON } from "../../../components/platform-icons";
@@ -67,6 +53,11 @@ import {
   MetricTile,
 } from "../../../components/post-metric-tile";
 import { ListDayGroups } from "../../components/views/ListDayGroups";
+import {
+  focusAccountId,
+  matchesListFilter,
+  useListFilter,
+} from "../../components/views/ListFilter";
 import {
   ListAccounts,
   ListPostCard,
@@ -97,15 +88,7 @@ function getPrimaryErrorMessage(item: HistoryItemRecord): string {
   return failedTarget?.error ?? "Gagal dipublikasikan.";
 }
 
-const ALL_STATUS_FILTER_VALUE = "all";
-const ALL_ACCOUNTS_FILTER_VALUE = "all";
 const RELATIVE_NOW_TICK_MS = 30_000;
-
-const STATUS_OPTIONS = [
-  { value: ALL_STATUS_FILTER_VALUE, label: "Semua Status" },
-  { value: ContentStatus.Published, label: "Published" },
-  { value: ContentStatus.Failed, label: "Error" },
-];
 
 /**
  * Kriteria tampilan History (T-092.6, ADR-094 poin 5, 7): status
@@ -126,8 +109,8 @@ export interface HistoryListProps {
    * lagi di composition root `page.tsx`.
    */
   items: HistoryListItem[];
-  /** Daftar akun terkoneksi workspace (opsi filter Akun) — dari `WorkspaceService.listConnectedAccounts`, bukan derive dari `items` yang sudah terfilter, sama alasan `CalendarToolbar`. */
-  accounts: ConnectedAccountRecord[];
+  /** Card thumbnails by post id (S-008 design gap 2); a post without media has none. Posts that arrive by Realtime show theirs after the next load. */
+  thumbnails?: Record<string, MediaThumbnailDto>;
   /** Workspace aktif — dipakai `usePublishingPostsRealtime` (T-092.6) untuk subscribe channel `publishing_posts:{workspaceId}`, bukan dipakai untuk fetch data apa pun langsung di komponen ini (AGENTS.md #5). */
   workspaceId: string;
   /**
@@ -169,7 +152,7 @@ export interface HistoryListProps {
  */
 export function HistoryList({
   items,
-  accounts,
+  thumbnails = {},
   workspaceId,
   renderedAt,
 }: HistoryListProps) {
@@ -187,16 +170,10 @@ export function HistoryList({
     }, RELATIVE_NOW_TICK_MS);
     return () => window.clearInterval(timer);
   }, [renderedAt]);
-  const [statusFilter, setStatusFilter] = useState<string>(
-    ALL_STATUS_FILTER_VALUE,
-  );
-  const [accountFilter, setAccountFilter] = useState<string>(
-    ALL_ACCOUNTS_FILTER_VALUE,
-  );
-
-  const [sourceFilter, setSourceFilter] = useState<SourceFilterValue>(
-    SourceFilter.All,
-  );
+  // Status, channels and source come from the List Filter popover in the
+  // toolbar (S-008 design gap 4).
+  const filter = useListFilter();
+  const { channelIds, statuses, source } = filter;
 
   const [localItems, setLocalItems] = useSyncedState<HistoryListItem[]>(items);
   const requestSeqRef = useRef<Map<string, number>>(new Map());
@@ -244,45 +221,20 @@ export function HistoryList({
     [localItems, timeZone],
   );
 
-  const accountOptions = useMemo(
-    () => [
-      { value: ALL_ACCOUNTS_FILTER_VALUE, label: "Semua Akun" },
-      ...accounts.map((account) => ({
-        value: account.id as string,
-        label: account.handle,
-      })),
-    ],
-    [accounts],
-  );
-
   const filteredGroups = useMemo<HistoryGroup<HistoryListItem>[]>(() => {
     return groups
       .map((group) => ({
         ...group,
-        items: group.items.filter((item) => {
-          const matchesStatus =
-            statusFilter === ALL_STATUS_FILTER_VALUE ||
-            item.status === statusFilter;
-          const matchesAccount =
-            accountFilter === ALL_ACCOUNTS_FILTER_VALUE ||
-            item.targets.some(
-              (target) => target.connectedAccountId === accountFilter,
-            );
-          return (
-            matchesStatus &&
-            matchesAccount &&
-            matchesSourceFilter(item, sourceFilter)
-          );
-        }),
+        items: group.items.filter((item) =>
+          matchesListFilter(item, { channelIds, statuses, source }),
+        ),
       }))
       .filter((group) => group.items.length > 0);
-  }, [groups, statusFilter, accountFilter, sourceFilter]);
+  }, [groups, channelIds, statuses, source]);
 
   const emptyKind = resolveFilteredEmptyKind({
-    sourceFilter,
-    otherFiltersAtDefault:
-      statusFilter === ALL_STATUS_FILTER_VALUE &&
-      accountFilter === ALL_ACCOUNTS_FILTER_VALUE,
+    sourceFilter: source,
+    otherFiltersAtDefault: statuses.length === 0 && channelIds.length === 0,
     totalItems: localItems.length,
     hasMcpItems: localItems.some(
       (item) => item.createdVia === PostCreatedVia.Mcp,
@@ -291,61 +243,12 @@ export function HistoryList({
 
   function resetAllFilters() {
     bumpClientNowMs(renderedAt);
-    setStatusFilter(ALL_STATUS_FILTER_VALUE);
-    setAccountFilter(ALL_ACCOUNTS_FILTER_VALUE);
-    setSourceFilter(SourceFilter.All);
+    filter.reset();
   }
 
   return (
     // eslint-disable-next-line no-restricted-syntax -- layout-only, konsisten QueueList/DraftsList
     <div className="flex flex-col gap-4">
-      {/* eslint-disable-next-line no-restricted-syntax -- layout-only */}
-      <div className="flex flex-wrap justify-end gap-2">
-        <Select
-          value={statusFilter}
-          onValueChange={(value) => {
-            bumpClientNowMs(renderedAt);
-            setStatusFilter(value);
-          }}
-        >
-          <SelectTrigger size="sm" aria-label="Filter status" className="w-44">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {STATUS_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
-          value={accountFilter}
-          onValueChange={(value) => {
-            bumpClientNowMs(renderedAt);
-            setAccountFilter(value);
-          }}
-        >
-          <SelectTrigger size="sm" aria-label="Filter akun" className="w-44">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {accountOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <SourceFilterSelect
-          value={sourceFilter}
-          onValueChange={(value) => {
-            bumpClientNowMs(renderedAt);
-            setSourceFilter(value);
-          }}
-        />
-      </div>
-
       {filteredGroups.length === 0 ? (
         <Card>
           <CardContent>
@@ -392,11 +295,9 @@ export function HistoryList({
               <ListPostCard
                 preview={{
                   postId: item.id,
-                  connectedAccountId:
-                    accountFilter === ALL_ACCOUNTS_FILTER_VALUE
-                      ? item.targets[0]?.connectedAccountId
-                      : accountFilter,
+                  connectedAccountId: focusAccountId(item.targets, channelIds),
                 }}
+                thumbnail={thumbnails[item.id]}
                 accounts={<ListAccounts targets={item.targets} />}
                 statusBadge={
                   <Badge variant={HISTORY_STATUS_BADGE_VARIANT[item.status]}>

@@ -11,9 +11,10 @@ import {
   Edit02Icon,
   LinkSquare01Icon,
   MoreHorizontalIcon,
+  PlayIcon,
 } from "@hugeicons/core-free-icons";
 
-import { ContentStatus } from "@postific/shared";
+import { ContentStatus, MediaType } from "@postific/shared";
 import type { PostId } from "@postific/shared";
 import { ChannelAvatarBadge } from "@/components/shared/ChannelAvatarBadge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -128,6 +129,7 @@ function PopoverBody({
 }) {
   const timeZone = useUserTimeZone();
   const { openEditDraft } = useDraftEditor();
+  const [isPlaying, setIsPlaying] = useState(false);
   const { item, thumbnail } = data;
   const target = pickFocusTarget(item, connectedAccountId);
   const when = previewDate(item);
@@ -184,22 +186,61 @@ function PopoverBody({
           </div>
         ) : null}
 
-        <p className="line-clamp-4 text-sm break-words whitespace-pre-wrap">
-          {item.caption || "(Tanpa caption)"}
-        </p>
-
-        {thumbnail ? (
-          // eslint-disable-next-line no-restricted-syntax -- T-288: media box, the video keeps its native controls
-          <div className="max-h-80 overflow-hidden rounded-lg border border-border bg-muted">
-            <MediaThumbnail
-              url={thumbnail.url}
-              type={thumbnail.type}
-              alt="Media post"
-              fit="natural"
-              className="max-h-80 object-contain"
-            />
+        {thumbnail && thumbnail.type === MediaType.Video && isPlaying ? (
+          <>
+            <p className="line-clamp-2 text-sm break-words whitespace-pre-wrap">
+              {item.caption || "(Tanpa caption)"}
+            </p>
+            {/* eslint-disable-next-line no-restricted-syntax -- T-288: the video plays inline in the popover */}
+            <div className="flex justify-center">
+              <video
+                src={thumbnail.url}
+                className="max-h-89 w-50 rounded-lg border border-border bg-muted object-contain"
+                controls
+                autoPlay
+                playsInline
+              />
+            </div>
+          </>
+        ) : (
+          // Caption with a small thumbnail beside it (S-008 design gap 1);
+          // a video starts in place when its poster is pressed.
+          // eslint-disable-next-line no-restricted-syntax -- T-288: Tailwind layout (ADR-097)
+          <div className="flex items-start gap-3">
+            <p className="line-clamp-4 min-w-0 flex-1 text-sm break-words whitespace-pre-wrap">
+              {item.caption || "(Tanpa caption)"}
+            </p>
+            {thumbnail ? (
+              thumbnail.type === MediaType.Video ? (
+                <button
+                  type="button"
+                  aria-label="Putar video"
+                  onClick={() => setIsPlaying(true)}
+                  className="relative h-45 w-30 shrink-0 overflow-hidden rounded-lg border border-border bg-muted outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <MediaThumbnail url={thumbnail.url} type="video" alt="" />
+                  <span className="absolute inset-0 flex items-center justify-center">
+                    <span className="flex size-10 items-center justify-center rounded-full bg-foreground/70 text-background">
+                      <HugeiconsIcon
+                        icon={PlayIcon}
+                        className="size-5"
+                        strokeWidth={2}
+                      />
+                    </span>
+                  </span>
+                </button>
+              ) : (
+                <span className="size-30 shrink-0 overflow-hidden rounded-lg border border-border bg-muted">
+                  <MediaThumbnail
+                    url={thumbnail.url}
+                    type={thumbnail.type}
+                    alt="Media post"
+                  />
+                </span>
+              )
+            ) : null}
           </div>
-        ) : null}
+        )}
 
         {item.status === ContentStatus.Failed ? (
           <Alert variant="destructive">
@@ -381,8 +422,9 @@ export interface PostPreviewPopoverProps {
 /**
  * Post preview popover (T-288, S-008, ADR-165), shared by Calendar chips,
  * Queue and History cards and Board cards: date and time, content format and
- * Expand; account and status; caption; media (a video plays inline with the
- * native player); metrics and an insights link for a published post; the
+ * Expand; account and status; caption with a small thumbnail beside it (a
+ * video shows a poster with the play mark and plays inline with the native
+ * player once pressed, S-008 design gap 1); metrics and an insights link for a published post; the
  * footer action by status (Go to post, Retry, Edit) and a more-actions menu.
  * Expand closes the popover and opens `PostPreviewDialog`.
  */
