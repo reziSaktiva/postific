@@ -3876,7 +3876,7 @@ Not yet proven: popover and dialog were not observed in a browser (no dev server
 - [x] A click opens the post preview in Queue and History, and the Draft Editor directly in Drafts and Approvals.
 - [x] The empty Queue shows a normal empty state with "+ New Post" until T-291 adds suggestions.
 
-Transitions (list lane phase 2, King Rezi decision 2026-11-24): `ChangeContentStatusUseCase` (domain `publishing`) allows exactly Draft → In Review, In Review → Draft and In Review → Ready to Schedule for all three roles, rejects any other source status (including `imported`) with a conflict, and writes compare-and-set (`contentStatusRepository.transitionContentStatus`, no schema change). Approvals cards call it through `markReadyToScheduleAction` / `backToDraftAction` (`publish/approvals/actions.ts`), which revalidate `/publish`. Proven by unit tests at the use-case boundary. Not yet proven: the buttons were not observed in a browser (T-294). Open: no Draft → In Review entry in the UI, because neither `ScreenPublishRedesain` nor `ScreenDraftEditorRedesain` has a submit-for-review control (AGENTS.md rule 10); the use case supports it. Finding: the Draft Editor save (`updateDraftCaption`) and Delete accept only `Draft`, so an `In Review` or `Ready to Schedule` post opened from Approvals or Drafts cannot be saved or deleted until it is back in Draft.
+Transitions (list lane phase 2, King Rezi decision 2026-11-24): `ChangeContentStatusUseCase` (domain `publishing`) allows exactly Draft → In Review, In Review → Draft and In Review → Ready to Schedule for all three roles, rejects any other source status (including `imported`) with a conflict, and writes compare-and-set (`contentStatusRepository.transitionContentStatus`, no schema change). Approvals cards call it through `markReadyToScheduleAction` / `backToDraftAction` (`publish/approvals/actions.ts`), which revalidate `/publish`. Proven by unit tests at the use-case boundary. Not yet proven: the buttons were not observed in a browser (T-294). ~~Open: no Draft → In Review entry in the UI~~ resolved by T-296 ("Ajukan Review", design confirmed by King Rezi 2026-11-24). ~~Finding: save and Delete accept only `Draft`~~ resolved by T-297 (save and delete for `In Review` and `Ready to Schedule`; MCP `update_draft` aligned).
 
 **Blocked by:** T-286
 
@@ -3993,7 +3993,7 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 **What to build:** the S-008 work is proven on `local` before the wave goes to staging.
 
-- [ ] Playwright E2E golden path: switch views, open a post preview, expand, play a video, Mark Ready from Approvals, empty Queue with suggestions, old routes landing on the right view.
+- [x] Playwright E2E golden path: switch views, open a post preview, expand, play a video, Mark Ready from Approvals, empty Queue with suggestions, old routes landing on the right view. Proven 2026-11-24: `apps/web/e2e/publish-redesign.e2e.ts` on `local`: 6 cases green in one run, the empty-Queue case green in a second run after King Rezi cancelled two leftover sandbox schedules.
 - [ ] Architecture review: entry points without business logic, analytics read only through its public API, no Prisma in domain logic.
 - [ ] QA in the browser: light, dark, 768 px and 390 px; regressions in the Draft Editor, notifications and Home links checked.
 - [ ] `typecheck`, `lint` and unit tests green.
