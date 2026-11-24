@@ -192,20 +192,22 @@ The User Menu appears as a small dropdown — the only entry point to the Settin
 
 Some sections have sub-navigation inside the Main Content Area to move users between sub-screens.
 
-## Publish — Tab Navigation
+## Publish — View Switcher and List Tabs (ADR-165)
 
-Publish is the largest section with four sub-screens:
+Publish is the largest section: one page with three views (ADR-165, 2026-11-24; it replaced the former route tabs Calendar / Queue / Drafts / History):
 
 ```
 Publish
-├── [Calendar]  [Queue]  [Drafts]  [History]  ← tab bar above the main content
+├── [Calendar | List | Board]  ← view switcher in the page header, next to + New Post
 │
-└── Main Content Area shows the active sub-screen's content
+├── List → [Queue] [Drafts] [Approvals] [History]  ← line tabs with counts inside the List view
+│
+└── Main Content Area shows the active view
 ```
 
-**Pattern:** A horizontal tab bar right below the section header. The active tab is clearly visible. Switching tabs does not reset state (filters, scroll position) between tabs unless necessary.
+**Pattern:** the view switcher sits in the header; the List tabs sit below it. Switching views or tabs does not reset state (filters, scroll position) unless necessary. On phone the switcher shows icons only and the List tabs become a dropdown. The old addresses `/publish/calendar`, `/publish/queue`, `/publish/drafts`, `/publish/history` land on the matching view or tab.
 
-**Default tab:** Calendar — per IA-D04. Raka enters Publish and immediately sees the current week's schedule overview.
+**Default view:** Calendar on Month the first time (per IA-D04, range amended by ADR-165); afterwards Publish reopens the view last used.
 
 ---
 
@@ -249,11 +251,16 @@ Contextual navigation happens when a user clicks an element in a screen that tak
 Happens in Publish. Clicking an item opens the Draft Editor for that item.
 
 ```
-Publish → Calendar  → [click item]  → Popover (summary) → [CTA Edit] → Draft Editor (item X)
-Publish → Queue     → [click item]  → Draft Editor (item X)
-Publish → Drafts    → [click item]  → Draft Editor (item X)
-Publish → Drafts    → [New Post]   → Draft Editor (new item)
+Publish → Calendar        → [click item]  → Post Preview → [Edit] → Draft Editor (item X)
+Publish → List → Queue    → [click item]  → Post Preview → [Edit] → Draft Editor (item X)
+Publish → List → History  → [click item]  → Post Preview → [Expand] → Post Detail
+Publish → Board           → [click card]  → Post Preview → [Edit] → Draft Editor (item X)
+Publish → List → Drafts   → [click item]  → Draft Editor (item X)
+Publish → List → Approvals→ [click item]  → Draft Editor (item X)
+Publish → [New Post]                     → Draft Editor (new item)
 ```
+
+**Amended by ADR-165:** the preview-first rule now covers Calendar, Queue, History and Board; Drafts and Approvals keep the direct click to the Draft Editor.
 
 **Calendar specifically (ADR-090):** clicking an item does not open the Draft
 Editor directly — it opens a `Popover` (post summary + metrics for those
