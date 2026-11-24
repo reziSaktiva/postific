@@ -3936,7 +3936,7 @@ Not yet proven: the Board was not observed in a browser (no dev server in this l
 
 | Field            | Value                                             |
 | ---------------- | ------------------------------------------------- |
-| **Status**       | ⏳ Not Started                                    |
+| **Status**       | 🟡 In Progress                                    |
 | **Mode**         | AFK                                               |
 | **Verification** | `local`                                           |
 | **Domain**       | publishing (UI), app shell                        |
@@ -3946,10 +3946,12 @@ Not yet proven: the Board was not observed in a browser (no dev server in this l
 
 **What to build:** the responsive layouts from the design.
 
-- [ ] Tablet (768 px): app sidebar as an icon rail; month chips as platform icons with a "+N" chip; List time above each card; Board about two columns.
-- [ ] Phone (390 px): top bar with the menu; "+ New Post" as a "+" icon button; icon-only view switcher; Calendar in a 3-day view with a shadcn Calendar date picker (switching from about 500 px); List tabs as a dropdown; Board one column per screen with card menus always visible.
-- [ ] Light and dark use existing tokens; no new tokens.
+- [x] Tablet (768 px): app sidebar as an icon rail; month chips as platform icons with a "+N" chip; List time above each card; Board about two columns.
+- [x] Phone (390 px): top bar with the menu; "+ New Post" as a "+" icon button; icon-only view switcher; Calendar in a 3-day view with a shadcn Calendar date picker (switching from about 500 px); List tabs as a dropdown; Board one column per screen with card menus always visible.
+- [x] Light and dark use existing tokens; no new tokens.
 - [ ] Observed in the browser at 768 and 390 px, light and dark.
+
+Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not observed in the lane; it moves to T-294.
 
 **Blocked by:** T-287, T-288, T-289, T-290, T-291
 

@@ -41,8 +41,8 @@ export interface DisplayTimeZoneGroup {
 /**
  * Toolbar row of the Publish page (T-286): the List tabs Queue · Drafts ·
  * Approvals · History when the List view is open (line tabs that navigate,
- * as the old route tabbar did), and on the right the display time zone
- * picker. Counts on the tabs and the per-view toolbar controls (Calendar
+ * as the old route tabbar did; a dropdown with the same tabs and counts
+ * below `sm`, T-292), and on the right the display time zone picker. Counts on the tabs and the per-view toolbar controls (Calendar
  * range, Filter, "No date", options menu) come with T-287 and T-289.
  *
  * The time zone picker only changes the `tz` of the URL: times on Publish
@@ -93,7 +93,32 @@ export function PublishToolbar({
       {/* eslint-disable-next-line no-restricted-syntax -- T-286, same as above */}
       <div className="min-w-0 overflow-x-auto">
         {view === "list" ? (
-          <Tabs value={tab} activationMode="manual">
+          <Select
+            value={tab}
+            onValueChange={(next) => {
+              if (next !== tab)
+                router.push(href({ tab: next as PublishListTab }));
+            }}
+          >
+            <SelectTrigger size="sm" aria-label="Daftar" className="sm:hidden">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent position="popper" align="start">
+              {PUBLISH_LIST_TABS.map((value) => (
+                <SelectItem key={value} value={value}>
+                  {TAB_LABEL[value]}
+                  {counts ? (
+                    <span className="text-xs text-muted-foreground tabular-nums">
+                      {counts[value]}
+                    </span>
+                  ) : null}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : null}
+        {view === "list" ? (
+          <Tabs value={tab} activationMode="manual" className="max-sm:hidden">
             <TabsList variant="line" aria-label="Daftar">
               {PUBLISH_LIST_TABS.map((value) => (
                 <TabsTrigger key={value} value={value} asChild>

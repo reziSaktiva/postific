@@ -72,7 +72,9 @@ export interface CalendarMonthGridProps {
 
 /**
  * Month grid (T-287, S-008): 7 columns, weeks from Monday. Up to 3 chips
- * per day, then "+N lainnya" opening a popover with that day's posts. A day
+ * per day, then "+N lainnya" opening a popover with that day's posts.
+ * Below `lg` (tablet, T-292) the chips are platform icons in a row and
+ * "+N lainnya" is a "+N" chip; the popover keeps full chips. A day
  * that is not in the past shows a schedule button on hover (always visible
  * on touch) that opens the Draft Editor with that date set; the date is
  * read in the display time zone of the page.
@@ -184,49 +186,54 @@ export function CalendarMonthGrid({
                     </Button>
                   ) : null}
                 </div>
-                {shown.map((entry) => (
-                  <CalendarChip
-                    key={entry.key}
-                    entry={entry}
-                    thumbnail={thumbnails[entry.postId]}
-                    onCancelSchedule={onCancelSchedule}
-                  />
-                ))}
-                {rest > 0 ? (
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="xs"
-                        className="justify-start text-muted-foreground"
-                        aria-label={`Lihat semua ${entries.length} posting ${day.dateKey}`}
-                      >
-                        +{rest} lainnya
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent align="start" className="w-72">
-                      {/* eslint-disable-next-line no-restricted-syntax -- T-287 */}
-                      <div className="flex flex-col gap-2">
-                        <p className="text-sm font-semibold">
-                          {day.dateKey}{" "}
-                          <span className="font-normal text-muted-foreground">
-                            · {entries.length} posting
-                          </span>
-                        </p>
-                        {entries.map((entry) => (
-                          <CalendarChip
-                            key={entry.key}
-                            entry={entry}
-                            thumbnail={thumbnails[entry.postId]}
-                            showCaption
-                            onCancelSchedule={onCancelSchedule}
-                          />
-                        ))}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                ) : null}
+                {/* eslint-disable-next-line no-restricted-syntax -- T-292: chips stack from lg, wrap as a row of icons below it */}
+                <div className="flex flex-col gap-1 max-lg:flex-row max-lg:flex-wrap">
+                  {shown.map((entry) => (
+                    <CalendarChip
+                      key={entry.key}
+                      entry={entry}
+                      thumbnail={thumbnails[entry.postId]}
+                      iconOnlyBelowLg
+                      onCancelSchedule={onCancelSchedule}
+                    />
+                  ))}
+                  {rest > 0 ? (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="xs"
+                          className="justify-start text-muted-foreground max-lg:size-8 max-lg:justify-center max-lg:rounded-lg max-lg:border max-lg:border-border max-lg:bg-card max-lg:p-0"
+                          aria-label={`Lihat semua ${entries.length} posting ${day.dateKey}`}
+                        >
+                          +{rest}
+                          <span className="max-lg:hidden">lainnya</span>
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent align="start" className="w-72">
+                        {/* eslint-disable-next-line no-restricted-syntax -- T-287 */}
+                        <div className="flex flex-col gap-2">
+                          <p className="text-sm font-semibold">
+                            {day.dateKey}{" "}
+                            <span className="font-normal text-muted-foreground">
+                              · {entries.length} posting
+                            </span>
+                          </p>
+                          {entries.map((entry) => (
+                            <CalendarChip
+                              key={entry.key}
+                              entry={entry}
+                              thumbnail={thumbnails[entry.postId]}
+                              showCaption
+                              onCancelSchedule={onCancelSchedule}
+                            />
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  ) : null}
+                </div>
               </div>
             );
           })}

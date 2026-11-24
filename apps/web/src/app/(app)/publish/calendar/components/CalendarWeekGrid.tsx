@@ -12,6 +12,7 @@ import { getZonedFormatter } from "@/lib/time/zoned-formatter";
 import { cn } from "@/lib/utils";
 
 import { CalendarChip } from "./CalendarChip";
+import { getThreeDays } from "./calendar-fetch-range";
 import {
   addDays,
   type CalendarCardEntry,
@@ -23,6 +24,8 @@ import {
 
 // eslint-disable-next-line local/no-arbitrary-value-in-variable -- T-287: fixed time column plus 7 equal day columns, no Tailwind utility for it
 const TIME_COLUMN = "grid-cols-[3.5rem_repeat(7,minmax(0,1fr))]";
+// eslint-disable-next-line local/no-arbitrary-value-in-variable -- T-292: the same time column plus the 3 day columns of the phone Calendar
+const THREE_DAY_TIME_COLUMN = "grid-cols-[3.5rem_repeat(3,minmax(0,1fr))]";
 
 const minuteFormatter = (timeZone: string) =>
   getZonedFormatter("en-GB", { minute: "2-digit" }, timeZone);
@@ -41,6 +44,12 @@ function useNow(): Date | null {
 
 export interface CalendarWeekGridProps {
   date: Date;
+  /**
+   * `week` (default): the Monday-to-Sunday week of `date`, chips as platform
+   * icons below `lg`. `threeDays`: `date` and the two days after it with full
+   * chips, the phone Calendar (T-292).
+   */
+  span?: "week" | "threeDays";
   items: CalendarPostItem[];
   connectedAccountIds?: ConnectedAccountId[];
   thumbnails?: Record<string, MediaThumbnailDto>;
@@ -50,10 +59,12 @@ export interface CalendarWeekGridProps {
 /**
  * Week grid (T-287, S-008): hourly rows (24), the week starts on Monday,
  * a line marks the current time in today's column. One chip per post
- * target, placed in the row of its hour in the display time zone.
+ * target, placed in the row of its hour in the display time zone. With
+ * `span="threeDays"` it is the 3-day grid of the phone Calendar (T-292).
  */
 export function CalendarWeekGrid({
   date,
+  span = "week",
   items,
   connectedAccountIds = [],
   thumbnails = {},
@@ -62,12 +73,15 @@ export function CalendarWeekGrid({
   const timeZone = useUserTimeZone();
   const now = useNow();
 
+  const isThreeDays = span === "threeDays";
+  const columns = isThreeDays ? THREE_DAY_TIME_COLUMN : TIME_COLUMN;
   const days = useMemo(() => {
+    if (isThreeDays) return getThreeDays(date, timeZone);
     const { from: weekStart } = getWeekRange(date, timeZone);
     return Array.from({ length: 7 }, (_, index) =>
       addDays(weekStart, index, timeZone),
     );
-  }, [date, timeZone]);
+  }, [date, timeZone, isThreeDays]);
   const dayKeys = useMemo(
     () => days.map((day) => toDateKey(day, timeZone)),
     [days, timeZone],
@@ -104,10 +118,7 @@ export function CalendarWeekGrid({
     // eslint-disable-next-line no-restricted-syntax -- T-287: Tailwind layout (ADR-097)
     <div className="overflow-hidden rounded-2xl border border-border bg-card">
       {/* eslint-disable-next-line no-restricted-syntax -- T-287 */}
-      <div
-        className={cn("grid border-b border-border", TIME_COLUMN)}
-        role="row"
-      >
+      <div className={cn("grid border-b border-border", columns)} role="row">
         {/* eslint-disable-next-line no-restricted-syntax -- T-287 */}
         <div />
         {days.map((day, index) => {
@@ -125,7 +136,7 @@ export function CalendarWeekGrid({
                   isToday ? "text-primary" : "text-muted-foreground",
                 )}
               >
-                {DAY_LABELS[index]}
+                {DAY_LABELS[(getDateParts(day, timeZone).weekday + 6) % 7]}
               </span>
               <span
                 className={cn(
@@ -147,7 +158,7 @@ export function CalendarWeekGrid({
             key={hour}
             className={cn(
               "grid border-b border-border last:border-b-0",
-              TIME_COLUMN,
+              columns,
             )}
             role="row"
           >
@@ -171,6 +182,7 @@ export function CalendarWeekGrid({
                       key={entry.key}
                       entry={entry}
                       thumbnail={thumbnails[entry.postId]}
+                      iconOnlyBelowLg={!isThreeDays}
                       onCancelSchedule={onCancelSchedule}
                     />
                   ))}

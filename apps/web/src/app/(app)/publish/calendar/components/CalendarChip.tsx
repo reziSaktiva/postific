@@ -58,6 +58,11 @@ export interface CalendarChipProps {
   thumbnail?: MediaThumbnailDto;
   /** Platform icon only (narrow cells); time and status stay in the label. */
   iconOnly?: boolean;
+  /**
+   * Platform icon only below `lg` (tablet, T-292), the full chip from `lg`
+   * up. CSS only, so one chip and one preview serve both widths.
+   */
+  iconOnlyBelowLg?: boolean;
   /** Show the caption after the time (day list of "+N lainnya"). */
   showCaption?: boolean;
   onCancelSchedule?: (postId: PostId) => void;
@@ -75,6 +80,7 @@ export function CalendarChip({
   entry,
   thumbnail,
   iconOnly = false,
+  iconOnlyBelowLg = false,
   showCaption = false,
   onCancelSchedule,
 }: CalendarChipProps) {
@@ -98,11 +104,13 @@ export function CalendarChip({
         className={cn(
           "flex min-h-8 w-full min-w-0 items-center gap-1.5 rounded-lg border border-border bg-card py-1 pr-1 pl-1.5 text-left text-xs tabular-nums transition-colors outline-none hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring data-[state=open]:border-ring",
           iconOnly && "size-8 min-h-8 w-8 justify-center p-0",
+          iconOnlyBelowLg &&
+            "max-lg:size-8 max-lg:min-h-8 max-lg:w-8 max-lg:justify-center max-lg:p-0",
         )}
       >
         <PlatformGlyph size={14} color={platform.color} />
         {iconOnly ? null : (
-          <>
+          <span className={cn("contents", iconOnlyBelowLg && "max-lg:hidden")}>
             <span className="font-semibold whitespace-nowrap">
               {entry.timeLabel}
             </span>
@@ -124,7 +132,7 @@ export function CalendarChip({
               />
             ) : null}
             {thumbnail ? <ChipThumbnail thumbnail={thumbnail} /> : null}
-          </>
+          </span>
         )}
       </button>
     </PostPreviewPopover>
