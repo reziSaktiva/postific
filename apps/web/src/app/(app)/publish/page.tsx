@@ -10,6 +10,7 @@ import {
 } from "@/domains/publishing";
 import { getCachedUserTimeZone } from "@/lib/better-auth/user-time-zone";
 import { UserTimeZoneProvider } from "@/lib/time/user-time-zone-context";
+import { cn } from "@/lib/utils";
 
 import { buildDisplayTimeZoneGroups } from "./components/display-time-zone-groups";
 import { DisplayTimeZoneProvider } from "./components/DisplayTimeZoneSelect";
@@ -83,7 +84,15 @@ export default async function Page({
 
   return (
     // eslint-disable-next-line no-restricted-syntax -- T-286: Tailwind layout composition (ADR-097), not an Astryx stack.
-    <div className="flex flex-col gap-3">
+    <div
+      className={cn(
+        "flex flex-col gap-3",
+        // Board fits the viewport (T-292 re-check): the page fills the app
+        // `main` and the Board takes the height left under the header and
+        // toolbar, so only the columns scroll, never the page.
+        state.view === "board" && "h-full min-h-0",
+      )}
+    >
       <PublishPageHeader
         view={state.view}
         tab={state.tab}

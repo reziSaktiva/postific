@@ -208,15 +208,17 @@ export function BoardScreen({
 }) {
   return (
     // eslint-disable-next-line no-restricted-syntax -- T-290: Tailwind layout (ADR-097)
-    <div className="flex snap-x snap-mandatory items-start gap-3 overflow-x-auto pb-2 sm:snap-none">
+    <div className="flex min-h-0 flex-1 snap-x snap-mandatory gap-3 overflow-x-auto overflow-y-hidden pb-2 sm:snap-none">
       {columns.map((column) => (
         <section
           key={column.key}
           aria-label={COLUMN_TITLE[column.key]}
-          // A column never grows past the screen; its cards scroll inside it.
-          // A busy workspace has 100+ cards in Published, and one board
-          // ~18 000 px tall was not painted by the browser (black page).
-          className="flex max-h-svh w-11/12 shrink-0 snap-center flex-col gap-2 rounded-2xl bg-muted/40 p-2 sm:w-5/12 lg:w-72"
+          // A column takes the full Board height and its cards scroll inside
+          // it; the Board itself fills the space left in the viewport, so
+          // the page never scrolls on Board. A busy workspace has 100+ cards
+          // in Published; a page taller than the viewport left parts of the
+          // sidebar and cards unpainted while scrolling (T-292 re-check).
+          className="flex min-h-0 w-11/12 shrink-0 snap-center flex-col gap-2 rounded-2xl bg-muted/40 p-2 sm:w-5/12 lg:w-72"
         >
           {}
           <header className="flex shrink-0 items-center gap-2 p-1">
@@ -233,7 +235,7 @@ export function BoardScreen({
             </p>
           ) : (
             // eslint-disable-next-line no-restricted-syntax -- T-290: Tailwind layout (ADR-097)
-            <div className="flex min-h-0 flex-col gap-2 overflow-y-auto">
+            <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain">
               {column.items.map((item) => (
                 <BoardCard
                   key={item.id}
