@@ -25,6 +25,24 @@ describe("parseCalendarViewState", () => {
       expect(parseCalendarViewState({ view: "week" }).view).toBe("week");
     });
 
+    it("reopens the last used range when the URL has none (T-287)", () => {
+      expect(parseCalendarViewState({}, { lastRange: "week" }).view).toBe(
+        "week",
+      );
+    });
+
+    it("lets the URL range win over the last used range", () => {
+      expect(
+        parseCalendarViewState({ range: "month" }, { lastRange: "week" }).view,
+      ).toBe("month");
+    });
+
+    it("ignores an unknown last used range", () => {
+      expect(parseCalendarViewState({}, { lastRange: "year" }).view).toBe(
+        "month",
+      );
+    });
+
     it("fallback ke month untuk value invalid", () => {
       expect(parseCalendarViewState({ view: "yearly" }).view).toBe("month");
     });

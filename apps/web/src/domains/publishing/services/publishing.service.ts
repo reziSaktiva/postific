@@ -26,6 +26,11 @@ import type {
   SchedulePostTargetInput,
 } from "../repositories/publishing.repository";
 import { DRAFT_LIST_STATUSES } from "./group-approval-items";
+import {
+  BOARD_COLUMN_LIMIT,
+  groupBoardColumns,
+  type BoardColumn,
+} from "./group-board-columns";
 import { groupQueueItemsByDate, type QueueGroup } from "./group-queue-items";
 import type { PublishListTab } from "./parse-publish-view-state";
 import { resolvePostPerformancePeriodRange } from "./post-performance-period-range";
@@ -756,6 +761,26 @@ export class PublishingService {
   }
 
   /**
+   * Board (T-290, S-008): posts of every status grouped into the five Board
+   * columns (`groupBoardColumns`). Fetches one more than the column limit
+   * per status so a column can tell it has more cards than it shows.
+   * MCP client names are completed like on the other lists.
+   */
+  async listBoardColumns(
+    workspaceId: WorkspaceId,
+    userId: UserId,
+  ): Promise<BoardColumn<CalendarItemRecord>[]> {
+    const posts = await this.withClientNames(
+      workspaceId,
+      await this.repository.listBoardPosts(
+        { workspaceId, perStatusLimit: BOARD_COLUMN_LIMIT + 1 },
+        userId,
+      ),
+    );
+    return groupBoardColumns(posts);
+  }
+
+  /**
    * Granular patch Realtime Calendar (T-092.3, ADR-094 poin 5) — fetch SATU
    * record termapping untuk `postId` dari event Realtime
    * (`{postId, eventType}`, `usePublishingPostsRealtime`). Reuse post-
@@ -975,6 +1000,39 @@ export class PublishingService {
       throw new NotFoundError("Riwayat post tidak ditemukan.");
     }
 
+    return this.toHistoryDetail(post, userId);
+  }
+
+  /**
+   * Post preview (T-288, S-008): the same detail as `getHistoryById`, for a
+   * post in ANY status, because the preview opens from Calendar, Queue,
+   * History and Board cards (a scheduled post, a failed one, a draft on the
+   * Board). `null` when the post is not in this workspace or was deleted
+   * (not an error: the post can disappear while the preview is open).
+   * Metrics are only read for a published post, like `getHistoryById`.
+   */
+  async getPostPreview(
+    workspaceId: WorkspaceId,
+    postId: PostId,
+    userId: UserId,
+  ): Promise<HistoryDetailItem | null> {
+    // Not `this.getHistoryPostById`: since T-289 that also loads metrics for
+    // the History card, and `toHistoryDetail` reads them itself.
+    const post = await this.repository.getHistoryPostById(
+      { workspaceId, postId },
+      userId,
+    );
+    if (!post) {
+      return null;
+    }
+    const [found] = await this.withClientNames(workspaceId, [post]);
+    return found ? this.toHistoryDetail(found, userId) : null;
+  }
+
+  private async toHistoryDetail(
+    post: HistoryItemRecord,
+    userId: UserId,
+  ): Promise<HistoryDetailItem> {
     const [metrics, authorName] = await Promise.all([
       post.status === ContentStatus.Published && this.postMetrics
         ? this.postMetrics

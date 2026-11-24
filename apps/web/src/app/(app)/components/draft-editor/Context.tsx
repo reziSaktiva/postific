@@ -8,6 +8,10 @@ import {
   useState,
 } from "react";
 
+import type { NewPostPreset } from "./new-post-preset";
+
+export type { NewPostPreset };
+
 /**
  * Browser-only backup for an unfinished New Post — KSP-05-F13, ADR-052.
  * Scoped per workspace: the sidebar CTA (ADR-053) can open the editor from any
@@ -28,7 +32,13 @@ export interface UnsavedNewPost {
 export type DraftEditorState =
   | { mode: "closed" }
   | { mode: "resume-check"; unsaved: UnsavedNewPost }
-  | { mode: "create"; prefillCaption?: string; preSelectedAccountId?: string }
+  | {
+      mode: "create";
+      prefillCaption?: string;
+      preSelectedAccountId?: string;
+      /** Date, time and account the new post starts with (T-287). */
+      preset?: NewPostPreset;
+    }
   | {
       mode: "edit";
       postId: string;
@@ -51,8 +61,13 @@ interface DraftEditorContextValue {
    * T-012 / ADR-058 addendum poin 9). When provided, the Resume Unfinished
    * Post check is intentionally skipped — that flow belongs to a different
    * context (a specific account) than the generic "+ New Post" CTA.
+   *
+   * A `NewPostPreset` (T-287, S-008) starts the post with a date, a time
+   * and/or an account already set: the Calendar day button and the Queue
+   * suggestions use it. It skips the Resume check for the same reason.
+   * An empty preset behaves like no argument.
    */
-  openNewPost: (preSelectedAccountId?: string) => void;
+  openNewPost: (arg?: string | NewPostPreset) => void;
   openEditDraft: (postId: string, initialPendingAction?: "publish-now") => void;
   resume: () => void;
   discardAndStartNew: () => void;
@@ -89,12 +104,24 @@ export function DraftEditorProvider({
   const [state, setState] = useState<DraftEditorState>({ mode: "closed" });
 
   const openNewPost = useCallback(
-    (preSelectedAccountId?: string) => {
-      // Entry point berbeda konteks (terikat akun tertentu) — skip
-      // resume-check sepenuhnya, ADR-058 addendum poin 9.
-      if (preSelectedAccountId) {
-        setState({ mode: "create", preSelectedAccountId });
+    (arg?: string | NewPostPreset) => {
+      // Entry point berbeda konteks (terikat akun tertentu, atau tanggal/
+      // waktu dari Calendar/Queue) — skip resume-check sepenuhnya, ADR-058
+      // addendum poin 9, T-287.
+      if (typeof arg === "string" && arg) {
+        setState({ mode: "create", preSelectedAccountId: arg });
         return;
+      }
+      if (arg && typeof arg === "object") {
+        const { connectedAccountId, date, time } = arg;
+        if (connectedAccountId || date || time) {
+          setState({
+            mode: "create",
+            preSelectedAccountId: connectedAccountId,
+            preset: arg,
+          });
+          return;
+        }
       }
       const unsaved = readUnsavedNewPost(workspaceId);
       setState(

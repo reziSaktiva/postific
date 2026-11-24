@@ -77,6 +77,17 @@ describe("zona non-WIB (T-147)", () => {
     expect(entry).toMatchObject({ dateKey: "2026-09-01", hour: 23 });
   });
 
+  it("chip time label is HH:mm in the display zone, minutes included (T-287)", () => {
+    const scheduledAt = new Date("2026-09-01T20:45:00Z");
+    const [wib] = flattenCalendarItemsToEntries([item({ scheduledAt })], WIB);
+    const [kolkata] = flattenCalendarItemsToEntries(
+      [item({ scheduledAt })],
+      "Asia/Kolkata",
+    );
+    expect(wib?.timeLabel).toBe("03:45");
+    expect(kolkata?.timeLabel).toBe("02:15");
+  });
+
   it("zona yang sama menghasilkan hari/jam beda dari WIB", () => {
     const scheduledAt = new Date("2026-09-01T20:00:00Z");
     const [wib] = flattenCalendarItemsToEntries([item({ scheduledAt })], WIB);

@@ -182,6 +182,7 @@ function mapCalendarItem(post: QueuePostWithTargets): CalendarItemRecord {
     publishedAt: post.publishedAt,
     createdAt: post.createdAt,
     updatedAt: post.updatedAt,
+    mediaIds: post.mediaIds.map((id) => asMediaId(id)),
     targets: post.targets.map((target): CalendarItemTargetRecord => ({
       id: asPostTargetId(target.id),
       connectedAccountId: asConnectedAccountId(target.connectedAccountId),
@@ -189,6 +190,7 @@ function mapCalendarItem(post: QueuePostWithTargets): CalendarItemRecord {
       contentFormat: target.contentFormat as ContentFormat,
       accountHandle: target.connectedAccount.handle,
       platformPostUrl: target.platformPostUrl,
+      thumbnailStoragePath: target.thumbnailStoragePath,
     })),
   };
 }
@@ -818,6 +820,35 @@ export const publishingRepository: IPublishingRepository = {
     );
 
     return posts.map(mapCalendarItem);
+  },
+
+  async listBoardPosts({ workspaceId, perStatusLimit }, userId) {
+    const orderFor = (
+      status: ContentStatus,
+    ): Prisma.PublishingPostOrderByWithRelationInput[] =>
+      status === ContentStatus.Scheduled
+        ? [{ scheduledAt: "asc" }, { id: "asc" }]
+        : status === ContentStatus.Published ||
+            status === ContentStatus.Imported
+          ? [{ publishedAt: "desc" }, { id: "desc" }]
+          : [{ updatedAt: "desc" }, { id: "desc" }];
+
+    const perStatus = await withCurrentUser(userId, (tx) =>
+      Promise.all(
+        Object.values(ContentStatus).map((status) =>
+          tx.publishingPost.findMany({
+            where: { workspaceId, deletedAt: null, status },
+            orderBy: orderFor(status),
+            take: perStatusLimit,
+            include: {
+              targets: { include: { connectedAccount: true } },
+            },
+          }),
+        ),
+      ),
+    );
+
+    return perStatus.flat().map(mapCalendarItem);
   },
 
   async getCalendarPostById({ workspaceId, postId }, userId) {

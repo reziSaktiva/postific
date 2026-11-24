@@ -148,6 +148,7 @@ export function DraftEditorModal() {
               preSelectedAccountId={
                 state.mode === "create" ? state.preSelectedAccountId : undefined
               }
+              preset={state.mode === "create" ? state.preset : undefined}
               initialPendingAction={
                 state.mode === "edit" ? state.initialPendingAction : undefined
               }

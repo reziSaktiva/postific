@@ -59,6 +59,8 @@ export interface PublishViewState {
 export interface PublishViewDefaults {
   /** Raw value of the `PUBLISH_VIEW_COOKIE` cookie, if any. */
   lastView?: string | null;
+  /** Raw value of the `PUBLISH_CALENDAR_RANGE_COOKIE` cookie, if any (T-287). */
+  lastRange?: string | null;
   /** Profile time zone (T-147); the display zone when `tz` is absent. */
   profileTimeZone: string;
 }
@@ -95,7 +97,9 @@ export function parsePublishViewState(
   return {
     view: resolveView(rawView, defaults.lastView),
     tab: isPublishListTab(rawTab) ? rawTab : DEFAULT_PUBLISH_LIST_TAB,
-    calendar: parseCalendarViewState(searchParams),
+    calendar: parseCalendarViewState(searchParams, {
+      lastRange: defaults.lastRange,
+    }),
     timeZone:
       rawTimeZone && isValidTimeZone(rawTimeZone)
         ? rawTimeZone

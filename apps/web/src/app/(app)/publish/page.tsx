@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import {
   parsePublishViewState,
   pickCalendarSearch,
+  PUBLISH_CALENDAR_RANGE_COOKIE,
   PUBLISH_VIEW_COOKIE,
   type PublishViewSearchParams,
   type PublishViewState,
@@ -13,6 +14,7 @@ import { UserTimeZoneProvider } from "@/lib/time/user-time-zone-context";
 import { buildDisplayTimeZoneGroups } from "./components/display-time-zone-groups";
 import { PublishPageHeader } from "./components/PublishPageHeader";
 import { PublishToolbar } from "./components/PublishToolbar";
+import { BoardView } from "./components/views/BoardView";
 import { CalendarView } from "./components/views/CalendarView";
 import { HistoryPostView } from "./components/views/HistoryPostView";
 import { DraftsTab, HistoryTab, QueueTab } from "./components/views/ListTabs";
@@ -37,10 +39,13 @@ export default async function Page({
   searchParams: Promise<PublishViewSearchParams>;
 }) {
   const rawSearchParams = await searchParams;
-  const lastView = (await cookies()).get(PUBLISH_VIEW_COOKIE)?.value;
+  const cookieStore = await cookies();
+  const lastView = cookieStore.get(PUBLISH_VIEW_COOKIE)?.value;
+  const lastRange = cookieStore.get(PUBLISH_CALENDAR_RANGE_COOKIE)?.value;
   const profileTimeZone = await getCachedUserTimeZone();
   const state = parsePublishViewState(rawSearchParams, {
     lastView,
+    lastRange,
     profileTimeZone,
   });
 
@@ -77,12 +82,7 @@ function PublishViewContent({ state }: { state: PublishViewState }) {
     return <CalendarView calendar={state.calendar} timeZone={state.timeZone} />;
   }
   if (state.view === "board") {
-    return (
-      <PlaceholderView
-        title="Board"
-        description="Kolom Draft, Approvals, Scheduled, Published, dan Failed sedang disiapkan."
-      />
-    );
+    return <BoardView />;
   }
   switch (state.tab) {
     case "queue":

@@ -3811,13 +3811,15 @@ Not yet proven: the shell was not observed in a browser (no dev server in this l
 
 **What to build:** the Calendar view matches the confirmed design on desktop.
 
-- [ ] The Calendar opens on Month the first time (amends KSP-02-F01); after that it reopens the range last used.
-- [ ] Toolbar: previous and next, range label, Today, Month or Week; Filter (channels and status, as KSP-02-F09), "No date" (side panel listing posts without a date), options menu, timezone picker.
-- [ ] Month: up to 3 chips per day (platform icon, time, status icon, thumbnail with ▶ for video), then "+N lainnya" opening a popover with that day's posts.
-- [ ] A future day shows a schedule button on hover that opens the Draft Editor with that date set.
-- [ ] Week: hourly rows with a current-time line; the week starts on Monday.
-- [ ] One chip per post target, statuses with a date only (Scheduled, Published, Failed), as KSP-02-F02.
-- [ ] Around 1024 px, chip thumbnails hide so chips do not overflow.
+- [x] The Calendar opens on Month the first time (amends KSP-02-F01); after that it reopens the range last used.
+- [x] Toolbar: previous and next, range label, Today, Month or Week; Filter (channels and status, as KSP-02-F09), "No date" (side panel listing posts without a date), options menu, timezone picker.
+- [x] Month: up to 3 chips per day (platform icon, time, status icon, thumbnail with ▶ for video), then "+N lainnya" opening a popover with that day's posts.
+- [x] A future day shows a schedule button on hover that opens the Draft Editor with that date set.
+- [x] Week: hourly rows with a current-time line; the week starts on Monday.
+- [x] One chip per post target, statuses with a date only (Scheduled, Published, Failed), as KSP-02-F02.
+- [x] Around 1024 px, chip thumbnails hide so chips do not overflow.
+
+Not yet proven: the Calendar was not observed in a browser (no dev server in this lane; light, dark, 768 px, 1024 px chip overflow and the golden path are covered by the E2E ticket T-294). Proven by unit tests: last-range fallback, preset date and time conversion, chip time label, chip thumbnail lookup. Findings: the display time zone picker stays in the Publish toolbar row, so the Calendar controls sit on a second row; "Tampilkan posting impor" is local state, not URL; the Draft Editor preset is `openNewPost({ connectedAccountId?, date?, time?, timeZone? })`.
 
 **Blocked by:** T-286
 
@@ -3837,11 +3839,15 @@ Not yet proven: the shell was not observed in a browser (no dev server in this l
 
 **What to build:** clicking a post opens the per-account preview; Expand opens the full dialog; a published video plays in place.
 
-- [ ] The popover shows date and time, content format, Expand; account and status; caption; media; metrics and an insights link for published posts; Go to post, Edit or Retry by status, plus a more-actions menu.
-- [ ] The dialog shows the same content, the result of every account of the same post, and "Published via <network>". No "Add note".
-- [ ] A published video plays inline in the popover and the dialog with the native video player (play/pause, time, progress, volume, fullscreen).
-- [ ] When there is no playable video URL (for example an imported post with only a stored thumbnail), the thumbnail shows with "Go to post" and no play control.
+- [x] The popover shows date and time, content format, Expand; account and status; caption; media; metrics and an insights link for published posts; Go to post, Edit or Retry by status, plus a more-actions menu.
+- [x] The dialog shows the same content, the result of every account of the same post, and "Published via <network>". No "Add note".
+- [x] A published video plays inline in the popover and the dialog with the native video player (play/pause, time, progress, volume, fullscreen).
+- [x] When there is no playable video URL (for example an imported post with only a stored thumbnail), the thumbnail shows with "Go to post" and no play control.
 - [ ] The same preview opens from Calendar chips, Queue and History cards, and Board cards. Drafts and Approvals cards open the Draft Editor directly (ADR-165 decision 6).
+
+Wiring: Calendar chips and the mobile agenda use `PostPreviewPopover`; Board cards use it in T-290; the Queue and History cards are wired by the list lane (`PostPreviewPopover` / `PostPreviewDialog` from `publish/components/preview/PostPreview.tsx`), so the last item stays open until then.
+
+Not yet proven: popover and dialog were not observed in a browser (no dev server in this lane; inline video playback, light, dark, 768 px and 390 px are covered by T-294). Proven by unit tests: focus account, header date, footer action by status, "Published via" platforms, `PublishingService.getPostPreview` for any status. The imported-post case shows only its stored thumbnail (an image), so it has no play control; no external CDN URL is used.
 
 **Blocked by:** T-287
 
@@ -3888,10 +3894,12 @@ Not yet proven: the shell was not observed in a browser (no dev server in this l
 
 **What to build:** the Board view with columns Draft · Approvals · Scheduled · Published · Failed.
 
-- [ ] Columns with counts and horizontal scroll; grouping by Status only.
-- [ ] `Ready to Schedule` cards sit in Draft with a "Ready to Schedule" badge (unit test for the column grouping).
-- [ ] Cards show date or "No date", status badge, account with platform badge, caption, thumbnail, the AI-client badge for items created through MCP, and an actions menu on hover.
-- [ ] Clicking a card opens the post preview from T-288.
+- [x] Columns with counts and horizontal scroll; grouping by Status only.
+- [x] `Ready to Schedule` cards sit in Draft with a "Ready to Schedule" badge (unit test for the column grouping).
+- [x] Cards show date or "No date", status badge, account with platform badge, caption, thumbnail, the AI-client badge for items created through MCP, and an actions menu on hover.
+- [x] Clicking a card opens the post preview from T-288.
+
+Not yet proven: the Board was not observed in a browser (no dev server in this lane; light, dark, 768 px and 390 px, horizontal scroll and the hover menu are covered by T-294). Proven by unit tests: column grouping (Ready to Schedule in Draft, ordering, limit) and `PublishingService.listBoardColumns`. Left out on purpose: no Realtime patch on the Board (it refreshes on navigation); a column shows at most 100 cards and says "100+".
 
 **Blocked by:** T-286, T-288
 

@@ -68,6 +68,7 @@ function createFakeRepository(
     countScheduledByAccount: async () => new Map(),
     listQueue: async () => [],
     listCalendarPosts: async () => [],
+    listBoardPosts: async () => [],
     getCalendarPostById: async () => null,
     listHistory: async () => [],
     getHistoryById: async () => null,
@@ -3156,5 +3157,84 @@ describe("PublishingService List tabs (T-289)", () => {
     expect(
       await service.listHistoryWithMetrics(WORKSPACE_ID, AUTHOR_ID),
     ).toEqual([published]);
+  });
+});
+
+describe("PublishingService.getPostPreview (T-288)", () => {
+  it("returns null when the post is not in the workspace, instead of throwing", async () => {
+    const service = new PublishingService(createFakeRepository());
+
+    await expect(
+      service.getPostPreview(WORKSPACE_ID, asPostId("post-1"), AUTHOR_ID),
+    ).resolves.toBeNull();
+  });
+
+  it("opens a post in any status, not only History ones (a scheduled post, no metrics)", async () => {
+    const scheduled = createHistoryItem({ status: ContentStatus.Scheduled });
+    const service = new PublishingService(
+      createFakeRepository({ getHistoryPostById: async () => scheduled }),
+    );
+
+    await expect(
+      service.getPostPreview(WORKSPACE_ID, scheduled.id, AUTHOR_ID),
+    ).resolves.toEqual({ ...scheduled, metrics: null, authorName: null });
+  });
+
+  it("reads metrics only for a published post and names its author", async () => {
+    const published = createHistoryItem({
+      status: ContentStatus.Published,
+      authorId: AUTHOR_ID,
+    });
+    let metricCalls = 0;
+    const service = new PublishingService(
+      createFakeRepository({ getHistoryPostById: async () => published }),
+      {
+        getPostMetricsByPosts: async () => {
+          metricCalls += 1;
+          return new Map();
+        },
+      },
+      undefined,
+      { findById: async () => ({ name: "Raka" }) as never },
+    );
+
+    const result = await service.getPostPreview(
+      WORKSPACE_ID,
+      published.id,
+      AUTHOR_ID,
+    );
+
+    expect(metricCalls).toBe(1);
+    expect(result).toMatchObject({ metrics: [], authorName: "Raka" });
+  });
+});
+
+describe("PublishingService.listBoardColumns (T-290)", () => {
+  it("groups posts of every status into the five columns and asks for one more than the column limit per status", async () => {
+    let receivedLimit: number | null = null;
+    const draft = createHistoryItem({ status: ContentStatus.ReadyToSchedule });
+    const failed = createHistoryItem({
+      id: asPostId("post-2"),
+      status: ContentStatus.Failed,
+    });
+    const service = new PublishingService(
+      createFakeRepository({
+        listBoardPosts: async ({ perStatusLimit }) => {
+          receivedLimit = perStatusLimit;
+          return [draft, failed] as never;
+        },
+      }),
+    );
+
+    const columns = await service.listBoardColumns(WORKSPACE_ID, AUTHOR_ID);
+
+    expect(receivedLimit).toBe(101);
+    expect(columns.map((c) => [c.key, c.items.length])).toEqual([
+      ["draft", 1],
+      ["approvals", 0],
+      ["scheduled", 0],
+      ["published", 0],
+      ["failed", 1],
+    ]);
   });
 });

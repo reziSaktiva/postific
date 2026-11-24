@@ -41,6 +41,10 @@ import { decideDraftSaveTargets } from "./draft-save-targets";
 import { restoreDraftTargetSelection } from "./restore-draft-targets";
 import { resolveActiveAccountId } from "./network-blocks-state";
 import { validateNetworks } from "./network-validation";
+import {
+  resolveNewPostPresetSchedule,
+  type NewPostPreset,
+} from "./new-post-preset";
 import { useDraftMedia } from "./useDraftMedia";
 import { usePinterestBoards } from "./usePinterestBoards";
 
@@ -55,6 +59,12 @@ export interface DraftEditorFormParams {
    * soon as `getConnectedAccountsAction` resolves.
    */
   preSelectedAccountId?: string;
+  /**
+   * Date and time the new post starts with (T-287): Calendar day button,
+   * Queue suggestions. The account of the preset arrives as
+   * `preSelectedAccountId`.
+   */
+  preset?: NewPostPreset;
   /**
    * Publish Now dari Queue (T-032.4) — lihat effect di bawah yang
    * memanfaatkan nilai ini begitu data selesai dimuat.
@@ -76,6 +86,7 @@ export function useDraftEditorForm({
   postId,
   prefillCaption,
   preSelectedAccountId,
+  preset,
   initialPendingAction,
   onLatestChange,
 }: DraftEditorFormParams) {
@@ -108,8 +119,15 @@ export function useDraftEditorForm({
   const [boardIdByAccount, setBoardIdByAccount] = useState<
     Record<string, string | undefined>
   >({});
-  const [scheduleDate, setScheduleDate] = useState<string | undefined>();
-  const [scheduleTime, setScheduleTime] = useState<string | undefined>();
+  const [presetSchedule] = useState(() =>
+    resolveNewPostPresetSchedule(preset, timeZone),
+  );
+  const [scheduleDate, setScheduleDate] = useState<string | undefined>(
+    presetSchedule.scheduleDate,
+  );
+  const [scheduleTime, setScheduleTime] = useState<string | undefined>(
+    presetSchedule.scheduleTime,
+  );
   // A step *within* this same Dialog (regardless of variant) — NOT a
   // second nested Dialog. Astryx's own component docs explicitly disallow
   // nesting Dialogs ("restructure the flow into steps within a single

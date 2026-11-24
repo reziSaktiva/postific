@@ -18,7 +18,7 @@ import { analyticsRepository } from "@/lib/repositories/analytics";
 import { publishingRepository } from "@/lib/repositories/publishing";
 
 /**
- * Cancel Schedule (T-030.3) — dipanggil dari footer `CalendarPostPopover`
+ * Cancel Schedule (T-030.3) — dipanggil dari footer `PostPreviewPopover`
  * di halaman Calendar. Business logic (RBAC, guard status Scheduled,
  * panggilan `OutstandAdapter.cancelScheduledPost` per target) hidup di
  * `CancelScheduleUseCase.execute` — reuse 100% dari implementasi Queue
