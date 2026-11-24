@@ -3861,14 +3861,14 @@ Not yet proven: the shell was not observed in a browser (no dev server in this l
 
 **What to build:** the List view with line tabs and counts; posts grouped by day with the time on the left.
 
-- [ ] Queue: scheduled posts ordered by publish time (ADR-083).
-- [ ] Drafts: `Draft` and `Ready to Schedule` content.
+- [x] Queue: scheduled posts ordered by publish time (ADR-083).
+- [x] Drafts: `Draft` and `Ready to Schedule` content.
 - [ ] Approvals: `In Review` content with Mark Ready (`In Review` → `Ready to Schedule`) and Back to Draft (`In Review` → `Draft`), through the existing status service; the same roles as today; nothing is blocked waiting for approval.
-- [ ] History: published and failed posts as cards with metrics, "Published via", Go to post; failed posts show the error and Retry.
-- [ ] Grouping for the Approvals list has unit tests next to the existing queue and history grouping.
-- [ ] Queue, Drafts and History keep the MCP source filter and AI-client badge (KSP-D20, T-157); Approvals shows the badge.
+- [x] History: published and failed posts as cards with metrics, "Published via", Go to post; failed posts show the error and Retry.
+- [x] Grouping for the Approvals list has unit tests next to the existing queue and history grouping.
+- [x] Queue, Drafts and History keep the MCP source filter and AI-client badge (KSP-D20, T-157); Approvals shows the badge.
 - [ ] A click opens the post preview in Queue and History, and the Draft Editor directly in Drafts and Approvals.
-- [ ] The empty Queue shows a normal empty state with "+ New Post" until T-291 adds suggestions.
+- [x] The empty Queue shows a normal empty state with "+ New Post" until T-291 adds suggestions.
 
 **Blocked by:** T-286
 

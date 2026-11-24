@@ -3076,3 +3076,85 @@ describe("PublishingService sumber MCP (T-157)", () => {
     ).toBe("Claude Code");
   });
 });
+
+describe("PublishingService List tabs (T-289)", () => {
+  function draftRecord(
+    id: string,
+    status: ContentStatus,
+  ): PublishingPostRecord {
+    return {
+      id: asPostId(id),
+      workspaceId: WORKSPACE_ID,
+      authorId: AUTHOR_ID,
+      caption: id,
+      status,
+      createdAt: new Date(0),
+      updatedAt: new Date(0),
+    };
+  }
+
+  it("getListTabCounts counts what each tab lists: In Review only in Approvals, Ready to Schedule in Drafts", async () => {
+    const service = new PublishingService(
+      createFakeRepository({
+        listQueue: async () => [createQueueItem(), createQueueItem()],
+        listDrafts: async () => [
+          draftRecord("a", ContentStatus.Draft),
+          draftRecord("b", ContentStatus.ReadyToSchedule),
+          draftRecord("c", ContentStatus.InReview),
+        ],
+        listHistory: async () => [
+          createHistoryItem({ status: ContentStatus.Published }),
+          createHistoryItem({ status: ContentStatus.Failed }),
+          createHistoryItem({ status: ContentStatus.Imported }),
+        ],
+      }),
+    );
+
+    expect(await service.getListTabCounts(WORKSPACE_ID, AUTHOR_ID)).toEqual({
+      queue: 2,
+      drafts: 2,
+      approvals: 1,
+      history: 3,
+    });
+  });
+
+  it("listHistoryWithMetrics overlays stored metrics: [] when none yet, null for a Failed post that is never fetched", async () => {
+    const published = createHistoryItem({
+      id: asPostId("pub"),
+      status: ContentStatus.Published,
+    });
+    const failed = createHistoryItem({
+      id: asPostId("bad"),
+      status: ContentStatus.Failed,
+    });
+    let requested: PostId[] = [];
+    const service = new PublishingService(
+      createFakeRepository({ listHistory: async () => [published, failed] }),
+      {
+        getPostMetricsByPosts: async (postIds) => {
+          requested = postIds;
+          return new Map();
+        },
+      },
+    );
+
+    const items = await service.listHistoryWithMetrics(WORKSPACE_ID, AUTHOR_ID);
+
+    expect(requested).toEqual([published.id]);
+    expect(items.map((item) => [item.id, item.metrics])).toEqual([
+      [published.id, []],
+      [failed.id, null],
+    ]);
+  });
+
+  it("listHistoryWithMetrics leaves items without metrics when no PostMetricsPort is supplied", async () => {
+    const published = createHistoryItem();
+    const service = new PublishingService(
+      createFakeRepository({ listHistory: async () => [published] }),
+    );
+
+    expect(
+      await service.listHistoryWithMetrics(WORKSPACE_ID, AUTHOR_ID),
+    ).toEqual([published]);
+  });
+});

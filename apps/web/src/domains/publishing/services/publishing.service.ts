@@ -25,7 +25,9 @@ import type {
   PublishingPostRecord,
   SchedulePostTargetInput,
 } from "../repositories/publishing.repository";
+import { DRAFT_LIST_STATUSES } from "./group-approval-items";
 import { groupQueueItemsByDate, type QueueGroup } from "./group-queue-items";
+import type { PublishListTab } from "./parse-publish-view-state";
 import { resolvePostPerformancePeriodRange } from "./post-performance-period-range";
 import { sortCalendarItemsByEffectiveDate } from "./sort-calendar-items";
 
@@ -153,6 +155,20 @@ export interface HistoryDetailItem extends HistoryItemRecord {
   metrics: PostMetricsRecord[] | null;
   authorName: string | null;
 }
+
+/**
+ * One card of List · History (T-289, S-008): `HistoryItemRecord` plus the
+ * stored metrics of each target, overlaid at service level like
+ * `HistoryDetailItem`. `metrics` is absent when no `PostMetricsPort` is
+ * supplied, `null` for a `Failed` post (never fetched), `[]` for a post with
+ * no ingested row yet.
+ */
+export interface HistoryListItem extends HistoryItemRecord {
+  metrics?: PostMetricsRecord[] | null;
+}
+
+/** Counts shown on the List tabs of the Publish page (T-289, S-008). */
+export type PublishListTabCounts = Record<PublishListTab, number>;
 
 /**
  * Satu baris tabel "Post Performance" `/analyze` (T-043.1, T-043.2,
@@ -848,6 +864,74 @@ export class PublishingService {
   }
 
   /**
+   * List · History cards (T-289, S-008): `listHistory` plus the stored
+   * metrics of each post, so a card shows reach and engagement without a
+   * request per card. Same selection and order as `listHistory`.
+   */
+  async listHistoryWithMetrics(
+    workspaceId: WorkspaceId,
+    userId: UserId,
+  ): Promise<HistoryListItem[]> {
+    const items = await this.listHistory({ workspaceId }, userId);
+    return this.withHistoryMetrics(items, userId);
+  }
+
+  /**
+   * Overlay metrics on History items (see `HistoryListItem`). Without a
+   * `PostMetricsPort` the items come back unchanged.
+   */
+  private async withHistoryMetrics(
+    items: HistoryItemRecord[],
+    userId: UserId,
+  ): Promise<HistoryListItem[]> {
+    if (!this.postMetrics) {
+      return items;
+    }
+    const metricsByPost = await this.postMetrics.getPostMetricsByPosts(
+      items
+        .filter((item) => item.status !== ContentStatus.Failed)
+        .map((item) => item.id),
+      userId,
+    );
+    return items.map((item) => ({
+      ...item,
+      metrics:
+        item.status === ContentStatus.Failed
+          ? null
+          : (metricsByPost.get(item.id) ?? []),
+    }));
+  }
+
+  /**
+   * Counts for the List tabs (T-289): Queue = scheduled posts, Drafts =
+   * `Draft` and `Ready to Schedule`, Approvals = `In Review`, History =
+   * published, failed and imported posts. Built from the existing list
+   * queries, so it adds no repository method; the counts equal what each tab
+   * lists.
+   */
+  async getListTabCounts(
+    workspaceId: WorkspaceId,
+    userId: UserId,
+  ): Promise<PublishListTabCounts> {
+    const [queue, drafts, history] = await Promise.all([
+      this.repository.listQueue({ workspaceId }, userId),
+      this.repository.listDrafts({ workspaceId }, userId),
+      this.repository.listHistory(
+        { workspaceId, statuses: [...HISTORY_TERMINAL_STATUSES] },
+        userId,
+      ),
+    ]);
+    return {
+      queue: queue.length,
+      drafts: drafts.filter((post) => DRAFT_LIST_STATUSES.has(post.status))
+        .length,
+      approvals: drafts.filter((post) => post.status === ContentStatus.InReview)
+        .length,
+      history: history.length,
+    };
+  }
+
+  /**
    * Detail satu History item (T-034.1) — dipakai composition root route
    * `/publish/history/[postId]` (UI-nya T-034.3). Sama pola dengan
    * `getDraftById`: `NotFoundError` kalau post tidak ada, bukan milik
@@ -1460,7 +1544,7 @@ export class PublishingService {
     workspaceId: WorkspaceId,
     postId: PostId,
     userId: UserId,
-  ): Promise<HistoryItemRecord | null> {
+  ): Promise<HistoryListItem | null> {
     const post = await this.repository.getHistoryPostById(
       { workspaceId, postId },
       userId,
@@ -1469,6 +1553,11 @@ export class PublishingService {
       return null;
     }
     const [enriched] = await this.withClientNames(workspaceId, [post]);
-    return enriched ?? null;
+    if (!enriched) {
+      return null;
+    }
+    // T-289: List · History cards show metrics, so a Realtime patch keeps them.
+    const [withMetrics] = await this.withHistoryMetrics([enriched], userId);
+    return withMetrics ?? null;
   }
 }

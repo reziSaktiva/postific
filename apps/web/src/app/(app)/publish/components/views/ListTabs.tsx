@@ -1,7 +1,11 @@
 import { asUserId } from "@postific/shared";
 import { redirect } from "next/navigation";
 
-import { PublishingService } from "@/domains/publishing";
+import {
+  APPROVAL_LIST_STATUSES,
+  DRAFT_LIST_STATUSES,
+  PublishingService,
+} from "@/domains/publishing";
 import { WorkspaceService } from "@/domains/workspace";
 import { getCachedSession } from "@/lib/better-auth/session";
 import { getMcpClientNamePort } from "@/lib/mcp-access/get-mcp-client-name-port";
@@ -9,6 +13,10 @@ import { getWorkspaceContext } from "@/lib/workspace/workspace-context";
 import { publishingRepository } from "@/lib/repositories/publishing";
 import { workspaceRepository } from "@/lib/repositories/workspace";
 
+import { AnalyticsService } from "@/domains/analytics";
+import { analyticsRepository } from "@/lib/repositories/analytics";
+
+import { ApprovalsList } from "../../approvals/components/ApprovalsList";
 import { DraftsList } from "../../drafts/components/DraftsList";
 import { HistoryList } from "../../history/components/HistoryList";
 import { QueueScreen } from "../../queue/components/QueueScreen";
@@ -49,16 +57,42 @@ export async function QueueTab({ timeZone }: { timeZone: string }) {
 
 export async function DraftsTab() {
   const { workspaceId, userId, publishingService } = await getListContext();
+  // `listDrafts` returns Draft, Ready to Schedule and In Review; the list
+  // keeps what its tab shows and live-patches the rest (T-289).
   const drafts = await publishingService.listDrafts(workspaceId, userId);
-  return <DraftsList drafts={drafts} workspaceId={workspaceId} />;
+  return (
+    <DraftsList
+      drafts={drafts.filter((post) => DRAFT_LIST_STATUSES.has(post.status))}
+      workspaceId={workspaceId}
+    />
+  );
+}
+
+export async function ApprovalsTab() {
+  const { workspaceId, userId, publishingService } = await getListContext();
+  const drafts = await publishingService.listDrafts(workspaceId, userId);
+  return (
+    <ApprovalsList
+      items={drafts.filter((post) => APPROVAL_LIST_STATUSES.has(post.status))}
+      workspaceId={workspaceId}
+    />
+  );
 }
 
 export async function HistoryTab() {
-  const { workspaceId, userId, publishingService } = await getListContext();
+  const { workspaceId, userId } = await getListContext();
   const workspaceService = new WorkspaceService(workspaceRepository);
+  // History cards show stored metrics, so this tab needs the analytics port.
+  const historyService = new PublishingService(
+    publishingRepository,
+    new AnalyticsService(analyticsRepository),
+    undefined,
+    undefined,
+    getMcpClientNamePort(),
+  );
 
   const [items, accounts] = await Promise.all([
-    publishingService.listHistory({ workspaceId }, userId),
+    historyService.listHistoryWithMetrics(workspaceId, userId),
     workspaceService.listConnectedAccounts(workspaceId, userId),
   ]);
 
@@ -74,4 +108,13 @@ export async function HistoryTab() {
       renderedAt={renderedAt}
     />
   );
+}
+
+/**
+ * Counts for the List tab labels (T-289). `page.tsx` (calendar lane) calls
+ * this and hands the result to `PublishToolbar` as `counts`.
+ */
+export async function getPublishListTabCounts() {
+  const { workspaceId, userId, publishingService } = await getListContext();
+  return publishingService.getListTabCounts(workspaceId, userId);
 }

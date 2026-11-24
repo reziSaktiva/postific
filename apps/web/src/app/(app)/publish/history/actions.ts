@@ -2,12 +2,11 @@
 
 import { asPostId, asUserId } from "@postific/shared";
 
-import {
-  PublishingService,
-  type HistoryItemRecord,
-} from "@/domains/publishing";
+import { AnalyticsService } from "@/domains/analytics";
+import { PublishingService, type HistoryListItem } from "@/domains/publishing";
 import { getCachedSession } from "@/lib/better-auth/session";
 import { getWorkspaceContext } from "@/lib/workspace/workspace-context";
+import { analyticsRepository } from "@/lib/repositories/analytics";
 import { publishingRepository } from "@/lib/repositories/publishing";
 import { getMcpClientNamePort } from "@/lib/mcp-access/get-mcp-client-name-port";
 
@@ -33,7 +32,7 @@ import { getMcpClientNamePort } from "@/lib/mcp-access/get-mcp-client-name-port"
  */
 export async function getHistoryPostAction(
   postId: string,
-): Promise<HistoryItemRecord | null> {
+): Promise<HistoryListItem | null> {
   const { workspaceId } = await getWorkspaceContext();
   const session = await getCachedSession();
   if (!session) {
@@ -42,7 +41,7 @@ export async function getHistoryPostAction(
 
   const publishingService = new PublishingService(
     publishingRepository,
-    undefined,
+    new AnalyticsService(analyticsRepository),
     undefined,
     undefined,
     getMcpClientNamePort(),

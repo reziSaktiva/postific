@@ -46,7 +46,7 @@ export function compareHistoryItemsDesc(
  * kalender waktu bisnis (`historyItemOccurredAt`, T-142), urutan sama
  * dengan `compareHistoryItemsDesc` yang dipakai `listHistory`.
  */
-export interface HistoryGroup {
+export interface HistoryGroup<T extends HistoryItemRecord = HistoryItemRecord> {
   /**
    * Kunci pengelompokan, format ISO calendar date "YYYY-MM-DD" (kalender
    * di zona waktu pengguna, T-147/ADR-146). Bukan untuk ditampilkan langsung — format tanggal lokal (mis.
@@ -54,7 +54,7 @@ export interface HistoryGroup {
    * `QueueGroup.date`.
    */
   date: string;
-  items: HistoryItemRecord[];
+  items: T[];
 }
 
 /**
@@ -68,12 +68,12 @@ export interface HistoryGroup {
  *
  * Pure function (tanpa I/O) — lihat `group-history-items.test.ts`.
  */
-export function groupHistoryItemsByDate(
-  items: HistoryItemRecord[],
+export function groupHistoryItemsByDate<T extends HistoryItemRecord>(
+  items: T[],
   timeZone: string,
-): HistoryGroup[] {
-  const groups: HistoryGroup[] = [];
-  const groupByDate = new Map<string, HistoryGroup>();
+): HistoryGroup<T>[] {
+  const groups: HistoryGroup<T>[] = [];
+  const groupByDate = new Map<string, HistoryGroup<T>>();
 
   for (const item of items) {
     const date = toDateKey(historyItemOccurredAt(item), timeZone);
