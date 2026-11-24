@@ -66,6 +66,11 @@ import { useThemeMode } from "@/components/Providers";
 import { useDraftEditor } from "./draft-editor/Context";
 import { NotificationBell } from "./notification-panel/NotificationBell";
 import { ChannelsSection } from "./sidebar-channels/ChannelsSection";
+import {
+  sidebarStateCookie,
+  stepTabletRailOnOpenChange,
+  stepTabletRailOnWidth,
+} from "./tablet-icon-rail";
 
 // T-105.3 (KI-066): ikon `hugeicons` asli menggantikan placeholder SVG
 // hand-built di mockup Claude Design (`components/navigation.html`, dicatat
@@ -98,26 +103,40 @@ const TABLET_RAIL_QUERY = "(min-width: 768px) and (max-width: 1023.98px)";
  * stays a rail. Only the change of width acts: the user can still expand the
  * sidebar on a tablet with the trigger. Below `md` the sidebar is the mobile
  * Sheet and this hook does nothing.
+ *
+ * T-296 fix: the automatic collapse is not the user's preference.
+ * `setOpen` always saves its value in the `sidebar_state` cookie, so the
+ * saved "expanded" is written back right after; a reload at desktop width
+ * then opens the sidebar the user had. Rules in `./tablet-icon-rail.ts`.
  */
 function useTabletIconRail() {
   const { open, setOpen } = useSidebar();
   const openRef = useRef(open);
   const setOpenRef = useRef(setOpen);
+  const collapsedByRailRef = useRef(false);
   useEffect(() => {
     openRef.current = open;
     setOpenRef.current = setOpen;
+    collapsedByRailRef.current = stepTabletRailOnOpenChange({
+      open,
+      collapsedByRail: collapsedByRailRef.current,
+    });
   });
 
   useEffect(() => {
     const query = window.matchMedia(TABLET_RAIL_QUERY);
-    let collapsedByRail = false;
     const apply = () => {
-      if (query.matches && openRef.current) {
-        collapsedByRail = true;
-        setOpenRef.current(false);
-      } else if (!query.matches && collapsedByRail) {
-        collapsedByRail = false;
-        setOpenRef.current(true);
+      const step = stepTabletRailOnWidth({
+        isTablet: query.matches,
+        open: openRef.current,
+        collapsedByRail: collapsedByRailRef.current,
+      });
+      collapsedByRailRef.current = step.collapsedByRail;
+      if (step.setOpen !== null) {
+        setOpenRef.current(step.setOpen);
+      }
+      if (step.restorePreference !== null) {
+        document.cookie = sidebarStateCookie(step.restorePreference);
       }
     };
     apply();

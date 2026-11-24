@@ -191,8 +191,10 @@ export function DraftEditorForm({
       <EditorFooter
         isNarrow={isNarrow}
         isLoadingDraft={form.isLoadingDraft}
+        status={form.status}
         pendingAction={pendingAction}
         isSavingDraft={form.isSavingDraft}
+        isSubmittingReview={form.isSubmittingReview}
         isScheduling={form.isScheduling}
         isPublishingNow={form.isPublishingNow}
         isLoadingAccounts={form.isLoadingAccounts}
@@ -212,6 +214,7 @@ export function DraftEditorForm({
         onConfirmSchedule={form.handleConfirmSchedule}
         onConfirmPublishNow={form.handleConfirmPublishNow}
         onSaveDraft={form.handleSaveDraft}
+        onSubmitForReview={form.handleSubmitForReview}
         onRequestPublishNow={() => form.setPendingAction("publish-now")}
         onRequestSchedule={() => form.setPendingAction("schedule")}
       />

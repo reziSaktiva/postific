@@ -11,12 +11,17 @@
  * menetapkan Calendar sebagai tujuan sementara sampai layar History
  * dibangun (T-034).
  */
-export type TerminalAction = "save-draft" | "schedule" | "publish-now";
+export type TerminalAction =
+  "save-draft" | "submit-review" | "schedule" | "publish-now";
 
 export function resolveTerminalDestination(action: TerminalAction): string {
   switch (action) {
     case "save-draft":
       return "/publish/drafts";
+    // T-296 — Ajukan Review → Publish > List > Approvals (kartu
+    // `ScreenDraftEditorSubmitReview`), tempat posting In Review menunggu.
+    case "submit-review":
+      return "/publish?view=list&tab=approvals";
     case "schedule":
       return "/publish/queue";
     case "publish-now":

@@ -23,7 +23,10 @@ import type {
 } from "../adapters/outstand-adapter";
 import type { IJobScheduler } from "../adapters/job-scheduler";
 import { PublishingDomainError } from "../errors";
-import { READONLY_TERMINAL_CONFLICT_MESSAGE } from "../readonly-terminal-status";
+import {
+  NOT_SCHEDULABLE_CONFLICT_MESSAGE,
+  READONLY_TERMINAL_CONFLICT_MESSAGE,
+} from "../readonly-terminal-status";
 import type {
   IPublishingRepository,
   PublishingPostRecord,
@@ -937,4 +940,80 @@ describe("PublishNowUseCase.execute", () => {
       expect(publishCalls).toBe(0);
     },
   );
+  it.each([ContentStatus.InReview, ContentStatus.ReadyToSchedule])(
+    "T-296: post berstatus %s tetap bisa di-Publish Now (koordinasi ringan, tidak menunggu approval)",
+    async (status) => {
+      let publishCalls = 0;
+      const publishRecord = basePublishRecord([
+        {
+          id: asPostTargetId("target-1"),
+          connectedAccountId: CONNECTED_ACCOUNT_1,
+        },
+      ]);
+      const repository = createFakeRepository({
+        findPostStatusById: async () => ({ status }),
+        publishNow: async () => {
+          publishCalls += 1;
+          return publishRecord;
+        },
+      });
+      const useCase = new PublishNowUseCase(
+        repository,
+        createFakeOutstandAdapter(),
+        createFakeJobScheduler(),
+      );
+
+      const result = await useCase.execute({
+        workspaceId: WORKSPACE_ID,
+        postId: POST_ID,
+        targets: [
+          {
+            connectedAccountId: CONNECTED_ACCOUNT_1,
+            platform: SocialPlatform.Instagram,
+            contentFormat: ContentFormat.Post,
+            outstandAccountId: "outstand-acc-1",
+          },
+        ],
+        actorRole: MemberRole.Creator,
+        actingUserId: AUTHOR_ID,
+      });
+
+      expect(result.id).toBe(POST_ID);
+      expect(publishCalls).toBe(1);
+    },
+  );
+
+  it("T-296: post yang sudah Scheduled ditolak dengan pesan jadwal sebelum menulis apa pun", async () => {
+    let publishCalls = 0;
+    const repository = createFakeRepository({
+      findPostStatusById: async () => ({ status: ContentStatus.Scheduled }),
+      publishNow: async () => {
+        publishCalls += 1;
+        return null;
+      },
+    });
+    const useCase = new PublishNowUseCase(
+      repository,
+      createFakeOutstandAdapter(),
+      createFakeJobScheduler(),
+    );
+
+    await expect(
+      useCase.execute({
+        workspaceId: WORKSPACE_ID,
+        postId: POST_ID,
+        targets: [
+          {
+            connectedAccountId: CONNECTED_ACCOUNT_1,
+            platform: SocialPlatform.Instagram,
+            contentFormat: ContentFormat.Post,
+            outstandAccountId: "outstand-acc-1",
+          },
+        ],
+        actorRole: MemberRole.Creator,
+        actingUserId: AUTHOR_ID,
+      }),
+    ).rejects.toThrow(NOT_SCHEDULABLE_CONFLICT_MESSAGE);
+    expect(publishCalls).toBe(0);
+  });
 });

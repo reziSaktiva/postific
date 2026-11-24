@@ -19,6 +19,7 @@ import {
   publishNowAction,
   saveDraftAction,
   scheduleDraftAction,
+  submitForReviewAction,
   updateDraftAction,
 } from "./actions";
 import { useDraftEditor } from "./Context";
@@ -140,6 +141,7 @@ export function useDraftEditorForm({
   // and the confirm button label differ between the two variants.
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [isScheduling, setIsScheduling] = useState(false);
   const [isPublishingNow, setIsPublishingNow] = useState(false);
   const [notice, setNotice] = useState<FormNotice | null>(null);
@@ -485,7 +487,13 @@ export function useDraftEditorForm({
 
   const mediaIds = mediaItems.map((item) => item.id);
 
-  async function handleSaveDraft() {
+  /**
+   * Simpan isi editor (buat draft baru atau perbarui posting tersimpan) tanpa
+   * mengubah statusnya (T-297). Dipakai Save as Draft/Simpan dan Ajukan
+   * Review (T-296). Mengembalikan id posting, atau `null` bila belum bisa
+   * disimpan (daftar akun belum dimuat) atau gagal (notice sudah diisi).
+   */
+  async function persistDraft(): Promise<string | null> {
     const decision = decideDraftSaveTargets({
       accountsLoaded: !isLoadingAccounts,
       selectedAccountIds,
@@ -496,46 +504,53 @@ export function useDraftEditorForm({
       })),
     });
     if (decision.action === "wait") {
-      return;
+      return null;
     }
     const targets =
       decision.action === "replace" ? decision.targets : undefined;
 
+    let nextPostId = savedPostId;
+    if (savedPostId) {
+      const result = await updateDraftAction(savedPostId, {
+        caption,
+        mediaIds,
+        activeFormats,
+        ...(targets !== undefined ? { targets } : {}),
+      });
+      if ("error" in result) {
+        setNotice({ status: "error", title: result.error });
+        return null;
+      }
+    } else {
+      const result = await saveDraftAction({
+        caption,
+        mediaIds,
+        activeFormats,
+        ...(targets !== undefined ? { targets } : {}),
+      });
+      if ("error" in result) {
+        setNotice({ status: "error", title: result.error });
+        return null;
+      }
+      nextPostId = result.postId;
+      setSavedPostId(result.postId);
+    }
+    // Snapshot ikut diperbarui sekarang (lihat KI-043 di Schedule /
+    // Publish Now) supaya tutup dialog tidak menyimpan ulang caption.
+    onLatestChange({ mode, caption, savedPostId: nextPostId });
+    if (mode === "create") {
+      clearUnsavedNewPost();
+    }
+    return nextPostId ?? null;
+  }
+
+  async function handleSaveDraft() {
     setIsSavingDraft(true);
     try {
-      let nextPostId = savedPostId;
-      if (savedPostId) {
-        const result = await updateDraftAction(savedPostId, {
-          caption,
-          mediaIds,
-          activeFormats,
-          ...(targets !== undefined ? { targets } : {}),
-        });
-        if ("error" in result) {
-          setNotice({ status: "error", title: result.error });
-          return;
-        }
-      } else {
-        const result = await saveDraftAction({
-          caption,
-          mediaIds,
-          activeFormats,
-          ...(targets !== undefined ? { targets } : {}),
-        });
-        if ("error" in result) {
-          setNotice({ status: "error", title: result.error });
-          return;
-        }
-        nextPostId = result.postId;
-        setSavedPostId(result.postId);
+      const nextPostId = await persistDraft();
+      if (!nextPostId) {
+        return;
       }
-      // Snapshot ikut diperbarui sekarang (lihat KI-043 di Schedule /
-      // Publish Now) supaya tutup dialog tidak menyimpan ulang caption.
-      onLatestChange({ mode, caption, savedPostId: nextPostId });
-      if (mode === "create") {
-        clearUnsavedNewPost();
-      }
-      setStatus(ContentStatus.Draft);
       // Save as Draft → Publish > Drafts (ADR-054, T-031.1). Draft yang muncul
       // di daftar itulah umpan baliknya, menggantikan banner sukses yang tidak
       // akan sempat terbaca karena editor ditutup.
@@ -550,6 +565,39 @@ export function useDraftEditorForm({
       });
     } finally {
       setIsSavingDraft(false);
+    }
+  }
+
+  /**
+   * Ajukan Review (T-296): simpan isi editor dulu (posting baru ikut dibuat
+   * sebagai draft), lalu Draft → In Review lewat `ChangeContentStatusUseCase`.
+   * Bila transisi gagal, draft sudah tersimpan dan klik berikutnya hanya
+   * memperbarui lalu mengajukan ulang.
+   */
+  async function handleSubmitForReview() {
+    setIsSubmittingReview(true);
+    try {
+      const nextPostId = await persistDraft();
+      if (!nextPostId) {
+        return;
+      }
+      const result = await submitForReviewAction(nextPostId);
+      if ("error" in result) {
+        setNotice({ status: "error", title: result.error });
+        return;
+      }
+      setStatus(ContentStatus.InReview);
+      finishTerminalAction("submit-review");
+    } catch (error) {
+      setNotice({
+        status: "error",
+        title:
+          error instanceof Error
+            ? error.message
+            : "Gagal mengajukan review. Coba lagi.",
+      });
+    } finally {
+      setIsSubmittingReview(false);
     }
   }
 
@@ -719,6 +767,7 @@ export function useDraftEditorForm({
     setPendingAction,
     notice,
     isSavingDraft,
+    isSubmittingReview,
     isScheduling,
     isPublishingNow,
     networkValidation,
@@ -729,6 +778,7 @@ export function useDraftEditorForm({
     isReadyToSchedule,
     isReadyToPublishNow,
     handleSaveDraft,
+    handleSubmitForReview,
     handleConfirmSchedule,
     handleConfirmPublishNow,
   };

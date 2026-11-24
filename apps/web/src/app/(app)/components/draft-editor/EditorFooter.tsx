@@ -1,4 +1,4 @@
-import { Alert02Icon } from "@hugeicons/core-free-icons";
+import { Alert02Icon, SentIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
 import { Alert, AlertTitle } from "@/components/ui/alert";
@@ -7,15 +7,24 @@ import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
 
-import { getFooterActions, getFooterHelpText } from "./footer-actions";
+import type { ContentStatus } from "@postific/shared";
+
+import {
+  getFooterActions,
+  getFooterHelpText,
+  getFooterReviewControls,
+  SUBMIT_REVIEW_LABEL,
+} from "./footer-actions";
 import type { PendingAction } from "./form-shared";
 import { ScheduleSection } from "./ScheduleSection";
 
 export function EditorFooter({
   isNarrow = false,
   isLoadingDraft,
+  status,
   pendingAction,
   isSavingDraft,
+  isSubmittingReview,
   isScheduling,
   isPublishingNow,
   isLoadingAccounts,
@@ -32,14 +41,18 @@ export function EditorFooter({
   onConfirmSchedule,
   onConfirmPublishNow,
   onSaveDraft,
+  onSubmitForReview,
   onRequestPublishNow,
   onRequestSchedule,
 }: {
   /** Layar sempit (T-206.3): footer ditumpuk, tombol selebar penuh. */
   isNarrow?: boolean;
   isLoadingDraft: boolean;
+  /** Status posting saat ini (T-296): menentukan Ajukan Review dan label simpan. */
+  status: ContentStatus;
   pendingAction: PendingAction;
   isSavingDraft: boolean;
+  isSubmittingReview: boolean;
   isScheduling: boolean;
   isPublishingNow: boolean;
   isLoadingAccounts: boolean;
@@ -56,6 +69,7 @@ export function EditorFooter({
   onConfirmSchedule: () => void;
   onConfirmPublishNow: () => void;
   onSaveDraft: () => void;
+  onSubmitForReview: () => void;
   onRequestPublishNow: () => void;
   onRequestSchedule: () => void;
 }) {
@@ -102,10 +116,12 @@ export function EditorFooter({
   const actions = getFooterActions({
     readiness: { isReadyToSchedule, isReadyToPublishNow },
     isSavingDraft,
+    isSubmittingReview,
     isScheduling,
     isPublishingNow,
     isLoadingAccounts,
   });
+  const review = getFooterReviewControls(status);
 
   return (
     <DialogFooter
@@ -122,11 +138,31 @@ export function EditorFooter({
       ) : null}
       {/* eslint-disable-next-line no-restricted-syntax -- T-205: baris kontrol footer, murni Tailwind flex. */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        {isNarrow ? null : (
-          <span className="text-xs text-muted-foreground">
-            {getFooterHelpText(selectedAccountCount, warningCount)}
-          </span>
-        )}
+        {/* eslint-disable-next-line no-restricted-syntax -- T-296: kelompok kiri footer (bantuan + Ajukan Review), murni Tailwind flex. */}
+        <div className="flex min-w-0 items-center gap-3.5 text-xs text-muted-foreground">
+          {isNarrow ? null : (
+            <span>{getFooterHelpText(selectedAccountCount, warningCount)}</span>
+          )}
+          {review.showSubmitReview ? (
+            <Button
+              variant="outline"
+              onClick={onSubmitForReview}
+              disabled={actions.submitReviewDisabled}
+            >
+              {isSubmittingReview ? (
+                <Spinner />
+              ) : (
+                <HugeiconsIcon icon={SentIcon} strokeWidth={2} />
+              )}
+              {SUBMIT_REVIEW_LABEL}
+            </Button>
+          ) : null}
+          {review.awaitingReviewNote && !isNarrow ? (
+            <span data-testid="awaiting-review-note">
+              {review.awaitingReviewNote}
+            </span>
+          ) : null}
+        </div>
         {/* eslint-disable-next-line no-restricted-syntax -- T-205: kelompok tombol aksi, murni Tailwind flex. */}
         <div
           className={cn(
@@ -151,7 +187,7 @@ export function EditorFooter({
             disabled={actions.saveDraftDisabled}
           >
             {isSavingDraft ? <Spinner /> : null}
-            Save as Draft
+            {review.saveLabel}
           </Button>
           <Button
             variant="secondary"

@@ -13,7 +13,9 @@ import {
   asMediaId,
   asPostId,
   asUserId,
+  ContentStatus,
 } from "@postific/shared";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { ScheduleTargetRequest } from "@/domains/publishing";
 import {
@@ -22,6 +24,7 @@ import {
   assertMediaCountMeetsMinimum,
   assertMediaCountWithinLimit,
   assertReelMediaRule,
+  ChangeContentStatusUseCase,
   PublishingService,
   PublishNowUseCase,
   resolveDraftMediaIds,
@@ -40,7 +43,10 @@ import { getOutstandAdapter } from "@/lib/adapters/outstand";
 import { createPostMediaLookup } from "@/lib/adapters/media-storage/post-media-lookup";
 import { supabaseMediaStorageAdapter } from "@/lib/adapters/media-storage/supabase-media-storage-adapter";
 import { backgroundJobScheduler } from "@/lib/jobs/job-scheduler";
-import { publishingRepository } from "@/lib/repositories/publishing";
+import {
+  contentStatusRepository,
+  publishingRepository,
+} from "@/lib/repositories/publishing";
 import { mediaRepository } from "@/lib/repositories/media";
 import { workspaceRepository } from "@/lib/repositories/workspace";
 import { ApplicationError, toActionError } from "@/lib/utils/errors";
@@ -313,6 +319,42 @@ export async function updateDraftAction(
       actingUserId,
     );
 
+    return { postId: post.id };
+  } catch (error) {
+    if (isKnownActionError(error)) {
+      return { error: error.message };
+    }
+    throw error;
+  }
+}
+
+/**
+ * "Ajukan Review" (T-296, S-008): Draft -> In Review. Wiring only (hard rule
+ * 3): the editor saves the post first (`saveDraftAction`/`updateDraftAction`),
+ * then calls this; `ChangeContentStatusUseCase` checks RBAC (all roles), the
+ * source status, and writes with compare-and-set.
+ */
+export async function submitForReviewAction(
+  postId: string,
+): Promise<{ postId: string } | { error: string }> {
+  const { workspaceId, role } = await getWorkspaceContext();
+  const session = await getCachedSession();
+  if (!session) {
+    redirect("/login");
+  }
+
+  try {
+    const post = await new ChangeContentStatusUseCase(
+      contentStatusRepository,
+    ).execute({
+      workspaceId,
+      postId: asPostId(postId),
+      to: ContentStatus.InReview,
+      actorRole: role,
+      actingUserId: asUserId(session.user.id),
+    });
+    // Tab dan hitungan Publish (Approvals) ikut status baru.
+    revalidatePath("/publish");
     return { postId: post.id };
   } catch (error) {
     if (isKnownActionError(error)) {
