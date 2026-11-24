@@ -2,7 +2,7 @@
 
 ### Title
 
-Publish follows the Buffer Publish pattern: one page with a Calendar · List · Board switcher, an Approvals view of `In Review`, inline video in the post preview, and best-time suggestions for an empty Queue (amends KSP-02, KSP-03, KSP-04 and the Publish part of the Information Architecture)
+Publish follows the Buffer Publish pattern: one page with a Calendar · List · Board switcher, an Approvals view of `In Review`, inline video in the post preview, and best-time suggestions for an empty Queue (amends KSP-02, KSP-03, KSP-04, the Publish part of the Information Architecture, and KSP-02-F09 / decision T-032.0 on the per-view timezone)
 
 ### Status
 
@@ -36,7 +36,7 @@ Outstand was checked for best-time data on 2026-11-24 through the Outstand MCP (
 4. **Board is part of this redesign.** `Ready to Schedule` posts sit in the Draft column with a "Ready to Schedule" badge; there is no separate column. Board grouping is by Status only.
 5. **A published video plays inline** in the post preview popover and the expanded modal, with the browser's native video player, unlike Buffer.
 6. **The post preview is per account**, matching today's per-target calendar chips; Expand also lists the result of every account of the same post (the History Detail pattern). Buffer's "Add note" is left out (Postific has no notes).
-7. **The page timezone picker is view-only.** It changes how times are shown on Publish; the user's Profile timezone (T-147) stays the default and is not changed by it.
+7. **The page timezone picker is view-only.** It changes how times are shown on Publish; the user's Profile timezone (T-147) stays the default and is not changed by it. This reverses the part of KSP-02-F09 that left a per-view timezone "not adopted" (consistent with decision T-032.0 for the Queue); the rest of KSP-02-F09 is unchanged by this point.
 8. **"Save current view" is left out** of this redesign. Publish reopens the last view used.
 9. **An empty Queue suggests best times calculated by Postific**, per connected account, from that account's own published posts: publish time grouped by weekday and hour in the user's timezone, ranked by engagement from `AnalyticsPostMetric`. No new Outstand capability is used. An account without enough history shows no suggestion. Thresholds and ranking are set in the spec.
 10. **Responsive behavior follows the design**: icon rail and icon-only month chips on tablet; top bar, "+" New Post, icon-only switcher, 3-day calendar and dropdown List tabs on phone.
