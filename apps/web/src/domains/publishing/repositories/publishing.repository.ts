@@ -673,6 +673,21 @@ export interface IPublishingRepository {
   ): Promise<CalendarItemRecord[]>;
 
   /**
+   * Board (T-290, S-008) — posts of every status, with or without a date,
+   * for the five Board columns. At most `perStatusLimit` posts of EACH
+   * status (so one busy status cannot crowd the others out), in the order
+   * the column needs: Scheduled by `scheduledAt` ascending, Published and
+   * Imported by `publishedAt` descending, the rest by `updatedAt`
+   * descending. Same projection as `listCalendarPosts`.
+   *
+   * `userId` (RLS, KI-026 follow-up) — acting user for `withCurrentUser`.
+   */
+  listBoardPosts(
+    input: { workspaceId: WorkspaceId; perStatusLimit: number },
+    userId: UserId,
+  ): Promise<CalendarItemRecord[]>;
+
+  /**
    * Granular patch Realtime Calendar (T-092.3, ADR-094 poin 5) — fetch SATU
    * `PublishingPost` termapping (bentuk sama `listCalendarPosts`) untuk
    * `postId` yang datang dari event Supabase Realtime

@@ -14,6 +14,7 @@ import { UserTimeZoneProvider } from "@/lib/time/user-time-zone-context";
 import { buildDisplayTimeZoneGroups } from "./components/display-time-zone-groups";
 import { PublishPageHeader } from "./components/PublishPageHeader";
 import { PublishToolbar } from "./components/PublishToolbar";
+import { BoardView } from "./components/views/BoardView";
 import { CalendarView } from "./components/views/CalendarView";
 import { HistoryPostView } from "./components/views/HistoryPostView";
 import { DraftsTab, HistoryTab, QueueTab } from "./components/views/ListTabs";
@@ -81,12 +82,7 @@ function PublishViewContent({ state }: { state: PublishViewState }) {
     return <CalendarView calendar={state.calendar} timeZone={state.timeZone} />;
   }
   if (state.view === "board") {
-    return (
-      <PlaceholderView
-        title="Board"
-        description="Kolom Draft, Approvals, Scheduled, Published, dan Failed sedang disiapkan."
-      />
-    );
+    return <BoardView />;
   }
   switch (state.tab) {
     case "queue":

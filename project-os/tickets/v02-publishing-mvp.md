@@ -3894,10 +3894,12 @@ Not yet proven: popover and dialog were not observed in a browser (no dev server
 
 **What to build:** the Board view with columns Draft · Approvals · Scheduled · Published · Failed.
 
-- [ ] Columns with counts and horizontal scroll; grouping by Status only.
-- [ ] `Ready to Schedule` cards sit in Draft with a "Ready to Schedule" badge (unit test for the column grouping).
-- [ ] Cards show date or "No date", status badge, account with platform badge, caption, thumbnail, the AI-client badge for items created through MCP, and an actions menu on hover.
-- [ ] Clicking a card opens the post preview from T-288.
+- [x] Columns with counts and horizontal scroll; grouping by Status only.
+- [x] `Ready to Schedule` cards sit in Draft with a "Ready to Schedule" badge (unit test for the column grouping).
+- [x] Cards show date or "No date", status badge, account with platform badge, caption, thumbnail, the AI-client badge for items created through MCP, and an actions menu on hover.
+- [x] Clicking a card opens the post preview from T-288.
+
+Not yet proven: the Board was not observed in a browser (no dev server in this lane; light, dark, 768 px and 390 px, horizontal scroll and the hover menu are covered by T-294). Proven by unit tests: column grouping (Ready to Schedule in Draft, ordering, limit) and `PublishingService.listBoardColumns`. Left out on purpose: no Realtime patch on the Board (it refreshes on navigation); a column shows at most 100 cards and says "100+".
 
 **Blocked by:** T-286, T-288
 

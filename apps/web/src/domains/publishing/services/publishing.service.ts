@@ -25,6 +25,11 @@ import type {
   PublishingPostRecord,
   SchedulePostTargetInput,
 } from "../repositories/publishing.repository";
+import {
+  BOARD_COLUMN_LIMIT,
+  groupBoardColumns,
+  type BoardColumn,
+} from "./group-board-columns";
 import { groupQueueItemsByDate, type QueueGroup } from "./group-queue-items";
 import { resolvePostPerformancePeriodRange } from "./post-performance-period-range";
 import { sortCalendarItemsByEffectiveDate } from "./sort-calendar-items";
@@ -737,6 +742,26 @@ export class PublishingService {
           ? (metricsByPost.get(item.id) ?? [])
           : null,
     }));
+  }
+
+  /**
+   * Board (T-290, S-008): posts of every status grouped into the five Board
+   * columns (`groupBoardColumns`). Fetches one more than the column limit
+   * per status so a column can tell it has more cards than it shows.
+   * MCP client names are completed like on the other lists.
+   */
+  async listBoardColumns(
+    workspaceId: WorkspaceId,
+    userId: UserId,
+  ): Promise<BoardColumn<CalendarItemRecord>[]> {
+    const posts = await this.withClientNames(
+      workspaceId,
+      await this.repository.listBoardPosts(
+        { workspaceId, perStatusLimit: BOARD_COLUMN_LIMIT + 1 },
+        userId,
+      ),
+    );
+    return groupBoardColumns(posts);
   }
 
   /**

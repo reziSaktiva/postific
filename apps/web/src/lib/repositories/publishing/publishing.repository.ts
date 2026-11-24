@@ -822,6 +822,35 @@ export const publishingRepository: IPublishingRepository = {
     return posts.map(mapCalendarItem);
   },
 
+  async listBoardPosts({ workspaceId, perStatusLimit }, userId) {
+    const orderFor = (
+      status: ContentStatus,
+    ): Prisma.PublishingPostOrderByWithRelationInput[] =>
+      status === ContentStatus.Scheduled
+        ? [{ scheduledAt: "asc" }, { id: "asc" }]
+        : status === ContentStatus.Published ||
+            status === ContentStatus.Imported
+          ? [{ publishedAt: "desc" }, { id: "desc" }]
+          : [{ updatedAt: "desc" }, { id: "desc" }];
+
+    const perStatus = await withCurrentUser(userId, (tx) =>
+      Promise.all(
+        Object.values(ContentStatus).map((status) =>
+          tx.publishingPost.findMany({
+            where: { workspaceId, deletedAt: null, status },
+            orderBy: orderFor(status),
+            take: perStatusLimit,
+            include: {
+              targets: { include: { connectedAccount: true } },
+            },
+          }),
+        ),
+      ),
+    );
+
+    return perStatus.flat().map(mapCalendarItem);
+  },
+
   async getCalendarPostById({ workspaceId, postId }, userId) {
     let post;
     try {

@@ -68,6 +68,7 @@ function createFakeRepository(
     countScheduledByAccount: async () => new Map(),
     listQueue: async () => [],
     listCalendarPosts: async () => [],
+    listBoardPosts: async () => [],
     getCalendarPostById: async () => null,
     listHistory: async () => [],
     getHistoryById: async () => null,
@@ -3123,5 +3124,35 @@ describe("PublishingService.getPostPreview (T-288)", () => {
 
     expect(metricCalls).toBe(1);
     expect(result).toMatchObject({ metrics: [], authorName: "Raka" });
+  });
+});
+
+describe("PublishingService.listBoardColumns (T-290)", () => {
+  it("groups posts of every status into the five columns and asks for one more than the column limit per status", async () => {
+    let receivedLimit: number | null = null;
+    const draft = createHistoryItem({ status: ContentStatus.ReadyToSchedule });
+    const failed = createHistoryItem({
+      id: asPostId("post-2"),
+      status: ContentStatus.Failed,
+    });
+    const service = new PublishingService(
+      createFakeRepository({
+        listBoardPosts: async ({ perStatusLimit }) => {
+          receivedLimit = perStatusLimit;
+          return [draft, failed] as never;
+        },
+      }),
+    );
+
+    const columns = await service.listBoardColumns(WORKSPACE_ID, AUTHOR_ID);
+
+    expect(receivedLimit).toBe(101);
+    expect(columns.map((c) => [c.key, c.items.length])).toEqual([
+      ["draft", 1],
+      ["approvals", 0],
+      ["scheduled", 0],
+      ["published", 0],
+      ["failed", 1],
+    ]);
   });
 });
