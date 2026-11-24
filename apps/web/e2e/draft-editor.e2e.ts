@@ -153,8 +153,8 @@ test.beforeAll(() => {
 
 // S-008 (T-286): old routes redirect to the single Publish page; a
 // client-side push may still show the old path until the redirect lands.
-const DRAFTS_URL = /\/publish(\/drafts|\?view=list&tab=drafts)/;
-const CALENDAR_URL = /\/publish(\/calendar|\?view=calendar)/;
+const DRAFTS_URL = /\/publish\?view=list&tab=drafts/;
+const CALENDAR_URL = /\/publish\?view=calendar/;
 
 async function deleteE2eDrafts(page: Page): Promise<number> {
   await page.goto("/publish/drafts");

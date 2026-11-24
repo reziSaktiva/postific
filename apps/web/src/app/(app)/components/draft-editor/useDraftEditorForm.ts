@@ -478,7 +478,10 @@ export function useDraftEditorForm({
   function finishTerminalAction(action: TerminalAction) {
     const destination = resolveTerminalDestination(action);
     close();
-    if (isAlreadyAtDestination(pathname, destination)) {
+    // Publish screens share `/publish` and differ in the query (S-008), so
+    // the current query decides whether this is the same screen.
+    const search = typeof window === "undefined" ? "" : window.location.search;
+    if (isAlreadyAtDestination(pathname, destination, search)) {
       router.refresh();
     } else {
       // T-208: event Realtime layar asal tidak boleh memanggil server action

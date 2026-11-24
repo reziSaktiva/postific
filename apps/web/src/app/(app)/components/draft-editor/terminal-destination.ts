@@ -6,10 +6,9 @@
  * manapun, jadi salah destinasi tidak lagi kelihatan sebagai bug lokal di
  * Publish — pengguna hanya "tertinggal" di Home/Analyze tanpa jejak aksi.
  *
- * `publish-now` (T-029, T-031.4): destinasi sementara `/publish/calendar` —
- * History belum jadi layar terdokumentasi (KSP-D10 belum ada), ADR-054
- * menetapkan Calendar sebagai tujuan sementara sampai layar History
- * dibangun (T-034).
+ * Destinations use the URL `buildPublishSearch` produces for the unified
+ * Publish page (S-008), not the old `/publish/<route>` redirects.
+ * `publish-now` (T-029, T-031.4): Calendar, as ADR-054 set it.
  */
 export type TerminalAction =
   "save-draft" | "submit-review" | "schedule" | "publish-now";
@@ -17,25 +16,39 @@ export type TerminalAction =
 export function resolveTerminalDestination(action: TerminalAction): string {
   switch (action) {
     case "save-draft":
-      return "/publish/drafts";
+      return "/publish?view=list&tab=drafts";
     // T-296 — Ajukan Review → Publish > List > Approvals (kartu
     // `ScreenDraftEditorSubmitReview`), tempat posting In Review menunggu.
     case "submit-review":
       return "/publish?view=list&tab=approvals";
     case "schedule":
-      return "/publish/queue";
+      return "/publish?view=list&tab=queue";
     case "publish-now":
-      return "/publish/calendar";
+      return "/publish?view=calendar";
   }
 }
 
 /**
- * `true` kalau pengguna sudah berada di layar tujuan, sehingga cukup
- * me-refresh data alih-alih mendorong entri baru ke history browser.
+ * `true` when the user is already on the destination screen, so refreshing
+ * the data is enough and no new history entry is pushed. The Publish screens
+ * share the path `/publish` and differ in the query (S-008), so every query
+ * key of `destination` must match `search` (the current `location.search`);
+ * extra keys such as `tz` or `post` do not count against it.
  */
 export function isAlreadyAtDestination(
   pathname: string | null,
   destination: string,
+  search: string = "",
 ): boolean {
-  return pathname === destination;
+  const [destinationPath, destinationQuery = ""] = destination.split("?");
+  if (pathname !== destinationPath) {
+    return false;
+  }
+  const current = new URLSearchParams(search);
+  for (const [key, value] of new URLSearchParams(destinationQuery)) {
+    if (current.get(key) !== value) {
+      return false;
+    }
+  }
+  return true;
 }

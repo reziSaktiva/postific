@@ -3174,6 +3174,67 @@ describe("PublishingService List tabs (T-289)", () => {
     });
   });
 
+  it("listDraftsTab and listApprovals split the same list by tab status", async () => {
+    const service = new PublishingService(
+      createFakeRepository({
+        listDrafts: async () => [
+          draftRecord("a", ContentStatus.Draft),
+          draftRecord("b", ContentStatus.ReadyToSchedule),
+          draftRecord("c", ContentStatus.InReview),
+        ],
+      }),
+    );
+
+    expect(
+      (await service.listDraftsTab(WORKSPACE_ID, AUTHOR_ID)).map((p) => p.id),
+    ).toEqual(["a", "b"]);
+    expect(
+      (await service.listApprovals(WORKSPACE_ID, AUTHOR_ID)).map((p) => p.id),
+    ).toEqual(["c"]);
+  });
+
+  it("getQueueWithSuggestions asks for suggestions only when the Queue is empty", async () => {
+    const suggestion = {
+      connectedAccountId: asConnectedAccountId("acc-1"),
+      platform: SocialPlatform.Instagram,
+      handle: "h",
+      slots: [],
+    };
+    const calls: string[] = [];
+    const port = {
+      execute: async (input: { timezone: string }) => {
+        calls.push(input.timezone);
+        return [suggestion];
+      },
+    };
+
+    const withPosts = new PublishingService(
+      createFakeRepository({ listQueue: async () => [createQueueItem()] }),
+    );
+    const busy = await withPosts.getQueueWithSuggestions(
+      WORKSPACE_ID,
+      AUTHOR_ID,
+      "Asia/Jakarta",
+      port,
+    );
+    expect(busy.groups).not.toHaveLength(0);
+    expect(busy.suggestions).toEqual([]);
+    expect(calls).toEqual([]);
+
+    const empty = new PublishingService(
+      createFakeRepository({ listQueue: async () => [] }),
+    );
+    const idle = await empty.getQueueWithSuggestions(
+      WORKSPACE_ID,
+      AUTHOR_ID,
+      "Asia/Jakarta",
+      port,
+    );
+    expect(idle.groups).toEqual([]);
+    expect(idle.suggestions).toEqual([suggestion]);
+    expect(calls).toEqual(["Asia/Jakarta"]);
+  });
+
   it("listHistoryWithMetrics overlays stored metrics: [] when none yet, null for a Failed post that is never fetched", async () => {
     const published = createHistoryItem({
       id: asPostId("pub"),
@@ -3201,6 +3262,7 @@ describe("PublishingService List tabs (T-289)", () => {
       [published.id, []],
       [failed.id, null],
     ]);
+    expect(items.map((item) => item.metricsSummary)).toEqual([null, null]);
   });
 
   it("listHistoryWithMetrics leaves items without metrics when no PostMetricsPort is supplied", async () => {

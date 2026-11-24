@@ -7,7 +7,9 @@ import {
 
 describe("resolveTerminalDestination", () => {
   it("mengarahkan Save as Draft ke Publish > Drafts (ADR-054)", () => {
-    expect(resolveTerminalDestination("save-draft")).toBe("/publish/drafts");
+    expect(resolveTerminalDestination("save-draft")).toBe(
+      "/publish?view=list&tab=drafts",
+    );
   });
 
   it("mengarahkan Ajukan Review ke Publish > List > Approvals (T-296)", () => {
@@ -17,11 +19,15 @@ describe("resolveTerminalDestination", () => {
   });
 
   it("mengarahkan Schedule ke Publish > Queue (ADR-054)", () => {
-    expect(resolveTerminalDestination("schedule")).toBe("/publish/queue");
+    expect(resolveTerminalDestination("schedule")).toBe(
+      "/publish?view=list&tab=queue",
+    );
   });
 
   it("mengarahkan Publish Now ke Publish > Calendar (T-029, ADR-054 — sementara sampai History dibangun)", () => {
-    expect(resolveTerminalDestination("publish-now")).toBe("/publish/calendar");
+    expect(resolveTerminalDestination("publish-now")).toBe(
+      "/publish?view=calendar",
+    );
   });
 
   it("tujuannya sama dari section manapun — tidak bergantung asal (ADR-053)", () => {
@@ -55,5 +61,27 @@ describe("isAlreadyAtDestination", () => {
 
   it("false saat pathname belum tersedia", () => {
     expect(isAlreadyAtDestination(null, "/publish/drafts")).toBe(false);
+  });
+
+  it("compares the query on the unified Publish page (S-008)", () => {
+    const drafts = "/publish?view=list&tab=drafts";
+    expect(
+      isAlreadyAtDestination("/publish", drafts, "?view=list&tab=drafts"),
+    ).toBe(true);
+    // An extra key (display zone, open post) does not move the user away.
+    expect(
+      isAlreadyAtDestination(
+        "/publish",
+        drafts,
+        "?view=list&tab=drafts&tz=Asia%2FTokyo",
+      ),
+    ).toBe(true);
+    expect(
+      isAlreadyAtDestination("/publish", drafts, "?view=list&tab=queue"),
+    ).toBe(false);
+    expect(isAlreadyAtDestination("/publish", drafts, "?view=calendar")).toBe(
+      false,
+    );
+    expect(isAlreadyAtDestination("/publish", drafts)).toBe(false);
   });
 });
