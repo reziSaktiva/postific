@@ -25,7 +25,7 @@ Phase and blockers are in [`PROJECT_STATE.md`](PROJECT_STATE.md). An open Known 
 
 ✅ tickets are at Done (code); staging items move to the wave verification ticket, with no intermediate status (ADR-161, amending ADR-153). Old 🟡 rows with that wording are evaluated in T-247.5.
 
-Global ticket ID, never recycled. Next: **T-306**. Next spec: **S-010**.
+Global ticket ID, never recycled. Next: **T-307**. Next spec: **S-010**.
 
 ---
 
@@ -67,6 +67,7 @@ Global ticket ID, never recycled. Next: **T-306**. Next spec: **S-010**.
 | T-296   | ✅     | Submit for review control in the Draft Editor (S-008, HITL design gate, then AFK). Depends T-289                                                                                                                                                                                                                       | [v0.2](tickets/v02-publishing-mvp.md)  |
 | T-297   | ✅     | Draft Editor save and delete for In Review and Ready to Schedule posts (S-008, AFK). Depends T-289                                                                                                                                                                                                                     | [v0.2](tickets/v02-publishing-mvp.md)  |
 | T-305   | ⏳     | S-009 wave verification on staging (S-009, HITL). Depends T-302 to T-304 and the wave merged to staging                                                                                                                                                                                                                | [v0.2](tickets/v02-publishing-mvp.md)  |
+| T-306   | ⏳     | Publish Board crashes while scrolling the Published column (S-009 follow-up, AFK, found by King Rezi; fix before PR 303 merges)                                                                                                                                                                                        | [v0.2](tickets/v02-publishing-mvp.md)  |
 | T-299   | ⏳     | Imported Reels and videos play inline in the post preview (T-295 follow-up; HITL data check and design gate, then AFK). Blocked by its own Outstand data check                                                                                                                                                         | [v0.2](tickets/v02-publishing-mvp.md)  |
 | T-300   | ✅     | Board on a phone gets stuck after scrolling to a column with cards (S-008 follow-up, AFK, found by King Rezi on staging)                                                                                                                                                                                               | [v0.2](tickets/v02-publishing-mvp.md)  |
 | T-281   | ⏳     | Align the UX baselines (KSP-05, KSP-D02, NP-D11) with the shipped Draft Editor through an ADR-155 addendum (T-207.7 follow-up, HITL). Depends T-207                                                                                                                                                                    | [v0.2](tickets/v02-publishing-mvp.md)  |

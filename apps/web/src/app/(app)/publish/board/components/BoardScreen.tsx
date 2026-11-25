@@ -96,8 +96,14 @@ function BoardCard({
     item.status !== ContentStatus.Failed;
 
   return (
+    // T-306: off-screen cards are not painted (`content-visibility`), so a
+    // column of hundreds of cards stays within Chrome's GPU raster budget
+    // instead of drawing blank cards (only the avatar layer showed).
     // eslint-disable-next-line no-restricted-syntax -- T-290: Tailwind layout (ADR-097)
-    <div className="group/card relative" data-testid="board-card">
+    <div
+      className="group/card relative [contain-intrinsic-size:auto_11rem] [content-visibility:auto]"
+      data-testid="board-card"
+    >
       <PostPreviewPopover
         postId={item.id}
         connectedAccountId={firstTarget?.connectedAccountId}

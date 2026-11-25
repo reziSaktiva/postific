@@ -34,7 +34,10 @@ export function ListDayGroups<T extends { id: string }>({
           {group.items.map((item) => (
             // eslint-disable-next-line no-restricted-syntax -- T-289: layout-only
             <div
-              className="flex flex-col gap-1 lg:flex-row lg:gap-4"
+              // T-306: off-screen rows are not painted (`content-visibility`),
+              // so a list of hundreds of rows stays within Chrome's GPU
+              // raster budget instead of drawing blank or black areas.
+              className="flex flex-col gap-1 [contain-intrinsic-size:auto_14rem] [content-visibility:auto] lg:flex-row lg:gap-4"
               key={item.id}
               data-testid="publish-list-row"
             >
