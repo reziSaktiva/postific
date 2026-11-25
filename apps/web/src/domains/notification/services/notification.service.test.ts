@@ -1,5 +1,7 @@
 import {
   asNotificationId,
+  asPageCursor,
+  LIST_PAGE_SIZE,
   asUserId,
   asWorkspaceId,
   NotificationType,
@@ -28,7 +30,7 @@ function createFakeRepository(
       relatedEntityId: input.relatedEntityId ?? null,
       createdAt: new Date("2026-08-31T00:00:00Z"),
     }),
-    list: async () => [],
+    listPage: async () => ({ items: [], nextCursor: null }),
     countUnread: async () => 0,
     markAsRead: async () => {},
     markAllAsRead: async () => {},
@@ -99,7 +101,7 @@ describe("NotificationService", () => {
     expect(result.relatedEntityId).toBeNull();
   });
 
-  it("list() delegates to repository.list() and returns its result as-is", async () => {
+  it("listPage() asks the repository for one LIST_PAGE_SIZE page after the cursor and returns it as-is", async () => {
     const records: NotificationRecord[] = [
       {
         id: asNotificationId("notification-2"),
@@ -126,19 +128,29 @@ describe("NotificationService", () => {
         createdAt: new Date("2026-08-30T00:00:00Z"),
       },
     ];
+    const page = { items: records, nextCursor: asPageCursor("next") };
     let capturedUserId: unknown = null;
+    let capturedRequest: unknown = null;
     const repository = createFakeRepository({
-      list: async (userId) => {
+      listPage: async (userId, request) => {
         capturedUserId = userId;
-        return records;
+        capturedRequest = request;
+        return page;
       },
     });
     const service = new NotificationService(repository);
 
-    const result = await service.list(USER_ID);
+    const result = await service.listPage(USER_ID, asPageCursor("cursor-1"));
 
     expect(capturedUserId).toBe(USER_ID);
-    expect(result).toBe(records);
+    expect(capturedRequest).toEqual({
+      cursor: "cursor-1",
+      limit: LIST_PAGE_SIZE,
+    });
+    expect(result).toBe(page);
+
+    await service.listPage(USER_ID);
+    expect(capturedRequest).toEqual({ cursor: null, limit: LIST_PAGE_SIZE });
   });
 
   it("countUnread() delegates to repository.countUnread() and returns its result", async () => {

@@ -831,6 +831,7 @@ model Notification {
 
   @@index([workspaceId])
   @@index([userId, isRead])
+  @@index([userId, createdAt(sort: Desc), id(sort: Desc)])
   @@map("notifications")
 }
 

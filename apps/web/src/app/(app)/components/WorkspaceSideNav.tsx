@@ -57,6 +57,7 @@ import {
 } from "@/components/ui/tooltip";
 import { getInitials } from "@/lib/utils/get-initials";
 
+import type { CursorPage } from "@postific/shared";
 import type { NotificationRecord } from "@/domains/notification";
 import type { SidebarChannelAccount } from "@/domains/workspace";
 import { authClient } from "@/lib/better-auth/client";
@@ -153,7 +154,7 @@ export function WorkspaceSideNav({
   // ChannelsSection di bawah, antara nav items dan footer.
   channels,
   // T-036.4 — bell notifikasi self-contained (state + panel) di footer.
-  initialNotifications,
+  initialNotificationPage,
   initialUnreadCount,
   userId,
 }: {
@@ -161,7 +162,7 @@ export function WorkspaceSideNav({
   userName: string;
   userEmail: string;
   channels: SidebarChannelAccount[];
-  initialNotifications: NotificationRecord[];
+  initialNotificationPage: CursorPage<NotificationRecord>;
   initialUnreadCount: number;
   userId: string;
 }) {
@@ -335,7 +336,7 @@ export function WorkspaceSideNav({
         {/* eslint-disable-next-line no-restricted-syntax -- T-098.1, sama seperti di atas */}
         <div className="flex items-center justify-between gap-2 border-t border-border pt-2 group-data-[collapsible=icon]:flex-col">
           <NotificationBell
-            initialNotifications={initialNotifications}
+            initialNotificationPage={initialNotificationPage}
             initialUnreadCount={initialUnreadCount}
             userId={userId}
           />
