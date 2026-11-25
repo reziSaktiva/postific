@@ -3,7 +3,7 @@ import type { ConnectedAccountRecord } from "@/domains/workspace";
 
 import { Card, CardContent } from "@/components/ui/card";
 
-import type { InboxPostGroupDto } from "../actions";
+import type { InboxPostGroupDto } from "../engage-dto";
 import { PLATFORM_ICON } from "../../components/platform-icons";
 import { ChannelAvatarBadge } from "@/components/shared/ChannelAvatarBadge";
 import { PostThumb } from "./PostThumb";

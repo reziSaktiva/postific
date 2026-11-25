@@ -1,4 +1,5 @@
 /* eslint-disable no-restricted-syntax -- T-219: dikomposisi Tailwind langsung di atas shadcn/ui (ADR-097); layout-only, mengikuti kartu Postific ScreenEngagePerPosting */
+import { useRef } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Comment01Icon, SidebarLeftIcon } from "@hugeicons/core-free-icons";
 
@@ -14,9 +15,12 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-import type { InboxPostGroupDto } from "../actions";
+import { InfiniteListFooter } from "../../components/infinite-list/InfiniteListStates";
+import type { InboxPostGroupDto } from "../engage-dto";
 import { groupKey } from "./engage-model";
+import { postsFooter } from "./EngageSkeletons";
 import { PostCard } from "./PostCard";
+import type { InfiniteListFooterProps } from "../../components/infinite-list/InfiniteListStates";
 
 /**
  * Panel kiri tampilan By post (T-219.1, KSP-06-F01): kartu posting,
@@ -33,7 +37,8 @@ export function PostListPanel({
   showEmptyPostsDisabledReason,
   totalUnread,
   hiddenOnMobile,
-  truncated,
+  postCount,
+  list,
   onSelect,
   onCollapsedChange,
   onShowEmptyPostsChange,
@@ -45,13 +50,18 @@ export function PostListPanel({
   showEmptyPosts: boolean;
   /** Bila terisi, toggle nonaktif dan alasan ini tampil di tooltip. */
   showEmptyPostsDisabledReason?: string;
+  /** Komentar belum dibalas sebenarnya (count query), bukan dari kartu termuat. */
   totalUnread: number;
   hiddenOnMobile: boolean;
-  truncated: boolean;
+  /** Jumlah posting sebenarnya (count query); `null` selama belum tiba. */
+  postCount: number | null;
+  list: InfiniteListFooterProps["list"];
   onSelect: (key: string) => void;
   onCollapsedChange: (collapsed: boolean) => void;
   onShowEmptyPostsChange: (show: boolean) => void;
 }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const footer = postsFooter();
   const posts = groups.filter((group) => group.postId !== null);
   const noPost = groups.find((group) => group.postId === null);
 
@@ -96,7 +106,7 @@ export function PostListPanel({
         <span>
           Posting{" "}
           <span className="font-normal text-muted-foreground">
-            ({posts.length})
+            {postCount === null ? null : `(${postCount})`}
           </span>
         </span>
         <span className="flex gap-0.5">
@@ -137,7 +147,10 @@ export function PostListPanel({
           </Tooltip>
         </span>
       </div>
-      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-2.5">
+      <div
+        ref={scrollRef}
+        className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-2.5"
+      >
         {posts.map((group) => (
           <PostCard
             key={groupKey(group)}
@@ -147,12 +160,6 @@ export function PostListPanel({
             onSelect={() => onSelect(groupKey(group))}
           />
         ))}
-        {truncated ? (
-          <p className="px-0.5 text-xs text-muted-foreground">
-            Hanya 100 posting terbaru yang ditampilkan. Persempit filter untuk
-            melihat yang lain.
-          </p>
-        ) : null}
         {noPost ? (
           <>
             <div className="px-0.5 pt-1 text-xs tracking-wide text-muted-foreground uppercase">
@@ -166,6 +173,12 @@ export function PostListPanel({
             />
           </>
         ) : null}
+        <InfiniteListFooter
+          list={list}
+          rootRef={scrollRef}
+          className="shrink-0"
+          {...footer}
+        />
       </div>
     </div>
   );

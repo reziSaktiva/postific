@@ -985,6 +985,20 @@ Applies to **History, Drafts, and Queue** (KSP-03, KSP-04, and the History list)
 
 ---
 
+## Pattern: Long Lists (infinite scroll)
+
+Applies to **Publish List (Queue, Drafts, Approvals, History), each Publish Board column, the Engage List view, the Engage post list (per-post view), the comments of one post in Engage, and the Notifications panel** (ADR-166, spec S-009). **Calendar, Home, Analyze, Start Page and Settings are bounded and do not use it.** The Draft Editor media picker uses it when it is built.
+
+* **Page size:** 20 items. The next page loads on its own as the user scrolls near the end of the list; there is no "Load more" button as the main control. A Board column loads on its own, independent of the other columns.
+* **Loading the next page:** 2 to 3 `Skeleton` rows shaped like that list's items appear under the items already loaded; the loaded items stay usable.
+* **End of list:** one short muted line at the bottom, in the language of the surrounding screen (History "Sudah sampai posting terlama.", Queue "Tidak ada jadwal lagi.", Drafts "Tidak ada draf lagi.", Approvals "Tidak ada posting lagi untuk direview.", Board column "Tidak ada posting lagi.", Engage post list "Sudah sampai posting terlama." with post-card skeleton rows (King Rezi accepted as built, 2026-11-25), Engage comments "Sudah sampai komentar terlama.", Notifications "You've reached the oldest notification."). A list with no items keeps its existing empty state.
+* **Failed page:** an inline destructive `Alert` at the bottom ("Gagal memuat … lainnya" / "Couldn't load more notifications") with a small outline Retry button ("Coba Lagi" / "Retry"). Items already loaded stay; Retry loads the same page again.
+* **Counts stay true:** tab counts, Board column counts and the unread notification badge show the full total, never the number loaded. The Board "100+" label is gone.
+* **Filters and realtime:** a filter change clears the list at once and shows the loading Skeleton rows until the new first page arrives (King Rezi, 2026-11-25), so items of the old filter are never shown under the new one; a realtime change updates loaded items and counts without duplicates; a day split across two pages shows one day heading.
+* **Visual reference:** `ScreenInfiniteScrollStates` in the Postific artifact (ADR-140), confirmed by King Rezi 2026-11-25.
+
+---
+
 # Cross-Screen Pattern — Safety Check / Double Confirmation (ADR-049)
 
 This policy applies across the product, not tied to one specific KSP. It was drawn up from a thorough audit (2026-07-29) of every action in the baseline — triggered by the discussions on Publish Now (ADR-047) and Disconnect Account (ADR-048) — to determine which actions must go through a confirmation dialog before execution.

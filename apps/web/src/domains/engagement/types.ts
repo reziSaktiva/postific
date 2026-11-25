@@ -1,6 +1,7 @@
 /** Domain-specific types for engagement. */
 import type {
   ConnectedAccountId,
+  PageCursor,
   InboxItemId,
   PostId,
   ReplyId,
@@ -79,29 +80,6 @@ export type InboxPostSort = "unreplied_first" | "newest" | "oldest";
 export type InboxDateRange = "7d" | "30d" | "6m" | "12m";
 
 /**
- * Hasil agregasi mentah repository: satu baris per kombinasi
- * (posting, akun, platform, status) dengan jumlah dan `receivedAt` terbaru.
- * `postId` `null` = komentar tanpa posting. Pengelompokan, hitungan, dan sort
- * dilakukan murni di `buildInboxPostGroups` (tanpa IO).
- */
-export interface InboxAggregateRow {
-  postId: PostId | null;
-  connectedAccountId: ConnectedAccountId;
-  platform: SocialPlatform;
-  status: InboxItemStatus;
-  count: number;
-  latestReceivedAt: Date;
-}
-
-/** Filter agregasi: sama dengan filter item, tanpa `status`/`postId` (dipakai di sisi grup). */
-export interface InboxAggregateFilter {
-  workspaceId: WorkspaceId;
-  connectedAccountId?: ConnectedAccountId;
-  platform?: SocialPlatform;
-  receivedSince?: Date;
-}
-
-/**
  * Referensi posting terbit untuk menampilkan posting tanpa komentar
  * (`includeEmpty`, T-218.4). Diisi `publishing` lewat port.
  */
@@ -125,8 +103,60 @@ export interface InboxPostGroupSummary {
   unrepliedCount: number;
   /** Komentar `replied` + `resolved` + `dismissed` (untuk progress bar). */
   handledCount: number;
+  /** Komentar `replied` (ringkasan "x dibalas / y total", T-303). */
+  repliedCount: number;
   /** `null` hanya untuk posting tanpa komentar (`includeEmpty`). */
   latestReceivedAt: Date | null;
+  /** Komentar tertua kelompok (banner "percakapan terbaru", T-303); `null` bila tanpa komentar. */
+  oldestReceivedAt: Date | null;
   /** Status yang dimiliki minimal satu komentar di kelompok (untuk filter status). */
   statuses: InboxItemStatus[];
+}
+
+/**
+ * Satu permintaan halaman daftar komentar (T-303, ADR-166). `sort` ikut
+ * kueri karena urutan harus dibuat database: halaman tidak lagi memuat
+ * seluruh komentar untuk diurut di klien.
+ */
+export interface InboxItemsPageRequest {
+  sort: InboxPostSort;
+  cursor?: PageCursor | null;
+  limit: number;
+}
+
+/** Hitungan sebenarnya (count query) untuk satu filter komentar. */
+export interface InboxItemCounts {
+  total: number;
+  /** Komentar `unread` di antara `total`. */
+  unread: number;
+}
+
+/**
+ * Filter daftar kelompok posting (T-303). Sama dengan filter agregasi lama,
+ * ditambah `status` (kelompok yang punya minimal satu komentar berstatus ini;
+ * hitungan tetap atas semua komentar) dan `postId` (satu kelompok, dipakai
+ * untuk membuka posting di luar halaman yang dimuat).
+ */
+export interface InboxPostGroupFilter {
+  workspaceId: WorkspaceId;
+  connectedAccountId?: ConnectedAccountId;
+  platform?: SocialPlatform;
+  status?: InboxItemStatus;
+  receivedSince?: Date;
+  postId?: PostId;
+}
+
+/** Satu permintaan halaman kelompok posting. */
+export interface InboxPostGroupsPageRequest {
+  sort: InboxPostSort;
+  cursor?: PageCursor | null;
+  limit: number;
+}
+
+/** Hitungan sebenarnya untuk daftar kelompok posting. */
+export interface InboxPostGroupCounts {
+  /** Kelompok bernomor posting yang cocok filter (tanpa "Tanpa posting"). */
+  postCount: number;
+  /** Komentar `unread` di semua kelompok yang cocok (termasuk "Tanpa posting"). */
+  unrepliedCount: number;
 }

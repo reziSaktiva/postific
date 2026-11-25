@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 
+import type { CursorPage } from "@postific/shared";
 import type { NotificationRecord } from "@/domains/notification";
 import type { SidebarChannelAccount } from "@/domains/workspace";
 
@@ -28,7 +29,7 @@ export function AppSideNav({
   userName,
   userEmail,
   channels,
-  initialNotifications,
+  initialNotificationPage,
   initialUnreadCount,
   userId,
 }: {
@@ -36,7 +37,7 @@ export function AppSideNav({
   userName: string;
   userEmail: string;
   channels: SidebarChannelAccount[];
-  initialNotifications: NotificationRecord[];
+  initialNotificationPage: CursorPage<NotificationRecord>;
   initialUnreadCount: number;
   userId: string;
 }) {
@@ -53,7 +54,7 @@ export function AppSideNav({
       userName={userName}
       userEmail={userEmail}
       channels={channels}
-      initialNotifications={initialNotifications}
+      initialNotificationPage={initialNotificationPage}
       initialUnreadCount={initialUnreadCount}
       userId={userId}
     />

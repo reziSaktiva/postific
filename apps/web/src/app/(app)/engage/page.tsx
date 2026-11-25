@@ -6,20 +6,22 @@ import { getCachedSession } from "@/lib/better-auth/session";
 import { workspaceRepository } from "@/lib/repositories/workspace";
 import { getWorkspaceContext } from "@/lib/workspace/workspace-context";
 
-import { listInboxByPostAction } from "./actions";
 import { EngageInboxView } from "./components/EngageInboxView";
 import { DEFAULT_DATE_RANGE } from "./components/engage-model";
+import { loadPostGroupsPage } from "./engage-queries";
 
 /**
  * `/engage` (KSP-06 Engage, T-219 per posting). Entry point tipis (AGENTS.md
- * #5): resolve workspace/session, ambil daftar posting awal lewat
- * `listInboxByPostAction` (filter bawaan, rentang 12 bulan) dan daftar akun
- * terkoneksi lewat `WorkspaceService.listConnectedAccounts` (opsi filter
- * Akun dan nama akun kartu; daftar LENGKAP, bukan turunan hasil terfilter),
- * lalu delegasikan render + state ke `EngageInboxView` (client).
+ * #5): resolve workspace/session, ambil halaman pertama daftar posting
+ * (filter bawaan, rentang 12 bulan, dengan hitungan sebenarnya) lewat
+ * `loadPostGroupsPage` dan daftar akun terkoneksi lewat
+ * `WorkspaceService.listConnectedAccounts` (opsi filter Akun dan nama akun
+ * kartu; daftar LENGKAP, bukan turunan hasil terfilter), lalu delegasikan
+ * render + state ke `EngageInboxView` (client).
  *
- * Tanpa Supabase Realtime (ADR-023): `EngageInboxView` mengambil data lewat
- * Server Action saat filter berubah, posting dipilih, atau Refresh diklik.
+ * Halaman berikutnya (infinite scroll, T-303, ADR-166) dan perubahan filter
+ * diambil `EngageInboxView` lewat Route Handler GET `/api/engage/*`.
+ * Tanpa Supabase Realtime (ADR-023).
  */
 export default async function Page() {
   const { workspaceId } = await getWorkspaceContext();
@@ -31,18 +33,29 @@ export default async function Page() {
 
   const workspaceService = new WorkspaceService(workspaceRepository);
 
-  // Daftar posting lewat Server Action yang sama dengan re-fetch di client:
-  // satu jalur untuk ringkasan kelompok dan thumbnail ber-signed URL baru.
+  // Satu kegagalan memuat daftar posting tidak boleh membuat halaman gagal:
+  // tampil sebagai Alert gagal, bukan state "kosong".
   const [groupsResult, accounts] = await Promise.all([
-    listInboxByPostAction({ dateRange: DEFAULT_DATE_RANGE }),
+    loadPostGroupsPage(
+      { dateRange: DEFAULT_DATE_RANGE, withCounts: true },
+      workspaceId,
+      userId,
+    ).then(
+      (page) => ({ page }),
+      (error: unknown) => {
+        console.error("/engage: gagal memuat daftar posting", error);
+        return { page: null };
+      },
+    ),
     workspaceService.listConnectedAccounts(workspaceId, userId),
   ]);
 
   return (
     <EngageInboxView
-      initialGroups={groupsResult.data ?? []}
-      initialTruncated={groupsResult.truncated ?? false}
-      initialLoadFailed={Boolean(groupsResult.error)}
+      initialGroups={groupsResult.page?.groups ?? []}
+      initialNextCursor={groupsResult.page?.nextCursor ?? null}
+      initialCounts={groupsResult.page?.counts ?? null}
+      initialLoadFailed={groupsResult.page === null}
       accounts={accounts}
     />
   );

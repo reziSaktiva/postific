@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback } from "react";
 
 import type { ContentStatus, SocialPlatform } from "@postific/shared";
 import {
@@ -8,9 +8,11 @@ import {
   type CalendarPostItem,
   type PublishingPostRecord,
 } from "@/domains/publishing";
-import { usePublishingPostsRealtime } from "@/lib/hooks/use-publishing-posts-realtime";
-import { useSyncedState } from "@/lib/hooks/use-synced-state";
 
+import {
+  usePublishTabList,
+  type PublishTabPage,
+} from "../../components/views/usePublishTabList";
 import { getDraftPostAction } from "../actions";
 
 /** Account a Drafts or Approvals post goes to (Approvals account row). */
@@ -60,46 +62,32 @@ function toDraftListItem(
 }
 
 /**
- * Local copy of a Drafts or Approvals list kept in step with Realtime
- * (ADR-094): each INSERT/UPDATE fetches one post and upserts or removes it
- * by the statuses this tab shows (Drafts: Draft and Ready to Schedule;
- * Approvals: In Review). A post that moves from one tab to the other leaves
- * one list and enters the other. Out-of-order responses are dropped.
+ * Drafts or Approvals as an infinite-scroll list (S-009) kept in step with
+ * Realtime (ADR-094): each INSERT/UPDATE fetches one post and upserts or
+ * removes it by the statuses this tab shows (Drafts: Draft and Ready to
+ * Schedule; Approvals: In Review) and by the List Filter. A post that moves
+ * from one tab to the other leaves one list and enters the other.
+ * Out-of-order responses are dropped. Order: last change first, id as
+ * tie-breaker (`compareApprovalItemsDesc`, the order of the page query).
  */
 export function useLiveDraftPosts(
-  initial: DraftListItem[],
+  tab: "drafts" | "approvals",
+  initialPage: PublishTabPage<DraftListItem>,
   statuses: ReadonlySet<ContentStatus>,
   workspaceId: string,
-): DraftListItem[] {
-  const [items, setItems] = useSyncedState(initial);
-  const requestSeqRef = useRef<Map<string, number>>(new Map());
-
-  const handleChange = useCallback(
-    (event: { postId: CalendarPostItem["id"] }) => {
-      const seq = (requestSeqRef.current.get(event.postId) ?? 0) + 1;
-      requestSeqRef.current.set(event.postId, seq);
-
-      void (async () => {
-        const fetched = await getDraftPostAction(event.postId);
-        if (requestSeqRef.current.get(event.postId) !== seq) {
-          return;
-        }
-        const next = fetched ? toDraftListItem(fetched, statuses) : null;
-        setItems((prev) => {
-          const withoutStale = prev.filter((item) => item.id !== event.postId);
-          return next
-            ? [...withoutStale, next].sort(compareApprovalItemsDesc)
-            : withoutStale;
-        });
-      })();
+) {
+  const fetchLiveItem = useCallback(
+    async (postId: string) => {
+      const fetched = await getDraftPostAction(postId);
+      return fetched ? toDraftListItem(fetched, statuses) : null;
     },
-    [setItems, statuses],
+    [statuses],
   );
-
-  usePublishingPostsRealtime(workspaceId, {
-    onInsert: handleChange,
-    onUpdate: handleChange,
+  return usePublishTabList<DraftListItem>({
+    tab,
+    initialPage,
+    compare: compareApprovalItemsDesc,
+    workspaceId,
+    fetchLiveItem,
   });
-
-  return items;
 }

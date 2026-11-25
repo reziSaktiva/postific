@@ -22,7 +22,11 @@ import {
 import { cn } from "@/lib/utils";
 
 import { DisplayTimeZoneSelect } from "./DisplayTimeZoneSelect";
-import { ListFilterPopover, type ListFilterAccount } from "./views/ListFilter";
+import {
+  ListFilterPopover,
+  useListFilter,
+  type ListFilterAccount,
+} from "./views/ListFilter";
 
 const TAB_LABEL: Record<PublishListTab, string> = {
   queue: "Queue",
@@ -58,6 +62,11 @@ export function PublishToolbar({
   filterAccounts?: ListFilterAccount[];
 }) {
   const router = useRouter();
+  // The open tab shows the true total its list last counted for the current
+  // filter (S-009); the other tabs keep the server count.
+  const { liveTotal } = useListFilter();
+  const countOf = (value: PublishListTab): number | undefined =>
+    value === tab && liveTotal !== null ? liveTotal : counts?.[value];
 
   if (view === "calendar") return null;
 
@@ -98,9 +107,9 @@ export function PublishToolbar({
               {PUBLISH_LIST_TABS.map((value) => (
                 <SelectItem key={value} value={value}>
                   {TAB_LABEL[value]}
-                  {counts ? (
+                  {countOf(value) !== undefined ? (
                     <span className="text-xs text-muted-foreground tabular-nums">
-                      {counts[value]}
+                      {countOf(value)}
                     </span>
                   ) : null}
                 </SelectItem>
@@ -115,9 +124,12 @@ export function PublishToolbar({
                 <TabsTrigger key={value} value={value} asChild>
                   <Link href={tabHref(value)}>
                     {TAB_LABEL[value]}
-                    {counts ? (
-                      <span className="ml-1.5 text-xs text-muted-foreground tabular-nums">
-                        {counts[value]}
+                    {countOf(value) !== undefined ? (
+                      <span
+                        className="ml-1.5 text-xs text-muted-foreground tabular-nums"
+                        data-testid={`publish-tab-count-${value}`}
+                      >
+                        {countOf(value)}
                       </span>
                     ) : null}
                   </Link>

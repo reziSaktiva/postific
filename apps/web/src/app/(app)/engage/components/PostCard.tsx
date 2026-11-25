@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 
-import type { InboxPostGroupDto } from "../actions";
+import type { InboxPostGroupDto } from "../engage-dto";
 import { PLATFORM_ICON } from "../../components/platform-icons";
 import { handledPercent } from "./engage-model";
 import { PlatformGlyph } from "./PlatformGlyph";

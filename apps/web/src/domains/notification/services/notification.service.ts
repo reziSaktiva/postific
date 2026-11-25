@@ -1,5 +1,8 @@
+import { LIST_PAGE_SIZE } from "@postific/shared";
 import type {
+  CursorPage,
   NotificationId,
+  PageCursor,
   NotificationType,
   UserId,
   WorkspaceId,
@@ -30,12 +33,22 @@ export class NotificationService {
     return this.repository.create(input);
   }
 
-  /** Daftar notifikasi milik `userId` untuk bell (T-036.4) — delegasi tipis ke repository. */
-  async list(userId: UserId): Promise<NotificationRecord[]> {
-    return this.repository.list(userId);
+  /**
+   * One page (`LIST_PAGE_SIZE`) of `userId`'s notifications for the bell
+   * (T-304); `cursor` is the `nextCursor` of the previous page, or empty for
+   * the first page. Thin delegation to the repository.
+   */
+  async listPage(
+    userId: UserId,
+    cursor?: PageCursor | null,
+  ): Promise<CursorPage<NotificationRecord>> {
+    return this.repository.listPage(userId, {
+      cursor: cursor ?? null,
+      limit: LIST_PAGE_SIZE,
+    });
   }
 
-  /** Total notifikasi belum dibaca milik `userId` (tidak dibatasi 50 seperti `list`) — delegasi tipis ke repository. */
+  /** Total notifikasi belum dibaca milik `userId` (not limited to the loaded pages) — delegasi tipis ke repository. */
   async countUnread(userId: UserId): Promise<number> {
     return this.repository.countUnread(userId);
   }

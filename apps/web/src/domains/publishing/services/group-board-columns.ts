@@ -1,10 +1,15 @@
-import { ContentStatus } from "@postific/shared";
+import { ContentStatus, type CursorPage } from "@postific/shared";
+
+import type { PublishPostOrder } from "../repositories/publishing.repository";
 
 /**
  * Columns of the Publish Board (T-290, S-008, ADR-165): Draft · Approvals ·
  * Scheduled · Published · Failed, grouped by Status only. `Ready to Schedule`
  * cards sit in Draft (the card shows a "Ready to Schedule" badge); imported
  * posts are published posts, so they sit in Published.
+ *
+ * Each column loads its cards a page at a time (S-009, ADR-166) and shows
+ * the true number of its cards from a count query.
  */
 export const BOARD_COLUMN_KEYS = [
   "draft",
@@ -15,8 +20,12 @@ export const BOARD_COLUMN_KEYS = [
 ] as const;
 export type BoardColumnKey = (typeof BOARD_COLUMN_KEYS)[number];
 
-/** Cards a column shows; more are left out and the column says so (`hasMore`). */
-export const BOARD_COLUMN_LIMIT = 100;
+export function isBoardColumnKey(value: unknown): value is BoardColumnKey {
+  return (
+    typeof value === "string" &&
+    (BOARD_COLUMN_KEYS as readonly string[]).includes(value)
+  );
+}
 
 export function boardColumnOf(status: ContentStatus): BoardColumnKey {
   switch (status) {
@@ -35,58 +44,68 @@ export function boardColumnOf(status: ContentStatus): BoardColumnKey {
   }
 }
 
+/**
+ * Statuses and order of each column's query. Order inside a column:
+ * Scheduled by publish time, soonest first (as the Queue); Published most
+ * recent first (`publishedAt ?? updatedAt`); the others by last edit,
+ * newest first. The id breaks ties.
+ */
+export const BOARD_COLUMN_SELECTION: Record<
+  BoardColumnKey,
+  { statuses: readonly ContentStatus[]; order: PublishPostOrder }
+> = {
+  draft: {
+    statuses: [ContentStatus.Draft, ContentStatus.ReadyToSchedule],
+    order: "updated-desc",
+  },
+  approvals: { statuses: [ContentStatus.InReview], order: "updated-desc" },
+  scheduled: { statuses: [ContentStatus.Scheduled], order: "scheduled-asc" },
+  published: {
+    statuses: [ContentStatus.Published, ContentStatus.Imported],
+    order: "occurred-desc",
+  },
+  failed: { statuses: [ContentStatus.Failed], order: "updated-desc" },
+};
+
+/** One Board column: its first page of cards and its true total. */
 export interface BoardColumn<T> {
   key: BoardColumnKey;
-  /** At most `limit` cards, in the order of the column. */
-  items: T[];
-  /** Cards that were given for this column, before the limit. */
+  page: CursorPage<T>;
+  /** Every card of the column, not only the loaded ones (count query). */
   total: number;
-  hasMore: boolean;
 }
 
 interface BoardSortable {
-  status: ContentStatus;
+  id: string;
   scheduledAt: Date | null;
   publishedAt: Date | null;
   updatedAt: Date;
 }
 
 /**
- * Group cards into the five Board columns, always all five and in order.
- * Order inside a column: Scheduled by publish time, soonest first (as the
- * Queue); Published most recent first; the others by last edit, newest first.
- * Pure function, no I/O, next to `groupQueueItemsByDate`.
+ * Order of the cards of `key`, the same order the column's query uses
+ * (`BOARD_COLUMN_SELECTION`). Used by the client list to place a card.
  */
-export function groupBoardColumns<T extends BoardSortable>(
-  items: readonly T[],
-  limit: number = BOARD_COLUMN_LIMIT,
-): BoardColumn<T>[] {
-  return BOARD_COLUMN_KEYS.map((key) => {
-    const inColumn = items.filter((item) => boardColumnOf(item.status) === key);
-    const sorted = [...inColumn].sort(compareFor(key));
-    return {
-      key,
-      items: sorted.slice(0, limit),
-      total: sorted.length,
-      hasMore: sorted.length > limit,
-    };
-  });
-}
-
-function compareFor(key: BoardColumnKey) {
+export function compareBoardCards(key: BoardColumnKey) {
   const time = (value: Date | null, fallback: Date) =>
     (value ?? fallback).getTime();
   return (a: BoardSortable, b: BoardSortable): number => {
+    let diff: number;
     if (key === "scheduled") {
-      return (
-        time(a.scheduledAt, a.updatedAt) - time(b.scheduledAt, b.updatedAt)
-      );
+      diff =
+        time(a.scheduledAt, a.updatedAt) - time(b.scheduledAt, b.updatedAt);
+      if (diff !== 0) return diff;
+      return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
     }
+    diff =
+      key === "published"
+        ? time(b.publishedAt, b.updatedAt) - time(a.publishedAt, a.updatedAt)
+        : b.updatedAt.getTime() - a.updatedAt.getTime();
+    if (diff !== 0) return diff;
     if (key === "published") {
-      return (
-        time(b.publishedAt, b.updatedAt) - time(a.publishedAt, a.updatedAt)
-      );
+      diff = b.updatedAt.getTime() - a.updatedAt.getTime();
+      if (diff !== 0) return diff;
     }
-    return b.updatedAt.getTime() - a.updatedAt.getTime();
+    return a.id < b.id ? 1 : a.id > b.id ? -1 : 0;
   };
 }

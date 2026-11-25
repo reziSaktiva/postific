@@ -1,14 +1,17 @@
 "use client";
 
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Edit02Icon, MoreHorizontalIcon } from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
 
 import { ContentStatus, MediaType } from "@postific/shared";
-import type { PostId } from "@postific/shared";
+import type { CursorPage, PageCursor, PostId } from "@postific/shared";
 import type { MediaThumbnailDto } from "@/domains/media";
 import {
-  BOARD_COLUMN_LIMIT,
+  buildBoardColumnPageSearch,
+  compareBoardCards,
   type BoardColumn,
   type BoardColumnKey,
   type CalendarItemRecord,
@@ -49,6 +52,11 @@ import { formatPublishDateTime } from "../../components/date-time-format";
 import { PostPreviewPopover } from "../../components/preview/PostPreview";
 import { previewDate } from "../../components/preview/post-preview-model";
 import { cancelScheduleAction } from "../../queue/actions";
+import { useInfiniteList } from "../../../components/infinite-list/useInfiniteList";
+import { BoardColumnFooter } from "../../components/views/PublishListStates";
+import { fetchPublishJson } from "../../components/views/publish-page-fetch";
+
+import { mergeBoardColumnPage } from "./board-column-merge";
 
 const COLUMN_TITLE: Record<BoardColumnKey, string> = {
   draft: "Draft",
@@ -88,8 +96,14 @@ function BoardCard({
     item.status !== ContentStatus.Failed;
 
   return (
+    // T-306: off-screen cards are not painted (`content-visibility`), so a
+    // column of hundreds of cards stays within Chrome's GPU raster budget
+    // instead of drawing blank cards (only the avatar layer showed).
     // eslint-disable-next-line no-restricted-syntax -- T-290: Tailwind layout (ADR-097)
-    <div className="group/card relative">
+    <div
+      className="group/card relative [contain-intrinsic-size:auto_11rem] [content-visibility:auto]"
+      data-testid="board-card"
+    >
       <PostPreviewPopover
         postId={item.id}
         connectedAccountId={firstTarget?.connectedAccountId}
@@ -195,6 +209,125 @@ function BoardCard({
   );
 }
 
+const getCardKey = (item: CalendarItemRecord) => item.id;
+const NO_IDS: ReadonlySet<string> = new Set();
+
+/**
+ * One Board column (S-009): its first 20 cards come from the server, the
+ * next 20 load as this column is scrolled, independent of the other
+ * columns, through `GET /api/publish/board`. The number in the header is
+ * the column's true total (count query). When the server renders the Board
+ * again (a mutation revalidated `/publish`), the column keeps its loaded
+ * pages and scroll position: the cards that changed are upserted or
+ * removed (`mergeBoardColumnPage`) and the header shows the new total.
+ */
+function BoardColumnSection({
+  column,
+  thumbnails: initialThumbnails,
+  otherColumnIds,
+  onCancelSchedule,
+}: {
+  column: BoardColumn<CalendarItemRecord>;
+  thumbnails: Record<string, MediaThumbnailDto>;
+  /** Ids on the first page of every other column, from the same render. */
+  otherColumnIds: ReadonlySet<string>;
+  onCancelSchedule: (postId: PostId) => void;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  // Thumbnails of pages loaded in the browser, under the server's own.
+  const [loadedThumbnails, setThumbnails] = useState<
+    Record<string, MediaThumbnailDto>
+  >({});
+  const thumbnails = useMemo(
+    () => ({ ...loadedThumbnails, ...initialThumbnails }),
+    [loadedThumbnails, initialThumbnails],
+  );
+  const loadPage = useCallback(
+    async (cursor: PageCursor): Promise<CursorPage<CalendarItemRecord>> => {
+      const page = await fetchPublishJson<
+        CursorPage<CalendarItemRecord> & {
+          thumbnails?: Record<string, MediaThumbnailDto>;
+        }
+      >(
+        `/api/publish/board${buildBoardColumnPageSearch({ column: column.key, cursor })}`,
+      );
+      if (page.thumbnails) {
+        setThumbnails((prev) => ({ ...prev, ...page.thumbnails }));
+      }
+      return { items: page.items, nextCursor: page.nextCursor };
+    },
+    [column.key],
+  );
+  const list = useInfiniteList<CalendarItemRecord>({
+    initialPage: column.page,
+    loadPage,
+    getKey: getCardKey,
+    compare: compareBoardCards(column.key),
+  });
+
+  // A new server render (a mutation revalidated `/publish`): update the
+  // cards that changed without dropping the loaded pages. The total in the
+  // header comes with the render.
+  const { items: loadedItems, upsert, remove } = list;
+  const seenPageRef = useRef(column.page);
+  useEffect(() => {
+    if (seenPageRef.current === column.page) return;
+    seenPageRef.current = column.page;
+    const { upserts, removes } = mergeBoardColumnPage({
+      loaded: loadedItems,
+      page: column.page,
+      movedToOtherColumn: otherColumnIds,
+      compare: compareBoardCards(column.key),
+    });
+    for (const id of removes) remove(id);
+    for (const item of upserts) upsert(item);
+  }, [column.page, column.key, loadedItems, otherColumnIds, upsert, remove]);
+
+  const title = COLUMN_TITLE[column.key];
+  return (
+    <section
+      aria-label={title}
+      data-testid={`board-column-${column.key}`}
+      // A column takes the full Board height and its cards scroll inside
+      // it; the Board itself fills the space left in the viewport, so the
+      // page never scrolls on Board (T-292 re-check).
+      className="flex min-h-0 w-11/12 shrink-0 snap-center flex-col gap-2 rounded-2xl bg-muted/40 p-2 sm:w-5/12 lg:w-72"
+    >
+      <header className="flex shrink-0 items-center gap-2 p-1">
+        <h2 className="text-sm font-semibold">{title}</h2>
+        <Badge variant="secondary" data-testid="board-column-count">
+          {column.total}
+        </Badge>
+      </header>
+      {list.items.length === 0 && list.status === "end" ? (
+        <p className="px-1 py-4 text-center text-xs text-muted-foreground">
+          {COLUMN_EMPTY[column.key]}
+        </p>
+      ) : (
+        // Contain only vertical overscroll (T-300): `overflow-y-auto` also
+        // makes this list a horizontal scroll container, and a plain
+        // `overscroll-contain` then swallowed sideways swipes that start
+        // on a column with cards, so the Board got stuck on phones.
+        // eslint-disable-next-line no-restricted-syntax -- T-290: Tailwind layout (ADR-097)
+        <div
+          ref={scrollRef}
+          className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-y-contain"
+        >
+          {list.items.map((item) => (
+            <BoardCard
+              key={item.id}
+              item={item}
+              thumbnail={thumbnails[item.id]}
+              onCancelSchedule={onCancelSchedule}
+            />
+          ))}
+          <BoardColumnFooter title={title} list={list} rootRef={scrollRef} />
+        </div>
+      )}
+    </section>
+  );
+}
+
 /**
  * Publish Board (T-290, S-008, ADR-165): the columns Draft · Approvals ·
  * Scheduled · Published · Failed with their counts, side by side with
@@ -220,6 +353,22 @@ export function BoardScreen({
   const cancelConfirm = useConfirmAction<PostId>(cancelScheduleAction, () =>
     toast("Jadwal dibatalkan — post kembali ke Drafts"),
   );
+  // For each column, the ids on the first page of every other column: a
+  // loaded card found there has moved out of this column.
+  const otherColumnIds = useMemo(
+    () =>
+      new Map(
+        columns.map((column) => [
+          column.key,
+          new Set(
+            columns
+              .filter((other) => other.key !== column.key)
+              .flatMap((other) => other.page.items.map((item) => item.id)),
+          ),
+        ]),
+      ),
+    [columns],
+  );
 
   return (
     <>
@@ -234,47 +383,13 @@ export function BoardScreen({
       {/* eslint-disable-next-line no-restricted-syntax -- T-290: Tailwind layout (ADR-097) */}
       <div className="flex min-h-0 flex-1 snap-x snap-mandatory gap-3 overflow-x-auto overflow-y-hidden overscroll-x-contain pb-2 sm:snap-none">
         {columns.map((column) => (
-          <section
+          <BoardColumnSection
             key={column.key}
-            aria-label={COLUMN_TITLE[column.key]}
-            // A column takes the full Board height and its cards scroll inside
-            // it; the Board itself fills the space left in the viewport, so
-            // the page never scrolls on Board. A busy workspace has 100+ cards
-            // in Published; a page taller than the viewport left parts of the
-            // sidebar and cards unpainted while scrolling (T-292 re-check).
-            className="flex min-h-0 w-11/12 shrink-0 snap-center flex-col gap-2 rounded-2xl bg-muted/40 p-2 sm:w-5/12 lg:w-72"
-          >
-            {}
-            <header className="flex shrink-0 items-center gap-2 p-1">
-              <h2 className="text-sm font-semibold">
-                {COLUMN_TITLE[column.key]}
-              </h2>
-              <Badge variant="secondary">
-                {column.hasMore ? `${BOARD_COLUMN_LIMIT}+` : column.total}
-              </Badge>
-            </header>
-            {column.items.length === 0 ? (
-              <p className="px-1 py-4 text-center text-xs text-muted-foreground">
-                {COLUMN_EMPTY[column.key]}
-              </p>
-            ) : (
-              // Contain only vertical overscroll (T-300): `overflow-y-auto` also
-              // makes this list a horizontal scroll container, and a plain
-              // `overscroll-contain` then swallowed sideways swipes that start
-              // on a column with cards, so the Board got stuck on phones.
-              // eslint-disable-next-line no-restricted-syntax -- T-290: Tailwind layout (ADR-097)
-              <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-y-contain">
-                {column.items.map((item) => (
-                  <BoardCard
-                    key={item.id}
-                    item={item}
-                    thumbnail={thumbnails[item.id]}
-                    onCancelSchedule={(postId) => cancelConfirm.open(postId)}
-                  />
-                ))}
-              </div>
-            )}
-          </section>
+            column={column}
+            thumbnails={thumbnails}
+            otherColumnIds={otherColumnIds.get(column.key) ?? NO_IDS}
+            onCancelSchedule={(postId) => cancelConfirm.open(postId)}
+          />
         ))}
       </div>
 

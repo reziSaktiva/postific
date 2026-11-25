@@ -1,18 +1,34 @@
 import {
   asConnectedAccountId,
-  asMediaId,
+  asPageCursor,
   asPostId,
   asUserId,
   asWorkspaceId,
   SocialPlatform,
+  type CursorPage,
   type IOutstandAdapter,
   type PostId,
 } from "@postific/shared";
 import { describe, expect, it } from "vitest";
 import { ValidationError } from "@/lib/utils/errors";
 import type { IEngagementRepository } from "../repositories/engagement.repository";
-import type { EngagementInboxItemRecord, InboxAggregateFilter } from "../types";
-import { EngagementService, POST_GROUP_LIMIT } from "./engagement.service";
+import type {
+  EngagementInboxItemRecord,
+  InboxItemFilter,
+  InboxItemsPageRequest,
+  InboxPostGroupFilter,
+  InboxPostGroupsPageRequest,
+  InboxPostGroupSummary,
+} from "../types";
+import { EngagementService } from "./engagement.service";
+
+/**
+ * Service halaman daftar Engage (T-303, ADR-166): halaman kelompok posting
+ * (posting berkomentar dari repository, lalu posting tanpa komentar, lalu
+ * "Tanpa posting") dan halaman komentar. Repository adalah double lokal
+ * (AGENTS.md aturan 11); pengelompokan SQL dan cursor-nya dibuktikan tes
+ * integrasi repository.
+ */
 
 const WS = asWorkspaceId("ws-1");
 const USER = asUserId("user-1");
@@ -21,18 +37,155 @@ const ACC_FB = asConnectedAccountId("00000000-0000-4000-8000-0000000000b2");
 const NOW = new Date("2026-11-06T00:00:00.000Z");
 const day = (n: number) => new Date(NOW.getTime() - n * 24 * 60 * 60 * 1000);
 
-let seq = 0;
+const postUuid = (n: number) =>
+  asPostId(`00000000-0000-4000-8000-${String(n).padStart(12, "0")}`);
+
+function summary(
+  postId: PostId | null,
+  overrides: Partial<InboxPostGroupSummary> = {},
+): InboxPostGroupSummary {
+  return {
+    postId,
+    connectedAccountId: ACC_IG,
+    platform: SocialPlatform.Instagram,
+    connectedAccountIds: [ACC_IG],
+    totalCount: 2,
+    unrepliedCount: 1,
+    handledCount: 1,
+    repliedCount: 0,
+    latestReceivedAt: day(1),
+    oldestReceivedAt: day(2),
+    statuses: ["unread"],
+    ...overrides,
+  };
+}
+
+interface RepoState {
+  numbered: InboxPostGroupSummary[];
+  noPost: InboxPostGroupSummary | null;
+  commented: PostId[];
+  groupCalls: {
+    filter: InboxPostGroupFilter;
+    scope: string;
+    request: InboxPostGroupsPageRequest;
+  }[];
+  countCalls: InboxPostGroupFilter[];
+  itemCalls: { filter: InboxItemFilter; request: InboxItemsPageRequest }[];
+  itemCountCalls: InboxItemFilter[];
+  items: EngagementInboxItemRecord[];
+}
+
+/** Repository double: halaman memotong `numbered` dengan cursor indeks. */
+function makeRepo(state: Partial<RepoState> = {}) {
+  const s: RepoState = {
+    numbered: [],
+    noPost: null,
+    commented: [],
+    groupCalls: [],
+    countCalls: [],
+    itemCalls: [],
+    itemCountCalls: [],
+    items: [],
+    ...state,
+  };
+  const repository = {
+    listInboxPostGroups: async (
+      filter: InboxPostGroupFilter,
+      scope: "numbered" | "none",
+      request: InboxPostGroupsPageRequest,
+    ): Promise<CursorPage<InboxPostGroupSummary>> => {
+      s.groupCalls.push({ filter, scope, request });
+      if (scope === "none") {
+        return { items: s.noPost ? [s.noPost] : [], nextCursor: null };
+      }
+      const all = filter.postId
+        ? s.numbered.filter((group) => group.postId === filter.postId)
+        : s.numbered;
+      const start = request.cursor ? Number(request.cursor) : 0;
+      const end = start + request.limit;
+      return {
+        items: all.slice(start, end),
+        nextCursor: end < all.length ? asPageCursor(String(end)) : null,
+      };
+    },
+    countInboxPostGroups: async (filter: InboxPostGroupFilter) => {
+      s.countCalls.push(filter);
+      return { postCount: s.numbered.length, unrepliedCount: 9 };
+    },
+    findPostIdsWithInboxItems: async () => s.commented,
+    listInboxItemsPage: async (
+      filter: InboxItemFilter,
+      request: InboxItemsPageRequest,
+    ) => {
+      s.itemCalls.push({ filter, request });
+      return { items: s.items, nextCursor: asPageCursor("next-items") };
+    },
+    countInboxItems: async (filter: InboxItemFilter) => {
+      s.itemCountCalls.push(filter);
+      return { total: 236, unread: 14 };
+    },
+  } as unknown as IEngagementRepository;
+  return { repository, state: s };
+}
+
+function makeService(
+  state: Partial<RepoState> = {},
+  opts: {
+    syncable?: Record<string, PostId[]>;
+    captions?: Record<string, string>;
+  } = {},
+) {
+  const { repository, state: s } = makeRepo(state);
+  const snapshotCalls: PostId[] = [];
+  const service = new EngagementService(
+    repository,
+    {} as IOutstandAdapter,
+    {
+      findPostOutstandId: async () => null,
+      findPostSnapshotForEngagement: async ({ postId }: { postId: PostId }) => {
+        snapshotCalls.push(postId);
+        const caption = opts.captions?.[postId];
+        return caption === undefined
+          ? null
+          : { caption, mediaIds: [], platformPostUrl: null };
+      },
+      listSyncablePostsByConnectedAccount: async ({
+        connectedAccountId,
+      }: {
+        connectedAccountId: string;
+      }) =>
+        (opts.syncable?.[connectedAccountId] ?? []).map((postId) => ({
+          postId,
+          outstandPostId: `o-${postId}`,
+          platform: SocialPlatform.Instagram,
+        })),
+    },
+    {
+      listConnectedAccounts: async () => [
+        { id: ACC_IG, platform: SocialPlatform.Instagram },
+        { id: ACC_FB, platform: SocialPlatform.Facebook },
+      ],
+      findConnectedAccountById: async () => ({ handle: "@x" }),
+    },
+  );
+  return { service, state: s, snapshotCalls };
+}
+
+const numbered = (count: number) =>
+  Array.from({ length: count }, (_, i) => summary(postUuid(i + 1)));
+
+let itemSeq = 0;
 function item(
   overrides: Partial<EngagementInboxItemRecord>,
 ): EngagementInboxItemRecord {
-  seq += 1;
+  itemSeq += 1;
   return {
-    id: `item-${seq}` as EngagementInboxItemRecord["id"],
+    id: `item-${itemSeq}` as EngagementInboxItemRecord["id"],
     workspaceId: WS,
     connectedAccountId: ACC_IG,
     platform: SocialPlatform.Instagram,
     type: "comment",
-    externalId: `ext-${seq}`,
+    externalId: `ext-${itemSeq}`,
     authorHandle: "@a",
     content: "hi",
     status: "unread",
@@ -45,386 +198,348 @@ function item(
   };
 }
 
-/** Repository double: mengagregasi tabel item seperti `GROUP BY` di database. */
-function repositoryOver(items: EngagementInboxItemRecord[]) {
-  const calls: InboxAggregateFilter[] = [];
-  const repository = {
-    aggregateInboxByPost: async (filter: InboxAggregateFilter) => {
-      calls.push(filter);
-      const rows = new Map<string, import("../types").InboxAggregateRow>();
-      for (const it of items) {
-        if (it.workspaceId !== filter.workspaceId) continue;
-        if (
-          filter.connectedAccountId &&
-          it.connectedAccountId !== filter.connectedAccountId
-        )
-          continue;
-        if (filter.platform && it.platform !== filter.platform) continue;
-        if (filter.receivedSince && it.receivedAt < filter.receivedSince)
-          continue;
-        const key = [
-          it.postId,
-          it.connectedAccountId,
-          it.platform,
-          it.status,
-        ].join("|");
-        const existing = rows.get(key);
-        if (existing) {
-          existing.count += 1;
-          if (it.receivedAt > existing.latestReceivedAt)
-            existing.latestReceivedAt = it.receivedAt;
-        } else {
-          rows.set(key, {
-            postId: it.postId,
-            connectedAccountId: it.connectedAccountId,
-            platform: it.platform,
-            status: it.status,
-            count: 1,
-            latestReceivedAt: it.receivedAt,
-          });
-        }
-      }
-      return [...rows.values()];
-    },
-  } as unknown as IEngagementRepository;
-  return { repository, calls };
-}
+describe("EngagementService.listInboxPostGroupsPage", () => {
+  it("memuat 20 kelompok per halaman tanpa batas jumlah, dengan cursor ke halaman berikutnya", async () => {
+    const { service, state, snapshotCalls } = makeService({
+      numbered: numbered(45),
+    });
 
-function makeService(
-  items: EngagementInboxItemRecord[],
-  opts: {
-    snapshots?: Record<
-      string,
-      {
-        caption: string;
-        mediaIds: ReturnType<typeof asMediaId>[];
-        platformPostUrl: string | null;
-      }
-    >;
-    syncable?: Record<string, PostId[]>;
-  } = {},
-) {
-  const { repository, calls } = repositoryOver(items);
-  const service = new EngagementService(
-    repository,
-    {} as IOutstandAdapter,
-    {
-      findPostOutstandId: async () => null,
-      findPostSnapshotForEngagement: async ({ postId }: { postId: PostId }) =>
-        opts.snapshots?.[postId] ?? null,
-      listSyncablePostsByConnectedAccount: async ({
-        connectedAccountId,
-      }: {
-        connectedAccountId: string;
-      }) =>
-        (opts.syncable?.[connectedAccountId] ?? []).map((postId) => ({
-          postId,
-          outstandPostId: `o-${postId}`,
-          platform:
-            connectedAccountId === ACC_FB
-              ? SocialPlatform.Facebook
-              : SocialPlatform.Instagram,
-        })),
-    },
-    {
-      listConnectedAccounts: async () => [
-        { id: ACC_IG, platform: SocialPlatform.Instagram },
-        { id: ACC_FB, platform: SocialPlatform.Facebook },
-      ],
-      findConnectedAccountById: async () => ({ handle: "@x" }),
-    },
-  );
-  return { service, calls };
-}
+    const first = await service.listInboxPostGroupsPage(
+      { workspaceId: WS },
+      USER,
+      NOW,
+    );
+    expect(first.groups).toHaveLength(20);
+    expect(first.nextCursor).not.toBeNull();
+    // Snapshot hanya untuk kelompok pada halaman ini, bukan seluruh 45.
+    expect(snapshotCalls).toHaveLength(20);
+    expect(state.groupCalls[0].request).toMatchObject({
+      sort: "unreplied_first",
+      limit: 20,
+    });
 
-const P1 = asPostId("post-1");
-const P2 = asPostId("post-2");
-const P3 = asPostId("post-3");
+    const second = await service.listInboxPostGroupsPage(
+      { workspaceId: WS, cursor: first.nextCursor },
+      USER,
+      NOW,
+    );
+    const third = await service.listInboxPostGroupsPage(
+      { workspaceId: WS, cursor: second.nextCursor },
+      USER,
+      NOW,
+    );
+    expect(second.groups).toHaveLength(20);
+    expect(third.groups).toHaveLength(5);
+    expect(third.nextCursor).toBeNull();
+    const ids = [...first.groups, ...second.groups, ...third.groups].map(
+      (g) => g.postId,
+    );
+    expect(new Set(ids).size).toBe(45);
+  });
 
-describe("EngagementService.listInboxByPost", () => {
-  it("mengelompokkan per posting dengan hitungan dan snapshot, kelompok tanpa posting terpisah", async () => {
+  it("menaruh kelompok Tanpa posting di dasar halaman terakhir, bukan di halaman kedua yang kosong", async () => {
+    const noPost = summary(null, { totalCount: 1 });
+    const { service } = makeService({ numbered: numbered(3), noPost });
+
+    const page = await service.listInboxPostGroupsPage(
+      { workspaceId: WS, limit: 4 },
+      USER,
+      NOW,
+    );
+
+    expect(page.groups.map((g) => g.postId)).toEqual([
+      postUuid(1),
+      postUuid(2),
+      postUuid(3),
+      null,
+    ]);
+    expect(page.nextCursor).toBeNull();
+  });
+
+  it("halaman yang tepat penuh oleh posting tetap menyisakan kelompok Tanpa posting di halaman berikutnya", async () => {
+    const noPost = summary(null, { totalCount: 1 });
+    const { service } = makeService({ numbered: numbered(2), noPost });
+
+    const first = await service.listInboxPostGroupsPage(
+      { workspaceId: WS, limit: 2 },
+      USER,
+      NOW,
+    );
+    expect(first.groups).toHaveLength(2);
+    expect(first.nextCursor).not.toBeNull();
+
+    const second = await service.listInboxPostGroupsPage(
+      { workspaceId: WS, limit: 2, cursor: first.nextCursor },
+      USER,
+      NOW,
+    );
+    expect(second.groups.map((g) => g.postId)).toEqual([null]);
+    expect(second.nextCursor).toBeNull();
+  });
+
+  it("posting tanpa komentar mengikuti posting berkomentar, dipaging, tanpa menggandakan yang berkomentar", async () => {
+    const e1 = postUuid(101);
+    const e2 = postUuid(102);
+    const e3 = postUuid(103);
+    const commented = postUuid(1);
     const { service } = makeService(
-      [
-        item({ postId: P1, status: "unread" }),
-        item({ postId: P1, status: "resolved", receivedAt: day(3) }),
-        item({ postId: P1, status: "replied", receivedAt: day(4) }),
-        item({ postId: null, status: "unread" }),
-      ],
-      {
-        snapshots: {
-          [P1]: {
-            caption: "Caption satu",
-            mediaIds: [asMediaId("m1")],
-            platformPostUrl: null,
-          },
-        },
-      },
+      { numbered: [summary(commented)], commented: [commented] },
+      { syncable: { [ACC_IG]: [commented, e1, e2, e3] } },
     );
 
-    const { groups: groups } = await service.listInboxByPost(
-      { workspaceId: WS },
+    const first = await service.listInboxPostGroupsPage(
+      { workspaceId: WS, includeEmpty: true, limit: 3 },
       USER,
       NOW,
     );
-
-    const post = groups.find((g) => g.postId === P1);
-    expect(post).toMatchObject({
-      totalCount: 3,
-      unrepliedCount: 1,
-      handledCount: 2,
-      latestReceivedAt: day(1),
-      postSnapshot: { caption: "Caption satu" },
-    });
-    const none = groups.find((g) => g.postId === null);
-    expect(none).toMatchObject({ totalCount: 1, postSnapshot: null });
-  });
-
-  it("urutan bawaan menaruh posting dengan komentar belum dibalas terbanyak lebih dulu", async () => {
-    const { service } = makeService([
-      item({ postId: P1, receivedAt: day(1) }),
-      item({ postId: P2, receivedAt: day(5) }),
-      item({ postId: P2, receivedAt: day(6) }),
-      item({ postId: P3, status: "resolved", receivedAt: day(0.5) }),
-    ]);
-
-    const { groups: groups } = await service.listInboxByPost(
-      { workspaceId: WS },
-      USER,
-      NOW,
-    );
-    expect(groups.map((g) => g.postId)).toEqual([P2, P1, P3]);
-
-    const { groups: newest } = await service.listInboxByPost(
-      { workspaceId: WS, sort: "newest" },
-      USER,
-      NOW,
-    );
-    expect(newest.map((g) => g.postId)).toEqual([P3, P1, P2]);
-    const { groups: oldest } = await service.listInboxByPost(
-      { workspaceId: WS, sort: "oldest" },
-      USER,
-      NOW,
-    );
-    expect(oldest.map((g) => g.postId)).toEqual([P2, P1, P3]);
-  });
-
-  it("rentang tanggal atas receivedAt: bawaan 12 bulan, komentar di luar rentang tidak dihitung", async () => {
-    const { service } = makeService([
-      item({ postId: P1, receivedAt: day(2) }),
-      item({ postId: P1, receivedAt: day(20) }),
-      item({ postId: P2, receivedAt: day(400) }),
-    ]);
-
-    const { groups: week } = await service.listInboxByPost(
-      { workspaceId: WS, dateRange: "7d" },
-      USER,
-      NOW,
-    );
-    expect(week.map((g) => [g.postId, g.totalCount])).toEqual([[P1, 1]]);
-
-    const { groups: month } = await service.listInboxByPost(
-      { workspaceId: WS, dateRange: "30d" },
-      USER,
-      NOW,
-    );
-    expect(month[0].totalCount).toBe(2);
-
-    const { groups: byDefault } = await service.listInboxByPost(
-      { workspaceId: WS },
-      USER,
-      NOW,
-    );
-    expect(byDefault.map((g) => g.postId)).toEqual([P1]);
-  });
-
-  it("filter akun dan platform membatasi komentar yang dihitung", async () => {
-    const { service } = makeService([
-      item({ postId: P1, connectedAccountId: ACC_IG }),
-      item({
-        postId: P1,
-        connectedAccountId: ACC_FB,
-        platform: SocialPlatform.Facebook,
-      }),
-      item({
-        postId: P2,
-        connectedAccountId: ACC_FB,
-        platform: SocialPlatform.Facebook,
-      }),
-    ]);
-
-    const { groups: byAccount } = await service.listInboxByPost(
-      { workspaceId: WS, connectedAccountId: ACC_IG },
-      USER,
-      NOW,
-    );
-    expect(byAccount.map((g) => [g.postId, g.totalCount])).toEqual([[P1, 1]]);
-
-    const { groups: byPlatform } = await service.listInboxByPost(
-      { workspaceId: WS, platform: SocialPlatform.Facebook },
-      USER,
-      NOW,
-    );
-    expect(byPlatform.map((g) => g.postId).sort()).toEqual([P1, P2]);
-  });
-
-  it("filter status hanya menampilkan posting yang punya komentar berstatus itu, hitungan tetap lengkap", async () => {
-    const { service } = makeService([
-      item({ postId: P1, status: "unread" }),
-      item({ postId: P1, status: "resolved" }),
-      item({ postId: P2, status: "resolved" }),
-    ]);
-
-    const { groups: groups } = await service.listInboxByPost(
-      { workspaceId: WS, status: "unread" },
-      USER,
-      NOW,
-    );
-    expect(groups.map((g) => [g.postId, g.totalCount])).toEqual([[P1, 2]]);
-  });
-
-  it("posting tanpa komentar disembunyikan bawaan dan muncul dengan includeEmpty", async () => {
-    const { service } = makeService([item({ postId: P1 })], {
-      syncable: { [ACC_IG]: [P1, P2], [ACC_FB]: [P3] },
-    });
-
-    const { groups: hidden } = await service.listInboxByPost(
-      { workspaceId: WS },
-      USER,
-      NOW,
-    );
-    expect(hidden.map((g) => g.postId)).toEqual([P1]);
-
-    const { groups: all } = await service.listInboxByPost(
-      { workspaceId: WS, includeEmpty: true },
-      USER,
-      NOW,
-    );
-    expect(all.map((g) => g.postId)).toEqual([P1, P2, P3]);
-    expect(all.find((g) => g.postId === P2)).toMatchObject({
+    expect(first.groups.map((g) => g.postId)).toEqual([commented, e1, e2]);
+    expect(first.groups[1]).toMatchObject({
       totalCount: 0,
       latestReceivedAt: null,
-      connectedAccountId: ACC_IG,
     });
 
-    const { groups: fbOnly } = await service.listInboxByPost(
-      { workspaceId: WS, includeEmpty: true, connectedAccountId: ACC_FB },
+    const second = await service.listInboxPostGroupsPage(
+      {
+        workspaceId: WS,
+        includeEmpty: true,
+        limit: 3,
+        cursor: first.nextCursor,
+      },
       USER,
       NOW,
     );
-    expect(fbOnly.map((g) => g.postId)).toEqual([P3]);
+    expect(second.groups.map((g) => g.postId)).toEqual([e3]);
+    expect(second.nextCursor).toBeNull();
   });
 
-  it("menolak sort, rentang tanggal, atau status yang tidak dikenal", async () => {
-    const { service } = makeService([]);
-    await expect(
-      service.listInboxByPost(
-        { workspaceId: WS, sort: "random" as never },
-        USER,
-        NOW,
-      ),
-    ).rejects.toBeInstanceOf(ValidationError);
-    await expect(
-      service.listInboxByPost(
-        { workspaceId: WS, dateRange: "3y" as never },
-        USER,
-        NOW,
-      ),
-    ).rejects.toBeInstanceOf(ValidationError);
-    await expect(
-      service.listInboxByPost(
-        { workspaceId: WS, status: "done" as never },
-        USER,
-        NOW,
-      ),
-    ).rejects.toBeInstanceOf(ValidationError);
-    await expect(
-      service.listInboxByPost(
-        { workspaceId: WS, connectedAccountId: "bukan-uuid" as never },
-        USER,
-        NOW,
-      ),
-    ).rejects.toBeInstanceOf(ValidationError);
-    await expect(
-      service.listInboxByPost(
-        { workspaceId: WS, platform: "myspace" as never },
-        USER,
-        NOW,
-      ),
-    ).rejects.toBeInstanceOf(ValidationError);
-  });
-
-  it("kelompok Tanpa posting tetap di dasar untuk ketiga sort, walau paling banyak belum dibalas dan terbaru", async () => {
+  it("rejects a B cursor naming a post that is not an empty post (no restart at 0)", async () => {
+    const e1 = postUuid(101);
+    const gone = postUuid(199);
     const { service } = makeService(
-      [
-        item({ postId: null, receivedAt: day(0.1) }),
-        item({ postId: null, receivedAt: day(0.2) }),
-        item({ postId: null, receivedAt: day(0.3) }),
-        item({ postId: P1, receivedAt: day(2) }),
-        item({ postId: P2, receivedAt: day(9) }),
-      ],
-      { syncable: { [ACC_IG]: [P3] } },
+      { numbered: [], commented: [] },
+      { syncable: { [ACC_IG]: [e1] } },
     );
-
-    for (const sort of ["unreplied_first", "newest", "oldest"] as const) {
-      const { groups } = await service.listInboxByPost(
-        { workspaceId: WS, sort },
+    await expect(
+      service.listInboxPostGroupsPage(
+        {
+          workspaceId: WS,
+          includeEmpty: true,
+          cursor: asPageCursor(`B.${gone}`),
+        },
         USER,
         NOW,
-      );
-      expect(groups.at(-1)?.postId).toBeNull();
-      expect(groups.filter((g) => g.postId === null)).toHaveLength(1);
-
-      const withEmpty = await service.listInboxByPost(
-        { workspaceId: WS, sort, includeEmpty: true },
+      ),
+    ).rejects.toBeInstanceOf(ValidationError);
+    await expect(
+      service.listInboxPostGroupsPage(
+        { workspaceId: WS, cursor: asPageCursor(`B.${e1}`) },
         USER,
         NOW,
-      );
-      const ids = withEmpty.groups.map((g) => g.postId);
-      expect(ids.at(-1)).toBeNull();
-      // Posting kosong di bawah posting berkomentar untuk sort apa pun.
-      expect(ids.indexOf(P3)).toBeGreaterThan(ids.indexOf(P1));
-      expect(ids.indexOf(P3)).toBeGreaterThan(ids.indexOf(P2));
-    }
+      ),
+    ).rejects.toBeInstanceOf(ValidationError);
   });
 
-  it("batas posting memotong posting bernomor dan menandai truncated, tanpa membuang kelompok Tanpa posting", async () => {
-    const many = Array.from({ length: POST_GROUP_LIMIT + 5 }, (_, i) =>
-      item({ postId: asPostId(`bulk-${i}`), receivedAt: day(1 + i / 1000) }),
+  it("includeEmpty diabaikan saat filter status aktif", async () => {
+    const { service } = makeService(
+      { numbered: [summary(postUuid(1))] },
+      { syncable: { [ACC_IG]: [postUuid(101)] } },
     );
-    const { service } = makeService([
-      ...many,
-      item({ postId: null, receivedAt: day(300) }),
-    ]);
-
-    const result = await service.listInboxByPost(
-      { workspaceId: WS, sort: "newest" },
+    const page = await service.listInboxPostGroupsPage(
+      { workspaceId: WS, includeEmpty: true, status: "unread" },
       USER,
       NOW,
     );
-
-    expect(result.truncated).toBe(true);
-    expect(result.groups).toHaveLength(POST_GROUP_LIMIT + 1);
-    expect(result.groups.at(-1)?.postId).toBeNull();
+    expect(page.groups.map((g) => g.postId)).toEqual([postUuid(1)]);
   });
 
-  it("posting kosong dipotong lebih dulu dan ditandai truncated; tanpa pemotongan truncated false", async () => {
-    const empties = Array.from({ length: POST_GROUP_LIMIT }, (_, i) =>
-      asPostId(`empty-${i}`),
+  it("hitungan sebenarnya dari count query, ditambah posting kosong, hanya bila diminta", async () => {
+    const { service, state } = makeService(
+      { numbered: numbered(45) },
+      { syncable: { [ACC_IG]: [postUuid(101), postUuid(102)] } },
     );
-    const { service } = makeService([item({ postId: P1 })], {
-      syncable: { [ACC_IG]: empties },
+
+    const without = await service.listInboxPostGroupsPage(
+      { workspaceId: WS },
+      USER,
+      NOW,
+    );
+    expect(without.counts).toBeNull();
+    expect(state.countCalls).toHaveLength(0);
+
+    const withCounts = await service.listInboxPostGroupsPage(
+      { workspaceId: WS, withCounts: true, includeEmpty: true },
+      USER,
+      NOW,
+    );
+    // 45 berkomentar (count query, bukan 20 termuat) + 2 posting kosong.
+    expect(withCounts.counts).toEqual({ postCount: 47, unrepliedCount: 9 });
+  });
+
+  it("satu kelompok: posting tertentu, atau Tanpa posting lewat postId null", async () => {
+    const noPost = summary(null, { totalCount: 1 });
+    const { service, state } = makeService({ numbered: numbered(30), noPost });
+
+    const one = await service.listInboxPostGroupsPage(
+      { workspaceId: WS, postId: postUuid(25) },
+      USER,
+      NOW,
+    );
+    expect(one.groups.map((g) => g.postId)).toEqual([postUuid(25)]);
+    expect(state.groupCalls[0].filter.postId).toBe(postUuid(25));
+
+    const none = await service.listInboxPostGroupsPage(
+      { workspaceId: WS, postId: null },
+      USER,
+      NOW,
+    );
+    expect(none.groups.map((g) => g.postId)).toEqual([null]);
+    expect(state.groupCalls[1].scope).toBe("none");
+  });
+
+  it("meneruskan filter dan rentang tanggal ke repository", async () => {
+    const { service, state } = makeService({ numbered: numbered(1) });
+    await service.listInboxPostGroupsPage(
+      {
+        workspaceId: WS,
+        connectedAccountId: ACC_FB,
+        platform: SocialPlatform.Facebook,
+        status: "replied",
+        sort: "oldest",
+        dateRange: "30d",
+      },
+      USER,
+      NOW,
+    );
+    const call = state.groupCalls[0];
+    expect(call.filter).toMatchObject({
+      connectedAccountId: ACC_FB,
+      platform: SocialPlatform.Facebook,
+      status: "replied",
+      receivedSince: day(30),
+    });
+    expect(call.request.sort).toBe("oldest");
+  });
+
+  it("menolak filter dan cursor tidak valid sebelum menyentuh repository", async () => {
+    const { service, state } = makeService();
+    const bad = (input: object) =>
+      service.listInboxPostGroupsPage({ workspaceId: WS, ...input }, USER, NOW);
+
+    await expect(bad({ sort: "random" })).rejects.toBeInstanceOf(
+      ValidationError,
+    );
+    await expect(bad({ dateRange: "1y" })).rejects.toBeInstanceOf(
+      ValidationError,
+    );
+    await expect(bad({ status: "done" })).rejects.toBeInstanceOf(
+      ValidationError,
+    );
+    await expect(
+      bad({ connectedAccountId: "bukan-uuid" }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    await expect(bad({ platform: "myspace" })).rejects.toBeInstanceOf(
+      ValidationError,
+    );
+    await expect(bad({ postId: "bukan-uuid" })).rejects.toBeInstanceOf(
+      ValidationError,
+    );
+    await expect(
+      bad({ cursor: asPageCursor("Z.sembarang") }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    await expect(
+      bad({ cursor: asPageCursor("B.bukan-uuid") }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    expect(state.groupCalls).toHaveLength(0);
+  });
+});
+
+describe("EngagementService.listInboxPage", () => {
+  it("meminta satu halaman dengan sort, filter postId (id, null, atau tanpa), dan cursor", async () => {
+    const { service, state } = makeService({ items: [item({})] });
+
+    const page = await service.listInboxPage(
+      {
+        workspaceId: WS,
+        sort: "newest",
+        status: "unread",
+        postId: postUuid(1),
+        cursor: asPageCursor("c1"),
+        dateRange: "7d",
+      },
+      USER,
+      NOW,
+    );
+    expect(page.items).toHaveLength(1);
+    expect(page.nextCursor).toBe("next-items");
+    expect(state.itemCalls[0].request).toEqual({
+      sort: "newest",
+      cursor: "c1",
+      limit: 20,
+    });
+    expect(state.itemCalls[0].filter).toMatchObject({
+      status: "unread",
+      postId: postUuid(1),
+      receivedSince: day(7),
     });
 
-    const result = await service.listInboxByPost(
-      { workspaceId: WS, includeEmpty: true },
+    await service.listInboxPage({ workspaceId: WS, postId: null }, USER, NOW);
+    expect(state.itemCalls[1].filter.postId).toBeNull();
+    expect(state.itemCalls[1].request.sort).toBe("unreplied_first");
+
+    await service.listInboxPage({ workspaceId: WS }, USER, NOW);
+    expect(state.itemCalls[2].filter).not.toHaveProperty("postId");
+  });
+
+  it("hitungan sebenarnya hanya bila diminta, bukan panjang halaman", async () => {
+    const { service, state } = makeService({ items: [item({})] });
+
+    const without = await service.listInboxPage({ workspaceId: WS }, USER, NOW);
+    expect(without.counts).toBeNull();
+    expect(state.itemCountCalls).toHaveLength(0);
+
+    const withCounts = await service.listInboxPage(
+      { workspaceId: WS, withCounts: true },
       USER,
       NOW,
     );
-    expect(result.truncated).toBe(true);
-    expect(result.groups[0].postId).toBe(P1);
-    expect(result.groups).toHaveLength(POST_GROUP_LIMIT);
+    expect(withCounts.counts).toEqual({ total: 236, unread: 14 });
+  });
 
-    const small = await service.listInboxByPost({ workspaceId: WS }, USER, NOW);
-    expect(small.truncated).toBe(false);
+  it("caption posting asal satu panggilan per posting, hanya bila diminta", async () => {
+    const { service, snapshotCalls } = makeService(
+      {
+        items: [
+          item({ postId: postUuid(1) }),
+          item({ postId: postUuid(1) }),
+          item({ postId: postUuid(2) }),
+          item({ postId: null }),
+        ],
+      },
+      { captions: { [postUuid(1)]: "Caption satu" } },
+    );
+
+    const without = await service.listInboxPage({ workspaceId: WS }, USER, NOW);
+    expect(without.postCaptions).toEqual({});
+    expect(snapshotCalls).toHaveLength(0);
+
+    const page = await service.listInboxPage(
+      { workspaceId: WS, includePostCaptions: true },
+      USER,
+      NOW,
+    );
+    expect(page.postCaptions).toEqual({ [postUuid(1)]: "Caption satu" });
+    expect(snapshotCalls).toHaveLength(2);
+  });
+
+  it("menolak filter tidak valid", async () => {
+    const { service, state } = makeService();
+    await expect(
+      service.listInboxPage(
+        { workspaceId: WS, postId: "x" as PostId },
+        USER,
+        NOW,
+      ),
+    ).rejects.toBeInstanceOf(ValidationError);
+    expect(state.itemCalls).toHaveLength(0);
   });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -10,8 +10,8 @@ import {
   Notification03Icon,
 } from "@hugeicons/core-free-icons";
 
-import { NotificationType } from "@postific/shared";
-import type { NotificationId } from "@postific/shared";
+import { NotificationType, asPageCursor } from "@postific/shared";
+import type { CursorPage, NotificationId, PageCursor } from "@postific/shared";
 import type { NotificationRecord } from "@/domains/notification";
 
 import { Badge } from "@/components/ui/badge";
@@ -28,8 +28,12 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
+
+import { InfiniteListFooter } from "../infinite-list/InfiniteListStates";
+import { useInfiniteList } from "../infinite-list/useInfiniteList";
 
 import {
   markAllNotificationsReadAction,
@@ -60,6 +64,65 @@ const SUCCESS_NOTIFICATION_TYPES = new Set<NotificationType>([
 
 function isSuccessType(type: NotificationType): boolean {
   return SUCCESS_NOTIFICATION_TYPES.has(type);
+}
+
+/** Newest first; the id breaks ties exactly like the repository's ORDER BY. */
+function compareNotifications(
+  a: NotificationRecord,
+  b: NotificationRecord,
+): number {
+  const byTime = b.createdAt.getTime() - a.createdAt.getTime();
+  if (byTime !== 0) return byTime;
+  if (a.id === b.id) return 0;
+  return a.id > b.id ? -1 : 1;
+}
+
+const getNotificationKey = (n: NotificationRecord) => n.id;
+
+/**
+ * Next page through the GET Route Handler (ADR-166 addendum 5, RS-D01).
+ * Throws on any failure so the panel shows the Retry Alert; JSON turns
+ * `createdAt` into a string, so it is made a Date again here.
+ */
+async function loadNotificationPage(
+  cursor: PageCursor,
+): Promise<CursorPage<NotificationRecord>> {
+  const response = await fetch(
+    `/api/notifications?cursor=${encodeURIComponent(cursor)}`,
+    { headers: { Accept: "application/json" } },
+  );
+  if (!response.ok) throw new Error(`notifications: ${response.status}`);
+  const body = (await response.json()) as {
+    error?: unknown;
+    items?: (Omit<NotificationRecord, "createdAt"> & { createdAt: string })[];
+    nextCursor?: string | null;
+  };
+  if (body.error || !Array.isArray(body.items)) {
+    throw new Error("notifications: bad page");
+  }
+  return {
+    items: body.items.map((item) => ({
+      ...item,
+      createdAt: new Date(item.createdAt),
+    })),
+    nextCursor: body.nextCursor ? asPageCursor(body.nextCursor) : null,
+  };
+}
+
+/** Skeleton row shaped like `NotificationRow` (icon circle, two lines, time). */
+function NotificationRowSkeleton() {
+  return (
+    // eslint-disable-next-line no-restricted-syntax -- T-304: skeleton row, same box as NotificationRow
+    <div className="flex items-start gap-3 rounded-2xl p-3">
+      <Skeleton className="size-8 shrink-0 rounded-full" />
+      {/* eslint-disable-next-line no-restricted-syntax -- T-304: skeleton text column */}
+      <div className="flex min-w-0 flex-1 flex-col gap-2 pt-0.5">
+        <Skeleton className="h-3.5 w-3/5" />
+        <Skeleton className="h-3 w-4/5" />
+      </div>
+      <Skeleton className="h-3 w-10 shrink-0" />
+    </div>
+  );
 }
 
 function NotificationRow({
@@ -159,64 +222,71 @@ function NotificationRow({
 }
 
 export function NotificationBell({
-  initialNotifications,
+  initialNotificationPage,
   initialUnreadCount,
   userId,
 }: {
-  initialNotifications: NotificationRecord[];
+  initialNotificationPage: CursorPage<NotificationRecord>;
   initialUnreadCount: number;
   userId: string;
 }) {
-  const [notifications, setNotifications] = useState(initialNotifications);
+  const list = useInfiniteList<NotificationRecord>({
+    initialPage: initialNotificationPage,
+    loadPage: loadNotificationPage,
+    getKey: getNotificationKey,
+    compare: compareNotifications,
+  });
+  const { items: notifications, upsert } = list;
   const [isOpen, setIsOpen] = useState(false);
-  // State terpisah dari `notifications` (bukan `.filter(!isRead).length`) —
-  // `notifications` cuma berisi 50 baris terbaru (`list()` dibatasi), jadi
-  // menghitung dari situ under-count begitu user punya >50 notifikasi belum
-  // dibaca. `countUnread()` (query `count` terpisah, tanpa `take`) yang jadi
-  // sumber kebenaran awal; sesudahnya di-update incremental di bawah.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  // The realtime subscription keeps the callback of its first render
+  // (`useNotificationRealtime` deps are `[userId]`), so it reads through refs.
+  const notificationsRef = useRef(notifications);
+  useEffect(() => {
+    notificationsRef.current = notifications;
+  }, [notifications]);
+  const countedRealtimeIds = useRef(new Set<string>());
+  // Separate from the loaded pages (T-304): `countUnread()` (its own count
+  // query) is the true starting total; afterwards it moves incrementally.
   const [unreadCount, setUnreadCount] = useState(initialUnreadCount);
 
   useNotificationRealtime(userId, (notification) => {
-    setNotifications((prev) => [notification, ...prev]);
-    setUnreadCount((prev) => prev + 1);
+    const known =
+      countedRealtimeIds.current.has(notification.id) ||
+      notificationsRef.current.some((n) => n.id === notification.id);
+    countedRealtimeIds.current.add(notification.id);
+    upsert(notification);
+    if (!known) setUnreadCount((prev) => prev + 1);
   });
 
   async function handleMarkRead(id: NotificationId) {
-    const wasUnread = notifications.some((n) => n.id === id && !n.isRead);
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
-    );
+    const target = notifications.find((n) => n.id === id);
+    if (!target) return;
+    const wasUnread = !target.isRead;
+    upsert({ ...target, isRead: true });
     if (wasUnread) setUnreadCount((prev) => Math.max(0, prev - 1));
     try {
       await markNotificationReadAction(id);
     } catch {
-      // Revert lewat functional update yang cuma menyentuh `id` ini (bukan
-      // snapshot stale) — supaya notifikasi baru yang masuk lewat realtime
-      // selagi request pending tidak ikut hilang.
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, isRead: false } : n)),
-      );
+      // Revert only this item, so a notification that arrived through
+      // realtime while the request was pending is not lost.
+      upsert({ ...target, isRead: false });
       if (wasUnread) setUnreadCount((prev) => prev + 1);
     }
   }
 
   async function handleMarkAllRead() {
-    const unreadIds = new Set(
-      notifications.filter((n) => !n.isRead).map((n) => n.id),
-    );
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    // The server marks every unread notification (not only the loaded
+    // pages); the loaded ones are updated here and later pages arrive read.
+    const unreadLoaded = notifications.filter((n) => !n.isRead);
+    const previousCount = unreadCount;
+    for (const n of unreadLoaded) upsert({ ...n, isRead: true });
     setUnreadCount(0);
     try {
       await markAllNotificationsReadAction();
     } catch {
-      // Sama seperti handleMarkRead — revert lewat functional update
-      // (tambah balik jumlah yang tadi di-nolkan), bukan assign nilai tetap,
-      // supaya unread count dari realtime insert yang masuk selagi request
-      // pending tidak ikut hilang.
-      setNotifications((prev) =>
-        prev.map((n) => (unreadIds.has(n.id) ? { ...n, isRead: false } : n)),
-      );
-      setUnreadCount((prev) => prev + unreadIds.size);
+      for (const n of unreadLoaded) upsert({ ...n, isRead: false });
+      setUnreadCount((prev) => prev + previousCount);
     }
   }
 
@@ -288,8 +358,11 @@ export function NotificationBell({
           </SheetHeader>
 
           {/* eslint-disable-next-line no-restricted-syntax -- T-098.2, sama seperti di atas */}
-          <div className="flex flex-1 flex-col overflow-y-auto p-2">
-            {notifications.length === 0 ? (
+          <div
+            ref={scrollRef}
+            className="flex flex-1 flex-col overflow-y-auto p-2"
+          >
+            {notifications.length === 0 && list.status === "end" ? (
               <Empty className="h-full flex-1 border-none p-6">
                 <EmptyHeader>
                   <EmptyTitle>Belum ada notifikasi</EmptyTitle>
@@ -299,16 +372,33 @@ export function NotificationBell({
                 </EmptyHeader>
               </Empty>
             ) : (
-              // eslint-disable-next-line no-restricted-syntax -- T-098.2, sama seperti di atas
-              <div className="flex flex-col gap-1">
-                {notifications.map((notification) => (
-                  <NotificationRow
-                    key={notification.id}
-                    notification={notification}
-                    onMarkRead={handleMarkRead}
-                  />
-                ))}
-              </div>
+              <>
+                {/* eslint-disable-next-line no-restricted-syntax -- T-098.2, sama seperti di atas */}
+                <div className="flex flex-col gap-1">
+                  {notifications.map((notification) => (
+                    <NotificationRow
+                      key={notification.id}
+                      notification={notification}
+                      onMarkRead={handleMarkRead}
+                    />
+                  ))}
+                </div>
+                <InfiniteListFooter
+                  list={list}
+                  rootRef={scrollRef}
+                  loading={{
+                    count: 3,
+                    label: "Loading more notifications",
+                    renderRow: () => <NotificationRowSkeleton />,
+                  }}
+                  endText="You've reached the oldest notification."
+                  error={{
+                    title: "Couldn't load more notifications",
+                    description: "Check your connection, then try again.",
+                    retryLabel: "Retry",
+                  }}
+                />
+              </>
             )}
           </div>
         </SheetContent>

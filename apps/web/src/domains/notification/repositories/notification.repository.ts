@@ -1,4 +1,6 @@
 import type {
+  CursorPage,
+  CursorPageRequest,
   NotificationId,
   NotificationType,
   UserId,
@@ -24,17 +26,23 @@ export interface INotificationRepository {
   }): Promise<NotificationRecord>;
 
   /**
-   * Daftar notifikasi milik `userId` (T-036.4 backend), urut `createdAt`
-   * descending, dibatasi 50 baris — cukup untuk bell MVP, hindari
-   * over-fetch. TIDAK difilter per `workspaceId` — Realtime subscription
-   * (T-036.2) juga hanya filter per `user_id` (RT-D03), jadi bell
-   * menampilkan notifikasi user lintas workspace yang dia ikuti, konsisten.
+   * Satu halaman notifikasi milik `userId` (S-009, ADR-166, T-304), urut
+   * `createdAt` descending lalu `id` descending sebagai pemecah seri (dua
+   * notifikasi dengan waktu sama tidak hilang/dobel di batas halaman).
+   * Menggantikan batas 50 baris lama. `request.cursor` kosong berarti
+   * halaman pertama; cursor yang rusak melempar
+   * `InvalidNotificationCursorError`. TIDAK difilter per `workspaceId` —
+   * Realtime subscription (T-036.2) juga hanya filter per `user_id`
+   * (RT-D03), jadi bell menampilkan notifikasi user lintas workspace.
    */
-  list(userId: UserId): Promise<NotificationRecord[]>;
+  listPage(
+    userId: UserId,
+    request: CursorPageRequest,
+  ): Promise<CursorPage<NotificationRecord>>;
 
   /**
    * Hitung TOTAL notifikasi belum dibaca milik `userId` (query `count`
-   * terpisah, tidak dibatasi 50 seperti `list`) — dipakai untuk badge unread
+   * terpisah dari halaman yang dimuat) — dipakai untuk badge unread
    * di bell supaya tidak under-count begitu user punya >50 notifikasi.
    */
   countUnread(userId: UserId): Promise<number>;
