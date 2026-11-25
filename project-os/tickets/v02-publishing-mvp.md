@@ -4296,7 +4296,7 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 **What to build:** proof on staging that the long lists load page by page on a large workspace.
 
-- [ ] Any index migration of the wave is applied on staging.
+- [x] Any index migration of the wave is applied on staging. (2026-11-25, after PR 303 merged as `2ab40808`: `20261125100000_t302_publish_list_page_indexes`, `20261125110000_t303_engagement_inbox_page_indexes`, `20261125120000_t304_notifications_cursor_index` applied to the shared DB with `bun run db:deploy` on King Rezi's permission; `prisma migrate status` up to date.)
 - [ ] Staging E2E run green for the S-009 tests.
 - [ ] King Rezi checks on staging, desktop and phone, in Cook It Real Good: Publish History and a Board column, the Engage list and the Notifications panel load more on scroll, with true counts.
 - [ ] Carried from T-302 to T-304: tablet width (768 px) Board and List; the loading rows and the error Alert seen at least once on a real list; Engage post cards show the same thumbnails as before the wave; Engage and Notifications second pages stay unproven until an account has more than 20 items there.
