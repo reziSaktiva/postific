@@ -25,6 +25,7 @@ function createFakeRepository(
 ): IAnalyticsRepository {
   return {
     findMetricsByPosts: async () => [],
+    findBestTimeSamples: async () => [],
     findLatestWorkspaceSnapshot: async () => null,
     upsertPostMetrics: async (input) => ({
       id: asPostMetricsId("metric-stub"),

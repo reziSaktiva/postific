@@ -13,11 +13,14 @@ import {
 } from "@postific/shared";
 import {
   HISTORY_TERMINAL_STATUSES,
+  SAVE_AND_DELETE_STATUSES,
+  SCHEDULE_AND_PUBLISH_SOURCE_STATUSES,
   type CalendarItemRecord,
   type CalendarItemTargetRecord,
   type HistoryItemRecord,
   type HistoryItemTargetRecord,
   type DraftTargetRecord,
+  type IContentStatusRepository,
   type IPublishingRepository,
   type PublishingCancelScheduleRecord,
   type PostSourceFields,
@@ -182,6 +185,7 @@ function mapCalendarItem(post: QueuePostWithTargets): CalendarItemRecord {
     publishedAt: post.publishedAt,
     createdAt: post.createdAt,
     updatedAt: post.updatedAt,
+    mediaIds: post.mediaIds.map((id) => asMediaId(id)),
     targets: post.targets.map((target): CalendarItemTargetRecord => ({
       id: asPostTargetId(target.id),
       connectedAccountId: asConnectedAccountId(target.connectedAccountId),
@@ -189,6 +193,7 @@ function mapCalendarItem(post: QueuePostWithTargets): CalendarItemRecord {
       contentFormat: target.contentFormat as ContentFormat,
       accountHandle: target.connectedAccount.handle,
       platformPostUrl: target.platformPostUrl,
+      thumbnailStoragePath: target.thumbnailStoragePath,
     })),
   };
 }
@@ -289,6 +294,24 @@ export const publishingRepository: IPublishingRepository = {
     return posts.map(mapPost);
   },
 
+  async listApprovalItems({ workspaceId }, userId) {
+    // One query with the targets and their accounts joined (S-008 final-fix:
+    // replaces one read per In Review post).
+    const posts = await withCurrentUser(userId, (tx) =>
+      tx.publishingPost.findMany({
+        where: {
+          workspaceId,
+          status: ContentStatus.InReview,
+          deletedAt: null,
+        },
+        include: { targets: { include: { connectedAccount: true } } },
+        orderBy: { updatedAt: "desc" },
+      }),
+    );
+
+    return posts.map(mapCalendarItem);
+  },
+
   async findLatestPostTargetAccountIds({ workspaceId }, userId) {
     const post = await withCurrentUser(userId, (tx) =>
       tx.publishingPost.findFirst({
@@ -357,8 +380,9 @@ export const publishingRepository: IPublishingRepository = {
         where: {
           id: postId,
           workspaceId,
-          // T-091.1 — hanya Draft; Published/Failed/Imported di luar whitelist.
-          status: ContentStatus.Draft,
+          // T-091.1/T-297 — Draft, In Review, Ready to Schedule; status tidak
+          // diubah. Scheduled/Published/Failed/Imported di luar whitelist.
+          status: { in: [...SAVE_AND_DELETE_STATUSES] },
           deletedAt: null,
         },
         data: {
@@ -401,10 +425,9 @@ export const publishingRepository: IPublishingRepository = {
           where: {
             id: postId,
             workspaceId,
-            // T-091.1 — hanya Draft/ReadyToSchedule; Published/Failed/Imported di luar whitelist.
-            status: {
-              in: [ContentStatus.Draft, ContentStatus.ReadyToSchedule],
-            },
+            // T-091.1/T-296 — Draft, In Review, Ready to Schedule; Scheduled
+            // dan Published/Failed/Imported di luar whitelist.
+            status: { in: [...SCHEDULE_AND_PUBLISH_SOURCE_STATUSES] },
             deletedAt: null,
           },
           data: { status: ContentStatus.Scheduled, scheduledAt },
@@ -517,10 +540,9 @@ export const publishingRepository: IPublishingRepository = {
           where: {
             id: postId,
             workspaceId,
-            // T-091.1 — hanya Draft/ReadyToSchedule; Published/Failed/Imported di luar whitelist.
-            status: {
-              in: [ContentStatus.Draft, ContentStatus.ReadyToSchedule],
-            },
+            // T-091.1/T-296 — Draft, In Review, Ready to Schedule; Scheduled
+            // dan Published/Failed/Imported di luar whitelist.
+            status: { in: [...SCHEDULE_AND_PUBLISH_SOURCE_STATUSES] },
             deletedAt: null,
           },
           data: { status: ContentStatus.Published, publishedAt: new Date() },
@@ -820,6 +842,35 @@ export const publishingRepository: IPublishingRepository = {
     return posts.map(mapCalendarItem);
   },
 
+  async listBoardPosts({ workspaceId, perStatusLimit }, userId) {
+    const orderFor = (
+      status: ContentStatus,
+    ): Prisma.PublishingPostOrderByWithRelationInput[] =>
+      status === ContentStatus.Scheduled
+        ? [{ scheduledAt: "asc" }, { id: "asc" }]
+        : status === ContentStatus.Published ||
+            status === ContentStatus.Imported
+          ? [{ publishedAt: "desc" }, { id: "desc" }]
+          : [{ updatedAt: "desc" }, { id: "desc" }];
+
+    const perStatus = await withCurrentUser(userId, (tx) =>
+      Promise.all(
+        Object.values(ContentStatus).map((status) =>
+          tx.publishingPost.findMany({
+            where: { workspaceId, deletedAt: null, status },
+            orderBy: orderFor(status),
+            take: perStatusLimit,
+            include: {
+              targets: { include: { connectedAccount: true } },
+            },
+          }),
+        ),
+      ),
+    );
+
+    return perStatus.flat().map(mapCalendarItem);
+  },
+
   async getCalendarPostById({ workspaceId, postId }, userId) {
     let post;
     try {
@@ -904,6 +955,19 @@ export const publishingRepository: IPublishingRepository = {
     );
 
     return posts.map(mapHistoryItem);
+  },
+
+  async countPostsByStatus({ workspaceId, statuses }, userId) {
+    const groups = await withCurrentUser(userId, (tx) =>
+      tx.publishingPost.groupBy({
+        by: ["status"],
+        where: { workspaceId, deletedAt: null, status: { in: [...statuses] } },
+        _count: { _all: true },
+      }),
+    );
+    return new Map(
+      groups.map((group) => [group.status as ContentStatus, group._count._all]),
+    );
   },
 
   async countTerminalPosts({ workspaceId, since, until }, userId) {
@@ -1169,7 +1233,7 @@ export const publishingRepository: IPublishingRepository = {
         where: {
           id: postId,
           workspaceId,
-          status: ContentStatus.Draft,
+          status: { in: [...SAVE_AND_DELETE_STATUSES] },
           deletedAt: null,
         },
         data: { deletedAt: new Date() },
@@ -1560,3 +1624,27 @@ interface WebhookPostTargetLookupRow {
   connected_account_id: string;
   outstand_account_id: string;
 }
+
+/**
+ * Coordination status transitions (T-289, S-008): a compare-and-set update
+ * (`status = from`) so a concurrent change is not overwritten. The rules
+ * live in `ChangeContentStatusUseCase`; this only persists.
+ */
+export const contentStatusRepository: IContentStatusRepository = {
+  findPostStatusById: (input, userId) =>
+    publishingRepository.findPostStatusById(input, userId),
+
+  async transitionContentStatus({ workspaceId, postId, from, to }, userId) {
+    const post = await withCurrentUser(userId, async (tx) => {
+      const { count } = await tx.publishingPost.updateMany({
+        where: { id: postId, workspaceId, status: from, deletedAt: null },
+        data: { status: to },
+      });
+      if (count === 0) {
+        return null;
+      }
+      return tx.publishingPost.findUniqueOrThrow({ where: { id: postId } });
+    });
+    return post ? mapPost(post) : null;
+  },
+};

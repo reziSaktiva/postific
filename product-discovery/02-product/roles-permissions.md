@@ -153,7 +153,10 @@ The following table defines who can trigger each content status transition.
 | `Draft` → `In Review` | ✅ | ✅ | ✅ | — |
 | `In Review` → `Draft` | ✅ | ✅ | ✅ | — |
 | `In Review` → `Ready to Schedule` | ✅ | ✅ | ✅ | — |
+| `In Review` → `Scheduled` (skip Ready; ADR-165 addendum) | ✅ | ✅ | ✅ | — |
+| `In Review` → `Published` (**Publish Now** from review; ADR-165 addendum) | ✅ | ✅ | ✅ | — |
 | `Ready to Schedule` → `Scheduled` | ✅ | ✅ | ✅ | — |
+| `Ready to Schedule` → `Published` (**Publish Now**, skip schedule) | ✅ | ✅ | ✅ | — |
 | `Draft` → `Scheduled` (skip review) | ✅ | ✅ | ✅ | — |
 | `Draft` → `Published` (**Publish Now**, skip schedule) | ✅ | ✅ | ✅ | — |
 | `Scheduled` → `Draft` (pull the schedule) | ✅ | ✅ | ✅ | — |
@@ -164,6 +167,7 @@ The following table defines who can trigger each content status transition.
 **Notes:**
 - All transitions that require a specific role require logging in with that role — not a manual check.
 - All roles (Account Owner, Admin, Creator) have the same rights for content status transitions — there is no longer a role limited to only "In Review" as in the previous 4-role structure.
+- `Draft` → `In Review` is "Ajukan Review" in the Draft Editor (new or existing post); `In Review` → `Draft` and `In Review` → `Ready to Schedule` are "Kembalikan ke Draft" and "Tandai Ready" in Approvals. Nothing blocks on approval, so Schedule and Publish Now stay available from `In Review`. Draft Editor save and delete are also allowed for `In Review` and `Ready to Schedule` with the status unchanged (T-297).
 - The `Scheduled → Published` and `Scheduled → Failed` transitions are fully automatic by the system — no user action is needed.
 - **Publish Now (ADR-047):** `Draft → Published` directly (skipping `In Review`/`Ready to Schedule`/`Scheduled`) is limited to the **exact same** roles as Schedule (Account Owner/Admin/Creator) — not a new, stricter access level. This is consistent with the "Schedule/publish content" row in the permissions summary table above. Publish Now is riskier than Schedule (goes live immediately, with no `cancelSchedule` window for correction), so the UI must show an explicit confirmation before execution (in line with UXP-06).
 

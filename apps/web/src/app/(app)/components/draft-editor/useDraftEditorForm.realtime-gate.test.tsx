@@ -27,6 +27,7 @@ const actionMocks = vi.hoisted(() => ({
   listPinterestBoardsAction: vi.fn(),
   uploadMediaAction: vi.fn(),
   deleteMediaAction: vi.fn(),
+  submitForReviewAction: vi.fn(),
 }));
 const router = vi.hoisted(() => ({
   pushedTo: undefined as string | undefined,
@@ -96,6 +97,7 @@ async function mountOriginScreen(origin: string) {
   actionMocks.saveDraftAction.mockResolvedValue({ postId: "p1" });
   actionMocks.scheduleDraftAction.mockResolvedValue({ postId: "p1" });
   actionMocks.publishNowAction.mockResolvedValue({ postId: "p1" });
+  actionMocks.submitForReviewAction.mockResolvedValue({ postId: "p1" });
 
   const screen = renderHook(() =>
     usePublishingPostsRealtime("ws-1", {
@@ -148,12 +150,16 @@ const RUN = {
 
 // Kombinasi yang memicu router.push (tujuan berbeda dari layar asal).
 const PUSH_CASES = [
-  ["save-draft", "/publish/queue", "/publish/drafts"],
-  ["save-draft", "/publish/calendar", "/publish/drafts"],
-  ["schedule", "/publish/calendar", "/publish/queue"],
-  ["schedule", "/publish/drafts", "/publish/queue"],
-  ["publish-now", "/publish/queue", "/publish/calendar"],
-  ["publish-now", "/publish/drafts", "/publish/calendar"],
+  [
+    "save-draft",
+    "/publish?view=list&tab=queue",
+    "/publish?view=list&tab=drafts",
+  ],
+  ["save-draft", "/publish?view=calendar", "/publish?view=list&tab=drafts"],
+  ["schedule", "/publish?view=calendar", "/publish?view=list&tab=queue"],
+  ["schedule", "/publish?view=list&tab=drafts", "/publish?view=list&tab=queue"],
+  ["publish-now", "/publish?view=list&tab=queue", "/publish?view=calendar"],
+  ["publish-now", "/publish?view=list&tab=drafts", "/publish?view=calendar"],
 ] as const;
 
 describe("Realtime tidak mengirim server action selagi navigasi terminal tertunda (KI-108)", () => {
@@ -182,7 +188,7 @@ describe("Realtime tidak mengirim server action selagi navigasi terminal tertund
   }
 
   it("aksi yang selesai di tempat (refresh) tidak menahan event layar ini", async () => {
-    const { editor } = await mountOriginScreen("/publish/queue");
+    const { editor } = await mountOriginScreen("/publish?view=list&tab=queue");
     await act(async () => {
       await RUN.schedule(editor);
     });
@@ -192,8 +198,22 @@ describe("Realtime tidak mengirim server action selagi navigasi terminal tertund
     expect(serverActionDispatches.total).toBe(1);
   });
 
+  it("Ajukan Review from Approvals (refresh) releases the hold it set before its server calls", async () => {
+    const { editor } = await mountOriginScreen(
+      "/publish?view=list&tab=approvals",
+    );
+    await act(async () => {
+      await editor.current.handleSubmitForReview();
+    });
+    expect(actionMocks.submitForReviewAction).toHaveBeenCalled();
+    expect(router.pushedTo).toBeUndefined();
+
+    supabase.handlers?.onUpdate?.({ postId: POST, eventType: "UPDATE" });
+    expect(serverActionDispatches.total).toBe(1);
+  });
+
   it("navigasi yang macet: event dilepas setelah batas waktu supaya layar tidak basi", async () => {
-    const { editor } = await mountOriginScreen("/publish/queue");
+    const { editor } = await mountOriginScreen("/publish?view=list&tab=queue");
     vi.useFakeTimers();
     await act(async () => {
       await RUN["save-draft"](editor);

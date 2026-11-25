@@ -56,8 +56,14 @@ function startWatching() {
   }, WATCH_INTERVAL_MS);
 }
 
+/**
+ * Path plus query: since T-286 the Publish screens (Calendar, Queue, Drafts,
+ * History) share the path `/publish` and differ only in the query, so the
+ * origin screen is identified by both.
+ */
 function currentPathname(): string {
-  return typeof window === "undefined" ? "" : window.location.pathname;
+  if (typeof window === "undefined") return "";
+  return `${window.location.pathname}${window.location.search ?? ""}`;
 }
 
 /**
@@ -90,6 +96,16 @@ export function isTerminalNavigationPending(
     return false;
   }
   return true;
+}
+
+/**
+ * Drop the mark without navigating: a terminal action that marked itself
+ * pending before its server calls (T-294, Ajukan Review) failed, so the user
+ * stays on the origin screen and its Realtime events must flow again.
+ */
+export function clearTerminalNavigationPending(): void {
+  pending = null;
+  stopWatching();
 }
 
 export function resetTerminalNavigationForTests(): void {

@@ -13,6 +13,7 @@ import { resolveConnectionDisplayStatus } from "@/domains/workspace";
 import { ConflictError, NotFoundError } from "@/lib/utils/errors";
 import {
   assertPostMutable,
+  canSaveOrDeleteInStatus,
   isReadonlyTerminalStatus,
   READONLY_TERMINAL_CONFLICT_MESSAGE,
 } from "../readonly-terminal-status";
@@ -25,7 +26,22 @@ import type {
   PublishingPostRecord,
   SchedulePostTargetInput,
 } from "../repositories/publishing.repository";
+import {
+  APPROVAL_LIST_STATUSES,
+  DRAFT_LIST_STATUSES,
+} from "./group-approval-items";
+import {
+  summarizeHistoryMetrics,
+  type HistoryMetricsSummary,
+} from "./history-metrics-summary";
+import type { QueueSuggestionAccount } from "./get-best-time-suggestions.use-case";
+import {
+  BOARD_COLUMN_LIMIT,
+  groupBoardColumns,
+  type BoardColumn,
+} from "./group-board-columns";
 import { groupQueueItemsByDate, type QueueGroup } from "./group-queue-items";
+import type { PublishListTab } from "./parse-publish-view-state";
 import { resolvePostPerformancePeriodRange } from "./post-performance-period-range";
 import { sortCalendarItemsByEffectiveDate } from "./sort-calendar-items";
 
@@ -153,6 +169,36 @@ export interface HistoryDetailItem extends HistoryItemRecord {
   metrics: PostMetricsRecord[] | null;
   authorName: string | null;
 }
+
+/**
+ * One card of List · History (T-289, S-008): `HistoryItemRecord` plus the
+ * stored metrics of each target, overlaid at service level like
+ * `HistoryDetailItem`. `metrics` is absent when no `PostMetricsPort` is
+ * supplied, `null` for a `Failed` post (never fetched), `[]` for a post with
+ * no ingested row yet.
+ */
+export interface HistoryListItem extends HistoryItemRecord {
+  metrics?: PostMetricsRecord[] | null;
+  /**
+   * One-line summary of `metrics` for the card (counts summed, engagement
+   * rate averaged); `null` when there is no stored row. Absent together with
+   * `metrics`.
+   */
+  metricsSummary?: HistoryMetricsSummary | null;
+}
+
+/** Port the empty Queue uses for best-time suggestions (T-291). */
+interface QueueSuggestionsPort {
+  execute(input: {
+    workspaceId: WorkspaceId;
+    userId: UserId;
+    timezone: string;
+    limitPerAccount?: number;
+  }): Promise<QueueSuggestionAccount[]>;
+}
+
+/** Counts shown on the List tabs of the Publish page (T-289, S-008). */
+export type PublishListTabCounts = Record<PublishListTab, number>;
 
 /**
  * Satu baris tabel "Post Performance" `/analyze` (T-043.1, T-043.2,
@@ -392,7 +438,7 @@ export const HISTORY_TERMINAL_STATUSES: readonly ContentStatus[] = [
 ];
 
 const DELETE_NON_DRAFT_CONFLICT_MESSAGE =
-  "Hanya post berstatus Draft yang bisa dihapus. Batalkan jadwal (Cancel Schedule) dulu untuk post yang sudah dijadwalkan, baru bisa dihapus dari Drafts.";
+  "Hanya post berstatus Draft, In Review, atau Ready to Schedule yang bisa dihapus. Batalkan jadwal (Cancel Schedule) dulu untuk post yang sudah dijadwalkan, baru bisa dihapus dari Drafts.";
 
 /** T-091.1 — pesan read-only untuk status terminal; status non-Draft lain tetap pesan Draft-only. */
 function deleteConflictMessage(status: ContentStatus): string {
@@ -493,6 +539,61 @@ export class PublishingService {
   }
 
   /**
+   * List · Drafts tab (T-289): `Draft` and `Ready to Schedule`
+   * (`DRAFT_LIST_STATUSES`, the one definition the counts use too).
+   */
+  async listDraftsTab(
+    workspaceId: WorkspaceId,
+    userId: UserId,
+  ): Promise<PublishingPostRecord[]> {
+    const drafts = await this.listDrafts(workspaceId, userId);
+    return drafts.filter((post) => DRAFT_LIST_STATUSES.has(post.status));
+  }
+
+  /**
+   * List · Approvals tab (T-289): `In Review` posts with their targets, read
+   * in one repository query (S-008 final-fix).
+   */
+  async listApprovals(
+    workspaceId: WorkspaceId,
+    userId: UserId,
+  ): Promise<CalendarItemRecord[]> {
+    const items = await this.repository.listApprovalItems(
+      { workspaceId },
+      userId,
+    );
+    return this.withClientNames(workspaceId, items);
+  }
+
+  /**
+   * List · Queue tab (T-286, T-291): the scheduled groups, plus best-time
+   * suggestions only when nothing is scheduled. `suggestions` is the
+   * composition root's port (analytics + workspace); it is not called while
+   * the Queue has posts. Outstand is not called.
+   */
+  async getQueueWithSuggestions(
+    workspaceId: WorkspaceId,
+    userId: UserId,
+    timeZone: string,
+    suggestions: QueueSuggestionsPort,
+    limitPerAccount?: number,
+  ): Promise<{ groups: QueueGroup[]; suggestions: QueueSuggestionAccount[] }> {
+    const groups = await this.listQueue(workspaceId, userId, timeZone);
+    if (groups.length > 0) {
+      return { groups, suggestions: [] };
+    }
+    return {
+      groups,
+      suggestions: await suggestions.execute({
+        workspaceId,
+        userId,
+        timezone: timeZone,
+        limitPerAccount,
+      }),
+    };
+  }
+
+  /**
    * T-201.2 — pintasan "Terakhir dipakai" di Draft Editor: id akun tujuan
    * dari post terbaru workspace (tanpa duplikat, urutan dipertahankan).
    * Akun yang sudah terputus atau tidak ada disaring di sisi UI
@@ -567,7 +668,7 @@ export class PublishingService {
       // cancelSchedule/schedulePost/publishNow yang melempar ConflictError
       // untuk balapan serupa.
       throw new ConflictError(
-        "Draft tidak bisa diperbarui — post tidak ditemukan atau statusnya bukan Draft.",
+        "Post tidak bisa diperbarui — tidak ditemukan atau statusnya bukan Draft, In Review, atau Ready to Schedule.",
       );
     }
     return post;
@@ -590,9 +691,9 @@ export class PublishingService {
    * asumsi awal sesi T-035.1) — King Rezi mengonfirmasi eksplisit lewat
    * `AskUserQuestion`: post `Scheduled` tidak boleh dihapus langsung, harus
    * di-Cancel Schedule dulu (T-030, kembali ke `Draft`) baru bisa dihapus
-   * dari Drafts. Karena itu HANYA post berstatus `ContentStatus.Draft` yang
-   * boleh dihapus — status lain (`InReview`/`ReadyToSchedule`/`Scheduled`/
-   * `Published`/`Failed`) ditolak `ConflictError`. Dua lapis guard (defense-
+   * dari Drafts. T-297 (2026-11-24) melebarkan whitelist ke `Draft`,
+   * `InReview`, dan `ReadyToSchedule` (peran sama); `Scheduled` dan terminal
+   * (`Published`/`Failed`/`Imported`) tetap ditolak `ConflictError`. Dua lapis guard (defense-
    * in-depth, pola sama `updateDraft`/`cancelSchedule`): (1) di sini, fetch
    * dulu via `findDraftById` supaya pesan error informatif tanpa menunggu
    * round-trip write; (2) di repository, `softDeletePost` query Prisma-nya
@@ -622,7 +723,7 @@ export class PublishingService {
     if (!existing) {
       throw new NotFoundError("Post tidak ditemukan.");
     }
-    if (existing.status !== ContentStatus.Draft) {
+    if (!canSaveOrDeleteInStatus(existing.status)) {
       throw new ConflictError(deleteConflictMessage(existing.status));
     }
 
@@ -639,7 +740,7 @@ export class PublishingService {
         { workspaceId: input.workspaceId, postId: input.postId },
         userId,
       );
-      if (recheck && recheck.status !== ContentStatus.Draft) {
+      if (recheck && !canSaveOrDeleteInStatus(recheck.status)) {
         throw new ConflictError(deleteConflictMessage(recheck.status));
       }
       throw new NotFoundError(
@@ -737,6 +838,26 @@ export class PublishingService {
           ? (metricsByPost.get(item.id) ?? [])
           : null,
     }));
+  }
+
+  /**
+   * Board (T-290, S-008): posts of every status grouped into the five Board
+   * columns (`groupBoardColumns`). Fetches one more than the column limit
+   * per status so a column can tell it has more cards than it shows.
+   * MCP client names are completed like on the other lists.
+   */
+  async listBoardColumns(
+    workspaceId: WorkspaceId,
+    userId: UserId,
+  ): Promise<BoardColumn<CalendarItemRecord>[]> {
+    const posts = await this.withClientNames(
+      workspaceId,
+      await this.repository.listBoardPosts(
+        { workspaceId, perStatusLimit: BOARD_COLUMN_LIMIT + 1 },
+        userId,
+      ),
+    );
+    return groupBoardColumns(posts);
   }
 
   /**
@@ -848,6 +969,81 @@ export class PublishingService {
   }
 
   /**
+   * List · History cards (T-289, S-008): `listHistory` plus the stored
+   * metrics of each post, so a card shows reach and engagement without a
+   * request per card. Same selection and order as `listHistory`.
+   */
+  async listHistoryWithMetrics(
+    workspaceId: WorkspaceId,
+    userId: UserId,
+  ): Promise<HistoryListItem[]> {
+    const items = await this.listHistory({ workspaceId }, userId);
+    return this.withHistoryMetrics(items, userId);
+  }
+
+  /**
+   * Overlay metrics on History items (see `HistoryListItem`). Without a
+   * `PostMetricsPort` the items come back unchanged.
+   */
+  private async withHistoryMetrics(
+    items: HistoryItemRecord[],
+    userId: UserId,
+  ): Promise<HistoryListItem[]> {
+    if (!this.postMetrics) {
+      return items;
+    }
+    const metricsByPost = await this.postMetrics.getPostMetricsByPosts(
+      items
+        .filter((item) => item.status !== ContentStatus.Failed)
+        .map((item) => item.id),
+      userId,
+    );
+    return items.map((item) => {
+      const metrics =
+        item.status === ContentStatus.Failed
+          ? null
+          : (metricsByPost.get(item.id) ?? []);
+      return {
+        ...item,
+        metrics,
+        metricsSummary: summarizeHistoryMetrics(metrics),
+      };
+    });
+  }
+
+  /**
+   * Counts for the List tabs (T-289): Queue = scheduled posts, Drafts =
+   * `Draft` and `Ready to Schedule`, Approvals = `In Review`, History =
+   * published, failed and imported posts. One count query
+   * (`countPostsByStatus`) over the same rows `listQueue`, `listDrafts`
+   * and `listHistory` read, so the counts equal what each tab lists without
+   * loading the lists.
+   */
+  async getListTabCounts(
+    workspaceId: WorkspaceId,
+    userId: UserId,
+  ): Promise<PublishListTabCounts> {
+    const statuses = [
+      ContentStatus.Scheduled,
+      ...DRAFT_LIST_STATUSES,
+      ...APPROVAL_LIST_STATUSES,
+      ...HISTORY_TERMINAL_STATUSES,
+    ];
+    const counts = await this.repository.countPostsByStatus(
+      { workspaceId, statuses },
+      userId,
+    );
+    const sum = (set: Iterable<ContentStatus>) =>
+      [...set].reduce((total, status) => total + (counts.get(status) ?? 0), 0);
+    return {
+      queue: sum([ContentStatus.Scheduled]),
+      drafts: sum(DRAFT_LIST_STATUSES),
+      approvals: sum(APPROVAL_LIST_STATUSES),
+      history: sum(HISTORY_TERMINAL_STATUSES),
+    };
+  }
+
+  /**
    * Detail satu History item (T-034.1) — dipakai composition root route
    * `/publish/history/[postId]` (UI-nya T-034.3). Sama pola dengan
    * `getDraftById`: `NotFoundError` kalau post tidak ada, bukan milik
@@ -891,6 +1087,39 @@ export class PublishingService {
       throw new NotFoundError("Riwayat post tidak ditemukan.");
     }
 
+    return this.toHistoryDetail(post, userId);
+  }
+
+  /**
+   * Post preview (T-288, S-008): the same detail as `getHistoryById`, for a
+   * post in ANY status, because the preview opens from Calendar, Queue,
+   * History and Board cards (a scheduled post, a failed one, a draft on the
+   * Board). `null` when the post is not in this workspace or was deleted
+   * (not an error: the post can disappear while the preview is open).
+   * Metrics are only read for a published post, like `getHistoryById`.
+   */
+  async getPostPreview(
+    workspaceId: WorkspaceId,
+    postId: PostId,
+    userId: UserId,
+  ): Promise<HistoryDetailItem | null> {
+    // Not `this.getHistoryPostById`: since T-289 that also loads metrics for
+    // the History card, and `toHistoryDetail` reads them itself.
+    const post = await this.repository.getHistoryPostById(
+      { workspaceId, postId },
+      userId,
+    );
+    if (!post) {
+      return null;
+    }
+    const [found] = await this.withClientNames(workspaceId, [post]);
+    return found ? this.toHistoryDetail(found, userId) : null;
+  }
+
+  private async toHistoryDetail(
+    post: HistoryItemRecord,
+    userId: UserId,
+  ): Promise<HistoryDetailItem> {
     const [metrics, authorName] = await Promise.all([
       post.status === ContentStatus.Published && this.postMetrics
         ? this.postMetrics
@@ -1460,7 +1689,7 @@ export class PublishingService {
     workspaceId: WorkspaceId,
     postId: PostId,
     userId: UserId,
-  ): Promise<HistoryItemRecord | null> {
+  ): Promise<HistoryListItem | null> {
     const post = await this.repository.getHistoryPostById(
       { workspaceId, postId },
       userId,
@@ -1469,6 +1698,11 @@ export class PublishingService {
       return null;
     }
     const [enriched] = await this.withClientNames(workspaceId, [post]);
-    return enriched ?? null;
+    if (!enriched) {
+      return null;
+    }
+    // T-289: List · History cards show metrics, so a Realtime patch keeps them.
+    const [withMetrics] = await this.withHistoryMetrics([enriched], userId);
+    return withMetrics ?? null;
   }
 }

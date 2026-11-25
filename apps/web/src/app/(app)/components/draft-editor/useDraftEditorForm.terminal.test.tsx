@@ -28,7 +28,7 @@ const actionMocks = vi.hoisted(() => ({
 const nav = vi.hoisted(() => ({
   push: vi.fn(),
   refresh: vi.fn(),
-  pathname: "/publish/queue",
+  pathname: "/publish?view=list&tab=queue",
   close: vi.fn(),
 }));
 
@@ -50,9 +50,12 @@ vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 vi.mock("@/domains/publishing", async () => {
   const matrix = await import("@/domains/publishing/content-format-matrix");
   const story = await import("@/domains/publishing/story-caption-constraints");
+  const view =
+    await import("@/domains/publishing/services/parse-publish-view-state");
   return {
     maxMediaCountForFormats: matrix.maxMediaCountForFormats,
     isCaptionRequiredForFormats: story.isCaptionRequiredForFormats,
+    buildPublishSearch: view.buildPublishSearch,
   };
 });
 
@@ -70,7 +73,9 @@ function inDays(days: number): string {
 }
 
 async function setupReady(pathname: string) {
-  nav.pathname = pathname;
+  const [path, query = ""] = pathname.split("?");
+  nav.pathname = path;
+  window.history.pushState({}, "", `${path}${query ? `?${query}` : ""}`);
   actionMocks.getConnectedAccountsAction.mockResolvedValue([FACEBOOK]);
   actionMocks.getLastUsedAccountIdsAction.mockResolvedValue([]);
   actionMocks.saveDraftAction.mockResolvedValue({ postId: "p1" });
@@ -97,6 +102,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   cleanup();
+  window.history.pushState({}, "", "/");
   resetTerminalNavigationForTests();
 });
 
@@ -110,16 +116,49 @@ const ACTIONS = {
 } as const;
 
 const DESTINATION = {
-  "save-draft": "/publish/drafts",
-  schedule: "/publish/queue",
-  "publish-now": "/publish/calendar",
+  "save-draft": "/publish?view=list&tab=drafts",
+  schedule: "/publish?view=list&tab=queue",
+  "publish-now": "/publish?view=calendar",
 } as const;
+
+describe("terminal destinations keep the Publish display zone (S-008 review)", () => {
+  it("schedule from Drafts with tz pushes to Queue with the same tz", async () => {
+    const result = await setupReady(
+      "/publish?view=list&tab=drafts&tz=Asia%2FTokyo",
+    );
+    await act(async () => {
+      await result.current.handleConfirmSchedule();
+    });
+    expect(nav.push).toHaveBeenCalledWith(
+      "/publish?view=list&tab=queue&tz=Asia%2FTokyo",
+    );
+  });
+
+  it("publish-now from Calendar with range, date and tz refreshes in place", async () => {
+    const result = await setupReady(
+      "/publish?view=calendar&range=week&date=2026-11-24&tz=Asia%2FTokyo",
+    );
+    await act(async () => {
+      await result.current.handleConfirmPublishNow();
+    });
+    expect(nav.push).not.toHaveBeenCalled();
+    expect(nav.refresh).toHaveBeenCalled();
+  });
+
+  it("outside Publish nothing is carried", async () => {
+    const result = await setupReady("/analyze?tz=Asia%2FTokyo");
+    await act(async () => {
+      await result.current.handleConfirmSchedule();
+    });
+    expect(nav.push).toHaveBeenCalledWith("/publish?view=list&tab=queue");
+  });
+});
 
 describe("aksi terminal Draft Editor per layar asal (ADR-054, T-208)", () => {
   const origins = [
-    "/publish/queue",
-    "/publish/calendar",
-    "/publish/drafts",
+    "/publish?view=list&tab=queue",
+    "/publish?view=calendar",
+    "/publish?view=list&tab=drafts",
   ] as const;
   const actions = ["save-draft", "schedule", "publish-now"] as const;
 
@@ -150,7 +189,7 @@ describe("aksi terminal Draft Editor per layar asal (ADR-054, T-208)", () => {
   }
 
   it("aksi yang ditolak server tidak menutup editor, tidak berpindah, dan tidak memasang gerbang", async () => {
-    const result = await setupReady("/publish/queue");
+    const result = await setupReady("/publish?view=list&tab=queue");
     actionMocks.scheduleDraftAction.mockResolvedValue({
       error: "Jadwal ditolak",
     });

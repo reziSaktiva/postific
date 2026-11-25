@@ -9,6 +9,8 @@ vi.mock("@/lib/time/user-time-zone-context", () => ({
   useUserTimeZone: () => "Asia/Jakarta",
 }));
 
+import { ContentStatus } from "@postific/shared";
+
 import { EditorFooter } from "./EditorFooter";
 
 // 14:20 WIB, Selasa 3 Nov 2026 (jam rancangan). Hanya Date yang dipalsukan;
@@ -31,6 +33,8 @@ function Harness({
   scheduleTimeMessage = null,
   selectedAccountCount = 2,
   warningCount = 0,
+  status = ContentStatus.Draft,
+  isNarrow = false,
   handlers = {},
 }: {
   isReadyToSchedule?: boolean;
@@ -40,8 +44,11 @@ function Harness({
   scheduleTimeMessage?: string | null;
   selectedAccountCount?: number;
   warningCount?: number;
+  status?: ContentStatus;
+  isNarrow?: boolean;
   handlers?: Partial<{
     onSaveDraft: () => void;
+    onSubmitForReview: () => void;
     onRequestPublishNow: () => void;
     onRequestSchedule: () => void;
   }>;
@@ -50,9 +57,12 @@ function Harness({
   const [time, setTime] = useState<string | undefined>(initialTime);
   return (
     <EditorFooter
+      isNarrow={isNarrow}
       isLoadingDraft={false}
+      status={status}
       pendingAction={null}
       isSavingDraft={false}
+      isSubmittingReview={false}
       isScheduling={false}
       isPublishingNow={false}
       isLoadingAccounts={false}
@@ -69,6 +79,7 @@ function Harness({
       onConfirmSchedule={vi.fn()}
       onConfirmPublishNow={vi.fn()}
       onSaveDraft={handlers.onSaveDraft ?? vi.fn()}
+      onSubmitForReview={handlers.onSubmitForReview ?? vi.fn()}
       onRequestPublishNow={handlers.onRequestPublishNow ?? vi.fn()}
       onRequestSchedule={handlers.onRequestSchedule ?? vi.fn()}
     />
@@ -201,5 +212,43 @@ describe("EditorFooter: popover Atur jadwal", () => {
     const { dialog } = await openPopover();
     expect(screen.queryByText(/next available/i)).toBeNull();
     expect(within(dialog).queryByText(/next available/i)).toBeNull();
+  });
+});
+
+describe("EditorFooter: Ajukan Review per status (T-296)", () => {
+  const AWAITING = "Menunggu review · Tandai Ready di Publish > Approvals";
+
+  it("Draft: Ajukan Review tampil dan memanggil handler; Schedule dan Publish Now tetap ada", async () => {
+    const onSubmitForReview = vi.fn();
+    render(
+      <Harness status={ContentStatus.Draft} handlers={{ onSubmitForReview }} />,
+    );
+    await userEvent.click(button("Ajukan Review"));
+    expect(onSubmitForReview).toHaveBeenCalledTimes(1);
+    expect(button("Save as Draft")).toBeTruthy();
+    expect(screen.queryByText(AWAITING)).toBeNull();
+  });
+
+  it("In Review: tanpa Ajukan Review, catatan menunggu review, Simpan, Schedule dan Publish Now aktif", () => {
+    render(<Harness status={ContentStatus.InReview} />);
+    expect(screen.queryByRole("button", { name: "Ajukan Review" })).toBeNull();
+    expect(screen.getByText(AWAITING)).toBeTruthy();
+    expect(button("Simpan")).toHaveProperty("disabled", false);
+    expect(screen.queryByRole("button", { name: "Save as Draft" })).toBeNull();
+    expect(button("Schedule")).toHaveProperty("disabled", false);
+    expect(button("Publish Now")).toHaveProperty("disabled", false);
+  });
+
+  it("In Review di layar sempit: catatan disembunyikan seperti bantuan footer", () => {
+    render(<Harness status={ContentStatus.InReview} isNarrow />);
+    expect(screen.queryByText(AWAITING)).toBeNull();
+    expect(button("Simpan")).toBeTruthy();
+  });
+
+  it("Ready to Schedule: tanpa Ajukan Review dan tanpa catatan, label Simpan", () => {
+    render(<Harness status={ContentStatus.ReadyToSchedule} />);
+    expect(screen.queryByRole("button", { name: "Ajukan Review" })).toBeNull();
+    expect(screen.queryByText(AWAITING)).toBeNull();
+    expect(button("Simpan")).toBeTruthy();
   });
 });

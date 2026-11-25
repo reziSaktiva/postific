@@ -151,6 +151,11 @@ test.beforeAll(() => {
   fs.mkdirSync(OUT, { recursive: true });
 });
 
+// S-008 (T-286): old routes redirect to the single Publish page; a
+// client-side push may still show the old path until the redirect lands.
+const DRAFTS_URL = /\/publish\?view=list&tab=drafts/;
+const CALENDAR_URL = /\/publish\?view=calendar/;
+
 async function deleteE2eDrafts(page: Page): Promise<number> {
   await page.goto("/publish/drafts");
   await expect(page.getByText(E2E_WORKSPACE_NAME).first()).toBeVisible();
@@ -162,7 +167,9 @@ async function deleteE2eDrafts(page: Page): Promise<number> {
       .or(page.getByText("Belum ada draft")),
   ).toBeVisible({ timeout: 15_000 });
   let removed = 0;
-  const rows = page.getByRole("button").filter({ hasText: /e2e-qa-draft-/ });
+  const rows = page
+    .locator('[data-slot="card"]')
+    .filter({ hasText: /e2e-qa-draft-/ });
   for (let i = 0; i < 10; i++) {
     const before = await rows.count();
     if (before === 0) break;
@@ -204,8 +211,12 @@ test("S1 buka New Post dari Drafts: Standard, judul, chip, Close, Akun tujuan", 
   await expect(dlg.getByRole("button", { name: "Close" })).toBeVisible();
   await expect(dlg.getByRole("button", { name: "Fullscreen" })).toBeVisible();
   await expect(dlg.getByRole("heading", { name: "Akun tujuan" })).toBeVisible();
-  // Daftar akun selesai dimuat bila pintasan menampilkan jumlahnya.
-  await expect(dlg.getByText(/Terakhir dipakai \(\d+\)/)).toBeVisible({
+  // Daftar akun selesai dimuat bila "Semua (n)" menampilkan jumlahnya.
+  // Bukan "Terakhir dipakai": pintasan itu hanya muncul bila workspace punya
+  // post dengan akun tujuan, jadi bergantung pada data sandbox (S-008 wave).
+  await expect(
+    dlg.getByRole("button", { name: /^Semua \(\d+\)$/ }),
+  ).toBeVisible({
     timeout: 15_000,
   });
   const accountsText = await dlg
@@ -346,7 +357,7 @@ test("S4 Save as Draft hanya caption: redirect ke Drafts, draft muncul", async (
   await expect(save).toBeEnabled({ timeout: 15_000 });
   await save.click();
   await expect(dialog(page)).toHaveCount(0, { timeout: 30_000 });
-  await expect(page).toHaveURL(/\/publish\/drafts/, { timeout: 30_000 });
+  await expect(page).toHaveURL(DRAFTS_URL, { timeout: 30_000 });
   await expect(page.getByText(CAPTION)).toBeVisible({ timeout: 30_000 });
   console.log("S4 URL akhir:", page.url());
   console.log("S4 key localStorage:", await hasStorageKey(page));
@@ -385,7 +396,7 @@ test("S4b T-208 Save as Draft dari Calendar (Realtime aktif): redirect ke Drafts
   await expect(save).toBeEnabled({ timeout: 15_000 });
   await save.click();
   await expect(dialog(page)).toHaveCount(0, { timeout: 30_000 });
-  await expect(page).toHaveURL(/\/publish\/drafts/, { timeout: 30_000 });
+  await expect(page).toHaveURL(DRAFTS_URL, { timeout: 30_000 });
   await expect(page.getByText(`e2e-qa-draft-cal-${STAMP}`)).toBeVisible({
     timeout: 30_000,
   });
@@ -413,7 +424,7 @@ test("S4c T-208 Save as Draft dari Drafts (Realtime aktif): tetap di Drafts, dra
   await expect(page.getByText(`e2e-qa-draft-drf-${STAMP}`)).toBeVisible({
     timeout: 30_000,
   });
-  await expect(page).toHaveURL(/\/publish\/drafts/);
+  await expect(page).toHaveURL(DRAFTS_URL);
   console.log("S4c soket Realtime:", sockets.length, "URL akhir:", page.url());
 });
 
@@ -422,9 +433,12 @@ test("S5 Edit Draft: form terisi dari server tanpa dialog Resume", async ({
 }) => {
   track(page, "S5");
   await page.goto("/publish/drafts");
-  const row = page.getByRole("button").filter({ hasText: CAPTION }).first();
+  const row = page
+    .locator('[data-slot="card"]')
+    .filter({ hasText: CAPTION })
+    .first();
   await expect(row).toBeVisible();
-  await row.click();
+  await row.getByRole("button").first().click();
   const dlg = dialog(page);
   await expect(dlg.getByRole("heading", { name: "Edit Draft" })).toBeVisible();
   await expect(page.getByText("Resume unfinished post?")).toHaveCount(0);
@@ -615,7 +629,9 @@ test("S8a layar sempit 375: modal penuh, tanpa overflow horizontal", async ({
   await expect
     .poll(async () => Math.round((await dialogBox(dlg)).width))
     .toBe(375);
-  await expect(dlg.getByText(/Terakhir dipakai \(\d+\)/)).toBeVisible({
+  await expect(
+    dlg.getByRole("button", { name: /^Semua \(\d+\)$/ }),
+  ).toBeVisible({
     timeout: 15_000,
   });
   await settleAnimations(dlg);
@@ -759,7 +775,7 @@ test("S9 jalur lain: sidebar New Post dari Calendar dan klik baris draft membuka
   await dialog(page).getByRole("button", { name: "Close" }).click();
   await expect(dialog(page)).toHaveCount(0);
   console.log("S9 setelah Close URL:", page.url());
-  expect(page.url()).toMatch(/\/publish\/calendar/);
+  expect(page.url()).toMatch(CALENDAR_URL);
 });
 
 test("S11 golden path: akun, caption, media, Pratinjau, jadwal dalam batas, Save as Draft, Edit Draft", async ({
@@ -792,11 +808,14 @@ test("S11 golden path: akun, caption, media, Pratinjau, jadwal dalam batas, Save
     await snap(page, "s11-golden-path");
     await dlg.getByRole("button", { name: "Save as Draft" }).click();
     await expect(dialog(page)).toHaveCount(0, { timeout: 30_000 });
-    await expect(page).toHaveURL(/\/publish\/drafts/, { timeout: 30_000 });
-    const row = page.getByRole("button").filter({ hasText: caption }).first();
+    await expect(page).toHaveURL(DRAFTS_URL, { timeout: 30_000 });
+    const row = page
+      .locator('[data-slot="card"]')
+      .filter({ hasText: caption })
+      .first();
     await expect(row).toBeVisible({ timeout: 30_000 });
     // Edit Draft: akun, format, media, dan Pratinjau kembali dari data tersimpan.
-    await row.click();
+    await row.getByRole("button").first().click();
     const edit = dialog(page);
     await expect(
       edit.getByRole("heading", { name: "Edit Draft" }),
@@ -825,8 +844,10 @@ test("S11 golden path: akun, caption, media, Pratinjau, jadwal dalam batas, Save
     if ((await dialog(page).count()) === 0) {
       await page.goto("/publish/drafts");
       await page
-        .getByRole("button")
+        .locator('[data-slot="card"]')
         .filter({ hasText: caption })
+        .first()
+        .getByRole("button")
         .first()
         .click({ timeout: 10_000 });
     }
@@ -1005,9 +1026,12 @@ test("S15 Quick Compose dari sidebar: akun yang di-hover sudah terpilih dan ters
   await dlg.getByLabel("Caption").fill(caption);
   await dlg.getByRole("button", { name: "Save as Draft" }).click();
   await expect(dialog(page)).toHaveCount(0, { timeout: 30_000 });
-  const row = page.getByRole("button").filter({ hasText: caption }).first();
+  const row = page
+    .locator('[data-slot="card"]')
+    .filter({ hasText: caption })
+    .first();
   await expect(row).toBeVisible({ timeout: 30_000 });
-  await row.click();
+  await row.getByRole("button").first().click();
   const edit = dialog(page);
   await expect(edit.getByRole("heading", { name: "Edit Draft" })).toBeVisible();
   await expect(edit.getByLabel("Caption")).toHaveValue(caption, {

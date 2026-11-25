@@ -110,7 +110,13 @@ function setup(
   );
   const updateDraftCaption = vi.fn(
     async (input: Parameters<IPublishingRepository["updateDraftCaption"]>[0]) =>
-      post({ caption: input.caption, mediaIds: input.mediaIds ?? [] }),
+      post({
+        caption: input.caption,
+        mediaIds: input.mediaIds ?? [],
+        // The repository keeps the stored status (it only rewrites caption
+        // and media), so a Draft/In Review/Ready to Schedule post stays so.
+        status: stored?.status ?? ContentStatus.Draft,
+      }),
   );
   const findPostStatusById = vi.fn(async () =>
     status === null ? null : { status },
@@ -567,15 +573,16 @@ describe("ComposeDraftUseCase.updateDraft", () => {
   });
 
   it.each([ContentStatus.InReview, ContentStatus.ReadyToSchedule])(
-    "refuses a %s post: only drafts are editable through MCP",
+    "updates a %s post like the Draft Editor does (T-297)",
     async (status) => {
       const { useCase, updateDraftCaption } = setup({
         stored: post({ status }),
       });
-      await expect(
-        useCase.updateDraft({ ...base, caption: "x" }),
-      ).rejects.toThrow(/Hanya post berstatus draft/);
-      expect(updateDraftCaption).not.toHaveBeenCalled();
+      const result = await useCase.updateDraft({ ...base, caption: "x" });
+      // Editing changes the caption and leaves the status where it was.
+      expect(result.post.caption).toBe("x");
+      expect(result.post.status).toBe(status);
+      expect(updateDraftCaption).toHaveBeenCalledTimes(1);
     },
   );
 

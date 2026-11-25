@@ -213,6 +213,12 @@ export interface PublishingCancelScheduleRecord extends PublishingPostRecord {
  */
 export interface CalendarItemTargetRecord extends QueueItemTargetRecord {
   platformPostUrl: string | null;
+  /**
+   * T-287 (S-008, ADR-158) — thumbnail tersimpan posting impor, untuk
+   * thumbnail chip Calendar saat post tidak punya `mediaIds`. Opsional di
+   * tipe (fixture lama); repository selalu mengisinya.
+   */
+  thumbnailStoragePath?: string | null;
 }
 
 export interface CalendarItemRecord extends PostSourceFields {
@@ -231,6 +237,12 @@ export interface CalendarItemRecord extends PostSourceFields {
    * Additive-only — tidak mengubah bentuk data yang dipakai Calendar/Queue.
    */
   updatedAt: Date;
+  /**
+   * T-287 (S-008) — media post-level (ADR-107), untuk thumbnail chip
+   * Calendar dan kartu Board. Opsional di tipe (fixture lama); repository
+   * selalu mengisinya, `undefined` sama dengan array kosong.
+   */
+  mediaIds?: MediaId[];
   targets: CalendarItemTargetRecord[];
 }
 
@@ -388,6 +400,30 @@ export interface UpsertImportedPostsResult {
 }
 
 /** Repository interface — implementation (Prisma) lives in src/lib/repositories/publishing. */
+/**
+ * Port of the coordination status transitions (T-289, S-008), kept apart
+ * from `IPublishingRepository` so the many fakes of that interface stay
+ * unchanged. `transitionContentStatus` writes `to` only while the post is
+ * still `from` (compare-and-set) and returns null when nothing matched
+ * (post gone, other workspace, or status changed meanwhile).
+ */
+export interface IContentStatusRepository {
+  findPostStatusById(
+    input: { workspaceId: WorkspaceId; postId: PostId },
+    userId: UserId,
+  ): Promise<{ status: ContentStatus } | null>;
+
+  transitionContentStatus(
+    input: {
+      workspaceId: WorkspaceId;
+      postId: PostId;
+      from: ContentStatus;
+      to: ContentStatus;
+    },
+    userId: UserId,
+  ): Promise<PublishingPostRecord | null>;
+}
+
 export interface IPublishingRepository {
   createDraft(input: {
     workspaceId: WorkspaceId;
@@ -420,6 +456,18 @@ export interface IPublishingRepository {
     input: { workspaceId: WorkspaceId },
     userId: UserId,
   ): Promise<PublishingPostRecord[]>;
+
+  /**
+   * List · Approvals tab (S-008) — `In Review` posts not soft-deleted, newest
+   * edit first, with each post's targets and account handles joined in one
+   * query (no per-post read).
+   *
+   * `userId` (RLS, KI-026 follow-up) — acting user for `withCurrentUser`.
+   */
+  listApprovalItems(
+    input: { workspaceId: WorkspaceId },
+    userId: UserId,
+  ): Promise<CalendarItemRecord[]>;
 
   /**
    * T-201.2 ("Terakhir dipakai") — id akun tujuan dari post TERBARU di
@@ -661,6 +709,21 @@ export interface IPublishingRepository {
   ): Promise<CalendarItemRecord[]>;
 
   /**
+   * Board (T-290, S-008) — posts of every status, with or without a date,
+   * for the five Board columns. At most `perStatusLimit` posts of EACH
+   * status (so one busy status cannot crowd the others out), in the order
+   * the column needs: Scheduled by `scheduledAt` ascending, Published and
+   * Imported by `publishedAt` descending, the rest by `updatedAt`
+   * descending. Same projection as `listCalendarPosts`.
+   *
+   * `userId` (RLS, KI-026 follow-up) — acting user for `withCurrentUser`.
+   */
+  listBoardPosts(
+    input: { workspaceId: WorkspaceId; perStatusLimit: number },
+    userId: UserId,
+  ): Promise<CalendarItemRecord[]>;
+
+  /**
    * Granular patch Realtime Calendar (T-092.3, ADR-094 poin 5) — fetch SATU
    * `PublishingPost` termapping (bentuk sama `listCalendarPosts`) untuk
    * `postId` yang datang dari event Supabase Realtime
@@ -718,6 +781,20 @@ export interface IPublishingRepository {
     },
     userId: UserId,
   ): Promise<HistoryItemRecord[]>;
+
+  /**
+   * Number of posts per status, for the List tab counts (T-289, S-008): one
+   * `groupBy` instead of loading the Queue, Drafts and History lists. Same
+   * rows those lists read: posts of `workspaceId`, not soft-deleted
+   * (`deletedAt: null`), with a status in `statuses`, and no account or date
+   * filter. A status without posts is absent from the map.
+   *
+   * `userId` (RLS, KI-026 follow-up) — acting user for `withCurrentUser`.
+   */
+  countPostsByStatus(
+    input: { workspaceId: WorkspaceId; statuses: readonly ContentStatus[] },
+    userId: UserId,
+  ): Promise<Map<ContentStatus, number>>;
 
   /**
    * T-130/KI-093 — jumlah `PublishingPost` berstatus terminal

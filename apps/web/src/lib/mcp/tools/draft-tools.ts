@@ -18,7 +18,7 @@ import type { McpJsonSchema, McpToolDefinition } from "../tool-types";
 /**
  * Dua tool tulis scope `draft` (T-152): `create_draft` dan `update_draft`.
  * Handler tipis: parse bentuk argumen, satu panggilan `ComposeDraftUseCase`
- * (domain `publishing`), lalu petakan hasil. Aturan (status hanya draft,
+ * (domain `publishing`), lalu petakan hasil. Aturan (status draft/in_review/ready_to_schedule,
  * matriks `ContentFormat`, batas media dan caption, kepemilikan akun/media)
  * hidup di use-case, bukan di sini. `workspaceId`, `userId`, dan `clientId`
  * selalu dari grant yang lolos `authorizeCall`, tidak pernah dari argumen.
@@ -153,7 +153,7 @@ const createDraft: McpToolDefinition = {
 const updateDraft: McpToolDefinition = {
   name: "update_draft",
   description:
-    "Ubah draft yang sudah ada (caption, media, atau akun tujuan; yang tidak diisi tidak berubah). Hanya post berstatus draft: post yang sudah dijadwalkan, terbit, gagal, atau diimpor ditolak dengan error conflict. Tidak mengubah penanda sumber pembuatan. Tanggal dan jam mengikuti zona waktu pengguna (lihat get_workspace), dengan offset di tiap nilai.",
+    "Ubah draft yang sudah ada (caption, media, atau akun tujuan; yang tidak diisi tidak berubah). Hanya post berstatus draft, in_review, atau ready_to_schedule (statusnya tidak berubah): post yang sudah dijadwalkan, terbit, gagal, atau diimpor ditolak dengan error conflict. Tidak mengubah penanda sumber pembuatan. Tanggal dan jam mengikuti zona waktu pengguna (lihat get_workspace), dengan offset di tiap nilai.",
   scope: "draft",
   inputSchema: UPDATE_DRAFT_SCHEMA,
   async handler(context, args) {

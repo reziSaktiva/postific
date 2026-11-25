@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import { toast } from "sonner";
 
@@ -11,8 +11,6 @@ import {
 } from "@postific/shared";
 import {
   effectiveCalendarDate,
-  getMonthRange,
-  getWeekRange,
   type CalendarPostItem,
   type CalendarViewMode,
 } from "@/domains/publishing";
@@ -34,12 +32,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Spinner } from "@/components/ui/spinner";
+import type { MediaThumbnailDto } from "@/domains/media";
 
 import { cancelScheduleAction, getCalendarPostAction } from "../actions";
-import { CalendarAgendaList } from "./CalendarAgendaList";
 import { CalendarMonthGrid } from "./CalendarMonthGrid";
 import { CalendarToolbar } from "./CalendarToolbar";
+import { NoDatePanel, type UndatedPostItem } from "./NoDatePanel";
 import { CalendarWeekGrid } from "./CalendarWeekGrid";
+import { getCalendarFetchRange } from "./calendar-fetch-range";
 
 type CalendarScreenProps = {
   /** Hasil parse `?view=` (T-033.2) — default `"week"` sudah diresolusi
@@ -72,6 +72,10 @@ type CalendarScreenProps = {
    * fetch data apa pun langsung di komponen ini (itu tetap tugas
    * `getCalendarPostAction`/Application Service, AGENTS.md #5). */
   workspaceId: string;
+  /** First media of each post (T-287), by post id: chip thumbnails. */
+  thumbnails?: Record<string, MediaThumbnailDto>;
+  /** Posts without a date (T-287): the "No date" panel. */
+  undatedPosts?: UndatedPostItem[];
 };
 
 /**
@@ -80,17 +84,15 @@ type CalendarScreenProps = {
  * data nyata dari `page.tsx` (`parseCalendarViewState` +
  * `getWeekRange`/`getMonthRange` + `PublishingService.listCalendarPosts` +
  * `WorkspaceService.listConnectedAccounts`). Popover klik item — T-033.8/
- * T-101.1, `CalendarPostPopover` (shadcn `Popover`, ADR-090/ADR-091).
+ * T-101.1, `PostPreviewPopover` (shadcn `Popover`, ADR-090/ADR-091).
  *
- * KI-035 poin 3 (mobile ≤768px): di bawah `CalendarToolbar` dirender grid
- * Week/Month (≥768px, TIDAK berubah — addendum, bukan pengganti) DAN
- * `CalendarAgendaList` (≤768px, list per-tanggal dari `items`/
- * `connectedAccountIds` yang SAMA) — toggle murni CSS (`hidden md:block` /
- * `block md:hidden`, breakpoint sama `CalendarEntryFooter.tsx`/
- * `MembersTable.tsx`), bukan JS viewport detection. "Minggu"/"Bulan" di
- * `CalendarToolbar` tetap mengontrol RANGE tanggal yang di-fetch
- * (`page.tsx`), bukan mode render — Agenda dipakai untuk kedua pilihan itu
- * saat mobile.
+ * Tablet and phone (T-292, S-008, design `ScreenPublishRedesain`): from
+ * `sm` up the Month or Week grid shows (chips become platform icons below
+ * `lg`); below `sm` a 3-day grid from the selected date shows instead,
+ * picked with the shadcn Calendar in `CalendarToolbar`. The toggle is CSS
+ * only (`max-sm:hidden` / `sm:hidden`), no viewport detection in JS, so the
+ * server render already matches the screen. It replaces the phone agenda
+ * list of KI-035. The loaded range covers both (`getCalendarFetchRange`).
  *
  * **T-092.3 (ADR-094 poin 5, 6) — client state + granular Realtime patch:**
  * `items` sekarang disalin ke `useState` lokal (bukan lagi dirender
@@ -123,12 +125,12 @@ type CalendarScreenProps = {
  * tidak pernah "nyangkut" dari periode/filter sebelumnya.
  *
  * **T-030.3 — Cancel Schedule entry point:** state dialog konfirmasi
- * (`useConfirmAction`) dilift ke sini (bukan di tiap grid/`CalendarPostPopover`)
+ * (`useConfirmAction`) dilift ke sini (bukan di tiap grid/`PostPreviewPopover`)
  * — pola persis `QueueScreen.tsx`, reuse 100% `cancelScheduleAction` dari
  * `../actions` (copy `CancelScheduleUseCase` yang sama dipakai Queue, T-032.4).
  * `onCancelSchedule={(postId) => cancelConfirm.open(postId)}` diteruskan ke
- * `CalendarWeekGrid`/`CalendarMonthGrid`/`CalendarAgendaList`, yang masing-masing
- * meneruskannya lagi ke `CalendarPostPopover` — tombol "Batalkan Jadwal" hanya
+ * `CalendarWeekGrid`/`CalendarMonthGrid`, yang masing-masing
+ * meneruskannya lagi ke `PostPreviewPopover` — tombol "Batalkan Jadwal" hanya
  * dirender di footer popover saat `entry.status === ContentStatus.Scheduled`.
  */
 export function CalendarScreen({
@@ -139,8 +141,12 @@ export function CalendarScreen({
   statuses,
   connectedAccountIds,
   workspaceId,
+  thumbnails,
+  undatedPosts = [],
 }: CalendarScreenProps) {
   const timeZone = useUserTimeZone();
+  const [isNoDateOpen, setIsNoDateOpen] = useState(false);
+  const [showImported, setShowImported] = useState(true);
   const cancelConfirm = useConfirmAction<PostId>(cancelScheduleAction, () =>
     toast("Jadwal dibatalkan — post kembali ke Drafts"),
   );
@@ -165,10 +171,7 @@ export function CalendarScreen({
         return false;
       }
 
-      const { from, to } =
-        view === "month"
-          ? getMonthRange(date, timeZone)
-          : getWeekRange(date, timeZone);
+      const { from, to } = getCalendarFetchRange(view, date, timeZone);
       const effectiveDate = effectiveCalendarDate(item);
       return effectiveDate >= from && effectiveDate <= to;
     },
@@ -217,11 +220,27 @@ export function CalendarScreen({
     onUpdate: handlePublishingPostChange,
   });
 
+  const visibleItems = showImported
+    ? localItems
+    : localItems.filter((item) => item.status !== ContentStatus.Imported);
+
   return (
     // T-101.1: `VStack` Astryx -> Tailwind flex (layout-only, ADR-097).
     // eslint-disable-next-line no-restricted-syntax
     <div className="flex flex-col gap-4">
-      <CalendarToolbar accounts={accounts} />
+      <CalendarToolbar
+        range={view}
+        accounts={accounts}
+        undatedCount={undatedPosts.length}
+        onOpenNoDate={() => setIsNoDateOpen(true)}
+        showImported={showImported}
+        onShowImportedChange={setShowImported}
+      />
+      <NoDatePanel
+        open={isNoDateOpen}
+        onOpenChange={setIsNoDateOpen}
+        posts={undatedPosts}
+      />
 
       {cancelConfirm.error ? (
         <Alert variant="destructive">
@@ -229,30 +248,35 @@ export function CalendarScreen({
         </Alert>
       ) : null}
 
-      {/* eslint-disable-next-line no-restricted-syntax -- KI-035 poin 3: layout-only, toggle CSS-only grid vs agenda */}
-      <div className="hidden md:block">
+      {/* eslint-disable-next-line no-restricted-syntax -- T-292: layout-only, CSS toggle between the Month/Week grid and the phone 3-day grid */}
+      <div className="max-sm:hidden">
         {view === "month" ? (
           <CalendarMonthGrid
             date={date}
-            items={localItems}
+            items={visibleItems}
             connectedAccountIds={connectedAccountIds}
+            thumbnails={thumbnails}
             onCancelSchedule={(postId) => cancelConfirm.open(postId)}
           />
         ) : (
           <CalendarWeekGrid
             date={date}
-            items={localItems}
+            items={visibleItems}
             connectedAccountIds={connectedAccountIds}
+            thumbnails={thumbnails}
             onCancelSchedule={(postId) => cancelConfirm.open(postId)}
           />
         )}
       </div>
 
-      {/* eslint-disable-next-line no-restricted-syntax -- KI-035 poin 3: layout-only */}
-      <div className="block md:hidden">
-        <CalendarAgendaList
-          items={localItems}
+      {/* eslint-disable-next-line no-restricted-syntax -- T-292: layout-only */}
+      <div className="sm:hidden">
+        <CalendarWeekGrid
+          span="threeDays"
+          date={date}
+          items={visibleItems}
           connectedAccountIds={connectedAccountIds}
+          thumbnails={thumbnails}
           onCancelSchedule={(postId) => cancelConfirm.open(postId)}
         />
       </div>

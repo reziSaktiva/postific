@@ -13,15 +13,14 @@ import type {
   SocialPlatform,
 } from "@postific/shared";
 import { ContentFormat, ContentStatus } from "@postific/shared";
+import { getZonedFormatter } from "@/lib/time/zoned-formatter";
 
 import type { PostMetricsRecord } from "@/domains/analytics";
 import {
   effectiveCalendarDate,
-  getDateParts,
   getHour,
   MS_PER_DAY,
   toDateKey,
-  zonedMidnightUtc,
   type CalendarPostItem,
 } from "@/domains/publishing";
 
@@ -36,6 +35,10 @@ import {
 export { toDateKey };
 
 export { MS_PER_DAY };
+
+// Pure date math lives in a hook-free module so server code (the Calendar
+// fetch range, T-292) can import it without this file's React hooks.
+export { addDays, addMonths } from "./calendar-date-math";
 
 /**
  * Jumlah kolom hari grid Week & Month — 7 kolom sama lebar, responsive
@@ -211,29 +214,6 @@ export function formatCalendarHour(hour: number): string {
 }
 
 /**
- * Geser `date` sejumlah hari KALENDER di `timeZone` dan kembalikan 00:00 hari
- * itu. Bukan `+ n * 24 jam`: pada hari DST (23/25 jam) tambah 24 jam
- * mendarat di tanggal yang salah.
- */
-export function addDays(date: Date, days: number, timeZone: string): Date {
-  const { year, month, day } = getDateParts(date, timeZone);
-  return zonedMidnightUtc(year, month, day + days, timeZone);
-}
-
-/**
- * Geser `date` sejumlah bulan kalender di `timeZone`, dipatok ke tanggal 1 (bukan
- * mempertahankan tanggal-di-bulan) supaya aman dari overflow bulan
- * pendek — 31 Jan + 1 bulan via `Date.UTC` day-preserving akan lompat ke
- * 3 Maret, bukan akhir Februari. Anchor Calendar hanya perlu jatuh di
- * bulan yang benar (`getMonthRange`/`getWeekRange` yang menghitung rentang
- * sebenarnya), jadi tanggal-di-dalam-bulan tidak relevan di sini.
- */
-export function addMonths(date: Date, months: number, timeZone: string): Date {
-  const { year, month } = getDateParts(date, timeZone);
-  return zonedMidnightUtc(year, month + months, 1, timeZone);
-}
-
-/**
  * Satu kartu post di grid — **satu kartu per target** (bukan per post),
  * supaya post multi-platform tampil sebagai beberapa kartu granular sesuai
  * mockup (`item.targets.map(...)` per kartu).
@@ -252,6 +232,8 @@ export interface CalendarCardEntry {
   dateKey: string;
   /** Jam (0-23, zona pengguna) dari tanggal efektif — dipakai grid Week untuk bucket per jam. */
   hour: number;
+  /** "HH:mm" (zona pengguna) dari tanggal efektif — label jam chip (T-287). */
+  timeLabel: string;
   /**
    * Metrik untuk TARGET INI SAJA (T-033.8, Popover KSP-02-F08) — dicocokkan
    * dari `CalendarPostItem.metrics` (array per akun/platform milik post)
@@ -265,6 +247,13 @@ export interface CalendarCardEntry {
   /** `PublishingPostTarget.platformPostUrl` — tautan "Go to post" (Popover), null kalau belum dilaporkan Outstand. */
   platformPostUrl: string | null;
 }
+
+export const chipTimeFormatter = (timeZone: string) =>
+  getZonedFormatter(
+    "en-GB",
+    { hour: "2-digit", minute: "2-digit", hourCycle: "h23" },
+    timeZone,
+  );
 
 /**
  * Ratakan `CalendarPostItem[]` jadi kartu per target, dengan tanggal
@@ -294,6 +283,7 @@ export function flattenCalendarItemsToEntries(
     // Jam di zona pengguna (T-147), bukan jam lokal browser — tanggal dan jam kartu satu
     // zona dengan kunci grup supaya tidak pernah beda hari.
     const hour = getHour(effectiveDate, timeZone);
+    const timeLabel = chipTimeFormatter(timeZone).format(effectiveDate);
 
     for (const target of item.targets) {
       if (
@@ -314,6 +304,7 @@ export function flattenCalendarItemsToEntries(
         accountHandle: target.accountHandle,
         dateKey,
         hour,
+        timeLabel,
         metrics:
           item.metrics?.find(
             (metric) => metric.connectedAccountId === target.connectedAccountId,

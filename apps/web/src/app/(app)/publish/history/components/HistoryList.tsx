@@ -5,10 +5,8 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useState,
   useSyncExternalStore,
 } from "react";
-import Link from "next/link";
 
 import { ContentStatus, PostCreatedVia } from "@postific/shared";
 import {
@@ -17,11 +15,11 @@ import {
   HISTORY_TERMINAL_STATUSES,
   type HistoryGroup,
   type HistoryItemRecord,
+  type HistoryListItem,
 } from "@/domains/publishing";
-import type { ConnectedAccountRecord } from "@/domains/workspace";
+import type { MediaThumbnailDto } from "@/domains/media";
 import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
 import { formatRelativeTime } from "@/lib/utils/format-relative-time";
-import { formatUtcDateKeyHeading } from "@/lib/utils";
 import { usePublishingPostsRealtime } from "@/lib/hooks/use-publishing-posts-realtime";
 import { useSyncedState } from "@/lib/hooks/use-synced-state";
 
@@ -35,14 +33,10 @@ import {
 
 import { SourceFilterEmpty } from "@/components/shared/SourceFilterEmpty";
 import { McpSourceBadge } from "@/components/shared/McpSourceBadge";
-import { SourceFilterSelect } from "@/components/shared/SourceFilterSelect";
-import {
-  matchesSourceFilter,
-  resolveFilteredEmptyKind,
-  SourceFilter,
-  type SourceFilterValue,
-} from "@/components/shared/source-filter";
+import { resolveFilteredEmptyKind } from "@/components/shared/source-filter";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Empty,
@@ -50,17 +44,25 @@ import {
   EmptyHeader,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { Item, ItemContent, ItemGroup, ItemTitle } from "@/components/ui/item";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Text } from "@/components/ui/text";
 
 import { PLATFORM_ICON } from "../../../components/platform-icons";
+import {
+  formatEngagementRate,
+  formatMetricCount,
+  MetricTile,
+} from "../../../components/post-metric-tile";
+import { ListDayGroups } from "../../components/views/ListDayGroups";
+import {
+  focusAccountId,
+  matchesListFilter,
+  useListFilter,
+} from "../../components/views/ListFilter";
+import {
+  ListAccounts,
+  ListPostCard,
+} from "../../components/views/ListPostCard";
+import { RetryPostButton } from "./RetryPostButton";
 import {
   historyListClockDate,
   historyListShowsPublishMeta,
@@ -69,28 +71,6 @@ import {
   HISTORY_STATUS_BADGE_VARIANT,
   HISTORY_STATUS_LABEL,
 } from "../history-status";
-
-const DATE_HEADING_FORMATTER = new Intl.DateTimeFormat("id-ID", {
-  weekday: "long",
-  day: "numeric",
-  month: "long",
-  // `dateKey` diparse sebagai UTC midnight (kalender zona pengguna, T-147),
-  // jadi formatter berzona "UTC" — zona pengguna menggeser hari untuk offset negatif.
-  timeZone: "UTC",
-});
-
-/** Sama pola `QueueList`/`CalendarAgendaList` — parse UTC-safe dipusatkan di `formatUtcDateKeyHeading`. */
-function formatGroupDateHeading(dateKey: string): string {
-  return formatUtcDateKeyHeading(dateKey, DATE_HEADING_FORMATTER);
-}
-
-function formatItemTime(date: Date, timeZone: string): string {
-  return date.toLocaleTimeString("id-ID", {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone,
-  });
-}
 
 /**
  * Pesan error representatif satu `HistoryItemRecord` (T-034.2) — post bisa
@@ -108,15 +88,7 @@ function getPrimaryErrorMessage(item: HistoryItemRecord): string {
   return failedTarget?.error ?? "Gagal dipublikasikan.";
 }
 
-const ALL_STATUS_FILTER_VALUE = "all";
-const ALL_ACCOUNTS_FILTER_VALUE = "all";
 const RELATIVE_NOW_TICK_MS = 30_000;
-
-const STATUS_OPTIONS = [
-  { value: ALL_STATUS_FILTER_VALUE, label: "Semua Status" },
-  { value: ContentStatus.Published, label: "Published" },
-  { value: ContentStatus.Failed, label: "Error" },
-];
 
 /**
  * Kriteria tampilan History (T-092.6, ADR-094 poin 5, 7): status
@@ -136,9 +108,9 @@ export interface HistoryListProps {
    * bawah, atas hasil gabungan `items` + granular patch Realtime), bukan
    * lagi di composition root `page.tsx`.
    */
-  items: HistoryItemRecord[];
-  /** Daftar akun terkoneksi workspace (opsi filter Akun) — dari `WorkspaceService.listConnectedAccounts`, bukan derive dari `items` yang sudah terfilter, sama alasan `CalendarToolbar`. */
-  accounts: ConnectedAccountRecord[];
+  items: HistoryListItem[];
+  /** Card thumbnails by post id (S-008 design gap 2); a post without media has none. Posts that arrive by Realtime show theirs after the next load. */
+  thumbnails?: Record<string, MediaThumbnailDto>;
   /** Workspace aktif — dipakai `usePublishingPostsRealtime` (T-092.6) untuk subscribe channel `publishing_posts:{workspaceId}`, bukan dipakai untuk fetch data apa pun langsung di komponen ini (AGENTS.md #5). */
   workspaceId: string;
   /**
@@ -180,7 +152,7 @@ export interface HistoryListProps {
  */
 export function HistoryList({
   items,
-  accounts,
+  thumbnails = {},
   workspaceId,
   renderedAt,
 }: HistoryListProps) {
@@ -198,18 +170,12 @@ export function HistoryList({
     }, RELATIVE_NOW_TICK_MS);
     return () => window.clearInterval(timer);
   }, [renderedAt]);
-  const [statusFilter, setStatusFilter] = useState<string>(
-    ALL_STATUS_FILTER_VALUE,
-  );
-  const [accountFilter, setAccountFilter] = useState<string>(
-    ALL_ACCOUNTS_FILTER_VALUE,
-  );
+  // Status, channels and source come from the List Filter popover in the
+  // toolbar (S-008 design gap 4).
+  const filter = useListFilter();
+  const { channelIds, statuses, source } = filter;
 
-  const [sourceFilter, setSourceFilter] = useState<SourceFilterValue>(
-    SourceFilter.All,
-  );
-
-  const [localItems, setLocalItems] = useSyncedState(items);
+  const [localItems, setLocalItems] = useSyncedState<HistoryListItem[]>(items);
   const requestSeqRef = useRef<Map<string, number>>(new Map());
 
   const handlePublishingPostChange = useCallback(
@@ -250,50 +216,25 @@ export function HistoryList({
     onUpdate: handlePublishingPostChange,
   });
 
-  const groups = useMemo<HistoryGroup[]>(
+  const groups = useMemo<HistoryGroup<HistoryListItem>[]>(
     () => groupHistoryItemsByDate(localItems, timeZone),
     [localItems, timeZone],
   );
 
-  const accountOptions = useMemo(
-    () => [
-      { value: ALL_ACCOUNTS_FILTER_VALUE, label: "Semua Akun" },
-      ...accounts.map((account) => ({
-        value: account.id as string,
-        label: account.handle,
-      })),
-    ],
-    [accounts],
-  );
-
-  const filteredGroups = useMemo<HistoryGroup[]>(() => {
+  const filteredGroups = useMemo<HistoryGroup<HistoryListItem>[]>(() => {
     return groups
       .map((group) => ({
         ...group,
-        items: group.items.filter((item) => {
-          const matchesStatus =
-            statusFilter === ALL_STATUS_FILTER_VALUE ||
-            item.status === statusFilter;
-          const matchesAccount =
-            accountFilter === ALL_ACCOUNTS_FILTER_VALUE ||
-            item.targets.some(
-              (target) => target.connectedAccountId === accountFilter,
-            );
-          return (
-            matchesStatus &&
-            matchesAccount &&
-            matchesSourceFilter(item, sourceFilter)
-          );
-        }),
+        items: group.items.filter((item) =>
+          matchesListFilter(item, { channelIds, statuses, source }),
+        ),
       }))
       .filter((group) => group.items.length > 0);
-  }, [groups, statusFilter, accountFilter, sourceFilter]);
+  }, [groups, channelIds, statuses, source]);
 
   const emptyKind = resolveFilteredEmptyKind({
-    sourceFilter,
-    otherFiltersAtDefault:
-      statusFilter === ALL_STATUS_FILTER_VALUE &&
-      accountFilter === ALL_ACCOUNTS_FILTER_VALUE,
+    sourceFilter: source,
+    otherFiltersAtDefault: statuses.length === 0 && channelIds.length === 0,
     totalItems: localItems.length,
     hasMcpItems: localItems.some(
       (item) => item.createdVia === PostCreatedVia.Mcp,
@@ -302,61 +243,12 @@ export function HistoryList({
 
   function resetAllFilters() {
     bumpClientNowMs(renderedAt);
-    setStatusFilter(ALL_STATUS_FILTER_VALUE);
-    setAccountFilter(ALL_ACCOUNTS_FILTER_VALUE);
-    setSourceFilter(SourceFilter.All);
+    filter.reset();
   }
 
   return (
     // eslint-disable-next-line no-restricted-syntax -- layout-only, konsisten QueueList/DraftsList
     <div className="flex flex-col gap-4">
-      {/* eslint-disable-next-line no-restricted-syntax -- layout-only */}
-      <div className="flex flex-wrap justify-end gap-2">
-        <Select
-          value={statusFilter}
-          onValueChange={(value) => {
-            bumpClientNowMs(renderedAt);
-            setStatusFilter(value);
-          }}
-        >
-          <SelectTrigger size="sm" aria-label="Filter status" className="w-44">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {STATUS_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
-          value={accountFilter}
-          onValueChange={(value) => {
-            bumpClientNowMs(renderedAt);
-            setAccountFilter(value);
-          }}
-        >
-          <SelectTrigger size="sm" aria-label="Filter akun" className="w-44">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {accountOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <SourceFilterSelect
-          value={sourceFilter}
-          onValueChange={(value) => {
-            bumpClientNowMs(renderedAt);
-            setSourceFilter(value);
-          }}
-        />
-      </div>
-
       {filteredGroups.length === 0 ? (
         <Card>
           <CardContent>
@@ -376,107 +268,141 @@ export function HistoryList({
           </CardContent>
         </Card>
       ) : (
-        // eslint-disable-next-line no-restricted-syntax -- layout-only
-        <div className="flex flex-col gap-6">
-          {filteredGroups.map((group) => (
-            // eslint-disable-next-line no-restricted-syntax -- layout-only
-            <div className="flex flex-col gap-2" key={group.date}>
-              <Text variant="h4" as="h3">
-                {formatGroupDateHeading(group.date)}
-              </Text>
+        <ListDayGroups
+          groups={filteredGroups}
+          getTime={historyListClockDate}
+          renderCard={(item) => {
+            // T-126: `Imported` counts as `Published` for the meta text. The
+            // time on the left follows the same business-time key as the day
+            // heading (`historyItemOccurredAt`, T-142).
+            const showsPublishMeta = historyListShowsPublishMeta(item.status);
+            const publishedAt = item.publishedAt ?? item.updatedAt;
+            const summary = item.metricsSummary ?? null;
+            const postUrl = item.targets.find(
+              (target) =>
+                target.status === "published" && target.platformPostUrl,
+            )?.platformPostUrl;
+            const failedTargetIds = item.targets
+              .filter((target) => target.status === "failed")
+              .map((target) => target.id);
+            const publishedVia = item.targets
+              .map((target) => target.platform)
+              .filter(
+                (platform, index, all) => all.indexOf(platform) === index,
+              );
 
-              <ItemGroup className="gap-2">
-                {group.items.map((item) => {
-                  // T-126: `Imported` sama dengan `Published` untuk teks
-                  // meta (terminal-sukses). Jam di kiri kartu mengikuti
-                  // kunci waktu bisnis yang sama dengan judul tanggal
-                  // kelompok (`historyItemOccurredAt`, T-142).
-                  const showsPublishMeta = historyListShowsPublishMeta(
-                    item.status,
-                  );
-                  const publishedAt = item.publishedAt ?? item.updatedAt;
-
-                  return (
-                    <Item
-                      key={item.id}
-                      asChild
-                      variant="outline"
-                      size="sm"
-                      className="cursor-pointer flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl bg-card p-4 transition-colors hover:border-foreground/40 hover:bg-card! sm:flex-nowrap"
+            return (
+              <ListPostCard
+                preview={{
+                  postId: item.id,
+                  connectedAccountId: focusAccountId(item.targets, channelIds),
+                }}
+                thumbnail={thumbnails[item.id]}
+                accounts={<ListAccounts targets={item.targets} />}
+                statusBadge={
+                  <Badge variant={HISTORY_STATUS_BADGE_VARIANT[item.status]}>
+                    {HISTORY_STATUS_LABEL[item.status]}
+                  </Badge>
+                }
+                caption={item.caption}
+                extra={
+                  showsPublishMeta ? (
+                    summary ? (
+                      // eslint-disable-next-line no-restricted-syntax -- layout-only
+                      <div className="flex flex-wrap gap-2">
+                        <MetricTile
+                          label="Views"
+                          value={formatMetricCount(summary.impressions)}
+                        />
+                        <MetricTile
+                          label="Reach"
+                          value={formatMetricCount(summary.reach)}
+                        />
+                        <MetricTile
+                          label="Replies"
+                          value={formatMetricCount(summary.comments)}
+                        />
+                        <MetricTile
+                          label="Eng. Rate"
+                          value={formatEngagementRate(summary.engagementRate)}
+                        />
+                      </div>
+                    ) : (
+                      <Text variant="muted" as="span" className="text-xs">
+                        Belum ada data
+                      </Text>
+                    )
+                  ) : (
+                    <Alert variant="destructive">
+                      <AlertDescription>
+                        {getPrimaryErrorMessage(item)}
+                      </AlertDescription>
+                    </Alert>
+                  )
+                }
+                meta={
+                  <>
+                    <Text
+                      variant="muted"
+                      as="span"
+                      suppressHydrationWarning
+                      className="text-xs"
                     >
-                      <Link href={`/publish/history/${item.id}`}>
-                        <Text
-                          variant="muted"
-                          as="span"
-                          className="w-12 shrink-0 text-xs"
-                        >
-                          {formatItemTime(historyListClockDate(item), timeZone)}
-                        </Text>
-
-                        {/* eslint-disable-next-line no-restricted-syntax -- layout-only */}
-                        <div className="flex shrink-0 flex-wrap items-center gap-3">
-                          {item.targets.map((target) => {
-                            const PlatformGlyph =
-                              PLATFORM_ICON[target.platform].Icon;
-                            return (
-                              // eslint-disable-next-line no-restricted-syntax -- layout-only
-                              <div
-                                className="flex items-center gap-1"
-                                key={target.id}
-                              >
-                                <PlatformGlyph
-                                  size={12}
-                                  color={PLATFORM_ICON[target.platform].color}
-                                />
-                                <Text variant="muted" as="span">
-                                  {target.accountHandle}
-                                </Text>
-                              </div>
-                            );
-                          })}
-                        </div>
-
-                        <ItemContent className="order-last min-w-0 basis-full sm:order-none sm:flex-1 sm:basis-auto">
-                          <ItemTitle className="line-clamp-none block w-full min-w-0 font-normal whitespace-normal sm:truncate sm:whitespace-nowrap">
-                            {item.caption || "(Tanpa caption)"}
-                          </ItemTitle>
-                          {/* eslint-disable-next-line no-restricted-syntax -- layout-only */}
-                          <div className="flex min-w-0 items-center gap-2">
-                            <Text
-                              variant="muted"
-                              as="span"
-                              suppressHydrationWarning
-                              className={
-                                showsPublishMeta
-                                  ? "truncate text-xs"
-                                  : "truncate text-xs text-destructive"
-                              }
-                            >
-                              {showsPublishMeta
-                                ? `Dipublikasikan ${formatRelativeTime(publishedAt, timeZone, relativeNow)}`
-                                : getPrimaryErrorMessage(item)}
-                            </Text>
-                            <McpSourceBadge
-                              createdVia={item.createdVia}
-                              clientName={item.createdViaClientName}
+                      {showsPublishMeta
+                        ? `Dipublikasikan ${formatRelativeTime(publishedAt, timeZone, relativeNow)}`
+                        : "Gagal dipublikasikan"}
+                    </Text>
+                    <McpSourceBadge
+                      createdVia={item.createdVia}
+                      clientName={item.createdViaClientName}
+                    />
+                  </>
+                }
+                footer={
+                  <>
+                    {/* eslint-disable-next-line no-restricted-syntax -- layout-only */}
+                    <div className="mr-auto flex items-center gap-1.5 text-xs text-muted-foreground">
+                      {showsPublishMeta
+                        ? item.status === ContentStatus.Imported
+                          ? "Diimpor dari"
+                          : "Dipublikasikan via"
+                        : "Gagal ke"}
+                      {publishedVia.map((platform) => {
+                        const Glyph = PLATFORM_ICON[platform].Icon;
+                        return (
+                          <span
+                            className="inline-flex items-center gap-1 font-medium text-foreground"
+                            key={platform}
+                          >
+                            <Glyph
+                              size={12}
+                              color={PLATFORM_ICON[platform].color}
                             />
-                          </div>
-                        </ItemContent>
-
-                        <Badge
-                          className="shrink-0"
-                          variant={HISTORY_STATUS_BADGE_VARIANT[item.status]}
-                        >
-                          {HISTORY_STATUS_LABEL[item.status]}
-                        </Badge>
-                      </Link>
-                    </Item>
-                  );
-                })}
-              </ItemGroup>
-            </div>
-          ))}
-        </div>
+                            {PLATFORM_ICON[platform].label}
+                          </span>
+                        );
+                      })}
+                    </div>
+                    {showsPublishMeta ? (
+                      postUrl ? (
+                        <Button asChild size="sm" variant="outline">
+                          <a href={postUrl} target="_blank" rel="noreferrer">
+                            Buka posting
+                          </a>
+                        </Button>
+                      ) : null
+                    ) : (
+                      <RetryPostButton
+                        postId={item.id}
+                        targetIds={failedTargetIds}
+                      />
+                    )}
+                  </>
+                }
+              />
+            );
+          }}
+        />
       )}
     </div>
   );

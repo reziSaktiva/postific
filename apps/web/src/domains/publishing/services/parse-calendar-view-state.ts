@@ -35,6 +35,14 @@ export interface CalendarViewState {
 
 export const DEFAULT_CALENDAR_VIEW: CalendarViewMode = "month";
 
+/** Cookie holding the last used Calendar range (T-287, S-008). */
+export const PUBLISH_CALENDAR_RANGE_COOKIE = "publish_calendar_range";
+
+export interface CalendarViewDefaults {
+  /** Raw value of `PUBLISH_CALENDAR_RANGE_COOKIE`, if any. */
+  lastRange?: string | null;
+}
+
 const VALID_STATUSES = new Set<string>(Object.values(ContentStatus));
 
 /**
@@ -68,9 +76,16 @@ export type CalendarViewSearchParams = Record<
  */
 export function parseCalendarViewState(
   searchParams: CalendarViewSearchParams,
+  defaults: CalendarViewDefaults = {},
 ): CalendarViewState {
   return {
-    view: parseViewMode(firstValue(searchParams.view)),
+    // T-286 (S-008): `range` is the calendar range on the single Publish
+    // page, where `view` means Calendar · List · Board. The old
+    // `?view=week|month` of `/publish/calendar` is still read as a fallback.
+    view: parseViewMode(
+      firstValue(searchParams.range) ?? firstValue(searchParams.view),
+      defaults.lastRange,
+    ),
     date: parseAnchorDate(firstValue(searchParams.date)),
     statuses: parseStatuses(firstValue(searchParams.status)),
     connectedAccountIds: parseAccountIds(firstValue(searchParams.accounts)),
@@ -98,9 +113,15 @@ function firstValue(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
-function parseViewMode(raw: string | undefined): CalendarViewMode {
+function parseViewMode(
+  raw: string | undefined,
+  lastRange: string | null | undefined,
+): CalendarViewMode {
   if (raw === "week") return "week";
   if (raw === "month") return "month";
+  // T-287: no range in the URL reopens the range this user used last.
+  if (lastRange === "week") return "week";
+  if (lastRange === "month") return "month";
   return DEFAULT_CALENDAR_VIEW;
 }
 

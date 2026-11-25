@@ -11,7 +11,6 @@ import type {
 } from "@/domains/publishing";
 import type { MediaThumbnailDto } from "@/domains/media";
 import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
-import { getZonedFormatter } from "@/lib/time/zoned-formatter";
 import { formatRelativeTime } from "@/lib/utils/format-relative-time";
 import { linkifyCaption } from "@/lib/linkify";
 
@@ -47,20 +46,14 @@ import {
   TARGET_STATUS_LABEL,
 } from "../../history-status";
 import { RetryTargetButton } from "./RetryTargetButton";
+import { PLATFORM_ICON } from "../../../../components/platform-icons";
+import { formatPublishDateTime } from "../../../components/date-time-format";
+import { publishedViaPlatforms } from "../../../components/preview/post-preview-model";
 
-/** Formatter tanggal+jam berzona pengguna (T-147), ter-cache per zona. */
-const dateTimeFormatter = (timeZone: string) =>
-  getZonedFormatter(
-    "id-ID",
-    {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    },
-    timeZone,
-  );
+/** Date and time in the user's zone (T-147), HH:mm as everywhere in Publish (S-008). */
+const dateTimeFormatter = (timeZone: string) => ({
+  format: (date: Date) => formatPublishDateTime(date, timeZone, "long"),
+});
 
 /**
  * Label judul Dialog (T-111.1 LOCKED PATTERN) — Published pakai
@@ -84,6 +77,15 @@ function formatWhenLabel(item: HistoryItemRecord, timeZone: string): string {
   }
   if (item.scheduledAt) {
     return `Dijadwalkan ${formatter.format(item.scheduledAt)}`;
+  }
+  // T-288: the preview opens a post in any status; one that was never
+  // given a date (Draft, In Review, Ready to Schedule) has none to show.
+  if (
+    item.status === ContentStatus.Draft ||
+    item.status === ContentStatus.InReview ||
+    item.status === ContentStatus.ReadyToSchedule
+  ) {
+    return "Tanpa tanggal";
   }
   return `Percobaan publish ${formatter.format(item.updatedAt)}`;
 }
@@ -161,6 +163,14 @@ function TargetMetrics({ metric }: { metric: PostMetricsRecord | null }) {
 export interface HistoryDetailProps {
   item: HistoryDetailItem;
   thumbnail: MediaThumbnailDto | null;
+  /**
+   * Controlled mode (T-288): the post preview opens this dialog from a
+   * Calendar, Queue, History or Board card and closes it without leaving
+   * the page. Without them the dialog is route-bound as before and a close
+   * goes back to the History list.
+   */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 /**
@@ -210,7 +220,12 @@ export interface HistoryDetailProps {
  * "restrukturisasi UI murni" task ini — laporkan ke King Rezi kalau foto
  * profil asli memang wajib tampil di sini.
  */
-export function HistoryDetail({ item, thumbnail }: HistoryDetailProps) {
+export function HistoryDetail({
+  item,
+  thumbnail,
+  open,
+  onOpenChange,
+}: HistoryDetailProps) {
   const timeZone = useUserTimeZone();
   const router = useRouter();
   // `isOpen` lokal (bukan `open` literal) supaya Escape/klik overlay
@@ -219,14 +234,19 @@ export function HistoryDetail({ item, thumbnail }: HistoryDetailProps) {
   // di atas soal keputusan tidak memakai intercepting route.
   const [isOpen, setIsOpen] = useState(true);
   const authorLabel = formatAuthorLabel(item);
+  const viaPlatforms = publishedViaPlatforms(item);
 
   return (
     <Dialog
-      open={isOpen}
-      onOpenChange={(open) => {
-        if (!open) {
+      open={onOpenChange ? (open ?? true) : isOpen}
+      onOpenChange={(nextOpen) => {
+        if (onOpenChange) {
+          onOpenChange(nextOpen);
+          return;
+        }
+        if (!nextOpen) {
           setIsOpen(false);
-          router.push("/publish/history");
+          router.push("/publish?view=list&tab=history");
         }
       }}
     >
@@ -280,82 +300,101 @@ export function HistoryDetail({ item, thumbnail }: HistoryDetailProps) {
             </div>
           ) : null}
 
-          <Separator />
-
-          {/* eslint-disable-next-line no-restricted-syntax -- layout-only */}
-          <div className="flex flex-col gap-3">
-            <Text variant="h4" as="h2" className="mt-0!">
-              Hasil per Akun
+          {viaPlatforms.length > 0 ? (
+            <Text variant="muted" as="span" className="text-xs">
+              Dipublikasikan via{" "}
+              {viaPlatforms
+                .map((platform) => PLATFORM_ICON[platform].label)
+                .join(", ")}
             </Text>
+          ) : null}
 
-            {/* eslint-disable-next-line no-restricted-syntax -- layout-only */}
-            <div className="flex flex-col gap-4">
-              {item.targets.map((target) => {
-                return (
-                  // eslint-disable-next-line no-restricted-syntax -- layout-only
-                  <div className="flex flex-col gap-1.5" key={target.id}>
-                    {/* eslint-disable-next-line no-restricted-syntax -- layout-only */}
-                    <div className="flex items-center justify-between gap-2">
-                      {/* eslint-disable-next-line no-restricted-syntax -- layout-only */}
-                      <div className="flex items-center gap-2">
-                        <ChannelAvatarBadge
-                          handle={target.accountHandle}
-                          platform={target.platform}
-                        />
-                        <Text variant="small" as="span" className="font-medium">
-                          {target.accountHandle}
-                        </Text>
-                      </div>
-                      <Badge
-                        variant={TARGET_STATUS_BADGE_VARIANT[target.status]}
-                      >
-                        {TARGET_STATUS_LABEL[target.status]}
-                      </Badge>
-                    </div>
+          {item.targets.length > 0 ? (
+            <>
+              <Separator />
 
-                    {target.status === "published" && (
-                      <>
-                        <ViewOriginalPostLink url={target.platformPostUrl} />
-                        {/* Guard defensif (rule brief T-043.3, poin 2): `item.metrics`
+              {/* eslint-disable-next-line no-restricted-syntax -- layout-only */}
+              <div className="flex flex-col gap-3">
+                <Text variant="h4" as="h2" className="mt-0!">
+                  Hasil per Akun
+                </Text>
+
+                {/* eslint-disable-next-line no-restricted-syntax -- layout-only */}
+                <div className="flex flex-col gap-4">
+                  {item.targets.map((target) => {
+                    return (
+                      // eslint-disable-next-line no-restricted-syntax -- layout-only
+                      <div className="flex flex-col gap-1.5" key={target.id}>
+                        {/* eslint-disable-next-line no-restricted-syntax -- layout-only */}
+                        <div className="flex items-center justify-between gap-2">
+                          {/* eslint-disable-next-line no-restricted-syntax -- layout-only */}
+                          <div className="flex items-center gap-2">
+                            <ChannelAvatarBadge
+                              handle={target.accountHandle}
+                              platform={target.platform}
+                            />
+                            <Text
+                              variant="small"
+                              as="span"
+                              className="font-medium"
+                            >
+                              {target.accountHandle}
+                            </Text>
+                          </div>
+                          <Badge
+                            variant={TARGET_STATUS_BADGE_VARIANT[target.status]}
+                          >
+                            {TARGET_STATUS_LABEL[target.status]}
+                          </Badge>
+                        </div>
+
+                        {target.status === "published" && (
+                          <>
+                            <ViewOriginalPostLink
+                              url={target.platformPostUrl}
+                            />
+                            {/* Guard defensif (rule brief T-043.3, poin 2): `item.metrics`
                             seharusnya tidak pernah `null` untuk target published
                             (metrik hanya `null` untuk post non-Published), tapi
                             tetap di-guard eksplisit — jangan render apapun soal
                             metrik kalau ternyata null. */}
-                        {item.metrics !== null && (
-                          <TargetMetrics
-                            metric={
-                              item.metrics.find(
-                                (metric) =>
-                                  metric.connectedAccountId ===
-                                  target.connectedAccountId,
-                              ) ?? null
-                            }
-                          />
+                            {item.metrics !== null && (
+                              <TargetMetrics
+                                metric={
+                                  item.metrics.find(
+                                    (metric) =>
+                                      metric.connectedAccountId ===
+                                      target.connectedAccountId,
+                                  ) ?? null
+                                }
+                              />
+                            )}
+                          </>
                         )}
-                      </>
-                    )}
 
-                    {target.status === "failed" && (
-                      // eslint-disable-next-line no-restricted-syntax -- layout-only
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <Text
-                          variant="muted"
-                          as="span"
-                          className="min-w-0 flex-1 text-xs break-words text-destructive"
-                        >
-                          {target.error ?? "Gagal dipublikasikan."}
-                        </Text>
-                        <RetryTargetButton
-                          postId={item.id}
-                          targetId={target.id}
-                        />
+                        {target.status === "failed" && (
+                          // eslint-disable-next-line no-restricted-syntax -- layout-only
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <Text
+                              variant="muted"
+                              as="span"
+                              className="min-w-0 flex-1 text-xs break-words text-destructive"
+                            >
+                              {target.error ?? "Gagal dipublikasikan."}
+                            </Text>
+                            <RetryTargetButton
+                              postId={item.id}
+                              targetId={target.id}
+                            />
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          ) : null}
         </div>
       </DialogContent>
     </Dialog>

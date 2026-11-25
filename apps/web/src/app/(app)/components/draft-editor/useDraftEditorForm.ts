@@ -9,7 +9,10 @@ import { scheduleTimeConstraintMessage } from "@/domains/publishing/schedule-tim
 import { zonedLocalToUtc } from "@/domains/publishing/wib-time";
 import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
 
-import { markTerminalNavigationPending } from "@/lib/navigation/pending-terminal-navigation";
+import {
+  clearTerminalNavigationPending,
+  markTerminalNavigationPending,
+} from "@/lib/navigation/pending-terminal-navigation";
 import { isCaptionRequiredForFormats } from "@/domains/publishing";
 
 import {
@@ -19,6 +22,7 @@ import {
   publishNowAction,
   saveDraftAction,
   scheduleDraftAction,
+  submitForReviewAction,
   updateDraftAction,
 } from "./actions";
 import { useDraftEditor } from "./Context";
@@ -41,6 +45,10 @@ import { decideDraftSaveTargets } from "./draft-save-targets";
 import { restoreDraftTargetSelection } from "./restore-draft-targets";
 import { resolveActiveAccountId } from "./network-blocks-state";
 import { validateNetworks } from "./network-validation";
+import {
+  resolveNewPostPresetSchedule,
+  type NewPostPreset,
+} from "./new-post-preset";
 import { useDraftMedia } from "./useDraftMedia";
 import { usePinterestBoards } from "./usePinterestBoards";
 
@@ -55,6 +63,12 @@ export interface DraftEditorFormParams {
    * soon as `getConnectedAccountsAction` resolves.
    */
   preSelectedAccountId?: string;
+  /**
+   * Date and time the new post starts with (T-287): Calendar day button,
+   * Queue suggestions. The account of the preset arrives as
+   * `preSelectedAccountId`.
+   */
+  preset?: NewPostPreset;
   /**
    * Publish Now dari Queue (T-032.4) — lihat effect di bawah yang
    * memanfaatkan nilai ini begitu data selesai dimuat.
@@ -76,6 +90,7 @@ export function useDraftEditorForm({
   postId,
   prefillCaption,
   preSelectedAccountId,
+  preset,
   initialPendingAction,
   onLatestChange,
 }: DraftEditorFormParams) {
@@ -108,8 +123,15 @@ export function useDraftEditorForm({
   const [boardIdByAccount, setBoardIdByAccount] = useState<
     Record<string, string | undefined>
   >({});
-  const [scheduleDate, setScheduleDate] = useState<string | undefined>();
-  const [scheduleTime, setScheduleTime] = useState<string | undefined>();
+  const [presetSchedule] = useState(() =>
+    resolveNewPostPresetSchedule(preset, timeZone),
+  );
+  const [scheduleDate, setScheduleDate] = useState<string | undefined>(
+    presetSchedule.scheduleDate,
+  );
+  const [scheduleTime, setScheduleTime] = useState<string | undefined>(
+    presetSchedule.scheduleTime,
+  );
   // A step *within* this same Dialog (regardless of variant) — NOT a
   // second nested Dialog. Astryx's own component docs explicitly disallow
   // nesting Dialogs ("restructure the flow into steps within a single
@@ -122,6 +144,7 @@ export function useDraftEditorForm({
   // and the confirm button label differ between the two variants.
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [isScheduling, setIsScheduling] = useState(false);
   const [isPublishingNow, setIsPublishingNow] = useState(false);
   const [notice, setNotice] = useState<FormNotice | null>(null);
@@ -453,9 +476,21 @@ export function useDraftEditorForm({
    * yang tidak menampilkan hasil aksi sama sekali.
    */
   function finishTerminalAction(action: TerminalAction) {
-    const destination = resolveTerminalDestination(action);
+    // Publish screens share `/publish` and differ in the query (S-008), so
+    // the current query decides whether this is the same screen; within
+    // Publish it also carries the display zone (and Calendar range/date).
+    const search = typeof window === "undefined" ? "" : window.location.search;
+    const destination = resolveTerminalDestination(
+      action,
+      status,
+      pathname === "/publish" ? search : "",
+    );
     close();
-    if (isAlreadyAtDestination(pathname, destination)) {
+    if (isAlreadyAtDestination(pathname, destination, search)) {
+      // The user stays on this screen, so its Realtime events must flow
+      // again: Ajukan Review marks navigation pending before its server
+      // calls (T-294) and nothing else would clear the mark until timeout.
+      clearTerminalNavigationPending();
       router.refresh();
     } else {
       // T-208: event Realtime layar asal tidak boleh memanggil server action
@@ -467,7 +502,13 @@ export function useDraftEditorForm({
 
   const mediaIds = mediaItems.map((item) => item.id);
 
-  async function handleSaveDraft() {
+  /**
+   * Simpan isi editor (buat draft baru atau perbarui posting tersimpan) tanpa
+   * mengubah statusnya (T-297). Dipakai Save as Draft/Simpan dan Ajukan
+   * Review (T-296). Mengembalikan id posting, atau `null` bila belum bisa
+   * disimpan (daftar akun belum dimuat) atau gagal (notice sudah diisi).
+   */
+  async function persistDraft(): Promise<string | null> {
     const decision = decideDraftSaveTargets({
       accountsLoaded: !isLoadingAccounts,
       selectedAccountIds,
@@ -478,46 +519,53 @@ export function useDraftEditorForm({
       })),
     });
     if (decision.action === "wait") {
-      return;
+      return null;
     }
     const targets =
       decision.action === "replace" ? decision.targets : undefined;
 
+    let nextPostId = savedPostId;
+    if (savedPostId) {
+      const result = await updateDraftAction(savedPostId, {
+        caption,
+        mediaIds,
+        activeFormats,
+        ...(targets !== undefined ? { targets } : {}),
+      });
+      if ("error" in result) {
+        setNotice({ status: "error", title: result.error });
+        return null;
+      }
+    } else {
+      const result = await saveDraftAction({
+        caption,
+        mediaIds,
+        activeFormats,
+        ...(targets !== undefined ? { targets } : {}),
+      });
+      if ("error" in result) {
+        setNotice({ status: "error", title: result.error });
+        return null;
+      }
+      nextPostId = result.postId;
+      setSavedPostId(result.postId);
+    }
+    // Snapshot ikut diperbarui sekarang (lihat KI-043 di Schedule /
+    // Publish Now) supaya tutup dialog tidak menyimpan ulang caption.
+    onLatestChange({ mode, caption, savedPostId: nextPostId });
+    if (mode === "create") {
+      clearUnsavedNewPost();
+    }
+    return nextPostId ?? null;
+  }
+
+  async function handleSaveDraft() {
     setIsSavingDraft(true);
     try {
-      let nextPostId = savedPostId;
-      if (savedPostId) {
-        const result = await updateDraftAction(savedPostId, {
-          caption,
-          mediaIds,
-          activeFormats,
-          ...(targets !== undefined ? { targets } : {}),
-        });
-        if ("error" in result) {
-          setNotice({ status: "error", title: result.error });
-          return;
-        }
-      } else {
-        const result = await saveDraftAction({
-          caption,
-          mediaIds,
-          activeFormats,
-          ...(targets !== undefined ? { targets } : {}),
-        });
-        if ("error" in result) {
-          setNotice({ status: "error", title: result.error });
-          return;
-        }
-        nextPostId = result.postId;
-        setSavedPostId(result.postId);
+      const nextPostId = await persistDraft();
+      if (!nextPostId) {
+        return;
       }
-      // Snapshot ikut diperbarui sekarang (lihat KI-043 di Schedule /
-      // Publish Now) supaya tutup dialog tidak menyimpan ulang caption.
-      onLatestChange({ mode, caption, savedPostId: nextPostId });
-      if (mode === "create") {
-        clearUnsavedNewPost();
-      }
-      setStatus(ContentStatus.Draft);
       // Save as Draft → Publish > Drafts (ADR-054, T-031.1). Draft yang muncul
       // di daftar itulah umpan baliknya, menggantikan banner sukses yang tidak
       // akan sempat terbaca karena editor ditutup.
@@ -532,6 +580,49 @@ export function useDraftEditorForm({
       });
     } finally {
       setIsSavingDraft(false);
+    }
+  }
+
+  /**
+   * Ajukan Review (T-296): simpan isi editor dulu (posting baru ikut dibuat
+   * sebagai draft), lalu Draft → In Review lewat `ChangeContentStatusUseCase`.
+   * Bila transisi gagal, draft sudah tersimpan dan klik berikutnya hanya
+   * memperbarui lalu mengajukan ulang.
+   */
+  async function handleSubmitForReview() {
+    setIsSubmittingReview(true);
+    // T-294: the destination (List · Approvals) shares the `/publish` path
+    // with the origin tab. Realtime events of this save and status change
+    // reach the origin list before `finishTerminalAction` runs; their server
+    // action, still in flight when `router.push` starts, makes Next render
+    // the origin URL again. Hold those events from the start, and release
+    // them if the user stays because the submit failed.
+    markTerminalNavigationPending();
+    let navigated = false;
+    try {
+      const nextPostId = await persistDraft();
+      if (!nextPostId) {
+        return;
+      }
+      const result = await submitForReviewAction(nextPostId);
+      if ("error" in result) {
+        setNotice({ status: "error", title: result.error });
+        return;
+      }
+      setStatus(ContentStatus.InReview);
+      navigated = true;
+      finishTerminalAction("submit-review");
+    } catch (error) {
+      setNotice({
+        status: "error",
+        title:
+          error instanceof Error
+            ? error.message
+            : "Gagal mengajukan review. Coba lagi.",
+      });
+    } finally {
+      if (!navigated) clearTerminalNavigationPending();
+      setIsSubmittingReview(false);
     }
   }
 
@@ -701,6 +792,7 @@ export function useDraftEditorForm({
     setPendingAction,
     notice,
     isSavingDraft,
+    isSubmittingReview,
     isScheduling,
     isPublishingNow,
     networkValidation,
@@ -711,6 +803,7 @@ export function useDraftEditorForm({
     isReadyToSchedule,
     isReadyToPublishNow,
     handleSaveDraft,
+    handleSubmitForReview,
     handleConfirmSchedule,
     handleConfirmPublishNow,
   };

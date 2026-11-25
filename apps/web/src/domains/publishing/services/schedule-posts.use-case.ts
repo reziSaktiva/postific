@@ -13,7 +13,7 @@ import type { IJobScheduler } from "../adapters/job-scheduler";
 import { assertContentFormatAllowed } from "../content-format-matrix";
 import { assertPinterestBoardConstraints } from "../pinterest-board-constraints";
 import { assertActorCanSchedule } from "../rbac";
-import { assertPostMutable } from "../readonly-terminal-status";
+import { assertPostCanBeScheduledOrPublished } from "../readonly-terminal-status";
 import { assertScheduledAtAllowed } from "../schedule-time-constraints";
 import { enqueueResolveOutcomeFallback } from "./enqueue-resolve-outcome-fallback";
 import type {
@@ -126,7 +126,7 @@ export class SchedulePostsUseCase {
     // read-only selalu dapat pesan konflik yang spesifik, bukan error
     // validasi target yang kebetulan juga invalid. Filter status di
     // `schedulePost` tetap menjadi safety net.
-    await assertPostMutable(
+    await assertPostCanBeScheduledOrPublished(
       this.repository,
       { workspaceId: input.workspaceId, postId: input.postId },
       input.actingUserId,
@@ -159,7 +159,7 @@ export class SchedulePostsUseCase {
 
     if (!record) {
       throw new ConflictError(
-        "Post tidak bisa dijadwalkan — status saat ini bukan Draft atau Ready to Schedule, salah satu akun bukan milik workspace ini, atau post tidak ditemukan.",
+        "Post tidak bisa dijadwalkan — status saat ini bukan Draft, In Review, atau Ready to Schedule, salah satu akun bukan milik workspace ini, atau post tidak ditemukan.",
       );
     }
 

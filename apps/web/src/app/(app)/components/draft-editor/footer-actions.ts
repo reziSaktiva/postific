@@ -1,4 +1,4 @@
-import type { ContentStatus } from "@postific/shared";
+import { ContentStatus } from "@postific/shared";
 
 import { isReadonlyTerminalStatus } from "@/domains/publishing/readonly-terminal-status";
 
@@ -30,6 +30,8 @@ export function isEditableInDraftEditor(status: ContentStatus): boolean {
 export interface FooterActionsInput {
   readiness: ActionReadiness;
   isSavingDraft: boolean;
+  /** T-296: "Ajukan Review" sedang berjalan (simpan lalu Draft -> In Review). */
+  isSubmittingReview?: boolean;
   isScheduling: boolean;
   isPublishingNow: boolean;
   isLoadingAccounts: boolean;
@@ -37,6 +39,7 @@ export interface FooterActionsInput {
 
 export interface FooterActions {
   saveDraftDisabled: boolean;
+  submitReviewDisabled: boolean;
   publishNowDisabled: boolean;
   scheduleDisabled: boolean;
   /** Kontrol "Atur jadwal" ikut terkunci selama aksi berjalan. */
@@ -51,9 +54,14 @@ export interface FooterActions {
  */
 export function getFooterActions(input: FooterActionsInput): FooterActions {
   const isBusy =
-    input.isSavingDraft || input.isScheduling || input.isPublishingNow;
+    input.isSavingDraft ||
+    Boolean(input.isSubmittingReview) ||
+    input.isScheduling ||
+    input.isPublishingNow;
   return {
     saveDraftDisabled: isBusy || input.isLoadingAccounts,
+    // Sama dengan Save as Draft: menyimpan dulu, jadi draft boleh belum lengkap.
+    submitReviewDisabled: isBusy || input.isLoadingAccounts,
     publishNowDisabled: isBusy || !input.readiness.isReadyToPublishNow,
     scheduleDisabled: isBusy || !input.readiness.isReadyToSchedule,
     scheduleTriggerDisabled: isBusy,
@@ -89,4 +97,39 @@ export function getFooterHelpText(
   return warningCount > 0
     ? `${accounts} · ${warningCount} peringatan`
     : accounts;
+}
+
+export const SUBMIT_REVIEW_LABEL = "Ajukan Review";
+export const AWAITING_REVIEW_NOTE =
+  "Menunggu review · Tandai Ready di Publish > Approvals";
+
+export interface FooterReviewControls {
+  /** Tombol "Ajukan Review" (Draft -> In Review). */
+  showSubmitReview: boolean;
+  /** Catatan kiri footer untuk posting yang sedang In Review. */
+  awaitingReviewNote: string | null;
+  /** Label tombol simpan: menyimpan In Review/Ready to Schedule tidak mengubah status. */
+  saveLabel: "Save as Draft" | "Simpan";
+}
+
+/**
+ * T-296 (kartu `ScreenDraftEditorSubmitReview`, keputusan King Rezi
+ * 2026-11-24): "Ajukan Review" hanya untuk posting Draft (baru atau
+ * tersimpan, semua peran). Posting In Review menampilkan catatan menunggu
+ * review; In Review dan Ready to Schedule memakai label "Simpan" karena
+ * menyimpan tidak mengubah status (T-297). Schedule dan Publish Now tidak
+ * diatur di sini: tetap tersedia untuk semua status ini.
+ */
+export function getFooterReviewControls(
+  status: ContentStatus,
+): FooterReviewControls {
+  const keepsStatusOnSave =
+    status === ContentStatus.InReview ||
+    status === ContentStatus.ReadyToSchedule;
+  return {
+    showSubmitReview: status === ContentStatus.Draft,
+    awaitingReviewNote:
+      status === ContentStatus.InReview ? AWAITING_REVIEW_NOTE : null,
+    saveLabel: keepsStatusOnSave ? "Simpan" : "Save as Draft",
+  };
 }

@@ -4,7 +4,13 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useMemo } from "react";
 
 import type { CalendarViewState } from "@/domains/publishing";
-import { parseCalendarViewState } from "@/domains/publishing";
+import {
+  parseCalendarViewState,
+  PUBLISH_CALENDAR_RANGE_COOKIE,
+} from "@/domains/publishing";
+
+/** One year; the cookie only remembers which range to reopen (T-287). */
+const RANGE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 
 export type SetCalendarPeriod = (next: Partial<CalendarViewState>) => void;
 
@@ -36,20 +42,34 @@ export type UseCalendarPeriodStateResult = CalendarViewState & {
  * Parsing memakai `parseCalendarViewState` yang sama dengan `page.tsx`
  * (Server Component) supaya aturan fallback identik di kedua sisi.
  */
-export function useCalendarPeriodState(): UseCalendarPeriodStateResult {
+export function useCalendarPeriodState(
+  /**
+   * Range the server resolved for this page (URL, else the last used range
+   * from the cookie, T-287): used when the URL has no `range`, so client and
+   * server agree.
+   */
+  serverRange?: CalendarViewState["view"],
+): UseCalendarPeriodStateResult {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const state = useMemo(
     () =>
-      parseCalendarViewState({
-        view: searchParams.get("view") ?? undefined,
-        date: searchParams.get("date") ?? undefined,
-        status: searchParams.get("status") ?? undefined,
-        accounts: searchParams.get("accounts") ?? undefined,
-      }),
-    [searchParams],
+      parseCalendarViewState(
+        {
+          // T-286: on the single Publish page `view` is Calendar · List ·
+          // Board; the calendar range is `range` (old `view=week|month` kept
+          // as a fallback by the parser).
+          range: searchParams.get("range") ?? undefined,
+          view: searchParams.get("view") ?? undefined,
+          date: searchParams.get("date") ?? undefined,
+          status: searchParams.get("status") ?? undefined,
+          accounts: searchParams.get("accounts") ?? undefined,
+        },
+        { lastRange: serverRange },
+      ),
+    [searchParams, serverRange],
   );
 
   const setPeriod = useCallback<SetCalendarPeriod>(
@@ -61,10 +81,15 @@ export function useCalendarPeriodState(): UseCalendarPeriodStateResult {
         next.connectedAccountIds ?? state.connectedAccountIds;
 
       const params = new URLSearchParams(searchParams.toString());
-      params.set("view", nextView);
+      params.set("view", "calendar");
+      params.set("range", nextView);
       params.set("date", String(nextDate.getTime()));
       setOrDeleteParam(params, "status", nextStatuses);
       setOrDeleteParam(params, "accounts", nextAccountIds);
+
+      if (next.view) {
+        document.cookie = `${PUBLISH_CALENDAR_RANGE_COOKIE}=${nextView}; path=/; max-age=${RANGE_COOKIE_MAX_AGE}; samesite=lax`;
+      }
 
       router.replace(`${pathname}?${params.toString()}`);
     },

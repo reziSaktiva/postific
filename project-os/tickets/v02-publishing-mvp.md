@@ -3774,7 +3774,7 @@ Design `ScreenPublishRedesain` confirmed by King Rezi 2026-11-24 in the Postific
 
 | Field            | Value                                                                                          |
 | ---------------- | ---------------------------------------------------------------------------------------------- |
-| **Status**       | ⏳ Not Started                                                                                 |
+| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave                                                          |
 | **Mode**         | AFK                                                                                            |
 | **Verification** | `local`                                                                                        |
 | **Domain**       | publishing (UI and view state)                                                                 |
@@ -3784,12 +3784,14 @@ Design `ScreenPublishRedesain` confirmed by King Rezi 2026-11-24 in the Postific
 
 **What to build:** Publish is one page with a header (title, view switcher Calendar · List · Board, "+ New Post") instead of the route tabbar. The page reopens the user's last view. Old addresses keep working. A toolbar timezone picker changes only how times are shown on Publish.
 
-- [ ] The route tabbar Calendar / Queue / Drafts / History is replaced by the view switcher from the design; "+ New Post" opens the Draft Editor as today.
-- [ ] The selected view, List tab, calendar range and display timezone live in the URL and are parsed in one place, next to the existing calendar view-state parsing, with unit tests.
-- [ ] The page reopens the view last used by that user; Calendar when there is none. No "Save current view" control.
-- [ ] `/publish`, `/publish/calendar`, `/publish/queue`, `/publish/drafts`, `/publish/history` and `/publish/history/[postId]` land on the matching view, tab or post; links from notifications, Home and the MCP surface still work.
-- [ ] The timezone picker starts at the Profile timezone and never writes the Profile.
-- [ ] Entry points only call services (hard rule 3); no business logic in the page.
+- [x] The route tabbar Calendar / Queue / Drafts / History is replaced by the view switcher from the design; "+ New Post" opens the Draft Editor as today.
+- [x] The selected view, List tab, calendar range and display timezone live in the URL and are parsed in one place, next to the existing calendar view-state parsing, with unit tests.
+- [x] The page reopens the view last used by that user; Calendar when there is none. No "Save current view" control.
+- [x] `/publish`, `/publish/calendar`, `/publish/queue`, `/publish/drafts`, `/publish/history` and `/publish/history/[postId]` land on the matching view, tab or post; links from notifications, Home and the MCP surface still work.
+- [x] The timezone picker starts at the Profile timezone and never writes the Profile.
+- [x] Entry points only call services (hard rule 3); no business logic in the page.
+
+Not yet proven: the shell was not observed in a browser (no dev server in this lane; light, dark, 768 px and 390 px and the golden path are covered by the E2E ticket T-294). Proven by unit tests: URL parsing, last-view fallback, old-route mapping, display time zone fallback.
 
 **Blocked by:** none
 
@@ -3799,7 +3801,7 @@ Design `ScreenPublishRedesain` confirmed by King Rezi 2026-11-24 in the Postific
 
 | Field            | Value                                    |
 | ---------------- | ---------------------------------------- |
-| **Status**       | ⏳ Not Started                           |
+| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave    |
 | **Mode**         | AFK                                      |
 | **Verification** | `local`                                  |
 | **Domain**       | publishing                               |
@@ -3809,13 +3811,15 @@ Design `ScreenPublishRedesain` confirmed by King Rezi 2026-11-24 in the Postific
 
 **What to build:** the Calendar view matches the confirmed design on desktop.
 
-- [ ] The Calendar opens on Month the first time (amends KSP-02-F01); after that it reopens the range last used.
-- [ ] Toolbar: previous and next, range label, Today, Month or Week; Filter (channels and status, as KSP-02-F09), "No date" (side panel listing posts without a date), options menu, timezone picker.
-- [ ] Month: up to 3 chips per day (platform icon, time, status icon, thumbnail with ▶ for video), then "+N lainnya" opening a popover with that day's posts.
-- [ ] A future day shows a schedule button on hover that opens the Draft Editor with that date set.
-- [ ] Week: hourly rows with a current-time line; the week starts on Monday.
-- [ ] One chip per post target, statuses with a date only (Scheduled, Published, Failed), as KSP-02-F02.
-- [ ] Around 1024 px, chip thumbnails hide so chips do not overflow.
+- [x] The Calendar opens on Month the first time (amends KSP-02-F01); after that it reopens the range last used.
+- [x] Toolbar: previous and next, range label, Today, Month or Week; Filter (channels and status, as KSP-02-F09), "No date" (side panel listing posts without a date), options menu, timezone picker.
+- [x] Month: up to 3 chips per day (platform icon, time, status icon, thumbnail with ▶ for video), then "+N lainnya" opening a popover with that day's posts.
+- [x] A future day shows a schedule button on hover that opens the Draft Editor with that date set.
+- [x] Week: hourly rows with a current-time line; the week starts on Monday.
+- [x] One chip per post target, statuses with a date only (Scheduled, Published, Failed), as KSP-02-F02.
+- [x] Around 1024 px, chip thumbnails hide so chips do not overflow.
+
+Not yet proven: the Calendar was not observed in a browser (no dev server in this lane; light, dark, 768 px, 1024 px chip overflow and the golden path are covered by the E2E ticket T-294). Proven by unit tests: last-range fallback, preset date and time conversion, chip time label, chip thumbnail lookup. Findings: the display time zone picker stays in the Publish toolbar row, so the Calendar controls sit on a second row; "Tampilkan posting impor" is local state, not URL; the Draft Editor preset is `openNewPost({ connectedAccountId?, date?, time?, timeZone? })`.
 
 **Blocked by:** T-286
 
@@ -3825,7 +3829,7 @@ Design `ScreenPublishRedesain` confirmed by King Rezi 2026-11-24 in the Postific
 
 | Field            | Value                                                                 |
 | ---------------- | --------------------------------------------------------------------- |
-| **Status**       | ⏳ Not Started                                                        |
+| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave                                 |
 | **Mode**         | AFK                                                                   |
 | **Verification** | `local`                                                               |
 | **Domain**       | publishing, media                                                     |
@@ -3835,11 +3839,15 @@ Design `ScreenPublishRedesain` confirmed by King Rezi 2026-11-24 in the Postific
 
 **What to build:** clicking a post opens the per-account preview; Expand opens the full dialog; a published video plays in place.
 
-- [ ] The popover shows date and time, content format, Expand; account and status; caption; media; metrics and an insights link for published posts; Go to post, Edit or Retry by status, plus a more-actions menu.
-- [ ] The dialog shows the same content, the result of every account of the same post, and "Published via <network>". No "Add note".
-- [ ] A published video plays inline in the popover and the dialog with the native video player (play/pause, time, progress, volume, fullscreen).
-- [ ] When there is no playable video URL (for example an imported post with only a stored thumbnail), the thumbnail shows with "Go to post" and no play control.
-- [ ] The same preview opens from Calendar chips, Queue and History cards, and Board cards. Drafts and Approvals cards open the Draft Editor directly (ADR-165 decision 6).
+- [x] The popover shows date and time, content format, Expand; account and status; caption; media; metrics and an insights link for published posts; Go to post, Edit or Retry by status, plus a more-actions menu.
+- [x] The dialog shows the same content, the result of every account of the same post, and "Published via <network>". No "Add note".
+- [x] A published video plays inline in the popover and the dialog with the native video player (play/pause, time, progress, volume, fullscreen).
+- [x] When there is no playable video URL (for example an imported post with only a stored thumbnail), the thumbnail shows with "Go to post" and no play control.
+- [x] The same preview opens from Calendar chips, Queue and History cards, and Board cards. Drafts and Approvals cards open the Draft Editor directly (ADR-165 decision 6).
+
+Wiring: Calendar chips and the mobile agenda use `PostPreviewPopover`; Board cards use it in T-290; Queue and History cards are its trigger through `ListPostCard` `preview` (list lane phase 2), focused on the filtered account when an account filter is set. Not yet proven in a browser (T-294).
+
+Not yet proven: popover and dialog were not observed in a browser (no dev server in this lane; inline video playback, light, dark, 768 px and 390 px are covered by T-294). Proven by unit tests: focus account, header date, footer action by status, "Published via" platforms, `PublishingService.getPostPreview` for any status. The imported-post case shows only its stored thumbnail (an image), so it has no play control; no external CDN URL is used.
 
 **Blocked by:** T-287
 
@@ -3849,7 +3857,7 @@ Design `ScreenPublishRedesain` confirmed by King Rezi 2026-11-24 in the Postific
 
 | Field            | Value                                                                             |
 | ---------------- | --------------------------------------------------------------------------------- |
-| **Status**       | ⏳ Not Started                                                                    |
+| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave                                             |
 | **Mode**         | AFK                                                                               |
 | **Verification** | `local`                                                                           |
 | **Domain**       | publishing                                                                        |
@@ -3859,14 +3867,16 @@ Design `ScreenPublishRedesain` confirmed by King Rezi 2026-11-24 in the Postific
 
 **What to build:** the List view with line tabs and counts; posts grouped by day with the time on the left.
 
-- [ ] Queue: scheduled posts ordered by publish time (ADR-083).
-- [ ] Drafts: `Draft` and `Ready to Schedule` content.
-- [ ] Approvals: `In Review` content with Mark Ready (`In Review` → `Ready to Schedule`) and Back to Draft (`In Review` → `Draft`), through the existing status service; the same roles as today; nothing is blocked waiting for approval.
-- [ ] History: published and failed posts as cards with metrics, "Published via", Go to post; failed posts show the error and Retry.
-- [ ] Grouping for the Approvals list has unit tests next to the existing queue and history grouping.
-- [ ] Queue, Drafts and History keep the MCP source filter and AI-client badge (KSP-D20, T-157); Approvals shows the badge.
-- [ ] A click opens the post preview in Queue and History, and the Draft Editor directly in Drafts and Approvals.
-- [ ] The empty Queue shows a normal empty state with "+ New Post" until T-291 adds suggestions.
+- [x] Queue: scheduled posts ordered by publish time (ADR-083).
+- [x] Drafts: `Draft` and `Ready to Schedule` content.
+- [x] Approvals: `In Review` content with Mark Ready (`In Review` → `Ready to Schedule`) and Back to Draft (`In Review` → `Draft`), through the existing status service; the same roles as today; nothing is blocked waiting for approval.
+- [x] History: published and failed posts as cards with metrics, "Published via", Go to post; failed posts show the error and Retry.
+- [x] Grouping for the Approvals list has unit tests next to the existing queue and history grouping.
+- [x] Queue, Drafts and History keep the MCP source filter and AI-client badge (KSP-D20, T-157); Approvals shows the badge.
+- [x] A click opens the post preview in Queue and History, and the Draft Editor directly in Drafts and Approvals.
+- [x] The empty Queue shows a normal empty state with "+ New Post" until T-291 adds suggestions.
+
+Transitions (list lane phase 2, King Rezi decision 2026-11-24): `ChangeContentStatusUseCase` (domain `publishing`) allows exactly Draft → In Review, In Review → Draft and In Review → Ready to Schedule for all three roles, rejects any other source status (including `imported`) with a conflict, and writes compare-and-set (`contentStatusRepository.transitionContentStatus`, no schema change). Approvals cards call it through `markReadyToScheduleAction` / `backToDraftAction` (`publish/approvals/actions.ts`), which revalidate `/publish`. Proven by unit tests at the use-case boundary. Not yet proven: the buttons were not observed in a browser (T-294). ~~Open: no Draft → In Review entry in the UI~~ resolved by T-296 ("Ajukan Review", design confirmed by King Rezi 2026-11-24). ~~Finding: save and Delete accept only `Draft`~~ resolved by T-297 (save and delete for `In Review` and `Ready to Schedule`; MCP `update_draft` aligned).
 
 **Blocked by:** T-286
 
@@ -3874,22 +3884,24 @@ Design `ScreenPublishRedesain` confirmed by King Rezi 2026-11-24 in the Postific
 
 ### T-290 · Publish Board: status columns
 
-| Field            | Value                            |
-| ---------------- | -------------------------------- |
-| **Status**       | ⏳ Not Started                   |
-| **Mode**         | AFK                              |
-| **Verification** | `local`                          |
-| **Domain**       | publishing                       |
-| **Spec**         | S-008                            |
-| **Docs**         | ADR-165, `ScreenPublishRedesain` |
-| **Depends**      | T-286, T-288                     |
+| Field            | Value                                 |
+| ---------------- | ------------------------------------- |
+| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave |
+| **Mode**         | AFK                                   |
+| **Verification** | `local`                               |
+| **Domain**       | publishing                            |
+| **Spec**         | S-008                                 |
+| **Docs**         | ADR-165, `ScreenPublishRedesain`      |
+| **Depends**      | T-286, T-288                          |
 
 **What to build:** the Board view with columns Draft · Approvals · Scheduled · Published · Failed.
 
-- [ ] Columns with counts and horizontal scroll; grouping by Status only.
-- [ ] `Ready to Schedule` cards sit in Draft with a "Ready to Schedule" badge (unit test for the column grouping).
-- [ ] Cards show date or "No date", status badge, account with platform badge, caption, thumbnail, the AI-client badge for items created through MCP, and an actions menu on hover.
-- [ ] Clicking a card opens the post preview from T-288.
+- [x] Columns with counts and horizontal scroll; grouping by Status only.
+- [x] `Ready to Schedule` cards sit in Draft with a "Ready to Schedule" badge (unit test for the column grouping).
+- [x] Cards show date or "No date", status badge, account with platform badge, caption, thumbnail, the AI-client badge for items created through MCP, and an actions menu on hover.
+- [x] Clicking a card opens the post preview from T-288.
+
+Not yet proven: the Board was not observed in a browser (no dev server in this lane; light, dark, 768 px and 390 px, horizontal scroll and the hover menu are covered by T-294). Proven by unit tests: column grouping (Ready to Schedule in Draft, ordering, limit) and `PublishingService.listBoardColumns`. Left out on purpose: no Realtime patch on the Board (it refreshes on navigation); a column shows at most 100 cards and says "100+".
 
 **Blocked by:** T-286, T-288
 
@@ -3899,7 +3911,7 @@ Design `ScreenPublishRedesain` confirmed by King Rezi 2026-11-24 in the Postific
 
 | Field            | Value                                                        |
 | ---------------- | ------------------------------------------------------------ |
-| **Status**       | ⏳ Not Started                                               |
+| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave                        |
 | **Mode**         | AFK                                                          |
 | **Verification** | `local`                                                      |
 | **Domain**       | analytics, publishing                                        |
@@ -3909,12 +3921,12 @@ Design `ScreenPublishRedesain` confirmed by King Rezi 2026-11-24 in the Postific
 
 **What to build:** when the Queue is empty, each connected account shows suggested posting times calculated by Postific from its own published posts; Outstand is not called.
 
-- [ ] A best-time use case in the `analytics` domain: last 90 days of the account's published posts; publish time in the display timezone put in weekday-and-hour buckets; buckets ranked by median engagement rate, ties by median reach; a bucket needs at least 3 posts; an account needs at least 10 posts with metrics; returns the next occurrences of the top buckets within 7 days, 3 per account. Unit tests with a local double (rule 11).
-- [ ] A repository query returns publish time and metrics per account for the window (DB integration test where available).
-- [ ] Publish reads suggestions through the `analytics` public API from an Application Service (hard rules 3 and 5).
-- [ ] The empty Queue lists suggestions per account (platform icon, time, "+ New" opening the Draft Editor with that account and time set) and a control to show more times.
-- [ ] With no account above the threshold, the Queue shows the normal empty state.
-- [ ] Suggestions create nothing until the user schedules a post.
+- [x] A best-time use case in the `analytics` domain: last 90 days of the account's published posts; publish time in the display timezone put in weekday-and-hour buckets; buckets ranked by median engagement rate, ties by median reach; a bucket needs at least 3 posts; an account needs at least 10 posts with metrics; returns the next occurrences of the top buckets within 7 days, 3 per account. Unit tests with a local double (rule 11).
+- [x] A repository query returns publish time and metrics per account for the window (DB integration test where available). _Proof (2026-11-24, lane t294-e2e):_ `find-best-time-samples.integration.test.ts`, 3 tests green on the shared DB (opt-in `ANALYTICS_DB_TEST=1`): `published` and `imported` rows with publish time, rate and reach, oldest first; other statuses, soft-deleted and out-of-window posts left out; no leak across workspaces, nothing for a non-member (RLS). Dropping `imported` from the query fails a test.
+- [x] Publish reads suggestions through the `analytics` public API from an Application Service (hard rules 3 and 5).
+- [x] The empty Queue lists suggestions per account (platform icon, time, "+ New" opening the Draft Editor with that account and time set) and a control to show more times.
+- [x] With no account above the threshold, the Queue shows the normal empty state.
+- [x] Suggestions create nothing until the user schedules a post.
 
 **Blocked by:** T-289
 
@@ -3924,7 +3936,7 @@ Design `ScreenPublishRedesain` confirmed by King Rezi 2026-11-24 in the Postific
 
 | Field            | Value                                             |
 | ---------------- | ------------------------------------------------- |
-| **Status**       | ⏳ Not Started                                    |
+| **Status**       | ✅ Done (code) 2026-11-25, S-008 wave             |
 | **Mode**         | AFK                                               |
 | **Verification** | `local`                                           |
 | **Domain**       | publishing (UI), app shell                        |
@@ -3934,10 +3946,12 @@ Design `ScreenPublishRedesain` confirmed by King Rezi 2026-11-24 in the Postific
 
 **What to build:** the responsive layouts from the design.
 
-- [ ] Tablet (768 px): app sidebar as an icon rail; month chips as platform icons with a "+N" chip; List time above each card; Board about two columns.
-- [ ] Phone (390 px): top bar with the menu; "+ New Post" as a "+" icon button; icon-only view switcher; Calendar in a 3-day view with a shadcn Calendar date picker (switching from about 500 px); List tabs as a dropdown; Board one column per screen with card menus always visible.
-- [ ] Light and dark use existing tokens; no new tokens.
-- [ ] Observed in the browser at 768 and 390 px, light and dark.
+- [x] Tablet (768 px): app sidebar as an icon rail; month chips as platform icons with a "+N" chip; List time above each card; Board about two columns.
+- [x] Phone (390 px): top bar with the menu; "+ New Post" as a "+" icon button; icon-only view switcher; Calendar in a 3-day view with a shadcn Calendar date picker (switching from about 500 px); List tabs as a dropdown; Board one column per screen with card menus always visible.
+- [x] Light and dark use existing tokens; no new tokens.
+- [x] Observed in the browser at 768 and 390 px, light and dark. Re-checked 2026-11-25 at `467bccce` in Cook It Real Good (100+ Published cards): Board fits the screen at 1440, 1280, 768 and 390 px in light and dark, the Published column scrolls on its own (3000 px) while the page stays put, History preview at 1280 px stays on screen, a playing video keeps "Coba Lagi" visible, no console errors.
+
+Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not observed in the lane; it moves to T-294.
 
 **Blocked by:** T-287, T-288, T-289, T-290, T-291
 
@@ -3947,7 +3961,7 @@ Design `ScreenPublishRedesain` confirmed by King Rezi 2026-11-24 in the Postific
 
 | Field            | Value                                                                                                       |
 | ---------------- | ----------------------------------------------------------------------------------------------------------- |
-| **Status**       | ⏳ Not Started                                                                                              |
+| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave                                                                       |
 | **Mode**         | AFK                                                                                                         |
 | **Verification** | `local`                                                                                                     |
 | **Domain**       | docs                                                                                                        |
@@ -3957,9 +3971,9 @@ Design `ScreenPublishRedesain` confirmed by King Rezi 2026-11-24 in the Postific
 
 **What to build:** the UX baseline was aligned with ADR-165 in the same PR as the ADR (King Rezi's decision Q15, `AGENTS.md` rule 14): KSP-02, KSP-03, KSP-04, the Publish part of `information-architecture.md`, the Publish navigation in `navigation-patterns.md`, and the Calendar flow in `user-flows.md`. This ticket only records what the build changes later.
 
-- [ ] Any behavior that changes during T-286 to T-292 is written back into the baseline before the wave's PR.
-- [ ] `context/` pointers change only where they point to Publish screens.
-- [ ] `bun run docs:check` reports no findings.
+- [x] Any behavior that changes during T-286 to T-292 is written back into the baseline before the wave's PR.
+- [x] `context/` pointers change only where they point to Publish screens.
+- [x] `bun run docs:check` reports no findings.
 
 **Blocked by:** T-286
 
@@ -3967,22 +3981,22 @@ Design `ScreenPublishRedesain` confirmed by King Rezi 2026-11-24 in the Postific
 
 ### T-294 · S-008 QA: E2E, review and QA
 
-| Field            | Value                              |
-| ---------------- | ---------------------------------- |
-| **Status**       | ⏳ Not Started                     |
-| **Mode**         | AFK                                |
-| **Verification** | `local`                            |
-| **Domain**       | publishing, analytics              |
-| **Spec**         | S-008                              |
-| **Docs**         | ADR-149, ADR-153, ADR-161, ADR-165 |
-| **Depends**      | T-286 to T-293                     |
+| Field            | Value                                 |
+| ---------------- | ------------------------------------- |
+| **Status**       | ✅ Done (code) 2026-11-25, S-008 wave |
+| **Mode**         | AFK                                   |
+| **Verification** | `local`                               |
+| **Domain**       | publishing, analytics                 |
+| **Spec**         | S-008                                 |
+| **Docs**         | ADR-149, ADR-153, ADR-161, ADR-165    |
+| **Depends**      | T-286 to T-293                        |
 
 **What to build:** the S-008 work is proven on `local` before the wave goes to staging.
 
-- [ ] Playwright E2E golden path: switch views, open a post preview, expand, play a video, Mark Ready from Approvals, empty Queue with suggestions, old routes landing on the right view.
-- [ ] Architecture review: entry points without business logic, analytics read only through its public API, no Prisma in domain logic.
-- [ ] QA in the browser: light, dark, 768 px and 390 px; regressions in the Draft Editor, notifications and Home links checked.
-- [ ] `typecheck`, `lint` and unit tests green.
+- [x] Playwright E2E golden path: switch views, open a post preview, expand, play a video, Mark Ready from Approvals, empty Queue with suggestions, old routes landing on the right view. Proven 2026-11-24: `apps/web/e2e/publish-redesign.e2e.ts` on `local`: 6 cases green in one run, the empty-Queue case green in a second run after King Rezi cancelled two leftover sandbox schedules.
+- [x] Architecture review: entry points without business logic, analytics read only through its public API, no Prisma in domain logic.
+- [x] QA in the browser: light, dark, 768 px and 390 px; regressions in the Draft Editor, notifications and Home links checked. Re-checked 2026-11-25 at `467bccce` in Cook It Real Good (100+ Published cards): Board fits the screen at 1440, 1280, 768 and 390 px in light and dark, the Published column scrolls on its own (3000 px) while the page stays put, History preview at 1280 px stays on screen, a playing video keeps "Coba Lagi" visible, no console errors.
+- [x] `typecheck`, `lint` and unit tests green. Ridwan review 2026-11-24: 0 hard violations, 9 considerations fixed (`a7b36017`, `3546eff2`, `97769ecc`); lint, typecheck and 2946 unit tests green at `b6dbaab5`.
 
 **Blocked by:** T-286 to T-293
 
@@ -4008,6 +4022,94 @@ Design `ScreenPublishRedesain` confirmed by King Rezi 2026-11-24 in the Postific
 - [ ] Staging E2E run (`workflow_dispatch`) green against the wave's deploy.
 
 **Blocked by:** integration PR merged
+
+---
+
+### T-296 · Submit for review control in the Draft Editor
+
+| Field            | Value                                                                                              |
+| ---------------- | -------------------------------------------------------------------------------------------------- |
+| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave                                                              |
+| **Mode**         | HITL (design confirmed by King Rezi in the gallery), then AFK                                      |
+| **Verification** | `local`                                                                                            |
+| **Domain**       | publishing (UI)                                                                                    |
+| **Spec**         | S-008                                                                                              |
+| **Docs**         | ADR-165, ADR-140, `roles-permissions.md` (content status transitions), `ScreenDraftEditorRedesain` |
+| **Depends**      | T-289 (transition use case `ChangeContentStatusUseCase`)                                           |
+
+**What to build:** no design had a control to move a post Draft → In Review, so the Approvals tab stayed empty in practice. King Rezi decided on 2026-11-24 to design and build it in the S-008 wave.
+
+- [x] The control is designed in the Postific artifact and confirmed by King Rezi in the Postific Design Review gallery (card `ScreenDraftEditorSubmitReview`, scenarios R1–R6; confirmed by King Rezi in chat 2026-11-24).
+- [x] The Draft Editor offers Draft → In Review as designed, through `ChangeContentStatusUseCase` (all roles; In Review can still be skipped).
+- [x] Unit tests for the control's visibility by status.
+
+**Blocked by:** none (design confirmed 2026-11-24)
+
+**Implementation notes (2026-11-24, lane t296):**
+
+- Footer "Ajukan Review" (outline, send icon, left) for Draft posts, new and saved. One click saves the post (new posts become a draft) and then calls `submitForReviewAction` (`ChangeContentStatusUseCase`, Draft → In Review); the editor closes and goes to Publish > List > Approvals.
+- In Review and Ready to Schedule posts: the save button reads "Simpan" (status kept, T-297). In Review shows the note "Menunggu review · Tandai Ready di Publish > Approvals" (hidden at phone width like the other footer help) and no "Ajukan Review".
+- Schedule and Publish Now accept `in_review` as a source status (`SCHEDULE_AND_PUBLISH_SOURCE_STATUSES` in `readonly-terminal-status.ts`, used by `SchedulePostsUseCase`, `PublishNowUseCase`, and the repository filter). A `Scheduled` post is now refused before any write with its own message. Tests at the use case boundary.
+- Sidebar (finding from T-292): the automatic icon rail at 768–1023 px no longer saves "collapsed" in the `sidebar_state` cookie; returning to desktop width or reloading restores the user's sidebar. Rules in `app/(app)/components/tablet-icon-rail.ts`, unit tested.
+
+**Not yet proven:** the button, the redirect to Approvals, and the sidebar behaviour have not been run in a browser (no dev server or E2E in this lane, T-294); the repository filter for `in_review` has no test against a real database.
+
+---
+
+### T-297 · Draft Editor save and delete for In Review and Ready to Schedule posts
+
+| Field            | Value                                              |
+| ---------------- | -------------------------------------------------- |
+| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave              |
+| **Mode**         | AFK                                                |
+| **Verification** | `local`                                            |
+| **Domain**       | publishing                                         |
+| **Spec**         | S-008                                              |
+| **Docs**         | ADR-165, `roles-permissions.md` (content statuses) |
+| **Depends**      | T-289                                              |
+
+**What to build:** saving and deleting in the Draft Editor worked only for `draft` posts, so an In Review or Ready to Schedule post opened from Drafts or Approvals could not be saved or deleted. King Rezi decided on 2026-11-24 to fix it in the S-008 wave.
+
+- [x] Save keeps working for `in_review` and `ready_to_schedule` posts and does not change their status.
+- [x] Delete is allowed for `in_review` and `ready_to_schedule` posts with the same roles as `draft`.
+- [x] `imported`, `scheduled`, `published` and `failed` rules are unchanged; unit tests at the service boundary.
+
+**Blocked by:** none
+
+---
+
+### T-298 · Infinite scroll for long lists (Publish, Engage, media picker, notifications)
+
+| Field            | Value                                                                               |
+| ---------------- | ----------------------------------------------------------------------------------- |
+| **Status**       | ⏳ Not Started                                                                      |
+| **Mode**         | HITL (design confirmed by King Rezi in the gallery), then AFK                       |
+| **Verification** | `local`                                                                             |
+| **Domain**       | publishing, engagement, media, notification (UI and repositories)                   |
+| **Spec**         | S-008 follow-up (next wave; a spec of its own if the work spans more than one wave) |
+| **Docs**         | ADR-097, ADR-140, ADR-165, `key-screen-patterns.md`                                 |
+| **Depends**      | S-008 wave merged to `staging`                                                      |
+
+**What to build:** on 2026-11-24 the Publish Board in Cook It Real Good went black because 100+ cards made the page ~18 000 px tall (fixed in the S-008 wave by scrolling each column on its own). King Rezi asked for infinite scroll wherever a list can grow without bound, in the next wave. An audit of every page on Cook It Real Good found:
+
+| Section                                       | Before                                     | Decision                   |
+| --------------------------------------------- | ------------------------------------------ | -------------------------- |
+| Publish · List · History                      | 503 cards at once, no limit                | infinite scroll            |
+| Publish · Board columns                       | hard cap of 100, "100+"                    | infinite scroll per column |
+| Publish · List · Drafts, Approvals, Queue     | no limit                                   | infinite scroll            |
+| Engage · List view                            | cap of 200 inbox items, older ones missing | infinite scroll            |
+| Engage · comments of one post                 | up to 1 000 at once                        | infinite scroll            |
+| Draft Editor · media picker                   | whole media library, no limit              | infinite scroll            |
+| Notifications panel                           | cap of 50, older ones unreachable          | infinite scroll            |
+| Calendar, Home, Analyze, Start Page, Settings | bounded by range or small                  | no change                  |
+
+- [ ] The loading row, end-of-list state and error with retry are designed in the Postific artifact and confirmed by King Rezi in the Postific Design Review gallery (AGENTS.md rule 10).
+- [ ] Each section above loads **20 items per page** (King Rezi, 2026-11-24) with cursor-based repository queries (stable order, no offset drift when new posts arrive) and loads the next page as the user nears the end of the list.
+- [ ] Counts in tabs and Board column headers stay correct while only one page is loaded (a count query, not the length of the loaded page).
+- [ ] Realtime updates and filters (MCP source, channel, status) keep working with paged data.
+- [ ] Repository integration tests for the cursor queries; E2E on a workspace with more than one page per section.
+
+**Blocked by:** design confirmation; S-008 wave merged
 
 ---
 

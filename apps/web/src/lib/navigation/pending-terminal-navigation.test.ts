@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   TERMINAL_NAVIGATION_TIMEOUT_MS,
+  clearTerminalNavigationPending,
   createPendingNavigationGate,
   isTerminalNavigationPending,
   markTerminalNavigationPending,
@@ -11,6 +12,33 @@ afterEach(() => {
   resetTerminalNavigationForTests();
   vi.useRealTimers();
   vi.unstubAllGlobals();
+});
+
+describe("clearTerminalNavigationPending (T-294)", () => {
+  it("a failed terminal action releases the origin screen before the deadline", () => {
+    const origin = "/publish?view=list&tab=drafts";
+    markTerminalNavigationPending({ now: 1_000, origin });
+    expect(isTerminalNavigationPending(origin, 1_001)).toBe(true);
+    clearTerminalNavigationPending();
+    expect(isTerminalNavigationPending(origin, 1_002)).toBe(false);
+  });
+
+  it("held gate tasks run once the mark is cleared", async () => {
+    vi.useFakeTimers();
+    const origin = "/publish?view=list&tab=drafts";
+    markTerminalNavigationPending({ now: Date.now(), origin });
+    const gate = createPendingNavigationGate({
+      isPending: () => isTerminalNavigationPending(origin),
+      pollMs: 10,
+    });
+    const task = vi.fn();
+    gate.run("post-1", task);
+    expect(task).not.toHaveBeenCalled();
+    clearTerminalNavigationPending();
+    await vi.advanceTimersByTimeAsync(20);
+    expect(task).toHaveBeenCalledTimes(1);
+    gate.dispose();
+  });
 });
 
 describe("isTerminalNavigationPending", () => {
@@ -75,6 +103,19 @@ describe("pemantauan path tanpa event", () => {
     // Pemakai menekan Back dalam 30 detik.
     vi.advanceTimersByTime(5_000);
     win.location.pathname = "/publish/queue";
+    expect(isTerminalNavigationPending()).toBe(false);
+  });
+
+  it("T-286: Publish screens share /publish, so a query change ends the navigation", () => {
+    vi.useFakeTimers();
+    const win = {
+      location: { pathname: "/publish", search: "?view=list&tab=queue" },
+    };
+    vi.stubGlobal("window", win);
+    markTerminalNavigationPending();
+    expect(isTerminalNavigationPending()).toBe(true);
+
+    win.location.search = "?view=list&tab=drafts";
     expect(isTerminalNavigationPending()).toBe(false);
   });
 

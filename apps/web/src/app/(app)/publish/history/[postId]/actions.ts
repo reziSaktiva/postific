@@ -49,7 +49,7 @@ export async function retryFailedTargetAction(
     return toActionError(error);
   }
 
-  revalidatePath(`/publish/history/${postId}`);
+  revalidatePath("/publish"); // T-286: History detail lives on the single Publish page
   return result.status === "failed"
     ? { error: result.error ?? "Retry gagal — silakan coba lagi." }
     : {};

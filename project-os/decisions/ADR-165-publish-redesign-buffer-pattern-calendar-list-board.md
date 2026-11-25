@@ -94,3 +94,13 @@ Design details accepted with the confirmed design, not asked separately: "+N lai
 - The best-time calculation reads `AnalyticsPostMetric` and post publish times through the `analytics` domain's public API; the Publish screen does not query analytics tables directly (`AGENTS.md` hard rule 5). It inherits the freshness of the analytics ingestion; it adds no Outstand call.
 - Inline video needs a playable media URL for published posts. Where Postific only holds a thumbnail (imported posts keep small thumbnails, ADR-158), the preview shows the thumbnail with "Go to post"; the spec covers this.
 - Existing route URLs `/publish/calendar`, `/publish/queue`, `/publish/drafts`, `/publish/history` keep working (redirect or map to the matching view) so links and the MCP surface do not break; the spec sets how.
+
+## Addendum 2026-11-24: decisions taken during the S-008 build
+
+King Rezi confirmed these during the build (T-296, T-297). They refine this ADR; nothing above is removed.
+
+1. **Best-time suggestions count `published` and `imported` posts.** Imported posts (ADR-158) carry real publish times and metrics, so they count toward the 90-day window and the 10-post minimum.
+2. **Content status transitions as implemented.** `Draft` → `In Review` ("Ajukan Review" in the Draft Editor, new or existing post, all roles), `In Review` → `Draft` and `In Review` → `Ready to Schedule` (Approvals). New: `In Review` → `Scheduled` and `In Review` → `Published` are allowed; Schedule and Publish Now stay available from `In Review`, consistent with Q5 (no approval enforcement). `roles-permissions.md` carries the table.
+3. **Draft Editor save and delete for `In Review` and `Ready to Schedule`.** Allowed with the status unchanged; the save button reads "Simpan". MCP `update_draft` follows the same rule (T-297).
+
+Spec S-008 grew by T-296 and T-297. Smaller build defaults (cookie for the last-used view, view-only timezone picker, phone layout below 640 px, tablet icon rail at 768 to 1023 px that leaves the sidebar preference alone) are recorded in S-008 and `navigation-patterns.md`.

@@ -152,13 +152,15 @@ const DRAFT_CLEANUP_PREFIX = "[e2e] create_draft";
 async function deleteE2eDraftsViaUi(context: BrowserContext): Promise<void> {
   const page = await context.newPage();
   try {
-    await page.goto("/publish/drafts");
-    // Layar siap dulu: filter sumber pasti ada di Drafts dan harus terhidrasi
-    // sebelum baris dihitung, supaya "nol baris" tidak berarti "belum dimuat".
-    const trigger = page.getByRole("combobox", { name: "Filter sumber" });
-    await expect(trigger, "Drafts: filter sumber").toBeVisible();
+    await page.goto(DRAFTS_URL);
+    // Layar siap dulu: tombol Filter pasti ada di List dan harus terhidrasi
+    // sebelum kartu dihitung, supaya "nol kartu" tidak berarti "belum dimuat".
+    const trigger = filterButton(page);
+    await expect(trigger, "Drafts: tombol Filter").toBeVisible();
     await waitUntilHydrated(trigger, "Drafts");
-    const rows = page.locator("tr", { hasText: DRAFT_CLEANUP_PREFIX });
+    const rows = page.locator('[data-slot="card"]', {
+      hasText: DRAFT_CLEANUP_PREFIX,
+    });
     if ((await rows.count()) === 0) {
       throw new Error(
         `unverified: draft "${DRAFT_CLEANUP_PREFIX}" pernah dibuat tetapi tidak ada di Drafts saat dibersihkan (sudah terhapus atau tidak muncul)`,
@@ -178,19 +180,42 @@ async function deleteE2eDraftsViaUi(context: BrowserContext): Promise<void> {
   }
 }
 
-/** Buka dropdown filter sumber dan pilih satu opsi. */
+/** URL tab List di `/publish` (S-008, ADR-165). */
+const DRAFTS_URL = "/publish?view=list&tab=drafts";
+const QUEUE_URL = "/publish?view=list&tab=queue";
+const HISTORY_URL = "/publish?view=list&tab=history";
+
+/** Tombol Filter di toolbar List; membuka popover berisi grup Sumber. */
+function filterButton(page: Page) {
+  return page.getByRole("button", { name: "Filter", exact: true });
+}
+
+/** Radio satu opsi sumber di popover Filter. */
+function sourceRadio(page: Page, label: string) {
+  return page
+    .getByRole("radiogroup", { name: "Filter sumber" })
+    .getByRole("radio", { name: label, exact: true });
+}
+
+/** Buka popover Filter (bila belum terbuka) dan pilih satu opsi sumber. */
 async function chooseSource(page: Page, label: string): Promise<void> {
-  const trigger = page.getByRole("combobox", { name: "Filter sumber" });
-  await trigger.click();
-  await page.getByRole("option", { name: label, exact: true }).click();
-  await expect(trigger).toContainText(label);
+  const group = page.getByRole("radiogroup", { name: "Filter sumber" });
+  if (!(await group.isVisible())) {
+    await filterButton(page).click();
+    await expect(group).toBeVisible();
+  }
+  await sourceRadio(page, label).click();
+  await expect(sourceRadio(page, label)).toBeChecked();
+  // Tutup popover supaya tidak menutupi daftar dan tombol "Tampilkan Semua".
+  await page.keyboard.press("Escape");
+  await expect(group).toBeHidden();
 }
 
 const MCP_BADGE_TEXT = "Dibuat lewat MCP oleh";
 const MCP_EMPTY_TITLE = "Belum ada konten dari klien AI";
 
 /**
- * Kontrak filter sumber di satu layar (T-157): bawaan "Semua Sumber"; "Dibuat
+ * Kontrak filter sumber di satu tab List (T-157, popover Filter S-008): bawaan "Semua Sumber"; "Dibuat
  * Manual" tidak pernah menampilkan badge MCP; "Lewat MCP" menampilkan hanya
  * item berbadge, atau state kosong khusus dengan "Tampilkan Semua" yang
  * mengembalikan ke bawaan.
@@ -200,10 +225,15 @@ async function assertSourceFilterContract(
   path: string,
 ): Promise<void> {
   await page.goto(path);
-  const trigger = page.getByRole("combobox", { name: "Filter sumber" });
-  await expect(trigger, `${path}: filter sumber`).toBeVisible();
+  const trigger = filterButton(page);
+  await expect(trigger, `${path}: tombol Filter`).toBeVisible();
   await waitUntilHydrated(trigger, path);
-  await expect(trigger, `${path}: bawaan`).toContainText("Semua Sumber");
+  await trigger.click();
+  await expect(
+    sourceRadio(page, "Semua Sumber"),
+    `${path}: bawaan`,
+  ).toBeChecked();
+  await page.keyboard.press("Escape");
 
   await chooseSource(page, "Dibuat Manual");
   await expect(
@@ -220,7 +250,9 @@ async function assertSourceFilterContract(
   ).toBeVisible();
   if (await empty.isVisible()) {
     await page.getByRole("button", { name: "Tampilkan Semua" }).click();
-    await expect(trigger).toContainText("Semua Sumber");
+    await trigger.click();
+    await expect(sourceRadio(page, "Semua Sumber")).toBeChecked();
+    await page.keyboard.press("Escape");
   }
 }
 
@@ -1113,13 +1145,12 @@ test.describe("MCP server di staging", () => {
     const page = await session.newPage();
     try {
       // Drafts: draft MCP asli dari (i), bila ada.
-      await assertSourceFilterContract(page, "/publish/drafts");
+      await assertSourceFilterContract(page, DRAFTS_URL);
       if (draftClient && createdDraftCaptions.length > 0) {
         const caption = createdDraftCaptions[createdDraftCaptions.length - 1];
-        await page.goto("/publish/drafts");
-        const trigger = page.getByRole("combobox", { name: "Filter sumber" });
-        await waitUntilHydrated(trigger, "Drafts");
-        const row = page.locator("tr", { hasText: caption });
+        await page.goto(DRAFTS_URL);
+        await waitUntilHydrated(filterButton(page), "Drafts");
+        const row = page.locator('[data-slot="card"]', { hasText: caption });
         await expect(row, "draft MCP tampil di Drafts").toBeVisible();
         await expect(row, "badge memuat nama klien").toContainText(
           `${MCP_BADGE_TEXT} ${draftClient.clientName}`,
@@ -1140,13 +1171,10 @@ test.describe("MCP server di staging", () => {
         });
       }
 
-      await assertSourceFilterContract(page, "/publish/queue");
+      await assertSourceFilterContract(page, QUEUE_URL);
       if (scheduledMcpCaption) {
-        await page.goto("/publish/queue");
-        await waitUntilHydrated(
-          page.getByRole("combobox", { name: "Filter sumber" }),
-          "Queue",
-        );
+        await page.goto(QUEUE_URL);
+        await waitUntilHydrated(filterButton(page), "Queue");
         const card = page.locator('[data-slot="card"]', {
           hasText: scheduledMcpCaption,
         });
@@ -1162,7 +1190,7 @@ test.describe("MCP server di staging", () => {
         });
       }
 
-      await assertSourceFilterContract(page, "/publish/history");
+      await assertSourceFilterContract(page, HISTORY_URL);
     } finally {
       await page.close();
     }

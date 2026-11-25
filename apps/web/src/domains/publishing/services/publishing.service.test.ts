@@ -57,6 +57,7 @@ function createFakeRepository(
       updatedAt: new Date(0),
     }),
     listDrafts: async () => [],
+    listApprovalItems: async () => [],
     findLatestPostTargetAccountIds: async () => [],
     findDraftById: async () => null,
     findPostStatusById: async () => null,
@@ -68,8 +69,10 @@ function createFakeRepository(
     countScheduledByAccount: async () => new Map(),
     listQueue: async () => [],
     listCalendarPosts: async () => [],
+    listBoardPosts: async () => [],
     getCalendarPostById: async () => null,
     listHistory: async () => [],
+    countPostsByStatus: async () => new Map(),
     getHistoryById: async () => null,
     getHistoryPostById: async () => null,
     cancelSchedule: async () => null,
@@ -322,6 +325,43 @@ describe("PublishingService.getDraftById", () => {
 });
 
 describe("PublishingService.updateDraft", () => {
+  it.each([ContentStatus.InReview, ContentStatus.ReadyToSchedule])(
+    "T-297: post berstatus %s bisa disimpan tanpa mengirim perubahan status ke repository",
+    async (status) => {
+      let received: Record<string, unknown> | null = null;
+      const service = new PublishingService(
+        createFakeRepository({
+          findPostStatusById: async () => ({ status }),
+          updateDraftCaption: async (input) => {
+            received = input;
+            return {
+              id: input.postId,
+              workspaceId: input.workspaceId,
+              authorId: AUTHOR_ID,
+              caption: input.caption,
+              status,
+              createdAt: new Date(0),
+              updatedAt: new Date(0),
+            };
+          },
+        }),
+      );
+
+      const result = await service.updateDraft(
+        {
+          workspaceId: WORKSPACE_ID,
+          postId: asPostId("post-1"),
+          caption: " Hello ",
+        },
+        AUTHOR_ID,
+      );
+
+      expect(result.status).toBe(status);
+      expect(received).not.toHaveProperty("status");
+      expect(received).toMatchObject({ caption: "Hello" });
+    },
+  );
+
   it("trims the caption before delegating to the repository", async () => {
     let received:
       Parameters<IPublishingRepository["updateDraftCaption"]>[0] | null = null;
@@ -2749,15 +2789,33 @@ describe("PublishingService.deletePost", () => {
     });
   });
 
-  it.each([
-    ContentStatus.InReview,
-    ContentStatus.ReadyToSchedule,
-    ContentStatus.Scheduled,
-  ])(
-    // Koreksi 2026-09-10: entry point Delete Post HANYA ada di Drafts —
-    // King Rezi mengonfirmasi post Scheduled harus di-Cancel Schedule dulu
-    // (kembali ke Draft) sebelum bisa dihapus, TIDAK bisa dihapus langsung
-    // dari status manapun selain Draft.
+  it.each([ContentStatus.InReview, ContentStatus.ReadyToSchedule])(
+    "T-297: post berstatus %s boleh dihapus dengan peran yang sama seperti Draft",
+    async (status) => {
+      const deleted = draftRecord({ status });
+      const service = new PublishingService(
+        createFakeRepository({
+          findDraftById: async () => draftRecord({ status }),
+          softDeletePost: async () => deleted,
+        }),
+      );
+
+      await expect(
+        service.deletePost(
+          {
+            workspaceId: WORKSPACE_ID,
+            postId: asPostId("post-1"),
+            actorRole: MemberRole.Creator,
+          },
+          AUTHOR_ID,
+        ),
+      ).resolves.toBe(deleted);
+    },
+  );
+
+  it.each([ContentStatus.Scheduled])(
+    // Koreksi 2026-09-10: post Scheduled harus di-Cancel Schedule dulu
+    // (kembali ke Draft) sebelum bisa dihapus.
     "guard: post berstatus %s DITOLAK ConflictError, TANPA memanggil softDeletePost",
     async (status) => {
       let softDeleteCalls = 0;
@@ -3074,5 +3132,295 @@ describe("PublishingService sumber MCP (T-157)", () => {
       (await service.getHistoryPostById(WORKSPACE_ID, postId, AUTHOR_ID))
         ?.createdViaClientName,
     ).toBe("Claude Code");
+  });
+});
+
+describe("PublishingService List tabs (T-289)", () => {
+  function draftRecord(
+    id: string,
+    status: ContentStatus,
+  ): PublishingPostRecord {
+    return {
+      id: asPostId(id),
+      workspaceId: WORKSPACE_ID,
+      authorId: AUTHOR_ID,
+      caption: id,
+      status,
+      createdAt: new Date(0),
+      updatedAt: new Date(0),
+    };
+  }
+
+  it("getListTabCounts counts what each tab lists: In Review only in Approvals, Ready to Schedule in Drafts", async () => {
+    let received:
+      Parameters<IPublishingRepository["countPostsByStatus"]>[0] | null = null;
+    const service = new PublishingService(
+      createFakeRepository({
+        countPostsByStatus: async (input) => {
+          received = input;
+          return new Map([
+            [ContentStatus.Scheduled, 2],
+            [ContentStatus.Draft, 1],
+            [ContentStatus.ReadyToSchedule, 1],
+            [ContentStatus.InReview, 1],
+            [ContentStatus.Published, 1],
+            [ContentStatus.Failed, 1],
+            [ContentStatus.Imported, 1],
+          ]);
+        },
+        listQueue: async () => {
+          throw new Error("counts must not load the Queue list");
+        },
+        listDrafts: async () => {
+          throw new Error("counts must not load the Drafts list");
+        },
+        listHistory: async () => {
+          throw new Error("counts must not load the History list");
+        },
+      }),
+    );
+
+    expect(await service.getListTabCounts(WORKSPACE_ID, AUTHOR_ID)).toEqual({
+      queue: 2,
+      drafts: 2,
+      approvals: 1,
+      history: 3,
+    });
+    expect(received!.workspaceId).toBe(WORKSPACE_ID);
+    expect([...received!.statuses].sort()).toEqual(
+      [
+        ContentStatus.Scheduled,
+        ContentStatus.Draft,
+        ContentStatus.InReview,
+        ContentStatus.ReadyToSchedule,
+        ContentStatus.Published,
+        ContentStatus.Failed,
+        ContentStatus.Imported,
+      ].sort(),
+    );
+  });
+
+  it("getListTabCounts is zero for a status without posts", async () => {
+    const service = new PublishingService(
+      createFakeRepository({ countPostsByStatus: async () => new Map() }),
+    );
+    expect(await service.getListTabCounts(WORKSPACE_ID, AUTHOR_ID)).toEqual({
+      queue: 0,
+      drafts: 0,
+      approvals: 0,
+      history: 0,
+    });
+  });
+
+  it("listDraftsTab keeps Draft and Ready to Schedule only", async () => {
+    const service = new PublishingService(
+      createFakeRepository({
+        listDrafts: async () => [
+          draftRecord("a", ContentStatus.Draft),
+          draftRecord("b", ContentStatus.ReadyToSchedule),
+          draftRecord("c", ContentStatus.InReview),
+        ],
+      }),
+    );
+
+    expect(
+      (await service.listDraftsTab(WORKSPACE_ID, AUTHOR_ID)).map((p) => p.id),
+    ).toEqual(["a", "b"]);
+  });
+
+  it("listApprovals reads items with targets in one repository call and fills client names", async () => {
+    const calls: string[] = [];
+    const item = {
+      ...createCalendarItem(),
+      id: asPostId("p-review"),
+      status: ContentStatus.InReview,
+      createdViaClientId: "client-1",
+      createdViaClientName: null,
+    };
+    const service = new PublishingService(
+      createFakeRepository({
+        listApprovalItems: async () => {
+          calls.push("listApprovalItems");
+          return [item];
+        },
+        getCalendarPostById: async () => {
+          calls.push("getCalendarPostById");
+          return null;
+        },
+      }),
+      undefined,
+      undefined,
+      undefined,
+      { getClientNames: async () => new Map([["client-1", "Claude"]]) },
+    );
+
+    const result = await service.listApprovals(WORKSPACE_ID, AUTHOR_ID);
+
+    expect(calls).toEqual(["listApprovalItems"]);
+    expect(result.map((p) => p.id)).toEqual(["p-review"]);
+    expect(result[0]?.targets).toHaveLength(item.targets.length);
+    expect(result[0]?.createdViaClientName).toBe("Claude");
+  });
+
+  it("getQueueWithSuggestions asks for suggestions only when the Queue is empty", async () => {
+    const suggestion = {
+      connectedAccountId: asConnectedAccountId("acc-1"),
+      platform: SocialPlatform.Instagram,
+      handle: "h",
+      slots: [],
+    };
+    const calls: string[] = [];
+    const port = {
+      execute: async (input: { timezone: string }) => {
+        calls.push(input.timezone);
+        return [suggestion];
+      },
+    };
+
+    const withPosts = new PublishingService(
+      createFakeRepository({ listQueue: async () => [createQueueItem()] }),
+    );
+    const busy = await withPosts.getQueueWithSuggestions(
+      WORKSPACE_ID,
+      AUTHOR_ID,
+      "Asia/Jakarta",
+      port,
+    );
+    expect(busy.groups).not.toHaveLength(0);
+    expect(busy.suggestions).toEqual([]);
+    expect(calls).toEqual([]);
+
+    const empty = new PublishingService(
+      createFakeRepository({ listQueue: async () => [] }),
+    );
+    const idle = await empty.getQueueWithSuggestions(
+      WORKSPACE_ID,
+      AUTHOR_ID,
+      "Asia/Jakarta",
+      port,
+    );
+    expect(idle.groups).toEqual([]);
+    expect(idle.suggestions).toEqual([suggestion]);
+    expect(calls).toEqual(["Asia/Jakarta"]);
+  });
+
+  it("listHistoryWithMetrics overlays stored metrics: [] when none yet, null for a Failed post that is never fetched", async () => {
+    const published = createHistoryItem({
+      id: asPostId("pub"),
+      status: ContentStatus.Published,
+    });
+    const failed = createHistoryItem({
+      id: asPostId("bad"),
+      status: ContentStatus.Failed,
+    });
+    let requested: PostId[] = [];
+    const service = new PublishingService(
+      createFakeRepository({ listHistory: async () => [published, failed] }),
+      {
+        getPostMetricsByPosts: async (postIds) => {
+          requested = postIds;
+          return new Map();
+        },
+      },
+    );
+
+    const items = await service.listHistoryWithMetrics(WORKSPACE_ID, AUTHOR_ID);
+
+    expect(requested).toEqual([published.id]);
+    expect(items.map((item) => [item.id, item.metrics])).toEqual([
+      [published.id, []],
+      [failed.id, null],
+    ]);
+    expect(items.map((item) => item.metricsSummary)).toEqual([null, null]);
+  });
+
+  it("listHistoryWithMetrics leaves items without metrics when no PostMetricsPort is supplied", async () => {
+    const published = createHistoryItem();
+    const service = new PublishingService(
+      createFakeRepository({ listHistory: async () => [published] }),
+    );
+
+    expect(
+      await service.listHistoryWithMetrics(WORKSPACE_ID, AUTHOR_ID),
+    ).toEqual([published]);
+  });
+});
+
+describe("PublishingService.getPostPreview (T-288)", () => {
+  it("returns null when the post is not in the workspace, instead of throwing", async () => {
+    const service = new PublishingService(createFakeRepository());
+
+    await expect(
+      service.getPostPreview(WORKSPACE_ID, asPostId("post-1"), AUTHOR_ID),
+    ).resolves.toBeNull();
+  });
+
+  it("opens a post in any status, not only History ones (a scheduled post, no metrics)", async () => {
+    const scheduled = createHistoryItem({ status: ContentStatus.Scheduled });
+    const service = new PublishingService(
+      createFakeRepository({ getHistoryPostById: async () => scheduled }),
+    );
+
+    await expect(
+      service.getPostPreview(WORKSPACE_ID, scheduled.id, AUTHOR_ID),
+    ).resolves.toEqual({ ...scheduled, metrics: null, authorName: null });
+  });
+
+  it("reads metrics only for a published post and names its author", async () => {
+    const published = createHistoryItem({
+      status: ContentStatus.Published,
+      authorId: AUTHOR_ID,
+    });
+    let metricCalls = 0;
+    const service = new PublishingService(
+      createFakeRepository({ getHistoryPostById: async () => published }),
+      {
+        getPostMetricsByPosts: async () => {
+          metricCalls += 1;
+          return new Map();
+        },
+      },
+      undefined,
+      { findById: async () => ({ name: "Raka" }) as never },
+    );
+
+    const result = await service.getPostPreview(
+      WORKSPACE_ID,
+      published.id,
+      AUTHOR_ID,
+    );
+
+    expect(metricCalls).toBe(1);
+    expect(result).toMatchObject({ metrics: [], authorName: "Raka" });
+  });
+});
+
+describe("PublishingService.listBoardColumns (T-290)", () => {
+  it("groups posts of every status into the five columns and asks for one more than the column limit per status", async () => {
+    let receivedLimit: number | null = null;
+    const draft = createHistoryItem({ status: ContentStatus.ReadyToSchedule });
+    const failed = createHistoryItem({
+      id: asPostId("post-2"),
+      status: ContentStatus.Failed,
+    });
+    const service = new PublishingService(
+      createFakeRepository({
+        listBoardPosts: async ({ perStatusLimit }) => {
+          receivedLimit = perStatusLimit;
+          return [draft, failed] as never;
+        },
+      }),
+    );
+
+    const columns = await service.listBoardColumns(WORKSPACE_ID, AUTHOR_ID);
+
+    expect(receivedLimit).toBe(101);
+    expect(columns.map((c) => [c.key, c.items.length])).toEqual([
+      ["draft", 1],
+      ["approvals", 0],
+      ["scheduled", 0],
+      ["published", 0],
+      ["failed", 1],
+    ]);
   });
 });

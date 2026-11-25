@@ -207,7 +207,7 @@ Publish
 
 **Pattern:** the view switcher sits in the header; the List tabs sit below it. Switching views or tabs does not reset state (filters, scroll position) unless necessary. On phone the switcher shows icons only and the List tabs become a dropdown. The old addresses `/publish/calendar`, `/publish/queue`, `/publish/drafts`, `/publish/history` land on the matching view or tab.
 
-**Default view:** Calendar on Month the first time (per IA-D04, range amended by ADR-165); afterwards Publish reopens the view last used.
+**Default view:** Calendar on Month the first time (per IA-D04, range amended by ADR-165); afterwards Publish reopens the view last used, stored in a cookie. Responsive: phone layout below 640 px; tablet icon rail at 768 to 1023 px, applied app-wide from `WorkspaceSideNav`, without overwriting the user's saved sidebar preference.
 
 ---
 
