@@ -4249,7 +4249,7 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 | Field            | Value                                  |
 | ---------------- | -------------------------------------- |
-| **Status**       | ⏳ Not Started                         |
+| **Status**       | 🟡 In Progress                         |
 | **Mode**         | AFK                                    |
 | **Verification** | `local`                                |
 | **Domain**       | notification (UI, service, repository) |
@@ -4259,10 +4259,12 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 **What to build:** the Notifications panel loads 20 at a time; older notifications past the 50 cap can be reached. The Draft Editor media picker was dropped from S-009 (it does not exist yet; ADR-166 addendum).
 
-- [ ] A cursor-based notification query replaces the 50 cap; "Mark all as read" marks every unread notification; the unread badge is the true unread count; a realtime notification appears at the top without duplicates.
-- [ ] Additive composite indexes where needed (pre-approved).
-- [ ] Repository integration tests; E2E on Cook It Real Good for each list with more than 20 items there (recorded as not yet proven where there are 20 or fewer).
-- [ ] Next pages load through a GET Route Handler that only calls the Application Service and validates the cursor (ADR-166 addendum 5); the first page stays server-rendered.
+- [x] A cursor-based notification query replaces the 50 cap; "Mark all as read" marks every unread notification; the unread badge is the true unread count; a realtime notification appears at the top without duplicates.
+- [x] Additive composite indexes where needed (pre-approved). Migration `20261125120000_t304_notifications_cursor_index` is written, not applied (applied at integration/staging, T-305).
+- [ ] Repository integration tests (done: `notification.repository.integration.test.ts`, opt-in `NOTIFICATION_DB_TEST=1`, green, incl. two items with the same time across a page boundary); E2E on Cook It Real Good for each list with more than 20 items there (recorded as not yet proven where there are 20 or fewer).
+- [x] Next pages load through a GET Route Handler that only calls the Application Service and validates the cursor (ADR-166 addendum 5); the first page stays server-rendered.
+
+**Not yet proven:** the E2E spec `apps/web/e2e/notifications-infinite-scroll.e2e.ts` is written but skips itself: the E2E account has 1 notification (1 unread) on the shared DB (read-only count, 2026-11-25), so there is no second page to scroll to on Cook It Real Good. The scroll, end line and badge behaviour is covered only by unit and repository tests until an account with more than 20 notifications exists.
 
 **Blocked by:** T-301
 

@@ -64,7 +64,7 @@ export default async function Layout({
   const [
     workspace,
     channels,
-    notifications,
+    notificationPage,
     unreadCount,
     { timeZone, source: timeZoneSource },
   ] = await Promise.all([
@@ -81,10 +81,9 @@ export default async function Layout({
       workspaceId,
       asUserId(session.user.id),
     ),
-    notificationService.list(asUserId(session.user.id)),
-    // Query `count` terpisah dari `list` (yang dibatasi 50 baris) supaya
-    // badge unread di bell tidak under-count begitu user punya >50
-    // notifikasi belum dibaca.
+    notificationService.listPage(asUserId(session.user.id)),
+    // Separate `count` query (T-304): the badge is the true unread total,
+    // not the length of the loaded page.
     notificationService.countUnread(asUserId(session.user.id)),
     // T-147 (ADR-146): zona waktu pengguna dibaca di sini lalu dioper ke
     // komponen client lewat `UserTimeZoneProvider`; paralel dengan query lain.
@@ -137,7 +136,7 @@ export default async function Layout({
             userName={session.user.name}
             userEmail={session.user.email}
             channels={channels}
-            initialNotifications={notifications}
+            initialNotificationPage={notificationPage}
             initialUnreadCount={unreadCount}
             userId={session.user.id}
           />
