@@ -4139,15 +4139,15 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 ### T-300 · Board on a phone gets stuck after scrolling to a column with cards
 
-| Field            | Value                                |
-| ---------------- | ------------------------------------ |
-| **Status**       | ⏳ Not Started                       |
-| **Mode**         | AFK                                  |
-| **Verification** | `staging`                            |
-| **Domain**       | publishing (UI)                      |
-| **Spec**         | S-008 (Board, phone layout of T-292) |
-| **Docs**         | ADR-165                              |
-| **Depends**      | —                                    |
+| Field            | Value                                                    |
+| ---------------- | -------------------------------------------------------- |
+| **Status**       | ✅ Done (code) 2026-11-25; Verified (staging) 2026-11-25 |
+| **Mode**         | AFK                                                      |
+| **Verification** | `staging`                                                |
+| **Domain**       | publishing (UI)                                          |
+| **Spec**         | S-008 (Board, phone layout of T-292)                     |
+| **Docs**         | ADR-165                                                  |
+| **Depends**      | —                                                        |
 
 **What to build:** King Rezi (2026-11-25, staging, mobile): on the Publish Board, after scrolling right to the end he could not scroll back left. Cause: each column's card list is `overflow-y-auto overscroll-contain`; `overflow-y-auto` makes it a horizontal scroll container too, so `overscroll-contain` stopped sideways swipes and wheel scrolls that start on a column with cards (Published, Failed) from reaching the Board row. Empty columns have no list, so the Board only got stuck once it reached Published.
 
@@ -4158,7 +4158,7 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 **Not yet proven:** the guard does not run in the required `staging` → `main` PR gate: `publish-redesign.e2e.ts` is skipped without `DATABASE_URL`, which `e2e-staging.yml` passes only on `workflow_dispatch` (pre-existing for every Publish redesign test). It runs locally and on a manual staging E2E run.
 
-Verified (staging) after merge: King Rezi swipes the Board on a phone.
+- [x] Verified (staging) 2026-11-25: after PR 301 (`6b7762b4`) was deployed, King Rezi swiped the Board on his phone and in his browser, to the end and back; it works normally.
 
 **Blocked by:** none
 
