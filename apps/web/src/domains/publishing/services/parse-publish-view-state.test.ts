@@ -149,12 +149,24 @@ describe("parsePublishViewState", () => {
     });
 
     it("reads the post id", () => {
+      const id = "11111111-1111-4111-8111-111111111111";
       expect(
         parsePublishViewState(
-          { view: "list", tab: "history", post: "p-1" },
+          { view: "list", tab: "history", post: id },
           defaults,
         ).postId,
-      ).toBe("p-1");
+      ).toBe(id);
+    });
+
+    it("drops a post that is not a uuid, so it 404s instead of erroring", () => {
+      for (const post of ["p-1", "not-a-uuid", "1111", " "]) {
+        expect(
+          parsePublishViewState(
+            { view: "list", tab: "history", post },
+            defaults,
+          ).postId,
+        ).toBeNull();
+      }
     });
   });
 });
