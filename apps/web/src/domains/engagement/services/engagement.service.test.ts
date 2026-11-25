@@ -75,7 +75,11 @@ function createFakeRepository(
       createdAt: new Date(0),
       updatedAt: new Date(0),
     }),
-    aggregateInboxByPost: async () => [],
+    listInboxItemsPage: async () => ({ items: [], nextCursor: null }),
+    countInboxItems: async () => ({ total: 0, unread: 0 }),
+    listInboxPostGroups: async () => ({ items: [], nextCursor: null }),
+    countInboxPostGroups: async () => ({ postCount: 0, unrepliedCount: 0 }),
+    findPostIdsWithInboxItems: async () => [],
     listRepliesByInboxItemId: async () => [],
     ...overrides,
   };

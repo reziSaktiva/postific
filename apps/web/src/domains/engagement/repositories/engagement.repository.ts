@@ -1,5 +1,6 @@
 import type {
   ConnectedAccountId,
+  CursorPage,
   InboxItemId,
   PostId,
   SocialPlatform,
@@ -9,10 +10,14 @@ import type {
 import type {
   EngagementInboxItemRecord,
   EngagementReplyRecord,
-  InboxAggregateFilter,
-  InboxAggregateRow,
+  InboxItemCounts,
   InboxItemFilter,
+  InboxItemsPageRequest,
   InboxItemStatus,
+  InboxPostGroupCounts,
+  InboxPostGroupFilter,
+  InboxPostGroupsPageRequest,
+  InboxPostGroupSummary,
 } from "../types";
 
 /** Repository interface — implementation (Prisma) lives in src/lib/repositories/engagement. */
@@ -30,17 +35,70 @@ export interface IEngagementRepository {
   ): Promise<EngagementInboxItemRecord[]>;
 
   /**
-   * Agregasi untuk daftar posting Engage (T-218.1): satu baris per
-   * (posting, akun, platform, status) dengan jumlah dan `receivedAt` terbaru,
-   * dihitung di database (`GROUP BY`) supaya ratusan komentar per posting
-   * tidak ditarik ke memori. Pengelompokan akhir, hitungan, dan sort ada di
-   * `buildInboxPostGroups` (murni). Dibatasi 5000 baris agregat. `userId`
-   * (RLS) — acting user untuk `withCurrentUser`.
+   * Satu halaman komentar (T-303, ADR-166): urutan stabil dibuat database
+   * (waktu terima + id sebagai tie-breaker), tanpa offset. `request.sort`:
+   * `unreplied_first` = `unread` dulu lalu sisanya, masing-masing terbaru
+   * dulu; `newest`/`oldest` = `receivedAt` turun/naik. Cursor opak: hanya
+   * repository yang membuat dan membacanya; cursor rusak, kedaluwarsa, atau
+   * milik filter/sort lain melempar `ValidationError`. `userId` (RLS).
    */
-  aggregateInboxByPost(
-    filter: InboxAggregateFilter,
+  listInboxItemsPage(
+    filter: InboxItemFilter,
+    request: InboxItemsPageRequest,
     userId: UserId,
-  ): Promise<InboxAggregateRow[]>;
+  ): Promise<CursorPage<EngagementInboxItemRecord>>;
+
+  /**
+   * Hitungan sebenarnya komentar untuk filter yang sama (count query, bukan
+   * panjang halaman termuat): total dan `unread`. `userId` (RLS).
+   */
+  countInboxItems(
+    filter: InboxItemFilter,
+    userId: UserId,
+  ): Promise<InboxItemCounts>;
+
+  /**
+   * Satu halaman kelompok posting yang punya komentar (T-303, ADR-166, S-009),
+   * dikelompokkan dan diurutkan di database (`GROUP BY post_id`), jadi ratusan
+   * komentar per posting tidak ditarik ke memori. `scope: "numbered"` = posting
+   * bernomor, urutan `request.sort` (`unreplied_first`: belum dibalas terbanyak,
+   * lalu komentar terbaru; `newest`/`oldest`: komentar terbaru) dengan id
+   * posting sebagai tie-breaker. `scope: "none"` = kelompok tunggal "Tanpa
+   * posting" (satu halaman tanpa cursor). Cursor opak; cursor tidak valid
+   * melempar `ValidationError`. `userId` (RLS).
+   */
+  listInboxPostGroups(
+    filter: InboxPostGroupFilter,
+    scope: "numbered" | "none",
+    request: InboxPostGroupsPageRequest,
+    userId: UserId,
+  ): Promise<CursorPage<InboxPostGroupSummary>>;
+
+  /**
+   * Hitungan sebenarnya untuk daftar kelompok posting (count query): jumlah
+   * posting bernomor dan komentar `unread` pada kelompok yang cocok filter.
+   * `userId` (RLS).
+   */
+  countInboxPostGroups(
+    filter: InboxPostGroupFilter,
+    userId: UserId,
+  ): Promise<InboxPostGroupCounts>;
+
+  /**
+   * Dari `postIds`, yang punya minimal satu komentar dalam cakupan
+   * (akun/platform/`receivedSince`). Dipakai menyaring posting tanpa komentar
+   * (`includeEmpty`). `userId` (RLS).
+   */
+  findPostIdsWithInboxItems(
+    input: {
+      workspaceId: WorkspaceId;
+      postIds: PostId[];
+      connectedAccountId?: ConnectedAccountId;
+      platform?: SocialPlatform;
+      receivedSince?: Date;
+    },
+    userId: UserId,
+  ): Promise<PostId[]>;
 
   /**
    * Detail satu inbox item — dipakai `EngagementService.getInboxItemDetail`

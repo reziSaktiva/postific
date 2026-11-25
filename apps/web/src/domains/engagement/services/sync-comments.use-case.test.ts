@@ -102,7 +102,11 @@ function createFakeRepository(
     createReply: async () => {
       throw new Error("not used in this test");
     },
-    aggregateInboxByPost: async () => [],
+    listInboxItemsPage: async () => ({ items: [], nextCursor: null }),
+    countInboxItems: async () => ({ total: 0, unread: 0 }),
+    listInboxPostGroups: async () => ({ items: [], nextCursor: null }),
+    countInboxPostGroups: async () => ({ postCount: 0, unrepliedCount: 0 }),
+    findPostIdsWithInboxItems: async () => [],
     listRepliesByInboxItemId: async () => [],
     ...overrides,
   };

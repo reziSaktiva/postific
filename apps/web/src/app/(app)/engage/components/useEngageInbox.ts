@@ -1,25 +1,44 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { toast } from "sonner";
 
-import { asConnectedAccountId, type SocialPlatform } from "@postific/shared";
+import {
+  asConnectedAccountId,
+  asPageCursor,
+  type CursorPage,
+  type PageCursor,
+  type SocialPlatform,
+} from "@postific/shared";
 import type {
   EngagementInboxItemRecord,
   InboxDateRange,
+  InboxItemCounts,
   InboxItemStatus,
+  InboxPostGroupCounts,
   InboxPostSort,
 } from "@/domains/engagement";
 
+import { useInfiniteList } from "../../components/infinite-list/useInfiniteList";
 import {
   changeInboxItemStatusAction,
-  listInboxAction,
-  listInboxByPostAction,
   refreshInboxAction,
   replyToCommentAction,
-  type InboxPostGroupDto,
-  type ListInboxActionFilter,
 } from "../actions";
+import {
+  fetchCommentsPage,
+  fetchPostGroupsPage,
+  type CommentsRequest,
+  type PostGroupsRequest,
+} from "../engage-client";
+import type { InboxPostGroupDto } from "../engage-dto";
 import {
   ALL_FILTER_VALUE,
   DEFAULT_DATE_RANGE,
@@ -27,7 +46,10 @@ import {
   type EngageView,
   type JustSent,
   NO_POST_KEY,
+  applyStatusToCounts,
   applyStatusToGroup,
+  compareComments,
+  compareGroups,
   groupKey,
 } from "./engage-model";
 
@@ -38,28 +60,58 @@ const STATUS_TOAST: Record<InboxItemStatus, string> = {
   dismissed: "Komentar diabaikan",
 };
 
+const EMPTY_PAGE: CursorPage<never> = { items: [], nextCursor: null };
+
+/** Kartu kosong untuk menghitung selisih satu perubahan status lewat `applyStatusToGroup`. */
+const ZERO_GROUP = {
+  unrepliedCount: 0,
+  handledCount: 0,
+  repliedCount: 0,
+} as InboxPostGroupDto;
+
+const NO_OVERRIDES: ReadonlyMap<string, InboxItemStatus> = new Map();
+
+const commentKey = (item: EngagementInboxItemRecord) => item.id;
+
+function toPage<T>(items: T[], nextCursor: string | null): CursorPage<T> {
+  return {
+    items,
+    nextCursor: nextCursor === null ? null : asPageCursor(nextCursor),
+  };
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Daftar tidak dapat dimuat.";
+}
+
 export interface UseEngageInboxArgs {
+  /** Halaman pertama daftar posting (filter bawaan), dari server. */
   initialGroups: InboxPostGroupDto[];
-  initialTruncated: boolean;
+  initialNextCursor: string | null;
+  /** Hitungan sebenarnya daftar posting; `null` bila muat awal gagal. */
+  initialCounts: InboxPostGroupCounts | null;
   /** Muat awal daftar posting gagal: tampilkan Alert gagal, bukan state "kosong". */
   initialLoadFailed: boolean;
 }
 
 /**
- * State dan efek Engage (T-219, T-220, T-224). Dipisah dari
- * `EngageInboxView` (T-219.1). Tanpa Supabase Realtime (ADR-023): data
- * diambil lewat Server Action saat filter berubah, tampilan List dibuka,
- * posting dipilih, atau Refresh diklik. Pengambilan daftar posting memakai
- * penjaga versi filter (`filterVersionRef`): hasil Refresh yang dimulai dengan
- * filter lama dibuang bila filter berubah selama Refresh berjalan.
+ * State dan efek Engage (T-219, T-220, T-224, T-303). Dipisah dari
+ * `EngageInboxView` (T-219.1). Tanpa Supabase Realtime (ADR-023). Tiga daftar
+ * berhalaman 20 per halaman (ADR-166), masing-masing satu `useInfiniteList`:
+ * posting (By post), komentar posting terpilih, dan komentar semua posting
+ * (List). Halaman berikutnya lewat Route Handler GET `/api/engage/*`; filter
+ * berubah atau Refresh memanggil `refresh` hook (daftar dikosongkan seketika,
+ * halaman pertama filter lama yang datang terlambat dibuang hook). Hitungan
+ * (jumlah posting, belum dibalas, total komentar) dari count query di halaman
+ * pertama, bukan panjang daftar termuat. Balasan dan perubahan status
+ * mengubah komentar di tempat (`statusOverrides`), tanpa memindahkan baris.
  */
 export function useEngageInbox({
   initialGroups,
-  initialTruncated,
+  initialNextCursor,
+  initialCounts,
   initialLoadFailed,
 }: UseEngageInboxArgs) {
-  const [groups, setGroups] = useState(initialGroups);
-  const [truncated, setTruncated] = useState(initialTruncated);
   const [accountFilter, setAccountFilter] = useState(ALL_FILTER_VALUE);
   const [platformFilter, setPlatformFilter] = useState(ALL_FILTER_VALUE);
   const [statusFilter, setStatusFilter] = useState(ALL_FILTER_VALUE);
@@ -67,41 +119,52 @@ export function useEngageInbox({
   const [dateRange, setDateRange] =
     useState<InboxDateRange>(DEFAULT_DATE_RANGE);
   const [showEmptyPosts, setShowEmptyPosts] = useState(false);
-  const [isLoadingList, setIsLoadingList] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshFailed, setRefreshFailed] = useState(initialLoadFailed);
   const [lastUpdatedAt, setLastUpdatedAt] = useState(() => new Date());
+  // Naik setiap Refresh: memuat ulang komentar posting terpilih / tampilan List.
+  const [refreshTick, setRefreshTick] = useState(0);
 
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  // Kelompok yang dibuka dari tampilan List padahal belum ada di halaman
+  // termuat; hanya berlaku untuk filter (`signature`) saat dibuka.
+  const [pinned, setPinned] = useState<{
+    signature: string;
+    group: InboxPostGroupDto;
+  } | null>(null);
   const [collapsed, setCollapsed] = useState(false);
   // Push navigation layar sempit (T-111.5): "list" bawaan, "detail" setelah
   // memilih posting. Di `md:` ke atas tidak berpengaruh visual.
   const [mobileView, setMobileView] = useState<"list" | "detail">("list");
 
-  const [comments, setComments] = useState<{
-    key: string;
-    items: EngagementInboxItemRecord[];
-  } | null>(null);
-  const [isLoadingComments, setIsLoadingComments] = useState(false);
-  const [commentsTick, setCommentsTick] = useState(0);
-
   // Tampilan List (T-224): daftar datar lintas posting, dimuat hanya saat
   // List dibuka (tidak ada query tambahan di render awal By post).
   const [view, setViewState] = useState<EngageView>("post");
-  const [flat, setFlat] = useState<EngagementInboxItemRecord[] | null>(null);
-  const [isLoadingFlat, setIsLoadingFlat] = useState(false);
 
   const [replyTargetId, setReplyTargetId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [justSent, setJustSent] = useState<JustSent>(null);
   const [bannerDismissed, setBannerDismissed] = useState(false);
-  // Naik setiap filter yang memengaruhi daftar posting berubah: Refresh yang
-  // dimulai dengan filter lama membuang hasilnya.
-  const filterVersionRef = useRef(0);
+  // Status yang diubah pengguna di sesi ini, ditumpuk di atas komentar termuat:
+  // komentar tetap di tempatnya (tidak melompat ke bagian lain urutan) sampai
+  // daftar dimuat ulang. Berlaku hanya untuk permintaan daftar (`signature`)
+  // saat diubah, jadi daftar yang dimuat ulang otomatis tanpa tumpukan lama.
+  const [overrides, setOverrides] = useState<{
+    signature: string | null;
+    map: ReadonlyMap<string, InboxItemStatus>;
+  }>({ signature: null, map: NO_OVERRIDES });
+  // Selisih hitungan kartu akibat perubahan status di sesi ini (optimistis),
+  // ditumpuk di atas kartu termuat; dibuang saat hitungan server masuk.
+  const [groupDeltas, setGroupDeltas] = useState<
+    ReadonlyMap<string, { unread: number; replied: number }>
+  >(() => new Map());
   // Naik setiap daftar posting diganti hasil fetch: rollback hitungan kartu
   // dilewati bila daftar sudah diganti (hitungan server sudah masuk).
   const groupsEpochRef = useRef(0);
+  // Naik setiap filter yang memengaruhi daftar posting berubah: Refresh yang
+  // dimulai dengan filter lama tidak boleh memuat ulang daftar dengan filter itu.
+  const filterVersionRef = useRef(0);
   const justSentTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const accountId =
@@ -116,115 +179,220 @@ export function useEngageInbox({
     statusFilter !== ALL_FILTER_VALUE
       ? (statusFilter as InboxItemStatus)
       : undefined;
+  const statusValue: InboxItemStatus | "all" = status ?? "all";
 
-  const fetchGroups = useCallback(async () => {
-    const result = await listInboxByPostAction({
+  // ---- Daftar posting (By post) ----
+  const [groupCounts, setGroupCounts] = useState(initialCounts);
+  const groupsLoadSeqRef = useRef(0);
+
+  const groupsRequest = useMemo<PostGroupsRequest>(
+    () => ({
       ...(accountId && { connectedAccountId: accountId }),
       ...(platform && { platform }),
       ...(status && { status }),
       includeEmpty: showEmptyPosts,
       sort,
       dateRange,
-    });
-    return result;
-  }, [accountId, platform, status, showEmptyPosts, sort, dateRange]);
+    }),
+    [accountId, platform, status, showEmptyPosts, sort, dateRange],
+  );
 
-  // Lewati fetch pertama: `initialGroups` sudah state filter bawaan.
-  const skipNextFetchRef = useRef(true);
-  useEffect(() => {
-    if (skipNextFetchRef.current) {
-      skipNextFetchRef.current = false;
+  const groupsList = useInfiniteList<InboxPostGroupDto>({
+    initialPage: toPage(initialGroups, initialNextCursor),
+    loadPage: async (cursor: PageCursor) => {
+      const page = await fetchPostGroupsPage(groupsRequest, cursor);
+      return toPage(page.groups, page.nextCursor);
+    },
+    getKey: groupKey,
+    compare: useMemo(() => compareGroups(sort), [sort]),
+  });
+  const refreshGroupsList = groupsList.refresh;
+
+  /** Halaman pertama + hitungan; hitungan hanya dipakai bila ini muat terbaru. */
+  const loadGroupsFirst = useCallback(async () => {
+    groupsLoadSeqRef.current += 1;
+    const seq = groupsLoadSeqRef.current;
+    const page = await fetchPostGroupsPage(
+      { ...groupsRequest, withCounts: true },
+      null,
+    );
+    if (seq === groupsLoadSeqRef.current) {
+      groupsEpochRef.current += 1;
+      setGroupDeltas(new Map());
+      setGroupCounts(page.counts);
+    }
+    return toPage(page.groups, page.nextCursor);
+  }, [groupsRequest]);
+
+  // Lewati muat pertama: `initialGroups` sudah state filter bawaan. Layout
+  // effect: daftar lama sudah kosong sebelum browser menggambar filter baru.
+  const skipNextGroupsLoadRef = useRef(true);
+  useLayoutEffect(() => {
+    if (skipNextGroupsLoadRef.current) {
+      skipNextGroupsLoadRef.current = false;
       return;
     }
-    let cancelled = false;
     filterVersionRef.current += 1;
-    void (async () => {
-      setIsLoadingList(true);
-      const result = await fetchGroups();
-      if (cancelled) return;
-      if (result.error) {
-        toast.error(result.error);
-      } else {
-        groupsEpochRef.current += 1;
-        setGroups(result.data ?? []);
-        setTruncated(result.truncated ?? false);
-      }
-      setIsLoadingList(false);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [fetchGroups]);
+    refreshGroupsList(loadGroupsFirst);
+  }, [loadGroupsFirst, refreshGroupsList]);
+
+  const groups = useMemo(
+    () =>
+      groupDeltas.size === 0
+        ? groupsList.items
+        : groupsList.items.map((group) => {
+            const delta = groupDeltas.get(groupKey(group));
+            return delta
+              ? {
+                  ...group,
+                  unrepliedCount: group.unrepliedCount + delta.unread,
+                  handledCount: group.handledCount - delta.unread,
+                  repliedCount: group.repliedCount + delta.replied,
+                }
+              : group;
+          }),
+    [groupsList.items, groupDeltas],
+  );
 
   // Pilihan "efektif" dihitung saat render: bila posting terpilih hilang
   // (filter berubah), jatuh ke kelompok pertama.
-  const effectiveKey = groups.some((g) => groupKey(g) === selectedKey)
-    ? selectedKey
-    : groups[0]
-      ? groupKey(groups[0])
+  const pinnedGroup =
+    pinned && pinned.signature === JSON.stringify(groupsRequest)
+      ? pinned.group
       : null;
+  const pinnedKey = pinnedGroup ? groupKey(pinnedGroup) : null;
+  const effectiveKey =
+    groups.some((g) => groupKey(g) === selectedKey) ||
+    (pinnedKey !== null && pinnedKey === selectedKey)
+      ? selectedKey
+      : groups[0]
+        ? groupKey(groups[0])
+        : null;
   const selectedGroup =
-    groups.find((g) => groupKey(g) === effectiveKey) ?? null;
+    groups.find((g) => groupKey(g) === effectiveKey) ??
+    (pinnedGroup && pinnedKey === effectiveKey ? pinnedGroup : null);
 
-  // Komentar posting terpilih: semua status (filter status hanya menyaring
-  // tampilan, supaya ringkasan "x dibalas / y total" tetap atas semuanya).
-  useEffect(() => {
-    // Tampilan List tidak memakai komentar per posting: lewati fetch. Kembali
-    // ke By post menjalankan efek ini lagi (`view` ada di dependensi).
-    if (view === "list") return;
-    let cancelled = false;
-    void (async () => {
-      if (!effectiveKey) {
-        setComments(null);
-        setIsLoadingComments(false);
-        return;
-      }
-      setIsLoadingComments(true);
-      const filter: ListInboxActionFilter = {
-        postId: effectiveKey === NO_POST_KEY ? null : effectiveKey,
-        dateRange,
-        ...(accountId && { connectedAccountId: accountId }),
-        ...(platform && { platform }),
-      };
-      const result = await listInboxAction(filter);
-      if (cancelled) return;
-      if (result.error) {
-        toast.error(result.error);
-        setComments({ key: effectiveKey, items: [] });
-      } else {
-        setComments({ key: effectiveKey, items: result.data ?? [] });
-      }
-      setIsLoadingComments(false);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [view, effectiveKey, accountId, platform, dateRange, commentsTick]);
+  // ---- Komentar posting terpilih ----
+  const commentsRequest = useMemo<CommentsRequest>(
+    () => ({
+      postId: effectiveKey ?? undefined,
+      ...(accountId && { connectedAccountId: accountId }),
+      ...(platform && { platform }),
+      ...(status && { status }),
+      sort,
+      dateRange,
+    }),
+    [effectiveKey, accountId, platform, status, sort, dateRange],
+  );
+  const commentsList = useInfiniteList<EngagementInboxItemRecord>({
+    initialPage: EMPTY_PAGE,
+    loadPage: async (cursor: PageCursor) => {
+      const page = await fetchCommentsPage(commentsRequest, cursor);
+      return toPage(page.items, page.nextCursor);
+    },
+    getKey: commentKey,
+    compare: useMemo(() => compareComments(sort), [sort]),
+  });
+  const refreshCommentsList = commentsList.refresh;
+  const commentsSignature =
+    view === "post" && effectiveKey
+      ? JSON.stringify([commentsRequest, refreshTick])
+      : null;
+  useLayoutEffect(() => {
+    if (commentsSignature === null) return;
+    refreshCommentsList(async () => {
+      const page = await fetchCommentsPage(commentsRequest, null);
+      return toPage(page.items, page.nextCursor);
+    });
+    // `commentsRequest` sudah terwakili `commentsSignature`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [commentsSignature, refreshCommentsList]);
 
-  useEffect(() => {
-    if (view !== "list") return;
-    let cancelled = false;
-    void (async () => {
-      setIsLoadingFlat(true);
-      const result = await listInboxAction({
-        dateRange,
-        ...(accountId && { connectedAccountId: accountId }),
-        ...(platform && { platform }),
-        ...(status && { status }),
-      });
-      if (cancelled) return;
-      if (result.error) {
-        toast.error(result.error);
-        setFlat([]);
-      } else {
-        setFlat(result.data ?? []);
+  // ---- Tampilan List (semua komentar) ----
+  // Hitungan List dari count query; berlaku hanya untuk permintaan (`signature`)
+  // yang menghitungnya.
+  const [flatCountsState, setFlatCountsState] = useState<{
+    signature: string;
+    counts: InboxItemCounts | null;
+  } | null>(null);
+  const [postCaptions, setPostCaptions] = useState<Record<string, string>>({});
+  const flatLoadSeqRef = useRef(0);
+  const flatRequest = useMemo<CommentsRequest>(
+    () => ({
+      ...(accountId && { connectedAccountId: accountId }),
+      ...(platform && { platform }),
+      ...(status && { status }),
+      sort,
+      dateRange,
+      includePostCaptions: true,
+    }),
+    [accountId, platform, status, sort, dateRange],
+  );
+  const flatList = useInfiniteList<EngagementInboxItemRecord>({
+    initialPage: EMPTY_PAGE,
+    loadPage: async (cursor: PageCursor) => {
+      const page = await fetchCommentsPage(flatRequest, cursor);
+      setPostCaptions((prev) => ({ ...prev, ...page.postCaptions }));
+      return toPage(page.items, page.nextCursor);
+    },
+    getKey: commentKey,
+    compare: useMemo(() => compareComments(sort), [sort]),
+  });
+  const refreshFlatList = flatList.refresh;
+  const flatSignature =
+    view === "list" ? JSON.stringify([flatRequest, refreshTick]) : null;
+  useLayoutEffect(() => {
+    if (flatSignature === null) return;
+    refreshFlatList(async () => {
+      flatLoadSeqRef.current += 1;
+      const seq = flatLoadSeqRef.current;
+      const page = await fetchCommentsPage(
+        { ...flatRequest, withCounts: true },
+        null,
+      );
+      if (seq === flatLoadSeqRef.current) {
+        setFlatCountsState({ signature: flatSignature, counts: page.counts });
+        setPostCaptions((prev) => ({ ...prev, ...page.postCaptions }));
       }
-      setIsLoadingFlat(false);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [view, accountId, platform, status, dateRange, commentsTick]);
+      return toPage(page.items, page.nextCursor);
+    });
+    // `flatRequest` sudah terwakili `flatSignature`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [flatSignature, refreshFlatList]);
+  const flatCounts =
+    flatCountsState && flatCountsState.signature === flatSignature
+      ? flatCountsState.counts
+      : null;
+
+  const activeSignature = view === "post" ? commentsSignature : flatSignature;
+  const statusOverrides =
+    overrides.signature === activeSignature ? overrides.map : NO_OVERRIDES;
+
+  // Komentar yang ditampilkan: status dari `statusOverrides` ditumpuk, lalu
+  // disaring filter Status (komentar yang baru berpindah status keluar seketika).
+  const applyOverrides = useCallback(
+    (items: EngagementInboxItemRecord[]) => {
+      const overridden =
+        statusOverrides.size === 0
+          ? items
+          : items.map((item) => {
+              const override = statusOverrides.get(item.id);
+              return override ? { ...item, status: override } : item;
+            });
+      return statusValue === "all"
+        ? overridden
+        : overridden.filter((item) => item.status === statusValue);
+    },
+    [statusOverrides, statusValue],
+  );
+  const comments = useMemo(
+    () => applyOverrides(commentsList.items),
+    [applyOverrides, commentsList.items],
+  );
+  const flat = useMemo(
+    () => applyOverrides(flatList.items),
+    [applyOverrides, flatList.items],
+  );
 
   const handleRefresh = useCallback(async () => {
     const filterVersion = filterVersionRef.current;
@@ -236,25 +404,30 @@ export function useEngageInbox({
       return;
     }
     setRefreshFailed(false);
+    // Filter berubah selama sinkronisasi di server: muat ulang milik filter
+    // baru sudah berjalan sendiri; memuat dengan filter lama akan menimpanya.
+    if (filterVersion !== filterVersionRef.current) {
+      setIsRefreshing(false);
+      return;
+    }
 
-    const listResult = await fetchGroups();
-    // Filter berubah selama Refresh berjalan (termasuk selama aksi refresh di
-    // server): hasil ini dibuat dengan filter lama, jadi tidak boleh menimpa
-    // daftar. Fetch milik filter baru sudah berjalan sendiri.
+    // Muat ulang dari halaman pertama: daftar posting di sini, komentar posting
+    // terpilih dan tampilan List lewat `refreshTick`. `refresh` hook hanya
+    // menerapkan muat terbaru, jadi balapan dengan perubahan filter aman.
+    const started = loadGroupsFirst();
+    const seq = groupsLoadSeqRef.current;
+    refreshGroupsList(() => started);
+    setPinned(null);
+    setRefreshTick((tick) => tick + 1);
+
     // Stempel "Diperbarui" dan toast jumlah komentar hanya bila daftar benar-benar
-    // diperbarui; gagal atau dibuang tidak boleh terlihat sebagai sukses.
+    // diperbarui; gagal atau digantikan muat lain tidak boleh terlihat sebagai sukses.
     let listApplied = false;
-    if (filterVersion === filterVersionRef.current) {
-      if (listResult.error) {
-        toast.error(listResult.error);
-      } else {
-        groupsEpochRef.current += 1;
-        setGroups(listResult.data ?? []);
-        setTruncated(listResult.truncated ?? false);
-        setCommentsTick((tick) => tick + 1);
-        listApplied = true;
-      }
-      setIsLoadingList(false);
+    try {
+      await started;
+      listApplied = seq === groupsLoadSeqRef.current;
+    } catch (error) {
+      toast.error(errorMessage(error));
     }
     setIsRefreshing(false);
     if (!listApplied) return;
@@ -266,7 +439,7 @@ export function useEngageInbox({
         ? `${newCommentsCount} komentar baru`
         : "Tidak ada komentar baru",
     );
-  }, [fetchGroups]);
+  }, [loadGroupsFirst, refreshGroupsList]);
 
   const patchStatus = useCallback(
     (
@@ -275,21 +448,54 @@ export function useEngageInbox({
       to: InboxItemStatus,
       { adjustGroup = true }: { adjustGroup?: boolean } = {},
     ) => {
-      const apply = (item: EngagementInboxItemRecord) =>
-        item.id === comment.id ? { ...item, status: to } : item;
-      setComments((prev) =>
-        prev ? { ...prev, items: prev.items.map(apply) } : prev,
+      setOverrides((prev) => ({
+        signature: activeSignature,
+        map: new Map(
+          prev.signature === activeSignature ? prev.map : NO_OVERRIDES,
+        ).set(comment.id, to),
+      }));
+      // Hitungan List ikut berubah di tempat; di By post hitungan ada di kartu.
+      setFlatCountsState((prev) =>
+        prev && prev.counts
+          ? {
+              ...prev,
+              counts: applyStatusToCounts(prev.counts, from, to, statusValue),
+            }
+          : prev,
       );
-      setFlat((prev) => (prev ? prev.map(apply) : prev));
       if (!adjustGroup) return;
       const key = comment.postId ?? NO_POST_KEY;
-      setGroups((prev) =>
-        prev.map((group) =>
-          groupKey(group) === key ? applyStatusToGroup(group, from, to) : group,
-        ),
+      const probe = applyStatusToGroup(ZERO_GROUP, from, to);
+      const delta = {
+        unread: probe.unrepliedCount,
+        replied: probe.repliedCount,
+      };
+      // Hanya kartu yang sudah termuat: kartu yang belum dimuat membawa
+      // hitungan server yang sudah memuat perubahan ini.
+      if (groups.some((group) => groupKey(group) === key)) {
+        setGroupDeltas((prev) => {
+          const current = prev.get(key) ?? { unread: 0, replied: 0 };
+          return new Map(prev).set(key, {
+            unread: current.unread + delta.unread,
+            replied: current.replied + delta.replied,
+          });
+        });
+      }
+      setPinned((prev) =>
+        prev && groupKey(prev.group) === key
+          ? { ...prev, group: applyStatusToGroup(prev.group, from, to) }
+          : prev,
+      );
+      setGroupCounts((prev) =>
+        prev && (from === "unread") !== (to === "unread")
+          ? {
+              ...prev,
+              unrepliedCount: prev.unrepliedCount + (to === "unread" ? 1 : -1),
+            }
+          : prev,
       );
     },
-    [],
+    [groups, statusValue, activeSignature],
   );
 
   // Sinkron dengan state agar callback async (setelah `await`) membaca
@@ -333,33 +539,48 @@ export function useEngageInbox({
   );
 
   const replyTarget =
-    (view === "list"
-      ? flat?.find((item) => item.id === replyTargetId)
-      : comments?.items.find((item) => item.id === replyTargetId)) ?? null;
+    (view === "list" ? flat : comments).find(
+      (item) => item.id === replyTargetId,
+    ) ?? null;
 
   const setView = useCallback((next: EngageView) => {
     setViewState(next);
-    // Perubahan status di List tidak menyentuh daftar komentar per posting:
-    // buang agar kembali ke By post tidak menampilkan data basi.
-    setComments(null);
+    // Pindah tampilan memuat ulang daftarnya dari halaman pertama (efek
+    // `*Signature`), jadi tidak ada data basi dari tampilan sebelumnya.
     setReplyTargetId(null);
     setDraft("");
   }, []);
 
   /** Dari baris konteks tampilan List: buka posting itu di By post (KSP-06-F09). */
   const openPostFromList = useCallback(
-    (comment: EngagementInboxItemRecord) => {
+    async (comment: EngagementInboxItemRecord) => {
       const key = comment.postId ?? NO_POST_KEY;
-      // Posting di luar daftar (mis. lewat batas 100 posting): jangan membuka
-      // posting lain lewat fallback pilihan efektif.
-      if (!groups.some((group) => groupKey(group) === key)) return;
+      // Posting yang belum ada di halaman termuat (daftar posting berhalaman,
+      // T-303): ambil kelompoknya sendiri, jangan jatuh ke pilihan efektif lain.
+      if (!groups.some((group) => groupKey(group) === key)) {
+        try {
+          const page = await fetchPostGroupsPage(
+            { ...groupsRequest, includeEmpty: false, postId: key },
+            null,
+          );
+          const group = page.groups[0];
+          if (!group) {
+            toast.error("Posting tidak ditemukan untuk filter ini.");
+            return;
+          }
+          setPinned({ signature: JSON.stringify(groupsRequest), group });
+        } catch (error) {
+          toast.error(errorMessage(error));
+          return;
+        }
+      }
       setViewState("post");
       setSelectedKey(key);
       setMobileView("detail");
       setReplyTargetId(null);
       setDraft("");
     },
-    [groups],
+    [groups, groupsRequest],
   );
 
   const startReply = useCallback((comment: EngagementInboxItemRecord) => {
@@ -424,18 +645,26 @@ export function useEngageInbox({
     sort !== DEFAULT_SORT ||
     dateRange !== DEFAULT_DATE_RANGE;
 
+  const totalUnread =
+    groupCounts?.unrepliedCount ??
+    groups.reduce((sum, group) => sum + group.unrepliedCount, 0);
+
   return {
     view,
     setView,
     openPostFromList,
     flat,
-    isLoadingFlat,
+    flatList,
+    flatCounts,
+    postCaptions,
     sort,
     setSort,
     dateRange,
     setDateRange,
     groups,
-    truncated,
+    groupsList,
+    postCount: groupCounts?.postCount ?? null,
+    totalUnread,
     accountFilter,
     setAccountFilter,
     platformFilter,
@@ -446,7 +675,6 @@ export function useEngageInbox({
     setShowEmptyPosts,
     hasActiveFilter,
     resetFilters,
-    isLoadingList,
     isRefreshing,
     refreshFailed,
     lastUpdatedAt,
@@ -458,8 +686,8 @@ export function useEngageInbox({
     effectiveKey,
     selectedGroup,
     selectGroup,
-    comments: comments && comments.key === effectiveKey ? comments.items : null,
-    isLoadingComments,
+    comments,
+    commentsList,
     replyTarget,
     startReply,
     cancelReply,

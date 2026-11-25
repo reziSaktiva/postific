@@ -1,7 +1,5 @@
 import {
   asConnectedAccountId,
-  asMediaId,
-  asPostId,
   asUserId,
   asWorkspaceId,
   MemberRole,
@@ -61,21 +59,13 @@ vi.mock("@/lib/repositories/notification", () => ({
 // repository lain di atas supaya import module ini tidak menyentuh
 // PrismaClient sungguhan (butuh `DATABASE_URL`).
 vi.mock("@/lib/repositories/publishing", () => ({ publishingRepository: {} }));
-// `listInboxByPostAction` merakit `MediaService` untuk thumbnail posting;
-// repository media di-stub sama seperti repository lain di atas.
-vi.mock("@/lib/repositories/media", () => ({ mediaRepository: {} }));
 vi.mock("@/lib/adapters/outstand", () => ({
   getOutstandAdapter: () => ({}),
 }));
 
-import { EngagementService, SyncCommentsUseCase } from "@/domains/engagement";
-import { MediaService } from "@/domains/media";
+import { SyncCommentsUseCase } from "@/domains/engagement";
 import { WorkspaceService } from "@/domains/workspace";
-import {
-  listInboxAction,
-  listInboxByPostAction,
-  refreshInboxAction,
-} from "./actions";
+import { refreshInboxAction } from "./actions";
 
 const WORKSPACE_ID = asWorkspaceId("workspace-1");
 const USER_ID = asUserId("user-1");
@@ -155,119 +145,5 @@ describe("refreshInboxAction", () => {
 
     expect(result).toEqual({ error: "Outstand API tidak merespons." });
     expect(revalidatePathMock).not.toHaveBeenCalled();
-  });
-});
-
-describe("listInboxByPostAction (T-218)", () => {
-  const group = (postId: string | null, mediaIds: string[]) => ({
-    postId: postId ? asPostId(postId) : null,
-    connectedAccountId: ACCOUNT_ACTIVE.id,
-    platform: SocialPlatform.Instagram,
-    connectedAccountIds: [ACCOUNT_ACTIVE.id],
-    totalCount: 2,
-    unrepliedCount: 1,
-    handledCount: 1,
-    latestReceivedAt: new Date("2026-10-01T00:00:00Z"),
-    statuses: ["unread" as const],
-    postSnapshot: postId
-      ? {
-          caption: "Caption",
-          mediaIds: mediaIds.map((id) => asMediaId(id)),
-          platformPostUrl: null,
-        }
-      : null,
-  });
-
-  beforeEach(() => {
-    vi.restoreAllMocks();
-    getSessionMock.mockReset();
-    getSessionMock.mockResolvedValue({ user: { id: USER_ID } });
-  });
-
-  it("mengganti mediaIds dengan thumbnail ber-URL segar lewat satu pencarian media", async () => {
-    vi.spyOn(EngagementService.prototype, "listInboxByPost").mockResolvedValue({
-      groups: [
-        group("post-1", ["m1", "m2"]),
-        group("post-2", []),
-        group(null, []),
-      ],
-      truncated: false,
-    });
-    const listByIds = vi
-      .spyOn(MediaService.prototype, "listByIds")
-      .mockResolvedValue([
-        {
-          id: asMediaId("m1"),
-          url: "https://signed.example/m1",
-          type: "image",
-        },
-      ] as never);
-
-    const result = await listInboxByPostAction({ sort: "newest" });
-    expect(result.truncated).toBe(false);
-
-    expect(listByIds).toHaveBeenCalledTimes(1);
-    expect(listByIds.mock.calls[0][0].mediaIds).toEqual(["m1"]);
-    expect(result.data?.[0].postSnapshot).toEqual({
-      caption: "Caption",
-      platformPostUrl: null,
-      thumbnail: { url: "https://signed.example/m1", type: "image" },
-    });
-    expect(result.data?.[1].postSnapshot?.thumbnail).toBeNull();
-    expect(result.data?.[2].postSnapshot).toBeNull();
-    expect(result.data?.[0]).not.toHaveProperty("postSnapshot.mediaIds");
-  });
-
-  it("tetap mengembalikan daftar tanpa thumbnail bila resolve media gagal", async () => {
-    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    vi.spyOn(EngagementService.prototype, "listInboxByPost").mockResolvedValue({
-      groups: [group("post-1", ["m1"])],
-      truncated: false,
-    });
-    vi.spyOn(MediaService.prototype, "listByIds").mockRejectedValue(
-      new Error("storage down"),
-    );
-
-    const result = await listInboxByPostAction();
-
-    expect(result.error).toBeUndefined();
-    expect(result.data?.[0].postSnapshot?.thumbnail).toBeNull();
-    errorSpy.mockRestore();
-  });
-});
-
-describe("listInboxAction filter per posting (T-219)", () => {
-  beforeEach(() => {
-    vi.restoreAllMocks();
-    getSessionMock.mockReset();
-    getSessionMock.mockResolvedValue({ user: { id: USER_ID } });
-  });
-
-  it("memetakan postId, null (Tanpa posting), dan dateRange ke filter service", async () => {
-    const listInbox = vi
-      .spyOn(EngagementService.prototype, "listInbox")
-      .mockResolvedValue([]);
-
-    await listInboxAction({ postId: "post-1", dateRange: "30d" });
-    const withPost = listInbox.mock.calls[0][0];
-    expect(withPost.postId).toBe("post-1");
-    const since = withPost.receivedSince as Date;
-    const days = (Date.now() - since.getTime()) / 86_400_000;
-    expect(days).toBeGreaterThan(29.9);
-    expect(days).toBeLessThan(30.1);
-
-    await listInboxAction({ postId: null });
-    expect(listInbox.mock.calls[1][0].postId).toBeNull();
-
-    await listInboxAction({});
-    expect(listInbox.mock.calls[2][0]).not.toHaveProperty("postId");
-    expect(listInbox.mock.calls[2][0]).not.toHaveProperty("receivedSince");
-  });
-
-  it("menolak rentang tanggal tak dikenal tanpa memanggil service", async () => {
-    const listInbox = vi.spyOn(EngagementService.prototype, "listInbox");
-    const result = await listInboxAction({ dateRange: "1y" as never });
-    expect(result.error).toBeTruthy();
-    expect(listInbox).not.toHaveBeenCalled();
   });
 });

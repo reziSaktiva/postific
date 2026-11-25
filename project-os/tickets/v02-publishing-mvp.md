@@ -4225,7 +4225,7 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 | Field            | Value                                |
 | ---------------- | ------------------------------------ |
-| **Status**       | ⏳ Not Started                       |
+| **Status**       | 🟡 In Progress                       |
 | **Mode**         | AFK                                  |
 | **Verification** | `local`                              |
 | **Domain**       | engagement (UI, service, repository) |
@@ -4235,11 +4235,15 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 **What to build:** the Engage List view and the comment list of one post load 20 at a time; older inbox items that the 200 cap used to hide can be reached.
 
-- [ ] Cursor-based repository queries for the inbox post groups and for the comments of one post, with count queries where a count is shown. Additive composite indexes where needed (pre-approved).
-- [ ] The 200-item inbox cap and `POST_GROUP_LIMIT` are removed; the comment list no longer loads up to 1 000 at once.
-- [ ] Engage filters reset the list to its first page; a new comment from realtime or a refresh appears without duplicates; a reply sent from the list stays in place.
+- [x] Cursor-based repository queries for the inbox post groups and for the comments of one post, with count queries where a count is shown. Additive composite indexes where needed (pre-approved).
+- [x] The 200-item inbox cap and `POST_GROUP_LIMIT` are removed; the comment list no longer loads up to 1 000 at once.
+- [x] Engage filters reset the list to its first page; a new comment from realtime or a refresh appears without duplicates; a reply sent from the list stays in place.
 - [ ] Repository integration tests; E2E on Cook It Real Good for each list with more than 20 items there (recorded as not yet proven where there are 20 or fewer).
-- [ ] Next pages load through a GET Route Handler that only calls the Application Service and validates the cursor (ADR-166 addendum 5); the first page stays server-rendered.
+- [x] Next pages load through a GET Route Handler that only calls the Application Service and validates the cursor (ADR-166 addendum 5); the first page stays server-rendered.
+
+**Built (lane engage, not committed to staging yet):** repository `listInboxItemsPage`, `countInboxItems`, `listInboxPostGroups` (SQL `GROUP BY post_id`, keyset on sort time + post id), `countInboxPostGroups`, opaque cursors in `lib/repositories/engagement/inbox-cursor.ts`; service `listInboxPostGroupsPage` (posting with comments, then posts without comments, then "Tanpa posting") and `listInboxPage`; GET `/api/engage/post-groups` and `/api/engage/comments`; three `useInfiniteList` lists in `useEngageInbox`. `listInboxAction` and `listInboxByPostAction` are gone; `POST_GROUP_LIMIT`, `LIST_VIEW_FETCH_LIMIT`, the 5000 aggregate cap and the "100 posting" notes are removed. `listInboxItems` (200/1000 caps) stays only for the MCP `list_comments` tool (ADR-166 decision 8). Counts (post count, unread, List total, per-post summary, stale-comment banner) come from count queries or group aggregates. Migration folder `20261125110000_t303_engagement_inbox_page_indexes` (two additive composite indexes), written, not applied.
+
+**Not yet proven:** (1) the repository integration tests `inbox-pages.integration.test.ts` (including two rows with the same sort time across a page boundary) are written but not run: this lane cannot read `.env.local` for `DATABASE_URL`, so the raw SQL has not run against Postgres; (2) the migration is not applied, so the cursor queries are untested against the new indexes and `EXPLAIN` was not run; (3) the 4th item stays open: Cook It Real Good (read through the staging MCP, read-only) has 14 comments in total (at most 6 per post, about 7 posts), so none of the three lists (List view, post list, comments of one post) has more than 20 items there; the "second page loads on scroll" E2E is not written and these lists are not proven in a browser; (4) the Engage post list (left panel) has no confirmed design for its loading rows and end line; it uses Post card skeletons and "Sudah sampai posting terlama." / "Gagal memuat posting lainnya", waiting for King Rezi; (5) paging reads a computed order by value (not offset); a group whose counts change between pages can move across a boundary, which the hook's de-duplication hides but cannot reorder.
 
 **Blocked by:** T-301
 

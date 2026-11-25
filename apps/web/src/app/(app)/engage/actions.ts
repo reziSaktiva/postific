@@ -1,45 +1,28 @@
 "use server";
 
-import {
-  SocialPlatform,
-  asConnectedAccountId,
-  asInboxItemId,
-  asPostId,
-  asUserId,
-} from "@postific/shared";
+import { asInboxItemId, asUserId } from "@postific/shared";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import {
   EngagementService,
-  INBOX_DATE_RANGES,
-  inboxDateRangeStart,
   RefreshInboxUseCase,
   SyncCommentsUseCase,
   type EngagementInboxItemRecord,
   type EngagementReplyRecord,
-  type InboxItemFilter,
-  type InboxDateRange,
   type InboxItemStatus,
-  type InboxPostGroup,
-  type ListInboxByPostInput,
 } from "@/domains/engagement";
-import { MediaService, type MediaThumbnailDto } from "@/domains/media";
 import { NotificationService } from "@/domains/notification";
 import { WorkspaceService } from "@/domains/workspace";
 import { getOutstandAdapter } from "@/lib/adapters/outstand";
-import { supabaseMediaStorageAdapter } from "@/lib/adapters/media-storage/supabase-media-storage-adapter";
 import { getCachedSession } from "@/lib/better-auth/session";
 import { engagementRepository } from "@/lib/repositories/engagement";
-import { mediaRepository } from "@/lib/repositories/media";
 import { notificationRepository } from "@/lib/repositories/notification";
 import { publishingRepository } from "@/lib/repositories/publishing";
 import { workspaceRepository } from "@/lib/repositories/workspace";
 import { toActionError } from "@/lib/utils/errors";
 import { createActiveWorkspaceMembersPort } from "@/lib/workspace/active-members-port";
 import { getWorkspaceContext } from "@/lib/workspace/workspace-context";
-
-import { resolveSnapshotThumbnail } from "../components/snapshot-thumbnail";
 
 /**
  * Manual refresh Comments Inbox (T-052, `background-jobs.md` § JOB-03).
@@ -104,185 +87,11 @@ export async function refreshInboxAction(): Promise<{
   }
 }
 
-/** Filter opsional untuk `listInboxAction` — bentuk primitif (input dari client), dipetakan ke `InboxItemFilter` (branded types) sebelum diteruskan ke service. */
-export interface ListInboxActionFilter {
-  connectedAccountId?: string;
-  platform?: string;
-  status?: InboxItemStatus;
-  /** T-219: komentar satu posting; `null` = kelompok "Tanpa posting". */
-  postId?: string | null;
-  /** T-219: batasi `receivedAt` (rentang sama dengan daftar posting). */
-  dateRange?: InboxDateRange;
-}
-
-/**
- * Comments Inbox — daftar inbox item milik workspace aktif (T-053).
- * Murni wiring (AGENTS.md #5): resolve workspace/session, petakan filter
- * primitif dari client ke `InboxItemFilter` (branded types), lalu delegasi
- * ke `EngagementService.listInbox` — filtering/sorting sudah jadi tanggung
- * jawab repository (T-050), tidak ditambahkan lagi di sini.
+/*
+ * Pembacaan daftar Engage (komentar dan kelompok posting) tidak lagi lewat
+ * Server Action: halaman pertama dari `page.tsx`, halaman berikutnya dari
+ * Route Handler GET `/api/engage/*` (T-303, ADR-166 addendum 5, RS-D01).
  */
-export async function listInboxAction(
-  filter?: ListInboxActionFilter,
-): Promise<{ data?: EngagementInboxItemRecord[]; error?: string }> {
-  const { workspaceId } = await getWorkspaceContext();
-  const session = await getCachedSession();
-  if (!session) {
-    redirect("/login");
-  }
-  const userId = asUserId(session.user.id);
-
-  const engagementService = new EngagementService(
-    engagementRepository,
-    getOutstandAdapter(),
-    publishingRepository,
-    workspaceRepository,
-  );
-
-  if (filter?.dateRange && !INBOX_DATE_RANGES.includes(filter.dateRange)) {
-    return { error: "Rentang tanggal tidak dikenal." };
-  }
-
-  try {
-    const inboxFilter: InboxItemFilter = {
-      workspaceId,
-      ...(filter?.connectedAccountId && {
-        connectedAccountId: asConnectedAccountId(filter.connectedAccountId),
-      }),
-      ...(filter?.platform && {
-        platform: filter.platform as SocialPlatform,
-      }),
-      ...(filter?.status && { status: filter.status }),
-      ...(filter?.postId !== undefined && {
-        postId: filter.postId === null ? null : asPostId(filter.postId),
-      }),
-      ...(filter?.dateRange && {
-        receivedSince: inboxDateRangeStart(filter.dateRange, new Date()),
-      }),
-    };
-    const data = await engagementService.listInbox(inboxFilter, userId);
-    return { data };
-  } catch (error) {
-    return toActionError(error);
-  }
-}
-
-/** Snapshot posting siap-render untuk kartu posting (T-218): `mediaIds` diganti thumbnail ber-signed URL. */
-export interface InboxPostGroupSnapshotDto {
-  caption: string;
-  platformPostUrl: string | null;
-  thumbnail: MediaThumbnailDto | null;
-}
-
-/** Kelompok posting siap-render (T-218). */
-export type InboxPostGroupDto = Omit<InboxPostGroup, "postSnapshot"> & {
-  postSnapshot: InboxPostGroupSnapshotDto | null;
-};
-
-/**
- * Daftar posting beserta ringkasan komentarnya (T-218) untuk tampilan "By
- * post". Murni wiring — delegasi ke `EngagementService.listInboxByPost`,
- * lalu meregenerasi signed URL thumbnail (media pertama tiap posting) lewat
- * `MediaService.resolveThumbnails`, pola sama `getInboxItemDetailAction`
- * (URL yang tersimpan sudah kedaluwarsa saat komentar dibuka lama setelah
- * tayang). Satu panggilan media untuk seluruh kelompok, bukan satu per
- * kelompok.
- */
-export async function listInboxByPostAction(
-  input?: Omit<ListInboxByPostInput, "workspaceId">,
-): Promise<{
-  data?: InboxPostGroupDto[];
-  truncated?: boolean;
-  error?: string;
-}> {
-  const { workspaceId } = await getWorkspaceContext();
-  const session = await getCachedSession();
-  if (!session) {
-    redirect("/login");
-  }
-  const userId = asUserId(session.user.id);
-
-  const engagementService = new EngagementService(
-    engagementRepository,
-    getOutstandAdapter(),
-    publishingRepository,
-    workspaceRepository,
-  );
-
-  try {
-    const { groups, truncated } = await engagementService.listInboxByPost(
-      { ...input, workspaceId },
-      userId,
-    );
-
-    const mediaService = new MediaService(
-      mediaRepository,
-      supabaseMediaStorageAdapter,
-    );
-    const firstMediaIds = [
-      ...new Set(
-        groups.flatMap((group) => {
-          const first = group.postSnapshot?.mediaIds[0];
-          return first ? [first] : [];
-        }),
-      ),
-    ];
-    // `listByIds` = satu query untuk seluruh media pertama dan meregenerasi
-    // signed URL dari `storagePath`. Kegagalan resolve thumbnail tidak boleh
-    // menggagalkan daftar posting: turun ke kartu tanpa thumbnail.
-    const thumbnailByMediaId = new Map<string, MediaThumbnailDto>();
-    try {
-      const items = await mediaService.listByIds(
-        { workspaceId, mediaIds: firstMediaIds },
-        userId,
-      );
-      for (const item of items) {
-        if (item.url) {
-          thumbnailByMediaId.set(item.id, { url: item.url, type: item.type });
-        }
-      }
-    } catch (error) {
-      console.error("listInboxByPostAction: gagal resolve thumbnail", error);
-    }
-
-    // T-230 (ADR-158): thumbnail tersimpan posting impor (path di bucket
-    // `media`) ditandatangani sekali jalan; gagal berarti jatuh ke URL CDN
-    // atau tanpa thumbnail, tidak pernah menggagalkan daftar.
-    const storedPaths = groups.flatMap((group) => {
-      const snapshot = group.postSnapshot;
-      return snapshot &&
-        snapshot.mediaIds.length === 0 &&
-        snapshot.thumbnailStoragePath
-        ? [snapshot.thumbnailStoragePath]
-        : [];
-    });
-    const signedStoragePaths = await mediaService.signStoragePaths(
-      workspaceId,
-      storedPaths,
-    );
-
-    const data: InboxPostGroupDto[] = groups.map((group) => {
-      const { postSnapshot, ...summary } = group;
-      return {
-        ...summary,
-        postSnapshot: postSnapshot
-          ? {
-              caption: postSnapshot.caption,
-              platformPostUrl: postSnapshot.platformPostUrl,
-              thumbnail: resolveSnapshotThumbnail(
-                postSnapshot,
-                thumbnailByMediaId,
-                signedStoragePaths,
-              ),
-            }
-          : null,
-      };
-    });
-    return { data, truncated };
-  } catch (error) {
-    return toActionError(error);
-  }
-}
 
 /**
  * Ubah status satu komentar (T-217). Murni wiring — resolve workspace/

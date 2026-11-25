@@ -11,7 +11,10 @@ import {
 } from "@hugeicons/core-free-icons";
 
 import type { ConnectedAccountRecord } from "@/domains/workspace";
-import type { InboxItemStatus } from "@/domains/engagement";
+import type {
+  InboxItemStatus,
+  InboxPostGroupCounts,
+} from "@/domains/engagement";
 import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
 import { cn } from "@/lib/utils";
 
@@ -32,10 +35,10 @@ import {
 } from "@/components/ui/empty";
 import { Text } from "@/components/ui/text";
 
-import type { InboxPostGroupDto } from "../actions";
+import type { InboxPostGroupDto } from "../engage-dto";
 import { PostCommentsPanel } from "./PostCommentsPanel";
 import { PostListPanel } from "./PostListPanel";
-import { ALL_FILTER_VALUE, filterByStatus } from "./engage-model";
+import { ALL_FILTER_VALUE } from "./engage-model";
 import { CommentListView } from "./CommentListView";
 import { EngageToolbar } from "./EngageToolbar";
 import { EngageViewToggle } from "./EngageViewToggle";
@@ -52,9 +55,12 @@ function formatUpdatedAtLabel(date: Date, timeZone: string): string {
 }
 
 export interface EngageInboxViewProps {
-  /** Daftar posting beserta ringkasan komentarnya (`listInboxByPostAction`, filter bawaan). */
+  /** Halaman pertama daftar posting beserta ringkasan komentarnya (`loadPostGroupsPage`, filter bawaan). */
   initialGroups: InboxPostGroupDto[];
-  initialTruncated: boolean;
+  /** Cursor halaman berikutnya (infinite scroll, ADR-166); `null` = daftar habis. */
+  initialNextCursor: string | null;
+  /** Hitungan sebenarnya daftar posting (count query); `null` bila muat awal gagal. */
+  initialCounts: InboxPostGroupCounts | null;
   /** Muat awal gagal: tampilkan state refresh gagal. */
   initialLoadFailed: boolean;
   /** Akun terkoneksi workspace (opsi filter Akun dan nama akun kartu). */
@@ -71,42 +77,43 @@ export interface EngageInboxViewProps {
  */
 export function EngageInboxView({
   initialGroups,
-  initialTruncated,
+  initialNextCursor,
+  initialCounts,
   initialLoadFailed,
   accounts,
 }: EngageInboxViewProps) {
   const timeZone = useUserTimeZone();
   const inbox = useEngageInbox({
     initialGroups,
-    initialTruncated,
+    initialNextCursor,
+    initialCounts,
     initialLoadFailed,
   });
 
   const isList = inbox.view === "list";
   // Layar detail penuh di layar sempit hanya berlaku di By post.
   const inDetail = !isList && inbox.mobileView === "detail";
-  const totalUnread = inbox.groups.reduce(
-    (sum, group) => sum + group.unrepliedCount,
-    0,
-  );
   const statusValue =
     inbox.statusFilter === ALL_FILTER_VALUE
       ? "all"
       : (inbox.statusFilter as InboxItemStatus);
+  // Daftar kosong hanya bila memuat selesai tanpa kegagalan: selama memuat atau
+  // gagal memuat halaman pertama, footer daftar menampilkan skeleton atau Alert.
   const listEmpty =
-    inbox.flat !== null &&
-    !inbox.isLoadingFlat &&
-    filterByStatus(inbox.flat, statusValue).length === 0;
+    !inbox.flatList.isRefreshing &&
+    inbox.flatList.status === "end" &&
+    inbox.flat.length === 0;
   const isEmpty = isList
     ? listEmpty
     : inbox.groups.length === 0 &&
       !inbox.showEmptyPosts &&
-      !inbox.isLoadingList;
+      !inbox.groupsList.isRefreshing &&
+      inbox.groupsList.status === "end";
   // Muat awal (atau Refresh) gagal tanpa data apa pun: hanya Alert gagal yang
   // tampil; "Belum ada interaksi" akan menyesatkan.
   const loadFailedEmpty =
     inbox.refreshFailed &&
-    (isList ? (inbox.flat?.length ?? 0) === 0 : inbox.groups.length === 0);
+    (isList ? inbox.flat.length === 0 : inbox.groups.length === 0);
   const statusFilterActive = inbox.statusFilter !== ALL_FILTER_VALUE;
   const updatedAt = formatUpdatedAtLabel(inbox.lastUpdatedAt, timeZone);
 
@@ -233,10 +240,9 @@ export function EngageInboxView({
       ) : isList ? (
         <CommentListView
           comments={inbox.flat}
-          isLoading={inbox.isLoadingFlat}
-          groups={inbox.groups}
-          groupsTruncated={inbox.truncated}
-          statusFilter={statusValue}
+          counts={inbox.flatCounts}
+          list={inbox.flatList}
+          postCaptions={inbox.postCaptions}
           sort={inbox.sort}
           dateRange={inbox.dateRange}
           timeZone={timeZone}
@@ -244,7 +250,7 @@ export function EngageInboxView({
           draft={inbox.draft}
           isSending={inbox.isSending}
           justSent={inbox.justSent}
-          onOpenPost={inbox.openPostFromList}
+          onOpenPost={(comment) => void inbox.openPostFromList(comment)}
           onReply={inbox.startReply}
           onChangeStatus={(comment, status) =>
             void inbox.changeStatus(comment, status)
@@ -254,12 +260,7 @@ export function EngageInboxView({
           onSend={() => void inbox.sendReply()}
         />
       ) : (
-        <div
-          className={cn(
-            "flex min-h-0 flex-1 overflow-hidden rounded-xl border border-border bg-card",
-            inbox.isLoadingList && "opacity-60",
-          )}
-        >
+        <div className="flex min-h-0 flex-1 overflow-hidden rounded-xl border border-border bg-card">
           <PostListPanel
             groups={inbox.groups}
             accounts={accounts}
@@ -271,9 +272,10 @@ export function EngageInboxView({
                 ? "Tidak berlaku saat filter Status aktif: posting tanpa komentar tidak punya status."
                 : undefined
             }
-            totalUnread={totalUnread}
+            totalUnread={inbox.totalUnread}
             hiddenOnMobile={inDetail}
-            truncated={inbox.truncated}
+            postCount={inbox.postCount}
+            list={inbox.groupsList}
             onSelect={inbox.selectGroup}
             onCollapsedChange={inbox.setCollapsed}
             onShowEmptyPostsChange={inbox.setShowEmptyPosts}
@@ -283,13 +285,8 @@ export function EngageInboxView({
               group={inbox.selectedGroup}
               accounts={accounts}
               comments={inbox.comments}
-              isLoading={inbox.isLoadingComments}
-              sort={inbox.sort}
-              statusFilter={
-                inbox.statusFilter === ALL_FILTER_VALUE
-                  ? "all"
-                  : (inbox.statusFilter as InboxItemStatus)
-              }
+              list={inbox.commentsList}
+              statusFilter={statusValue}
               timeZone={timeZone}
               hiddenOnMobile={!inDetail}
               bannerDismissed={inbox.bannerDismissed}
@@ -307,7 +304,7 @@ export function EngageInboxView({
               onCancelReply={inbox.cancelReply}
               onSend={() => void inbox.sendReply()}
             />
-          ) : (
+          ) : inbox.groupsList.isRefreshing ? null : (
             <div className="hidden flex-1 items-center justify-center md:flex">
               <Empty>
                 <EmptyHeader>
