@@ -56,6 +56,8 @@ import { useInfiniteList } from "../../../components/infinite-list/useInfiniteLi
 import { BoardColumnFooter } from "../../components/views/PublishListStates";
 import { fetchPublishJson } from "../../components/views/publish-page-fetch";
 
+import { mergeBoardColumnPage } from "./board-column-merge";
+
 const COLUMN_TITLE: Record<BoardColumnKey, string> = {
   draft: "Draft",
   approvals: "Approvals",
@@ -202,22 +204,27 @@ function BoardCard({
 }
 
 const getCardKey = (item: CalendarItemRecord) => item.id;
+const NO_IDS: ReadonlySet<string> = new Set();
 
 /**
  * One Board column (S-009): its first 20 cards come from the server, the
  * next 20 load as this column is scrolled, independent of the other
  * columns, through `GET /api/publish/board`. The number in the header is
  * the column's true total (count query). When the server renders the Board
- * again (a mutation revalidated `/publish`), the column starts again from
- * the new first page.
+ * again (a mutation revalidated `/publish`), the column keeps its loaded
+ * pages and scroll position: the cards that changed are upserted or
+ * removed (`mergeBoardColumnPage`) and the header shows the new total.
  */
 function BoardColumnSection({
   column,
   thumbnails: initialThumbnails,
+  otherColumnIds,
   onCancelSchedule,
 }: {
   column: BoardColumn<CalendarItemRecord>;
   thumbnails: Record<string, MediaThumbnailDto>;
+  /** Ids on the first page of every other column, from the same render. */
+  otherColumnIds: ReadonlySet<string>;
   onCancelSchedule: (postId: PostId) => void;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -252,14 +259,23 @@ function BoardColumnSection({
     compare: compareBoardCards(column.key),
   });
 
-  // A new server render: start again from its first page.
-  const { reset } = list;
+  // A new server render (a mutation revalidated `/publish`): update the
+  // cards that changed without dropping the loaded pages. The total in the
+  // header comes with the render.
+  const { items: loadedItems, upsert, remove } = list;
   const seenPageRef = useRef(column.page);
   useEffect(() => {
     if (seenPageRef.current === column.page) return;
     seenPageRef.current = column.page;
-    reset(column.page);
-  }, [column.page, reset]);
+    const { upserts, removes } = mergeBoardColumnPage({
+      loaded: loadedItems,
+      page: column.page,
+      movedToOtherColumn: otherColumnIds,
+      compare: compareBoardCards(column.key),
+    });
+    for (const id of removes) remove(id);
+    for (const item of upserts) upsert(item);
+  }, [column.page, column.key, loadedItems, otherColumnIds, upsert, remove]);
 
   const title = COLUMN_TITLE[column.key];
   return (
@@ -331,6 +347,22 @@ export function BoardScreen({
   const cancelConfirm = useConfirmAction<PostId>(cancelScheduleAction, () =>
     toast("Jadwal dibatalkan — post kembali ke Drafts"),
   );
+  // For each column, the ids on the first page of every other column: a
+  // loaded card found there has moved out of this column.
+  const otherColumnIds = useMemo(
+    () =>
+      new Map(
+        columns.map((column) => [
+          column.key,
+          new Set(
+            columns
+              .filter((other) => other.key !== column.key)
+              .flatMap((other) => other.page.items.map((item) => item.id)),
+          ),
+        ]),
+      ),
+    [columns],
+  );
 
   return (
     <>
@@ -349,6 +381,7 @@ export function BoardScreen({
             key={column.key}
             column={column}
             thumbnails={thumbnails}
+            otherColumnIds={otherColumnIds.get(column.key) ?? NO_IDS}
             onCancelSchedule={(postId) => cancelConfirm.open(postId)}
           />
         ))}

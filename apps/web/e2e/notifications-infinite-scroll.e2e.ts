@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { Client } from "pg";
 
+import { waitUntilHydrated } from "./support/mcp";
 import { seedDbSkipReason } from "./support/seed-db";
 
 /**
@@ -8,9 +9,11 @@ import { seedDbSkipReason } from "./support/seed-db";
  *
  * Notifications belong to the signed-in user (not to a workspace), so the
  * panel on Cook It Real Good shows every notification of the E2E account.
- * The test only READS the count first and never creates or fakes data: with
- * LIST_PAGE_SIZE (20) or fewer notifications there is no second page to scroll
- * to, so the test skips and the ticket records "not yet proven".
+ * Read only (context/ctx-development.md rules 21a/22): the test reads the
+ * count first, then only opens the panel and scrolls. It never creates,
+ * fakes, marks read or deletes a notification. With LIST_PAGE_SIZE (20) or
+ * fewer notifications there is no second page to scroll to, so the test
+ * skips and the ticket records "not yet proven".
  * Measured 2026-11-25 on the shared DB: 1 notification (1 unread).
  */
 const PAGE_SIZE = 20;
@@ -67,31 +70,39 @@ test("Notifications panel loads 20 at a time and reaches the oldest notification
       unread > 99 ? "99+" : String(unread),
     );
   }
+  await waitUntilHydrated(bell, "Notifikasi");
   await bell.click();
 
   const panel = page.getByRole("dialog");
-  const rows = panel.locator("[data-slot=infinite-list-footer]");
-  await expect(rows).toBeVisible();
+  const footer = panel.locator("[data-slot=infinite-list-footer]");
+  await expect(footer).toBeVisible();
 
-  const rowCount = () =>
-    panel.getByRole("button", { name: "Tandai dibaca" }).count();
+  // One row per notification: the children of the row list that sits right
+  // before the list footer.
+  const items = panel.locator(
+    "div:has(+ [data-slot=infinite-list-footer]) > div",
+  );
   const end = panel.getByText("You've reached the oldest notification.");
   const scroller = panel.locator("div.overflow-y-auto");
 
-  // Scroll to the bottom until the end line shows; each step loads one page.
+  // Scroll to the bottom until the end line shows; each step waits until
+  // the next page has arrived (more rows) or the end line shows.
   for (let step = 0; step < Math.ceil(total / PAGE_SIZE) + 2; step += 1) {
     if (await end.isVisible()) break;
+    const before = await items.count();
     await scroller.evaluate((el) => el.scrollTo(0, el.scrollHeight));
-    await page.waitForTimeout(500);
+    await expect
+      .poll(
+        async () => (await end.isVisible()) || (await items.count()) > before,
+        { message: "the next page never arrived", timeout: 15_000 },
+      )
+      .toBe(true);
   }
   await expect(end).toBeVisible();
-  // Past the old 50 cap when the account has more than 50.
-  expect(await rowCount()).toBeLessThanOrEqual(unread);
-
-  // "Mark all as read" clears the badge, including unread beyond the loaded pages.
-  const markAll = panel.getByRole("button", { name: "Mark all as read" });
-  if (unread > 0) {
-    await markAll.click();
-    await expect(markAll).toBeDisabled();
-  }
+  // Every notification loaded, more than one page of 20 (past the old cap
+  // of 50 when the account has more than 50).
+  const loaded = await items.count();
+  expect(loaded).toBeGreaterThan(PAGE_SIZE);
+  // A notification that arrived after the count may add a row, never less.
+  expect(loaded).toBeGreaterThanOrEqual(total);
 });

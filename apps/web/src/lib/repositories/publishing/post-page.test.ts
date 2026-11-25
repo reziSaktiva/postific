@@ -1,12 +1,20 @@
-import { asPageCursor, asWorkspaceId, ContentStatus } from "@postific/shared";
+import {
+  asConnectedAccountId,
+  asPageCursor,
+  asWorkspaceId,
+  ContentStatus,
+} from "@postific/shared";
 import { describe, expect, it } from "vitest";
 
 import { InvalidPageCursorError } from "@/domains/publishing";
+
+import type { PublishPostSelection } from "@/domains/publishing";
 
 import {
   decodePostPageCursor,
   encodePostPageCursor,
   postPageIdsSql,
+  postSelectionFingerprint,
 } from "./post-page";
 
 const ID = "0b6f1d6e-3c1a-4d2b-9f4e-1a2b3c4d5e6f";
@@ -17,26 +25,105 @@ const row = {
   occurred: "2026-11-24 19:00:00.5+07",
 };
 
+const ACCOUNT_A = asConnectedAccountId("1b6f1d6e-3c1a-4d2b-9f4e-1a2b3c4d5e6f");
+const ACCOUNT_B = asConnectedAccountId("2b6f1d6e-3c1a-4d2b-9f4e-1a2b3c4d5e6f");
+
+/** The Drafts tab: updated-desc over Draft. */
+const drafts: PublishPostSelection = {
+  workspaceId: asWorkspaceId(ID),
+  statuses: [ContentStatus.Draft],
+  order: "updated-desc",
+};
+/** The Approvals tab: the same order as Drafts, other statuses. */
+const approvals: PublishPostSelection = {
+  ...drafts,
+  statuses: [ContentStatus.InReview],
+};
+const history: PublishPostSelection = {
+  workspaceId: asWorkspaceId(ID),
+  statuses: [ContentStatus.Published, ContentStatus.Failed],
+  order: "occurred-desc",
+};
+const queue: PublishPostSelection = {
+  workspaceId: asWorkspaceId(ID),
+  statuses: [ContentStatus.Scheduled],
+  order: "scheduled-asc",
+};
+
+function rawCursor(payload: Record<string, unknown>) {
+  return asPageCursor(
+    Buffer.from(
+      JSON.stringify({ f: postSelectionFingerprint(drafts), ...payload }),
+    ).toString("base64url"),
+  );
+}
+
 describe("post page cursor (S-009)", () => {
   it("keeps the database time text with its microseconds", () => {
-    const cursor = encodePostPageCursor("updated-desc", row);
-    expect(decodePostPageCursor(cursor, "updated-desc")).toMatchObject({
+    const cursor = encodePostPageCursor(drafts, row);
+    expect(decodePostPageCursor(cursor, drafts)).toMatchObject({
       id: ID,
       t: "2026-11-25 10:00:00.123456+00",
     });
   });
 
   it("carries the second key of the business-time order", () => {
-    const cursor = encodePostPageCursor("occurred-desc", row);
-    expect(decodePostPageCursor(cursor, "occurred-desc")).toMatchObject({
+    const cursor = encodePostPageCursor(history, row);
+    expect(decodePostPageCursor(cursor, history)).toMatchObject({
       t: row.occurred,
       u: row.updated,
     });
   });
 
   it("rejects a cursor made for another order", () => {
-    const cursor = encodePostPageCursor("scheduled-asc", row);
-    expect(() => decodePostPageCursor(cursor, "updated-desc")).toThrow(
+    const cursor = encodePostPageCursor(queue, row);
+    expect(() => decodePostPageCursor(cursor, drafts)).toThrow(
+      InvalidPageCursorError,
+    );
+  });
+
+  it("rejects a Drafts cursor sent with the Approvals tab (same order)", () => {
+    const cursor = encodePostPageCursor(drafts, row);
+    expect(() => decodePostPageCursor(cursor, approvals)).toThrow(
+      InvalidPageCursorError,
+    );
+  });
+
+  it.each([
+    ["another account filter", { connectedAccountIds: [ACCOUNT_A] }],
+    ["another source filter", { source: "mcp" as const }],
+    ["another workspace", { workspaceId: asWorkspaceId(ACCOUNT_B) }],
+  ])("rejects a cursor sent with %s", (_label, change) => {
+    const cursor = encodePostPageCursor(drafts, row);
+    expect(() =>
+      decodePostPageCursor(cursor, { ...drafts, ...change }),
+    ).toThrow(InvalidPageCursorError);
+  });
+
+  it("accepts the same list with its arrays in another order", () => {
+    const selection: PublishPostSelection = {
+      ...history,
+      connectedAccountIds: [ACCOUNT_A, ACCOUNT_B],
+    };
+    const cursor = encodePostPageCursor(selection, row);
+    expect(
+      decodePostPageCursor(cursor, {
+        ...selection,
+        statuses: [...selection.statuses].reverse(),
+        connectedAccountIds: [
+          ...(selection.connectedAccountIds ?? []),
+        ].reverse(),
+      }),
+    ).toMatchObject({ id: ID });
+  });
+
+  it("rejects a cursor without a fingerprint", () => {
+    const cursor = asPageCursor(
+      Buffer.from(
+        JSON.stringify({ v: 1, o: "updated-desc", id: ID, t: row.updated }),
+      ).toString("base64url"),
+    );
+    expect(() => decodePostPageCursor(cursor, drafts)).toThrow(
       InvalidPageCursorError,
     );
   });
@@ -45,35 +132,23 @@ describe("post page cursor (S-009)", () => {
     ["not base64 json", asPageCursor("%%%")],
     [
       "a bad time",
-      asPageCursor(
-        Buffer.from(
-          JSON.stringify({ v: 1, o: "updated-desc", id: ID, t: "yesterday" }),
-        ).toString("base64url"),
-      ),
+      rawCursor({ v: 1, o: "updated-desc", id: ID, t: "yesterday" }),
     ],
     [
       "a bad id",
-      asPageCursor(
-        Buffer.from(
-          JSON.stringify({
-            v: 1,
-            o: "updated-desc",
-            id: "1; drop",
-            t: row.updated,
-          }),
-        ).toString("base64url"),
-      ),
+      rawCursor({
+        v: 1,
+        o: "updated-desc",
+        id: "1; drop",
+        t: row.updated,
+      }),
     ],
     [
       "another version",
-      asPageCursor(
-        Buffer.from(
-          JSON.stringify({ v: 9, o: "updated-desc", id: ID, t: row.updated }),
-        ).toString("base64url"),
-      ),
+      rawCursor({ v: 9, o: "updated-desc", id: ID, t: row.updated }),
     ],
   ])("rejects %s", (_label, cursor) => {
-    expect(() => decodePostPageCursor(cursor, "updated-desc")).toThrow(
+    expect(() => decodePostPageCursor(cursor, drafts)).toThrow(
       InvalidPageCursorError,
     );
   });
@@ -99,8 +174,8 @@ describe("postPageIdsSql", () => {
 
   it("starts after the cursor row with a row-value comparison", () => {
     const cursor = decodePostPageCursor(
-      encodePostPageCursor("occurred-desc", row),
-      "occurred-desc",
+      encodePostPageCursor(selection, row),
+      selection,
     );
     const sql = postPageIdsSql(selection, cursor, 20);
     expect(sql.sql).toContain(

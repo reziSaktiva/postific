@@ -390,12 +390,24 @@ export class EngagementService {
       else segment = "B";
     }
     if (!next && segment === "B") {
+      const after = position.segment === "B" ? position.afterPostId : null;
+      // `B.<postId>` is made only for a list with empty posts; without them
+      // the cursor belongs to another list (S-009, review 2026-11-25).
+      if (after && !includeEmpty) {
+        throw new ValidationError(INVALID_CURSOR_MESSAGE);
+      }
       if (includeEmpty) {
         const all = await loadEmpties();
-        const after = position.segment === "B" ? position.afterPostId : null;
-        const start = after
-          ? all.findIndex((group) => group.postId === after) + 1
-          : 0;
+        const index = after
+          ? all.findIndex((group) => group.postId === after)
+          : -1;
+        // A post the cursor names that is no longer an empty post (it got a
+        // comment, left the range, or was deleted): starting again at 0
+        // would repeat rows, so the list shows Retry instead.
+        if (after && index === -1) {
+          throw new ValidationError(INVALID_CURSOR_MESSAGE);
+        }
+        const start = index + 1;
         const remaining = all.slice(start);
         const room = limit - summaries.length;
         const taken = remaining.slice(0, room);

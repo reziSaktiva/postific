@@ -312,6 +312,33 @@ describe("EngagementService.listInboxPostGroupsPage", () => {
     expect(second.nextCursor).toBeNull();
   });
 
+  it("rejects a B cursor naming a post that is not an empty post (no restart at 0)", async () => {
+    const e1 = postUuid(101);
+    const gone = postUuid(199);
+    const { service } = makeService(
+      { numbered: [], commented: [] },
+      { syncable: { [ACC_IG]: [e1] } },
+    );
+    await expect(
+      service.listInboxPostGroupsPage(
+        {
+          workspaceId: WS,
+          includeEmpty: true,
+          cursor: asPageCursor(`B.${gone}`),
+        },
+        USER,
+        NOW,
+      ),
+    ).rejects.toBeInstanceOf(ValidationError);
+    await expect(
+      service.listInboxPostGroupsPage(
+        { workspaceId: WS, cursor: asPageCursor(`B.${e1}`) },
+        USER,
+        NOW,
+      ),
+    ).rejects.toBeInstanceOf(ValidationError);
+  });
+
   it("includeEmpty diabaikan saat filter status aktif", async () => {
     const { service } = makeService(
       { numbered: [summary(postUuid(1))] },

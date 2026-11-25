@@ -951,7 +951,7 @@ export const publishingRepository: IPublishingRepository = {
   async listPostPage({ cursor, limit, ...selection }, userId) {
     // Decode before any query: a bad cursor is the caller's error, not a
     // database one (S-009, ADR-166 addendum 5).
-    const after = cursor ? decodePostPageCursor(cursor, selection.order) : null;
+    const after = cursor ? decodePostPageCursor(cursor, selection) : null;
     const { keys, posts } = await withCurrentUser(userId, async (tx) => {
       const keys = await tx.$queryRaw<PostPageKeyRow[]>(
         postPageIdsSql(selection, after, limit),
@@ -978,7 +978,7 @@ export const publishingRepository: IPublishingRepository = {
       }),
       nextCursor:
         keys.length > limit && last
-          ? encodePostPageCursor(selection.order, last)
+          ? encodePostPageCursor(selection, last)
           : null,
     };
   },

@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
+import { waitUntilHydrated } from "./support/mcp";
 import {
   MULTI_ACCOUNT_WORKSPACE_NAME,
   switchToWorkspaceNamed,
@@ -87,7 +88,9 @@ test("a filter change clears the list and shows the first page and count for the
   const rows = page.getByTestId("publish-list-row");
   await expect(rows.first()).toBeVisible({ timeout: 30_000 });
 
-  await page.getByRole("button", { name: "Filter" }).click();
+  const filterButton = page.getByRole("button", { name: "Filter" });
+  await waitUntilHydrated(filterButton, "Publish List");
+  await filterButton.click();
   await page.getByRole("checkbox", { name: "Error" }).check();
   await page.keyboard.press("Escape");
 

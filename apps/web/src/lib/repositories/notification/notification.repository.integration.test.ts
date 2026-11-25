@@ -159,6 +159,26 @@ describe.skipIf(!enabled)(
       expect(await repo.countUnread(user)).toBe(0);
     });
 
+    it("rejects a cursor whose row no longer exists instead of ending the list", async () => {
+      const first = await repo.listPage(user, { cursor: null, limit: 1 });
+      expect(first.nextCursor).not.toBeNull();
+      const anchorId = first.items[0].id;
+      await withCurrentUser(user, (tx) =>
+        tx.notification.delete({ where: { id: anchorId } }),
+      );
+      await expect(
+        repo.listPage(user, { cursor: first.nextCursor, limit: 1 }),
+      ).rejects.toThrow(/cursor/i);
+      // Another user's notification id is not a valid cursor either.
+      await expect(
+        repo.listPage(otherUser, {
+          cursor: (await repo.listPage(user, { cursor: null, limit: 1 }))
+            .nextCursor,
+          limit: 1,
+        }),
+      ).rejects.toThrow(/cursor/i);
+    });
+
     it("rejects a malformed cursor", async () => {
       await expect(
         repo.listPage(user, {

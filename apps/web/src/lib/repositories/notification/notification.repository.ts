@@ -108,14 +108,25 @@ export const notificationRepository: INotificationRepository = {
    */
   async listPage(userId, { cursor, limit }) {
     const cursorId = cursor ? decodeCursor(cursor) : null;
-    const rows = await withCurrentUser(userId, (tx) =>
-      tx.notification.findMany({
+    const rows = await withCurrentUser(userId, async (tx) => {
+      if (cursorId) {
+        // A cursor row that no longer exists (deleted, or another user's)
+        // would make Prisma return an empty page, which the panel reads as
+        // "reached the oldest notification". Reject it so the panel shows
+        // Retry instead (S-009 review 2026-11-25).
+        const anchor = await tx.notification.findFirst({
+          where: { id: cursorId, userId },
+          select: { id: true },
+        });
+        if (!anchor) throw new InvalidNotificationCursorError();
+      }
+      return tx.notification.findMany({
         where: { userId },
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         take: limit + 1,
         ...(cursorId ? { cursor: { id: cursorId }, skip: 1 } : {}),
-      }),
-    );
+      });
+    });
 
     const hasMore = rows.length > limit;
     const items = (hasMore ? rows.slice(0, limit) : rows).map(toRecord);

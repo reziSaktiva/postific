@@ -37,6 +37,12 @@ interface CursorPayload {
   v: number;
   /** Order the cursor was made for. */
   o: PublishPostOrder;
+  /**
+   * Fingerprint of the list the cursor was made for (workspace, statuses,
+   * order, filters): a cursor from the Drafts tab sent with another tab or
+   * another filter is rejected, never read as a position in that list.
+   */
+  f: string;
   id: string;
   /** Main sort time of the order (updated, scheduled or occurred). */
   t: string;
@@ -44,10 +50,27 @@ interface CursorPayload {
   u?: string;
 }
 
+/**
+ * Identifies one list: the same workspace, statuses, order and filters give
+ * the same text whatever order the arrays came in.
+ */
+export function postSelectionFingerprint(
+  selection: PublishPostSelection,
+): string {
+  return JSON.stringify([
+    selection.workspaceId,
+    selection.order,
+    [...selection.statuses].sort(),
+    [...(selection.connectedAccountIds ?? [])].sort(),
+    selection.source ?? null,
+  ]);
+}
+
 export function encodePostPageCursor(
-  order: PublishPostOrder,
+  selection: PublishPostSelection,
   row: PostPageKeyRow,
 ): PageCursor {
+  const order = selection.order;
   const t =
     order === "updated-desc"
       ? row.updated
@@ -61,6 +84,7 @@ export function encodePostPageCursor(
   const payload: CursorPayload = {
     v: CURSOR_VERSION,
     o: order,
+    f: postSelectionFingerprint(selection),
     id: row.id,
     t,
     ...(order === "occurred-desc" ? { u: row.updated } : {}),
@@ -88,14 +112,15 @@ function isTimestampText(value: unknown): value is string {
 }
 
 /**
- * Reads a cursor made by `encodePostPageCursor` for `order`. Anything else
- * (broken text, another version or order, a bad id or time) throws
- * `InvalidPageCursorError`.
+ * Reads a cursor made by `encodePostPageCursor` for the same `selection`.
+ * Anything else (broken text, another version, order, tab or filter, a bad
+ * id or time) throws `InvalidPageCursorError`.
  */
 export function decodePostPageCursor(
   cursor: PageCursor,
-  order: PublishPostOrder,
+  selection: PublishPostSelection,
 ): CursorPayload {
+  const order = selection.order;
   let parsed: unknown;
   try {
     parsed = JSON.parse(Buffer.from(cursor, "base64url").toString("utf8"));
@@ -109,6 +134,7 @@ export function decodePostPageCursor(
   if (
     payload.v !== CURSOR_VERSION ||
     payload.o !== order ||
+    payload.f !== postSelectionFingerprint(selection) ||
     typeof payload.id !== "string" ||
     !UUID_TEXT.test(payload.id) ||
     !isTimestampText(payload.t) ||
