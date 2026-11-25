@@ -5,6 +5,7 @@ import { Edit02Icon, MoreHorizontalIcon } from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
 
 import { ContentStatus, MediaType } from "@postific/shared";
+import type { PostId } from "@postific/shared";
 import type { MediaThumbnailDto } from "@/domains/media";
 import {
   BOARD_COLUMN_LIMIT,
@@ -14,6 +15,17 @@ import {
 } from "@/domains/publishing";
 import { ChannelAvatarBadge } from "@/components/shared/ChannelAvatarBadge";
 import { McpSourceBadge } from "@/components/shared/McpSourceBadge";
+import { Alert, AlertTitle } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,6 +34,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Spinner } from "@/components/ui/spinner";
+import { useConfirmAction } from "@/lib/hooks/use-confirm-action";
 import { cn } from "@/lib/utils";
 import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
 
@@ -34,6 +48,7 @@ import { MediaThumbnail } from "../../../components/media-thumbnail";
 import { formatPublishDateTime } from "../../components/date-time-format";
 import { PostPreviewPopover } from "../../components/preview/PostPreview";
 import { previewDate } from "../../components/preview/post-preview-model";
+import { cancelScheduleAction } from "../../queue/actions";
 
 const COLUMN_TITLE: Record<BoardColumnKey, string> = {
   draft: "Draft",
@@ -56,9 +71,11 @@ const MAX_ACCOUNT_BADGES = 3;
 function BoardCard({
   item,
   thumbnail,
+  onCancelSchedule,
 }: {
   item: CalendarItemRecord;
   thumbnail?: MediaThumbnailDto;
+  onCancelSchedule: (postId: PostId) => void;
 }) {
   const timeZone = useUserTimeZone();
   const { openEditDraft } = useDraftEditor();
@@ -77,6 +94,7 @@ function BoardCard({
         postId={item.id}
         connectedAccountId={firstTarget?.connectedAccountId}
         side="bottom"
+        onCancelSchedule={onCancelSchedule}
       >
         <button
           type="button"
@@ -183,7 +201,9 @@ function BoardCard({
  * horizontal scroll. Grouping is by Status only; `Ready to Schedule` cards
  * sit in Draft and say so in their status badge. A click on a card opens
  * the post preview (T-288); the menu on a card opens the Draft Editor or
- * copies the caption.
+ * copies the caption. A Scheduled card's preview offers Cancel schedule
+ * with the same confirm dialog as Calendar and Queue; the action
+ * revalidates `/publish`, so the Board re-renders with the post in Draft.
  *
  * Tablet and phone (T-292): below `lg` a column takes 5/12 of the width, so
  * about two columns show; below `sm` one column fills the screen and the
@@ -197,47 +217,91 @@ export function BoardScreen({
   columns: BoardColumn<CalendarItemRecord>[];
   thumbnails: Record<string, MediaThumbnailDto>;
 }) {
+  const cancelConfirm = useConfirmAction<PostId>(cancelScheduleAction, () =>
+    toast("Jadwal dibatalkan — post kembali ke Drafts"),
+  );
+
   return (
-    // eslint-disable-next-line no-restricted-syntax -- T-290: Tailwind layout (ADR-097)
-    <div className="flex min-h-0 flex-1 snap-x snap-mandatory gap-3 overflow-x-auto overflow-y-hidden pb-2 sm:snap-none">
-      {columns.map((column) => (
-        <section
-          key={column.key}
-          aria-label={COLUMN_TITLE[column.key]}
-          // A column takes the full Board height and its cards scroll inside
-          // it; the Board itself fills the space left in the viewport, so
-          // the page never scrolls on Board. A busy workspace has 100+ cards
-          // in Published; a page taller than the viewport left parts of the
-          // sidebar and cards unpainted while scrolling (T-292 re-check).
-          className="flex min-h-0 w-11/12 shrink-0 snap-center flex-col gap-2 rounded-2xl bg-muted/40 p-2 sm:w-5/12 lg:w-72"
-        >
-          {}
-          <header className="flex shrink-0 items-center gap-2 p-1">
-            <h2 className="text-sm font-semibold">
-              {COLUMN_TITLE[column.key]}
-            </h2>
-            <Badge variant="secondary">
-              {column.hasMore ? `${BOARD_COLUMN_LIMIT}+` : column.total}
-            </Badge>
-          </header>
-          {column.items.length === 0 ? (
-            <p className="px-1 py-4 text-center text-xs text-muted-foreground">
-              {COLUMN_EMPTY[column.key]}
-            </p>
-          ) : (
-            // eslint-disable-next-line no-restricted-syntax -- T-290: Tailwind layout (ADR-097)
-            <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain">
-              {column.items.map((item) => (
-                <BoardCard
-                  key={item.id}
-                  item={item}
-                  thumbnail={thumbnails[item.id]}
-                />
-              ))}
-            </div>
-          )}
-        </section>
-      ))}
-    </div>
+    <>
+      {cancelConfirm.error ? (
+        <Alert variant="destructive" className="shrink-0">
+          <AlertTitle>{cancelConfirm.error}</AlertTitle>
+        </Alert>
+      ) : null}
+      {/* eslint-disable-next-line no-restricted-syntax -- T-290: Tailwind layout (ADR-097) */}
+      <div className="flex min-h-0 flex-1 snap-x snap-mandatory gap-3 overflow-x-auto overflow-y-hidden pb-2 sm:snap-none">
+        {columns.map((column) => (
+          <section
+            key={column.key}
+            aria-label={COLUMN_TITLE[column.key]}
+            // A column takes the full Board height and its cards scroll inside
+            // it; the Board itself fills the space left in the viewport, so
+            // the page never scrolls on Board. A busy workspace has 100+ cards
+            // in Published; a page taller than the viewport left parts of the
+            // sidebar and cards unpainted while scrolling (T-292 re-check).
+            className="flex min-h-0 w-11/12 shrink-0 snap-center flex-col gap-2 rounded-2xl bg-muted/40 p-2 sm:w-5/12 lg:w-72"
+          >
+            {}
+            <header className="flex shrink-0 items-center gap-2 p-1">
+              <h2 className="text-sm font-semibold">
+                {COLUMN_TITLE[column.key]}
+              </h2>
+              <Badge variant="secondary">
+                {column.hasMore ? `${BOARD_COLUMN_LIMIT}+` : column.total}
+              </Badge>
+            </header>
+            {column.items.length === 0 ? (
+              <p className="px-1 py-4 text-center text-xs text-muted-foreground">
+                {COLUMN_EMPTY[column.key]}
+              </p>
+            ) : (
+              // eslint-disable-next-line no-restricted-syntax -- T-290: Tailwind layout (ADR-097)
+              <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain">
+                {column.items.map((item) => (
+                  <BoardCard
+                    key={item.id}
+                    item={item}
+                    thumbnail={thumbnails[item.id]}
+                    onCancelSchedule={(postId) => cancelConfirm.open(postId)}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+        ))}
+      </div>
+
+      <AlertDialog
+        open={cancelConfirm.isOpen}
+        onOpenChange={(open) => {
+          if (!open) cancelConfirm.close();
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Batalkan jadwal ini?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Post kembali menjadi Draft dan tidak akan dipublikasikan otomatis.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={cancelConfirm.isLoading}>
+              Batal
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={cancelConfirm.isLoading}
+              onClick={(e) => {
+                e.preventDefault();
+                void cancelConfirm.confirm();
+              }}
+            >
+              {cancelConfirm.isLoading ? <Spinner /> : null}
+              Batalkan Jadwal
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
