@@ -4081,15 +4081,15 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 ### T-298 · Infinite scroll for long lists (Publish, Engage, media picker, notifications)
 
-| Field            | Value                                                                               |
-| ---------------- | ----------------------------------------------------------------------------------- |
-| **Status**       | ⏳ Not Started                                                                      |
-| **Mode**         | HITL (design confirmed by King Rezi in the gallery), then AFK                       |
-| **Verification** | `local`                                                                             |
-| **Domain**       | publishing, engagement, media, notification (UI and repositories)                   |
-| **Spec**         | S-008 follow-up (next wave; a spec of its own if the work spans more than one wave) |
-| **Docs**         | ADR-097, ADR-140, ADR-165, `key-screen-patterns.md`                                 |
-| **Depends**      | S-008 wave merged to `staging`                                                      |
+| Field            | Value                                                                                               |
+| ---------------- | --------------------------------------------------------------------------------------------------- |
+| **Status**       | ✅ Split into spec S-009 (T-301 to T-305), 2026-11-25; the items below are carried by those tickets |
+| **Mode**         | HITL (design confirmed by King Rezi in the gallery), then AFK                                       |
+| **Verification** | `local`                                                                                             |
+| **Domain**       | publishing, engagement, media, notification (UI and repositories)                                   |
+| **Spec**         | S-008 follow-up (next wave; a spec of its own if the work spans more than one wave)                 |
+| **Docs**         | ADR-097, ADR-140, ADR-165, `key-screen-patterns.md`                                                 |
+| **Depends**      | S-008 wave merged to `staging`                                                                      |
 
 **What to build:** on 2026-11-24 the Publish Board in Cook It Real Good went black because 100+ cards made the page ~18 000 px tall (fixed in the S-008 wave by scrolling each column on its own). King Rezi asked for infinite scroll wherever a list can grow without bound, in the next wave. An audit of every page on Cook It Real Good found:
 
@@ -4110,7 +4110,9 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 - [ ] Realtime updates and filters (MCP source, channel, status) keep working with paged data.
 - [ ] Repository integration tests for the cursor queries; E2E on a workspace with more than one page per section.
 
-**Blocked by:** design confirmation; S-008 wave merged
+**Split (2026-11-25):** King Rezi chose a spec of its own during `wave-plan`. The items above are not checked here; they live on in S-009: design and shared hook in T-301, Publish in T-302, Engage in T-303, media picker and Notifications in T-304, staging verification in T-305 (ADR-166).
+
+**Blocked by:** none (split)
 
 ---
 
@@ -4161,6 +4163,130 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 - [x] Verified (staging) 2026-11-25: after PR 301 (`6b7762b4`) was deployed, King Rezi swiped the Board on his phone and in his browser, to the end and back; it works normally.
 
 **Blocked by:** none
+
+---
+
+### T-301 · Infinite scroll foundation: design of the list states, shared paged-list hook and cursor type
+
+| Field            | Value                                                                             |
+| ---------------- | --------------------------------------------------------------------------------- |
+| **Status**       | ✅ Done (code), 2026-11-25                                                        |
+| **Mode**         | HITL (ADR-166 acceptance and design confirmed by King Rezi), then AFK             |
+| **Verification** | `local`                                                                           |
+| **Domain**       | UI (shared app components), `packages/shared`, UX baseline                        |
+| **Spec**         | S-009                                                                             |
+| **Docs**         | ADR-166, ADR-097, ADR-140, `key-screen-patterns.md`, `apps/web/.claude/CLAUDE.md` |
+| **Depends**      | — (split from T-298; the S-008 wave is merged to `staging`)                       |
+
+**What to build:** every long list in S-009 has one confirmed look for loading the next page, reaching the end, and a failed page, and one shared piece of client code that the section tickets plug into.
+
+- [x] ADR-166 is Accepted by King Rezi (2026-11-25).
+- [x] The loading row (2 to 3 Skeleton rows shaped like the list's items), the end-of-list line and the inline Alert with Retry are designed in the Postific artifact, shown on a Publish List tab, a Board column, the Engage list and the Notifications panel, light and dark, and confirmed by King Rezi in the Postific Design Review gallery (`AGENTS.md` rule 10).
+- [x] A "Long lists" cross-screen pattern is added to `key-screen-patterns.md` from ADR-166 and the confirmed design.
+- [x] A shared cursor page type (opaque cursor, items, next cursor or none) in `packages/shared`, types only.
+- [x] A shared paged-list hook: first page, next page when the sentinel is near, loading, end, error and Retry, reset on filter change, and merging realtime inserts, updates and removals into loaded items without duplicates. Unit tests for each.
+- [x] A shared sentinel and the three state rows as components built from shadcn/ui, matching the confirmed design.
+
+**Design confirmed (2026-11-25):** King Rezi reviewed `ScreenInfiniteScrollStates` section by section and approved all five sections with no changes. The media picker was dropped from S-009 before the review (ADR-166 addendum).
+
+**Done (code), 2026-11-25:** shared cursor type (`LIST_PAGE_SIZE` 20), the `useInfiniteList` hook with `refresh` for filter changes and realtime merge that survives an in-flight page, the scroll sentinel and the three state rows. 40 unit tests; typecheck and lint clean; architecture review passed after one round of fixes. **Not yet proven:** no screen uses it yet, so nothing was observed in the browser; the first visual check, light and dark, is in T-302 to T-304. A filter change clears the list and shows the loading rows (King Rezi, 2026-11-25).
+
+**Blocked by:** none
+
+---
+
+### T-302 · Publish: infinite scroll on the List tabs and each Board column
+
+| Field            | Value                                   |
+| ---------------- | --------------------------------------- |
+| **Status**       | ⏳ Not Started                          |
+| **Mode**         | AFK                                     |
+| **Verification** | `local`                                 |
+| **Domain**       | publishing (UI, service, repository)    |
+| **Spec**         | S-009                                   |
+| **Docs**         | ADR-166, ADR-165, KSP-03, KSP-04, S-008 |
+| **Depends**      | T-301                                   |
+
+**What to build:** History, Queue, Drafts and Approvals in Publish List, and each Board column, load 20 items at a time as the user scrolls, with true counts.
+
+- [ ] Cursor-based repository queries for each List tab and each Board column, ordered as today with the id as tie-breaker, plus count queries per tab and per column. Additive composite indexes where a query needs one (pre-approved, ADR-166 decision 7).
+- [ ] Day grouping in the List works across page boundaries (one heading per day).
+- [ ] Tab counts and Board column counts come from the count queries; `BOARD_COLUMN_LIMIT` and the "100+" label are removed.
+- [ ] The MCP source filter, channel and status filters reset the list to its first page; realtime updates keep the loaded items and counts right.
+- [ ] Phone and tablet Board behavior (S-008, T-300) still works.
+- [ ] Repository integration tests for the cursor and count queries; E2E on Cook It Real Good: History loads a second page on scroll, a Board column loads a second page, the History count is the true total, a filter change resets the list.
+- [ ] Next pages load through a GET Route Handler that only calls the Application Service and validates the cursor (ADR-166 addendum 5); the first page stays server-rendered.
+
+**Blocked by:** T-301
+
+---
+
+### T-303 · Engage: infinite scroll on the List view and the comments of one post
+
+| Field            | Value                                |
+| ---------------- | ------------------------------------ |
+| **Status**       | ⏳ Not Started                       |
+| **Mode**         | AFK                                  |
+| **Verification** | `local`                              |
+| **Domain**       | engagement (UI, service, repository) |
+| **Spec**         | S-009                                |
+| **Docs**         | ADR-166, ADR-157, KSP-06, S-006      |
+| **Depends**      | T-301                                |
+
+**What to build:** the Engage List view and the comment list of one post load 20 at a time; older inbox items that the 200 cap used to hide can be reached.
+
+- [ ] Cursor-based repository queries for the inbox post groups and for the comments of one post, with count queries where a count is shown. Additive composite indexes where needed (pre-approved).
+- [ ] The 200-item inbox cap and `POST_GROUP_LIMIT` are removed; the comment list no longer loads up to 1 000 at once.
+- [ ] Engage filters reset the list to its first page; a new comment from realtime or a refresh appears without duplicates; a reply sent from the list stays in place.
+- [ ] Repository integration tests; E2E on Cook It Real Good for each list with more than 20 items there (recorded as not yet proven where there are 20 or fewer).
+- [ ] Next pages load through a GET Route Handler that only calls the Application Service and validates the cursor (ADR-166 addendum 5); the first page stays server-rendered.
+
+**Blocked by:** T-301
+
+---
+
+### T-304 · Notifications panel: infinite scroll
+
+| Field            | Value                                  |
+| ---------------- | -------------------------------------- |
+| **Status**       | ⏳ Not Started                         |
+| **Mode**         | AFK                                    |
+| **Verification** | `local`                                |
+| **Domain**       | notification (UI, service, repository) |
+| **Spec**         | S-009                                  |
+| **Docs**         | ADR-166, KSP-05, ADR-023               |
+| **Depends**      | T-301                                  |
+
+**What to build:** the Notifications panel loads 20 at a time; older notifications past the 50 cap can be reached. The Draft Editor media picker was dropped from S-009 (it does not exist yet; ADR-166 addendum).
+
+- [ ] A cursor-based notification query replaces the 50 cap; "Mark all as read" marks every unread notification; the unread badge is the true unread count; a realtime notification appears at the top without duplicates.
+- [ ] Additive composite indexes where needed (pre-approved).
+- [ ] Repository integration tests; E2E on Cook It Real Good for each list with more than 20 items there (recorded as not yet proven where there are 20 or fewer).
+- [ ] Next pages load through a GET Route Handler that only calls the Application Service and validates the cursor (ADR-166 addendum 5); the first page stays server-rendered.
+
+**Blocked by:** T-301
+
+---
+
+### T-305 · S-009 wave verification on staging
+
+| Field            | Value                                                                |
+| ---------------- | -------------------------------------------------------------------- |
+| **Status**       | ⏳ Not Started                                                       |
+| **Mode**         | HITL (manual verification by King Rezi)                              |
+| **Verification** | `staging`                                                            |
+| **Domain**       | publishing, engagement, notification                                 |
+| **Spec**         | S-009                                                                |
+| **Docs**         | ADR-153, ADR-161, ADR-166                                            |
+| **Depends**      | T-302, T-303, T-304, and the wave integration PR merged to `staging` |
+
+**What to build:** proof on staging that the long lists load page by page on a large workspace.
+
+- [ ] Any index migration of the wave is applied on staging.
+- [ ] Staging E2E run green for the S-009 tests.
+- [ ] King Rezi checks on staging, desktop and phone, in Cook It Real Good: Publish History and a Board column, the Engage list and the Notifications panel load more on scroll, with true counts.
+
+**Blocked by:** T-302, T-303, T-304; wave merged to `staging`
 
 ---
 
