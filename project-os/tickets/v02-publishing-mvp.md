@@ -3774,7 +3774,7 @@ Design `ScreenPublishRedesain` confirmed by King Rezi 2026-11-24 in the Postific
 
 | Field            | Value                                                                                          |
 | ---------------- | ---------------------------------------------------------------------------------------------- |
-| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave                                                          |
+| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave; Verified (staging) 2026-11-25 in T-295                  |
 | **Mode**         | AFK                                                                                            |
 | **Verification** | `local`                                                                                        |
 | **Domain**       | publishing (UI and view state)                                                                 |
@@ -3799,15 +3799,15 @@ Not yet proven: the shell was not observed in a browser (no dev server in this l
 
 ### T-287 · Publish Calendar: month and week in the new layout, "+N lainnya", schedule on a day, No date panel
 
-| Field            | Value                                    |
-| ---------------- | ---------------------------------------- |
-| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave    |
-| **Mode**         | AFK                                      |
-| **Verification** | `local`                                  |
-| **Domain**       | publishing                               |
-| **Spec**         | S-008                                    |
-| **Docs**         | ADR-165, KSP-02, `ScreenPublishRedesain` |
-| **Depends**      | T-286                                    |
+| Field            | Value                                                                         |
+| ---------------- | ----------------------------------------------------------------------------- |
+| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave; Verified (staging) 2026-11-25 in T-295 |
+| **Mode**         | AFK                                                                           |
+| **Verification** | `local`                                                                       |
+| **Domain**       | publishing                                                                    |
+| **Spec**         | S-008                                                                         |
+| **Docs**         | ADR-165, KSP-02, `ScreenPublishRedesain`                                      |
+| **Depends**      | T-286                                                                         |
 
 **What to build:** the Calendar view matches the confirmed design on desktop.
 
@@ -3827,15 +3827,15 @@ Not yet proven: the Calendar was not observed in a browser (no dev server in thi
 
 ### T-288 · Post preview popover and expanded dialog with inline video
 
-| Field            | Value                                                                 |
-| ---------------- | --------------------------------------------------------------------- |
-| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave                                 |
-| **Mode**         | AFK                                                                   |
-| **Verification** | `local`                                                               |
-| **Domain**       | publishing, media                                                     |
-| **Spec**         | S-008                                                                 |
-| **Docs**         | ADR-165, ADR-158, KSP-02-F04, History Detail, `ScreenPublishRedesain` |
-| **Depends**      | T-287                                                                 |
+| Field            | Value                                                                         |
+| ---------------- | ----------------------------------------------------------------------------- |
+| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave; Verified (staging) 2026-11-25 in T-295 |
+| **Mode**         | AFK                                                                           |
+| **Verification** | `local`                                                                       |
+| **Domain**       | publishing, media                                                             |
+| **Spec**         | S-008                                                                         |
+| **Docs**         | ADR-165, ADR-158, KSP-02-F04, History Detail, `ScreenPublishRedesain`         |
+| **Depends**      | T-287                                                                         |
 
 **What to build:** clicking a post opens the per-account preview; Expand opens the full dialog; a published video plays in place.
 
@@ -3857,7 +3857,7 @@ Not yet proven: popover and dialog were not observed in a browser (no dev server
 
 | Field            | Value                                                                             |
 | ---------------- | --------------------------------------------------------------------------------- |
-| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave                                             |
+| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave; Verified (staging) 2026-11-25 in T-295     |
 | **Mode**         | AFK                                                                               |
 | **Verification** | `local`                                                                           |
 | **Domain**       | publishing                                                                        |
@@ -3884,15 +3884,15 @@ Transitions (list lane phase 2, King Rezi decision 2026-11-24): `ChangeContentSt
 
 ### T-290 · Publish Board: status columns
 
-| Field            | Value                                 |
-| ---------------- | ------------------------------------- |
-| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave |
-| **Mode**         | AFK                                   |
-| **Verification** | `local`                               |
-| **Domain**       | publishing                            |
-| **Spec**         | S-008                                 |
-| **Docs**         | ADR-165, `ScreenPublishRedesain`      |
-| **Depends**      | T-286, T-288                          |
+| Field            | Value                                                                         |
+| ---------------- | ----------------------------------------------------------------------------- |
+| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave; Verified (staging) 2026-11-25 in T-295 |
+| **Mode**         | AFK                                                                           |
+| **Verification** | `local`                                                                       |
+| **Domain**       | publishing                                                                    |
+| **Spec**         | S-008                                                                         |
+| **Docs**         | ADR-165, `ScreenPublishRedesain`                                              |
+| **Depends**      | T-286, T-288                                                                  |
 
 **What to build:** the Board view with columns Draft · Approvals · Scheduled · Published · Failed.
 
@@ -3909,15 +3909,15 @@ Not yet proven: the Board was not observed in a browser (no dev server in this l
 
 ### T-291 · Empty Queue: best-time suggestions from stored post metrics
 
-| Field            | Value                                                        |
-| ---------------- | ------------------------------------------------------------ |
-| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave                        |
-| **Mode**         | AFK                                                          |
-| **Verification** | `local`                                                      |
-| **Domain**       | analytics, publishing                                        |
-| **Spec**         | S-008                                                        |
-| **Docs**         | ADR-165, ADR-158, S-008 § Empty Queue, `AnalyticsPostMetric` |
-| **Depends**      | T-289                                                        |
+| Field            | Value                                                                         |
+| ---------------- | ----------------------------------------------------------------------------- |
+| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave; Verified (staging) 2026-11-25 in T-295 |
+| **Mode**         | AFK                                                                           |
+| **Verification** | `local`                                                                       |
+| **Domain**       | analytics, publishing                                                         |
+| **Spec**         | S-008                                                                         |
+| **Docs**         | ADR-165, ADR-158, S-008 § Empty Queue, `AnalyticsPostMetric`                  |
+| **Depends**      | T-289                                                                         |
 
 **What to build:** when the Queue is empty, each connected account shows suggested posting times calculated by Postific from its own published posts; Outstand is not called.
 
@@ -3934,15 +3934,15 @@ Not yet proven: the Board was not observed in a browser (no dev server in this l
 
 ### T-292 · Publish on tablet and phone
 
-| Field            | Value                                             |
-| ---------------- | ------------------------------------------------- |
-| **Status**       | ✅ Done (code) 2026-11-25, S-008 wave             |
-| **Mode**         | AFK                                               |
-| **Verification** | `local`                                           |
-| **Domain**       | publishing (UI), app shell                        |
-| **Spec**         | S-008                                             |
-| **Docs**         | ADR-165, `ScreenPublishRedesain` (Tablet, Mobile) |
-| **Depends**      | T-287, T-288, T-289, T-290, T-291                 |
+| Field            | Value                                                                         |
+| ---------------- | ----------------------------------------------------------------------------- |
+| **Status**       | ✅ Done (code) 2026-11-25, S-008 wave; Verified (staging) 2026-11-25 in T-295 |
+| **Mode**         | AFK                                                                           |
+| **Verification** | `local`                                                                       |
+| **Domain**       | publishing (UI), app shell                                                    |
+| **Spec**         | S-008                                                                         |
+| **Docs**         | ADR-165, `ScreenPublishRedesain` (Tablet, Mobile)                             |
+| **Depends**      | T-287, T-288, T-289, T-290, T-291                                             |
 
 **What to build:** the responsive layouts from the design.
 
@@ -3961,7 +3961,7 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 | Field            | Value                                                                                                       |
 | ---------------- | ----------------------------------------------------------------------------------------------------------- |
-| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave                                                                       |
+| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave; Verified (staging) 2026-11-25 in T-295                               |
 | **Mode**         | AFK                                                                                                         |
 | **Verification** | `local`                                                                                                     |
 | **Domain**       | docs                                                                                                        |
@@ -3981,15 +3981,15 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 ### T-294 · S-008 QA: E2E, review and QA
 
-| Field            | Value                                 |
-| ---------------- | ------------------------------------- |
-| **Status**       | ✅ Done (code) 2026-11-25, S-008 wave |
-| **Mode**         | AFK                                   |
-| **Verification** | `local`                               |
-| **Domain**       | publishing, analytics                 |
-| **Spec**         | S-008                                 |
-| **Docs**         | ADR-149, ADR-153, ADR-161, ADR-165    |
-| **Depends**      | T-286 to T-293                        |
+| Field            | Value                                                                         |
+| ---------------- | ----------------------------------------------------------------------------- |
+| **Status**       | ✅ Done (code) 2026-11-25, S-008 wave; Verified (staging) 2026-11-25 in T-295 |
+| **Mode**         | AFK                                                                           |
+| **Verification** | `local`                                                                       |
+| **Domain**       | publishing, analytics                                                         |
+| **Spec**         | S-008                                                                         |
+| **Docs**         | ADR-149, ADR-153, ADR-161, ADR-165                                            |
+| **Depends**      | T-286 to T-293                                                                |
 
 **What to build:** the S-008 work is proven on `local` before the wave goes to staging.
 
@@ -4006,7 +4006,7 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 | Field            | Value                                                |
 | ---------------- | ---------------------------------------------------- |
-| **Status**       | ⏳ Not Started                                       |
+| **Status**       | ✅ Verified (staging) 2026-11-25                     |
 | **Mode**         | HITL (King Rezi verifies on staging)                 |
 | **Verification** | `staging`                                            |
 | **Domain**       | publishing, analytics                                |
@@ -4016,12 +4016,13 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 **What to build:** one staging verification for the whole S-008 wave (ADR-153, ADR-161).
 
-- [ ] Calendar, List, Board and the post preview on staging with real workspace data; light, dark, 768 px, 390 px.
-- [ ] A published video plays inline on staging; an imported post with only a thumbnail shows "Go to post".
-- [ ] Best-time suggestions appear for an account with enough history and are absent for one without.
-- [ ] Staging E2E run (`workflow_dispatch`) green against the wave's deploy.
+- [x] Calendar, List, Board and the post preview on staging with real workspace data; light, dark, 768 px, 390 px. _Proof (2026-11-25, King Rezi approved each check in the browser pane, Cook It Real Good, deploy `ed62a330`):_ Calendar Month and the preview of an imported Reel (dark, ~800 px); List History grouped by day with thumbnails and metrics; Board with Published 100+ scrolling inside its column and no unpainted area; 768 px light (icon rail, icon chips); 390 px light (3-day grid, icon Filter and No date, horizontal overflow 0). No console errors.
+- [x] A published video plays inline on staging; an imported post with only a thumbnail shows "Go to post". _Proof:_ "Go to post" on an imported Reel (4 Nov 17:49) approved by King Rezi. Inline play of a Postific-held video is proven by the green staging E2E run below (`publish-redesign.e2e.ts`, sandbox mp4); Cook It Real Good has no Postific-held video (all 500 posts are imported, `media_ids` empty). King Rezi wants imported Reels to play inline too: new scope in T-299.
+- [x] Best-time suggestions appear for an account with enough history and are absent for one without. _Proof:_ empty Queue shows 3 slots for Cook It Real Good Facebook (42 posts with metrics in 90 days); none for TikTok (2 posts, under 10), the YouTube account (none), and Instagram (25 posts, but no weekday-hour bucket reaches 3 posts, highest is 2), all as S-008 defines. Approved by King Rezi.
+- [x] Staging E2E run (`workflow_dispatch`) green against the wave's deploy. _Proof:_ run 45543186017 on `ed62a330`: 83 passed, 0 failed, 7 skipped. The first run after the wave (45536670377: 79 passed, 2 failed) found two test bugs, fixed in PR 299 (MCP Filter popover close race; Engage T-227 counted the platform logo images). Run 45539839247 never reached the tests: it was dispatched 5 s after the PR 299 merge, so Railway "Wait for CI" waited on it while it waited on Railway; Railway then skipped the deploy. Recovered with `railway redeploy --from-source` (SUCCESS) and a GitHub deployment status `success` on that SHA (King Rezi's decision). Lesson: dispatch the staging E2E only after Railway shows the deploy SUCCESS.
+- [x] Also checked (King Rezi, Cook It Real Good, test post "[T-295 TEST]" deleted afterwards): Ajukan Review lands on Approvals; Kembalikan ke Draft; Tandai Ready puts the post in the Board Draft column as Ready to Schedule; scheduling it for 2 Dec 10:00 puts it in Scheduled; Board preview "..." > Batalkan jadwal moves it back to Draft (the cancel took about 5 to 10 s).
 
-**Blocked by:** integration PR merged
+**Blocked by:** none
 
 ---
 
@@ -4029,7 +4030,7 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 | Field            | Value                                                                                              |
 | ---------------- | -------------------------------------------------------------------------------------------------- |
-| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave                                                              |
+| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave; Verified (staging) 2026-11-25 in T-295                      |
 | **Mode**         | HITL (design confirmed by King Rezi in the gallery), then AFK                                      |
 | **Verification** | `local`                                                                                            |
 | **Domain**       | publishing (UI)                                                                                    |
@@ -4058,15 +4059,15 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 ### T-297 · Draft Editor save and delete for In Review and Ready to Schedule posts
 
-| Field            | Value                                              |
-| ---------------- | -------------------------------------------------- |
-| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave              |
-| **Mode**         | AFK                                                |
-| **Verification** | `local`                                            |
-| **Domain**       | publishing                                         |
-| **Spec**         | S-008                                              |
-| **Docs**         | ADR-165, `roles-permissions.md` (content statuses) |
-| **Depends**      | T-289                                              |
+| Field            | Value                                                                         |
+| ---------------- | ----------------------------------------------------------------------------- |
+| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave; Verified (staging) 2026-11-25 in T-295 |
+| **Mode**         | AFK                                                                           |
+| **Verification** | `local`                                                                       |
+| **Domain**       | publishing                                                                    |
+| **Spec**         | S-008                                                                         |
+| **Docs**         | ADR-165, `roles-permissions.md` (content statuses)                            |
+| **Depends**      | T-289                                                                         |
 
 **What to build:** saving and deleting in the Draft Editor worked only for `draft` posts, so an In Review or Ready to Schedule post opened from Drafts or Approvals could not be saved or deleted. King Rezi decided on 2026-11-24 to fix it in the S-008 wave.
 
@@ -4110,6 +4111,29 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 - [ ] Repository integration tests for the cursor queries; E2E on a workspace with more than one page per section.
 
 **Blocked by:** design confirmation; S-008 wave merged
+
+---
+
+### T-299 · Imported Reels and videos play inline in the post preview
+
+| Field            | Value                                                         |
+| ---------------- | ------------------------------------------------------------- |
+| **Status**       | ⏳ Not Started                                                |
+| **Mode**         | HITL (data check and design confirmed by King Rezi), then AFK |
+| **Verification** | `staging`                                                     |
+| **Domain**       | publishing, media (Outstand import through the ACL)           |
+| **Spec**         | S-008 follow-up                                               |
+| **Docs**         | ADR-140, ADR-165 (inline video in the post preview), ADR-119  |
+| **Depends**      | —                                                             |
+
+**What to build:** in the T-295 check (2026-11-25) King Rezi expected the Cook It Real Good Reels to play inside the post preview. Today they cannot: imported posts keep only a caption and a thumbnail (`media_ids` empty), so the preview shows the thumbnail and "Go to post" (S-008). Inline play works only for a video Postific holds itself.
+
+- [ ] Find out whether Outstand returns a playable video URL for imported posts (Instagram Reels, Facebook videos, TikTok), how long that URL lives, and whether the platform terms allow playing it inside Postific. Record the answer here; if no stable source exists, stop and report to King Rezi.
+- [ ] Decide with King Rezi how an imported video is held: stream from the platform URL at view time, or copy into Supabase Storage at import (cost, storage, expiry).
+- [ ] The design for an imported video in the preview (poster, play, fallback to "Go to post" when the URL is gone) is confirmed by King Rezi in the Postific Design Review gallery (AGENTS.md rule 10).
+- [ ] Build it behind the import path and the preview; E2E with an imported video fixture.
+
+**Blocked by:** the data check in the first item
 
 ---
 
