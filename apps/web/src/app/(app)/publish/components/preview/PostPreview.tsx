@@ -59,6 +59,7 @@ import { formatPublishDateTime } from "../date-time-format";
 import { getPostPreviewAction, type PostPreviewData } from "./actions";
 import {
   pickFocusTarget,
+  pickRetryTarget,
   previewDate,
   previewFooterAction,
 } from "./post-preview-model";
@@ -118,6 +119,7 @@ function PopoverBody({
   const target = pickFocusTarget(item, connectedAccountId);
   const when = previewDate(item);
   const action = previewFooterAction(item.status);
+  const retryTarget = action === "retry" ? pickRetryTarget(item, target) : null;
   const metric =
     item.metrics?.find(
       (candidate) =>
@@ -233,7 +235,7 @@ function PopoverBody({
           <Alert variant="destructive">
             <AlertTitle>Publish gagal</AlertTitle>
             <AlertDescription>
-              {target?.error ?? "Gagal dipublikasikan."}
+              {(retryTarget ?? target)?.error ?? "Gagal dipublikasikan."}
             </AlertDescription>
           </Alert>
         ) : null}
@@ -304,8 +306,8 @@ function PopoverBody({
             </Button>
           )
         ) : null}
-        {action === "retry" && target ? (
-          <RetryTargetButton postId={item.id} targetId={target.id} />
+        {retryTarget ? (
+          <RetryTargetButton postId={item.id} targetId={retryTarget.id} />
         ) : null}
         {action === "edit" ? (
           <Button

@@ -27,6 +27,7 @@ const actionMocks = vi.hoisted(() => ({
   listPinterestBoardsAction: vi.fn(),
   uploadMediaAction: vi.fn(),
   deleteMediaAction: vi.fn(),
+  submitForReviewAction: vi.fn(),
 }));
 const router = vi.hoisted(() => ({
   pushedTo: undefined as string | undefined,
@@ -96,6 +97,7 @@ async function mountOriginScreen(origin: string) {
   actionMocks.saveDraftAction.mockResolvedValue({ postId: "p1" });
   actionMocks.scheduleDraftAction.mockResolvedValue({ postId: "p1" });
   actionMocks.publishNowAction.mockResolvedValue({ postId: "p1" });
+  actionMocks.submitForReviewAction.mockResolvedValue({ postId: "p1" });
 
   const screen = renderHook(() =>
     usePublishingPostsRealtime("ws-1", {
@@ -193,6 +195,20 @@ describe("Realtime tidak mengirim server action selagi navigasi terminal tertund
     expect(router.pushedTo).toBeUndefined();
 
     supabase.handlers?.onInsert?.({ postId: POST, eventType: "INSERT" });
+    expect(serverActionDispatches.total).toBe(1);
+  });
+
+  it("Ajukan Review from Approvals (refresh) releases the hold it set before its server calls", async () => {
+    const { editor } = await mountOriginScreen(
+      "/publish?view=list&tab=approvals",
+    );
+    await act(async () => {
+      await editor.current.handleSubmitForReview();
+    });
+    expect(actionMocks.submitForReviewAction).toHaveBeenCalled();
+    expect(router.pushedTo).toBeUndefined();
+
+    supabase.handlers?.onUpdate?.({ postId: POST, eventType: "UPDATE" });
     expect(serverActionDispatches.total).toBe(1);
   });
 

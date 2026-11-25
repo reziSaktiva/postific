@@ -50,9 +50,12 @@ vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 vi.mock("@/domains/publishing", async () => {
   const matrix = await import("@/domains/publishing/content-format-matrix");
   const story = await import("@/domains/publishing/story-caption-constraints");
+  const view =
+    await import("@/domains/publishing/services/parse-publish-view-state");
   return {
     maxMediaCountForFormats: matrix.maxMediaCountForFormats,
     isCaptionRequiredForFormats: story.isCaptionRequiredForFormats,
+    buildPublishSearch: view.buildPublishSearch,
   };
 });
 
@@ -117,6 +120,39 @@ const DESTINATION = {
   schedule: "/publish?view=list&tab=queue",
   "publish-now": "/publish?view=calendar",
 } as const;
+
+describe("terminal destinations keep the Publish display zone (S-008 review)", () => {
+  it("schedule from Drafts with tz pushes to Queue with the same tz", async () => {
+    const result = await setupReady(
+      "/publish?view=list&tab=drafts&tz=Asia%2FTokyo",
+    );
+    await act(async () => {
+      await result.current.handleConfirmSchedule();
+    });
+    expect(nav.push).toHaveBeenCalledWith(
+      "/publish?view=list&tab=queue&tz=Asia%2FTokyo",
+    );
+  });
+
+  it("publish-now from Calendar with range, date and tz refreshes in place", async () => {
+    const result = await setupReady(
+      "/publish?view=calendar&range=week&date=2026-11-24&tz=Asia%2FTokyo",
+    );
+    await act(async () => {
+      await result.current.handleConfirmPublishNow();
+    });
+    expect(nav.push).not.toHaveBeenCalled();
+    expect(nav.refresh).toHaveBeenCalled();
+  });
+
+  it("outside Publish nothing is carried", async () => {
+    const result = await setupReady("/analyze?tz=Asia%2FTokyo");
+    await act(async () => {
+      await result.current.handleConfirmSchedule();
+    });
+    expect(nav.push).toHaveBeenCalledWith("/publish?view=list&tab=queue");
+  });
+});
 
 describe("aksi terminal Draft Editor per layar asal (ADR-054, T-208)", () => {
   const origins = [

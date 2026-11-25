@@ -19,7 +19,8 @@ import {
  *   `parseCalendarViewState` next to this file.
  * - `tz`: the display time zone (IANA). View-only: it never writes the
  *   Profile time zone (T-147); without it the Profile time zone is used.
- * - `post`: a post opened from an old `/publish/history/[postId]` link.
+ * - `post`: a post opened from an old `/publish/history/[postId]` link;
+ *   only a uuid is kept (that redirect lands here, so it is covered too).
  *
  * When `view` is missing, the view last used by this user (cookie
  * `PUBLISH_VIEW_COOKIE`) is reopened; Calendar when there is none.
@@ -104,7 +105,7 @@ export function parsePublishViewState(
       rawTimeZone && isValidTimeZone(rawTimeZone)
         ? rawTimeZone
         : defaults.profileTimeZone,
-    postId: rawPost ? asPostId(rawPost) : null,
+    postId: rawPost && UUID_PATTERN.test(rawPost) ? asPostId(rawPost) : null,
   };
 }
 
@@ -178,6 +179,13 @@ export function pickCalendarSearch(
   }
   return picked;
 }
+
+/**
+ * Post ids are uuids (the `post` column is `uuid`): any other `post` value
+ * would reach Prisma and fail with P2023 instead of showing "not found".
+ */
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Old Publish routes that now land on the single page (S-008). */
 export type LegacyPublishRoute = "calendar" | "queue" | "drafts" | "history";

@@ -1,5 +1,7 @@
 import { ContentStatus } from "@postific/shared";
 
+import { buildPublishSearch, type PublishListTab } from "@/domains/publishing";
+
 /**
  * Tujuan navigasi setelah aksi terminal Draft Editor — ADR-054 / NP-D13.
  *
@@ -19,24 +21,41 @@ export type TerminalAction =
  * `status` is the status of the post being saved: Save keeps it (T-297), so
  * the user lands on the tab where the post lives, which is Approvals for an
  * `In Review` post and Drafts for `Draft` and `Ready to Schedule`.
+ *
+ * `currentSearch` is the query of the current Publish URL (empty outside
+ * Publish): its display zone `tz` is kept, and for the Calendar destination
+ * its `range` and `date` too, so the action does not reset what the user
+ * was looking at.
  */
 export function resolveTerminalDestination(
   action: TerminalAction,
   status?: ContentStatus,
+  currentSearch: string | URLSearchParams = "",
 ): string {
+  const current = new URLSearchParams(currentSearch);
+  const timeZone = current.get("tz");
+  const list = (tab: PublishListTab) =>
+    `/publish${buildPublishSearch({ view: "list", tab, timeZone })}`;
   switch (action) {
     case "save-draft":
       return status === ContentStatus.InReview
-        ? "/publish?view=list&tab=approvals"
-        : "/publish?view=list&tab=drafts";
+        ? list("approvals")
+        : list("drafts");
     // T-296 — Ajukan Review → Publish > List > Approvals (kartu
     // `ScreenDraftEditorSubmitReview`), tempat posting In Review menunggu.
     case "submit-review":
-      return "/publish?view=list&tab=approvals";
+      return list("approvals");
     case "schedule":
-      return "/publish?view=list&tab=queue";
+      return list("queue");
     case "publish-now":
-      return "/publish?view=calendar";
+      return `/publish${buildPublishSearch({
+        view: "calendar",
+        timeZone,
+        calendar: {
+          range: current.get("range") ?? undefined,
+          date: current.get("date") ?? undefined,
+        },
+      })}`;
   }
 }
 

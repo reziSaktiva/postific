@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   pickFocusTarget,
+  pickRetryTarget,
   previewDate,
   previewFooterAction,
   publishedViaPlatforms,
@@ -142,5 +143,31 @@ describe("publishedViaPlatforms", () => {
         targets: [target("a", SocialPlatform.Instagram, "scheduled")],
       }),
     ).toEqual([]);
+  });
+});
+
+describe("pickRetryTarget", () => {
+  const published = target("a", SocialPlatform.Instagram, "published");
+  const failedB = target("b", SocialPlatform.Facebook, "failed");
+  const failedC = target("c", SocialPlatform.TikTok, "failed");
+
+  it("keeps the focused target when it failed", () => {
+    const item = { targets: [published, failedB, failedC] };
+    expect(pickRetryTarget(item, failedC)).toBe(failedC);
+  });
+
+  it("falls back to the first failed target when the focused one did not fail", () => {
+    const item = { targets: [published, failedB, failedC] };
+    expect(pickRetryTarget(item, published)).toBe(failedB);
+  });
+
+  it("falls back to the first failed target without a focused one", () => {
+    expect(pickRetryTarget({ targets: [published, failedC] }, null)).toBe(
+      failedC,
+    );
+  });
+
+  it("is null when no target failed, so Retry is hidden", () => {
+    expect(pickRetryTarget({ targets: [published] }, published)).toBeNull();
   });
 });

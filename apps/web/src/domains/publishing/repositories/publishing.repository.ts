@@ -783,6 +783,20 @@ export interface IPublishingRepository {
   ): Promise<HistoryItemRecord[]>;
 
   /**
+   * Number of posts per status, for the List tab counts (T-289, S-008): one
+   * `groupBy` instead of loading the Queue, Drafts and History lists. Same
+   * rows those lists read: posts of `workspaceId`, not soft-deleted
+   * (`deletedAt: null`), with a status in `statuses`, and no account or date
+   * filter. A status without posts is absent from the map.
+   *
+   * `userId` (RLS, KI-026 follow-up) — acting user for `withCurrentUser`.
+   */
+  countPostsByStatus(
+    input: { workspaceId: WorkspaceId; statuses: readonly ContentStatus[] },
+    userId: UserId,
+  ): Promise<Map<ContentStatus, number>>;
+
+  /**
    * T-130/KI-093 — jumlah `PublishingPost` berstatus terminal
    * (`HISTORY_TERMINAL_STATUSES`: `Published`/`Failed`/`Imported`) milik
    * `workspaceId`, dengan `publishedAt` jatuh di rentang `[since, until)`

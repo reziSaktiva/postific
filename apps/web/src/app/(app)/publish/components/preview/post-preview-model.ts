@@ -28,6 +28,20 @@ export function pickFocusTarget(
   );
 }
 
+/**
+ * The target Retry acts on for a Failed post: the focused one when it failed,
+ * else the first failed one; `null` when no target failed (Retry is hidden).
+ * The Board focuses the first target, which can be a published sibling of the
+ * failed one, and the server only retries `failed` targets.
+ */
+export function pickRetryTarget(
+  item: Pick<HistoryDetailItem, "targets">,
+  focused: HistoryItemTargetRecord | null,
+): HistoryItemTargetRecord | null {
+  if (focused?.status === "failed") return focused;
+  return item.targets.find((target) => target.status === "failed") ?? null;
+}
+
 export type PreviewDate =
   { kind: "published" | "failed" | "scheduled"; date: Date } | { kind: "none" };
 

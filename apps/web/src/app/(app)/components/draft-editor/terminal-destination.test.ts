@@ -43,6 +43,36 @@ describe("resolveTerminalDestination", () => {
     );
   });
 
+  it("keeps the display zone of the current Publish URL (S-008 review)", () => {
+    const search = "?view=list&tab=drafts&tz=America%2FNew_York";
+    expect(resolveTerminalDestination("schedule", undefined, search)).toBe(
+      "/publish?view=list&tab=queue&tz=America%2FNew_York",
+    );
+    expect(resolveTerminalDestination("submit-review", undefined, search)).toBe(
+      "/publish?view=list&tab=approvals&tz=America%2FNew_York",
+    );
+  });
+
+  it("keeps the Calendar range and date for Publish Now, but no other keys", () => {
+    expect(
+      resolveTerminalDestination(
+        "publish-now",
+        undefined,
+        "?view=calendar&range=week&date=2026-11-24&tz=Asia%2FTokyo&post=x",
+      ),
+    ).toBe("/publish?view=calendar&range=week&date=2026-11-24&tz=Asia%2FTokyo");
+  });
+
+  it("does not carry Calendar keys into a List destination", () => {
+    expect(
+      resolveTerminalDestination(
+        "save-draft",
+        undefined,
+        "?view=calendar&range=month&date=2026-11-01",
+      ),
+    ).toBe("/publish?view=list&tab=drafts");
+  });
+
   it("tujuannya sama dari section manapun — tidak bergantung asal (ADR-053)", () => {
     // Inti T-011.3: CTA sidebar membuat asalnya bisa Home/Engage/Analyze,
     // dan destinasi tidak boleh ikut berubah mengikuti asal itu. Sejak

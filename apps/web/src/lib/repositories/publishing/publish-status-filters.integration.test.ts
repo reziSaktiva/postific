@@ -259,6 +259,67 @@ describe.skipIf(!enabled)(
         expect((await storedPost(postId)).deletedAt).toBeNull();
       });
     });
+    describe("countPostsByStatus", () => {
+      it("counts the same rows listQueue, listDrafts and listHistory return", async () => {
+        const all = [
+          ContentStatus.Scheduled,
+          ContentStatus.Scheduled,
+          ContentStatus.Draft,
+          ContentStatus.InReview,
+          ContentStatus.ReadyToSchedule,
+          ContentStatus.Published,
+          ContentStatus.Failed,
+          ContentStatus.Imported,
+        ];
+        for (const status of all) await createPost(status);
+        // Soft-deleted posts are in no list, so in no count either.
+        const deleted = await Promise.all(
+          [
+            ContentStatus.Scheduled,
+            ContentStatus.Draft,
+            ContentStatus.Failed,
+          ].map(createPost),
+        );
+        await withCurrentUser(owner, (tx) =>
+          tx.publishingPost.updateMany({
+            where: { id: { in: deleted } },
+            data: { deletedAt: new Date() },
+          }),
+        );
+
+        const counts = await repo.countPostsByStatus(
+          { workspaceId: workspace, statuses: [...new Set(all)] },
+          owner,
+        );
+        const [queue, drafts, history] = await Promise.all([
+          repo.listQueue({ workspaceId: workspace }, owner),
+          repo.listDrafts({ workspaceId: workspace }, owner),
+          repo.listHistory({ workspaceId: workspace }, owner),
+        ]);
+        const count = (statuses: ContentStatus[]) =>
+          statuses.reduce((sum, status) => sum + (counts.get(status) ?? 0), 0);
+
+        expect(count([ContentStatus.Scheduled])).toBe(queue.length);
+        expect(
+          count([
+            ContentStatus.Draft,
+            ContentStatus.InReview,
+            ContentStatus.ReadyToSchedule,
+          ]),
+        ).toBe(drafts.length);
+        expect(
+          count([
+            ContentStatus.Published,
+            ContentStatus.Failed,
+            ContentStatus.Imported,
+          ]),
+        ).toBe(history.length);
+        expect(queue.length).toBe(2);
+        expect(drafts.length).toBe(3);
+        expect(history.length).toBe(3);
+      });
+    });
+
     describe("listApprovalItems", () => {
       it("returns only live In Review posts with their account handles, newest edit first", async () => {
         const older = await createPost(ContentStatus.InReview);
