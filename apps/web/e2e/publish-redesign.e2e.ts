@@ -110,6 +110,34 @@ test("the view switcher moves between Calendar, List and Board", async ({
   });
 });
 
+test("T-300: on a phone the Board scrolls sideways over a column with cards", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/publish?view=board");
+  const published = page.getByRole("region", { name: "Published" });
+  await expect(published).toBeVisible({ timeout: 30_000 });
+  // The seed has published posts, so this column has its own card list.
+  await expect(published.getByRole("button").first()).toBeVisible();
+  const row = published.locator("..");
+  const scrollLeft = () => row.evaluate((el) => el.scrollLeft);
+
+  await published.scrollIntoViewIfNeeded();
+  await expect.poll(scrollLeft).toBeGreaterThan(0);
+  const start = await scrollLeft();
+
+  // A sideways wheel that starts on the Published card list must move the
+  // Board both ways (it was swallowed by `overscroll-contain`).
+  const list = published.locator("div.overflow-y-auto");
+  await list.hover();
+  await page.mouse.wheel(-600, 0);
+  await expect.poll(scrollLeft).toBeLessThan(start);
+
+  await list.hover();
+  await page.mouse.wheel(1200, 0);
+  await expect.poll(scrollLeft).toBeGreaterThan(start);
+});
+
 test("post preview from a Calendar chip: popover, expand, video plays", async ({
   page,
 }) => {

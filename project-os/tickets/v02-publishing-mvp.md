@@ -4137,6 +4137,30 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 ---
 
+### T-300 · Board on a phone gets stuck after scrolling to a column with cards
+
+| Field            | Value                                |
+| ---------------- | ------------------------------------ |
+| **Status**       | ⏳ Not Started                       |
+| **Mode**         | AFK                                  |
+| **Verification** | `staging`                            |
+| **Domain**       | publishing (UI)                      |
+| **Spec**         | S-008 (Board, phone layout of T-292) |
+| **Docs**         | ADR-165                              |
+| **Depends**      | —                                    |
+
+**What to build:** King Rezi (2026-11-25, staging, mobile): on the Publish Board, after scrolling right to the end he could not scroll back left. Cause: each column's card list is `overflow-y-auto overscroll-contain`; `overflow-y-auto` makes it a horizontal scroll container too, so `overscroll-contain` stopped sideways swipes and wheel scrolls that start on a column with cards (Published, Failed) from reaching the Board row. Empty columns have no list, so the Board only got stuck once it reached Published.
+
+- [x] The card list contains only vertical overscroll (`overscroll-y-contain`), so a sideways swipe on any column moves the Board.
+- [x] Browser check at 375 px: scroll to Failed and back to Draft while the pointer is over a column with cards. _Proof (local dev, Cook It Real Good, 2026-11-25):_ before the fix the Board stopped at Published (`scrollLeft` 965 both ways); after it, right to Failed (1277 of 1277) and back to 0.
+- [x] E2E guard: on a phone viewport, a horizontal wheel over the Published column moves the Board both ways. `publish-redesign.e2e.ts` "T-300: on a phone the Board scrolls sideways over a column with cards": passes with the fix, fails with `overscroll-contain` restored.
+
+Verified (staging) after merge: King Rezi swipes the Board on a phone.
+
+**Blocked by:** none
+
+---
+
 ## Dari Known Issue
 
 Tiket yang lahir sebagai pelacak Known Issue ada di [`known-issues.md`](known-issues.md) (ADR-134); daftar lengkapnya hanya di file itu, tidak disalin ke sini.
