@@ -2,23 +2,21 @@ import { asUserId } from "@postific/shared";
 import { redirect } from "next/navigation";
 
 import {
+  EMPTY_PUBLISH_LIST_FILTER,
   GetBestTimeSuggestionsUseCase,
   PublishingService,
+  type HistoryItemRecord,
+  type HistoryListItem,
+  type PublishListTab,
 } from "@/domains/publishing";
-import { MediaService } from "@/domains/media";
 import { WorkspaceService } from "@/domains/workspace";
-import { supabaseMediaStorageAdapter } from "@/lib/adapters/media-storage/supabase-media-storage-adapter";
 import { getCachedSession } from "@/lib/better-auth/session";
 import { getMcpClientNamePort } from "@/lib/mcp-access/get-mcp-client-name-port";
 import { getWorkspaceContext } from "@/lib/workspace/workspace-context";
-import { mediaRepository } from "@/lib/repositories/media";
 import { publishingRepository } from "@/lib/repositories/publishing";
 import { workspaceRepository } from "@/lib/repositories/workspace";
 
-import {
-  AnalyticsService,
-  BestTimeSuggestionsUseCase,
-} from "@/domains/analytics";
+import { BestTimeSuggestionsUseCase } from "@/domains/analytics";
 import { analyticsRepository } from "@/lib/repositories/analytics";
 
 import { ApprovalsList } from "../../approvals/components/ApprovalsList";
@@ -26,13 +24,20 @@ import { DraftsList } from "../../drafts/components/DraftsList";
 import { HistoryList } from "../../history/components/HistoryList";
 import { FETCHED_SUGGESTIONS_PER_ACCOUNT } from "../../queue/components/queue-suggestions";
 import { QueueScreen } from "../../queue/components/QueueScreen";
-import { resolvePostThumbnails } from "../preview/post-thumbnails";
 import type { ListFilterAccount } from "./ListFilter";
+import {
+  countPublishListTab,
+  getPublishRequestContext,
+  loadPublishListPage,
+  type PublishRequestContext,
+} from "./publish-list-pages";
+import type { PublishTabPage } from "./usePublishTabList";
 
 /**
- * List tabs of the Publish page (T-286): the Queue, Drafts and History
- * screens moved from their old routes as they are (T-289 redesigns them).
- * Composition only, each tab calls its Application Service (hard rule 3).
+ * List tabs of the Publish page (T-286, T-289). Composition only: each tab
+ * renders the first page of its list (S-009, `loadPublishListPage`, the
+ * same composition the `GET /api/publish/list` Route Handler uses for the
+ * next pages) and hands it to its client list (hard rule 3).
  */
 
 async function getListContext() {
@@ -52,80 +57,61 @@ async function getListContext() {
 }
 
 export async function QueueTab({ timeZone }: { timeZone: string }) {
-  const { workspaceId, userId, publishingService } = await getListContext();
-  // Group date keys use the display time zone of the Publish page (T-147,
-  // T-286); the Profile zone when none is picked.
-  const { groups, suggestions } =
-    await publishingService.getQueueWithSuggestions(
-      workspaceId,
-      userId,
+  const context = await requirePublishContext();
+  const { publishingService } = await getListContext();
+  // First page, and best-time suggestions only when nothing at all is
+  // scheduled (T-291), plus the true total (S-009).
+  const [{ page, suggestions }, total] = await Promise.all([
+    publishingService.getQueuePageWithSuggestions(
+      context.workspaceId,
+      context.userId,
       timeZone,
       new GetBestTimeSuggestionsUseCase(
         new BestTimeSuggestionsUseCase(analyticsRepository),
         new WorkspaceService(workspaceRepository),
       ),
       FETCHED_SUGGESTIONS_PER_ACCOUNT,
-    );
+    ),
+    countPublishListTab(context, {
+      tab: "queue",
+      filter: EMPTY_PUBLISH_LIST_FILTER,
+    }),
+  ]);
   return (
     <QueueScreen
-      groups={groups}
-      workspaceId={workspaceId}
+      initialPage={{ ...page, total }}
+      workspaceId={context.workspaceId}
       suggestions={suggestions}
     />
   );
 }
 
 export async function DraftsTab() {
-  const { workspaceId, userId, publishingService } = await getListContext();
-  const drafts = await publishingService.listDraftsTab(workspaceId, userId);
-  return <DraftsList drafts={drafts} workspaceId={workspaceId} />;
+  const context = await requirePublishContext();
+  const page = await firstPage(context, "drafts");
+  return (
+    <DraftsList
+      initialPage={page as PublishTabPage<HistoryItemRecord>}
+      workspaceId={context.workspaceId}
+    />
+  );
 }
 
 export async function ApprovalsTab() {
-  const { workspaceId, userId, publishingService } = await getListContext();
-  const approvals = await publishingService.listApprovals(workspaceId, userId);
-  // Account row of each card (S-008 design gap 3): the repository returns
-  // the In Review posts with their targets in one query.
-  const items = approvals.map((post) => ({
-    id: post.id,
-    caption: post.caption,
-    status: post.status,
-    updatedAt: post.updatedAt,
-    createdVia: post.createdVia,
-    createdViaClientName: post.createdViaClientName,
-    targets: post.targets.map((target) => ({
-      id: target.id,
-      connectedAccountId: target.connectedAccountId,
-      platform: target.platform,
-      accountHandle: target.accountHandle,
-    })),
-  }));
-  return <ApprovalsList items={items} workspaceId={workspaceId} />;
+  const context = await requirePublishContext();
+  const page = await firstPage(context, "approvals");
+  return (
+    <ApprovalsList
+      initialPage={page as PublishTabPage<HistoryItemRecord>}
+      workspaceId={context.workspaceId}
+    />
+  );
 }
 
 export async function HistoryTab() {
-  const { workspaceId, userId } = await getListContext();
-  // History cards show stored metrics, so this tab needs the analytics port.
-  const historyService = new PublishingService(
-    publishingRepository,
-    new AnalyticsService(analyticsRepository),
-    undefined,
-    undefined,
-    getMcpClientNamePort(),
-  );
-
-  const items = await historyService.listHistoryWithMetrics(
-    workspaceId,
-    userId,
-  );
-  // Card thumbnails (S-008 design gap 2): one batched lookup, first media of
-  // a post or the stored thumbnail of an imported post (ADR-158).
-  const thumbnails = await resolvePostThumbnails(
-    items,
-    workspaceId,
-    userId,
-    new MediaService(mediaRepository, supabaseMediaStorageAdapter),
-  );
+  const context = await requirePublishContext();
+  // History cards show stored metrics and thumbnails (S-008 design gap 2).
+  const page = await firstPage(context, "history");
 
   // `renderedAt` (KI-052): one timestamp for `formatRelativeTime`, so server
   // and browser render the same "N menit lalu" text.
@@ -133,12 +119,29 @@ export async function HistoryTab() {
 
   return (
     <HistoryList
-      items={items}
-      thumbnails={thumbnails}
-      workspaceId={workspaceId}
+      initialPage={page as PublishTabPage<HistoryListItem>}
+      workspaceId={context.workspaceId}
       renderedAt={renderedAt}
     />
   );
+}
+
+/** Workspace and user of the page; redirects to login without a session. */
+async function requirePublishContext(): Promise<PublishRequestContext> {
+  const context = await getPublishRequestContext();
+  if (!context) {
+    redirect("/login");
+  }
+  return context;
+}
+
+/** First page of a tab (no filter), with its true total (S-009). */
+function firstPage(context: PublishRequestContext, tab: PublishListTab) {
+  return loadPublishListPage(context, {
+    tab,
+    filter: EMPTY_PUBLISH_LIST_FILTER,
+    cursor: null,
+  });
 }
 
 /**

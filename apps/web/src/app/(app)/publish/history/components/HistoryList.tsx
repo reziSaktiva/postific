@@ -1,14 +1,8 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useSyncExternalStore,
-} from "react";
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
 
-import { ContentStatus, PostCreatedVia } from "@postific/shared";
+import { ContentStatus } from "@postific/shared";
 import {
   compareHistoryItemsDesc,
   groupHistoryItemsByDate,
@@ -17,11 +11,8 @@ import {
   type HistoryItemRecord,
   type HistoryListItem,
 } from "@/domains/publishing";
-import type { MediaThumbnailDto } from "@/domains/media";
 import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
 import { formatRelativeTime } from "@/lib/utils/format-relative-time";
-import { usePublishingPostsRealtime } from "@/lib/hooks/use-publishing-posts-realtime";
-import { useSyncedState } from "@/lib/hooks/use-synced-state";
 
 import { getHistoryPostAction } from "../actions";
 import {
@@ -53,11 +44,12 @@ import {
   MetricTile,
 } from "../../../components/post-metric-tile";
 import { ListDayGroups } from "../../components/views/ListDayGroups";
+import { focusAccountId } from "../../components/views/ListFilter";
+import { PublishTabFooter } from "../../components/views/PublishListStates";
 import {
-  focusAccountId,
-  matchesListFilter,
-  useListFilter,
-} from "../../components/views/ListFilter";
+  usePublishTabList,
+  type PublishTabPage,
+} from "../../components/views/usePublishTabList";
 import {
   ListAccounts,
   ListPostCard,
@@ -102,16 +94,14 @@ const HISTORY_VIEW_STATUSES: ReadonlySet<ContentStatus> = new Set(
 
 export interface HistoryListProps {
   /**
-   * Hasil `PublishingService.listHistory` (flat, sudah terurut waktu bisnis
-   * descending (`compareHistoryItemsDesc`) oleh repository) — T-092.6: pengelompokan per tanggal
-   * dipindah ke DALAM komponen ini (`groupHistoryItemsByDate` dipanggil di
-   * bawah, atas hasil gabungan `items` + granular patch Realtime), bukan
-   * lagi di composition root `page.tsx`.
+   * First page of History from the server (S-009): items in business-time
+   * order (`compareHistoryItemsDesc`), card thumbnails (S-008 design gap 2)
+   * and the true total. Next pages load on scroll through
+   * `GET /api/publish/list`; a post that arrives by Realtime shows its
+   * thumbnail after the next load.
    */
-  items: HistoryListItem[];
-  /** Card thumbnails by post id (S-008 design gap 2); a post without media has none. Posts that arrive by Realtime show theirs after the next load. */
-  thumbnails?: Record<string, MediaThumbnailDto>;
-  /** Workspace aktif — dipakai `usePublishingPostsRealtime` (T-092.6) untuk subscribe channel `publishing_posts:{workspaceId}`, bukan dipakai untuk fetch data apa pun langsung di komponen ini (AGENTS.md #5). */
+  initialPage: PublishTabPage<HistoryListItem>;
+  /** Workspace aktif — dipakai Realtime (`publishing_posts:{workspaceId}`), tidak untuk fetch data langsung (AGENTS.md #5). */
   workspaceId: string;
   /**
    * Stempel waktu render server (ISO), acuan `formatRelativeTime` (KI-052).
@@ -122,37 +112,18 @@ export interface HistoryListProps {
 }
 
 /**
- * Daftar riwayat (T-034.2, KSP-D10) — dikelompokkan per tanggal
- * (`groupHistoryItemsByDate`, domain `publishing`), filter Status
- * (Semua/Published/Error) dan Akun (Semua/per akun) dilakukan client-side
- * (sama pola `QueueList` T-032.3 — dataset kecil, tidak perlu re-fetch
- * server per filter seperti Calendar). Tiap card bisa diklik penuh menuju
- * `/publish/history/[postId]` (T-034.3) via `Item asChild` + `Link`, sama
- * pola `DraftsList`.
- *
- * **T-092.6 (ADR-094 poin 5, 6, 7) — client state + granular Realtime
- * patch:** `items` (prop dari `page.tsx`) disalin ke `useState` lokal (pola
- * sama `DraftsList`/`QueueScreen`) — disinkronkan ulang SAAT RENDER setiap
- * kali prop `items` berubah, bukan `useEffect` + `setState` supaya tidak
- * ada render tambahan/cascading.
- *
- * `usePublishingPostsRealtime(workspaceId, {...})` subscribe selama
- * komponen ini mount (lifecycle per-mount, ADR-094 poin 6). Event
- * `INSERT`/`UPDATE` memicu fetch SATU record via `getHistoryPostAction`
- * (Server Action → `PublishingService.getHistoryPostById`, method baru —
- * bukan refetch seluruh History) lalu di-upsert/remove ke state lokal
- * berdasar kriteria tampilan History (`HISTORY_VIEW_STATUSES` —
- * `Published`/`Failed`; status lain, termasuk `null` hasil post tidak
- * ditemukan/soft-deleted, berarti item dihapus dari local state) — echo
- * dari aksi milik user sendiri diproses sama seperti event orang lain,
- * tanpa deteksi/skip apa pun (idempoten by design, ADR-094 poin 5). Urutan
- * dipertahankan waktu bisnis descending (`compareHistoryItemsDesc`, sama dengan `listHistory`),
- * lalu dikelompokkan ulang via `groupHistoryItemsByDate` sebelum difilter
- * Status/Akun.
+ * List · History (T-034.2, T-289, S-009): finished posts grouped per day of
+ * their business time (`groupHistoryItemsByDate` over every loaded item, so
+ * a day split across two pages keeps one heading). Pages of 20 load as the
+ * user scrolls (`usePublishTabList`); channel, status and source filters
+ * come from the toolbar Filter popover and are applied by the server, so a
+ * filter change starts again from the first page. Realtime (T-092.6,
+ * ADR-094): each change fetches one post (`getHistoryPostAction`) and
+ * upserts it when it is a History post that matches the filter, else
+ * removes it.
  */
 export function HistoryList({
-  items,
-  thumbnails = {},
+  initialPage,
   workspaceId,
   renderedAt,
 }: HistoryListProps) {
@@ -170,76 +141,43 @@ export function HistoryList({
     }, RELATIVE_NOW_TICK_MS);
     return () => window.clearInterval(timer);
   }, [renderedAt]);
-  // Status, channels and source come from the List Filter popover in the
-  // toolbar (S-008 design gap 4).
-  const filter = useListFilter();
+
+  const fetchLiveItem = useCallback(
+    async (postId: string) => {
+      const fetched = await getHistoryPostAction(postId);
+      bumpClientNowMs(renderedAt);
+      return fetched && HISTORY_VIEW_STATUSES.has(fetched.status)
+        ? fetched
+        : null;
+    },
+    [renderedAt],
+  );
+
+  const { list, filter, thumbnails, unfilteredTotal } =
+    usePublishTabList<HistoryListItem>({
+      tab: "history",
+      initialPage,
+      compare: compareHistoryItemsDesc,
+      workspaceId,
+      fetchLiveItem,
+    });
   const { channelIds, statuses, source } = filter;
 
-  const [localItems, setLocalItems] = useSyncedState<HistoryListItem[]>(items);
-  const requestSeqRef = useRef<Map<string, number>>(new Map());
-
-  const handlePublishingPostChange = useCallback(
-    (event: { postId: HistoryItemRecord["id"] }) => {
-      const seq = (requestSeqRef.current.get(event.postId) ?? 0) + 1;
-      requestSeqRef.current.set(event.postId, seq);
-
-      void (async () => {
-        const fetched = await getHistoryPostAction(event.postId);
-
-        // Buang hasil kalau sudah disusul event lain untuk postId yang sama
-        // (out-of-order response) — jangan biarkan fetch yang lebih lama
-        // menimpa state yang sudah diperbarui oleh event yang lebih baru.
-        if (requestSeqRef.current.get(event.postId) !== seq) {
-          return;
-        }
-
-        const historyItem =
-          fetched && HISTORY_VIEW_STATUSES.has(fetched.status) ? fetched : null;
-
-        bumpClientNowMs(renderedAt);
-        setLocalItems((prev) => {
-          const withoutStale = prev.filter((item) => item.id !== event.postId);
-
-          if (!historyItem) {
-            return withoutStale;
-          }
-
-          return [...withoutStale, historyItem].sort(compareHistoryItemsDesc);
-        });
-      })();
-    },
-    [renderedAt, setLocalItems],
-  );
-
-  usePublishingPostsRealtime(workspaceId, {
-    onInsert: handlePublishingPostChange,
-    onUpdate: handlePublishingPostChange,
-  });
-
   const groups = useMemo<HistoryGroup<HistoryListItem>[]>(
-    () => groupHistoryItemsByDate(localItems, timeZone),
-    [localItems, timeZone],
+    () => groupHistoryItemsByDate(list.items, timeZone),
+    [list.items, timeZone],
   );
 
-  const filteredGroups = useMemo<HistoryGroup<HistoryListItem>[]>(() => {
-    return groups
-      .map((group) => ({
-        ...group,
-        items: group.items.filter((item) =>
-          matchesListFilter(item, { channelIds, statuses, source }),
-        ),
-      }))
-      .filter((group) => group.items.length > 0);
-  }, [groups, channelIds, statuses, source]);
-
+  // A filtered empty list: when nothing matches a Manual filter while the
+  // tab has posts, every post of the tab came through MCP.
   const emptyKind = resolveFilteredEmptyKind({
     sourceFilter: source,
     otherFiltersAtDefault: statuses.length === 0 && channelIds.length === 0,
-    totalItems: localItems.length,
-    hasMcpItems: localItems.some(
-      (item) => item.createdVia === PostCreatedVia.Mcp,
-    ),
+    totalItems: unfilteredTotal,
+    hasMcpItems: unfilteredTotal > 0,
   });
+  const showEmpty =
+    list.items.length === 0 && !list.isRefreshing && list.status === "end";
 
   function resetAllFilters() {
     bumpClientNowMs(renderedAt);
@@ -249,7 +187,7 @@ export function HistoryList({
   return (
     // eslint-disable-next-line no-restricted-syntax -- layout-only, konsisten QueueList/DraftsList
     <div className="flex flex-col gap-4">
-      {filteredGroups.length === 0 ? (
+      {showEmpty ? (
         <Card>
           <CardContent>
             {emptyKind !== "base" ? (
@@ -269,7 +207,7 @@ export function HistoryList({
         </Card>
       ) : (
         <ListDayGroups
-          groups={filteredGroups}
+          groups={groups}
           getTime={historyListClockDate}
           renderCard={(item) => {
             // T-126: `Imported` counts as `Published` for the meta text. The
@@ -404,6 +342,7 @@ export function HistoryList({
           }}
         />
       )}
+      {showEmpty ? null : <PublishTabFooter tab="history" list={list} />}
     </div>
   );
 }

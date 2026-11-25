@@ -474,6 +474,13 @@ model PublishingPost {
   // Postgres tidak scan seluruh riwayat per-status sebelum menyaring rentang
   // tanggal — review finding 2026-09-22.
   @@index([workspaceId, status, publishedAt])
+  // T-302 (S-009, ADR-166 decision 7): keyset pages of the Publish lists.
+  // Drafts, Approvals and the Board Draft/Approvals/Failed columns.
+  @@index([workspaceId, status, updatedAt(sort: Desc), id(sort: Desc)])
+  // Queue and the Board Scheduled column.
+  @@index([workspaceId, status, scheduledAt, id])
+  // History and the Board Published column (business time, then last change).
+  @@index([workspaceId, status, occurredAt(sort: Desc), updatedAt(sort: Desc), id(sort: Desc)])
   @@index([scheduledAt])
   @@index([deletedAt])
   @@map("publishing_posts")

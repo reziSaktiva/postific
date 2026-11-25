@@ -1,5 +1,6 @@
 import {
   asConnectedAccountId,
+  asPageCursor,
   asPostId,
   asPostMetricsId,
   asPostTargetId,
@@ -69,7 +70,8 @@ function createFakeRepository(
     countScheduledByAccount: async () => new Map(),
     listQueue: async () => [],
     listCalendarPosts: async () => [],
-    listBoardPosts: async () => [],
+    listPostPage: async () => ({ items: [], nextCursor: null }),
+    countPosts: async () => 0,
     getCalendarPostById: async () => null,
     listHistory: async () => [],
     countPostsByStatus: async () => new Map(),
@@ -3395,32 +3397,220 @@ describe("PublishingService.getPostPreview (T-288)", () => {
   });
 });
 
-describe("PublishingService.listBoardColumns (T-290)", () => {
-  it("groups posts of every status into the five columns and asks for one more than the column limit per status", async () => {
-    let receivedLimit: number | null = null;
+describe("PublishingService paged lists (S-009, T-302)", () => {
+  type PageInput = Parameters<IPublishingRepository["listPostPage"]>[0];
+  type CountInput = Parameters<IPublishingRepository["countPosts"]>[0];
+
+  it("listBoardColumns loads the first page of each column and takes totals from the count query", async () => {
+    const pageCalls: PageInput[] = [];
     const draft = createHistoryItem({ status: ContentStatus.ReadyToSchedule });
-    const failed = createHistoryItem({
-      id: asPostId("post-2"),
-      status: ContentStatus.Failed,
-    });
     const service = new PublishingService(
       createFakeRepository({
-        listBoardPosts: async ({ perStatusLimit }) => {
-          receivedLimit = perStatusLimit;
-          return [draft, failed] as never;
+        listPostPage: async (input) => {
+          pageCalls.push(input);
+          return {
+            items:
+              input.order === "updated-desc" &&
+              input.statuses.includes(ContentStatus.Draft)
+                ? [draft]
+                : [],
+            nextCursor: null,
+          };
         },
+        countPostsByStatus: async () =>
+          new Map([
+            [ContentStatus.Draft, 30],
+            [ContentStatus.ReadyToSchedule, 2],
+            [ContentStatus.Published, 130],
+            [ContentStatus.Imported, 7],
+          ]),
       }),
     );
 
     const columns = await service.listBoardColumns(WORKSPACE_ID, AUTHOR_ID);
 
-    expect(receivedLimit).toBe(101);
-    expect(columns.map((c) => [c.key, c.items.length])).toEqual([
-      ["draft", 1],
-      ["approvals", 0],
-      ["scheduled", 0],
-      ["published", 0],
-      ["failed", 1],
+    expect(columns.map((c) => [c.key, c.total, c.page.items.length])).toEqual([
+      ["draft", 32, 1],
+      ["approvals", 0, 0],
+      ["scheduled", 0, 0],
+      ["published", 137, 0],
+      ["failed", 0, 0],
     ]);
+    expect(pageCalls.map((c) => [c.order, c.limit, c.cursor ?? null])).toEqual([
+      ["updated-desc", 20, null],
+      ["updated-desc", 20, null],
+      ["scheduled-asc", 20, null],
+      ["occurred-desc", 20, null],
+      ["updated-desc", 20, null],
+    ]);
+    expect(pageCalls[3]?.statuses).toEqual([
+      ContentStatus.Published,
+      ContentStatus.Imported,
+    ]);
+  });
+
+  it("listBoardColumnPage passes the cursor through for one column", async () => {
+    let received: PageInput | null = null;
+    const service = new PublishingService(
+      createFakeRepository({
+        listPostPage: async (input) => {
+          received = input;
+          return { items: [], nextCursor: null };
+        },
+      }),
+    );
+    await service.listBoardColumnPage(
+      {
+        workspaceId: WORKSPACE_ID,
+        column: "failed",
+        cursor: asPageCursor("c1"),
+      },
+      AUTHOR_ID,
+    );
+    expect(received).toMatchObject({
+      statuses: [ContentStatus.Failed],
+      order: "updated-desc",
+      cursor: "c1",
+      limit: 20,
+    });
+  });
+
+  it("listHistoryPage applies the filter on the server and overlays metrics", async () => {
+    let received: PageInput | null = null;
+    const published = createHistoryItem();
+    const service = new PublishingService(
+      createFakeRepository({
+        listPostPage: async (input) => {
+          received = input;
+          return { items: [published], nextCursor: asPageCursor("next") };
+        },
+      }),
+      { getPostMetricsByPosts: async () => new Map() },
+    );
+
+    const page = await service.listHistoryPage(
+      {
+        workspaceId: WORKSPACE_ID,
+        filter: {
+          channelIds: ["acc-1"],
+          source: "mcp",
+          statuses: [ContentStatus.Published],
+        },
+      },
+      AUTHOR_ID,
+    );
+
+    expect(received).toMatchObject({
+      statuses: [ContentStatus.Published],
+      order: "occurred-desc",
+      connectedAccountIds: ["acc-1"],
+      source: "mcp",
+    });
+    expect(page.nextCursor).toBe("next");
+    expect(page.items[0]).toMatchObject({ id: published.id, metrics: [] });
+  });
+
+  it("a History status filter that keeps nothing returns an empty page and a zero count without a query", async () => {
+    let calls = 0;
+    const service = new PublishingService(
+      createFakeRepository({
+        listPostPage: async () => {
+          calls += 1;
+          return { items: [], nextCursor: null };
+        },
+        countPosts: async () => {
+          calls += 1;
+          return 5;
+        },
+      }),
+    );
+    const filter = {
+      channelIds: [],
+      source: "all" as const,
+      statuses: [ContentStatus.Draft],
+    };
+
+    const page = await service.listHistoryPage(
+      { workspaceId: WORKSPACE_ID, filter },
+      AUTHOR_ID,
+    );
+    const total = await service.countPublishTab(
+      { workspaceId: WORKSPACE_ID, tab: "history", filter },
+      AUTHOR_ID,
+    );
+
+    expect(page).toEqual({ items: [], nextCursor: null });
+    expect(total).toBe(0);
+    expect(calls).toBe(0);
+  });
+
+  it("countPublishTab counts the rows of the tab under its filter; Drafts ignore channels", async () => {
+    let received: CountInput | null = null;
+    const service = new PublishingService(
+      createFakeRepository({
+        countPosts: async (input) => {
+          received = input;
+          return 34;
+        },
+      }),
+    );
+
+    const total = await service.countPublishTab(
+      {
+        workspaceId: WORKSPACE_ID,
+        tab: "drafts",
+        filter: { channelIds: ["acc-1"], source: "manual", statuses: [] },
+      },
+      AUTHOR_ID,
+    );
+
+    expect(total).toBe(34);
+    expect(received).toMatchObject({
+      statuses: [ContentStatus.Draft, ContentStatus.ReadyToSchedule],
+      connectedAccountIds: [],
+      source: "manual",
+    });
+  });
+
+  it("listQueuePage maps scheduled rows to Queue items and asks for suggestions only when empty", async () => {
+    const scheduled = createHistoryItem({
+      status: ContentStatus.Scheduled,
+      scheduledAt: new Date("2026-12-01T10:00:00Z"),
+      publishedAt: null,
+    });
+    let suggestionCalls = 0;
+    const port = {
+      execute: async () => {
+        suggestionCalls += 1;
+        return [];
+      },
+    };
+    const busy = new PublishingService(
+      createFakeRepository({
+        listPostPage: async () => ({ items: [scheduled], nextCursor: null }),
+      }),
+    );
+    const result = await busy.getQueuePageWithSuggestions(
+      WORKSPACE_ID,
+      AUTHOR_ID,
+      "Asia/Jakarta",
+      port,
+    );
+    expect(result.page.items).toEqual([
+      expect.objectContaining({
+        id: scheduled.id,
+        scheduledAt: scheduled.scheduledAt,
+      }),
+    ]);
+    expect(suggestionCalls).toBe(0);
+
+    const empty = new PublishingService(createFakeRepository());
+    await empty.getQueuePageWithSuggestions(
+      WORKSPACE_ID,
+      AUTHOR_ID,
+      "Asia/Jakarta",
+      port,
+    );
+    expect(suggestionCalls).toBe(1);
   });
 });

@@ -64,22 +64,32 @@ interface ListFilterValue extends ListFilterState {
   setSource: (source: SourceFilterValue) => void;
   setStatuses: (statuses: ContentStatus[]) => void;
   reset: () => void;
+  /**
+   * True total of the open tab under the current filter, as the list last
+   * read it from its count query (S-009); `null` until the list has one.
+   * The toolbar shows it on the open tab instead of the server count.
+   */
+  liveTotal: number | null;
+  setLiveTotal: (total: number | null) => void;
 }
 
 const ListFilterContext = createContext<ListFilterValue | null>(null);
 
 function useListFilterState(): ListFilterValue {
   const [state, setState] = useState<ListFilterState>(DEFAULT_STATE);
+  const [liveTotal, setLiveTotal] = useState<number | null>(null);
   return useMemo(
     () => ({
       ...state,
+      liveTotal,
+      setLiveTotal,
       setChannelIds: (channelIds) =>
         setState((prev) => ({ ...prev, channelIds })),
       setSource: (source) => setState((prev) => ({ ...prev, source })),
       setStatuses: (statuses) => setState((prev) => ({ ...prev, statuses })),
       reset: () => setState(DEFAULT_STATE),
     }),
-    [state],
+    [state, liveTotal],
   );
 }
 

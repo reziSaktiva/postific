@@ -46,6 +46,13 @@ import { backfillImportedPostOutstandIdsTx } from "@/lib/repositories/publishing
 import { classifyImportedPostTargetsTx } from "@/lib/repositories/publishing/classify-imported-post-targets";
 import { firstExternalMediaUrl } from "@/lib/repositories/publishing/first-external-media-url";
 import { countTerminalPostsWhere } from "@/lib/repositories/publishing/count-terminal-posts";
+import {
+  decodePostPageCursor,
+  encodePostPageCursor,
+  postPageIdsSql,
+  selectionPrismaWhere,
+  type PostPageKeyRow,
+} from "@/lib/repositories/publishing/post-page";
 import { replaceDraftTargets } from "@/lib/repositories/publishing/replace-draft-targets";
 import {
   UPSERT_IMPORTED_POSTS_TX_TIMEOUT_MS,
@@ -842,35 +849,6 @@ export const publishingRepository: IPublishingRepository = {
     return posts.map(mapCalendarItem);
   },
 
-  async listBoardPosts({ workspaceId, perStatusLimit }, userId) {
-    const orderFor = (
-      status: ContentStatus,
-    ): Prisma.PublishingPostOrderByWithRelationInput[] =>
-      status === ContentStatus.Scheduled
-        ? [{ scheduledAt: "asc" }, { id: "asc" }]
-        : status === ContentStatus.Published ||
-            status === ContentStatus.Imported
-          ? [{ publishedAt: "desc" }, { id: "desc" }]
-          : [{ updatedAt: "desc" }, { id: "desc" }];
-
-    const perStatus = await withCurrentUser(userId, (tx) =>
-      Promise.all(
-        Object.values(ContentStatus).map((status) =>
-          tx.publishingPost.findMany({
-            where: { workspaceId, deletedAt: null, status },
-            orderBy: orderFor(status),
-            take: perStatusLimit,
-            include: {
-              targets: { include: { connectedAccount: true } },
-            },
-          }),
-        ),
-      ),
-    );
-
-    return perStatus.flat().map(mapCalendarItem);
-  },
-
   async getCalendarPostById({ workspaceId, postId }, userId) {
     let post;
     try {
@@ -967,6 +945,47 @@ export const publishingRepository: IPublishingRepository = {
     );
     return new Map(
       groups.map((group) => [group.status as ContentStatus, group._count._all]),
+    );
+  },
+
+  async listPostPage({ cursor, limit, ...selection }, userId) {
+    // Decode before any query: a bad cursor is the caller's error, not a
+    // database one (S-009, ADR-166 addendum 5).
+    const after = cursor ? decodePostPageCursor(cursor, selection.order) : null;
+    const { keys, posts } = await withCurrentUser(userId, async (tx) => {
+      const keys = await tx.$queryRaw<PostPageKeyRow[]>(
+        postPageIdsSql(selection, after, limit),
+      );
+      const pageIds = keys.slice(0, limit).map((row) => row.id);
+      const posts =
+        pageIds.length === 0
+          ? []
+          : await tx.publishingPost.findMany({
+              where: { id: { in: pageIds } },
+              include: { targets: { include: { connectedAccount: true } } },
+            });
+      return { keys, posts };
+    });
+
+    const byId = new Map(posts.map((post) => [post.id, post]));
+    const pageKeys = keys.slice(0, limit);
+    const last = pageKeys[pageKeys.length - 1];
+    return {
+      // The order of the id query; a row deleted in between is skipped.
+      items: pageKeys.flatMap((row) => {
+        const post = byId.get(row.id);
+        return post ? [mapHistoryItem(post)] : [];
+      }),
+      nextCursor:
+        keys.length > limit && last
+          ? encodePostPageCursor(selection.order, last)
+          : null,
+    };
+  },
+
+  async countPosts(selection, userId) {
+    return withCurrentUser(userId, (tx) =>
+      tx.publishingPost.count({ where: selectionPrismaWhere(selection) }),
     );
   },
 

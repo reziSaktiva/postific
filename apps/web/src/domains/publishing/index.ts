@@ -47,6 +47,7 @@ export * from "./services/group-history-items";
 export * from "./services/group-approval-items";
 export * from "./services/sort-calendar-items";
 export * from "./services/group-board-columns";
+export * from "./services/publish-list-page-query";
 export * from "./services/parse-calendar-view-state";
 export * from "./services/parse-publish-view-state";
 export * from "./services/calendar-range";
