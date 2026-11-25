@@ -34,7 +34,8 @@ Before changing an existing artifact: `Artifact` action `read` first (latest ver
 2. **Components:** components in the Postific artifact are built from the real code (the `project/components/bundle.js` and `bundle.css` bundle). Component changes must follow `apps/web/src/components/ui/`.
 3. **Confirmation:** every new or changed design must be confirmed by King Rezi in the gallery before code is written; record the confirmation in the Claude Design gate on the related ticket.
 4. **Ambiguity:** when more than one shadcn/ui pattern is equally valid and not yet locked, **STOP** and ask King Rezi through `AskUserQuestion` with concrete options.
-5. **Known limits:** the Postific artifact has no screens tab (screen cards appear in the Components tab or through the gallery), and `project/styles.css` depends on `project/tokens.css`. The gallery uses the standalone `project/archived/styles.css`.
+5. **Token economy (T-307):** read only the files you will change or copy from, by exact `path` (a card's `preview.html`, the gallery `index.html` entry); never read bundles, `app.js`, `styles.css` or a whole artifact listing unless you edit them. Check your own work with page text, the accessibility tree and computed styles (`get_page_text`, `read_page`, `javascript_tool`); take at most two screenshots per round, at `scale` 0.5 or lower. Report in at most 15 lines.
+6. **Known limits:** the Postific artifact has no screens tab (screen cards appear in the Components tab or through the gallery), and `project/styles.css` depends on `project/tokens.css`. The gallery uses the standalone `project/archived/styles.css`.
 
 ## Synchronization
 

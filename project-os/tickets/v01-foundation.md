@@ -27,13 +27,13 @@ Bun + Next.js 16 + Astryx (kemudian diganti shadcn/ui, ADR-097), workspace `apps
 
 ### T-094 · Baseline Rendering Strategy, Code Conventions, Spacing Scale + ESLint Enforcement (ADR-095)
 
-| Field          | Value                                                                                                                                                                                                                                                                                                                                                                                      |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Status**     | ✅ Done — baseline dokumentasi (`rendering-strategy.md`, `code-conventions.md`), penguncian Spacing scale di `design-tokens.md`, dan 3 rule ESLint enforcement sudah selesai & terverifikasi (lint/typecheck/test hijau: 0 error, 209 test passed/3 skipped). T-094.4 (cleanup dashboard) sempat dibiarkan terbuka di luar scope ADR-095 — sudah diselesaikan 2026-10-13, lihat **KI-036** |
-| **Domain**     | platform/tooling (bukan salah satu domain produk)                                                                                                                                                                                                                                                                                                                                          |
-| **ADR**        | ADR-095                                                                                                                                                                                                                                                                                                                                                                                    |
-| **Depends**    | —                                                                                                                                                                                                                                                                                                                                                                                          |
-| **Read first** | `06-engineering/rendering-strategy.md` · `06-engineering/code-conventions.md` · `06-engineering/design-tokens.md` (§ Spacing) · `decisions/ADR-095-baseline-rendering-strategy-code-conventions-spacing-scale-server-actions-mutation-only.md`                                                                                                                                             |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done — baseline dokumentasi (`rendering-strategy.md`, `code-conventions.md`), penguncian Spacing scale di `design-tokens.md`, dan 3 rule ESLint enforcement sudah selesai & terverifikasi (lint/typecheck/test hijau: 0 error, 209 test passed/3 skipped). T-094.4 (cleanup dashboard) sempat dibiarkan terbuka di luar scope ADR-095 — sudah diselesaikan 2026-10-13, lihat **KI-036** |
+| **Domain** | platform/tooling (bukan salah satu domain produk) |
+| **ADR** | ADR-095 |
+| **Depends** | — |
+| **Read first** | `06-engineering/rendering-strategy.md` · `06-engineering/code-conventions.md` · `06-engineering/design-tokens.md` (§ Spacing) · `decisions/ADR-095-baseline-rendering-strategy-code-conventions-spacing-scale-server-actions-mutation-only.md` |
 
 Menuliskan konvensi rendering, error handling, dan spacing yang sudah konsisten dipakai di kode sebagai baseline resmi, sekaligus menegaskan ulang (bukan mengubah) ADR-016 bahwa Server Actions eksklusif untuk mutation. Ditemukan 1 inkonsistensi pra-existing (`app/(app)/page.tsx` dashboard fetch data lewat Server Action) yang sengaja tidak diperbaiki di sesi ini — dicatat sebagai subtask terbuka T-094.4 + **KI-036**.
 
@@ -62,12 +62,12 @@ Empat halaman + form fungsional memanggil `authClient`. Kode: `apps/web/src/app/
 
 ### T-005 · Email verification flow
 
-| Field          | Value                                                                                                                                                 |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**     | ✅ Done — T-005.1–.5 (Resend, ADR-126, kirim email Better Auth, `/verify-email`, `requireEmailVerification: true`, 2026-10-14)                        |
-| **Domain**     | identity                                                                                                                                              |
-| **ADR**        | ADR-126                                                                                                                                               |
-| **Depends**    | T-003 ✅                                                                                                                                              |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done — T-005.1–.5 (Resend, ADR-126, kirim email Better Auth, `/verify-email`, `requireEmailVerification: true`, 2026-10-14) |
+| **Domain** | identity |
+| **ADR** | ADR-126 |
+| **Depends** | T-003 ✅ |
 | **Read first** | `06-engineering/auth-strategy.md` (AS-D04) · `05-architecture/auth-architecture.md` · `decisions/ADR-126-transactional-email-provider-resend-t005.md` |
 
 Verifikasi email dan reset password mengirim email lewat Resend. `requireEmailVerification` sudah `true`.
@@ -90,13 +90,13 @@ Verifikasi email dan reset password mengirim email lewat Resend. `requireEmailVe
 
 ### T-007 · Members management (invite / remove / update role)
 
-| Field          | Value                                                                                                                                                                                                                                          |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**     | ✅ Done — jalur **Copy Link** tuntas (T-007.1–.6 + T-093); **T-007.8** Pending list ✅; **T-007.7** Kirim via Email ✅ 2026-10-12 memakai Resend yang sudah dipasang untuk T-110 (`RESEND_API_KEY` / `RESEND_FROM_EMAIL`), tanpa menutup T-005 |
-| **Domain**     | workspace                                                                                                                                                                                                                                      |
-| **ADR**        | ADR-012 (roles), ADR-049 (konfirmasi Remove Member & Update Role), ADR-072 (tabel `workspace_invitations`), ADR-080 (dua metode invite — Email + Copy Link, amandemen ADR-072)                                                                 |
-| **Depends**    | T-006 ✅, T-005 (soft dependency — hanya memblokir opsi "Kirim via Email", bukan T-007.1 jalur "Copy Link", lihat ADR-080)                                                                                                                     |
-| **Read first** | `02-product/roles-permissions.md` · `05-architecture/application-layer.md`                                                                                                                                                                     |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done — jalur **Copy Link** tuntas (T-007.1–.6 + T-093); **T-007.8** Pending list ✅; **T-007.7** Kirim via Email ✅ 2026-10-12 memakai Resend yang sudah dipasang untuk T-110 (`RESEND_API_KEY` / `RESEND_FROM_EMAIL`), tanpa menutup T-005 |
+| **Domain** | workspace |
+| **ADR** | ADR-012 (roles), ADR-049 (konfirmasi Remove Member & Update Role), ADR-072 (tabel `workspace_invitations`), ADR-080 (dua metode invite — Email + Copy Link, amandemen ADR-072) |
+| **Depends** | T-006 ✅, T-005 (soft dependency — hanya memblokir opsi "Kirim via Email", bukan T-007.1 jalur "Copy Link", lihat ADR-080) |
+| **Read first** | `02-product/roles-permissions.md` · `05-architecture/application-layer.md` |
 
 Screen Workspace Settings → Members. Disepakati **desain minimal dulu**: cukup daftar anggota + Remove Member, tanpa manajemen anggota lengkap.
 
@@ -117,12 +117,12 @@ Screen Workspace Settings → Members. Disepakati **desain minimal dulu**: cukup
 
 ### T-093 · Accept Invite page — invite-to-membership utuh + verifikasi RBAC 2-akun
 
-| Field          | Value                                                                                                                                                                                     |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**     | ✅ Done — 4/4 subtask selesai, verifikasi RBAC end-to-end (Najwa QA Engineer, 3 akun real Owner/Admin/Creator) tuntas 2026-08-31                                                          |
-| **Domain**     | workspace                                                                                                                                                                                 |
-| **ADR**        | ADR-012 (roles), ADR-072 (tabel `workspace_invitations`), ADR-080 (dua metode invite), **ADR-096** (pola RLS SECURITY DEFINER + session-variable GUC untuk operasi pra-membership)        |
-| **Depends**    | T-007.1/.6 ✅ (invitation + role sudah bisa dibuat), T-006 ✅ (workspace creation)                                                                                                        |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done — 4/4 subtask selesai, verifikasi RBAC end-to-end (Najwa QA Engineer, 3 akun real Owner/Admin/Creator) tuntas 2026-08-31 |
+| **Domain** | workspace |
+| **ADR** | ADR-012 (roles), ADR-072 (tabel `workspace_invitations`), ADR-080 (dua metode invite), **ADR-096** (pola RLS SECURITY DEFINER + session-variable GUC untuk operasi pra-membership) |
+| **Depends** | T-007.1/.6 ✅ (invitation + role sudah bisa dibuat), T-006 ✅ (workspace creation) |
 | **Read first** | `02-product/roles-permissions.md` · `05-architecture/application-layer.md` · `decisions/ADR-080-invite-member-dua-metode-email-copy-link-amandemen-adr-072.md` · `decisions/ADR-096-*.md` |
 
 Ditemukan CodeRabbit saat review PR #73 (2026-08-14): halaman `/invite/[token]` (accept-invite) **belum pernah dibuat sama sekali** — link Copy Link yang dihasilkan T-007.1/.6 hari ini 404 kalau dibuka. Dicatat sebagai "future work terpisah, belum ada nomor T-XXX" di `COMPLETE_TASK.md`/ADR-080 sejak saat itu, baru dikonversi jadi task resmi di sini (2026-08-28, saat menyusun rantai dependency ADR-094 Realtime — Realtime butuh ≥2 akun nyata di satu workspace untuk bisa diuji maupun bermakna dipakai).
@@ -138,14 +138,14 @@ Ditemukan CodeRabbit saat review PR #73 (2026-08-14): halaman `/invite/[token]` 
 
 ### T-110 · Verifikasi kepemilikan email di accept-invite (cegah identity takeover)
 
-| Field          | Value                                                                                                                                                                                                                                                                                                                                                                                                       |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**     | ✅ Done (2026-10-06, commit `bad28cb`) — seluruh implementasi sudah ter-commit & jadi ancestor `staging`; T-110.1–.4 terverifikasi lewat kode/unit test, T-110.5 unit test lengkap tapi verifikasi E2E browser nyata (skenario email A vs B beda orang) belum tercatat buktinya — dicatat sebagai gap terbuka, bukan blocker penutupan (ditemukan via audit dokumentasi 2026-10-12, lihat catatan di bawah) |
-| **Domain**     | identity · workspace                                                                                                                                                                                                                                                                                                                                                                                        |
-| **ADR**        | — (kandidat ADR baru kalau pola verifikasi ini mau dipakai ulang di alur lain — evaluasi saat implementasi)                                                                                                                                                                                                                                                                                                 |
-| **Depends**    | T-093 ✅ (Accept Invite page)                                                                                                                                                                                                                                                                                                                                                                               |
-| **Read first** | `PROJECT_STATE.md` § riwayat KI-053 (`COMPLETE_TASK.md` kalau sudah diarsipkan) · `apps/web/src/app/(auth)/invite/[token]/components/AcceptInviteForm.tsx` · `apps/web/src/domains/workspace/services/workspace.service.ts` (`acceptInvite`) · `apps/web/src/lib/better-auth/auth.ts`                                                                                                                       |
-| **Ditemukan**  | KI-053 (2026-09-07, King Rezi) — mitigasi & provider dikonfirmasi King Rezi 2026-09-28: verifikasi email **khusus alur accept-invite** (independen dari T-005/`requireEmailVerification` penuh), provider **Resend**.                                                                                                                                                                                       |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (2026-10-06, commit `bad28cb`) — seluruh implementasi sudah ter-commit & jadi ancestor `staging`; T-110.1–.4 terverifikasi lewat kode/unit test, T-110.5 unit test lengkap tapi verifikasi E2E browser nyata (skenario email A vs B beda orang) belum tercatat buktinya — dicatat sebagai gap terbuka, bukan blocker penutupan (ditemukan via audit dokumentasi 2026-10-12, lihat catatan di bawah) |
+| **Domain** | identity · workspace |
+| **ADR** | — (kandidat ADR baru kalau pola verifikasi ini mau dipakai ulang di alur lain — evaluasi saat implementasi) |
+| **Depends** | T-093 ✅ (Accept Invite page) |
+| **Read first** | `PROJECT_STATE.md` § riwayat KI-053 (`COMPLETE_TASK.md` kalau sudah diarsipkan) · `apps/web/src/app/(auth)/invite/[token]/components/AcceptInviteForm.tsx` · `apps/web/src/domains/workspace/services/workspace.service.ts` (`acceptInvite`) · `apps/web/src/lib/better-auth/auth.ts` |
+| **Ditemukan** | KI-053 (2026-09-07, King Rezi) — mitigasi & provider dikonfirmasi King Rezi 2026-09-28: verifikasi email **khusus alur accept-invite** (independen dari T-005/`requireEmailVerification` penuh), provider **Resend**. |
 
 **Gap:** kalau invite via Copy Link ditujukan ke email A tapi link dibuka email B, dan email A **belum pernah punya akun** (`isExistingUser: false`), email B bisa langsung mengisi Nama + Password sendiri dan submit — form mengunci field email jadi read-only ke email A, tapi ini cuma memastikan string email cocok, **bukan** membuktikan B benar-benar memegang inbox A. Root cause: `requireEmailVerification: false` di Better Auth (`auth.ts:53`) — tidak ada email konfirmasi kepemilikan inbox saat sign-up. Dampak: B efektif membajak identitas A; kalau A kemudian coba daftar, Better Auth menolak ("email sudah terdaftar") — A terkunci dari identitasnya sendiri. **Scope aman:** kalau email A sudah punya akun (`isExistingUser: true`), skenario ini tidak bisa dieksploitasi (B tetap butuh password A).
 
@@ -165,12 +165,12 @@ Hasil: state baru `pending-verification` ditambahkan ke `templates/accept-invite
 
 ### T-008 · Workspace Settings — General + Danger Zone
 
-| Field          | Value                                                         |
-| -------------- | ------------------------------------------------------------- |
-| **Status**     | ✅ Done                                                       |
-| **Domain**     | workspace                                                     |
-| **ADR**        | ADR-049, ADR-050                                              |
-| **Depends**    | T-006 ✅, T-007 (transfer butuh daftar anggota)               |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done |
+| **Domain** | workspace |
+| **ADR** | ADR-049, ADR-050 |
+| **Depends** | T-006 ✅, T-007 (transfer butuh daftar anggota) |
 | **Read first** | `05-architecture/application-layer.md` (method sudah lengkap) |
 
 Screen di luar 8 KSP — disepakati **desain minimal**: cukup "Danger Zone" untuk Transfer Ownership + Delete Workspace.
@@ -222,13 +222,13 @@ CTA primary full-width di `WorkspaceSideNav`, di slot `topContent` (di bawah Wor
 
 ### T-012 · Sidebar section "Channels"
 
-| Field          | Value                                                                                                                                                           |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**     | ✅ Done — seluruh subtask T-012.1–T-012.6 dan T-012.9 selesai; T-012.1/2 diimplementasikan & lolos review Ridwan + QA Najwa (2026-08-12, lihat catatan)         |
-| **Domain**     | workspace · UI                                                                                                                                                  |
-| **ADR**        | ADR-058 (+ addendum drag-handle **shift-on-hover**, mengoverride keputusan awal "no-shift") · ADR-078 (amandemen ADR-018 — pola `ScheduledCountsPort`, T-012.2) |
-| **Depends**    | T-009 ✅ · `listConnectedAccounts` ✅ (dari T-028, v0.2)                                                                                                        |
-| **Read first** | `04-ux/navigation-patterns.md` · Claude Design → `components/navigation.html` · `06-engineering/dependency-strategy.md`                                         |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done — seluruh subtask T-012.1–T-012.6 dan T-012.9 selesai; T-012.1/2 diimplementasikan & lolos review Ridwan + QA Najwa (2026-08-12, lihat catatan) |
+| **Domain** | workspace · UI |
+| **ADR** | ADR-058 (+ addendum drag-handle **shift-on-hover**, mengoverride keputusan awal "no-shift") · ADR-078 (amandemen ADR-018 — pola `ScheduledCountsPort`, T-012.2) |
+| **Depends** | T-009 ✅ · `listConnectedAccounts` ✅ (dari T-028, v0.2) |
+| **Read first** | `04-ux/navigation-patterns.md` · Claude Design → `components/navigation.html` · `06-engineering/dependency-strategy.md` |
 
 Quick-glance daftar akun terhubung di sidebar: avatar bulat + badge logo brand overlay, nama akun, status badge, scheduled count ↔ quick-compose "+" (no-shift/fixed-slot).
 
@@ -260,13 +260,13 @@ Quick-glance daftar akun terhubung di sidebar: avatar bulat + badge logo brand o
 
 ### T-013 · Connect account via Outstand OAuth redirect
 
-| Field          | Value                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Status**     | 🟡 In Progress — T-013.1/2/3 selesai (2026-09-11): T-013.1/2 diselesaikan lewat Fake adapter (ADR-105, ADR-059 pattern) tanpa menunggu T-025 (Real OutstandAdapter, kredensial Outstand belum ada), sekaligus menyelesaikan rangkaian T-015 (reconnect flow); T-013.3 (UI Connected Accounts) sudah selesai sebelumnya. Satu-satunya sisa scope: **T-013.4** (operasional BYOK X), murni operasional, belum ada tindakan |
-| **Domain**     | workspace · integration                                                                                                                                                                                                                                                                                                                                                                                                  |
-| **ADR**        | ADR-021, ADR-037 (platform), ADR-040                                                                                                                                                                                                                                                                                                                                                                                     |
-| **Depends**    | T-006 ✅                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| **Read first** | `05-architecture/integration-layer.md`                                                                                                                                                                                                                                                                                                                                                                                   |
+| Field | Value |
+| --- | --- |
+| **Status** | 🟡 In Progress — T-013.1/2/3 selesai (2026-09-11): T-013.1/2 diselesaikan lewat Fake adapter (ADR-105, ADR-059 pattern) tanpa menunggu T-025 (Real OutstandAdapter, kredensial Outstand belum ada), sekaligus menyelesaikan rangkaian T-015 (reconnect flow); T-013.3 (UI Connected Accounts) sudah selesai sebelumnya. Satu-satunya sisa scope: **T-013.4** (operasional BYOK X), murni operasional, belum ada tindakan |
+| **Domain** | workspace · integration |
+| **ADR** | ADR-021, ADR-037 (platform), ADR-040 |
+| **Depends** | T-006 ✅ |
+| **Read first** | `05-architecture/integration-layer.md` |
 
 OAuth flow dikelola Outstand; access token tidak disimpan di DB internal. Seed mock `apps/web/prisma/seed-connected-accounts.ts` dihentikan (ADR-119) — script itu sekarang gagal keras dan tidak menulis akun palsu ke database bersama. Akun terhubung lewat OAuth Outstand sungguhan.
 
@@ -277,14 +277,14 @@ OAuth flow dikelola Outstand; access token tidak disimpan di DB internal. Seed m
 
 ### T-014 · Disconnect account + dialog konfirmasi
 
-| Field          | Value                                                                                                                                                |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**     | ✅ Done — 3/3 subtask selesai, lolos review Ridwan (0 temuan)                                                                                        |
-| **Domain**     | workspace                                                                                                                                            |
-| **ADR**        | ADR-048, ADR-049                                                                                                                                     |
-| **Terkait**    | KI-058 (`PROJECT_STATE.md`, 2026-09-11 — UI tidak menyembunyikan aksi Connect/Disconnect/Reconnect untuk role Creator, gap sudah ada sejak task ini) |
-| **Depends**    | T-013.1–.3 ✅                                                                                                                                        |
-| **Read first** | `04-ux/key-screen-patterns.md` (KSP-08-F07)                                                                                                          |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done — 3/3 subtask selesai, lolos review Ridwan (0 temuan) |
+| **Domain** | workspace |
+| **ADR** | ADR-048, ADR-049 |
+| **Terkait** | KI-058 (`PROJECT_STATE.md`, 2026-09-11 — UI tidak menyembunyikan aksi Connect/Disconnect/Reconnect untuk role Creator, gap sudah ada sejak task ini) |
+| **Depends** | T-013.1–.3 ✅ |
+| **Read first** | `04-ux/key-screen-patterns.md` (KSP-08-F07) |
 
 RBAC Owner/Admin — tidak ada perubahan RBAC, tinggal tambah gate konfirmasi sebelum memanggil service.
 
@@ -294,14 +294,14 @@ RBAC Owner/Admin — tidak ada perubahan RBAC, tinggal tambah gate konfirmasi se
 
 ### T-015 · Reconnect flow saat token expired
 
-| Field          | Value                                                                                                                                                                                                                                                                                          |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**     | ✅ Done — 3/3 subtask selesai, review Ridwan lolos, 1 bug fungsional temuan QA Najwa (toast error dobel di callback route, prefetch/soft-navigation Next.js tanpa `code`/`state`) sudah diperbaiki dan diverifikasi ulang browser (golden path Connect + Reconnect PASS, hanya 1 toast sukses) |
-| **Domain**     | workspace · integration                                                                                                                                                                                                                                                                        |
-| **ADR**        | ADR-040, ADR-105                                                                                                                                                                                                                                                                               |
-| **Terkait**    | KI-058 (`PROJECT_STATE.md`, 2026-09-11 — UI tidak menyembunyikan aksi Connect/Disconnect/Reconnect untuk role Creator, ditemukan Najwa QA Engineer saat verifikasi task ini)                                                                                                                   |
-| **Depends**    | T-013 · **T-026 (v0.2, ✅)** webhook `account.token_expired`                                                                                                                                                                                                                                   |
-| **Read first** | `05-architecture/integration-layer.md`                                                                                                                                                                                                                                                         |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done — 3/3 subtask selesai, review Ridwan lolos, 1 bug fungsional temuan QA Najwa (toast error dobel di callback route, prefetch/soft-navigation Next.js tanpa `code`/`state`) sudah diperbaiki dan diverifikasi ulang browser (golden path Connect + Reconnect PASS, hanya 1 toast sukses) |
+| **Domain** | workspace · integration |
+| **ADR** | ADR-040, ADR-105 |
+| **Terkait** | KI-058 (`PROJECT_STATE.md`, 2026-09-11 — UI tidak menyembunyikan aksi Connect/Disconnect/Reconnect untuk role Creator, ditemukan Najwa QA Engineer saat verifikasi task ini) |
+| **Depends** | T-013 · **T-026 (v0.2, ✅)** webhook `account.token_expired` |
+| **Read first** | `05-architecture/integration-layer.md` |
 
 - [x] **T-015.1** Tandai status akun expired saat webhook `account.token_expired` masuk
 - [x] **T-015.2** State visual "perlu reconnect" di Channels (T-012) + Connected Accounts
@@ -311,14 +311,14 @@ RBAC Owner/Admin — tidak ada perubahan RBAC, tinggal tambah gate konfirmasi se
 
 ### T-109 · Sembunyikan/disable aksi Connect/Disconnect/Reconnect untuk role Creator
 
-| Field          | Value                                                                                                                                                                               |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**     | ✅ Done (2026-09-28)                                                                                                                                                                |
-| **Domain**     | workspace · UI                                                                                                                                                                      |
-| **ADR**        | —                                                                                                                                                                                   |
-| **Depends**    | T-014 ✅, T-015 ✅                                                                                                                                                                  |
-| **Read first** | `apps/web/src/app/(app)/settings/connected-accounts/components/ConnectedAccountsList.tsx` · pola RBAC UI yang sudah ada di Members/General Settings                                 |
-| **Ditemukan**  | KI-058 (2026-09-11, Najwa QA Engineer, verifikasi T-015) — King Rezi sebelumnya memutuskan tunda perbaikan di sesi T-015, dikonfirmasi ulang 2026-09-28: boleh dikerjakan sekarang. |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (2026-09-28) |
+| **Domain** | workspace · UI |
+| **ADR** | — |
+| **Depends** | T-014 ✅, T-015 ✅ |
+| **Read first** | `apps/web/src/app/(app)/settings/connected-accounts/components/ConnectedAccountsList.tsx` · pola RBAC UI yang sudah ada di Members/General Settings |
+| **Ditemukan** | KI-058 (2026-09-11, Najwa QA Engineer, verifikasi T-015) — King Rezi sebelumnya memutuskan tunda perbaikan di sesi T-015, dikonfirmasi ulang 2026-09-28: boleh dikerjakan sekarang. |
 
 **Gap:** RBAC di server sudah benar (`WorkspaceService` menolak mutasi dari role Creator), tapi `ConnectedAccountsList.tsx` tidak menyembunyikan/men-disable tombol Connect/Disconnect/Reconnect untuk role Creator — Creator baru tahu aksinya ditolak setelah klik dan dapat toast error, bukan tombol yang hilang/disabled dari awal seperti pola RBAC UI di halaman lain.
 
@@ -343,13 +343,13 @@ mengubah markup yang dikunci).
 
 ### T-016 · Account & user settings screens
 
-| Field          | Value                                                                                                                                              |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**     | ✅ Done — seluruh subtask T-016.1–.5 selesai; T-016.4 (2026-10-14) menutup subtask terakhir, review Ridwan nihil temuan, QA end-to-end Najwa lolos |
-| **Domain**     | identity                                                                                                                                           |
-| **ADR**        | ADR-046 (routing convention), ADR-071 (perluasan bucket `avatars`)                                                                                 |
-| **Depends**    | T-003 ✅, T-009 ✅                                                                                                                                 |
-| **Read first** | `04-ux/information-architecture.md`                                                                                                                |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done — seluruh subtask T-016.1–.5 selesai; T-016.4 (2026-10-14) menutup subtask terakhir, review Ridwan nihil temuan, QA end-to-end Najwa lolos |
+| **Domain** | identity |
+| **ADR** | ADR-046 (routing convention), ADR-071 (perluasan bucket `avatars`) |
+| **Depends** | T-003 ✅, T-009 ✅ |
+| **Read first** | `04-ux/information-architecture.md` |
 
 Semua route `/account/*` dan `/settings/*` sebelumnya masih placeholder "Scaffold — implementasi fitur di M8", dan layout-nya masih shell kosong.
 
@@ -369,14 +369,14 @@ Semua route `/account/*` dan `/settings/*` sebelumnya masih placeholder "Scaffol
 
 ### T-039 · Migrasi kode routing workspace ke baseline ADR-076 (route group `(app)`, cookie, Settings gabungan)
 
-| Field          | Value                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**     | ✅ Done — seluruh subtask T-039.1–.5 selesai (2026-09-08): T-039.4 (onboarding picker workspace) sudah diimplementasikan, lolos review arsitektur Ridwan (tidak ada temuan) dan QA Najwa end-to-end browser (6/6 skenario PASS) — kode sudah di-commit & push, dibuka sebagai PR [#109](https://github.com/reziSaktiva/social-media-management/pull/109) dari branch `feature/t-039-4-onboarding-workspace-picker` (checkout dari `staging`) ke `staging`, **belum di-merge**, menunggu King Rezi |
-| **Domain**     | workspace · platform                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| **ADR**        | ADR-076                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| **Terkait**    | KI-023, KI-024 (`PROJECT_STATE.md`) — KI-024 ditemukan saat T-039.5; **Resolved 2026-10-13** (branch `fix/close-ki-batch-014-024-036`, belum di-commit), tidak ada task formal terpisah                                                                                                                                                                                                                                                                                                           |
-| **Depends**    | T-009 ✅ (App Shell), T-006 ✅ (Onboarding lama), T-016 ✅ (Account settings)                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| **Read first** | `decisions/ADR-076-workspace-context-via-cookie-hapus-slug-konsolidasi-settings-organization-account.md` · `05-architecture/auth-architecture.md` (Workspace Context Resolution, Middleware Strategy, Onboarding Flow) · `06-engineering/monorepo-setup.md` (App Router Structure, MS-D03) · `04-ux/information-architecture.md` (section Settings)                                                                                                                                               |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done — seluruh subtask T-039.1–.5 selesai (2026-09-08): T-039.4 (onboarding picker workspace) sudah diimplementasikan, lolos review arsitektur Ridwan (tidak ada temuan) dan QA Najwa end-to-end browser (6/6 skenario PASS) — kode sudah di-commit & push, dibuka sebagai PR [#109](https://github.com/reziSaktiva/social-media-management/pull/109) dari branch `feature/t-039-4-onboarding-workspace-picker` (checkout dari `staging`) ke `staging`, **belum di-merge**, menunggu King Rezi |
+| **Domain** | workspace · platform |
+| **ADR** | ADR-076 |
+| **Terkait** | KI-023, KI-024 (`PROJECT_STATE.md`) — KI-024 ditemukan saat T-039.5; **Resolved 2026-10-13** (branch `fix/close-ki-batch-014-024-036`, belum di-commit), tidak ada task formal terpisah |
+| **Depends** | T-009 ✅ (App Shell), T-006 ✅ (Onboarding lama), T-016 ✅ (Account settings) |
+| **Read first** | `decisions/ADR-076-workspace-context-via-cookie-hapus-slug-konsolidasi-settings-organization-account.md` · `05-architecture/auth-architecture.md` (Workspace Context Resolution, Middleware Strategy, Onboarding Flow) · `06-engineering/monorepo-setup.md` (App Router Structure, MS-D03) · `04-ux/information-architecture.md` (section Settings) |
 
 ADR-076 hanya mengubah baseline dokumentasi (PR #61) — kode `apps/web` **belum**
 dimigrasikan. Struktur route saat ini masih dynamic segment `[slug]` dan
@@ -505,14 +505,14 @@ bawah untuk detail.
 
 ### T-089 · Workspace Switcher deliberate — Settings → Account → Workspaces
 
-| Field          | Value                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**     | ✅ Done — seluruh subtask T-089.1–.6 selesai (2026-08-24): T-089.2/.3/.4 (kode `apps/web`) lolos review arsitektur Ridwan (tidak ada temuan) dan QA Najwa (58/58 unit test + full suite 157 passed/3 skipped/0 gagal + golden path browser end-to-end); T-089.6 (dialog konfirmasi Tier 2, ADR-089) juga sudah lolos QA formal Najwa retest (2026-08-24) — unit test + full suite 157 passed/3 skipped/0 gagal + golden path browser end-to-end, tidak ada bug baru — **KI-034 closed (Resolved)** |
-| **Domain**     | workspace · UI                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| **ADR**        | ADR-088 (amandemen ADR-076 poin 4), ADR-089 (amandemen ADR-088 — dialog konfirmasi Tier 2 sebelum switch)                                                                                                                                                                                                                                                                                                                                                                                          |
-| **Terkait**    | T-039 (reuse mekanisme cookie `active-workspace-id`), KI-023 (`PROJECT_STATE.md`, catatan update 2026-08-24), KI-033 (`PROJECT_STATE.md`, 2 workspace test tersisa dari QA sesi ini), KI-034 (`PROJECT_STATE.md`, QA Najwa retest golden path switch dengan dialog konfirmasi baru — Resolved 2026-08-24)                                                                                                                                                                                          |
-| **Depends**    | T-039 ✅ (cookie `active-workspace-id` + validasi ulang `workspace_members`), T-006 ✅ (`WorkspaceService.createWorkspace` existing, dipakai ulang dialog "Buat Workspace Baru")                                                                                                                                                                                                                                                                                                                   |
-| **Read first** | `decisions/ADR-088-amandemen-adr-076-workspace-switcher-deliberate-via-settings-account-workspaces.md` · `decisions/ADR-076-workspace-context-via-cookie-hapus-slug-konsolidasi-settings-organization-account.md` · `05-architecture/auth-architecture.md` (Workspace Context Resolution, Onboarding Flow, AU-D03) · `05-architecture/application-layer.md` (kontrak `switchWorkspace` baru di `WorkspaceService`) · `04-ux/information-architecture.md` (Settings → Account → Workspaces)         |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done — seluruh subtask T-089.1–.6 selesai (2026-08-24): T-089.2/.3/.4 (kode `apps/web`) lolos review arsitektur Ridwan (tidak ada temuan) dan QA Najwa (58/58 unit test + full suite 157 passed/3 skipped/0 gagal + golden path browser end-to-end); T-089.6 (dialog konfirmasi Tier 2, ADR-089) juga sudah lolos QA formal Najwa retest (2026-08-24) — unit test + full suite 157 passed/3 skipped/0 gagal + golden path browser end-to-end, tidak ada bug baru — **KI-034 closed (Resolved)** |
+| **Domain** | workspace · UI |
+| **ADR** | ADR-088 (amandemen ADR-076 poin 4), ADR-089 (amandemen ADR-088 — dialog konfirmasi Tier 2 sebelum switch) |
+| **Terkait** | T-039 (reuse mekanisme cookie `active-workspace-id`), KI-023 (`PROJECT_STATE.md`, catatan update 2026-08-24), KI-033 (`PROJECT_STATE.md`, 2 workspace test tersisa dari QA sesi ini), KI-034 (`PROJECT_STATE.md`, QA Najwa retest golden path switch dengan dialog konfirmasi baru — Resolved 2026-08-24) |
+| **Depends** | T-039 ✅ (cookie `active-workspace-id` + validasi ulang `workspace_members`), T-006 ✅ (`WorkspaceService.createWorkspace` existing, dipakai ulang dialog "Buat Workspace Baru") |
+| **Read first** | `decisions/ADR-088-amandemen-adr-076-workspace-switcher-deliberate-via-settings-account-workspaces.md` · `decisions/ADR-076-workspace-context-via-cookie-hapus-slug-konsolidasi-settings-organization-account.md` · `05-architecture/auth-architecture.md` (Workspace Context Resolution, Onboarding Flow, AU-D03) · `05-architecture/application-layer.md` (kontrak `switchWorkspace` baru di `WorkspaceService`) · `04-ux/information-architecture.md` (Settings → Account → Workspaces) |
 
 **Gap yang melahirkan task ini:** ADR-076 poin 4 (versi awal) menjadikan
 `/onboarding` picker (T-039.4) sebagai satu-satunya jalur "pilih workspace"
@@ -630,12 +630,12 @@ browser end-to-end + 2 edge case tambahan) selesai tanpa bug baru — lihat
 
 ### T-017 · RLS SQL policies
 
-| Field          | Value                                                                              |
-| -------------- | ---------------------------------------------------------------------------------- |
-| **Status**     | ✅ Done (2026-10-22) — adopsi `withCurrentUser` ke seluruh repository tuntas       |
-| **Domain**     | platform                                                                           |
-| **ADR**        | ADR-015, ADR-033                                                                   |
-| **Depends**    | T-002 ✅                                                                           |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (2026-10-22) — adopsi `withCurrentUser` ke seluruh repository tuntas |
+| **Domain** | platform |
+| **ADR** | ADR-015, ADR-033 |
+| **Depends** | T-002 ✅ |
 | **Read first** | `06-engineering/database-orm.md` (DO-D06) · `05-architecture/database-strategy.md` |
 
 RLS policy sudah digenerate dan **applied ke database nyata** — bukan draft. Helper `withCurrentUser(userId, callback)` (`apps/web/src/lib/prisma/with-current-user.ts`) membungkus `prisma.$transaction` + `set_config('app.current_user_id', $1, true)` (tagged-template, aman dari SQL injection). Migration `20260813045625_t017_add_rls_policies` (`apps/web/prisma/migrations/`) berisi `ENABLE ROW LEVEL SECURITY` + `CREATE POLICY` untuk 16 tabel: 12 dengan `workspace_id` langsung, 4 varian EXISTS-join ke parent (`publishing_post_targets`, `ai_results`, `engagement_replies`, `start_page_links`), plus `analytics_post_metrics` (subquery via `publishing_posts.post_id`, terverifikasi memang tidak punya `workspace_id` langsung). Adopsi contoh: `WorkspaceRepository.getMember` sudah jalan lewat `withCurrentUser` (adopsi penuh ke semua repository sengaja ditunda — bukan bagian scope T-017 ini).
@@ -667,13 +667,13 @@ Validasi: `bunx prisma generate` + `tsc --noEmit` bersih (satu error pre-existin
 
 ### T-018 · Investigasi hydration gagal lewat tunnel ngrok
 
-| Field          | Value                                              |
-| -------------- | -------------------------------------------------- |
-| **Status**     | ⏸️ Deferred — superseded oleh ADR-070 (2026-08-13) |
-| **Domain**     | platform · DX                                      |
-| **ADR**        | ADR-070                                            |
-| **Depends**    | —                                                  |
-| **Read first** | `06-engineering/dx-tooling.md`                     |
+| Field | Value |
+| --- | --- |
+| **Status** | ⏸️ Deferred — superseded oleh ADR-070 (2026-08-13) |
+| **Domain** | platform · DX |
+| **ADR** | ADR-070 |
+| **Depends** | — |
+| **Read first** | `06-engineering/dx-tooling.md` |
 
 Saat halaman auth diakses lewat tunnel ngrok (dipakai untuk `BETTER_AUTH_URL`), **seluruh** halaman tidak ter-hydrate — tidak ada React fiber di elemen manapun meski `window.next` termuat tanpa error console; klik submit jatuh ke native HTML form-submit. Dugaan awal: isu HMR/WebSocket Turbopack lewat ngrok. Backend/API sendiri terverifikasi benar via raw `fetch()`.
 
@@ -687,12 +687,12 @@ Saat halaman auth diakses lewat tunnel ngrok (dipakai untuk `BETTER_AUTH_URL`), 
 
 ### T-019 · Skema API mobile `/api/v1` + Better Auth Bearer plugin
 
-| Field          | Value                                                                      |
-| -------------- | -------------------------------------------------------------------------- |
-| **Status**     | ✅ Done (2026-08-13)                                                       |
-| **Domain**     | platform · identity                                                        |
-| **ADR**        | ADR-043                                                                    |
-| **Depends**    | T-003 ✅                                                                   |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (2026-08-13) |
+| **Domain** | platform · identity |
+| **ADR** | ADR-043 |
+| **Depends** | T-003 ✅ |
 | **Read first** | `05-architecture/application-layer.md` · `06-engineering/auth-strategy.md` |
 
 **Dikerjakan lebih awal secara sengaja — mendahului M8 web berjalan jauh.** Yang disiapkan sekarang hanya **skema route + konfigurasi auth**, bukan endpoint mobile aktualnya (endpoint aktual dikerjakan setelah MVP web selesai, dan bukan bagian MVP — lihat `mvp-definition.md` → Out of Scope "Public API"/"Mobile Application").
@@ -716,12 +716,12 @@ Tiga task ini lahir dari diskusi 2026-10-16 (lihat `CONVERSATIONS.md`): biaya to
 
 ### T-116 · Ganti nama `AGENTS.md` di dalam skill vendor supaya tidak ikut setiap giliran
 
-| Field          | Value                                                                                                                                                                                                            |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**     | ✅ Done                                                                                                                                                                                                          |
-| **Domain**     | platform/tooling                                                                                                                                                                                                 |
-| **ADR**        | — (ganti nama berkas salinan vendor, bukan keputusan arsitektur)                                                                                                                                                 |
-| **Depends**    | —                                                                                                                                                                                                                |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done |
+| **Domain** | platform/tooling |
+| **ADR** | — (ganti nama berkas salinan vendor, bukan keputusan arsitektur) |
+| **Depends** | — |
 | **Read first** | `AGENTS.md` (bagian Skills + Kompatibilitas tool, ADR-064) · `.claude/skills/vercel-react-best-practices/SKILL.md` · `.claude/skills/vercel-composition-patterns/SKILL.md` · `CONVERSATIONS.md` entri 2026-10-16 |
 
 Cursor memperlakukan setiap berkas bernama `AGENTS.md` sebagai aturan yang ikut di setiap pesan. Tiga salinan panduan Vercel ikut termuat penuh meski pertanyaannya tidak menyentuh React:
@@ -739,12 +739,12 @@ Cursor memperlakukan setiap berkas bernama `AGENTS.md` sebagai aturan yang ikut 
 
 ### T-117 · Tipiskan `AGENTS.md` root jadi pintu, bukan ensiklopedia
 
-| Field          | Value                                                                                                                                                                                |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Status**     | ✅ Done                                                                                                                                                                              |
-| **Domain**     | platform/tooling                                                                                                                                                                     |
-| **ADR**        | ADR-133 (Accepted, 2026-10-16)                                                                                                                                                       |
-| **Depends**    | T-116 ✅                                                                                                                                                                             |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done |
+| **Domain** | platform/tooling |
+| **ADR** | ADR-133 (Accepted, 2026-10-16) |
+| **Depends** | T-116 ✅ |
 | **Read first** | `AGENTS.md` · `.claude/skills/project-os-navigator/SKILL.md` · `context/README.md` · `.claude/agents/README.md` · `apps/web/.claude/CLAUDE.md` · `CONVERSATIONS.md` entri 2026-10-16 |
 
 `AGENTS.md` root (±20 KB) ikut di setiap giliran, di Claude Code maupun Cursor. Banyak bagiannya mengulang dokumen yang sudah punya rumah. Task ini memindahkan pengulangan itu jadi penunjuk satu baris, dan menyisakan aturan yang benar-benar berlaku untuk setiap tugas.
@@ -782,12 +782,12 @@ Jadi penunjuk satu baris, karena rumahnya sudah ada:
 
 ### T-118 · Kunci higiene sesi: satu task per percakapan, rantai subagent hanya untuk fitur
 
-| Field          | Value                                                                                                                                |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Status**     | ✅ Done                                                                                                                              |
-| **Domain**     | platform/tooling                                                                                                                     |
-| **ADR**        | — (menegaskan navigator yang sudah ada; T-118.1 tidak mengubah mandat ADR-063, hanya menambah pengecualian perubahan sepele)         |
-| **Depends**    | T-117 ✅                                                                                                                             |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done |
+| **Domain** | platform/tooling |
+| **ADR** | — (menegaskan navigator yang sudah ada; T-118.1 tidak mengubah mandat ADR-063, hanya menambah pengecualian perubahan sepele) |
+| **Depends** | T-117 ✅ |
 | **Read first** | `.claude/skills/project-os-navigator/SKILL.md` · `.claude/agents/README.md` (aturan orkestrasi, ADR-063) · `AGENTS.md` setelah T-117 |
 
 Navigator sudah melarang membaca `PROJECT_STATE` utuh, `COMPLETE_TASK`, dan seluruh folder `tickets/`. Sisa yang masih boros: rantai Ridwan → Najwa → Gibran untuk perubahan sepele, dan percakapan yang dibiarkan panjang sampai riwayatnya ikut dibayar di setiap giliran.
@@ -985,15 +985,15 @@ Menerapkan ADR-161 (Accepted 2026-11-12). Hanya dokumen dan skill; tidak ada kod
 
 Tindak lanjut T-247.5: tiket di luar daftar yang disetujui King Rezi (2026-11-12) masih memakai status 🟡 `menunggu Verified (staging)`. Hanya yang disetujui King Rezi yang diubah. Usulan klasifikasi (dari "Not yet proven" tiap tiket):
 
-| Tiket                             | Verifikasi | Usulan                                                                                               |
-| --------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------- |
-| T-151, T-152, T-154, T-180 (v0.5) | `staging`  | ✅; butir sudah ada di T-189.1 sampai T-189.4                                                        |
-| T-192 (v0.5)                      | `staging`  | ✅ bila butir stagingnya dipindah ke T-189 atau tiket gelombangnya                                   |
-| T-210, T-211 (v0.2)               | `local`    | ✅; Verified 2026-11-05 (run E2E 41999328811) sudah tercatat                                         |
-| T-214 (v0.2)                      | `staging`  | ✅ untuk bagian kode; pertanyaan dokumen menunggu keputusan King Rezi, jadi tetap 🟡 sampai dijawab  |
-| T-227 (v0.4)                      | `local`    | ✅; sisa Not yet proven ke T-222.4                                                                   |
-| T-231, T-233 (v0.2)               | `staging`  | ✅; migrasi sudah diterapkan, semantik SQL nyata dan adapter Storage jadi butir verifikasi gelombang |
-| T-232 (v0.2)                      | `local`    | tetap 🟡 sampai T-232.1 dan T-232.2 dicentang atau dijelaskan                                        |
+| Tiket | Verifikasi | Usulan |
+| --- | --- | --- |
+| T-151, T-152, T-154, T-180 (v0.5) | `staging` | ✅; butir sudah ada di T-189.1 sampai T-189.4 |
+| T-192 (v0.5) | `staging` | ✅ bila butir stagingnya dipindah ke T-189 atau tiket gelombangnya |
+| T-210, T-211 (v0.2) | `local` | ✅; Verified 2026-11-05 (run E2E 41999328811) sudah tercatat |
+| T-214 (v0.2) | `staging` | ✅ untuk bagian kode; pertanyaan dokumen menunggu keputusan King Rezi, jadi tetap 🟡 sampai dijawab |
+| T-227 (v0.4) | `local` | ✅; sisa Not yet proven ke T-222.4 |
+| T-231, T-233 (v0.2) | `staging` | ✅; migrasi sudah diterapkan, semantik SQL nyata dan adapter Storage jadi butir verifikasi gelombang |
+| T-232 (v0.2) | `local` | tetap 🟡 sampai T-232.1 dan T-232.2 dicentang atau dijelaskan |
 
 - [x] **T-248.1** (2026-11-12) King Rezi menyuruh menyelesaikan seluruh langkah setelah melihat usulan; tabel diterapkan apa adanya. T-214 dan T-232 tetap 🟡 sesuai usulan. Bila King Rezi ingin mengubah klasifikasi, ubah di tiket masing-masing.
 - [x] **T-248.2** Terapkan klasifikasi yang disetujui: status di file tiket, baris di `AVAILABLE_TICKETS.md`, dan penunjuk "Not yet proven" ke tiket verifikasi gelombang.
@@ -1087,3 +1087,18 @@ Born from the wave 12 retro (2026-11-17, S-005 closure). _Evidence:_ commit `b42
 - [x] **T-285.1** Add one line to step 6: the integration PR base is always `staging` (`AGENTS.md` rule 9), even when the app's Create PR command names `main`.
 
 Born from the wave 12 retro (2026-11-17, S-005 closure). _Evidence:_ commit `9f6c2de2`. **Not yet proven:** the new lane rules and counts have not yet been exercised on a later wave (first use is the next `wave-work` run).
+
+### T-307 · Token economy for wave-plan, wave-work and review-work
+
+`✅ Done (code, 2026-11-25)` · **Mode** AFK · **Verification** local · **Domain** project-os, agents, skills · **ADR** ADR-153 · **Spec** S-003 · **Depends** —
+**Read first:** `.claude/skills/wave-work/SKILL.md`, `.claude/skills/review-work/SKILL.md`, `.claude/agents/neymar-product-designer.md`
+
+Born from the S-009 wave (2026-11-25): King Rezi asked to keep the three skills doing the same jobs for fewer tokens. Measured on that wave's subagent transcripts: Neymar's design rounds took ~213k tokens of browser screenshots and ~92k of full artifact reads; `DECISIONS.md` is 71% table padding (~85k of 120k tokens) and `AVAILABLE_TICKETS.md` 46%; follow-ups to long-running agents replayed their whole context (three Neymar rounds of 300k+).
+
+- [x] **T-307.1** Markdown tables in `project-os/` status files are compact (no column padding), and Prettier no longer re-pads them.
+- [x] **T-307.2** The `PROJECT_STATE.md` Snapshot read at every session start is a few short lines; the long history moves below it, unchanged.
+- [x] **T-307.3** Design work is checked by page text and DOM with at most two small screenshots per round, and reads only the artifact file it needs.
+- [x] **T-307.4** Fewer agent rounds: small follow-ups are done inline or by a fresh small agent; a re-review runs only after a hard violation; lanes and reviews default to a lower model unless design-heavy or data-critical.
+- [x] **T-307.5** A lane brief carries the exact ticket line range (`docs:where` offset and limit), so a lane never opens a whole release ticket file.
+
+_Evidence:_ table padding removed from 20 `project-os/` files (518k to 388k tokens in total; `DECISIONS.md` 120k to 34k, `AVAILABLE_TICKETS.md` 10k to 5k) and `.prettierignore` keeps them compact; the Snapshot dropped from about 12,000 to 1,200 characters (old text unchanged under "Snapshot history"); rules added to `neymar-product-designer.md` (How to work 5), `.claude/agents/README.md` (Orchestration rules, Token economy), `wave-work` (Token economy rules, lane brief range), `review-work` (Design step) and `wave-plan` (step 6). **Not yet proven:** the rule savings are estimates until the next wave runs with them.

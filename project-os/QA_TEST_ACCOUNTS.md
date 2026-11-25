@@ -27,23 +27,23 @@ launch.json`) — **there is no need to ask the user for a tunnel URL anymore.**
 
 These accounts are **already registered in the database** — do not register again.
 
-| Field    | Value                       |
-| -------- | --------------------------- |
-| Name     | Raka Pratama                |
-| Email    | `raka.test@kopiselasar.com` |
-| Password | `Password123!`              |
-| Role     | Owner                       |
+| Field | Value |
+| --- | --- |
+| Name | Raka Pratama |
+| Email | `raka.test@kopiselasar.com` |
+| Password | `Password123!` |
+| Role | Owner |
 
 This account has been used many times for M8 end-to-end verification (see
 the history of "Raka Pratama test account" in `PROJECT_STATE.md` — ADR-046,
 Publishing MVP persistence, ADR-052 Stage 3, etc.).
 
-| Field    | Value                       |
-| -------- | --------------------------- |
-| Name     | Maya Anggraini              |
-| Email    | `maya.test@kopiselasar.com` |
-| Password | `Password123!`              |
-| Role     | Admin                       |
+| Field | Value |
+| --- | --- |
+| Name | Maya Anggraini |
+| Email | `maya.test@kopiselasar.com` |
+| Password | `Password123!` |
+| Role | Admin |
 
 Created 2026-08-31 through the **Accept Invite (T-093)** flow that had just
 been implemented — Raka Pratama (Owner) invited via Settings → Members →
@@ -54,12 +54,12 @@ invitation). It landed successfully in the same workspace (workspace
 and as the second account for RBAC verification (KI-038, T-093.4: Owner vs
 Admin vs Creator — not fully done yet, still open).
 
-| Field    | Value                        |
-| -------- | ---------------------------- |
-| Name     | Sinta Wijaya                 |
-| Email    | `sinta.test@kopiselasar.com` |
-| Password | `Password123!`               |
-| Role     | Creator                      |
+| Field | Value |
+| --- | --- |
+| Name | Sinta Wijaya |
+| Email | `sinta.test@kopiselasar.com` |
+| Password | `Password123!` |
+| Role | Creator |
 
 Created 2026-08-31 — the account was registered via `/register` by the AI,
 and the invite to the Insvire workspace (role Creator) was done by King Rezi
@@ -80,8 +80,8 @@ A dedicated account for the Playwright E2E suite (ADR-149, S-002, T-173),
 created by King Rezi on 2026-10-29. Different from the Raka/Maya/Sinta
 accounts above.
 
-| Field | Value                       |
-| ----- | --------------------------- |
+| Field | Value |
+| --- | --- |
 | Email | `rezisaktiva.dev@gmail.com` |
 
 **Password policy: NOT written in the repo** (T-173.1). This is deliberately

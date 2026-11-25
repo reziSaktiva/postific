@@ -80,19 +80,19 @@ social-media-management/
 
 # Core Documents
 
-| File                       | Description                                                                                                                                                                        |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `PROJECT_OVERVIEW.md`      | Overall project summary.                                                                                                                                                           |
-| `ARCHITECTURE_OVERVIEW.md` | High-level architecture for the Figma blueprint (not the detailed architecture SoT).                                                                                               |
-| `PROJECT_RULES.md`         | Project working rules and principles.                                                                                                                                              |
-| `PROJECT_STATE.md`         | Phase, milestone, overall progress, Known Issues, and Blockers. The "Snapshot" section at the top is for a quick lookup without reading it in full. Not the place for task detail. |
-| `AVAILABLE_TICKETS.md`     | Queue of tasks that are not finished. Looking for available work stops here (ADR-131).                                                                                             |
-| `tickets/`                 | Tickets per release, including finished ones.                                                                                                                                      |
-| `specs/`                   | Specs for work that spans more than one session. Their shape is in `specs/README.md`.                                                                                              |
-| `DECISIONS.md`             | Compact index of all ADRs (table + links); the full text of each ADR is in `decisions/ADR-XXX-slug.md`.                                                                            |
-| `DEVELOPER_WORKFLOW.md`    | Project workflow & core user flows as mermaid diagrams (visualization, not SoT).                                                                                                   |
-| `CONVERSATIONS.md`         | Log of important conversations across sessions (filled in automatically by the AI).                                                                                                |
-| `BRAINSTORM.md`            | Idea bank from brainstorming sessions (filled in automatically by the AI).                                                                                                         |
+| File | Description |
+| --- | --- |
+| `PROJECT_OVERVIEW.md` | Overall project summary. |
+| `ARCHITECTURE_OVERVIEW.md` | High-level architecture for the Figma blueprint (not the detailed architecture SoT). |
+| `PROJECT_RULES.md` | Project working rules and principles. |
+| `PROJECT_STATE.md` | Phase, milestone, overall progress, Known Issues, and Blockers. The "Snapshot" section at the top is for a quick lookup without reading it in full. Not the place for task detail. |
+| `AVAILABLE_TICKETS.md` | Queue of tasks that are not finished. Looking for available work stops here (ADR-131). |
+| `tickets/` | Tickets per release, including finished ones. |
+| `specs/` | Specs for work that spans more than one session. Their shape is in `specs/README.md`. |
+| `DECISIONS.md` | Compact index of all ADRs (table + links); the full text of each ADR is in `decisions/ADR-XXX-slug.md`. |
+| `DEVELOPER_WORKFLOW.md` | Project workflow & core user flows as mermaid diagrams (visualization, not SoT). |
+| `CONVERSATIONS.md` | Log of important conversations across sessions (filled in automatically by the AI). |
+| `BRAINSTORM.md` | Idea bank from brainstorming sessions (filled in automatically by the AI). |
 
 ---
 

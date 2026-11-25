@@ -2,12 +2,12 @@
 
 ## Metadata
 
-| Field        | Value      |
-| ------------ | ---------- |
-| Project Name | Postific   |
-| Version      | 0.1.0      |
-| Status       | Active     |
-| Owner        | Rezi       |
+| Field | Value |
+| --- | --- |
+| Project Name | Postific |
+| Version | 0.1.0 |
+| Status | Active |
+| Owner | Rezi |
 | Last Updated | 2026-07-21 |
 
 ---
@@ -96,29 +96,29 @@ Source of Truth for the enum: `SocialPlatform` in `packages/shared`.
 
 # Technical Overview
 
-| Category            | Decision                                                                                              |
-| ------------------- | ----------------------------------------------------------------------------------------------------- |
-| Repository Strategy | Hybrid Monorepo                                                                                       |
-| Runtime             | Bun                                                                                                   |
-| Framework           | Next.js                                                                                               |
-| Language            | TypeScript                                                                                            |
-| Architecture        | Modular Monolith                                                                                      |
-| Design Pattern      | Domain-Driven Design (DDD)                                                                            |
-| Database            | Supabase PostgreSQL                                                                                   |
-| ORM                 | Prisma                                                                                                |
-| Data Access         | Prisma (CRUD) + Supabase client (Realtime, Storage)                                                   |
-| Auth                | Better Auth                                                                                           |
-| Storage             | Supabase Storage                                                                                      |
-| Deployment          | Railway                                                                                               |
-| CI                  | GitHub Actions                                                                                        |
-| Lint / Format       | ESLint + Prettier                                                                                     |
-| Pre-commit          | Lefthook + lint-staged                                                                                |
-| Test Runner         | Vitest                                                                                                |
-| Env / Secrets       | Railway Variables + `.env.local` (native)                                                             |
-| Dependencies        | Bun workspaces; `^` ranges; root `bun.lock`; manual updates. Astryx is no longer used (ADR-097)       |
-| Styling             | Tailwind CSS _(direct styling of shadcn/ui components)_                                               |
-| UI Components       | shadcn/ui _(ADR-097, reversing ADR-041 — the migration from Astryx is complete, release v0.7, T-102)_ |
-| External Provider   | Outstand API                                                                                          |
+| Category | Decision |
+| --- | --- |
+| Repository Strategy | Hybrid Monorepo |
+| Runtime | Bun |
+| Framework | Next.js |
+| Language | TypeScript |
+| Architecture | Modular Monolith |
+| Design Pattern | Domain-Driven Design (DDD) |
+| Database | Supabase PostgreSQL |
+| ORM | Prisma |
+| Data Access | Prisma (CRUD) + Supabase client (Realtime, Storage) |
+| Auth | Better Auth |
+| Storage | Supabase Storage |
+| Deployment | Railway |
+| CI | GitHub Actions |
+| Lint / Format | ESLint + Prettier |
+| Pre-commit | Lefthook + lint-staged |
+| Test Runner | Vitest |
+| Env / Secrets | Railway Variables + `.env.local` (native) |
+| Dependencies | Bun workspaces; `^` ranges; root `bun.lock`; manual updates. Astryx is no longer used (ADR-097) |
+| Styling | Tailwind CSS _(direct styling of shadcn/ui components)_ |
+| UI Components | shadcn/ui _(ADR-097, reversing ADR-041 — the migration from Astryx is complete, release v0.7, T-102)_ |
+| External Provider | Outstand API |
 
 ---
 

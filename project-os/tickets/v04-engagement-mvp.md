@@ -166,14 +166,14 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 ### T-216 · Engage by post: design in the Postific artifact and gallery confirmation
 
-| Field       | Value                                                                                                                         |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | ✅ Done (2026-11-05, rancangan dikonfirmasi King Rezi di galeri)                                                              |
-| **Mode**    | HITL (konfirmasi galeri adalah milik King Rezi)                                                                               |
-| **Domain**  | engagement · UI/UX (UI/UX-related)                                                                                            |
-| **Spec**    | S-006                                                                                                                         |
-| **Docs**    | ADR-157, ADR-140, ADR-097, KSP-06, KSP-D06, `context/ctx-design.md`, `.claude/skills/claude-design-scope-discipline/SKILL.md` |
-| **Depends** | — (ADR-157 Accepted 2026-11-05)                                                                                               |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (2026-11-05, rancangan dikonfirmasi King Rezi di galeri) |
+| **Mode** | HITL (konfirmasi galeri adalah milik King Rezi) |
+| **Domain** | engagement · UI/UX (UI/UX-related) |
+| **Spec** | S-006 |
+| **Docs** | ADR-157, ADR-140, ADR-097, KSP-06, KSP-D06, `context/ctx-design.md`, `.claude/skills/claude-design-scope-discipline/SKILL.md` |
+| **Depends** | — (ADR-157 Accepted 2026-11-05) |
 
 **Gate rancangan (`AGENTS.md` aturan 10), riwayat:** saat tiket ini dibuat belum ada rancangan Engage per posting di artifact Postific, jadi tiket UI (T-219, T-220, T-224) tidak boleh mulai sebelum T-216 dikonfirmasi King Rezi. Gate sudah terpenuhi (T-216 ✅, 2026-11-05).
 
@@ -191,15 +191,15 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 **Keputusan King Rezi atas pertanyaan ambigu (2026-11-05, `AskUserQuestion`, semua sesuai default gambar Neymar, tanpa perubahan rancangan):**
 
-| #   | Pertanyaan                 | Jawaban                                                                                                    |
-| --- | -------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| 1   | Panel Filter & Sort        | `Popover` (tetap `Popover` di 375px)                                                                       |
-| 2   | Dropdown Akun dan Status   | `Select`                                                                                                   |
-| 3   | Filter Platform            | Di panel Filter & Sort                                                                                     |
-| 4   | Komposer balasan (By post) | Docked di bawah panel kanan; inline di tampilan List                                                       |
-| 5   | Kartu posting              | Kustom dari `Card`, `Badge`, `Progress`; Mark memverifikasi lewat MCP shadcn sebelum implementasi          |
-| 6   | Cakupan Reset filters      | Semua filter (Akun, Status, Platform, Sort, Date Range)                                                    |
-| 7   | Arti "x dibalas / y total" | x = status Dibalas saja; progress bar memakai rasio ditangani; teks kecil "n dari y ditangani" ditambahkan |
+| # | Pertanyaan | Jawaban |
+| --- | --- | --- |
+| 1 | Panel Filter & Sort | `Popover` (tetap `Popover` di 375px) |
+| 2 | Dropdown Akun dan Status | `Select` |
+| 3 | Filter Platform | Di panel Filter & Sort |
+| 4 | Komposer balasan (By post) | Docked di bawah panel kanan; inline di tampilan List |
+| 5 | Kartu posting | Kustom dari `Card`, `Badge`, `Progress`; Mark memverifikasi lewat MCP shadcn sebelum implementasi |
+| 6 | Cakupan Reset filters | Semua filter (Akun, Status, Platform, Sort, Date Range) |
+| 7 | Arti "x dibalas / y total" | x = status Dibalas saja; progress bar memakai rasio ditangani; teks kecil "n dari y ditangani" ditambahkan |
 
 **Tindak lanjut rancangan (2026-11-06, audit docs-consistency B1 dan B8):** tag "draft" entri galeri diubah menjadi terkonfirmasi dan komposer pada kelompok "Tanpa posting" dirancang nonaktif dengan pesan, lewat Neymar tanpa menyentuh layar atau kartu lain. **Hasil (2026-11-06, Neymar):** Postific v40 dan galeri v16 terbit. Tag entri galeri menjadi `dikonfirmasi` (5 Nov 2026) seperti entri Draft Editor redesain; checklist entri disesuaikan (butir tampilan List kini "ikut dikonfirmasi bersama rancangan ini", sesuai konfirmasi King Rezi atas seluruh rancangan). Kelompok "Tanpa posting": Textarea dan Kirim nonaktif dengan pesan usulan "Komentar ini tidak terkait posting, jadi tidak dapat dibalas dari Postific."; Alert di atas daftar diganti ("Outstand hanya membalas per posting … Resolve, Dismiss, dan Buka kembali tetap tersedia."); aksi hover Reply nonaktif dengan Tooltip (bukan disembunyikan, posisi ikon tidak bergeser); berlaku di panel kelompok, tampilan List, dan 375px. Skenario 6 diberi `force` pada dua komentar supaya ikon aksi terlihat saat review (hanya di skenario itu). Diamati pada salinan lokal identik dengan hasil publish: skenario 6 terang, List, skenario 12 tidak berubah, 375px detail kelompok, tag galeri; berkas yang dibaca balik dari kedua artifact berhash sama. **Belum diamati:** tampilan live claude.ai, mode gelap kelompok "Tanpa posting" dan List 375px, Tooltip dengan hover nyata (hanya lewat DOM). Teks pesan dan Alert adalah usulan teks. Temuan di luar lingkup, tidak diubah: subtitle kartu ScreenDraftEditorRedesain bertanggal 3 Nov sedangkan tag galerinya 5 Nov; pil aksi yang dipaksa tampil menutupi sebagian badge status di layar lebar (perilaku lama).
 
@@ -213,14 +213,14 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 ### T-217 · Engage: status `replied` / `resolved` / `dismissed`
 
-| Field       | Value                                                                                                                   |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | ✅ Done (code) 2026-11-06; Verification `local` (ADR-161); sisa Not yet proven ke T-222.4                               |
-| **Mode**    | AFK (migrasi data `done` butuh izin King Rezi sebelum diterapkan ke DB bersama)                                         |
-| **Domain**  | engagement · backend                                                                                                    |
-| **Spec**    | S-006                                                                                                                   |
-| **Docs**    | ADR-157, ADR-040, `domains/engagement/types.ts`, `lib/repositories/engagement`, `schema.prisma` (`EngagementInboxItem`) |
-| **Depends** | — (ADR-157 Accepted 2026-11-05)                                                                                         |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code) 2026-11-06; Verification `local` (ADR-161); sisa Not yet proven ke T-222.4 |
+| **Mode** | AFK (migrasi data `done` butuh izin King Rezi sebelum diterapkan ke DB bersama) |
+| **Domain** | engagement · backend |
+| **Spec** | S-006 |
+| **Docs** | ADR-157, ADR-040, `domains/engagement/types.ts`, `lib/repositories/engagement`, `schema.prisma` (`EngagementInboxItem`) |
+| **Depends** | — (ADR-157 Accepted 2026-11-05) |
 
 **What to build:** `InboxItemStatus` dari `"unread" | "done"` menjadi `unread | replied | resolved | dismissed`, dengan transisi yang jelas, tanpa kolom atau tabel baru (kolom `status` adalah `TEXT` tanpa constraint).
 
@@ -247,14 +247,14 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 ### T-218 · Engage: query inbox per posting
 
-| Field       | Value                                                                                                   |
-| ----------- | ------------------------------------------------------------------------------------------------------- |
-| **Status**  | ✅ Done (code) 2026-11-06; Verification `local` (ADR-161); indeks dan volume besar ke T-222.4           |
-| **Mode**    | AFK                                                                                                     |
-| **Domain**  | engagement · backend                                                                                    |
-| **Spec**    | S-006                                                                                                   |
-| **Docs**    | ADR-157, ADR-046, `lib/repositories/engagement`, `domains/engagement/services`, `context/ctx-domain.md` |
-| **Depends** | T-217                                                                                                   |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code) 2026-11-06; Verification `local` (ADR-161); indeks dan volume besar ke T-222.4 |
+| **Mode** | AFK |
+| **Domain** | engagement · backend |
+| **Spec** | S-006 |
+| **Docs** | ADR-157, ADR-046, `lib/repositories/engagement`, `domains/engagement/services`, `context/ctx-domain.md` |
+| **Depends** | T-217 |
 
 **What to build:** query yang mengembalikan posting beserta ringkasan komentarnya, bukan hanya daftar item datar.
 
@@ -303,14 +303,14 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 ### T-219 · Engage UI: post list, selected post comments, and per-comment status actions
 
-| Field       | Value                                                                                                     |
-| ----------- | --------------------------------------------------------------------------------------------------------- |
-| **Status**  | ✅ Done (code) 2026-11-06 (branch `feature/s006-gelombang-3-engage-ui`); Verification `local` (ADR-161)   |
-| **Mode**    | AFK setelah T-216 dikonfirmasi                                                                            |
-| **Domain**  | engagement · UI (UI/UX-related)                                                                           |
-| **Spec**    | S-006                                                                                                     |
-| **Docs**    | ADR-157, ADR-097, ADR-140, KSP-06, KSP-D06, `apps/web/.claude/CLAUDE.md`, artifact Postific (kartu T-216) |
-| **Depends** | T-216, T-217, T-218                                                                                       |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code) 2026-11-06 (branch `feature/s006-gelombang-3-engage-ui`); Verification `local` (ADR-161) |
+| **Mode** | AFK setelah T-216 dikonfirmasi |
+| **Domain** | engagement · UI (UI/UX-related) |
+| **Spec** | S-006 |
+| **Docs** | ADR-157, ADR-097, ADR-140, KSP-06, KSP-D06, `apps/web/.claude/CLAUDE.md`, artifact Postific (kartu T-216) |
+| **Depends** | T-216, T-217, T-218 |
 
 **Gate rancangan:** rancangan T-216 sudah dikonfirmasi King Rezi. Bila sebuah butir ambigu, **STOP** dan tanya lewat `AskUserQuestion`; jangan menebak.
 
@@ -335,14 +335,14 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 ### T-220 · Engage UI: primary filters and the Filter & Sort panel
 
-| Field       | Value                                                                                                   |
-| ----------- | ------------------------------------------------------------------------------------------------------- |
-| **Status**  | ✅ Done (code) 2026-11-06 (branch `feature/s006-gelombang-3-engage-ui`); Verification `local` (ADR-161) |
-| **Mode**    | AFK setelah T-216 dikonfirmasi                                                                          |
-| **Domain**  | engagement · UI (UI/UX-related)                                                                         |
-| **Spec**    | S-006                                                                                                   |
-| **Docs**    | ADR-157, ADR-097, ADR-140, KSP-06-F02, `apps/web/.claude/CLAUDE.md`, artifact Postific (kartu T-216)    |
-| **Depends** | T-216, T-218, T-219                                                                                     |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code) 2026-11-06 (branch `feature/s006-gelombang-3-engage-ui`); Verification `local` (ADR-161) |
+| **Mode** | AFK setelah T-216 dikonfirmasi |
+| **Domain** | engagement · UI (UI/UX-related) |
+| **Spec** | S-006 |
+| **Docs** | ADR-157, ADR-097, ADR-140, KSP-06-F02, `apps/web/.claude/CLAUDE.md`, artifact Postific (kartu T-216) |
+| **Depends** | T-216, T-218, T-219 |
 
 **What to build:** filter utama di header (Akun, Status) dan satu panel sekunder (Sort By, Date Range, Reset filters), menggantikan tiga `Select` sejajar. Menyentuh berkas yang sama dengan T-219 (`EngageInboxView` dan turunannya): kerjakan setelah T-219.1 memecah berkas, bukan paralel.
 
@@ -362,27 +362,27 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 ### T-221 · Align UX and architecture baseline with the confirmed Engage by-post design
 
-| Field       | Value                                                                                                                                                                                                                                           |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | ✅ Done (2026-11-06, dokumentasi)                                                                                                                                                                                                               |
-| **Mode**    | AFK (dokumentasi)                                                                                                                                                                                                                               |
-| **Domain**  | dokumentasi · UX · arsitektur                                                                                                                                                                                                                   |
-| **Spec**    | S-006                                                                                                                                                                                                                                           |
-| **Docs**    | ADR-157, `product-discovery/04-ux/` (`key-screen-patterns.md`, `user-flows.md`, `navigation-patterns.md`, `information-architecture.md`), `product-discovery/05-architecture/domain-model.md`, `context/ctx-design.md`, `context/ctx-domain.md` |
-| **Depends** | T-216                                                                                                                                                                                                                                           |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (2026-11-06, dokumentasi) |
+| **Mode** | AFK (dokumentasi) |
+| **Domain** | dokumentasi · UX · arsitektur |
+| **Spec** | S-006 |
+| **Docs** | ADR-157, `product-discovery/04-ux/` (`key-screen-patterns.md`, `user-flows.md`, `navigation-patterns.md`, `information-architecture.md`), `product-discovery/05-architecture/domain-model.md`, `context/ctx-design.md`, `context/ctx-domain.md` |
+| **Depends** | T-216 |
 
 **What to build:** selaraskan semua dokumen baseline yang masih menggambarkan Engage lama (master-detail per item inbox, status `Unread` / `Done`, satu layar tanpa pilihan tampilan) dengan rancangan yang dikonfirmasi dan ADR-157: unit per posting, status `unread` / `replied` / `resolved` / `dismissed`, panel Filter & Sort, toggle By post / List. Batas MVP tetap menyebut Mentions dan DM di luar (ADR-040). Urutan tulis: `product-discovery/` dulu, lalu `context/` hanya bila penunjuknya berubah (`AGENTS.md` aturan 14). Jangan menyalin paragraf yang sama ke banyak berkas; rujuk KSP-06 sebagai rumah rinciannya.
 
 **Hasil audit (2026-11-06, grep atas `product-discovery/` dan `context/`):**
 
-| Dokumen                                                | Yang usang                                                                                                                                                                                                       |
-| ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `04-ux/key-screen-patterns.md` (KSP-06, D06)           | Master-detail per item, tiga filter, status Unread/Done, "Mark as Done", Critical Functions F01 sampai F08, State Handling                                                                                       |
-| `04-ux/user-flows.md` (UF-04, baris 214-259)           | Filter `Unread / Done`, tandai `Done`, antrean urut waktu masuk; alur badge ke Inbox                                                                                                                             |
-| `04-ux/navigation-patterns.md` (214, 327-331)          | "Engage hanya satu layar: Inbox, tanpa tab"; pola master-detail inline. Toggle By post / List bukan navigasi tab; kalimatnya perlu disesuaikan                                                                   |
-| `04-ux/information-architecture.md` (152-167, 254-255) | Struktur Engage dan peta "Comments (view + reply)"; Engagement Snapshot (baris 111) tetap menghitung `unread` (Q4), cukup dicek                                                                                  |
-| `05-architecture/domain-model.md` (363)                | `InboxItemStatus` ditulis `unread \| read \| replied \| archived`; **sudah menyimpang dari kode** (`unread \| done`) sebelum ADR-157. Jadikan `unread \| replied \| resolved \| dismissed` dan sebut transisinya |
-| `context/ctx-domain.md`, `context/ctx-design.md`       | Hanya diubah bila penunjuknya berubah; kemungkinan tidak perlu                                                                                                                                                   |
+| Dokumen | Yang usang |
+| --- | --- |
+| `04-ux/key-screen-patterns.md` (KSP-06, D06) | Master-detail per item, tiga filter, status Unread/Done, "Mark as Done", Critical Functions F01 sampai F08, State Handling |
+| `04-ux/user-flows.md` (UF-04, baris 214-259) | Filter `Unread / Done`, tandai `Done`, antrean urut waktu masuk; alur badge ke Inbox |
+| `04-ux/navigation-patterns.md` (214, 327-331) | "Engage hanya satu layar: Inbox, tanpa tab"; pola master-detail inline. Toggle By post / List bukan navigasi tab; kalimatnya perlu disesuaikan |
+| `04-ux/information-architecture.md` (152-167, 254-255) | Struktur Engage dan peta "Comments (view + reply)"; Engagement Snapshot (baris 111) tetap menghitung `unread` (Q4), cukup dicek |
+| `05-architecture/domain-model.md` (363) | `InboxItemStatus` ditulis `unread \| read \| replied \| archived`; **sudah menyimpang dari kode** (`unread \| done`) sebelum ADR-157. Jadikan `unread \| replied \| resolved \| dismissed` dan sebut transisinya |
+| `context/ctx-domain.md`, `context/ctx-design.md` | Hanya diubah bila penunjuknya berubah; kemungkinan tidak perlu |
 
 - [x] **T-221.1** KSP-06 dan KSP-D06 diperbarui (Critical Functions, Zona Fungsional, State Handling, Pola Notification Badge); tag amandemen ADR-157 ditambahkan.
 - [x] **T-221.2** ADR-157 `Proposed` → `Accepted` (2026-11-05, setelah Q1 sampai Q5 dijawab King Rezi); indeks `DECISIONS.md` ikut.
@@ -404,14 +404,14 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 ### T-222 · Engage by post: QA and verification
 
-| Field       | Value                                                                                                      |
-| ----------- | ---------------------------------------------------------------------------------------------------------- |
-| **Status**  | 🟡 In Progress (E2E, review, dan QA selesai; T-222.1/.2 belum dicentang; Verified (staging) menunggu HITL) |
-| **Mode**    | AFK untuk E2E, review, dan QA; HITL untuk Verified (staging)                                               |
-| **Domain**  | engagement · QA                                                                                            |
-| **Spec**    | S-006                                                                                                      |
-| **Docs**    | ADR-149, ADR-153, ADR-157, `apps/web/e2e/`, `.claude/agents/README.md`                                     |
-| **Depends** | T-219, T-220, T-224                                                                                        |
+| Field | Value |
+| --- | --- |
+| **Status** | 🟡 In Progress (E2E, review, dan QA selesai; T-222.1/.2 belum dicentang; Verified (staging) menunggu HITL) |
+| **Mode** | AFK untuk E2E, review, dan QA; HITL untuk Verified (staging) |
+| **Domain** | engagement · QA |
+| **Spec** | S-006 |
+| **Docs** | ADR-149, ADR-153, ADR-157, `apps/web/e2e/`, `.claude/agents/README.md` |
+| **Depends** | T-219, T-220, T-224 |
 
 **What to build:** bukti bahwa Engage per posting bekerja dan tidak merusak yang sudah ada.
 
@@ -432,14 +432,14 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 ### T-224 · Engage UI: List view (By post / List toggle)
 
-| Field       | Value                                                                                                          |
-| ----------- | -------------------------------------------------------------------------------------------------------------- |
-| **Status**  | ✅ Done (code) 2026-11-06 (branch `feature/s006-gelombang-3-engage-ui`); Verification `local` (ADR-161)        |
-| **Mode**    | AFK setelah T-216 dikonfirmasi                                                                                 |
-| **Domain**  | engagement · UI (UI/UX-related)                                                                                |
-| **Spec**    | S-006                                                                                                          |
-| **Docs**    | ADR-157 (Q5), ADR-097, ADR-140, KSP-06, KSP-D06, `apps/web/.claude/CLAUDE.md`, artifact Postific (kartu T-216) |
-| **Depends** | T-216, T-218, T-219                                                                                            |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code) 2026-11-06 (branch `feature/s006-gelombang-3-engage-ui`); Verification `local` (ADR-161) |
+| **Mode** | AFK setelah T-216 dikonfirmasi |
+| **Domain** | engagement · UI (UI/UX-related) |
+| **Spec** | S-006 |
+| **Docs** | ADR-157 (Q5), ADR-097, ADR-140, KSP-06, KSP-D06, `apps/web/.claude/CLAUDE.md`, artifact Postific (kartu T-216) |
+| **Depends** | T-216, T-218, T-219 |
 
 **Gate rancangan:** mode List Buffer belum teramati (hanya tombolnya), jadi isi tampilan List sepenuhnya diputuskan di rancangan T-216.5 dan dikonfirmasi King Rezi. Bila ambigu, **STOP** dan tanya lewat `AskUserQuestion`; jangan menebak.
 
@@ -461,14 +461,14 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 ### T-223 · Engage Mentions tab (Instagram story mentions)
 
-| Field       | Value                                                                                                                |
-| ----------- | -------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | ⏸️ Deferred (keputusan King Rezi 2026-11-05)                                                                         |
-| **Mode**    | HITL                                                                                                                 |
-| **Domain**  | engagement · integrasi Outstand                                                                                      |
-| **Spec**    | tidak ada — ditunda                                                                                                  |
-| **Docs**    | ADR-157, ADR-040, `outstand.so/docs` (Webhooks; Conversations: Message Lifecycle, bagian Story replies and mentions) |
-| **Depends** | ADR baru yang mengubah ADR-040                                                                                       |
+| Field | Value |
+| --- | --- |
+| **Status** | ⏸️ Deferred (keputusan King Rezi 2026-11-05) |
+| **Mode** | HITL |
+| **Domain** | engagement · integrasi Outstand |
+| **Spec** | tidak ada — ditunda |
+| **Docs** | ADR-157, ADR-040, `outstand.so/docs` (Webhooks; Conversations: Message Lifecycle, bagian Story replies and mentions) |
+| **Depends** | ADR baru yang mengubah ADR-040 |
 
 **Alasan ditunda:** Outstand tidak punya endpoint atau event mention di feed dan tidak punya tag. Satu-satunya jalur adalah story mention dan story reply Instagram lewat Conversations API (`message.received` dengan objek `story`, `type` `reply` atau `mention`). Itu DM, di luar MVP (ADR-040). Kendala: URL story kedaluwarsa 24 jam dan medianya tidak boleh disimpan; mention hanya dari akun publik atau privat yang mengikuti; hanya Instagram; syarat izin dan tipe akun tidak tertulis di docs.
 
@@ -478,14 +478,14 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 ### T-226 · Engage E2E: harden selectors and cover card height on narrow screens (S-006 g3 retro follow-up)
 
-| Field       | Value                                                                                       |
-| ----------- | ------------------------------------------------------------------------------------------- |
-| **Status**  | ⏳ Not Started                                                                              |
-| **Mode**    | AFK                                                                                         |
-| **Domain**  | engagement · QA                                                                             |
-| **Spec**    | S-006                                                                                       |
-| **Docs**    | ADR-149, `apps/web/e2e/engage-per-post.e2e.ts`, panduan E2E (lokasi dicari saat dikerjakan) |
-| **Depends** | T-222 (butir E2E yang sama)                                                                 |
+| Field | Value |
+| --- | --- |
+| **Status** | ⏳ Not Started |
+| **Mode** | AFK |
+| **Domain** | engagement · QA |
+| **Spec** | S-006 |
+| **Docs** | ADR-149, `apps/web/e2e/engage-per-post.e2e.ts`, panduan E2E (lokasi dicari saat dikerjakan) |
+| **Depends** | T-222 (butir E2E yang sama) |
 
 **What to build:** tindak lanjut retro gelombang 3 S-006 (disetujui King Rezi 2026-11-06): dua celah yang lolos dari tes unit dan E2E dan baru tertangkap QA.
 
@@ -498,14 +498,14 @@ Gelombang tiket T-216 sampai T-222 dan T-224, plus T-223 Deferred. ADR-157 **Acc
 
 ### T-227 · Engage: imported post thumbnails use `platformOptions.mediaUrls`, with an icon placeholder on list cards
 
-| Field       | Value                                                                                                                             |
-| ----------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | ✅ Done (code) 2026-11-06 (branch `feature/s006-engage-thumbnail-posting-impor`); Verification `local` (ADR-161), sisa ke T-222.4 |
-| **Mode**    | AFK                                                                                                                               |
-| **Domain**  | engagement · UI (UI/UX-related)                                                                                                   |
-| **Spec**    | S-006                                                                                                                             |
-| **Docs**    | ADR-097, ADR-140, ADR-149, `apps/web/.claude/CLAUDE.md`, artifact Postific (kartu `ScreenEngagePerPosting`), AGENTS.md no. 3-5    |
-| **Depends** | T-219 (Done (code)). Konteks: T-228 (tidak memblokir)                                                                             |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code) 2026-11-06 (branch `feature/s006-engage-thumbnail-posting-impor`); Verification `local` (ADR-161), sisa ke T-222.4 |
+| **Mode** | AFK |
+| **Domain** | engagement · UI (UI/UX-related) |
+| **Spec** | S-006 |
+| **Docs** | ADR-097, ADR-140, ADR-149, `apps/web/.claude/CLAUDE.md`, artifact Postific (kartu `ScreenEngagePerPosting`), AGENTS.md no. 3-5 |
+| **Depends** | T-219 (Done (code)). Konteks: T-228 (tidak memblokir) |
 
 **Ditemukan (2026-11-06, King Rezi, halaman Engage workspace dengan akun Instagram "cookitrealgood" dan Facebook "Cook It Real Good"):** 6 kartu posting tampil tanpa thumbnail sama sekali dan tanpa ikon pengganti. Posting itu berstatus `imported` (hasil Import Posts, `authorId` null).
 

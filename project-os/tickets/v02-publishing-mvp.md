@@ -41,14 +41,14 @@ Matriks format per platform (IG/FB: Post/Reel/Story · TikTok: video feed tanpa 
 
 ### T-024 · Media upload di Draft Editor
 
-| Field          | Value                                                                                                                                                                                                                                                               |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**     | ✅ Done (5/5 subtask)                                                                                                                                                                                                                                               |
-| **Domain**     | media · publishing                                                                                                                                                                                                                                                  |
-| **ADR**        | ADR-040 (media upload working copy) · ADR-107 (batas maksimum jumlah media per `ContentFormat`, T-024.4)                                                                                                                                                            |
-| **Depends**    | T-025 (Media API adapter) — **di-bypass sebagian** lewat pola Fake (rule 19 AGENTS.md, lihat catatan di bawah)                                                                                                                                                      |
-| **Terkait**    | KI-059 Resolved (verifikasi manual browser T-024.4 & T-024.5, 2026-09-15) · KI-060 Resolved (ADR-125, 2026-10-12, di luar scope T-024 literal) · KI-061 Resolved (2026-10-13, tidak ada warning UI saat media over-limit setelah ganti target akun/format, ADR-107) |
-| **Read first** | `05-architecture/integration-layer.md` · `06-engineering/environment-management.md`                                                                                                                                                                                 |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (5/5 subtask) |
+| **Domain** | media · publishing |
+| **ADR** | ADR-040 (media upload working copy) · ADR-107 (batas maksimum jumlah media per `ContentFormat`, T-024.4) |
+| **Depends** | T-025 (Media API adapter) — **di-bypass sebagian** lewat pola Fake (rule 19 AGENTS.md, lihat catatan di bawah) |
+| **Terkait** | KI-059 Resolved (verifikasi manual browser T-024.4 & T-024.5, 2026-09-15) · KI-060 Resolved (ADR-125, 2026-10-12, di luar scope T-024 literal) · KI-061 Resolved (2026-10-13, tidak ada warning UI saat media over-limit setelah ganti target akun/format, ADR-107) |
+| **Read first** | `05-architecture/integration-layer.md` · `06-engineering/environment-management.md` |
 
 Kontrol lampiran media di Draft Editor sudah ada tapi **disabled** dengan keterangan "Lampiran media akan tersedia setelah OutstandAdapter Media API siap".
 
@@ -278,12 +278,12 @@ regresi. Detail: `COMPLETE_TASK.md`.
 
 ### T-038 · Toggle Fullscreen/Standard resmi di Draft Editor
 
-| Field          | Value                                                                                                                                                                                |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Status**     | ✅ Done                                                                                                                                                                              |
-| **Domain**     | publishing (UI)                                                                                                                                                                      |
-| **ADR**        | ADR-065 (amandemen ADR-052)                                                                                                                                                          |
-| **Depends**    | T-020 (modal Draft Editor sudah ada — Done)                                                                                                                                          |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done |
+| **Domain** | publishing (UI) |
+| **ADR** | ADR-065 (amandemen ADR-052) |
+| **Depends** | T-020 (modal Draft Editor sudah ada — Done) |
 | **Read first** | `decisions/ADR-065-draft-editor-toggle-fullscreen-standard-jadi-fitur-resmi-default-standard.md` · `04-ux/key-screen-patterns.md` (KSP-05) · `04-ux/navigation-patterns.md` (NP-D11) |
 
 **Ditemukan sudah selesai (2026-09-10):** seluruh 4/4 subtask ternyata sudah
@@ -310,14 +310,14 @@ ADR-065. Tidak ada perubahan kode di sesi ini — murni koreksi status.
 
 ### T-025 · Real OutstandAdapter (HTTP client)
 
-| Field          | Value                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**     | ✅ Done — KI-072 (Pinterest `board_id`) selesai diimplementasikan via ADR-118 (2026-09-25), 7/7 subtask tetap selesai                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| **Domain**     | integration                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| **ADR**        | ADR-005, ADR-019, ADR-040, ADR-059                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| **Terkait**    | KI-003, KI-015, KI-067 (sebagian resolved via ADR-112, sisa scope KI-070 Resolved), KI-068 (Resolved via ADR-113), KI-069 (Resolved via ADR-114), KI-070 (Resolved 2026-09-24 — flow multi-halaman Facebook Pages via ADR-115/ADR-116, UI Mark UI Engineer, 2 bug fix Elon Backend Engineer), KI-071 (Resolved via ADR-117, 2026-09-25), KI-072 (Resolved via ADR-118, 2026-09-25 — `listPinterestBoards` + `board_id` opsional per-post), ADR-112, ADR-113, ADR-114, ADR-115, ADR-116, ADR-117, ADR-118 (`PROJECT_STATE.md` § Known Issues) |
-| **Depends**    | T-028 ✅ (port + factory sudah ada) · kredensial Outstand asli                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| **Read first** | `05-architecture/integration-layer.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done — KI-072 (Pinterest `board_id`) selesai diimplementasikan via ADR-118 (2026-09-25), 7/7 subtask tetap selesai |
+| **Domain** | integration |
+| **ADR** | ADR-005, ADR-019, ADR-040, ADR-059 |
+| **Terkait** | KI-003, KI-015, KI-067 (sebagian resolved via ADR-112, sisa scope KI-070 Resolved), KI-068 (Resolved via ADR-113), KI-069 (Resolved via ADR-114), KI-070 (Resolved 2026-09-24 — flow multi-halaman Facebook Pages via ADR-115/ADR-116, UI Mark UI Engineer, 2 bug fix Elon Backend Engineer), KI-071 (Resolved via ADR-117, 2026-09-25), KI-072 (Resolved via ADR-118, 2026-09-25 — `listPinterestBoards` + `board_id` opsional per-post), ADR-112, ADR-113, ADR-114, ADR-115, ADR-116, ADR-117, ADR-118 (`PROJECT_STATE.md` § Known Issues) |
+| **Depends** | T-028 ✅ (port + factory sudah ada) · kredensial Outstand asli |
+| **Read first** | `05-architecture/integration-layer.md` |
 
 Port `IOutstandAdapter` dan factory `getOutstandAdapter()` sudah ada. Factory **sengaja throw** jika `OUTSTAND_API_KEY` terisi tapi kode real adapter belum ada — bukan silent fallback ke Fake.
 
@@ -552,14 +552,14 @@ Detail teknis lengkap ada di docstring
 
 ### T-026 · Webhook handler Outstand
 
-| Field          | Value                                                                |
-| -------------- | -------------------------------------------------------------------- |
-| **Status**     | ✅ Done                                                              |
-| **Domain**     | integration                                                          |
-| **ADR**        | ADR-020, ADR-040, ADR-099, ADR-108, ADR-109                          |
-| **Terkait**    | KI-003 (via T-025), KI-015, KI-063 (baru, `publishedAt` tidak diisi) |
-| **Depends**    | T-025                                                                |
-| **Read first** | `05-architecture/integration-layer.md`                               |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done |
+| **Domain** | integration |
+| **ADR** | ADR-020, ADR-040, ADR-099, ADR-108, ADR-109 |
+| **Terkait** | KI-003 (via T-025), KI-015, KI-063 (baru, `publishedAt` tidak diisi) |
+| **Depends** | T-025 |
+| **Read first** | `05-architecture/integration-layer.md` |
 
 `/api/webhooks/outstand` masih return 501. Model `OutstandWebhookEvent` sudah ada di schema, `OUTSTAND_WEBHOOK_SECRET` sudah didefinisikan di `src/lib/env.ts` tapi belum dipakai.
 
@@ -590,14 +590,14 @@ formal untuk itu.
 
 ### T-027 · Job runner + Railway Cron
 
-| Field          | Value                                                                                                                                                                                                                                                                     |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**     | ✅ Done (5/5 subtask)                                                                                                                                                                                                                                                     |
-| **Domain**     | platform                                                                                                                                                                                                                                                                  |
-| **ADR**        | ADR-022, ADR-028, ADR-032, ADR-040, ADR-108, ADR-109                                                                                                                                                                                                                      |
-| **Terkait**    | KI-003 (via T-025), KI-015, KI-025 (Railway belum pernah dibuat — job runner ini baru config-as-code, provisioning aktual masih blocked), KI-062 (baru, formula backoff `background-jobs.md` self-contradictory), KI-063 (baru, `PublishingPost.publishedAt` tidak diisi) |
-| **Depends**    | T-025                                                                                                                                                                                                                                                                     |
-| **Read first** | `05-architecture/background-jobs.md` · `06-engineering/deployment-infrastructure.md`                                                                                                                                                                                      |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (5/5 subtask) |
+| **Domain** | platform |
+| **ADR** | ADR-022, ADR-028, ADR-032, ADR-040, ADR-108, ADR-109 |
+| **Terkait** | KI-003 (via T-025), KI-015, KI-025 (Railway belum pernah dibuat — job runner ini baru config-as-code, provisioning aktual masih blocked), KI-062 (baru, formula backoff `background-jobs.md` self-contradictory), KI-063 (baru, `PublishingPost.publishedAt` tidak diisi) |
+| **Depends** | T-025 |
+| **Read first** | `05-architecture/background-jobs.md` · `06-engineering/deployment-infrastructure.md` |
 
 **Selesai (2026-09-17, Elon Backend Engineer → Ridwan Architecture Reviewer 2 putaran → Najwa QA Engineer):** seluruh 5/5 subtask tuntas.
 
@@ -638,12 +638,12 @@ formal untuk itu.
 
 ### T-029 · Publish Now
 
-| Field          | Value                                                                                                            |
-| -------------- | ---------------------------------------------------------------------------------------------------------------- |
-| **Status**     | ✅ Done                                                                                                          |
-| **Domain**     | publishing                                                                                                       |
-| **ADR**        | ADR-047, ADR-039, ADR-049, ADR-059, ADR-074                                                                      |
-| **Depends**    | T-025 (untuk jalur nyata — sementara tetap via `FakeOutstandAdapter`)                                            |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done |
+| **Domain** | publishing |
+| **ADR** | ADR-047, ADR-039, ADR-049, ADR-059, ADR-074 |
+| **Depends** | T-025 (untuk jalur nyata — sementara tetap via `FakeOutstandAdapter`) |
 | **Read first** | `04-ux/key-screen-patterns.md` (KSP-05-F12) · `04-ux/user-flows.md` (UXP-04) · `02-product/roles-permissions.md` |
 
 **Update 2026-08-18 — koreksi:** belum ada di kode (`grep publishNow` nol hasil di `src/`), tapi desainnya **sudah ada** di Claude Design (project "Social Media Management") — catatan lama di sini ("belum ada... maupun di App Prototype") salah dan sudah usang:
@@ -669,13 +669,13 @@ Jadi T-029.4/.5/.6 di bawah **desainnya sudah tersedia** — sisa pekerjaan murn
 
 ### T-030 · Cancel Schedule + dialog konfirmasi
 
-| Field          | Value                                                                                                                                                                  |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**     | ✅ Done — bagian Queue selesai via T-032.4 (2026-08-20); bagian Calendar selesai via T-030.3 (2026-10-13)                                                              |
-| **Domain**     | publishing                                                                                                                                                             |
-| **ADR**        | ADR-049 (Tier 2)                                                                                                                                                       |
-| **Depends**    | T-028 ✅, T-032 ✅ (aksi dipicu dari Queue — selesai), T-033 ✅ (Calendar view selesai 2026-08-28, tapi tidak menambahkan entry point Cancel Schedule — lihat catatan) |
-| **Read first** | `04-ux/key-screen-patterns.md`                                                                                                                                         |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done — bagian Queue selesai via T-032.4 (2026-08-20); bagian Calendar selesai via T-030.3 (2026-10-13) |
+| **Domain** | publishing |
+| **ADR** | ADR-049 (Tier 2) |
+| **Depends** | T-028 ✅, T-032 ✅ (aksi dipicu dari Queue — selesai), T-033 ✅ (Calendar view selesai 2026-08-28, tapi tidak menambahkan entry point Cancel Schedule — lihat catatan) |
+| **Read first** | `04-ux/key-screen-patterns.md` |
 
 **Catatan (2026-08-20):** T-030.1/.2/.3 sudah diimplementasikan penuh sebagai bagian **T-032.4** (lihat catatan di sana) — bukan pekerjaan terpisah. Ditutup untuk konteks Queue; ketiga checkbox di bawah ditandai selesai untuk bagian itu. Reuse `cancelScheduleAction`/`AlertDialog` yang sama untuk Calendar, bukan re-implementasi.
 
@@ -689,12 +689,12 @@ Jadi T-029.4/.5/.6 di bawah **desainnya sudah tersedia** — sisa pekerjaan murn
 
 ### T-031 · Redirect otomatis ke sub-screen tujuan setelah aksi terminal
 
-| Field          | Value                          |
-| -------------- | ------------------------------ |
-| **Status**     | ✅ Done                        |
-| **Domain**     | UI                             |
-| **ADR**        | ADR-054                        |
-| **Depends**    | T-029 ✅, T-032, T-034         |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done |
+| **Domain** | UI |
+| **ADR** | ADR-054 |
+| **Depends** | T-029 ✅, T-032, T-034 |
 | **Read first** | `04-ux/navigation-patterns.md` |
 
 Bukan task besar berdiri sendiri — cukup diselaraskan saat task tujuannya dikerjakan.
@@ -712,13 +712,13 @@ Ketiga screen ini masih placeholder "Scaffold — implementasi fitur di M8".
 
 ### T-032 · Queue management
 
-| Field          | Value                                                                                                                                           |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**     | ✅ Done                                                                                                                                         |
-| **Domain**     | publishing                                                                                                                                      |
-| **ADR**        | ADR-046, ADR-083                                                                                                                                |
-| **Depends**    | T-028 ✅                                                                                                                                        |
-| **Terkait**    | KI-032 (Publish Now dari Queue belum auto-advance — `getDraftAction` belum preload target akun terjadwal)                                       |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done |
+| **Domain** | publishing |
+| **ADR** | ADR-046, ADR-083 |
+| **Depends** | T-028 ✅ |
+| **Terkait** | KI-032 (Publish Now dari Queue belum auto-advance — `getDraftAction` belum preload target akun terjadwal) |
 | **Read first** | `04-ux/key-screen-patterns.md` (KSP-03, amandemen ADR-083) · `05-architecture/domain-model.md` (entity `QueueSlot` sudah dihapus dari baseline) |
 
 Model Prisma `PublishingQueueSlot` sudah ada di schema **tanpa service apapun** — **jangan dipakai** untuk implementasi T-032.2 (ADR-083 menganggapnya deprecated, Queue dihitung langsung dari `PublishingPost`/`PublishingPostTarget`).
@@ -741,13 +741,13 @@ Model Prisma `PublishingQueueSlot` sudah ada di schema **tanpa service apapun** 
 
 ### T-033 · Calendar view
 
-| Field          | Value                                                                                                                                                                                                     |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**     | ✅ Done                                                                                                                                                                                                   |
-| **Domain**     | publishing                                                                                                                                                                                                |
-| **ADR**        | ADR-023 (manual refresh, bukan realtime — **amandemen ADR-094** untuk Calendar), ADR-046, **ADR-090** (Popover klik item, khusus Calendar; komponen dikoreksi **ADR-091** dari HoverCard menjadi Popover) |
-| **Depends**    | T-028 ✅                                                                                                                                                                                                  |
-| **Read first** | `04-ux/key-screen-patterns.md` (KSP-02, direvisi per ADR-090) · `04-ux/navigation-patterns.md` (NP-D15) · `05-architecture/realtime-strategy.md`                                                          |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done |
+| **Domain** | publishing |
+| **ADR** | ADR-023 (manual refresh, bukan realtime — **amandemen ADR-094** untuk Calendar), ADR-046, **ADR-090** (Popover klik item, khusus Calendar; komponen dikoreksi **ADR-091** dari HoverCard menjadi Popover) |
+| **Depends** | T-028 ✅ |
+| **Read first** | `04-ux/key-screen-patterns.md` (KSP-02, direvisi per ADR-090) · `04-ux/navigation-patterns.md` (NP-D15) · `05-architecture/realtime-strategy.md` |
 
 Data kalender **tidak** realtime — pakai manual refresh (ADR-023 membatasi Realtime hanya untuk tabel `notifications`).
 
@@ -789,14 +789,14 @@ Data kalender **tidak** realtime — pakai manual refresh (ADR-023 membatasi Rea
 
 ### T-034 · Publishing History + detail post
 
-| Field          | Value                                                                                                                                                                                                                                                                                                                     |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**     | ✅ Done                                                                                                                                                                                                                                                                                                                   |
-| **Domain**     | publishing                                                                                                                                                                                                                                                                                                                |
-| **ADR**        | ADR-046, ADR-092, ADR-103                                                                                                                                                                                                                                                                                                 |
-| **Depends**    | T-026 ✅ (status akhir datang dari webhook — sudah Done 2026-09-07, tidak lagi memblokir)                                                                                                                                                                                                                                 |
-| **Terkait**    | KI-048 (Resolved 2026-09-08 — App Prototype diwire + desain dikonfirmasi King Rezi), KI-049 (gap `failedAt`/`failureReason`), KI-050 (gap meta author di halaman detail post), KI-051 (Badge shadcn belum ada varian success), KI-052 (Resolved 2026-10-12 — hydration warning `formatRelativeTime` di `HistoryList.tsx`) |
-| **Read first** | `04-ux/key-screen-patterns.md`                                                                                                                                                                                                                                                                                            |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done |
+| **Domain** | publishing |
+| **ADR** | ADR-046, ADR-092, ADR-103 |
+| **Depends** | T-026 ✅ (status akhir datang dari webhook — sudah Done 2026-09-07, tidak lagi memblokir) |
+| **Terkait** | KI-048 (Resolved 2026-09-08 — App Prototype diwire + desain dikonfirmasi King Rezi), KI-049 (gap `failedAt`/`failureReason`), KI-050 (gap meta author di halaman detail post), KI-051 (Badge shadcn belum ada varian success), KI-052 (Resolved 2026-10-12 — hydration warning `formatRelativeTime` di `HistoryList.tsx`) |
+| **Read first** | `04-ux/key-screen-patterns.md` |
 
 Route `/publish/history` dan `/publish/history/[postId]` sudah ada sebagai placeholder.
 
@@ -941,12 +941,12 @@ hydration warning pada `formatRelativeTime` di `HistoryList.tsx`
 
 ### T-035 · Delete Post + dialog konfirmasi
 
-| Field          | Value                          |
-| -------------- | ------------------------------ |
-| **Status**     | ✅ Done (2026-09-10)           |
-| **Domain**     | publishing                     |
-| **ADR**        | ADR-049 (Tier 2)               |
-| **Depends**    | T-022 ✅                       |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (2026-09-10) |
+| **Domain** | publishing |
+| **ADR** | ADR-049 (Tier 2) |
+| **Depends** | T-022 ✅ |
 | **Read first** | `04-ux/key-screen-patterns.md` |
 
 **Scope T-035.3 dipersempit eksplisit oleh King Rezi (2026-09-10, lewat
@@ -1000,13 +1000,13 @@ King Rezi di browser asli kalau ingin memastikan 100%.
 
 ### T-036 · In-app notification + Supabase Realtime
 
-| Field          | Value                                                                                                                                                                                                                                                   |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**     | ✅ Done                                                                                                                                                                                                                                                 |
-| **Domain**     | notification                                                                                                                                                                                                                                            |
-| **ADR**        | ADR-023, ADR-030 (Supabase JWT)                                                                                                                                                                                                                         |
-| **Depends**    | T-026 ✅ (sumber event notifikasi) · T-093 ✅ (accept-invite — butuh ≥2 akun nyata di satu workspace untuk verifikasi notifikasi antar-user, rantai ditetapkan 2026-08-28 saat merencanakan ADR-094; T-093 sudah Done 2026-08-31, tidak lagi memblokir) |
-| **Read first** | `05-architecture/realtime-strategy.md` · `apps/web/src/lib/better-auth/supabase-jwt.ts`                                                                                                                                                                 |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done |
+| **Domain** | notification |
+| **ADR** | ADR-023, ADR-030 (Supabase JWT) |
+| **Depends** | T-026 ✅ (sumber event notifikasi) · T-093 ✅ (accept-invite — butuh ≥2 akun nyata di satu workspace untuk verifikasi notifikasi antar-user, rantai ditetapkan 2026-08-28 saat merencanakan ADR-094; T-093 sudah Done 2026-08-31, tidak lagi memblokir) |
+| **Read first** | `05-architecture/realtime-strategy.md` · `apps/web/src/lib/better-auth/supabase-jwt.ts` |
 
 `Basic Notifications` berstatus **Should Have** di `mvp-definition.md` — ditempatkan di rilis ini karena hasil publish (`post.published` / `post.error`) tidak berguna tanpa cara memberi tahu pengguna. Domain `notification/` masih stub kosong; model `Notification` sudah ada di schema.
 
@@ -1212,13 +1212,13 @@ controlled) benar-benar menutup panel (`sheet-content` hilang dari DOM).
 
 ### T-037 · Perkaya aturan coding di `context/ctx-development.md`
 
-| Field          | Value                                                                                    |
-| -------------- | ---------------------------------------------------------------------------------------- |
-| **Status**     | 🟡 In Progress — kontinu by design, snapshot kedua (T-037.4–.6) sudah dicatat 2026-10-13 |
-| **Domain**     | DX                                                                                       |
-| **ADR**        | ADR-034                                                                                  |
-| **Depends**    | —                                                                                        |
-| **Read first** | `06-engineering/dx-tooling.md` · `context/ctx-development.md`                            |
+| Field | Value |
+| --- | --- |
+| **Status** | 🟡 In Progress — kontinu by design, snapshot kedua (T-037.4–.6) sudah dicatat 2026-10-13 |
+| **Domain** | DX |
+| **ADR** | ADR-034 |
+| **Depends** | — |
+| **Read first** | `06-engineering/dx-tooling.md` · `context/ctx-development.md` |
 
 Berjalan **kontinu** selama rilis ini, bukan sekali selesai: setiap kali konvensi baru muncul dari praktik nyata (bukan teori), catat ke `ctx-development.md` supaya lapisan konteks yang dibaca setiap agent tidak menjadi basi. Prioritas rendah — tidak memblokir rilis.
 
@@ -1243,13 +1243,13 @@ Berjalan **kontinu** selama rilis ini, bukan sekali selesai: setiap kali konvens
 
 ### T-090 · Import Posts dari Social Account (status `Imported`, read-only)
 
-| Field          | Value                                                                                                                                                                                                                    |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Status**     | ✅ Done (5/5 subtask, 2026-10-08)                                                                                                                                                                                        |
-| **Domain**     | publishing                                                                                                                                                                                                               |
-| **ADR**        | ADR-093                                                                                                                                                                                                                  |
-| **Depends**    | T-013.1–.3 ✅ (Connect Account — trigger otomatis; sisa T-013.4 operasional) · T-025 (real adapter, Fake dulu pola ADR-059) · T-034 (History, untuk tampilan lengkap — bagian Calendar bisa jalan duluan tanpa menunggu) |
-| **Read first** | `05-architecture/integration-layer.md` · `05-architecture/background-jobs.md` · `05-architecture/domain-model.md` · `decisions/ADR-093-import-posts-dari-social-account-status-imported-read-only.md`                    |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (5/5 subtask, 2026-10-08) |
+| **Domain** | publishing |
+| **ADR** | ADR-093 |
+| **Depends** | T-013.1–.3 ✅ (Connect Account — trigger otomatis; sisa T-013.4 operasional) · T-025 (real adapter, Fake dulu pola ADR-059) · T-034 (History, untuk tampilan lengkap — bagian Calendar bisa jalan duluan tanpa menunggu) |
+| **Read first** | `05-architecture/integration-layer.md` · `05-architecture/background-jobs.md` · `05-architecture/domain-model.md` · `decisions/ADR-093-import-posts-dari-social-account-status-imported-read-only.md` |
 
 Outstand punya endpoint berbayar `POST /v1/social-accounts/{id}/imports` untuk menarik post yang dibuat langsung di platform sosial (bukan lewat tool kita) — ditemukan saat diskusi Realtime Calendar (2026-08-28), dikerjakan sebagai fitur terpisah (ADR-093). Tiga jalur trigger (otomatis saat connect, periodik cron harian, manual dari Settings) dengan pengaman biaya berlapis karena endpoint ini berbayar — lihat ADR-093 untuk detail lengkap tiap keputusan.
 
@@ -1327,13 +1327,13 @@ Test unit final: 3 kasus baru (resolve lewat owner lookup; owner lookup kosong �
 
 ### T-112 · Wiring `IOutstandAdapter.importPosts`/`fetchImportJobStatus` ke endpoint Outstand sungguhan
 
-| Field          | Value                                                                                                                                                                                                                                       |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**     | ✅ Done (5/5 subtask, 2026-10-09)                                                                                                                                                                                                           |
-| **Domain**     | integration                                                                                                                                                                                                                                 |
-| **ADR**        | ADR-093, ADR-119 (pola stub-throw "throw loud" alih-alih Fake di produksi), ADR-123 (wiring sungguhan — breaking change signature `fetchImportJobStatus` + pemetaan status `partial`)                                                       |
-| **Terkait**    | T-090 ✅ (seluruh plumbing aplikasi — DB, job trigger, UI — sudah selesai dan terverifikasi; task ini HANYA menyisakan panggilan HTTP sungguhannya)                                                                                         |
-| **Depends**    | `OUTSTAND_API_KEY` (sudah tersedia) · verifikasi wire-format `POST /v1/social-accounts/{id}/imports` terhadap OpenAPI spec resmi Outstand (belum pernah dilakukan — beda dari endpoint lain di `RealOutstandAdapter` yang sudah)            |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (5/5 subtask, 2026-10-09) |
+| **Domain** | integration |
+| **ADR** | ADR-093, ADR-119 (pola stub-throw "throw loud" alih-alih Fake di produksi), ADR-123 (wiring sungguhan — breaking change signature `fetchImportJobStatus` + pemetaan status `partial`) |
+| **Terkait** | T-090 ✅ (seluruh plumbing aplikasi — DB, job trigger, UI — sudah selesai dan terverifikasi; task ini HANYA menyisakan panggilan HTTP sungguhannya) |
+| **Depends** | `OUTSTAND_API_KEY` (sudah tersedia) · verifikasi wire-format `POST /v1/social-accounts/{id}/imports` terhadap OpenAPI spec resmi Outstand (belum pernah dilakukan — beda dari endpoint lain di `RealOutstandAdapter` yang sudah) |
 | **Read first** | `05-architecture/integration-layer.md` · `decisions/ADR-093-import-posts-dari-social-account-status-imported-read-only.md` · `apps/web/src/lib/adapters/outstand/real-outstand-adapter.ts` (docstring `importPosts`/`fetchImportJobStatus`) |
 
 Ditemukan King Rezi (2026-10-08) saat testing manual "Sync Now" lewat browser+DB
@@ -1483,13 +1483,13 @@ konsisten semangat ADR-123, bukan amandemen keputusannya).
 
 ### T-113 · Simpan `outstandPostId` untuk post hasil Import supaya comment-nya ikut ter-sync ke Engage Inbox
 
-| Field          | Value                                                                                                                                                                                                                                                                                                                         |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**     | ✅ Done (4/4 subtask, 2026-10-15)                                                                                                                                                                                                                                                                                             |
-| **Domain**     | integration                                                                                                                                                                                                                                                                                                                   |
-| **ADR**        | — (bug fix, melengkapi desain yang sudah ada di ADR-093/ADR-113/ADR-123, bukan mengubah baseline)                                                                                                                                                                                                                             |
-| **Terkait**    | KI-090, T-090, T-051 (`SyncCommentsUseCase`), T-112                                                                                                                                                                                                                                                                           |
-| **Depends**    | — (seluruh plumbing Import Posts & comment sync sudah selesai; ini murni mengisi satu field yang hilang)                                                                                                                                                                                                                      |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (4/4 subtask, 2026-10-15) |
+| **Domain** | integration |
+| **ADR** | — (bug fix, melengkapi desain yang sudah ada di ADR-093/ADR-113/ADR-123, bukan mengubah baseline) |
+| **Terkait** | KI-090, T-090, T-051 (`SyncCommentsUseCase`), T-112 |
+| **Depends** | — (seluruh plumbing Import Posts & comment sync sudah selesai; ini murni mengisi satu field yang hilang) |
 | **Read first** | `apps/web/src/lib/adapters/outstand/real-outstand-adapter.ts` (`fetchImportJobStatus`, docstring `GET /v1/posts`) · `apps/web/src/lib/repositories/publishing/publishing.repository.ts` (`upsertImportedPosts`, `listSyncablePostsByConnectedAccount`) · `apps/web/src/domains/engagement/services/sync-comments.use-case.ts` |
 
 Promosi dari **KI-090** (ditemukan King Rezi 2026-10-15). Comment pada post
@@ -1604,13 +1604,13 @@ lingkungan dev, perlu diselidiki terpisah kalau relevan ke depan.
 
 ### T-114 · Backfill otomatis `outstandPostId` untuk post Imported lama saat Sync Now/periodik berjalan
 
-| Field          | Value                                                                                                                                                                                                                                                                                   |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**     | ✅ Done (5/5 subtask, 2026-10-15)                                                                                                                                                                                                                                                       |
-| **Domain**     | integration                                                                                                                                                                                                                                                                             |
-| **ADR**        | — (perluasan T-113, bukan perubahan baseline)                                                                                                                                                                                                                                           |
-| **Terkait**    | T-113, KI-090, T-090, T-051                                                                                                                                                                                                                                                             |
-| **Depends**    | T-113 ✅                                                                                                                                                                                                                                                                                |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (5/5 subtask, 2026-10-15) |
+| **Domain** | integration |
+| **ADR** | — (perluasan T-113, bukan perubahan baseline) |
+| **Terkait** | T-113, KI-090, T-090, T-051 |
+| **Depends** | T-113 ✅ |
 | **Read first** | `apps/web/src/domains/publishing/services/import-posts-trigger.use-case.ts` (`runImportSync`) · `apps/web/src/lib/repositories/publishing/upsert-imported-posts.ts` · `apps/web/src/lib/adapters/outstand/real-outstand-adapter.ts` (`fetchImportJobStatus`, docstring `GET /v1/posts`) |
 
 T-113 (2026-10-15) hanya memperbaiki `outstandPostId` untuk post Imported
@@ -1707,13 +1707,13 @@ menjangkau seluruh post, data-nya saja yang kosong.
 
 ### T-115 · Wiring cron harian Import Posts Trigger periodik (`triggerPeriodicForAccounts`) ke job runner produksi
 
-| Field          | Value                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**     | 🟡 In Progress (4/5, sisa T-115.5)                                                                                                                                                                                                                                                                                                                                                                                                       |
-| **Domain**     | integration                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| **ADR**        | — (menuntaskan desain yang SUDAH Accepted di ADR-093 poin 7, bukan keputusan baru)                                                                                                                                                                                                                                                                                                                                                       |
-| **Terkait**    | T-090, T-048 (pola fan-out JOB-04 dijadikan referensi langsung), T-112, KI-088                                                                                                                                                                                                                                                                                                                                                           |
-| **Depends**    | T-090 ✅, T-112 ✅ (plumbing Import Posts manual/auto sudah lengkap & terverifikasi; task ini murni menyambung jalur periodik yang sejak awal memang didesain tapi belum pernah di-wire)                                                                                                                                                                                                                                                 |
+| Field | Value |
+| --- | --- |
+| **Status** | 🟡 In Progress (4/5, sisa T-115.5) |
+| **Domain** | integration |
+| **ADR** | — (menuntaskan desain yang SUDAH Accepted di ADR-093 poin 7, bukan keputusan baru) |
+| **Terkait** | T-090, T-048 (pola fan-out JOB-04 dijadikan referensi langsung), T-112, KI-088 |
+| **Depends** | T-090 ✅, T-112 ✅ (plumbing Import Posts manual/auto sudah lengkap & terverifikasi; task ini murni menyambung jalur periodik yang sejak awal memang didesain tapi belum pernah di-wire) |
 | **Read first** | `apps/web/src/domains/publishing/services/import-posts-trigger.use-case.ts` (`triggerPeriodicForAccounts`, `runImportSync`) · `apps/web/src/domains/analytics/services/enqueue-analytics-sync.ts` (pola fan-out `executeIfDue` yang akan di-reuse) · `apps/web/src/app/api/jobs/run/route.ts` (composition root tempat handler didaftarkan) · `decisions/ADR-093-import-posts-dari-social-account-status-imported-read-only.md` (poin 7) |
 
 Ditemukan King Rezi (2026-10-16) lewat diskusi "apakah post native Facebook
@@ -1802,13 +1802,13 @@ bahwa job jalan. Cron menit memanggil `executeIfDue()`.
 
 ### T-091 · Post `Published`/`Failed` jadi read-only (tidak bisa dibuka ke Draft Editor)
 
-| Field          | Value                                                                                                                        |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| **Status**     | ✅ Done — T-091.1 selesai (2026-10-13), T-091.2 selesai (2026-10-13)                                                         |
-| **Domain**     | publishing                                                                                                                   |
-| **ADR**        | — (bug-fix, tidak mengubah baseline — ditemukan bersamaan sesi ADR-093 tapi sengaja ditrack terpisah, lihat ADR-093 Context) |
-| **Depends**    | T-033.8 ✅ (Popover, tempat celah ini ditemukan)                                                                             |
-| **Read first** | `apps/web/src/app/(app)/publish/calendar/components/CalendarPostPopover.tsx`                                                 |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done — T-091.1 selesai (2026-10-13), T-091.2 selesai (2026-10-13) |
+| **Domain** | publishing |
+| **ADR** | — (bug-fix, tidak mengubah baseline — ditemukan bersamaan sesi ADR-093 tapi sengaja ditrack terpisah, lihat ADR-093 Context) |
+| **Depends** | T-033.8 ✅ (Popover, tempat celah ini ditemukan) |
+| **Read first** | `apps/web/src/app/(app)/publish/calendar/components/CalendarPostPopover.tsx` |
 
 Ditemukan saat diskusi ADR-093 (2026-08-28): post berstatus `Published`/`Failed` — dikirim lewat tool kita sendiri, **bukan** hasil import — saat ini masih bisa dibuka ke Draft Editor lewat CTA "Buka Draft Editor" di Popover Calendar (`CalendarPostPopover.tsx:174-182`, tidak ada pengecualian status). Post yang sudah live di platform sosial seharusnya tidak bisa diedit lagi dari sini.
 
@@ -1825,12 +1825,12 @@ Ditemukan saat diskusi ADR-093 (2026-08-28): post berstatus `Published`/`Failed`
 
 ### T-092 · Realtime Calendar/Queue/Drafts/History via Supabase Realtime
 
-| Field          | Value                                                                                                                                                                                                                              |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**     | ✅ Done                                                                                                                                                                                                                            |
-| **Domain**     | publishing                                                                                                                                                                                                                         |
-| **ADR**        | ADR-094 (amandemen RT-D01/RT-D02)                                                                                                                                                                                                  |
-| **Depends**    | **T-036** (hard dependency — wiring generic Supabase Realtime + Better Auth↔Supabase JWT bridge dibangun di sana dulu, task ini reuse) · T-034 (khusus T-092.6, History belum dibangun)                                            |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done |
+| **Domain** | publishing |
+| **ADR** | ADR-094 (amandemen RT-D01/RT-D02) |
+| **Depends** | **T-036** (hard dependency — wiring generic Supabase Realtime + Better Auth↔Supabase JWT bridge dibangun di sana dulu, task ini reuse) · T-034 (khusus T-092.6, History belum dibangun) |
 | **Read first** | `05-architecture/realtime-strategy.md` · `05-architecture/database-strategy.md` (RLS Policy Pattern) · `05-architecture/auth-architecture.md` · `decisions/ADR-094-perluasan-supabase-realtime-publishing-posts-granular-patch.md` |
 
 Lahir dari diskusi King Rezi soal kolaborasi tim ala Buffer (user A ubah draft/schedule, user B lihat langsung tanpa refresh manual) — dirancang terpisah dari fitur Import Posts (T-090/T-091, ADR-093). Channel per-workspace (`publishing_posts:{workspaceId}`, event `INSERT`/`UPDATE`, filter `workspace_id`), strategi update **granular client-side patch** (bukan full `router.refresh()`) — lihat ADR-094 untuk detail lengkap tiap keputusan.
@@ -2059,13 +2059,13 @@ menjadi syaratnya (T-092.3–T-092.6) — **KI-057 Resolved**, lihat
 
 ### T-104 · Konsistensi kriteria status Drafts — `listDrafts` vs granular patch Realtime
 
-| Field          | Value                                                                                                                        |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| **Status**     | ✅ Done                                                                                                                      |
-| **Domain**     | publishing                                                                                                                   |
-| **ADR**        | ADR-094 (kriteria tampilan Drafts)                                                                                           |
-| **Terkait**    | T-092.5 (granular patch Realtime — Drafts, tempat gap ini ditemukan)                                                         |
-| **Depends**    | —                                                                                                                            |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done |
+| **Domain** | publishing |
+| **ADR** | ADR-094 (kriteria tampilan Drafts) |
+| **Terkait** | T-092.5 (granular patch Realtime — Drafts, tempat gap ini ditemukan) |
+| **Depends** | — |
 | **Read first** | `decisions/ADR-094-perluasan-supabase-realtime-publishing-posts-granular-patch.md` · `tickets/v02-publishing-mvp.md` § T-092 |
 
 Ditemukan saat implementasi **T-092.5** (granular patch Realtime — Drafts)
@@ -2107,13 +2107,13 @@ task/subtask formal baru di sini.
 
 ### T-106 · Hapus `FakeOutstandAdapter` dari jalur produksi
 
-| Field          | Value                                                                                                                                                                                                                                            |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Status**     | ✅ Done (2026-09-25) — T-106.5 menutup sisa data Fake/mock                                                                                                                                                                                       |
-| **Domain**     | integration                                                                                                                                                                                                                                      |
-| **ADR**        | ADR-119 (amandemen ADR-059)                                                                                                                                                                                                                      |
-| **Terkait**    | T-025 ✅ (real adapter sudah ada) · T-028 (factory + Fake awal)                                                                                                                                                                                  |
-| **Depends**    | T-025 ✅ · `OUTSTAND_API_KEY` terisi di setiap proses yang menjalankan app (lokal, Railway staging, cron)                                                                                                                                        |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (2026-09-25) — T-106.5 menutup sisa data Fake/mock |
+| **Domain** | integration |
+| **ADR** | ADR-119 (amandemen ADR-059) |
+| **Terkait** | T-025 ✅ (real adapter sudah ada) · T-028 (factory + Fake awal) |
+| **Depends** | T-025 ✅ · `OUTSTAND_API_KEY` terisi di setiap proses yang menjalankan app (lokal, Railway staging, cron) |
 | **Read first** | `decisions/ADR-119-hapus-fake-outstand-adapter-wajib-api-key.md` · `decisions/ADR-059-fake-outstandadapter-persistensi-nyata-schedule-tanpa-kredensial-outstand-asli.md` · `apps/web/src/lib/adapters/outstand/index.ts` · `AGENTS.md` aturan 19 |
 
 King Rezi meminta (2026-09-25) `FakeOutstandAdapter` dihilangkan dari jalur
@@ -2147,14 +2147,14 @@ memakai double lokal di file tes (bukan singleton Fake). Rule 19 `AGENTS.md`
 
 ### T-107 · Isi `PublishingPost.publishedAt`/`failedAt`/`failureReason` di jalur mark outcome
 
-| Field          | Value                                                                                                                                                                                          |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**     | ✅ Done (2026-09-28)                                                                                                                                                                           |
-| **Domain**     | publishing                                                                                                                                                                                     |
-| **ADR**        | —                                                                                                                                                                                              |
-| **Depends**    | T-027 ✅, T-029 ✅, T-034 ✅                                                                                                                                                                   |
-| **Read first** | `05-architecture/domain-model.md` · `apps/web/src/domains/publishing/repositories/publishing.repository.ts` (`markPostPublished`/`markPostFailed`)                                             |
-| **Ditemukan**  | KI-049 (2026-09-08, Ridwan Architecture Reviewer, review T-034.1) + KI-063 (2026-09-17, Najwa QA Engineer, verifikasi T-027) — digabung satu task karena root cause & lokasi kode sama persis. |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (2026-09-28) |
+| **Domain** | publishing |
+| **ADR** | — |
+| **Depends** | T-027 ✅, T-029 ✅, T-034 ✅ |
+| **Read first** | `05-architecture/domain-model.md` · `apps/web/src/domains/publishing/repositories/publishing.repository.ts` (`markPostPublished`/`markPostFailed`) |
+| **Ditemukan** | KI-049 (2026-09-08, Ridwan Architecture Reviewer, review T-034.1) + KI-063 (2026-09-17, Najwa QA Engineer, verifikasi T-027) — digabung satu task karena root cause & lokasi kode sama persis. |
 
 **Gap:** kolom `publishedAt`/`failedAt`/`failureReason` ada di schema Prisma `PublishingPost` tapi tidak pernah ditulis — `markPostPublished` hanya meng-update `status`, begitu juga `markPostFailed`. UI History punya fallback (`item.publishedAt ?? item.updatedAt`) jadi tidak berdampak visual sekarang, tapi data historis kosong permanen untuk seluruh post yang sudah tayang/gagal. Pesan error final per akun tetap ada lewat `HistoryItemTargetRecord.error` (KI-049 catat ini sebagai sumber data yang benar untuk sekarang) — task ini tidak mengubah itu, hanya mengisi field level-post yang selama ini kosong.
 
@@ -2182,14 +2182,14 @@ independen dari T-107.
 
 ### T-108 · Validasi Schedule tidak boleh ke waktu yang sudah lewat pada tanggal hari ini
 
-| Field          | Value                                                                                                               |
-| -------------- | ------------------------------------------------------------------------------------------------------------------- |
-| **Status**     | ✅ Done (2026-09-28)                                                                                                |
-| **Domain**     | publishing · UI                                                                                                     |
-| **ADR**        | —                                                                                                                   |
-| **Depends**    | T-100 ✅ (Draft Editor `Modal.tsx` saat ini)                                                                        |
-| **Read first** | `apps/web/src/app/(app)/components/draft-editor/Modal.tsx` (step Schedule)                                          |
-| **Ditemukan**  | KI-044 (2026-09-03, Najwa QA Engineer, verifikasi T-100.3) — sudah ada sejak sebelum migrasi shadcn, bukan regresi. |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (2026-09-28) |
+| **Domain** | publishing · UI |
+| **ADR** | — |
+| **Depends** | T-100 ✅ (Draft Editor `Modal.tsx` saat ini) |
+| **Read first** | `apps/web/src/app/(app)/components/draft-editor/Modal.tsx` (step Schedule) |
+| **Ditemukan** | KI-044 (2026-09-03, Najwa QA Engineer, verifikasi T-100.3) — sudah ada sejak sebelum migrasi shadcn, bukan regresi. |
 
 **Gap:** tidak ada validasi yang mencegah user men-Schedule post ke waktu yang sudah lewat pada tanggal hari ini (mis. jadwalkan jam 08:00 padahal sekarang sudah jam 11:48) — post berhasil masuk Queue tanpa penolakan/warning apa pun.
 
@@ -2208,14 +2208,14 @@ PASS (tidak regresi), boundary case PASS.
 
 ### T-111 · Restrukturisasi layout preview media post asli (History Detail & Post asal Engage)
 
-| Field          | Value                                                                                                                                                                  |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**     | ✅ Done (8/8 subtask, 2026-10-07) — restrukturisasi layout preview media (desktop + mobile, History Detail & Post asal Engage) tuntas total, menutup KI-083 sepenuhnya |
-| **Domain**     | publishing · engagement · UI                                                                                                                                           |
-| **ADR**        | —                                                                                                                                                                      |
-| **Depends**    | T-034.3 ✅, T-056 ✅, KI-082 Resolved (PR #144, wajib merge ke `staging` dulu sebelum T-111 dimulai — konfirmasi King Rezi)                                            |
-| **Read first** | `04-ux/key-screen-patterns.md` · Claude Design project "Social Media Management" (`templates/publish-history-detail.html`, `templates/engage-inbox.html`)              |
-| **Ditemukan**  | KI-083 (2026-10-06, King Rezi, setelah review hasil KI-082) — Promoted to T-111.                                                                                       |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (8/8 subtask, 2026-10-07) — restrukturisasi layout preview media (desktop + mobile, History Detail & Post asal Engage) tuntas total, menutup KI-083 sepenuhnya |
+| **Domain** | publishing · engagement · UI |
+| **ADR** | — |
+| **Depends** | T-034.3 ✅, T-056 ✅, KI-082 Resolved (PR #144, wajib merge ke `staging` dulu sebelum T-111 dimulai — konfirmasi King Rezi) |
+| **Read first** | `04-ux/key-screen-patterns.md` · Claude Design project "Social Media Management" (`templates/publish-history-detail.html`, `templates/engage-inbox.html`) |
+| **Ditemukan** | KI-083 (2026-10-06, King Rezi, setelah review hasil KI-082) — Promoted to T-111. |
 
 **Gap:** fix KI-082 (lihat di atas) menambahkan thumbnail media di kedua lokasi, tapi dalam kotak crop kecil berukuran tetap (`h-30 w-full object-contain` di History Detail; `size-11 object-contain` di Post asal Engage). King Rezi menilai ini belum merepresentasikan post asli dengan baik — media perlu tampil dengan **lebar dan tinggi sesuai ukuran aslinya**, menyerupai tampilan post di platform sosial medianya, bukan dipaksa masuk ke kotak kecil.
 
@@ -2297,14 +2297,14 @@ scope T-111 yang disetujui King Rezi):**
 
 ### T-125 · Default view Calendar jadi Monthly/Bulan
 
-| Field          | Value                                                                                                             |
-| -------------- | ----------------------------------------------------------------------------------------------------------------- |
-| **Status**     | ✅ Done (2026-10-19)                                                                                              |
-| **Domain**     | publishing · UI                                                                                                   |
-| **ADR**        | — (ubah default, bukan baseline — kedua view `week`/`month` sudah didesain & diimplementasikan penuh sejak T-033) |
-| **Terkait**    | T-033 (Calendar view)                                                                                             |
-| **Depends**    | T-033 ✅                                                                                                          |
-| **Read first** | `apps/web/src/domains/publishing/services/parse-calendar-view-state.ts`                                           |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (2026-10-19) |
+| **Domain** | publishing · UI |
+| **ADR** | — (ubah default, bukan baseline — kedua view `week`/`month` sudah didesain & diimplementasikan penuh sejak T-033) |
+| **Terkait** | T-033 (Calendar view) |
+| **Depends** | T-033 ✅ |
+| **Read first** | `apps/web/src/domains/publishing/services/parse-calendar-view-state.ts` |
 
 Diminta King Rezi (2026-10-19): saat buka `/publish/calendar` tanpa query
 param `?view=`, tampilan default yang muncul sekarang `week` (ADR-046,
@@ -2319,13 +2319,13 @@ logic), tidak melalui evaluasi delegasi subagent (ADR-063).
 
 ### T-126 · Imported posts tampil di Publish → History
 
-| Field          | Value                                                                                                                                                                                                                                            |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Status**     | ✅ Done (2026-10-19)                                                                                                                                                                                                                             |
-| **Domain**     | publishing · UI                                                                                                                                                                                                                                  |
-| **ADR**        | ADR-093 (status `Imported`, "tampil di Calendar & History" — bagian History belum pernah dieksekusi)                                                                                                                                             |
-| **Terkait**    | T-090 (Imported — Calendar sudah ditampilkan, T-090 poin 6; History sengaja tetap dikecualikan), T-034 (History)                                                                                                                                 |
-| **Depends**    | T-090 ✅                                                                                                                                                                                                                                         |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (2026-10-19) |
+| **Domain** | publishing · UI |
+| **ADR** | ADR-093 (status `Imported`, "tampil di Calendar & History" — bagian History belum pernah dieksekusi) |
+| **Terkait** | T-090 (Imported — Calendar sudah ditampilkan, T-090 poin 6; History sengaja tetap dikecualikan), T-034 (History) |
+| **Depends** | T-090 ✅ |
 | **Read first** | `apps/web/src/domains/publishing/services/publishing.service.ts` (`HISTORY_TERMINAL_STATUSES`, `listHistory`) · `apps/web/src/app/(app)/publish/history/history-status.ts` · Claude Design project "Postific" (`templates/publish-history.html`) |
 
 Diminta King Rezi (2026-10-19): post berstatus `Imported` (post native yang
@@ -2360,14 +2360,14 @@ selalu punya `publishedAt`), belum dikunci King Rezi — perlu
 
 ### T-128 · Default view Home & Analyze jadi Monthly/Bulan
 
-| Field          | Value                                                                                                                         |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| **Status**     | ✅ Done (2026-10-19)                                                                                                          |
-| **Domain**     | analytics · UI                                                                                                                |
-| **ADR**        | — (ubah default, bukan baseline — kedua period `weekly`/`monthly` sudah didesain & diimplementasikan penuh sejak T-042/T-043) |
-| **Terkait**    | T-125 (pola sama untuk Calendar), T-042.3–T-042.5 (Dashboard Home), T-043–T-047 (Analyze)                                     |
-| **Depends**    | T-042 ✅, T-043 ✅                                                                                                            |
-| **Read first** | `apps/web/src/app/(app)/page.tsx`, `apps/web/src/app/(app)/analyze/page.tsx`                                                  |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (2026-10-19) |
+| **Domain** | analytics · UI |
+| **ADR** | — (ubah default, bukan baseline — kedua period `weekly`/`monthly` sudah didesain & diimplementasikan penuh sejak T-042/T-043) |
+| **Terkait** | T-125 (pola sama untuk Calendar), T-042.3–T-042.5 (Dashboard Home), T-043–T-047 (Analyze) |
+| **Depends** | T-042 ✅, T-043 ✅ |
+| **Read first** | `apps/web/src/app/(app)/page.tsx`, `apps/web/src/app/(app)/analyze/page.tsx` |
 
 Diminta King Rezi (2026-10-19): saat buka halaman Home (`/`) dan Analyze
 (`/analyze`), selector rentang waktu default yang muncul sekarang `weekly`
@@ -2386,14 +2386,14 @@ kategorinya seperti T-125, tidak melalui evaluasi delegasi subagent (ADR-063).
 
 ### T-129 · Imported posts ikut dihitung di Analyze
 
-| Field          | Value                                                                                                                                      |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Status**     | ✅ Done (2026-10-19) — scope Analyze (T-129.1) saja. Follow-up Home dipindah jadi KI-093/T-130 (`known-issues.md`), lihat catatan di bawah |
-| **Domain**     | publishing · analytics                                                                                                                     |
-| **ADR**        | — (membalik keputusan sesi T-126/koreksi PR 183, bukan baseline arsitektur)                                                                |
-| **Terkait**    | T-126 (History menampilkan Imported — sumber keputusan sebelumnya yang dibalik di sini), T-090/ADR-093 (status `Imported`)                 |
-| **Depends**    | T-126 ✅                                                                                                                                   |
-| **Read first** | `apps/web/src/domains/publishing/services/publishing.service.ts` (`HISTORY_TERMINAL_STATUSES`, `getPostPerformance`)                       |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (2026-10-19) — scope Analyze (T-129.1) saja. Follow-up Home dipindah jadi KI-093/T-130 (`known-issues.md`), lihat catatan di bawah |
+| **Domain** | publishing · analytics |
+| **ADR** | — (membalik keputusan sesi T-126/koreksi PR 183, bukan baseline arsitektur) |
+| **Terkait** | T-126 (History menampilkan Imported — sumber keputusan sebelumnya yang dibalik di sini), T-090/ADR-093 (status `Imported`) |
+| **Depends** | T-126 ✅ |
+| **Read first** | `apps/web/src/domains/publishing/services/publishing.service.ts` (`HISTORY_TERMINAL_STATUSES`, `getPostPerformance`) |
 
 King Rezi bertanya (2026-10-19) kenapa post `Imported` tidak muncul di Home
 dan Analyze. Investigasi menemukan dua akar masalah berbeda:
@@ -2429,13 +2429,13 @@ Known Issue terbuka, bukan subtask di tiket ini.
 
 ### T-131 · Bedakan request body Import Posts per trigger (cron harian / connect akun / manual Settings)
 
-| Field          | Value                                                                                                                                                                                                                                                                                                                                                                       |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**     | ✅ Done (5/5 subtask)                                                                                                                                                                                                                                                                                                                                                       |
-| **Domain**     | publishing                                                                                                                                                                                                                                                                                                                                                                  |
-| **ADR**        | — (parameter tuning atas desain existing ADR-093 poin 5/7/9, bukan keputusan arsitektur baru)                                                                                                                                                                                                                                                                               |
-| **Terkait**    | T-090, T-112, T-115 (tiga entry point `ImportPostsTriggerUseCase` yang parameternya diubah di sini), T-132, T-133                                                                                                                                                                                                                                                           |
-| **Depends**    | T-115.1–.4 ✅ (sisa T-115.5 tidak memblokir; cron sudah wired ke job runner produksi; tiket ini murni mengubah nilai `since`/`until`/`limit` masing-masing trigger, bukan wiring baru)                                                                                                                                                                                      |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (5/5 subtask) |
+| **Domain** | publishing |
+| **ADR** | — (parameter tuning atas desain existing ADR-093 poin 5/7/9, bukan keputusan arsitektur baru) |
+| **Terkait** | T-090, T-112, T-115 (tiga entry point `ImportPostsTriggerUseCase` yang parameternya diubah di sini), T-132, T-133 |
+| **Depends** | T-115.1–.4 ✅ (sisa T-115.5 tidak memblokir; cron sudah wired ke job runner produksi; tiket ini murni mengubah nilai `since`/`until`/`limit` masing-masing trigger, bukan wiring baru) |
 | **Read first** | `apps/web/src/domains/publishing/services/import-posts-trigger.use-case.ts` (`triggerAuto`, `triggerPeriodicForAccounts`, `executeQueuedPeriodicImport`, `triggerManual`, `periodicImportSince`, `defaultSince`, `DEFAULT_IMPORT_LOOKBACK_DAYS`, `DEFAULT_IMPORT_LIMIT`) · `decisions/ADR-093-import-posts-dari-social-account-status-imported-read-only.md` (poin 5, 7, 9) |
 
 **Konteks (diskusi King Rezi, 2026-10-20):** ketiga entry point Import Posts
@@ -2445,11 +2445,11 @@ Outstand (`since`/`until`/`limit`) identik di ketiganya, bedanya cuma cara
 `since` dihitung. King Rezi ingin ketiganya benar-benar berbeda kebijakan,
 dikonfirmasi lewat `AskUserQuestion`:
 
-| Trigger                | `since` baru                                                                                                                                                                                 | `until` | `limit` baru    |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | --------------- |
-| Cron harian            | **Mana yang lebih jauh ke belakang** antara watermark terakhir dan 24 jam lalu (pengaman anti-gap — kalau cron sempat gagal/terlewat, tetap mengejar dari watermark, bukan terpotong 24 jam) | now     | 100 (tetap)     |
-| Saat connect akun      | 1 tahun lalu (dari 90 hari)                                                                                                                                                                  | now     | 1000 (dari 100) |
-| Manual tombol Settings | watermark terakhir (tetap) — default 1 tahun kalau akun belum pernah sync (ikut baris di atas, bukan 90 hari lagi)                                                                           | now     | 1000 (dari 100) |
+| Trigger | `since` baru | `until` | `limit` baru |
+| --- | --- | --- | --- |
+| Cron harian | **Mana yang lebih jauh ke belakang** antara watermark terakhir dan 24 jam lalu (pengaman anti-gap — kalau cron sempat gagal/terlewat, tetap mengejar dari watermark, bukan terpotong 24 jam) | now | 100 (tetap) |
+| Saat connect akun | 1 tahun lalu (dari 90 hari) | now | 1000 (dari 100) |
+| Manual tombol Settings | watermark terakhir (tetap) — default 1 tahun kalau akun belum pernah sync (ikut baris di atas, bukan 90 hari lagi) | now | 1000 (dari 100) |
 
 **Catatan biaya (perlu diverifikasi saat implementasi):** endpoint
 `POST /v1/social-accounts/{id}/imports` ditandai "BERBAYAR" di ADR-093,
@@ -2470,13 +2470,13 @@ dikonfirmasi ke Outstand.
 
 ### T-132 · Klasifikasi jenis konten (Story/Reel/Feed) hasil Import Posts via Outstand Analytics
 
-| Field          | Value                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Status**     | ✅ Selesai (2026-10-20)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| **Domain**     | publishing · integration                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| **ADR**        | **ADR-135** (Accepted) — perluasan kontrak ACL `IOutstandAdapter.fetchPostMetrics`/`FetchPostMetricsResult` (AGENTS.md #2, perubahan shape kontrak publik domain)                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| **Terkait**    | T-090, T-041 (gap `FetchPostMetricsResult` sudah tercatat sejak redesain 2026-08-26, follow-up ini belum pernah dikerjakan), T-131, T-133                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| **Depends**    | — (independen dari T-131 — bisa paralel; T-133 butuh tiket ini selesai dulu)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Selesai (2026-10-20) |
+| **Domain** | publishing · integration |
+| **ADR** | **ADR-135** (Accepted) — perluasan kontrak ACL `IOutstandAdapter.fetchPostMetrics`/`FetchPostMetricsResult` (AGENTS.md #2, perubahan shape kontrak publik domain) |
+| **Terkait** | T-090, T-041 (gap `FetchPostMetricsResult` sudah tercatat sejak redesain 2026-08-26, follow-up ini belum pernah dikerjakan), T-131, T-133 |
+| **Depends** | — (independen dari T-131 — bisa paralel; T-133 butuh tiket ini selesai dulu) |
 | **Read first** | `packages/shared/src/contracts/outstand-adapter.ts` (`FetchPostMetricsResult`, baris 393-416 — baca komentar gap-nya dulu) · `packages/shared/src/enums.ts` (`ContentFormat` — `Post`/`Reel`/`Story`/`Pin` SUDAH ada, tidak perlu enum baru) · `apps/web/src/lib/adapters/outstand/real-outstand-adapter.ts` (`fetchPostMetrics`) · `apps/web/src/lib/repositories/publishing/upsert-imported-posts.ts` (`targetCreateFields`, baris 327-338 — hardcode `contentFormat: ContentFormat.Post`) · `apps/web/src/domains/publishing/services/backfill-outstand-post-ids.use-case.ts` (pola best-effort T-114 yang direuse di sini) |
 
 **Konteks (investigasi 2026-10-20, dikonfirmasi King Rezi):** endpoint
@@ -2526,13 +2526,13 @@ bug.
 
 ### T-133 · Backfill retroaktif Import Posts lama + verifikasi dukungan resmi Import per platform
 
-| Field          | Value                                                                                                                                                                                                                            |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**     | ✅ Done — T-133.2/.3 dieksekusi dan T-133.4 diverifikasi browser (2026-10-23); Pinterest keterbatasan eksplisit (T-133.1)                                                                                                        |
-| **Domain**     | publishing · integration                                                                                                                                                                                                         |
-| **ADR**        | —                                                                                                                                                                                                                                |
-| **Terkait**    | T-131, T-132, T-114 (pola backfill existing direuse untuk migrasi satu-kali), T-130/T-134/T-135/T-136 (blocker, lihat catatan di bawah)                                                                                          |
-| **Depends**    | T-131 ✅ (selesai), T-132 ✅ (selesai)                                                                                                                                                                                           |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done — T-133.2/.3 dieksekusi dan T-133.4 diverifikasi browser (2026-10-23); Pinterest keterbatasan eksplisit (T-133.1) |
+| **Domain** | publishing · integration |
+| **ADR** | — |
+| **Terkait** | T-131, T-132, T-114 (pola backfill existing direuse untuk migrasi satu-kali), T-130/T-134/T-135/T-136 (blocker, lihat catatan di bawah) |
+| **Depends** | T-131 ✅ (selesai), T-132 ✅ (selesai) |
 | **Read first** | `apps/web/src/domains/publishing/services/backfill-outstand-post-ids.use-case.ts` (T-114, pola migrasi satu-kali yang direuse) · `apps/web/src/domains/publishing/services/import-posts-trigger.use-case.ts` · hasil T-131/T-132 |
 
 **Konteks:** dua gap yang perlu dibereskan untuk akun yang SUDAH terhubung
@@ -2640,13 +2640,13 @@ ulang — tidak ada pekerjaan kode tersisa untuk membuka blocker ini.
 
 ### T-142 · Bug 🔴: History mengelompokkan, mengurutkan, dan menjam kartu memakai `updatedAt` (kolom audit), bukan `publishedAt`
 
-| Field          | Value                                                                                                                                                                                                                                                                                                                                                                             |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**     | ✅ Done (PR 193) — keputusan produk T-142.1 (2026-10-23); T-142.2/T-142.3 digugurkan; verifikasi browser oleh King Rezi 2026-10-23                                                                                                                                                                                                                                                |
-| **Domain**     | publishing · UI                                                                                                                                                                                                                                                                                                                                                                   |
-| **ADR**        | tidak perlu (T-142.3 gugur): hanya mengganti kolom kunci, bukan baseline arsitektur                                                                                                                                                                                                                                                                                               |
-| **Terkait**    | ADR-093 (Imported tampil di History), T-034 (History), T-133 (backfill 1 tahun yang memunculkan bug), T-143 / KI-102 (import periodik, menambah baris Imported ber-`updatedAt` baru)                                                                                                                                                                                              |
-| **Depends**    | —                                                                                                                                                                                                                                                                                                                                                                                 |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (PR 193) — keputusan produk T-142.1 (2026-10-23); T-142.2/T-142.3 digugurkan; verifikasi browser oleh King Rezi 2026-10-23 |
+| **Domain** | publishing · UI |
+| **ADR** | tidak perlu (T-142.3 gugur): hanya mengganti kolom kunci, bukan baseline arsitektur |
+| **Terkait** | ADR-093 (Imported tampil di History), T-034 (History), T-133 (backfill 1 tahun yang memunculkan bug), T-143 / KI-102 (import periodik, menambah baris Imported ber-`updatedAt` baru) |
+| **Depends** | — |
 | **Read first** | `apps/web/src/domains/publishing/services/group-history-items.ts` · `apps/web/src/app/(app)/publish/history/history-list-row.ts` · `apps/web/src/app/(app)/publish/history/HistoryList.tsx` · `listHistory` di `apps/web/src/lib/repositories/publishing/publishing.repository.ts` (`orderBy updatedAt desc` di sekitar baris 828; baris ~251 adalah `listDrafts`, bukan History) |
 
 **Bug (dilaporkan King Rezi 2026-10-23, setelah verifikasi):** di Publish
@@ -2696,14 +2696,14 @@ konsisten (sort lokal sama dengan `orderBy` server).
 
 ### T-144 · Zona waktu tampilan Publish → History/Calendar/Queue memakai Asia/Jakarta (WIB tetap), bukan UTC
 
-| Field          | Value                                                                                                                                                                                                                                                                                                                                                                                                       |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**     | ✅ Done (2026-10-23, PR 194) — keputusan King Rezi 2026-10-23 (via AskUserQuestion)                                                                                                                                                                                                                                                                                                                         |
-| **Domain**     | publishing · UI                                                                                                                                                                                                                                                                                                                                                                                             |
-| **ADR**        | tidak ada ADR existing yang menetapkan UTC untuk tampilan Publish (grep `DECISIONS.md` dan `decisions/`: satu-satunya "UTC" eksplisit ada di ADR-136, window bulanan Home/Analytics, di luar scope tiket ini). Komentar kode yang menyebut konvensi UTC hanya konvensi kode. Belum ada timezone per workspace. Bila nanti timezone per workspace dibuat, itu butuh ADR baru; ADR-136 tidak diubah tiket ini |
-| **Terkait**    | T-142 (PR 193, asal temuan), ADR-136 (window bulanan UTC, tidak disentuh)                                                                                                                                                                                                                                                                                                                                   |
-| **Depends**    | T-142                                                                                                                                                                                                                                                                                                                                                                                                       |
-| **Read first** | `apps/web/src/domains/publishing/services/group-history-items.ts` · `group-queue-items.ts` · `calendar-range.ts` · `apps/web/src/app/(app)/publish/history/HistoryList.tsx` · `QueueList.tsx` · `CalendarToolbar.tsx` · `CalendarAgendaList.tsx`                                                                                                                                                            |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (2026-10-23, PR 194) — keputusan King Rezi 2026-10-23 (via AskUserQuestion) |
+| **Domain** | publishing · UI |
+| **ADR** | tidak ada ADR existing yang menetapkan UTC untuk tampilan Publish (grep `DECISIONS.md` dan `decisions/`: satu-satunya "UTC" eksplisit ada di ADR-136, window bulanan Home/Analytics, di luar scope tiket ini). Komentar kode yang menyebut konvensi UTC hanya konvensi kode. Belum ada timezone per workspace. Bila nanti timezone per workspace dibuat, itu butuh ADR baru; ADR-136 tidak diubah tiket ini |
+| **Terkait** | T-142 (PR 193, asal temuan), ADR-136 (window bulanan UTC, tidak disentuh) |
+| **Depends** | T-142 |
+| **Read first** | `apps/web/src/domains/publishing/services/group-history-items.ts` · `group-queue-items.ts` · `calendar-range.ts` · `apps/web/src/app/(app)/publish/history/HistoryList.tsx` · `QueueList.tsx` · `CalendarToolbar.tsx` · `CalendarAgendaList.tsx` |
 
 **Asal:** code review PR 193 (T-142) temuan #1.
 
@@ -2741,13 +2741,13 @@ dirapikan.
 
 ### T-145 · `occurredAt` tersimpan untuk pengurutan History di database
 
-| Field          | Value                                                                                                                                              |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**     | ✅ Done (2026-10-23, PR 194) — migrasi terterap di DB dan urutan History terverifikasi; dua catatan review tersisa di bawah                        |
-| **Domain**     | publishing · database                                                                                                                              |
-| **ADR**        | cek saat T-145.1: perubahan skema/baseline data bisa butuh ADR baru; catat keputusannya di tiket                                                   |
-| **Terkait**    | T-142 (PR 193, asal temuan), T-144                                                                                                                 |
-| **Depends**    | T-142 (PR 193) merged                                                                                                                              |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (2026-10-23, PR 194) — migrasi terterap di DB dan urutan History terverifikasi; dua catatan review tersisa di bawah |
+| **Domain** | publishing · database |
+| **ADR** | cek saat T-145.1: perubahan skema/baseline data bisa butuh ADR baru; catat keputusannya di tiket |
+| **Terkait** | T-142 (PR 193, asal temuan), T-144 |
+| **Depends** | T-142 (PR 193) merged |
 | **Read first** | `listHistory` di `apps/web/src/lib/repositories/publishing/publishing.repository.ts` · `compareHistoryItemsDesc` · `apps/web/prisma/schema.prisma` |
 
 **Asal:** code review PR 193 temuan #4.
@@ -2804,13 +2804,13 @@ kecil (satu baris per post), terapkan di luar jam sibuk.
 
 ### T-146 · Input jadwal draft editor memakai zona waktu browser, tampilan Publish sudah WIB
 
-| Field          | Value                                                                                                                                    |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**     | ✅ Done 2026-10-23 (atas pernyataan King Rezi setelah verifikasi browser)                                                                |
-| **Domain**     | publishing · UI                                                                                                                          |
-| **ADR**        | tidak ada; bila King Rezi memutuskan zona per workspace, butuh ADR baru                                                                  |
-| **Terkait**    | T-144 (asal temuan, review Ridwan temuan 2), ADR-136 (tidak disentuh)                                                                    |
-| **Depends**    | T-144                                                                                                                                    |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done 2026-10-23 (atas pernyataan King Rezi setelah verifikasi browser) |
+| **Domain** | publishing · UI |
+| **ADR** | tidak ada; bila King Rezi memutuskan zona per workspace, butuh ADR baru |
+| **Terkait** | T-144 (asal temuan, review Ridwan temuan 2), ADR-136 (tidak disentuh) |
+| **Depends** | T-144 |
 | **Read first** | `apps/web/src/app/(app)/components/draft-editor/Modal.tsx` · `schedule-time-constraints` · `apps/web/src/domains/publishing/wib-time.ts` |
 
 **Asal:** review Ridwan T-144 temuan 2.
@@ -2838,14 +2838,14 @@ penafsiran waktu yang berubah, bukan tampilan.
 
 ### T-147 · Zona waktu per pengguna (tampilan dan input mengikuti lokasi pengguna)
 
-| Field          | Value                                                                                                                  |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| **Status**     | ✅ Done (2026-10-28)                                                                                                   |
-| **Domain**     | publishing · UI · DB                                                                                                   |
-| **ADR**        | [ADR-146](../decisions/ADR-146-zona-waktu-per-pengguna-tersimpan-di-db-dan-dipakai-untuk-tampilan-dan-input-jadwal.md) |
-| **Terkait**    | T-144, T-145, T-146, T-168                                                                                             |
-| **Depends**    | T-146                                                                                                                  |
-| **Read first** | `apps/web/src/domains/publishing/wib-time.ts` · `draft-editor/Modal.tsx` · kolom `occurred_at` (migrasi T-145)         |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (2026-10-28) |
+| **Domain** | publishing · UI · DB |
+| **ADR** | [ADR-146](../decisions/ADR-146-zona-waktu-per-pengguna-tersimpan-di-db-dan-dipakai-untuk-tampilan-dan-input-jadwal.md) |
+| **Terkait** | T-144, T-145, T-146, T-168 |
+| **Depends** | T-146 |
+| **Read first** | `apps/web/src/domains/publishing/wib-time.ts` · `draft-editor/Modal.tsx` · kolom `occurred_at` (migrasi T-145) |
 
 **Latar:** King Rezi ingin waktu mengikuti lokasi pengguna. Saat ini WIB tetap: T-144 (konstanta di `wib-time.ts`, dipakai server untuk kelompok tanggal History/Queue dan rentang Calendar), T-145 (kolom `occurred_at` di DB), T-146 (input jadwal ditafsirkan WIB).
 
@@ -2874,14 +2874,14 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 ### T-199 · Draft Editor foundation: add shadcn `calendar` and `accordion`, split `Modal` into module components without changing behaviour
 
-| Field       | Value                                                                                                                                |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Status**  | ✅ Done (code, 2026-11-04, atas keputusan King Rezi); belum Verified (staging)                                                       |
-| **Mode**    | AFK                                                                                                                                  |
-| **Domain**  | draft editor · UI                                                                                                                    |
-| **Spec**    | S-005                                                                                                                                |
-| **Docs**    | ADR-155 dan addendum 2026-11-03, ADR-097, KSP-05 (hasil pembaruan 2026-11-03), S-005, `apps/web/.claude/CLAUDE.md` (workflow shadcn) |
-| **Depends** | —                                                                                                                                    |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code, 2026-11-04, atas keputusan King Rezi); belum Verified (staging) |
+| **Mode** | AFK |
+| **Domain** | draft editor · UI |
+| **Spec** | S-005 |
+| **Docs** | ADR-155 dan addendum 2026-11-03, ADR-097, KSP-05 (hasil pembaruan 2026-11-03), S-005, `apps/web/.claude/CLAUDE.md` (workflow shadcn) |
+| **Depends** | — |
 
 **Gate rancangan:** dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review.
 
@@ -2915,15 +2915,15 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 ### T-200 · Reel requires a video media rule (amends ADR-154)
 
-| Field       | Value                                                                                                                |
-| ----------- | -------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | ✅ Done (code, 2026-11-03, atas keputusan King Rezi); belum Verified (staging)                                       |
-| **Mode**    | AFK                                                                                                                  |
-| **Domain**  | publishing · MCP · draft editor                                                                                      |
-| **Spec**    | S-005                                                                                                                |
-| **Docs**    | ADR-155 addendum B.1, ADR-154, ADR-121, ADR-039, KSP-05 (hasil pembaruan 2026-11-03), S-005, `content-format-matrix` |
-| **Terkait** | T-197 (jenis media yang dulu belum ditegakkan)                                                                       |
-| **Depends** | —                                                                                                                    |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code, 2026-11-03, atas keputusan King Rezi); belum Verified (staging) |
+| **Mode** | AFK |
+| **Domain** | publishing · MCP · draft editor |
+| **Spec** | S-005 |
+| **Docs** | ADR-155 addendum B.1, ADR-154, ADR-121, ADR-039, KSP-05 (hasil pembaruan 2026-11-03), S-005, `content-format-matrix` |
+| **Terkait** | T-197 (jenis media yang dulu belum ditegakkan) |
+| **Depends** | — |
 
 **Gate rancangan:** dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review (pesan dan perilaku opsi Reel nonaktif; tampilannya dikerjakan di T-202).
 
@@ -2966,14 +2966,14 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 ### T-201 · Draft Editor channel row: Channels popover, Last used, All, avatar chips
 
-| Field       | Value                                                                                                    |
-| ----------- | -------------------------------------------------------------------------------------------------------- |
-| **Status**  | ✅ Done (code, 2026-11-12); Verification `staging` (ADR-161), butir di T-249                             |
-| **Mode**    | AFK                                                                                                      |
-| **Domain**  | draft editor · UI                                                                                        |
-| **Spec**    | S-005                                                                                                    |
-| **Docs**    | ADR-155 dan addendum 2026-11-03, KSP-05 dan KSP-D04 (hasil pembaruan 2026-11-03), NP-D14, ADR-125, S-005 |
-| **Depends** | T-199                                                                                                    |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code, 2026-11-12); Verification `staging` (ADR-161), butir di T-249 |
+| **Mode** | AFK |
+| **Domain** | draft editor · UI |
+| **Spec** | S-005 |
+| **Docs** | ADR-155 dan addendum 2026-11-03, KSP-05 dan KSP-D04 (hasil pembaruan 2026-11-03), NP-D14, ADR-125, S-005 |
+| **Depends** | T-199 |
 
 **Gate rancangan:** dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review.
 
@@ -3003,14 +3003,14 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 ### T-202 · Draft Editor: editor, media, and per-network blocks (format, Pinterest fields, validation banners)
 
-| Field       | Value                                                                                                                       |
-| ----------- | --------------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | 🟡 In Progress (merged ke staging lewat PR 253; butir `[~]` belum terbukti tes)                                             |
-| **Mode**    | AFK                                                                                                                         |
-| **Domain**  | draft editor · UI                                                                                                           |
-| **Spec**    | S-005                                                                                                                       |
-| **Docs**    | ADR-155 dan addendum 2026-11-03, ADR-039, ADR-107, ADR-121, ADR-154, KSP-05 dan KSP-D12 (hasil pembaruan 2026-11-03), S-005 |
-| **Depends** | T-199, T-200, T-201                                                                                                         |
+| Field | Value |
+| --- | --- |
+| **Status** | 🟡 In Progress (merged ke staging lewat PR 253; butir `[~]` belum terbukti tes) |
+| **Mode** | AFK |
+| **Domain** | draft editor · UI |
+| **Spec** | S-005 |
+| **Docs** | ADR-155 dan addendum 2026-11-03, ADR-039, ADR-107, ADR-121, ADR-154, KSP-05 dan KSP-D12 (hasil pembaruan 2026-11-03), S-005 |
+| **Depends** | T-199, T-200, T-201 |
 
 **Gate rancangan:** dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review.
 
@@ -3041,14 +3041,14 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 ### T-203 · Draft Editor live preview: panel shell, toggle, empty state, Facebook and Instagram
 
-| Field       | Value                                                                                                |
-| ----------- | ---------------------------------------------------------------------------------------------------- |
-| **Status**  | ✅ Done (code, 2026-11-12); Verification `staging` (ADR-161), butir di T-249                         |
-| **Mode**    | AFK                                                                                                  |
-| **Domain**  | draft editor · UI                                                                                    |
-| **Spec**    | S-005                                                                                                |
-| **Docs**    | ADR-155 dan addendum 2026-11-03 (Decision 5), KSP-05 dan KSP-D02 (hasil pembaruan 2026-11-03), S-005 |
-| **Depends** | T-199                                                                                                |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code, 2026-11-12); Verification `staging` (ADR-161), butir di T-249 |
+| **Mode** | AFK |
+| **Domain** | draft editor · UI |
+| **Spec** | S-005 |
+| **Docs** | ADR-155 dan addendum 2026-11-03 (Decision 5), KSP-05 dan KSP-D02 (hasil pembaruan 2026-11-03), S-005 |
+| **Depends** | T-199 |
 
 **Gate rancangan:** dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review.
 
@@ -3077,14 +3077,14 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 ### T-204 · Draft Editor preview for TikTok, Pinterest, generic card, and brand guideline check
 
-| Field       | Value                                                                                                                              |
-| ----------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | ✅ Done (code, 2026-11-17); Verification `staging` (ADR-161), items in T-249 (T-249.3, T-249.7); the logo follow-up lives in T-209 |
-| **Mode**    | HITL (keputusan King Rezi bila pedoman merek menunjukkan risiko)                                                                   |
-| **Domain**  | draft editor · UI                                                                                                                  |
-| **Spec**    | S-005                                                                                                                              |
-| **Docs**    | ADR-155 dan addendum 2026-11-03 (Decision 5, addendum C), KSP-05 (hasil pembaruan 2026-11-03), S-005                               |
-| **Depends** | T-203                                                                                                                              |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code, 2026-11-17); Verification `staging` (ADR-161), items in T-249 (T-249.3, T-249.7); the logo follow-up lives in T-209 |
+| **Mode** | HITL (keputusan King Rezi bila pedoman merek menunjukkan risiko) |
+| **Domain** | draft editor · UI |
+| **Spec** | S-005 |
+| **Docs** | ADR-155 dan addendum 2026-11-03 (Decision 5, addendum C), KSP-05 (hasil pembaruan 2026-11-03), S-005 |
+| **Depends** | T-203 |
 
 **Gate rancangan:** dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review.
 
@@ -3116,14 +3116,14 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 ### T-205 · Draft Editor footer and schedule: Set schedule popover, actions, Confirmation Summary with preview
 
-| Field       | Value                                                                                                                                |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Status**  | ✅ Done (code, 2026-11-13); Verification `staging` (ADR-161), items in T-249                                                         |
-| **Mode**    | AFK                                                                                                                                  |
-| **Domain**  | draft editor · publishing · UI                                                                                                       |
-| **Spec**    | S-005                                                                                                                                |
-| **Docs**    | ADR-155 dan addendum 2026-11-03, ADR-154, ADR-146, ADR-054, ADR-047, ADR-074, KSP-05 dan KSP-D05 (hasil pembaruan 2026-11-03), S-005 |
-| **Depends** | T-199, T-202                                                                                                                         |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code, 2026-11-13); Verification `staging` (ADR-161), items in T-249 |
+| **Mode** | AFK |
+| **Domain** | draft editor · publishing · UI |
+| **Spec** | S-005 |
+| **Docs** | ADR-155 dan addendum 2026-11-03, ADR-154, ADR-146, ADR-054, ADR-047, ADR-074, KSP-05 dan KSP-D05 (hasil pembaruan 2026-11-03), S-005 |
+| **Depends** | T-199, T-202 |
 
 **Gate rancangan:** dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review.
 
@@ -3151,14 +3151,14 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 ### T-206 · Draft Editor variants and screens: Standard 1120px, Fullscreen, Resume dialog, narrow screen, dark mode
 
-| Field       | Value                                                                                                           |
-| ----------- | --------------------------------------------------------------------------------------------------------------- |
-| **Status**  | ✅ Done (code, 2026-11-12); Verification `staging` (ADR-161), butir di T-249                                    |
-| **Mode**    | AFK                                                                                                             |
-| **Domain**  | draft editor · UI                                                                                               |
-| **Spec**    | S-005                                                                                                           |
-| **Docs**    | ADR-155 dan addendum 2026-11-03, ADR-065, ADR-052, KSP-05 (F13) dan KSP-D02 (hasil pembaruan 2026-11-03), S-005 |
-| **Depends** | T-201, T-202, T-203, T-204, T-205                                                                               |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code, 2026-11-12); Verification `staging` (ADR-161), butir di T-249 |
+| **Mode** | AFK |
+| **Domain** | draft editor · UI |
+| **Spec** | S-005 |
+| **Docs** | ADR-155 dan addendum 2026-11-03, ADR-065, ADR-052, KSP-05 (F13) dan KSP-D02 (hasil pembaruan 2026-11-03), S-005 |
+| **Depends** | T-201, T-202, T-203, T-204, T-205 |
 
 **Gate rancangan:** dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review.
 
@@ -3182,14 +3182,14 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 ### T-207 · Draft Editor redesign QA and verification (E2E, review, Done (code), Verified (staging))
 
-| Field       | Value                                                                                         |
-| ----------- | --------------------------------------------------------------------------------------------- |
-| **Status**  | ✅ Done (code, 2026-11-17); Verified (staging) in T-249                                       |
-| **Mode**    | HITL (verifikasi staging oleh King Rezi)                                                      |
-| **Domain**  | draft editor · QA                                                                             |
-| **Spec**    | S-005                                                                                         |
-| **Docs**    | ADR-155 dan addendum 2026-11-03, ADR-149, ADR-153, KSP-05 (hasil pembaruan 2026-11-03), S-005 |
-| **Depends** | T-206                                                                                         |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code, 2026-11-17); Verified (staging) in T-249 |
+| **Mode** | HITL (verifikasi staging oleh King Rezi) |
+| **Domain** | draft editor · QA |
+| **Spec** | S-005 |
+| **Docs** | ADR-155 dan addendum 2026-11-03, ADR-149, ADR-153, KSP-05 (hasil pembaruan 2026-11-03), S-005 |
+| **Depends** | T-206 |
 
 **Gate rancangan:** dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review.
 
@@ -3298,14 +3298,14 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 ### T-209 · Replace platform icons with official brand logo files (T-204.4 follow-up)
 
-| Field       | Value                                                                                        |
-| ----------- | -------------------------------------------------------------------------------------------- |
-| **Status**  | 🟡 In Progress (T-209.3 selesai; T-209.1 sebagian, T-209.2 terbuka, T-209.5 sebagian)        |
-| **Mode**    | HITL (unduhan file logo dan izin merek di tangan King Rezi)                                  |
-| **Domain**  | UI · platform icons                                                                          |
-| **Spec**    | S-005 (tindak lanjut T-204.4)                                                                |
-| **Docs**    | ADR-155 addendum C, ADR-097, ADR-148, `platform-icons.tsx`, hasil cek pedoman merek di T-204 |
-| **Depends** | T-204                                                                                        |
+| Field | Value |
+| --- | --- |
+| **Status** | 🟡 In Progress (T-209.3 selesai; T-209.1 sebagian, T-209.2 terbuka, T-209.5 sebagian) |
+| **Mode** | HITL (unduhan file logo dan izin merek di tangan King Rezi) |
+| **Domain** | UI · platform icons |
+| **Spec** | S-005 (tindak lanjut T-204.4) |
+| **Docs** | ADR-155 addendum C, ADR-097, ADR-148, `platform-icons.tsx`, hasil cek pedoman merek di T-204 |
+| **Depends** | T-204 |
 
 **Ditemukan (2026-11-04)** saat cek pedoman merek T-204.4: `PLATFORM_ICON` (`platform-icons.tsx`, react-icons berwarna) dipakai di tab, chip, dan pemilih akun, padahal pedoman Meta mewajibkan file logo resmi dan persetujuan, dan Pinterest, TikTok punya aturan sendiri. **Keputusan King Rezi (2026-11-04):** ganti dengan logo resmi dari kit merek tiap platform; nama platform tetap sebagai teks.
 
@@ -3317,17 +3317,17 @@ Rancangan dikonfirmasi King Rezi 2026-11-03 di galeri Postific Design Review. Ur
 
 **Riset kit merek (2026-11-12, hanya halaman resmi, tidak ada yang diunduh):** (Pinterest, X, YouTube, TikTok sebagian tak terbaca.)
 
-| Platform  | Akses                                                                                           | Berkas                                                  | Catatan aturan                                                                                        |
-| --------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| Facebook  | unduh langsung setelah centang persetujuan (`meta.com/brand/resources/facebook/logo/`)          | `Facebook-Brand-Asset-Pack` (ZIP)                       | biru atau putih, min 16px, ruang kosong 1/4 lebar, tanpa warna lain                                   |
-| Instagram | idem (`.../instagram/instagram-brand/`)                                                         | `IG_brand_asset_pack_2023.zip`                          | warna, ukuran minimum, larangan glif: BELUM TERVERIFIKASI                                             |
-| Threads   | idem (`.../threads/`)                                                                           | `Threads-Brand-Resource-Center.zip`                     | pedoman rinci "segera"; ruang kosong lebar ikon/4                                                     |
-| TikTok    | izin tertulis dimuka (developers.tiktok.com); Brand Hub tak terbaca (JavaScript, mungkin login) | `logo-pack.zip`                                         | aturan warna, ukuran, larangan: BELUM TERVERIFIKASI (T-209.2 tetap terbuka)                           |
-| Pinterest | halaman pedoman memuat portal aset                                                              | EPS dan PNG (tanpa SVG)                                 | pakai lencana, dengan ajakan dan tautan ke profil sendiri; tanpa tautan berarti menyiratkan kemitraan |
-| X         | persetujuan Trademark Guidelines (halaman 403, dari snippet)                                    | SVG/PNG hitam atau putih                                | hanya hitam atau putih                                                                                |
-| LinkedIn  | unduh zip setelah menerima perjanjian; panduan menyebut perlu lisensi merek                     | "[in] Logo"                                             | min 21px layar; jangan menyiratkan afiliasi                                                           |
-| YouTube   | `brand.youtube` tak terbaca                                                                     | tidak diketahui                                         | tanpa ubah warna; wajib tertaut ke konten YouTube                                                     |
-| Bluesky   | unduh langsung tanpa persetujuan (`bsky.social/about/support/icons`)                            | `bluesky_media_kit_logo_transparent_1..4` (SVG dan PNG) | boleh sebagai ikon sosial tertaut ke profil; warna biru, putih, hitam                                 |
+| Platform | Akses | Berkas | Catatan aturan |
+| --- | --- | --- | --- |
+| Facebook | unduh langsung setelah centang persetujuan (`meta.com/brand/resources/facebook/logo/`) | `Facebook-Brand-Asset-Pack` (ZIP) | biru atau putih, min 16px, ruang kosong 1/4 lebar, tanpa warna lain |
+| Instagram | idem (`.../instagram/instagram-brand/`) | `IG_brand_asset_pack_2023.zip` | warna, ukuran minimum, larangan glif: BELUM TERVERIFIKASI |
+| Threads | idem (`.../threads/`) | `Threads-Brand-Resource-Center.zip` | pedoman rinci "segera"; ruang kosong lebar ikon/4 |
+| TikTok | izin tertulis dimuka (developers.tiktok.com); Brand Hub tak terbaca (JavaScript, mungkin login) | `logo-pack.zip` | aturan warna, ukuran, larangan: BELUM TERVERIFIKASI (T-209.2 tetap terbuka) |
+| Pinterest | halaman pedoman memuat portal aset | EPS dan PNG (tanpa SVG) | pakai lencana, dengan ajakan dan tautan ke profil sendiri; tanpa tautan berarti menyiratkan kemitraan |
+| X | persetujuan Trademark Guidelines (halaman 403, dari snippet) | SVG/PNG hitam atau putih | hanya hitam atau putih |
+| LinkedIn | unduh zip setelah menerima perjanjian; panduan menyebut perlu lisensi merek | "[in] Logo" | min 21px layar; jangan menyiratkan afiliasi |
+| YouTube | `brand.youtube` tak terbaca | tidak diketahui | tanpa ubah warna; wajib tertaut ke konten YouTube |
+| Bluesky | unduh langsung tanpa persetujuan (`bsky.social/about/support/icons`) | `bluesky_media_kit_logo_transparent_1..4` (SVG dan PNG) | boleh sebagai ikon sosial tertaut ke profil; warna biru, putih, hitam |
 
 Meta menyebut jangan memakai logo dari pencarian web, jadi glif react-icons bukan pengganti sah. **Daftar unduhan yang diusulkan (belum ada yang diunduh; menunggu persetujuan King Rezi per daftar):** Tier A: Bluesky `_1.svg` dan `_3/_4.svg`, tiga ZIP Meta, LinkedIn "[in] Logo" (setelah King Rezi menerima soal lisensi). Tier B (King Rezi memastikan di browser lebih dulu): X, YouTube, Pinterest. Tier C (tahan): TikTok `logo-pack.zip` sampai izin dan Brand Hub terbaca. Isi dalam ZIP tidak terlihat, jadi berkas glif yang dipakai dipilih setelah unduhan pertama. Aturan yang tersirat ke produk: platform yang meminta tautan ke profil (Pinterest, YouTube, Bluesky) dapat bertabrakan dengan ikon tanpa tautan di tab, chip, dan pemilih akun; putuskan di T-209.3.
 
@@ -3339,14 +3339,14 @@ Meta menyebut jangan memakai logo dari pencarian web, jadi glif react-icons buka
 
 ### T-210 · Fix `data-open`/`data-closed` selectors that do not match Radix `data-state` in vendored shadcn components
 
-| Field       | Value                                                                             |
-| ----------- | --------------------------------------------------------------------------------- |
-| **Status**  | ✅ Done (code); Verification `local` (ADR-161)                                    |
-| **Mode**    | AFK                                                                               |
-| **Domain**  | UI · shadcn components                                                            |
-| **Spec**    | tidak ada (temuan review T-202)                                                   |
-| **Docs**    | ADR-097, `apps/web/.claude/CLAUDE.md`, `apps/web/src/components/ui/accordion.tsx` |
-| **Depends** | —                                                                                 |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code); Verification `local` (ADR-161) |
+| **Mode** | AFK |
+| **Domain** | UI · shadcn components |
+| **Spec** | tidak ada (temuan review T-202) |
+| **Docs** | ADR-097, `apps/web/.claude/CLAUDE.md`, `apps/web/src/components/ui/accordion.tsx` |
+| **Depends** | — |
 
 **Ditemukan (2026-11-04)** oleh review Ridwan atas gelombang 3: `accordion.tsx` (T-199) memakai `data-open:` dan `data-closed:`, tetapi Radix Accordion (react-accordion 1.2.20) hanya memancarkan `data-state="open|closed"`, jadi latar item terbuka dan animasi buka-tutup tidak aktif. Pola yang sama muncul di `alert-dialog`, `sheet`, `popover`, `select`, `dropdown-menu`, dan `tooltip`; dugaan: preset `radix-maia` bercampur dengan konvensi Base UI. Belum terbukti di browser.
 
@@ -3369,14 +3369,14 @@ Meta menyebut jangan memakai logo dari pencarian web, jadi glif react-icons buka
 
 ### T-211 · Draft Editor: Calendar fills the schedule popover width, and non-overlapping preview account picker
 
-| Field       | Value                                                                                                                                                                                      |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Status**  | ✅ Done (code); Verification `local` (ADR-161), Verified 2026-11-05; T-211.6 tercentang (E2E S17 sampai S17d hijau 3 run di Cook It Real Good; S17 dan S17b belum terbukti di E2E Sandbox) |
-| **Mode**    | HITL (T-211.2 keputusan komponen dan T-211.3 konfirmasi rancangan di galeri adalah milik King Rezi; T-211.1 bisa AFK setelah tiket disetujui)                                              |
-| **Domain**  | draft editor · UI                                                                                                                                                                          |
-| **Spec**    | S-005 (temuan review integrasi King Rezi sebelum merge PR 256)                                                                                                                             |
-| **Docs**    | ADR-155, ADR-097, ADR-140, KSP-05 dan KSP-D02, `apps/web/.claude/CLAUDE.md`, artifact Postific (kartu `ScreenDraftEditorRedesain`)                                                         |
-| **Depends** | T-205 (popover jadwal), T-203 (panel Pratinjau)                                                                                                                                            |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code); Verification `local` (ADR-161), Verified 2026-11-05; T-211.6 tercentang (E2E S17 sampai S17d hijau 3 run di Cook It Real Good; S17 dan S17b belum terbukti di E2E Sandbox) |
+| **Mode** | HITL (T-211.2 keputusan komponen dan T-211.3 konfirmasi rancangan di galeri adalah milik King Rezi; T-211.1 bisa AFK setelah tiket disetujui) |
+| **Domain** | draft editor · UI |
+| **Spec** | S-005 (temuan review integrasi King Rezi sebelum merge PR 256) |
+| **Docs** | ADR-155, ADR-097, ADR-140, KSP-05 dan KSP-D02, `apps/web/.claude/CLAUDE.md`, artifact Postific (kartu `ScreenDraftEditorRedesain`) |
+| **Depends** | T-205 (popover jadwal), T-203 (panel Pratinjau) |
 
 **Ditemukan (2026-11-04)** oleh King Rezi saat meninjau integrasi UI Draft Editor sebelum merge PR 256. Diukur di staging (build gelombang 5) dengan 4 akun terpilih:
 
@@ -3394,11 +3394,11 @@ Meta menyebut jangan memakai logo dari pencarian web, jadi glif react-icons buka
 
 **Pilihan komponen pemilih Pratinjau (T-211.2), rekomendasi saya:**
 
-| Opsi                                | Komponen shadcn                                                                                                                   | Kelebihan                                                                                                                                              | Kekurangan                                                                                                       |
-| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| Opsi | Komponen shadcn | Kelebihan | Kekurangan |
+| --- | --- | --- | --- |
 | A (rekomendasi agen, tidak dipilih) | `ToggleGroup` `type="single"` varian `outline` dengan ikon platform (dan avatar kecil bila perlu) plus `Tooltip` berisi nama akun | Selalu satu baris, ringkas untuk 2 sampai banyak akun, senada dengan chip akun di baris channel. Header Pratinjau sudah menyebut akun dan format aktif | Dua akun satu platform hanya dibedakan lewat avatar dan tooltip; semantik radio (`role="radiogroup"`), bukan tab |
-| B                                   | `Select` dengan ikon platform dan handle di tiap item                                                                             | Paling aman untuk banyak akun dan platform sama, handle selalu terbaca                                                                                 | Tidak terlihat sekilas akun mana saja yang ada; satu klik lebih banyak                                           |
-| C                                   | `Tabs` tetap, tetapi satu baris `overflow-x-auto`, label dipersingkat jadi ikon pada tab non-aktif                                | Perubahan kode terkecil, semantik tab tetap                                                                                                            | Menggulir horizontal di panel 384px; rancangan harus ikut diubah juga                                            |
+| B | `Select` dengan ikon platform dan handle di tiap item | Paling aman untuk banyak akun dan platform sama, handle selalu terbaca | Tidak terlihat sekilas akun mana saja yang ada; satu klik lebih banyak |
+| C | `Tabs` tetap, tetapi satu baris `overflow-x-auto`, label dipersingkat jadi ikon pada tab non-aktif | Perubahan kode terkecil, semantik tab tetap | Menggulir horizontal di panel 384px; rancangan harus ikut diubah juga |
 
 Alasan A: pemilih ini hanya mengganti kartu yang ditampilkan, bukan berpindah antar panel isi, jadi semantik `Tabs` tidak terlalu penting; ikon tidak pernah membungkus baris sehingga masalah tumpang tindih hilang. Bila King Rezi memprioritaskan keterbacaan handle untuk akun satu platform, pilih B.
 
@@ -3414,14 +3414,14 @@ Alasan A: pemilih ini hanya mengganti kartu yang ditampilkan, bukan berpindah an
 
 ### T-212 · Draft Editor: align five small UI differences to the design artifact (T-207 King Rezi decision items)
 
-| Field       | Value                                                                                                                                                                     |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | ✅ Done (code): T-212.1 sampai T-212.7 tercentang (verifikasi browser teramati, gelombang 8 dan 9); Verified (staging) menunggu ADR-153                                   |
-| **Mode**    | AFK                                                                                                                                                                       |
-| **Domain**  | draft editor · UI (UI/UX-related)                                                                                                                                         |
-| **Spec**    | S-005 (keputusan King Rezi 2026-11-05 atas review PR 257, butir keputusan T-207)                                                                                          |
-| **Docs**    | ADR-155, ADR-107, ADR-097, ADR-140, KSP-05-F11 dan F16, `apps/web/.claude/CLAUDE.md`, artifact Postific (kartu `ScreenDraftEditorRedesain`), T-207 (lima butir keputusan) |
-| **Depends** | T-211                                                                                                                                                                     |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code): T-212.1 sampai T-212.7 tercentang (verifikasi browser teramati, gelombang 8 dan 9); Verified (staging) menunggu ADR-153 |
+| **Mode** | AFK |
+| **Domain** | draft editor · UI (UI/UX-related) |
+| **Spec** | S-005 (keputusan King Rezi 2026-11-05 atas review PR 257, butir keputusan T-207) |
+| **Docs** | ADR-155, ADR-107, ADR-097, ADR-140, KSP-05-F11 dan F16, `apps/web/.claude/CLAUDE.md`, artifact Postific (kartu `ScreenDraftEditorRedesain`), T-207 (lima butir keputusan) |
+| **Depends** | T-211 |
 
 **Gate rancangan (UI/UX-related, `AGENTS.md` aturan 10):** rancangan sudah ada di artifact Postific dan dikonfirmasi King Rezi. Bila sebuah butir ternyata ambigu (lebih dari satu pola valid dan rancangan tidak mengunci), **STOP** dan tanya King Rezi lewat `AskUserQuestion`; jangan menebak. Teks persis rancangan sudah diisi dari laporan Neymar (artifact Postific v37, galeri v14); jangan menulis teks tebakan.
 
@@ -3463,14 +3463,14 @@ Alasan A: pemilih ini hanya mengganti kartu yang ditampilkan, bukan berpindah an
 
 ### T-213 · Draft Editor: remaining Ridwan review items from T-212 (zone label, footer limit message, tests, Reel reason code)
 
-| Field       | Value                                                                                                                                   |
-| ----------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | ✅ Done (code) T-213.1, .2, .4, .5, .6; T-213.3 DIBATALKAN (gelombang 9, 2026-11-05)                                                    |
-| **Mode**    | AFK untuk butir i, ii, iv, v, vi; butir iii HITL (teks rancangan bertentangan dengan arah T-212.2, keputusan King Rezi)                 |
-| **Domain**  | draft editor · publishing (UI/UX-related)                                                                                               |
-| **Spec**    | S-005 (tindak lanjut review Ridwan T-212, gelombang 8 jalur D)                                                                          |
-| **Docs**    | ADR-155, ADR-146, ADR-132, ADR-097, ADR-140, `apps/web/.claude/CLAUDE.md`, artifact Postific (kartu `ScreenDraftEditorRedesain`), T-212 |
-| **Depends** | T-212                                                                                                                                   |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code) T-213.1, .2, .4, .5, .6; T-213.3 DIBATALKAN (gelombang 9, 2026-11-05) |
+| **Mode** | AFK untuk butir i, ii, iv, v, vi; butir iii HITL (teks rancangan bertentangan dengan arah T-212.2, keputusan King Rezi) |
+| **Domain** | draft editor · publishing (UI/UX-related) |
+| **Spec** | S-005 (tindak lanjut review Ridwan T-212, gelombang 8 jalur D) |
+| **Docs** | ADR-155, ADR-146, ADR-132, ADR-097, ADR-140, `apps/web/.claude/CLAUDE.md`, artifact Postific (kartu `ScreenDraftEditorRedesain`), T-212 |
+| **Depends** | T-212 |
 
 **Ditemukan (2026-11-05)** oleh review Ridwan atas T-212: 9 pertimbangan, 3 sudah tertutup di T-212; enam sisanya dicatat di "Not yet proven" T-212 tanpa tiket. Tiket ini menampungnya (ADR-132: tiket sebelum baris kode pertama).
 
@@ -3505,14 +3505,14 @@ Alasan A: pemilih ini hanya mengganti kartu yang ditampilkan, bukan berpindah an
 
 ### T-214 · Creator RBAC E2E for the Draft Editor and Settings (T-207.4)
 
-| Field       | Value                                                                                           |
-| ----------- | ----------------------------------------------------------------------------------------------- |
-| **Status**  | ✅ Done (code); Verification `staging` (ADR-161); pertanyaan dokumen dijawab 2026-11-12         |
-| **Mode**    | AFK                                                                                             |
-| **Domain**  | QA · E2E · RBAC                                                                                 |
-| **Spec**    | S-005 (butir "RBAC per peran" pada T-207.4)                                                     |
-| **Docs**    | `product-discovery/02-product/roles-permissions.md` (ADR-012, ADR-074), ADR-047, ADR-149, T-207 |
-| **Depends** | T-207                                                                                           |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code); Verification `staging` (ADR-161); pertanyaan dokumen dijawab 2026-11-12 |
+| **Mode** | AFK |
+| **Domain** | QA · E2E · RBAC |
+| **Spec** | S-005 (butir "RBAC per peran" pada T-207.4) |
+| **Docs** | `product-discovery/02-product/roles-permissions.md` (ADR-012, ADR-074), ADR-047, ADR-149, T-207 |
+| **Depends** | T-207 |
 
 **What to build:** bukti E2E di `local` bahwa akun Creator di workspace "E2E Sandbox" berperilaku sesuai matriks peran, lewat sesi login kedua (storage state terpisah dari Owner). Assertion hanya untuk perilaku yang tertulis di `roles-permissions.md`; perilaku yang tidak tertulis dicatat sebagai pertanyaan untuk King Rezi, tidak ditebak.
 
@@ -3536,12 +3536,12 @@ Alasan A: pemilih ini hanya mengganti kartu yang ditampilkan, bukan berpindah an
 
 ### T-215 · Align the design artifact to the Draft Editor banner and icon decisions (T-212 follow-up)
 
-| Field       | Value                                                                    |
-| ----------- | ------------------------------------------------------------------------ |
-| **Status**  | ✅ Done (2026-11-12; T-215.1 dan T-215.2)                                |
-| **Spec**    | S-005                                                                    |
-| **Mode**    | HITL (rancangan di galeri Postific Design Review dikonfirmasi King Rezi) |
-| **Depends** | T-212                                                                    |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (2026-11-12; T-215.1 dan T-215.2) |
+| **Spec** | S-005 |
+| **Mode** | HITL (rancangan di galeri Postific Design Review dikonfirmasi King Rezi) |
+| **Depends** | T-212 |
 
 **Ditemukan (2026-11-05)** saat T-212.7: artifact (`ScreenDraftEditorRedesain`, `preview.html`) menampilkan banner pesan akun sebagai `Alert variant="destructive"` tanpa ikon; kode memakai `warning` (kuning) untuk "tanpa media" dan destructive hanya untuk Reel-bukan-video, dengan ikon. Keputusan: kode dipertahankan, artifact diselaraskan (lihat "Keputusan selisih banner" di T-212).
 
@@ -3552,13 +3552,13 @@ Alasan A: pemilih ini hanya mengganti kartu yang ditampilkan, bukan berpindah an
 
 ### T-249 · S-005 wave verification (Draft Editor redesign and KI-108)
 
-| Field       | Value                                                                                   |
-| ----------- | --------------------------------------------------------------------------------------- |
-| **Status**  | ⏳ Not started (menunggu PR integrasi gelombang 10 ter-merge dan deploy staging sukses) |
-| **Spec**    | S-005                                                                                   |
-| **Mode**    | HITL (verifikasi King Rezi di staging)                                                  |
-| **Docs**    | ADR-153, ADR-161, S-003, T-199 sampai T-215, T-208                                      |
-| **Depends** | PR integrasi `feature/s005-gelombang-10` ter-merge ke `staging`                         |
+| Field | Value |
+| --- | --- |
+| **Status** | ⏳ Not started (menunggu PR integrasi gelombang 10 ter-merge dan deploy staging sukses) |
+| **Spec** | S-005 |
+| **Mode** | HITL (verifikasi King Rezi di staging) |
+| **Docs** | ADR-153, ADR-161, S-003, T-199 sampai T-215, T-208 |
+| **Depends** | PR integrasi `feature/s005-gelombang-10` ter-merge ke `staging` |
 
 Satu verifikasi untuk seluruh gelombang S-005 (ADR-153, ADR-161). Tiket yang dirujuk hanya dianggap Verified (staging) bila butirnya lulus; butir yang lulus dicoret dari "Not yet proven" di tiket asalnya. Tanpa akun media sosial nyata untuk post Scheduled sebelum T-195 selesai.
 
@@ -3575,12 +3575,12 @@ Satu verifikasi untuk seluruh gelombang S-005 (ADR-153, ADR-161). Tiket yang dir
 
 ### T-250 · Draft Editor: align the remaining banners to the T-215 variant decision
 
-| Field       | Value                                                                |
-| ----------- | -------------------------------------------------------------------- |
-| **Status**  | ✅ Done (code, 2026-11-12; browser belum, lihat T-249.6)             |
-| **Spec**    | S-005 (tindak lanjut T-215.2)                                        |
-| **Mode**    | HITL (rancangan galeri dikonfirmasi King Rezi sebelum kode, rule 10) |
-| **Depends** | T-215                                                                |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code, 2026-11-12; browser belum, lihat T-249.6) |
+| **Spec** | S-005 (tindak lanjut T-215.2) |
+| **Mode** | HITL (rancangan galeri dikonfirmasi King Rezi sebelum kode, rule 10) |
+| **Depends** | T-215 |
 
 King Rezi (2026-11-12) menyetujui varian banner T-215 dan meminta banner lain disamakan belakangan. Inventaris semua banner/alert di Draft Editor dan artifact, tentukan varian (peringatan, destructive, info) dan ikon per kasus.
 
@@ -3592,13 +3592,13 @@ King Rezi (2026-11-12) menyetujui varian banner T-215 dan meminta banner lain di
 
 ### T-251 · Schedule: server-side role check like Publish Now (T-205.4)
 
-| Field       | Value                                                                |
-| ----------- | -------------------------------------------------------------------- |
-| **Status**  | ✅ Done (code); celah jalur MCP ditutup di T-252                     |
-| **Spec**    | S-005 (keputusan King Rezi 2026-11-12, butir T-205.4)                |
-| **Mode**    | AFK                                                                  |
-| **Docs**    | ADR-047, ADR-074, `roles-permissions.md`, `assertActorCanPublishNow` |
-| **Depends** | T-205                                                                |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code); celah jalur MCP ditutup di T-252 |
+| **Spec** | S-005 (keputusan King Rezi 2026-11-12, butir T-205.4) |
+| **Mode** | AFK |
+| **Docs** | ADR-047, ADR-074, `roles-permissions.md`, `assertActorCanPublishNow` |
+| **Depends** | T-205 |
 
 Schedule tidak punya pemeriksaan peran di server, sementara Publish Now punya (`assertActorCanPublishNow`). Tiga peran (Account Owner, Admin, Creator) tetap boleh Schedule (ADR-074); tujuannya penegakan di server supaya aman bila peran baru ditambah. Tanpa migrasi.
 
@@ -3610,12 +3610,12 @@ Schedule tidak punya pemeriksaan peran di server, sementara Publish Now punya (`
 
 ### T-252 · MCP schedule_posts: server-side role check
 
-| Field       | Value                                                   |
-| ----------- | ------------------------------------------------------- |
-| **Status**  | ✅ Done (code, 2026-11-12)                              |
-| **Spec**    | S-005 (celah T-251, keputusan King Rezi 2026-11-12)     |
-| **Mode**    | AFK (kontrak MCP berubah: periksa ADR MCP sebelum kode) |
-| **Depends** | T-251                                                   |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code, 2026-11-12) |
+| **Spec** | S-005 (celah T-251, keputusan King Rezi 2026-11-12) |
+| **Mode** | AFK (kontrak MCP berubah: periksa ADR MCP sebelum kode) |
+| **Depends** | T-251 |
 
 Jalur MCP `schedule_posts` (`ScheduleContentsUseCase` memanggil `SchedulePostsUseCase`) tidak membawa peran workspace dan tidak memeriksa peran; otorisasi MCP hanya lewat grant scope. Review Ridwan (PR 283) menyarankan `actorRole` di `SchedulePostsUseCase.execute`, yang menutup kedua jalur sekaligus.
 
@@ -3627,12 +3627,12 @@ Jalur MCP `schedule_posts` (`ScheduleContentsUseCase` memanggil `SchedulePostsUs
 
 ### T-253 · Channels popover: spacing of the select-all row and light-mode checkbox visibility
 
-| Field       | Value                                                                                |
-| ----------- | ------------------------------------------------------------------------------------ |
-| **Status**  | 🟡 In Progress (T-253.1 to T-253.3 done; T-253.4 browser check open)                 |
-| **Spec**    | S-005 (temuan King Rezi di T-249.3, 2026-11-12)                                      |
-| **Mode**    | HITL (UI: cek rancangan popover Channels di artifact dan konfirmasi galeri, rule 10) |
-| **Depends** | T-201                                                                                |
+| Field | Value |
+| --- | --- |
+| **Status** | 🟡 In Progress (T-253.1 to T-253.3 done; T-253.4 browser check open) |
+| **Spec** | S-005 (temuan King Rezi di T-249.3, 2026-11-12) |
+| **Mode** | HITL (UI: cek rancangan popover Channels di artifact dan konfirmasi galeri, rule 10) |
+| **Depends** | T-201 |
 
 Ditemukan King Rezi saat memeriksa popover Channels di browser Claude (lokal): (1) baris "Pilih semua" terlalu dekat dengan kolom cari akun, di mode gelap dan terang; (2) di mode terang kotak centang (checkbox) pada baris akun dan "Pilih semua" nyaris tidak terlihat (kontras garis tepi rendah).
 
@@ -3645,14 +3645,14 @@ Ditemukan King Rezi saat memeriksa popover Channels di browser Claude (lokal): (
 
 ### T-281 · Align the UX baselines with the shipped Draft Editor (T-207.7 follow-up)
 
-| Field       | Value                                                                                                                               |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | ⏳ Not started                                                                                                                      |
-| **Mode**    | HITL (King Rezi accepts the ADR-155 addendum before any baseline file changes, `AGENTS.md` rule 2; design gate in T-281.3, rule 10) |
-| **Domain**  | docs · UX baseline                                                                                                                  |
-| **Spec**    | S-005                                                                                                                               |
-| **Docs**    | T-207.7 delta report (section "T-207.7 delta report" in T-207), ADR-155 and addendum, ADR-156, KSP-05, KSP-D02, NP-D11              |
-| **Depends** | T-207                                                                                                                               |
+| Field | Value |
+| --- | --- |
+| **Status** | ⏳ Not started |
+| **Mode** | HITL (King Rezi accepts the ADR-155 addendum before any baseline file changes, `AGENTS.md` rule 2; design gate in T-281.3, rule 10) |
+| **Domain** | docs · UX baseline |
+| **Spec** | S-005 |
+| **Docs** | T-207.7 delta report (section "T-207.7 delta report" in T-207), ADR-155 and addendum, ADR-156, KSP-05, KSP-D02, NP-D11 |
+| **Depends** | T-207 |
 
 King Rezi accepted differences D1 to D12 as the shipped behaviour on 2026-11-17 (wave 12). The UX baseline wording still describes something else (for example the narrow breakpoint is 767px in `dialog-layout.ts` but 640px in KSP-05). The baselines must not be edited without a new ADR (rule 2).
 
@@ -3669,14 +3669,14 @@ King Rezi accepted differences D1 to D12 as the shipped behaviour on 2026-11-17 
 
 ### T-228 · Import Posts: media expiry and storage for imported posts (investigation)
 
-| Field       | Value                                                                            |
-| ----------- | -------------------------------------------------------------------------------- |
-| **Status**  | ✅ Done (2026-11-06, investigasi dan keputusan; implementasi di T-229 dan T-230) |
-| **Mode**    | HITL (keputusan King Rezi)                                                       |
-| **Domain**  | publishing · integration                                                         |
-| **Spec**    | S-006 (konteks)                                                                  |
-| **Docs**    | ADR-040, ADR-093, ADR-135, T-115, T-131, T-227                                   |
-| **Depends** | T-227 untuk konteks (tidak memblokir)                                            |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (2026-11-06, investigasi dan keputusan; implementasi di T-229 dan T-230) |
+| **Mode** | HITL (keputusan King Rezi) |
+| **Domain** | publishing · integration |
+| **Spec** | S-006 (konteks) |
+| **Docs** | ADR-040, ADR-093, ADR-135, T-115, T-131, T-227 |
+| **Depends** | T-227 untuk konteks (tidak memblokir) |
 
 **Penempatan:** file `v02-publishing-mvp.md` karena yang dibahas adalah alur Import Posts (T-090, T-115, T-131, T-132 di file yang sama; `upsert-imported-posts.ts` dan `ImportPostsProcessUseCase` ada di domain publishing). Gejala yang memicunya muncul di Engage (T-227), tetapi akar penyimpanan media ada di Import.
 
@@ -3697,14 +3697,14 @@ King Rezi accepted differences D1 to D12 as the shipped behaviour on 2026-11-17 
 
 ### T-229 · Import Posts: spike on storing imported-post thumbnails and video posters (option C, ADR-158)
 
-| Field       | Value                                                                                               |
-| ----------- | --------------------------------------------------------------------------------------------------- |
-| **Status**  | ✅ Done (2026-11-06, spike dan keputusan skema; bagian "Not yet proven" menunggu T-230 dan staging) |
-| **Mode**    | HITL (keputusan skema)                                                                              |
-| **Domain**  | publishing · media · integration                                                                    |
-| **Spec**    | S-006 (konteks)                                                                                     |
-| **Docs**    | ADR-158, ADR-093, ADR-040, ADR-135, T-228, T-227, BG-D05                                            |
-| **Depends** | T-228 (Done)                                                                                        |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (2026-11-06, spike dan keputusan skema; bagian "Not yet proven" menunggu T-230 dan staging) |
+| **Mode** | HITL (keputusan skema) |
+| **Domain** | publishing · media · integration |
+| **Spec** | S-006 (konteks) |
+| **Docs** | ADR-158, ADR-093, ADR-040, ADR-135, T-228, T-227, BG-D05 |
+| **Depends** | T-228 (Done) |
 
 **Tujuan:** menjawab hal yang belum terbukti sebelum T-230 ditulis. Tiket ini tidak berisi kode produk.
 
@@ -3732,14 +3732,14 @@ King Rezi accepted differences D1 to D12 as the shipped behaviour on 2026-11-17 
 
 ### T-230 · Import Posts: download and store thumbnails and video posters during Import (option C, ADR-158)
 
-| Field       | Value                                                                                                                                                                   |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | 🟡 Done (code) 2026-11-10 (PR 267 dan 268 ter-merge ke `staging`), Verified (staging) sebagian: Engage terbukti; menunggu poster video; sisa operasi: `ffmpeg` produksi |
-| **Mode**    | AFK setelah T-229                                                                                                                                                       |
-| **Domain**  | publishing · media · integration                                                                                                                                        |
-| **Spec**    | S-006 (konteks)                                                                                                                                                         |
-| **Docs**    | ADR-158, ADR-093, ADR-040, T-229, T-227, AGENTS.md no. 3-6, 13                                                                                                          |
-| **Depends** | T-229                                                                                                                                                                   |
+| Field | Value |
+| --- | --- |
+| **Status** | 🟡 Done (code) 2026-11-10 (PR 267 dan 268 ter-merge ke `staging`), Verified (staging) sebagian: Engage terbukti; menunggu poster video; sisa operasi: `ffmpeg` produksi |
+| **Mode** | AFK setelah T-229 |
+| **Domain** | publishing · media · integration |
+| **Spec** | S-006 (konteks) |
+| **Docs** | ADR-158, ADR-093, ADR-040, T-229, T-227, AGENTS.md no. 3-6, 13 |
+| **Depends** | T-229 |
 
 Rincian mengikuti hasil T-229 (skema kolom baru di `publishing_post_targets`, job `import.media` per batch, `sharp` untuk gambar, `ffmpeg` untuk poster video):
 
@@ -3772,15 +3772,15 @@ Design `ScreenPublishRedesain` confirmed by King Rezi 2026-11-24 in the Postific
 
 ### T-286 · Publish page shell: Calendar · List · Board switcher, old routes, view-only timezone
 
-| Field            | Value                                                                                          |
-| ---------------- | ---------------------------------------------------------------------------------------------- |
-| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave; Verified (staging) 2026-11-25 in T-295                  |
-| **Mode**         | AFK                                                                                            |
-| **Verification** | `local`                                                                                        |
-| **Domain**       | publishing (UI and view state)                                                                 |
-| **Spec**         | S-008                                                                                          |
-| **Docs**         | ADR-165, ADR-097, ADR-140, `ScreenPublishRedesain`, KSP-02 to KSP-04, T-147 (Profile timezone) |
-| **Depends**      | —                                                                                              |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code) 2026-11-24, S-008 wave; Verified (staging) 2026-11-25 in T-295 |
+| **Mode** | AFK |
+| **Verification** | `local` |
+| **Domain** | publishing (UI and view state) |
+| **Spec** | S-008 |
+| **Docs** | ADR-165, ADR-097, ADR-140, `ScreenPublishRedesain`, KSP-02 to KSP-04, T-147 (Profile timezone) |
+| **Depends** | — |
 
 **What to build:** Publish is one page with a header (title, view switcher Calendar · List · Board, "+ New Post") instead of the route tabbar. The page reopens the user's last view. Old addresses keep working. A toolbar timezone picker changes only how times are shown on Publish.
 
@@ -3799,15 +3799,15 @@ Not yet proven: the shell was not observed in a browser (no dev server in this l
 
 ### T-287 · Publish Calendar: month and week in the new layout, "+N lainnya", schedule on a day, No date panel
 
-| Field            | Value                                                                         |
-| ---------------- | ----------------------------------------------------------------------------- |
-| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave; Verified (staging) 2026-11-25 in T-295 |
-| **Mode**         | AFK                                                                           |
-| **Verification** | `local`                                                                       |
-| **Domain**       | publishing                                                                    |
-| **Spec**         | S-008                                                                         |
-| **Docs**         | ADR-165, KSP-02, `ScreenPublishRedesain`                                      |
-| **Depends**      | T-286                                                                         |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code) 2026-11-24, S-008 wave; Verified (staging) 2026-11-25 in T-295 |
+| **Mode** | AFK |
+| **Verification** | `local` |
+| **Domain** | publishing |
+| **Spec** | S-008 |
+| **Docs** | ADR-165, KSP-02, `ScreenPublishRedesain` |
+| **Depends** | T-286 |
 
 **What to build:** the Calendar view matches the confirmed design on desktop.
 
@@ -3827,15 +3827,15 @@ Not yet proven: the Calendar was not observed in a browser (no dev server in thi
 
 ### T-288 · Post preview popover and expanded dialog with inline video
 
-| Field            | Value                                                                         |
-| ---------------- | ----------------------------------------------------------------------------- |
-| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave; Verified (staging) 2026-11-25 in T-295 |
-| **Mode**         | AFK                                                                           |
-| **Verification** | `local`                                                                       |
-| **Domain**       | publishing, media                                                             |
-| **Spec**         | S-008                                                                         |
-| **Docs**         | ADR-165, ADR-158, KSP-02-F04, History Detail, `ScreenPublishRedesain`         |
-| **Depends**      | T-287                                                                         |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code) 2026-11-24, S-008 wave; Verified (staging) 2026-11-25 in T-295 |
+| **Mode** | AFK |
+| **Verification** | `local` |
+| **Domain** | publishing, media |
+| **Spec** | S-008 |
+| **Docs** | ADR-165, ADR-158, KSP-02-F04, History Detail, `ScreenPublishRedesain` |
+| **Depends** | T-287 |
 
 **What to build:** clicking a post opens the per-account preview; Expand opens the full dialog; a published video plays in place.
 
@@ -3855,15 +3855,15 @@ Not yet proven: popover and dialog were not observed in a browser (no dev server
 
 ### T-289 · Publish List: Queue, Drafts, Approvals and History tabs
 
-| Field            | Value                                                                             |
-| ---------------- | --------------------------------------------------------------------------------- |
-| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave; Verified (staging) 2026-11-25 in T-295     |
-| **Mode**         | AFK                                                                               |
-| **Verification** | `local`                                                                           |
-| **Domain**       | publishing                                                                        |
-| **Spec**         | S-008                                                                             |
-| **Docs**         | ADR-165, ADR-083, KSP-03, KSP-04, `roles-permissions.md`, `ScreenPublishRedesain` |
-| **Depends**      | T-286                                                                             |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code) 2026-11-24, S-008 wave; Verified (staging) 2026-11-25 in T-295 |
+| **Mode** | AFK |
+| **Verification** | `local` |
+| **Domain** | publishing |
+| **Spec** | S-008 |
+| **Docs** | ADR-165, ADR-083, KSP-03, KSP-04, `roles-permissions.md`, `ScreenPublishRedesain` |
+| **Depends** | T-286 |
 
 **What to build:** the List view with line tabs and counts; posts grouped by day with the time on the left.
 
@@ -3884,15 +3884,15 @@ Transitions (list lane phase 2, King Rezi decision 2026-11-24): `ChangeContentSt
 
 ### T-290 · Publish Board: status columns
 
-| Field            | Value                                                                         |
-| ---------------- | ----------------------------------------------------------------------------- |
-| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave; Verified (staging) 2026-11-25 in T-295 |
-| **Mode**         | AFK                                                                           |
-| **Verification** | `local`                                                                       |
-| **Domain**       | publishing                                                                    |
-| **Spec**         | S-008                                                                         |
-| **Docs**         | ADR-165, `ScreenPublishRedesain`                                              |
-| **Depends**      | T-286, T-288                                                                  |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code) 2026-11-24, S-008 wave; Verified (staging) 2026-11-25 in T-295 |
+| **Mode** | AFK |
+| **Verification** | `local` |
+| **Domain** | publishing |
+| **Spec** | S-008 |
+| **Docs** | ADR-165, `ScreenPublishRedesain` |
+| **Depends** | T-286, T-288 |
 
 **What to build:** the Board view with columns Draft · Approvals · Scheduled · Published · Failed.
 
@@ -3909,15 +3909,15 @@ Not yet proven: the Board was not observed in a browser (no dev server in this l
 
 ### T-291 · Empty Queue: best-time suggestions from stored post metrics
 
-| Field            | Value                                                                         |
-| ---------------- | ----------------------------------------------------------------------------- |
-| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave; Verified (staging) 2026-11-25 in T-295 |
-| **Mode**         | AFK                                                                           |
-| **Verification** | `local`                                                                       |
-| **Domain**       | analytics, publishing                                                         |
-| **Spec**         | S-008                                                                         |
-| **Docs**         | ADR-165, ADR-158, S-008 § Empty Queue, `AnalyticsPostMetric`                  |
-| **Depends**      | T-289                                                                         |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code) 2026-11-24, S-008 wave; Verified (staging) 2026-11-25 in T-295 |
+| **Mode** | AFK |
+| **Verification** | `local` |
+| **Domain** | analytics, publishing |
+| **Spec** | S-008 |
+| **Docs** | ADR-165, ADR-158, S-008 § Empty Queue, `AnalyticsPostMetric` |
+| **Depends** | T-289 |
 
 **What to build:** when the Queue is empty, each connected account shows suggested posting times calculated by Postific from its own published posts; Outstand is not called.
 
@@ -3934,15 +3934,15 @@ Not yet proven: the Board was not observed in a browser (no dev server in this l
 
 ### T-292 · Publish on tablet and phone
 
-| Field            | Value                                                                         |
-| ---------------- | ----------------------------------------------------------------------------- |
-| **Status**       | ✅ Done (code) 2026-11-25, S-008 wave; Verified (staging) 2026-11-25 in T-295 |
-| **Mode**         | AFK                                                                           |
-| **Verification** | `local`                                                                       |
-| **Domain**       | publishing (UI), app shell                                                    |
-| **Spec**         | S-008                                                                         |
-| **Docs**         | ADR-165, `ScreenPublishRedesain` (Tablet, Mobile)                             |
-| **Depends**      | T-287, T-288, T-289, T-290, T-291                                             |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code) 2026-11-25, S-008 wave; Verified (staging) 2026-11-25 in T-295 |
+| **Mode** | AFK |
+| **Verification** | `local` |
+| **Domain** | publishing (UI), app shell |
+| **Spec** | S-008 |
+| **Docs** | ADR-165, `ScreenPublishRedesain` (Tablet, Mobile) |
+| **Depends** | T-287, T-288, T-289, T-290, T-291 |
 
 **What to build:** the responsive layouts from the design.
 
@@ -3959,15 +3959,15 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 ### T-293 · Keep the UX baseline in line with the Publish build
 
-| Field            | Value                                                                                                       |
-| ---------------- | ----------------------------------------------------------------------------------------------------------- |
-| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave; Verified (staging) 2026-11-25 in T-295                               |
-| **Mode**         | AFK                                                                                                         |
-| **Verification** | `local`                                                                                                     |
-| **Domain**       | docs                                                                                                        |
-| **Spec**         | S-008                                                                                                       |
-| **Docs**         | ADR-165, `key-screen-patterns.md`, `information-architecture.md`, `navigation-patterns.md`, `user-flows.md` |
-| **Depends**      | T-286                                                                                                       |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code) 2026-11-24, S-008 wave; Verified (staging) 2026-11-25 in T-295 |
+| **Mode** | AFK |
+| **Verification** | `local` |
+| **Domain** | docs |
+| **Spec** | S-008 |
+| **Docs** | ADR-165, `key-screen-patterns.md`, `information-architecture.md`, `navigation-patterns.md`, `user-flows.md` |
+| **Depends** | T-286 |
 
 **What to build:** the UX baseline was aligned with ADR-165 in the same PR as the ADR (King Rezi's decision Q15, `AGENTS.md` rule 14): KSP-02, KSP-03, KSP-04, the Publish part of `information-architecture.md`, the Publish navigation in `navigation-patterns.md`, and the Calendar flow in `user-flows.md`. This ticket only records what the build changes later.
 
@@ -3981,15 +3981,15 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 ### T-294 · S-008 QA: E2E, review and QA
 
-| Field            | Value                                                                         |
-| ---------------- | ----------------------------------------------------------------------------- |
-| **Status**       | ✅ Done (code) 2026-11-25, S-008 wave; Verified (staging) 2026-11-25 in T-295 |
-| **Mode**         | AFK                                                                           |
-| **Verification** | `local`                                                                       |
-| **Domain**       | publishing, analytics                                                         |
-| **Spec**         | S-008                                                                         |
-| **Docs**         | ADR-149, ADR-153, ADR-161, ADR-165                                            |
-| **Depends**      | T-286 to T-293                                                                |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code) 2026-11-25, S-008 wave; Verified (staging) 2026-11-25 in T-295 |
+| **Mode** | AFK |
+| **Verification** | `local` |
+| **Domain** | publishing, analytics |
+| **Spec** | S-008 |
+| **Docs** | ADR-149, ADR-153, ADR-161, ADR-165 |
+| **Depends** | T-286 to T-293 |
 
 **What to build:** the S-008 work is proven on `local` before the wave goes to staging.
 
@@ -4004,15 +4004,15 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 ### T-295 · S-008 wave verification on staging
 
-| Field            | Value                                                |
-| ---------------- | ---------------------------------------------------- |
-| **Status**       | ✅ Verified (staging) 2026-11-25                     |
-| **Mode**         | HITL (King Rezi verifies on staging)                 |
-| **Verification** | `staging`                                            |
-| **Domain**       | publishing, analytics                                |
-| **Spec**         | S-008                                                |
-| **Docs**         | ADR-153, ADR-161, ADR-165                            |
-| **Depends**      | integration PR of the S-008 wave merged to `staging` |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Verified (staging) 2026-11-25 |
+| **Mode** | HITL (King Rezi verifies on staging) |
+| **Verification** | `staging` |
+| **Domain** | publishing, analytics |
+| **Spec** | S-008 |
+| **Docs** | ADR-153, ADR-161, ADR-165 |
+| **Depends** | integration PR of the S-008 wave merged to `staging` |
 
 **What to build:** one staging verification for the whole S-008 wave (ADR-153, ADR-161).
 
@@ -4028,15 +4028,15 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 ### T-296 · Submit for review control in the Draft Editor
 
-| Field            | Value                                                                                              |
-| ---------------- | -------------------------------------------------------------------------------------------------- |
-| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave; Verified (staging) 2026-11-25 in T-295                      |
-| **Mode**         | HITL (design confirmed by King Rezi in the gallery), then AFK                                      |
-| **Verification** | `local`                                                                                            |
-| **Domain**       | publishing (UI)                                                                                    |
-| **Spec**         | S-008                                                                                              |
-| **Docs**         | ADR-165, ADR-140, `roles-permissions.md` (content status transitions), `ScreenDraftEditorRedesain` |
-| **Depends**      | T-289 (transition use case `ChangeContentStatusUseCase`)                                           |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code) 2026-11-24, S-008 wave; Verified (staging) 2026-11-25 in T-295 |
+| **Mode** | HITL (design confirmed by King Rezi in the gallery), then AFK |
+| **Verification** | `local` |
+| **Domain** | publishing (UI) |
+| **Spec** | S-008 |
+| **Docs** | ADR-165, ADR-140, `roles-permissions.md` (content status transitions), `ScreenDraftEditorRedesain` |
+| **Depends** | T-289 (transition use case `ChangeContentStatusUseCase`) |
 
 **What to build:** no design had a control to move a post Draft → In Review, so the Approvals tab stayed empty in practice. King Rezi decided on 2026-11-24 to design and build it in the S-008 wave.
 
@@ -4059,15 +4059,15 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 ### T-297 · Draft Editor save and delete for In Review and Ready to Schedule posts
 
-| Field            | Value                                                                         |
-| ---------------- | ----------------------------------------------------------------------------- |
-| **Status**       | ✅ Done (code) 2026-11-24, S-008 wave; Verified (staging) 2026-11-25 in T-295 |
-| **Mode**         | AFK                                                                           |
-| **Verification** | `local`                                                                       |
-| **Domain**       | publishing                                                                    |
-| **Spec**         | S-008                                                                         |
-| **Docs**         | ADR-165, `roles-permissions.md` (content statuses)                            |
-| **Depends**      | T-289                                                                         |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code) 2026-11-24, S-008 wave; Verified (staging) 2026-11-25 in T-295 |
+| **Mode** | AFK |
+| **Verification** | `local` |
+| **Domain** | publishing |
+| **Spec** | S-008 |
+| **Docs** | ADR-165, `roles-permissions.md` (content statuses) |
+| **Depends** | T-289 |
 
 **What to build:** saving and deleting in the Draft Editor worked only for `draft` posts, so an In Review or Ready to Schedule post opened from Drafts or Approvals could not be saved or deleted. King Rezi decided on 2026-11-24 to fix it in the S-008 wave.
 
@@ -4081,28 +4081,28 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 ### T-298 · Infinite scroll for long lists (Publish, Engage, media picker, notifications)
 
-| Field            | Value                                                                                               |
-| ---------------- | --------------------------------------------------------------------------------------------------- |
-| **Status**       | ✅ Split into spec S-009 (T-301 to T-305), 2026-11-25; the items below are carried by those tickets |
-| **Mode**         | HITL (design confirmed by King Rezi in the gallery), then AFK                                       |
-| **Verification** | `local`                                                                                             |
-| **Domain**       | publishing, engagement, media, notification (UI and repositories)                                   |
-| **Spec**         | S-008 follow-up (next wave; a spec of its own if the work spans more than one wave)                 |
-| **Docs**         | ADR-097, ADR-140, ADR-165, `key-screen-patterns.md`                                                 |
-| **Depends**      | S-008 wave merged to `staging`                                                                      |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Split into spec S-009 (T-301 to T-305), 2026-11-25; the items below are carried by those tickets |
+| **Mode** | HITL (design confirmed by King Rezi in the gallery), then AFK |
+| **Verification** | `local` |
+| **Domain** | publishing, engagement, media, notification (UI and repositories) |
+| **Spec** | S-008 follow-up (next wave; a spec of its own if the work spans more than one wave) |
+| **Docs** | ADR-097, ADR-140, ADR-165, `key-screen-patterns.md` |
+| **Depends** | S-008 wave merged to `staging` |
 
 **What to build:** on 2026-11-24 the Publish Board in Cook It Real Good went black because 100+ cards made the page ~18 000 px tall (fixed in the S-008 wave by scrolling each column on its own). King Rezi asked for infinite scroll wherever a list can grow without bound, in the next wave. An audit of every page on Cook It Real Good found:
 
-| Section                                       | Before                                     | Decision                   |
-| --------------------------------------------- | ------------------------------------------ | -------------------------- |
-| Publish · List · History                      | 503 cards at once, no limit                | infinite scroll            |
-| Publish · Board columns                       | hard cap of 100, "100+"                    | infinite scroll per column |
-| Publish · List · Drafts, Approvals, Queue     | no limit                                   | infinite scroll            |
-| Engage · List view                            | cap of 200 inbox items, older ones missing | infinite scroll            |
-| Engage · comments of one post                 | up to 1 000 at once                        | infinite scroll            |
-| Draft Editor · media picker                   | whole media library, no limit              | infinite scroll            |
-| Notifications panel                           | cap of 50, older ones unreachable          | infinite scroll            |
-| Calendar, Home, Analyze, Start Page, Settings | bounded by range or small                  | no change                  |
+| Section | Before | Decision |
+| --- | --- | --- |
+| Publish · List · History | 503 cards at once, no limit | infinite scroll |
+| Publish · Board columns | hard cap of 100, "100+" | infinite scroll per column |
+| Publish · List · Drafts, Approvals, Queue | no limit | infinite scroll |
+| Engage · List view | cap of 200 inbox items, older ones missing | infinite scroll |
+| Engage · comments of one post | up to 1 000 at once | infinite scroll |
+| Draft Editor · media picker | whole media library, no limit | infinite scroll |
+| Notifications panel | cap of 50, older ones unreachable | infinite scroll |
+| Calendar, Home, Analyze, Start Page, Settings | bounded by range or small | no change |
 
 - [ ] The loading row, end-of-list state and error with retry are designed in the Postific artifact and confirmed by King Rezi in the Postific Design Review gallery (AGENTS.md rule 10).
 - [ ] Each section above loads **20 items per page** (King Rezi, 2026-11-24) with cursor-based repository queries (stable order, no offset drift when new posts arrive) and loads the next page as the user nears the end of the list.
@@ -4118,15 +4118,15 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 ### T-299 · Imported Reels and videos play inline in the post preview
 
-| Field            | Value                                                         |
-| ---------------- | ------------------------------------------------------------- |
-| **Status**       | ⏳ Not Started                                                |
-| **Mode**         | HITL (data check and design confirmed by King Rezi), then AFK |
-| **Verification** | `staging`                                                     |
-| **Domain**       | publishing, media (Outstand import through the ACL)           |
-| **Spec**         | S-008 follow-up                                               |
-| **Docs**         | ADR-140, ADR-165 (inline video in the post preview), ADR-119  |
-| **Depends**      | —                                                             |
+| Field | Value |
+| --- | --- |
+| **Status** | ⏳ Not Started |
+| **Mode** | HITL (data check and design confirmed by King Rezi), then AFK |
+| **Verification** | `staging` |
+| **Domain** | publishing, media (Outstand import through the ACL) |
+| **Spec** | S-008 follow-up |
+| **Docs** | ADR-140, ADR-165 (inline video in the post preview), ADR-119 |
+| **Depends** | — |
 
 **What to build:** in the T-295 check (2026-11-25) King Rezi expected the Cook It Real Good Reels to play inside the post preview. Today they cannot: imported posts keep only a caption and a thumbnail (`media_ids` empty), so the preview shows the thumbnail and "Go to post" (S-008). Inline play works only for a video Postific holds itself.
 
@@ -4141,15 +4141,15 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 ### T-300 · Board on a phone gets stuck after scrolling to a column with cards
 
-| Field            | Value                                                    |
-| ---------------- | -------------------------------------------------------- |
-| **Status**       | ✅ Done (code) 2026-11-25; Verified (staging) 2026-11-25 |
-| **Mode**         | AFK                                                      |
-| **Verification** | `staging`                                                |
-| **Domain**       | publishing (UI)                                          |
-| **Spec**         | S-008 (Board, phone layout of T-292)                     |
-| **Docs**         | ADR-165                                                  |
-| **Depends**      | —                                                        |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code) 2026-11-25; Verified (staging) 2026-11-25 |
+| **Mode** | AFK |
+| **Verification** | `staging` |
+| **Domain** | publishing (UI) |
+| **Spec** | S-008 (Board, phone layout of T-292) |
+| **Docs** | ADR-165 |
+| **Depends** | — |
 
 **What to build:** King Rezi (2026-11-25, staging, mobile): on the Publish Board, after scrolling right to the end he could not scroll back left. Cause: each column's card list is `overflow-y-auto overscroll-contain`; `overflow-y-auto` makes it a horizontal scroll container too, so `overscroll-contain` stopped sideways swipes and wheel scrolls that start on a column with cards (Published, Failed) from reaching the Board row. Empty columns have no list, so the Board only got stuck once it reached Published.
 
@@ -4168,15 +4168,15 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 ### T-301 · Infinite scroll foundation: design of the list states, shared paged-list hook and cursor type
 
-| Field            | Value                                                                             |
-| ---------------- | --------------------------------------------------------------------------------- |
-| **Status**       | ✅ Done (code), 2026-11-25                                                        |
-| **Mode**         | HITL (ADR-166 acceptance and design confirmed by King Rezi), then AFK             |
-| **Verification** | `local`                                                                           |
-| **Domain**       | UI (shared app components), `packages/shared`, UX baseline                        |
-| **Spec**         | S-009                                                                             |
-| **Docs**         | ADR-166, ADR-097, ADR-140, `key-screen-patterns.md`, `apps/web/.claude/CLAUDE.md` |
-| **Depends**      | — (split from T-298; the S-008 wave is merged to `staging`)                       |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code), 2026-11-25 |
+| **Mode** | HITL (ADR-166 acceptance and design confirmed by King Rezi), then AFK |
+| **Verification** | `local` |
+| **Domain** | UI (shared app components), `packages/shared`, UX baseline |
+| **Spec** | S-009 |
+| **Docs** | ADR-166, ADR-097, ADR-140, `key-screen-patterns.md`, `apps/web/.claude/CLAUDE.md` |
+| **Depends** | — (split from T-298; the S-008 wave is merged to `staging`) |
 
 **What to build:** every long list in S-009 has one confirmed look for loading the next page, reaching the end, and a failed page, and one shared piece of client code that the section tickets plug into.
 
@@ -4197,15 +4197,15 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 ### T-302 · Publish: infinite scroll on the List tabs and each Board column
 
-| Field            | Value                                   |
-| ---------------- | --------------------------------------- |
-| **Status**       | ✅ Done (code), 2026-11-25              |
-| **Mode**         | AFK                                     |
-| **Verification** | `local`                                 |
-| **Domain**       | publishing (UI, service, repository)    |
-| **Spec**         | S-009                                   |
-| **Docs**         | ADR-166, ADR-165, KSP-03, KSP-04, S-008 |
-| **Depends**      | T-301                                   |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code), 2026-11-25 |
+| **Mode** | AFK |
+| **Verification** | `local` |
+| **Domain** | publishing (UI, service, repository) |
+| **Spec** | S-009 |
+| **Docs** | ADR-166, ADR-165, KSP-03, KSP-04, S-008 |
+| **Depends** | T-301 |
 
 **What to build:** History, Queue, Drafts and Approvals in Publish List, and each Board column, load 20 items at a time as the user scrolls, with true counts.
 
@@ -4229,15 +4229,15 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 ### T-303 · Engage: infinite scroll on the List view and the comments of one post
 
-| Field            | Value                                |
-| ---------------- | ------------------------------------ |
-| **Status**       | ✅ Done (code), 2026-11-25           |
-| **Mode**         | AFK                                  |
-| **Verification** | `local`                              |
-| **Domain**       | engagement (UI, service, repository) |
-| **Spec**         | S-009                                |
-| **Docs**         | ADR-166, ADR-157, KSP-06, S-006      |
-| **Depends**      | T-301                                |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code), 2026-11-25 |
+| **Mode** | AFK |
+| **Verification** | `local` |
+| **Domain** | engagement (UI, service, repository) |
+| **Spec** | S-009 |
+| **Docs** | ADR-166, ADR-157, KSP-06, S-006 |
+| **Depends** | T-301 |
 
 **What to build:** the Engage List view and the comment list of one post load 20 at a time; older inbox items that the 200 cap used to hide can be reached.
 
@@ -4259,15 +4259,15 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 ### T-304 · Notifications panel: infinite scroll
 
-| Field            | Value                                  |
-| ---------------- | -------------------------------------- |
-| **Status**       | ✅ Done (code), 2026-11-25             |
-| **Mode**         | AFK                                    |
-| **Verification** | `local`                                |
-| **Domain**       | notification (UI, service, repository) |
-| **Spec**         | S-009                                  |
-| **Docs**         | ADR-166, KSP-05, ADR-023               |
-| **Depends**      | T-301                                  |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code), 2026-11-25 |
+| **Mode** | AFK |
+| **Verification** | `local` |
+| **Domain** | notification (UI, service, repository) |
+| **Spec** | S-009 |
+| **Docs** | ADR-166, KSP-05, ADR-023 |
+| **Depends** | T-301 |
 
 **What to build:** the Notifications panel loads 20 at a time; older notifications past the 50 cap can be reached. The Draft Editor media picker was dropped from S-009 (it does not exist yet; ADR-166 addendum).
 
@@ -4284,15 +4284,15 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 ### T-305 · S-009 wave verification on staging
 
-| Field            | Value                                                                |
-| ---------------- | -------------------------------------------------------------------- |
-| **Status**       | ⏳ Not Started                                                       |
-| **Mode**         | HITL (manual verification by King Rezi)                              |
-| **Verification** | `staging`                                                            |
-| **Domain**       | publishing, engagement, notification                                 |
-| **Spec**         | S-009                                                                |
-| **Docs**         | ADR-153, ADR-161, ADR-166                                            |
-| **Depends**      | T-302, T-303, T-304, and the wave integration PR merged to `staging` |
+| Field | Value |
+| --- | --- |
+| **Status** | ⏳ Not Started |
+| **Mode** | HITL (manual verification by King Rezi) |
+| **Verification** | `staging` |
+| **Domain** | publishing, engagement, notification |
+| **Spec** | S-009 |
+| **Docs** | ADR-153, ADR-161, ADR-166 |
+| **Depends** | T-302, T-303, T-304, and the wave integration PR merged to `staging` |
 
 **What to build:** proof on staging that the long lists load page by page on a large workspace.
 
@@ -4307,15 +4307,15 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 ### T-306 · Publish Board crashes while scrolling the Published column (S-009 follow-up)
 
-| Field            | Value                      |
-| ---------------- | -------------------------- |
-| **Status**       | ✅ Done (code), 2026-11-25 |
-| **Mode**         | AFK                        |
-| **Verification** | `local`                    |
-| **Domain**       | publishing (UI)            |
-| **Spec**         | S-009                      |
-| **Docs**         | ADR-166, T-302             |
-| **Depends**      | —                          |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code), 2026-11-25 |
+| **Mode** | AFK |
+| **Verification** | `local` |
+| **Domain** | publishing (UI) |
+| **Spec** | S-009 |
+| **Docs** | ADR-166, T-302 |
+| **Depends** | — |
 
 **What to build:** King Rezi reported (2026-11-25) that the Publish Board crashes when he scrolls the Published column, on the PR 303 build (`feature/s009-infinite-scroll`, local dev server). Scrolling a column to load more cards must never crash the page.
 
@@ -4381,14 +4381,14 @@ Temuan QA yang dicatat (bukan pemblokir):
 
 ### T-231 · Import Posts: purge imported-post thumbnails when posts, accounts, or workspaces are deleted (ADR-158)
 
-| Field       | Value                                                                                 |
-| ----------- | ------------------------------------------------------------------------------------- |
-| **Status**  | ✅ Done (code); Verification `staging` (ADR-161), butir di tiket verifikasi gelombang |
-| **Mode**    | AFK                                                                                   |
-| **Domain**  | publishing · media                                                                    |
-| **Spec**    | S-006 (konteks)                                                                       |
-| **Docs**    | ADR-158, T-229, T-230, review Ridwan M5                                               |
-| **Depends** | T-230                                                                                 |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code); Verification `staging` (ADR-161), butir di tiket verifikasi gelombang |
+| **Mode** | AFK |
+| **Domain** | publishing · media |
+| **Spec** | S-006 (konteks) |
+| **Docs** | ADR-158, T-229, T-230, review Ridwan M5 |
+| **Depends** | T-230 |
 
 Berkas `{workspaceId}/imports/{targetId}.webp` tidak ikut terhapus bila posting impor dihapus, akun diputus, atau workspace dihapus, sehingga berkas yatim menumpuk di bucket privat `media`.
 
@@ -4408,14 +4408,14 @@ Berkas `{workspaceId}/imports/{targetId}.webp` tidak ikut terhapus bila posting 
 
 ### T-232 · Import Posts: show the stored thumbnail on History Detail for imported posts (ADR-158)
 
-| Field       | Value                                                                                    |
-| ----------- | ---------------------------------------------------------------------------------------- |
-| **Status**  | ✅ Done (code); Verification `local` (ADR-161); E2E 375px T-232.4 hijau 2026-11-12       |
-| **Mode**    | AFK (UI/UX-related: gate rancangan berlaku sebelum kode)                                 |
-| **Domain**  | publishing · media · UI                                                                  |
-| **Spec**    | S-006 (konteks)                                                                          |
-| **Docs**    | ADR-158, ADR-093, ADR-097, ADR-140, T-227, T-230, `/code-review` T-230 (temuan altitude) |
-| **Depends** | T-230                                                                                    |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code); Verification `local` (ADR-161); E2E 375px T-232.4 hijau 2026-11-12 |
+| **Mode** | AFK (UI/UX-related: gate rancangan berlaku sebelum kode) |
+| **Domain** | publishing · media · UI |
+| **Spec** | S-006 (konteks) |
+| **Docs** | ADR-158, ADR-093, ADR-097, ADR-140, T-227, T-230, `/code-review` T-230 (temuan altitude) |
+| **Depends** | T-230 |
 
 Halaman History Detail (`apps/web/src/app/(app)/publish/history/[postId]/page.tsx`) hanya meresolve `item.mediaIds` lewat `MediaService.resolveFirstThumbnail`, yang kosong untuk posting impor. Setelah T-230, thumbnail posting impor terlihat di Engage tetapi halaman detailnya tetap tanpa media (ADR-093 mewajibkan History menampilkan posting Imported). Bukan regresi T-230; ketidakkonsistenan yang perlu ditutup.
 
@@ -4444,14 +4444,14 @@ Halaman History Detail (`apps/web/src/app/(app)/publish/history/[postId]/page.ts
 
 ### T-233 · Import Posts: bound retries of transiently failing imported-post thumbnails (ADR-158)
 
-| Field       | Value                                                                                 |
-| ----------- | ------------------------------------------------------------------------------------- |
-| **Status**  | ✅ Done (code); Verification `staging` (ADR-161), butir di tiket verifikasi gelombang |
-| **Mode**    | AFK                                                                                   |
-| **Domain**  | publishing · integration                                                              |
-| **Spec**    | S-006 (konteks)                                                                       |
-| **Docs**    | ADR-158, T-229, T-230, BG-D05, `/code-review` T-230 (temuan correctness)              |
-| **Depends** | T-230                                                                                 |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code); Verification `staging` (ADR-161), butir di tiket verifikasi gelombang |
+| **Mode** | AFK |
+| **Domain** | publishing · integration |
+| **Spec** | S-006 (konteks) |
+| **Docs** | ADR-158, T-229, T-230, BG-D05, `/code-review` T-230 (temuan correctness) |
+| **Depends** | T-230 |
 
 Kegagalan **sementara** (timeout, 408/429/5xx, galat jaringan, `ffmpeg` belum terpasang, galat Storage, anggaran waktu habis) sengaja tidak mengisi `thumbnail_attempted_at` (T-230), jadi target itu muncul lagi di `listImportedTargetIdsNeedingThumbnail` pada setiap import (periodik harian tiap akun dan setiap Sync Now). T-230 sudah men-dedup job `import.media` yang masih pending/running per akun, tetapi target yang selalu gagal sementara (mis. CDN yang selalu melewati batas 9 detik) tetap dicoba tanpa batas: sampai 200 target diantrikan lagi tiap import. Biayanya kecil tetapi tidak nol dan tidak berhenti sendiri.
 

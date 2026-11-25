@@ -2,10 +2,10 @@
 
 ## Metadata
 
-| Field        | Value      |
-| ------------ | ---------- |
-| Version      | 0.3.2      |
-| Status       | Active     |
+| Field | Value |
+| --- | --- |
+| Version | 0.3.2 |
+| Status | Active |
 | Last Updated | 2026-10-23 |
 
 ---

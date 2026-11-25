@@ -434,14 +434,14 @@ Rapikan temuan pertimbangan dari review gelombang B yang sengaja tidak dikerjaka
 
 Status `⛔ Dibatalkan` berarti tidak akan dikerjakan dan bukan bagian antrian.
 
-| ID    | Judul lama                            | Pengganti                                        |
-| ----- | ------------------------------------- | ------------------------------------------------ |
-| T-060 | Tetapkan provider + model AI          | ADR-138, ADR-139 (tanpa provider AI)             |
-| T-061 | AI Assistant domain skeleton          | T-149                                            |
-| T-062 | Caption generation                    | Dikerjakan AI klien lewat `create_draft` (T-152) |
-| T-063 | Caption improvement                   | Dikerjakan AI klien lewat `update_draft` (T-152) |
-| T-064 | Tone rewrite / variasi gaya penulisan | Dikerjakan AI klien                              |
-| T-065 | Integrasi AI ke Draft Editor          | Tidak diperlukan                                 |
+| ID | Judul lama | Pengganti |
+| --- | --- | --- |
+| T-060 | Tetapkan provider + model AI | ADR-138, ADR-139 (tanpa provider AI) |
+| T-061 | AI Assistant domain skeleton | T-149 |
+| T-062 | Caption generation | Dikerjakan AI klien lewat `create_draft` (T-152) |
+| T-063 | Caption improvement | Dikerjakan AI klien lewat `update_draft` (T-152) |
+| T-064 | Tone rewrite / variasi gaya penulisan | Dikerjakan AI klien |
+| T-065 | Integrasi AI ke Draft Editor | Tidak diperlukan |
 
 ---
 

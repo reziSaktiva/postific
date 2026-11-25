@@ -257,11 +257,11 @@ Counter bersifat kumulatif (tanpa deret waktu, dan tanpa dedup atau rate limit k
 
 **Aturan baca.** Klik hampir selalu didahului view, karena pengunjung harus membuka `/u/<slug>` untuk melihat tautan. Jadi `klik > view` pada halaman yang cukup ramai berarti view kurang terhitung, yaitu filter Fetch Metadata (T-162.1) terlalu ketat. Rasio klik per view yang wajar untuk link-in-bio jauh di bawah 1.
 
-| Kondisi (halaman dengan klik >= N)          | Arti                                                                               | Tindakan                                                                                        |
-| ------------------------------------------- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `clicks_per_view` < 1                       | Normal                                                                             | Tidak ada                                                                                       |
+| Kondisi (halaman dengan klik >= N) | Arti | Tindakan |
+| --- | --- | --- |
+| `clicks_per_view` < 1 | Normal | Tidak ada |
 | `clicks_per_view` > 1 pada beberapa halaman | View kurang terhitung (filter terlalu ketat) atau tautan `/go/` dibagikan langsung | Cek delta dan jenis perangkat pengunjung; tinjau T-162.1. Keputusan King Rezi tetap fail-closed |
-| Banyak halaman dengan `total_clicks` = 0    | Belum ada klik, bukan masalah filter                                               | Tunggu trafik                                                                                   |
+| Banyak halaman dengan `total_clicks` = 0 | Belum ada klik, bukan masalah filter | Tunggu trafik |
 
 **Yang menunggu keputusan King Rezi:** nilai ambang `N` (jumlah klik minimum sebelum rasio dianggap bermakna). Query di bawah memakai **N = 30 sebagai usulan** (ubah di klausa `FILTER`).
 
@@ -302,8 +302,8 @@ SELECT count(*) AS halaman_published,
 **Delta:** jalankan Query 1 pada dua waktu (mis. 7 hari berselang), catat hasilnya di tiket ini, lalu bandingkan `selisih view` dengan `selisih klik` per halaman. Tabel catatan:
 
 | Tanggal | slug | view_count | total_clicks | clicks_per_view | Catatan |
-| ------- | ---- | ---------- | ------------ | --------------- | ------- |
-| -       | -    | -          | -            | -               | -       |
+| --- | --- | --- | --- | --- | --- |
+| - | - | - | - | - | - |
 
 ##### T-171.2 · Runbook cek Safari asli
 
@@ -311,12 +311,12 @@ SELECT count(*) AS halaman_published,
 
 **Matriks perangkat** (isi kolom hasil setelah diuji):
 
-| Perangkat                                              | Yang diharapkan                                                                                                        | Hasil                                                                                                                                                                                                       |
-| ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Safari macOS (terbaru)                                 | Tampil benar, 0 pelanggaran CSP, view +1 per muat, klik +1                                                             | -                                                                                                                                                                                                           |
-| Safari iOS (iPhone, terbaru)                           | Sama seperti macOS; cek juga mode gelap iOS                                                                            | Sebagian (2026-10-29, iOS 18, laporan King Rezi): tampilan mode gelap, view +1, klik dan redirect, Kembali, dan 404 kustom ✅. Belum: konsol CSP (`n/a`), mode terang, kedipan KI-104; lihat tabel di bawah |
-| Safari < 16.4 (perangkat lama, mis. iOS 15/16.3)       | Tampil benar dan klik terhitung; **view +0 itu perilaku yang diterima** (tidak ada Fetch Metadata, T-162.1), bukan bug | -                                                                                                                                                                                                           |
-| In-app browser (Instagram, Facebook, TikTok, WhatsApp) | Tampil benar dan klik terhitung; view bisa +0 (sebagian tidak mengirim Fetch Metadata). Catat per aplikasi             | -                                                                                                                                                                                                           |
+| Perangkat | Yang diharapkan | Hasil |
+| --- | --- | --- |
+| Safari macOS (terbaru) | Tampil benar, 0 pelanggaran CSP, view +1 per muat, klik +1 | - |
+| Safari iOS (iPhone, terbaru) | Sama seperti macOS; cek juga mode gelap iOS | Sebagian (2026-10-29, iOS 18, laporan King Rezi): tampilan mode gelap, view +1, klik dan redirect, Kembali, dan 404 kustom ✅. Belum: konsol CSP (`n/a`), mode terang, kedipan KI-104; lihat tabel di bawah |
+| Safari < 16.4 (perangkat lama, mis. iOS 15/16.3) | Tampil benar dan klik terhitung; **view +0 itu perilaku yang diterima** (tidak ada Fetch Metadata, T-162.1), bukan bug | - |
+| In-app browser (Instagram, Facebook, TikTok, WhatsApp) | Tampil benar dan klik terhitung; view bisa +0 (sebagian tidak mengirim Fetch Metadata). Catat per aplikasi | - |
 
 **Langkah per perangkat:**
 
@@ -332,8 +332,8 @@ SELECT count(*) AS halaman_published,
 
 Uji dijalankan di staging (`https://web-staging-60d7.up.railway.app`) pada halaman published `cook-it-real-good`, **sebelum PR 217 di-merge**, jadi **langkah 6 (404 kustom) belum bisa diuji** dan tercatat di bawah sebagai tertunda. Isi satu baris per perangkat. Penanda: ✅ sesuai harapan, ❌ tidak sesuai (jelaskan di Catatan), `n/a` tidak diuji.
 
-| Tanggal    | Perangkat dan OS                     | Safari/aplikasi (versi)                   | 2 Tampilan (terang/gelap)                | 3 Konsol: pelanggaran CSP    | 4 View (awal → akhir)                                                                                                                                                                   | 5 Klik (awal → akhir)                                                                                                                       | Catatan                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| ---------- | ------------------------------------ | ----------------------------------------- | ---------------------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tanggal | Perangkat dan OS | Safari/aplikasi (versi) | 2 Tampilan (terang/gelap) | 3 Konsol: pelanggaran CSP | 4 View (awal → akhir) | 5 Klik (awal → akhir) | Catatan |
+| --- | --- | --- | --- | --- | --- | --- | --- |
 | 2026-10-29 | iPhone (model tidak dicatat), iOS 18 | Safari iOS 18 (versi minor tidak dicatat) | ✅ gelap (dari screenshot); terang `n/a` | n/a (tidak disambung ke Mac) | `4 → 5` (laporan lisan King Rezi pada uji pertama di iPhone: view +1, tanpa screenshot angka awal; angka kemudian terlihat 8 di Page Editor, selisih dari kunjungan lain tidak dirinci) | ✅ sesuai (laporan lisan; angka awal dan akhir tidak dicatat). Redirect `/go/` ke URL tujuan tautan benar, tombol Kembali normal tanpa loop | Uji pertama hanya membuka halaman (King Rezi). Screenshot: `web-staging-60d7.up.railway.app`, avatar "CG", judul "Cook It Real Good", satu tautan "Uji T-164", footer "Powered by Postific", semua tampil benar di mode gelap. 404 kustom (`/u/<slug tak ada>`) ✅ sesuai (laporan lisan, tanpa screenshot). Kedipan terang saat memuat (KI-104) dan scroll horizontal tidak diamati. Jalur URL tidak terlihat di screenshot |
 
 **Uji kedipan mode gelap di Safari asli (T-177.4, 2026-10-29, King Rezi):** Safari iPhone (iOS 18) dan Safari macOS, OS gelap, tab/jendela privat. Build lokal yang sudah diperbaiki (lewat tunnel ngrok sementara, `/u/e2e-start-page`) tampil gelap tanpa kilas terang; build lama di staging (`/u/cook-it-real-good`) juga tidak menunjukkan kilas terang menurut pengamatan mata. Jadi uji ini tidak membedakan keduanya; lihat T-177.4 di `known-issues.md`. Versi macOS/Safari dan model iPhone tidak dicatat.
@@ -352,11 +352,11 @@ Uji dijalankan di staging (`https://web-staging-60d7.up.railway.app`) pada halam
 
 **Label: uji otomatis, bukan Safari asli.** Dijalankan lewat skrip sementara (sudah dihapus, tidak ada di repo) terhadap `https://web-staging-60d7.up.railway.app`, halaman `e2e-start-page` di workspace E2E Sandbox (akun test E2E), tanpa cookie (tamu) dan dengan UA bawaan tiap browser. Tautan uji dihapus di akhir tiap run; counter halaman itu naik beberapa angka. Run di atas dilakukan **sebelum** PR 217 ter-deploy, jadi 404 yang diuji saat itu masih 404 bawaan Next; 404 kustom diuji ulang di bagian berikutnya.
 
-| Mesin (versi)                          | 200 + tautan tampil | CSP `/u/<slug>` (desktop / 375px gelap) | Scroll horizontal | Klik → tujuan                                                                | View (2 muat) | Klik | 404 |
-| -------------------------------------- | ------------------- | --------------------------------------- | ----------------- | ---------------------------------------------------------------------------- | ------------- | ---- | --- |
-| Chromium (Chrome 156)                  | ✅                  | 0 / 0                                   | tidak ada         | ✅ 302 dari `/go/` ke tujuan                                                 | +2            | +1   | 404 |
-| Firefox 157                            | ✅                  | 0 / 0                                   | tidak ada         | ✅ 302                                                                       | +2            | +1   | 404 |
-| WebKit 27.2 (Playwright, bukan Safari) | ✅                  | 0 / 0                                   | tidak ada         | ✅ berujung di tujuan; status 302 tidak teramati (batasan alat, lihat bawah) | +2            | +1   | 404 |
+| Mesin (versi) | 200 + tautan tampil | CSP `/u/<slug>` (desktop / 375px gelap) | Scroll horizontal | Klik → tujuan | View (2 muat) | Klik | 404 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Chromium (Chrome 156) | ✅ | 0 / 0 | tidak ada | ✅ 302 dari `/go/` ke tujuan | +2 | +1 | 404 |
+| Firefox 157 | ✅ | 0 / 0 | tidak ada | ✅ 302 | +2 | +1 | 404 |
+| WebKit 27.2 (Playwright, bukan Safari) | ✅ | 0 / 0 | tidak ada | ✅ berujung di tujuan; status 302 tidak teramati (batasan alat, lihat bawah) | +2 | +1 | 404 |
 
 **Yang terbukti:** view dan klik terhitung di Chromium, Firefox, dan WebKit modern, jadi header Fetch Metadata (T-162.1) terkirim oleh ketiganya dan filter tidak terlalu ketat untuk mesin-mesin itu. Halaman tampil benar tanpa scroll horizontal pada desktop dan 375px. 0 pelanggaran CSP pada halaman publik.
 
@@ -368,11 +368,11 @@ Uji dijalankan di staging (`https://web-staging-60d7.up.railway.app`) pada halam
 
 **Temuan baru (perlu keputusan King Rezi): kedipan terang di mode gelap.** Pengunjung dengan OS mode gelap dan tanpa cookie `theme` (hampir semua pengunjung halaman publik) melihat halaman dilukis **terang dulu**, lalu kelas `dark` pada `<html>` baru ditambahkan, lalu kartu dan lencana (`transition-colors`) memudar dari putih ke gelap. Latar `body` berganti seketika, jadi sesaat ada kartu putih di atas latar gelap, dan teks putih "Postific" di lencana putih nyaris tak terbaca. Diukur per frame di tiga mesin:
 
-| Mesin    | Kelas `dark` terpasang                                       | Pemudaran lencana putih → gelap |
-| -------- | ------------------------------------------------------------ | ------------------------------- |
-| Chromium | ±283 ms setelah load                                         | ±283 sampai 431 ms              |
-| Firefox  | ±890 ms (jaringan staging lebih lambat)                      | ±890 sampai 1036 ms             |
-| WebKit   | sudah gelap di sampel pertama (±217 ms), lencana masih putih | ±217 sampai 353 ms              |
+| Mesin | Kelas `dark` terpasang | Pemudaran lencana putih → gelap |
+| --- | --- | --- |
+| Chromium | ±283 ms setelah load | ±283 sampai 431 ms |
+| Firefox | ±890 ms (jaringan staging lebih lambat) | ±890 sampai 1036 ms |
+| WebKit | sudah gelap di sampel pertama (±217 ms), lencana masih putih | ±217 sampai 353 ms |
 
 Mode terang tidak terpengaruh (1 keadaan, tanpa perubahan). Ini bertentangan dengan catatan di `app/layout.tsx` ("tidak ada flash tema salah", ADR-055, amendemen T-039) untuk pengunjung tanpa cookie, karena skrip `theme-system-default` (`beforeInteractive`) tampaknya berjalan setelah lukisan pertama. Penyebab pastinya **belum diselidiki**; yang terukur hanya urutan dan waktunya. Kemungkinan sudah ada sejak sebelum PR 217 dan berlaku di seluruh aplikasi, bukan hanya halaman publik (belum diukur di halaman `(app)`). Dicatat sebagai **KI-104** dengan tiket **T-177** di `known-issues.md` (2026-10-29, atas keputusan King Rezi); belum diperbaiki. Cek di Safari asli (iOS gelap) tetap diperlukan: amati kedipan ini saat memuat `/u/<slug>`.
 
