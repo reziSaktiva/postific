@@ -234,6 +234,12 @@ async function assertSourceFilterContract(
     `${path}: bawaan`,
   ).toBeChecked();
   await page.keyboard.press("Escape");
+  // Wait for the popover to finish closing: while it fades out it still
+  // reads as visible, and chooseSource would click a radio that is about to
+  // leave the DOM (staging E2E run 45536670377).
+  await expect(
+    page.getByRole("radiogroup", { name: "Filter sumber" }),
+  ).toBeHidden();
 
   await chooseSource(page, "Dibuat Manual");
   await expect(
@@ -253,6 +259,9 @@ async function assertSourceFilterContract(
     await trigger.click();
     await expect(sourceRadio(page, "Semua Sumber")).toBeChecked();
     await page.keyboard.press("Escape");
+    await expect(
+      page.getByRole("radiogroup", { name: "Filter sumber" }),
+    ).toBeHidden();
   }
 }
 

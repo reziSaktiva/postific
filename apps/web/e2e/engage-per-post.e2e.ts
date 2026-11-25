@@ -457,6 +457,12 @@ const PIXEL_PNG = Buffer.from(
   "base64",
 );
 
+/**
+ * A post thumbnail image, not the official platform logo on the card: the
+ * logo is an `img` from `public/brand/platforms/` since T-209.3 (PR #283).
+ */
+const THUMBNAIL_IMG = 'img:not([src^="/brand/"])';
+
 test("T-227: thumbnail dari media eksternal; gagal muat jatuh ke ikon", async ({
   page,
 }) => {
@@ -474,11 +480,13 @@ test("T-227: thumbnail dari media eksternal; gagal muat jatuh ke ikon", async ({
 
   // P3 (URL eksternal gagal dimuat): gambar dibuang, ikon pengganti tampil.
   const p3 = card(page, seed.captions.p3);
-  await expect(p3.locator("img")).toHaveCount(0);
+  await expect(p3.locator(THUMBNAIL_IMG)).toHaveCount(0);
   await expect(p3.locator("[aria-hidden=true] svg").first()).toBeVisible();
 
   // P1 (tanpa media sama sekali): tetap tanpa thumbnail, sesuai rancangan.
-  await expect(card(page, seed.captions.p1).locator("img")).toHaveCount(0);
+  await expect(card(page, seed.captions.p1).locator(THUMBNAIL_IMG)).toHaveCount(
+    0,
+  );
 
   // Layar sempit: kartu tetap terbaca, tanpa luapan horizontal.
   await page.setViewportSize({ width: 375, height: 812 });
