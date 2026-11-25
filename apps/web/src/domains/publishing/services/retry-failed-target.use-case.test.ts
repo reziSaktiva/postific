@@ -71,6 +71,7 @@ function createFakeRepository(
     listBoardPosts: async () => [],
     getCalendarPostById: async () => null,
     listHistory: async () => [],
+    countPostsByStatus: async () => new Map(),
     getHistoryById: async () => null,
     getHistoryPostById: async () => null,
     cancelSchedule: async () => null,

@@ -72,6 +72,7 @@ function createFakeRepository(
     listBoardPosts: async () => [],
     getCalendarPostById: async () => null,
     listHistory: async () => [],
+    countPostsByStatus: async () => new Map(),
     getHistoryById: async () => null,
     getHistoryPostById: async () => null,
     cancelSchedule: async () => null,
@@ -3151,19 +3152,31 @@ describe("PublishingService List tabs (T-289)", () => {
   }
 
   it("getListTabCounts counts what each tab lists: In Review only in Approvals, Ready to Schedule in Drafts", async () => {
+    let received:
+      Parameters<IPublishingRepository["countPostsByStatus"]>[0] | null = null;
     const service = new PublishingService(
       createFakeRepository({
-        listQueue: async () => [createQueueItem(), createQueueItem()],
-        listDrafts: async () => [
-          draftRecord("a", ContentStatus.Draft),
-          draftRecord("b", ContentStatus.ReadyToSchedule),
-          draftRecord("c", ContentStatus.InReview),
-        ],
-        listHistory: async () => [
-          createHistoryItem({ status: ContentStatus.Published }),
-          createHistoryItem({ status: ContentStatus.Failed }),
-          createHistoryItem({ status: ContentStatus.Imported }),
-        ],
+        countPostsByStatus: async (input) => {
+          received = input;
+          return new Map([
+            [ContentStatus.Scheduled, 2],
+            [ContentStatus.Draft, 1],
+            [ContentStatus.ReadyToSchedule, 1],
+            [ContentStatus.InReview, 1],
+            [ContentStatus.Published, 1],
+            [ContentStatus.Failed, 1],
+            [ContentStatus.Imported, 1],
+          ]);
+        },
+        listQueue: async () => {
+          throw new Error("counts must not load the Queue list");
+        },
+        listDrafts: async () => {
+          throw new Error("counts must not load the Drafts list");
+        },
+        listHistory: async () => {
+          throw new Error("counts must not load the History list");
+        },
       }),
     );
 
@@ -3172,6 +3185,30 @@ describe("PublishingService List tabs (T-289)", () => {
       drafts: 2,
       approvals: 1,
       history: 3,
+    });
+    expect(received!.workspaceId).toBe(WORKSPACE_ID);
+    expect([...received!.statuses].sort()).toEqual(
+      [
+        ContentStatus.Scheduled,
+        ContentStatus.Draft,
+        ContentStatus.InReview,
+        ContentStatus.ReadyToSchedule,
+        ContentStatus.Published,
+        ContentStatus.Failed,
+        ContentStatus.Imported,
+      ].sort(),
+    );
+  });
+
+  it("getListTabCounts is zero for a status without posts", async () => {
+    const service = new PublishingService(
+      createFakeRepository({ countPostsByStatus: async () => new Map() }),
+    );
+    expect(await service.getListTabCounts(WORKSPACE_ID, AUTHOR_ID)).toEqual({
+      queue: 0,
+      drafts: 0,
+      approvals: 0,
+      history: 0,
     });
   });
 

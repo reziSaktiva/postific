@@ -1014,30 +1014,32 @@ export class PublishingService {
   /**
    * Counts for the List tabs (T-289): Queue = scheduled posts, Drafts =
    * `Draft` and `Ready to Schedule`, Approvals = `In Review`, History =
-   * published, failed and imported posts. Built from the existing list
-   * queries, so it adds no repository method; the counts equal what each tab
-   * lists.
+   * published, failed and imported posts. One count query
+   * (`countPostsByStatus`) over the same rows `listQueue`, `listDrafts`
+   * and `listHistory` read, so the counts equal what each tab lists without
+   * loading the lists.
    */
   async getListTabCounts(
     workspaceId: WorkspaceId,
     userId: UserId,
   ): Promise<PublishListTabCounts> {
-    const [queue, drafts, history] = await Promise.all([
-      this.repository.listQueue({ workspaceId }, userId),
-      this.repository.listDrafts({ workspaceId }, userId),
-      this.repository.listHistory(
-        { workspaceId, statuses: [...HISTORY_TERMINAL_STATUSES] },
-        userId,
-      ),
-    ]);
+    const statuses = [
+      ContentStatus.Scheduled,
+      ...DRAFT_LIST_STATUSES,
+      ...APPROVAL_LIST_STATUSES,
+      ...HISTORY_TERMINAL_STATUSES,
+    ];
+    const counts = await this.repository.countPostsByStatus(
+      { workspaceId, statuses },
+      userId,
+    );
+    const sum = (set: Iterable<ContentStatus>) =>
+      [...set].reduce((total, status) => total + (counts.get(status) ?? 0), 0);
     return {
-      queue: queue.length,
-      drafts: drafts.filter((post) => DRAFT_LIST_STATUSES.has(post.status))
-        .length,
-      approvals: drafts.filter((post) =>
-        APPROVAL_LIST_STATUSES.has(post.status),
-      ).length,
-      history: history.length,
+      queue: sum([ContentStatus.Scheduled]),
+      drafts: sum(DRAFT_LIST_STATUSES),
+      approvals: sum(APPROVAL_LIST_STATUSES),
+      history: sum(HISTORY_TERMINAL_STATUSES),
     };
   }
 

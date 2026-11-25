@@ -957,6 +957,19 @@ export const publishingRepository: IPublishingRepository = {
     return posts.map(mapHistoryItem);
   },
 
+  async countPostsByStatus({ workspaceId, statuses }, userId) {
+    const groups = await withCurrentUser(userId, (tx) =>
+      tx.publishingPost.groupBy({
+        by: ["status"],
+        where: { workspaceId, deletedAt: null, status: { in: [...statuses] } },
+        _count: { _all: true },
+      }),
+    );
+    return new Map(
+      groups.map((group) => [group.status as ContentStatus, group._count._all]),
+    );
+  },
+
   async countTerminalPosts({ workspaceId, since, until }, userId) {
     return withCurrentUser(userId, (tx) =>
       tx.publishingPost.count({
