@@ -4307,25 +4307,25 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 ### T-306 · Publish Board crashes while scrolling the Published column (S-009 follow-up)
 
-| Field            | Value           |
-| ---------------- | --------------- |
-| **Status**       | ⏳ Not Started  |
-| **Mode**         | AFK             |
-| **Verification** | `local`         |
-| **Domain**       | publishing (UI) |
-| **Spec**         | S-009           |
-| **Docs**         | ADR-166, T-302  |
-| **Depends**      | —               |
+| Field            | Value                      |
+| ---------------- | -------------------------- |
+| **Status**       | ✅ Done (code), 2026-11-25 |
+| **Mode**         | AFK                        |
+| **Verification** | `local`                    |
+| **Domain**       | publishing (UI)            |
+| **Spec**         | S-009                      |
+| **Docs**         | ADR-166, T-302             |
+| **Depends**      | —                          |
 
 **What to build:** King Rezi reported (2026-11-25) that the Publish Board crashes when he scrolls the Published column, on the PR 303 build (`feature/s009-infinite-scroll`, local dev server). Scrolling a column to load more cards must never crash the page.
 
 - [x] Reproduce on Cook It Real Good (Board, Published column, scroll to load more); capture the console error.
 - [x] Fix the cause in the Board column paging (T-302, `BoardScreen.tsx` / `board-column-merge.ts` are the first suspects) and add a regression test.
-- [ ] Fixed before PR 303 merges to `staging`.
+- [x] Fixed before PR 303 merges to `staging`.
 
 **Cause and fix (2026-11-25):** not a JavaScript crash: King Rezi's screenshot showed cards drawn blank (only the avatar layer painted), also in the short Failed column, after the Published column had loaded hundreds of cards. Chrome runs out of GPU raster budget on a very tall scroll area (the 24 Nov black Board had the same cause) and stops painting tiles. Scripted scrolling to all 500 cards, headless and headed, showed no error and no blank card, so it could not be reproduced by script. Fix: Board cards and Publish List rows use `content-visibility: auto` with an intrinsic size, so off-screen items are not painted while the scroll height stays the same. Typecheck, lint, Publish unit tests and the Publish E2E (4/4) pass.
 
-**Not yet proven:** the blank cards are seen only in King Rezi's Chrome; his recheck confirms the fix.
+**Verified:** King Rezi rechecked in his Chrome on `localhost:3000` (2026-11-25): the cards no longer go blank.
 
 **Blocked by:** none
 
