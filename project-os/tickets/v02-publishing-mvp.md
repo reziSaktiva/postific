@@ -3934,22 +3934,22 @@ Not yet proven: the Board was not observed in a browser (no dev server in this l
 
 ### T-292 · Publish on tablet and phone
 
-| Field            | Value                                                 |
-| ---------------- | ----------------------------------------------------- |
-| **Status**       | 🟡 In Progress (browser re-check running, 2026-11-24) |
-| **Mode**         | AFK                                                   |
-| **Verification** | `local`                                               |
-| **Domain**       | publishing (UI), app shell                            |
-| **Spec**         | S-008                                                 |
-| **Docs**         | ADR-165, `ScreenPublishRedesain` (Tablet, Mobile)     |
-| **Depends**      | T-287, T-288, T-289, T-290, T-291                     |
+| Field            | Value                                             |
+| ---------------- | ------------------------------------------------- |
+| **Status**       | ✅ Done (code) 2026-11-25, S-008 wave             |
+| **Mode**         | AFK                                               |
+| **Verification** | `local`                                           |
+| **Domain**       | publishing (UI), app shell                        |
+| **Spec**         | S-008                                             |
+| **Docs**         | ADR-165, `ScreenPublishRedesain` (Tablet, Mobile) |
+| **Depends**      | T-287, T-288, T-289, T-290, T-291                 |
 
 **What to build:** the responsive layouts from the design.
 
 - [x] Tablet (768 px): app sidebar as an icon rail; month chips as platform icons with a "+N" chip; List time above each card; Board about two columns.
 - [x] Phone (390 px): top bar with the menu; "+ New Post" as a "+" icon button; icon-only view switcher; Calendar in a 3-day view with a shadcn Calendar date picker (switching from about 500 px); List tabs as a dropdown; Board one column per screen with card menus always visible.
 - [x] Light and dark use existing tokens; no new tokens.
-- [ ] Observed in the browser at 768 and 390 px, light and dark.
+- [x] Observed in the browser at 768 and 390 px, light and dark. Re-checked 2026-11-25 at `467bccce` in Cook It Real Good (100+ Published cards): Board fits the screen at 1440, 1280, 768 and 390 px in light and dark, the Published column scrolls on its own (3000 px) while the page stays put, History preview at 1280 px stays on screen, a playing video keeps "Coba Lagi" visible, no console errors.
 
 Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not observed in the lane; it moves to T-294.
 
@@ -3981,21 +3981,21 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 ### T-294 · S-008 QA: E2E, review and QA
 
-| Field            | Value                                                 |
-| ---------------- | ----------------------------------------------------- |
-| **Status**       | 🟡 In Progress (browser re-check running, 2026-11-24) |
-| **Mode**         | AFK                                                   |
-| **Verification** | `local`                                               |
-| **Domain**       | publishing, analytics                                 |
-| **Spec**         | S-008                                                 |
-| **Docs**         | ADR-149, ADR-153, ADR-161, ADR-165                    |
-| **Depends**      | T-286 to T-293                                        |
+| Field            | Value                                 |
+| ---------------- | ------------------------------------- |
+| **Status**       | ✅ Done (code) 2026-11-25, S-008 wave |
+| **Mode**         | AFK                                   |
+| **Verification** | `local`                               |
+| **Domain**       | publishing, analytics                 |
+| **Spec**         | S-008                                 |
+| **Docs**         | ADR-149, ADR-153, ADR-161, ADR-165    |
+| **Depends**      | T-286 to T-293                        |
 
 **What to build:** the S-008 work is proven on `local` before the wave goes to staging.
 
 - [x] Playwright E2E golden path: switch views, open a post preview, expand, play a video, Mark Ready from Approvals, empty Queue with suggestions, old routes landing on the right view. Proven 2026-11-24: `apps/web/e2e/publish-redesign.e2e.ts` on `local`: 6 cases green in one run, the empty-Queue case green in a second run after King Rezi cancelled two leftover sandbox schedules.
 - [x] Architecture review: entry points without business logic, analytics read only through its public API, no Prisma in domain logic.
-- [ ] QA in the browser: light, dark, 768 px and 390 px; regressions in the Draft Editor, notifications and Home links checked.
+- [x] QA in the browser: light, dark, 768 px and 390 px; regressions in the Draft Editor, notifications and Home links checked. Re-checked 2026-11-25 at `467bccce` in Cook It Real Good (100+ Published cards): Board fits the screen at 1440, 1280, 768 and 390 px in light and dark, the Published column scrolls on its own (3000 px) while the page stays put, History preview at 1280 px stays on screen, a playing video keeps "Coba Lagi" visible, no console errors.
 - [x] `typecheck`, `lint` and unit tests green. Ridwan review 2026-11-24: 0 hard violations, 9 considerations fixed (`a7b36017`, `3546eff2`, `97769ecc`); lint, typecheck and 2946 unit tests green at `b6dbaab5`.
 
 **Blocked by:** T-286 to T-293
