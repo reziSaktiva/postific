@@ -482,6 +482,10 @@ export function useDraftEditorForm({
     // the current query decides whether this is the same screen.
     const search = typeof window === "undefined" ? "" : window.location.search;
     if (isAlreadyAtDestination(pathname, destination, search)) {
+      // The user stays on this screen, so its Realtime events must flow
+      // again: Ajukan Review marks navigation pending before its server
+      // calls (T-294) and nothing else would clear the mark until timeout.
+      clearTerminalNavigationPending();
       router.refresh();
     } else {
       // T-208: event Realtime layar asal tidak boleh memanggil server action
