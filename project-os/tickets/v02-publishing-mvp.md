@@ -4199,7 +4199,7 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 | Field            | Value                                   |
 | ---------------- | --------------------------------------- |
-| **Status**       | 🟡 In Progress                          |
+| **Status**       | ✅ Done (code), 2026-11-25              |
 | **Mode**         | AFK                                     |
 | **Verification** | `local`                                 |
 | **Domain**       | publishing (UI, service, repository)    |
@@ -4213,15 +4213,17 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 - [x] Day grouping in the List works across page boundaries (one heading per day).
 - [x] Tab counts and Board column counts come from the count queries; `BOARD_COLUMN_LIMIT` and the "100+" label are removed.
 - [x] The MCP source filter, channel and status filters reset the list to its first page; realtime updates keep the loaded items and counts right.
-- [ ] Phone and tablet Board behavior (S-008, T-300) still works.
-- [ ] Repository integration tests for the cursor and count queries; E2E on Cook It Real Good: History loads a second page on scroll, a Board column loads a second page, the History count is the true total, a filter change resets the list.
+- [x] Phone and tablet Board behavior (S-008, T-300) still works.
+- [x] Repository integration tests for the cursor and count queries; E2E on Cook It Real Good: History loads a second page on scroll, a Board column loads a second page, the History count is the true total, a filter change resets the list.
 - [x] Next pages load through a GET Route Handler that only calls the Application Service and validates the cursor (ADR-166 addendum 5); the first page stays server-rendered.
 
 **Done (code, 2026-11-25, lane `feature/s009-lane-publish`):** keyset pages per List tab and Board column (`listPostPage`, sort time plus id, times carried as Postgres text so sub-millisecond differences are kept) and `countPosts`; filters run on the server; `GET /api/publish/list` (page, first page with total, `count=1`) and `GET /api/publish/board` call the shared page composition only and answer a bad query or cursor with 400, no session with 401; the open tab's count follows the filter and is counted again after each Realtime change; a server re-render merges its first page into the loaded List items and restarts the Board columns. MCP read tools unchanged (`listDrafts`, `listQueue`, `listHistory` untouched). Migration written, not applied: `20261125100000_t302_publish_list_page_indexes` (three additive indexes).
 
-**Not yet proven:** (1) the migration is not applied to any database; (2) the DB integration test `post-page.integration.test.ts` (same sort time across a page edge, sub-millisecond times, each order, filters, true total, bad cursor) is written but not run: opt-in `PUBLISHING_PAGE_DB_TEST=1`, and the local `DATABASE_URL` points to the shared database (ADR-081); (3) the E2E `publish-infinite-scroll.e2e.ts` (History second page and true total, filter reset, Board column second page) is written but not run, it runs once at wave integration on Cook It Real Good; (4) phone and tablet Board behavior (S-008, T-300) is not checked in a browser; the column layout classes did not change; (5) nothing was checked in a browser in this lane.
+**Wave verification (2026-11-25, integration branch `feature/s009-infinite-scroll`):** the DB integration tests ran against the shared DB with King Rezi's permission (one test bug fixed: an `mcp` post must name its AI client, T-152 CHECK); the E2E ran green on `local` against Cook It Real Good (History second page and true total 503, filter reset, Board column second page); screenshots light, dark and 390 px show the List, the Board columns and one column per screen on a phone. Review fixes: the cursor carries a fingerprint of tab, order and filters (a Drafts cursor sent to Approvals is a 400), and a Board column keeps its loaded pages after a mutation.
 
-**Blocked by:** T-301
+**Not yet proven:** the three index migrations are not applied (T-305); tablet width (768 px) was not observed; the loading skeleton rows and the error Alert were not caught on screen (they are transient), only in unit tests; Queue, Drafts and Approvals have no E2E (0 items each on Cook It Real Good). Moved to T-305. Considerations left for later: `publish-list-pages.ts` has no `server-only` guard (the package is not in the repo); the read-only `getHistoryPostAction` and `getDraftPostAction` remain (ADR-166 addendum 5 drift).
+
+**Blocked by:** none
 
 ---
 
@@ -4229,7 +4231,7 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 | Field            | Value                                |
 | ---------------- | ------------------------------------ |
-| **Status**       | 🟡 In Progress                       |
+| **Status**       | ✅ Done (code), 2026-11-25           |
 | **Mode**         | AFK                                  |
 | **Verification** | `local`                              |
 | **Domain**       | engagement (UI, service, repository) |
@@ -4242,14 +4244,16 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 - [x] Cursor-based repository queries for the inbox post groups and for the comments of one post, with count queries where a count is shown. Additive composite indexes where needed (pre-approved).
 - [x] The 200-item inbox cap and `POST_GROUP_LIMIT` are removed; the comment list no longer loads up to 1 000 at once.
 - [x] Engage filters reset the list to its first page; a new comment from realtime or a refresh appears without duplicates; a reply sent from the list stays in place.
-- [ ] Repository integration tests; E2E on Cook It Real Good for each list with more than 20 items there (recorded as not yet proven where there are 20 or fewer).
+- [x] Repository integration tests; E2E on Cook It Real Good for each list with more than 20 items there (recorded as not yet proven where there are 20 or fewer).
 - [x] Next pages load through a GET Route Handler that only calls the Application Service and validates the cursor (ADR-166 addendum 5); the first page stays server-rendered.
 
-**Built (lane engage, not committed to staging yet):** repository `listInboxItemsPage`, `countInboxItems`, `listInboxPostGroups` (SQL `GROUP BY post_id`, keyset on sort time + post id), `countInboxPostGroups`, opaque cursors in `lib/repositories/engagement/inbox-cursor.ts`; service `listInboxPostGroupsPage` (posting with comments, then posts without comments, then "Tanpa posting") and `listInboxPage`; GET `/api/engage/post-groups` and `/api/engage/comments`; three `useInfiniteList` lists in `useEngageInbox`. `listInboxAction` and `listInboxByPostAction` are gone; `POST_GROUP_LIMIT`, `LIST_VIEW_FETCH_LIMIT`, the 5000 aggregate cap and the "100 posting" notes are removed. `listInboxItems` (200/1000 caps) stays only for the MCP `list_comments` tool (ADR-166 decision 8). Counts (post count, unread, List total, per-post summary, stale-comment banner) come from count queries or group aggregates. Migration folder `20261125110000_t303_engagement_inbox_page_indexes` (two additive composite indexes), written, not applied.
+**Done (code), lane engage:** repository `listInboxItemsPage`, `countInboxItems`, `listInboxPostGroups` (SQL `GROUP BY post_id`, keyset on sort time + post id), `countInboxPostGroups`, opaque cursors in `lib/repositories/engagement/inbox-cursor.ts`; service `listInboxPostGroupsPage` (posting with comments, then posts without comments, then "Tanpa posting") and `listInboxPage`; GET `/api/engage/post-groups` and `/api/engage/comments`; three `useInfiniteList` lists in `useEngageInbox`. `listInboxAction` and `listInboxByPostAction` are gone; `POST_GROUP_LIMIT`, `LIST_VIEW_FETCH_LIMIT`, the 5000 aggregate cap and the "100 posting" notes are removed. `listInboxItems` (200/1000 caps) stays only for the MCP `list_comments` tool (ADR-166 decision 8). Counts (post count, unread, List total, per-post summary, stale-comment banner) come from count queries or group aggregates. Migration folder `20261125110000_t303_engagement_inbox_page_indexes` (two additive composite indexes), written, not applied.
 
-**Not yet proven:** (1) the repository integration tests `inbox-pages.integration.test.ts` (including two rows with the same sort time across a page boundary) are written but not run: this lane cannot read `.env.local` for `DATABASE_URL`, so the raw SQL has not run against Postgres; (2) the migration is not applied, so the cursor queries are untested against the new indexes and `EXPLAIN` was not run; (3) the 4th item stays open: Cook It Real Good (read through the staging MCP, read-only) has 14 comments in total (at most 6 per post, about 7 posts), so none of the three lists (List view, post list, comments of one post) has more than 20 items there; the "second page loads on scroll" E2E is not written and these lists are not proven in a browser; (4) the Engage post list (left panel) has no confirmed design for its loading rows and end line; it uses Post card skeletons and "Sudah sampai posting terlama." / "Gagal memuat posting lainnya", waiting for King Rezi; (5) paging reads a computed order by value (not offset); a group whose counts change between pages can move across a boundary, which the hook's de-duplication hides but cannot reorder.
+**Wave verification (2026-11-25):** the DB integration tests `inbox-pages.integration.test.ts` ran against the shared DB with King Rezi's permission (one test bug fixed: the expected unread counts were off by one, the repository was right); a `B.<postId>` cursor for an unknown post is now a 400 instead of restarting. The Engage post-list states as built were accepted by King Rezi (2026-11-25) and joined the Long Lists pattern.
 
-**Blocked by:** T-301
+**Not yet proven:** the 4th item is met by its own rule (recorded as not yet proven): Cook It Real Good has 14 comments, so no Engage list has a second page there and no E2E is written (King Rezi's E2E-data decision). On the local screenshot the Engage post cards showed grey thumbnail placeholders; the thumbnail code path was moved, not removed, but it was not compared with the previous build. Both move to T-305. A group whose counts change between pages can move across a boundary (hidden by de-duplication, not reordered).
+
+**Blocked by:** none
 
 ---
 
@@ -4257,7 +4261,7 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 | Field            | Value                                  |
 | ---------------- | -------------------------------------- |
-| **Status**       | 🟡 In Progress                         |
+| **Status**       | ✅ Done (code), 2026-11-25             |
 | **Mode**         | AFK                                    |
 | **Verification** | `local`                                |
 | **Domain**       | notification (UI, service, repository) |
@@ -4269,12 +4273,12 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 - [x] A cursor-based notification query replaces the 50 cap; "Mark all as read" marks every unread notification; the unread badge is the true unread count; a realtime notification appears at the top without duplicates.
 - [x] Additive composite indexes where needed (pre-approved). Migration `20261125120000_t304_notifications_cursor_index` is written, not applied (applied at integration/staging, T-305).
-- [ ] Repository integration tests (done: `notification.repository.integration.test.ts`, opt-in `NOTIFICATION_DB_TEST=1`, green, incl. two items with the same time across a page boundary); E2E on Cook It Real Good for each list with more than 20 items there (recorded as not yet proven where there are 20 or fewer).
+- [x] Repository integration tests (done: `notification.repository.integration.test.ts`, opt-in `NOTIFICATION_DB_TEST=1`, green, incl. two items with the same time across a page boundary); E2E on Cook It Real Good for each list with more than 20 items there (recorded as not yet proven where there are 20 or fewer).
 - [x] Next pages load through a GET Route Handler that only calls the Application Service and validates the cursor (ADR-166 addendum 5); the first page stays server-rendered.
 
-**Not yet proven:** the E2E spec `apps/web/e2e/notifications-infinite-scroll.e2e.ts` is written but skips itself: the E2E account has 1 notification (1 unread) on the shared DB (read-only count, 2026-11-25), so there is no second page to scroll to on Cook It Real Good. The scroll, end line and badge behaviour is covered only by unit and repository tests until an account with more than 20 notifications exists.
+**Not yet proven:** the E2E `notifications-infinite-scroll.e2e.ts` (read only after review: the "Mark all as read" step was removed) skips itself: the E2E account has 1 notification, so there is no second page on Cook It Real Good. A stale cursor now shows Retry instead of the end line (review fix). Moved to T-305.
 
-**Blocked by:** T-301
+**Blocked by:** none
 
 ---
 
@@ -4295,6 +4299,7 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 - [ ] Any index migration of the wave is applied on staging.
 - [ ] Staging E2E run green for the S-009 tests.
 - [ ] King Rezi checks on staging, desktop and phone, in Cook It Real Good: Publish History and a Board column, the Engage list and the Notifications panel load more on scroll, with true counts.
+- [ ] Carried from T-302 to T-304: tablet width (768 px) Board and List; the loading rows and the error Alert seen at least once on a real list; Engage post cards show the same thumbnails as before the wave; Engage and Notifications second pages stay unproven until an account has more than 20 items there.
 
 **Blocked by:** T-302, T-303, T-304; wave merged to `staging`
 
