@@ -7,10 +7,11 @@ import {
   InformationCircleIcon,
 } from "@hugeicons/core-free-icons";
 
+import { useRef } from "react";
+
 import type {
   EngagementInboxItemRecord,
   InboxItemStatus,
-  InboxPostSort,
 } from "@/domains/engagement";
 import type { ConnectedAccountRecord } from "@/domains/workspace";
 import { cn } from "@/lib/utils";
@@ -22,16 +23,18 @@ import {
   AlertTitle,
 } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Spinner } from "@/components/ui/spinner";
 
-import type { InboxPostGroupDto } from "../actions";
 import {
-  filterByStatus,
+  InfiniteListFooter,
+  type InfiniteListFooterProps,
+} from "../../components/infinite-list/InfiniteListStates";
+import type { InboxPostGroupDto } from "../engage-dto";
+import {
   hasStaleComments,
-  sortComments,
-  summarizeComments,
+  summarizeGroup,
   type JustSent,
 } from "./engage-model";
+import { commentsFooter } from "./EngageSkeletons";
 import { accountLabel } from "./PostCard";
 import { CommentRow } from "./CommentRow";
 import { PostPreviewCard } from "./PostPreviewCard";
@@ -40,16 +43,17 @@ import { ReplyComposer } from "./ReplyComposer";
 /**
  * Panel kanan tampilan By post (T-219.2, KSP-06-F03/F04/F05/F06): kartu
  * pratinjau posting, ringkasan "x dibalas / y total", daftar komentar, dan
- * komposer docked. `comments` = SEMUA komentar kelompok (rentang tanggal
- * bawaan); filter status hanya menyaring daftar, ringkasan tetap atas semuanya.
+ * komposer docked. Komentar dimuat 20 per halaman (T-303, ADR-166); ringkasan
+ * dan banner berasal dari hitungan kelompok (count query), bukan dari
+ * komentar yang sudah dimuat. Filter Status menyaring daftar di server,
+ * ringkasan tetap atas semua komentar posting.
  */
 export function PostCommentsPanel({
   group,
   accounts,
   comments,
-  isLoading,
+  list,
   statusFilter,
-  sort,
   timeZone,
   hiddenOnMobile,
   bannerDismissed,
@@ -67,10 +71,10 @@ export function PostCommentsPanel({
 }: {
   group: InboxPostGroupDto;
   accounts: ConnectedAccountRecord[];
-  comments: EngagementInboxItemRecord[] | null;
-  isLoading: boolean;
+  /** Komentar yang ditampilkan (halaman termuat, sudah sesuai filter Status). */
+  comments: EngagementInboxItemRecord[];
+  list: InfiniteListFooterProps["list"];
   statusFilter: InboxItemStatus | "all";
-  sort: InboxPostSort;
   timeZone: string;
   hiddenOnMobile: boolean;
   bannerDismissed: boolean;
@@ -90,10 +94,10 @@ export function PostCommentsPanel({
   onSend: () => void;
 }) {
   const isNoPost = group.postId === null;
-  const all = comments ?? [];
-  const summary = summarizeComments(all);
-  const shown = sortComments(filterByStatus(all, statusFilter), sort);
-  const showBanner = !bannerDismissed && hasStaleComments(all);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const footer = commentsFooter();
+  const summary = summarizeGroup(group);
+  const showBanner = !bannerDismissed && hasStaleComments(group);
 
   return (
     <div
@@ -117,7 +121,10 @@ export function PostCommentsPanel({
         </span>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-3 md:px-4 md:py-3.5">
+      <div
+        ref={scrollRef}
+        className="min-h-0 flex-1 overflow-y-auto p-3 md:px-4 md:py-3.5"
+      >
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-3">
           {showBanner ? (
             <Alert>
@@ -157,44 +164,42 @@ export function PostCommentsPanel({
             <PostPreviewCard group={group} accounts={accounts} />
           )}
 
-          {isLoading || comments === null ? (
-            <div className="flex items-center justify-center py-10">
-              <Spinner />
+          <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+            <span>
+              <b className="font-semibold">{summary.replied} dibalas</b> /{" "}
+              {summary.total} total komentar
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {summary.unread} belum dibalas · {summary.handled} dari{" "}
+              {summary.total} ditangani
+            </span>
+          </div>
+          {comments.length > 0 ? (
+            <div className="flex flex-col overflow-hidden rounded-xl border border-border bg-card">
+              {comments.map((comment) => (
+                <CommentRow
+                  key={comment.id}
+                  comment={comment}
+                  timeZone={timeZone}
+                  canReply={!isNoPost}
+                  onReply={() => onReply(comment)}
+                  onChangeStatus={(status) => onChangeStatus(comment, status)}
+                />
+              ))}
+              <InfiniteListFooter
+                list={list}
+                rootRef={scrollRef}
+                className="border-t border-border px-3"
+                {...footer}
+              />
             </div>
+          ) : list.status !== "end" ? (
+            <InfiniteListFooter list={list} rootRef={scrollRef} {...footer} />
           ) : (
-            <>
-              <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-                <span>
-                  <b className="font-semibold">{summary.replied} dibalas</b> /{" "}
-                  {summary.total} total komentar
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {summary.unread} belum dibalas · {summary.handled} dari{" "}
-                  {summary.total} ditangani
-                </span>
-              </div>
-              {shown.length > 0 ? (
-                <div className="flex flex-col overflow-hidden rounded-xl border border-border bg-card">
-                  {shown.map((comment) => (
-                    <CommentRow
-                      key={comment.id}
-                      comment={comment}
-                      timeZone={timeZone}
-                      canReply={!isNoPost}
-                      onReply={() => onReply(comment)}
-                      onChangeStatus={(status) =>
-                        onChangeStatus(comment, status)
-                      }
-                    />
-                  ))}
-                </div>
-              ) : (
-                <p className="py-6 text-center text-sm text-muted-foreground">
-                  Posting ini belum punya komentar
-                  {statusFilter !== "all" ? " untuk filter ini" : ""}.
-                </p>
-              )}
-            </>
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              Posting ini belum punya komentar
+              {statusFilter !== "all" ? " untuk filter ini" : ""}.
+            </p>
           )}
         </div>
       </div>

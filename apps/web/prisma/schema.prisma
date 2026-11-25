@@ -679,6 +679,10 @@ model EngagementInboxItem {
   // T-218.8: Engage per posting (GROUP BY post + daftar komentar satu posting
   // + rentang `received_at`). Lihat database-strategy.md.
   @@index([workspaceId, postId, receivedAt(sort: Desc)])
+  // T-303 (ADR-166): daftar komentar berhalaman (cursor `received_at` + `id`),
+  // semua komentar workspace dan bagian per status (`unread` dulu).
+  @@index([workspaceId, receivedAt(sort: Desc), id(sort: Desc)])
+  @@index([workspaceId, status, receivedAt(sort: Desc), id(sort: Desc)])
   @@index([externalId])
   @@map("engagement_inbox_items")
 }

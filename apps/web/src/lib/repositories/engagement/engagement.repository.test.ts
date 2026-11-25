@@ -1,12 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  asConnectedAccountId,
   asInboxItemId,
   asUserId,
   asWorkspaceId,
   type InboxItemId,
   type PostId,
-  type SocialPlatform,
 } from "@postific/shared";
 
 type Row = {
@@ -229,71 +227,6 @@ describe("engagementRepository.countUnreadInboxItems", () => {
         USER,
       ),
     ).resolves.toBe(2);
-  });
-});
-
-describe("engagementRepository.aggregateInboxByPost", () => {
-  const POST_1 = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
-  const POST_2 = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
-
-  beforeEach(() => {
-    rows.length = 0;
-  });
-
-  it("mengelompokkan per posting dan status dengan jumlah dan komentar terbaru, termasuk tanpa posting", async () => {
-    seed("a", { postId: POST_1, receivedAt: new Date("2026-10-01T00:00:00Z") });
-    seed("b", { postId: POST_1, receivedAt: new Date("2026-10-03T00:00:00Z") });
-    seed("c", { postId: POST_1, status: "resolved" });
-    seed("d", { postId: null });
-    seed("e", { postId: POST_2 });
-
-    const result = await engagementRepository.aggregateInboxByPost(
-      { workspaceId: WORKSPACE },
-      USER,
-    );
-
-    const unreadPost1 = result.find(
-      (r) => r.postId === POST_1 && r.status === "unread",
-    );
-    expect(unreadPost1).toMatchObject({
-      count: 2,
-      latestReceivedAt: new Date("2026-10-03T00:00:00Z"),
-    });
-    expect(
-      result.find((r) => r.postId === POST_1 && r.status === "resolved")?.count,
-    ).toBe(1);
-    expect(result.find((r) => r.postId === null)?.count).toBe(1);
-    expect(result.find((r) => r.postId === POST_2)?.count).toBe(1);
-  });
-
-  it("menghormati workspace, akun, platform, dan rentang tanggal", async () => {
-    const since = new Date("2026-09-01T00:00:00Z");
-    seed("in", { postId: POST_1 });
-    seed("old", {
-      postId: POST_1,
-      receivedAt: new Date("2026-08-01T00:00:00Z"),
-    });
-    seed("other-ws", { postId: POST_1, workspaceId: OTHER_WORKSPACE });
-    seed("other-acc", {
-      postId: POST_1,
-      connectedAccountId: "33333333-3333-4333-8333-333333333333",
-    });
-    seed("other-platform", { postId: POST_1, platform: "facebook" });
-
-    const result = await engagementRepository.aggregateInboxByPost(
-      {
-        workspaceId: WORKSPACE,
-        connectedAccountId: asConnectedAccountId(
-          "22222222-2222-4222-8222-222222222222",
-        ),
-        platform: "instagram" as SocialPlatform,
-        receivedSince: since,
-      },
-      USER,
-    );
-
-    expect(result).toHaveLength(1);
-    expect(result[0].count).toBe(1);
   });
 });
 

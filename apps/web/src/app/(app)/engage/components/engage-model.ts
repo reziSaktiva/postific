@@ -1,11 +1,11 @@
 import type {
-  EngagementInboxItemRecord,
   InboxDateRange,
+  InboxItemCounts,
   InboxItemStatus,
   InboxPostSort,
 } from "@/domains/engagement";
 
-import type { InboxPostGroupDto } from "../actions";
+import type { InboxPostGroupDto } from "../engage-dto";
 
 /**
  * Model murni tampilan Engage per posting (T-219, ADR-157): label, ringkasan,
@@ -49,13 +49,6 @@ export function countPanelFilters(f: {
 /** Tampilan Engage (ADR-157 Q5, KSP-06-F09): By post bawaan, List = daftar datar lintas posting. */
 export type EngageView = "post" | "list";
 
-/**
- * Batas komentar yang dimuat tampilan List: mengikuti batas repository
- * `listInboxItems` (200, tanpa filter `postId`). Dicerminkan di sini hanya
- * untuk memberi tahu pengguna bahwa daftar terpotong; ubah bersama repository.
- */
-export const LIST_VIEW_FETCH_LIMIT = 200;
-
 /** Hasil balasan terakhir untuk pesan komposer: `marked` = komentar ikut ditandai Dibalas (hanya dari Belum dibalas). */
 export type JustSent = "sent" | "marked" | null;
 
@@ -92,16 +85,22 @@ export interface CommentSummary {
   handled: number;
 }
 
-export function summarizeComments(
-  items: readonly Pick<EngagementInboxItemRecord, "status">[],
+/**
+ * Ringkasan komentar satu posting dari hitungan kelompok (count query di
+ * server), bukan dari komentar yang sudah dimuat: daftar komentar berhalaman
+ * (T-303), jadi panjang daftar termuat bukan total.
+ */
+export function summarizeGroup(
+  group: Pick<
+    InboxPostGroupDto,
+    "totalCount" | "repliedCount" | "unrepliedCount" | "handledCount"
+  >,
 ): CommentSummary {
-  const unread = items.filter((item) => item.status === "unread").length;
-  const replied = items.filter((item) => item.status === "replied").length;
   return {
-    total: items.length,
-    replied,
-    unread,
-    handled: items.length - unread,
+    total: group.totalCount,
+    replied: group.repliedCount,
+    unread: group.unrepliedCount,
+    handled: group.handledCount,
   };
 }
 
@@ -114,28 +113,57 @@ export function handledPercent(
     : 0;
 }
 
-export function filterByStatus<
-  T extends Pick<EngagementInboxItemRecord, "status">,
->(items: readonly T[], status: InboxItemStatus | "all"): T[] {
-  return status === "all"
-    ? [...items]
-    : items.filter((item) => item.status === status);
+interface CommentOrderKey {
+  id: string;
+  status: InboxItemStatus;
+  receivedAt: Date;
 }
 
-/** Urutan komentar di panel kanan; "belum dibalas dulu" adalah bawaan (S-006). */
-export function sortComments<
-  T extends Pick<EngagementInboxItemRecord, "status" | "receivedAt">,
->(items: readonly T[], sort: InboxPostSort = "unreplied_first"): T[] {
-  const time = (item: T) => item.receivedAt.getTime();
-  return [...items].sort((a, b) => {
-    if (sort === "oldest") return time(a) - time(b);
+/** Urutan komentar yang sama dengan kueri repository: sort, lalu id sebagai tie-breaker. */
+export function compareComments(
+  sort: InboxPostSort,
+): (a: CommentOrderKey, b: CommentOrderKey) => number {
+  return (a, b) => {
     if (sort === "unreplied_first") {
-      const unreadA = a.status === "unread" ? 0 : 1;
-      const unreadB = b.status === "unread" ? 0 : 1;
-      if (unreadA !== unreadB) return unreadA - unreadB;
+      const rankA = a.status === "unread" ? 0 : 1;
+      const rankB = b.status === "unread" ? 0 : 1;
+      if (rankA !== rankB) return rankA - rankB;
     }
-    return time(b) - time(a);
-  });
+    const byTime = a.receivedAt.getTime() - b.receivedAt.getTime();
+    if (byTime !== 0) return sort === "oldest" ? byTime : -byTime;
+    if (a.id === b.id) return 0;
+    return (a.id < b.id ? -1 : 1) * (sort === "oldest" ? 1 : -1);
+  };
+}
+
+/**
+ * Urutan kelompok yang sama dengan kueri repository: posting berkomentar
+ * (sort, lalu id posting naik), posting tanpa komentar (urutan sumber), lalu
+ * "Tanpa posting" di dasar.
+ */
+export function compareGroups(
+  sort: InboxPostSort,
+): (a: InboxPostGroupDto, b: InboxPostGroupDto) => number {
+  const rank = (group: InboxPostGroupDto) =>
+    group.postId === null ? 2 : group.totalCount === 0 ? 1 : 0;
+  return (a, b) => {
+    const rankA = rank(a);
+    const rankB = rank(b);
+    if (rankA !== rankB) return rankA - rankB;
+    if (rankA !== 0) return 0;
+    if (sort === "unreplied_first" && a.unrepliedCount !== b.unrepliedCount) {
+      return b.unrepliedCount - a.unrepliedCount;
+    }
+    const timeA = a.latestReceivedAt?.getTime() ?? 0;
+    const timeB = b.latestReceivedAt?.getTime() ?? 0;
+    if (timeA !== timeB)
+      return sort === "oldest" ? timeA - timeB : timeB - timeA;
+    return a.postId === b.postId
+      ? 0
+      : (a.postId ?? "") < (b.postId ?? "")
+        ? -1
+        : 1;
+  };
 }
 
 /** Hitungan kartu setelah satu komentar berpindah status (pembaruan optimistis). */
@@ -144,12 +172,39 @@ export function applyStatusToGroup(
   from: InboxItemStatus,
   to: InboxItemStatus,
 ): InboxPostGroupDto {
-  if (from === to || (from === "unread") === (to === "unread")) return group;
-  const delta = to === "unread" ? 1 : -1;
+  if (from === to) return group;
+  const wasUnread = from === "unread";
+  const isUnread = to === "unread";
+  const unreadDelta = wasUnread === isUnread ? 0 : isUnread ? 1 : -1;
+  const repliedDelta =
+    (to === "replied" ? 1 : 0) - (from === "replied" ? 1 : 0);
   return {
     ...group,
-    unrepliedCount: group.unrepliedCount + delta,
-    handledCount: group.handledCount - delta,
+    unrepliedCount: group.unrepliedCount + unreadDelta,
+    handledCount: group.handledCount - unreadDelta,
+    repliedCount: group.repliedCount + repliedDelta,
+  };
+}
+
+/**
+ * Hitungan tampilan List (`total`, `unread`) setelah satu komentar berpindah
+ * status. Komentar yang tidak lagi cocok filter Status keluar dari hitungan
+ * (dan dari daftar yang ditampilkan), sama seperti saat server menghitung ulang.
+ */
+export function applyStatusToCounts(
+  counts: InboxItemCounts,
+  from: InboxItemStatus,
+  to: InboxItemStatus,
+  statusFilter: InboxItemStatus | "all",
+): InboxItemCounts {
+  const matches = (status: InboxItemStatus) =>
+    statusFilter === "all" || status === statusFilter;
+  const counted = (status: InboxItemStatus) => (matches(status) ? 1 : 0);
+  const unread = (status: InboxItemStatus) =>
+    matches(status) && status === "unread" ? 1 : 0;
+  return {
+    total: counts.total + counted(to) - counted(from),
+    unread: counts.unread + unread(to) - unread(from),
   };
 }
 
@@ -165,12 +220,13 @@ export function availableStatusActions(status: InboxItemStatus): {
 
 const ONE_MONTH_MS = 30 * 24 * 60 * 60 * 1000;
 
-/** Ada komentar lebih dari sebulan (memicu banner "fokuskan pada percakapan terbaru"). */
+/** Posting punya komentar lebih dari sebulan (memicu banner "fokuskan pada percakapan terbaru"). */
 export function hasStaleComments(
-  items: readonly Pick<EngagementInboxItemRecord, "receivedAt">[],
+  group: Pick<InboxPostGroupDto, "oldestReceivedAt">,
   now: Date = new Date(),
 ): boolean {
-  return items.some(
-    (item) => now.getTime() - item.receivedAt.getTime() > ONE_MONTH_MS,
+  return (
+    group.oldestReceivedAt !== null &&
+    now.getTime() - group.oldestReceivedAt.getTime() > ONE_MONTH_MS
   );
 }
