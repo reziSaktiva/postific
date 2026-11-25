@@ -228,8 +228,11 @@ export function BoardScreen({
           <AlertTitle>{cancelConfirm.error}</AlertTitle>
         </Alert>
       ) : null}
+      {/* The row keeps horizontal overscroll (T-300): a swipe past Draft or
+          Failed must not reach the page, where it can trigger the browser's
+          swipe-back navigation. */}
       {/* eslint-disable-next-line no-restricted-syntax -- T-290: Tailwind layout (ADR-097) */}
-      <div className="flex min-h-0 flex-1 snap-x snap-mandatory gap-3 overflow-x-auto overflow-y-hidden pb-2 sm:snap-none">
+      <div className="flex min-h-0 flex-1 snap-x snap-mandatory gap-3 overflow-x-auto overflow-y-hidden overscroll-x-contain pb-2 sm:snap-none">
         {columns.map((column) => (
           <section
             key={column.key}
@@ -255,8 +258,12 @@ export function BoardScreen({
                 {COLUMN_EMPTY[column.key]}
               </p>
             ) : (
+              // Contain only vertical overscroll (T-300): `overflow-y-auto` also
+              // makes this list a horizontal scroll container, and a plain
+              // `overscroll-contain` then swallowed sideways swipes that start
+              // on a column with cards, so the Board got stuck on phones.
               // eslint-disable-next-line no-restricted-syntax -- T-290: Tailwind layout (ADR-097)
-              <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain">
+              <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-y-contain">
                 {column.items.map((item) => (
                   <BoardCard
                     key={item.id}
