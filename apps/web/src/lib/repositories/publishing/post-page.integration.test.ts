@@ -69,6 +69,12 @@ describe.skipIf(!enabled)(
             caption: "page test",
             status: input.status,
             createdVia: input.createdVia ?? PostCreatedVia.App,
+            // CHECK `publishing_posts_created_via_check` (T-152): an `mcp` row
+            // must name its AI client; `clientId` has no FK.
+            createdViaClientId:
+              input.createdVia === PostCreatedVia.Mcp
+                ? "t302-page-test-client"
+                : null,
             ...(input.accountId
               ? {
                   targets: {

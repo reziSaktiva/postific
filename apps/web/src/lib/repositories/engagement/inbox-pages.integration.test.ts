@@ -629,16 +629,17 @@ describe.skipIf(!enabled)("engagement per posting (Postgres, T-218.5)", () => {
     expect(none.items.map((i) => i.postId)).toEqual([null]);
 
     // 25 + 1 (post2) + 1 (tanpa posting) + 1 (lama) = 28 di workspace; rentang membuang yang lama.
+    // Unread: 10 (bulk) + post2 + tanpa posting + lama = 13; tanpa yang lama = 12.
     expect(await repo.countInboxItems({ workspaceId: wsA }, owner)).toEqual({
       total: 28,
-      unread: 12,
+      unread: 13,
     });
     expect(
       await repo.countInboxItems(
         { workspaceId: wsA, receivedSince: at("2026-09-01T00:00:00Z") },
         owner,
       ),
-    ).toEqual({ total: 27, unread: 11 });
+    ).toEqual({ total: 27, unread: 12 });
     expect(
       await repo.countInboxItems(
         { workspaceId: wsA, status: "replied" },
