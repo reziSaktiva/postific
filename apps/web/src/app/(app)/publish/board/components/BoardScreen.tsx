@@ -228,8 +228,11 @@ export function BoardScreen({
           <AlertTitle>{cancelConfirm.error}</AlertTitle>
         </Alert>
       ) : null}
+      {/* The row keeps horizontal overscroll (T-300): a swipe past Draft or
+          Failed must not reach the page, where it can trigger the browser's
+          swipe-back navigation. */}
       {/* eslint-disable-next-line no-restricted-syntax -- T-290: Tailwind layout (ADR-097) */}
-      <div className="flex min-h-0 flex-1 snap-x snap-mandatory gap-3 overflow-x-auto overflow-y-hidden pb-2 sm:snap-none">
+      <div className="flex min-h-0 flex-1 snap-x snap-mandatory gap-3 overflow-x-auto overflow-y-hidden overscroll-x-contain pb-2 sm:snap-none">
         {columns.map((column) => (
           <section
             key={column.key}

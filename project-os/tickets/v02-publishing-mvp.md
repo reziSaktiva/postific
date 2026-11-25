@@ -4153,7 +4153,10 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 - [x] The card list contains only vertical overscroll (`overscroll-y-contain`), so a sideways swipe on any column moves the Board.
 - [x] Browser check at 375 px: scroll to Failed and back to Draft while the pointer is over a column with cards. _Proof (local dev, Cook It Real Good, 2026-11-25):_ before the fix the Board stopped at Published (`scrollLeft` 965 both ways); after it, right to Failed (1277 of 1277) and back to 0.
-- [x] E2E guard: on a phone viewport, a horizontal wheel over the Published column moves the Board both ways. `publish-redesign.e2e.ts` "T-300: on a phone the Board scrolls sideways over a column with cards": passes with the fix, fails with `overscroll-contain` restored.
+- [x] E2E guard: on a phone viewport, a touch swipe (Chrome `Input.synthesizeScrollGesture`, touch) and a horizontal wheel that start on a Published card move the Board both ways. `publish-redesign.e2e.ts` "T-300: on a phone the Board scrolls sideways over a column with cards": passes with the fix, fails on the touch swipe with `overscroll-contain` restored.
+- [x] The Board row keeps horizontal overscroll (`overscroll-x-contain`), so a swipe past Draft or Failed does not reach the page and trigger the browser's swipe-back navigation (code review on PR 301).
+
+**Not yet proven:** the guard does not run in the required `staging` → `main` PR gate: `publish-redesign.e2e.ts` is skipped without `DATABASE_URL`, which `e2e-staging.yml` passes only on `workflow_dispatch` (pre-existing for every Publish redesign test). It runs locally and on a manual staging E2E run.
 
 Verified (staging) after merge: King Rezi swipes the Board on a phone.
 
