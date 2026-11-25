@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import { asPageCursor, type PageCursor } from "@postific/shared";
 
 import {
@@ -52,18 +54,25 @@ interface CursorPayload {
 
 /**
  * Identifies one list: the same workspace, statuses, order and filters give
- * the same text whatever order the arrays came in.
+ * the same fingerprint whatever order the arrays came in. It is a short
+ * SHA-256 digest, not the selection itself, so the cursor stays the same
+ * size however many channels are selected (the page query caps a cursor at
+ * 1 024 characters and allows up to 200 channels; code review 2026-11-25).
  */
 export function postSelectionFingerprint(
   selection: PublishPostSelection,
 ): string {
-  return JSON.stringify([
+  const canonical = JSON.stringify([
     selection.workspaceId,
     selection.order,
     [...selection.statuses].sort(),
     [...(selection.connectedAccountIds ?? [])].sort(),
     selection.source ?? null,
   ]);
+  return createHash("sha256")
+    .update(canonical)
+    .digest("base64url")
+    .slice(0, 22);
 }
 
 export function encodePostPageCursor(

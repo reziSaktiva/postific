@@ -67,6 +67,32 @@ describe("post page cursor (S-009)", () => {
     });
   });
 
+  it("stays short and readable with the most channels a filter allows (200)", () => {
+    const manyChannels: PublishPostSelection = {
+      ...history,
+      connectedAccountIds: Array.from({ length: 200 }, (_, index) =>
+        asConnectedAccountId(
+          `${index.toString(16).padStart(8, "0")}-3c1a-4d2b-9f4e-1a2b3c4d5e6f`,
+        ),
+      ),
+      source: "mcp",
+    };
+    const cursor = encodePostPageCursor(manyChannels, row);
+    // The page query rejects a cursor longer than 1 024 characters.
+    expect(cursor.length).toBeLessThan(400);
+    expect(decodePostPageCursor(cursor, manyChannels)).toMatchObject({
+      id: ID,
+    });
+    // One channel fewer is another list: its cursor is rejected.
+    const fewer = {
+      ...manyChannels,
+      connectedAccountIds: manyChannels.connectedAccountIds?.slice(1),
+    };
+    expect(() => decodePostPageCursor(cursor, fewer)).toThrow(
+      InvalidPageCursorError,
+    );
+  });
+
   it("carries the second key of the business-time order", () => {
     const cursor = encodePostPageCursor(history, row);
     expect(decodePostPageCursor(cursor, history)).toMatchObject({
