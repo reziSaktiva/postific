@@ -476,11 +476,16 @@ export function useDraftEditorForm({
    * yang tidak menampilkan hasil aksi sama sekali.
    */
   function finishTerminalAction(action: TerminalAction) {
-    const destination = resolveTerminalDestination(action, status);
-    close();
     // Publish screens share `/publish` and differ in the query (S-008), so
-    // the current query decides whether this is the same screen.
+    // the current query decides whether this is the same screen; within
+    // Publish it also carries the display zone (and Calendar range/date).
     const search = typeof window === "undefined" ? "" : window.location.search;
+    const destination = resolveTerminalDestination(
+      action,
+      status,
+      pathname === "/publish" ? search : "",
+    );
+    close();
     if (isAlreadyAtDestination(pathname, destination, search)) {
       // The user stays on this screen, so its Realtime events must flow
       // again: Ajukan Review marks navigation pending before its server
