@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Delete02Icon, PencilEdit01Icon } from "@hugeicons/core-free-icons";
 
-import { ContentStatus, PostCreatedVia } from "@postific/shared";
+import { ContentStatus } from "@postific/shared";
 import {
   DRAFT_LIST_STATUSES,
   groupDraftItemsByDate,
@@ -17,10 +17,7 @@ import { useConfirmAction } from "@/lib/hooks/use-confirm-action";
 
 import { SourceFilterEmpty } from "@/components/shared/SourceFilterEmpty";
 import { McpSourceBadge } from "@/components/shared/McpSourceBadge";
-import {
-  filterBySource,
-  resolveFilteredEmptyKind,
-} from "@/components/shared/source-filter";
+import { resolveFilteredEmptyKind } from "@/components/shared/source-filter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -39,7 +36,8 @@ import {
   CONTENT_STATUS_LABEL,
 } from "../../../components/draft-editor/status-badge";
 import { ListDayGroups } from "../../components/views/ListDayGroups";
-import { useListFilter } from "../../components/views/ListFilter";
+import { PublishTabFooter } from "../../components/views/PublishListStates";
+import type { PublishTabPage } from "../../components/views/usePublishTabList";
 import { ListPostCard } from "../../components/views/ListPostCard";
 import { deletePostAction } from "../actions";
 import { useLiveDraftPosts, type DraftListItem } from "./useLiveDraftPosts";
@@ -53,10 +51,11 @@ import { useLiveDraftPosts, type DraftListItem } from "./useLiveDraftPosts";
  * Realtime patching is shared with Approvals (`useLiveDraftPosts`).
  */
 export function DraftsList({
-  drafts,
+  initialPage,
   workspaceId,
 }: {
-  drafts: DraftListItem[];
+  /** First page of Drafts from the server, with the true total (S-009). */
+  initialPage: PublishTabPage<DraftListItem>;
   /** Subscribes `publishing_posts:{workspaceId}`; no data is fetched with it here. */
   workspaceId: string;
 }) {
@@ -67,33 +66,34 @@ export function DraftsList({
     () => toast("Draft berhasil dihapus"),
   );
 
-  const localDrafts = useLiveDraftPosts(
-    drafts,
+  const { list, filter, unfilteredTotal } = useLiveDraftPosts(
+    "drafts",
+    initialPage,
     DRAFT_LIST_STATUSES,
     workspaceId,
   );
   // Source comes from the List Filter popover in the toolbar (S-008 design
-  // gap 4); Drafts carry no accounts, so there is no channel filter here.
-  const filter = useListFilter();
+  // gap 4) and is applied by the server; Drafts carry no accounts, so there
+  // is no channel filter here. Day groups cover every loaded draft, so a day
+  // split across two pages keeps one heading.
   const sourceFilter = filter.source;
-  const visible = filterBySource(localDrafts, sourceFilter);
   const groups = useMemo(
-    () => groupDraftItemsByDate(visible, timeZone),
-    [visible, timeZone],
+    () => groupDraftItemsByDate(list.items, timeZone),
+    [list.items, timeZone],
   );
   const emptyKind = resolveFilteredEmptyKind({
     sourceFilter,
     otherFiltersAtDefault: true,
-    totalItems: localDrafts.length,
-    hasMcpItems: localDrafts.some(
-      (draft) => draft.createdVia === PostCreatedVia.Mcp,
-    ),
+    totalItems: unfilteredTotal,
+    hasMcpItems: unfilteredTotal > 0,
   });
+  const showEmpty =
+    list.items.length === 0 && !list.isRefreshing && list.status === "end";
 
   return (
     // eslint-disable-next-line no-restricted-syntax -- T-289: layout-only
     <div className="flex flex-col gap-4">
-      {groups.length === 0 ? (
+      {showEmpty ? (
         <Card>
           <CardContent>
             {emptyKind !== "base" ? (
@@ -162,6 +162,7 @@ export function DraftsList({
           )}
         />
       )}
+      {showEmpty ? null : <PublishTabFooter tab="drafts" list={list} />}
 
       <ConfirmActionDialog
         isOpen={deleteConfirm.isOpen}

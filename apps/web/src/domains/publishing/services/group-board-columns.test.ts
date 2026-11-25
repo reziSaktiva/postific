@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   boardColumnOf,
-  groupBoardColumns,
-  type BoardColumn,
+  compareBoardCards,
+  isBoardColumnKey,
 } from "./group-board-columns";
 
 const d = (iso: string) => new Date(iso);
@@ -25,9 +25,6 @@ const card = (
   ...over,
 });
 
-const ids = (columns: BoardColumn<{ id: string }>[], key: string) =>
-  columns.find((column) => column.key === key)?.items.map((i) => i.id);
-
 describe("boardColumnOf", () => {
   it.each([
     [ContentStatus.Draft, "draft"],
@@ -42,66 +39,61 @@ describe("boardColumnOf", () => {
   });
 });
 
-describe("groupBoardColumns", () => {
-  it("always returns the five columns in order, empty ones included", () => {
-    const columns = groupBoardColumns([]);
+describe("isBoardColumnKey", () => {
+  it("accepts the five columns only", () => {
+    expect(isBoardColumnKey("published")).toBe(true);
+    expect(isBoardColumnKey("history")).toBe(false);
+    expect(isBoardColumnKey(undefined)).toBe(false);
+  });
+});
 
-    expect(columns.map((c) => c.key)).toEqual([
-      "draft",
-      "approvals",
-      "scheduled",
-      "published",
-      "failed",
-    ]);
-    expect(columns.every((c) => c.items.length === 0 && c.total === 0)).toBe(
-      true,
-    );
+describe("compareBoardCards", () => {
+  const sortIds = (
+    key: Parameters<typeof compareBoardCards>[0],
+    items: ReturnType<typeof card>[],
+  ) => [...items].sort(compareBoardCards(key)).map((item) => item.id);
+
+  it("orders Scheduled by publish time, soonest first, id as tie-breaker", () => {
+    expect(
+      sortIds("scheduled", [
+        card("b", ContentStatus.Scheduled, {
+          scheduledAt: d("2026-11-03T00:00:00Z"),
+        }),
+        card("c", ContentStatus.Scheduled, {
+          scheduledAt: d("2026-11-02T00:00:00Z"),
+        }),
+        card("a", ContentStatus.Scheduled, {
+          scheduledAt: d("2026-11-03T00:00:00Z"),
+        }),
+      ]),
+    ).toEqual(["c", "a", "b"]);
   });
 
-  it("puts Ready to Schedule cards in Draft next to Draft cards", () => {
-    const columns = groupBoardColumns([
-      card("a", ContentStatus.Draft),
-      card("b", ContentStatus.ReadyToSchedule),
-      card("c", ContentStatus.InReview),
-    ]);
-
-    expect(ids(columns, "draft")?.sort()).toEqual(["a", "b"]);
-    expect(ids(columns, "approvals")).toEqual(["c"]);
+  it("orders Published by publish time, newest first, falling back to the last edit", () => {
+    expect(
+      sortIds("published", [
+        card("old", ContentStatus.Published, {
+          publishedAt: d("2026-11-01T00:00:00Z"),
+        }),
+        card("imported", ContentStatus.Imported, {
+          updatedAt: d("2026-11-05T00:00:00Z"),
+        }),
+        card("new", ContentStatus.Published, {
+          publishedAt: d("2026-11-04T00:00:00Z"),
+        }),
+      ]),
+    ).toEqual(["imported", "new", "old"]);
   });
 
-  it("orders Scheduled soonest first, Published newest first, Draft by last edit", () => {
-    const columns = groupBoardColumns([
-      card("later", ContentStatus.Scheduled, {
-        scheduledAt: d("2026-12-05T00:00:00Z"),
-      }),
-      card("sooner", ContentStatus.Scheduled, {
-        scheduledAt: d("2026-12-01T00:00:00Z"),
-      }),
-      card("old", ContentStatus.Published, {
-        publishedAt: d("2026-10-01T00:00:00Z"),
-      }),
-      card("new", ContentStatus.Imported, {
-        publishedAt: d("2026-11-10T00:00:00Z"),
-      }),
-      card("stale", ContentStatus.Draft, {
-        updatedAt: d("2026-10-01T00:00:00Z"),
-      }),
-      card("fresh", ContentStatus.Draft, {
-        updatedAt: d("2026-11-20T00:00:00Z"),
-      }),
-    ]);
-
-    expect(ids(columns, "scheduled")).toEqual(["sooner", "later"]);
-    expect(ids(columns, "published")).toEqual(["new", "old"]);
-    expect(ids(columns, "draft")).toEqual(["fresh", "stale"]);
-  });
-
-  it("cuts a column at the limit and says there is more, counting what was given", () => {
-    const failed = ["1", "2", "3"].map((id) => card(id, ContentStatus.Failed));
-
-    const column = groupBoardColumns(failed, 2).find((c) => c.key === "failed");
-
-    expect(column).toMatchObject({ total: 3, hasMore: true });
-    expect(column?.items).toHaveLength(2);
+  it("orders the other columns by last edit, newest first, id descending on a tie", () => {
+    expect(
+      sortIds("draft", [
+        card("a", ContentStatus.Draft),
+        card("c", ContentStatus.Draft),
+        card("b", ContentStatus.Draft, {
+          updatedAt: d("2026-11-02T00:00:00Z"),
+        }),
+      ]),
+    ).toEqual(["b", "c", "a"]);
   });
 });

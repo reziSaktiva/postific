@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback, useMemo } from "react";
 
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import {
@@ -22,13 +22,15 @@ import {
   groupQueueItemsByDate,
   type QueueSuggestionAccount,
   type CalendarPostItem,
-  type QueueGroup,
   type QueueItemRecord,
 } from "@/domains/publishing";
 import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
 import { useConfirmAction } from "@/lib/hooks/use-confirm-action";
-import { usePublishingPostsRealtime } from "@/lib/hooks/use-publishing-posts-realtime";
-import { useSyncedState } from "@/lib/hooks/use-synced-state";
+
+import {
+  usePublishTabList,
+  type PublishTabPage,
+} from "../../components/views/usePublishTabList";
 
 import { cancelScheduleAction, getQueuePostAction } from "../actions";
 import { QueueList } from "./QueueList";
@@ -57,7 +59,19 @@ function toQueueItemRecord(item: CalendarPostItem): QueueItemRecord | null {
   };
 }
 
+/** Queue order: publish time, soonest first; the id breaks ties (S-009). */
+function compareQueueItems(a: QueueItemRecord, b: QueueItemRecord): number {
+  const diff = a.scheduledAt.getTime() - b.scheduledAt.getTime();
+  if (diff !== 0) return diff;
+  return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+}
+
 /**
+ * S-009: the Queue loads 20 posts at a time as the user scrolls
+ * (`usePublishTabList`); filters run on the server and Realtime patches
+ * go through the same hook. The notes below on T-092.4 describe the
+ * Realtime rules it keeps.
+ *
  * Client wrapper untuk halaman Queue (T-032.4) — memisahkan state dialog
  * Cancel Schedule (T-030, ADR-049 Tier 2) dari `QueueList` supaya
  * `QueueList` tetap murni presentational + filter akun. Pola dialog persis
@@ -100,16 +114,15 @@ function toQueueItemRecord(item: CalendarPostItem): QueueItemRecord | null {
  * lain).
  */
 export function QueueScreen({
-  groups,
+  initialPage,
   workspaceId,
   suggestions,
 }: {
-  groups: QueueGroup[];
+  /** First page of the Queue from the server, with the true total (S-009). */
+  initialPage: PublishTabPage<QueueItemRecord>;
   /** Best-time suggestions for the empty Queue (T-291); `[]` when none. */
   suggestions?: QueueSuggestionAccount[];
-  /** Workspace aktif — dipakai `usePublishingPostsRealtime` (T-092.4) untuk
-   * subscribe channel `publishing_posts:{workspaceId}`, bukan dipakai
-   * untuk fetch data apa pun langsung di komponen ini (AGENTS.md #5). */
+  /** Workspace aktif — dipakai Realtime (`publishing_posts:{workspaceId}`), tidak untuk fetch data langsung (AGENTS.md #5). */
   workspaceId: string;
 }) {
   const timeZone = useUserTimeZone();
@@ -117,55 +130,24 @@ export function QueueScreen({
     toast("Jadwal dibatalkan — post kembali ke Drafts"),
   );
 
-  const [localGroups, setLocalGroups] = useSyncedState(groups);
-  const requestSeqRef = useRef<Map<string, number>>(new Map());
+  const fetchLiveItem = useCallback(async (postId: string) => {
+    const fetched = await getQueuePostAction(postId);
+    return fetched ? toQueueItemRecord(fetched) : null;
+  }, []);
 
-  const handlePublishingPostChange = useCallback(
-    (event: { postId: CalendarPostItem["id"] }) => {
-      const seq = (requestSeqRef.current.get(event.postId) ?? 0) + 1;
-      requestSeqRef.current.set(event.postId, seq);
-
-      void (async () => {
-        const fetched = await getQueuePostAction(event.postId);
-
-        // Buang hasil kalau sudah disusul event lain untuk postId yang sama
-        // (out-of-order response) — jangan biarkan fetch yang lebih lama
-        // menimpa state yang sudah diperbarui oleh event yang lebih baru.
-        if (requestSeqRef.current.get(event.postId) !== seq) {
-          return;
-        }
-
-        const queueItem = fetched ? toQueueItemRecord(fetched) : null;
-
-        setLocalGroups((prev) => {
-          const withoutStale = prev
-            .map((group) => ({
-              ...group,
-              items: group.items.filter((item) => item.id !== event.postId),
-            }))
-            .filter((group) => group.items.length > 0);
-
-          if (!queueItem) {
-            return withoutStale;
-          }
-
-          const flatItems = withoutStale.flatMap((group) => group.items);
-          return groupQueueItemsByDate(
-            [...flatItems, queueItem].sort(
-              (a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime(),
-            ),
-            timeZone,
-          );
-        });
-      })();
-    },
-    [setLocalGroups, timeZone],
-  );
-
-  usePublishingPostsRealtime(workspaceId, {
-    onInsert: handlePublishingPostChange,
-    onUpdate: handlePublishingPostChange,
+  const { list, unfilteredTotal } = usePublishTabList<QueueItemRecord>({
+    tab: "queue",
+    initialPage,
+    compare: compareQueueItems,
+    workspaceId,
+    fetchLiveItem,
   });
+  // Day groups over every loaded item, so a day split across two pages
+  // keeps one heading.
+  const groups = useMemo(
+    () => groupQueueItemsByDate(list.items, timeZone),
+    [list.items, timeZone],
+  );
 
   return (
     // eslint-disable-next-line no-restricted-syntax -- T-101.2: layout-only, file sudah dimigrasi shadcn
@@ -177,7 +159,9 @@ export function QueueScreen({
       ) : null}
 
       <QueueList
-        groups={localGroups}
+        groups={groups}
+        list={list}
+        unfilteredTotal={unfilteredTotal}
         onCancelSchedule={(postId) => cancelConfirm.open(postId)}
         suggestions={suggestions}
       />

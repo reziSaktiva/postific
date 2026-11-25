@@ -1,6 +1,8 @@
-import { ContentStatus } from "@postific/shared";
+import { ContentStatus, LIST_PAGE_SIZE } from "@postific/shared";
 import type {
   ConnectedAccountId,
+  CursorPage,
+  PageCursor,
   MediaId,
   MemberRole,
   PostId,
@@ -23,7 +25,9 @@ import type {
   HistoryItemRecord,
   IPublishingRepository,
   PostCreationSource,
+  PublishPostSelection,
   PublishingPostRecord,
+  QueueItemRecord,
   SchedulePostTargetInput,
 } from "../repositories/publishing.repository";
 import {
@@ -36,10 +40,15 @@ import {
 } from "./history-metrics-summary";
 import type { QueueSuggestionAccount } from "./get-best-time-suggestions.use-case";
 import {
-  BOARD_COLUMN_LIMIT,
-  groupBoardColumns,
+  BOARD_COLUMN_KEYS,
+  BOARD_COLUMN_SELECTION,
   type BoardColumn,
+  type BoardColumnKey,
 } from "./group-board-columns";
+import {
+  publishTabSelection,
+  type PublishListFilter,
+} from "./publish-list-page-query";
 import { groupQueueItemsByDate, type QueueGroup } from "./group-queue-items";
 import type { PublishListTab } from "./parse-publish-view-state";
 import { resolvePostPerformancePeriodRange } from "./post-performance-period-range";
@@ -841,23 +850,226 @@ export class PublishingService {
   }
 
   /**
-   * Board (T-290, S-008): posts of every status grouped into the five Board
-   * columns (`groupBoardColumns`). Fetches one more than the column limit
-   * per status so a column can tell it has more cards than it shows.
-   * MCP client names are completed like on the other lists.
+   * Board (T-290, S-008, S-009): the first page of each of the five Board
+   * columns with the true number of cards in it. Counts come from one
+   * `countPostsByStatus` query, never from the page length.
    */
   async listBoardColumns(
     workspaceId: WorkspaceId,
     userId: UserId,
   ): Promise<BoardColumn<CalendarItemRecord>[]> {
-    const posts = await this.withClientNames(
-      workspaceId,
-      await this.repository.listBoardPosts(
-        { workspaceId, perStatusLimit: BOARD_COLUMN_LIMIT + 1 },
+    const [pages, counts] = await Promise.all([
+      Promise.all(
+        BOARD_COLUMN_KEYS.map((column) =>
+          this.listBoardColumnPage({ workspaceId, column }, userId),
+        ),
+      ),
+      this.repository.countPostsByStatus(
+        {
+          workspaceId,
+          statuses: BOARD_COLUMN_KEYS.flatMap(
+            (key) => BOARD_COLUMN_SELECTION[key].statuses,
+          ),
+        },
         userId,
       ),
+    ]);
+    return BOARD_COLUMN_KEYS.map((key, index) => ({
+      key,
+      page: pages[index],
+      total: BOARD_COLUMN_SELECTION[key].statuses.reduce(
+        (sum, status) => sum + (counts.get(status) ?? 0),
+        0,
+      ),
+    }));
+  }
+
+  /** One page (`LIST_PAGE_SIZE`) of one Board column (S-009). */
+  async listBoardColumnPage(
+    input: {
+      workspaceId: WorkspaceId;
+      column: BoardColumnKey;
+      cursor?: PageCursor | null;
+    },
+    userId: UserId,
+  ): Promise<CursorPage<CalendarItemRecord>> {
+    return this.postPage(
+      {
+        workspaceId: input.workspaceId,
+        ...BOARD_COLUMN_SELECTION[input.column],
+      },
+      input.cursor,
+      userId,
     );
-    return groupBoardColumns(posts);
+  }
+
+  /** One page of rows with MCP client names completed (S-009). */
+  private async postPage(
+    selection: PublishPostSelection,
+    cursor: PageCursor | null | undefined,
+    userId: UserId,
+  ) {
+    const page = await this.repository.listPostPage(
+      { ...selection, cursor, limit: LIST_PAGE_SIZE },
+      userId,
+    );
+    return {
+      items: await this.withClientNames(selection.workspaceId, page.items),
+      nextCursor: page.nextCursor,
+    };
+  }
+
+  /** One page of a List tab under its filter; empty when the filter keeps nothing. */
+  private async tabPage(
+    input: {
+      workspaceId: WorkspaceId;
+      tab: PublishListTab;
+      filter: PublishListFilter;
+      cursor?: PageCursor | null;
+    },
+    userId: UserId,
+  ) {
+    const selection = publishTabSelection(input.tab, input.filter);
+    if (!selection) return { items: [], nextCursor: null };
+    return this.postPage(
+      { workspaceId: input.workspaceId, ...selection },
+      input.cursor,
+      userId,
+    );
+  }
+
+  /**
+   * List · Queue, one page (S-009): scheduled posts, soonest first. A post
+   * without a publish time cannot be in the Queue and is left out.
+   */
+  async listQueuePage(
+    input: {
+      workspaceId: WorkspaceId;
+      filter: PublishListFilter;
+      cursor?: PageCursor | null;
+    },
+    userId: UserId,
+  ): Promise<CursorPage<QueueItemRecord>> {
+    const page = await this.tabPage({ ...input, tab: "queue" }, userId);
+    return {
+      items: page.items.flatMap((item) =>
+        item.scheduledAt
+          ? [
+              {
+                id: item.id,
+                caption: item.caption,
+                scheduledAt: item.scheduledAt,
+                createdAt: item.createdAt,
+                targets: item.targets.map((target) => ({
+                  id: target.id,
+                  connectedAccountId: target.connectedAccountId,
+                  platform: target.platform,
+                  contentFormat: target.contentFormat,
+                  accountHandle: target.accountHandle,
+                })),
+                createdVia: item.createdVia,
+                createdViaClientId: item.createdViaClientId,
+                createdViaClientName: item.createdViaClientName,
+              },
+            ]
+          : [],
+      ),
+      nextCursor: page.nextCursor,
+    };
+  }
+
+  /**
+   * List · Queue tab, first page (S-009, T-291): best-time suggestions are
+   * read only when nothing at all is scheduled (no filter applies on the
+   * server's first page).
+   */
+  async getQueuePageWithSuggestions(
+    workspaceId: WorkspaceId,
+    userId: UserId,
+    timeZone: string,
+    suggestions: QueueSuggestionsPort,
+    limitPerAccount?: number,
+  ): Promise<{
+    page: CursorPage<QueueItemRecord>;
+    suggestions: QueueSuggestionAccount[];
+  }> {
+    const page = await this.listQueuePage(
+      { workspaceId, filter: { channelIds: [], source: "all", statuses: [] } },
+      userId,
+    );
+    if (page.items.length > 0) return { page, suggestions: [] };
+    return {
+      page,
+      suggestions: await suggestions.execute({
+        workspaceId,
+        userId,
+        timezone: timeZone,
+        limitPerAccount,
+      }),
+    };
+  }
+
+  /** List · Drafts, one page (S-009): `Draft` and `Ready to Schedule`, last change first. */
+  async listDraftsPage(
+    input: {
+      workspaceId: WorkspaceId;
+      filter: PublishListFilter;
+      cursor?: PageCursor | null;
+    },
+    userId: UserId,
+  ): Promise<CursorPage<HistoryItemRecord>> {
+    return this.tabPage({ ...input, tab: "drafts" }, userId);
+  }
+
+  /** List · Approvals, one page (S-009): `In Review`, last change first. */
+  async listApprovalsPage(
+    input: {
+      workspaceId: WorkspaceId;
+      filter: PublishListFilter;
+      cursor?: PageCursor | null;
+    },
+    userId: UserId,
+  ): Promise<CursorPage<HistoryItemRecord>> {
+    return this.tabPage({ ...input, tab: "approvals" }, userId);
+  }
+
+  /**
+   * List · History, one page (S-009): finished posts, newest business time
+   * first, with stored metrics like `listHistoryWithMetrics`.
+   */
+  async listHistoryPage(
+    input: {
+      workspaceId: WorkspaceId;
+      filter: PublishListFilter;
+      cursor?: PageCursor | null;
+    },
+    userId: UserId,
+  ): Promise<CursorPage<HistoryListItem>> {
+    const page = await this.tabPage({ ...input, tab: "history" }, userId);
+    return {
+      items: await this.withHistoryMetrics(page.items, userId),
+      nextCursor: page.nextCursor,
+    };
+  }
+
+  /**
+   * True total of a List tab under its filter (S-009): one count query over
+   * the rows the tab pages through.
+   */
+  async countPublishTab(
+    input: {
+      workspaceId: WorkspaceId;
+      tab: PublishListTab;
+      filter: PublishListFilter;
+    },
+    userId: UserId,
+  ): Promise<number> {
+    const selection = publishTabSelection(input.tab, input.filter);
+    if (!selection) return 0;
+    return this.repository.countPosts(
+      { workspaceId: input.workspaceId, ...selection },
+      userId,
+    );
   }
 
   /**

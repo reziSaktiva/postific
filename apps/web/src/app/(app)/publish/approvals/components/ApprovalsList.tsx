@@ -11,7 +11,6 @@ import {
 } from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
 
-import { PostCreatedVia } from "@postific/shared";
 import {
   APPROVAL_LIST_STATUSES,
   groupApprovalItemsByDate,
@@ -45,10 +44,8 @@ import {
   CONTENT_STATUS_LABEL,
 } from "../../../components/draft-editor/status-badge";
 import { ListDayGroups } from "../../components/views/ListDayGroups";
-import {
-  matchesListFilter,
-  useListFilter,
-} from "../../components/views/ListFilter";
+import { PublishTabFooter } from "../../components/views/PublishListStates";
+import type { PublishTabPage } from "../../components/views/usePublishTabList";
 import {
   ListAccounts,
   ListPostCard,
@@ -69,37 +66,40 @@ import {
  * also schedule from Draft.
  */
 export function ApprovalsList({
-  items,
+  initialPage,
   workspaceId,
 }: {
-  items: DraftListItem[];
+  /** First page of Approvals from the server, with the true total (S-009). */
+  initialPage: PublishTabPage<DraftListItem>;
   workspaceId: string;
 }) {
   const timeZone = useUserTimeZone();
   const { openEditDraft } = useDraftEditor();
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [, startTransition] = useTransition();
-  const live = useLiveDraftPosts(items, APPROVAL_LIST_STATUSES, workspaceId);
+  const { list, filter, unfilteredTotal } = useLiveDraftPosts(
+    "approvals",
+    initialPage,
+    APPROVAL_LIST_STATUSES,
+    workspaceId,
+  );
   // Channels and source come from the List Filter popover in the toolbar
-  // (S-008 design gap 4).
-  const filter = useListFilter();
+  // (S-008 design gap 4) and are applied by the server (S-009). Day groups
+  // cover every loaded item, so a day split across two pages keeps one
+  // heading.
   const { channelIds, source } = filter;
   const groups = useMemo(
-    () =>
-      groupApprovalItemsByDate(
-        live.filter((item) =>
-          matchesListFilter(item, { channelIds, source, statuses: [] }),
-        ),
-        timeZone,
-      ),
-    [live, timeZone, channelIds, source],
+    () => groupApprovalItemsByDate(list.items, timeZone),
+    [list.items, timeZone],
   );
   const emptyKind = resolveFilteredEmptyKind({
     sourceFilter: source,
     otherFiltersAtDefault: channelIds.length === 0,
-    totalItems: live.length,
-    hasMcpItems: live.some((item) => item.createdVia === PostCreatedVia.Mcp),
+    totalItems: unfilteredTotal,
+    hasMcpItems: unfilteredTotal > 0,
   });
+  const showEmpty =
+    list.items.length === 0 && !list.isRefreshing && list.status === "end";
 
   function changeStatus(
     postId: string,
@@ -118,7 +118,7 @@ export function ApprovalsList({
     });
   }
 
-  if (groups.length === 0) {
+  if (showEmpty) {
     return (
       <Card>
         <CardContent>
@@ -140,89 +140,93 @@ export function ApprovalsList({
   }
 
   return (
-    <ListDayGroups
-      groups={groups}
-      getTime={(item) => item.updatedAt}
-      renderCard={(item) => (
-        <ListPostCard
-          onOpen={() => openEditDraft(item.id)}
-          accounts={
-            item.targets && item.targets.length > 0 ? (
-              <ListAccounts targets={item.targets} />
-            ) : undefined
-          }
-          statusBadge={
-            <Badge variant={CONTENT_STATUS_BADGE_VARIANT[item.status]}>
-              {CONTENT_STATUS_LABEL[item.status]}
-            </Badge>
-          }
-          caption={item.caption}
-          meta={
-            <>
-              <Text variant="muted" as="span" className="text-xs">
-                Diajukan {formatRelativeTime(item.updatedAt, timeZone)}
-              </Text>
-              <McpSourceBadge
-                createdVia={item.createdVia}
-                clientName={item.createdViaClientName}
-              />
-            </>
-          }
-          footer={
-            <>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                disabled={pendingId === item.id}
-                onClick={() =>
-                  changeStatus(
-                    item.id,
-                    backToDraftAction,
-                    "Dikembalikan ke Draft",
-                  )
-                }
-              >
-                <HugeiconsIcon icon={ArrowTurnBackwardIcon} />
-                Kembalikan ke Draft
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                disabled={pendingId === item.id}
-                onClick={() =>
-                  changeStatus(
-                    item.id,
-                    markReadyToScheduleAction,
-                    "Ditandai Ready to Schedule",
-                  )
-                }
-              >
-                <HugeiconsIcon icon={Tick02Icon} />
-                Tandai Ready
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    type="button"
-                    size="icon-sm"
-                    variant="outline"
-                    aria-label="Aksi lain"
-                  >
-                    <HugeiconsIcon icon={MoreHorizontalIcon} />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onSelect={() => openEditDraft(item.id)}>
-                    <HugeiconsIcon icon={Edit02Icon} />
-                    Edit
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </>
-          }
-        />
-      )}
-    />
+    // eslint-disable-next-line no-restricted-syntax -- S-009: layout-only, list and its footer
+    <div className="flex flex-col gap-4">
+      <ListDayGroups
+        groups={groups}
+        getTime={(item) => item.updatedAt}
+        renderCard={(item) => (
+          <ListPostCard
+            onOpen={() => openEditDraft(item.id)}
+            accounts={
+              item.targets && item.targets.length > 0 ? (
+                <ListAccounts targets={item.targets} />
+              ) : undefined
+            }
+            statusBadge={
+              <Badge variant={CONTENT_STATUS_BADGE_VARIANT[item.status]}>
+                {CONTENT_STATUS_LABEL[item.status]}
+              </Badge>
+            }
+            caption={item.caption}
+            meta={
+              <>
+                <Text variant="muted" as="span" className="text-xs">
+                  Diajukan {formatRelativeTime(item.updatedAt, timeZone)}
+                </Text>
+                <McpSourceBadge
+                  createdVia={item.createdVia}
+                  clientName={item.createdViaClientName}
+                />
+              </>
+            }
+            footer={
+              <>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={pendingId === item.id}
+                  onClick={() =>
+                    changeStatus(
+                      item.id,
+                      backToDraftAction,
+                      "Dikembalikan ke Draft",
+                    )
+                  }
+                >
+                  <HugeiconsIcon icon={ArrowTurnBackwardIcon} />
+                  Kembalikan ke Draft
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={pendingId === item.id}
+                  onClick={() =>
+                    changeStatus(
+                      item.id,
+                      markReadyToScheduleAction,
+                      "Ditandai Ready to Schedule",
+                    )
+                  }
+                >
+                  <HugeiconsIcon icon={Tick02Icon} />
+                  Tandai Ready
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      size="icon-sm"
+                      variant="outline"
+                      aria-label="Aksi lain"
+                    >
+                      <HugeiconsIcon icon={MoreHorizontalIcon} />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onSelect={() => openEditDraft(item.id)}>
+                      <HugeiconsIcon icon={Edit02Icon} />
+                      Edit
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
+            }
+          />
+        )}
+      />
+      <PublishTabFooter tab="approvals" list={list} />
+    </div>
   );
 }

@@ -36,6 +36,7 @@ export function ListDayGroups<T extends { id: string }>({
             <div
               className="flex flex-col gap-1 lg:flex-row lg:gap-4"
               key={item.id}
+              data-testid="publish-list-row"
             >
               <Text
                 variant="muted"

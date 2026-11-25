@@ -1,6 +1,5 @@
 "use client";
 
-import { useMemo } from "react";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import {
   Add01Icon,
@@ -9,17 +8,14 @@ import {
   SentIcon,
 } from "@hugeicons/core-free-icons";
 
-import { ContentStatus, PostCreatedVia, type PostId } from "@postific/shared";
+import { ContentStatus, type PostId } from "@postific/shared";
 import type { QueueGroup, QueueSuggestionAccount } from "@/domains/publishing";
 import { useUserTimeZone } from "@/lib/time/user-time-zone-context";
 import { formatRelativeTime } from "@/lib/utils/format-relative-time";
 
 import { SourceFilterEmpty } from "@/components/shared/SourceFilterEmpty";
 import { McpSourceBadge } from "@/components/shared/McpSourceBadge";
-import {
-  resolveFilteredEmptyKind,
-  SourceFilter,
-} from "@/components/shared/source-filter";
+import { resolveFilteredEmptyKind } from "@/components/shared/source-filter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -46,9 +42,10 @@ import {
 import { ListDayGroups } from "../../components/views/ListDayGroups";
 import {
   focusAccountId,
-  matchesListFilter,
   useListFilter,
 } from "../../components/views/ListFilter";
+import { PublishTabFooter } from "../../components/views/PublishListStates";
+import type { InfiniteList } from "../../../components/infinite-list/useInfiniteList";
 import {
   ListAccounts,
   ListPostCard,
@@ -88,7 +85,15 @@ function QueueItemActionButton({
 }
 
 export interface QueueListProps {
+  /** Day groups of the loaded posts (already filtered by the server). */
   groups: QueueGroup[];
+  /** Paging state of the Queue (S-009); without it no footer is shown. */
+  list?: Pick<
+    InfiniteList<unknown>,
+    "items" | "status" | "isRefreshing" | "loadMore" | "retry"
+  >;
+  /** Total of the Queue without any filter, for the empty states. */
+  unfilteredTotal?: number;
   /**
    * Cancel Schedule (T-030, T-032.4) — dipass dari `QueueScreen.tsx`, yang
    * memiliki state dialog konfirmasi Tier 2 (AlertDialog) + memanggil
@@ -116,6 +121,8 @@ export interface QueueListProps {
  */
 export function QueueList({
   groups,
+  list,
+  unfilteredTotal,
   onCancelSchedule,
   suggestions = [],
 }: QueueListProps) {
@@ -126,39 +133,32 @@ export function QueueList({
   const filter = useListFilter();
   const { channelIds, source } = filter;
 
-  const filteredGroups = useMemo<QueueGroup[]>(() => {
-    if (channelIds.length === 0 && source === SourceFilter.All) {
-      return groups;
-    }
-    return groups
-      .map((group) => ({
-        ...group,
-        items: group.items.filter((item) =>
-          matchesListFilter(item, { channelIds, source, statuses: [] }),
-        ),
-      }))
-      .filter((group) => group.items.length > 0);
-  }, [groups, channelIds, source]);
-
-  const allItems = groups.flatMap((group) => group.items);
+  const loadedCount = groups.reduce(
+    (sum, group) => sum + group.items.length,
+    0,
+  );
+  const tabTotal = unfilteredTotal ?? loadedCount;
+  // A filtered empty list: when nothing matches a Manual filter while the
+  // Queue has posts, every scheduled post came through MCP.
   const emptyKind = resolveFilteredEmptyKind({
     sourceFilter: source,
     otherFiltersAtDefault: channelIds.length === 0,
-    totalItems: allItems.length,
-    hasMcpItems: allItems.some(
-      (item) => item.createdVia === PostCreatedVia.Mcp,
-    ),
+    totalItems: tabTotal,
+    hasMcpItems: tabTotal > 0,
   });
+  const showEmpty =
+    loadedCount === 0 &&
+    (!list || (!list.isRefreshing && list.status === "end"));
 
   return (
     // eslint-disable-next-line no-restricted-syntax -- T-101.2: layout-only, file sudah dimigrasi shadcn
     <div className="flex flex-col gap-4">
-      {filteredGroups.length === 0 ? (
+      {showEmpty ? (
         <Card>
           <CardContent>
             {emptyKind !== "base" ? (
               <SourceFilterEmpty kind={emptyKind} onShowAll={filter.reset} />
-            ) : allItems.length === 0 && suggestions.length > 0 ? (
+            ) : tabTotal === 0 && suggestions.length > 0 ? (
               <QueueSuggestions suggestions={suggestions} />
             ) : (
               <Empty>
@@ -181,7 +181,7 @@ export function QueueList({
         </Card>
       ) : (
         <ListDayGroups
-          groups={filteredGroups}
+          groups={groups}
           getTime={(item) => item.scheduledAt}
           renderCard={(item) => (
             <ListPostCard
@@ -238,6 +238,7 @@ export function QueueList({
           )}
         />
       )}
+      {list && !showEmpty ? <PublishTabFooter tab="queue" list={list} /> : null}
     </div>
   );
 }

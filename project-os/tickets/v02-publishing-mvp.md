@@ -4199,7 +4199,7 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 | Field            | Value                                   |
 | ---------------- | --------------------------------------- |
-| **Status**       | ⏳ Not Started                          |
+| **Status**       | 🟡 In Progress                          |
 | **Mode**         | AFK                                     |
 | **Verification** | `local`                                 |
 | **Domain**       | publishing (UI, service, repository)    |
@@ -4209,13 +4209,17 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 **What to build:** History, Queue, Drafts and Approvals in Publish List, and each Board column, load 20 items at a time as the user scrolls, with true counts.
 
-- [ ] Cursor-based repository queries for each List tab and each Board column, ordered as today with the id as tie-breaker, plus count queries per tab and per column. Additive composite indexes where a query needs one (pre-approved, ADR-166 decision 7).
-- [ ] Day grouping in the List works across page boundaries (one heading per day).
-- [ ] Tab counts and Board column counts come from the count queries; `BOARD_COLUMN_LIMIT` and the "100+" label are removed.
-- [ ] The MCP source filter, channel and status filters reset the list to its first page; realtime updates keep the loaded items and counts right.
+- [x] Cursor-based repository queries for each List tab and each Board column, ordered as today with the id as tie-breaker, plus count queries per tab and per column. Additive composite indexes where a query needs one (pre-approved, ADR-166 decision 7).
+- [x] Day grouping in the List works across page boundaries (one heading per day).
+- [x] Tab counts and Board column counts come from the count queries; `BOARD_COLUMN_LIMIT` and the "100+" label are removed.
+- [x] The MCP source filter, channel and status filters reset the list to its first page; realtime updates keep the loaded items and counts right.
 - [ ] Phone and tablet Board behavior (S-008, T-300) still works.
 - [ ] Repository integration tests for the cursor and count queries; E2E on Cook It Real Good: History loads a second page on scroll, a Board column loads a second page, the History count is the true total, a filter change resets the list.
-- [ ] Next pages load through a GET Route Handler that only calls the Application Service and validates the cursor (ADR-166 addendum 5); the first page stays server-rendered.
+- [x] Next pages load through a GET Route Handler that only calls the Application Service and validates the cursor (ADR-166 addendum 5); the first page stays server-rendered.
+
+**Done (code, 2026-11-25, lane `feature/s009-lane-publish`):** keyset pages per List tab and Board column (`listPostPage`, sort time plus id, times carried as Postgres text so sub-millisecond differences are kept) and `countPosts`; filters run on the server; `GET /api/publish/list` (page, first page with total, `count=1`) and `GET /api/publish/board` call the shared page composition only and answer a bad query or cursor with 400, no session with 401; the open tab's count follows the filter and is counted again after each Realtime change; a server re-render merges its first page into the loaded List items and restarts the Board columns. MCP read tools unchanged (`listDrafts`, `listQueue`, `listHistory` untouched). Migration written, not applied: `20261125100000_t302_publish_list_page_indexes` (three additive indexes).
+
+**Not yet proven:** (1) the migration is not applied to any database; (2) the DB integration test `post-page.integration.test.ts` (same sort time across a page edge, sub-millisecond times, each order, filters, true total, bad cursor) is written but not run: opt-in `PUBLISHING_PAGE_DB_TEST=1`, and the local `DATABASE_URL` points to the shared database (ADR-081); (3) the E2E `publish-infinite-scroll.e2e.ts` (History second page and true total, filter reset, Board column second page) is written but not run, it runs once at wave integration on Cook It Real Good; (4) phone and tablet Board behavior (S-008, T-300) is not checked in a browser; the column layout classes did not change; (5) nothing was checked in a browser in this lane.
 
 **Blocked by:** T-301
 

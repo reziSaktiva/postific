@@ -10,7 +10,7 @@ import type {
   UserId,
   WorkspaceId,
 } from "@postific/shared";
-import type { ContentStatus } from "@postific/shared";
+import type { ContentStatus, CursorPage, PageCursor } from "@postific/shared";
 
 export interface PublishingPostRecord {
   id: PostId;
@@ -709,21 +709,6 @@ export interface IPublishingRepository {
   ): Promise<CalendarItemRecord[]>;
 
   /**
-   * Board (T-290, S-008) — posts of every status, with or without a date,
-   * for the five Board columns. At most `perStatusLimit` posts of EACH
-   * status (so one busy status cannot crowd the others out), in the order
-   * the column needs: Scheduled by `scheduledAt` ascending, Published and
-   * Imported by `publishedAt` descending, the rest by `updatedAt`
-   * descending. Same projection as `listCalendarPosts`.
-   *
-   * `userId` (RLS, KI-026 follow-up) — acting user for `withCurrentUser`.
-   */
-  listBoardPosts(
-    input: { workspaceId: WorkspaceId; perStatusLimit: number },
-    userId: UserId,
-  ): Promise<CalendarItemRecord[]>;
-
-  /**
    * Granular patch Realtime Calendar (T-092.3, ADR-094 poin 5) — fetch SATU
    * `PublishingPost` termapping (bentuk sama `listCalendarPosts`) untuk
    * `postId` yang datang dari event Supabase Realtime
@@ -795,6 +780,32 @@ export interface IPublishingRepository {
     input: { workspaceId: WorkspaceId; statuses: readonly ContentStatus[] },
     userId: UserId,
   ): Promise<Map<ContentStatus, number>>;
+
+  /**
+   * One page of a Publish list (List tab or Board column, S-009, ADR-166).
+   * The rows of `selection`, ordered by `selection.order` with the id as
+   * the last tie-breaker, starting after `cursor` (none = first page).
+   * The cursor is opaque: only this repository builds and reads it; one it
+   * cannot read, or one made for another order, throws
+   * `InvalidPageCursorError`. `nextCursor` is `null` on the last page.
+   *
+   * `userId` (RLS, KI-026 follow-up) — acting user for `withCurrentUser`.
+   */
+  listPostPage(
+    input: PublishPostSelection & {
+      cursor?: PageCursor | null;
+      limit: number;
+    },
+    userId: UserId,
+  ): Promise<CursorPage<HistoryItemRecord>>;
+
+  /**
+   * Number of rows `listPostPage` would return over all its pages for the
+   * same `selection` (true tab and filter totals, S-009).
+   *
+   * `userId` (RLS, KI-026 follow-up) — acting user for `withCurrentUser`.
+   */
+  countPosts(input: PublishPostSelection, userId: UserId): Promise<number>;
 
   /**
    * T-130/KI-093 — jumlah `PublishingPost` berstatus terminal
@@ -1538,4 +1549,31 @@ export interface SyncablePostRecord {
   postId: PostId;
   outstandPostId: string;
   platform: SocialPlatform;
+}
+
+/**
+ * Sort order of a paged Publish list (S-009). Each ends with the id, so two
+ * posts with the same time never repeat or go missing across a page edge.
+ * - `updated-desc`: last change first (Drafts, Approvals; Board Draft,
+ *   Approvals, Failed).
+ * - `scheduled-asc`: publish time, soonest first (Queue; Board Scheduled).
+ * - `occurred-desc`: business time (`historyItemOccurredAt`), newest first,
+ *   then last change (History; Board Published).
+ */
+export type PublishPostOrder =
+  "updated-desc" | "scheduled-asc" | "occurred-desc";
+
+/** Which source a list keeps (List Filter "Sumber", KSP-D20). */
+export type PublishPostSource = "all" | "manual" | "mcp";
+
+/** Rows of one paged Publish list: posts of the workspace, not deleted. */
+export interface PublishPostSelection {
+  workspaceId: WorkspaceId;
+  /** Never empty; the service decides the statuses of each list. */
+  statuses: readonly ContentStatus[];
+  order: PublishPostOrder;
+  /** Posts with a target on one of these accounts; empty = every account. */
+  connectedAccountIds?: readonly ConnectedAccountId[];
+  /** `mcp` = created through MCP, `manual` = everything else. */
+  source?: PublishPostSource;
 }
