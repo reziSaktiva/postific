@@ -76,3 +76,4 @@ King Rezi's request (`AGENTS.md` rule 9).
 - A semantic conflict is only caught by `typecheck` after everything is merged, not by git: run `typecheck` at every merge (lint and tests once at the end).
 - A new worktree has no `node_modules`: run `bun install` first.
 - Migration permission relayed by another session is rejected: ask King Rezi directly.
+- Start `e2e-staging.yml` only after the Railway deploy of the merge commit shows SUCCESS. Railway waits for GitHub checks before it deploys, and the E2E run waits for that deploy, so a run started too early times out and Railway skips the deploy (T-308, 2026-11-26).
