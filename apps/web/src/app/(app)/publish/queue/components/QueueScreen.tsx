@@ -126,10 +126,6 @@ export function QueueScreen({
   workspaceId: string;
 }) {
   const timeZone = useUserTimeZone();
-  const cancelConfirm = useConfirmAction<PostId>(cancelScheduleAction, () =>
-    toast("Jadwal dibatalkan — post kembali ke Drafts"),
-  );
-
   const fetchLiveItem = useCallback(async (postId: string) => {
     const fetched = await getQueuePostAction(postId);
     return fetched ? toQueueItemRecord(fetched) : null;
@@ -142,6 +138,15 @@ export function QueueScreen({
     workspaceId,
     fetchLiveItem,
   });
+  // The card leaves at once, also past the first page and without Realtime
+  // (T-308).
+  const cancelConfirm = useConfirmAction<PostId>(
+    cancelScheduleAction,
+    (postId) => {
+      list.remove(postId);
+      toast("Jadwal dibatalkan — post kembali ke Drafts");
+    },
+  );
   // Day groups over every loaded item, so a day split across two pages
   // keeps one heading.
   const groups = useMemo(

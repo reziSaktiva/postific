@@ -61,16 +61,20 @@ export function DraftsList({
 }) {
   const timeZone = useUserTimeZone();
   const { openEditDraft } = useDraftEditor();
-  const deleteConfirm = useConfirmAction<DraftListItem>(
-    (draft) => deletePostAction(draft.id),
-    () => toast("Draft berhasil dihapus"),
-  );
-
   const { list, filter, unfilteredTotal } = useLiveDraftPosts(
     "drafts",
     initialPage,
     DRAFT_LIST_STATUSES,
     workspaceId,
+  );
+  // The card leaves at once, also past the first page and without Realtime
+  // (T-308).
+  const deleteConfirm = useConfirmAction<DraftListItem>(
+    (draft) => deletePostAction(draft.id),
+    (draft) => {
+      list.remove(draft.id);
+      toast("Draft berhasil dihapus");
+    },
   );
   // Source comes from the List Filter popover in the toolbar (S-008 design
   // gap 4) and is applied by the server; Drafts carry no accounts, so there

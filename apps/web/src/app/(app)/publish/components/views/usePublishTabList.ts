@@ -24,6 +24,8 @@ import {
 } from "@/domains/publishing";
 import { usePublishingPostsRealtime } from "@/lib/hooks/use-publishing-posts-realtime";
 
+import { mergeRevalidatedPage } from "./revalidated-page-merge";
+
 import {
   useInfiniteList,
   type InfiniteList,
@@ -51,6 +53,12 @@ export interface PublishTabPage<T> extends CursorPage<T> {
 }
 
 const ENDPOINT = "/api/publish/list";
+
+/**
+ * How long a Realtime upsert outranks a revalidated first page that lacks
+ * the post: that render may have started before the post existed (T-308).
+ */
+const REALTIME_FRESH_MS = 15_000;
 
 function filterKey(filter: PublishListFilter): string {
   return buildPublishListPageSearch({ tab: "queue", filter });
@@ -172,17 +180,37 @@ export function usePublishTabList<T extends PublishTabItem>({
   }, [currentKey, refresh, fetchPage]);
 
   // The server rendered the page again (revalidated after a mutation): merge
-  // its first page into the loaded items when it is for the same filter.
+  // its first page into the loaded items when it is for the same filter,
+  // and drop a loaded item that is gone from its range (deleted or moved to
+  // another tab; Realtime sends no delete event, T-308).
+  const loadedItems = list.items;
+  /** When Realtime last upserted each post (ms), see the merge below. */
+  const realtimeUpsertsRef = useRef<Map<string, number>>(new Map());
   const seenInitialRef = useRef(initialPage);
   useEffect(() => {
     if (seenInitialRef.current === initialPage) return;
     seenInitialRef.current = initialPage;
     if (!isEmptyPublishListFilter(filterRef.current)) return;
-    for (const item of initialPage.items) upsert(item);
+    const { upserts, removes } = mergeRevalidatedPage({
+      loaded: loadedItems,
+      page: initialPage,
+      compare,
+    });
+    // A post Realtime just upserted may be newer than this server render;
+    // it stays (T-308).
+    const now = Date.now();
+    for (const id of removes) {
+      const upsertedAt = realtimeUpsertsRef.current.get(id);
+      if (upsertedAt !== undefined && now - upsertedAt < REALTIME_FRESH_MS) {
+        continue;
+      }
+      remove(id);
+    }
+    for (const item of upserts) upsert(item);
     if (initialPage.total !== undefined) {
       applyTotal(initialPage.total, filterKeyRef.current, filterRef.current);
     }
-  }, [initialPage, upsert, applyTotal]);
+  }, [initialPage, loadedItems, compare, upsert, remove, applyTotal]);
 
   // Realtime: one post at a time, newest answer per post wins.
   const requestSeqRef = useRef<Map<string, number>>(new Map());
@@ -209,8 +237,10 @@ export function usePublishTabList<T extends PublishTabItem>({
         const item = await fetchLiveItem(event.postId);
         if (requestSeqRef.current.get(event.postId) !== seq) return;
         if (item && matchesListFilter(item, filterRef.current)) {
+          realtimeUpsertsRef.current.set(event.postId, Date.now());
           upsert(item);
         } else {
+          realtimeUpsertsRef.current.delete(event.postId);
           remove(event.postId);
         }
         void recount();

@@ -56,7 +56,7 @@ import { useInfiniteList } from "../../../components/infinite-list/useInfiniteLi
 import { BoardColumnFooter } from "../../components/views/PublishListStates";
 import { fetchPublishJson } from "../../components/views/publish-page-fetch";
 
-import { mergeBoardColumnPage } from "./board-column-merge";
+import { mergeRevalidatedPage } from "../../components/views/revalidated-page-merge";
 
 const COLUMN_TITLE: Record<BoardColumnKey, string> = {
   draft: "Draft",
@@ -219,7 +219,7 @@ const NO_IDS: ReadonlySet<string> = new Set();
  * the column's true total (count query). When the server renders the Board
  * again (a mutation revalidated `/publish`), the column keeps its loaded
  * pages and scroll position: the cards that changed are upserted or
- * removed (`mergeBoardColumnPage`) and the header shows the new total.
+ * removed (`mergeRevalidatedPage`) and the header shows the new total.
  */
 function BoardColumnSection({
   column,
@@ -273,7 +273,7 @@ function BoardColumnSection({
   useEffect(() => {
     if (seenPageRef.current === column.page) return;
     seenPageRef.current = column.page;
-    const { upserts, removes } = mergeBoardColumnPage({
+    const { upserts, removes } = mergeRevalidatedPage({
       loaded: loadedItems,
       page: column.page,
       movedToOtherColumn: otherColumnIds,

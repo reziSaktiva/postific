@@ -131,6 +131,13 @@ test("T-300: on a phone the Board scrolls sideways over a column with cards", as
   // Touch swipe (what King Rezi hit on a phone), through Chrome's gesture
   // synthesizer so overscroll chaining runs as it does for a finger.
   const cdp = await page.context().newCDPSession(page);
+  // A phone has a touchscreen. The "Desktop Chrome" device has none, and
+  // Chrome on the Linux CI runner then drops synthetic touch gestures (the
+  // swipe never moved the row there; macOS ran it anyway; T-308).
+  await cdp.send("Emulation.setTouchEmulationEnabled", {
+    enabled: true,
+    maxTouchPoints: 5,
+  });
   const swipe = async (xDistance: number) => {
     const box = await card.boundingBox();
     if (!box) throw new Error("Published card has no box");

@@ -4331,6 +4331,29 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 ---
 
+### T-308 · Deleted post stays in a Publish List tab; staging E2E failures after S-009 (S-009 follow-up)
+
+| Field | Value |
+| --- | --- |
+| **Status** | 🚧 In Progress |
+| **Mode** | AFK |
+| **Verification** | `staging` |
+| **Domain** | publishing (UI), QA |
+| **Spec** | S-009 |
+| **Docs** | ADR-166, ADR-149, T-302, T-305 |
+| **Depends** | — |
+
+**What to build:** the staging E2E run of 2026-11-26 (run 45741375485) failed 2 tests. Cause 1 is a product bug from S-009: after a delete (or any change that revalidates `/publish`), a List tab (Queue, Drafts, Approvals, History) merges the server's new first page with upserts only, so a deleted post keeps its card until reload while the count drops. Realtime sends no delete event. The Board already removes such cards (`mergeBoardColumnPage`). The `mcp.e2e.ts` cleanup hit it ("hapus draft [e2e] lewat UI Drafts"), the serial group retried inside the minute that test (n) had used up, and (a) got `rate_limited`. Cause 2: the T-300 phone swipe test fails on the Linux runner and passes on macOS.
+
+- [x] A List tab removes a loaded post that is in the range of the server's new first page but not on it (same rule as the Board), with a unit test. (`usePublishTabList` now uses the Board's helper, moved to `views/revalidated-page-merge.ts` as `mergeRevalidatedPage`; unit test added. New E2E `publish-list-delete.e2e.ts` deletes a seeded draft with Realtime blocked: fails on the old code (card stays), passes with the fix on local dev, 2026-11-26. After `/code-review` on PR 305: Drafts delete and Queue cancel-schedule also drop the card on success (any page, no Realtime needed); a post Realtime upserted in the last 15 s is not removed by an older server render; an item tied with the page's last item at the millisecond is kept, since the server orders by microseconds.)
+- [x] `mcp.e2e.ts`: a retry waits for a fresh rate-limit minute before (a), so one failure does not cascade into `rate_limited`. (`beforeAll` waits for the next UTC minute plus 10 s for clock skew when `testInfo.retry > 0`.)
+- [ ] T-300 phone swipe test passes on the Linux runner, or its cause is named. (Likely cause: the "Desktop Chrome" device has no touchscreen, and Linux Chrome drops synthetic touch gestures; the test now turns on touch emulation over CDP. Passes on macOS; Linux not yet proven. A run of `e2e-staging.yml` on the branch (45749048769) stops at "Tunggu deploy Railway untuk commit ini", since only `staging` deploys, so the proof is the staging E2E run after merge.)
+- [ ] Staging E2E run green.
+
+**Blocked by:** none
+
+---
+
 ## Dari Known Issue
 
 Tiket yang lahir sebagai pelacak Known Issue ada di [`known-issues.md`](known-issues.md) (ADR-134); daftar lengkapnya hanya di file itu, tidak disalin ke sini.
