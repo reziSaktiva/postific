@@ -29,7 +29,9 @@ ADR-133 (one meaning in one place). Do not copy the content of those documents i
 - Lane briefs are pointers and only the sections that apply (see the brief template); do not paste ticket, spec, or ADR text.
 - A lane report is at most 10 lines: commit hash, check results, open findings. Read a full report only when it is truncated or disputed.
 - Verify with one command per fact (`git log -1`, `gh pr checks`), not by re-reading files.
-- Pass command output through `tail`/`grep` for failures; do not dump full test or build logs into context.
+- Pass command output through `tail`/`grep` for failures; do not dump full test or build logs into context. Commits: pipe through `tail -3` (the hook banner is long).
+- A lane brief gives the ticket's exact range from `bun run docs:where <ID>` (`offset`/`limit`), so a lane never opens a whole release ticket file.
+- Follow-ups, models and re-reviews: `.claude/agents/README.md` § Orchestration rules, "Token economy".
 
 ## Decisions are already made
 

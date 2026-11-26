@@ -8,7 +8,7 @@ One sentence: the result that must exist when the lane is done.
 
 ## Scope
 
-- Ticket: `T-xxx` (`project-os/tickets/...`), the open items only.
+- Ticket: `T-xxx` (`project-os/tickets/...`, `offset=<n> limit=<n>` from `docs:where`), the open items only. Read only that range.
 - Spec and ADRs: `specs/S-NNN.md`, `ADR-xxx`.
 - May change: <paths>. No other lane touches: <paths>.
 

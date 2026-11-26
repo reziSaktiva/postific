@@ -93,6 +93,15 @@ verify `Artifact` loads there, then continue.
 - If several implementation agents change files that may overlap,
   use the `isolation: "worktree"` option per agent so they do not overwrite
   each other.
+- **Token economy (T-307):**
+  - A follow-up message to a finished subagent replays its whole context. A small
+    follow-up (a copy change, a status flip, a one-line fix) is done by the main
+    session or by a fresh agent with a short brief; resume an agent only when the
+    follow-up needs what it learned.
+  - Implementation lanes and reviews run on a lower model (`model: "sonnet"`)
+    unless the work is design-heavy or security/data-critical.
+  - A re-review runs only after a **hard violation** was fixed; the main session
+    checks fixed considerations itself, one command per fact.
 - Multi-session waves involving many lanes (integration branch, integration PR,
   staging verification): the `wave-work` skill (S-003). Preparing the wave
   list: the `wave-plan` skill.

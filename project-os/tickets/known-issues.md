@@ -8,12 +8,12 @@ Tiket fitur yang kebetulan memuat atau menutup satu KI tetap di file rilisnya. C
 
 ### T-137 · Adapter SMTP sementara untuk email staging (KI-097, ADR-137)
 
-| Field       | Value                                                                                |
-| ----------- | ------------------------------------------------------------------------------------ |
-| **Status**  | ✅ Done                                                                              |
-| **Domain**  | notification                                                                         |
-| **Spec**    | tidak ada — muat satu sesi                                                           |
-| **Docs**    | KI-097, ADR-137, ADR-126                                                             |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done |
+| **Domain** | notification |
+| **Spec** | tidak ada — muat satu sesi |
+| **Docs** | KI-097, ADR-137, ADR-126 |
 | **Depends** | — (sunset: dicabut begitu domain Resend terverifikasi, lihat T-119 sebagai pola env) |
 
 **What to build:** Khusus environment staging, email transactional (reset
@@ -57,13 +57,13 @@ production).
 
 ### T-138 · Escape HTML hilang di email kode verifikasi accept-invite (KI-098)
 
-| Field       | Value                      |
-| ----------- | -------------------------- |
-| **Status**  | ✅ Done                    |
-| **Domain**  | notification               |
-| **Spec**    | tidak ada — muat satu sesi |
-| **Docs**    | KI-098                     |
-| **Depends** | —                          |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done |
+| **Domain** | notification |
+| **Spec** | tidak ada — muat satu sesi |
+| **Docs** | KI-098 |
+| **Depends** | — |
 
 **What to build:** Ditemukan Najwa (QA Engineer) saat QA T-137, sebagai bug
 pre-existing — bukan bagian T-137. Di
@@ -105,13 +105,13 @@ di branch `feature/t137-smtp-staging-email`, akan masuk PR #189.
 
 ### T-119 · Isi env Google OAuth (KI-015)
 
-| Field       | Value                                                                |
-| ----------- | -------------------------------------------------------------------- |
-| **Status**  | 🚫 Blocked                                                           |
-| **Domain**  | identity                                                             |
-| **Spec**    | tidak ada — muat satu sesi setelah rahasia ada                       |
-| **Docs**    | KI-015, `product-discovery/06-engineering/environment-management.md` |
-| **Depends** | —                                                                    |
+| Field | Value |
+| --- | --- |
+| **Status** | 🚫 Blocked |
+| **Domain** | identity |
+| **Spec** | tidak ada — muat satu sesi setelah rahasia ada |
+| **Docs** | KI-015, `product-discovery/06-engineering/environment-management.md` |
+| **Depends** | — |
 
 **What to build:** "Sign in with Google" aktif karena `GOOGLE_CLIENT_ID` dan `GOOGLE_CLIENT_SECRET` terisi di environment yang dipakai. Kode OAuth sudah ada. Yang kurang adalah nilainya.
 
@@ -122,13 +122,13 @@ di branch `feature/t137-smtp-staging-email`, akan masuk PR #189.
 
 ### T-120 · Hapus dua workspace sisa QA (KI-033)
 
-| Field       | Value                      |
-| ----------- | -------------------------- |
-| **Status**  | ✅ Done                    |
-| **Domain**  | workspace                  |
-| **Spec**    | tidak ada — muat satu sesi |
-| **Docs**    | KI-033, T-089              |
-| **Depends** | —                          |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done |
+| **Domain** | workspace |
+| **Spec** | tidak ada — muat satu sesi |
+| **Docs** | KI-033, T-089 |
+| **Depends** | — |
 
 **What to build:** Dua workspace uji tidak lagi ada di database: "Najwa QA Test Workspace" dan "QA Queue Test".
 
@@ -137,13 +137,13 @@ di branch `feature/t137-smtp-staging-email`, akan masuk PR #189.
 
 ### T-121 · Putuskan meta penulis di detail History (KI-050)
 
-| Field       | Value                                        |
-| ----------- | -------------------------------------------- |
-| **Status**  | ✅ Done                                      |
-| **Domain**  | publishing · UI                              |
-| **Spec**    | tidak ada — muat satu sesi setelah keputusan |
-| **Docs**    | KI-050, T-034                                |
-| **Depends** | T-034 ✅                                     |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done |
+| **Domain** | publishing · UI |
+| **Spec** | tidak ada — muat satu sesi setelah keputusan |
+| **Docs** | KI-050, T-034 |
+| **Depends** | T-034 ✅ |
 
 **What to build:** Halaman detail History menampilkan penulis post, atau keputusan tertulis bahwa penulis memang tidak ditampilkan.
 
@@ -155,13 +155,13 @@ di branch `feature/t137-smtp-staging-email`, akan masuk PR #189.
 
 ### T-122 · Buktikan invite Copy Link tidak bisa diambil email lain (KI-053)
 
-| Field       | Value                      |
-| ----------- | -------------------------- |
-| **Status**  | ✅ Done                    |
-| **Domain**  | workspace                  |
-| **Spec**    | tidak ada — muat satu sesi |
-| **Docs**    | KI-053, T-110, ADR-080     |
-| **Depends** | T-110 ✅                   |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done |
+| **Domain** | workspace |
+| **Spec** | tidak ada — muat satu sesi |
+| **Docs** | KI-053, T-110, ADR-080 |
+| **Depends** | T-110 ✅ |
 
 **What to build:** Ada bukti browser bahwa invite Copy Link untuk email A tidak bisa diselesaikan oleh email B sebagai orang lain.
 
@@ -174,13 +174,13 @@ di branch `feature/t137-smtp-staging-email`, akan masuk PR #189.
 
 ### T-123 · Konfirmasi lebar sidebar (KI-089, KI-084)
 
-| Field       | Value                                            |
-| ----------- | ------------------------------------------------ |
-| **Status**  | ✅ Done                                          |
-| **Domain**  | platform · UI                                    |
-| **Spec**    | tidak ada — muat satu sesi setelah angka dikunci |
-| **Docs**    | KI-089, KI-084                                   |
-| **Depends** | —                                                |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done |
+| **Domain** | platform · UI |
+| **Spec** | tidak ada — muat satu sesi setelah angka dikunci |
+| **Docs** | KI-089, KI-084 |
+| **Depends** | — |
 
 **What to build:** Lebar sidebar di kode sama dengan angka yang King Rezi kunci (kode sekarang `18rem`; acuan yang disebut sebelumnya 260px).
 
@@ -189,12 +189,12 @@ di branch `feature/t137-smtp-staging-email`, akan masuk PR #189.
 
 ### T-124 · Import sync gagal mendeserialisasi kolom void pada advisory lock (KI-091)
 
-| Field       | Value                                         |
-| ----------- | --------------------------------------------- |
-| **Status**  | ✅ Done                                       |
-| **Domain**  | platform · jobs                               |
-| **Spec**    | tidak ada — muat satu sesi                    |
-| **Docs**    | KI-091                                        |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done |
+| **Domain** | platform · jobs |
+| **Spec** | tidak ada — muat satu sesi |
+| **Docs** | KI-091 |
 | **Depends** | — (ditemukan saat verifikasi staging T-115.5) |
 
 **What to build:** `lockOutstandPostIds` memakai `$executeRaw` untuk `pg_advisory_xact_lock` (kolom `void`). Patch `@prisma/adapter-pg@7.8.0` tetap terpasang sebagai jaring pengaman untuk query yang bersamaan pada satu koneksi (`prisma/orm#29979`). `runPendingJobs` tetap paralel. Retest staging lulus 2026-10-19.
@@ -267,13 +267,13 @@ Watermark kedua akun ter-update ke `2026-10-19 07:49:04` UTC. Error `Failed to d
 
 ### T-127 · Caption panjang bikin seluruh halaman scroll ke samping (KI-092)
 
-| Field       | Value                               |
-| ----------- | ----------------------------------- |
-| **Status**  | ✅ Done (2026-10-19)                |
-| **Domain**  | UI                                  |
-| **Spec**    | tidak ada — muat satu sesi, bug CSS |
-| **Docs**    | KI-092                              |
-| **Depends** | —                                   |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (2026-10-19) |
+| **Domain** | UI |
+| **Spec** | tidak ada — muat satu sesi, bug CSS |
+| **Docs** | KI-092 |
+| **Depends** | — |
 
 **Ditemukan (KI-092, King Rezi, via code-review PR #183):** caption post di
 kartu Publish → History yang berisi URL panjang tanpa spasi (mis.
@@ -329,13 +329,13 @@ di-wrap.
 
 ### T-130 · `totalPosts` Home tidak akurat untuk akun yang `posts_count`-nya `null` di Outstand (KI-093)
 
-| Field       | Value                                                                                   |
-| ----------- | --------------------------------------------------------------------------------------- |
-| **Status**  | ✅ Done — fix + review + QA PASS, verifikasi nonzero PASS dengan data real (2026-10-23) |
-| **Domain**  | analytics                                                                               |
-| **Spec**    | tidak ada — single-issue, dampak kecil                                                  |
-| **Docs**    | KI-093, T-129 (Analyze — sudah fixed di T-129.1)                                        |
-| **Depends** | —                                                                                       |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done — fix + review + QA PASS, verifikasi nonzero PASS dengan data real (2026-10-23) |
+| **Domain** | analytics |
+| **Spec** | tidak ada — single-issue, dampak kecil |
+| **Docs** | KI-093, T-129 (Analyze — sudah fixed di T-129.1) |
+| **Depends** | — |
 
 **Ditemukan (KI-093, King Rezi, 2026-10-19):** setelah T-129.1 (Imported
 posts ikut dihitung di Analyze), King Rezi bertanya kenapa post Imported
@@ -545,15 +545,15 @@ YouTube, dihubungkan 21-22 Oktober 2026), tapi item terakhir tiket ini
 
 ### T-134 · Snapshot analytics tidak di-recompute saat disconnect (KI-094)
 
-| Field       | Value                                                                                                                                                                                                                       |
-| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | ✅ Done (2026-10-22) — verifikasi E2E browser (T-134.4) PASS dengan akun real, lihat catatan verifikasi di bawah                                                                                                            |
-| **Domain**  | workspace · analytics                                                                                                                                                                                                       |
-| **ADR**     | **Tidak perlu ADR baru** (direvisi) — tidak ada kontrak Outstand baru, tidak mengubah perilaku `WorkspaceService.disconnectAccount` yang sengaja tidak memanggil Outstand (T-013, ADR-048/ADR-049 tetap berlaku apa adanya) |
-| **Spec**    | tidak ada — single-issue                                                                                                                                                                                                    |
-| **Docs**    | T-013, ADR-048, ADR-049 (tetap valid, tidak disentuh revisi ini), T-048 (`analytics_list_active_connected_accounts`)                                                                                                        |
-| **Terkait** | KI-093/T-130 (gap #2, sama-sama bikin metrics Home tidak akurat, root cause beda), T-133 (blocker)                                                                                                                          |
-| **Depends** | —                                                                                                                                                                                                                           |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (2026-10-22) — verifikasi E2E browser (T-134.4) PASS dengan akun real, lihat catatan verifikasi di bawah |
+| **Domain** | workspace · analytics |
+| **ADR** | **Tidak perlu ADR baru** (direvisi) — tidak ada kontrak Outstand baru, tidak mengubah perilaku `WorkspaceService.disconnectAccount` yang sengaja tidak memanggil Outstand (T-013, ADR-048/ADR-049 tetap berlaku apa adanya) |
+| **Spec** | tidak ada — single-issue |
+| **Docs** | T-013, ADR-048, ADR-049 (tetap valid, tidak disentuh revisi ini), T-048 (`analytics_list_active_connected_accounts`) |
+| **Terkait** | KI-093/T-130 (gap #2, sama-sama bikin metrics Home tidak akurat, root cause beda), T-133 (blocker) |
+| **Depends** | — |
 
 **Keputusan revisi scope (King Rezi, 2026-10-21):** investigasi lanjutan di
 sesi ini membuktikan judul dan root-cause awal tiket ini **keliru**. Dicek
@@ -776,15 +776,15 @@ terverifikasi end-to-end dengan akun real. Tiket ditutup **✅ Done**.
 
 ### T-135 · Definisi periode "bulanan" Home/Analyze beda dari kalender Outstand (KI-095)
 
-| Field       | Value                                                                                                   |
-| ----------- | ------------------------------------------------------------------------------------------------------- |
-| **Status**  | ✅ Done (2026-10-22) — verifikasi (T-135.4) PASS via query SQL dengan akun real, lihat catatan di bawah |
-| **Domain**  | analytics                                                                                               |
-| **ADR**     | — (kemungkinan perlu keputusan produk soal definisi window, bukan arsitektur — lihat T-135.1)           |
-| **Spec**    | tidak ada — single-issue                                                                                |
-| **Docs**    | T-128/T-129 (default view Bulanan Home/Analyze)                                                         |
-| **Terkait** | T-134, T-136, T-130 (batch investigasi sama, 2026-10-21), T-133 (blocker)                               |
-| **Depends** | —                                                                                                       |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (2026-10-22) — verifikasi (T-135.4) PASS via query SQL dengan akun real, lihat catatan di bawah |
+| **Domain** | analytics |
+| **ADR** | — (kemungkinan perlu keputusan produk soal definisi window, bukan arsitektur — lihat T-135.1) |
+| **Spec** | tidak ada — single-issue |
+| **Docs** | T-128/T-129 (default view Bulanan Home/Analyze) |
+| **Terkait** | T-134, T-136, T-130 (batch investigasi sama, 2026-10-21), T-133 (blocker) |
+| **Depends** | — |
 
 **Ditemukan (investigasi King Rezi, 2026-10-21):** snapshot "monthly" kita
 dihitung sebagai rolling 30 hari dari `now`
@@ -879,14 +879,14 @@ terverifikasi dengan data real. Tiket ditutup **✅ Done**.
 
 ### T-136 · Ambiguitas semantik label "Post terpublikasi" Home (KI-096)
 
-| Field       | Value                                                                                                                                                     |
-| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | ✅ Done — implementasi ikut T-130, verifikasi browser PASS dengan data real (2026-10-23)                                                                  |
-| **Domain**  | analytics · UI                                                                                                                                            |
-| **ADR**     | — (keputusan produk soal sumber metric, bukan arsitektur)                                                                                                 |
-| **Spec**    | tidak ada — single-issue                                                                                                                                  |
-| **Docs**    | T-130/KI-093 (root cause teknis field `posts_count` terkait erat)                                                                                         |
-| **Terkait** | T-130, T-134, T-135 (batch investigasi sama, 2026-10-21), T-133 (blocker)                                                                                 |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done — implementasi ikut T-130, verifikasi browser PASS dengan data real (2026-10-23) |
+| **Domain** | analytics · UI |
+| **ADR** | — (keputusan produk soal sumber metric, bukan arsitektur) |
+| **Spec** | tidak ada — single-issue |
+| **Docs** | T-130/KI-093 (root cause teknis field `posts_count` terkait erat) |
+| **Terkait** | T-130, T-134, T-135 (batch investigasi sama, 2026-10-21), T-133 (blocker) |
 | **Depends** | sebaiknya diputuskan bersamaan dengan T-130 — kalau T-130 pindah ke hitung dari DB internal, label ini otomatis jadi akurat untuk makna "status internal" |
 
 **Ditemukan (investigasi King Rezi, 2026-10-21):** label di
@@ -1020,14 +1020,14 @@ T-133 terbuka (lihat `v02-publishing-mvp.md` § T-133).
 
 ### T-139 · Prisma interactive transaction timeout saat import post batch besar (KI-099)
 
-| Field       | Value                                                                                                            |
-| ----------- | ---------------------------------------------------------------------------------------------------------------- |
-| **Status**  | ✅ Done — chunk per transaksi, diverifikasi dengan akun real Instagram (2026-10-23)                              |
-| **Domain**  | publishing                                                                                                       |
-| **Spec**    | tidak ada — single-issue                                                                                         |
-| **Docs**    | tidak ada                                                                                                        |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done — chunk per transaksi, diverifikasi dengan akun real Instagram (2026-10-23) |
+| **Domain** | publishing |
+| **Spec** | tidak ada — single-issue |
+| **Docs** | tidak ada |
 | **Terkait** | T-133 (blocker backfill), T-115 (job import periodik), ditemukan saat sesi QA T-130/T-134/T-135/T-136 2026-10-22 |
-| **Depends** | —                                                                                                                |
+| **Depends** | — |
 
 **Ditemukan (King Rezi + AI, 2026-10-22, sesi verifikasi E2E T-130/T-134/
 T-135/T-136, akun real "Cook It Real Good"):** proses `import.sync` untuk
@@ -1108,14 +1108,14 @@ sesi QA yang sama (2026-10-22).
 
 ### T-140 · Infinite redirect loop `/` ↔ `/login` saat session cookie stale/invalid (KI-100)
 
-| Field       | Value                                                                                                                                  |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | ✅ Done — fix diimplementasikan, test regresi ditambahkan (919 passed, 0 fail), King Rezi konfirmasi `localhost:3000` bisa dibuka lagi |
-| **Domain**  | workspace · auth (`proxy.ts`)                                                                                                          |
-| **Spec**    | tidak ada — single-issue                                                                                                               |
-| **Docs**    | tidak ada                                                                                                                              |
-| **Terkait** | ADR-076 (proxy.ts, migrasi `[slug]` → `(app)`), ditemukan King Rezi 2026-10-22                                                         |
-| **Depends** | —                                                                                                                                      |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done — fix diimplementasikan, test regresi ditambahkan (919 passed, 0 fail), King Rezi konfirmasi `localhost:3000` bisa dibuka lagi |
+| **Domain** | workspace · auth (`proxy.ts`) |
+| **Spec** | tidak ada — single-issue |
+| **Docs** | tidak ada |
+| **Terkait** | ADR-076 (proxy.ts, migrasi `[slug]` → `(app)`), ditemukan King Rezi 2026-10-22 |
+| **Depends** | — |
 
 **Ditemukan (King Rezi, 2026-10-22):** `bun dev` lokal + buka
 `http://localhost:3000/` di browser biasa (bukan Browser pane sesi ini) →
@@ -1185,14 +1185,14 @@ cara recover selain hapus cookie manual.
 
 ### T-141 · `fetchImportJobStatus` gagal HTTP 400 untuk import >100 post — `GET /v1/posts` limit maksimum 100 (KI-101)
 
-| Field       | Value                                                                                         |
-| ----------- | --------------------------------------------------------------------------------------------- |
-| **Status**  | ✅ Done — pagination + test, diverifikasi dengan akun real Instagram (2026-10-23)             |
-| **Domain**  | integration (Outstand adapter)                                                                |
-| **Spec**    | tidak ada — single-issue                                                                      |
-| **Docs**    | tidak ada                                                                                     |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done — pagination + test, diverifikasi dengan akun real Instagram (2026-10-23) |
+| **Domain** | integration (Outstand adapter) |
+| **Spec** | tidak ada — single-issue |
+| **Docs** | tidak ada |
 | **Terkait** | T-139 (ditemukan saat verifikasi T-139.4), T-133 (menghambat T-133.2), T-112 (adapter import) |
-| **Depends** | —                                                                                             |
+| **Depends** | — |
 
 **Ditemukan (2026-10-23, verifikasi T-139.4 lewat `scripts/t139-verify-large-import.ts`):**
 job import Instagram `cookitrealgood` (1503 post) selesai `completed` di
@@ -1216,14 +1216,14 @@ keterlambatan Outstand ("masih diproses setelah 25 detik").
 
 ### T-143 · Import periodik tidak pernah mengejar riwayat akun baru; hasil terpotong di 100 post (KI-102)
 
-| Field       | Value                                                                             |
-| ----------- | --------------------------------------------------------------------------------- |
-| **Status**  | ✅ Done (2026-10-23, atas pernyataan King Rezi)                                   |
-| **Domain**  | publishing · integration                                                          |
-| **Spec**    | tidak ada — single-issue                                                          |
-| **Docs**    | T-131 (lookback per trigger), T-115 (cron import), T-141 (pagination `/v1/posts`) |
-| **Terkait** | T-133, T-141, ditemukan King Rezi 2026-10-23 (post TikTok 7 Okt tidak muncul)     |
-| **Depends** | —                                                                                 |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (2026-10-23, atas pernyataan King Rezi) |
+| **Domain** | publishing · integration |
+| **Spec** | tidak ada — single-issue |
+| **Docs** | T-131 (lookback per trigger), T-115 (cron import), T-141 (pagination `/v1/posts`) |
+| **Terkait** | T-133, T-141, ditemukan King Rezi 2026-10-23 (post TikTok 7 Okt tidak muncul) |
+| **Depends** | — |
 
 **Ditemukan (King Rezi, 2026-10-23):** akun TikTok `cookitrealgood` baru
 terhubung, tetapi post tanggal 7 Okt 2026 tidak muncul. Outstand punya 118
@@ -1302,14 +1302,14 @@ post TikTok (`list_posts`, `total: 118`); DB kita hanya 100 (14 Mar – 30 Mei
 
 ### T-158 · Project Claude Design lama belum dilepas dan isinya belum diverifikasi terhadap artifact (KI-103, ADR-140)
 
-| Field       | Value                                                        |
-| ----------- | ------------------------------------------------------------ |
-| **Status**  | 🚫 Menunggu King Rezi (langkah manual di akun Claude Design) |
-| **Domain**  | design (referensi visual)                                    |
-| **Spec**    | tidak ada — single-issue                                     |
-| **Docs**    | KI-103, ADR-140, `context/ctx-design.md`                     |
-| **Terkait** | ADR-042 dan ADR-056 (Superseded oleh ADR-140), T-156         |
-| **Depends** | —                                                            |
+| Field | Value |
+| --- | --- |
+| **Status** | 🚫 Menunggu King Rezi (langkah manual di akun Claude Design) |
+| **Domain** | design (referensi visual) |
+| **Spec** | tidak ada — single-issue |
+| **Docs** | KI-103, ADR-140, `context/ctx-design.md` |
+| **Terkait** | ADR-042 dan ADR-056 (Superseded oleh ADR-140), T-156 |
+| **Depends** | — |
 
 **Ditemukan (2026-10-26):** ADR-140 memindahkan referensi visual ke artifact
 Postific dan galeri Postific Design Review. Alur kerja ke depan sudah memakai
@@ -1362,14 +1362,14 @@ sudah selesai adalah riwayat. Label "Gate Claude Design" dan nama folder skill
 
 ### T-177 · Kedipan terang saat memuat halaman dalam mode gelap untuk pengunjung tanpa cookie `theme` (KI-104, ADR-055)
 
-| Field       | Value                                                                                                                                                     |
-| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | ✅ Done (2026-11-02, ADR-153; kode di PR 219, Verified (staging): `theme.e2e.ts` 5 tes lolos terhadap staging di run terfokus 2026-11-02; KI-104 ditutup) |
-| **Domain**  | UI (tema), halaman publik Start Page; kemungkinan berlaku di seluruh aplikasi                                                                             |
-| **Spec**    | tidak ada — single-issue                                                                                                                                  |
-| **Docs**    | KI-104, ADR-055 (amendemen T-039), ADR-097 poin 9, T-171, `app/layout.tsx`                                                                                |
-| **Terkait** | T-171 (ditemukan di uji otomatis T-171.2), T-039                                                                                                          |
-| **Depends** | keputusan King Rezi soal pendekatan perbaikan                                                                                                             |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (2026-11-02, ADR-153; kode di PR 219, Verified (staging): `theme.e2e.ts` 5 tes lolos terhadap staging di run terfokus 2026-11-02; KI-104 ditutup) |
+| **Domain** | UI (tema), halaman publik Start Page; kemungkinan berlaku di seluruh aplikasi |
+| **Spec** | tidak ada — single-issue |
+| **Docs** | KI-104, ADR-055 (amendemen T-039), ADR-097 poin 9, T-171, `app/layout.tsx` |
+| **Terkait** | T-171 (ditemukan di uji otomatis T-171.2), T-039 |
+| **Depends** | keputusan King Rezi soal pendekatan perbaikan |
 
 **Ditemukan (2026-10-29):** uji Playwright lintas browser di staging untuk T-171.2
 (Chromium, Firefox, WebKit). Dengan OS mode gelap dan tanpa cookie `theme`,
@@ -1382,11 +1382,11 @@ nyaris tak terbaca. Mode terang tidak terpengaruh.
 **Bukti terukur** (per frame, `colorScheme: dark`, staging Railway, halaman publik
 `e2e-start-page`; angka lengkap di `v06-start-page-mvp.md` § T-171):
 
-| Mesin    | Kelas `dark` terpasang                  | Pemudaran lencana putih → gelap |
-| -------- | --------------------------------------- | ------------------------------- |
-| Chromium | ±283 ms setelah load                    | ±283 sampai 431 ms              |
-| Firefox  | ±890 ms (jaringan staging lebih lambat) | ±890 sampai 1036 ms             |
-| WebKit   | sudah gelap di sampel pertama (±217 ms) | ±217 sampai 353 ms              |
+| Mesin | Kelas `dark` terpasang | Pemudaran lencana putih → gelap |
+| --- | --- | --- |
+| Chromium | ±283 ms setelah load | ±283 sampai 431 ms |
+| Firefox | ±890 ms (jaringan staging lebih lambat) | ±890 sampai 1036 ms |
+| WebKit | sudah gelap di sampel pertama (±217 ms) | ±217 sampai 353 ms |
 
 **Kenapa ini masalah:** `app/layout.tsx` menyatakan "tidak ada flash tema salah"
 (ADR-055) dan memasang skrip `theme-system-default` (`beforeInteractive`) justru
@@ -1479,14 +1479,14 @@ pilihan tema Light/Dark eksplisit pengguna (cookie `theme` sudah benar).
 
 ### T-195 · Scheduling fails with Outstand HTTP 400 and one post published immediately while recorded as `failed` (KI-105)
 
-| Field       | Value                                                                               |
-| ----------- | ----------------------------------------------------------------------------------- |
-| **Status**  | 🟡 In Progress                                                                      |
-| **Domain**  | publishing, integrasi Outstand (ACL)                                                |
-| **Spec**    | tidak ada: investigasi dulu, spec bila perbaikannya multi-sesi                      |
-| **Docs**    | KI-105, ADR-092, T-025.2, `real-outstand-adapter.ts` (`schedulePost`, `createPost`) |
-| **Terkait** | T-189.3 (uji post Scheduled), T-153                                                 |
-| **Depends** | —                                                                                   |
+| Field | Value |
+| --- | --- |
+| **Status** | 🟡 In Progress |
+| **Domain** | publishing, integrasi Outstand (ACL) |
+| **Spec** | tidak ada: investigasi dulu, spec bila perbaikannya multi-sesi |
+| **Docs** | KI-105, ADR-092, T-025.2, `real-outstand-adapter.ts` (`schedulePost`, `createPost`) |
+| **Terkait** | T-189.3 (uji post Scheduled), T-153 |
+| **Depends** | — |
 
 **Ditemukan (2026-11-03)** saat King Rezi menjadwalkan post di staging, workspace
 Cook It Real Good (akun Facebook nyata). Data hanya-baca (Supabase dan Outstand):
@@ -1620,15 +1620,15 @@ yang punya akun sosial nyata; pakai E2E Sandbox.
 
 ### T-196 · RLS disabled on 8 `public` tables exposed to anon and authenticated roles (KI-106)
 
-| Field       | Value                                                                                                                                           |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | 🟡 In Progress (🔴 prioritas tinggi; T-196.1 sebagian terbukti 2026-11-04, menunggu keputusan King Rezi T-196.2)                                |
-| **Mode**    | HITL (T-196.1 diputuskan King Rezi; sisanya AFK setelah itu)                                                                                    |
-| **Domain**  | database, keamanan                                                                                                                              |
-| **Spec**    | tidak ada                                                                                                                                       |
-| **Docs**    | KI-106, `product-discovery/05-architecture/database-strategy.md`, `mcp_*` (pola policy `app_runtime` di T-151), advisor Supabase `rls_disabled` |
-| **Terkait** | T-189.1, T-189.4                                                                                                                                |
-| **Depends** | keputusan King Rezi: policy per tabel, dan apakah koneksi aplikasi memakai `app_runtime` atau pemilik                                           |
+| Field | Value |
+| --- | --- |
+| **Status** | 🟡 In Progress (🔴 prioritas tinggi; T-196.1 sebagian terbukti 2026-11-04, menunggu keputusan King Rezi T-196.2) |
+| **Mode** | HITL (T-196.1 diputuskan King Rezi; sisanya AFK setelah itu) |
+| **Domain** | database, keamanan |
+| **Spec** | tidak ada |
+| **Docs** | KI-106, `product-discovery/05-architecture/database-strategy.md`, `mcp_*` (pola policy `app_runtime` di T-151), advisor Supabase `rls_disabled` |
+| **Terkait** | T-189.1, T-189.4 |
+| **Depends** | keputusan King Rezi: policy per tabel, dan apakah koneksi aplikasi memakai `app_runtime` atau pemilik |
 
 **Ditemukan (2026-11-03)** lewat advisor Supabase pada DB staging
 (`ndcrkzqgqukqfmekgoze`): RLS nonaktif pada `_prisma_migrations`, `identity_user`,
@@ -1697,14 +1697,14 @@ T-196.1 dan T-196.2 selesai.
 
 ### T-197 · Instagram and other platforms can be scheduled or published without media (KI-107)
 
-| Field       | Value                                                                               |
-| ----------- | ----------------------------------------------------------------------------------- |
-| **Status**  | ✅ Done (code) 2026-11-03; Verification `staging`: butir staging di T-189 (ADR-161) |
-| **Domain**  | publishing, draft editor, MCP                                                       |
-| **Spec**    | tidak ada                                                                           |
-| **Docs**    | KI-107, ADR-154 (mengamandemen ADR-121), `content-format-matrix.ts`, `Modal.tsx`    |
-| **Terkait** | T-198, T-195, T-200 (aturan jenis media Reel)                                       |
-| **Depends** | rancangan UI dikonfirmasi King Rezi (aturan 10 `AGENTS.md`)                         |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code) 2026-11-03; Verification `staging`: butir staging di T-189 (ADR-161) |
+| **Domain** | publishing, draft editor, MCP |
+| **Spec** | tidak ada |
+| **Docs** | KI-107, ADR-154 (mengamandemen ADR-121), `content-format-matrix.ts`, `Modal.tsx` |
+| **Terkait** | T-198, T-195, T-200 (aturan jenis media Reel) |
+| **Depends** | rancangan UI dikonfirmasi King Rezi (aturan 10 `AGENTS.md`) |
 
 **Ditemukan (2026-11-03)** oleh King Rezi: Instagram bisa dijadwalkan tanpa gambar.
 Penyebab: `MEDIA_COUNT_BOUNDS_BY_FORMAT` menetapkan `Post` min 0 untuk semua platform (ADR-121).
@@ -1734,14 +1734,14 @@ Penyebab: `MEDIA_COUNT_BOUNDS_BY_FORMAT` menetapkan `Post` min 0 untuk semua pla
 
 ### T-198 · Scheduling is limited to 30 days ahead (Outstand limit) (KI-105)
 
-| Field       | Value                                                                                             |
-| ----------- | ------------------------------------------------------------------------------------------------- |
-| **Status**  | ✅ Done (code) 2026-11-03; Verification `staging` (T-189, ADR-161); T-198.4 diputuskan 2026-11-12 |
-| **Domain**  | publishing, draft editor, MCP                                                                     |
-| **Spec**    | tidak ada                                                                                         |
-| **Docs**    | KI-105, ADR-154, `schedule-time-constraints.ts`, `Modal.tsx`, T-108                               |
-| **Terkait** | T-195, T-197                                                                                      |
-| **Depends** | rancangan UI dikonfirmasi King Rezi (aturan 10 `AGENTS.md`)                                       |
+| Field | Value |
+| --- | --- |
+| **Status** | ✅ Done (code) 2026-11-03; Verification `staging` (T-189, ADR-161); T-198.4 diputuskan 2026-11-12 |
+| **Domain** | publishing, draft editor, MCP |
+| **Spec** | tidak ada |
+| **Docs** | KI-105, ADR-154, `schedule-time-constraints.ts`, `Modal.tsx`, T-108 |
+| **Terkait** | T-195, T-197 |
+| **Depends** | rancangan UI dikonfirmasi King Rezi (aturan 10 `AGENTS.md`) |
 
 Dokumen Outstand "Create a post": `scheduledAt` lebih dari 30 hari ke depan
 mengembalikan HTTP 400 dan tidak ada post terbentuk. Dugaan kuat penyebab 400 di
@@ -1762,15 +1762,15 @@ T-195; belum terbukti sampai pesan 400 terbaca (T-195.1 di staging).
 
 ### T-208 · Save as Draft from Queue can leave the user on Queue because a Realtime server action cancels the redirect (KI-108)
 
-| Field       | Value                                                                                                                                                                                                                                                                                       |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**  | 🟡 Perbaikan di `staging`; bukti browser Realtime aktif untuk Queue, Calendar, dan Drafts (3 run hijau, gelombang 9). Mekanisme router Next dibaca sebagian (sebab macetnya belum terbukti) dan Schedule/Publish Now hanya tes unit, jadi belum ✅; Verified (staging) ikut gelombang S-005 |
-| **Mode**    | AFK                                                                                                                                                                                                                                                                                         |
-| **Domain**  | publishing, draft editor, realtime                                                                                                                                                                                                                                                          |
-| **Spec**    | tidak ada (menghalangi penutupan gelombang 0 S-005 lewat T-199.4 dan T-207.2)                                                                                                                                                                                                               |
-| **Docs**    | KI-108, ADR-054, ADR-094 (poin 5), `useDraftEditorForm.ts` (`finishTerminalAction`), `QueueScreen.tsx` (`handlePublishingPostChange`), E2E S4                                                                                                                                               |
-| **Terkait** | T-199, T-207                                                                                                                                                                                                                                                                                |
-| **Depends** | tidak ada. Perbaikan perilaku tanpa perubahan tampilan, jadi tidak butuh rancangan baru (aturan 10 `AGENTS.md`: bukan perubahan screen atau komponen)                                                                                                                                       |
+| Field | Value |
+| --- | --- |
+| **Status** | 🟡 Perbaikan di `staging`; bukti browser Realtime aktif untuk Queue, Calendar, dan Drafts (3 run hijau, gelombang 9). Mekanisme router Next dibaca sebagian (sebab macetnya belum terbukti) dan Schedule/Publish Now hanya tes unit, jadi belum ✅; Verified (staging) ikut gelombang S-005 |
+| **Mode** | AFK |
+| **Domain** | publishing, draft editor, realtime |
+| **Spec** | tidak ada (menghalangi penutupan gelombang 0 S-005 lewat T-199.4 dan T-207.2) |
+| **Docs** | KI-108, ADR-054, ADR-094 (poin 5), `useDraftEditorForm.ts` (`finishTerminalAction`), `QueueScreen.tsx` (`handlePublishingPostChange`), E2E S4 |
+| **Terkait** | T-199, T-207 |
+| **Depends** | tidak ada. Perbaikan perilaku tanpa perubahan tampilan, jadi tidak butuh rancangan baru (aturan 10 `AGENTS.md`: bukan perubahan screen atau komponen) |
 
 **Ditemukan (2026-11-04)** saat verifikasi gelombang 0 S-005 di `local` (E2E `draft-editor.e2e.ts` S4). Dari `/publish/queue`, New Post lalu Save as Draft: dialog menutup tetapi URL tetap `/publish/queue`, bukan `/publish/drafts` (ADR-054). Gagal 4 kali berturut-turut setelah satu run yang lulus.
 

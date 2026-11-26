@@ -11,3 +11,8 @@ apps/web/next-env.d.ts
 apps/web/src/generated/**
 apps/web/test-results
 apps/web/playwright-report
+# T-307: project-os status files keep compact markdown tables; Prettier would
+# pad every column to its widest cell (DECISIONS.md was 71% spaces).
+project-os/*.md
+project-os/tickets/*.md
+project-os/specs/*.md

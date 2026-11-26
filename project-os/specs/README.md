@@ -4,12 +4,12 @@ The home of the **spec** layer (ADR-131). Not the home of docs, not the home of 
 
 ## Four layers
 
-| Layer     | Home                                                                                                                                                                                                                       | When the agent opens it                                                              |
-| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| Docs      | `product-discovery/`, `context/`, `decisions/`                                                                                                                                                                             | When it needs the domain language or a decision that already exists                  |
-| Spec      | `specs/S-NNN.md` in this folder                                                                                                                                                                                            | When the work spans more than one session                                            |
-| Ticket    | `tickets/vXX-*.md`, `tickets/known-issues.md` for tickets born from a Known Issue (ADR-134), `tickets/s004-orchestration-language.md` for S-004 (ADR-159), or `tickets/s007-documentation-language.md` for S-007 (ADR-164) | After a task ID is chosen from `AVAILABLE_TICKETS.md`                                |
-| Implement | code and tests                                                                                                                                                                                                             | When the ticket is worked. The result is a commit, not a new paragraph in the ticket |
+| Layer | Home | When the agent opens it |
+| --- | --- | --- |
+| Docs | `product-discovery/`, `context/`, `decisions/` | When it needs the domain language or a decision that already exists |
+| Spec | `specs/S-NNN.md` in this folder | When the work spans more than one session |
+| Ticket | `tickets/vXX-*.md`, `tickets/known-issues.md` for tickets born from a Known Issue (ADR-134), `tickets/s004-orchestration-language.md` for S-004 (ADR-159), or `tickets/s007-documentation-language.md` for S-007 (ADR-164) | After a task ID is chosen from `AVAILABLE_TICKETS.md` |
+| Implement | code and tests | When the ticket is worked. The result is a commit, not a new paragraph in the ticket |
 
 Work that fits one session does not get a spec. The ticket points to the applicable docs and is implemented directly.
 

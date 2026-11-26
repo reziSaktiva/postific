@@ -38,51 +38,51 @@ Gerbang kosakata (ADR-163 butir 3 dan 4). Daftar padanan kata kunci hidup di tik
 
 **A. Keywords matched by scripts (these break `docs:check` if changed carelessly; T-265 handles them)**
 
-| Current (Indonesian)                                                                                                                                                                             | Proposed (English)                                                                                                                                       | Where it lives                                                                                                                                       |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Berikutnya: **T-NNN**` (ticket ID counter)                                                                                                                                                      | `Next: **T-NNN**`                                                                                                                                        | `project-os/AVAILABLE_TICKETS.md:28`; regex in `scripts/docs/check.ts:271` (also `:183`, doc comment `:6`); `scripts/docs-check.ts:5` comment        |
-| `ID spec berikutnya: **S-NNN**` (spec ID counter)                                                                                                                                                | `Next spec: **S-NNN**` (line 28 becomes "Global ticket ID, never recycled. Next: **T-NNN**. Next spec: **S-NNN**." with the same numbers)                | `AVAILABLE_TICKETS.md:28`; regex in `scripts/docs/check.ts:278` (case-insensitive)                                                                   |
-| `INDONESIAN_WORDS` stopword list (`yang`, `dan`, `tidak`, `tiket`, `gelombang`, …)                                                                                                               | **Keep unchanged.** It detects Indonesian words in English-language document titles ("penamaan Inggris"), which stays valid after layer 3 is translated. | `scripts/docs/check.ts:67`                                                                                                                           |
-| Script messages (`tidak ada temuan`, `Tidak ditemukan`, `dirujuk tetapi tidak didefinisikan`, `penunjuk ke … tidak ada`, `penghitung ID … tidak ditemukan`, `pola … ada di … tetapi tidak di …`) | English messages with the same meaning                                                                                                                   | `scripts/docs-check.ts:20`, `scripts/docs-where.ts:23`, `scripts/docs/check.ts:195,245,290,356,364`; comments in `check.ts`, `locate.ts`, `parse.ts` |
+| Current (Indonesian) | Proposed (English) | Where it lives |
+| --- | --- | --- |
+| `Berikutnya: **T-NNN**` (ticket ID counter) | `Next: **T-NNN**` | `project-os/AVAILABLE_TICKETS.md:28`; regex in `scripts/docs/check.ts:271` (also `:183`, doc comment `:6`); `scripts/docs-check.ts:5` comment |
+| `ID spec berikutnya: **S-NNN**` (spec ID counter) | `Next spec: **S-NNN**` (line 28 becomes "Global ticket ID, never recycled. Next: **T-NNN**. Next spec: **S-NNN**." with the same numbers) | `AVAILABLE_TICKETS.md:28`; regex in `scripts/docs/check.ts:278` (case-insensitive) |
+| `INDONESIAN_WORDS` stopword list (`yang`, `dan`, `tidak`, `tiket`, `gelombang`, …) | **Keep unchanged.** It detects Indonesian words in English-language document titles ("penamaan Inggris"), which stays valid after layer 3 is translated. | `scripts/docs/check.ts:67` |
+| Script messages (`tidak ada temuan`, `Tidak ditemukan`, `dirujuk tetapi tidak didefinisikan`, `penunjuk ke … tidak ada`, `penghitung ID … tidak ditemukan`, `pola … ada di … tetapi tidak di …`) | English messages with the same meaning | `scripts/docs-check.ts:20`, `scripts/docs-where.ts:23`, `scripts/docs/check.ts:195,245,290,356,364`; comments in `check.ts`, `locate.ts`, `parse.ts` |
 
 **B. Keywords searched by humans and agents (skills, ticket and spec shape)**
 
-| Current (Indonesian)                                                                                                             | Proposed (English)                             | Where it lives                                                                                                                                                                                              |
-| -------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Baca dulu:` (ticket field and section/heading name)                                                                             | `Read first:`                                  | every ticket; `.claude/skills/wave-plan/SKILL.md:27`, `project-os-navigator/SKILL.md:29`; `AGENTS.md` step 2 context; heading `## Baca dulu` in `context/` files (T-266 uses `## Read first` provisionally) |
-| `Belum terbukti:` (ticket field)                                                                                                 | `Not yet proven:`                              | every ticket; `project-os-navigator/SKILL.md:132`, `wave-work/SKILL.md:44`; `specs/README.md`                                                                                                               |
-| `Blocked by:`                                                                                                                    | unchanged (already English)                    | tickets; `specs/README.md:67`                                                                                                                                                                               |
-| `Verifikasi` (field) with values `lokal` / `staging`                                                                             | `Verification` with values `local` / `staging` | tickets; `specs/README.md:56,72`; `project-os-navigator/SKILL.md:126`                                                                                                                                       |
-| `Mode`, `Domain`, `Spec`, `Docs`, `Depends`, `AFK`, `HITL`, `Done (code)`, `Verified (staging)`, `Todo`, `Not Started`, `Status` | unchanged (already English)                    | tickets, skills                                                                                                                                                                                             |
-| `§ Perilaku` (S-003 section cited by skills)                                                                                     | `§ Behavior`                                   | `wave-plan/SKILL.md:14`, `wave-work/SKILL.md:14`                                                                                                                                                            |
+| Current (Indonesian) | Proposed (English) | Where it lives |
+| --- | --- | --- |
+| `Baca dulu:` (ticket field and section/heading name) | `Read first:` | every ticket; `.claude/skills/wave-plan/SKILL.md:27`, `project-os-navigator/SKILL.md:29`; `AGENTS.md` step 2 context; heading `## Baca dulu` in `context/` files (T-266 uses `## Read first` provisionally) |
+| `Belum terbukti:` (ticket field) | `Not yet proven:` | every ticket; `project-os-navigator/SKILL.md:132`, `wave-work/SKILL.md:44`; `specs/README.md` |
+| `Blocked by:` | unchanged (already English) | tickets; `specs/README.md:67` |
+| `Verifikasi` (field) with values `lokal` / `staging` | `Verification` with values `local` / `staging` | tickets; `specs/README.md:56,72`; `project-os-navigator/SKILL.md:126` |
+| `Mode`, `Domain`, `Spec`, `Docs`, `Depends`, `AFK`, `HITL`, `Done (code)`, `Verified (staging)`, `Todo`, `Not Started`, `Status` | unchanged (already English) | tickets, skills |
+| `§ Perilaku` (S-003 section cited by skills) | `§ Behavior` | `wave-plan/SKILL.md:14`, `wave-work/SKILL.md:14` |
 
 **C. Status legend and table vocabulary in `AVAILABLE_TICKETS.md`**
 
-| Current (Indonesian)                                                                | Proposed (English)                                            |
-| ----------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| Legend column names `Simbol` / `Arti`                                               | `Symbol` / `Meaning`                                          |
-| ⏳ `Belum dimulai`                                                                  | ⏳ `Not started`                                              |
-| 🟡 `Sedang dikerjakan`                                                              | 🟡 `In progress`                                              |
-| 🚫 `Terhenti, menunggu King Rezi atau dependency luar`                              | 🚫 `Blocked, waiting for King Rezi or an external dependency` |
-| Main table column `Judul` (columns `ID`, `Status`, `File` unchanged)                | `Title`                                                       |
-| Heading `Cara pakai`                                                                | `How to use`                                                  |
-| Heading `Sekarang`                                                                  | `Now`                                                         |
-| Heading `Belum masuk antrian dekat` + column `Rilis`                                | `Not in the near queue` + `Release`                           |
-| Heading `Keputusan yang masih menunggu` + columns `Tiket` / `Yang belum diputuskan` | `Pending decisions` + `Ticket` / `Still undecided`            |
-| Heading `Di mana tiket selesai` + column `Rilis`                                    | `Where finished tickets live` + `Release`                     |
+| Current (Indonesian) | Proposed (English) |
+| --- | --- |
+| Legend column names `Simbol` / `Arti` | `Symbol` / `Meaning` |
+| ⏳ `Belum dimulai` | ⏳ `Not started` |
+| 🟡 `Sedang dikerjakan` | 🟡 `In progress` |
+| 🚫 `Terhenti, menunggu King Rezi atau dependency luar` | 🚫 `Blocked, waiting for King Rezi or an external dependency` |
+| Main table column `Judul` (columns `ID`, `Status`, `File` unchanged) | `Title` |
+| Heading `Cara pakai` | `How to use` |
+| Heading `Sekarang` | `Now` |
+| Heading `Belum masuk antrian dekat` + column `Rilis` | `Not in the near queue` + `Release` |
+| Heading `Keputusan yang masih menunggu` + columns `Tiket` / `Yang belum diputuskan` | `Pending decisions` + `Ticket` / `Still undecided` |
+| Heading `Di mana tiket selesai` + column `Rilis` | `Where finished tickets live` + `Release` |
 
 **D. Spec section keywords (`specs/S-NNN.md` shape, `specs/README.md`)**
 
-| Current (Indonesian)         | Proposed (English) |
-| ---------------------------- | ------------------ |
-| `Status spec`                | `Spec status`      |
-| `Tiket:` (spec header field) | `Tickets:`         |
-| `## Latar`                   | `## Background`    |
-| `## Perilaku`                | `## Behavior`      |
-| `## Keputusan`               | `## Decisions`     |
-| `## Tiket`                   | `## Tickets`       |
-| `## Jahitan tes`             | `## Test seams`    |
-| `## Di luar spec`            | `## Out of scope`  |
+| Current (Indonesian) | Proposed (English) |
+| --- | --- |
+| `Status spec` | `Spec status` |
+| `Tiket:` (spec header field) | `Tickets:` |
+| `## Latar` | `## Background` |
+| `## Perilaku` | `## Behavior` |
+| `## Keputusan` | `## Decisions` |
+| `## Tiket` | `## Tickets` |
+| `## Jahitan tes` | `## Test seams` |
+| `## Di luar spec` | `## Out of scope` |
 
 **Resolved points (approved as drafted):** (1) T-276 replaces only the keywords in sections A and B in ~170 history files. Sections C and D are headings and table words in living documents (translated with their file in T-274/T-275), so the replacement script does not touch them in history files; confirm this split. (2) Confirm keeping the `INDONESIAN_WORDS` stopword list.
 

@@ -2,12 +2,12 @@
 
 ## Metadata
 
-| Field        | Value                                               |
-| ------------ | --------------------------------------------------- |
-| Version      | 1.1.0                                               |
-| Status       | Active                                              |
-| Last Updated | 2026-10-26                                          |
-| Audience     | Visual blueprint (Figma) + architecture orientation |
+| Field | Value |
+| --- | --- |
+| Version | 1.1.0 |
+| Status | Active |
+| Last Updated | 2026-10-26 |
+| Audience | Visual blueprint (Figma) + architecture orientation |
 
 ---
 
@@ -27,22 +27,22 @@ This document is a **high-level architecture summary** for the Postific product.
 
 Create **2 separate frames** (one concept = one frame):
 
-| Frame | Suggested name                               | Contents                                        |
-| ----- | -------------------------------------------- | ----------------------------------------------- |
-| 1     | `Architecture — System Context & Containers` | Actors, external systems, deployable containers |
-| 2     | `Architecture — Internal Layers & Domains`   | Modular Monolith layer stack + bounded contexts |
+| Frame | Suggested name | Contents |
+| --- | --- | --- |
+| 1 | `Architecture — System Context & Containers` | Actors, external systems, deployable containers |
+| 2 | `Architecture — Internal Layers & Domains` | Modular Monolith layer stack + bounded contexts |
 
 **Suggested visual conventions:**
 
-| Element                    | Shape in Figma               | Example label              |
-| -------------------------- | ---------------------------- | -------------------------- |
-| Actor (person)             | Circle / user icon           | Marketing Team, Manager    |
-| Software system (external) | Thick box, solid border      | Outstand API, Google OAuth |
-| Container (ours)           | Box with technology subtitle | `web` · Next.js / Bun      |
-| Data store                 | Cylinder or box with DB icon | PostgreSQL, Storage        |
-| Domain module              | Box inside the Domain layer  | BC-03 Publishing           |
-| Sync flow                  | Solid arrow                  | Request / Response         |
-| Async flow                 | Dashed arrow                 | Webhook, Cron, Job         |
+| Element | Shape in Figma | Example label |
+| --- | --- | --- |
+| Actor (person) | Circle / user icon | Marketing Team, Manager |
+| Software system (external) | Thick box, solid border | Outstand API, Google OAuth |
+| Container (ours) | Box with technology subtitle | `web` · Next.js / Bun |
+| Data store | Cylinder or box with DB icon | PostgreSQL, Storage |
+| Domain module | Box inside the Domain layer | BC-03 Publishing |
+| Sync flow | Solid arrow | Request / Response |
+| Async flow | Dashed arrow | Webhook, Cron, Job |
 
 Do not put progress status (% / checklist) on the Figma canvas — live status belongs only in `PROJECT_STATE.md`.
 
@@ -93,13 +93,13 @@ Answers: _who uses the system, and which systems border it?_
 
 ### Summary of Frame 1.1 relations
 
-| From           | To           | Relation                                                                                  |
-| -------------- | ------------ | ----------------------------------------------------------------------------------------- |
-| Marketing Team | Platform     | Manages content & team collaboration in one dashboard                                     |
-| Platform       | Outstand API | Publish, upload media working copy, sync comments/analytics, OAuth for connected accounts |
-| Outstand API   | Platform     | Webhooks `post.published`, `post.error`, `account.token_expired`                          |
-| Platform       | Google OAuth | Social login (besides email/password)                                                     |
-| Platform       | Supabase     | Data persistence, original media, in-app notification channel                             |
+| From | To | Relation |
+| --- | --- | --- |
+| Marketing Team | Platform | Manages content & team collaboration in one dashboard |
+| Platform | Outstand API | Publish, upload media working copy, sync comments/analytics, OAuth for connected accounts |
+| Outstand API | Platform | Webhooks `post.published`, `post.error`, `account.token_expired` |
+| Platform | Google OAuth | Social login (besides email/password) |
+| Platform | Supabase | Data persistence, original media, in-app notification channel |
 
 MVP engagement covers only **comments and replies**, through a 30-minute
 sync plus manual refresh. There is no comment/DM webhook and Direct Message
@@ -153,15 +153,15 @@ Answers: _which containers do we deploy, and how do they talk to each other?_
 
 ### Container responsibilities
 
-| Container / System  | Responsibility                                                                               | Technology                          |
-| ------------------- | -------------------------------------------------------------------------------------------- | ----------------------------------- |
-| `web`               | UI, API routes, domain logic, auth, ACL to Outstand                                          | Next.js, Bun, Better Auth, Prisma   |
-| `cron`              | Trigger for internal retries, 30-minute engagement sync, analytics sync, other internal jobs | Railway Cron → `POST /api/jobs/run` |
-| Supabase PostgreSQL | Business data + job queue + multi-tenant RLS (`workspace_id`)                                | Cloud · `ap-southeast-1`            |
-| Supabase Storage    | The application's original media                                                             | Supabase Storage                    |
-| Supabase Realtime   | In-app notification channel                                                                  | Supabase Realtime                   |
-| Outstand API        | Social integration, media working copy, publish, comments/replies, analytics                 | External SaaS                       |
-| Google OAuth        | Optional identity provider                                                                   | External                            |
+| Container / System | Responsibility | Technology |
+| --- | --- | --- |
+| `web` | UI, API routes, domain logic, auth, ACL to Outstand | Next.js, Bun, Better Auth, Prisma |
+| `cron` | Trigger for internal retries, 30-minute engagement sync, analytics sync, other internal jobs | Railway Cron → `POST /api/jobs/run` |
+| Supabase PostgreSQL | Business data + job queue + multi-tenant RLS (`workspace_id`) | Cloud · `ap-southeast-1` |
+| Supabase Storage | The application's original media | Supabase Storage |
+| Supabase Realtime | In-app notification channel | Supabase Realtime |
+| Outstand API | Social integration, media working copy, publish, comments/replies, analytics | External SaaS |
+| Google OAuth | Optional identity provider | External |
 
 For X/Twitter, the Project Owner configures the BYOK credentials manually in
 the Outstand dashboard. The application does not receive or store the X Client ID/Client
@@ -169,11 +169,11 @@ Secret (ADR-040).
 
 ### Environment topology (optional in the same frame / annotation)
 
-| Environment | Deploy branch     | Supabase                              |
-| ----------- | ----------------- | ------------------------------------- |
-| Production  | `main`            | Separate project                      |
-| Staging     | `staging`         | Separate project                      |
-| Local       | developer machine | Same as the Staging project (ADR-081) |
+| Environment | Deploy branch | Supabase |
+| --- | --- | --- |
+| Production | `main` | Separate project |
+| Staging | `staging` | Separate project |
+| Local | developer machine | Same as the Staging project (ADR-081) |
 
 Two Railway services (`web` + `cron`) exist in **production and staging**.
 
@@ -271,18 +271,18 @@ Lay them out as a grid inside the Domain Logic / Application Service area (one c
 
 ### Brief mapping BC → Application Service
 
-| BC                 | Service                                            |
-| ------------------ | -------------------------------------------------- |
-| BC-01 Identity     | `IdentityService`                                  |
-| BC-02 Workspace    | `WorkspaceService`                                 |
-| BC-03 Publishing   | `PublishingService`                                |
-| BC-04 MCP Access   | `McpAccessService`                                 |
-| BC-05 Engagement   | `EngagementService`                                |
-| BC-06 Analytics    | `AnalyticsService`                                 |
-| BC-07 Start Page   | `StartPageService`                                 |
-| BC-08 Media        | `MediaService`                                     |
-| BC-09 Notification | `NotificationService`                              |
-| BC-10 Billing      | Post-MVP — not yet bootstrapped as a domain folder |
+| BC | Service |
+| --- | --- |
+| BC-01 Identity | `IdentityService` |
+| BC-02 Workspace | `WorkspaceService` |
+| BC-03 Publishing | `PublishingService` |
+| BC-04 MCP Access | `McpAccessService` |
+| BC-05 Engagement | `EngagementService` |
+| BC-06 Analytics | `AnalyticsService` |
+| BC-07 Start Page | `StartPageService` |
+| BC-08 Media | `MediaService` |
+| BC-09 Notification | `NotificationService` |
+| BC-10 Billing | Post-MVP — not yet bootstrapped as a domain folder |
 
 ---
 
@@ -343,36 +343,36 @@ Railway Cron (30 minutes) / Manual Refresh
 
 Summary for the legend / sidebar in Figma (aligned with `PROJECT_OVERVIEW.md`):
 
-| Layer                         | Choice                                          |
-| ----------------------------- | ----------------------------------------------- |
-| Repo                          | Hybrid Monorepo — `apps/web`, `packages/shared` |
-| Runtime                       | Bun                                             |
-| Framework                     | Next.js (App Router)                            |
-| Architecture                  | Modular Monolith + DDD                          |
-| Auth                          | Better Auth (email/password + Google)           |
-| ORM                           | Prisma                                          |
-| Database / Storage / Realtime | Supabase Cloud                                  |
-| Jobs                          | PostgreSQL job queue + Railway Cron             |
-| Social integration            | Outstand API (via ACL)                          |
-| Deploy                        | Railway (SEA) — `web` + `cron`                  |
-| CI                            | GitHub Actions                                  |
+| Layer | Choice |
+| --- | --- |
+| Repo | Hybrid Monorepo — `apps/web`, `packages/shared` |
+| Runtime | Bun |
+| Framework | Next.js (App Router) |
+| Architecture | Modular Monolith + DDD |
+| Auth | Better Auth (email/password + Google) |
+| ORM | Prisma |
+| Database / Storage / Realtime | Supabase Cloud |
+| Jobs | PostgreSQL job queue + Railway Cron |
+| Social integration | Outstand API (via ACL) |
+| Deploy | Railway (SEA) — `web` + `cron` |
+| CI | GitHub Actions |
 
 ---
 
 # Source of Truth (Detail)
 
-| Topic              | Document                                                            |
-| ------------------ | ------------------------------------------------------------------- |
-| Domain & BC        | `../product-discovery/05-architecture/domain-model.md`              |
-| Database & RLS     | `../product-discovery/05-architecture/database-strategy.md`         |
-| Layer & services   | `../product-discovery/05-architecture/application-layer.md`         |
-| Outstand / webhook | `../product-discovery/05-architecture/integration-layer.md`         |
-| Jobs               | `../product-discovery/05-architecture/background-jobs.md`           |
-| Realtime           | `../product-discovery/05-architecture/realtime-strategy.md`         |
-| Auth architecture  | `../product-discovery/05-architecture/auth-architecture.md`         |
-| Monorepo layout    | `../product-discovery/06-engineering/monorepo-setup.md`             |
-| Deploy topology    | `../product-discovery/06-engineering/deployment-infrastructure.md`  |
-| Decisions          | `DECISIONS.md` (full index, see the file for the current ADR range) |
+| Topic | Document |
+| --- | --- |
+| Domain & BC | `../product-discovery/05-architecture/domain-model.md` |
+| Database & RLS | `../product-discovery/05-architecture/database-strategy.md` |
+| Layer & services | `../product-discovery/05-architecture/application-layer.md` |
+| Outstand / webhook | `../product-discovery/05-architecture/integration-layer.md` |
+| Jobs | `../product-discovery/05-architecture/background-jobs.md` |
+| Realtime | `../product-discovery/05-architecture/realtime-strategy.md` |
+| Auth architecture | `../product-discovery/05-architecture/auth-architecture.md` |
+| Monorepo layout | `../product-discovery/06-engineering/monorepo-setup.md` |
+| Deploy topology | `../product-discovery/06-engineering/deployment-infrastructure.md` |
+| Decisions | `DECISIONS.md` (full index, see the file for the current ADR range) |
 
 If a Figma diagram conflicts with the documents above, **the product-discovery documents + ADRs win** — update the overview / Figma afterward.
 
