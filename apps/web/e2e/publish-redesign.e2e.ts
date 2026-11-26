@@ -150,6 +150,111 @@ test("T-300: on a phone the Board scrolls sideways over a column with cards", as
       speed: 1200,
     });
   };
+  // TEMPORARY T-308 diagnostics: why the touch swipe does not move the row
+  // on the Linux CI runner. Logs only; removed once the cause is known.
+  {
+    const box = await card.boundingBox();
+    const cx = Math.round((box?.x ?? 0) + (box?.width ?? 0) / 2);
+    const cy = Math.round((box?.y ?? 0) + (box?.height ?? 0) / 2);
+    const facts = await row.evaluate(
+      (el, [x, y]) => {
+        const hit = document.elementFromPoint(x, y);
+        let list: Element | null = hit;
+        while (list && list !== el) {
+          const style = getComputedStyle(list);
+          if (/(auto|scroll)/.test(style.overflowY + style.overflowX)) break;
+          list = list.parentElement;
+        }
+        const metrics = (node: Element | null) => {
+          if (!(node instanceof HTMLElement)) return null;
+          const style = getComputedStyle(node);
+          return {
+            cls: node.className.slice(0, 120),
+            sl: node.scrollLeft,
+            sw: node.scrollWidth,
+            cw: node.clientWidth,
+            ow: node.offsetWidth,
+            sh: node.scrollHeight,
+            ch: node.clientHeight,
+            ox: style.overflowX,
+            oy: style.overflowY,
+            osx: style.overscrollBehaviorX,
+            snap: style.scrollSnapType,
+            ta: style.touchAction,
+          };
+        };
+        return {
+          ua: navigator.userAgent,
+          dpr: devicePixelRatio,
+          vw: innerWidth,
+          coarse: matchMedia("(pointer: coarse)").matches,
+          touchPoints: navigator.maxTouchPoints,
+          hit: hit
+            ? `${hit.tagName}.${String(hit.className).slice(0, 60)}`
+            : null,
+          row: metrics(el),
+          list: list === el ? "row" : metrics(list),
+        };
+      },
+      [cx, cy] as const,
+    );
+    console.log("[T-300 diag] facts", JSON.stringify({ cx, cy, start, facts }));
+    const trace = async (label: string) => {
+      const seen: number[] = [];
+      for (const wait of [0, 200, 600, 1200]) {
+        await page.waitForTimeout(wait === 0 ? 0 : 200 + wait / 3);
+        seen.push(await scrollLeft());
+      }
+      console.log(`[T-300 diag] ${label}`, JSON.stringify(seen));
+      await row.evaluate((el, left) => {
+        el.scrollLeft = left;
+      }, start);
+      await page.waitForTimeout(500);
+    };
+    await cdp.send("Input.synthesizeScrollGesture", {
+      x: cx,
+      y: cy,
+      xDistance: 250,
+      yDistance: 0,
+      gestureSourceType: "touch",
+      speed: 1200,
+    });
+    await trace("synth touch 250");
+    await cdp.send("Input.synthesizeScrollGesture", {
+      x: cx,
+      y: cy,
+      xDistance: 330,
+      yDistance: 0,
+      gestureSourceType: "touch",
+      speed: 800,
+    });
+    await trace("synth touch 330 slow");
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [{ x: cx, y: cy }],
+    });
+    for (let step = 1; step <= 10; step += 1) {
+      await cdp.send("Input.dispatchTouchEvent", {
+        type: "touchMove",
+        touchPoints: [{ x: cx + step * 30, y: cy }],
+      });
+    }
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchEnd",
+      touchPoints: [],
+    });
+    await trace("dispatch touch drag 300");
+    await cdp.send("Input.synthesizeScrollGesture", {
+      x: cx,
+      y: cy,
+      xDistance: 250,
+      yDistance: 0,
+      gestureSourceType: "mouse",
+      speed: 1200,
+    });
+    await trace("synth mouse 250");
+  }
+
   // A positive xDistance moves the finger right, which scrolls left.
   await swipe(250);
   await expect.poll(scrollLeft).toBeLessThan(start);
