@@ -293,7 +293,17 @@ test.describe("MCP server di staging", () => {
   /** Caption post `[e2e]` yang dijadwalkan (h) (hanya bila opt-in); dicari di Queue pada (m). */
   let scheduledMcpCaption: string | undefined;
 
-  test.beforeAll(async ({ browser, playwright }) => {
+  test.beforeAll(async ({ browser, playwright }, testInfo) => {
+    // A retry of this serial group can start right after (n) used up the
+    // workspace `calls` window (60 per fixed UTC minute), so (a) would get
+    // `rate_limited` (staging run 2026-11-26, T-308). Wait for a fresh window.
+    if (testInfo.retry > 0) {
+      const msToNextMinute = 60_000 - (Date.now() % 60_000) + 2_000;
+      console.log(
+        `[mcp.e2e] retry: menunggu ${Math.round(msToNextMinute / 1000)} detik untuk jendela rate limit baru`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, msToNextMinute));
+    }
     api = await playwright.request.newContext({
       baseURL: BASE_URL,
       // Kosongkan eksplisit: klien MCP sungguhan tidak membawa cookie sesi web.

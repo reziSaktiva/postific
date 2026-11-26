@@ -24,6 +24,8 @@ import {
 } from "@/domains/publishing";
 import { usePublishingPostsRealtime } from "@/lib/hooks/use-publishing-posts-realtime";
 
+import { mergeRevalidatedPage } from "./revalidated-page-merge";
+
 import {
   useInfiniteList,
   type InfiniteList,
@@ -172,17 +174,26 @@ export function usePublishTabList<T extends PublishTabItem>({
   }, [currentKey, refresh, fetchPage]);
 
   // The server rendered the page again (revalidated after a mutation): merge
-  // its first page into the loaded items when it is for the same filter.
+  // its first page into the loaded items when it is for the same filter,
+  // and drop a loaded item that is gone from its range (deleted or moved to
+  // another tab; Realtime sends no delete event, T-308).
+  const loadedItems = list.items;
   const seenInitialRef = useRef(initialPage);
   useEffect(() => {
     if (seenInitialRef.current === initialPage) return;
     seenInitialRef.current = initialPage;
     if (!isEmptyPublishListFilter(filterRef.current)) return;
-    for (const item of initialPage.items) upsert(item);
+    const { upserts, removes } = mergeRevalidatedPage({
+      loaded: loadedItems,
+      page: initialPage,
+      compare,
+    });
+    for (const id of removes) remove(id);
+    for (const item of upserts) upsert(item);
     if (initialPage.total !== undefined) {
       applyTotal(initialPage.total, filterKeyRef.current, filterRef.current);
     }
-  }, [initialPage, upsert, applyTotal]);
+  }, [initialPage, loadedItems, compare, upsert, remove, applyTotal]);
 
   // Realtime: one post at a time, newest answer per post wins.
   const requestSeqRef = useRef<Map<string, number>>(new Map());
