@@ -296,9 +296,10 @@ test.describe("MCP server di staging", () => {
   test.beforeAll(async ({ browser, playwright }, testInfo) => {
     // A retry of this serial group can start right after (n) used up the
     // workspace `calls` window (60 per fixed UTC minute), so (a) would get
-    // `rate_limited` (staging run 2026-11-26, T-308). Wait for a fresh window.
+    // `rate_limited` (staging run 2026-11-26, T-308). Wait for a fresh window,
+    // with a margin for clock skew between the runner and the server.
     if (testInfo.retry > 0) {
-      const msToNextMinute = 60_000 - (Date.now() % 60_000) + 2_000;
+      const msToNextMinute = 60_000 - (Date.now() % 60_000) + 10_000;
       console.log(
         `[mcp.e2e] retry: menunggu ${Math.round(msToNextMinute / 1000)} detik untuk jendela rate limit baru`,
       );

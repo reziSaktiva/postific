@@ -35,7 +35,10 @@ export function mergeRevalidatedPage<T extends { id: string }>({
       if (onPage.has(item.id)) return false;
       if (movedToOtherColumn?.has(item.id)) return true;
       if (page.nextCursor === null) return true;
-      return last !== undefined && compare(item, last) < 0;
+      // By sort time only (the item gets `last`'s id): the client compares
+      // milliseconds and the server microseconds, so an item tied with
+      // `last` at the millisecond may sit on the next page; it is kept.
+      return last !== undefined && compare({ ...item, id: last.id }, last) < 0;
     })
     .map((item) => item.id);
   return { upserts: [...page.items], removes };

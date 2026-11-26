@@ -68,4 +68,17 @@ describe("mergeRevalidatedPage (S-009 Board reload, T-308 List tabs)", () => {
     expect(result.removes).toEqual(["deleted"]);
     expect(result.upserts.map((c) => c.id)).toEqual(["b", "c"]);
   });
+
+  it("keeps an item that ties with the last item of the page by time (T-308)", () => {
+    const loaded = [card("a", 1), card("b", 2), card("aa", 2)];
+    const result = mergeRevalidatedPage({
+      loaded,
+      // "aa" sorts before "b" by id on the client, yet the server put it on
+      // the next page (its microseconds sort after "b").
+      page: { items: [card("a", 1), card("b", 2)], nextCursor: more },
+      compare: (x, y) =>
+        x.rank - y.rank || (x.id < y.id ? -1 : x.id > y.id ? 1 : 0),
+    });
+    expect(result.removes).toEqual([]);
+  });
 });
