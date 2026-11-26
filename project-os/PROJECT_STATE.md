@@ -4,7 +4,7 @@
 
 - **Phase / Milestone:** Phase 6 — Implementation · M8 — Development (Sprint 5) · Overall: M7 100%, M8 in progress
 - **Active Mode:** Ready for Development — implement product features according to the Architecture & Engineering Baseline
-- **Top Next Tasks:** S-009 infinite scroll is Verified (staging) (T-305, 2026-11-26; S-009 closed). T-307 (token economy) PR to `staging`. The staging E2E run has 2 failures outside S-009 (T-300 phone swipe test on the Linux runner, MCP test hitting the 60 calls per minute limit). Then T-299. Older open work: T-037, T-115, T-013, T-171.
+- **Top Next Tasks:** S-009 infinite scroll is Verified (staging) (T-305, 2026-11-26; S-009 closed). T-307 (token economy) PR to `staging`. Follow-up T-308 Verified (staging) 2026-11-26: deleted posts leave Publish List tabs, and the staging E2E run is fully green (88 passed). Then T-299. Older open work: T-037, T-115, T-013, T-171.
 - **Blocker:** 1 active blocker — KI-015 (Google OAuth). The T-051 migration and the remaining KI-025 follow-ups are verified closed on staging (2026-10-13). Details in the **Blockers** section.
 - **Active specs:** S-008 Publish redesign (ADR-165). S-009 infinite scroll (ADR-166) closed 2026-11-26. Earlier context per spec is in "Snapshot history" at the end of this file (not read at session start).
 - **Task queue:** [`AVAILABLE_TICKETS.md`](AVAILABLE_TICKETS.md). Tickets, including finished ones, are in `tickets/`. Do not look for task details in this file.
