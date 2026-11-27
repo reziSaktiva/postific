@@ -18,7 +18,7 @@ The Supabase advisor reported RLS disabled on eight `public` tables on staging (
 
 Read-only checks on staging before the decision (2026-11-27):
 
-- The app connects as `postgres` through Supavisor; no `app_runtime` session was seen. `postgres` owns all eight tables and has `BYPASSRLS`.
+- One `pg_stat_activity` snapshot showed only `postgres` sessions through Supavisor; `postgres` owns all eight tables and has `BYPASSRLS`. **Correction (same day, after applying):** the app's `DATABASE_URL` connects as `app_runtime`, so the `app_runtime` policies are what keep the app working.
 - `app_runtime` exists, does not bypass RLS, and holds SELECT, INSERT, UPDATE, and DELETE on all eight tables.
 - The browser uses Realtime `postgres_changes` only on `notifications` and `publishing_posts`, the only `public` tables in the `supabase_realtime` publication. No browser code reads the eight tables.
 
@@ -42,7 +42,7 @@ ADR-141 (scope amended by ADR-152) names its tables explicitly, so using its pat
 
 ### Consequences
 
-- The app keeps working because it connects as `postgres`, which owns the tables and bypasses RLS. If the app is later moved to `app_runtime`, the policies already allow it.
+- The app keeps working because it connects as `app_runtime`, which the policy on each table allows (verified 2026-11-27: reads on all eight tables and an insert succeed; jobs and webhooks keep working on staging). Anything connecting as `postgres` (migrations) bypasses RLS as owner.
 - The public Supabase key can no longer read or write these eight tables.
 - Rollback per table: `DROP POLICY IF EXISTS "<table>_app_runtime" ON "<table>"; ALTER TABLE "<table>" DISABLE ROW LEVEL SECURITY;`.
 - Production does not exist yet (KI-028); it gets the same migration when it is created.
