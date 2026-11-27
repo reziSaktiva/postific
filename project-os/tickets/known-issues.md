@@ -1622,11 +1622,11 @@ yang punya akun sosial nyata; pakai E2E Sandbox.
 
 | Field | Value |
 | --- | --- |
-| **Status** | 🟡 In Progress (🔴 prioritas tinggi; T-196.1 sebagian terbukti 2026-11-04, menunggu keputusan King Rezi T-196.2) |
+| **Status** | ✅ Done (2026-11-27; migration applied to the shared staging DB and verified; sign-in after the migration not yet observed) |
 | **Mode** | HITL (T-196.1 diputuskan King Rezi; sisanya AFK setelah itu) |
 | **Domain** | database, keamanan |
 | **Spec** | tidak ada |
-| **Docs** | KI-106, `product-discovery/05-architecture/database-strategy.md`, `mcp_*` (pola policy `app_runtime` di T-151), advisor Supabase `rls_disabled` |
+| **Docs** | KI-106, ADR-167, `product-discovery/05-architecture/database-strategy.md`, `mcp_*` (pola policy `app_runtime` di T-151), advisor Supabase `rls_disabled` |
 | **Terkait** | T-189.1, T-189.4 |
 | **Depends** | keputusan King Rezi: policy per tabel, dan apakah koneksi aplikasi memakai `app_runtime` atau pemilik |
 
@@ -1685,13 +1685,20 @@ T-196.1 dan T-196.2 selesai.
           `identity_verification`, `identity_user`, lalu `workspaces`,
           `background_jobs`, `outstand_webhook_events`, `_prisma_migrations`.
 
-- [ ] **T-196.2** Keputusan King Rezi: peran koneksi aplikasi (pemilik atau
+- [x] **T-196.2** Keputusan King Rezi: peran koneksi aplikasi (pemilik atau
       `app_runtime`), policy per tabel, dan urutan; tulis policy beserta
       langkah rollback untuk tiap tabel sebelum satu pun diubah.
-- [ ] **T-196.3** Migrasi RLS per tabel (mulai dari tabel dengan dampak login
+
+      **Decided by King Rezi (2026-11-27):**
+      - Facts checked first (staging, read only): the app connects as `postgres` through Supavisor (6 sessions, no `app_runtime` session seen); `postgres` owns all 8 tables and has `BYPASSRLS`; `app_runtime` exists, has no `BYPASSRLS`, and holds SELECT/INSERT/UPDATE/DELETE on all 8; the browser only uses Realtime `postgres_changes` on `notifications` and `publishing_posts` (the only `public` tables in `supabase_realtime`); no Supabase JS `.from()` reads these 8 tables.
+      - **Pattern: ADR-141** (as on `mcp_*`): `ENABLE ROW LEVEL SECURITY` plus one `FOR ALL TO app_runtime USING (true) WITH CHECK (true)` policy per table, guarded by `IF EXISTS` on the role; no policy for `anon`/`authenticated` (default deny). Grants are not revoked. Recorded as **ADR-167** (extends the ADR-141 scope, as ADR-152 did; the AI first said no ADR was needed and corrected that the same day).
+      - **Rollout: one migration for all 8 tables** (replaces the per-table plan in T-196.3), followed by sign-in, publish, webhook, and job-runner checks on staging and the Supabase advisor.
+      - **Apply:** the AI writes the migration, tests, and a rollback script and opens a PR to `staging`; after merge King Rezi runs `bun run db:deploy`; the AI then verifies.
+      - Rollback: per table `DROP POLICY IF EXISTS ...; ALTER TABLE ... DISABLE ROW LEVEL SECURITY;` (written into the migration PR).
+- [x] **T-196.3** (2026-11-27: migration `20261127100000_t196_enable_rls_exposed_tables` applied by King Rezi with `db:deploy` at 07:27:01 UTC, before PR 312 was merged. **Correction:** the app connects as `app_runtime` (no BYPASSRLS), not `postgres` as first assumed from one `pg_stat_activity` snapshot, so the `app_runtime` policies are what keep it working. Evidence: the opt-in integration test (`T196_RLS_DB_TEST=1`) passes 4/4 on the shared DB: RLS on and exactly one policy, for `app_runtime`, on each table; `anon`/`authenticated` have no BYPASSRLS; the app reads all eight tables and an insert into `identity_verification` succeeds (rolled back). Live read check as `postgres` switching roles: `anon` and `authenticated` read 0 rows in every table while the owner reads real rows (identity_session 93, background_jobs 12 492, _prisma_migrations 79). Staging after the migration: job runner 200 at 07:28, 6 new `background_jobs` rows written, Outstand webhook 200 at 07:27:15, no permission or RLS errors in the Railway logs. Not yet proven: a sign-in after the migration (no session created since) and publishing.) Migrasi RLS per tabel (mulai dari tabel dengan dampak login
       terkecil), uji sign-in dan alur utama di staging setelah tiap tabel, dan
       rollback bila gagal.
-- [ ] **T-196.4** Ulangi advisor Supabase dan catat hasil.
+- [x] **T-196.4** Ulangi advisor Supabase dan catat hasil. (2026-11-27, 07:29 UTC: the `rls_disabled_in_public` finding is gone. The advisor now reports a separate issue: 8 `SECURITY DEFINER` functions in `public` that `anon` and `authenticated` can call through `/rest/v1/rpc/` (lints 0028, 0029), recorded as KI-110 / T-312.)
 
 ---
 
@@ -1841,6 +1848,36 @@ T-195; belum terbukti sampai pesan 400 terbaca (T-195.1 di staging).
 - [x] **T-311.5** (2026-11-27, branch `fix/outstand-webhook-signature-prefix`, not committed yet) (code, AFK) Accept Outstand's signature format. Outstand docs (https://www.outstand.so/docs/webhooks, read 2026-11-27): header `X-Outstand-Signature: sha256=<hex>`, HMAC-SHA256 of the raw body. `verify-webhook-signature.ts` compares the whole header to the bare hex and has no `sha256=` handling, so every real signed webhook would get 401. Strip the `sha256=` prefix (keep accepting bare hex), add unit tests for both forms, and keep the timing-safe comparison. Done: `verify-webhook-signature.ts` trims the header, strips a case-insensitive `sha256=` prefix, and compares lowercase hex with `timingSafeEqual`. 4 new unit tests (prefixed, mixed case with whitespace, prefixed with wrong secret, empty `sha256=`); 9/9 verifier tests and 7/7 route tests green, `typecheck` and `lint` clean. Mutation check: with the prefix strip removed, the 2 positive prefixed tests fail. Not yet proven: a real signed request from Outstand (T-311.2).
 - _Progress (2026-11-27):_ King Rezi created "Staging Postific Webhook" in Outstand (enabled; events `post.published`, `post.error`, `account.token_expired`, plus `comment.received`, which Postific stores as `ignored_unknown_event`; see the note below). Fix PR 310 deployed to staging (deploy `6ed2989f`, Success 04:31 UTC). A dashboard "Send test" at 06:28:52 UTC reached `/api/webhooks/outstand` (UA `Outstand-Webhooks/1.0`) and got 401: the new `OUTSTAND_WEBHOOK_SECRET` is still a **staged, undeployed** change in Railway staging (patch `2366538a`), so the live service still runs the old value. Next: deploy the staged change, then Send test again and expect 200 plus one `test` row in `outstand_webhook_events`.
 - _Note on `comment.received`:_ comment events are stored in full (`raw_body`) in `outstand_webhook_events`, which has RLS disabled and is readable with the public key on staging (KI-106 / T-196). Comment text from real audiences will land there until T-196 is fixed or the event is unticked. Using comment events needs a new ADR (ADR-040 / IL-D09).
-- [~] **T-311.2** (2026-11-27: signed delivery proven. After the staged `OUTSTAND_WEBHOOK_SECRET` was deployed (deploy `0d12ac23`, Success 06:30 UTC), "Send test" returned `Test successful! Status: 200` and one row `event_type = test`, `status = processed` appeared in `outstand_webhook_events` at 06:31:54 UTC. Not yet proven: a real `account.token_expired` or `post.*` event. Outstand does not re-send the earlier `@turanilkerl` expiry, so that account stays unflagged in Postific until it is reconnected.) Prove delivery on staging: a real event appears in `outstand_webhook_events` and a 2xx shows in the Railway metrics for the path; `@turanilkerl` becomes `reconnect_required = true` (if Outstand re-sends the expiry or it expires again) and the Owner gets a notification. Then King Rezi reconnects the account.
+- [~] **T-311.2** (2026-11-27: signed delivery proven. After the staged `OUTSTAND_WEBHOOK_SECRET` was deployed (deploy `0d12ac23`, Success 06:30 UTC), "Send test" returned `Test successful! Status: 200` and one row `event_type = test`, `status = processed` appeared in `outstand_webhook_events` at 06:31:54 UTC. First real (non-test) delivery: a `comment.received` at 07:27:15 UTC got 200 and was stored as processed (ignored by design). Not yet proven: a real `account.token_expired` or `post.*` event. Outstand does not re-send the earlier `@turanilkerl` expiry, so that account stays unflagged in Postific until it is reconnected.) Prove delivery on staging: a real event appears in `outstand_webhook_events` and a 2xx shows in the Railway metrics for the path; `@turanilkerl` becomes `reconnect_required = true` (if Outstand re-sends the expiry or it expires again) and the Owner gets a notification. Then King Rezi reconnects the account.
 - [ ] **T-311.3** (decision for King Rezi, ADR if accepted) Add a fallback so a missed webhook cannot hide an expired account, for example reading account health from Outstand during an existing sync job. Not decided.
 - [ ] **T-311.4** Write the webhook registration step into the deploy documentation so production (T-088, KI-028) is set up the same way.
+
+---
+
+### T-312 · Public roles can call eight SECURITY DEFINER functions through the Data API (KI-110)
+
+| Field | Value |
+| --- | --- |
+| **Status** | ⏳ Not started (found 2026-11-27 by the Supabase advisor after T-196) |
+| **Mode** | HITL (which functions the browser needs is a decision for King Rezi), then AFK |
+| **Domain** | database, security |
+| **Spec** | none |
+| **Docs** | KI-110, ADR-099 (system-context lookups), ADR-167, Supabase lints 0028 and 0029 |
+| **Related** | T-196 (KI-106), T-026 (webhook lookups) |
+| **Depends** | none |
+
+**Found (2026-11-27)** by the Supabase security advisor right after T-196: these `public` functions are `SECURITY DEFINER` and executable by `anon` and `authenticated` through `/rest/v1/rpc/<name>`, so they run with the owner's rights for anyone holding the public key:
+
+- `analytics_list_active_connected_accounts()`
+- `import_list_accounts_for_periodic_sync()`
+- `webhook_find_account_owner_by_outstand_account_id(text)`
+- `webhook_find_post_targets_by_outstand_post_id(text)`
+- `current_user_email()`, `current_user_workspace_ids()`
+- `has_accepted_invitation(uuid, text, text)`, `is_first_member_of_workspace(uuid)`
+
+**Not yet proven:** what each one returns to `anon` (not called); the system-context lookups (the first four) look like cross-workspace reads. `current_user_*` and the two membership helpers are likely used inside RLS policies (including Realtime on `notifications` and `publishing_posts`), so revoking EXECUTE from `authenticated` could break Realtime.
+
+- [ ] **T-312.1** Map each function to its callers (app via `app_runtime`, RLS policies, Realtime) and prove what `anon` gets from each, read only.
+- [ ] **T-312.2** Decision for King Rezi: per function, revoke EXECUTE from `anon`/`authenticated` (granting to `app_runtime`), switch to `SECURITY INVOKER`, or move out of the exposed schema.
+- [ ] **T-312.3** Migration with rollback, Realtime and sign-in checks on staging, advisor rerun.
+
