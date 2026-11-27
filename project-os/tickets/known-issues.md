@@ -1806,3 +1806,39 @@ T-195; belum terbukti sampai pesan 400 terbaca (T-195.1 di staging).
 
 - Mekanisme persis (T-208.1) dan apakah staging (build produksi) ikut terkena. Spec staging 13 tes lulus dua kali pada 2026-11-03, jadi di staging kemungkinan bergantung pada waktu.
 - Apakah bug ada sebelum T-199.
+
+---
+
+### T-311 · Outstand never delivers webhooks to staging, so expired accounts are not flagged for reconnect (KI-109)
+
+| Field | Value |
+| --- | --- |
+| **Status** | ⏳ Not started (root cause found by investigation 2026-11-27; the fix needs King Rezi in the Outstand dashboard and the T-311.5 code fix) |
+| **Mode** | HITL (T-311.1 is done by King Rezi; T-311.2 and T-311.4 are AFK after that; T-311.3 needs King Rezi's decision) |
+| **Domain** | publishing (Outstand webhook), workspace (connected accounts), infrastructure |
+| **Spec** | none |
+| **Docs** | KI-109, ADR-040, ADR-099, T-026, T-015, `apps/web/src/app/api/webhooks/outstand/route.ts`, `outstand-webhook-processor.ts` (`handleAccountTokenExpired`), `product-discovery/05-architecture/integration-layer.md` |
+| **Related** | T-026 (webhook handler), T-015 (reconnect state), T-027 (JOB-07 publish outcome polling), T-196 (`outstand_webhook_events` RLS) |
+| **Depends** | King Rezi access to the Outstand dashboard for the staging organization |
+
+**Found (2026-11-27)** by King Rezi: Outstand's dashboard showed "1 social account needs reconnecting" for Instagram `@turanilkerl` (E2E Sandbox workspace), but Postific showed the account as healthy.
+
+**Evidence (read only, nothing changed):**
+
+1. Staging DB: `workspace_connected_accounts` row for `turanilkerl` (`outstand_account_id` `IDveX`) has `status = active`, `reconnect_required = false`.
+2. Postific learns about an expired account only from the `account.token_expired` webhook. There is no polling of account health.
+3. Staging DB: `outstand_webhook_events` has **0 rows ever** (also 0 on 2026-11-04 in T-196.1). The route stores every event that passes the signature check before it answers, so not one real webhook has been accepted on staging.
+4. Railway staging `web`, HTTP metrics for path `/api/webhooks/outstand`: **0 requests in the last 7 days** (no 2xx, 4xx, or 5xx). Control: `/api/jobs/run` on the same service shows about 1,090 requests in 24 hours, so the path filter works.
+5. No document or ticket records registering the staging webhook URL in Outstand. The T-026 tests (2026-09-07) sent hand-made requests to a local server, not real Outstand traffic.
+
+**Root cause (strong inference):** Outstand is not configured to send webhooks to the staging URL. A wrong signing secret is ruled out as the main cause, because a wrong secret would still show 401 requests in the Railway metrics. Not yet proven: what the Outstand dashboard actually holds (the Outstand MCP server did not connect in this session).
+
+**Confirmed (2026-11-27, Outstand dashboard, organization Insvire, Developer → Webhooks, viewed in King Rezi's Chrome):** the page says "No webhooks configured". The Create Webhook modal does have Endpoint URL and Signing Secret fields; Chrome autofill had put an email address into Endpoint URL and a saved value into Signing Secret, which is why Outstand answered "please enter valid url". Nothing was saved.
+
+**Impact:** besides missed reconnect flags, `post.published` and `post.error` never arrive either. Publish outcomes still update through the JOB-07 polling fallback (T-027), which is why publishing looked fine.
+
+- [ ] **T-311.1** (King Rezi, Outstand dashboard) Check the webhook settings for the staging organization (sidebar Developer → Webhooks → Add Webhook; clear any browser autofill in Endpoint URL and Signing Secret first). Register `https://web-staging-60d7.up.railway.app/api/webhooks/outstand` for `post.published`, `post.error`, and `account.token_expired`. King Rezi said on 2026-11-27 that `OUTSTAND_WEBHOOK_SECRET` was never set. Outstand does not generate the secret: per https://www.outstand.so/docs/webhooks the optional "Signing Secret" field is filled in by the user. Generate one random value, put the same value in the Outstand form and in `OUTSTAND_WEBHOOK_SECRET` on Railway staging `web`. Do T-311.5 first, or every signed webhook is rejected.
+- [x] **T-311.5** (2026-11-27, branch `fix/outstand-webhook-signature-prefix`, not committed yet) (code, AFK) Accept Outstand's signature format. Outstand docs (https://www.outstand.so/docs/webhooks, read 2026-11-27): header `X-Outstand-Signature: sha256=<hex>`, HMAC-SHA256 of the raw body. `verify-webhook-signature.ts` compares the whole header to the bare hex and has no `sha256=` handling, so every real signed webhook would get 401. Strip the `sha256=` prefix (keep accepting bare hex), add unit tests for both forms, and keep the timing-safe comparison. Done: `verify-webhook-signature.ts` trims the header, strips a case-insensitive `sha256=` prefix, and compares lowercase hex with `timingSafeEqual`. 4 new unit tests (prefixed, mixed case with whitespace, prefixed with wrong secret, empty `sha256=`); 9/9 verifier tests and 7/7 route tests green, `typecheck` and `lint` clean. Mutation check: with the prefix strip removed, the 2 positive prefixed tests fail. Not yet proven: a real signed request from Outstand (T-311.2).
+- [ ] **T-311.2** Prove delivery on staging: a real event appears in `outstand_webhook_events` and a 2xx shows in the Railway metrics for the path; `@turanilkerl` becomes `reconnect_required = true` (if Outstand re-sends the expiry or it expires again) and the Owner gets a notification. Then King Rezi reconnects the account.
+- [ ] **T-311.3** (decision for King Rezi, ADR if accepted) Add a fallback so a missed webhook cannot hide an expired account, for example reading account health from Outstand during an existing sync job. Not decided.
+- [ ] **T-311.4** Write the webhook registration step into the deploy documentation so production (T-088, KI-028) is set up the same way.

@@ -18,6 +18,41 @@ describe("verifyOutstandWebhookSignature", () => {
     );
   });
 
+  it("returns true for Outstand's documented `sha256=<hex>` header format (T-311.5)", () => {
+    const rawBody = JSON.stringify({ event: "account.token_expired" });
+    const signature = `sha256=${sign(rawBody)}`;
+
+    expect(verifyOutstandWebhookSignature(rawBody, signature, SECRET)).toBe(
+      true,
+    );
+  });
+
+  it("accepts the prefix and hex case-insensitively and ignores surrounding whitespace", () => {
+    const rawBody = JSON.stringify({ event: "post.error" });
+    const signature = `  SHA256=${sign(rawBody).toUpperCase()} `;
+
+    expect(verifyOutstandWebhookSignature(rawBody, signature, SECRET)).toBe(
+      true,
+    );
+  });
+
+  it("returns false for a `sha256=` header signed with a different secret", () => {
+    const rawBody = JSON.stringify({ event: "post.published" });
+    const signature = `sha256=${sign(rawBody, "wrong-secret")}`;
+
+    expect(verifyOutstandWebhookSignature(rawBody, signature, SECRET)).toBe(
+      false,
+    );
+  });
+
+  it("returns false for a `sha256=` header with an empty value", () => {
+    const rawBody = JSON.stringify({ event: "post.published" });
+
+    expect(verifyOutstandWebhookSignature(rawBody, "sha256=", SECRET)).toBe(
+      false,
+    );
+  });
+
   it("returns false when the signature was computed with a different secret", () => {
     const rawBody = JSON.stringify({ event: "post.published" });
     const signature = sign(rawBody, "wrong-secret");

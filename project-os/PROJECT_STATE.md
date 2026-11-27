@@ -133,6 +133,7 @@ task list/details here** (ADR-062, ADR-131).
 | KI-106 | Open — RLS disabled on 8 `public` tables on staging | [T-196](tickets/known-issues.md) |
 | KI-107 | Open — Instagram and other platforms can be scheduled/published without media | [T-197](tickets/known-issues.md) |
 | KI-108 | Open — Save as Draft from the Queue does not move to Drafts (a Realtime server action makes the redirect fail) | [T-208](tickets/known-issues.md) |
+| KI-109 | Open — Outstand never delivers webhooks to staging, so expired accounts are not flagged for reconnect | [T-311](tickets/known-issues.md) |
 
 KI-104 (T-177) removed 2026-11-02. KIs whose tickets are finished were removed from this list on 2026-10-16 (ADR-132): KI-044 (T-108), KI-046 (T-007.7), KI-049 and KI-063 (T-107), KI-058 (T-109), KI-086 (ADR-127), KI-088 (T-090), KI-090 (T-113). On 2026-10-19: KI-027 (T-008), KI-033 (T-120), KI-050 (T-121), KI-089 (T-123), KI-091 (T-124). On 2026-10-21: KI-098 (T-138, Resolved — HTML escape fix implemented + review + QA PASS). On 2026-10-22: KI-097 (T-137, Resolved — staging SMTP adapter finished, Railway staging env filled in by King Rezi & e2e verification PASS); KI-094 (T-134, Resolved — E2E disconnect→recompute verification PASS with a real account, YouTube `@cookitrealgood` intentionally left disconnected); KI-095 (T-135, Resolved — calendar month window verification PASS via SQL query with a real account). On 2026-10-23 (tickets Done): KI-084 (T-123, along with KI-089), KI-092 (T-127), KI-093 (T-130), KI-096 (T-136), KI-099 (T-139), KI-100 (T-140), KI-101 (T-141). On 2026-10-23: KI-102 (T-143, Resolved on King Rezi's statement; evidence of the 2026-10-24 cron cycle was not yet visible in the DB when checked, reopen if the result differs). On 2026-10-23: KI-053 (T-122, Resolved on King Rezi's statement after a manual test of email A vs email B; no automated evidence was verified).
 
@@ -161,6 +162,8 @@ via Supabase MCP), real end-to-end retest of 5 webhook scenarios all PASS.
 **Resolved 2026-08-14:** KI-025 (Railway never created) — staging
 is live & verified, see the tickets in `tickets/`. The remaining production gap
 is recorded separately as **KI-028** (does not block M8/T-027 staging).
+
+**Staging web URL:** https://web-staging-60d7.up.railway.app/ (Railway project `Postific`, environment `staging`, service `web`; recorded 2026-11-27 from King Rezi). The Outstand webhook endpoint is `https://web-staging-60d7.up.railway.app/api/webhooks/outstand` (T-311).
 
 **Resolved 2026-08-24:** KI-034 (QA Najwa has not retested the golden path of workspace switch
 with the new Tier 2 confirmation dialog, T-089.6/ADR-089) — Najwa's
