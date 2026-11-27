@@ -612,8 +612,27 @@ export class ImportPostsTriggerUseCase {
       );
     }
 
-    const until = new Date();
-    const plan = periodicImportPlan(watermark.lastImportedUntil, until);
+    // T-310 — an earlier attempt left an Outstand import still running:
+    // resume it with the range it was asked with, never start a second one.
+    const saved = job.payload.result;
+    const resume =
+      saved?.outstandImportJobId &&
+      saved.since &&
+      saved.until &&
+      typeof saved.limit === "number"
+        ? {
+            importJobId: saved.outstandImportJobId,
+            since: new Date(saved.since),
+            until: new Date(saved.until),
+            limit: saved.limit,
+          }
+        : undefined;
+
+    const requestedAt = new Date();
+    const until = resume ? resume.until : requestedAt;
+    const plan = resume
+      ? { since: resume.since, limit: resume.limit }
+      : periodicImportPlan(watermark.lastImportedUntil, until);
     const runInput: RunImportSyncInput = {
       trigger: "periodic",
       workspaceId: input.workspaceId,
@@ -627,11 +646,14 @@ export class ImportPostsTriggerUseCase {
 
     await this.connectedAccounts.updateImportWatermark({
       connectedAccountId: input.connectedAccountId,
-      lastImportRequestedAt: until,
+      lastImportRequestedAt: requestedAt,
       actingUserId: owner.ownerUserId,
     });
 
-    const result = await this.runImportJob(runInput, job, until);
+    const result = await this.runImportJob(runInput, job, until, {
+      resumeImportJobId: resume?.importJobId,
+      keepPendingForRetry: true,
+    });
     await this.attemptBackfill(runInput);
     if (result.outcome === "failed") {
       throw new Error(result.message ?? "Import periodik antrian gagal.");
@@ -725,6 +747,13 @@ export class ImportPostsTriggerUseCase {
     input: RunImportSyncInput,
     job: ImportSyncJobRecord,
     until: Date,
+    /**
+     * T-310 — queued daily jobs only. `resumeImportJobId`: poll this Outstand
+     * import instead of starting a new one. `keepPendingForRetry`: when the
+     * wait runs out, save the Outstand import id on the job (status stays
+     * `running`) so the runner retry can resume it.
+     */
+    options: { resumeImportJobId?: string; keepPendingForRetry?: boolean } = {},
   ): Promise<ImportSyncTriggerResult> {
     // Dipertahankan di luar `try` supaya jalur `catch` tetap bisa menyimpan
     // angka yang sudah terkumpul (mis. penulisan status `done` gagal).
@@ -732,14 +761,34 @@ export class ImportPostsTriggerUseCase {
     let processed:
       { insertedCount: number; skippedDuplicateCount: number } | undefined;
     try {
-      const handle = await this.outstandAdapter.importPosts(
-        input.outstandAccountId,
-        { since: input.since, until, limit: input.limit },
-      );
+      const importJobId =
+        options.resumeImportJobId ??
+        (
+          await this.outstandAdapter.importPosts(input.outstandAccountId, {
+            since: input.since,
+            until,
+            limit: input.limit,
+          })
+        ).importJobId;
       jobOutcome = await this.pollImportJobStatus(
         input.outstandAccountId,
-        handle.importJobId,
+        importJobId,
       );
+
+      if (jobOutcome.status === "pending" && options.keepPendingForRetry) {
+        const message = `Import masih diproses di Outstand (job ${importJobId}); dilanjutkan pada retry runner berikutnya tanpa memulai import baru (T-310).`;
+        await this.importJobs.markImportSyncJobStatus(
+          job.id,
+          "running",
+          message,
+          {
+            ...buildImportJobResult(input, jobOutcome),
+            until: until.toISOString(),
+            outstandImportJobId: importJobId,
+          },
+        );
+        return { outcome: "failed", message };
+      }
 
       if (jobOutcome.status !== "completed") {
         // `"pending"` di titik ini (bukan `"completed"`/`"failed"`) berarti

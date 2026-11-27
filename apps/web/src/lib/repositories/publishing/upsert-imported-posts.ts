@@ -7,7 +7,9 @@ import type {
   ImportedPostTargetInput,
   UpsertImportedPostsResult,
 } from "@/domains/publishing/repositories/publishing.repository";
+import type { Prisma } from "@/generated/prisma/client";
 import type { PrismaTransactionClient } from "@/lib/prisma/with-current-user";
+import { firstExternalMediaUrl } from "./first-external-media-url";
 import {
   findOutstandPostOwners,
   lockOutstandPostIds,
@@ -115,7 +117,9 @@ export async function upsertImportedPostsTx(
       postId: true,
       connectedAccountId: true,
       platformPostId: true,
-      post: { select: { outstandPostId: true } },
+      platformOptions: true,
+      thumbnailStoragePath: true,
+      post: { select: { outstandPostId: true, status: true } },
     },
   });
   const existingTargetByKey = new Map<string, ExistingTargetRef>(
@@ -129,6 +133,11 @@ export async function upsertImportedPostsTx(
                 connectedAccountId: row.connectedAccountId,
                 platformPostId: row.platformPostId,
                 currentOutstandPostId: row.post.outstandPostId,
+                mediaRefresh:
+                  row.post.status === ContentStatus.Imported &&
+                  row.thumbnailStoragePath === null
+                    ? { targetId: row.id, platformOptions: row.platformOptions }
+                    : undefined,
               },
             ] as const,
           ]
@@ -211,6 +220,10 @@ export async function upsertImportedPostsTx(
           postIdByOutstandId,
         );
         if (filled) duplicate.currentOutstandPostId = post.outstandPostId;
+      }
+      if (duplicate.mediaRefresh) {
+        await refreshImportedTargetMedia(tx, duplicate.mediaRefresh, post);
+        duplicate.mediaRefresh = undefined;
       }
       skippedDuplicateCount++;
       continue;
@@ -335,7 +348,53 @@ type ExistingTargetRef = {
   connectedAccountId: string;
   platformPostId: string;
   currentOutstandPostId: string | null;
+  /** Set only for an Imported post's target that has no thumbnail yet (T-309). */
+  mediaRefresh?: MediaRefreshRef;
 };
+
+type MediaRefreshRef = {
+  targetId: string;
+  platformOptions: Prisma.JsonValue | null;
+};
+
+/**
+ * T-309: platform media links (fbcdn, cdninstagram, tiktokcdn) are signed
+ * and expire within days. A target imported before its thumbnail was made
+ * keeps a dead link forever, because a re-import skips it as a duplicate.
+ * When the re-import brings a different first link, store the fresh links
+ * and clear the thumbnail attempt so `import.media` tries again. Same links
+ * are left alone, so the daily sync does not retry a link that is still bad.
+ * Only targets of Imported posts with no stored thumbnail are touched; other
+ * `platformOptions` keys are kept.
+ */
+async function refreshImportedTargetMedia(
+  tx: PrismaTransactionClient,
+  ref: MediaRefreshRef,
+  post: ImportedPostTargetInput,
+): Promise<boolean> {
+  // Same rule as the thumbnail queue: only the first link counts, and only https.
+  const incomingFirst = firstExternalMediaUrl({ mediaUrls: post.mediaUrls });
+  if (incomingFirst === null) return false;
+  if (firstExternalMediaUrl(ref.platformOptions) === incomingFirst) {
+    return false;
+  }
+
+  const current =
+    ref.platformOptions !== null &&
+    typeof ref.platformOptions === "object" &&
+    !Array.isArray(ref.platformOptions)
+      ? (ref.platformOptions as Prisma.JsonObject)
+      : {};
+  const updated = await tx.publishingPostTarget.updateMany({
+    where: { id: ref.targetId, thumbnailStoragePath: null },
+    data: {
+      platformOptions: { ...current, mediaUrls: post.mediaUrls },
+      thumbnailAttemptedAt: null,
+      thumbnailAttempts: 0,
+    },
+  });
+  return updated.count > 0;
+}
 
 async function backfillOutstandPostId(
   tx: PrismaTransactionClient,
