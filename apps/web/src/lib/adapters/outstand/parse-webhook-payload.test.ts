@@ -22,6 +22,48 @@ describe("parseOutstandWebhookPayload", () => {
     });
   });
 
+  it("extracts outstandPostId from the real post.published delivery (data.postId, no root id) — T-313", () => {
+    // Captured from staging on 2026-11-27 (outstand_webhook_events row).
+    const rawBody = JSON.stringify({
+      event: "post.published",
+      timestamp: "2026-11-27T09:08:14.833Z",
+      data: {
+        postId: "CqEjv",
+        orgId: "pJaTpxh82Ud5SJpNYaRdEhLP89NvMOx2",
+        socialAccounts: [
+          {
+            accountId: "IDveX",
+            network: "instagram",
+            username: "turanilkerl",
+            platformPostId: "18155733616547912",
+            platformPostUrl:
+              "https://www.instagram.com/stories/turanilkerl/4039537778925936490",
+          },
+        ],
+      },
+    });
+
+    const result = parseOutstandWebhookPayload(rawBody);
+
+    expect(result.outstandEventId).toBe(fingerprintRawBody(rawBody));
+    expect(result.event).toEqual({
+      eventType: "post.published",
+      outstandPostId: "CqEjv",
+      outstandAccountId: undefined,
+    });
+  });
+
+  it("prefers data.postId over data.id when both are present", () => {
+    const result = parseOutstandWebhookPayload(
+      JSON.stringify({
+        event: "post.error",
+        data: { postId: "post-from-postId", id: "post-from-id" },
+      }),
+    );
+
+    expect(result.event.outstandPostId).toBe("post-from-postId");
+  });
+
   it("extracts eventType + outstandAccountId from account.token_expired", () => {
     const rawBody = JSON.stringify({
       id: "evt_2",
