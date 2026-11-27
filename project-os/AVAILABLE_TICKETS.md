@@ -106,7 +106,7 @@ Global ticket ID, never recycled. Next: **T-314**. Next spec: **S-010**.
 | T-283 | ✅ | Lane brief: lane commit rule and worktree-base check (wave 12 retro, S-003, AFK) | [v0.1](tickets/v01-foundation.md) |
 | T-284 | ✅ | docs:where: show open-item counts per ticket (wave 12 retro, S-003, AFK) | [v0.1](tickets/v01-foundation.md) |
 | T-285 | ✅ | wave-work step 6: integration PR base is always staging (wave 12 retro, S-003, AFK) | [v0.1](tickets/v01-foundation.md) |
-| T-311 | 🟡 | Outstand webhooks to staging (KI-109). Webhook registered and signed test delivery returns 200 (2026-11-27). A real `post.published` was delivered and processed on staging (T-311.2, T-313). Remaining: deploy docs (T-311.4). T-311.3 (health-check fallback) closed as not needed | [KI](tickets/known-issues.md) |
+| T-311 | ✅ | Outstand webhooks to staging (KI-109). Done (docs), Verified (staging) 2026-11-27: webhook registered, signed test 200, a real `post.published` processed (T-311.2, T-313), registration steps in the deploy docs (T-311.4). T-311.3 (health-check fallback) closed as not needed. Not yet seen: a real `account.token_expired` or `post.error` | [KI](tickets/known-issues.md) |
 | T-312 | ⏳ | Public roles can call eight SECURITY DEFINER functions through the Data API (KI-110, advisor lints 0028/0029, found after T-196). HITL decision per function | [KI](tickets/known-issues.md) |
 | T-313 | ✅ | Real `post.published` webhooks fail to parse: parser reads `data.id`, Outstand sends `data.postId` (KI-111). Done (code), Verified (staging) 2026-11-27. AFK | [KI](tickets/known-issues.md) |
 
