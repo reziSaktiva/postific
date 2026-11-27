@@ -64,6 +64,14 @@ export interface ImportSyncJobResult {
   limit?: number;
   /** ISO — `since` yang benar-benar diminta saat eksekusi (payload enqueue hanya placeholder). */
   since?: string;
+  /** ISO — `until` sent with a resumable import (T-310). */
+  until?: string;
+  /**
+   * T-310 — Outstand import job still running when the 25 s wait ran out on a
+   * queued daily job. The runner retry polls this import instead of starting a
+   * new one. Cleared by any later status write (the whole `result` is replaced).
+   */
+  outstandImportJobId?: string;
 }
 
 export interface ImportSyncJobRecord {

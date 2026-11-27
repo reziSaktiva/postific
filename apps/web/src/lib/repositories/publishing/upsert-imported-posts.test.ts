@@ -45,6 +45,9 @@ type SeededTarget = {
   connectedAccountId: string;
   platformPostId: string | null;
   postOutstandPostId: string | null;
+  postStatus?: string;
+  platformOptions?: unknown;
+  thumbnailStoragePath?: string | null;
 };
 
 type GlobalOwnerRow = {
@@ -74,6 +77,7 @@ function createStore(
     platformPostId: string;
   }[] = [];
   const updatedPosts: { id: string; outstandPostId: string }[] = [];
+  const mediaRefreshes: { id: string; data: Record<string, unknown> }[] = [];
   const updatedTargets: {
     id: string;
     platformPostId: string;
@@ -142,7 +146,12 @@ function createStore(
               postId: row.postId,
               connectedAccountId: row.connectedAccountId,
               platformPostId: row.platformPostId,
-              post: { outstandPostId: row.postOutstandPostId },
+              platformOptions: row.platformOptions ?? null,
+              thumbnailStoragePath: row.thumbnailStoragePath ?? null,
+              post: {
+                outstandPostId: row.postOutstandPostId,
+                status: row.postStatus,
+              },
             }));
         }
         const postIds = new Set(args.where.postId?.in ?? []);
@@ -156,13 +165,26 @@ function createStore(
             postId: row.postId,
             connectedAccountId: row.connectedAccountId,
             platformPostId: row.platformPostId,
+            platformOptions: row.platformOptions ?? null,
+            thumbnailStoragePath: row.thumbnailStoragePath ?? null,
+            post: { status: row.postStatus },
           }));
       },
       updateMany: async (args: {
-        where: { id: string };
-        data: { platformPostId: string; platformPostUrl: string | null };
+        where: { id: string; thumbnailStoragePath?: null };
+        data: {
+          platformPostId: string;
+          platformPostUrl: string | null;
+          platformOptions?: unknown;
+          thumbnailAttemptedAt?: null;
+          thumbnailAttempts?: number;
+        };
       }) => {
         calls.push("target.updateMany");
+        if ("thumbnailAttempts" in args.data) {
+          mediaRefreshes.push({ id: args.where.id, data: args.data });
+          return { count: 1 };
+        }
         updatedTargets.push({
           id: args.where.id,
           platformPostId: args.data.platformPostId,
@@ -249,6 +271,7 @@ function createStore(
     createdTargets,
     updatedPosts,
     updatedTargets,
+    mediaRefreshes,
   };
 }
 
@@ -811,6 +834,9 @@ function createPersistentChunkDb(
                   postId: row.id,
                   connectedAccountId: target.connectedAccountId,
                   platformPostId: target.platformPostId,
+                  platformOptions: null,
+                  thumbnailStoragePath: null,
+                  post: { status: "imported" },
                 })),
             );
         },
@@ -989,5 +1015,128 @@ describe("upsertImportedPostsInChunks + upsertImportedPostsTx — batch besar (T
 
     expect(retry).toEqual({ insertedCount: 30, skippedDuplicateCount: 100 });
     expect(db.posts).toHaveLength(130);
+  });
+});
+
+describe("upsertImportedPostsTx: media refresh on re-import (T-309)", () => {
+  const OLD_URL = "https://scontent.cdninstagram.com/old.jpg?oe=expired";
+  const NEW_URL = "https://scontent.cdninstagram.com/new.jpg?oe=fresh";
+
+  function seeded(overrides: Partial<SeededTarget> = {}): SeededTarget {
+    return {
+      id: "target-1",
+      postId: "post-existing",
+      connectedAccountId: "account-1",
+      platformPostId: "platform-post-1",
+      postOutstandPostId: "outstand-post-1",
+      postStatus: "imported",
+      platformOptions: { mediaUrls: [OLD_URL] },
+      thumbnailStoragePath: null,
+      ...overrides,
+    };
+  }
+
+  it("stores the fresh links and clears the thumbnail attempt when the first link changed", async () => {
+    const store = createStore(
+      [{ id: "post-existing", outstandPostId: "outstand-post-1" }],
+      { seededTargets: [seeded()] },
+    );
+
+    const result = await upsertImportedPostsTx(
+      store.tx as never,
+      WORKSPACE_ID,
+      [post({ mediaUrls: [NEW_URL] })],
+    );
+
+    expect(result).toEqual({ insertedCount: 0, skippedDuplicateCount: 1 });
+    expect(store.mediaRefreshes).toEqual([
+      {
+        id: "target-1",
+        data: {
+          platformOptions: { mediaUrls: [NEW_URL] },
+          thumbnailAttemptedAt: null,
+          thumbnailAttempts: 0,
+        },
+      },
+    ]);
+  });
+
+  it("keeps other platformOptions keys", async () => {
+    const store = createStore(
+      [{ id: "post-existing", outstandPostId: "outstand-post-1" }],
+      {
+        seededTargets: [
+          seeded({ platformOptions: { mediaUrls: [OLD_URL], extra: 1 } }),
+        ],
+      },
+    );
+
+    await upsertImportedPostsTx(store.tx as never, WORKSPACE_ID, [
+      post({ mediaUrls: [NEW_URL] }),
+    ]);
+
+    expect(store.mediaRefreshes[0]?.data.platformOptions).toEqual({
+      mediaUrls: [NEW_URL],
+      extra: 1,
+    });
+  });
+
+  it.each([
+    ["the first link is the same", seeded(), [OLD_URL]],
+    [
+      "only the signature of the same file changed",
+      seeded(),
+      ["https://scontent.cdninstagram.com/old.jpg?oe=resigned"],
+    ],
+    [
+      "the target already has a thumbnail",
+      seeded({ thumbnailStoragePath: "ws/imports/t.webp" }),
+      [NEW_URL],
+    ],
+    [
+      "the post is not Imported",
+      seeded({ postStatus: "published" }),
+      [NEW_URL],
+    ],
+    ["the re-import brings no media", seeded(), []],
+    ["the new first link is not https", seeded(), ["http://insecure/x.jpg"]],
+  ])("leaves the target alone when %s", async (_label, target, mediaUrls) => {
+    const store = createStore(
+      [{ id: "post-existing", outstandPostId: "outstand-post-1" }],
+      { seededTargets: [target] },
+    );
+
+    await upsertImportedPostsTx(store.tx as never, WORKSPACE_ID, [
+      post({ mediaUrls }),
+    ]);
+
+    expect(store.mediaRefreshes).toEqual([]);
+  });
+
+  it("refreshes a target found through outstandPostId, not its platform post id", async () => {
+    const store = createStore(
+      [{ id: "post-existing", outstandPostId: "outstand-post-1" }],
+      {
+        seededTargets: [seeded({ platformPostId: "old-platform-id" })],
+      },
+    );
+
+    const result = await upsertImportedPostsTx(
+      store.tx as never,
+      WORKSPACE_ID,
+      [post({ mediaUrls: [NEW_URL] })],
+    );
+
+    expect(result).toEqual({ insertedCount: 0, skippedDuplicateCount: 1 });
+    expect(store.mediaRefreshes).toEqual([
+      {
+        id: "target-1",
+        data: {
+          platformOptions: { mediaUrls: [NEW_URL] },
+          thumbnailAttemptedAt: null,
+          thumbnailAttempts: 0,
+        },
+      },
+    ]);
   });
 });

@@ -4354,6 +4354,66 @@ Not yet proven: item 4 (browser at 768 and 390 px, light and dark) was not obser
 
 ---
 
+### T-309 · Thumbnails for every imported post: refresh expired media links on re-import, one-off full re-import of Cook It Real Good
+
+| Field | Value |
+| --- | --- |
+| **Status** | 🟡 In progress |
+| **Mode** | AFK (code), HITL (the `--execute` run on staging needs King Rezi's go-ahead) |
+| **Verification** | `staging` |
+| **Domain** | publishing (import, thumbnails) |
+| **Spec** | — (T-295 / T-299 context, S-008) |
+| **Docs** | ADR-093, ADR-158, T-230, T-133 |
+| **Depends** | — |
+
+**What to build:** King Rezi asked (2026-11-26) to re-import every post on every Cook It Real Good account without the import limits and to get a thumbnail for every published post. Staging had 500 imported posts and only 10 thumbnails. Cause: the posts were imported on 2026-10-22/23 and `import.media` (T-230) first ran on 2026-11-06/10, after the signed platform links (fbcdn, cdninstagram, tiktokcdn) had expired. Every target was marked as tried, and a re-import skips stored posts, so the dead links were never replaced. King Rezi's decisions: refresh links on re-import (not wipe and re-import); lift the limits only for a one-off run, not in the product (ADR-093 point 9 stays).
+
+- [x] Re-import refreshes media links: in `upsertImportedPostsTx`, a duplicate target of an Imported post with no thumbnail gets the new `mediaUrls` and a cleared thumbnail attempt when the first https link changed; other `platformOptions` keys are kept. Unit tests in `upsert-imported-posts.test.ts`.
+- [x] One-off script `apps/web/scripts/t309-reimport-workspace-full-history.ts`: full history (no `since`), `--limit` (default 1000), polls Outstand up to 10 minutes, process + classify + watermark, then queues thumbnails. Dry run by default; `--thumbnails-only` queues the next 200 per account.
+- [ ] `--execute` run for Cook It Real Good on staging (King Rezi's go-ahead), thumbnails queued, runner drains the queue; record the before/after counts here. (Run 1, 2026-11-26, limit 1000: **0 thumbnails gained**. Facebook and Instagram: the Outstand import job was still `pending` after 10 minutes. TikTok: fetched 118, all already stored, 0 links refreshed: Outstand returned the **same** signed link we stored on 2026-10-23 (`x-expires=1792735200`, 2026-10-23), so Outstand keeps the media link from its first import and does not renew it. YouTube: Outstand reported `imported=29` but `GET /v1/posts` mapped 0 posts. Before and after: Facebook 10/200, Instagram 0/182, TikTok 0/118.)
+- [ ] Every imported Cook It Real Good post with a media link has a thumbnail, or the remaining ones are named with their reason.
+
+**Investigation (2026-11-26, King Rezi's go-ahead after run 1):** where can a fresh image come from?
+
+- **Outstand:** stores each post's media link once, at its own first import, and never renews it. `GET /v1/posts/{id}` returns the same link we hold (Instagram reel `SsBhN`: expired 2026-10-24; TikTok `GE5zh`: expired 2026-10-23; Facebook `cMIFf`: still valid until 2026-11-26 10:15 UTC because that post is new). `GET /v1/posts/{id}/analytics` carries no media link. The OpenAPI specs (`/v1/posts`, `/v1/social-accounts`) have no refresh or re-fetch endpoint.
+- **TikTok public oEmbed** (`tiktok.com/oembed`, no login): answers 200 but no longer returns `thumbnail_url`.
+- **Meta (Instagram, Facebook):** oEmbed and the Graph media endpoints need a Meta access token; Postific holds none (Outstand holds the account tokens).
+- **Scraping the public post pages** (`og:image`): not considered; against the platforms' terms.
+- Side finding: Instagram reels store an `.mp4` as the first media link, not an image.
+
+Result: no source Postific can reach today gives a fresh image for an already imported post. Only Outstand holds the tokens, so the path is an Outstand capability (re-fetch media for imported posts), asked of Outstand by King Rezi. New posts are fine as long as they are imported and thumbnailed within a few days; the Facebook posts with thumbnails show that path works. The refresh-on-reimport change stays: it is harmless and starts working on its own once Outstand returns fresh links.
+
+**Found on the way (not in scope):** the daily `import.sync` for the Cook It Real Good Instagram and TikTok accounts fails every day with "Import masih diproses di Outstand setelah menunggu 25 detik", so their watermark has not moved since 2026-10-23 (Instagram) and was never set (TikTok). YouTube imports finish with 0 posts.
+
+**Blocked by:** none
+
+---
+
+### T-310 · Daily import resumes a slow Outstand import instead of failing after 25 seconds
+
+| Field | Value |
+| --- | --- |
+| **Status** | 🟡 In progress |
+| **Mode** | AFK |
+| **Verification** | `staging` |
+| **Domain** | publishing (import, background jobs) |
+| **Spec** | — (found in T-309) |
+| **Docs** | ADR-093, T-115, T-143, BG-D04/BG-D05 (`background-jobs.md`) |
+| **Depends** | — |
+
+**What to build:** found in T-309 (2026-11-26). The queued daily `import.sync` waits at most 25 seconds for the Outstand import job (Railway request limit). For Cook It Real Good Instagram and TikTok, Outstand takes longer every day, so the job is marked failed and every runner retry starts a **new** Outstand import that also takes longer than 25 seconds. Instagram has not imported a new post since 2026-10-23; TikTok has never finished a daily import. New posts then miss the few days in which their media links still work (T-309).
+
+- [x] When the wait runs out on a queued daily job, save the Outstand import id with the `since`, `until` and `limit` it was asked with in the job's `result`, and let the runner retry (5, 15, 60 minutes, BG-D04). Do not mark the import as failed for good.
+- [x] A retry that finds a saved Outstand import id polls that import instead of starting a new one, and on `completed` processes it with the saved `since`/`until`/`limit` (watermark moves to the saved `until`). On Outstand `failed`, the saved id is cleared and the job fails as before.
+- [x] Unit tests for both paths in `import-posts-trigger.use-case.test.ts`. (3 new tests; they fail on the old code and pass with the fix. Full suite 2026-11-27: 3076 passed, 102 skipped.)
+- [ ] Staging: the Cook It Real Good Instagram and TikTok daily jobs finish (`done`) within the retries, and the watermark moves.
+
+Out of scope: the inline Sync Now and on-connect paths keep the 25-second wait (they answer a user request); the daily job picks up their range.
+
+**Blocked by:** none
+
+---
+
 ## Dari Known Issue
 
 Tiket yang lahir sebagai pelacak Known Issue ada di [`known-issues.md`](known-issues.md) (ADR-134); daftar lengkapnya hanya di file itu, tidak disalin ke sini.

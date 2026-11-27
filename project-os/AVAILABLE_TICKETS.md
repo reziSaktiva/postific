@@ -25,7 +25,7 @@ Phase and blockers are in [`PROJECT_STATE.md`](PROJECT_STATE.md). An open Known 
 
 ✅ tickets are at Done (code); staging items move to the wave verification ticket, with no intermediate status (ADR-161, amending ADR-153). Old 🟡 rows with that wording are evaluated in T-247.5.
 
-Global ticket ID, never recycled. Next: **T-309**. Next spec: **S-010**.
+Global ticket ID, never recycled. Next: **T-311**. Next spec: **S-010**.
 
 ---
 
@@ -70,6 +70,8 @@ Global ticket ID, never recycled. Next: **T-309**. Next spec: **S-010**.
 | T-308 | ✅ | Deleted post stays in a Publish List tab; staging E2E failures after S-009 (S-009 follow-up, AFK) | [v0.2](tickets/v02-publishing-mvp.md) |
 | T-299 | ⏳ | Imported Reels and videos play inline in the post preview (T-295 follow-up; HITL data check and design gate, then AFK). Blocked by its own Outstand data check | [v0.2](tickets/v02-publishing-mvp.md) |
 | T-300 | ✅ | Board on a phone gets stuck after scrolling to a column with cards (S-008 follow-up, AFK, found by King Rezi on staging) | [v0.2](tickets/v02-publishing-mvp.md) |
+| T-309 | 🟡 | Thumbnails for every imported post: refresh expired media links on re-import, one-off full re-import of Cook It Real Good (AFK code, HITL staging run) | [v0.2](tickets/v02-publishing-mvp.md) |
+| T-310 | 🟡 | Daily import resumes a slow Outstand import instead of failing after 25 seconds (T-309 follow-up, AFK) | [v0.2](tickets/v02-publishing-mvp.md) |
 | T-281 | ⏳ | Align the UX baselines (KSP-05, KSP-D02, NP-D11) with the shipped Draft Editor through an ADR-155 addendum (T-207.7 follow-up, HITL). Depends T-207 | [v0.2](tickets/v02-publishing-mvp.md) |
 | T-254 | ✅ | Record the decision to translate the eight `.claude/agents/` files and amend ADR-160 (S-004, HITL) Done (code), ADR-162 Accepted |
 | T-255 | ✅ | Translate the agents README (S-004, AFK). Depends T-254 |
