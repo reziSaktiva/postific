@@ -1622,11 +1622,11 @@ yang punya akun sosial nyata; pakai E2E Sandbox.
 
 | Field | Value |
 | --- | --- |
-| **Status** | 🟡 In Progress (🔴 prioritas tinggi; T-196.1 sebagian terbukti 2026-11-04, menunggu keputusan King Rezi T-196.2) |
+| **Status** | 🟡 In Progress (🔴 prioritas tinggi; T-196.2 decided 2026-11-27, ADR-167; T-196.3 migration written, waiting for merge and King Rezi's `db:deploy`) |
 | **Mode** | HITL (T-196.1 diputuskan King Rezi; sisanya AFK setelah itu) |
 | **Domain** | database, keamanan |
 | **Spec** | tidak ada |
-| **Docs** | KI-106, `product-discovery/05-architecture/database-strategy.md`, `mcp_*` (pola policy `app_runtime` di T-151), advisor Supabase `rls_disabled` |
+| **Docs** | KI-106, ADR-167, `product-discovery/05-architecture/database-strategy.md`, `mcp_*` (pola policy `app_runtime` di T-151), advisor Supabase `rls_disabled` |
 | **Terkait** | T-189.1, T-189.4 |
 | **Depends** | keputusan King Rezi: policy per tabel, dan apakah koneksi aplikasi memakai `app_runtime` atau pemilik |
 
@@ -1685,10 +1685,17 @@ T-196.1 dan T-196.2 selesai.
           `identity_verification`, `identity_user`, lalu `workspaces`,
           `background_jobs`, `outstand_webhook_events`, `_prisma_migrations`.
 
-- [ ] **T-196.2** Keputusan King Rezi: peran koneksi aplikasi (pemilik atau
+- [x] **T-196.2** Keputusan King Rezi: peran koneksi aplikasi (pemilik atau
       `app_runtime`), policy per tabel, dan urutan; tulis policy beserta
       langkah rollback untuk tiap tabel sebelum satu pun diubah.
-- [ ] **T-196.3** Migrasi RLS per tabel (mulai dari tabel dengan dampak login
+
+      **Decided by King Rezi (2026-11-27):**
+      - Facts checked first (staging, read only): the app connects as `postgres` through Supavisor (6 sessions, no `app_runtime` session seen); `postgres` owns all 8 tables and has `BYPASSRLS`; `app_runtime` exists, has no `BYPASSRLS`, and holds SELECT/INSERT/UPDATE/DELETE on all 8; the browser only uses Realtime `postgres_changes` on `notifications` and `publishing_posts` (the only `public` tables in `supabase_realtime`); no Supabase JS `.from()` reads these 8 tables.
+      - **Pattern: ADR-141** (as on `mcp_*`): `ENABLE ROW LEVEL SECURITY` plus one `FOR ALL TO app_runtime USING (true) WITH CHECK (true)` policy per table, guarded by `IF EXISTS` on the role; no policy for `anon`/`authenticated` (default deny). Grants are not revoked. Recorded as **ADR-167** (extends the ADR-141 scope, as ADR-152 did; the AI first said no ADR was needed and corrected that the same day).
+      - **Rollout: one migration for all 8 tables** (replaces the per-table plan in T-196.3), followed by sign-in, publish, webhook, and job-runner checks on staging and the Supabase advisor.
+      - **Apply:** the AI writes the migration, tests, and a rollback script and opens a PR to `staging`; after merge King Rezi runs `bun run db:deploy`; the AI then verifies.
+      - Rollback: per table `DROP POLICY IF EXISTS ...; ALTER TABLE ... DISABLE ROW LEVEL SECURITY;` (written into the migration PR).
+- [~] **T-196.3** (2026-11-27: migration `20261127100000_t196_enable_rls_exposed_tables` written for all eight tables in one go per T-196.2, plus the opt-in integration test `apps/web/src/lib/repositories/security/exposed-tables-rls.integration.test.ts` (`T196_RLS_DB_TEST=1`: RLS on, one `app_runtime` policy each, `anon`/`authenticated` read 0 rows, owner still reads). `typecheck`, `lint`, and `prisma validate` clean. A rolled-back dry run on staging was declined, so the SQL has not run against a database yet. Remaining: King Rezi runs `db:deploy` after merge, then the integration test, sign-in, publish, webhook, and job-runner checks on staging.) Migrasi RLS per tabel (mulai dari tabel dengan dampak login
       terkecil), uji sign-in dan alur utama di staging setelah tiap tabel, dan
       rollback bila gagal.
 - [ ] **T-196.4** Ulangi advisor Supabase dan catat hasil.
