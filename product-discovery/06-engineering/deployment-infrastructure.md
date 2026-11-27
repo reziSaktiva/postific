@@ -261,6 +261,32 @@ The full details of naming, sources, and secret management are defined in `envir
 
 ---
 
+# Outstand Webhook Registration (per environment)
+
+Outstand sends `post.published`, `post.error`, and `account.token_expired` to the app as webhooks. Postific learns that an account session has expired **only** from `account.token_expired` (there is no polling of account health; the fallback idea was closed as not needed in T-311.3). So every environment that talks to a real Outstand organization must register its own webhook **before** its accounts are connected. Staging was set up this way on 2026-11-27 (T-311); production follows the same steps (T-088).
+
+**Steps (Project Owner, once per environment):**
+
+1. **Generate a signing secret.** Outstand does not generate it; the "Signing Secret" field is filled in by us. Use one random value per environment, never shared across environments (DI-D03).
+2. **Set `OUTSTAND_WEBHOOK_SECRET`** on the Railway `web` service of that environment to the same value, then **deploy**. A Railway variable change stays staged until it is deployed. On staging, a staged-but-undeployed secret made the first "Send test" return 401.
+3. **Register the webhook in the Outstand dashboard** of the organization used by that environment: sidebar Developer → Webhooks → Add Webhook.
+   - Endpoint URL: `https://<web domain of that environment>/api/webhooks/outstand` (staging: `https://web-staging-60d7.up.railway.app/api/webhooks/outstand`).
+   - Signing Secret: the value from step 1.
+   - Events: `post.published`, `post.error`, `account.token_expired`. Leave `comment.received` unticked unless an ADR adopts comment events (ADR-040 / IL-D09); it is stored but unused.
+   - Clear browser autofill in both fields first. Chrome put an email address in the URL field and a saved value in the secret field, and Outstand answered "please enter valid url".
+4. **Prove delivery:** press "Send test" in the dashboard. Expect "Test successful! Status: 200" and one `outstand_webhook_events` row with `event_type = test`, `status = processed`.
+5. **Prove a real event:** publish a test post on a connected account of that environment. About a minute later a `post.published` row must appear with `status = processed` and an empty `last_error` (verified on staging, 2026-11-27).
+
+**How the app checks a delivery:** header `X-Outstand-Signature: sha256=<hex>`, an HMAC-SHA256 of the raw body with `OUTSTAND_WEBHOOK_SECRET` (a bare hex value is also accepted). A wrong or missing secret returns 401, and the delivery leaves no row in `outstand_webhook_events` (only checked deliveries are stored). Per Outstand's documentation, failed deliveries are retried up to 5 times, from 10 seconds up to 5 minutes.
+
+**Known limits:**
+
+- Outstand did not re-send an expiry that happened before the webhook existed. An account that expired earlier stays "active" in Postific until its row is set to `reconnect_required` (or it is reconnected). Register the webhook first, then connect accounts.
+- A real `account.token_expired` and a real `post.error` delivery have not yet been observed; only `post.published` is proven end to end.
+- Publish outcomes still resolve through the JOB-07 polling fallback when a webhook is missed.
+
+---
+
 # Decision Log
 
 | ID     | Decision                                                                   | Reason                                                                                              | Alternatives                                                                                           |
