@@ -9,7 +9,7 @@
  * script goes around them once, for one workspace, by hand.
  *
  * Per account:
- *   1. `importPosts` with no `since` (full history) and `--limit` (default 1000).
+ *   1. `importPosts` with `since` 2000-01-01 (full history) and `--limit` (default 1000).
  *   2. Poll the Outstand import job up to 10 minutes. The job runner gives up
  *      after 25 s, which is why the daily Instagram and TikTok syncs fail.
  *   3. `ImportPostsProcessUseCase.process`: new posts are inserted; posts
@@ -18,7 +18,8 @@
  *      `upsert-imported-posts.ts`), which clears the failed thumbnail attempt.
  *   4. `ClassifyImportedPostTargetsUseCase.classifyBatch` for content format.
  *   5. The watermark moves to now only when the batch was not full.
- * Then the thumbnail queue is filled for each account (`import.media`, up to
+ * Then the thumbnail queue is filled for each account, also when its import
+ * failed or timed out (`import.media`, up to
  * 200 targets per account per run; the job runner on Railway processes it).
  * Run `--thumbnails-only` again after the runner has drained the queue to
  * queue the next 200.
@@ -45,6 +46,8 @@ import { publishingRepository } from "@/lib/repositories/publishing";
 import { workspaceRepository } from "@/lib/repositories/workspace";
 
 const DEFAULT_LIMIT = 1000;
+/** Before any of the supported platforms existed: asks Outstand for everything. */
+const FULL_HISTORY_SINCE = new Date("2000-01-01T00:00:00.000Z");
 const POLL_INTERVAL_MS = 5_000;
 const POLL_TIMEOUT_MS = 10 * 60 * 1000;
 const LOG = "[t309-reimport]";
@@ -145,7 +148,9 @@ async function main(): Promise<void> {
 
       if (!thumbnailsOnly) {
         const until = new Date();
+        // Explicit early `since`: do not rely on Outstand's default window.
         const handle = await outstand.importPosts(account.outstandAccountId, {
+          since: FULL_HISTORY_SINCE,
           until,
           limit,
         });
@@ -165,39 +170,46 @@ async function main(): Promise<void> {
           );
         }
         if (outcome.status !== "completed") {
+          // Still queue the thumbnails below: targets already waiting may
+          // have links that work.
           console.error(
-            `${LOG} FAILED ${tag}: status=${outcome.status} ${outcome.error ?? "(polling timed out)"}`,
+            `${LOG} FAILED import ${tag}: status=${outcome.status} ${outcome.error ?? "(polling timed out)"}`,
           );
-          continue;
-        }
-
-        const processed = await processUseCase.process({
-          workspaceId: account.workspaceId,
-          connectedAccountId: account.connectedAccountId,
-          platform: account.platform as SocialPlatform,
-          posts: outcome.posts,
-          actingUserId,
-        });
-        if (outcome.posts.length > 0) {
-          await classifyUseCase.classifyBatch({
+        } else {
+          const processed = await processUseCase.process({
             workspaceId: account.workspaceId,
             connectedAccountId: account.connectedAccountId,
             platform: account.platform as SocialPlatform,
             posts: outcome.posts,
             actingUserId,
           });
+          if (outcome.posts.length > 0) {
+            await classifyUseCase.classifyBatch({
+              workspaceId: account.workspaceId,
+              connectedAccountId: account.connectedAccountId,
+              platform: account.platform as SocialPlatform,
+              posts: outcome.posts,
+              actingUserId,
+            });
+          }
+          // Same truncation rule as the product (`isImportTruncated`, T-143).
+          const full = outcome.counts
+            ? outcome.counts.imported +
+                outcome.counts.skipped +
+                outcome.counts.failed >=
+              limit
+            : outcome.posts.length >= limit;
+          if (!full) {
+            await workspaceRepository.updateImportWatermark({
+              connectedAccountId: account.connectedAccountId,
+              lastImportedUntil: until,
+              actingUserId,
+            });
+          }
+          console.log(
+            `${LOG} OK ${tag}: fetched=${outcome.posts.length} inserted=${processed.insertedCount} existing=${processed.skippedDuplicateCount}${full ? " (batch FULL: rerun with a higher --limit)" : ""}`,
+          );
         }
-        const full = outcome.posts.length >= limit;
-        if (!full) {
-          await workspaceRepository.updateImportWatermark({
-            connectedAccountId: account.connectedAccountId,
-            lastImportedUntil: until,
-            actingUserId,
-          });
-        }
-        console.log(
-          `${LOG} OK ${tag}: fetched=${outcome.posts.length} inserted=${processed.insertedCount} existing=${processed.skippedDuplicateCount}${full ? " (batch FULL: rerun with a higher --limit)" : ""}`,
-        );
       }
 
       const queued = await enqueueImportMedia.enqueueForAccount({

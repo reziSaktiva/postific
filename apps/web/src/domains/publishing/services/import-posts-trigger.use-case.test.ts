@@ -1991,6 +1991,7 @@ describe("ImportPostsTriggerUseCase.executeQueuedPeriodicImport (T-115)", () => 
     const realDateNow = Date.now;
     let elapsedMs = 0;
     vi.spyOn(Date, "now").mockImplementation(() => realDateNow() + elapsedMs);
+    const backfill = vi.spyOn(noopBackfillUseCase, "backfillIfNeeded");
     try {
       const { useCase, importJobs } = createQueuedUseCase({
         fetchImportJobStatus: async () => ({
@@ -2019,9 +2020,44 @@ describe("ImportPostsTriggerUseCase.executeQueuedPeriodicImport (T-115)", () => 
           limit: 100,
         }),
       );
+      // Backfill waits for the attempt that finishes the import (30 s window).
+      expect(backfill).not.toHaveBeenCalled();
     } finally {
       vi.mocked(Date.now).mockRestore();
+      backfill.mockRestore();
     }
+  });
+
+  it("keeps the saved Outstand import id when polling it throws, so the next retry resumes (T-310)", async () => {
+    const { useCase, importJobs, outstandAdapter } = createQueuedUseCase({
+      job: runningJob({
+        result: {
+          outstandImportJobId: "outstand-slow-job",
+          since: "2026-08-01T00:00:00.000Z",
+          until: "2026-11-26T00:01:00.000Z",
+          limit: 100,
+        },
+      }),
+      fetchImportJobStatus: async () => {
+        throw new Error("Outstand 502");
+      },
+    });
+
+    await expect(
+      useCase.executeQueuedPeriodicImport(queuedInput),
+    ).rejects.toThrow(/Outstand 502/);
+    expect(outstandAdapter.importPosts).not.toHaveBeenCalled();
+    expect(importJobs.markImportSyncJobStatus).toHaveBeenCalledWith(
+      "running-job",
+      "failed",
+      "Outstand 502",
+      expect.objectContaining({
+        outstandImportJobId: "outstand-slow-job",
+        since: "2026-08-01T00:00:00.000Z",
+        until: "2026-11-26T00:01:00.000Z",
+        limit: 100,
+      }),
+    );
   });
 
   it("resumes the saved Outstand import with its saved range instead of starting a new one (T-310)", async () => {

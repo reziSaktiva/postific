@@ -165,6 +165,9 @@ function createStore(
             postId: row.postId,
             connectedAccountId: row.connectedAccountId,
             platformPostId: row.platformPostId,
+            platformOptions: row.platformOptions ?? null,
+            thumbnailStoragePath: row.thumbnailStoragePath ?? null,
+            post: { status: row.postStatus },
           }));
       },
       updateMany: async (args: {
@@ -831,6 +834,9 @@ function createPersistentChunkDb(
                   postId: row.id,
                   connectedAccountId: target.connectedAccountId,
                   platformPostId: target.platformPostId,
+                  platformOptions: null,
+                  thumbnailStoragePath: null,
+                  post: { status: "imported" },
                 })),
             );
         },
@@ -1078,6 +1084,11 @@ describe("upsertImportedPostsTx: media refresh on re-import (T-309)", () => {
   it.each([
     ["the first link is the same", seeded(), [OLD_URL]],
     [
+      "only the signature of the same file changed",
+      seeded(),
+      ["https://scontent.cdninstagram.com/old.jpg?oe=resigned"],
+    ],
+    [
       "the target already has a thumbnail",
       seeded({ thumbnailStoragePath: "ws/imports/t.webp" }),
       [NEW_URL],
@@ -1100,5 +1111,32 @@ describe("upsertImportedPostsTx: media refresh on re-import (T-309)", () => {
     ]);
 
     expect(store.mediaRefreshes).toEqual([]);
+  });
+
+  it("refreshes a target found through outstandPostId, not its platform post id", async () => {
+    const store = createStore(
+      [{ id: "post-existing", outstandPostId: "outstand-post-1" }],
+      {
+        seededTargets: [seeded({ platformPostId: "old-platform-id" })],
+      },
+    );
+
+    const result = await upsertImportedPostsTx(
+      store.tx as never,
+      WORKSPACE_ID,
+      [post({ mediaUrls: [NEW_URL] })],
+    );
+
+    expect(result).toEqual({ insertedCount: 0, skippedDuplicateCount: 1 });
+    expect(store.mediaRefreshes).toEqual([
+      {
+        id: "target-1",
+        data: {
+          platformOptions: { mediaUrls: [NEW_URL] },
+          thumbnailAttemptedAt: null,
+          thumbnailAttempts: 0,
+        },
+      },
+    ]);
   });
 });

@@ -654,7 +654,10 @@ export class ImportPostsTriggerUseCase {
       resumeImportJobId: resume?.importJobId,
       keepPendingForRetry: true,
     });
-    await this.attemptBackfill(runInput);
+    // T-310: skip the backfill while Outstand is still importing, so one
+    // attempt stays inside the runner's 30 s window (BG-D05); it runs on the
+    // attempt that finishes the import.
+    if (!result.stillRunning) await this.attemptBackfill(runInput);
     if (result.outcome === "failed") {
       throw new Error(result.message ?? "Import periodik antrian gagal.");
     }
@@ -754,15 +757,17 @@ export class ImportPostsTriggerUseCase {
      * `running`) so the runner retry can resume it.
      */
     options: { resumeImportJobId?: string; keepPendingForRetry?: boolean } = {},
-  ): Promise<ImportSyncTriggerResult> {
+  ): Promise<ImportSyncTriggerResult & { stillRunning?: boolean }> {
     // Dipertahankan di luar `try` supaya jalur `catch` tetap bisa menyimpan
     // angka yang sudah terkumpul (mis. penulisan status `done` gagal).
     let jobOutcome: ImportJobOutcome | undefined;
     let processed:
       { insertedCount: number; skippedDuplicateCount: number } | undefined;
+    // T-310 — outside `try` so the catch path can keep it for the next retry.
+    let importJobId: string | undefined = options.resumeImportJobId;
     try {
-      const importJobId =
-        options.resumeImportJobId ??
+      importJobId =
+        importJobId ??
         (
           await this.outstandAdapter.importPosts(input.outstandAccountId, {
             since: input.since,
@@ -787,7 +792,7 @@ export class ImportPostsTriggerUseCase {
             outstandImportJobId: importJobId,
           },
         );
-        return { outcome: "failed", message };
+        return { outcome: "failed", message, stillRunning: true };
       }
 
       if (jobOutcome.status !== "completed") {
@@ -900,7 +905,18 @@ export class ImportPostsTriggerUseCase {
           // T-143.3 — job yang gagal lewat exception tetap mencatat limit/
           // since dan angka yang sudah terkumpul (outcome fetch / hasil
           // process) supaya kasus terpotong bisa dibuktikan ulang.
-          buildImportJobResult(input, jobOutcome, processed),
+          // T-310: a known Outstand import id is kept for a queued job, so a
+          // transient error (5xx, network) resumes it instead of starting a
+          // new import. Not kept when Outstand itself reported `failed`.
+          importJobId &&
+            options.keepPendingForRetry &&
+            jobOutcome?.status !== "failed"
+            ? {
+                ...buildImportJobResult(input, jobOutcome, processed),
+                until: until.toISOString(),
+                outstandImportJobId: importJobId,
+              }
+            : buildImportJobResult(input, jobOutcome, processed),
         );
       } catch {
         // Code review PR #148 (finding #4) — kalau PENULISAN status gagal
