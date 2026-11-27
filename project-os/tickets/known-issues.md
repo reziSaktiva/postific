@@ -1882,3 +1882,27 @@ T-195; belum terbukti sampai pesan 400 terbaca (T-195.1 di staging).
 - [ ] **T-312.2** Decision for King Rezi: per function, revoke EXECUTE from `anon`/`authenticated` (granting to `app_runtime`), switch to `SECURITY INVOKER`, or move out of the exposed schema.
 - [ ] **T-312.3** Migration with rollback, Realtime and sign-in checks on staging, advisor rerun.
 
+
+---
+
+### T-313 · Real `post.published` webhooks fail to parse: Postific reads `data.id`, Outstand sends `data.postId` (KI-111)
+
+| Field | Value |
+| --- | --- |
+| **Status** | 🟡 In progress (2026-11-27: parser fixed on branch `fix/outstand-webhook-post-id`, unit tests green; PR open; staging proof T-313.3 open) |
+| **Mode** | AFK |
+| **Domain** | publishing (Outstand webhook, ACL) |
+| **Spec** | none |
+| **Docs** | KI-111, T-026, T-311, `apps/web/src/lib/adapters/outstand/parse-webhook-payload.ts`, `outstand-webhook-processor.ts` |
+| **Related** | T-311 (webhook registration, signed delivery proven), T-027 (JOB-07 polling fallback) |
+| **Depends** | none |
+
+**Found (2026-11-27)** during T-311.2: King Rezi published an Instagram Story on `@turanilkerl` in the E2E Sandbox workspace. A real `post.published` event reached `/api/webhooks/outstand` 59 seconds later and was stored, but `outstand_webhook_events.status = failed` with `last_error` "Event "post.published" tidak membawa post id — payload webhook tidak valid."
+
+**Root cause:** `parse-webhook-payload.ts` was written against a guessed payload (`data.id`). The real delivery has no root `id`, and carries `data.postId`, `data.orgId`, and `data.socialAccounts[]` (each with `accountId`, `network`, `username`, `platformPostId`, `platformPostUrl`). So `outstandPostId` was always `undefined` and every real `post.published` was marked failed.
+
+**Impact:** low. Publish outcomes still resolved through the JOB-07 polling fallback (the post showed `published`), but the webhook never sped that up. `post.error` very likely failed the same way. `account.token_expired` reads `data.accountId`, which matches the Outstand docs example, but no real delivery has been seen yet.
+
+- [x] **T-313.1** (2026-11-27, branch `fix/outstand-webhook-post-id`) Read the post id from `data.postId`, keep `data.id` as a fallback, update the parser comment to the verified shape. Done in `parse-webhook-payload.ts`.
+- [x] **T-313.2** (2026-11-27) Unit tests: the real captured payload (no root id, fingerprint used as event id) and `postId` winning over `id`. Mutation check: with the fix reverted, both new tests fail. 148/148 tests in the webhook-related files green, `typecheck` and `lint` clean.
+- [ ] **T-313.3** After the fix is deployed to staging, King Rezi publishes another test Story or post on `@turanilkerl`; a new `post.published` row in `outstand_webhook_events` must show `status = processed`. The failed row from 2026-11-27 (`744d2b15-6661-4b7c-81d9-ee7423efba47`) stays as history; it is not replayed.

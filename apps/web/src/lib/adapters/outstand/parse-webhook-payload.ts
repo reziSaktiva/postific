@@ -33,15 +33,17 @@ export function fingerprintRawBody(rawBody: string): string {
  * mengetahui bentuk JSON asli Outstand, domain `publishing` hanya
  * mengenal `ParsedOutstandWebhookEvent`).
  *
- * **Asumsi bentuk payload (belum ada sampel resmi terverifikasi dari
- * Outstand di baseline — dilaporkan sebagai bagian dari catatan akhir
- * task, BUKAN diasumsikan diam-diam sebagai kontrak final):**
+ * **Bentuk payload.** `post.published` terverifikasi dari delivery nyata
+ * di staging (T-313, 2026-11-27); `account.token_expired` mengikuti contoh
+ * di dokumentasi Outstand dan belum pernah terlihat sebagai delivery nyata:
  * ```json
- * { "id": "evt_123", "event": "post.published", "data": { "id": "outstand-post-id" } }
- * { "id": "evt_124", "event": "account.token_expired", "data": { "accountId": "outstand-account-id" } }
+ * { "event": "post.published", "timestamp": "...", "data": { "postId": "outstand-post-id", "orgId": "...", "socialAccounts": [{ "accountId": "...", "network": "instagram" }] } }
+ * { "event": "account.token_expired", "data": { "accountId": "outstand-account-id" } }
  * ```
- * `id` root (event id vendor) opsional. `event` (event type) wajib.
- * `data.id`/`data.accountId` diekstrak sesuai event type yang relevan.
+ * `id` root (event id vendor) opsional — delivery nyata tidak
+ * menyertakannya, jadi id idempotency jatuh ke fingerprint raw body.
+ * `event` (event type) wajib. `data.postId` (fallback `data.id`) dan
+ * `data.accountId` diekstrak sesuai event type yang relevan.
  *
  * Throws kalau payload bukan JSON valid, bukan objek, atau tidak punya
  * field `event` — caller (route handler) menangkap ini dan tetap
@@ -69,7 +71,15 @@ export function parseOutstandWebhookPayload(
   }
 
   const data = isRecord(json.data) ? json.data : {};
-  const outstandPostId = typeof data.id === "string" ? data.id : undefined;
+  // Real `post.*` deliveries carry the post id in `data.postId` (T-313,
+  // observed on staging 2026-11-27). `data.id` is kept as a fallback for the
+  // shape this parser was first written against.
+  const outstandPostId =
+    typeof data.postId === "string" && data.postId.length > 0
+      ? data.postId
+      : typeof data.id === "string"
+        ? data.id
+        : undefined;
   const outstandAccountId =
     typeof data.accountId === "string" ? data.accountId : undefined;
 
