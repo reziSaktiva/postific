@@ -1906,3 +1906,43 @@ T-195; belum terbukti sampai pesan 400 terbaca (T-195.1 di staging).
 - [x] **T-313.1** (2026-11-27, branch `fix/outstand-webhook-post-id`) Read the post id from `data.postId`, keep `data.id` as a fallback, update the parser comment to the verified shape. Done in `parse-webhook-payload.ts`.
 - [x] **T-313.2** (2026-11-27) Unit tests: the real captured payload (no root id, fingerprint used as event id) and `postId` winning over `id`. Mutation check: with the fix reverted, both new tests fail. 148/148 tests in the webhook-related files green, `typecheck` and `lint` clean.
 - [x] **T-313.3** (2026-11-27, Verified on staging) After the fix is deployed to staging, King Rezi publishes another test Story or post on `@turanilkerl`; a new `post.published` row in `outstand_webhook_events` must show `status = processed`. Result: PR 314 merged 09:16 UTC, deploy `ddd8ca39` Success 09:21:19 UTC. A Story published at about 09:22 UTC produced a `post.published` row received 09:23:18 UTC, `status = processed`, `last_error` empty, `processed_at` 09:23:21 UTC. (A Story at about 09:21 UTC was received at 09:21:11 UTC, 8 seconds before the deploy finished, and still failed with the old code, as expected.) The failed row from 2026-11-27 (`744d2b15-6661-4b7c-81d9-ee7423efba47`) stays as history; it is not replayed.
+
+---
+
+### T-314 · Instagram and Facebook Stories never reach Postific, old or new (KI-112)
+
+| Field | Value |
+| --- | --- |
+| **Status** | ⏳ Not started |
+| **Mode** | HITL (needs an answer from Outstand and a product decision) |
+| **Domain** | publishing (import, Outstand ACL) |
+| **Spec** | none |
+| **Docs** | KI-112, ADR-093, ADR-135, T-310, `apps/web/src/lib/adapters/outstand/real-outstand-adapter.ts` (`importPosts`, `fetchImportJobStatus`), `import-posts-trigger.use-case.ts` |
+| **Related** | T-310 (daily import timeout, in progress), T-132 (Post/Reel/Story classification), T-309 |
+| **Depends** | T-310 for T-314.3 |
+
+**Goal (King Rezi, 2026-11-27):** Postific imports Instagram and Facebook Stories, so a Story posted on the platform shows up in Postific. The question of why it does not today is only the first step.
+
+**Found (2026-11-27)** while King Rezi compared Postific with another tool for the Cook It Real Good account: Stories are missing from Postific, and the difference in post count is these Stories. King Rezi asked why old Stories cannot be imported and why a new Instagram Story does not appear.
+
+**Evidence (read-only, 2026-11-27, the Supabase project behind the staging MCP, workspace `d18300b6-722e-42a7-b7d1-5f35299bcb13`):**
+
+- Imported posts by format: Instagram 80 `post` + 102 `reel` + **0 `story`**; Facebook 776 `post` + 225 `reel` + **0 `story`**. Both accounts list `story` in `supportedContentFormats`.
+- Every Instagram `import.sync` job for this account failed with "Import masih diproses di Outstand setelah menunggu 25 detik" (38 jobs, 2026-10-22 to 2026-11-27, including one manual). The watermark `last_imported_until` is stuck at 2026-10-23. The newest Instagram post in Postific is a reel from 2026-10-22. This is the T-310 problem, not a Story problem, and it means **no new Instagram content of any kind** arrives right now. Facebook, TikTok and YouTube watermarks advance.
+- The failed Instagram jobs record `outstandSkipped` values that grow over time (1, 3, 5, 7, 9, 11, 14) with `outstandImported` 0. Those numbers are read when the 25-second wait ends, while the Outstand job may still be running, so they are partial. They are not proof that Stories were skipped.
+- Our import pulls a job summary, then `GET /v1/posts?social_account_id=...&created_after=...`, and keeps only `socialAccounts[]` entries with `status === "published"` and a `platformPostId` (adapter docstring). The import endpoint has no content-type field (ADR-135).
+- ADR-135: an Instagram Story older than 24 hours returned `metrics_error.code: metrics_expired` from Outstand analytics. Facebook has no official Story signal in that endpoint.
+
+**What is proven:** (1) Postific holds zero Stories for both accounts. (2) Instagram imports have not completed since 2026-10-22 because of the 25-second wait. **What is not proven:** whether Outstand's import or `GET /v1/posts` ever returns Stories that were posted natively on the platform, and for how long after posting.
+
+- [ ] **T-314.1** (AFK) Finish the T-310 staging proof first, so an Instagram import completes and the watermark moves. Without this, T-314.3 cannot tell "timed out" from "Stories not returned".
+- [ ] **T-314.2** (HITL) Find out from Outstand how Postific can get Stories: do `POST /v1/social-accounts/{id}/imports` and `GET /v1/posts` return native Instagram and Facebook Stories, how long after posting, and is there another endpoint or webhook for Stories? Use the Outstand MCP when it connects, else the OpenAPI specs (`api.outstand.so/v1/social-accounts/openapi.json`, `api.outstand.so/v1/posts/openapi.json`) or Outstand support. Record the answer and its source in this ticket.
+- [ ] **T-314.3** (HITL, depends T-314.1) Real-data probe on the Cook It Real Good Instagram account: after a completed import, check whether Outstand's response for that window contains Story items and what `skipped` counts. Use the daily job; do not start extra manual imports (Outstand charges per import, ADR-093 cooldown applies).
+- [ ] **T-314.4** (HITL decision, ADR if the baseline changes, AGENTS rule 2) Choose the way Postific imports Stories, from T-314.2 and T-314.3:
+  - If Outstand returns Stories through the import: map them to `ContentFormat.Story` (ADR-135 already reads `mediaProductType === "STORY"` for Instagram) and decide how Facebook Stories are told apart from posts.
+  - If it does not: pick another source. Stories expire after 24 hours, so this likely needs capturing them while they are live (the `post.published` webhook only covers posts made through Postific, so a live poll or another Outstand source would be needed).
+- [ ] **T-314.5** Split implementation tickets from the decision in T-314.4. Any screen change is checked against the Postific design artifact first (AGENTS rule 10).
+
+Out of scope: the 25-second wait itself (T-310) and thumbnails (T-309).
+
+**Blocked by:** T-314.2 and T-314.3 for the decision; T-310 for T-314.3.
